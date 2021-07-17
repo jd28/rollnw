@@ -30,6 +30,7 @@ include(ParseAndAddCatchTests)
 
 add_executable(libnw_test
     main.cpp
+    util_string.cpp
 )
 
 set_target_properties(libnw_test
