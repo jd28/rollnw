@@ -1,0 +1,18 @@
+# Build
+build/
+build-doc/
+vcpkg/
+
+# IDEs
+.vscode/
+.clion/
+CMakeLists.txt.user
+.kdev4/
+*.kdev4
+
+# bin/
+bin/*
+!bin/.gitkeep
+
+# docs
+docs/_build/

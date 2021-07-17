@@ -1,0 +1,10 @@
+BasedOnStyle: WebKit
+AlignTrailingComments: 'true'
+AllowShortIfStatementsOnASingleLine: WithoutElse
+Cpp11BracedListStyle: 'true'
+NamespaceIndentation: None
+SortIncludes: 'true'
+SpaceAfterCStyleCast: 'false'
+SpaceAfterLogicalNot: 'false'
+SpaceAfterTemplateKeyword: 'true'
+SpaceBeforeCpp11BracedList: 'false'
