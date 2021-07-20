@@ -14,7 +14,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 -Wall -Wextra -pedantic -fno-
 
 include_directories(external)
 
-add_subdirectory(lib)
+add_subdirectory(lib/nw)
 
 if (LIBNW_BUILD_TESTS)
 add_subdirectory(tests)
