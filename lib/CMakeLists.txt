@@ -4,6 +4,8 @@ find_package(absl CONFIG REQUIRED)
 add_library(nw STATIC
     log
 
+    i18n/LocString
+
     resources/Resref
     resources/Resource
 
