@@ -4,6 +4,9 @@ find_package(absl CONFIG REQUIRED)
 add_library(nw STATIC
     log
 
+    resources/Resref
+    resources/Resource
+
     util/string
 )
 
