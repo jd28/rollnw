@@ -6,6 +6,7 @@ add_library(nw STATIC
 
     i18n/LocString
 
+    resources/Container
     resources/Resref
     resources/Resource
 
