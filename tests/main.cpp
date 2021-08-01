@@ -1,8 +1,12 @@
 #define CATCH_CONFIG_RUNNER
 #include <catch2/catch.hpp>
 
+#include <nw/log.hpp>
+
 int main(int argc, char* argv[])
 {
+    nw::init_logger(argc, argv);
+
     Catch::Session session; // There must be exactly one instance
 
     // writing to session.configData() here sets defaults
