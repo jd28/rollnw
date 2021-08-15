@@ -48,7 +48,6 @@ public:
 
     ByteArray read(const ErfElement& element);
     virtual ByteArray demand(Resource res) override;
-    virtual int extract(std::string_view glob, const std::filesystem::path& output) override;
     virtual int extract(const std::regex& pattern, const std::filesystem::path& output) override;
 
     /**

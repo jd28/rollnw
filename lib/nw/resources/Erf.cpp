@@ -74,11 +74,6 @@ ByteArray Erf::demand(Resource res)
     return read(it->second);
 }
 
-int Erf::extract(std::string_view glob, const std::filesystem::path& output)
-{
-    return extract(string::glob_to_regex(glob, true), output);
-}
-
 int Erf::extract(const std::regex& re, const std::filesystem::path& output)
 {
     if (!std::filesystem::is_directory(output)) {

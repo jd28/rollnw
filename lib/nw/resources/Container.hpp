@@ -22,7 +22,15 @@ struct Container {
      */
     virtual ByteArray demand(Resource res) = 0;
 
-    virtual int extract(std::string_view glob, const std::filesystem::path& output) = 0;
+    /**
+     * @brief Extract elements from a container by glob pattern
+     *
+     */
+    virtual int extract(std::string_view glob, const std::filesystem::path& output);
+
+    /**
+     * @brief Extract elements from a container by regex
+     */
     virtual int extract(const std::regex& pattern, const std::filesystem::path& output) = 0;
 
     /**
