@@ -17,6 +17,7 @@ struct Directory : public Container {
     Directory(const std::filesystem::path& path);
     ~Directory() = default;
 
+    virtual std::vector<Resource> all() override;
     virtual ByteArray demand(Resource res) override;
     virtual int extract(const std::regex& pattern, const std::filesystem::path& output) override;
 

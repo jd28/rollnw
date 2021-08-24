@@ -17,6 +17,26 @@ Directory::Directory(const fs::path& path)
     LOG_F(INFO, "{}: Loading...", path_.c_str());
 }
 
+std::vector<Resource> Directory::all()
+{
+    std::vector<Resource> res;
+    for (auto it : fs::directory_iterator{path_}) {
+        if (!it.is_regular_file()) { continue; }
+
+        auto fn = it.path().filename();
+
+        ResourceType::type t = ResourceType::from_extension(fn.extension().c_str());
+        if (t == ResourceType::invalid) { continue; }
+
+        auto s = fn.stem().string();
+        if (s.length() > 16) { continue; }
+
+        res.emplace_back(s, t);
+    }
+
+    return res;
+}
+
 ByteArray Directory::demand(Resource res)
 {
     fs::path p = path_ / res.filename();

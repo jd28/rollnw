@@ -4,6 +4,7 @@
 #include "Resource.hpp"
 
 #include <filesystem>
+#include <vector>
 
 namespace nw {
 
@@ -13,6 +14,11 @@ namespace nw {
  */
 struct Container {
     virtual ~Container() = default;
+
+    /**
+     * @brief Get all resources
+     */
+    virtual std::vector<Resource> all() = 0;
 
     /**
      * @brief Read resourece data

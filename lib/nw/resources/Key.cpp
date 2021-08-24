@@ -40,6 +40,16 @@ Key::Key(fs::path path)
     is_loaded_ = load();
 }
 
+std::vector<Resource> Key::all()
+{
+    std::vector<Resource> result;
+    result.reserve(elements_.size());
+    for (const auto& [k, v] : elements_) {
+        result.push_back(k);
+    }
+    return result;
+}
+
 ByteArray Key::demand(Resource res)
 {
     ByteArray ba;

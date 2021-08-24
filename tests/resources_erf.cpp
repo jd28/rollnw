@@ -10,6 +10,7 @@ TEST_CASE("Erf loading", "[containers]")
 {
     Erf e("test_data/DockerDemo.mod");
     REQUIRE(e.size() > 0);
+    REQUIRE(e.all().size() > 0);
 }
 
 TEST_CASE("Erf demanding", "[containers]")

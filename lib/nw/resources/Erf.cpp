@@ -66,6 +66,16 @@ ByteArray Erf::read(const ErfElement& e)
     return ba;
 }
 
+std::vector<Resource> Erf::all()
+{
+    std::vector<Resource> result;
+    result.reserve(elements_.size());
+    for (const auto& [k, v] : elements_) {
+        result.push_back(k);
+    }
+    return result;
+}
+
 ByteArray Erf::demand(Resource res)
 {
     if (!is_loaded_) { return {}; }

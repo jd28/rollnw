@@ -12,4 +12,5 @@ TEST_CASE("Directory", "[containers]")
     auto ba = d.demand(Resource{"test"sv, ResourceType::nss});
     REQUIRE(ba.size());
     REQUIRE(ba.size() == std::filesystem::file_size("./test_data/test.nss"));
+    REQUIRE(d.all().size() > 0);
 }
