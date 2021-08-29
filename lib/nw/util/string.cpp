@@ -1,5 +1,7 @@
 #include "string.hpp"
 
+#include "../log.hpp"
+
 #include <absl/strings/charconv.h>
 #include <absl/strings/str_join.h>
 #include <absl/strings/str_replace.h>
@@ -148,7 +150,12 @@ std::regex glob_to_regex(std::string_view pattern, bool icase)
             {"+", "\\+"}, {"?", "\\?"}, {"/", "\\/"}});
     // Put back glob patterns.
     absl::StrReplaceAll({{"\\?", "."}, {"\\*", ".*"}}, &s);
-    return icase ? std::regex(s, std::regex::icase) : std::regex(s);
+    try {
+        return icase ? std::regex(s, std::regex::icase) : std::regex(s);
+    } catch (const std::regex_error&) {
+        LOG_F(ERROR, "Failed to create regex from '{}' glob", pattern);
+        return {};
+    }
 }
 
 } // namespace nw::string
