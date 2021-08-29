@@ -23,7 +23,6 @@ add_library(nw STATIC
 target_link_libraries(nw PUBLIC
     fmt::fmt
     absl::base
-    absl::container
     absl::flat_hash_map
     absl::hash
     absl::utility
