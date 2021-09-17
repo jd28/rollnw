@@ -1,21 +1,26 @@
-cmake_minimum_required(VERSION 3.4)
-project(libnw)
+cmake_minimum_required(VERSION 3.9)
+project(libnw VERSION 1.0.0 LANGUAGES CXX)
+set (CMAKE_CXX_STANDARD 17)
 
-set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/")
+include(cmake/ProjectSettings.cmake)
+include(cmake/PreventInSourceBuilds.cmake)
 
-set(CMAKE_EXPORT_COMPILE_COMMANDS 1)
+add_library(libnw_project_options INTERFACE)
+target_compile_features(libnw_project_options INTERFACE cxx_std_17)
 
-option(LIBNW_BUILD_TESTS "Build Tests" OFF)
+add_library(libnw_project_warnings INTERFACE)
 
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
+include(cmake/Cache.cmake)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 -Wall -Wextra -pedantic -fno-omit-frame-pointer")
+include(cmake/CompilerWarnings.cmake)
+set_project_warnings(libnw_project_warnings)
+
+include(cmake/Sanitizers.cmake)
+enable_sanitizers(libnw_project_options)
 
 include_directories(external)
-
 add_subdirectory(lib/nw)
 
-if (LIBNW_BUILD_TESTS)
+if (ENABLE_TESTING)
 add_subdirectory(tests)
 endif()
