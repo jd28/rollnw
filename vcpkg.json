@@ -4,6 +4,9 @@
     "dependencies": [
         "catch2",
         "fmt",
-        "abseil"
+        "abseil",
+        "zstd",
+        "zlib",
+        "sqlite3"
     ]
 }

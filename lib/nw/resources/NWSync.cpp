@@ -1,0 +1,212 @@
+#include "NWSync.hpp"
+
+#include "../log.hpp"
+#include "../util/scope_exit.hpp"
+
+#include <fmt/format.h>
+
+#include <fstream>
+
+namespace fs = std::filesystem;
+using namespace std::literals;
+
+namespace nw {
+
+namespace detail {
+void sqlite3_deleter(sqlite3* db) { sqlite3_close(db); }
+} // namespace detail
+
+NWSyncManifest::NWSyncManifest(std::string manifest, NWSync* parent)
+    : manifest_{std::move(manifest)}
+    , parent_{parent}
+{
+}
+
+std::vector<Resource> NWSyncManifest::all()
+{
+    std::vector<Resource> result;
+
+    sqlite3_stmt* stmt = nullptr;
+    const char* tail = nullptr;
+    SCOPE_EXIT([stmt] { sqlite3_finalize(stmt); });
+    const char sql[] = u8"SELECT resref, restype from manifest_resrefs where manifest_sha1 = ?";
+
+    if (SQLITE_OK != sqlite3_prepare_v2(parent_->meta(), sql, sizeof(sql), &stmt, &tail)) {
+        LOG_F(ERROR, "sqlite3 error: {}", sqlite3_errmsg(parent_->meta()));
+        return result;
+    }
+
+    if (SQLITE_OK != sqlite3_bind_text(stmt, 1, manifest_.c_str(), manifest_.size(), nullptr)) {
+        LOG_F(ERROR, "sqlite3 error: {}", sqlite3_errmsg(parent_->meta()));
+        return result;
+    }
+
+    while (sqlite3_step(stmt) == SQLITE_ROW) {
+        result.emplace_back(
+            std::string_view(reinterpret_cast<const char*>(sqlite3_column_text(stmt, 0))),
+            static_cast<ResourceType::type>(sqlite3_column_int(stmt, 1)));
+    }
+    return result;
+}
+
+ByteArray NWSyncManifest::demand(Resource res)
+{
+    ByteArray result;
+
+    sqlite3_stmt* stmt = nullptr;
+    const char* tail = nullptr;
+    SCOPE_EXIT([stmt] { sqlite3_finalize(stmt); });
+    sqlite3_prepare_v2(parent_->meta(), u8R"x(SELECT resref_sha1
+                                          FROM manifest_resrefs
+                                          WHERE manifest_sha1 = ? AND resref = ? and restype = ?)x",
+        -1, &stmt, &tail);
+
+    sqlite3_bind_text(stmt, 1, manifest_.c_str(), manifest_.size(), nullptr);
+    sqlite3_bind_text(stmt, 2, res.resref.view().data(), res.resref.length(), nullptr);
+    sqlite3_bind_int(stmt, 3, res.type);
+    if (sqlite3_step(stmt) != SQLITE_ROW) {
+        LOG_F(ERROR, "Failed to find: {}", res.filename());
+        return result;
+    }
+
+    for (auto& s : parent_->shards()) {
+        sqlite3_stmt* data_stmt = nullptr;
+        const char* data_tail = nullptr;
+        SCOPE_EXIT([data_stmt] { sqlite3_finalize(data_stmt); });
+        if (SQLITE_OK != sqlite3_prepare_v2(s.get(), u8R"x(SELECT data
+                                          FROM resrefs
+                                          WHERE sha1 = ?)x",
+                -1, &data_stmt, &data_tail)) {
+            LOG_F(ERROR, "sqlite3: {}", sqlite3_errmsg(s.get()));
+            continue;
+        }
+
+        if (SQLITE_OK != sqlite3_bind_text(data_stmt, 1, reinterpret_cast<const char*>(sqlite3_column_text(stmt, 0)), -1, nullptr)) {
+            LOG_F(ERROR, "sqlite3: {}", sqlite3_errmsg(s.get()));
+            continue;
+        }
+
+        if (sqlite3_step(data_stmt) == SQLITE_ROW) {
+            result = decompress({reinterpret_cast<const std::byte*>(sqlite3_column_blob(data_stmt, 0)),
+                                    static_cast<uint32_t>(sqlite3_column_bytes(data_stmt, 0))},
+                "NSYC");
+            return result;
+        }
+    }
+
+    return result;
+}
+
+int NWSyncManifest::extract(const std::regex& pattern, const std::filesystem::path& output)
+{
+    if (!std::filesystem::is_directory(output)) {
+        // Needs to be create_directories to simplify usage.  Alternatively,
+        // could assert that path must already exist.  Needs error handling.
+        std::filesystem::create_directories(output);
+    }
+
+    int count = 0;
+
+    sqlite3_stmt* stmt = nullptr;
+    const char* tail = nullptr;
+    SCOPE_EXIT([stmt] { sqlite3_finalize(stmt); });
+    const char sql[] = u8"SELECT resref, restype from manifest_resrefs where manifest_sha1 = ?";
+
+    if (SQLITE_OK != sqlite3_prepare_v2(parent_->meta(), sql, sizeof(sql), &stmt, &tail)) {
+        LOG_F(ERROR, "sqlite3: {}", sqlite3_errmsg(parent_->meta()));
+        return count;
+    }
+
+    if (SQLITE_OK != sqlite3_bind_text(stmt, 1, manifest_.c_str(), manifest_.size(), nullptr)) {
+        LOG_F(ERROR, "sqlite3: {}", sqlite3_errmsg(parent_->meta()));
+        return count;
+    }
+
+    while (sqlite3_step(stmt) == SQLITE_ROW) {
+        Resource r(std::string_view(reinterpret_cast<const char*>(sqlite3_column_text(stmt, 0))),
+            static_cast<ResourceType::type>(sqlite3_column_int(stmt, 1)));
+        auto fname = r.filename();
+        if (std::regex_match(fname, pattern)) {
+            auto ba = demand(r);
+            if (ba.size()) {
+                ++count;
+                std::ofstream out{output / fname};
+                out.write((char*)ba.data(), ba.size());
+            }
+        }
+    }
+
+    return count;
+}
+
+NWSync::NWSync(std::filesystem::path path)
+    : path_{fs::canonical(path)}
+    , meta_{nullptr, detail::sqlite3_deleter}
+{
+    is_loaded_ = load();
+}
+
+bool NWSync::is_loaded() const noexcept
+{
+    return is_loaded_;
+}
+
+NWSyncManifest& NWSync::get(const std::string& manifest)
+{
+    return map_[manifest];
+}
+
+std::vector<std::string> NWSync::manifests()
+{
+    std::vector<std::string> result;
+
+    sqlite3_stmt* stmt = nullptr;
+    const char* tail = nullptr;
+    SCOPE_EXIT([stmt] { sqlite3_finalize(stmt); });
+    const char sql[] = u8"SELECT sha1 FROM manifests";
+    if (SQLITE_OK != sqlite3_prepare_v2(meta_.get(), sql, sizeof(sql), &stmt, &tail)) {
+        LOG_F(ERROR, "sqlite3 error: {}", sqlite3_errmsg(meta_.get()));
+        return result;
+    }
+
+    while (sqlite3_step(stmt) == SQLITE_ROW) {
+        const char* m = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 0));
+        if (!m) { break; }
+        result.push_back(m);
+    }
+
+    return result;
+}
+
+size_t NWSync::shard_count() const noexcept
+{
+    return shards_.size();
+}
+
+bool NWSync::load()
+{
+    sqlite3* db = nullptr;
+    fs::path db_path = path_ / "nwsyncmeta.sqlite3";
+    sqlite3_open(db_path.c_str(), &db);
+    meta_ = sqlite3_ptr(db, detail::sqlite3_deleter);
+
+    int i = 0;
+    while (true) {
+        db = nullptr;
+        auto db_name = fmt::format("nwsyncdata_{}.sqlite3", i);
+        db_path = path_ / db_name;
+
+        if (!fs::exists(db_path)) { break; }
+        sqlite3_open(db_path.c_str(), &db);
+        shards_.emplace_back(db, detail::sqlite3_deleter);
+        ++i;
+    }
+
+    for (const auto& m : manifests()) {
+        map_.emplace(m, NWSyncManifest{m, this});
+    }
+
+    return i != 0;
+}
+
+} // namespace nw
