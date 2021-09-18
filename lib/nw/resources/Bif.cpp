@@ -1,0 +1,80 @@
+#include "Bif.hpp"
+
+#include "../log.hpp"
+#include "../util/ByteArray.hpp"
+
+#include <cstdint>
+#include <filesystem>
+
+namespace nw {
+
+namespace fs = std::filesystem;
+
+struct BifHeader {
+    char type[4];
+    char version[4];
+    uint32_t var_res_count;
+    uint32_t fix_res_count; // Unused
+    uint32_t var_table_offset;
+};
+
+Bif::Bif(Key* key, fs::path path)
+    : key(key)
+    , path_(std::move(path))
+{
+    is_loaded_ = load();
+}
+
+#define CHECK_OFFSET(offset)                                 \
+    do {                                                     \
+        if (static_cast<std::streamsize>(offset) > fsize_) { \
+            return false;                                    \
+        }                                                    \
+    } while (0)
+
+bool Bif::load()
+{
+    if (!key) LOG_F(ERROR, "Null Key File");
+
+    if (!fs::exists(path_)) { LOG_F(ERROR, "File '{}' does not exist.", path_.c_str()); }
+    file_.open(path_);
+    if (!file_.is_open()) { LOG_F(ERROR, "Unable to open '{}'", path_.c_str()); }
+
+    fsize_ = fs::file_size(path_);
+
+    BifHeader header;
+    CHECK_OFFSET(sizeof(BifHeader));
+    file_.read((char*)&header, sizeof(BifHeader));
+
+    uint32_t offset = header.var_table_offset;
+    CHECK_OFFSET(header.var_table_offset);
+    file_.seekg(offset, std::ios_base::beg);
+    elements.resize(header.var_res_count);
+
+    CHECK_OFFSET(header.var_table_offset + sizeof(BifElement) * header.var_res_count);
+    file_.read(reinterpret_cast<char*>(&elements[0]), sizeof(BifElement) * header.var_res_count);
+
+    return true;
+}
+
+ByteArray Bif::demand(size_t index)
+{
+    ByteArray ba;
+
+    if (index >= elements.size()) {
+        LOG_F(ERROR, "{}: Invalid index: {}", path_.c_str(), index);
+    } else if (elements[index].offset + elements[index].size > fsize_) {
+        LOG_F(ERROR, "{}: Invalid offset {} is greater than file size: {}", path_.c_str(),
+            elements[index].offset + elements[index].size, fsize_);
+    } else {
+        ba.resize(elements[index].size);
+        file_.seekg(elements[index].offset, std::ios_base::beg);
+        file_.read((char*)ba.data(), elements[index].size);
+    }
+
+    return ba;
+}
+
+#undef CHECK_OFFSET
+
+} // namespace nw

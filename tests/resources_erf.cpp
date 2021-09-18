@@ -25,5 +25,4 @@ TEST_CASE("Erf extracting", "[containers]")
     auto ba = e.demand({"module"sv, ResourceType::ifo});
     REQUIRE(e.extract(std::regex("module.ifo"), "tmp/") == 1);
     REQUIRE(ba.size() == std::filesystem::file_size("tmp/module.ifo"));
-    std::filesystem::remove_all("tmp/");
 }
