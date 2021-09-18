@@ -2,6 +2,7 @@
 
 #include "../util/ByteArray.hpp"
 #include "Resource.hpp"
+#include "ResourceDescriptor.hpp"
 
 #include <filesystem>
 #include <vector>
@@ -45,6 +46,11 @@ struct Container {
      * @return size_t
      */
     virtual size_t size() const { return 0; }
+
+    /**
+     * @brief Get some general data about a resource
+     */
+    virtual ResourceDescriptor stat(const Resource& res) = 0;
 };
 
 } // namespace nw

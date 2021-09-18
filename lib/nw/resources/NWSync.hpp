@@ -43,6 +43,7 @@ struct NWSyncManifest : public Container {
     virtual ByteArray demand(Resource res);
     virtual int extract(const std::regex& pattern, const std::filesystem::path& output);
     virtual size_t size() const { return 0; }
+    virtual ResourceDescriptor stat(const Resource& res);
 
 private:
     std::string manifest_;

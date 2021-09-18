@@ -94,6 +94,18 @@ size_t Key::size() const
     return elements_.size();
 }
 
+ResourceDescriptor Key::stat(const Resource& res)
+{
+    ResourceDescriptor result;
+    auto it = elements_.find(res);
+    if (it != std::end(elements_)) {
+        result.name = res;
+        result.parent = this;
+        result.size = bifs_[it->second.bif].elements[it->second.index].size;
+        result.mtime = fs::last_write_time(path_).time_since_epoch().count() / 1000;
+    }
+    return result;
+}
 // ---- Private ---------------------------------------------------------------
 
 #define CHECK_OFFSET(offset)                                 \

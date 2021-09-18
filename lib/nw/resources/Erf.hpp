@@ -51,11 +51,8 @@ public:
     virtual std::vector<Resource> all() override;
     virtual ByteArray demand(Resource res) override;
     virtual int extract(const std::regex& pattern, const std::filesystem::path& output) override;
-
-    /**
-     * @brief Number of resources in the Erf file.
-     */
     virtual size_t size() const override;
+    virtual ResourceDescriptor stat(const Resource& res) override;
 
     /// Erf type.
     ErfType type;

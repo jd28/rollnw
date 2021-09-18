@@ -41,6 +41,7 @@ struct Key : public Container {
      * @brief Number of resources in the Key & Bif files.
      */
     virtual size_t size() const override;
+    virtual ResourceDescriptor stat(const Resource& res);
 
     /// @name Operators
     /// @{

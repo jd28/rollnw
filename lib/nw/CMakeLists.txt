@@ -17,6 +17,7 @@ add_library(nw STATIC
     resources/NWSync
     resources/Resref
     resources/Resource
+    resources/ResourceDescriptor
 
     util/ByteArray
     util/compression

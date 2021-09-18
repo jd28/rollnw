@@ -114,6 +114,19 @@ size_t Erf::size() const
     return elements_.size();
 }
 
+ResourceDescriptor Erf::stat(const Resource& res)
+{
+    ResourceDescriptor result;
+    auto it = elements_.find(res);
+    if (it != std::end(elements_)) {
+        result.name = res;
+        result.parent = this;
+        result.size = it->second.info.size;
+        result.mtime = fs::last_write_time(path_).time_since_epoch().count() / 1000;
+    }
+    return result;
+}
+
 // ---- Private ---------------------------------------------------------------
 
 #define CHECK_OFFSET(offset)                                 \

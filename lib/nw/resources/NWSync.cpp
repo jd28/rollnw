@@ -139,6 +139,34 @@ int NWSyncManifest::extract(const std::regex& pattern, const std::filesystem::pa
     return count;
 }
 
+ResourceDescriptor NWSyncManifest::stat(const Resource& res)
+{
+    ResourceDescriptor result;
+
+    sqlite3_stmt* stmt = nullptr;
+    const char* tail = nullptr;
+    SCOPE_EXIT([stmt] { sqlite3_finalize(stmt); });
+    sqlite3_prepare_v2(parent_->meta(), u8R"x(SELECT created_at
+                                          FROM manifest_resrefs
+                                          WHERE manifest_sha1 = ? AND resref = ? and restype = ?)x",
+        -1, &stmt, &tail);
+
+    sqlite3_bind_text(stmt, 1, manifest_.c_str(), manifest_.size(), nullptr);
+    sqlite3_bind_text(stmt, 2, res.resref.view().data(), res.resref.length(), nullptr);
+    sqlite3_bind_int(stmt, 3, res.type);
+    if (sqlite3_step(stmt) != SQLITE_ROW) {
+        LOG_F(ERROR, "Failed to find: {}", res.filename());
+        return result;
+    }
+
+    result.name = res;
+    result.mtime = sqlite3_column_int(stmt, 1);
+    result.size = -1; // Punting
+    result.parent = this;
+
+    return result;
+}
+
 NWSync::NWSync(std::filesystem::path path)
     : path_{fs::canonical(path)}
     , meta_{nullptr, detail::sqlite3_deleter}
