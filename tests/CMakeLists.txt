@@ -3,7 +3,7 @@ find_package(Catch2 CONFIG REQUIRED)
 
 file(GLOB_RECURSE COPY_FILES
                   RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
-                  data/*)
+                  test_data/*)
 
 foreach(FILENAME ${COPY_FILES})
     set(SRC "${CMAKE_CURRENT_SOURCE_DIR}/${FILENAME}")
@@ -31,6 +31,7 @@ include(ParseAndAddCatchTests)
 add_executable(libnw_test
     main.cpp
     resources.cpp
+    resources_erf.cpp
     util_string.cpp
 )
 
