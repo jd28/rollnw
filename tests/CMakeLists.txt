@@ -31,6 +31,7 @@ include(ParseAndAddCatchTests)
 add_executable(libnw_test
     main.cpp
     resources.cpp
+    resources_dir.cpp
     resources_erf.cpp
     resources_key.cpp
     util_string.cpp
