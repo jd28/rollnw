@@ -200,7 +200,9 @@ struct ResourceType {
         if (string::icmp(ext, "ttf")) return ttf;
         if (string::icmp(ext, "sql")) return sql;
         if (string::icmp(ext, "tml")) return tml;
-        if (string::icmp(ext, "sq3")) return sq3;
+        if (string::icmp(ext, "sq3")
+            || string::icmp(ext, "sqlite3")
+            || string::icmp(ext, "sqlite3nwnxee")) return sq3;
         if (string::icmp(ext, "lod")) return lod;
         if (string::icmp(ext, "ids")) return ids;
         if (string::icmp(ext, "erf")) return erf;
