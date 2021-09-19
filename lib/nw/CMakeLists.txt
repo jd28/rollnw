@@ -8,6 +8,7 @@ add_library(nw STATIC
     log
 
     formats/TwoDA
+    formats/Image
 
     i18n/LocString
 
@@ -38,4 +39,6 @@ target_link_libraries(nw PUBLIC
     ZLIB::ZLIB
     zstd::libzstd_static
     unofficial::sqlite3::sqlite3
+
+    stb_image
 )

@@ -1,0 +1,36 @@
+#include <catch2/catch.hpp>
+
+#include <nw/formats/Image.hpp>
+#include <nw/log.hpp>
+
+#include <filesystem>
+
+TEST_CASE("Parse Bioware DDS", "[formats]")
+{
+    std::filesystem::create_directory("tmp");
+    nw::Image dds{"test_data/bioRGBA.dds"};
+    REQUIRE(dds.valid());
+    CHECK(dds.write_to("tmp/bioRGBA.dds"));
+    CHECK(dds.write_to("tmp/bioRGBA.png"));
+    CHECK(dds.write_to("tmp/bioRGBA.tga"));
+}
+
+TEST_CASE("Parse Standard DDS", "[formats]")
+{
+    std::filesystem::create_directory("tmp");
+    nw::Image dds{"test_data/dxtRBG.dds"};
+    REQUIRE(dds.valid());
+    CHECK(dds.write_to("tmp/dxtRBG.dds"));
+    CHECK(dds.write_to("tmp/dxtRBG.png"));
+    CHECK(dds.write_to("tmp/dxtRBG.tga"));
+}
+
+TEST_CASE("Parse TGA", "[formats]")
+{
+    std::filesystem::create_directory("tmp");
+    nw::Image tga{"test_data/qfpp_001_L.tga"};
+    REQUIRE(tga.valid());
+    CHECK(tga.write_to("tmp/qfpp_001_L.dds"));
+    CHECK(tga.write_to("tmp/qfpp_001_L.png"));
+    CHECK(tga.write_to("tmp/qfpp_001_L.tga"));
+}
