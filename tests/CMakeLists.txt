@@ -41,7 +41,9 @@ add_executable(libnw_test
     resources_erf.cpp
     resources_key.cpp
     resources_nwsync.cpp
+
     util_string.cpp
+    util_tokenizer.cpp
 )
 
 set_target_properties(libnw_test

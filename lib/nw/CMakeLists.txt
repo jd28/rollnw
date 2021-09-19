@@ -28,6 +28,7 @@ add_library(nw STATIC
     util/compression
     util/platform
     util/string
+    util/Tokenizer
 )
 
 target_link_libraries(nw PUBLIC
