@@ -28,10 +28,12 @@ enable_testing()
 # are made available to CTest.
 include(ParseAndAddCatchTests)
 
+# Need .cpp extension for ctest
 add_executable(libnw_test
     main.cpp
 
     formats_image.cpp
+    formats_ini.cpp
     formats_twoda.cpp
 
     resources.cpp

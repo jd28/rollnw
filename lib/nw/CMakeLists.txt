@@ -7,6 +7,7 @@ find_package(unofficial-sqlite3 CONFIG REQUIRED)
 add_library(nw STATIC
     log
 
+    formats/Ini
     formats/TwoDA
     formats/Image
 
@@ -41,4 +42,5 @@ target_link_libraries(nw PUBLIC
     unofficial::sqlite3::sqlite3
 
     stb_image
+    inih
 )
