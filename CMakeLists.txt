@@ -19,6 +19,7 @@ include(cmake/Sanitizers.cmake)
 enable_sanitizers(libnw_project_options)
 
 include_directories(external)
+add_subdirectory(external/inih)
 add_subdirectory(external/stb)
 add_subdirectory(lib/nw)
 
