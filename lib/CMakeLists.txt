@@ -7,6 +7,7 @@ add_library(nw STATIC
     resources/Resref
     resources/Resource
 
+    util/ByteArray
     util/string
 )
 
