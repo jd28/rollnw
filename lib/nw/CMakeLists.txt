@@ -1,5 +1,6 @@
 find_package(fmt CONFIG REQUIRED)
 find_package(absl CONFIG REQUIRED)
+find_package(nlohmann_json CONFIG REQUIRED)
 find_package(zstd CONFIG REQUIRED)
 find_package(ZLIB REQUIRED)
 find_package(unofficial-sqlite3 CONFIG REQUIRED)
@@ -37,6 +38,7 @@ target_link_libraries(nw PUBLIC
     absl::span
     absl::utility
     absl::strings
+    nlohmann_json nlohmann_json::nlohmann_json
     ZLIB::ZLIB
     zstd::libzstd_static
     unofficial::sqlite3::sqlite3
