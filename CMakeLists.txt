@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.9)
-project(libnw VERSION 1.0.0 LANGUAGES CXX)
+project(libnw VERSION 1.0.0 LANGUAGES CXX C)
 set (CMAKE_CXX_STANDARD 17)
 
 include(cmake/ProjectSettings.cmake)
@@ -19,6 +19,7 @@ include(cmake/Sanitizers.cmake)
 enable_sanitizers(libnw_project_options)
 
 include_directories(external)
+add_subdirectory(external/stb)
 add_subdirectory(lib/nw)
 
 if (ENABLE_TESTING)
