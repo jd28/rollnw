@@ -30,6 +30,9 @@ include(ParseAndAddCatchTests)
 
 add_executable(libnw_test
     main.cpp
+
+    formats_twoda.cpp
+
     resources.cpp
     resources_dir.cpp
     resources_erf.cpp

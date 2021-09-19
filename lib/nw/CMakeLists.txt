@@ -7,6 +7,8 @@ find_package(unofficial-sqlite3 CONFIG REQUIRED)
 add_library(nw STATIC
     log
 
+    formats/TwoDA
+
     i18n/LocString
 
     resources/Bif
