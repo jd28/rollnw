@@ -35,6 +35,7 @@ add_executable(libnw_test
     formats_gff.cpp
     formats_image.cpp
     formats_ini.cpp
+    formats_nss.cpp
     formats_twoda.cpp
 
     resources.cpp

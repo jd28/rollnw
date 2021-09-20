@@ -10,6 +10,9 @@ add_library(nw STATIC
 
     formats/Gff
     formats/Ini
+    formats/Nss
+    formats/NssLexer
+    formats/NssParser
     formats/TwoDA
     formats/Image
 

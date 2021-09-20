@@ -51,6 +51,7 @@ If you've somehow found your way here by accident, you should head to [neverwint
 |   json  |    Yes     |   Yes  | [nholmann_json](https://github.com/nlohmann/json)
 |   mdl   |    No      |   No   | Parsing easy, do anything with it hard
 |   mtr   |    No      |   No   | Parsing easy, do anything with it hard
+|   nss   |    Yes     |   No   | Insanely rough lexer and recursive decent parser, as is.  Modeled kinda on clang, but I'd not want to insult those great folks comparing this to that.  It can create a parse tree, no type checking, no real AST.  Maybe someday.
 |   plt   |    No      |   No   | Parsing easy, do anything with it hard
 |   png   |    Yes     |   Yes  | [stbi_image](https://github.com/nothings/stb)
 |   set   |    Yes     |   No   | [inih](https://github.com/benhoyt/inih) - it's just an ini file.
