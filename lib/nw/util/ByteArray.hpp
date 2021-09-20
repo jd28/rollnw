@@ -83,7 +83,7 @@ public:
      * @param size Number of bytes to read.
      * @return ``true`` if successfully read, ``false`` if not
      */
-    bool read_at(size_t offset, void* buffer, size_t size);
+    bool read_at(size_t offset, void* buffer, size_t size) const;
 
     /**
      * @brief Increases the capacity of the array by ``count`` elements

@@ -25,7 +25,7 @@ void ByteArray::append(const void* buffer, size_t len)
     }
 }
 
-bool ByteArray::read_at(size_t offset, void* buffer, size_t sz)
+bool ByteArray::read_at(size_t offset, void* buffer, size_t sz) const
 {
     if (offset + sz >= size()) {
         return false;
