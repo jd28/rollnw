@@ -8,6 +8,7 @@ find_package(unofficial-sqlite3 CONFIG REQUIRED)
 add_library(nw STATIC
     log
 
+    formats/Gff
     formats/Ini
     formats/TwoDA
     formats/Image

@@ -1,0 +1,160 @@
+#include "Gff.hpp"
+
+#include "../log.hpp"
+
+#include <cstring>
+#include <filesystem>
+
+namespace fs = std::filesystem;
+
+namespace nw {
+
+// GffField -------------------------------------------------------------------
+
+GffField::GffField()
+    : parent_{nullptr}
+{
+}
+
+GffField::GffField(const Gff* parent, const detail::GffFieldEntry* entry)
+    : parent_{parent}
+    , entry_{entry}
+{
+}
+
+std::string_view GffField::name() const
+{
+    if (entry_->label_idx >= parent_->head_->label_count) {
+        LOG_F(ERROR, "invalid label index: {}", entry_->label_idx);
+        return {};
+    }
+    return parent_->labels_[entry_->label_idx].view();
+}
+
+size_t GffField::size() const
+{
+    if (entry_->data_or_offset >= parent_->head_->list_idx_count) {
+        LOG_F(ERROR, "invalid list index: {}", entry_->data_or_offset);
+        return {};
+    }
+
+    return entry_->type == GffType::LIST
+        ? parent_->list_indices_[entry_->data_or_offset / 4] // This a byte offset into list indices, not an index
+        : 0;                                                 // itself.
+}
+
+GffType::type GffField::type() const
+{
+    return static_cast<GffType::type>(entry_->type);
+}
+
+GffStruct GffField::operator[](size_t index) const
+{
+    if (entry_->data_or_offset >= parent_->head_->list_idx_count) {
+        LOG_F(ERROR, "invalid list index: {}", entry_->data_or_offset);
+        return {};
+    }
+
+    auto idx = entry_->data_or_offset / 4;
+    return GffStruct(parent_, &parent_->structs_[parent_->list_indices_[idx + index + 1]]);
+}
+
+// GffStruct ------------------------------------------------------------------
+
+GffStruct::GffStruct(const Gff* parent, const detail::GffStructEntry* entry)
+    : parent_{parent}
+    , entry_{entry}
+{
+}
+
+GffField GffStruct::operator[](std::string_view label) const
+{
+    if (entry_->field_count == 1) {
+        if (entry_->field_index >= parent_->head_->field_count) { return {}; }
+        return GffField(parent_, &parent_->fields_[entry_->field_index]);
+    } else {
+        if (entry_->field_index >= parent_->head_->field_idx_count) { return {}; }
+        auto fi = &parent_->field_indices_[entry_->field_index / 4];
+        for (size_t i = 0; i < entry_->field_count; ++i) {
+            if (fi[i] >= parent_->head_->field_count) { return {}; }
+            GffField field(parent_, &parent_->fields_[fi[i]]);
+            if (field.name() == label) {
+                return field;
+            }
+        }
+        return GffField();
+    }
+}
+
+GffField GffStruct::operator[](size_t index) const
+{
+    if (index >= size()) {
+        LOG_F(ERROR, "GffStruct: invalid index: {}", index);
+        return {};
+    }
+
+    if (entry_->field_count == 1) {
+        if (entry_->field_index >= parent_->head_->field_count) { return {}; }
+        return GffField(parent_, &parent_->fields_[entry_->field_index]);
+    } else {
+        if (entry_->field_index >= parent_->head_->field_idx_count) { return {}; }
+        auto fi = &parent_->field_indices_[entry_->field_index / 4]; // Byte offset, not index
+        return GffField(parent_, &parent_->fields_[fi[index]]);
+    }
+}
+
+// Gff ------------------------------------------------------------------------
+
+Gff::Gff(const std::filesystem::path& filename)
+    : bytes_{ByteArray::from_file(filename)}
+{
+    is_loaded_ = parse();
+}
+
+Gff::Gff(ByteArray bytes)
+    : bytes_{std::move(bytes)}
+{
+    is_loaded_ = parse();
+}
+
+GffStruct Gff::toplevel() const
+{
+    return GffStruct(this, &structs_[0]);
+}
+
+bool Gff::valid() const
+{
+    return is_loaded_;
+}
+
+#define CHECK_OFF(cond)                                             \
+    do {                                                            \
+        if (!(cond)) {                                              \
+            LOG_F(ERROR, "Corrupt GFF: {}", LIBNW_STRINGIFY(cond)); \
+            return false;                                           \
+        }                                                           \
+    } while (0)
+
+bool Gff::parse()
+{
+    // Order is how file is laid out.
+    CHECK_OFF(sizeof(detail::GffHeader) < bytes_.size());
+    head_ = reinterpret_cast<detail::GffHeader*>(bytes_.data());
+    CHECK_OFF(head_->label_offset < bytes_.size() && head_->label_offset + head_->label_count * sizeof(Resref) < bytes_.size());
+    labels_ = reinterpret_cast<Resref*>(bytes_.data() + head_->label_offset);
+    CHECK_OFF(head_->struct_offset < bytes_.size() && head_->struct_offset + head_->struct_count * sizeof(detail::GffStructEntry) < bytes_.size());
+    structs_ = reinterpret_cast<detail::GffStructEntry*>(bytes_.data() + head_->struct_offset);
+    CHECK_OFF(head_->field_offset < bytes_.size() && head_->field_offset + head_->field_count * sizeof(detail::GffFieldEntry) < bytes_.size());
+    fields_ = reinterpret_cast<detail::GffFieldEntry*>(bytes_.data() + head_->field_offset);
+    CHECK_OFF(head_->field_data_offset < bytes_.size() && head_->field_data_offset + head_->field_data_count < bytes_.size());
+    CHECK_OFF(head_->field_idx_offset < bytes_.size() && head_->field_idx_offset + head_->field_idx_count < bytes_.size());
+    field_indices_ = reinterpret_cast<uint32_t*>(bytes_.data() + head_->field_idx_offset);
+    CHECK_OFF(head_->list_idx_offset < bytes_.size() && head_->list_idx_offset + head_->list_idx_count <= bytes_.size());
+    list_indices_ = reinterpret_cast<uint32_t*>(bytes_.data() + head_->list_idx_offset);
+
+    return true;
+}
+
+#undef CHECK_OFF
+
+} // namespace nw

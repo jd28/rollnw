@@ -32,6 +32,7 @@ include(ParseAndAddCatchTests)
 add_executable(libnw_test
     main.cpp
 
+    formats_gff.cpp
     formats_image.cpp
     formats_ini.cpp
     formats_twoda.cpp
