@@ -19,7 +19,7 @@ libnw is a simple modern C++ library for NWN(:EE) file formats, that
 and what it's not,
 
 * a library for converting NWN(:EE) file formats to textual representations.
-* a library for modifying seralized formats (e,g. GFF) in situ.
+* a library for modifying serialized formats (e,g. GFF) in situ.
 * a library competing with, or a commentary on, any other project, library, and/or authors thereof.
 
 A lot of what's here was written in the 2011-2015 range as part of personal minimalist toolset, modernized and with new EE stuff added.  In some sense, it's a work of historical fiction now and will be the basis for other such projects, as such it doesn't aim at any particular practical use. Similar to an older project that asked ["what if Bioware had stuck with Lua?"](https://solstice.readthedocs.io/en/latest/)
@@ -45,13 +45,13 @@ If you've somehow found your way here by accident, you should head to [neverwint
 |   bmp   |    Yes     |   Yes  | [stbi_image](https://github.com/nothings/stb)
 |   dds   |    Yes     |   Yes  | Both standard and Bioware (thanks to Torlack) DDS files can be read, only standard written. Conversions: png, tga
 |   gif   |    Yes     |   Yes  | [stbi_image](https://github.com/nothings/stb)
-|   gff   |    Yes     |   No   | The current implementation is non-allocating and read-only.
+|   gff   |    Yes     |   No   | The current implementation is non-allocating and read-only.  See non-goals above.
 |   ini   |    Yes     |   No   | [inih](https://github.com/benhoyt/inih)
 |   jpg   |    Yes     |   Yes  | [stbi_image](https://github.com/nothings/stb)
 |   json  |    Yes     |   Yes  | [nholmann_json](https://github.com/nlohmann/json)
 |   mdl   |    No      |   No   | Parsing easy, do anything with it hard
 |   mtr   |    No      |   No   | Parsing easy, do anything with it hard
-|   nss   |    Yes     |   No   | Insanely rough lexer and recursive decent parser, as is.  Modeled kinda on clang, but I'd not want to insult those great folks comparing this to that.  It can create a parse tree, no type checking, no real AST.  Maybe someday.
+|   nss   |    Yes     |   No   | A lexer and recursive decent parser, as is.  It can create a parse tree, no type checking, no real AST.  Handles errors very poorly.  Maybe someday.  Robert Nystrom's wonderful book [Crafting Interpreters](https://craftinginterpreters.com/) was huge source of inspiration.
 |   plt   |    No      |   No   | Parsing easy, do anything with it hard
 |   png   |    Yes     |   Yes  | [stbi_image](https://github.com/nothings/stb)
 |   set   |    Yes     |   No   | [inih](https://github.com/benhoyt/inih) - it's just an ini file.

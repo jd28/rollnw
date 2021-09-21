@@ -18,3 +18,6 @@
 *.mod binary
 *.tlk binary
 *.zip binary
+
+# Github
+tests/test_data/** -linguist-detectable

@@ -12,7 +12,6 @@
 #include <memory>
 #include <optional>
 #include <string>
-#include <variant>
 #include <vector>
 
 namespace nw {
@@ -160,7 +159,7 @@ private:
 // -- GffStruct ----------------------------------------------------------------
 
 struct GffStruct {
-    /// Check_OFF if a struct has a field.
+    /// Check if a struct has a field.
     bool has_field(std::string_view label);
 
     /// Get struct id.
@@ -169,7 +168,7 @@ struct GffStruct {
     /// Number of fields in the struct.
     size_t size() const { return entry_->field_count; }
 
-    /// Check_OFF if Gff has been parsed without error.
+    /// Check if Gff has been parsed without error.
     bool valid() const { return parent_ != nullptr; }
 
     /// Get field by label

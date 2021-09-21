@@ -37,26 +37,16 @@ struct Resref {
     /// @name Functions
     /// @{
 
-    /**
-     * @brief Checks if the underlying array has no non-null characters
-     */
+    /// Checks if the underlying array has no non-null characters
     bool empty() const noexcept;
 
-    /**
-     * @brief Returns the number of char elements in the array, excluding nulls.
-     */
+    /// Returns the number of char elements in the array, excluding nulls.
     size_type length() const noexcept;
 
-    /**
-     * @brief Creates ``std::string`` of underlying array
-     */
+    /// Creates ``std::string`` of underlying array
     std::string string() const;
 
-    /**
-     * @brief Creates ``std::string_view`` of underlying array
-     *
-     * @note The resulting ``std::string_view`` does not contain null padding.
-     */
+    /// Creates ``std::string_view`` of underlying array without null padding
     std::string_view view() const noexcept;
     /// @}
 

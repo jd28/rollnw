@@ -34,49 +34,49 @@ struct StringVariant {
 } // namespace detail
 
 struct TwoDA {
-    /// @brief Constructs TwoDA object from a file
+    /// Constructs TwoDA object from a file
     explicit TwoDA(const std::filesystem::path& filename);
 
-    /// @brief Constructs TwoDA object from an array of bytes
+    /// Constructs TwoDA object from an array of bytes
     explicit TwoDA(ByteArray bytes);
 
-    /// @brief Finds the index of a column, or -1
+    /// Finds the index of a column, or -1
     int column_index(std::string_view column) const;
 
-    /// @brief Get the number of columns
+    /// Get the number of columns
     size_t columns() const noexcept;
 
-    /// @brief Gets an element
+    /// Gets an element
     template <typename T>
     std::optional<T> get(size_t row, size_t col);
 
-    /// @brief Gets an element
+    /// Gets an element
     template <typename T>
     std::optional<T> get(size_t row, std::string_view col);
 
-    /// @brief Gets an element
+    /// Gets an element
     template <typename T>
     bool get_to(size_t row, size_t col, T& out);
 
-    /// @brief Gets an element
+    /// Gets an element
     template <typename T>
     bool get_to(size_t row, std::string_view, T& out);
 
-    /// @brief Pads the 2da with ``count`` rows.
+    /// Pads the 2da with ``count`` rows.
     void pad(size_t count);
 
-    /// @brief Number of rows
+    /// Number of rows
     size_t rows() const noexcept;
 
-    /// @brief Sets an element
+    /// Sets an element
     template <typename T>
     void set(size_t row, size_t col, const T& value);
 
-    /// @brief Sets an element
+    /// Sets an element
     template <typename T>
     void set(size_t row, std::string_view col, const T& value);
 
-    /// @brief Is the 2da parsed without error
+    /// Is the 2da parsed without error
     bool is_valid() const noexcept;
 
 private:
@@ -169,7 +169,7 @@ void TwoDA::set(size_t row, std::string_view col, const T& value)
     set<T>(row, column_index(col), value);
 }
 
-/// @brief Overload for ``operator<<``
+/// Overload for ``operator<<``
 std::ostream& operator<<(std::ostream& out, const TwoDA& tda);
 
 } // namespace nw

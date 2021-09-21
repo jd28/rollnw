@@ -11,29 +11,19 @@ struct Image {
     explicit Image(const std::filesystem::path& filename);
     explicit Image(ByteArray bytes, bool is_dds = false);
 
-    /**
-     * @brief Get BBP
-     */
+    /// Get BBP
     int channels();
 
-    /**
-     * @brief Get raw data
-     */
+    /// Get raw data
     uint8_t* data();
 
-    /**
-     * @brief Get height
-     */
+    /// Get height
     int height() const;
 
-    /**
-     * @brief Determine if successfully loaded.
-     */
+    /// Determine if successfully loaded.
     bool valid() const;
 
-    /**
-     * @brief Get width
-     */
+    /// Get width
     int width() const;
 
     /**
