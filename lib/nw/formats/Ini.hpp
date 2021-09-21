@@ -9,6 +9,7 @@
 #include <filesystem>
 #include <optional>
 #include <string>
+#include <string_view>
 
 namespace nw {
 
@@ -17,11 +18,14 @@ public:
     Ini(const std::filesystem::path& filename);
     Ini(ByteArray bytes);
 
+    // absl::flat_hash_map doesn't support hertogeneous lookup with std::string_view
+    // hence the absl::string_view below.
+
     template <typename T>
-    std::optional<T> get(const std::string& key) const;
-    bool get_to(const std::string& key, std::string& out) const;
-    bool get_to(const std::string& key, int& out) const;
-    bool get_to(const std::string& key, float& out) const;
+    std::optional<T> get(absl::string_view key) const;
+    bool get_to(absl::string_view key, std::string& out) const;
+    bool get_to(absl::string_view key, int& out) const;
+    bool get_to(absl::string_view key, float& out) const;
     bool is_valid();
 
 private:
@@ -34,7 +38,7 @@ private:
 };
 
 template <typename T>
-std::optional<T> Ini::get(const std::string& key) const
+std::optional<T> Ini::get(absl::string_view key) const
 {
     std::string val;
     if (!get_to(key, val))

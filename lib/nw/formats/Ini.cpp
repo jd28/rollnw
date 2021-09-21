@@ -18,7 +18,7 @@ Ini::Ini(ByteArray bytes)
     loaded_ = parse();
 }
 
-bool Ini::get_to(const std::string& key, std::string& out) const
+bool Ini::get_to(absl::string_view key, std::string& out) const
 {
     auto it = map_.find(key);
     if (it == std::end(map_))
@@ -27,7 +27,7 @@ bool Ini::get_to(const std::string& key, std::string& out) const
     return true;
 }
 
-bool Ini::get_to(const std::string& key, int& out) const
+bool Ini::get_to(absl::string_view key, int& out) const
 {
     auto it = map_.find(key);
     if (it == std::end(map_))
@@ -42,7 +42,7 @@ bool Ini::get_to(const std::string& key, int& out) const
     return true;
 }
 
-bool Ini::get_to(const std::string& key, float& out) const
+bool Ini::get_to(absl::string_view key, float& out) const
 {
     auto it = map_.find(key);
     if (it == std::end(map_))
