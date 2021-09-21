@@ -17,6 +17,7 @@ add_library(nw STATIC
     formats/Image
 
     i18n/LocString
+    i18n/Tlk
 
     resources/Bif
     resources/Container

@@ -39,6 +39,8 @@ If you've somehow found your way here by accident, you should head to [neverwint
 
 ### File Formats
 
+One thing that makes NWN(:EE) so great is that it's a local optima of power and simplicity.  It's file formats are no different, many of them, at the reader level, can be implemented as a thin wrapper over a handful of casts.
+
 | Type    |  Read      | Write  | Notes
 | ------- | ---------- | ------ | --------------------------------------------------------
 |   2da   |    Yes     |   Yes  |
@@ -56,7 +58,7 @@ If you've somehow found your way here by accident, you should head to [neverwint
 |   png   |    Yes     |   Yes  | [stbi_image](https://github.com/nothings/stb)
 |   set   |    Yes     |   No   | [inih](https://github.com/benhoyt/inih) - it's just an ini file.
 |   tga   |    Yes     |   Yes  | [stbi_image](https://github.com/nothings/stb). Conversions: png, dds
-|   tlk   |    No      |   No   | To be merged
+|   tlk   |    Yes     |   No   | A 10 minute, easy-bake, read-only implementation.. for now.
 |   tml   |    Yes     |   Yes  | [toml++](https://github.com/marzer/tomlplusplus/)
 |   txi   |    No      |   No   | Parsing easy, do anything with it hard
 

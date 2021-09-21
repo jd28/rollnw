@@ -38,6 +38,8 @@ add_executable(libnw_test
     formats_nss.cpp
     formats_twoda.cpp
 
+    i18n_tlk.cpp
+
     resources.cpp
     resources_dir.cpp
     resources_erf.cpp
