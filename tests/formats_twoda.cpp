@@ -1,8 +1,7 @@
 #include <catch2/catch.hpp>
 
-#include "nw/log.hpp"
-
-#include "nw/formats/TwoDA.hpp"
+#include <nw/formats/TwoDA.hpp>
+#include <nw/log.hpp>
 
 #include <cstring>
 #include <fstream>

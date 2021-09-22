@@ -1,6 +1,6 @@
 #include <catch2/catch.hpp>
 
-#include "nw/resources/Resource.hpp"
+#include <nw/resources/Resource.hpp>
 
 using namespace std::literals;
 

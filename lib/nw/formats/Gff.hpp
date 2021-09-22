@@ -87,36 +87,37 @@ struct GffType {
 template <typename T>
 constexpr GffType::type GffType::id()
 {
-    if constexpr (std::is_same_v<T, uint8_t>)
+    if constexpr (std::is_same_v<T, uint8_t>) {
         return GffType::UINT8;
-    else if constexpr (std::is_same_v<T, int8_t>)
+    } else if constexpr (std::is_same_v<T, int8_t>) {
         return GffType::INT8;
-    else if constexpr (std::is_same_v<T, uint16_t>)
+    } else if constexpr (std::is_same_v<T, uint16_t>) {
         return GffType::UINT16;
-    else if constexpr (std::is_same_v<T, int16_t>)
+    } else if constexpr (std::is_same_v<T, int16_t>) {
         return GffType::INT16;
-    else if constexpr (std::is_same_v<T, uint32_t>)
+    } else if constexpr (std::is_same_v<T, uint32_t>) {
         return GffType::UINT32;
-    else if constexpr (std::is_same_v<T, int32_t>)
+    } else if constexpr (std::is_same_v<T, int32_t>) {
         return GffType::INT32;
-    else if constexpr (std::is_same_v<T, uint64_t>)
+    } else if constexpr (std::is_same_v<T, uint64_t>) {
         return GffType::UINT64;
-    else if constexpr (std::is_same_v<T, int64_t>)
+    } else if constexpr (std::is_same_v<T, int64_t>) {
         return GffType::INT64;
-    else if constexpr (std::is_same_v<T, float>)
+    } else if constexpr (std::is_same_v<T, float>) {
         return GffType::FLOAT;
-    else if constexpr (std::is_same_v<T, double>)
+    } else if constexpr (std::is_same_v<T, double>) {
         return GffType::DOUBLE;
-    else if constexpr (std::is_same_v<T, std::string>)
+    } else if constexpr (std::is_same_v<T, std::string>) {
         return GffType::STRING;
-    else if constexpr (std::is_same_v<T, Resref>)
+    } else if constexpr (std::is_same_v<T, Resref>) {
         return GffType::RESREF;
-    else if constexpr (std::is_same_v<T, LocString>)
+    } else if constexpr (std::is_same_v<T, LocString>) {
         return GffType::LOCSTRING;
-    else if constexpr (std::is_same_v<T, ByteArray>)
+    } else if constexpr (std::is_same_v<T, ByteArray>) {
         return GffType::VOID;
-    else
+    } else {
         static_assert(detail::always_false<T>(), "Unknown GFF type.");
+    }
 }
 
 // -- GffField ----------------------------------------------------------------

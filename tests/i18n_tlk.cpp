@@ -1,7 +1,7 @@
 #include <catch2/catch.hpp>
 
-#include "nw/i18n/Tlk.hpp"
-#include "nw/log.hpp"
+#include <nw/i18n/Tlk.hpp>
+#include <nw/log.hpp>
 
 TEST_CASE("Tlk", "[formats]")
 {

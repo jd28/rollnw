@@ -1,8 +1,8 @@
 #include <catch2/catch.hpp>
 
-#include "nw/log.hpp"
-#include "nw/resources/Key.hpp"
-#include "nw/util/platform.hpp"
+#include <nw/log.hpp>
+#include <nw/resources/Key.hpp>
+#include <nw/util/platform.hpp>
 
 #include <filesystem>
 #include <regex>
@@ -18,8 +18,8 @@ TEST_CASE("Load Key", "[resources]")
         REQUIRE(k.size() > 0);
         REQUIRE(k.all().size() > 0);
 
-    nw::ByteArray ba = k.demand({"nwscript"sv, nw::ResourceType::nss});
-    REQUIRE(ba.size());
-    REQUIRE(k.extract(std::regex("nwscript\\.nss"), "tmp/") == 1);
+        nw::ByteArray ba = k.demand({"nwscript"sv, nw::ResourceType::nss});
+        REQUIRE(ba.size());
+        REQUIRE(k.extract(std::regex("nwscript\\.nss"), "tmp/") == 1);
     }
 }

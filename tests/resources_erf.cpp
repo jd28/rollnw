@@ -1,7 +1,7 @@
 #include <catch2/catch.hpp>
 
-#include "nw/log.hpp"
-#include "nw/resources/Erf.hpp"
+#include <nw/log.hpp>
+#include <nw/resources/Erf.hpp>
 
 using namespace nw;
 using namespace std::literals;

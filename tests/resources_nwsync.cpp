@@ -1,9 +1,9 @@
 #include <catch2/catch.hpp>
 
-#include "nw/log.hpp"
-#include "nw/resources/NWSync.hpp"
-#include "nw/resources/ResourceType.hpp"
-#include "nw/util/platform.hpp"
+#include <nw/log.hpp>
+#include <nw/resources/NWSync.hpp>
+#include <nw/resources/ResourceType.hpp>
+#include <nw/util/platform.hpp>
 
 namespace fs = std::filesystem;
 using namespace std::literals;

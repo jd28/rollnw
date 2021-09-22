@@ -1,6 +1,6 @@
 #include <catch2/catch.hpp>
 
-#include "nw/util/string.hpp"
+#include <nw/util/string.hpp>
 
 using namespace std::literals;
 
