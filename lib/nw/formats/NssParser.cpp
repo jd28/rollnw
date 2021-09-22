@@ -133,7 +133,7 @@ std::unique_ptr<Expression> NssParser::parse_expr_conditional()
 std::unique_ptr<Expression> NssParser::parse_expr_or()
 {
     auto expr = parse_expr_and();
-    while (match({NssTokenType::OR})) {
+    while (match({NssTokenType::OROR})) {
         auto op = previous();
         auto right = parse_expr_and();
         expr = std::make_unique<LogicalExpression>(std::move(expr), op, std::move(right));
@@ -144,7 +144,7 @@ std::unique_ptr<Expression> NssParser::parse_expr_or()
 std::unique_ptr<Expression> NssParser::parse_expr_and()
 {
     auto expr = parse_expr_bitwise();
-    while (match({NssTokenType::AND})) {
+    while (match({NssTokenType::ANDAND})) {
         auto op = previous();
         auto right = parse_expr_bitwise();
         expr = std::make_unique<LogicalExpression>(std::move(expr), op, std::move(right));

@@ -11,14 +11,6 @@
 
 namespace nw {
 
-enum class AstNodeType {
-    AssingExpr,
-    BinaryExpr,
-    CallExpr,
-    LogicalExpr,
-    VariableExpr,
-};
-
 struct Script;
 
 struct FunctionDecl;
@@ -49,7 +41,7 @@ struct SwitchStatement;
 struct WhileStatement;
 
 struct BaseVisitor {
-    ~BaseVisitor() = default;
+    virtual ~BaseVisitor() = default;
 
     virtual void visit(Script* script) = 0;
 
@@ -89,6 +81,9 @@ struct AstNode {
     virtual void accept(BaseVisitor* visitor) = 0;
 };
 
+#define DEFINE_ACCEPT_VISITOR \
+    virtual void accept(BaseVisitor* visitor) override { visitor->visit(this); }
+
 // ---- Expression ------------------------------------------------------------
 
 struct Expression : public AstNode {
@@ -104,16 +99,11 @@ struct AssignExpression : Expression {
     {
     }
 
-    virtual ~AssignExpression() = default;
-
     std::unique_ptr<Expression> left;
     NssToken op;
     std::unique_ptr<Expression> right;
 
-    virtual void accept(BaseVisitor* visitor) override
-    {
-        visitor->visit(this);
-    }
+    DEFINE_ACCEPT_VISITOR
 };
 
 struct BinaryExpression : Expression {
@@ -126,16 +116,12 @@ struct BinaryExpression : Expression {
         , right{std::move(right)}
     {
     }
-    virtual ~BinaryExpression() = default;
 
     std::unique_ptr<Expression> left;
     NssToken op;
     std::unique_ptr<Expression> right;
 
-    virtual void accept(BaseVisitor* visitor) override
-    {
-        visitor->visit(this);
-    }
+    DEFINE_ACCEPT_VISITOR
 };
 
 struct CallExpression : Expression {
@@ -143,15 +129,11 @@ struct CallExpression : Expression {
         : expr{std::move(expr)}
     {
     }
-    virtual ~CallExpression() = default;
 
     std::unique_ptr<Expression> expr;
     std::vector<std::unique_ptr<Expression>> args;
 
-    virtual void accept(BaseVisitor* visitor) override
-    {
-        visitor->visit(this);
-    }
+    DEFINE_ACCEPT_VISITOR
 };
 
 struct ConditionalExpression : Expression {
@@ -165,16 +147,11 @@ struct ConditionalExpression : Expression {
     {
     }
 
-    virtual ~ConditionalExpression() = default;
-
     std::unique_ptr<Expression> expr;
     std::unique_ptr<Expression> true_branch;
     std::unique_ptr<Expression> false_branch;
 
-    virtual void accept(BaseVisitor* visitor) override
-    {
-        visitor->visit(this);
-    }
+    DEFINE_ACCEPT_VISITOR
 };
 
 struct DotExpression : Expression {
@@ -185,15 +162,11 @@ struct DotExpression : Expression {
         , right{std::move(right)}
     {
     }
-    virtual ~DotExpression() = default;
 
     std::unique_ptr<Expression> left;
     std::unique_ptr<Expression> right;
 
-    virtual void accept(BaseVisitor* visitor) override
-    {
-        visitor->visit(this);
-    }
+    DEFINE_ACCEPT_VISITOR
 };
 
 struct GroupingExpression : Expression {
@@ -201,14 +174,10 @@ struct GroupingExpression : Expression {
         : expr{std::move(expr)}
     {
     }
-    virtual ~GroupingExpression() = default;
 
     std::unique_ptr<Expression> expr;
 
-    virtual void accept(BaseVisitor* visitor) override
-    {
-        visitor->visit(this);
-    }
+    DEFINE_ACCEPT_VISITOR
 };
 
 struct LiteralExpression : Expression {
@@ -216,14 +185,10 @@ struct LiteralExpression : Expression {
         : literal{literal}
     {
     }
-    virtual ~LiteralExpression() = default;
 
     NssToken literal;
 
-    virtual void accept(BaseVisitor* visitor) override
-    {
-        visitor->visit(this);
-    }
+    DEFINE_ACCEPT_VISITOR
 };
 
 struct LogicalExpression : Expression {
@@ -236,16 +201,12 @@ struct LogicalExpression : Expression {
         , right{std::move(right)}
     {
     }
-    virtual ~LogicalExpression() = default;
 
     std::unique_ptr<Expression> left;
     NssToken op;
     std::unique_ptr<Expression> right;
 
-    virtual void accept(BaseVisitor* visitor) override
-    {
-        visitor->visit(this);
-    }
+    DEFINE_ACCEPT_VISITOR
 };
 
 struct PostfixExpression : Expression {
@@ -254,15 +215,11 @@ struct PostfixExpression : Expression {
         , op{op}
     {
     }
-    virtual ~PostfixExpression() = default;
 
     std::unique_ptr<Expression> left;
     NssToken op;
 
-    virtual void accept(BaseVisitor* visitor) override
-    {
-        visitor->visit(this);
-    }
+    DEFINE_ACCEPT_VISITOR
 };
 
 struct UnaryExpression : Expression {
@@ -272,14 +229,10 @@ struct UnaryExpression : Expression {
     {
     }
 
-    virtual ~UnaryExpression() = default;
     NssToken op;
     std::unique_ptr<Expression> right;
 
-    virtual void accept(BaseVisitor* visitor) override
-    {
-        visitor->visit(this);
-    }
+    DEFINE_ACCEPT_VISITOR
 };
 
 struct VariableExpression : Expression {
@@ -287,13 +240,9 @@ struct VariableExpression : Expression {
         : var{var}
     {
     }
-    virtual ~VariableExpression() = default;
 
     NssToken var;
-    virtual void accept(BaseVisitor* visitor) override
-    {
-        visitor->visit(this);
-    }
+    DEFINE_ACCEPT_VISITOR
 };
 
 // ---- Statements ------------------------------------------------------------
@@ -303,108 +252,67 @@ struct Statement : public AstNode {
 };
 
 struct BlockStatement : public Statement {
-    virtual ~BlockStatement() = default;
-
     std::vector<std::unique_ptr<Statement>> nodes;
 
-    virtual void accept(BaseVisitor* visitor) override
-    {
-        visitor->visit(this);
-    }
+    DEFINE_ACCEPT_VISITOR
 };
 
 struct DoStatement : public Statement {
-    virtual ~DoStatement() = default;
     std::unique_ptr<BlockStatement> block;
     std::unique_ptr<Expression> expr;
 
-    virtual void accept(BaseVisitor* visitor) override
-    {
-        visitor->visit(this);
-    }
+    DEFINE_ACCEPT_VISITOR
 };
 
 struct ExprStatement : public Statement {
-    virtual ~ExprStatement() = default;
     std::unique_ptr<Expression> expr;
 
-    virtual void accept(BaseVisitor* visitor) override
-    {
-        visitor->visit(this);
-    }
+    DEFINE_ACCEPT_VISITOR
 };
 
 struct IfStatement : public Statement {
-    virtual ~IfStatement() = default;
     std::unique_ptr<Expression> expr;
     std::unique_ptr<Statement> if_branch;
     std::unique_ptr<Statement> else_branch = nullptr;
 
-    virtual void accept(BaseVisitor* visitor) override
-    {
-        visitor->visit(this);
-    }
+    DEFINE_ACCEPT_VISITOR
 };
 
 struct ForStatement : public Statement {
-    virtual ~ForStatement() = default;
-
     std::unique_ptr<Expression> init = nullptr;
     std::unique_ptr<Expression> check = nullptr;
     std::unique_ptr<Expression> inc = nullptr;
     std::unique_ptr<Statement> block = nullptr;
 
-    virtual void accept(BaseVisitor* visitor) override
-    {
-        visitor->visit(this);
-    }
+    DEFINE_ACCEPT_VISITOR
 };
 
 struct JumpStatement : public Statement {
-    virtual ~JumpStatement() = default;
-
     NssToken op;
     std::unique_ptr<Expression> expr = nullptr;
 
-    virtual void accept(BaseVisitor* visitor) override
-    {
-        visitor->visit(this);
-    }
+    DEFINE_ACCEPT_VISITOR
 };
 
 struct LabelStatement : public Statement {
-    ~LabelStatement() = default;
-
     NssToken type;
     std::unique_ptr<Expression> expr = nullptr;
 
-    virtual void accept(BaseVisitor* visitor) override
-    {
-        visitor->visit(this);
-    }
+    DEFINE_ACCEPT_VISITOR
 };
 
 struct SwitchStatement : public Statement {
-    virtual ~SwitchStatement() = default;
-
-    virtual void accept(BaseVisitor* visitor) override
-    {
-        visitor->visit(this);
-    }
+    DEFINE_ACCEPT_VISITOR
 
     std::unique_ptr<Expression> target;
     std::unique_ptr<Statement> block = nullptr;
 };
 
 struct WhileStatement : public Statement {
-    virtual ~WhileStatement() = default;
     std::unique_ptr<Expression> check = nullptr;
     std::unique_ptr<Statement> block = nullptr;
 
-    virtual void accept(BaseVisitor* visitor) override
-    {
-        visitor->visit(this);
-    }
+    DEFINE_ACCEPT_VISITOR
 };
 
 struct Type {
@@ -421,39 +329,27 @@ struct FunctionDecl : public Declaration {
     NssToken identifier;
     std::vector<std::unique_ptr<Declaration>> params;
 
-    virtual void accept(BaseVisitor* visitor) override
-    {
-        visitor->visit(this);
-    }
+    DEFINE_ACCEPT_VISITOR
 };
 
 struct FunctionDefinition : public Declaration {
     std::unique_ptr<FunctionDecl> decl;
     std::unique_ptr<BlockStatement> block;
 
-    virtual void accept(BaseVisitor* visitor) override
-    {
-        visitor->visit(this);
-    }
+    DEFINE_ACCEPT_VISITOR
 };
 
 struct StructDecl : public Declaration {
     std::vector<std::unique_ptr<Declaration>> decls;
 
-    virtual void accept(BaseVisitor* visitor) override
-    {
-        visitor->visit(this);
-    }
+    DEFINE_ACCEPT_VISITOR
 };
 
 struct VarDecl : public Declaration {
     NssToken identifier;
     std::unique_ptr<Expression> init = nullptr;
 
-    virtual void accept(BaseVisitor* visitor) override
-    {
-        visitor->visit(this);
-    }
+    DEFINE_ACCEPT_VISITOR
 };
 
 struct Script {

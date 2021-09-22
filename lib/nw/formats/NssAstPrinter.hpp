@@ -190,7 +190,7 @@ struct NssAstPrinter : BaseVisitor {
     virtual void visit(LogicalExpression* expr) override
     {
         ss << '\n'
-           << std::string(depth * 2, ' ') << "(logical " << expr->op << " ";
+           << std::string(depth * 2, ' ') << "(logical " << expr->op.id << " ";
         ++depth;
         expr->left->accept(this);
         ss << " ";

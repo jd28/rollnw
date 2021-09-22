@@ -31,8 +31,18 @@ void main()
     ++thisisatest("hello", "world");
     --t++++;
 
+    if(this || that) {
+        dosometing();
+    }
+
+    while(this && !another) {
+        i -= 1;
+    }
+
     if(i == 1) {
         i += 1;
+    } else {
+        i %= 1;
     }
 
     switch(i) {
