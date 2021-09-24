@@ -1,5 +1,6 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-
+[![linux](https://github.com/jd28/libnw/actions/workflows/linux.yml/badge.svg)](https://github.com/jd28/libnw/actions?query=workflow%3Alinux)
+[![macos](https://github.com/jd28/libnw/actions/workflows/macos.yml/badge.svg)](https://github.com/jd28/libnw/actions?query=workflow%3Amacos)
 # libnw
 
 ```
@@ -66,7 +67,7 @@ Note in the case of image formats, everything [stbi_image](https://github.com/no
 
 ## TODOs
 
-* Github Actions / CI
+* Github Actions / CI for Windows
 * Merge in more file formats
 * GitPod / Github Codespaces integration
 * Decide on exceptions vs object poisoning
