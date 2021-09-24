@@ -5,6 +5,7 @@
 #include <zlib.h>
 #include <zstd.h>
 
+#include <array>
 #include <cstring>
 #include <memory>
 
