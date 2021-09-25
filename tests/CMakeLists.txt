@@ -60,7 +60,10 @@ target_include_directories(libnw_test PRIVATE ../lib)
 target_link_libraries(libnw_test PRIVATE
     nw
     Threads::Threads
-    Catch2::Catch2
-    dl)
+    Catch2::Catch2)
+
+if(CMAKE_HOST_UNIX)
+    target_link_libraries(libnw_test PRIVATE dl)
+endif()
 
 ParseAndAddCatchTests(libnw_test)
