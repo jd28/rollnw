@@ -72,6 +72,7 @@ Note in the case of image formats, everything [stbi_image](https://github.com/no
 * Merge in more file formats
 * GitPod / Github Codespaces integration
 * Decide on exceptions vs object poisoning
+* To work on windows, will probably need nowide.
 * Other stuff
 
 ## Credits
