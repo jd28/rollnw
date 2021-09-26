@@ -2,6 +2,7 @@
 build/
 build-doc/
 vcpkg/
+vcpkg_installed/
 
 # IDEs
 .vscode/
