@@ -2,6 +2,9 @@
 
 #include <nw/formats/Gff.hpp>
 #include <nw/log.hpp>
+#include <nw/util/gff_conversions.hpp>
+
+#include <fstream>
 
 TEST_CASE("Gff Validation", "[formats]")
 {
@@ -46,4 +49,13 @@ TEST_CASE("Gff Lists", "[formats]")
     REQUIRE(g["ClassList"][0]["Class"].get_to(i32));
     REQUIRE(i32 == 12);
     REQUIRE(*g["ClassList"][0]["Class"].get<int32_t>() == 12);
+}
+
+TEST_CASE("Gff Conversion", "[formats]")
+{
+    nw::Gff g("test_data/nw_chicken.utc");
+    REQUIRE(g.valid());
+    auto j = nw::gff_to_json(g);
+    std::ofstream f{"tmp/nw_chicken.utc.json"};
+    f << std::setw(4) << j;
 }

@@ -32,6 +32,7 @@ add_library(nw STATIC
     util/base64
     util/ByteArray
     util/compression
+    util/gff_conversions
     util/platform
     util/string
     util/Tokenizer
