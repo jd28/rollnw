@@ -14,6 +14,11 @@ bool LocString::operator==(const LocString& other) const
     return strref_ == other.strref_ && strings_ == other.strings_;
 }
 
+LocString::iterator LocString::begin() { return strings_.begin(); }
+LocString::iterator LocString::end() { return strings_.end(); }
+LocString::const_iterator LocString::begin() const { return strings_.begin(); }
+LocString::const_iterator LocString::end() const { return strings_.end(); }
+
 void LocString::add(uint32_t language, std::string string, bool feminine)
 {
     language *= 2;

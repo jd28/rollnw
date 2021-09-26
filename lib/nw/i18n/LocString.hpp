@@ -16,6 +16,8 @@ struct LocString {
     using LocStringPair = std::pair<uint32_t, std::string>;
     using Storage = std::vector<LocStringPair>;
     using size_type = Storage::size_type;
+    using iterator = Storage::iterator;
+    using const_iterator = Storage::const_iterator;
     /// @}
 
     /// @name Constructors
@@ -51,6 +53,15 @@ struct LocString {
      * @brief Gets string reference
      */
     uint32_t strref() const;
+    /// @}
+
+    /// @name Iterators
+    /// Iterate over localized strings
+    /// @{
+    iterator begin();
+    iterator end();
+    const_iterator begin() const;
+    const_iterator end() const;
     /// @}
 
     /// @name Operators
