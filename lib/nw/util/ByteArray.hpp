@@ -1,5 +1,7 @@
 #pragma once
 
+#include <absl/types/span.h>
+
 #include <cstdint>
 #include <filesystem>
 #include <ios>
@@ -109,6 +111,12 @@ public:
      * @return size_type The number of elements in the container.
      */
     size_type size() const noexcept { return array_.size(); }
+
+    /// Construct absl::Span
+    absl::Span<uint8_t> span() { return {data(), size()}; }
+
+    /// Construct absl::Span
+    absl::Span<const uint8_t> span() const { return {data(), size()}; }
 
     /**
      * @brief Constructs string view of the array
