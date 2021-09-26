@@ -16,7 +16,7 @@ class ByteArray {
 public:
     /// @name Types
     /// @{
-    using Base = std::vector<std::byte>;
+    using Base = std::vector<uint8_t>;
     using iterator = Base::iterator;
     using const_iterator = Base::const_iterator;
     using size_type = Base::size_type;
@@ -25,7 +25,7 @@ public:
     /// @name Constructors
     /// @{
     ByteArray() = default;
-    ByteArray(const std::byte* buffer, size_t len);
+    ByteArray(const uint8_t* buffer, size_t len);
     ByteArray(ByteArray&&) = default;
     ByteArray(const ByteArray&) = default;
     /// @}
@@ -35,8 +35,8 @@ public:
     ByteArray& operator=(ByteArray&&) = default;
     ByteArray& operator=(const ByteArray&) = default;
     bool operator==(const ByteArray& other) const { return array_ == other.array_; }
-    std::byte& operator[](size_type pos) { return array_[pos]; }
-    const std::byte& operator[](size_type pos) const { return array_[pos]; }
+    uint8_t& operator[](size_type pos) { return array_[pos]; }
+    const uint8_t& operator[](size_type pos) const { return array_[pos]; }
     /// @}
 
     /// @name Functions
@@ -61,19 +61,19 @@ public:
      *
      * @return Pointer to the underlying element storage
      */
-    std::byte* data() noexcept { return array_.data(); }
+    uint8_t* data() noexcept { return array_.data(); }
 
     /**
      * @copydoc ByteArray::data()
      */
-    const std::byte* data() const noexcept { return array_.data(); }
+    const uint8_t* data() const noexcept { return array_.data(); }
 
     /**
      * @brief Appends one element to the array
      *
      * @param byte Element to append to the array.
      */
-    void push_back(std::byte byte) { array_.push_back(byte); }
+    void push_back(uint8_t byte) { array_.push_back(byte); }
 
     /**
      * @brief Read bytes at offset
@@ -123,7 +123,7 @@ public:
     /// @}
 
 private:
-    std::vector<std::byte> array_;
+    std::vector<uint8_t> array_;
 };
 
 } // namespace nw

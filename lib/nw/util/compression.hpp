@@ -16,6 +16,6 @@ namespace nw {
  * @param magic Magic 4 byte sequence, i.e. "NSYC"
  * @return ByteArray Uncompressed data, empty on error.
  */
-ByteArray decompress(absl::Span<const std::byte> span, const char* magic);
+ByteArray decompress(absl::Span<const uint8_t> span, const char* magic);
 
 } // namespace nw

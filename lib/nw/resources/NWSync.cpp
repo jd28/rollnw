@@ -87,7 +87,7 @@ ByteArray NWSyncManifest::demand(Resource res)
         }
 
         if (sqlite3_step(data_stmt) == SQLITE_ROW) {
-            result = decompress({reinterpret_cast<const std::byte*>(sqlite3_column_blob(data_stmt, 0)),
+            result = decompress({reinterpret_cast<const uint8_t*>(sqlite3_column_blob(data_stmt, 0)),
                                     static_cast<uint32_t>(sqlite3_column_bytes(data_stmt, 0))},
                 "NSYC");
             return result;
@@ -160,7 +160,7 @@ ResourceDescriptor NWSyncManifest::stat(const Resource& res)
     }
 
     result.name = res;
-    result.mtime = sqlite3_column_int(stmt, 1);
+    result.mtime = sqlite3_column_int(stmt, 0);
     result.size = -1; // Punting
     result.parent = this;
 

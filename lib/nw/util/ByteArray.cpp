@@ -11,14 +11,14 @@ namespace fs = std::filesystem;
 
 namespace nw {
 
-ByteArray::ByteArray(const std::byte* buffer, size_t len)
+ByteArray::ByteArray(const uint8_t* buffer, size_t len)
 {
     append(buffer, len);
 }
 
 void ByteArray::append(const void* buffer, size_t len)
 {
-    auto b = reinterpret_cast<const std::byte*>(buffer);
+    auto b = reinterpret_cast<const uint8_t*>(buffer);
     reserve(size() + len);
     for (size_t i = 0; i < len; ++i) {
         push_back(b[i]);
