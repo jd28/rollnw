@@ -13,19 +13,34 @@ And know the place for the first time.
    --T.S. Eliot, Little Gidding, The Four Quartets.
 ```
 
-libnw is a simple modern C++ library for NWN(:EE) file formats, that
+libnw is a simple modern C++ library for NWN(:EE) file formats.  It will be part of a trio, or so, of projects and will be the least interesting of all.
 
-* provides a place to learn and re-learn about NWN and modern C++ projects.
-* might be used to make neat stuff.
-* hews as close to [C++ Core Guidelines](https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines) as possible.
+## Goals
 
-and what it's not,
+* Aim at implementation equals understand.  Reading the source should leave no questions regarding the underlying file formats (most of them are dead simple).
+* Provide a place to learn and re-learn about NWN and modern C++ projects.
+* Maybe make neat stuff.
+* Seperates the reading from the writing from the 'rithmatic, except where it doesn't affect the usage of one or the other.  E,g. tlk can easily be made read/write/modifiable with the exact same performance characteristics, Gff cannot.  It's better to seperate them, then convolute the implementations of reading or writing or modification.
+* Follows the principles of [utf8 everywhere](https://utf8everywhere.org/).  This is aspirational and a huge can of worms.  I'm guessing the game itself has been forced in this direction.
+* Hew as close to [C++ Core Guidelines](https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines) as possible.
 
-* a library for converting NWN(:EE) file formats to textual representations.
-* a library for modifying serialized formats (e,g. GFF) in situ.
-* a library competing with, or a commentary on, any other project, library, and/or authors thereof.
+## Non-goals
 
-A lot of what's here was written in the 2011-2015 range as part of personal minimalist toolset, modernized and with new EE stuff added.  In some sense, it's a work of historical fiction now and will be the basis for other such projects, as such it doesn't aim at any particular practical use. Similar to an older project that asked ["what if Bioware had stuck with Lua?"](https://solstice.readthedocs.io/en/latest/)
+* Converting NWN(:EE) file formats to textual representations.
+* Modifying serialized formats (e,g. GFF) in situ.
+* Competing with, or commenting on, any other community members tools, libraries and the authors of the same.
+
+## History
+
+A lot of what's here was written in the 2011-2015 range as part of personal minimalist toolset, modernized and with new EE stuff added.  In some sense, it's a work of historical fiction -- it's what I'd have suggested at the start of NWN:EE (and did): get the game and the community on the same set of libraries.
+
+Since it's intended for wide-spread use, it exists to ask questions, explorer random ideas.  Similar to an older project that asked ["what if Bioware had stuck with Lua?"](https://solstice.readthedocs.io/en/latest/).  The awnser to that was pretty positive: a decade ahead, at least, of nwscript.
+
+It's closet analogue in NWN history will be the libraries underlying Torlack's NWN Explorer.
+
+## General Warnings, California Prop. 65 Notices
+
+This library is in a rough state.
 
 If you've somehow found your way here by accident, you should head to [neverwinter.nim](https://github.com/niv/neverwinter.nim), those are the official tools of NWN:EE and can handle basic workflows out of the box.
 

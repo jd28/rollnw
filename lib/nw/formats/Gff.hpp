@@ -217,7 +217,7 @@ private:
     friend struct GffStruct;
 
     detail::GffHeader* head_;
-    Resref* labels_;
+    Resref* labels_; // Not techinically resref, but fine for now.
     detail::GffStructEntry* structs_;
     detail::GffFieldEntry* fields_;
     uint32_t* field_indices_;
