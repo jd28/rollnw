@@ -8,8 +8,15 @@ NWNPaths get_nwn_paths()
 {
     // [TODO] PUNT, for now.
     NWNPaths result;
-    result.user = std::getenv("NWN_HOME");
-    result.install = std::getenv("NWN_ROOT");
+
+    if (auto p = std::getenv("NWN_HOME")) {
+        result.user = p;
+    }
+
+    if (auto p = std::getenv("NWN_ROOT")) {
+        result.install = p;
+    }
+
     return result;
 }
 
