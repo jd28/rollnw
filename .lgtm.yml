@@ -1,0 +1,41 @@
+path_classifiers:
+  test:
+    - tests
+  # docs:
+  # - docs
+  library:
+    - external
+extraction:
+  cpp:
+    prepare:
+      packages:
+        - build-essential
+        - automake
+        - autoconf
+        - autoconf-archive
+        - libtool-bin
+        - texinfo
+        - yasm
+        - ninja-build
+        - ccache
+    configure:
+      command:
+        - git clone https://github.com/Microsoft/vcpkg.git
+        - cd vcpkg
+        - export VCPKG_ROOT="$LGTM_SRC/vcpkg"
+        - export PATH="$VCPKG_ROOT:$PATH"
+        - git pull origin master --no-rebase
+        - ./bootstrap-vcpkg.sh
+        - vcpkg integrate install
+        - cmake --version
+        - cd $LGTM_SRC
+        - pwd
+        - ps aux | grep vcpkg
+    index:
+      build_command:
+        - cd $LGTM_SRC
+        - pwd
+        - mkdir build
+        - cd build || exit
+        - cmake -GNinja -DCMAKE_BUILD_TYPE=RelWithDebInfo -Wno-dev -DCMAKE_TOOLCHAIN_FILE=$LGTM_SRC/vcpkg/scripts/buildsystems/vcpkg.cmake  ..
+        - cmake --build .
