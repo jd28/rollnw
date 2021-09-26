@@ -1,0 +1,5 @@
+image: acgetchell/vcpkg-image
+
+tasks:
+  - init: >
+      vcpkg install --feature-flags=manifests

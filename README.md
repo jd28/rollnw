@@ -15,6 +15,8 @@ And know the place for the first time.
 
 libnw is a simple modern C++ library for NWN(:EE) file formats.  It will be part of a trio, or so, of projects and will be the least interesting of all.
 
+[![Open in Gitpod](https://gitpod.io/button/open-in-gitpod.svg)](https://gitpod.io/#https://github.com/jd28/libnw)
+
 ## Goals
 
 * Aim at implementation equals understanding.  Reading the source should leave no questions regarding the underlying file formats (most of them are dead simple).
@@ -85,7 +87,7 @@ Note in the case of image formats, everything [stbi_image](https://github.com/no
 ## TODOs
 
 * Merge in more file formats
-* GitPod / Github Codespaces integration
+* Github Codespaces integration
 * Decide on exceptions vs object poisoning
 * To work on windows, will probably need nowide.
 * Other stuff
