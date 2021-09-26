@@ -29,6 +29,7 @@ add_library(nw STATIC
     resources/Resource
     resources/ResourceDescriptor
 
+    util/base64
     util/ByteArray
     util/compression
     util/platform
