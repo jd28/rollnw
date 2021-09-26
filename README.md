@@ -17,10 +17,10 @@ libnw is a simple modern C++ library for NWN(:EE) file formats.  It will be part
 
 ## Goals
 
-* Aim at implementation equals understand.  Reading the source should leave no questions regarding the underlying file formats (most of them are dead simple).
+* Aim at implementation equals understanding.  Reading the source should leave no questions regarding the underlying file formats (most of them are dead simple).
 * Provide a place to learn and re-learn about NWN and modern C++ projects.
 * Maybe make neat stuff.
-* Seperates the reading from the writing from the 'rithmatic, except where it doesn't affect the usage of one or the other.  E,g. tlk can easily be made read/write/modifiable with the exact same performance characteristics, Gff cannot.  It's better to seperate them, then convolute the implementations of reading or writing or modification.
+* Seperates the reading from the writing from the 'rithmatic, except where it doesn't affect the usage of one or the other.  E,g. tlk can easily be made read/write/modifiable with the exact same performance characteristics, Gff cannot.  It's better to seperate them than convolute the implementations of all of them.
 * Follows the principles of [utf8 everywhere](https://utf8everywhere.org/).  This is aspirational and a huge can of worms.  I'm guessing the game itself has been forced in this direction.
 * Hew as close to [C++ Core Guidelines](https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines) as possible.
 
@@ -34,7 +34,7 @@ libnw is a simple modern C++ library for NWN(:EE) file formats.  It will be part
 
 A lot of what's here was written in the 2011-2015 range as part of personal minimalist toolset, modernized and with new EE stuff added.  In some sense, it's a work of historical fiction -- it's what I'd have suggested at the start of NWN:EE (and did): get the game and the community on the same set of libraries.
 
-Since it's intended for wide-spread use, it exists to ask questions, explorer random ideas.  Similar to an older project that asked ["what if Bioware had stuck with Lua?"](https://solstice.readthedocs.io/en/latest/).  The awnser to that was pretty positive: a decade ahead, at least, of nwscript.
+Since it's not intended for wide-spread use, it exists to ask questions, explorer random ideas.  Similar to an older project that asked ["what if Bioware had stuck with Lua?"](https://solstice.readthedocs.io/en/latest/).  The awnser to that was pretty positive: a decade ahead, at least, of nwscript.
 
 It's closet analogue in NWN history will be the libraries underlying Torlack's NWN Explorer.
 
