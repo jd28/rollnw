@@ -4,6 +4,7 @@
 #include "../util/scope_exit.hpp"
 
 #include <fmt/format.h>
+#include <nowide/convert.hpp>
 
 #include <fstream>
 
@@ -36,7 +37,7 @@ std::vector<Resource> NWSyncManifest::all()
         return result;
     }
 
-    if (SQLITE_OK != sqlite3_bind_text(stmt, 1, manifest_.c_str(), manifest_.size(), nullptr)) {
+    if (SQLITE_OK != sqlite3_bind_text(stmt, 1, manifest_.c_str(), static_cast<int>(manifest_.size()), nullptr)) {
         LOG_F(ERROR, "sqlite3 error: {}", sqlite3_errmsg(parent_->meta()));
         return result;
     }
@@ -61,8 +62,8 @@ ByteArray NWSyncManifest::demand(Resource res)
                                           WHERE manifest_sha1 = ? AND resref = ? and restype = ?)x",
         -1, &stmt, &tail);
 
-    sqlite3_bind_text(stmt, 1, manifest_.c_str(), manifest_.size(), nullptr);
-    sqlite3_bind_text(stmt, 2, res.resref.view().data(), res.resref.length(), nullptr);
+    sqlite3_bind_text(stmt, 1, manifest_.c_str(), static_cast<int>(manifest_.size()), nullptr);
+    sqlite3_bind_text(stmt, 2, res.resref.view().data(), static_cast<int>(res.resref.length()), nullptr);
     sqlite3_bind_int(stmt, 3, res.type);
     if (sqlite3_step(stmt) != SQLITE_ROW) {
         LOG_F(ERROR, "Failed to find: {}", res.filename());
@@ -117,7 +118,7 @@ int NWSyncManifest::extract(const std::regex& pattern, const std::filesystem::pa
         return count;
     }
 
-    if (SQLITE_OK != sqlite3_bind_text(stmt, 1, manifest_.c_str(), manifest_.size(), nullptr)) {
+    if (SQLITE_OK != sqlite3_bind_text(stmt, 1, manifest_.c_str(), static_cast<int>(manifest_.size()), nullptr)) {
         LOG_F(ERROR, "sqlite3: {}", sqlite3_errmsg(parent_->meta()));
         return count;
     }
@@ -130,7 +131,7 @@ int NWSyncManifest::extract(const std::regex& pattern, const std::filesystem::pa
             auto ba = demand(r);
             if (ba.size()) {
                 ++count;
-                std::ofstream out{output / fname};
+                nowide::ofstream out{(output / fname).string(), std::ios_base::binary};
                 out.write((char*)ba.data(), ba.size());
             }
         }
@@ -151,8 +152,8 @@ ResourceDescriptor NWSyncManifest::stat(const Resource& res)
                                           WHERE manifest_sha1 = ? AND resref = ? and restype = ?)x",
         -1, &stmt, &tail);
 
-    sqlite3_bind_text(stmt, 1, manifest_.c_str(), manifest_.size(), nullptr);
-    sqlite3_bind_text(stmt, 2, res.resref.view().data(), res.resref.length(), nullptr);
+    sqlite3_bind_text(stmt, 1, manifest_.c_str(), static_cast<int>(manifest_.size()), nullptr);
+    sqlite3_bind_text(stmt, 2, res.resref.view().data(), static_cast<int>(res.resref.length()), nullptr);
     sqlite3_bind_int(stmt, 3, res.type);
     if (sqlite3_step(stmt) != SQLITE_ROW) {
         LOG_F(ERROR, "Failed to find: {}", res.filename());
@@ -216,7 +217,7 @@ bool NWSync::load()
     sqlite3* db = nullptr;
     fs::path db_path = path_ / "nwsyncmeta.sqlite3";
     if (!fs::exists(db_path)) { return false; }
-    if (SQLITE_OK != sqlite3_open(db_path.c_str(), &db)) {
+    if (SQLITE_OK != sqlite3_open(db_path.string().c_str(), &db)) {
         LOG_F(ERROR, "sqlite3 error: {}", sqlite3_errmsg(meta_.get()));
         return false;
     }
@@ -229,7 +230,7 @@ bool NWSync::load()
         db_path = path_ / db_name;
 
         if (!fs::exists(db_path)) { break; }
-        if (SQLITE_OK != sqlite3_open(db_path.c_str(), &db)) {
+        if (SQLITE_OK != sqlite3_open(db_path.string().c_str(), &db)) {
             LOG_F(ERROR, "sqlite3 error: {}", sqlite3_errmsg(meta_.get()));
             return false;
         }

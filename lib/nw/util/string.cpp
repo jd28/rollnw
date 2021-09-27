@@ -13,7 +13,11 @@
 #include <optional>
 #include <sstream>
 #include <string_view>
-#include <strings.h>
+
+#ifdef _MSC_VER
+#define strncasecmp _strnicmp
+#define strcasecmp _stricmp
+#endif
 
 namespace nw::string {
 

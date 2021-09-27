@@ -2,6 +2,8 @@
 
 #include "base64.hpp"
 
+#include <limits>
+
 using json = nlohmann::json;
 
 namespace nw {
@@ -123,7 +125,7 @@ bool gff_to_json(const GffField field, nlohmann::json& cursor)
         auto& o = cursor[field_name] = json::object();
         o["type"] = type_to_string(GffType::LOCSTRING);
         LocString ls = *field.get<LocString>();
-        if (ls.strref() != -1u) {
+        if (ls.strref() != std::numeric_limits<uint32_t>::max()) {
             o["strref"] = ls.strref();
         }
         auto& a = o["value"] = json::object();

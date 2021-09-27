@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <limits>
 #include <string>
 #include <vector>
 
@@ -22,7 +23,7 @@ struct LocString {
 
     /// @name Constructors
     /// @{
-    explicit LocString(uint32_t strref = -1u);
+    explicit LocString(uint32_t strref = std::numeric_limits<uint32_t>::max());
     LocString(const LocString&) = default;
     LocString(LocString&&) = default;
     /// @}
@@ -72,7 +73,7 @@ struct LocString {
     /// @}
 
 private:
-    uint32_t strref_ = -1u;
+    uint32_t strref_ = std::numeric_limits<uint32_t>::max();
     Storage strings_;
 };
 

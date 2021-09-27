@@ -36,9 +36,9 @@ bool Bif::load()
 {
     if (!key) LOG_F(ERROR, "Null Key File");
 
-    if (!fs::exists(path_)) { LOG_F(ERROR, "File '{}' does not exist.", path_.c_str()); }
-    file_.open(path_);
-    if (!file_.is_open()) { LOG_F(ERROR, "Unable to open '{}'", path_.c_str()); }
+    if (!fs::exists(path_)) { LOG_F(ERROR, "File '{}' does not exist.", path_.string()); }
+    file_.open(path_.string(), std::ios_base::binary);
+    if (!file_.is_open()) { LOG_F(ERROR, "Unable to open '{}'", path_.string()); }
 
     fsize_ = fs::file_size(path_);
 
@@ -62,9 +62,9 @@ ByteArray Bif::demand(size_t index)
     ByteArray ba;
 
     if (index >= elements.size()) {
-        LOG_F(ERROR, "{}: Invalid index: {}", path_.c_str(), index);
+        LOG_F(ERROR, "{}: Invalid index: {}", path_.string(), index);
     } else if (elements[index].offset + elements[index].size > fsize_) {
-        LOG_F(ERROR, "{}: Invalid offset {} is greater than file size: {}", path_.c_str(),
+        LOG_F(ERROR, "{}: Invalid offset {} is greater than file size: {}", path_.string(),
             elements[index].offset + elements[index].size, fsize_);
     } else {
         ba.resize(elements[index].size);

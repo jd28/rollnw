@@ -1,14 +1,15 @@
 #pragma once
 
+#include <nowide/fstream.hpp>
+
 #include <filesystem>
-#include <fstream>
 #include <string>
 #include <vector>
 
 namespace nw {
 
 class ByteArray;
-class Key;
+struct Key;
 
 struct BifElement {
     uint32_t id;
@@ -18,7 +19,7 @@ struct BifElement {
 };
 
 struct Bif {
-    friend class Key;
+    friend struct Key;
 
     /// @name Constructors / Destructors
     /// @{
@@ -38,7 +39,7 @@ struct Bif {
 private:
     Key* key = nullptr;
     std::filesystem::path path_;
-    std::ifstream file_;
+    nowide::ifstream file_;
     std::streamsize fsize_;
     std::vector<BifElement> elements;
     bool is_loaded_;

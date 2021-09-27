@@ -4,7 +4,7 @@
 #include "../util/ByteArray.hpp"
 
 #include <cstring>
-#include <fstream>
+#include <nowide/fstream.hpp>
 #include <sys/stat.h>
 
 namespace fs = std::filesystem;
@@ -14,7 +14,7 @@ namespace nw {
 Directory::Directory(const fs::path& path)
     : path_{fs::canonical(path)}
 {
-    LOG_F(INFO, "{}: Loading...", path_.c_str());
+    LOG_F(INFO, "{}: Loading...", path_.string());
 }
 
 std::vector<Resource> Directory::all()
@@ -25,7 +25,7 @@ std::vector<Resource> Directory::all()
 
         auto fn = it.path().filename();
 
-        ResourceType::type t = ResourceType::from_extension(fn.extension().c_str());
+        ResourceType::type t = ResourceType::from_extension(fn.extension().string());
         if (t == ResourceType::invalid) { continue; }
 
         auto s = fn.stem().string();
@@ -46,17 +46,17 @@ ByteArray Directory::demand(Resource res)
         return ba;
     }
 
-    std::ifstream f{p};
+    nowide::ifstream f{p.string(), std::ios_base::binary};
 
     if (!f.is_open()) {
-        LOG_F(INFO, "Skip - Unable to open file: {}", p.c_str());
+        LOG_F(INFO, "Skip - Unable to open file: {}", p.string());
         return ba;
     }
 
     if (size_t size = fs::file_size(p)) {
         ba.resize(size);
         if (!f.read((char*)ba.data(), size)) {
-            LOG_F(INFO, "Skip - Error reading file: {}", p.c_str());
+            LOG_F(INFO, "Skip - Error reading file: {}", p.string());
             ba.clear(); // Free the memory
         }
     }
@@ -79,7 +79,7 @@ int Directory::extract(const std::regex& pattern, const fs::path& output)
 
     for (auto it : fs::directory_iterator{path_}) {
         if (!it.is_regular_file()) { continue; }
-        if (std::regex_match(it.path().stem().c_str(), pattern)) {
+        if (std::regex_match(it.path().stem().string(), pattern)) {
             ++count;
             fs::copy_file(it.path(), output);
         }

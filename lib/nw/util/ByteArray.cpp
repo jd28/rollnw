@@ -5,6 +5,7 @@
 #include <cstdio>
 #include <cstring>
 #include <fstream>
+#include <nowide/fstream.hpp>
 #include <string_view>
 
 namespace fs = std::filesystem;
@@ -44,12 +45,12 @@ ByteArray ByteArray::from_file(const std::filesystem::path& path)
     ByteArray ba;
 
     if (fs::exists(path)) {
-        std::ifstream f{path};
+        nowide::ifstream f{path.string(), std::ios_base::binary};
         auto size = fs::file_size(path);
         ba.resize(size);
         f.read((char*)ba.data(), size);
     } else {
-        LOG_F(ERROR, "File '{}' does not exist", path.c_str());
+        LOG_F(ERROR, "File '{}' does not exist", path.string());
     }
 
     return ba;

@@ -6,8 +6,9 @@
 
 #include <absl/container/flat_hash_map.h>
 
+#include <nowide/fstream.hpp>
+
 #include <filesystem>
-#include <fstream>
 #include <memory>
 #include <string>
 #include <vector>
@@ -69,7 +70,7 @@ public:
 
 private:
     std::filesystem::path path_;
-    std::ifstream file_;
+    nowide::ifstream file_;
     std::streamsize fsize_;
     bool is_loaded_ = false;
     absl::flat_hash_map<Resource, ErfElement> elements_;

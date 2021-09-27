@@ -56,6 +56,6 @@ TEST_CASE("Gff Conversion", "[formats]")
     nw::Gff g("test_data/nw_chicken.utc");
     REQUIRE(g.valid());
     auto j = nw::gff_to_json(g);
-    std::ofstream f{"tmp/nw_chicken.utc.json"};
+    std::ofstream f{"tmp/nw_chicken.utc.json", std::ios_base::binary};
     f << std::setw(4) << j;
 }

@@ -4,6 +4,7 @@ find_package(nlohmann_json CONFIG REQUIRED)
 find_package(zstd CONFIG REQUIRED)
 find_package(ZLIB REQUIRED)
 find_package(unofficial-sqlite3 CONFIG REQUIRED)
+find_package(nowide CONFIG REQUIRED)
 
 add_library(nw STATIC
     log
@@ -47,6 +48,7 @@ target_link_libraries(nw PUBLIC
     absl::utility
     absl::strings
     nlohmann_json nlohmann_json::nlohmann_json
+    nowide::nowide
     ZLIB::ZLIB
     zstd::libzstd_static
     unofficial::sqlite3::sqlite3

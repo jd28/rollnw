@@ -11,7 +11,7 @@ Tlk::Tlk(const std::filesystem::path& filename)
 #define CHECK_OFF(value)                                                                          \
     do {                                                                                          \
         if (!(value)) {                                                                           \
-            LOG_F(ERROR, "corrupt tlk: {}, error: {}", filename.c_str(), LIBNW_STRINGIFY(value)); \
+            LOG_F(ERROR, "corrupt tlk: {}, error: {}", filename.string(), LIBNW_STRINGIFY(value)); \
             return;                                                                               \
         }                                                                                         \
     } while (0)

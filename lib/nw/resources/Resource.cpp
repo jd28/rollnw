@@ -3,6 +3,7 @@
 #include "../log.hpp"
 #include "../util/string.hpp"
 
+#include <ostream>
 #include <tuple>
 
 namespace nw {

@@ -9,6 +9,7 @@
 #include <array>
 #include <cstdint>
 #include <filesystem>
+#include <limits>
 #include <memory>
 #include <optional>
 #include <string>
@@ -60,7 +61,7 @@ struct GffStructEntry {
 struct GffType {
     /// Gff types, renamed for clarity
     enum type : uint32_t {
-        INVALID = -1u,
+        INVALID = std::numeric_limits<uint32_t>::max(),
         UINT8 = 0,  // BYTE
         INT8 = 1,   // CHAR
         UINT16 = 2, // WORD

@@ -17,6 +17,6 @@ TEST_CASE("TwoDA Parse", "[formats]")
     nw::TwoDA empty("test_data/empty.2da");
     REQUIRE(!empty.is_valid());
 
-    std::ofstream out{"tmp/feat_reform.2da"};
+    std::ofstream out{"tmp/feat_reform.2da", std::ios_base::binary};
     out << feat;
 }

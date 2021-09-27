@@ -4,6 +4,7 @@
 #include "Container.hpp"
 
 #include <absl/container/flat_hash_map.h>
+#include <nowide/fstream.hpp>
 #include <sqlite3.h>
 
 #include <filesystem>

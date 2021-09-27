@@ -3,6 +3,7 @@
 #include "../log.hpp"
 
 #include <algorithm>
+#include <ostream>
 
 namespace nw {
 

@@ -16,6 +16,8 @@
 #include <algorithm>
 #include <cstring>
 #include <filesystem>
+#include <limits>
+#include <nowide/fstream.hpp>
 
 namespace fs = std::filesystem;
 
@@ -53,10 +55,10 @@ ByteArray Erf::read(const ErfElement& e)
 {
     ByteArray ba;
 
-    if (e.info.offset == -1u) {
+    if (e.info.offset == std::numeric_limits<uint32_t>::max()) {
         // Do nothing, but I forget why.  Maybe part of the nwserver docker build.
     } else if (e.info.offset + e.info.size > fsize_) {
-        LOG_F(ERROR, "{}: Out of bounds.", path_.c_str());
+        LOG_F(ERROR, "{}: Out of bounds.", path_.string());
     } else {
         ba.resize(e.info.size);
         file_.seekg(e.info.offset, std::ios_base::beg);
@@ -101,7 +103,7 @@ int Erf::extract(const std::regex& re, const std::filesystem::path& output)
             ba = read(v);
             if (ba.size()) {
                 ++count;
-                std::ofstream out{output / fname};
+                nowide::ofstream out{(output / fname).string(), std::ios_base::binary};
                 out.write((char*)ba.data(), ba.size());
             }
         }
@@ -138,11 +140,11 @@ ResourceDescriptor Erf::stat(const Resource& res)
 
 bool Erf::load()
 {
-    LOG_F(INFO, "{}: Loading...", path_.c_str());
+    LOG_F(INFO, "{}: Loading...", path_.string());
 
-    file_.open(path_.c_str(), std::ios::in | std::ios::binary);
+    file_.open(path_.string(), std::ios::in | std::ios::binary);
     if (!file_.is_open()) {
-        LOG_F(ERROR, "{}: Unable to open.", path_.c_str());
+        LOG_F(ERROR, "{}: Unable to open.", path_.string());
         return false;
     }
 
@@ -165,14 +167,14 @@ bool Erf::load()
     } else if (strncmp(header.type, "SAV", 3) == 0) {
         type = ErfType::sav;
     } else {
-        LOG_F(ERROR, "{}: Invalid header type.", path_.c_str());
+        LOG_F(ERROR, "{}: Invalid header type.", path_.string());
         return false;
     }
 
     if (strncmp(header.version, "V1.0", 4) == 0) {
         version = ErfVersion::v1_0;
     } else {
-        LOG_F(ERROR, "{}: Invalid version type '{}'.", path_.c_str(), std::string_view{header.version, 4});
+        LOG_F(ERROR, "{}: Invalid version type '{}'.", path_.string(), std::string_view{header.version, 4});
         return false;
     }
 
@@ -203,7 +205,7 @@ bool Erf::load()
         elements_.emplace(Resource{std::string(buffer), type}, ele);
     }
 
-    LOG_F(INFO, "{}: {} resources loaded.", path_.c_str(), elements_.size());
+    LOG_F(INFO, "{}: {} resources loaded.", path_.string(), elements_.size());
     return true;
 }
 

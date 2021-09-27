@@ -57,7 +57,7 @@ inline ByteArray zlib_decompress(absl::Span<const uint8_t> span, uint32_t uncomp
         uLongf dst_len = 0;
         auto src = const_cast<Bytef*>(reinterpret_cast<const Bytef*>(span.data()));
         auto err = uncompress(reinterpret_cast<Bytef*>(result.data()), &dst_len,
-            src + hdr_sz, span.size() - hdr_sz);
+            src + hdr_sz, static_cast<uLongf>(span.size() - hdr_sz));
 
         if (err != Z_OK) {
             LOG_F(ERROR, "Zlib failed to decompress");

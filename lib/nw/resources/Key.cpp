@@ -82,7 +82,7 @@ int Key::extract(const std::regex& pattern, const std::filesystem::path& output)
         if (std::regex_match(fname, pattern)) {
             ++count;
             ba = bifs_[v.bif].demand(v.index);
-            std::ofstream out{output / fname};
+            nowide::ofstream out{(output / fname).string(), std::ios_base::binary};
             out.write((char*)ba.data(), ba.size());
         }
     }
@@ -117,13 +117,13 @@ ResourceDescriptor Key::stat(const Resource& res)
 
 bool Key::load()
 {
-    std::ifstream file(path_, std::ios::binary);
+    nowide::ifstream file(path_.string(), std::ios::binary);
     if (!file.is_open()) {
-        LOG_F(ERROR, "{}: Unable to open file", path_.c_str());
+        LOG_F(ERROR, "{}: Unable to open file", path_.string());
         return false;
     }
 
-    LOG_F(INFO, "{}: Loading...", path_.c_str());
+    LOG_F(INFO, "{}: Loading...", path_.string());
 
     fsize_ = fs::file_size(path_);
 
@@ -171,7 +171,7 @@ bool Key::load()
             KeyTableElement{id >> 20, id & 0xFFFFF});
     }
 
-    LOG_F(INFO, "{}: {} resources loaded.", path_.c_str(), elements_.size());
+    LOG_F(INFO, "{}: {} resources loaded.", path_.string(), elements_.size());
     return true;
 }
 

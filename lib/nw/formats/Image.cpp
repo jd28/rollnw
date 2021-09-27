@@ -5,10 +5,12 @@
 
 #include "d3dtypes.h"
 
-#include <filesystem>
+#include <nowide/convert.hpp>
 #include <stb/image_DXT.h>
 #include <stb/stb_image.h>
 #include <stb/stb_image_write.h>
+
+#include <filesystem>
 
 namespace fs = std::filesystem;
 
@@ -17,7 +19,7 @@ namespace nw {
 Image::Image(const std::filesystem::path& filename)
     : bytes_{ByteArray::from_file(filename)}
 {
-    is_dds_ = string::icmp(filename.extension().c_str(), ".dds");
+    is_dds_ = string::icmp(filename.extension().string(), ".dds");
     is_loaded_ = parse();
 }
 
@@ -43,19 +45,25 @@ bool Image::write_to(const std::filesystem::path& filename) const
     if (!data_) return false;
 
     fs::path temp = fs::temp_directory_path() / filename.filename();
-    std::string ext = filename.extension();
+    std::string ext = filename.extension().string();
+    const char *temp_path;
+#ifdef _MSC_VER
+    temp_path = temp.string().c_str();
+#else
+    temp_path = temp.c_str();
+#endif
     if (string::icmp(ext, ".dds")) {
-        if (!save_image_as_DDS(temp.c_str(), width_, height_, channels_, data_.get())) {
+        if (!save_image_as_DDS(temp_path, width_, height_, channels_, data_.get())) {
             LOG_F(INFO, "Failed to write DDS");
             return false;
         }
     } else if (string::icmp(ext, ".png")) {
-        if (!stbi_write_png(temp.c_str(), width_, height_, channels_, data_.get(), 0)) {
+        if (!stbi_write_png(temp_path, width_, height_, channels_, data_.get(), 0)) {
             LOG_F(INFO, "Failed to write PNG");
             return false;
         }
     } else if (string::icmp(ext, ".tga")) {
-        if (!stbi_write_tga(temp.c_str(), width_, height_, channels_, data_.get())) {
+        if (!stbi_write_tga(temp_path, width_, height_, channels_, data_.get())) {
             LOG_F(INFO, "Failed to write TGA");
             return false;
         }
@@ -68,7 +76,7 @@ bool Image::write_to(const std::filesystem::path& filename) const
     fs::copy_file(temp, filename, fs::copy_options::overwrite_existing, ec);
     fs::remove(temp);
     if (ec) {
-        LOG_F(ERROR, "Failed to write {}, error: {}", filename.c_str(), ec.value());
+        LOG_F(ERROR, "Failed to write {}, error: {}", filename.string(), ec.value());
         return false;
     }
 
@@ -84,7 +92,8 @@ bool Image::parse()
     if (is_dds_) {
         result = parse_dds();
     } else { // Defer to stb_image
-        data_ = std::unique_ptr<uint8_t[]>(stbi_load_from_memory((stbi_uc*)bytes_.data(), bytes_.size(), &width_, &height_, &channels_, 0));
+        data_ = std::unique_ptr<uint8_t[]>(stbi_load_from_memory((stbi_uc*)bytes_.data(),
+            static_cast<int>(bytes_.size()), &width_, &height_, &channels_, 0));
         if (!data_) {
             LOG_F(ERROR, "Failed to load image: {}", stbi_failure_reason());
             result = false;
@@ -168,7 +177,8 @@ bool Image::parse_bioware()
 
 bool Image::parse_dxt()
 {
-    data_ = std::unique_ptr<uint8_t[]>(stbi_load_from_memory((stbi_uc*)bytes_.data(), bytes_.size(), &height_, &width_, &channels_, 0));
+    data_ = std::unique_ptr<uint8_t[]>(stbi_load_from_memory((stbi_uc*)bytes_.data(),
+        static_cast<int>(bytes_.size()), &height_, &width_, &channels_, 0));
     if (data_ == nullptr) {
         LOG_F(INFO, "Failed to load DDS: {}", stbi_failure_reason());
         return false;
