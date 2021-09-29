@@ -20,7 +20,7 @@ struct Directory : public Container {
     virtual std::vector<Resource> all() override;
     virtual ByteArray demand(Resource res) override;
     virtual int extract(const std::regex& pattern, const std::filesystem::path& output) override;
-    virtual ResourceDescriptor stat(const Resource& res);
+    virtual ResourceDescriptor stat(const Resource& res) override;
 
 private:
     std::filesystem::path path_;

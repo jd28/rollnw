@@ -16,12 +16,7 @@ struct Container {
     /// Get all resources
     virtual std::vector<Resource> all() = 0;
 
-    /**
-     * @brief Read resourece data
-     *
-     * @param res Qualified resource name
-     * @return ByteArray If the container does not hold the resource, the resulting ``nw::ByteArray`` will be of size 0.
-     */
+    /// Reads resourece data, empty ByteArray if no match.
     virtual ByteArray demand(Resource res) = 0;
 
     /// Extract elements from a container by glob pattern

@@ -20,34 +20,23 @@ struct KeyTableElement {
     uint32_t index;
 };
 
-/**
- * @brief Key Table Format
- *
- */
 struct Key : public Container {
-    /// @name Constructors / Destructors
-    /// @{
     explicit Key(std::filesystem::path path);
     Key(const Key&) = delete;
     Key(Key&&) = default;
     virtual ~Key() = default;
-    /// @}
+
+    /// Returns if Key file was successfully loaded
+    bool is_loaded() const noexcept { return is_loaded_; }
 
     virtual std::vector<Resource> all() override;
     virtual ByteArray demand(Resource res) override;
     virtual int extract(const std::regex& pattern, const std::filesystem::path& output) override;
-
-    /**
-     * @brief Number of resources in the Key & Bif files.
-     */
     virtual size_t size() const override;
-    virtual ResourceDescriptor stat(const Resource& res);
+    virtual ResourceDescriptor stat(const Resource& res) override;
 
-    /// @name Operators
-    /// @{
     Key& operator=(const Key&) = delete;
     Key& operator=(Key&&) = default;
-    /// @}
 
 private:
     std::filesystem::path path_;

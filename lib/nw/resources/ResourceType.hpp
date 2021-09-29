@@ -8,15 +8,9 @@
 
 namespace nw {
 
-/**
- * @brief Resource type constants and helper functions
- *
- */
+/// Resource type constants and helper functions
 struct ResourceType {
-    /**
-     * @brief Enumeration of Resource types.
-     *
-     */
+    /// Enumeration of Resource types.
     enum type : uint16_t {
         invalid = 0,
 
@@ -108,11 +102,7 @@ struct ResourceType {
         key = 9999,
     };
 
-    /**
-     * @brief Convert extension to ResourceType::type
-     *
-     * @return ResourceType::type
-     */
+    /// Converts extension to ResourceType::type
     static type from_extension(std::string_view ext)
     {
         if (ext.size() < 3) return invalid;

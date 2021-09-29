@@ -17,6 +17,10 @@ And know the place for the first time.
 
 libnw is a simple modern C++ library for NWN(:EE) file formats.  It will be part of a trio, or so, of projects and will be the least interesting of all.
 
+Find the status of [File Formats](lib/nw/formats/README.md), [Containers](lib/nw/resources/README.md) in their respective READMEs.
+
+## Quickstart
+
 [![Open in Gitpod](https://gitpod.io/button/open-in-gitpod.svg)](https://gitpod.io/#https://github.com/jd28/libnw)
 
 ## Goals
@@ -44,47 +48,11 @@ It's closet analogue in NWN history will be the libraries underlying Torlack's N
 
 ## General Warnings, California Prop. 65 Notices
 
-This library is in a rough state.
+This library is a work-in-progress.
+
+There is no documentation besides the source itself, unless something is found that isn't a javadoc-esque thing, that's likely how it will remain.
 
 If you've somehow found your way here by accident, you should head to [neverwinter.nim](https://github.com/niv/neverwinter.nim), those are the official tools of NWN:EE and can handle basic workflows out of the box.
-
-## Status
-
-### Containers
-
-| Type    |  Read      | Write  | In Situ Modifications
-| ------- | ---------- | ------ | ----------------------|
-| Key/Bif | Yes | Never | Never |
-| ERF | Yes | Maybe | Maybe |
-| NWSync | Yes | Never | Never |
-| Directories | Yes | Yes (file format dependant) | N/A |
-
-### File Formats
-
-One thing that makes NWN(:EE) so great is that it's a local optima of power and simplicity.  It's file formats are no different, many of them, at the reader level, can be implemented as a thin wrapper over a handful of casts.
-
-| Type    |  Read      | Write  | Notes
-| ------- | ---------- | ------ | --------------------------------------------------------
-|   2da   |    Yes     |   Yes  |
-|   bmp   |    Yes     |   Yes  | [stbi_image](https://github.com/nothings/stb)
-|   dds   |    Yes     |   Yes  | Both standard and Bioware (thanks to Torlack) DDS files can be read, only standard written. Conversions: png, tga
-|   gif   |    Yes     |   Yes  | [stbi_image](https://github.com/nothings/stb)
-|   gff   |    Yes     |   No   | The current implementation is non-allocating and read-only.  See non-goals above.
-|   ini   |    Yes     |   No   | [inih](https://github.com/benhoyt/inih)
-|   jpg   |    Yes     |   Yes  | [stbi_image](https://github.com/nothings/stb)
-|   json  |    Yes     |   Yes  | [nholmann_json](https://github.com/nlohmann/json)
-|   mdl   |    No      |   No   | Parsing easy, do anything with it hard
-|   mtr   |    No      |   No   | Parsing easy, do anything with it hard
-|   nss   |    Yes     |   No   | A lexer and recursive decent parser, as is.  It can create a parse tree, no type checking, no real AST.  Handles errors very poorly.  Maybe someday.  Robert Nystrom's wonderful book [Crafting Interpreters](https://craftinginterpreters.com/) was huge source of inspiration.
-|   plt   |    No      |   No   | Parsing easy, do anything with it hard
-|   png   |    Yes     |   Yes  | [stbi_image](https://github.com/nothings/stb)
-|   set   |    Yes     |   No   | [inih](https://github.com/benhoyt/inih) - it's just an ini file.
-|   tga   |    Yes     |   Yes  | [stbi_image](https://github.com/nothings/stb). Conversions: png, dds
-|   tlk   |    Yes     |   No   | A 10 minute, easy-bake, read-only implementation.. for now.
-|   tml   |    Yes     |   Yes  | [toml++](https://github.com/marzer/tomlplusplus/)
-|   txi   |    No      |   No   | Parsing easy, do anything with it hard
-
-Note in the case of image formats, everything [stbi_image](https://github.com/nothings/stb) supports, this library could support.  This has no goal of being any kind of useful conversion library.
 
 ## TODOs
 

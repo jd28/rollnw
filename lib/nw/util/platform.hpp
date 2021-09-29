@@ -9,6 +9,8 @@ struct NWNPaths {
     std::filesystem::path user;
 };
 
+/// Gets user and install paths.
+/// WARNING - HUGE PUNT - JUST READS ENV VARS ``NWN_ROOT`` and ``NWN_HOME``
 NWNPaths get_nwn_paths();
 
 } // namespace nw

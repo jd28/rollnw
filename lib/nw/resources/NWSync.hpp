@@ -25,26 +25,21 @@ namespace nw {
 // attaching the nwsyncdata_* databases, creating a view, and letting sqlite3
 // figure what shard a particular resource is in.
 
-/**
- * @brief sqlite3 database pointer wrapper
- */
+/// sqlite3 database pointer wrapper
 using sqlite3_ptr = std::unique_ptr<sqlite3, void (*)(sqlite3*)>;
 
 struct NWSync;
 
-/**
- * @brief Abstracts over manifests, treating them as a nw::Container
- */
+/// Abstracts over manifests, treating them as a nw::Container
 struct NWSyncManifest : public Container {
     NWSyncManifest() = default;
     NWSyncManifest(std::string manifest, NWSync* parent);
 
     virtual std::vector<Resource> all();
-
     virtual ByteArray demand(Resource res);
     virtual int extract(const std::regex& pattern, const std::filesystem::path& output);
     virtual size_t size() const { return 0; }
-    virtual ResourceDescriptor stat(const Resource& res);
+    virtual ResourceDescriptor stat(const Resource& res) override;
 
 private:
     std::string manifest_;
@@ -52,49 +47,31 @@ private:
 };
 
 struct NWSync {
-    /// @name Constructors / Destructors
-    /// @{
     explicit NWSync(std::filesystem::path path);
     NWSync(const NWSync&) = delete;
     NWSync(NWSync&&) = default;
     ~NWSync() = default;
-    /// @}
 
-    /**
-     * @brief Get a particular manifest as a container
-     */
+    /// Get a particular manifest as a container
     NWSyncManifest& get(const std::string& manifest);
 
-    /**
-     * @brief Get if NWSync was successfully loaded
-     */
+    /// Get if NWSync was successfully loaded
     bool is_loaded() const noexcept;
 
-    /**
-     * @brief Get list of all manifests
-     */
+    /// Get list of all manifests
     std::vector<std::string> manifests();
 
-    /**
-     * @brief Get the number of shards
-     */
+    /// Get the number of shards
     size_t shard_count() const noexcept;
 
-    /**
-     * @brief Get a pointer to the nwsyncmeta database
-     */
+    /// Get a pointer to the nwsyncmeta database
     sqlite3* meta() { return meta_.get(); }
 
-    /**
-     * @brief List of all shards as active Sqlite3 connections
-     */
+    /// List of all shards as active Sqlite3 connections
     std::vector<sqlite3_ptr>& shards() { return shards_; }
 
-    /// @name Operators
-    /// @{
     NWSync& operator=(const NWSync&) = delete;
     NWSync& operator=(NWSync&&) = default;
-    /// @}
 
 private:
     bool load();

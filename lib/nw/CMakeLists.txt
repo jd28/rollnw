@@ -10,6 +10,7 @@ add_library(nw STATIC
     log
 
     formats/Gff
+    formats/gff_conversions
     formats/Ini
     formats/Nss
     formats/NssLexer
@@ -33,7 +34,6 @@ add_library(nw STATIC
     util/base64
     util/ByteArray
     util/compression
-    util/gff_conversions
     util/platform
     util/string
     util/Tokenizer

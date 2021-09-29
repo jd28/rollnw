@@ -16,39 +16,23 @@ namespace nw {
  * it represents a fully-qualified resource identifier.
  */
 struct Resource {
-    /// @name Constructors / Destructors
-    /// @{
     Resource() noexcept;
     Resource(Resref resref, ResourceType::type type) noexcept;
     Resource(std::string_view resref, ResourceType::type type) noexcept;
     Resource(const Resource&) = default;
     Resource(Resource&&) = default;
-    /// @}
 
-    /// @name Members
-    /// @{
     Resref resref;
     ResourceType::type type;
-    /// @}
 
-    /// @name Functions
-    /// @{
-    /**
-     * @brief Gets a Resrefs file name with extension.
-     */
+    /// Gets a Resrefs file name with extension.
     std::string filename() const;
-    /// @}
 
-    /// @name Operators
-    /// @{
+    /// A resource is valid if resref is not empty and resref type is not invalid
+    bool valid() const noexcept;
+
     Resource& operator=(const Resource&) = default;
     Resource& operator=(Resource&&) = default;
-
-    /**
-     * @return false if string is empty or resref type is invalid
-     */
-    bool valid() const noexcept;
-    /// @}
 };
 
 template <typename H>

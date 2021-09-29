@@ -1,6 +1,6 @@
 #include "gff_conversions.hpp"
 
-#include "base64.hpp"
+#include "../util/base64.hpp"
 
 #include <limits>
 
@@ -56,25 +56,9 @@ inline void add_field_kv(json& j, const std::string& name, const T& value)
     o["type"] = type_to_string(GffType::id<T>());
 }
 
-nlohmann::json gff_to_json(const Gff& gff)
-{
-    nlohmann::json j;
-    if (!gff.valid()) {
-        LOG_F(ERROR, "attempting to convert invalid gff to json");
-    } else {
-        try {
-            if (!gff_to_json(gff.toplevel(), j)) {
-                j.clear();
-            }
-        } catch (const std::exception& e) {
-            LOG_F(ERROR, "gff_to_json exception thrown: {}", e.what());
-            j.clear();
-        }
-    }
-    return j;
-}
+bool gff_to_json(const GffStruct str, nlohmann::json& cursor);
 
-bool gff_to_json(const GffField field, nlohmann::json& cursor)
+inline bool gff_to_json(const GffField field, nlohmann::json& cursor)
 {
     bool check = true;
     if (!field.valid()) { return false; }
@@ -164,6 +148,24 @@ bool gff_to_json(const GffStruct str, nlohmann::json& cursor)
         check &= gff_to_json(str[i], cursor);
     }
     return check;
+}
+
+nlohmann::json gff_to_json(const Gff& gff)
+{
+    nlohmann::json j;
+    if (!gff.valid()) {
+        LOG_F(ERROR, "attempting to convert invalid gff to json");
+    } else {
+        try {
+            if (!gff_to_json(gff.toplevel(), j)) {
+                j.clear();
+            }
+        } catch (const std::exception& e) {
+            LOG_F(ERROR, "gff_to_json exception thrown: {}", e.what());
+            j.clear();
+        }
+    }
+    return j;
 }
 
 } // namespace nw

@@ -18,24 +18,15 @@ namespace nw {
  * Currently only the NWN1/EE variety is supported.
  */
 struct Resref {
-    /// @name Types
-    /// @{
     static constexpr size_t max_size = 16;
     using Storage = std::array<char, max_size>;
     using value_type = typename Storage::value_type;
     using size_type = typename Storage::size_type;
-    /// @}
 
-    /// @name Constructors
-    /// @{
     Resref() = default;
     Resref(Storage data) noexcept;
     Resref(const char* string) noexcept;
     Resref(std::string_view string) noexcept;
-    /// @}
-
-    /// @name Functions
-    /// @{
 
     /// Checks if the underlying array has no non-null characters
     bool empty() const noexcept;
@@ -48,7 +39,6 @@ struct Resref {
 
     /// Creates ``std::string_view`` of underlying array without null padding
     std::string_view view() const noexcept;
-    /// @}
 
 private:
     Storage data_;
@@ -56,28 +46,9 @@ private:
 
 // [TODO] Replace with spaceship operator when c++20 is better supported.
 
-/**
- * @brief Overloads ``operator==`` for ``nw::Resref``
- */
 bool operator==(const Resref& lhs, const Resref& rhs) noexcept;
-
-/**
- * @brief Overloads ``operator!=`` for ``nw::Resref``
- */
 bool operator!=(const Resref& lhs, const Resref& rhs) noexcept;
-
-/**
- * @brief Overloads ``operator<`` for ``nw::Resref``
- */
 bool operator<(const Resref& lhs, const Resref& rhs) noexcept;
-
-/**
- * @brief Overloads ``operator<<`` for ``nw::Resref``
- *
- * @param out Any output stream
- * @param resref A ``nw::Resref``
- * @return std::ostream& ``out`` parameter
- */
 std::ostream& operator<<(std::ostream& out, const Resref& resref);
 
 } // namespace nw

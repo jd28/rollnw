@@ -39,13 +39,13 @@ enum class ErfVersion {
 
 class Erf : public Container {
 public:
-    /// @name Constructors / Destructor
-    /// @{
     explicit Erf(std::filesystem::path path);
     Erf(const Erf&) = delete;
     Erf(Erf&& other) = default;
     ~Erf() = default;
-    /// @}
+
+    /// Returns if Key file was successfully loaded
+    bool is_loaded() const noexcept { return is_loaded_; }
 
     ByteArray read(const ErfElement& element);
 
@@ -62,11 +62,8 @@ public:
     /// Description
     LocString description;
 
-    /// @name Operators
-    /// @{
     Erf& operator=(const Erf&) = delete;
     Erf& operator=(Erf&&) = default;
-    /// @}
 
 private:
     std::filesystem::path path_;

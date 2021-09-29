@@ -35,19 +35,13 @@ template <>
 std::optional<double> from(std::string_view str);
 /// @endcond
 
-/**
- * @brief Trim left in place
- */
+/// Trims left in place
 std::string* ltrim_in_place(std::string* str);
 
-/**
- * @brief Trims right in place
- */
+/// Trims right in place
 std::string* rtrim_in_place(std::string* str);
 
-/**
- * @brief Trims string in place
- */
+/// Trims string in place
 std::string* trim_in_place(std::string* str);
 
 // Join & Split...
@@ -72,34 +66,16 @@ std::string join(const std::vector<std::string>& strings, const char* delim = " 
  */
 std::vector<std::string> split(const std::string& str, char delim, bool skipEmpty = true, bool trimmed = true);
 
-/**
- * @brief Case insenstive comparison
- */
+/// Case insenstive comparison
 bool icmp(std::string_view first, std::string_view second);
 
-/**
- * @brief Converts string to lowercase
- *
- * @param str String to be modified
- */
+/// Converts string to lowercase, in place
 void tolower(std::string* str);
 
-/**
- * @brief Determines if a string starts with a given prefix
- *
- * @param str String to chect
- * @param prefix Prefix
- * @return bool
- */
+/// Determines if a string starts with a given prefix
 bool startswith(std::string_view str, std::string_view prefix);
 
-/**
- * @brief Determines if a string ends with a given suffix
- *
- * @param str String to check
- * @param suffix
- * @return bool
- */
+/// Determines if a string ends with a given suffix
 bool endswith(std::string_view str, std::string_view suffix);
 
 /**

@@ -1,8 +1,8 @@
 #include <catch2/catch.hpp>
 
 #include <nw/formats/Gff.hpp>
+#include <nw/formats/gff_conversions.hpp>
 #include <nw/log.hpp>
-#include <nw/util/gff_conversions.hpp>
 
 #include <fstream>
 
