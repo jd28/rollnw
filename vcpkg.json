@@ -10,6 +10,13 @@
         "sqlite3",
         "nlohmann-json",
         "nowide",
-        "libiconv"
+        {
+            "name": "pthreads",
+            "platform": "windows"
+        },
+        {
+            "name": "libiconv",
+            "platform": "windows"
+        }
     ]
 }
