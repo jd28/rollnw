@@ -61,7 +61,10 @@ bool gff_to_json(const GffStruct str, nlohmann::json& cursor);
 inline bool gff_to_json(const GffField field, nlohmann::json& cursor)
 {
     bool check = true;
-    if (!field.valid()) { return false; }
+    if (!field.valid()) {
+        LOG_F(ERROR, "attempted to convert invalid field");
+        return false;
+    }
 
     // nholmann_json doesn't seem to support hetero lookup, bummer.
     std::string field_name = std::string(field.name());
@@ -126,13 +129,14 @@ inline bool gff_to_json(const GffField field, nlohmann::json& cursor)
         auto& o = cursor[field_name] = json::object();
         o["type"] = type_to_string(GffType::STRUCT);
         auto& v = o["value"] = json::object();
-        check &= gff_to_json(*field.get<GffStruct>(), v);
+        check = check && gff_to_json(*field.get<GffStruct>(), v);
     } break;
     case GffType::LIST: {
         auto& v = cursor[field_name] = json::array();
         for (size_t i = 0; i < field.size(); ++i) {
             v.push_back(json::object());
-            check &= gff_to_json(field[i], v[i]);
+            check = check && gff_to_json(field[i], v[i]);
+            if (!check) { break; }
         }
     } break;
     }
@@ -142,10 +146,17 @@ inline bool gff_to_json(const GffField field, nlohmann::json& cursor)
 bool gff_to_json(const GffStruct str, nlohmann::json& cursor)
 {
     bool check = true;
-    if (!str.valid()) { return false; }
+    if (!str.valid()) {
+        LOG_F(ERROR, "attempted to convert invalid struct");
+        return false;
+    }
     cursor["__struct_id"] = str.id();
-    for (size_t i = 0; i < str.size() && check; ++i) {
-        check &= gff_to_json(str[i], cursor);
+    for (size_t i = 0; i < str.size(); ++i) {
+        check = check && gff_to_json(str[i], cursor);
+        if (!check) {
+            LOG_F(ERROR, "Failed to conver struct");
+            break;
+        }
     }
     return check;
 }
@@ -159,6 +170,7 @@ nlohmann::json gff_to_json(const Gff& gff)
         try {
             if (!gff_to_json(gff.toplevel(), j)) {
                 j.clear();
+                LOG_F(ERROR, "gff_to_json failed conversion");
             }
         } catch (const std::exception& e) {
             LOG_F(ERROR, "gff_to_json exception thrown: {}", e.what());

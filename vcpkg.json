@@ -9,6 +9,7 @@
         "zlib",
         "sqlite3",
         "nlohmann-json",
-        "nowide"
+        "nowide",
+        "libiconv"
     ]
 }

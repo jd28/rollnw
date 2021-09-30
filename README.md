@@ -28,7 +28,6 @@ Find the status of [File Formats](lib/nw/formats/README.md), [Containers](lib/nw
 * Aim at implementation equals understanding.  Reading the source should leave no questions regarding the underlying file formats (most of them are dead simple).
 * Provide a place to learn and re-learn about NWN and modern C++ projects.
 * Maybe make neat stuff.
-* Seperates the reading from the writing from the 'rithmatic, except where it doesn't affect the usage of one or the other.  E,g. tlk can easily be made read/write/modifiable with the exact same performance characteristics, Gff cannot.  It's better to seperate them than convolute the implementations of all of them.
 * Follows the principles of [utf8 everywhere](https://utf8everywhere.org/).  This is aspirational and a huge can of worms.  I'm guessing the game itself has been forced in this direction.
 * Hew as close to [C++ Core Guidelines](https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines) as possible.
 

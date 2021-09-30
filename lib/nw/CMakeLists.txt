@@ -1,10 +1,13 @@
-find_package(fmt CONFIG REQUIRED)
 find_package(absl CONFIG REQUIRED)
+find_package(fmt CONFIG REQUIRED)
+if(CMAKE_HOST_WIN32)
+find_package(iconv CONFIG REQUIRED)
+endif()
 find_package(nlohmann_json CONFIG REQUIRED)
+find_package(nowide CONFIG REQUIRED)
+find_package(unofficial-sqlite3 CONFIG REQUIRED)
 find_package(zstd CONFIG REQUIRED)
 find_package(ZLIB REQUIRED)
-find_package(unofficial-sqlite3 CONFIG REQUIRED)
-find_package(nowide CONFIG REQUIRED)
 
 add_library(nw STATIC
     log
@@ -18,6 +21,8 @@ add_library(nw STATIC
     formats/TwoDA
     formats/Image
 
+    i18n/conversion
+    i18n/Language
     i18n/LocString
     i18n/Tlk
 
@@ -56,3 +61,9 @@ target_link_libraries(nw PUBLIC
     stb_image
     inih
 )
+
+if(CMAKE_HOST_WIN32)
+    target_link_libraries(nw PUBLIC
+        Iconv::Charset
+    )
+endif()

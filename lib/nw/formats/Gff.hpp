@@ -1,6 +1,8 @@
 #pragma once
 
+#include "../i18n/Language.hpp"
 #include "../i18n/LocString.hpp"
+#include "../i18n/conversion.hpp"
 #include "../log.hpp"
 #include "../resources/Resource.hpp"
 #include "../util/ByteArray.hpp"
@@ -275,16 +277,17 @@ bool GffField::get_to(T& value) const
             off += 4;
             CHECK_OFF(off + size < parent_->bytes_.size());
             value = std::string((char*)parent_->bytes_.data() + off, size);
+            value = to_utf8(value, Language::default_encoding(), true);
         } else if constexpr (std::is_same_v<T, LocString>) {
-            uint32_t size, lang, strings;
+            uint32_t size, strref, lang, strings;
             parent_->bytes_.read_at(off, &size, 4);
             off += 4;
-            parent_->bytes_.read_at(off, &lang, 4);
+            parent_->bytes_.read_at(off, &strref, 4);
             off += 4;
             parent_->bytes_.read_at(off, &strings, 4);
             off += 4;
 
-            LocString ls{lang};
+            LocString ls{strref};
 
             for (uint32_t i = 0; i < strings; ++i) {
                 parent_->bytes_.read_at(off, &lang, 4);
@@ -293,6 +296,7 @@ bool GffField::get_to(T& value) const
                 off += 4;
                 CHECK_OFF(off + size < parent_->bytes_.size());
                 std::string s{(char*)parent_->bytes_.data() + off, size};
+                s = to_utf8_by_langid(s, static_cast<Language::ID>(lang), true);
                 off += size;
                 ls.add(lang, std::move(s));
             }
