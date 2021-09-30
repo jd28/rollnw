@@ -1,6 +1,7 @@
+find_package(Threads)
 find_package(absl CONFIG REQUIRED)
 find_package(fmt CONFIG REQUIRED)
-if(CMAKE_HOST_WIN32)
+if(MSVC)
 find_package(iconv CONFIG REQUIRED)
 endif()
 find_package(nlohmann_json CONFIG REQUIRED)
@@ -57,13 +58,14 @@ target_link_libraries(nw PUBLIC
     ZLIB::ZLIB
     zstd::libzstd_static
     unofficial::sqlite3::sqlite3
+    Threads::Threads
 
     stb_image
     inih
 )
 
-if(CMAKE_HOST_WIN32)
-    target_link_libraries(nw PUBLIC
-        Iconv::Charset
-    )
+if(MSVC)
+target_link_libraries(nw PUBLIC
+    Iconv::Charset
+)
 endif()
