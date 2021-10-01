@@ -11,10 +11,6 @@
         "nlohmann-json",
         "nowide",
         {
-            "name": "pthreads",
-            "platform": "windows"
-        },
-        {
             "name": "libiconv",
             "platform": "windows"
         }

@@ -1,9 +1,7 @@
 find_package(Threads)
 find_package(absl CONFIG REQUIRED)
 find_package(fmt CONFIG REQUIRED)
-if(MSVC)
-find_package(iconv CONFIG REQUIRED)
-endif()
+find_package(Iconv REQUIRED)
 find_package(nlohmann_json CONFIG REQUIRED)
 find_package(nowide CONFIG REQUIRED)
 find_package(unofficial-sqlite3 CONFIG REQUIRED)
@@ -64,8 +62,6 @@ target_link_libraries(nw PUBLIC
     inih
 )
 
-if(MSVC)
-target_link_libraries(nw PUBLIC
-    Iconv::Charset
-)
+if(NOT Iconv_IS_BUILT_IN)
+    target_link_libraries(nw PUBLIC Iconv::Iconv)
 endif()
