@@ -10,7 +10,7 @@ Where necessary the reading will be implemented seperatly from the writing and l
 |   bmp   |    Yes     |   Yes  | [stbi_image](https://github.com/nothings/stb)
 |   dds   |    Yes     |   Yes  | Both standard and Bioware (thanks to Torlack) DDS files can be read, only standard written. Conversions: png, tga
 |   gif   |    Yes     |   Yes  | [stbi_image](https://github.com/nothings/stb)
-|   gff   |    Yes     |   No   | The current implementation is non-allocating and read-only.  See non-goals above.  Conversions: JSON.
+|   gff   |    Yes     |   No   | The current implementation is non-allocating, unless strings are read, and read-only.  Conversions: gff -> JSON.
 |   ini   |    Yes     |   No   | [inih](https://github.com/benhoyt/inih)
 |   jpg   |    Yes     |   Yes  | [stbi_image](https://github.com/nothings/stb)
 |   json  |    Yes     |   Yes  | [nholmann_json](https://github.com/nlohmann/json)

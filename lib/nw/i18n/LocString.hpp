@@ -18,10 +18,10 @@ struct LocString {
     LocString(const LocString&) = default;
     LocString(LocString&&) = default;
 
-    /// @brief Add a localized string.
+    /// Add a localized string.
     void add(uint32_t language, std::string str, bool feminine = false);
 
-    /// @brief Gets a localized string.
+    /// Gets a localized string.
     std::string get(uint32_t language, bool feminine = false) const;
 
     /// Determines if a localized string is set

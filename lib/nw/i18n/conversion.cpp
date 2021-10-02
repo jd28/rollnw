@@ -1,7 +1,11 @@
 #include "conversion.hpp"
 
+#include "../log.hpp"
+#include "../util/scope_exit.hpp"
+
 #include <iconv.h>
 
+#include <limits>
 #include <stdexcept>
 
 namespace nw {
@@ -10,16 +14,23 @@ namespace detail {
 inline std::string iconv_wrapper(std::string_view str, const char* from, const char* to, bool ignore_errors)
 {
     std::string s;
+    if (!from || !to) {
+        LOG_F(ERROR, "invalid encoding from: {}, to: {}", from, to);
+        return s;
+    }
     iconv_t conv = iconv_open(to, from);
-    char* src_ptr = (char*)str.data();
+    SCOPE_EXIT([conv]() { iconv_close(conv); });
+
+    char* src_ptr = const_cast<char*>(str.data()); // Doesn't modify str
     size_t src_size = str.size();
     char dst_buffer[2024];
 
+    // Code from stackoverflow, will find source.
     while (0 < src_size) {
         char* dst_ptr = dst_buffer;
         size_t dst_size = 2024;
         size_t res = ::iconv(conv, &src_ptr, &src_size, &dst_ptr, &dst_size);
-        if (res == (size_t)-1) {
+        if (res == std::numeric_limits<size_t>::max()) {
             if (errno == E2BIG) {
                 // ignore this error
             } else if (ignore_errors) {

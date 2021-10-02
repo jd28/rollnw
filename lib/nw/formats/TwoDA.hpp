@@ -106,7 +106,13 @@ std::optional<T> TwoDA::get(size_t row, size_t col)
 template <typename T>
 std::optional<T> TwoDA::get(size_t row, std::string_view col)
 {
-    return get<T>(row, column_index(col));
+    int ci = column_index(col);
+    if (ci == -1) {
+        LOG_F(WARNING, "unknown column: {}", col);
+        return std::optional<T>{};
+    }
+
+    return get<T>(row, ci);
 }
 
 template <typename T>
@@ -142,6 +148,11 @@ bool TwoDA::get_to(size_t row, size_t col, T& out)
 template <typename T>
 bool TwoDA::get_to(size_t row, std::string_view col, T& out)
 {
+    int ci = column_index(col);
+    if (ci == -1) {
+        LOG_F(WARNING, "unknown column: {}", col);
+        return false;
+    }
     return get_to<T>(row, column_index(col), out);
 }
 
