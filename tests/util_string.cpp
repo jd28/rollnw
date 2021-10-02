@@ -80,3 +80,22 @@ TEST_CASE("Glob to regex", "[utils]")
     REQUIRE(match("*a*??????a?????????a???????????????",
         "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"));
 }
+
+TEST_CASE("Covert colors", "[utils]")
+{
+    std::string test{"<c\x01\x11\xFE>"};
+    auto s = nw::string::sanitize_colors(test);
+    REQUIRE(s == "<c0111FE>");
+    auto ds = nw::string::desanitize_colors("<c0111FE>");
+    REQUIRE(ds == test);
+
+    std::string test2{"<cab>"};
+    auto s2 = nw::string::sanitize_colors(test2);
+    REQUIRE(s2 == "<cab>");
+
+    std::string test3{"<cabc>test</c>"};
+    auto s3 = nw::string::sanitize_colors(test3);
+    REQUIRE(s3 == "<c616263>test</c>");
+    auto ds2 = nw::string::desanitize_colors("<c616263>test</c>");
+    REQUIRE(ds2 == test3);
+}

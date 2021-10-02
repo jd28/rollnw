@@ -28,7 +28,7 @@ Find the status of [File Formats](lib/nw/formats/README.md), [Containers](lib/nw
 * Aim at implementation equals understanding.  Reading the source should leave no questions regarding the underlying file formats (most of them are dead simple).
 * Provide a place to learn and re-learn about NWN and modern C++ projects.
 * Maybe make neat stuff.
-* Follows the principles of [utf8 everywhere](https://utf8everywhere.org/).  This is aspirational and a huge can of worms.  I'm guessing the game itself has been forced in this direction.
+* Follows the principles of [utf8 everywhere](https://utf8everywhere.org/).  This is aspirational and a huge can of worms.  The game itself has probably been forced in this direction.  Currently, here, color codes are sanitized to \<cXXXXXX\>, where XX is hexidecimal.  It's unfortunate that EE didn't do something like that, inserting invalid codepoints into a string to save 3 bytes was just a Bad Idea™.  In any case, it vastly simplifies converting to and from utf8.
 * Hew as close to [C++ Core Guidelines](https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines) as possible.
 
 ## Non-goals

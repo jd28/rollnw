@@ -162,4 +162,56 @@ std::regex glob_to_regex(std::string_view pattern, bool icase)
     }
 }
 
+std::string sanitize_colors(std::string str)
+{
+    std::array<char, 2> hex;
+    for (size_t i = 1; i < str.length(); ++i) {
+        if (str[i - 1] == '<' && str[i] == 'c') {
+            if (i + 4 >= str.length() || str[i + 4] != '>') {
+                LOG_F(ERROR, "invalid color code: '{}'", str);
+                continue;
+            }
+
+            auto s = fmt::format("{:02X}{:02X}{:02X}",
+                static_cast<uint8_t>(str[i + 1]),
+                static_cast<uint8_t>(str[i + 2]),
+                static_cast<uint8_t>(str[i + 3]));
+
+            str[i + 1] = s[0];
+            str[i + 2] = s[1];
+            str[i + 3] = s[2];
+            str.insert(i + 4, s.data() + 3, 3);
+        }
+    }
+    return str;
+}
+
+std::string desanitize_colors(std::string str)
+{
+    size_t len = str.length();
+    for (size_t i = 1; i < len; ++i) {
+        if (str[i - 1] != '<' || str[i] != 'c') { continue; }
+        if (i + 7 >= len || str[i + 7] != '>') {
+            LOG_F(ERROR, "invalid color code: '{}'", str);
+            continue;
+        }
+
+        uint8_t c1, c2, c3;
+        auto r1 = std::from_chars(&str[i + 1], &str[i + 3], c1, 16);
+        auto r2 = std::from_chars(&str[i + 3], &str[i + 5], c2, 16);
+        auto r3 = std::from_chars(&str[i + 5], &str[i + 7], c3, 16);
+        if (r1.ec != std::errc() || r2.ec != std::errc() || r3.ec != std::errc()) {
+            LOG_F(ERROR, "failed to desanitize color code: '{}'", str);
+            continue;
+        }
+
+        str[i + 1] = c1;
+        str[i + 2] = c2;
+        str[i + 3] = c3;
+        str.erase(std::begin(str) + i + 4, std::begin(str) + i + 7);
+        len -= 3;
+    }
+    return str;
+}
+
 } // namespace nw::string

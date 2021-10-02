@@ -87,4 +87,10 @@ bool endswith(std::string_view str, std::string_view suffix);
  */
 std::regex glob_to_regex(std::string_view pattern, bool icase = false);
 
+/// Converts color bytes to hex <c\x\x\x> -> <cXXXXXX>.  Note: MOVE in the string.
+std::string sanitize_colors(std::string str);
+
+/// Converts color hex to bytes <cXXXXXX> -> <c\x\x\x>.  Note: MOVE in the string.
+std::string desanitize_colors(std::string str);
+
 } // namespace nw::string

@@ -7,6 +7,7 @@
 #include "../resources/Resource.hpp"
 #include "../util/ByteArray.hpp"
 #include "../util/macros.hpp"
+#include "../util/string.hpp"
 
 #include <array>
 #include <cstdint>
@@ -277,7 +278,8 @@ bool GffField::get_to(T& value) const
             off += 4;
             CHECK_OFF(off + size < parent_->bytes_.size());
             value = std::string((char*)parent_->bytes_.data() + off, size);
-            value = to_utf8(value, Language::default_encoding(), true);
+            value = string::sanitize_colors(std::move(value));
+            value = to_utf8(value, Language::default_encoding(), false);
         } else if constexpr (std::is_same_v<T, LocString>) {
             uint32_t size, strref, lang, strings;
             parent_->bytes_.read_at(off, &size, 4);
@@ -296,7 +298,8 @@ bool GffField::get_to(T& value) const
                 off += 4;
                 CHECK_OFF(off + size < parent_->bytes_.size());
                 std::string s{(char*)parent_->bytes_.data() + off, size};
-                s = to_utf8_by_langid(s, static_cast<Language::ID>(lang), true);
+                s = string::sanitize_colors(std::move(s));
+                s = to_utf8_by_langid(s, static_cast<Language::ID>(lang), false);
                 off += size;
                 ls.add(lang, std::move(s));
             }
