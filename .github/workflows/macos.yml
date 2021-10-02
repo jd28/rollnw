@@ -1,4 +1,4 @@
-name: 🔨 Build libnw (macOS)
+name: macOS
 on: [push, pull_request]
 
 jobs:
