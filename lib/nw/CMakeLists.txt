@@ -1,6 +1,7 @@
 find_package(Threads)
 find_package(absl CONFIG REQUIRED)
 find_package(fmt CONFIG REQUIRED)
+find_package(glm CONFIG REQUIRED)
 find_package(Iconv REQUIRED)
 find_package(nlohmann_json CONFIG REQUIRED)
 find_package(nowide CONFIG REQUIRED)
@@ -51,6 +52,7 @@ target_link_libraries(nw PUBLIC
     absl::span
     absl::utility
     absl::strings
+    glm::glm
     nlohmann_json nlohmann_json::nlohmann_json
     nowide::nowide
     ZLIB::ZLIB
