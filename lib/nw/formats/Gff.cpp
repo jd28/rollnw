@@ -67,6 +67,11 @@ GffStruct::GffStruct(const Gff* parent, const detail::GffStructEntry* entry)
 {
 }
 
+bool GffStruct::has_field(std::string_view label) const
+{
+    return operator[](label).valid();
+}
+
 GffField GffStruct::operator[](std::string_view label) const
 {
     if (entry_->field_count == 1) {

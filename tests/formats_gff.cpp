@@ -12,6 +12,8 @@ TEST_CASE("Gff Validation", "[formats]")
     REQUIRE(g.valid());
     REQUIRE(g.toplevel().size() > 0);
 
+    REQUIRE(g.toplevel().has_field("TemplateResRef"));
+
     auto field = g.toplevel()["TemplateResRef"];
     REQUIRE(field.valid());
     REQUIRE(field.name() == "TemplateResRef");

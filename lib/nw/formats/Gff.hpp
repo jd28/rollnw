@@ -167,7 +167,7 @@ private:
 
 struct GffStruct {
     /// Check if a struct has a field.
-    bool has_field(std::string_view label);
+    bool has_field(std::string_view label) const;
 
     /// Get struct id.
     uint32_t id() const { return entry_->type; }
