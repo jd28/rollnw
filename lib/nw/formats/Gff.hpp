@@ -172,6 +172,14 @@ struct GffStruct {
     /// Get struct id.
     uint32_t id() const { return entry_->type; }
 
+    /// Gets a value from a field in the struct
+    template <typename T>
+    std::optional<T> get(std::string_view label, bool warn_missing = true) const;
+
+    /// Gets a value from a field in the struct
+    template <typename T>
+    bool get_to(std::string_view label, T& out, bool warn_missing = true) const;
+
     /// Number of fields in the struct.
     size_t size() const { return entry_->field_count; }
 
@@ -234,6 +242,32 @@ private:
 
     bool parse();
 };
+
+template <typename T>
+std::optional<T> GffStruct::get(std::string_view label, bool warn_missing) const
+{
+    T temp;
+    return get_to(label, temp, warn_missing)
+        ? std::optional<T>{std::move(temp)}
+        : std::optional<T>{};
+}
+
+template <typename T>
+bool GffStruct::get_to(std::string_view label, T& out, bool warn_missing) const
+{
+    auto val = (*this)[label];
+    if (!val.valid()) {
+        if (warn_missing) { LOG_F(ERROR, "gff missing field '{}'", label); }
+        return false;
+    }
+    T temp;
+    if (!val.get_to(temp)) {
+        if (warn_missing) { LOG_F(ERROR, "gff unable to read field '{}' value", label); }
+        return false;
+    }
+    out = std::move(temp);
+    return true;
+}
 
 template <typename T>
 std::optional<T> GffField::get() const
