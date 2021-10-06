@@ -24,6 +24,11 @@ GffField::GffField(const Gff* parent, const detail::GffFieldEntry* entry)
 
 std::string_view GffField::name() const
 {
+    if (!valid()) {
+        LOG_F(ERROR, "invalid gff field");
+        return {};
+    }
+
     if (entry_->label_idx >= parent_->head_->label_count) {
         LOG_F(ERROR, "invalid label index: {}", entry_->label_idx);
         return {};
@@ -33,6 +38,11 @@ std::string_view GffField::name() const
 
 size_t GffField::size() const
 {
+    if (!valid()) {
+        LOG_F(ERROR, "invalid gff field");
+        return 0;
+    }
+
     if (entry_->data_or_offset >= parent_->head_->list_idx_count) {
         LOG_F(ERROR, "invalid list index: {}", entry_->data_or_offset);
         return {};
@@ -45,11 +55,21 @@ size_t GffField::size() const
 
 GffType::type GffField::type() const
 {
+    if (!valid()) {
+        LOG_F(ERROR, "invalid gff field");
+        return GffType::INVALID;
+    }
+
     return static_cast<GffType::type>(entry_->type);
 }
 
 GffStruct GffField::operator[](size_t index) const
 {
+    if (!valid()) {
+        LOG_F(ERROR, "invalid gff field");
+        return {};
+    }
+
     if (entry_->data_or_offset >= parent_->head_->list_idx_count) {
         LOG_F(ERROR, "invalid list index: {}", entry_->data_or_offset);
         return {};
@@ -74,6 +94,11 @@ bool GffStruct::has_field(std::string_view label) const
 
 GffField GffStruct::operator[](std::string_view label) const
 {
+    if (!valid()) {
+        LOG_F(ERROR, "invalid gff struct");
+        return {};
+    }
+
     if (entry_->field_count == 1) {
         if (entry_->field_index >= parent_->head_->field_count) { return {}; }
         return GffField(parent_, &parent_->fields_[entry_->field_index]);
@@ -93,6 +118,11 @@ GffField GffStruct::operator[](std::string_view label) const
 
 GffField GffStruct::operator[](size_t index) const
 {
+    if (!valid()) {
+        LOG_F(ERROR, "invalid gff struct");
+        return {};
+    }
+
     if (index >= size()) {
         LOG_F(ERROR, "GffStruct: invalid index: {}", index);
         return {};

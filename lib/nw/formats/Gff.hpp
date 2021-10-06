@@ -287,6 +287,11 @@ std::optional<T> GffField::get() const
 template <typename T>
 bool GffField::get_to(T& value) const
 {
+    if (!valid()) {
+        LOG_F(ERROR, "invalid gff field");
+        return false;
+    }
+
     GffType::type type = GffType::id<T>();
     if (entry_->type != type) {
         LOG_F(ERROR, "Gff Types don't match {} != {}", type, entry_->type);

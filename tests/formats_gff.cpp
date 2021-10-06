@@ -61,3 +61,10 @@ TEST_CASE("Gff Conversion", "[formats]")
     std::ofstream f{"tmp/nw_chicken.utc.json", std::ios_base::binary};
     f << std::setw(4) << j;
 }
+
+TEST_CASE("Gff Object Poisoning", "[formats]")
+{
+    nw::Gff g("test_data/nw_chicken.utc");
+    int32_t nonextant;
+    REQUIRE_FALSE(g["thisdoesn't exist"][2000]["Or this"][1000000000]["Maybe this?"].get_to(nonextant));
+}
