@@ -70,6 +70,7 @@ If you've somehow found your way here by accident, you should head to [neverwint
 - [abseil](https://abseil.io/) - Foundational
 - [Catch2](https://github.com/catchorg/Catch2) - Testing
 - [loguru](https://github.com/emilk/loguru), [fmt](https://github.com/fmtlib/fmt) - Logging
+- [glm](https://www.opengl.org/sdk/libs/GLM/) - Mathematics
 - [stbi_image](https://github.com/nothings/stb), [NWNExplorer](https://github.com/virusman/nwnexplorer), [SOIL2](https://github.com/SpartanJ/SOIL2/) - Image/Texture loading.
 - [inih](https://github.com/benhoyt/inih) - INI, SET parsing
 - [nholmann_json](https://github.com/nlohmann/json) - JSON
