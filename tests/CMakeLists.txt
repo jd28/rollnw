@@ -40,6 +40,8 @@ add_executable(libnw_test
 
     i18n_tlk.cpp
 
+    objects_dialog.cpp
+
     resources.cpp
     resources_dir.cpp
     resources_erf.cpp

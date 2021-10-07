@@ -26,6 +26,7 @@ add_library(nw STATIC
     i18n/LocString
     i18n/Tlk
 
+    objects/Dialog
     resources/Bif
     resources/Container
     resources/Directory
