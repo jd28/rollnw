@@ -299,7 +299,7 @@ bool GffField::get_to(T& value) const
     }
 
     if constexpr (sizeof(T) <= 4) {
-        value = T(entry_->data_or_offset);
+        memcpy(&value, &entry_->data_or_offset, sizeof(T));
         return true;
     } else {
         size_t off = entry_->data_or_offset + parent_->head_->field_data_offset;
