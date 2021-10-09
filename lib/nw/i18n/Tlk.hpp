@@ -41,12 +41,13 @@ struct TlkElement {
 } // namespace detail
 
 struct Tlk {
+    Tlk() = default;
     explicit Tlk(const std::filesystem::path& filename);
     Tlk(const Tlk&) = delete;
     Tlk(Tlk&&) = default;
 
     /// Get a localized string
-    std::string_view get(uint32_t strref);
+    std::string_view get(uint32_t strref) const;
 
     /**
      * @brief Get the number of tlk entries

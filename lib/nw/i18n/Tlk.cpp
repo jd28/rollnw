@@ -8,12 +8,12 @@ namespace nw {
 Tlk::Tlk(const std::filesystem::path& filename)
     : bytes_{ByteArray::from_file(filename)}
 {
-#define CHECK_OFF(value)                                                                          \
-    do {                                                                                          \
-        if (!(value)) {                                                                           \
+#define CHECK_OFF(value)                                                                           \
+    do {                                                                                           \
+        if (!(value)) {                                                                            \
             LOG_F(ERROR, "corrupt tlk: {}, error: {}", filename.string(), LIBNW_STRINGIFY(value)); \
-            return;                                                                               \
-        }                                                                                         \
+            return;                                                                                \
+        }                                                                                          \
     } while (0)
 
     CHECK_OFF(bytes_.size() > sizeof(detail::TlkHeader));
@@ -27,7 +27,7 @@ Tlk::Tlk(const std::filesystem::path& filename)
 #undef CHECK_OFF
 }
 
-std::string_view Tlk::get(uint32_t strref)
+std::string_view Tlk::get(uint32_t strref) const
 {
     std::string_view result;
     if (!loaded_) {
