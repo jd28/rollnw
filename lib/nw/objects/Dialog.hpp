@@ -62,7 +62,6 @@ public:
     std::vector<DialogNode> replies;
     std::vector<DialogPtr> starts;
 
-    void dump(std::ostream& out, const DialogPtr& ptr, int depth, int indent = 4) const;
     bool valid() const noexcept { return is_valid_; }
 
 private:
@@ -71,7 +70,5 @@ private:
     bool load(const GffStruct gff);
     bool read_nodes(const GffStruct gff, DialogNodeType node_type);
 };
-
-std::ostream& operator<<(std::ostream& out, const Dialog& dlg);
 
 } // namespace nw

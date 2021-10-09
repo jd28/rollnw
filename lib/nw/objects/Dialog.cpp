@@ -6,10 +6,6 @@ namespace nw {
 
 DialogNode* DialogPtr::node()
 {
-    if (index < 0) {
-        return nullptr;
-    }
-
     switch (type) {
     default:
         LOG_F(ERROR, "Unknown dialog node types: {}", type);
@@ -35,20 +31,7 @@ const DialogNode* DialogPtr::node() const
 Dialog::Dialog(const GffStruct gff)
     : prevent_zoom(0)
 {
-    load(gff);
-}
-
-void Dialog::dump(std::ostream& out, const DialogPtr& ptr, int depth, int indent) const
-{
-    if (!ptr.node()) { return; }
-    if (ptr.is_link) {
-        out << "[Link]" << ptr.node()->text.get(0) << '\n';
-        return;
-    }
-    out << std::string(depth * indent, ' ') << ptr.node()->text.get(0) << '\n';
-    for (auto& it : ptr.node()->pointers) {
-        dump(out, it, depth + 1);
-    }
+    is_valid_ = load(gff);
 }
 
 bool Dialog::read_nodes(const GffStruct gff, DialogNodeType node_type)
@@ -89,10 +72,6 @@ bool Dialog::read_nodes(const GffStruct gff, DialogNodeType node_type)
         valid = valid && s.get_to("Text", node.text);
 
         uint32_t num_ptrs = s[ptr_list].size();
-        if (num_ptrs == 0) {
-            LOG_F(ERROR, "Unable to get list size");
-        }
-
         node.pointers.reserve(num_ptrs);
         for (uint32_t j = 0; j < num_ptrs && valid; ++j) {
             GffStruct p = s[ptr_list][j];
@@ -155,14 +134,6 @@ bool Dialog::load(const GffStruct gff)
     }
 
     return valid;
-}
-
-std::ostream& operator<<(std::ostream& out, const Dialog& dlg)
-{
-    for (const auto& it : dlg.starts) {
-        dlg.dump(out, it, 0);
-    }
-    return out;
 }
 
 } // namespace nw
