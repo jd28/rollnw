@@ -294,7 +294,7 @@ bool GffField::get_to(T& value) const
 
     GffType::type type = GffType::id<T>();
     if (entry_->type != type) {
-        LOG_F(ERROR, "Gff Types don't match {} != {}", type, entry_->type);
+        LOG_F(ERROR, "gff field '{}' types don't match {} != {}", name(), type, entry_->type);
         return false;
     }
 
@@ -316,8 +316,10 @@ bool GffField::get_to(T& value) const
             parent_->bytes_.read_at(off, &size, 4);
             off += 4;
             CHECK_OFF(off + size < parent_->bytes_.size());
-            value = std::string((char*)parent_->bytes_.data() + off, size);
-            value = string::sanitize_colors(std::move(value));
+            std::string s{};
+            s.reserve(size + 12); // Reserve a little bit extra, in case of colors.
+            s.append((char*)parent_->bytes_.data() + off, size);
+            value = string::sanitize_colors(std::move(s));
             value = to_utf8(value, Language::default_encoding(), false);
         } else if constexpr (std::is_same_v<T, LocString>) {
             uint32_t size, strref, lang, strings;

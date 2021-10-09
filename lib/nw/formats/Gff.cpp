@@ -38,10 +38,7 @@ std::string_view GffField::name() const
 
 size_t GffField::size() const
 {
-    if (!valid()) {
-        LOG_F(ERROR, "invalid gff field");
-        return 0;
-    }
+    if (!valid()) { return 0; }
 
     if (entry_->data_or_offset >= parent_->head_->list_idx_count) {
         LOG_F(ERROR, "invalid list index: {}", entry_->data_or_offset);
