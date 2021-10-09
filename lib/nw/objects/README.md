@@ -27,7 +27,7 @@ NWN has three different (de)serialization profiles:
 | Item           | No   | No    |
 | Journal        | No   | No    |
 | Module         | No   | No    |
-| Palette        | No   | No    | Surprised this wasn't ditched first thing in EE.
+| Palette        | Gff  | No    | Surprised this wasn't ditched first thing in EE.
 | Placeable      | No   | No    |
 | Sound          | No   | No    |
 | Store          | No   | No    |

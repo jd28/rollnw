@@ -28,6 +28,7 @@ add_library(nw STATIC
     i18n/TlkTable
 
     objects/Dialog
+    objects/Palette
     resources/Bif
     resources/Container
     resources/Directory
