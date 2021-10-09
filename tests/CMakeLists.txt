@@ -39,6 +39,7 @@ add_executable(libnw_test
     formats_twoda.cpp
 
     i18n_tlk.cpp
+    i18n_tlktable.cpp
 
     objects_dialog.cpp
 

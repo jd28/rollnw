@@ -25,6 +25,7 @@ add_library(nw STATIC
     i18n/Language
     i18n/LocString
     i18n/Tlk
+    i18n/TlkTable
 
     objects/Dialog
     resources/Bif
