@@ -101,7 +101,8 @@ GffField GffStruct::operator[](std::string_view label) const
 
     if (entry_->field_count == 1) {
         if (entry_->field_index >= parent_->head_->field_count) { return {}; }
-        return GffField(parent_, &parent_->fields_[entry_->field_index]);
+        auto f = GffField(parent_, &parent_->fields_[entry_->field_index]);
+        return label == f.name() ? f : GffField{};
     } else {
         if (entry_->field_index >= parent_->head_->field_idx_count) { return {}; }
         auto fi = &parent_->field_indices_[entry_->field_index / 4];
