@@ -54,9 +54,9 @@ bool Dialog::read_nodes(const GffStruct gff, DialogNodeType node_type)
     }
 
     bool valid = true;
-    uint32_t size = gff[node_list].size();
+    size_t size = gff[node_list].size();
     holder->reserve(size);
-    for (uint32_t i = 0; i < size && valid; ++i) {
+    for (size_t i = 0; i < size && valid; ++i) {
         DialogNode node;
         GffStruct s = gff[node_list][i];
 
@@ -71,9 +71,9 @@ bool Dialog::read_nodes(const GffStruct gff, DialogNodeType node_type)
 
         valid = valid && s.get_to("Text", node.text);
 
-        uint32_t num_ptrs = s[ptr_list].size();
+        size_t num_ptrs = s[ptr_list].size();
         node.pointers.reserve(num_ptrs);
-        for (uint32_t j = 0; j < num_ptrs && valid; ++j) {
+        for (size_t j = 0; j < num_ptrs && valid; ++j) {
             GffStruct p = s[ptr_list][j];
             if (!p.valid()) {
                 LOG_F(ERROR, "Unable to get list element: {}", j);
@@ -116,10 +116,10 @@ bool Dialog::load(const GffStruct gff)
         return false;
     }
 
-    uint32_t size = gff["StartingList"].size();
+    size_t size = gff["StartingList"].size();
     starts.reserve(size);
 
-    for (uint32_t i = 0; i < size && valid; ++i) {
+    for (size_t i = 0; i < size && valid; ++i) {
         DialogPtr ptr;
 
         ptr.parent = this;

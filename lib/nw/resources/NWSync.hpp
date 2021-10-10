@@ -35,10 +35,10 @@ struct NWSyncManifest : public Container {
     NWSyncManifest() = default;
     NWSyncManifest(std::string manifest, NWSync* parent);
 
-    virtual std::vector<Resource> all();
-    virtual ByteArray demand(Resource res);
-    virtual int extract(const std::regex& pattern, const std::filesystem::path& output);
-    virtual size_t size() const { return 0; }
+    virtual std::vector<Resource> all() override;
+    virtual ByteArray demand(Resource res) override;
+    virtual int extract(const std::regex& pattern, const std::filesystem::path& output) override;
+    virtual size_t size() const override { return 0; }
     virtual ResourceDescriptor stat(const Resource& res) override;
 
 private:

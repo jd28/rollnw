@@ -164,7 +164,6 @@ std::regex glob_to_regex(std::string_view pattern, bool icase)
 
 std::string sanitize_colors(std::string str)
 {
-    std::array<char, 2> hex;
     for (size_t i = 1; i < str.length(); ++i) {
         if (str[i - 1] == '<' && str[i] == 'c') {
             if (i + 4 >= str.length() || str[i + 4] != '>') {

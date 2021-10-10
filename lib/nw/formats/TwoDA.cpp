@@ -95,7 +95,7 @@ int TwoDA::column_index(const std::string_view column) const
 {
     for (size_t i = 0; i < columns_.size(); ++i) {
         if (string::icmp(columns_[i], column))
-            return i;
+            return static_cast<int>(i);
     }
     return -1;
 }

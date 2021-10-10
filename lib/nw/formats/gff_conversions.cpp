@@ -70,6 +70,9 @@ inline bool gff_to_json(const GffField field, nlohmann::json& cursor)
     std::string field_name = std::string(field.name());
 
     switch (field.type()) {
+    default:
+        LOG_F(ERROR, "attempted to convert invalid field type");
+        return false;
     case GffType::UINT8:
         add_field_kv(cursor, field_name, *field.get<uint8_t>());
         break;

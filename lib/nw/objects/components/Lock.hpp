@@ -15,7 +15,7 @@ struct Lock {
             return;
         }
 
-        if (lockable = !!temp) {
+        if ((lockable = !!temp)) {
             gff.get_to("AutoRemoveKey", temp);
             remove_key = !!temp;
             gff.get_to("Locked", temp);
