@@ -12,6 +12,10 @@ NWN has three different (de)serialization profiles:
 
 ## Components
 
+|   Type   | Read | Write |                        Notes                        |
+| -------- | ---- | ----- | --------------------------------------------------- |
+| Location | Gff  | No    | Writing will be a little tricky because some things store their heading in radians, others in vectors.  |
+
 ## Status
 
 |      Type      | Read | Write | Notes
