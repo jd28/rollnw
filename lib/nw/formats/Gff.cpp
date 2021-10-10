@@ -180,10 +180,18 @@ bool Gff::parse()
     CHECK_OFF(head_->field_offset < bytes_.size() && head_->field_offset + head_->field_count * sizeof(detail::GffFieldEntry) < bytes_.size());
     fields_ = reinterpret_cast<detail::GffFieldEntry*>(bytes_.data() + head_->field_offset);
     CHECK_OFF(head_->field_data_offset < bytes_.size() && head_->field_data_offset + head_->field_data_count < bytes_.size());
-    CHECK_OFF(head_->field_idx_offset < bytes_.size() && head_->field_idx_offset + head_->field_idx_count < bytes_.size());
+    CHECK_OFF(head_->field_idx_offset < bytes_.size() && head_->field_idx_offset + head_->field_idx_count <= bytes_.size());
     field_indices_ = reinterpret_cast<uint32_t*>(bytes_.data() + head_->field_idx_offset);
-    CHECK_OFF(head_->list_idx_offset < bytes_.size() && head_->list_idx_offset + head_->list_idx_count <= bytes_.size());
-    list_indices_ = reinterpret_cast<uint32_t*>(bytes_.data() + head_->list_idx_offset);
+
+    // If there are no list indexes.. offset will be the size of file, but no data will
+    // be there.
+    CHECK_OFF(head_->list_idx_offset <= bytes_.size());
+    if (head_->list_idx_count > 0) {
+        CHECK_OFF(head_->list_idx_offset + head_->list_idx_count <= bytes_.size());
+        list_indices_ = reinterpret_cast<uint32_t*>(bytes_.data() + head_->list_idx_offset);
+    } else {
+        list_indices_ = nullptr;
+    }
 
     return true;
 }
