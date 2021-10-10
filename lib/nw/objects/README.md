@@ -15,6 +15,7 @@ NWN has three different (de)serialization profiles:
 |   Type   | Read | Write |                        Notes                        |
 | -------- | ---- | ----- | --------------------------------------------------- |
 | Location | Gff  | No    | Writing will be a little tricky because some things store their heading in radians, others in vectors.  |
+| LocalData | Gff | No    | Will encompasses local variables, baked sqlite3, and NWNX:EE POS.  Only local variables.. for now |
 
 ## Status
 

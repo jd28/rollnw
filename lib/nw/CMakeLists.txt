@@ -29,6 +29,7 @@ add_library(nw STATIC
 
     objects/Dialog
     objects/Palette
+    objects/components/LocalData
     objects/components/Location
     resources/Bif
     resources/Container
