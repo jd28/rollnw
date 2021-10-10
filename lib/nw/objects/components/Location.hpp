@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../../formats/Gff.hpp"
-#include "../Object.hpp"
+#include "../ObjectID.hpp"
 #include "../Serialization.hpp"
 
 #include <glm/glm.hpp>

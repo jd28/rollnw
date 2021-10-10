@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../formats/Gff.hpp"
-#include "Object.hpp"
+#include "ObjectID.hpp"
 #include "Serialization.hpp"
 #include "components/LocalData.hpp"
 #include "components/Location.hpp"
@@ -66,7 +66,7 @@ struct ItemProperty {
     uint8_t param_value;
 };
 
-struct Item : public Object {
+struct Item {
     Item(const GffStruct gff, SerializationProfile profile);
 
     Resref resref;
