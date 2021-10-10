@@ -29,7 +29,7 @@ NWN has three different (de)serialization profiles:
 | Door           | No   | No    |
 | Encounter      | No   | No    |
 | Faction        | No   | No    |
-| Item           | No   | No    |
+| Item           | Gff  | No    | Probably missing new EE stuff.
 | Journal        | No   | No    |
 | Module         | No   | No    |
 | Palette        | Gff  | No    | Surprised this wasn't ditched first thing in EE.

@@ -42,6 +42,7 @@ add_executable(libnw_test
     i18n_tlktable.cpp
 
     objects_dialog.cpp
+    objects_item.cpp
     objects_palette.cpp
 
     resources.cpp

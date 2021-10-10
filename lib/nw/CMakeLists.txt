@@ -28,6 +28,7 @@ add_library(nw STATIC
     i18n/TlkTable
 
     objects/Dialog
+    objects/Item
     objects/Palette
     objects/components/LocalData
     objects/components/Location
