@@ -362,7 +362,7 @@ struct Script {
 };
 
 struct NssParser {
-    NssParser(std::string_view view);
+    explicit NssParser(std::string_view view);
 
     std::string_view view_;
     NssLexer lexer_;

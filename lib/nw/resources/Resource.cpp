@@ -14,7 +14,7 @@ Resource::Resource() noexcept
 {
 }
 
-Resource::Resource(Resref resref, ResourceType::type type) noexcept
+Resource::Resource(const Resref& resref, ResourceType::type type) noexcept
     : resref{resref}
     , type{type}
 {

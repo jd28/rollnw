@@ -15,7 +15,7 @@ namespace nw {
 
 class Ini {
 public:
-    Ini(const std::filesystem::path& filename);
+    explicit Ini(const std::filesystem::path& filename);
     Ini(ByteArray bytes);
 
     // absl::flat_hash_map doesn't support hertogeneous lookup with std::string_view

@@ -14,7 +14,7 @@ namespace fs = std::filesystem;
 // it checks disk on every demand.
 
 struct Directory : public Container {
-    Directory(const std::filesystem::path& path);
+    explicit Directory(const std::filesystem::path& path);
     ~Directory() = default;
 
     virtual std::vector<Resource> all() override;

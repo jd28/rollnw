@@ -14,7 +14,7 @@ struct Trap {
             LOG_F(ERROR, "attempting to read a trap from non-trappable object");
             return;
         }
-        if (is_trapped = !!temp) {
+        if ((is_trapped = !!temp)) {
             gff.get_to("TrapType", type);
             gff.get_to("DisarmDC", disarm_dc);
             gff.get_to("TrapDetectable", temp);

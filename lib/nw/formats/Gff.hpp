@@ -205,8 +205,8 @@ private:
 
 struct Gff {
     Gff();
-    Gff(const std::filesystem::path& fileName);
-    Gff(ByteArray bytes);
+    explicit Gff(const std::filesystem::path& fileName);
+    explicit Gff(ByteArray bytes);
 
     /// Get the toplevel struct
     GffStruct toplevel() const;

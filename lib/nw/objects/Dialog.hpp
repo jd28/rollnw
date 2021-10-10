@@ -20,13 +20,13 @@ struct DialogPtr {
     DialogNode* node();
     const DialogNode* node() const;
 
-    Dialog* parent;
-    DialogNodeType type;
-    uint32_t index;
+    Dialog* parent = nullptr;
+    DialogNodeType type = DialogNodeType::entry;
+    uint32_t index = ~0;
 
     Resref script_appears;
-    bool is_start;
-    uint8_t is_link;
+    bool is_start = false;
+    uint8_t is_link = 0;
     std::string comment;
 };
 
@@ -34,12 +34,12 @@ struct DialogNode {
 public:
     DialogNode() { }
 
-    Dialog* parent;
+    Dialog* parent = nullptr;
     DialogNodeType type;
 
     std::string comment;
     std::string quest;
-    uint32_t quest_entry;
+    uint32_t quest_entry = ~0;
     Resref script_action;
     Resref sound;
     LocString text;
@@ -49,14 +49,14 @@ public:
 
 struct Dialog {
 public:
-    Dialog(const GffStruct gff);
+    explicit Dialog(const GffStruct gff);
 
-    uint8_t prevent_zoom;
-    uint32_t delay_entry;
-    uint32_t delay_reply;
+    uint8_t prevent_zoom = 0;
+    uint32_t delay_entry = 0;
+    uint32_t delay_reply = 0;
     Resref script_abort;
     Resref script_end;
-    uint32_t word_count;
+    uint32_t word_count = 0;
 
     std::vector<DialogNode> entries;
     std::vector<DialogNode> replies;

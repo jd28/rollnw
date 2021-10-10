@@ -9,7 +9,7 @@ Palette::Palette(const GffStruct gff)
 
 bool Palette::load(const GffStruct gff)
 {
-    uint32_t list_size = gff["MAIN"].size();
+    size_t list_size = gff["MAIN"].size();
     if (list_size == 0) {
         LOG_F(ERROR, "No main palette list!");
         return false;

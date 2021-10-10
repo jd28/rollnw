@@ -21,9 +21,9 @@ struct Object {
     std::string tag;
     LocString name;
 
-    uint32_t faction;
-    int16_t hp;
-    int16_t hp_current;
+    uint32_t faction = 0;
+    int16_t hp = 0;
+    int16_t hp_current = 0;
 
     // Blueprint only
     std::string comment;

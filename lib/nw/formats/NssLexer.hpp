@@ -102,7 +102,7 @@ struct NssToken {
 };
 
 struct NssLexer {
-    NssLexer(std::string_view buffer);
+    explicit NssLexer(std::string_view buffer);
 
     char get(size_t pos) const;
     bool match(std::string_view str) const;

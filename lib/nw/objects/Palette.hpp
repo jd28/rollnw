@@ -46,7 +46,7 @@ struct PaletteTreeNode {
 };
 
 struct Palette {
-    Palette(const GffStruct gff);
+    explicit Palette(const GffStruct gff);
     ~Palette() = default;
 
     uint8_t max_id() const noexcept { return max_id_; }
