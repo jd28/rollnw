@@ -16,24 +16,27 @@ NWN has three different (de)serialization profiles:
 | -------- | ---- | ----- | --------------------------------------------------- |
 | Location | Gff  | No    | Writing will be a little tricky because some things store their heading in radians, others in vectors.  |
 | LocalData | Gff | No    | Will encompasses local variables, baked sqlite3, and NWNX:EE POS.  Only local variables.. for now |
+| Lock     | Gff  | No    | Encapsulate lockable objects
+| Trap     | Gff  | No    | Encapsulate trapable objects
+| Saves    | Gff  | No    | a struct for saves, may be moved elsewhere
 
 ## Status
 
 |      Type      | Read | Write | Notes
 | -------------- | ---- | ----- | -----
-| Object         | No   | No    | Parent of Creature, Encounter
-| SituatedObject | No   | No    | Parent of Placeables and Doors
+| Object         | Gff  | No    | Parent of Creature, Encounter, SituatedObject, etc.
+| SituatedObject | Gff  | No    | Parent of Placeables and Doors
 | Area           | No   | No    |
 | Creature       | No   | No    |
 | Dialog         | Gff  | No    | This is very old, doesn't include new EE stuff.. yet.
-| Door           | No   | No    |
+| Door           | Gff  | No    |
 | Encounter      | No   | No    |
 | Faction        | No   | No    |
 | Item           | Gff  | No    | Probably missing new EE stuff.
 | Journal        | No   | No    |
 | Module         | No   | No    |
 | Palette        | Gff  | No    | Surprised this wasn't ditched first thing in EE.
-| Placeable      | No   | No    |
+| Placeable      | Gff  | No    |
 | Sound          | No   | No    |
 | Store          | No   | No    |
 | Trigger        | No   | No    |

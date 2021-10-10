@@ -27,11 +27,18 @@ add_library(nw STATIC
     i18n/Tlk
     i18n/TlkTable
 
+    objects/Object
     objects/Dialog
+    objects/Door
     objects/Item
     objects/Palette
+    objects/Placeable
+    objects/SituatedObject
     objects/components/LocalData
     objects/components/Location
+    objects/components/Lock
+    objects/components/Trap
+
     resources/Bif
     resources/Container
     resources/Directory
