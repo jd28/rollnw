@@ -320,7 +320,7 @@ bool GffField::get_to(T& value) const
             s.reserve(size + 12); // Reserve a little bit extra, in case of colors.
             s.append((char*)parent_->bytes_.data() + off, size);
             value = string::sanitize_colors(std::move(s));
-            value = to_utf8(value, Language::default_encoding(), false);
+            value = to_utf8(value, Language::default_encoding(), true);
         } else if constexpr (std::is_same_v<T, LocString>) {
             uint32_t size, strref, lang, strings;
             parent_->bytes_.read_at(off, &size, 4);
@@ -340,7 +340,7 @@ bool GffField::get_to(T& value) const
                 CHECK_OFF(off + size < parent_->bytes_.size());
                 std::string s{(char*)parent_->bytes_.data() + off, size};
                 s = string::sanitize_colors(std::move(s));
-                s = to_utf8_by_langid(s, static_cast<Language::ID>(lang), false);
+                s = to_utf8_by_langid(s, static_cast<Language::ID>(lang), true);
                 off += size;
                 ls.add(lang, std::move(s));
             }
