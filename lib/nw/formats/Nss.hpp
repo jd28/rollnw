@@ -12,7 +12,7 @@
 namespace nw {
 
 struct Nss {
-    Nss(const std::filesystem::path& filename);
+    explicit Nss(const std::filesystem::path& filename);
 
     bool load();
     Script parse();

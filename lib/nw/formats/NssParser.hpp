@@ -88,7 +88,6 @@ struct AstNode {
 
 struct Expression : public AstNode {
     virtual ~Expression() = default;
-    virtual void accept(BaseVisitor* visitor) = 0;
 };
 
 struct AssignExpression : Expression {
@@ -125,7 +124,7 @@ struct BinaryExpression : Expression {
 };
 
 struct CallExpression : Expression {
-    CallExpression(std::unique_ptr<Expression> expr)
+    explicit CallExpression(std::unique_ptr<Expression> expr)
         : expr{std::move(expr)}
     {
     }
@@ -170,7 +169,7 @@ struct DotExpression : Expression {
 };
 
 struct GroupingExpression : Expression {
-    GroupingExpression(std::unique_ptr<Expression> expr)
+    explicit GroupingExpression(std::unique_ptr<Expression> expr)
         : expr{std::move(expr)}
     {
     }
@@ -181,7 +180,7 @@ struct GroupingExpression : Expression {
 };
 
 struct LiteralExpression : Expression {
-    LiteralExpression(NssToken literal)
+    explicit LiteralExpression(NssToken literal)
         : literal{literal}
     {
     }
@@ -236,12 +235,13 @@ struct UnaryExpression : Expression {
 };
 
 struct VariableExpression : Expression {
-    VariableExpression(NssToken var)
+    explicit VariableExpression(NssToken var)
         : var{var}
     {
     }
 
     NssToken var;
+
     DEFINE_ACCEPT_VISITOR
 };
 
@@ -302,10 +302,10 @@ struct LabelStatement : public Statement {
 };
 
 struct SwitchStatement : public Statement {
-    DEFINE_ACCEPT_VISITOR
-
     std::unique_ptr<Expression> target;
     std::unique_ptr<Statement> block = nullptr;
+
+    DEFINE_ACCEPT_VISITOR
 };
 
 struct WhileStatement : public Statement {
