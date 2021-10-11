@@ -4,7 +4,6 @@
 
 #include "../formats/Gff.hpp"
 #include "components/Location.hpp"
-#include "components/Stats.hpp"
 
 #include <nlohmann/json.hpp>
 
