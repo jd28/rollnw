@@ -41,11 +41,20 @@ add_executable(libnw_test
     i18n_tlk.cpp
     i18n_tlktable.cpp
 
+    objects_creature.cpp
     objects_dialog.cpp
     objects_door.cpp
+    objects_encounter.cpp
+    objects_faction.cpp
     objects_item.cpp
+    objects_journal.cpp
+    objects_module.cpp
     objects_palette.cpp
     objects_placeable.cpp
+    objects_sound.cpp
+    objects_store.cpp
+    objects_trigger.cpp
+    objects_waypoint.cpp
 
     resources.cpp
     resources_dir.cpp

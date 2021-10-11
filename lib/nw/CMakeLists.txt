@@ -28,12 +28,22 @@ add_library(nw STATIC
     i18n/TlkTable
 
     objects/Object
+    objects/Creature
     objects/Dialog
     objects/Door
+    objects/Encounter
+    objects/Faction
     objects/Item
+    objects/Journal
+    objects/Module
     objects/Palette
     objects/Placeable
     objects/SituatedObject
+    objects/Sound
+    objects/Store
+    objects/Trigger
+    objects/Waypoint
+
     objects/components/LocalData
     objects/components/Location
     objects/components/Lock
