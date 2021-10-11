@@ -22,8 +22,6 @@ struct Object {
     LocString name;
 
     uint32_t faction = 0;
-    int16_t hp = 0;
-    int16_t hp_current = 0;
 
     // Blueprint only
     std::string comment;

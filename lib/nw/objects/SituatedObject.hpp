@@ -14,6 +14,8 @@ struct SituatedObject : public Object {
 
     uint32_t appearance;
     uint16_t portrait_id;
+    int16_t hp = 0;
+    int16_t hp_current = 0;
     uint8_t hardness;
     uint8_t interruptable = 0;
     uint8_t plot = 0;

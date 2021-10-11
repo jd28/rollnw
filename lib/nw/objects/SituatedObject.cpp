@@ -15,6 +15,8 @@ SituatedObject::SituatedObject(const GffStruct gff, SerializationProfile profile
     gff.get_to("Fort", save);
     saves.fort = save;
     gff.get_to("Hardness", hardness);
+    gff.get_to("HP", hp);
+    gff.get_to("CurrentHP", hp_current);
     gff.get_to("Interruptable", interruptable);
     gff.get_to("LocName", name);
     gff.get_to("OnClosed", on_closed);
