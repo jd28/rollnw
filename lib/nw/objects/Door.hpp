@@ -14,6 +14,12 @@ struct Door : public SituatedObject {
     Door(const GffStruct gff, SerializationProfile profile);
 
     AnimationState anim_state = AnimationState::closed;
+    std::string linked_to;
+    Resref on_click;
+    Resref on_open_failure;
+    uint16_t loadscreen = 0;
+    uint8_t generic_type = 0;
+    uint8_t linked_to_flags = 0;
 };
 
 } // namespace nw
