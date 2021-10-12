@@ -4,6 +4,8 @@
 #include "../resources/Resref.hpp"
 #include "ObjectID.hpp"
 #include "Serialization.hpp"
+#include "components/LocalData.hpp"
+#include "components/Location.hpp"
 
 #include <string>
 
@@ -14,12 +16,15 @@ struct Object {
     Object(const GffStruct gff, SerializationProfile profile);
     virtual ~Object() = default;
 
-    bool valid() { return valid_; }
+    virtual bool valid() { return valid_; }
 
     ObjectID id = object_invalid;
     Resref resref;
     std::string tag;
     LocString name;
+
+    LocalData locals;
+    Location location;
 
     uint32_t faction = 0;
 
