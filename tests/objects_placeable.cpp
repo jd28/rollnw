@@ -11,4 +11,6 @@ TEST_CASE("Loading placeable", "[objects]")
     REQUIRE(p.resref == "arrowcorpse001");
     REQUIRE(p.appearance == 109);
     REQUIRE(!p.plot);
+    REQUIRE(p.static_);
+    REQUIRE(!p.useable);
 }
