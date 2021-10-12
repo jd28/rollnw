@@ -37,7 +37,7 @@ NWN has three different (de)serialization profiles:
 | Module         | No   | No    |
 | Palette        | Gff  | No    | Surprised this wasn't ditched first thing in EE.
 | Placeable      | Gff  | No    |
-| Sound          | No   | No    |
+| Sound          | Gff  | No    |
 | Store          | No   | No    |
 | Trigger        | No   | No    |
 | Waypoint       | No   | No    |
