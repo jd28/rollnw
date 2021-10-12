@@ -11,8 +11,6 @@ namespace nw {
 
 struct Creature : public Object {
     Creature(const GffStruct gff, SerializationProfile profile);
-
-    Location loc;
 };
 
 } // namespace nw
