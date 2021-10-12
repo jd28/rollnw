@@ -12,6 +12,11 @@ Object::Object(const GffStruct gff, SerializationProfile profile)
         return;
     }
 
+    if (!gff.get_to("LocalizedName", name, false)
+        && !gff.get_to("LocName", name, false)) {
+        LOG_F(WARNING, "object no localized name");
+    }
+
     gff.get_to("Tag", tag);
     gff.get_to("Faction", faction);
 
