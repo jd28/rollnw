@@ -147,7 +147,7 @@ struct GffField {
     GffType::type type() const;
 
     /// Get if field is valid
-    bool valid() const { return parent_ != nullptr; }
+    bool valid() const { return parent_ != nullptr && entry_ != nullptr; }
 
     /// If field is a list, return struct at index, else invalid struct.
     GffStruct operator[](size_t index) const;

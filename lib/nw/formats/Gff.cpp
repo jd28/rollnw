@@ -67,7 +67,7 @@ GffStruct GffField::operator[](size_t index) const
         return {};
     }
 
-    if (entry_->data_or_offset >= parent_->head_->list_idx_count) {
+    if (entry_->data_or_offset + 4 >= parent_->head_->list_idx_count) {
         LOG_F(ERROR, "invalid list index: {}", entry_->data_or_offset);
         return {};
     }
