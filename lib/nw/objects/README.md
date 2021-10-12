@@ -39,5 +39,5 @@ NWN has three different (de)serialization profiles:
 | Placeable      | Gff  | No    |
 | Sound          | Gff  | No    |
 | Store          | No   | No    |
-| Trigger        | No   | No    |
+| Trigger        | Gff  | No    |
 | Waypoint       | Gff  | No    |
