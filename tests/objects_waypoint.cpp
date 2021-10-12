@@ -9,4 +9,5 @@ TEST_CASE("Loading waypoint blueprint", "[objects]")
     REQUIRE(g.valid());
     nw::Waypoint w{g.toplevel(), nw::SerializationProfile::blueprint};
     REQUIRE(w.resref == "wp_behexit001");
+    REQUIRE(w.linked_to == "");
 }
