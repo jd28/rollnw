@@ -23,6 +23,7 @@ Journal::Journal(const GffStruct gff)
                 || !ent.get_to("ID", je.id)
                 || !ent.get_to("Text", je.text)) {
                 LOG_F(ERROR, "journal something weird in category {}, entry {}", i, j);
+                break;
             }
             jc.entries.push_back(std::move(je));
         }
