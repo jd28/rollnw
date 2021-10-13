@@ -15,7 +15,12 @@ And know the place for the first time.
    --T.S. Eliot, Little Gidding, The Four Quartets.
 ```
 
-libnw is a simple modern C++ library for NWN(:EE) file formats.  It will be part of a trio, or so, of projects and will be the least interesting of all.
+libnw is a simple modern static C++ library for Neverwinter Nights(:EE) file formats and objects, that
+
+* focuses on usage, above all.  Most of NWN's file formats are incredibly simple, a library implementing them should be no different.
+* focuses on live objects, not serialized formats.  Converting NWN(:EE) file formats to textual representations or modifying serialized formats (e,g. GFF) in situ are well handled by other tools/libraries.
+* follows the principles of [utf8 everywhere](https://utf8everywhere.org/).  This is aspirational and a huge can of worms.  Currently, here, to help facilitate this goal color codes are sanitized to \<cXXXXXX\>, where XX is hexidecimal.
+* hews as close to [C++ Core Guidelines](https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines) as possible.
 
 Find the status of [File Formats](lib/nw/formats/README.md), [Containers](lib/nw/resources/README.md), [Objects](lib/nw/objects/README.md) in their respective READMEs.
 
@@ -23,45 +28,17 @@ Find the status of [File Formats](lib/nw/formats/README.md), [Containers](lib/nw
 
 [![Open in Gitpod](https://gitpod.io/button/open-in-gitpod.svg)](https://gitpod.io/#https://github.com/jd28/libnw)
 
-## Goals
-
-* Aim at implementation equals understanding.  Reading the source should leave no questions regarding the underlying file formats (most of them are dead simple).
-* Focus on live objects, not serialized formats
-* Provide a place to learn and re-learn about NWN and modern C++ projects.
-* Maybe make neat stuff.
-* Follow the principles of [utf8 everywhere](https://utf8everywhere.org/).  This is aspirational and a huge can of worms.  The game itself has probably been forced in this direction.  Currently, here, color codes are sanitized to \<cXXXXXX\>, where XX is hexidecimal.  It's unfortunate that EE didn't do something like that, in any case, it vastly simplifies converting to and from utf8.
-* Hew as close to [C++ Core Guidelines](https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines) as possible.
-* Avoid as much global state unless there is no other way, e.g. logging.
-
-## Non-goals
-
-* Converting NWN(:EE) file formats to textual representations.
-* Modifying serialized formats (e,g. GFF) in situ.
-* Competing with, or commenting on, any other community members tools, libraries and the authors of the same.
-
 ## History
 
-A lot of what's here was written in the 2011-2015 range as part of personal minimalist toolset, modernized and with new EE stuff added.  In some sense, it's a work of historical fiction -- it's what I'd have suggested at the start of NWN:EE (and did): get the game and the community on the same set of libraries.
+A lot of what's here was written in the 2011-2015 range as part of personal minimalist toolset, modernized and with new EE stuff added.  In some sense, it's a work of historical fiction -- it's what I'd have suggested at the start of NWN:EE: get the game and the community on the same set of libraries.  Similarly to an older project that asked ["what if Bioware had stuck with Lua?"](https://solstice.readthedocs.io/en/latest/).  The awnser to that was pretty positive: a decade ahead, at least, of nwscript.
 
-Since it's not intended for wide-spread use, it exists to ask questions, explorer random ideas.  Similar to an older project that asked ["what if Bioware had stuck with Lua?"](https://solstice.readthedocs.io/en/latest/).  The awnser to that was pretty positive: a decade ahead, at least, of nwscript.
-
-It's closet analogue in NWN history will be the libraries underlying Torlack's NWN Explorer.
-
-## General Warnings, California Prop. 65 Notices
+## General Warning
 
 This library is a work-in-progress.
 
 There is no documentation besides the source itself, unless something is found that isn't a javadoc-esque thing, that's likely how it will remain.
 
 If you've somehow found your way here by accident, you should head to [neverwinter.nim](https://github.com/niv/neverwinter.nim), those are the official tools of NWN:EE and can handle basic workflows out of the box.
-
-## TODOs
-
-* Merge in more file formats
-* Github Codespaces integration
-* Decide on exceptions vs object poisoning
-* To work on windows, will probably need nowide.
-* Other stuff
 
 ## Credits
 
