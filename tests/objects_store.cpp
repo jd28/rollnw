@@ -9,4 +9,8 @@ TEST_CASE("Loading store blueprint", "[objects]")
     REQUIRE(g.valid());
     nw::Store s{g.toplevel(), nw::SerializationProfile::blueprint};
     REQUIRE(s.resref == "storethief002");
+    REQUIRE(s.blackmarket);
+    REQUIRE(s.blackmarket_markdown == 25);
+    REQUIRE(s.weapons.items.size() > 0);
+    REQUIRE(std::get<nw::Resref>(s.weapons.items[0].item) == "nw_wswdg001");
 }
