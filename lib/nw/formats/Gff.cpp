@@ -99,14 +99,14 @@ GffField GffStruct::operator[](std::string_view label) const
     if (entry_->field_count == 1) {
         if (entry_->field_index >= parent_->head_->field_count) { return {}; }
         auto f = GffField(parent_, &parent_->fields_[entry_->field_index]);
-        return label == f.name() ? f : GffField{};
+        return string::icmp(f.name(), label) ? f : GffField{};
     } else {
         if (entry_->field_index >= parent_->head_->field_idx_count) { return {}; }
         auto fi = &parent_->field_indices_[entry_->field_index / 4];
         for (size_t i = 0; i < entry_->field_count; ++i) {
             if (fi[i] >= parent_->head_->field_count) { return {}; }
             GffField field(parent_, &parent_->fields_[fi[i]]);
-            if (field.name() == label) {
+            if (string::icmp(field.name(), label)) {
                 return field;
             }
         }
