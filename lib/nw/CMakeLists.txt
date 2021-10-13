@@ -44,6 +44,7 @@ add_library(nw STATIC
     objects/Trigger
     objects/Waypoint
 
+    objects/components/Inventory
     objects/components/LocalData
     objects/components/Location
     objects/components/Lock
