@@ -3,7 +3,7 @@
 namespace nw {
 
 Sound::Sound(const GffStruct gff, SerializationProfile profile)
-    : Object{gff, profile}
+    : Object{ObjectType::sound, gff, profile}
 {
     gff.get_to("Active", active);
     gff.get_to("Continuous", continuous);

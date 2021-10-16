@@ -3,7 +3,7 @@
 namespace nw {
 
 Placeable::Placeable(const GffStruct gff, SerializationProfile profile)
-    : SituatedObject{gff, profile}
+    : SituatedObject{ObjectType::placeable, gff, profile}
 {
     uint8_t u8;
     gff.get_to("AnimationState", u8);

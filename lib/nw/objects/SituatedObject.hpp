@@ -10,7 +10,7 @@ namespace nw {
 
 struct SituatedObject : public Object {
     SituatedObject() = default;
-    SituatedObject(const GffStruct gff, SerializationProfile profile);
+    SituatedObject(ObjectType obj_type, const GffStruct gff, SerializationProfile profile);
 
     uint32_t appearance;
     uint16_t portrait_id;

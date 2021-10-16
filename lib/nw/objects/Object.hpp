@@ -13,12 +13,13 @@ namespace nw {
 
 struct Object {
     Object() = default;
-    Object(const GffStruct gff, SerializationProfile profile);
+    Object(ObjectType obj_type, const GffStruct gff, SerializationProfile profile);
     virtual ~Object() = default;
 
     virtual bool valid() { return valid_; }
 
     ObjectID id = object_invalid;
+    ObjectType object_type = ObjectType::invalid;
     Resref resref;
     std::string tag;
     LocString name;

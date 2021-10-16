@@ -3,7 +3,7 @@
 namespace nw {
 
 Door::Door(const GffStruct gff, SerializationProfile profile)
-    : SituatedObject{gff, profile}
+    : SituatedObject{ObjectType::door, gff, profile}
 {
     uint8_t u8;
     gff.get_to("AnimationState", u8);

@@ -3,7 +3,7 @@
 namespace nw {
 
 Creature::Creature(const GffStruct gff, SerializationProfile profile)
-    : Object(gff, profile)
+    : Object{ObjectType::creature, gff, profile}
 {
 }
 

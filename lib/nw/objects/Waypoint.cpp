@@ -2,7 +2,7 @@
 
 namespace nw {
 Waypoint::Waypoint(const GffStruct gff, SerializationProfile profile)
-    : Object{gff, profile}
+    : Object{ObjectType::waypoint, gff, profile}
 {
     gff.get_to("Appearance", appearance);
     gff.get_to("Description", description);

@@ -2,8 +2,9 @@
 
 namespace nw {
 
-Object::Object(const GffStruct gff, SerializationProfile profile)
-    : locals{gff, profile}
+Object::Object(ObjectType obj_type, const GffStruct gff, SerializationProfile profile)
+    : object_type{obj_type}
+    , locals{gff, profile}
     , location{gff, profile}
 {
     if (!gff.get_to("TemplateResRef", resref, false)

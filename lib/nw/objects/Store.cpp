@@ -3,7 +3,7 @@
 namespace nw {
 
 Store::Store(const GffStruct gff, SerializationProfile profile)
-    : Object{gff, profile}
+    : Object{ObjectType::store, gff, profile}
 {
 
     gff.get_to("BlackMarket", blackmarket);

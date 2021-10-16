@@ -2,8 +2,8 @@
 
 namespace nw {
 
-SituatedObject::SituatedObject(const GffStruct gff, SerializationProfile profile)
-    : Object{gff, profile}
+SituatedObject::SituatedObject(ObjectType obj_type, const GffStruct gff, SerializationProfile profile)
+    : Object{obj_type, gff, profile}
     , lock{gff, profile}
     , trap{gff, profile}
 {

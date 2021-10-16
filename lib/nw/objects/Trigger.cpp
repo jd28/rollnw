@@ -3,7 +3,7 @@
 namespace nw {
 
 Trigger::Trigger(const GffStruct gff, SerializationProfile profile)
-    : Object{gff, profile}
+    : Object{ObjectType::trigger, gff, profile}
     , trap{gff, profile}
 {
     gff.get_to("Cursor", cursor);
