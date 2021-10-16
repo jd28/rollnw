@@ -230,12 +230,12 @@ private:
     friend struct GffField;
     friend struct GffStruct;
 
-    detail::GffHeader* head_;
-    Resref* labels_; // Not techinically resref, but fine for now.
-    detail::GffStructEntry* structs_;
-    detail::GffFieldEntry* fields_;
-    uint32_t* field_indices_;
-    uint32_t* list_indices_;
+    detail::GffHeader* head_ = nullptr;
+    Resref* labels_ = nullptr; // Not techinically resref, but fine for now.
+    detail::GffStructEntry* structs_ = nullptr;
+    detail::GffFieldEntry* fields_ = nullptr;
+    uint32_t* field_indices_ = nullptr;
+    uint32_t* list_indices_ = nullptr;
 
     ByteArray bytes_;
     bool is_loaded_ = false;
@@ -255,6 +255,7 @@ std::optional<T> GffStruct::get(std::string_view label, bool warn_missing) const
 template <typename T>
 bool GffStruct::get_to(std::string_view label, T& out, bool warn_missing) const
 {
+    if (!valid()) { return false; }
     auto val = (*this)[label];
     if (!val.valid()) {
         if (warn_missing) { LOG_F(ERROR, "gff missing field '{}'", label); }

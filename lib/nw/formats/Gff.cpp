@@ -152,7 +152,7 @@ Gff::Gff(ByteArray bytes)
 
 GffStruct Gff::toplevel() const
 {
-    return GffStruct(this, &structs_[0]);
+    return valid() ? GffStruct(this, &structs_[0]) : GffStruct();
 }
 
 bool Gff::valid() const
