@@ -8,6 +8,7 @@
         "zstd",
         "zlib",
         "sqlite3",
+        "minizip",
         "nlohmann-json",
         "nowide",
         {
