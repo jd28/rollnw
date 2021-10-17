@@ -40,9 +40,14 @@ jobs:
           additionalCachedPaths: ${{ env.buildDir }}/vcpkg_installed
           vcpkgGitCommitId: c26477297ce1a9d67844e86bf0cda0e7741bd169
 
-      - name: Run CMake to install the dependencies specified in the vcpkg.json manifest, generate project file and build the project
-        uses: lukka/run-cmake@v3.4
-        with:
-          configurePreset: default-test
-          buildPreset: default
-          testPreset: default
+      - name: Configure
+        run: |
+          cmake --preset default-test
+
+      - name: Build
+        run: |
+          cmake --build --preset default
+
+      - name: Test
+        run: |
+          ctest --preset default
