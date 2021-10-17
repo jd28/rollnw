@@ -13,13 +13,16 @@ Object::Object(ObjectType obj_type, const GffStruct gff, SerializationProfile pr
         return;
     }
 
-    if (!gff.get_to("LocalizedName", name, false)
+    if (obj_type != ObjectType::creature
+        && !gff.get_to("LocalizedName", name, false)
         && !gff.get_to("LocName", name, false)) {
         LOG_F(WARNING, "object no localized name");
     }
 
     gff.get_to("Tag", tag);
-    gff.get_to("Faction", faction);
+    if (obj_type != ObjectType::creature) {
+        gff.get_to("Faction", faction);
+    }
 
     if (profile == SerializationProfile::blueprint) {
         gff.get_to("Comment", comment);
