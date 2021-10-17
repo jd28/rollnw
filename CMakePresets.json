@@ -10,21 +10,14 @@
             "name": "default",
             "displayName": "Default Config",
             "description": "Default build using Ninja generator",
-            "generator": "Ninja",
             "binaryDir": "${sourceDir}/build",
+            "generator": "Ninja",
             "cacheVariables": {
                 "CMAKE_TOOLCHAIN_FILE": {
                     "value": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
                     "type": "FILEPATH"
                 }
             }
-        },
-        {
-            "name": "ninja-multi",
-            "inherits": "default",
-            "displayName": "Ninja Multi-Config",
-            "description": "Default build using Ninja Multi-Config generator",
-            "generator": "Ninja Multi-Config"
         },
         {
             "name": "default-test",
@@ -37,6 +30,22 @@
                     "type": "BOOL",
                     "value": "ON"
                 }
+            }
+        },
+        {
+            "name": "windows-default-test",
+            "inherits": "default-test",
+            "generator": "Visual Studio 16 2019",
+            "displayName": "Windows-only configuration",
+            "description": "This build is only available on Windows",
+            "binaryDir": "${sourceDir}/build",
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Windows"
+            },
+            "cacheVariables": {
+                "VCPKG_TARGET_TRIPLET": "x64-windows-static"
             }
         }
     ],
