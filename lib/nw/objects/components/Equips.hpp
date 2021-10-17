@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../../formats/Gff.hpp"
 #include "../Serialization.hpp"
 
 #include <memory>
