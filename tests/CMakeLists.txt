@@ -7,7 +7,7 @@ file(GLOB_RECURSE COPY_FILES
 
 foreach(FILENAME ${COPY_FILES})
     set(SRC "${CMAKE_CURRENT_SOURCE_DIR}/${FILENAME}")
-    set(DST "${CMAKE_SOURCE_DIR}/bin/${FILENAME}")
+    set(DST "${CMAKE_CURRENT_BINARY_DIR}/${FILENAME}")
 
     add_custom_command(
         OUTPUT ${DST}
@@ -22,8 +22,6 @@ add_custom_target(
   COMMENT "Exporting files into build tree"
 )
 
-include(CTest)
-enable_testing()
 # Load and use the .cmake file provided by Catch so all the test cases
 # are made available to CTest.
 include(ParseAndAddCatchTests)
@@ -47,7 +45,7 @@ add_executable(libnw_test
     objects_encounter.cpp
     objects_faction.cpp
     objects_item.cpp
-    objects_journal.cpp
+    #objects_journal.cpp
     objects_module.cpp
     objects_palette.cpp
     objects_placeable.cpp
@@ -64,11 +62,6 @@ add_executable(libnw_test
 
     util_string.cpp
     util_tokenizer.cpp
-)
-
-set_target_properties(libnw_test
-    PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin"
 )
 
 target_include_directories(libnw_test PRIVATE ../lib)

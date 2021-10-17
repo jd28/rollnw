@@ -37,5 +37,7 @@ add_subdirectory(external/stb)
 add_subdirectory(lib/nw)
 
 if (ENABLE_TESTING)
+include(CTest)
+enable_testing()
 add_subdirectory(tests)
 endif()
