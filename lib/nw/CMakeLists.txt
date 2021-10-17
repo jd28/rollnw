@@ -3,6 +3,7 @@ find_package(absl CONFIG REQUIRED)
 find_package(fmt CONFIG REQUIRED)
 find_package(glm CONFIG REQUIRED)
 find_package(Iconv REQUIRED)
+find_package(minizip CONFIG REQUIRED)
 find_package(nlohmann_json CONFIG REQUIRED)
 find_package(nowide CONFIG REQUIRED)
 find_package(unofficial-sqlite3 CONFIG REQUIRED)
@@ -60,6 +61,7 @@ add_library(nw STATIC
     resources/Resref.cpp
     resources/Resource.cpp
     resources/ResourceDescriptor.cpp
+    resources/Zip.cpp
 
     util/base64.cpp
     util/ByteArray.cpp
@@ -78,6 +80,7 @@ target_link_libraries(nw PUBLIC
     absl::utility
     absl::strings
     glm::glm
+    minizip::minizip
     nlohmann_json nlohmann_json::nlohmann_json
     nowide::nowide
     ZLIB::ZLIB
