@@ -2,7 +2,7 @@
 
 #include "../formats/Gff.hpp"
 #include "../resources/Resref.hpp"
-#include "ObjectID.hpp"
+#include "ObjectBase.hpp"
 #include "Serialization.hpp"
 #include "components/LocalData.hpp"
 #include "components/Location.hpp"

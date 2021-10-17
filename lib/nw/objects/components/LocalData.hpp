@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../ObjectID.hpp"
+#include "../ObjectBase.hpp"
 #include "Location.hpp"
 
 #include <absl/container/flat_hash_map.h>
