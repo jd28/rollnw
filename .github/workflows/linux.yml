@@ -43,12 +43,18 @@ jobs:
       - name: Run CMake to install the dependencies specified in the vcpkg.json manifest, generate project file and build the project
         uses: lukka/run-cmake@v3
         with:
+          cmakeAppendedArgs: -DENABLE_TESTING=ON
           cmakeListsOrSettingsJson: CMakeListsTxtAdvanced
           cmakeListsTxtPath: "${{ github.workspace }}/CMakeLists.txt"
           buildDirectory: ${{ env.buildDir }}
           # This input tells run-cmake to consume the vcpkg.cmake toolchain file set by run-vcpkg.
           useVcpkgToolchainFile: true
           buildWithCMake: true
+
+      - name: Run tests
+        working-directory: ${{ env.buildDir }}
+        run: |
+          ctest --output-on-failure
 
       - name: Upload GitHub Actions artifact of vcpkg build logs
         if: always()

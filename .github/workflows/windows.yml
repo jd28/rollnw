@@ -49,6 +49,12 @@ jobs:
           # This input tells run-cmake to consume the vcpkg.cmake toolchain file set by run-vcpkg.
           useVcpkgToolchainFile: true
           buildWithCMake: true
+          cmakeAppendedArgs: -DENABLE_TESTING=ON
+
+      - name: Run tests
+        working-directory: ${{ env.buildDir }}
+        run: |
+          ctest --output-on-failure
 
       - name: Upload GitHub Actions artifact of vcpkg build logs
         if: always()
