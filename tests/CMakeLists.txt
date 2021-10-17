@@ -75,4 +75,5 @@ if(CMAKE_HOST_UNIX)
     target_link_libraries(libnw_test PRIVATE dl)
 endif()
 
-ParseAndAddCatchTests(libnw_test)
+include(Catch)
+catch_discover_tests(libnw_test)
