@@ -14,15 +14,15 @@ TEST_CASE("Loading Creature Palette", "[objects]")
     REQUIRE(node.strref != ~0);
     REQUIRE(node.children.size() > 0);
 
-    node = node.children[0];
-    REQUIRE(node.type == nw::PaletteNodeType::category);
-    REQUIRE(node.children.size() > 0);
+    auto catnode = node.children[0];
+    REQUIRE(catnode.type == nw::PaletteNodeType::category);
+    REQUIRE(catnode.children.size() > 0);
 
-    node = node.children[0];
-    REQUIRE(node.type == nw::PaletteNodeType::blueprint);
-    REQUIRE(node.resref == "nw_battdevour");
-    REQUIRE(node.cr >= 11.0f);
-    REQUIRE(node.faction == "Hostile");
+    auto bluenode = catnode.children[0];
+    REQUIRE(bluenode.type == nw::PaletteNodeType::blueprint);
+    REQUIRE(bluenode.resref == "nw_battdevour");
+    REQUIRE(bluenode.cr >= 11.0f);
+    REQUIRE(bluenode.faction == "Hostile");
 
     nw::Gff g2{"test_data/creaturepal.itp"};
     nw::Palette p2{g2.toplevel()};

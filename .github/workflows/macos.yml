@@ -61,10 +61,10 @@ jobs:
           buildWithCMake: true
           cmakeAppendedArgs: -DENABLE_TESTING=ON
 
-      # - name: Run tests
-      #   working-directory: ${{ env.buildDir }}
-      #   run: |
-      #     ctest --output-on-failure
+      - name: Run tests
+        working-directory: ${{ env.buildDir }}
+        run: |
+          ctest --output-on-failure
 
       - name: Upload GitHub Actions artifact of vcpkg build logs
         if: always()
