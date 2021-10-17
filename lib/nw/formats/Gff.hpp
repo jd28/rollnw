@@ -293,77 +293,88 @@ bool GffField::get_to(T& value) const
         return false;
     }
 
-    GffType::type type = GffType::id<T>();
-    if (entry_->type != type) {
-        LOG_F(ERROR, "gff field '{}' types don't match {} != {}", name(), type, entry_->type);
-        return false;
-    }
-
-    if constexpr (sizeof(T) <= 4) {
-        memcpy(&value, &entry_->data_or_offset, sizeof(T));
-        return true;
+    if constexpr (std::is_enum_v<T>) {
+        std::underlying_type_t<T> temp;
+        bool r = get_to(temp);
+        if (r) {
+            value = static_cast<T>(temp);
+            return true;
+        } else {
+            return false;
+        }
     } else {
-        size_t off = entry_->data_or_offset + parent_->head_->field_data_offset;
+        GffType::type type = GffType::id<T>();
+        if (entry_->type != type) {
+            LOG_F(ERROR, "gff field '{}' types don't match {} != {}", name(), type, entry_->type);
+            return false;
+        }
 
-        if constexpr (std::is_same_v<T, Resref>) {
-            char buffer[17] = {0};
-            uint8_t size;
-            parent_->bytes_.read_at(off, &size, 1);
-            off += 1;
-            CHECK_OFF(parent_->bytes_.read_at(off, buffer, size));
-            value = Resref(buffer);
-        } else if constexpr (std::is_same_v<T, std::string>) {
-            uint32_t size;
-            parent_->bytes_.read_at(off, &size, 4);
-            off += 4;
-            CHECK_OFF(off + size < parent_->bytes_.size());
-            std::string s{};
-            s.reserve(size + 12); // Reserve a little bit extra, in case of colors.
-            s.append((char*)parent_->bytes_.data() + off, size);
-            value = string::sanitize_colors(std::move(s));
-            value = to_utf8(value, Language::default_encoding(), true);
-        } else if constexpr (std::is_same_v<T, LocString>) {
-            uint32_t size, strref, lang, strings;
-            parent_->bytes_.read_at(off, &size, 4);
-            off += 4;
-            parent_->bytes_.read_at(off, &strref, 4);
-            off += 4;
-            parent_->bytes_.read_at(off, &strings, 4);
-            off += 4;
+        if constexpr (sizeof(T) <= 4) {
+            memcpy(&value, &entry_->data_or_offset, sizeof(T));
+            return true;
+        } else {
+            size_t off = entry_->data_or_offset + parent_->head_->field_data_offset;
 
-            LocString ls{strref};
-
-            for (uint32_t i = 0; i < strings; ++i) {
-                parent_->bytes_.read_at(off, &lang, 4);
-                off += 4;
+            if constexpr (std::is_same_v<T, Resref>) {
+                char buffer[17] = {0};
+                uint8_t size;
+                parent_->bytes_.read_at(off, &size, 1);
+                off += 1;
+                CHECK_OFF(parent_->bytes_.read_at(off, buffer, size));
+                value = Resref(buffer);
+            } else if constexpr (std::is_same_v<T, std::string>) {
+                uint32_t size;
                 parent_->bytes_.read_at(off, &size, 4);
                 off += 4;
                 CHECK_OFF(off + size < parent_->bytes_.size());
-                std::string s{(char*)parent_->bytes_.data() + off, size};
-                s = string::sanitize_colors(std::move(s));
-                s = to_utf8_by_langid(s, static_cast<Language::ID>(lang), true);
-                off += size;
-                ls.add(lang, std::move(s));
-            }
-            value = std::move(ls);
-        } else if constexpr (std::is_same_v<T, ByteArray>) {
-            uint32_t size;
-            parent_->bytes_.read_at(off, &size, 4);
-            off += 4;
-            CHECK_OFF(off + size < parent_->bytes_.size());
-            value = ByteArray(parent_->bytes_.data() + off, size);
-        } else if constexpr (std::is_same_v<T, GffStruct>) {
-            if (entry_->data_or_offset < parent_->head_->struct_count) {
-                value = GffStruct(parent_, &parent_->structs_[entry_->data_or_offset]);
+                std::string s{};
+                s.reserve(size + 12); // Reserve a little bit extra, in case of colors.
+                s.append((char*)parent_->bytes_.data() + off, size);
+                value = string::sanitize_colors(std::move(s));
+                value = to_utf8(value, Language::default_encoding(), true);
+            } else if constexpr (std::is_same_v<T, LocString>) {
+                uint32_t size, strref, lang, strings;
+                parent_->bytes_.read_at(off, &size, 4);
+                off += 4;
+                parent_->bytes_.read_at(off, &strref, 4);
+                off += 4;
+                parent_->bytes_.read_at(off, &strings, 4);
+                off += 4;
+
+                LocString ls{strref};
+
+                for (uint32_t i = 0; i < strings; ++i) {
+                    parent_->bytes_.read_at(off, &lang, 4);
+                    off += 4;
+                    parent_->bytes_.read_at(off, &size, 4);
+                    off += 4;
+                    CHECK_OFF(off + size < parent_->bytes_.size());
+                    std::string s{(char*)parent_->bytes_.data() + off, size};
+                    s = string::sanitize_colors(std::move(s));
+                    s = to_utf8_by_langid(s, static_cast<Language::ID>(lang), true);
+                    off += size;
+                    ls.add(lang, std::move(s));
+                }
+                value = std::move(ls);
+            } else if constexpr (std::is_same_v<T, ByteArray>) {
+                uint32_t size;
+                parent_->bytes_.read_at(off, &size, 4);
+                off += 4;
+                CHECK_OFF(off + size < parent_->bytes_.size());
+                value = ByteArray(parent_->bytes_.data() + off, size);
+            } else if constexpr (std::is_same_v<T, GffStruct>) {
+                if (entry_->data_or_offset < parent_->head_->struct_count) {
+                    value = GffStruct(parent_, &parent_->structs_[entry_->data_or_offset]);
+                } else {
+                    LOG_F(ERROR, "GffField: Invalid index ({}) into struct array", entry_->data_or_offset);
+                    value = GffStruct();
+                }
             } else {
-                LOG_F(ERROR, "GffField: Invalid index ({}) into struct array", entry_->data_or_offset);
-                value = GffStruct();
+                parent_->bytes_.read_at(off, &value, sizeof(T));
             }
-        } else {
-            parent_->bytes_.read_at(off, &value, sizeof(T));
         }
+        return true;
     }
-    return true;
 }
 
 #undef CHECK_OFF
