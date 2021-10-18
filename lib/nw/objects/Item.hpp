@@ -3,6 +3,7 @@
 #include "../formats/Gff.hpp"
 #include "ObjectBase.hpp"
 #include "Serialization.hpp"
+#include "components/Inventory.hpp"
 #include "components/LocalData.hpp"
 #include "components/Location.hpp"
 
@@ -76,6 +77,8 @@ struct Item {
     LocString name;
     LocString description;
     LocString description_id;
+    Inventory inventory;
+
     uint32_t cost = 0;
     uint32_t additional_cost = 0;
     int32_t baseitem;
@@ -98,9 +101,6 @@ struct Item {
     Location loc;
 
     LocalData data;
-
-    // Savegame only, which libnw doesn't support.. yet. For container items.
-    std::vector<Item> items;
 };
 
 } // namespace nw

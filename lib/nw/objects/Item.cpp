@@ -3,7 +3,8 @@
 namespace nw {
 
 Item::Item(const GffStruct gff, SerializationProfile profile)
-    : loc{gff, profile}
+    : inventory{gff, profile}
+    , loc{gff, profile}
     , data{gff, profile}
 {
 
