@@ -5,6 +5,7 @@
 #include "../util/macros.hpp"
 
 #include <nowide/fstream.hpp>
+#include <nowide/convert.hpp>
 
 #include <cstring>
 
@@ -40,7 +41,7 @@ ByteArray Zip::demand(Resource resref)
 
     std::string fn = resref.filename();
     // The 2 below forces case insensitve comparison
-    if (unzLocateFile(file_, fn.c_str(), 2) == UNZ_OK) {
+    if (unzLocateFile(file_, reinterpret_cast<const char*>(fn.c_str()), 2) == UNZ_OK) {
         unzOpenCurrentFile(file_);
         unz_file_info info;
         unzGetCurrentFileInfo(file_, &info, fname, 64, nullptr, 0, nullptr, 0);
@@ -95,7 +96,7 @@ ResourceDescriptor Zip::stat(const Resource& res)
     ResourceDescriptor rd;
     std::string fn = res.filename();
     char fname[64] = {0};
-    if (unzLocateFile(file_, fn.c_str(), 0) == UNZ_OK) {
+    if (unzLocateFile(file_, reinterpret_cast<const char*>(fn.c_str()), 0) == UNZ_OK) {
         unz_file_info info;
         unzGetCurrentFileInfo(file_, &info, fname, 64, nullptr, 0, nullptr, 0);
         char* dot = strchr(fname, '.');
@@ -109,7 +110,7 @@ ResourceDescriptor Zip::stat(const Resource& res)
 
 bool Zip::load()
 {
-    file_ = unzOpen(filename_.c_str());
+    file_ = unzOpen(nowide::narrow(filename_.c_str()).c_str());
     if (!file_) {
         LOG_F(ERROR, "zip unable to open {}", filename_.string());
         return false;

@@ -17,7 +17,6 @@
 #include <cstring>
 #include <filesystem>
 #include <limits>
-#include <nowide/fstream.hpp>
 
 namespace fs = std::filesystem;
 

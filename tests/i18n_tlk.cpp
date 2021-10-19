@@ -9,5 +9,5 @@ TEST_CASE("Tlk", "[formats]")
     REQUIRE(t.is_valid());
     REQUIRE(t.size() > 0);
     REQUIRE(t.get(1000) == "Silence");
-    REQUIRE(t.get(-1u) == "");
+    REQUIRE(t.get(~0) == "");
 }

@@ -50,13 +50,14 @@ jobs:
           additionalCachedPaths: ${{ env.buildDir }}/vcpkg_installed
           vcpkgGitCommitId: c26477297ce1a9d67844e86bf0cda0e7741bd169
 
-      - name: Run CMake to install the dependencies specified in the vcpkg.json manifest, generate project file and build the project
-        uses: lukka/run-cmake@v3
-        with:
-          cmakeListsOrSettingsJson: CMakeListsTxtAdvanced
-          cmakeListsTxtPath: "${{ github.workspace }}/CMakeLists.txt"
-          buildDirectory: ${{ env.buildDir }}
-          # This input tells run-cmake to consume the vcpkg.cmake toolchain file set by run-vcpkg.
-          useVcpkgToolchainFile: true
-          buildWithCMake: true
-          cmakeAppendedArgs: -DENABLE_TESTING=ON
+      - name: Configure
+        run: |
+          cmake --preset windows-default-test
+
+      - name: Build
+        run: |
+          cmake --build --preset default
+
+      - name: Test
+        run: |
+          ctest --preset default

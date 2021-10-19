@@ -19,13 +19,13 @@ include(cmake/Sanitizers.cmake)
 enable_sanitizers(libnw_project_options)
 
 if(MSVC)
-    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MT")
-    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MTd")
-    set(CMAKE_C_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MT")
-    set(CMAKE_C_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MTd")
+    message(WARNING "MSVC!!!!!!!!!!")
+    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
     add_definitions(
         -D_CRT_SECURE_NO_WARNINGS
+        -DUNICODE
+        -D_UNICODE
         -D_SILENCE_ALL_CXX17_DEPRECATION_WARNINGS # abseil
         -DSTBI_WINDOWS_UTF8 # stbi_image
     )

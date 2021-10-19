@@ -44,6 +44,10 @@
                 "lhs": "${hostSystemName}",
                 "rhs": "Windows"
             },
+            "architecture": {
+                "value": "x64",
+                "strategy": "external"
+            },
             "cacheVariables": {
                 "VCPKG_TARGET_TRIPLET": "x64-windows-static"
             }
