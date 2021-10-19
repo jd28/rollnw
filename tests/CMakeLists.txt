@@ -22,10 +22,6 @@ add_custom_target(
   COMMENT "Exporting files into build tree"
 )
 
-# Load and use the .cmake file provided by Catch so all the test cases
-# are made available to CTest.
-include(ParseAndAddCatchTests)
-
 # Need .cpp extension for ctest
 add_executable(libnw_test
     main.cpp

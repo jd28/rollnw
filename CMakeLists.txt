@@ -19,7 +19,6 @@ include(cmake/Sanitizers.cmake)
 enable_sanitizers(libnw_project_options)
 
 if(MSVC)
-    message(WARNING "MSVC!!!!!!!!!!")
     set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
     add_definitions(
