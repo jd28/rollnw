@@ -1,0 +1,25 @@
+{
+    "MAIN": [
+        {
+            "ID": "byte",
+            "LIST": [
+                {
+                    "CR": "float",
+                    "FACTION": "cexostr",
+                    "ID": "byte",
+                    "LIST": [
+                        {
+                            "NAME": "cexostr",
+                            "RESREF": "resref",
+                            "STRREF": "dword"
+                        }
+                    ],
+                    "NAME": "cexostr",
+                    "RESREF": "resref",
+                    "STRREF": "dword"
+                }
+            ],
+            "STRREF": "dword"
+        }
+    ]
+}

@@ -1,0 +1,38 @@
+{
+    "AutoRemoveKey": "byte",
+    "Comment": "cexostr",
+    "Cursor": "byte",
+    "DisarmDC": "byte",
+    "Faction": "dword",
+    "HighlightHeight": "float",
+    "KeyName": "cexostr",
+    "LinkedTo": "cexostr",
+    "LinkedToFlags": "byte",
+    "LoadScreenID": "word",
+    "LocalizedName": "cexolocstr",
+    "OnClick": "resref",
+    "OnDisarm": "resref",
+    "OnTrapTriggered": "resref",
+    "PaletteID": "byte",
+    "PortraitId": "word",
+    "ScriptHeartbeat": "resref",
+    "ScriptOnEnter": "resref",
+    "ScriptOnExit": "resref",
+    "ScriptUserDefine": "resref",
+    "Tag": "cexostr",
+    "TemplateResRef": "resref",
+    "TrapDetectDC": "byte",
+    "TrapDetectable": "byte",
+    "TrapDisarmable": "byte",
+    "TrapFlag": "byte",
+    "TrapOneShot": "byte",
+    "TrapType": "byte",
+    "Type": "int",
+    "VarTable": [
+        {
+            "Name": "cexostr",
+            "Type": "dword",
+            "Value": "cexostr|int"
+        }
+    ]
+}

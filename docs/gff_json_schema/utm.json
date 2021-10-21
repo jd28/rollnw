@@ -1,0 +1,46 @@
+{
+    "BM_MarkDown": "int",
+    "BlackMarket": "byte",
+    "Comment": "cexostr",
+    "ID": "byte",
+    "IdentifyPrice": "int",
+    "LocName": "cexolocstr",
+    "MarkDown": "int",
+    "MarkUp": "int",
+    "MaxBuyPrice": "int",
+    "OnOpenStore": "resref",
+    "OnStoreClosed": "resref",
+    "ResRef": "resref",
+    "StoreGold": "int",
+    "StoreList": [
+        {
+            "Comment": "cexostr",
+            "ItemList": [
+                {
+                    "Infinite": "byte",
+                    "InventoryRes": "resref",
+                    "Repos_PosX": "word",
+                    "Repos_Posy": "word"
+                }
+            ]
+        }
+    ],
+    "Tag": "cexostr",
+    "VarTable": [
+        {
+            "Name": "cexostr",
+            "Type": "dword",
+            "Value": "int"
+        }
+    ],
+    "WillNotBuy": [
+        {
+            "BaseItem": "int"
+        }
+    ],
+    "WillOnlyBuy": [
+        {
+            "BaseItem": "int"
+        }
+    ]
+}
