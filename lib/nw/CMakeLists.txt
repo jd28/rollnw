@@ -50,6 +50,7 @@ add_library(nw STATIC
     objects/components/CreatureStats.cpp
     objects/components/Equips.cpp
     objects/components/Inventory.cpp
+    objects/components/LevelStats.cpp
     objects/components/LocalData.cpp
     objects/components/Location.cpp
     #objects/components/Lock.cpp
