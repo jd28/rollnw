@@ -17,7 +17,26 @@ Appearance::Appearance(const GffStruct gff)
     }
 
     gff.get_to("Appearance_Type", id);
+    gff.get_to("PortraitId", portrait_id);
 
+    gff.get_to("BodyPart_Belt", body_parts.belt, false);
+    gff.get_to("BodyPart_LBicep", body_parts.left_bicep, false);
+    gff.get_to("BodyPart_LFArm", body_parts.left_forearm, false);
+    gff.get_to("BodyPart_LFoot", body_parts.left_foot, false);
+    gff.get_to("BodyPart_LHand", body_parts.left_hand, false);
+    gff.get_to("BodyPart_LShin", body_parts.left_shin, false);
+    gff.get_to("BodyPart_LShoul", body_parts.left_shoulder, false);
+    gff.get_to("BodyPart_LThigh", body_parts.left_thigh, false);
+    gff.get_to("BodyPart_Neck", body_parts.neck, false);
+    gff.get_to("BodyPart_Pelvis", body_parts.pelvis, false);
+    gff.get_to("BodyPart_RBicep", body_parts.right_bicep, false);
+    gff.get_to("BodyPart_RFArm", body_parts.right_forearm, false);
+    gff.get_to("ArmorPart_RFoot", body_parts.right_foot, false);
+    gff.get_to("BodyPart_RHand", body_parts.right_hand, false);
+    gff.get_to("BodyPart_RShin", body_parts.right_shin, false);
+    gff.get_to("BodyPart_RShoul", body_parts.right_shoulder, false);
+    gff.get_to("BodyPart_RThigh", body_parts.right_thigh, false);
+    gff.get_to("BodyPart_Torso", body_parts.torso, false);
     gff.get_to("Color_Hair", hair, false);
     gff.get_to("Color_Skin", skin, false);
     gff.get_to("Color_Tattoo1", tattoo1, false);
