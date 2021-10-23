@@ -96,6 +96,10 @@ struct ResourceType {
         tml = 2076,
         sq3 = 2077,
         lod = 2078,
+        gif = 2079,
+        png = 2080,
+        jpg = 2081,
+        caf = 2082,
         ids = 9996,
         erf = 9997,
         bif = 9998,
@@ -194,6 +198,10 @@ struct ResourceType {
             || string::icmp(ext, "sqlite3")
             || string::icmp(ext, "sqlite3nwnxee")) return sq3;
         if (string::icmp(ext, "lod")) return lod;
+        if (string::icmp(ext, "gif")) return gif;
+        if (string::icmp(ext, "png")) return png;
+        if (string::icmp(ext, "jpg")) return jpg;
+        if (string::icmp(ext, "caf")) return caf;
         if (string::icmp(ext, "ids")) return ids;
         if (string::icmp(ext, "erf")) return erf;
         if (string::icmp(ext, "bif")) return bif;
@@ -377,6 +385,14 @@ struct ResourceType {
             return "sq3";
         case lod:
             return "lod";
+        case gif:
+            return "gif";
+        case png:
+            return "png";
+        case jpg:
+            return "jpg";
+        case caf:
+            return "caf";
         case ids:
             return "ids";
         case erf:
