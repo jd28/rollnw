@@ -100,7 +100,7 @@ struct Item {
     // Instance only
     Location loc;
 
-    LocalData data;
+    LocalData local_data;
 };
 
 } // namespace nw

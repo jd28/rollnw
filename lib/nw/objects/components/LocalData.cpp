@@ -2,7 +2,7 @@
 
 namespace nw {
 
-LocalData::LocalData(const GffStruct gff, SerializationProfile profile)
+LocalData::LocalData(const GffStruct gff)
 {
     auto st = gff["VarTable"];
     if (!st.valid()) { return; }
@@ -38,7 +38,7 @@ LocalData::LocalData(const GffStruct gff, SerializationProfile profile)
             break;
         case 5: { // location
             if (auto s = st[i].get<GffStruct>("Value")) {
-                payload.loc = Location{*s, profile};
+                payload.loc = Location{*s, SerializationProfile::any};
             } else {
                 LOG_F(ERROR, "failed to read location struct");
             }

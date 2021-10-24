@@ -10,7 +10,7 @@ TEST_CASE("Loading armor item", "[objects]")
     REQUIRE(i.resref == "cloth028");
     REQUIRE(i.properties.size() > 0);
     REQUIRE(i.model_type == nw::ItemModelType::armor);
-    REQUIRE(i.data.size() > 0);
+    REQUIRE(i.local_data.size() > 0);
 }
 
 TEST_CASE("Loading layered item", "[objects]")

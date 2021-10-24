@@ -5,7 +5,7 @@ namespace nw {
 Item::Item(const GffStruct gff, SerializationProfile profile)
     : inventory{gff, profile}
     , loc{gff, profile}
-    , data{gff, profile}
+    , local_data{gff}
 {
 
     gff.get_to("TemplateResRef", resref);

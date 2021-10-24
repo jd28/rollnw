@@ -19,7 +19,7 @@ using LocalVarTable = absl::flat_hash_map<std::string, LocalVar>;
 
 struct LocalData {
     LocalData() = default;
-    LocalData(const GffStruct gff, SerializationProfile profile);
+    LocalData(const GffStruct gff);
 
     float get_local_float(absl::string_view var) const;
     int32_t get_local_int(absl::string_view var) const;

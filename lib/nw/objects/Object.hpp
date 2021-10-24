@@ -24,7 +24,7 @@ struct Object {
     std::string tag;
     LocString name;
 
-    LocalData locals;
+    LocalData local_data;
     Location location;
 
     uint32_t faction = 0;

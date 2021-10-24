@@ -4,7 +4,7 @@ namespace nw {
 
 Object::Object(ObjectType obj_type, const GffStruct gff, SerializationProfile profile)
     : object_type{obj_type}
-    , locals{gff, profile}
+    , local_data{gff}
     , location{gff, profile}
 {
     if (!gff.get_to("TemplateResRef", resref, false)
