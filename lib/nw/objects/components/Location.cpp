@@ -17,7 +17,10 @@ Location::Location()
 Location::Location(const GffStruct gff, SerializationProfile profile)
     : Location()
 {
-    if (profile != SerializationProfile::instance) { return; }
+    if (profile != SerializationProfile::any
+        && profile != SerializationProfile::instance) {
+        return;
+    }
 
     bool valid = true;
 
