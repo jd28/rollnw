@@ -31,18 +31,23 @@ Location::Location(const GffStruct gff, SerializationProfile profile)
         }
     }
 
-    valid = gff.get_to("PositionX", position[0])
-        && gff.get_to("PositionY", position[1])
-        && gff.get_to("PositionZ", position[2]);
+    valid = (gff.get_to("PositionX", position[0], false)
+                && gff.get_to("PositionY", position[1], false)
+                && gff.get_to("PositionZ", position[2], false))
+        || (gff.get_to("XPosition", position[0], false)
+            && gff.get_to("YPosition", position[1], false)
+            && gff.get_to("ZPosition", position[2], false));
 
     if (gff.has_field("Bearing")) {
         float rad;
         if (gff.get_to("Bearing", rad)) {
             orientation = {std::cos(rad), std::sin(rad), 0.0f};
         }
-    } else {
-        valid = valid && gff.get_to("OrientationX", orientation[0])
-            && gff.get_to("OrientationY", orientation[1]);
+    } else if (valid) {
+        valid = (gff.get_to("OrientationX", orientation[0], false)
+                    && gff.get_to("OrientationY", orientation[1], false))
+            || (gff.get_to("XOrientation", orientation[0], false)
+                && gff.get_to("YOrientation", orientation[1], false));
 
         // No clue why there is an Z, maybe for camera?
         // Not including it in validity check.
