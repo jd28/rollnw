@@ -27,7 +27,7 @@ Sound::Sound(const GffStruct gff, SerializationProfile profile)
     size_t sz = gff["Sounds"].size();
     sounds.resize(sz);
     for (size_t i = 0; i < sz; ++i) {
-        gff["Sounds"][i].get_to("ResRef", sounds[i]);
+        gff["Sounds"][i].get_to("Sound", sounds[i]);
     }
 
     gff.get_to("Times", times);

@@ -25,9 +25,9 @@ Trigger::Trigger(const GffStruct gff, SerializationProfile profile)
         geometery.reserve(sz);
         for (size_t i = 0; i < sz; ++i) {
             glm::vec3 v;
-            gff["Geometry"][i].get_to("X", v[0]);
-            gff["Geometry"][i].get_to("Y", v[1]);
-            gff["Geometry"][i].get_to("Z", v[2]);
+            gff["Geometry"][i].get_to("PointX", v[0]);
+            gff["Geometry"][i].get_to("PointY", v[1]);
+            gff["Geometry"][i].get_to("PointZ", v[2]);
             geometery.push_back(v);
         }
     }
