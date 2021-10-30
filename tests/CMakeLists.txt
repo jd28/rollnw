@@ -35,6 +35,7 @@ add_executable(libnw_test
     i18n_tlk.cpp
     i18n_tlktable.cpp
 
+    objects_area.cpp
     objects_creature.cpp
     objects_dialog.cpp
     objects_door.cpp

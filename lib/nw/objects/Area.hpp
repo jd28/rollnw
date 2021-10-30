@@ -1,0 +1,109 @@
+#pragma once
+
+#include "../util/enum_flags.hpp"
+#include "Creature.hpp"
+#include "Door.hpp"
+#include "Encounter.hpp"
+#include "Item.hpp"
+#include "Placeable.hpp"
+#include "Sound.hpp"
+#include "Store.hpp"
+#include "Trigger.hpp"
+#include "Waypoint.hpp"
+
+#include <bitset>
+
+namespace nw {
+
+enum struct AreaFlags : uint32_t {
+    none = 0,
+    interior = 0x0001,    // (exterior if unset)
+    underground = 0x0002, // (aboveground if unset)
+    natural = 0x0004,     // (urban if unset)
+};
+
+DEFINE_ENUM_FLAGS(AreaFlags)
+
+struct AreaWeather {
+    AreaWeather(const GffStruct gff);
+
+    int32_t chance_lightning = 0;
+    int32_t chance_rain = 0;
+    int32_t chance_snow = 0;
+    uint32_t color_moon_ambient = 0;
+    uint32_t color_moon_diffuse = 0;
+    uint32_t color_moon_fog = 0;
+    uint32_t color_sun_ambient = 0;
+    uint32_t color_sun_diffuse = 0;
+    uint32_t color_sun_fog = 0;
+    float fog_clip_distance = 0.0f;
+    int32_t wind_power = 0;
+
+    uint8_t day_night_cycle = 0;
+    uint8_t is_night = 0;
+    uint8_t lighting_scheme = 0;
+    uint8_t fog_moon_amount = 0;
+    uint8_t moon_shadows = 0;
+    uint8_t fog_sun_amount = 0;
+    uint8_t sun_shadows = 0;
+};
+
+struct Tile {
+    Tile(const GffStruct gff);
+    int32_t id = 0;
+    int32_t height = 0;
+    int32_t orientation = 0;
+    uint8_t animloop1 = 0;
+    uint8_t animloop2 = 0;
+    uint8_t animloop3 = 0;
+    uint8_t mainlight1 = 0;
+    uint8_t mainlight2 = 0;
+    uint8_t srclight1 = 0;
+    uint8_t srclight = 0;
+};
+
+struct Area : public Object {
+    Area(const GffStruct caf, const GffStruct gic);
+    Area(const GffStruct are, const GffStruct git, const GffStruct gic);
+
+    std::vector<std::unique_ptr<Creature>> creatures;
+    std::vector<std::unique_ptr<Door>> doors;
+    std::vector<std::unique_ptr<Encounter>> encounters;
+    std::vector<std::unique_ptr<Item>> items;
+    std::vector<std::unique_ptr<Placeable>> placeables;
+    std::vector<std::unique_ptr<Sound>> sounds;
+    std::vector<std::unique_ptr<Store>> stores;
+    std::vector<std::unique_ptr<Trigger>> triggers;
+    std::vector<std::unique_ptr<Waypoint>> waypoints;
+
+    std::string comments;
+    AreaFlags flags;
+    LocString name;
+    Resref tileset;
+    std::vector<Tile> tiles;
+    AreaWeather weather;
+
+    int32_t creator_id = 0;
+    int32_t height = 0;
+    int32_t id = 0;
+    int32_t listen_check_mod = 0;
+    int32_t spot_check_mod = 0;
+    uint32_t version = 0;
+    int32_t width = 0;
+
+    Resref on_enter;
+    Resref on_exit;
+    Resref on_heartbeat;
+    Resref on_user_defined;
+
+    uint16_t loadscreen = 0;
+    uint8_t no_rest = 0;
+    uint8_t pvp = 0;
+    uint8_t shadow_opacity = 0;
+    uint8_t skybox = 0;
+
+private:
+    bool is_caf_ = false;
+};
+
+} // namespace nw

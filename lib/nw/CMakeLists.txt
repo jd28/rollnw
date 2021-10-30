@@ -29,6 +29,7 @@ add_library(nw STATIC
     i18n/TlkTable.cpp
 
     objects/Object.cpp
+    objects/Area.cpp
     objects/Creature.cpp
     objects/Dialog.cpp
     objects/Door.cpp
