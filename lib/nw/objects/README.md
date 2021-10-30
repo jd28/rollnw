@@ -26,18 +26,18 @@ NWN has three different (de)serialization profiles:
 | -------------- | ---- | ----- | -----
 | Object         | Gff  | No    | Parent of Creature, Encounter, SituatedObject, etc.
 | SituatedObject | Gff  | No    | Parent of Placeables and Doors
-| Area           | No   | No    |
-| Creature       | No   | No    |
+| Area           | Gff  | No    | ARE and GIT only
+| Creature       | Gff  | No    |
 | Dialog         | Gff  | No    | This is very old, doesn't include new EE stuff.. yet.
 | Door           | Gff  | No    |
-| Encounter      | No   | No    |
-| Faction        | No   | No    |
+| Encounter      | Gff  | No    |
+| Faction        | Gff  | No    |
 | Item           | Gff  | No    | Probably missing new EE stuff.
-| Journal        | No   | No    |
-| Module         | No   | No    |
+| Journal        | Gff  | No    |
+| Module         | Gff  | No    |
 | Palette        | Gff  | No    | Surprised this wasn't ditched first thing in EE.
 | Placeable      | Gff  | No    |
 | Sound          | Gff  | No    |
-| Store          | No   | No    |
+| Store          | Gff  | No    |
 | Trigger        | Gff  | No    |
 | Waypoint       | Gff  | No    |
