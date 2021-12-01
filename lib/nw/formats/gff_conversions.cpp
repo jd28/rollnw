@@ -1,6 +1,7 @@
 #include "gff_conversions.hpp"
 
 #include "../util/base64.hpp"
+#include "gff_common.hpp"
 
 #include <limits>
 
@@ -8,52 +9,12 @@ using json = nlohmann::json;
 
 namespace nw {
 
-inline const char* type_to_string(GffType::type type)
-{
-    switch (type) {
-    default:
-        return "(invalid)";
-    case GffType::UINT8:
-        return "byte";
-    case GffType::INT8:
-        return "char";
-    case GffType::UINT16:
-        return "word";
-    case GffType::INT16:
-        return "short";
-    case GffType::UINT32:
-        return "dword";
-    case GffType::INT32:
-        return "int";
-    case GffType::UINT64:
-        return "dword64";
-    case GffType::INT64:
-        return "int64";
-    case GffType::FLOAT:
-        return "float";
-    case GffType::DOUBLE:
-        return "double";
-    case GffType::STRING:
-        return "cexostring";
-    case GffType::RESREF:
-        return "resref";
-    case GffType::LOCSTRING:
-        return "cexolocstring";
-    case GffType::VOID:
-        return "void";
-    case GffType::STRUCT:
-        return "struct";
-    case GffType::LIST:
-        return "list";
-    }
-}
-
 template <typename T>
 inline void add_field_kv(json& j, const std::string& name, const T& value)
 {
     auto& o = j[name] = json::object();
     o["value"] = value;
-    o["type"] = type_to_string(GffType::id<T>());
+    o["type"] = gff_type_to_string(GffType::id<T>());
 }
 
 bool gff_to_json(const GffStruct str, nlohmann::json& cursor);
@@ -109,11 +70,11 @@ inline bool gff_to_json(const GffField field, nlohmann::json& cursor)
     case GffType::RESREF: {
         auto& o = cursor[field_name] = json::object();
         o["value"] = (*field.get<Resref>()).string();
-        o["type"] = type_to_string(GffType::RESREF);
+        o["type"] = gff_type_to_string(GffType::RESREF);
     } break;
     case GffType::LOCSTRING: {
         auto& o = cursor[field_name] = json::object();
-        o["type"] = type_to_string(GffType::LOCSTRING);
+        o["type"] = gff_type_to_string(GffType::LOCSTRING);
         LocString ls = *field.get<LocString>();
         if (ls.strref() != std::numeric_limits<uint32_t>::max()) {
             o["strref"] = ls.strref();
@@ -126,11 +87,11 @@ inline bool gff_to_json(const GffField field, nlohmann::json& cursor)
     case GffType::VOID: {
         auto& o = cursor[field_name] = json::object();
         o["value"] = to_base64((*field.get<ByteArray>()).span());
-        o["type"] = type_to_string(GffType::VOID);
+        o["type"] = gff_type_to_string(GffType::VOID);
     } break;
     case GffType::STRUCT: {
         auto& o = cursor[field_name] = json::object();
-        o["type"] = type_to_string(GffType::STRUCT);
+        o["type"] = gff_type_to_string(GffType::STRUCT);
         auto& v = o["value"] = json::object();
         check = check && gff_to_json(*field.get<GffStruct>(), v);
     } break;
