@@ -18,15 +18,15 @@ NWN has three different (de)serialization profiles:
 | Location | Gff  | No    | Writing will be a little tricky because some things store their heading in radians, others in vectors.  |
 | LocalData | Gff | No    | Will encompasses local variables, baked sqlite3, and NWNX:EE POS.  Only local variables.. for now |
 | Lock     | Gff  | No    | Encapsulate lockable objects
-| Trap     | Gff  | No    | Encapsulate trapable objects
 | Saves    | Gff  | No    | a struct for saves, may be moved elsewhere
+| Situated | Gff  | No    | Things common to situated objects (Doors and Placeables)
+| Trap     | Gff  | No    | Encapsulate trapable objects
 
 ## Status
 
 |      Type      | Read | Write | Notes
 | -------------- | ---- | ----- | -----
-| ObjectBase     | Gff  | No    | Parent of Creature, Encounter, SituatedObject, etc.
-| SituatedObject | Gff  | No    | Parent of Placeables and Doors
+| ObjectBase     | Gff  | No    | Base class for objects.
 | Area           | Gff  | No    | ARE and GIT only
 | Creature       | Gff  | No    |
 | Dialog         | Gff  | No    | This is very old, doesn't include new EE stuff.. yet.
