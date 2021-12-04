@@ -8,5 +8,5 @@ TEST_CASE("Loading sound blueprint", "[objects]")
     nw::Gff g{"test_data/blue_bell.uts"};
     REQUIRE(g.valid());
     nw::Sound s{g.toplevel(), nw::SerializationProfile::blueprint};
-    REQUIRE(s.resref == "blue_bell");
+    REQUIRE(s.common()->resref == "blue_bell");
 }

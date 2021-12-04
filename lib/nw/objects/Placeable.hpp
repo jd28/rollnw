@@ -1,12 +1,14 @@
 #pragma once
 
 #include "Item.hpp"
-#include "SituatedObject.hpp"
+#include "ObjectBase.hpp"
+#include "components/Common.hpp"
 #include "components/Inventory.hpp"
+#include "components/Situated.hpp"
 
 namespace nw {
 
-struct Placeable : public SituatedObject {
+struct Placeable : public ObjectBase {
     enum struct AnimationState {
         none = 0, // Technically "default"
         open = 1,
@@ -17,6 +19,11 @@ struct Placeable : public SituatedObject {
     };
 
     Placeable(const GffStruct gff, SerializationProfile profile);
+    virtual Common* common() override { return &common_; }
+    virtual Situated* situated() override { return &situated_; }
+
+    Common common_;
+    Situated situated_;
 
     Inventory inventory;
     AnimationState anim_state;

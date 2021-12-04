@@ -30,4 +30,14 @@ enum struct ObjectType {
     sound = 16,
 };
 
+struct Common;
+struct Situated;
+
+struct ObjectBase {
+    virtual ~ObjectBase() { }
+
+    virtual Common* common() { return nullptr; }
+    virtual Situated* situated() { return nullptr; }
+};
+
 } // namespace nw

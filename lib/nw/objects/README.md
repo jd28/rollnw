@@ -14,6 +14,7 @@ NWN has three different (de)serialization profiles:
 
 |   Type   | Read | Write |                        Notes                        |
 | -------- | ---- | ----- | --------------------------------------------------- |
+| Common   | Gff  | No    | Things common to all objects
 | Location | Gff  | No    | Writing will be a little tricky because some things store their heading in radians, others in vectors.  |
 | LocalData | Gff | No    | Will encompasses local variables, baked sqlite3, and NWNX:EE POS.  Only local variables.. for now |
 | Lock     | Gff  | No    | Encapsulate lockable objects
@@ -24,7 +25,7 @@ NWN has three different (de)serialization profiles:
 
 |      Type      | Read | Write | Notes
 | -------------- | ---- | ----- | -----
-| Object         | Gff  | No    | Parent of Creature, Encounter, SituatedObject, etc.
+| ObjectBase     | Gff  | No    | Parent of Creature, Encounter, SituatedObject, etc.
 | SituatedObject | Gff  | No    | Parent of Placeables and Doors
 | Area           | Gff  | No    | ARE and GIT only
 | Creature       | Gff  | No    |

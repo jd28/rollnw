@@ -3,7 +3,7 @@
 namespace nw {
 
 Encounter::Encounter(const GffStruct gff, SerializationProfile profile)
-    : Object{ObjectType::encounter, gff, profile}
+    : common_{ObjectType::encounter, gff, profile}
 {
 
     size_t sz = gff["CreatureList"].size();

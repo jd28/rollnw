@@ -1,14 +1,17 @@
 #pragma once
 
 #include "../formats/Gff.hpp"
-#include "Object.hpp"
+#include "ObjectBase.hpp"
 #include "Serialization.hpp"
+#include "components/Common.hpp"
 
 namespace nw {
 
-struct Sound : public Object {
+struct Sound : public ObjectBase {
     Sound(const GffStruct gff, SerializationProfile profile);
+    virtual Common* common() override { return &common_; }
 
+    Common common_;
     float distance_min = 0.0f;
     float distance_max = 0.0f;
     float elevation = 0.0f;

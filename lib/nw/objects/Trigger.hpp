@@ -1,8 +1,9 @@
 #pragma once
 
 #include "../formats/Gff.hpp"
-#include "Object.hpp"
+#include "ObjectBase.hpp"
 #include "Serialization.hpp"
+#include "components/Common.hpp"
 #include "components/Trap.hpp"
 
 #include <glm/glm.hpp>
@@ -11,9 +12,11 @@
 
 namespace nw {
 
-struct Trigger : public Object {
+struct Trigger : public ObjectBase {
     Trigger(const GffStruct gff, SerializationProfile profile);
+    virtual Common* common() override { return &common_; }
 
+    Common common_;
     Trap trap;
     std::vector<glm::vec3> geometery;
     std::string linked_to;

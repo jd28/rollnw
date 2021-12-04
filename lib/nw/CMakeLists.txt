@@ -28,7 +28,6 @@ add_library(nw STATIC
     i18n/Tlk.cpp
     i18n/TlkTable.cpp
 
-    objects/Object.cpp
     objects/Area.cpp
     objects/Creature.cpp
     objects/Dialog.cpp
@@ -40,7 +39,6 @@ add_library(nw STATIC
     objects/Module.cpp
     objects/Palette.cpp
     objects/Placeable.cpp
-    objects/SituatedObject.cpp
     objects/Sound.cpp
     objects/Store.cpp
     objects/Trigger.cpp
@@ -48,12 +46,14 @@ add_library(nw STATIC
 
     objects/components/Appearance.cpp
     objects/components/Combat.cpp
+    objects/components/Common.cpp
     objects/components/CreatureStats.cpp
     objects/components/Equips.cpp
     objects/components/Inventory.cpp
     objects/components/LevelStats.cpp
     objects/components/LocalData.cpp
     objects/components/Location.cpp
+    objects/components/Situated.cpp
     #objects/components/Lock.cpp
     #objects/components/Trap.cpp
 

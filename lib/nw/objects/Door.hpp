@@ -1,10 +1,12 @@
 #pragma once
 
-#include "SituatedObject.hpp"
+#include "ObjectBase.hpp"
+#include "components/Common.hpp"
+#include "components/Situated.hpp"
 
 namespace nw {
 
-struct Door : public SituatedObject {
+struct Door : public ObjectBase {
     enum struct AnimationState {
         closed = 0,
         opened1 = 1,
@@ -12,7 +14,11 @@ struct Door : public SituatedObject {
     };
 
     Door(const GffStruct gff, SerializationProfile profile);
+    virtual Common* common() override { return &common_; }
+    virtual Situated* situated() override { return &situated_; }
 
+    Common common_;
+    Situated situated_;
     AnimationState anim_state = AnimationState::closed;
     std::string linked_to;
     Resref on_click;

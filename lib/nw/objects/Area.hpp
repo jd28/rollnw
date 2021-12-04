@@ -62,10 +62,12 @@ struct Tile {
     uint8_t srclight = 0;
 };
 
-struct Area : public Object {
+struct Area : public ObjectBase {
     Area(const GffStruct caf, const GffStruct gic);
     Area(const GffStruct are, const GffStruct git, const GffStruct gic);
+    virtual Common* common() override { return &common_; }
 
+    Common common_;
     std::vector<std::unique_ptr<Creature>> creatures;
     std::vector<std::unique_ptr<Door>> doors;
     std::vector<std::unique_ptr<Encounter>> encounters;

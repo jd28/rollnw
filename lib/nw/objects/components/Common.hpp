@@ -1,20 +1,20 @@
 #pragma once
 
-#include "../formats/Gff.hpp"
-#include "../resources/Resref.hpp"
-#include "ObjectBase.hpp"
-#include "Serialization.hpp"
-#include "components/LocalData.hpp"
-#include "components/Location.hpp"
+#include "../../formats/Gff.hpp"
+#include "../../resources/Resref.hpp"
+#include "../ObjectBase.hpp"
+#include "../Serialization.hpp"
+#include "LocalData.hpp"
+#include "Location.hpp"
 
 #include <string>
 
 namespace nw {
 
-struct Object {
-    Object() = default;
-    Object(ObjectType obj_type, const GffStruct gff, SerializationProfile profile);
-    virtual ~Object() = default;
+struct Common {
+    Common() = default;
+    Common(ObjectType obj_type, const GffStruct gff, SerializationProfile profile);
+    virtual ~Common() = default;
 
     virtual bool valid() { return valid_; }
 

@@ -1,10 +1,9 @@
-#include "SituatedObject.hpp"
+#include "Situated.hpp"
 
 namespace nw {
 
-SituatedObject::SituatedObject(ObjectType obj_type, const GffStruct gff, SerializationProfile profile)
-    : Object{obj_type, gff, profile}
-    , lock{gff, profile}
+Situated::Situated(const GffStruct gff, SerializationProfile profile)
+    : lock{gff, profile}
     , trap{gff, profile}
 {
     uint8_t save;
@@ -18,7 +17,6 @@ SituatedObject::SituatedObject(ObjectType obj_type, const GffStruct gff, Seriali
     gff.get_to("HP", hp);
     gff.get_to("CurrentHP", hp_current);
     gff.get_to("Interruptable", interruptable);
-    gff.get_to("LocName", name);
     gff.get_to("OnClosed", on_closed);
     gff.get_to("OnDamaged", on_damaged);
     gff.get_to("OnDeath", on_death);

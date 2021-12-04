@@ -1,11 +1,12 @@
 #pragma once
 
-#include "Object.hpp"
+#include "ObjectBase.hpp"
 
 #include "../formats/Gff.hpp"
 #include "Item.hpp"
 #include "components/Appearance.hpp"
 #include "components/Combat.hpp"
+#include "components/Common.hpp"
 #include "components/CreatureStats.hpp"
 #include "components/Equips.hpp"
 #include "components/Inventory.hpp"
@@ -15,9 +16,11 @@
 
 namespace nw {
 
-struct Creature : public Object {
+struct Creature : public ObjectBase {
     Creature(const GffStruct gff, SerializationProfile profile);
+    virtual Common* common() override { return &common_; }
 
+    Common common_;
     Appearance appearance;
     LocString name_first;
     LocString name_last;

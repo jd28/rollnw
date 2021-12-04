@@ -1,16 +1,15 @@
 #pragma once
 
-#include "Object.hpp"
-#include "Serialization.hpp"
-#include "components/Lock.hpp"
-#include "components/Saves.hpp"
-#include "components/Trap.hpp"
+#include "../Serialization.hpp"
+#include "Lock.hpp"
+#include "Saves.hpp"
+#include "Trap.hpp"
 
 namespace nw {
 
-struct SituatedObject : public Object {
-    SituatedObject() = default;
-    SituatedObject(ObjectType obj_type, const GffStruct gff, SerializationProfile profile);
+struct Situated {
+    Situated() = default;
+    Situated(const GffStruct gff, SerializationProfile profile);
 
     uint32_t appearance;
     uint16_t portrait_id;

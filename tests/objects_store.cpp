@@ -8,7 +8,7 @@ TEST_CASE("Loading store blueprint", "[objects]")
     nw::Gff g{"test_data/storethief002.utm"};
     REQUIRE(g.valid());
     nw::Store s{g.toplevel(), nw::SerializationProfile::blueprint};
-    REQUIRE(s.resref == "storethief002");
+    REQUIRE(s.common()->resref == "storethief002");
     REQUIRE(s.blackmarket);
     REQUIRE(s.blackmarket_markdown == 25);
     REQUIRE(s.weapons.items.size() > 0);

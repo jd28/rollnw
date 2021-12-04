@@ -46,7 +46,7 @@ Area::Area(const GffStruct caf, const GffStruct gic)
 }
 
 Area::Area(const GffStruct are, const GffStruct git, const GffStruct gic)
-    : Object{ObjectType::area, are, SerializationProfile::blueprint}
+    : common_{ObjectType::area, are, SerializationProfile::blueprint}
     , weather{are}
 {
     are.get_to("Flags", flags);

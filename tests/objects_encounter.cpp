@@ -8,7 +8,7 @@ TEST_CASE("Loading encounter blueprint", "[objects]")
     nw::Gff g{"test_data/boundelementallo.ute"};
     REQUIRE(g.valid());
     nw::Encounter e{g.toplevel(), nw::SerializationProfile::blueprint};
-    REQUIRE(e.resref == "boundelementallo");
+    REQUIRE(e.common()->resref == "boundelementallo");
     REQUIRE(!!e.player_only);
     REQUIRE(e.on_entered == "");
     REQUIRE(e.creatures.size() > 0);

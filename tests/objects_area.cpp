@@ -19,6 +19,6 @@ TEST_CASE("Loading area", "[objects]")
     REQUIRE(area.width == 16);
 
     REQUIRE(area.creatures.size() > 0);
-    REQUIRE(area.creatures[0]->resref == "test_creature");
+    REQUIRE(area.creatures[0]->common()->resref == "test_creature");
     REQUIRE(area.creatures[0]->stats.abilities[0] == 20);
 }

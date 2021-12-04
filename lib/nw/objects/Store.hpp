@@ -2,16 +2,20 @@
 
 #include "../formats/Gff.hpp"
 #include "Item.hpp"
-#include "Object.hpp"
+#include "ObjectBase.hpp"
+#include "components/Common.hpp"
 #include "components/Inventory.hpp"
 
 #include <vector>
 
 namespace nw {
 
-struct Store : public Object {
+struct Store : public ObjectBase {
     Store(const GffStruct gff, SerializationProfile profile);
+    virtual Common* common() override { return &common_; }
 
+    bool valid_ = true;
+    Common common_;
     Resref on_closed;
     Resref on_opened;
 

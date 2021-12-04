@@ -8,8 +8,8 @@ TEST_CASE("Loading door", "[objects]")
     nw::Gff g{"test_data/door_ttr_002.utd"};
     REQUIRE(g.valid());
     nw::Door d{g.toplevel(), nw::SerializationProfile::blueprint};
-    REQUIRE(d.resref == "door_ttr_002");
-    REQUIRE(d.appearance == 0);
-    REQUIRE(!d.plot);
-    REQUIRE(!d.lock.locked);
+    REQUIRE(d.common()->resref == "door_ttr_002");
+    REQUIRE(d.situated()->appearance == 0);
+    REQUIRE(!d.situated()->plot);
+    REQUIRE(!d.situated()->lock.locked);
 }

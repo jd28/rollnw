@@ -1,7 +1,8 @@
 #pragma once
 
-#include "Object.hpp"
+#include "ObjectBase.hpp"
 #include "Serialization.hpp"
+#include "components/Common.hpp"
 
 #include <glm/glm.hpp>
 
@@ -21,9 +22,11 @@ struct SpawnPoint {
     glm::vec3 position;
 };
 
-struct Encounter : public Object {
+struct Encounter : public ObjectBase {
     Encounter(const GffStruct gff, SerializationProfile profile);
+    virtual Common* common() { return &common_; }
 
+    Common common_;
     std::vector<SpawnCreature> creatures;
     std::vector<glm::vec3> geometry;
     std::vector<SpawnPoint> spawn_points;

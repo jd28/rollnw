@@ -1,14 +1,18 @@
 #pragma once
+
 #include "../formats/Gff.hpp"
-#include "Object.hpp"
+#include "ObjectBase.hpp"
+#include "components/Common.hpp"
 
 #include <string>
 
 namespace nw {
 
-struct Waypoint : public Object {
+struct Waypoint : public ObjectBase {
     Waypoint(const GffStruct gff, SerializationProfile profile);
+    virtual Common* common() { return &common_; }
 
+    Common common_;
     LocString description;
     std::string linked_to;
     LocString map_note;
