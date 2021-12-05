@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../Serialization.hpp"
+#include "../../serialization/Serialization.hpp"
 #include "SpellBook.hpp"
 
 #include <vector>

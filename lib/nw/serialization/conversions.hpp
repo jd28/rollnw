@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../formats/Gff.hpp"
+#include "../serialization/Serialization.hpp"
 
 #include <nlohmann/json.hpp>
 

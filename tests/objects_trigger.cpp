@@ -1,7 +1,7 @@
 #include <catch2/catch.hpp>
 
-#include <nw/formats/Gff.hpp>
 #include <nw/objects/Trigger.hpp>
+#include <nw/serialization/Serialization.hpp>
 
 TEST_CASE("Loading trigger blueprint", "[objects]")
 {

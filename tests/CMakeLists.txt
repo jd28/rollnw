@@ -26,7 +26,6 @@ add_custom_target(
 add_executable(libnw_test
     main.cpp
 
-    formats_gff.cpp
     formats_image.cpp
     formats_ini.cpp
     formats_nss.cpp
@@ -57,6 +56,8 @@ add_executable(libnw_test
     resources_key.cpp
     resources_nwsync.cpp
     resources_zip.cpp
+
+    serial_gff.cpp
 
     util_string.cpp
     util_tokenizer.cpp

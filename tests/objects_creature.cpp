@@ -1,7 +1,7 @@
 #include <catch2/catch.hpp>
 
-#include <nw/formats/Gff.hpp>
 #include <nw/objects/Creature.hpp>
+#include <nw/serialization/Serialization.hpp>
 
 TEST_CASE("Loading nw_chicken", "[objects]")
 {

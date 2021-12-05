@@ -1,5 +1,12 @@
 #pragma once
 
+#include "../i18n/LocString.hpp"
+#include "../resources/Resource.hpp"
+#include "../util/ByteArray.hpp"
+
+#include <cstdint>
+#include <type_traits>
+
 namespace nw {
 
 struct Gff;

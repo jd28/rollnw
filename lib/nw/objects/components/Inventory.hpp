@@ -1,7 +1,6 @@
 #pragma once
 
-#include "../../formats/Gff.hpp"
-#include "../Serialization.hpp"
+#include "../../serialization/Serialization.hpp"
 
 #include <cstdint>
 #include <memory>

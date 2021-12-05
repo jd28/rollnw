@@ -1,12 +1,12 @@
 #include <catch2/catch.hpp>
 
-#include <nw/formats/Gff.hpp>
-#include <nw/formats/gff_conversions.hpp>
 #include <nw/log.hpp>
+#include <nw/serialization/Serialization.hpp>
+#include <nw/serialization/conversions.hpp>
 
 #include <fstream>
 
-TEST_CASE("Gff Validation", "[formats]")
+TEST_CASE("Gff Validation", "[serialization]")
 {
     nw::Gff g("test_data/nw_chicken.utc");
     REQUIRE(g.valid());
@@ -27,7 +27,7 @@ TEST_CASE("Gff Validation", "[formats]")
     REQUIRE(g[0].name() == "Deity");
 }
 
-TEST_CASE("Gff Lists", "[formats]")
+TEST_CASE("Gff Lists", "[serialization]")
 {
     nw::Gff g("test_data/nw_chicken.utc");
     REQUIRE(g.valid());
@@ -53,7 +53,7 @@ TEST_CASE("Gff Lists", "[formats]")
     REQUIRE(*g["ClassList"][0]["Class"].get<int32_t>() == 12);
 }
 
-TEST_CASE("Gff Conversion", "[formats]")
+TEST_CASE("Gff Conversion", "[serialization]")
 {
     nw::Gff g("test_data/nw_chicken.utc");
     REQUIRE(g.valid());
@@ -62,7 +62,7 @@ TEST_CASE("Gff Conversion", "[formats]")
     f << std::setw(4) << j;
 }
 
-TEST_CASE("Gff Object Poisoning", "[formats]")
+TEST_CASE("Gff Object Poisoning", "[serialization]")
 {
     nw::Gff g("test_data/nw_chicken.utc");
     int32_t nonextant;

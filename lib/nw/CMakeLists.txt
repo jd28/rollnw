@@ -13,8 +13,6 @@ find_package(ZLIB REQUIRED)
 add_library(nw STATIC
     log.cpp
 
-    formats/Gff.cpp
-    formats/gff_conversions.cpp
     formats/Ini.cpp
     formats/Nss.cpp
     formats/NssLexer.cpp
@@ -67,6 +65,9 @@ add_library(nw STATIC
     resources/Resource.cpp
     resources/ResourceDescriptor.cpp
     resources/Zip.cpp
+
+    serialization/Gff.cpp
+    serialization/conversions.cpp
 
     util/base64.cpp
     util/ByteArray.cpp

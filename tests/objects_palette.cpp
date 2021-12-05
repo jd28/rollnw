@@ -1,7 +1,7 @@
 #include <catch2/catch.hpp>
 
-#include <nw/formats/Gff.hpp>
 #include <nw/objects/Palette.hpp>
+#include <nw/serialization/Serialization.hpp>
 
 TEST_CASE("Loading Creature Palette", "[objects]")
 {

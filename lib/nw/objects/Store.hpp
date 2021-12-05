@@ -1,6 +1,5 @@
 #pragma once
 
-#include "../formats/Gff.hpp"
 #include "Item.hpp"
 #include "ObjectBase.hpp"
 #include "components/Common.hpp"

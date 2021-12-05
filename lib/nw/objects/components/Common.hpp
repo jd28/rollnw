@@ -1,9 +1,8 @@
 #pragma once
 
-#include "../../formats/Gff.hpp"
 #include "../../resources/Resref.hpp"
+#include "../../serialization/Serialization.hpp"
 #include "../ObjectBase.hpp"
-#include "../Serialization.hpp"
 #include "LocalData.hpp"
 #include "Location.hpp"
 

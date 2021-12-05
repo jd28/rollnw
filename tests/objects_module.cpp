@@ -1,7 +1,7 @@
 #include <catch2/catch.hpp>
 
-#include <nw/formats/Gff.hpp>
 #include <nw/objects/Module.hpp>
+#include <nw/serialization/Serialization.hpp>
 
 #include <iostream>
 

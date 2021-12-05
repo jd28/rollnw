@@ -1,8 +1,8 @@
 #pragma once
 
-#include "../formats/Gff.hpp"
+#include "Gff.hpp"
 
-#include <nlohmann/json_fwd.hpp>
+#include <nlohmann/json.hpp>
 
 namespace nw {
 

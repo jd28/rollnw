@@ -2,7 +2,6 @@
 
 #include "ObjectBase.hpp"
 
-#include "../formats/Gff.hpp"
 #include "Item.hpp"
 #include "components/Appearance.hpp"
 #include "components/Combat.hpp"

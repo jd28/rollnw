@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../Serialization.hpp"
+#include "../../serialization/Serialization.hpp"
 #include "Lock.hpp"
 #include "Saves.hpp"
 #include "Trap.hpp"
