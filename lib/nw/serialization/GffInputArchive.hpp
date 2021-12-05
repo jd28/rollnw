@@ -23,7 +23,8 @@ namespace nw {
 
 struct GffInputArchive;
 
-// -- GffField ----------------------------------------------------------------
+// -- GffInputArchiveField ----------------------------------------------------------------
+// Note: This is more of an implementation detail.
 
 struct GffInputArchiveField {
     /// Get the field's value
@@ -60,7 +61,7 @@ private:
     GffInputArchiveField(const GffInputArchive* parent, const detail::GffFieldEntry* entry);
 };
 
-// -- GffStruct ----------------------------------------------------------------
+// -- GffInputArchiveStruct ----------------------------------------------------------------
 
 struct GffInputArchiveStruct {
     /// Check if a struct has a field.
@@ -116,12 +117,6 @@ struct GffInputArchive {
 
     /// Get the Gff Version
     std::string_view version() const { return {head_->version, 4}; }
-
-    /// Helper to get top level fields
-    GffInputArchiveField operator[](std::string_view label) const { return toplevel()[label]; }
-
-    /// Helper to get top level fields
-    GffInputArchiveField operator[](size_t index) const { return toplevel()[index]; }
 
 private:
     friend struct GffInputArchiveField;

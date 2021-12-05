@@ -10,7 +10,8 @@ TEST_CASE("GffInputArchive Validation", "[serialization]")
 {
     nw::GffInputArchive g("test_data/nw_chicken.utc");
     REQUIRE(g.valid());
-    REQUIRE(g.toplevel().size() > 0);
+    auto top = g.toplevel();
+    REQUIRE(top.size() > 0);
 
     REQUIRE(g.toplevel().has_field("TemplateResRef"));
 
@@ -23,15 +24,16 @@ TEST_CASE("GffInputArchive Validation", "[serialization]")
     REQUIRE(field.get_to(r));
     REQUIRE(r.view() == "nw_chicken");
 
-    REQUIRE(g[0].valid());
-    REQUIRE(g[0].name() == "Deity");
+    REQUIRE(top[0].valid());
+    REQUIRE(top[0].name() == "Deity");
 }
 
 TEST_CASE("GffInputArchive Lists", "[serialization]")
 {
     nw::GffInputArchive g("test_data/nw_chicken.utc");
     REQUIRE(g.valid());
-    auto skills = g["SkillList"];
+    auto top = g.toplevel();
+    auto skills = top["SkillList"];
     REQUIRE(skills.valid());
     REQUIRE(skills.size() > 0);
     auto skillrank = skills[0];
@@ -41,16 +43,16 @@ TEST_CASE("GffInputArchive Lists", "[serialization]")
     REQUIRE(val == 0);
     REQUIRE(skillrank["Rank"].get<uint8_t>());
     REQUIRE(*skillrank["Rank"].get<uint8_t>() == 0);
-    REQUIRE(g["ClassList"].valid());
-    REQUIRE(g["ClassList"].name() == "ClassList");
-    REQUIRE(g["ClassList"].size() == 1);
-    REQUIRE(g["ClassList"][0].valid());
-    REQUIRE(g["ClassList"][0]["Class"].valid());
-    REQUIRE(g["ClassList"][0]["Class"].name() == "Class");
+    REQUIRE(top["ClassList"].valid());
+    REQUIRE(top["ClassList"].name() == "ClassList");
+    REQUIRE(top["ClassList"].size() == 1);
+    REQUIRE(top["ClassList"][0].valid());
+    REQUIRE(top["ClassList"][0]["Class"].valid());
+    REQUIRE(top["ClassList"][0]["Class"].name() == "Class");
     int32_t i32;
-    REQUIRE(g["ClassList"][0]["Class"].get_to(i32));
+    REQUIRE(top["ClassList"][0]["Class"].get_to(i32));
     REQUIRE(i32 == 12);
-    REQUIRE(*g["ClassList"][0]["Class"].get<int32_t>() == 12);
+    REQUIRE(*top["ClassList"][0]["Class"].get<int32_t>() == 12);
 }
 
 TEST_CASE("GffInputArchive Conversion", "[serialization]")
@@ -65,6 +67,8 @@ TEST_CASE("GffInputArchive Conversion", "[serialization]")
 TEST_CASE("GffInputArchive Object Poisoning", "[serialization]")
 {
     nw::GffInputArchive g("test_data/nw_chicken.utc");
+    REQUIRE(g.valid());
+    auto top = g.toplevel();
     int32_t nonextant;
-    REQUIRE_FALSE(g["thisdoesn't exist"][2000]["Or this"][1000000000]["Maybe this?"].get_to(nonextant));
+    REQUIRE_FALSE(top["thisdoesn't exist"][2000]["Or this"][1000000000]["Maybe this?"].get_to(nonextant));
 }
