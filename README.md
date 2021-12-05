@@ -28,6 +28,24 @@ Find the status of [File Formats](lib/nw/formats/README.md), [Containers](lib/nw
 
 [![Open in Gitpod](https://gitpod.io/button/open-in-gitpod.svg)](https://gitpod.io/#https://github.com/jd28/libnw)
 
+## Building
+
+libnw uses cmake as it's build system and more specifically CMakePresets.json.
+
+Install (https://github.com/microsoft/vcpkg)[vcpkg].  Note that windows build requires VS Studio 2019.  All vcpkg packages required will be build automatically.
+
+The example below is building on Linux, but it's virtually the same for all platforms.  The only difference is the configuration preset.
+
+```
+$ export VCPKG_ROOT=path/to/vcpkg
+$ export NWN_ROOT=path/to/game
+$ export NWN_USER=path/to/nwn-user-dir
+$ cd path/to/libnw
+$ cmake --preset default-test
+$ cmake --build --preset default
+$ ctest --preset default
+```
+
 ## History
 
 A lot of what's here was written in the 2011-2015 range as part of personal minimalist toolset, modernized and with new EE stuff added.  In some sense, it's a work of historical fiction -- it's what I'd have suggested at the start of NWN:EE: get the game and the community on the same set of libraries.  Similarly to an older project that asked ["what if Bioware had stuck with Lua?"](https://solstice.readthedocs.io/en/latest/).  The awnser to that was pretty positive: a decade ahead, at least, of nwscript.
