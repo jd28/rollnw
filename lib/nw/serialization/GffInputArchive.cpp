@@ -1,4 +1,4 @@
-#include "Gff.hpp"
+#include "GffInputArchive.hpp"
 
 #include "../log.hpp"
 
@@ -11,18 +11,18 @@ namespace nw {
 
 // GffField -------------------------------------------------------------------
 
-GffField::GffField()
+GffInputArchiveField::GffInputArchiveField()
     : parent_{nullptr}
 {
 }
 
-GffField::GffField(const Gff* parent, const detail::GffFieldEntry* entry)
+GffInputArchiveField::GffInputArchiveField(const GffInputArchive* parent, const detail::GffFieldEntry* entry)
     : parent_{parent}
     , entry_{entry}
 {
 }
 
-std::string_view GffField::name() const
+std::string_view GffInputArchiveField::name() const
 {
     if (!valid()) {
         LOG_F(ERROR, "invalid gff field");
@@ -36,7 +36,7 @@ std::string_view GffField::name() const
     return parent_->labels_[entry_->label_idx].view();
 }
 
-size_t GffField::size() const
+size_t GffInputArchiveField::size() const
 {
     if (!valid()) { return 0; }
 
@@ -50,7 +50,7 @@ size_t GffField::size() const
         : 0;                                                 // itself.
 }
 
-GffType::type GffField::type() const
+GffType::type GffInputArchiveField::type() const
 {
     if (!valid()) {
         LOG_F(ERROR, "invalid gff field");
@@ -60,7 +60,7 @@ GffType::type GffField::type() const
     return static_cast<GffType::type>(entry_->type);
 }
 
-GffStruct GffField::operator[](size_t index) const
+GffInputArchiveStruct GffInputArchiveField::operator[](size_t index) const
 {
     if (!valid()) {
         LOG_F(ERROR, "invalid gff field");
@@ -73,23 +73,23 @@ GffStruct GffField::operator[](size_t index) const
     }
 
     auto idx = entry_->data_or_offset / 4;
-    return GffStruct(parent_, &parent_->structs_[parent_->list_indices_[idx + index + 1]]);
+    return GffInputArchiveStruct(parent_, &parent_->structs_[parent_->list_indices_[idx + index + 1]]);
 }
 
 // GffStruct ------------------------------------------------------------------
 
-GffStruct::GffStruct(const Gff* parent, const detail::GffStructEntry* entry)
+GffInputArchiveStruct::GffInputArchiveStruct(const GffInputArchive* parent, const detail::GffStructEntry* entry)
     : parent_{parent}
     , entry_{entry}
 {
 }
 
-bool GffStruct::has_field(std::string_view label) const
+bool GffInputArchiveStruct::has_field(std::string_view label) const
 {
     return operator[](label).valid();
 }
 
-GffField GffStruct::operator[](std::string_view label) const
+GffInputArchiveField GffInputArchiveStruct::operator[](std::string_view label) const
 {
     if (!valid()) {
         LOG_F(ERROR, "invalid gff struct");
@@ -98,23 +98,23 @@ GffField GffStruct::operator[](std::string_view label) const
 
     if (entry_->field_count == 1) {
         if (entry_->field_index >= parent_->head_->field_count) { return {}; }
-        auto f = GffField(parent_, &parent_->fields_[entry_->field_index]);
-        return string::icmp(f.name(), label) ? f : GffField{};
+        auto f = GffInputArchiveField(parent_, &parent_->fields_[entry_->field_index]);
+        return string::icmp(f.name(), label) ? f : GffInputArchiveField{};
     } else {
         if (entry_->field_index >= parent_->head_->field_idx_count) { return {}; }
         auto fi = &parent_->field_indices_[entry_->field_index / 4];
         for (size_t i = 0; i < entry_->field_count; ++i) {
             if (fi[i] >= parent_->head_->field_count) { return {}; }
-            GffField field(parent_, &parent_->fields_[fi[i]]);
+            GffInputArchiveField field(parent_, &parent_->fields_[fi[i]]);
             if (string::icmp(field.name(), label)) {
                 return field;
             }
         }
-        return GffField();
+        return GffInputArchiveField();
     }
 }
 
-GffField GffStruct::operator[](size_t index) const
+GffInputArchiveField GffInputArchiveStruct::operator[](size_t index) const
 {
     if (!valid()) {
         LOG_F(ERROR, "invalid gff struct");
@@ -128,34 +128,34 @@ GffField GffStruct::operator[](size_t index) const
 
     if (entry_->field_count == 1) {
         if (entry_->field_index >= parent_->head_->field_count) { return {}; }
-        return GffField(parent_, &parent_->fields_[entry_->field_index]);
+        return GffInputArchiveField(parent_, &parent_->fields_[entry_->field_index]);
     } else {
         if (entry_->field_index >= parent_->head_->field_idx_count) { return {}; }
         auto fi = &parent_->field_indices_[entry_->field_index / 4]; // Byte offset, not index
-        return GffField(parent_, &parent_->fields_[fi[index]]);
+        return GffInputArchiveField(parent_, &parent_->fields_[fi[index]]);
     }
 }
 
-// Gff ------------------------------------------------------------------------
+// GffInputArchive ------------------------------------------------------------------------
 
-Gff::Gff(const std::filesystem::path& filename)
+GffInputArchive::GffInputArchive(const std::filesystem::path& filename)
     : bytes_{ByteArray::from_file(filename)}
 {
     is_loaded_ = parse();
 }
 
-Gff::Gff(ByteArray bytes)
+GffInputArchive::GffInputArchive(ByteArray bytes)
     : bytes_{std::move(bytes)}
 {
     is_loaded_ = parse();
 }
 
-GffStruct Gff::toplevel() const
+GffInputArchiveStruct GffInputArchive::toplevel() const
 {
-    return valid() ? GffStruct(this, &structs_[0]) : GffStruct();
+    return valid() ? GffInputArchiveStruct(this, &structs_[0]) : GffInputArchiveStruct();
 }
 
-bool Gff::valid() const
+bool GffInputArchive::valid() const
 {
     return is_loaded_;
 }
@@ -168,7 +168,7 @@ bool Gff::valid() const
         }                                                           \
     } while (0)
 
-bool Gff::parse()
+bool GffInputArchive::parse()
 {
     // Order is how file is laid out.
     CHECK_OFF(sizeof(detail::GffHeader) < bytes_.size());

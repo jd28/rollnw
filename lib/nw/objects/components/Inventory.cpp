@@ -4,7 +4,7 @@
 
 namespace nw {
 
-Inventory::Inventory(const GffStruct gff, SerializationProfile profile)
+Inventory::Inventory(const GffInputArchiveStruct gff, SerializationProfile profile)
 {
     size_t sz = gff["ItemList"].size();
     items.reserve(sz);

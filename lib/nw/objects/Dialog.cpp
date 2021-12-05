@@ -28,13 +28,13 @@ const DialogNode* DialogPtr::node() const
     return const_cast<DialogPtr*>(this)->node();
 }
 
-Dialog::Dialog(const GffStruct gff)
+Dialog::Dialog(const GffInputArchiveStruct gff)
     : prevent_zoom(0)
 {
     is_valid_ = load(gff);
 }
 
-bool Dialog::read_nodes(const GffStruct gff, DialogNodeType node_type)
+bool Dialog::read_nodes(const GffInputArchiveStruct gff, DialogNodeType node_type)
 {
     std::string_view node_list;
     std::string_view ptr_list;
@@ -58,7 +58,7 @@ bool Dialog::read_nodes(const GffStruct gff, DialogNodeType node_type)
     holder->reserve(size);
     for (size_t i = 0; i < size && valid; ++i) {
         DialogNode node;
-        GffStruct s = gff[node_list][i];
+        GffInputArchiveStruct s = gff[node_list][i];
 
         node.parent = this;
         node.type = DialogNodeType::entry;
@@ -74,7 +74,7 @@ bool Dialog::read_nodes(const GffStruct gff, DialogNodeType node_type)
         size_t num_ptrs = s[ptr_list].size();
         node.pointers.reserve(num_ptrs);
         for (size_t j = 0; j < num_ptrs && valid; ++j) {
-            GffStruct p = s[ptr_list][j];
+            GffInputArchiveStruct p = s[ptr_list][j];
             if (!p.valid()) {
                 LOG_F(ERROR, "Unable to get list element: {}", j);
                 valid = false;
@@ -100,7 +100,7 @@ bool Dialog::read_nodes(const GffStruct gff, DialogNodeType node_type)
     return valid;
 }
 
-bool Dialog::load(const GffStruct gff)
+bool Dialog::load(const GffInputArchiveStruct gff)
 {
     bool valid = gff.get_to("PreventZoomIn", prevent_zoom)
         && gff.get_to("DelayEntry", delay_entry)
@@ -127,7 +127,7 @@ bool Dialog::load(const GffStruct gff)
         ptr.is_link = false;
         ptr.type = DialogNodeType::entry;
 
-        GffStruct s = gff["StartingList"][i];
+        GffInputArchiveStruct s = gff["StartingList"][i];
         valid = valid && s.get_to("Active", ptr.script_appears);
         valid = valid && s.get_to("Index", ptr.index);
         starts.push_back(ptr);

@@ -12,7 +12,7 @@
 namespace nw {
 
 struct Trigger : public ObjectBase {
-    Trigger(const GffStruct gff, SerializationProfile profile);
+    Trigger(const GffInputArchiveStruct gff, SerializationProfile profile);
     virtual Common* common() override { return &common_; }
 
     Common common_;

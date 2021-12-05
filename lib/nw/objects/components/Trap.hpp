@@ -6,7 +6,7 @@ namespace nw {
 
 struct Trap {
     Trap() = default;
-    Trap(const GffStruct gff, SerializationProfile profile)
+    Trap(const GffInputArchiveStruct gff, SerializationProfile profile)
     {
         uint8_t temp;
         if (!gff.get_to("TrapFlag", temp)) {

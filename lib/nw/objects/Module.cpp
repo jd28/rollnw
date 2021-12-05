@@ -2,7 +2,7 @@
 
 namespace nw {
 
-Module::Module(const GffStruct gff)
+Module::Module(const GffInputArchiveStruct gff)
     : local_data{gff}
 {
 

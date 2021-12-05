@@ -2,7 +2,7 @@
 
 namespace nw {
 
-AreaWeather::AreaWeather(const GffStruct gff)
+AreaWeather::AreaWeather(const GffInputArchiveStruct gff)
 {
     gff.get_to("ChanceLightning", chance_lightning);
     gff.get_to("ChanceRain", chance_rain);
@@ -25,7 +25,7 @@ AreaWeather::AreaWeather(const GffStruct gff)
     gff.get_to("SunShadows", sun_shadows);
 }
 
-Tile::Tile(const GffStruct gff)
+Tile::Tile(const GffInputArchiveStruct gff)
 {
     gff.get_to("Tile_ID", id);
     gff.get_to("Tile_Height", height);
@@ -39,13 +39,13 @@ Tile::Tile(const GffStruct gff)
     gff.get_to("Tile_SrcLight2", srclight);
 }
 
-Area::Area(const GffStruct caf, const GffStruct gic)
+Area::Area(const GffInputArchiveStruct caf, const GffInputArchiveStruct gic)
     : Area(caf, caf, gic)
 {
     is_caf_ = true;
 }
 
-Area::Area(const GffStruct are, const GffStruct git, const GffStruct gic)
+Area::Area(const GffInputArchiveStruct are, const GffInputArchiveStruct git, const GffInputArchiveStruct gic)
     : common_{ObjectType::area, are, SerializationProfile::blueprint}
     , weather{are}
 {

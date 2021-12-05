@@ -2,7 +2,7 @@
 
 namespace nw {
 
-Sound::Sound(const GffStruct gff, SerializationProfile profile)
+Sound::Sound(const GffInputArchiveStruct gff, SerializationProfile profile)
     : common_{ObjectType::sound, gff, profile}
 {
     gff.get_to("Active", active);

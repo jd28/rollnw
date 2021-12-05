@@ -2,12 +2,12 @@
 
 namespace nw {
 
-Palette::Palette(const GffStruct gff)
+Palette::Palette(const GffInputArchiveStruct gff)
 {
     is_valid_ = load(gff);
 }
 
-bool Palette::load(const GffStruct gff)
+bool Palette::load(const GffInputArchiveStruct gff)
 {
     size_t list_size = gff["MAIN"].size();
     if (list_size == 0) {
@@ -36,7 +36,7 @@ bool Palette::load(const GffStruct gff)
     return true;
 }
 
-PaletteTreeNode Palette::read_child(Palette* parent, const GffStruct st)
+PaletteTreeNode Palette::read_child(Palette* parent, const GffInputArchiveStruct st)
 {
     PaletteTreeNode node;
 

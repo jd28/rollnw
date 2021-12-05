@@ -2,7 +2,7 @@
 
 namespace nw {
 
-Door::Door(const GffStruct gff, SerializationProfile profile)
+Door::Door(const GffInputArchiveStruct gff, SerializationProfile profile)
     : common_{ObjectType::door, gff, profile}
     , situated_{gff, profile}
 {

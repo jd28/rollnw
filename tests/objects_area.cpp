@@ -5,9 +5,9 @@
 
 TEST_CASE("Loading area", "[objects]")
 {
-    nw::Gff are{"test_data/test_area.are"};
-    nw::Gff git{"test_data/test_area.git"};
-    nw::Gff gic{"test_data/test_area.gic"};
+    nw::GffInputArchive are{"test_data/test_area.are"};
+    nw::GffInputArchive git{"test_data/test_area.git"};
+    nw::GffInputArchive gic{"test_data/test_area.gic"};
 
     nw::Area area{are.toplevel(), git.toplevel(), gic.toplevel()};
     REQUIRE(area.tileset == "ttf02");

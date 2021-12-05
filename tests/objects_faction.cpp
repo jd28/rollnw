@@ -5,7 +5,7 @@
 
 TEST_CASE("Loading faction", "[objects]")
 {
-    nw::Gff g{"test_data/Repute.fac"};
+    nw::GffInputArchive g{"test_data/Repute.fac"};
     REQUIRE(g.valid());
     nw::Faction f{g.toplevel()};
     REQUIRE(f.factions.size() >= 4);

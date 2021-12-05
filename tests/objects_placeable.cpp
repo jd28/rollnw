@@ -5,7 +5,7 @@
 
 TEST_CASE("Loading placeable", "[objects]")
 {
-    nw::Gff g{"test_data/arrowcorpse001.utp"};
+    nw::GffInputArchive g{"test_data/arrowcorpse001.utp"};
     REQUIRE(g.valid());
     nw::Placeable p{g.toplevel(), nw::SerializationProfile::blueprint};
     REQUIRE(p.common()->resref == "arrowcorpse001");

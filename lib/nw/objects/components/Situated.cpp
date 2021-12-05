@@ -2,7 +2,7 @@
 
 namespace nw {
 
-Situated::Situated(const GffStruct gff, SerializationProfile profile)
+Situated::Situated(const GffInputArchiveStruct gff, SerializationProfile profile)
     : lock{gff, profile}
     , trap{gff, profile}
 {

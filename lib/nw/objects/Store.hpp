@@ -10,7 +10,7 @@
 namespace nw {
 
 struct Store : public ObjectBase {
-    Store(const GffStruct gff, SerializationProfile profile);
+    Store(const GffInputArchiveStruct gff, SerializationProfile profile);
     virtual Common* common() override { return &common_; }
 
     bool valid_ = true;

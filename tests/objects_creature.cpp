@@ -5,7 +5,7 @@
 
 TEST_CASE("Loading nw_chicken", "[objects]")
 {
-    nw::Gff g{"test_data/nw_chicken.utc"};
+    nw::GffInputArchive g{"test_data/nw_chicken.utc"};
     nw::Creature c{g.toplevel(), nw::SerializationProfile::blueprint};
     REQUIRE(c.common()->resref == "nw_chicken");
     REQUIRE(c.stats.abilities[2] == 8);
@@ -16,7 +16,7 @@ TEST_CASE("Loading nw_chicken", "[objects]")
 
 TEST_CASE("Loading test_creature", "[objects]")
 {
-    nw::Gff g{"test_data/pl_agent_001.utc"};
+    nw::GffInputArchive g{"test_data/pl_agent_001.utc"};
     nw::Creature c{g.toplevel(), nw::SerializationProfile::blueprint};
     REQUIRE(c.common()->resref == "pl_agent_001");
     REQUIRE((int)c.stats.abilities[2] == 16);

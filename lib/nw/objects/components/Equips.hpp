@@ -54,7 +54,7 @@ enum struct EquipIndex {
 using EquipItem = std::variant<Resref, std::unique_ptr<Item>>;
 
 struct Equips {
-    Equips(const GffStruct gff, SerializationProfile profile);
+    Equips(const GffInputArchiveStruct gff, SerializationProfile profile);
 
     EquipItem head;
     EquipItem chest;

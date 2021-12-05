@@ -14,7 +14,7 @@ struct Class {
 };
 
 struct LevelStats {
-    LevelStats(const GffStruct gff);
+    LevelStats(const GffInputArchiveStruct gff);
 
     std::vector<Class> classes;
 };

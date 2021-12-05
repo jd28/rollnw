@@ -49,7 +49,7 @@ public:
 
 struct Dialog {
 public:
-    explicit Dialog(const GffStruct gff);
+    explicit Dialog(const GffInputArchiveStruct gff);
 
     uint8_t prevent_zoom = 0;
     uint32_t delay_entry = 0;
@@ -67,8 +67,8 @@ public:
 private:
     bool is_valid_ = false;
 
-    bool load(const GffStruct gff);
-    bool read_nodes(const GffStruct gff, DialogNodeType node_type);
+    bool load(const GffInputArchiveStruct gff);
+    bool read_nodes(const GffInputArchiveStruct gff, DialogNodeType node_type);
 };
 
 } // namespace nw

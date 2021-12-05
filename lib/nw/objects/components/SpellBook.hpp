@@ -33,7 +33,7 @@ struct Spell {
 
 struct SpellBook {
     SpellBook() = default;
-    SpellBook(const GffStruct gff);
+    SpellBook(const GffInputArchiveStruct gff);
 
     std::array<std::vector<Spell>, 9> known;
     std::array<std::vector<Spell>, 9> memorized;

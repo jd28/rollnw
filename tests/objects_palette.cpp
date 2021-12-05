@@ -5,7 +5,7 @@
 
 TEST_CASE("Loading Creature Palette", "[objects]")
 {
-    nw::Gff g{"test_data/creaturepalstd.itp"};
+    nw::GffInputArchive g{"test_data/creaturepalstd.itp"};
     nw::Palette c{g.toplevel()};
     REQUIRE(c.root.children.size() > 0);
     auto node = c.root.children[0];
@@ -24,7 +24,7 @@ TEST_CASE("Loading Creature Palette", "[objects]")
     REQUIRE(bluenode.cr >= 11.0f);
     REQUIRE(bluenode.faction == "Hostile");
 
-    nw::Gff g2{"test_data/creaturepal.itp"};
+    nw::GffInputArchive g2{"test_data/creaturepal.itp"};
     nw::Palette p2{g2.toplevel()};
     REQUIRE(p2.valid());
     REQUIRE(p2.restype == nw::ResourceType::utc);
@@ -32,7 +32,7 @@ TEST_CASE("Loading Creature Palette", "[objects]")
 
 TEST_CASE("Loading Tileset Palette", "[objects]")
 {
-    nw::Gff g{"test_data/tde01palstd.itp"};
+    nw::GffInputArchive g{"test_data/tde01palstd.itp"};
     nw::Palette c{g.toplevel()};
     REQUIRE(c.valid());
     REQUIRE(c.root.children.size() > 0);

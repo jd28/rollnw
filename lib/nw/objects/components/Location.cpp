@@ -14,7 +14,7 @@ Location::Location()
 {
 }
 
-Location::Location(const GffStruct gff, SerializationProfile profile)
+Location::Location(const GffInputArchiveStruct gff, SerializationProfile profile)
     : Location()
 {
     if (profile != SerializationProfile::any
@@ -24,7 +24,7 @@ Location::Location(const GffStruct gff, SerializationProfile profile)
 
     bool valid = true;
 
-    GffField field = gff["Area"];
+    auto field = gff["Area"];
     if (field.valid()) {
         if (auto y = field.get<uint32_t>()) {
             area = static_cast<ObjectID>(*y);

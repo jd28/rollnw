@@ -2,7 +2,7 @@
 
 namespace nw {
 
-Common::Common(ObjectType obj_type, const GffStruct gff, SerializationProfile profile)
+Common::Common(ObjectType obj_type, const GffInputArchiveStruct gff, SerializationProfile profile)
     : object_type{obj_type}
     , local_data{gff}
     , location{gff, profile}

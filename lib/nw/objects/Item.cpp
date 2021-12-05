@@ -2,7 +2,7 @@
 
 namespace nw {
 
-Item::Item(const GffStruct gff, SerializationProfile profile)
+Item::Item(const GffInputArchiveStruct gff, SerializationProfile profile)
     : inventory{gff, profile}
     , loc{gff, profile}
     , local_data{gff}

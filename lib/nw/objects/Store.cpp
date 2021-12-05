@@ -2,7 +2,7 @@
 
 namespace nw {
 
-Store::Store(const GffStruct gff, SerializationProfile profile)
+Store::Store(const GffInputArchiveStruct gff, SerializationProfile profile)
     : common_{ObjectType::store, gff, profile}
 {
 

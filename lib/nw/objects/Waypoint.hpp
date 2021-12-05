@@ -9,7 +9,7 @@
 namespace nw {
 
 struct Waypoint : public ObjectBase {
-    Waypoint(const GffStruct gff, SerializationProfile profile);
+    Waypoint(const GffInputArchiveStruct gff, SerializationProfile profile);
     virtual Common* common() { return &common_; }
 
     Common common_;

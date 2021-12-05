@@ -2,7 +2,7 @@
 
 namespace nw {
 
-Appearance::Appearance(const GffStruct gff)
+Appearance::Appearance(const GffInputArchiveStruct gff)
 {
 
     if (!gff.get_to("Tail_New", tail, false)) {

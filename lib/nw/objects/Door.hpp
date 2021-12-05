@@ -13,7 +13,7 @@ struct Door : public ObjectBase {
         opened2 = 2
     };
 
-    Door(const GffStruct gff, SerializationProfile profile);
+    Door(const GffInputArchiveStruct gff, SerializationProfile profile);
     virtual Common* common() override { return &common_; }
     virtual Situated* situated() override { return &situated_; }
 

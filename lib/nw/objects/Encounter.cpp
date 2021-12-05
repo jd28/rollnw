@@ -2,7 +2,7 @@
 
 namespace nw {
 
-Encounter::Encounter(const GffStruct gff, SerializationProfile profile)
+Encounter::Encounter(const GffInputArchiveStruct gff, SerializationProfile profile)
     : common_{ObjectType::encounter, gff, profile}
 {
 

@@ -2,7 +2,7 @@
 
 namespace nw {
 
-LocalData::LocalData(const GffStruct gff)
+LocalData::LocalData(const GffInputArchiveStruct gff)
 {
     auto st = gff["VarTable"];
     if (!st.valid()) { return; }
@@ -37,7 +37,7 @@ LocalData::LocalData(const GffStruct gff)
             payload.object = static_cast<ObjectID>(obj);
             break;
         case 5: { // location
-            if (auto s = st[i].get<GffStruct>("Value")) {
+            if (auto s = st[i].get<GffInputArchiveStruct>("Value")) {
                 payload.loc = Location{*s, SerializationProfile::any};
             } else {
                 LOG_F(ERROR, "failed to read location struct");

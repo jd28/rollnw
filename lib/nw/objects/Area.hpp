@@ -25,7 +25,7 @@ enum struct AreaFlags : uint32_t {
 DEFINE_ENUM_FLAGS(AreaFlags)
 
 struct AreaWeather {
-    AreaWeather(const GffStruct gff);
+    AreaWeather(const GffInputArchiveStruct gff);
 
     int32_t chance_lightning = 0;
     int32_t chance_rain = 0;
@@ -49,7 +49,7 @@ struct AreaWeather {
 };
 
 struct Tile {
-    Tile(const GffStruct gff);
+    Tile(const GffInputArchiveStruct gff);
     int32_t id = 0;
     int32_t height = 0;
     int32_t orientation = 0;
@@ -63,8 +63,8 @@ struct Tile {
 };
 
 struct Area : public ObjectBase {
-    Area(const GffStruct caf, const GffStruct gic);
-    Area(const GffStruct are, const GffStruct git, const GffStruct gic);
+    Area(const GffInputArchiveStruct caf, const GffInputArchiveStruct gic);
+    Area(const GffInputArchiveStruct are, const GffInputArchiveStruct git, const GffInputArchiveStruct gic);
     virtual Common* common() override { return &common_; }
 
     Common common_;

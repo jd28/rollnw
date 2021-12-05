@@ -2,7 +2,7 @@
 
 namespace nw {
 
-SpellBook::SpellBook(const GffStruct gff)
+SpellBook::SpellBook(const GffInputArchiveStruct gff)
 {
     for (size_t i = 0; i < 10; ++i) {
         auto m = fmt::format("MemorizedList{}", i);

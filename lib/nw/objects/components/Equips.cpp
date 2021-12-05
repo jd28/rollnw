@@ -4,7 +4,7 @@
 
 namespace nw {
 
-Equips::Equips(const GffStruct gff, SerializationProfile profile)
+Equips::Equips(const GffInputArchiveStruct gff, SerializationProfile profile)
 {
 
     size_t sz = gff["Equip_ItemList"].size();

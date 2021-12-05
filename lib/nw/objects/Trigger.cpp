@@ -2,7 +2,7 @@
 
 namespace nw {
 
-Trigger::Trigger(const GffStruct gff, SerializationProfile profile)
+Trigger::Trigger(const GffInputArchiveStruct gff, SerializationProfile profile)
     : common_{ObjectType::trigger, gff, profile}
     , trap{gff, profile}
 {

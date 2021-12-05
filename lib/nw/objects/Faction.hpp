@@ -19,7 +19,7 @@ struct Reputation {
 };
 
 struct Faction {
-    explicit Faction(const GffStruct gff);
+    explicit Faction(const GffInputArchiveStruct gff);
 
     std::vector<FactionInfo> factions;
     std::vector<Reputation> reputations;

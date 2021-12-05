@@ -21,9 +21,11 @@
 
 namespace nw {
 
+struct GffInputArchive;
+
 // -- GffField ----------------------------------------------------------------
 
-struct GffField {
+struct GffInputArchiveField {
     /// Get the field's value
     template <typename T>
     std::optional<T> get() const;
@@ -42,30 +44,30 @@ struct GffField {
     GffType::type type() const;
 
     /// Get if field is valid
-    bool valid() const { return parent_ != nullptr && entry_ != nullptr; }
+    bool valid() const noexcept { return parent_ != nullptr && entry_ != nullptr; }
 
     /// If field is a list, return struct at index, else invalid struct.
-    GffStruct operator[](size_t index) const;
+    GffInputArchiveStruct operator[](size_t index) const;
 
 private:
-    friend struct Gff;
-    friend struct GffStruct;
+    friend struct GffInputArchive;
+    friend struct GffInputArchiveStruct;
 
-    const Gff* parent_ = nullptr;
+    const GffInputArchive* parent_ = nullptr;
     const detail::GffFieldEntry* entry_ = nullptr;
 
-    GffField();
-    GffField(const Gff* parent, const detail::GffFieldEntry* entry);
+    GffInputArchiveField();
+    GffInputArchiveField(const GffInputArchive* parent, const detail::GffFieldEntry* entry);
 };
 
 // -- GffStruct ----------------------------------------------------------------
 
-struct GffStruct {
+struct GffInputArchiveStruct {
     /// Check if a struct has a field.
     bool has_field(std::string_view label) const;
 
     /// Get struct id.
-    uint32_t id() const { return entry_->type; }
+    uint32_t id() const { return valid() ? entry_->type : 0; }
 
     /// Gets a value from a field in the struct
     template <typename T>
@@ -78,33 +80,33 @@ struct GffStruct {
     /// Number of fields in the struct.
     size_t size() const { return entry_->field_count; }
 
-    /// Check if Gff has been parsed without error.
+    /// Check if GffInputArchive has been parsed without error.
     bool valid() const { return parent_ != nullptr; }
 
     /// Get field by label
-    GffField operator[](std::string_view label) const;
+    GffInputArchiveField operator[](std::string_view label) const;
 
     /// Get field by index
-    GffField operator[](size_t index) const;
+    GffInputArchiveField operator[](size_t index) const;
 
 private:
-    friend struct Gff;
-    friend struct GffField;
+    friend struct GffInputArchive;
+    friend struct GffInputArchiveField;
 
-    const Gff* parent_ = nullptr;
+    const GffInputArchive* parent_ = nullptr;
     const detail::GffStructEntry* entry_ = nullptr;
 
-    GffStruct() = default;
-    GffStruct(const Gff* parent, const detail::GffStructEntry* entry);
+    GffInputArchiveStruct() = default;
+    GffInputArchiveStruct(const GffInputArchive* parent, const detail::GffStructEntry* entry);
 };
 
-struct Gff {
-    Gff();
-    explicit Gff(const std::filesystem::path& fileName);
-    explicit Gff(ByteArray bytes);
+struct GffInputArchive {
+    GffInputArchive();
+    explicit GffInputArchive(const std::filesystem::path& fileName);
+    explicit GffInputArchive(ByteArray bytes);
 
     /// Get the toplevel struct
-    GffStruct toplevel() const;
+    GffInputArchiveStruct toplevel() const;
 
     /// Get Gff type
     std::string_view type() const { return {head_->type, 3}; }
@@ -116,14 +118,14 @@ struct Gff {
     std::string_view version() const { return {head_->version, 4}; }
 
     /// Helper to get top level fields
-    GffField operator[](std::string_view label) const { return toplevel()[label]; }
+    GffInputArchiveField operator[](std::string_view label) const { return toplevel()[label]; }
 
     /// Helper to get top level fields
-    GffField operator[](size_t index) const { return toplevel()[index]; }
+    GffInputArchiveField operator[](size_t index) const { return toplevel()[index]; }
 
 private:
-    friend struct GffField;
-    friend struct GffStruct;
+    friend struct GffInputArchiveField;
+    friend struct GffInputArchiveStruct;
 
     detail::GffHeader* head_ = nullptr;
     Resref* labels_ = nullptr; // Not techinically resref, but fine for now.
@@ -139,7 +141,7 @@ private:
 };
 
 template <typename T>
-std::optional<T> GffStruct::get(std::string_view label, bool warn_missing) const
+std::optional<T> GffInputArchiveStruct::get(std::string_view label, bool warn_missing) const
 {
     T temp;
     return get_to(label, temp, warn_missing)
@@ -148,7 +150,7 @@ std::optional<T> GffStruct::get(std::string_view label, bool warn_missing) const
 }
 
 template <typename T>
-bool GffStruct::get_to(std::string_view label, T& out, bool warn_missing) const
+bool GffInputArchiveStruct::get_to(std::string_view label, T& out, bool warn_missing) const
 {
     if (!valid()) { return false; }
     auto val = (*this)[label];
@@ -166,7 +168,7 @@ bool GffStruct::get_to(std::string_view label, T& out, bool warn_missing) const
 }
 
 template <typename T>
-std::optional<T> GffField::get() const
+std::optional<T> GffInputArchiveField::get() const
 {
     T temp;
     return get_to(temp) ? std::optional<T>{std::move(temp)} : std::optional<T>{};
@@ -181,7 +183,7 @@ std::optional<T> GffField::get() const
     } while (0)
 
 template <typename T>
-bool GffField::get_to(T& value) const
+bool GffInputArchiveField::get_to(T& value) const
 {
     if (!valid()) {
         LOG_F(ERROR, "invalid gff field");
@@ -257,12 +259,12 @@ bool GffField::get_to(T& value) const
                 off += 4;
                 CHECK_OFF(off + size < parent_->bytes_.size());
                 value = ByteArray(parent_->bytes_.data() + off, size);
-            } else if constexpr (std::is_same_v<T, GffStruct>) {
+            } else if constexpr (std::is_same_v<T, GffInputArchiveStruct>) {
                 if (entry_->data_or_offset < parent_->head_->struct_count) {
-                    value = GffStruct(parent_, &parent_->structs_[entry_->data_or_offset]);
+                    value = GffInputArchiveStruct(parent_, &parent_->structs_[entry_->data_or_offset]);
                 } else {
                     LOG_F(ERROR, "GffField: Invalid index ({}) into struct array", entry_->data_or_offset);
-                    value = GffStruct();
+                    value = GffInputArchiveStruct();
                 }
             } else {
                 parent_->bytes_.read_at(off, &value, sizeof(T));

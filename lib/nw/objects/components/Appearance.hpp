@@ -26,7 +26,7 @@ struct BodyParts {
 };
 
 struct Appearance {
-    Appearance(const GffStruct gff);
+    Appearance(const GffInputArchiveStruct gff);
 
     int32_t phenotype = 0;
     uint32_t tail = 0;

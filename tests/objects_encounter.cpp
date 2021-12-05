@@ -5,7 +5,7 @@
 
 TEST_CASE("Loading encounter blueprint", "[objects]")
 {
-    nw::Gff g{"test_data/boundelementallo.ute"};
+    nw::GffInputArchive g{"test_data/boundelementallo.ute"};
     REQUIRE(g.valid());
     nw::Encounter e{g.toplevel(), nw::SerializationProfile::blueprint};
     REQUIRE(e.common()->resref == "boundelementallo");

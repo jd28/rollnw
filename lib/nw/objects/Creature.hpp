@@ -16,7 +16,7 @@
 namespace nw {
 
 struct Creature : public ObjectBase {
-    Creature(const GffStruct gff, SerializationProfile profile);
+    Creature(const GffInputArchiveStruct gff, SerializationProfile profile);
     virtual Common* common() override { return &common_; }
 
     Common common_;

@@ -2,10 +2,10 @@
 
 namespace nw {
 
-Faction::Faction(const GffStruct gff)
+Faction::Faction(const GffInputArchiveStruct gff)
 {
 
-    GffField field = gff["FactionList"];
+    auto field = gff["FactionList"];
     size_t sz = field.size();
     factions.reserve(sz);
 

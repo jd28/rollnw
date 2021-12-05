@@ -7,6 +7,6 @@
 namespace nw {
 
 /// Convert a Gff to JSON (nwn-lib/neverwinter.nim format, I think.)
-nlohmann::json gff_to_json(const Gff& gff);
+nlohmann::json gff_to_json(const GffInputArchive& gff);
 
 } // namespace nw

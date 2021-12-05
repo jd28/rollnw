@@ -9,8 +9,7 @@
 
 namespace nw {
 
-struct Gff;
-struct GffStruct;
+struct GffInputArchiveStruct;
 
 namespace detail {
 
@@ -108,7 +107,7 @@ constexpr GffType::type GffType::id()
         return GffType::LOCSTRING;
     } else if constexpr (std::is_same_v<T, ByteArray>) {
         return GffType::VOID;
-    } else if constexpr (std::is_same_v<T, GffStruct>) {
+    } else if constexpr (std::is_same_v<T, GffInputArchiveStruct>) {
         return GffType::STRUCT;
     } else {
         static_assert(detail::always_false<T>(), "Unknown GFF type.");

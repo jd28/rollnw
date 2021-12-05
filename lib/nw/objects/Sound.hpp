@@ -7,7 +7,7 @@
 namespace nw {
 
 struct Sound : public ObjectBase {
-    Sound(const GffStruct gff, SerializationProfile profile);
+    Sound(const GffInputArchiveStruct gff, SerializationProfile profile);
     virtual Common* common() override { return &common_; }
 
     Common common_;

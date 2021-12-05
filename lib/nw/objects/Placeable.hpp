@@ -18,7 +18,7 @@ struct Placeable : public ObjectBase {
         deactivated = 5
     };
 
-    Placeable(const GffStruct gff, SerializationProfile profile);
+    Placeable(const GffInputArchiveStruct gff, SerializationProfile profile);
     virtual Common* common() override { return &common_; }
     virtual Situated* situated() override { return &situated_; }
 

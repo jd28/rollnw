@@ -6,9 +6,9 @@
 
 #include <fstream>
 
-TEST_CASE("Gff Validation", "[serialization]")
+TEST_CASE("GffInputArchive Validation", "[serialization]")
 {
-    nw::Gff g("test_data/nw_chicken.utc");
+    nw::GffInputArchive g("test_data/nw_chicken.utc");
     REQUIRE(g.valid());
     REQUIRE(g.toplevel().size() > 0);
 
@@ -27,9 +27,9 @@ TEST_CASE("Gff Validation", "[serialization]")
     REQUIRE(g[0].name() == "Deity");
 }
 
-TEST_CASE("Gff Lists", "[serialization]")
+TEST_CASE("GffInputArchive Lists", "[serialization]")
 {
-    nw::Gff g("test_data/nw_chicken.utc");
+    nw::GffInputArchive g("test_data/nw_chicken.utc");
     REQUIRE(g.valid());
     auto skills = g["SkillList"];
     REQUIRE(skills.valid());
@@ -53,18 +53,18 @@ TEST_CASE("Gff Lists", "[serialization]")
     REQUIRE(*g["ClassList"][0]["Class"].get<int32_t>() == 12);
 }
 
-TEST_CASE("Gff Conversion", "[serialization]")
+TEST_CASE("GffInputArchive Conversion", "[serialization]")
 {
-    nw::Gff g("test_data/nw_chicken.utc");
+    nw::GffInputArchive g("test_data/nw_chicken.utc");
     REQUIRE(g.valid());
     auto j = nw::gff_to_json(g);
     std::ofstream f{"tmp/nw_chicken.utc.json", std::ios_base::binary};
     f << std::setw(4) << j;
 }
 
-TEST_CASE("Gff Object Poisoning", "[serialization]")
+TEST_CASE("GffInputArchive Object Poisoning", "[serialization]")
 {
-    nw::Gff g("test_data/nw_chicken.utc");
+    nw::GffInputArchive g("test_data/nw_chicken.utc");
     int32_t nonextant;
     REQUIRE_FALSE(g["thisdoesn't exist"][2000]["Or this"][1000000000]["Maybe this?"].get_to(nonextant));
 }

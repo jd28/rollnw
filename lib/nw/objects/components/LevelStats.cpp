@@ -2,7 +2,7 @@
 
 namespace nw {
 
-LevelStats::LevelStats(const GffStruct gff)
+LevelStats::LevelStats(const GffInputArchiveStruct gff)
 {
     size_t sz = gff["ClassList"].size();
     classes.reserve(sz);

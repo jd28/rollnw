@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Gff.hpp"
+#include "GffInputArchive.hpp"
 
 #include <nlohmann/json.hpp>
 

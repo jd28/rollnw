@@ -6,7 +6,7 @@ namespace nw {
 
 struct Lock {
     Lock() = default;
-    Lock(const GffStruct gff, SerializationProfile profile)
+    Lock(const GffInputArchiveStruct gff, SerializationProfile profile)
     {
         uint8_t temp;
         if (!gff.get_to("Lockable", temp)) {

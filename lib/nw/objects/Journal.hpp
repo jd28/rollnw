@@ -23,7 +23,7 @@ struct JournalCategory {
 };
 
 struct Journal {
-    explicit Journal(const GffStruct gff);
+    explicit Journal(const GffInputArchiveStruct gff);
 
     std::vector<JournalCategory> categories;
 };

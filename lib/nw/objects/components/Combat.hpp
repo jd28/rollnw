@@ -12,7 +12,7 @@ struct SpecialAbility {
 };
 
 struct Combat {
-    Combat(const GffStruct gff);
+    Combat(const GffInputArchiveStruct gff);
 
     uint8_t ac_natural = 0;
     std::vector<SpecialAbility> special_abilities;

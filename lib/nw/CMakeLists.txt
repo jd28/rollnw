@@ -66,7 +66,7 @@ add_library(nw STATIC
     resources/ResourceDescriptor.cpp
     resources/Zip.cpp
 
-    serialization/Gff.cpp
+    serialization/GffInputArchive.cpp
     serialization/conversions.cpp
 
     util/base64.cpp

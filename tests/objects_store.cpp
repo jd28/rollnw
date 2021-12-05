@@ -5,7 +5,7 @@
 
 TEST_CASE("Loading store blueprint", "[objects]")
 {
-    nw::Gff g{"test_data/storethief002.utm"};
+    nw::GffInputArchive g{"test_data/storethief002.utm"};
     REQUIRE(g.valid());
     nw::Store s{g.toplevel(), nw::SerializationProfile::blueprint};
     REQUIRE(s.common()->resref == "storethief002");

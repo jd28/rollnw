@@ -1,7 +1,7 @@
 #include "Waypoint.hpp"
 
 namespace nw {
-Waypoint::Waypoint(const GffStruct gff, SerializationProfile profile)
+Waypoint::Waypoint(const GffInputArchiveStruct gff, SerializationProfile profile)
     : common_{ObjectType::waypoint, gff, profile}
 {
     gff.get_to("Appearance", appearance);

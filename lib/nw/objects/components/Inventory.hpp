@@ -19,7 +19,7 @@ struct InventoryItem {
 
 struct Inventory {
     Inventory() = default;
-    Inventory(const GffStruct gff, SerializationProfile profile);
+    Inventory(const GffInputArchiveStruct gff, SerializationProfile profile);
 
     std::vector<InventoryItem> items;
 };

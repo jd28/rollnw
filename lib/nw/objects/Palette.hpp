@@ -46,7 +46,7 @@ struct PaletteTreeNode {
 };
 
 struct Palette {
-    explicit Palette(const GffStruct gff);
+    explicit Palette(const GffInputArchiveStruct gff);
     ~Palette() = default;
 
     uint8_t max_id() const noexcept { return max_id_; }
@@ -59,8 +59,8 @@ struct Palette {
     bool is_skeleton = false;
 
 private:
-    bool load(const GffStruct gff);
-    PaletteTreeNode read_child(Palette* parent, const GffStruct st);
+    bool load(const GffInputArchiveStruct gff);
+    PaletteTreeNode read_child(Palette* parent, const GffInputArchiveStruct st);
 
     uint8_t max_id_ = 0;
     uint8_t next_id_ = 0;

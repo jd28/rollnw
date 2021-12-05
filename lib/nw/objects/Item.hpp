@@ -68,7 +68,7 @@ struct ItemProperty {
 
 struct Item {
     Item() = default;
-    Item(const GffStruct gff, SerializationProfile profile);
+    Item(const GffInputArchiveStruct gff, SerializationProfile profile);
     ~Item() = default;
 
     Resref resref;

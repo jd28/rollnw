@@ -4,7 +4,7 @@
 
 namespace nw {
 
-CreatureStats::CreatureStats(const GffStruct gff)
+CreatureStats::CreatureStats(const GffInputArchiveStruct gff)
 {
     gff.get_to("Str", abilities[0]);
     gff.get_to("Dex", abilities[1]);

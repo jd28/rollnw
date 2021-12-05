@@ -2,7 +2,7 @@
 
 namespace nw {
 
-Combat::Combat(const GffStruct gff)
+Combat::Combat(const GffInputArchiveStruct gff)
 {
     gff.get_to("NaturalAC", ac_natural);
 

@@ -7,7 +7,7 @@
 
 TEST_CASE("Loading module-ish", "[objects]")
 {
-    nw::Gff g{"test_data/module.ifo"};
+    nw::GffInputArchive g{"test_data/module.ifo"};
     REQUIRE(g.valid());
     nw::Module m{g.toplevel()};
     REQUIRE(m.haks.size() == 0);

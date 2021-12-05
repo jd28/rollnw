@@ -2,7 +2,7 @@
 
 namespace nw {
 
-Placeable::Placeable(const GffStruct gff, SerializationProfile profile)
+Placeable::Placeable(const GffInputArchiveStruct gff, SerializationProfile profile)
     : common_{ObjectType::placeable, gff, profile}
     , situated_{gff, profile}
 {

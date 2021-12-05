@@ -9,7 +9,7 @@ namespace nw {
 
 struct Situated {
     Situated() = default;
-    Situated(const GffStruct gff, SerializationProfile profile);
+    Situated(const GffInputArchiveStruct gff, SerializationProfile profile);
 
     uint32_t appearance;
     uint16_t portrait_id;

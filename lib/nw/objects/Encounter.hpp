@@ -23,7 +23,7 @@ struct SpawnPoint {
 };
 
 struct Encounter : public ObjectBase {
-    Encounter(const GffStruct gff, SerializationProfile profile);
+    Encounter(const GffInputArchiveStruct gff, SerializationProfile profile);
     virtual Common* common() { return &common_; }
 
     Common common_;
