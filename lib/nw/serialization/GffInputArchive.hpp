@@ -8,6 +8,7 @@
 #include "../util/ByteArray.hpp"
 #include "../util/macros.hpp"
 #include "../util/string.hpp"
+#include "Serialization.hpp"
 #include "gff_common.hpp"
 
 #include <array>
@@ -42,7 +43,7 @@ struct GffInputArchiveField {
     size_t size() const;
 
     /// Get field type
-    GffType::type type() const;
+    SerializationType::type type() const;
 
     /// Get if field is valid
     bool valid() const noexcept { return parent_ != nullptr && entry_ != nullptr; }
@@ -195,7 +196,7 @@ bool GffInputArchiveField::get_to(T& value) const
             return false;
         }
     } else {
-        GffType::type type = GffType::id<T>();
+        SerializationType::type type = SerializationType::id<T>();
         if (entry_->type != type) {
             LOG_F(ERROR, "gff field '{}' types don't match {} != {}", name(), type, entry_->type);
             return false;

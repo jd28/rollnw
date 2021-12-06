@@ -1,5 +1,7 @@
 #pragma once
 
+#include "../serialization/Archives.hpp"
+
 #include <cstdint>
 
 namespace nw {

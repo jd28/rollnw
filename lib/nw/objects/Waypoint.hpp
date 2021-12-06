@@ -1,6 +1,5 @@
 #pragma once
 
-#include "../serialization/Serialization.hpp"
 #include "ObjectBase.hpp"
 #include "components/Common.hpp"
 

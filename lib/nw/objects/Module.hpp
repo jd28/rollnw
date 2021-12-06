@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../serialization/Serialization.hpp"
+#include "../serialization/Archives.hpp"
 #include "components/LocalData.hpp"
 
 #include <glm/glm.hpp>

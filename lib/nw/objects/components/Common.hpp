@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../../resources/Resref.hpp"
-#include "../../serialization/Serialization.hpp"
+#include "../../serialization/Archives.hpp"
 #include "../ObjectBase.hpp"
 #include "LocalData.hpp"
 #include "Location.hpp"
