@@ -21,6 +21,7 @@ libnw is a simple modern static C++ library for Neverwinter Nights(:EE) file for
 * focuses on live objects, not serialized formats.  Converting NWN(:EE) file formats to textual representations or modifying serialized formats (e,g. GFF) in situ are well handled by other tools/libraries.
 * follows the principles of [utf8 everywhere](https://utf8everywhere.org/).  This is aspirational and a huge can of worms.  Currently, here, to help facilitate this goal color codes are sanitized to \<cXXXXXX\>, where XX is hexidecimal.
 * hews as close to [C++ Core Guidelines](https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines) as possible.
+* aims to be as easily bindable as possible to other languages.  I.e. only custom or STL types at API boundaries.
 
 Find the status of [File Formats](lib/nw/formats/README.md), [Containers](lib/nw/resources/README.md), [Objects](lib/nw/objects/README.md) in their respective READMEs.
 
@@ -28,7 +29,7 @@ Find the status of [File Formats](lib/nw/formats/README.md), [Containers](lib/nw
 
 [![Open in Gitpod](https://gitpod.io/button/open-in-gitpod.svg)](https://gitpod.io/#https://github.com/jd28/libnw)
 
-[Github CodeSpaces](https://github.com/features/codespaces) will be added when it becomes publicly available.
+[Github Codespaces](https://github.com/features/codespaces) will be added when it becomes publicly available.
 
 ## Building
 
@@ -62,7 +63,7 @@ If you've somehow found your way here by accident, you should head to [neverwint
 
 ## Moonshots
 
-At some point it became fashionable in the NWN community to passive aggressively ask "why?" to every idea.  But, to paraphrase Tennyson, ours isn't to question why, it's but to do and die and learn and maybe make neat things.  In that spirit, here is a list of crazy projects that this library hopes to facilitate and that all fly in the face of "WHY?".
+You make ask yourself, why?  But, to paraphrase Tennyson, ours isn't to question why, it's but to do and die and learn and maybe make neat things.  In that spirit, here is a list of crazy projects that this library hopes to facilitate and that all fly in the face of "WHY?".
 
 * A nwscript [Language Server](https://en.wikipedia.org/wiki/Language_Server_Protocol)
 * A modern, cross-platform nwexplorer.
