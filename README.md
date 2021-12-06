@@ -62,7 +62,7 @@ If you've somehow found your way here by accident, you should head to [neverwint
 
 ## Moonshots
 
-At some point it became fashionable in the NWN community to passive aggressively ask "why?" to every idea.  But ours isn't to question why, it's but to do and die and learn and maybe make neat things.  In that spirit, here is a list of crazy projects that this library hopes to facilitate and that all fly in the face of "WHY?".
+At some point it became fashionable in the NWN community to passive aggressively ask "why?" to every idea.  But, to paraphrase Tennyson, ours isn't to question why, it's but to do and die and learn and maybe make neat things.  In that spirit, here is a list of crazy projects that this library hopes to facilitate and that all fly in the face of "WHY?".
 
 * A nwscript [Language Server](https://en.wikipedia.org/wiki/Language_Server_Protocol)
 * A modern, cross-platform nwexplorer.
