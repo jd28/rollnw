@@ -13,9 +13,6 @@ struct GffInputArchiveStruct;
 
 namespace detail {
 
-template <typename T>
-constexpr bool always_false() { return false; }
-
 struct GffHeader {
     char type[4];
     char version[4];
