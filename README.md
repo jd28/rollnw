@@ -52,7 +52,7 @@ A lot of what's here was written in the 2011-2015 range as part of personal mini
 
 ## General Warning
 
-This library is a work-in-progress.
+This library is a work-in-progress.  There will be serious refactorings and until there is a real release, it should be assumed the library is in flux.
 
 There is no documentation besides the source itself, unless something is found that isn't a javadoc-esque thing, that's likely how it will remain.
 
