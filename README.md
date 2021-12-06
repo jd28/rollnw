@@ -28,11 +28,13 @@ Find the status of [File Formats](lib/nw/formats/README.md), [Containers](lib/nw
 
 [![Open in Gitpod](https://gitpod.io/button/open-in-gitpod.svg)](https://gitpod.io/#https://github.com/jd28/libnw)
 
+[Github CodeSpaces](https://github.com/features/codespaces) will be added when it becomes publicly available.
+
 ## Building
 
 libnw uses cmake as it's build system and more specifically CMakePresets.json.
 
-Install (https://github.com/microsoft/vcpkg)[vcpkg].  Note that windows build requires VS Studio 2019.  All vcpkg packages required will be build automatically.
+Install [vcpkg](https://github.com/microsoft/vcpkg).  Note that windows build requires VS Studio 2019 Community Edition, but it doesn't have to.  All vcpkg packages required will be build automatically.
 
 The example below is building on Linux, but it's virtually the same for all platforms.  The only difference is the configuration preset.
 
