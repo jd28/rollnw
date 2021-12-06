@@ -60,6 +60,14 @@ There is no documentation besides the source itself, unless something is found t
 
 If you've somehow found your way here by accident, you should head to [neverwinter.nim](https://github.com/niv/neverwinter.nim), those are the official tools of NWN:EE and can handle basic workflows out of the box.
 
+## Moonshots
+
+At some point it became fashionable in the NWN community to passive aggresively ask "why?" to every idea.  But ours isn't to question why, it's but to do and die and learn and maybe make neat things.  In that spirit, here is a list of crazy projects that this library hopes to facilitate and that all fly in the face of "WHY?".
+
+* A nwscript [Language Server](https://en.wikipedia.org/wiki/Language_Server_Protocol)
+* A modern, cross-platform nwexplorer.
+* And, of course, the ever elusive open source NWN Toolset, with plugins, scripting, and a built-in console.
+
 ## Credits
 
 - [Bioware](https://bioware.com), [Beamdog](https://beamdog.com) - The game itself
