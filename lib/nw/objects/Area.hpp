@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../serialization/Archives.hpp"
 #include "../util/enum_flags.hpp"
 #include "Creature.hpp"
 #include "Door.hpp"

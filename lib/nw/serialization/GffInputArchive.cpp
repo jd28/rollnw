@@ -45,19 +45,19 @@ size_t GffInputArchiveField::size() const
         return {};
     }
 
-    return entry_->type == GffType::LIST
+    return entry_->type == SerializationType::LIST
         ? parent_->list_indices_[entry_->data_or_offset / 4] // This a byte offset into list indices, not an index
         : 0;                                                 // itself.
 }
 
-GffType::type GffInputArchiveField::type() const
+SerializationType::type GffInputArchiveField::type() const
 {
     if (!valid()) {
         LOG_F(ERROR, "invalid gff field");
-        return GffType::INVALID;
+        return SerializationType::INVALID;
     }
 
-    return static_cast<GffType::type>(entry_->type);
+    return static_cast<SerializationType::type>(entry_->type);
 }
 
 GffInputArchiveStruct GffInputArchiveField::operator[](size_t index) const

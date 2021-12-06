@@ -1,7 +1,6 @@
 #include <catch2/catch.hpp>
 
 #include <nw/log.hpp>
-#include <nw/serialization/Serialization.hpp>
 #include <nw/serialization/conversions.hpp>
 
 #include <fstream>
@@ -18,7 +17,7 @@ TEST_CASE("GffInputArchive Validation", "[serialization]")
     auto field = g.toplevel()["TemplateResRef"];
     REQUIRE(field.valid());
     REQUIRE(field.name() == "TemplateResRef");
-    REQUIRE(field.type() == nw::GffType::RESREF);
+    REQUIRE(field.type() == nw::SerializationType::RESREF);
 
     nw::Resref r;
     REQUIRE(field.get_to(r));
