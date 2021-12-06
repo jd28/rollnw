@@ -32,9 +32,9 @@ Find the status of [File Formats](lib/nw/formats/README.md), [Containers](lib/nw
 
 ## Building
 
-libnw uses cmake as it's build system and more specifically CMakePresets.json.
+libnw uses cmake as it's build system and more specifically [CMakePresets.json](https://cmake.org/cmake/help/latest/manual/cmake-presets.7.html).
 
-Install [vcpkg](https://github.com/microsoft/vcpkg).  Note that windows build requires VS Studio 2019 Community Edition, but it doesn't have to.  All vcpkg packages required will be build automatically.
+Install [vcpkg](https://github.com/microsoft/vcpkg).  Note that windows build requires VS Studio 2019 (Community Edition), but it doesn't have to.  All vcpkg packages required will be built automatically.
 
 The example below is building on Linux, but it's virtually the same for all platforms.  The only difference is the configuration preset.
 
@@ -62,7 +62,7 @@ If you've somehow found your way here by accident, you should head to [neverwint
 
 ## Moonshots
 
-At some point it became fashionable in the NWN community to passive aggresively ask "why?" to every idea.  But ours isn't to question why, it's but to do and die and learn and maybe make neat things.  In that spirit, here is a list of crazy projects that this library hopes to facilitate and that all fly in the face of "WHY?".
+At some point it became fashionable in the NWN community to passive aggressively ask "why?" to every idea.  But ours isn't to question why, it's but to do and die and learn and maybe make neat things.  In that spirit, here is a list of crazy projects that this library hopes to facilitate and that all fly in the face of "WHY?".
 
 * A nwscript [Language Server](https://en.wikipedia.org/wiki/Language_Server_Protocol)
 * A modern, cross-platform nwexplorer.
