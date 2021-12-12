@@ -1,5 +1,7 @@
 #pragma once
 
+#include <nlohmann/json_fwd.hpp>
+
 #include <cstdint>
 #include <limits>
 #include <string>
@@ -48,5 +50,8 @@ private:
     uint32_t strref_ = std::numeric_limits<uint32_t>::max();
     Storage strings_;
 };
+
+void from_json(const nlohmann::json& j, LocString& loc);
+void to_json(nlohmann::json& j, const LocString& loc);
 
 } // namespace nw

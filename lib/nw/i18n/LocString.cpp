@@ -1,5 +1,7 @@
 #include "LocString.hpp"
 
+#include <nlohmann/json.hpp>
+
 #include <algorithm>
 
 namespace nw {
@@ -22,8 +24,8 @@ LocString::const_iterator LocString::end() const { return strings_.end(); }
 void LocString::add(uint32_t language, std::string string, bool feminine, bool force_language)
 {
     if (!force_language) {
-    language *= 2;
-    if (feminine) ++language;
+        language *= 2;
+        if (feminine) ++language;
     }
 
     for (auto& [lang, str] : strings_) {
@@ -73,6 +75,32 @@ size_t LocString::size() const
 uint32_t LocString::strref() const
 {
     return strref_;
+}
+
+void from_json(const nlohmann::json& j, LocString& loc)
+{
+    loc = LocString(j.at("strref").get<uint32_t>());
+    auto strings = j.at("strings");
+
+    uint32_t lang = ~0;
+    std::string s;
+    for (const auto& str : strings) {
+        str.at("lang").get_to(lang);
+        str.at("string").get_to(s);
+        loc.add(lang, s, false, true);
+    }
+}
+
+void to_json(nlohmann::json& j, const LocString& loc)
+{
+    j = nlohmann::json::object();
+    j["strref"] = loc.strref();
+    if (loc.size()) {
+        auto& arr = j["strings"] = nlohmann::json::array();
+        for (const auto& [lang, string] : loc) {
+            arr.push_back({{"lang", lang}, {"string", string}});
+        }
+    }
 }
 
 } // namespace nw
