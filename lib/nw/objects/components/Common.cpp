@@ -2,6 +2,11 @@
 
 namespace nw {
 
+Common::Common(ObjectType obj_type)
+    : object_type{obj_type}
+{
+}
+
 Common::Common(ObjectType obj_type, const GffInputArchiveStruct gff, SerializationProfile profile)
     : object_type{obj_type}
     , local_data{gff}

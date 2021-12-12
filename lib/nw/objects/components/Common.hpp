@@ -12,6 +12,7 @@ namespace nw {
 
 struct Common {
     Common() = default;
+    Common(ObjectType obj_type);
     Common(ObjectType obj_type, const GffInputArchiveStruct gff, SerializationProfile profile);
     virtual ~Common() = default;
 
