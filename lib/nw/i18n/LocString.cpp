@@ -19,10 +19,12 @@ LocString::iterator LocString::end() { return strings_.end(); }
 LocString::const_iterator LocString::begin() const { return strings_.begin(); }
 LocString::const_iterator LocString::end() const { return strings_.end(); }
 
-void LocString::add(uint32_t language, std::string string, bool feminine)
+void LocString::add(uint32_t language, std::string string, bool feminine, bool force_language)
 {
+    if (!force_language) {
     language *= 2;
     if (feminine) ++language;
+    }
 
     for (auto& [lang, str] : strings_) {
         if (lang == language) {
@@ -30,6 +32,7 @@ void LocString::add(uint32_t language, std::string string, bool feminine)
             return;
         }
     }
+
     strings_.emplace_back(language, std::move(string));
     // Got to keep this thing sorted for == comparisons, etc.
     std::sort(strings_.begin(), strings_.end(), [](const LocStringPair& a, const LocStringPair& b) {

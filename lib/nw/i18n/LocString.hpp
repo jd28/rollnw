@@ -19,7 +19,7 @@ struct LocString {
     LocString(LocString&&) = default;
 
     /// Add a localized string.
-    void add(uint32_t language, std::string str, bool feminine = false);
+    void add(uint32_t language, std::string str, bool feminine = false, bool force_language = false);
 
     /// Gets a localized string.
     std::string get(uint32_t language, bool feminine = false) const;
