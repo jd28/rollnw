@@ -2,6 +2,8 @@
 
 #include "../log.hpp"
 
+#include <nlohmann/json.hpp>
+
 #include <algorithm>
 #include <ostream>
 
@@ -52,6 +54,18 @@ std::ostream& operator<<(std::ostream& out, const Resref& resref)
 {
     out << resref.view();
     return out;
+}
+
+void from_json(const nlohmann::json& j, Resref& r)
+{
+    if (j.is_string()) {
+        r = Resref{j.get<std::string>()};
+    }
+}
+
+void to_json(nlohmann::json& j, const Resref& r)
+{
+    j = r.view();
 }
 
 } // namespace nw

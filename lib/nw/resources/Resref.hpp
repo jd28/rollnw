@@ -1,5 +1,7 @@
 #pragma once
 
+#include <nlohmann/json_fwd.hpp>
+
 #include <array>
 #include <cctype>
 #include <string>
@@ -50,5 +52,11 @@ bool operator==(const Resref& lhs, const Resref& rhs) noexcept;
 bool operator!=(const Resref& lhs, const Resref& rhs) noexcept;
 bool operator<(const Resref& lhs, const Resref& rhs) noexcept;
 std::ostream& operator<<(std::ostream& out, const Resref& resref);
+
+/// nlohmann::json specialization
+void from_json(const nlohmann::json& j, Resref& r);
+
+/// nlohmann::json specialization
+void to_json(nlohmann::json& j, const Resref& r);
 
 } // namespace nw
