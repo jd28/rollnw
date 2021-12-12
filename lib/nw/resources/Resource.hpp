@@ -4,6 +4,7 @@
 #include "Resref.hpp"
 
 #include <absl/hash/hash.h>
+#include <nlohmann/json_fwd.hpp>
 
 #include <cstddef>
 #include <string>
@@ -47,5 +48,11 @@ bool operator!=(const Resource& lhs, const Resource& rhs);
 bool operator<(const Resource& lhs, const Resource& rhs) noexcept;
 
 std::ostream& operator<<(std::ostream& out, const Resource& res);
+
+/// nlohmann::json specialization
+void from_json(const nlohmann::json& j, Resource& r);
+
+/// nlohmann::json specialization
+void to_json(nlohmann::json& j, const Resource& r);
 
 } // namespace nw

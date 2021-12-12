@@ -24,3 +24,13 @@ TEST_CASE("resref <-> JSON", "[resources]")
     REQUIRE(r == r2);
     REQUIRE(r2.length());
 }
+
+TEST_CASE("resource <-> JSON", "[resource]")
+{
+    nw::Resource r{"test"sv, nw::ResourceType::twoda};
+    nlohmann::json resource_json = r;
+    REQUIRE(r.filename() == resource_json.get<std::string>());
+
+    nw::Resource r2 = resource_json.get<nw::Resource>();
+    REQUIRE(r == r2);
+}
