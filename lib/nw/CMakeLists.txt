@@ -35,6 +35,7 @@ add_library(nw STATIC
     objects/Item.cpp
     objects/Journal.cpp
     objects/Module.cpp
+    objects/ObjectBase.cpp
     objects/Palette.cpp
     objects/Placeable.cpp
     objects/Sound.cpp

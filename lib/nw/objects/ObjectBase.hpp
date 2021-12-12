@@ -42,4 +42,16 @@ struct ObjectBase {
     virtual Situated* situated() { return nullptr; }
 };
 
+/// nlohmann::json specialization
+void from_json(const nlohmann::json& j, ObjectID& id);
+
+/// nlohmann::json specialization
+void from_json(const nlohmann::json& j, ObjectType& type);
+
+/// nlohmann::json specialization
+void to_json(nlohmann::json& j, ObjectID id);
+
+/// nlohmann::json specialization
+void to_json(nlohmann::json& j, ObjectType type);
+
 } // namespace nw
