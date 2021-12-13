@@ -21,11 +21,11 @@ struct LocalData {
     LocalData() = default;
     LocalData(const GffInputArchiveStruct gff);
 
-    float get_local_float(absl::string_view var) const;
-    int32_t get_local_int(absl::string_view var) const;
-    ObjectID get_local_object(absl::string_view var) const;
-    std::string get_local_string(absl::string_view var) const;
-    Location get_local_location(absl::string_view var) const;
+    float get_local_float(std::string_view var) const;
+    int32_t get_local_int(std::string_view var) const;
+    ObjectID get_local_object(std::string_view var) const;
+    std::string get_local_string(std::string_view var) const;
+    Location get_local_location(std::string_view var) const;
     size_t size() const noexcept { return vars_.size(); }
 
 private:

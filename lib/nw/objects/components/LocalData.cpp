@@ -47,33 +47,38 @@ LocalData::LocalData(const GffInputArchiveStruct gff)
     }
 }
 
-float LocalData::get_local_float(absl::string_view var) const
+float LocalData::get_local_float(std::string_view var) const
 {
-    auto it = vars_.find(var);
+    absl::string_view v(var.data(), var.size());
+    auto it = vars_.find(v);
     return it != vars_.end() ? it->second.float_ : 0.0f;
 }
 
-int32_t LocalData::get_local_int(absl::string_view var) const
+int32_t LocalData::get_local_int(std::string_view var) const
 {
-    auto it = vars_.find(var);
+    absl::string_view v(var.data(), var.size());
+    auto it = vars_.find(v);
     return it != vars_.end() ? it->second.integer : 0;
 }
 
-ObjectID LocalData::get_local_object(absl::string_view var) const
+ObjectID LocalData::get_local_object(std::string_view var) const
 {
-    auto it = vars_.find(var);
+    absl::string_view v(var.data(), var.size());
+    auto it = vars_.find(v);
     return it != vars_.end() ? it->second.object : object_invalid;
 }
 
-std::string LocalData::get_local_string(absl::string_view var) const
+std::string LocalData::get_local_string(std::string_view var) const
 {
-    auto it = vars_.find(var);
+    absl::string_view v(var.data(), var.size());
+    auto it = vars_.find(v);
     return it != vars_.end() ? it->second.string : std::string{};
 }
 
-Location LocalData::get_local_location(absl::string_view var) const
+Location LocalData::get_local_location(std::string_view var) const
 {
-    auto it = vars_.find(var);
+    absl::string_view v(var.data(), var.size());
+    auto it = vars_.find(v);
     return it != vars_.end() ? it->second.loc : Location{};
 }
 
