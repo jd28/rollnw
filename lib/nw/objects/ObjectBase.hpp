@@ -33,13 +33,11 @@ enum struct ObjectType {
 };
 
 struct Common;
-struct Situated;
 
 struct ObjectBase {
     virtual ~ObjectBase() { }
 
     virtual Common* common() { return nullptr; }
-    virtual Situated* situated() { return nullptr; }
 };
 
 /// nlohmann::json specialization
