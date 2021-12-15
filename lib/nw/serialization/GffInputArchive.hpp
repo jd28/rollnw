@@ -195,6 +195,15 @@ bool GffInputArchiveField::get_to(T& value) const
         } else {
             return false;
         }
+    } else if constexpr (std::is_same_v<T, bool>) {
+        uint8_t temp = 0;
+        if (get_to(temp)) {
+            value = !!temp;
+            return true;
+        } else {
+            return false;
+        }
+
     } else {
         SerializationType::type type = SerializationType::id<T>();
         if (entry_->type != type) {
@@ -263,7 +272,7 @@ bool GffInputArchiveField::get_to(T& value) const
                     value = GffInputArchiveStruct();
                 }
             } else {
-                parent_->bytes_.read_at(off, &value, sizeof(T));
+                return false;
             }
         }
         return true;
