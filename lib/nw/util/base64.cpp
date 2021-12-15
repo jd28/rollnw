@@ -33,7 +33,7 @@ ByteArray from_base64(const std::string& in)
     return out;
 }
 
-std::string to_base64(absl::Span<uint8_t> bytes)
+std::string to_base64(absl::Span<const uint8_t> bytes)
 {
     std::string out;
     out.reserve(4 * bytes.size() / 3 + 4);
