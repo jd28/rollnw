@@ -12,7 +12,7 @@ Store::Store(const GffInputArchiveStruct gff, SerializationProfile profile)
     gff.get_to("MarkDown", markdown);
     gff.get_to("MarkUp", markup);
     gff.get_to("MaxBuyPrice", max_price);
-    gff.get_to("OnOpenStore", on_closed);
+    gff.get_to("OnOpenStore", on_opened);
     gff.get_to("OnStoreClosed", on_closed);
     gff.get_to("StoreGold", gold);
 

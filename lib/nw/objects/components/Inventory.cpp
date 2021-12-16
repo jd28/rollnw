@@ -13,7 +13,7 @@ Inventory::Inventory(const GffInputArchiveStruct gff, SerializationProfile profi
         InventoryItem ii;
 
         st.get_to("Repos_PosX", ii.pos_x);
-        st.get_to("Repos_PosX", ii.pos_y);
+        st.get_to("Repos_PosY", ii.pos_y);
 
         if (SerializationProfile::blueprint == profile) {
             if (auto r = st.get<Resref>("InventoryRes")) {
