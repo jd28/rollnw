@@ -95,11 +95,9 @@ void to_json(nlohmann::json& j, const LocString& loc)
 {
     j = nlohmann::json::object();
     j["strref"] = loc.strref();
-    if (loc.size()) {
-        auto& arr = j["strings"] = nlohmann::json::array();
-        for (const auto& [lang, string] : loc) {
-            arr.push_back({{"lang", lang}, {"string", string}});
-        }
+    auto& arr = j["strings"] = nlohmann::json::array();
+    for (const auto& [lang, string] : loc) {
+        arr.push_back({{"lang", lang}, {"string", string}});
     }
 }
 
