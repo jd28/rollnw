@@ -25,10 +25,13 @@ struct Resref {
     using value_type = typename Storage::value_type;
     using size_type = typename Storage::size_type;
 
-    Resref() = default;
+    Resref();
+    Resref(const Resref&) = default;
     Resref(Storage data) noexcept;
     Resref(const char* string) noexcept;
     Resref(std::string_view string) noexcept;
+
+    Resref& operator=(const Resref&) = default;
 
     /// Checks if the underlying array has no non-null characters
     bool empty() const noexcept;

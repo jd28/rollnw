@@ -9,6 +9,11 @@
 
 namespace nw {
 
+Resref::Resref()
+{
+    data_.fill(0);
+}
+
 Resref::Resref(Storage data) noexcept
     : data_{data}
 {
