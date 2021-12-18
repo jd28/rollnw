@@ -10,32 +10,62 @@
 
 namespace nw {
 
-struct SpawnCreature {
-    int32_t appearance;
-    float cr;
-    Resref resref;
-    uint8_t single_spawn;
-};
-
-struct SpawnPoint {
-    float orientation; // In rad
-    glm::vec3 position;
-};
-
-struct Encounter : public ObjectBase {
-    Encounter(const GffInputArchiveStruct gff, SerializationProfile profile);
-    virtual Common* common() { return &common_; }
-
-    Common common_;
-    std::vector<SpawnCreature> creatures;
-    std::vector<glm::vec3> geometry;
-    std::vector<SpawnPoint> spawn_points;
+struct EncounterScripts {
+    bool from_gff(const GffInputArchiveStruct& archive);
+    bool from_json(const nlohmann::json& archive);
+    nlohmann::json to_json() const;
 
     Resref on_entered;
     Resref on_exhausted;
     Resref on_exit;
     Resref on_heartbeat;
-    Resref on_userdefined;
+    Resref on_user_defined;
+};
+
+struct SpawnCreature {
+    bool from_gff(const GffInputArchiveStruct& archive);
+    bool from_json(const nlohmann::json& archive);
+    nlohmann::json to_json() const;
+
+    int32_t appearance;
+    float cr;
+    Resref resref;
+    bool single_spawn;
+};
+
+struct SpawnPoint {
+    bool from_gff(const GffInputArchiveStruct& archive);
+    bool from_json(const nlohmann::json& archive);
+    nlohmann::json to_json() const;
+
+    float orientation; // In rad
+    glm::vec3 position;
+};
+
+struct Encounter : public ObjectBase {
+    Encounter();
+    Encounter(const GffInputArchiveStruct& archive, SerializationProfile profile);
+    Encounter(const nlohmann::json& archive, SerializationProfile profile);
+
+    // Validity
+    bool valid() const noexcept { return valid_; }
+
+    // ObjectBase overrids
+    virtual Common* common() override { return &common_; }
+    virtual const Common* common() const override { return &common_; }
+    virtual Encounter* as_encounter() override { return this; }
+    virtual const Encounter* as_encounter() const override { return this; }
+
+    bool from_gff(const GffInputArchiveStruct& archive, SerializationProfile profile);
+    bool from_json(const nlohmann::json& archive, SerializationProfile profile);
+    nlohmann::json to_json(SerializationProfile profile) const;
+
+    Common common_;
+    EncounterScripts scripts;
+
+    std::vector<SpawnCreature> creatures;
+    std::vector<glm::vec3> geometry;
+    std::vector<SpawnPoint> spawn_points;
 
     int32_t creatures_max = ~0;
     int32_t creatures_recommended = 0;
@@ -45,9 +75,12 @@ struct Encounter : public ObjectBase {
     int32_t respawns = 0;
     int32_t spawn_option = 0;
 
-    uint8_t active = true;
-    uint8_t player_only = false;
-    uint8_t reset = true;
+    bool active = true;
+    bool player_only = false;
+    bool reset = true;
+
+private:
+    bool valid_ = false;
 };
 
 } // namespace nw
