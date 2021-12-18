@@ -231,7 +231,7 @@ bool GffInputArchiveField::get_to(T& value) const
                 CHECK_OFF(off + size < parent_->bytes_.size());
                 std::string s{};
                 s.reserve(size + 12); // Reserve a little bit extra, in case of colors.
-                s.append((char*)parent_->bytes_.data() + off, size);
+                s.append(reinterpret_cast<const char*>(parent_->bytes_.data() + off), size);
                 value = string::sanitize_colors(std::move(s));
                 value = to_utf8(value, Language::default_encoding(), true);
             } else if constexpr (std::is_same_v<T, LocString>) {
@@ -251,7 +251,7 @@ bool GffInputArchiveField::get_to(T& value) const
                     parent_->bytes_.read_at(off, &size, 4);
                     off += 4;
                     CHECK_OFF(off + size < parent_->bytes_.size());
-                    std::string s{(char*)parent_->bytes_.data() + off, size};
+                    std::string s{reinterpret_cast<const char*>(parent_->bytes_.data() + off), size};
                     s = string::sanitize_colors(std::move(s));
                     s = to_utf8_by_langid(s, static_cast<Language::ID>(lang), true);
                     off += size;

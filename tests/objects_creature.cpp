@@ -19,7 +19,7 @@ TEST_CASE("Loading test_creature", "[objects]")
     nw::GffInputArchive g{"test_data/pl_agent_001.utc"};
     nw::Creature c{g.toplevel(), nw::SerializationProfile::blueprint};
     REQUIRE(c.common()->resref == "pl_agent_001");
-    REQUIRE((int)c.stats.abilities[2] == 16);
+    REQUIRE(c.stats.abilities[2] == 16);
     REQUIRE(c.on_attacked == "mon_ai_5attacked");
     REQUIRE(c.appearance.id == 6);
     REQUIRE(c.appearance.body_parts.left_shin == 1);
