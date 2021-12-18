@@ -102,3 +102,16 @@ target_link_libraries(nw PUBLIC
 if(NOT Iconv_IS_BUILT_IN)
     target_link_libraries(nw PUBLIC Iconv::Iconv)
 endif()
+
+include(../../cmake/ProjectSettings.cmake)
+include(../../cmake/PreventInSourceBuilds.cmake)
+
+target_compile_features(nw INTERFACE cxx_std_17)
+
+include(../../cmake/Cache.cmake)
+
+include(../../cmake/CompilerWarnings.cmake)
+set_project_warnings(nw)
+
+include(../../cmake/Sanitizers.cmake)
+enable_sanitizers(nw)
