@@ -219,8 +219,8 @@ bool GffInputArchiveField::get_to(T& value) const
 
             if constexpr (std::is_same_v<T, Resref>) {
                 char buffer[17] = {0};
-                uint8_t size;
-                parent_->bytes_.read_at(off, &size, 1);
+                uint8_t size = 0;
+                CHECK_OFF(parent_->bytes_.read_at(off, &size, 1));
                 off += 1;
                 CHECK_OFF(parent_->bytes_.read_at(off, buffer, size));
                 value = Resref(buffer);
