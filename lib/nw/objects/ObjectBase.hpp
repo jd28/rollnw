@@ -32,6 +32,7 @@ enum struct ObjectType {
     sound = 16,
 };
 
+struct Area;
 struct Common;
 struct Creature;
 struct Door;
@@ -47,6 +48,8 @@ struct Waypoint;
 struct ObjectBase {
     virtual ~ObjectBase() { }
 
+    virtual Area* as_area() { return nullptr; }
+    virtual const Area* as_area() const { return nullptr; }
     virtual Common* common() { return nullptr; }
     virtual const Common* common() const { return nullptr; }
     virtual Creature* as_creature() { return nullptr; }
