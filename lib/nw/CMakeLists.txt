@@ -53,7 +53,7 @@ add_library(nw STATIC
     objects/components/LocalData.cpp
     objects/components/Location.cpp
     objects/components/Lock.cpp
-    #objects/components/Trap.cpp
+    objects/components/Trap.cpp
 
     resources/Bif.cpp
     resources/Container.cpp
