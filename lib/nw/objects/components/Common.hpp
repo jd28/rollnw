@@ -13,8 +13,12 @@ namespace nw {
 struct Common {
     Common() = default;
     Common(ObjectType obj_type);
-    Common(ObjectType obj_type, const GffInputArchiveStruct gff, SerializationProfile profile);
+    Common(ObjectType obj_type, const GffInputArchiveStruct& archive, SerializationProfile profile);
     virtual ~Common() = default;
+
+    bool from_gff(const GffInputArchiveStruct& archive, SerializationProfile profile);
+    bool from_json(const nlohmann::json& archive, SerializationProfile profile);
+    nlohmann::json to_json(SerializationProfile profile) const;
 
     virtual bool valid() { return valid_; }
 
