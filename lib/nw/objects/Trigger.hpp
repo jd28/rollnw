@@ -11,14 +11,10 @@
 
 namespace nw {
 
-struct Trigger : public ObjectBase {
-    Trigger(const GffInputArchiveStruct gff, SerializationProfile profile);
-    virtual Common* common() override { return &common_; }
+struct TriggerScripts {
+    bool from_json(const nlohmann::json& archive);
+    nlohmann::json to_json() const;
 
-    Common common_;
-    Trap trap;
-    std::vector<glm::vec3> geometery;
-    std::string linked_to;
     Resref on_click;
     Resref on_disarm;
     Resref on_enter;
@@ -26,12 +22,41 @@ struct Trigger : public ObjectBase {
     Resref on_heartbeat;
     Resref on_trap_triggered;
     Resref on_user_defined;
+};
+
+struct Trigger : public ObjectBase {
+    Trigger();
+    Trigger(const GffInputArchiveStruct& archive, SerializationProfile profile);
+    Trigger(const nlohmann::json& archive, SerializationProfile profile);
+
+    // Validity
+    bool valid() { return valid_; }
+
+    // ObjectBase overrides
+    virtual Common* common() override { return &common_; }
+    virtual const Common* common() const override { return &common_; }
+    virtual Trigger* as_trigger() override { return this; }
+    virtual const Trigger* as_trigger() const override { return this; }
+
+    // Serialization
+    bool from_gff(const GffInputArchiveStruct& archive, SerializationProfile profile);
+    bool from_json(const nlohmann::json& archive, SerializationProfile profile);
+    nlohmann::json to_json(SerializationProfile profile) const;
+
+    Common common_;
+    TriggerScripts scripts;
+    Trap trap;
+    std::vector<glm::vec3> geometery;
+    std::string linked_to;
     float highlight_height = 0.0f;
 
     uint16_t loadscreen = 0;
     uint16_t portrait = 0;
     uint8_t cursor = 0;
     uint8_t linked_to_flags = 0;
+
+private:
+    bool valid_ = false;
 };
 
 } // namespace nw
