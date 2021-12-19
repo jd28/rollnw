@@ -8,8 +8,20 @@
 namespace nw {
 
 struct Waypoint : public ObjectBase {
-    Waypoint(const GffInputArchiveStruct gff, SerializationProfile profile);
-    virtual Common* common() { return &common_; }
+    Waypoint();
+    Waypoint(const GffInputArchiveStruct& archive, SerializationProfile profile);
+    Waypoint(const nlohmann::json& archive, SerializationProfile profile);
+
+    // ObjectBase overrides
+    virtual Common* common() override { return &common_; }
+    virtual const Common* common() const override { return &common_; }
+    virtual Waypoint* as_waypoint() override { return this; }
+    virtual const Waypoint* as_waypoint() const override { return this; }
+
+    // Serialization
+    bool from_gff(const GffInputArchiveStruct& archive, SerializationProfile profile);
+    bool from_json(const nlohmann::json& archive, SerializationProfile profile);
+    nlohmann::json to_json(SerializationProfile profile) const;
 
     Common common_;
     LocString description;
@@ -17,8 +29,11 @@ struct Waypoint : public ObjectBase {
     LocString map_note;
 
     uint8_t appearance;
-    uint8_t has_map_note = 0;
-    uint8_t map_note_enabled = 0;
+    bool has_map_note = false;
+    bool map_note_enabled = false;
+
+private:
+    bool valid_ = false;
 };
 
 } // namespace nw
