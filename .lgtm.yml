@@ -9,6 +9,7 @@ extraction:
   cpp:
     prepare:
       packages:
+        - libssl-dev
         - build-essential
         - automake
         - autoconf
@@ -18,6 +19,20 @@ extraction:
         - yasm
         - ninja-build
         - ccache
+        - cmake
+    after_prepare: # Customizable step used by all languages.
+      # installs cmake!
+      - cmake --version
+      - wget -O cmake.tar.gz https://github.com/Kitware/CMake/releases/download/v3.22.1/cmake-3.22.1.tar.gz
+      - tar zxf cmake.tar.gz
+      - cd cmake-*/
+      - mkdir build
+      - cd build
+      - cmake -DCMAKE_INSTALL_PREFIX:PATH=~/.local/ -DCMAKE_BUILD_TYPE=Release ..
+      - make install
+      - ls ~/.local/bin
+      - export PATH=~/.local/bin:$PATH # env variables are propagated, so this is visible in the configure step!
+      - cmake --version
     configure:
       command:
         - git clone https://github.com/Microsoft/vcpkg.git
