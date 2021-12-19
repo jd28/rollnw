@@ -10,31 +10,65 @@
 
 namespace nw {
 
-struct Placeable : public ObjectBase {
-    enum struct AnimationState : uint8_t {
-        none = 0, // Technically "default"
-        open = 1,
-        closed = 2,
-        destroyed = 3,
-        activated = 4,
-        deactivated = 5
-    };
+enum struct PlaceableAnimationState : uint8_t {
+    none = 0, // Technically "default"
+    open = 1,
+    closed = 2,
+    destroyed = 3,
+    activated = 4,
+    deactivated = 5
+};
 
-    Placeable(const GffInputArchiveStruct gff, SerializationProfile profile);
+struct PlaceableScripts {
+
+    bool from_gff(const GffInputArchiveStruct& archive);
+    bool from_json(const nlohmann::json& archive);
+    nlohmann::json to_json() const;
+
+    Resref on_closed;
+    Resref on_damaged;
+    Resref on_death;
+    Resref on_disarm;
+    Resref on_heartbeat;
+    Resref on_inventory_disturbed;
+    Resref on_lock;
+    Resref on_melee_attacked;
+    Resref on_open;
+    Resref on_spell_cast_at;
+    Resref on_trap_triggered;
+    Resref on_unlock;
+    Resref on_used;
+    Resref on_user_defined;
+};
+
+struct Placeable : public ObjectBase {
+    Placeable();
+    Placeable(const GffInputArchiveStruct& archive, SerializationProfile profile);
+    Placeable(const nlohmann::json& archive, SerializationProfile profile);
+
+    bool valid() const noexcept { return valid_; }
+
+    // ObjectBase overrides
     virtual Common* common() override { return &common_; }
+    virtual const Common* common() const override { return &common_; }
+    virtual Placeable* as_placeable() override { return this; }
+    virtual const Placeable* as_placeable() const override { return this; }
+
+    // Serialization
+    bool from_gff(const GffInputArchiveStruct& archive, SerializationProfile profile);
+    bool from_json(const nlohmann::json& archive, SerializationProfile profile);
+    nlohmann::json to_json(SerializationProfile profile) const;
 
     Common common_;
+    PlaceableScripts scripts;
 
     Inventory inventory;
-    AnimationState animation_state;
+    PlaceableAnimationState animation_state;
 
     uint8_t bodybag = 0;
-    uint8_t has_inventory = 0;
-    uint8_t useable = 0;
-    uint8_t static_ = 0;
-
-    Resref on_inv_disturbed;
-    Resref on_used;
+    bool has_inventory = false;
+    bool useable = false;
+    bool static_ = false;
 
     uint32_t appearance;
     uint16_t portrait_id;
@@ -50,19 +84,8 @@ struct Placeable : public ObjectBase {
     Lock lock;
     Trap trap;
 
-    // Script Events
-    Resref on_closed;
-    Resref on_damaged;
-    Resref on_death;
-    Resref on_disarm;
-    Resref on_heartbeat;
-    Resref on_lock;
-    Resref on_melee_attacked;
-    Resref on_open;
-    Resref on_spell_cast_at;
-    Resref on_trap_triggered;
-    Resref on_unlock;
-    Resref on_user_defined;
+private:
+    bool valid_ = false;
 };
 
 } // namespace nw
