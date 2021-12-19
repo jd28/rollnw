@@ -107,12 +107,12 @@ template <typename T>
 std::optional<T> TwoDA::get(size_t row, std::string_view col)
 {
     int ci = column_index(col);
-    if (ci == -1) {
+    if (ci < 0) {
         LOG_F(WARNING, "unknown column: {}", col);
         return std::optional<T>{};
     }
 
-    return get<T>(row, ci);
+    return get<T>(row, static_cast<size_t>(ci));
 }
 
 template <typename T>

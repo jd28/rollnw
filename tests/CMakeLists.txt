@@ -31,6 +31,7 @@ add_executable(libnw_test
     formats_nss.cpp
     formats_twoda.cpp
 
+    i18n_locstring.cpp
     i18n_tlk.cpp
     i18n_tlktable.cpp
 

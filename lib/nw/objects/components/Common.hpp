@@ -12,8 +12,13 @@ namespace nw {
 
 struct Common {
     Common() = default;
-    Common(ObjectType obj_type, const GffInputArchiveStruct gff, SerializationProfile profile);
+    Common(ObjectType obj_type);
+    Common(ObjectType obj_type, const GffInputArchiveStruct& archive, SerializationProfile profile);
     virtual ~Common() = default;
+
+    bool from_gff(const GffInputArchiveStruct& archive, SerializationProfile profile);
+    bool from_json(const nlohmann::json& archive, SerializationProfile profile);
+    nlohmann::json to_json(SerializationProfile profile) const;
 
     virtual bool valid() { return valid_; }
 
@@ -30,7 +35,7 @@ struct Common {
 
     // Blueprint only
     std::string comment;
-    uint8_t palette_id = ~0;
+    uint8_t palette_id = std::numeric_limits<uint8_t>::max();
 
 protected:
     bool valid_ = false;

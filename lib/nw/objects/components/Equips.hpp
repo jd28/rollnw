@@ -54,7 +54,11 @@ enum struct EquipIndex {
 using EquipItem = std::variant<Resref, std::unique_ptr<Item>>;
 
 struct Equips {
-    Equips(const GffInputArchiveStruct gff, SerializationProfile profile);
+    Equips() = default;
+
+    bool from_gff(const GffInputArchiveStruct& archive, SerializationProfile profile);
+    bool from_json(const nlohmann::json& archive, SerializationProfile profile);
+    nlohmann::json to_json(SerializationProfile profile) const;
 
     EquipItem head;
     EquipItem chest;

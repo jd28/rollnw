@@ -30,7 +30,7 @@ struct NssAstPrinter : BaseVisitor {
     virtual void visit(FunctionDecl* decl) override
     {
         ss << '\n'
-           << std::string(depth * 2, ' ') << "(decl " << decl->identifier.id << " : ";
+           << std::string(static_cast<size_t>(depth * 2), ' ') << "(decl " << decl->identifier.id << " : ";
 
         if (decl->type.type_qualifier.id.size()) {
             ss << decl->type.type_qualifier.id << " ";
@@ -51,7 +51,7 @@ struct NssAstPrinter : BaseVisitor {
     virtual void visit(FunctionDefinition* decl) override
     {
         ss << '\n'
-           << std::string(depth * 2, ' ') << "(fun ";
+           << std::string(static_cast<size_t>(depth * 2), ' ') << "(fun ";
 
         ++depth;
         decl->decl->accept(this);
@@ -65,7 +65,7 @@ struct NssAstPrinter : BaseVisitor {
     virtual void visit(StructDecl* decl) override
     {
         ss << '\n'
-           << std::string(depth * 2, ' ') << "(struct " << decl->type.struct_id.id;
+           << std::string(static_cast<size_t>(depth * 2), ' ') << "(struct " << decl->type.struct_id.id;
         ++depth;
         for (const auto& d : decl->decls) {
             d->accept(this);
@@ -77,7 +77,7 @@ struct NssAstPrinter : BaseVisitor {
     virtual void visit(VarDecl* decl) override
     {
         ss << '\n'
-           << std::string(depth * 2, ' ') << "(decl " << decl->identifier.id << " : ";
+           << std::string(static_cast<size_t>(depth * 2), ' ') << "(decl " << decl->identifier.id << " : ";
         if (decl->type.type_qualifier.id.size()) {
             ss << decl->type.type_qualifier.id << " ";
         }
@@ -100,7 +100,7 @@ struct NssAstPrinter : BaseVisitor {
     virtual void visit(AssignExpression* expr) override
     {
         ss << '\n'
-           << std::string(depth * 2, ' ') << "(assign " << expr->op.id;
+           << std::string(static_cast<size_t>(depth * 2), ' ') << "(assign " << expr->op.id;
         ++depth;
         expr->left->accept(this);
         expr->right->accept(this);
@@ -111,7 +111,7 @@ struct NssAstPrinter : BaseVisitor {
     virtual void visit(BinaryExpression* expr) override
     {
         ss << '\n'
-           << std::string(depth * 2, ' ') << "(binary " << expr->op.id;
+           << std::string(static_cast<size_t>(depth * 2), ' ') << "(binary " << expr->op.id;
         ++depth;
         expr->left->accept(this);
         expr->right->accept(this);
@@ -122,13 +122,13 @@ struct NssAstPrinter : BaseVisitor {
     virtual void visit(CallExpression* expr) override
     {
         ss << '\n'
-           << std::string(depth * 2, ' ') << "(call ";
+           << std::string(static_cast<size_t>(depth * 2), ' ') << "(call ";
         ++depth;
         expr->expr->accept(this);
 
         if (expr->args.size()) {
             ss << '\n'
-               << std::string(depth * 2, ' ')
+               << std::string(static_cast<size_t>(depth * 2), ' ')
                << "(params";
             ++depth;
             for (const auto& arg : expr->args) {
@@ -143,19 +143,19 @@ struct NssAstPrinter : BaseVisitor {
     virtual void visit(ConditionalExpression* expr) override
     {
         ss << '\n'
-           << std::string(depth * 2, ' ') << "(cond";
+           << std::string(static_cast<size_t>(depth * 2), ' ') << "(cond";
         ++depth;
         expr->expr->accept(this);
 
         ss << '\n'
-           << std::string(depth * 2, ' ') << "(then";
+           << std::string(static_cast<size_t>(depth * 2), ' ') << "(then";
         ++depth;
         expr->true_branch->accept(this);
         --depth;
         ss << ")";
 
         ss << '\n'
-           << std::string(depth * 2, ' ') << "(else";
+           << std::string(static_cast<size_t>(depth * 2), ' ') << "(else";
         ++depth;
         expr->false_branch->accept(this);
         --depth;
@@ -167,7 +167,7 @@ struct NssAstPrinter : BaseVisitor {
     virtual void visit(DotExpression* expr) override
     {
         ss << '\n'
-           << std::string(depth * 2, ' ') << "(.";
+           << std::string(static_cast<size_t>(depth * 2), ' ') << "(.";
 
         ++depth;
         expr->left->accept(this);
@@ -184,13 +184,13 @@ struct NssAstPrinter : BaseVisitor {
     virtual void visit(LiteralExpression* expr) override
     {
         ss << '\n'
-           << std::string(depth * 2, ' ') << "(literal " << expr->literal.id << ")";
+           << std::string(static_cast<size_t>(depth * 2), ' ') << "(literal " << expr->literal.id << ")";
     }
 
     virtual void visit(LogicalExpression* expr) override
     {
         ss << '\n'
-           << std::string(depth * 2, ' ') << "(logical " << expr->op.id << " ";
+           << std::string(static_cast<size_t>(depth * 2), ' ') << "(logical " << expr->op.id << " ";
         ++depth;
         expr->left->accept(this);
         ss << " ";
@@ -202,7 +202,7 @@ struct NssAstPrinter : BaseVisitor {
     virtual void visit(PostfixExpression* expr) override
     {
         ss << '\n'
-           << std::string(depth * 2, ' ') << "(postfix " << expr->op.id;
+           << std::string(static_cast<size_t>(depth * 2), ' ') << "(postfix " << expr->op.id;
         ++depth;
         if (expr->left) expr->left->accept(this);
         --depth;
@@ -212,7 +212,7 @@ struct NssAstPrinter : BaseVisitor {
     virtual void visit(UnaryExpression* expr) override
     {
         ss << '\n'
-           << std::string(depth * 2, ' ') << "(unary " << expr->op.id;
+           << std::string(static_cast<size_t>(depth * 2), ' ') << "(unary " << expr->op.id;
         ++depth;
         expr->right->accept(this);
         --depth;
@@ -222,7 +222,7 @@ struct NssAstPrinter : BaseVisitor {
     virtual void visit(VariableExpression* expr) override
     {
         ss << '\n'
-           << std::string(depth * 2, ' ')
+           << std::string(static_cast<size_t>(depth * 2), ' ')
            << "(var "
            << expr->var.id
            << ")";
@@ -232,7 +232,7 @@ struct NssAstPrinter : BaseVisitor {
     virtual void visit(BlockStatement* stmt) override
     {
         ss << '\n'
-           << std::string(depth * 2, ' ')
+           << std::string(static_cast<size_t>(depth * 2), ' ')
            << "(block";
 
         ++depth;
@@ -246,7 +246,7 @@ struct NssAstPrinter : BaseVisitor {
     virtual void visit(DoStatement* stmt) override
     {
         ss << '\n'
-           << std::string(depth * 2, ' ')
+           << std::string(static_cast<size_t>(depth * 2), ' ')
            << "(do";
         ++depth;
         stmt->block->accept(this);
@@ -254,7 +254,7 @@ struct NssAstPrinter : BaseVisitor {
         ++depth;
         if (stmt->expr) {
             ss << '\n'
-               << std::string(depth * 2, ' ')
+               << std::string(static_cast<size_t>(depth * 2), ' ')
                << "(check";
             ++depth;
             stmt->expr->accept(this);
@@ -273,12 +273,12 @@ struct NssAstPrinter : BaseVisitor {
     virtual void visit(IfStatement* stmt) override
     {
         ss << '\n'
-           << std::string(depth * 2, ' ') << "(if";
+           << std::string(static_cast<size_t>(depth * 2), ' ') << "(if";
         ++depth;
         stmt->expr->accept(this);
 
         ss << '\n'
-           << std::string(depth * 2, ' ') << "(then";
+           << std::string(static_cast<size_t>(depth * 2), ' ') << "(then";
         ++depth;
         stmt->if_branch->accept(this);
         --depth;
@@ -286,7 +286,7 @@ struct NssAstPrinter : BaseVisitor {
 
         if (stmt->else_branch) {
             ss << '\n'
-               << std::string(depth * 2, ' ')
+               << std::string(static_cast<size_t>(depth * 2), ' ')
                << "(else";
             ++depth;
             stmt->else_branch->accept(this);
@@ -300,12 +300,12 @@ struct NssAstPrinter : BaseVisitor {
     virtual void visit(ForStatement* stmt) override
     {
         ss << '\n'
-           << std::string(depth * 2, ' ')
+           << std::string(static_cast<size_t>(depth * 2), ' ')
            << "(for";
         ++depth;
         if (stmt->init) {
             ss << '\n'
-               << std::string(depth * 2, ' ') << "(init";
+               << std::string(static_cast<size_t>(depth * 2), ' ') << "(init";
             ++depth;
             stmt->init->accept(this);
             --depth;
@@ -313,7 +313,7 @@ struct NssAstPrinter : BaseVisitor {
         }
         if (stmt->check) {
             ss << '\n'
-               << std::string(depth * 2, ' ') << "(check";
+               << std::string(static_cast<size_t>(depth * 2), ' ') << "(check";
             ++depth;
             stmt->check->accept(this);
             --depth;
@@ -321,7 +321,7 @@ struct NssAstPrinter : BaseVisitor {
         }
         if (stmt->inc) {
             ss << '\n'
-               << std::string(depth * 2, ' ')
+               << std::string(static_cast<size_t>(depth * 2), ' ')
                << "(increment";
             ++depth;
             stmt->inc->accept(this);
@@ -336,7 +336,7 @@ struct NssAstPrinter : BaseVisitor {
     virtual void visit(JumpStatement* stmt) override
     {
         ss << '\n'
-           << std::string(depth * 2, ' ') << "(" << stmt->op.id;
+           << std::string(static_cast<size_t>(depth * 2), ' ') << "(" << stmt->op.id;
         ++depth;
         if (stmt->expr) {
             stmt->expr->accept(this);
@@ -348,7 +348,7 @@ struct NssAstPrinter : BaseVisitor {
     virtual void visit(LabelStatement* stmt) override
     {
         ss << '\n'
-           << std::string(depth * 2, ' ') << "(" << stmt->type.id;
+           << std::string(static_cast<size_t>(depth * 2), ' ') << "(" << stmt->type.id;
         ++depth;
         if (stmt->expr) {
             stmt->expr->accept(this);
@@ -360,10 +360,10 @@ struct NssAstPrinter : BaseVisitor {
     virtual void visit(SwitchStatement* stmt) override
     {
         ss << '\n'
-           << std::string(depth * 2, ' ') << "(switch";
+           << std::string(static_cast<size_t>(depth * 2), ' ') << "(switch";
         ++depth;
         ss << '\n'
-           << std::string(depth * 2, ' ') << "(target";
+           << std::string(static_cast<size_t>(depth * 2), ' ') << "(target";
         ++depth;
         stmt->target->accept(this);
         --depth;
@@ -377,11 +377,11 @@ struct NssAstPrinter : BaseVisitor {
     virtual void visit(WhileStatement* stmt) override
     {
         ss << '\n'
-           << std::string(depth * 2, ' ') << "(while";
+           << std::string(static_cast<size_t>(depth * 2), ' ') << "(while";
         ++depth;
         if (stmt->check) {
             ss << '\n'
-               << std::string(depth * 2, ' ') << "(check";
+               << std::string(static_cast<size_t>(depth * 2), ' ') << "(check";
             ++depth;
             stmt->check->accept(this);
             --depth;

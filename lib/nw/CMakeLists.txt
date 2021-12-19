@@ -35,6 +35,7 @@ add_library(nw STATIC
     objects/Item.cpp
     objects/Journal.cpp
     objects/Module.cpp
+    objects/ObjectBase.cpp
     objects/Palette.cpp
     objects/Placeable.cpp
     objects/Sound.cpp
@@ -43,7 +44,7 @@ add_library(nw STATIC
     objects/Waypoint.cpp
 
     objects/components/Appearance.cpp
-    objects/components/Combat.cpp
+    objects/components/CombatInfo.cpp
     objects/components/Common.cpp
     objects/components/CreatureStats.cpp
     objects/components/Equips.cpp
@@ -51,9 +52,9 @@ add_library(nw STATIC
     objects/components/LevelStats.cpp
     objects/components/LocalData.cpp
     objects/components/Location.cpp
-    objects/components/Situated.cpp
-    #objects/components/Lock.cpp
-    #objects/components/Trap.cpp
+    objects/components/Lock.cpp
+    objects/components/Saves.cpp
+    objects/components/Trap.cpp
 
     resources/Bif.cpp
     resources/Container.cpp
@@ -101,3 +102,16 @@ target_link_libraries(nw PUBLIC
 if(NOT Iconv_IS_BUILT_IN)
     target_link_libraries(nw PUBLIC Iconv::Iconv)
 endif()
+
+include(../../cmake/ProjectSettings.cmake)
+include(../../cmake/PreventInSourceBuilds.cmake)
+
+target_compile_features(nw INTERFACE cxx_std_17)
+
+include(../../cmake/Cache.cmake)
+
+include(../../cmake/CompilerWarnings.cmake)
+set_project_warnings(nw)
+
+include(../../cmake/Sanitizers.cmake)
+enable_sanitizers(nw)

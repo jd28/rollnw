@@ -1,81 +1,91 @@
 #include "Item.hpp"
 
+#include <nlohmann/json.hpp>
+
 namespace nw {
 
-Item::Item(const GffInputArchiveStruct gff, SerializationProfile profile)
-    : inventory{gff, profile}
-    , loc{gff, profile}
-    , local_data{gff}
+Item::Item()
+    : common_{ObjectType::item}
+{
+}
+
+Item::Item(const GffInputArchiveStruct& archive, SerializationProfile profile)
+    : common_{ObjectType::item}
+{
+    this->from_gff(archive, profile);
+}
+
+Item::Item(const nlohmann::json& archive, SerializationProfile profile)
+    : common_{ObjectType::item}
+{
+    this->from_json(archive, profile);
+}
+
+bool Item::from_gff(const GffInputArchiveStruct& archive, SerializationProfile profile)
 {
 
-    gff.get_to("TemplateResRef", resref);
-    gff.get_to("Tag", tag);
-    gff.get_to("LocalizedName", name); // Bioware UTI doc is wrong
-    gff.get_to("Description", description);
-    gff.get_to("DescIdentified", description_id);
-    gff.get_to("Cost", cost);
-    gff.get_to("AddCost", additional_cost);
-    gff.get_to("BaseItem", baseitem);
-    gff.get_to("StackSize", stacksize);
-    gff.get_to("Charges", charges);
-    gff.get_to("Cursed", cursed);
-    gff.get_to("Plot", plot);
-    gff.get_to("Stolen", stolen);
+    common_.from_gff(archive, profile);
+    inventory.from_gff(archive, profile);
+    archive.get_to("Description", description);
+    archive.get_to("DescIdentified", description_id);
+    archive.get_to("Cost", cost);
+    archive.get_to("AddCost", additional_cost);
+    archive.get_to("BaseItem", baseitem);
+    archive.get_to("StackSize", stacksize);
+    archive.get_to("Charges", charges);
+    archive.get_to("Cursed", cursed);
+    archive.get_to("Plot", plot);
+    archive.get_to("Stolen", stolen);
 
-    if (profile == SerializationProfile::blueprint) {
-        gff.get_to("Comment", comment, false);
-        gff.get_to("PaletteID", palette_id, false);
-    }
-
-    // Guess model type from what's in the gff.
-    if (gff.has_field("ArmorPart_Belt")) {
+    // Guess model type from what's in the archive.
+    if (archive.has_field("ArmorPart_Belt")) {
         model_type = ItemModelType::armor;
-        gff.get_to("ArmorPart_Belt", model_parts[ItemModelParts::armor_belt]);
-        gff.get_to("ArmorPart_LBicep", model_parts[ItemModelParts::armor_lbicep]);
-        gff.get_to("ArmorPart_LFArm", model_parts[ItemModelParts::armor_lfarm]);
-        gff.get_to("ArmorPart_LFoot", model_parts[ItemModelParts::armor_lfoot]);
-        gff.get_to("ArmorPart_LHand", model_parts[ItemModelParts::armor_lhand]);
-        gff.get_to("ArmorPart_LShin", model_parts[ItemModelParts::armor_lshin]);
-        gff.get_to("ArmorPart_LShoul", model_parts[ItemModelParts::armor_lshoul]);
-        gff.get_to("ArmorPart_LThigh", model_parts[ItemModelParts::armor_lthigh]);
-        gff.get_to("ArmorPart_Neck", model_parts[ItemModelParts::armor_neck]);
-        gff.get_to("ArmorPart_Pelvis", model_parts[ItemModelParts::armor_pelvis]);
-        gff.get_to("ArmorPart_RBicep", model_parts[ItemModelParts::armor_rbicep]);
-        gff.get_to("ArmorPart_RFArm", model_parts[ItemModelParts::armor_rfarm]);
-        gff.get_to("ArmorPart_RFoot", model_parts[ItemModelParts::armor_rfoot]);
-        gff.get_to("ArmorPart_RHand", model_parts[ItemModelParts::armor_rhand]);
-        gff.get_to("ArmorPart_Robe", model_parts[ItemModelParts::armor_robe]);
-        gff.get_to("ArmorPart_RShin", model_parts[ItemModelParts::armor_rshin]);
-        gff.get_to("ArmorPart_RShoul", model_parts[ItemModelParts::armor_rshoul]);
-        gff.get_to("ArmorPart_RThigh", model_parts[ItemModelParts::armor_rthigh]);
-        gff.get_to("ArmorPart_Torso", model_parts[ItemModelParts::armor_torso]);
-    } else if (gff.has_field("ModelPart2")) {
+        archive.get_to("ArmorPart_Belt", model_parts[ItemModelParts::armor_belt]);
+        archive.get_to("ArmorPart_LBicep", model_parts[ItemModelParts::armor_lbicep]);
+        archive.get_to("ArmorPart_LFArm", model_parts[ItemModelParts::armor_lfarm]);
+        archive.get_to("ArmorPart_LFoot", model_parts[ItemModelParts::armor_lfoot]);
+        archive.get_to("ArmorPart_LHand", model_parts[ItemModelParts::armor_lhand]);
+        archive.get_to("ArmorPart_LShin", model_parts[ItemModelParts::armor_lshin]);
+        archive.get_to("ArmorPart_LShoul", model_parts[ItemModelParts::armor_lshoul]);
+        archive.get_to("ArmorPart_LThigh", model_parts[ItemModelParts::armor_lthigh]);
+        archive.get_to("ArmorPart_Neck", model_parts[ItemModelParts::armor_neck]);
+        archive.get_to("ArmorPart_Pelvis", model_parts[ItemModelParts::armor_pelvis]);
+        archive.get_to("ArmorPart_RBicep", model_parts[ItemModelParts::armor_rbicep]);
+        archive.get_to("ArmorPart_RFArm", model_parts[ItemModelParts::armor_rfarm]);
+        archive.get_to("ArmorPart_RFoot", model_parts[ItemModelParts::armor_rfoot]);
+        archive.get_to("ArmorPart_RHand", model_parts[ItemModelParts::armor_rhand]);
+        archive.get_to("ArmorPart_Robe", model_parts[ItemModelParts::armor_robe]);
+        archive.get_to("ArmorPart_RShin", model_parts[ItemModelParts::armor_rshin]);
+        archive.get_to("ArmorPart_RShoul", model_parts[ItemModelParts::armor_rshoul]);
+        archive.get_to("ArmorPart_RThigh", model_parts[ItemModelParts::armor_rthigh]);
+        archive.get_to("ArmorPart_Torso", model_parts[ItemModelParts::armor_torso]);
+    } else if (archive.has_field("ModelPart2")) {
         model_type = ItemModelType::composite;
-        gff.get_to("ModelPart1", model_parts[ItemModelParts::model1]);
-        gff.get_to("ModelPart2", model_parts[ItemModelParts::model2]);
-        gff.get_to("ModelPart3", model_parts[ItemModelParts::model3]);
+        archive.get_to("ModelPart1", model_parts[ItemModelParts::model1]);
+        archive.get_to("ModelPart2", model_parts[ItemModelParts::model2]);
+        archive.get_to("ModelPart3", model_parts[ItemModelParts::model3]);
     } else {
-        if (gff.has_field("Cloth1Color")) {
+        if (archive.has_field("Cloth1Color")) {
             model_type = ItemModelType::layered;
         } else {
             model_type = ItemModelType::simple;
         }
-        gff.get_to("ModelPart1", model_parts[ItemModelParts::model1]);
+        archive.get_to("ModelPart1", model_parts[ItemModelParts::model1]);
     }
 
     if (model_type == ItemModelType::layered
         || model_type == ItemModelType::armor) {
-        gff.get_to("Cloth1Color", model_colors[ItemColors::cloth1]);
-        gff.get_to("Cloth2Color", model_colors[ItemColors::cloth2]);
-        gff.get_to("Leather1Color", model_colors[ItemColors::leather1]);
-        gff.get_to("Leather2Color", model_colors[ItemColors::leather2]);
-        gff.get_to("Metal1Color", model_colors[ItemColors::metal1]);
-        gff.get_to("Metal2Color", model_colors[ItemColors::metal2]);
+        archive.get_to("Cloth1Color", model_colors[ItemColors::cloth1]);
+        archive.get_to("Cloth2Color", model_colors[ItemColors::cloth2]);
+        archive.get_to("Leather1Color", model_colors[ItemColors::leather1]);
+        archive.get_to("Leather2Color", model_colors[ItemColors::leather2]);
+        archive.get_to("Metal1Color", model_colors[ItemColors::metal1]);
+        archive.get_to("Metal2Color", model_colors[ItemColors::metal2]);
     }
 
-    auto prop_size = gff["PropertiesList"].size();
+    auto prop_size = archive["PropertiesList"].size();
     properties.reserve(prop_size);
-    auto list = gff["PropertiesList"];
+    auto list = archive["PropertiesList"];
     for (size_t i = 0; i < prop_size; ++i) {
         ItemProperty ip;
         if (!list[i].get_to("PropertyName", ip.type)
@@ -89,6 +99,87 @@ Item::Item(const GffInputArchiveStruct gff, SerializationProfile profile)
             properties.push_back(ip);
         }
     }
+
+    return true;
+}
+
+bool Item::from_json(const nlohmann::json& archive, SerializationProfile profile)
+{
+    try {
+        common_.from_json(archive.at("common"), profile);
+        inventory.from_json(archive.at("inventory"), profile);
+
+        archive.at("description").get_to(description);
+        archive.at("description_id").get_to(description_id);
+        archive.at("cost").get_to(cost);
+        archive.at("additional_cost").get_to(additional_cost);
+        archive.at("baseitem").get_to(baseitem);
+        archive.at("stacksize").get_to(stacksize);
+        archive.at("charges").get_to(charges);
+        archive.at("cursed").get_to(cursed);
+        archive.at("plot").get_to(plot);
+        archive.at("stolen").get_to(stolen);
+        archive.at("model_type").get_to(model_type);
+        archive.at("model_colors").get_to(model_colors);
+        archive.at("model_parts").get_to(model_parts);
+
+        const auto& ref = archive.at("properties");
+        properties.reserve(ref.size());
+        for (size_t i = 0; i < ref.size(); ++i) {
+            ItemProperty ip;
+            ref[i].at("type").get_to(ip.type);
+            ref[i].at("subtype").get_to(ip.subtype);
+            ref[i].at("cost_table").get_to(ip.cost_table);
+            ref[i].at("cost_value").get_to(ip.cost_value);
+            ref[i].at("param_table").get_to(ip.param_table);
+            ref[i].at("param_value").get_to(ip.param_value);
+            properties.push_back(ip);
+        }
+
+    } catch (const nlohmann::json::exception& e) {
+        LOG_F(ERROR, "Item::from_json exception: {}", e.what());
+        return false;
+    }
+
+    return true;
+}
+
+nlohmann::json Item::to_json(SerializationProfile profile) const
+{
+    nlohmann::json j;
+    j["$type"] = "UTI";
+    j["$version"] = LIBNW_JSON_ARCHIVE_VERSION;
+
+    j["common"] = common_.to_json(profile);
+    j["inventory"] = inventory.to_json(profile);
+
+    j["description"] = description;
+    j["description_id"] = description_id;
+    j["cost"] = cost;
+    j["additional_cost"] = additional_cost;
+    j["baseitem"] = baseitem;
+    j["stacksize"] = stacksize;
+    j["charges"] = charges;
+    j["cursed"] = cursed;
+    j["plot"] = plot;
+    j["stolen"] = stolen;
+    j["model_type"] = model_type;
+    j["model_colors"] = model_colors;
+    j["model_parts"] = model_parts;
+
+    auto& ref = j["properties"] = nlohmann::json::array();
+    for (const auto& p : properties) {
+        ref.push_back({
+            {"type", p.type},
+            {"subtype", p.subtype},
+            {"cost_table", p.cost_table},
+            {"cost_value", p.cost_value},
+            {"param_table", p.param_table},
+            {"param_value", p.param_value},
+        });
+    }
+
+    return j;
 }
 
 } // namespace nw

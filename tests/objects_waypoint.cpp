@@ -3,11 +3,46 @@
 #include <nw/objects/Waypoint.hpp>
 #include <nw/serialization/Serialization.hpp>
 
-TEST_CASE("Loading waypoint blueprint", "[objects]")
+#include <nlohmann/json.hpp>
+
+#include <fstream>
+
+TEST_CASE("waypoint: from_gff", "[objects]")
+{
+    nw::GffInputArchive g{"test_data/wp_behexit001.utw"};
+    REQUIRE(g.valid());
+    REQUIRE(g.valid());
+    nw::Waypoint w{g.toplevel(), nw::SerializationProfile::blueprint};
+
+    REQUIRE(w.common()->resref == "wp_behexit001");
+    REQUIRE(w.linked_to == "");
+}
+
+TEST_CASE("waypoint: to_json", "[objects]")
 {
     nw::GffInputArchive g{"test_data/wp_behexit001.utw"};
     REQUIRE(g.valid());
     nw::Waypoint w{g.toplevel(), nw::SerializationProfile::blueprint};
-    REQUIRE(w.common()->resref == "wp_behexit001");
-    REQUIRE(w.linked_to == "");
+
+    nlohmann::json j = w.to_json(nw::SerializationProfile::blueprint);
+
+    nw::Waypoint w2;
+    w2.from_json(j, nw::SerializationProfile::blueprint);
+
+    REQUIRE(w2.common()->resref == "wp_behexit001");
+    REQUIRE(w2.linked_to == "");
+
+    std::ofstream f{"tmp/wp_behexit001.utw.json"};
+    f << std::setw(4) << j;
+}
+
+TEST_CASE("waypoint: json to and from", "[objects]")
+{
+    nw::GffInputArchive g{"test_data/wp_behexit001.utw"};
+    REQUIRE(g.valid());
+    nw::Waypoint w{g.toplevel(), nw::SerializationProfile::blueprint};
+    nlohmann::json j = w.to_json(nw::SerializationProfile::blueprint);
+    nw::Waypoint w2{j, nw::SerializationProfile::blueprint};
+    nlohmann::json j2 = w2.to_json(nw::SerializationProfile::blueprint);
+    REQUIRE(j == j2);
 }

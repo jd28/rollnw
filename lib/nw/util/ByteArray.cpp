@@ -1,11 +1,13 @@
 #include "ByteArray.hpp"
 
 #include "../log.hpp"
+#include "base64.hpp"
+
+#include <nlohmann/json.hpp>
+#include <nowide/fstream.hpp>
 
 #include <cstdio>
 #include <cstring>
-#include <fstream>
-#include <nowide/fstream.hpp>
 #include <string_view>
 
 namespace fs = std::filesystem;
@@ -54,6 +56,18 @@ ByteArray ByteArray::from_file(const std::filesystem::path& path)
     }
 
     return ba;
+}
+
+void from_json(const nlohmann::json& json, ByteArray& ba)
+{
+    if (json.is_string()) {
+        ba = from_base64(json.get<std::string>());
+    }
+}
+
+void to_json(nlohmann::json& json, const ByteArray& ba)
+{
+    json = to_base64(ba.span());
 }
 
 } // namespace nw

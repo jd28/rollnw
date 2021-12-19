@@ -1,11 +1,13 @@
 #include "LocalData.hpp"
 
+#include <nlohmann/json.hpp>
+
 namespace nw {
 
-LocalData::LocalData(const GffInputArchiveStruct gff)
+bool LocalData::from_gff(const GffInputArchiveStruct& archive)
 {
-    auto st = gff["VarTable"];
-    if (!st.valid()) { return; }
+    auto st = archive["VarTable"];
+    if (!st.valid()) { return false; }
     size_t sz = st.size();
     std::string name;
     uint32_t type, obj;
@@ -22,59 +24,140 @@ LocalData::LocalData(const GffInputArchiveStruct gff)
         switch (type) {
         default:
             LOG_F(ERROR, "local data invalid local var type at index {}", i);
-            return;
+            vars_.clear();
+            return false;
         case 1: // int
             st[i].get_to("Value", payload.integer);
+            payload.flags.set(LocalVarType::INTEGER);
             break;
         case 2: // float
             st[i].get_to("Value", payload.float_);
+            payload.flags.set(LocalVarType::FLOAT);
             break;
         case 3: // string
             st[i].get_to("Value", payload.string);
+            payload.flags.set(LocalVarType::STRING);
             break;
         case 4: // object
             st[i].get_to("Value", obj);
             payload.object = static_cast<ObjectID>(obj);
+            payload.flags.set(LocalVarType::OBJECT);
             break;
         case 5: { // location
             if (auto s = st[i].get<GffInputArchiveStruct>("Value")) {
-                payload.loc = Location{*s, SerializationProfile::any};
+                payload.loc.from_gff(*s, SerializationProfile::any);
+                payload.flags.set(LocalVarType::LOCATION);
             } else {
                 LOG_F(ERROR, "failed to read location struct");
+                vars_.clear();
+                return false;
             }
         } break;
         }
     }
+
+    return true;
 }
 
-float LocalData::get_local_float(absl::string_view var) const
+float LocalData::get_local_float(std::string_view var) const
 {
-    auto it = vars_.find(var);
+    absl::string_view v(var.data(), var.size());
+    auto it = vars_.find(v);
     return it != vars_.end() ? it->second.float_ : 0.0f;
 }
 
-int32_t LocalData::get_local_int(absl::string_view var) const
+int32_t LocalData::get_local_int(std::string_view var) const
 {
-    auto it = vars_.find(var);
+    absl::string_view v(var.data(), var.size());
+    auto it = vars_.find(v);
     return it != vars_.end() ? it->second.integer : 0;
 }
 
-ObjectID LocalData::get_local_object(absl::string_view var) const
+ObjectID LocalData::get_local_object(std::string_view var) const
 {
-    auto it = vars_.find(var);
+    absl::string_view v(var.data(), var.size());
+    auto it = vars_.find(v);
     return it != vars_.end() ? it->second.object : object_invalid;
 }
 
-std::string LocalData::get_local_string(absl::string_view var) const
+std::string LocalData::get_local_string(std::string_view var) const
 {
-    auto it = vars_.find(var);
+    absl::string_view v(var.data(), var.size());
+    auto it = vars_.find(v);
     return it != vars_.end() ? it->second.string : std::string{};
 }
 
-Location LocalData::get_local_location(absl::string_view var) const
+Location LocalData::get_local_location(std::string_view var) const
 {
-    auto it = vars_.find(var);
+    absl::string_view v(var.data(), var.size());
+    auto it = vars_.find(v);
     return it != vars_.end() ? it->second.loc : Location{};
+}
+
+bool LocalData::from_json(const nlohmann::json& archive)
+{
+    try {
+        for (const auto& [key, value] : archive.items()) {
+            auto& payload = vars_[key];
+
+            auto it = value.find("float");
+            if (it != std::end(value)) {
+                payload.float_ = it->get<float>();
+                payload.flags.set(LocalVarType::FLOAT);
+            }
+            it = value.find("integer");
+            if (it != std::end(value)) {
+                payload.integer = it->get<int>();
+                payload.flags.set(LocalVarType::INTEGER);
+            }
+            it = value.find("object");
+            if (it != std::end(value)) {
+                payload.object = static_cast<ObjectID>(it->get<uint32_t>());
+                payload.flags.set(LocalVarType::OBJECT);
+            }
+            it = value.find("string");
+            if (it != std::end(value)) {
+                payload.string = it->get<std::string>();
+                payload.flags.set(LocalVarType::STRING);
+            }
+            it = value.find("location");
+            if (it != std::end(value)) {
+                payload.loc = it->get<Location>();
+                payload.flags.set(LocalVarType::LOCATION);
+            }
+        }
+    } catch (const nlohmann::json::exception& e) {
+        LOG_F(ERROR, "LocalData::from_json exception: {}", e.what());
+        return false;
+    }
+
+    return true;
+}
+
+nlohmann::json LocalData::to_json(SerializationProfile profile) const
+{
+    nlohmann::json j = nlohmann::json::object();
+    for (const auto& [key, value] : vars_) {
+        if (!value.flags.any()) { continue; }
+        auto& payload = j[key] = nlohmann::json::object();
+
+        if (value.flags.test(LocalVarType::FLOAT)) {
+            payload["float"] = value.float_;
+        }
+        if (value.flags.test(LocalVarType::INTEGER)) {
+            payload["integer"] = value.integer;
+        }
+        if (value.flags.test(LocalVarType::OBJECT)) {
+            payload["object"] = value.object;
+        }
+        if (value.flags.test(LocalVarType::STRING)) {
+            payload["string"] = value.string;
+        }
+        if (value.flags.test(LocalVarType::LOCATION)) {
+            payload["location"] = value.loc;
+        }
+    }
+    return j;
 }
 
 } // namespace nw

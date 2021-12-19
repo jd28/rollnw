@@ -1,6 +1,5 @@
 #pragma once
 
-#include "../../serialization/Archives.hpp"
 #include "../ObjectBase.hpp"
 
 #include <glm/glm.hpp>
@@ -14,13 +13,16 @@ namespace nw {
 
 struct Location {
     Location();
-    Location(const GffInputArchiveStruct gff, SerializationProfile profile);
 
+    bool from_gff(const GffInputArchiveStruct gff, SerializationProfile profile);
     operator bool() { return area != object_invalid; }
 
     ObjectID area;
     glm::vec3 position;
     glm::vec3 orientation;
 };
+
+void from_json(const nlohmann::json& json, Location& loc);
+void to_json(nlohmann::json& json, const Location& loc);
 
 } // namespace nw

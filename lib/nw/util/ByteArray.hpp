@@ -1,6 +1,7 @@
 #pragma once
 
 #include <absl/types/span.h>
+#include <nlohmann/json_fwd.hpp>
 
 #include <cstdint>
 #include <filesystem>
@@ -69,5 +70,8 @@ struct ByteArray {
 private:
     std::vector<uint8_t> array_;
 };
+
+void from_json(const nlohmann::json& json, ByteArray& ba);
+void to_json(nlohmann::json& json, const ByteArray& ba);
 
 } // namespace nw

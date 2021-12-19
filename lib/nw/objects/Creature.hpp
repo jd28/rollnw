@@ -4,26 +4,56 @@
 
 #include "Item.hpp"
 #include "components/Appearance.hpp"
-#include "components/Combat.hpp"
+#include "components/CombatInfo.hpp"
 #include "components/Common.hpp"
 #include "components/CreatureStats.hpp"
 #include "components/Equips.hpp"
 #include "components/Inventory.hpp"
 #include "components/Location.hpp"
 
-#include <nlohmann/json.hpp>
-
 namespace nw {
 
+struct CreatureScripts {
+    CreatureScripts() = default;
+
+    bool from_gff(const GffInputArchiveStruct& archive);
+    bool from_json(const nlohmann::json& archive);
+    nlohmann::json to_json() const;
+
+    Resref on_attacked;
+    Resref on_blocked;
+    Resref on_conversation;
+    Resref on_damaged;
+    Resref on_death;
+    Resref on_disturbed;
+    Resref on_endround;
+    Resref on_heartbeat;
+    Resref on_perceived;
+    Resref on_rested;
+    Resref on_spawn;
+    Resref on_spell_cast_at;
+    Resref on_user_defined;
+};
+
 struct Creature : public ObjectBase {
-    Creature(const GffInputArchiveStruct gff, SerializationProfile profile);
+    Creature();
+    Creature(const GffInputArchiveStruct& archive, SerializationProfile profile);
+    Creature(const nlohmann::json& archive, SerializationProfile profile);
+
     virtual Common* common() override { return &common_; }
+    virtual const Common* common() const override { return &common_; }
+    virtual Creature* as_creature() override { return this; }
+    virtual const Creature* as_creature() const override { return this; }
+
+    bool from_gff(const GffInputArchiveStruct& archive, SerializationProfile profile);
+    bool from_json(const nlohmann::json& archive, SerializationProfile profile);
+    nlohmann::json to_json(SerializationProfile profile) const;
 
     Common common_;
     Appearance appearance;
     LocString name_first;
     LocString name_last;
-    Combat combat_info;
+    CombatInfo combat_info;
     CreatureStats stats;
     Equips equipment;
     Inventory inventory;
@@ -32,20 +62,7 @@ struct Creature : public ObjectBase {
     LocString description;
     std::string subrace;
 
-    // Scripts
-    Resref on_attacked;
-    Resref on_damaged;
-    Resref on_death;
-    Resref on_conversation;
-    Resref on_disturbed;
-    Resref on_endround;
-    Resref on_heartbeat;
-    Resref on_blocked;
-    Resref on_perceived;
-    Resref on_rested;
-    Resref on_spawn;
-    Resref on_spell_cast_at;
-    Resref on_user_defined;
+    CreatureScripts scripts;
 
     float cr = 0.0;
     int32_t cr_adjust = 0;

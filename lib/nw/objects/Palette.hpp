@@ -16,7 +16,7 @@ struct PaletteTreeNode {
     PaletteTreeNode() = default;
 
     PaletteNodeType type;
-    uint8_t id = ~0;
+    uint8_t id = std::numeric_limits<uint8_t>::max();
 
     // Very rarely used, controls the visibility of nodes.
     // 0 - Display only if not empty.
@@ -28,7 +28,7 @@ struct PaletteTreeNode {
     // Every node has a name or a strref present, if both are, strref wins,
     // but both are retained.
     std::string name;
-    uint32_t strref = ~0;
+    uint32_t strref = std::numeric_limits<uint32_t>::max();
 
     // Extra data dependent on palette resource type,
     // the game appears to handle this with inheritance, but no thanks.

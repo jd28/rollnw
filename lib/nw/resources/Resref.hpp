@@ -1,5 +1,7 @@
 #pragma once
 
+#include <nlohmann/json_fwd.hpp>
+
 #include <array>
 #include <cctype>
 #include <string>
@@ -23,10 +25,13 @@ struct Resref {
     using value_type = typename Storage::value_type;
     using size_type = typename Storage::size_type;
 
-    Resref() = default;
+    Resref();
+    Resref(const Resref&) = default;
     Resref(Storage data) noexcept;
     Resref(const char* string) noexcept;
     Resref(std::string_view string) noexcept;
+
+    Resref& operator=(const Resref&) = default;
 
     /// Checks if the underlying array has no non-null characters
     bool empty() const noexcept;
@@ -50,5 +55,11 @@ bool operator==(const Resref& lhs, const Resref& rhs) noexcept;
 bool operator!=(const Resref& lhs, const Resref& rhs) noexcept;
 bool operator<(const Resref& lhs, const Resref& rhs) noexcept;
 std::ostream& operator<<(std::ostream& out, const Resref& resref);
+
+/// nlohmann::json specialization
+void from_json(const nlohmann::json& j, Resref& r);
+
+/// nlohmann::json specialization
+void to_json(nlohmann::json& j, const Resref& r);
 
 } // namespace nw

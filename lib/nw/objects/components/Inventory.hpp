@@ -19,7 +19,10 @@ struct InventoryItem {
 
 struct Inventory {
     Inventory() = default;
-    Inventory(const GffInputArchiveStruct gff, SerializationProfile profile);
+
+    bool from_gff(const GffInputArchiveStruct& archive, SerializationProfile profile);
+    bool from_json(const nlohmann::json& archive, SerializationProfile profile);
+    nlohmann::json to_json(SerializationProfile profile) const;
 
     std::vector<InventoryItem> items;
 };

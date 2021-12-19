@@ -3,6 +3,8 @@
 #include "../log.hpp"
 #include "../util/string.hpp"
 
+#include <nlohmann/json.hpp>
+
 #include <ostream>
 #include <tuple>
 
@@ -56,6 +58,20 @@ std::ostream& operator<<(std::ostream& out, const Resource& res)
 {
     out << res.filename();
     return out;
+}
+
+void from_json(const nlohmann::json& j, Resource& r)
+{
+    const auto& str = j.get<std::string>();
+    auto it = str.find('.');
+    if (it != std::string::npos) {
+        r = Resource{str.substr(0, it), ResourceType::from_extension(str.substr(it))};
+    }
+}
+
+void to_json(nlohmann::json& j, const Resource& r)
+{
+    j = r.filename();
 }
 
 } // namespace nw

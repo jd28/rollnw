@@ -14,12 +14,11 @@ Location::Location()
 {
 }
 
-Location::Location(const GffInputArchiveStruct gff, SerializationProfile profile)
-    : Location()
+bool Location::from_gff(const GffInputArchiveStruct gff, SerializationProfile profile)
 {
     if (profile != SerializationProfile::any
         && profile != SerializationProfile::instance) {
-        return;
+        return false;
     }
 
     bool valid = true;
@@ -55,6 +54,29 @@ Location::Location(const GffInputArchiveStruct gff, SerializationProfile profile
     }
 
     if (!valid) { area = object_invalid; }
+
+    return area != object_invalid;
+}
+
+void from_json(const nlohmann::json& json, Location& loc)
+{
+    loc.area = static_cast<ObjectID>(json.at("area").get<uint32_t>());
+
+    json.at("position")[0].get_to(loc.position.x);
+    json.at("position")[1].get_to(loc.position.y);
+    json.at("position")[2].get_to(loc.position.z);
+
+    json.at("orientation")[0].get_to(loc.orientation.x);
+    json.at("orientation")[1].get_to(loc.orientation.y);
+    json.at("orientation")[2].get_to(loc.orientation.z);
+}
+
+void to_json(nlohmann::json& json, const Location& loc)
+{
+    json = nlohmann::json{
+        {"area", loc.area},
+        {"position", {loc.position.x, loc.position.y, loc.position.z}},
+        {"orientation", {loc.orientation.x, loc.orientation.y, loc.orientation.z}}};
 }
 
 } // namespace nw

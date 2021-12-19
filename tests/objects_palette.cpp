@@ -11,7 +11,7 @@ TEST_CASE("Loading Creature Palette", "[objects]")
     auto node = c.root.children[0];
 
     REQUIRE(node.type == nw::PaletteNodeType::branch);
-    REQUIRE(node.strref != ~0);
+    REQUIRE(node.strref != std::numeric_limits<uint32_t>::max());
     REQUIRE(node.children.size() > 0);
 
     auto catnode = node.children[0];
