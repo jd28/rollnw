@@ -10,7 +10,7 @@ function(set_project_warnings project_name)
       /w14242 # 'identifier': conversion from 'type1' to 'type1', possible loss of data
       /w14254 # 'operator': conversion from 'type1:field_bits' to 'type2:field_bits', possible loss of data
       /w14263 # 'function': member function does not override any base class virtual member function
-      # /w14265 # 'classname': class has virtual functions, but destructor is not virtual instances of this class may not
+      /w14265 # 'classname': class has virtual functions, but destructor is not virtual instances of this class may not
               # be destructed correctly
       /w14287 # 'operator': unsigned/negative constant mismatch
       /we4289 # nonstandard extension used: 'variable': loop control variable declared in the for-loop is used outside
@@ -51,7 +51,6 @@ function(set_project_warnings project_name)
 
   if(WARNINGS_AS_ERRORS)
     set(CLANG_WARNINGS ${CLANG_WARNINGS} -Werror)
-    set(MSVC_WARNINGS ${MSVC_WARNINGS} /WX)
   endif()
 
   set(GCC_WARNINGS

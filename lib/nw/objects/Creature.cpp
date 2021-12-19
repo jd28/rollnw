@@ -40,6 +40,7 @@ bool CreatureScripts::from_json(const nlohmann::json& archive)
         archive.at("on_spell_cast_at").get_to(on_spell_cast_at);
         archive.at("on_user_defined").get_to(on_user_defined);
     } catch (const nlohmann::json::exception& e) {
+        LOG_F(ERROR, "from_json exception: {}", e.what());
         return false;
     }
     return true;
@@ -170,6 +171,7 @@ bool Creature::from_json(const nlohmann::json& archive, SerializationProfile pro
         archive.at("subrace").get_to(subrace);
         archive.at("walkrate").get_to(walkrate);
     } catch (const nlohmann::json::exception& e) {
+        LOG_F(ERROR, "from_json exception: {}", e.what());
         return false;
     }
 

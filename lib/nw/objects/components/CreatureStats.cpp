@@ -45,6 +45,7 @@ bool CreatureStats::from_json(const nlohmann::json& archive)
         archive.at("skills").get_to(skills);
         archive.at("save_bonus").get_to(save_bonus);
     } catch (const nlohmann::json::exception& e) {
+        LOG_F(ERROR, "from_json exception: {}", e.what());
         return false;
     }
     return false;

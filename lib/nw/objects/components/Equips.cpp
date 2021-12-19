@@ -263,6 +263,7 @@ bool Equips::from_json(const nlohmann::json& archive, SerializationProfile profi
                 creature_skin = std::make_unique<Item>(archive.at("creature_skin"), profile);
         }
     } catch (const nlohmann::json::exception& e) {
+        LOG_F(ERROR, "from_json exception: {}", e.what());
         return false;
     }
     return true;

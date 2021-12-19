@@ -224,6 +224,7 @@ bool GffInputArchiveField::get_to(T& value) const
                 off += 1;
                 CHECK_OFF(parent_->bytes_.read_at(off, buffer, size));
                 value = Resref(buffer);
+                return true;
             } else if constexpr (std::is_same_v<T, std::string>) {
                 uint32_t size;
                 parent_->bytes_.read_at(off, &size, 4);
@@ -234,6 +235,7 @@ bool GffInputArchiveField::get_to(T& value) const
                 s.append(reinterpret_cast<const char*>(parent_->bytes_.data() + off), size);
                 value = string::sanitize_colors(std::move(s));
                 value = to_utf8(value, Language::default_encoding(), true);
+                return true;
             } else if constexpr (std::is_same_v<T, LocString>) {
                 uint32_t size, strref, lang, strings;
                 parent_->bytes_.read_at(off, &size, 4);
@@ -258,12 +260,14 @@ bool GffInputArchiveField::get_to(T& value) const
                     ls.add(lang, std::move(s));
                 }
                 value = std::move(ls);
+                return true;
             } else if constexpr (std::is_same_v<T, ByteArray>) {
                 uint32_t size;
                 parent_->bytes_.read_at(off, &size, 4);
                 off += 4;
                 CHECK_OFF(off + size < parent_->bytes_.size());
                 value = ByteArray(parent_->bytes_.data() + off, size);
+                return true;
             } else if constexpr (std::is_same_v<T, GffInputArchiveStruct>) {
                 if (entry_->data_or_offset < parent_->head_->struct_count) {
                     value = GffInputArchiveStruct(parent_, &parent_->structs_[entry_->data_or_offset]);
@@ -271,10 +275,14 @@ bool GffInputArchiveField::get_to(T& value) const
                     LOG_F(ERROR, "GffField: Invalid index ({}) into struct array", entry_->data_or_offset);
                     value = GffInputArchiveStruct();
                 }
+                return true;
+            } else {
+                T temp;
+                CHECK_OFF(parent_->bytes_.read_at(off, &temp, sizeof(T)));
+                return true;
             }
         }
     }
-    return true;
 }
 
 #undef CHECK_OFF

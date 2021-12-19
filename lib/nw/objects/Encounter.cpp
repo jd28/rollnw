@@ -59,6 +59,7 @@ bool SpawnCreature::from_json(const nlohmann::json& archive)
         archive.at("resref").get_to(resref);
         archive.at("single_spawn").get_to(single_spawn);
     } catch (const nlohmann::json::exception& e) {
+        LOG_F(ERROR, "from_json exception: {}", e.what());
         return false;
     }
 

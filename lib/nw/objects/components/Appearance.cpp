@@ -80,6 +80,7 @@ bool Appearance::from_json(const nlohmann::json& archive)
         bp.at("right_thigh").get_to(body_parts.right_thigh);
         bp.at("torso").get_to(body_parts.torso);
     } catch (const nlohmann::json::exception& e) {
+        LOG_F(ERROR, "from_json exception: {}", e.what());
         return false;
     }
     return true;

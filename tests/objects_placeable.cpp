@@ -5,7 +5,7 @@
 
 #include <nlohmann/json.hpp>
 
-#include <nowide/fstream.hpp>
+#include <fstream>
 
 TEST_CASE("placeable: from_gff", "[objects]")
 {

@@ -33,6 +33,7 @@ bool CombatInfo::from_json(const nlohmann::json& archive)
             arr[i].at("flags").get_to(special_abilities[i].flags);
         }
     } catch (const nlohmann::json::exception& e) {
+        LOG_F(ERROR, "from_json exception: {}", e.what());
         return false;
     }
     return true;
