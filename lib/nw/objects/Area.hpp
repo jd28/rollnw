@@ -66,7 +66,11 @@ struct Tile {
 struct Area : public ObjectBase {
     Area(const GffInputArchiveStruct caf, const GffInputArchiveStruct gic);
     Area(const GffInputArchiveStruct are, const GffInputArchiveStruct git, const GffInputArchiveStruct gic);
+
     virtual Common* common() override { return &common_; }
+    virtual const Common* common() const override { return &common_; }
+    virtual Area* as_area() override { return this; }
+    virtual const Area* as_area() const override { return this; }
 
     Common common_;
     std::vector<std::unique_ptr<Creature>> creatures;
