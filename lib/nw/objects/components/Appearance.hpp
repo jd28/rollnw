@@ -26,7 +26,9 @@ struct BodyParts {
 };
 
 struct Appearance {
-    Appearance(const GffInputArchiveStruct gff);
+    bool from_gff(const GffInputArchiveStruct& archive);
+    bool from_json(const nlohmann::json& archive);
+    nlohmann::json to_json() const;
 
     int32_t phenotype = 0;
     uint32_t tail = 0;

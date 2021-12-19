@@ -10,7 +10,10 @@ namespace nw {
 
 struct CreatureStats {
     CreatureStats() = default;
-    CreatureStats(const GffInputArchiveStruct gff);
+
+    bool from_gff(const GffInputArchiveStruct& archive);
+    bool from_json(const nlohmann::json& archive);
+    nlohmann::json to_json() const;
 
     std::array<uint8_t, 6> abilities;
     std::vector<uint16_t> feats;

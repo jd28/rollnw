@@ -11,8 +11,10 @@ struct SpecialAbility {
     SpellFlags flags = SpellFlags::none;
 };
 
-struct Combat {
-    Combat(const GffInputArchiveStruct gff);
+struct CombatInfo {
+    bool from_gff(const GffInputArchiveStruct& archive);
+    bool from_json(const nlohmann::json& archive);
+    nlohmann::json to_json() const;
 
     uint8_t ac_natural = 0;
     std::vector<SpecialAbility> special_abilities;

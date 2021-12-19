@@ -44,7 +44,7 @@ add_library(nw STATIC
     objects/Waypoint.cpp
 
     objects/components/Appearance.cpp
-    objects/components/Combat.cpp
+    objects/components/CombatInfo.cpp
     objects/components/Common.cpp
     objects/components/CreatureStats.cpp
     objects/components/Equips.cpp
