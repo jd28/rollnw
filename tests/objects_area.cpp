@@ -3,7 +3,11 @@
 #include <nw/objects/Area.hpp>
 #include <nw/serialization/Serialization.hpp>
 
-TEST_CASE("Loading area", "[objects]")
+#include <nlohmann/json.hpp>
+
+#include <fstream>
+
+TEST_CASE("area: from_gff", "[objects]")
 {
     nw::GffInputArchive are{"test_data/test_area.are"};
     nw::GffInputArchive git{"test_data/test_area.git"};
@@ -21,4 +25,32 @@ TEST_CASE("Loading area", "[objects]")
     REQUIRE(area.creatures.size() > 0);
     REQUIRE(area.creatures[0]->common()->resref == "test_creature");
     REQUIRE(area.creatures[0]->stats.abilities[0] == 20);
+}
+
+TEST_CASE("area: to_json", "[objects]")
+{
+    nw::GffInputArchive are{"test_data/test_area.are"};
+    nw::GffInputArchive git{"test_data/test_area.git"};
+    nw::GffInputArchive gic{"test_data/test_area.gic"};
+
+    nw::Area area{are.toplevel(), git.toplevel(), gic.toplevel()};
+
+    nlohmann::json j = area.to_json();
+
+    std::ofstream f{"tmp/test_area.caf.json"};
+    f << std::setw(4) << j;
+}
+
+TEST_CASE("area: json roundtrip", "[objects]")
+{
+    nw::GffInputArchive are{"test_data/test_area.are"};
+    nw::GffInputArchive git{"test_data/test_area.git"};
+    nw::GffInputArchive gic{"test_data/test_area.gic"};
+
+    nw::Area area{are.toplevel(), git.toplevel(), gic.toplevel()};
+
+    nlohmann::json j = area.to_json();
+    nw::Area area2{j, {}};
+    nlohmann::json j2 = area2.to_json();
+    REQUIRE(j == j2);
 }

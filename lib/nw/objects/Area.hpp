@@ -25,8 +25,25 @@ enum struct AreaFlags : uint32_t {
 
 DEFINE_ENUM_FLAGS(AreaFlags)
 
+struct AreaScripts {
+    AreaScripts() = default;
+
+    bool from_gff(const GffInputArchiveStruct& archive);
+    bool from_json(const nlohmann::json& archive);
+    nlohmann::json to_json() const;
+
+    Resref on_enter;
+    Resref on_exit;
+    Resref on_heartbeat;
+    Resref on_user_defined;
+};
+
 struct AreaWeather {
-    AreaWeather(const GffInputArchiveStruct gff);
+    AreaWeather() = default;
+
+    bool from_gff(const GffInputArchiveStruct& archive);
+    bool from_json(const nlohmann::json& archive);
+    nlohmann::json to_json() const;
 
     int32_t chance_lightning = 0;
     int32_t chance_rain = 0;
@@ -50,7 +67,12 @@ struct AreaWeather {
 };
 
 struct Tile {
-    Tile(const GffInputArchiveStruct gff);
+    Tile() = default;
+
+    bool from_gff(const GffInputArchiveStruct& archive);
+    bool from_json(const nlohmann::json& archive);
+    nlohmann::json to_json() const;
+
     int32_t id = 0;
     int32_t height = 0;
     int32_t orientation = 0;
@@ -60,19 +82,26 @@ struct Tile {
     uint8_t mainlight1 = 0;
     uint8_t mainlight2 = 0;
     uint8_t srclight1 = 0;
-    uint8_t srclight = 0;
+    uint8_t srclight2 = 0;
 };
 
 struct Area : public ObjectBase {
-    Area(const GffInputArchiveStruct caf, const GffInputArchiveStruct gic);
-    Area(const GffInputArchiveStruct are, const GffInputArchiveStruct git, const GffInputArchiveStruct gic);
+    Area(const GffInputArchiveStruct& caf, const GffInputArchiveStruct& gic);
+    Area(const GffInputArchiveStruct& are, const GffInputArchiveStruct& git, const GffInputArchiveStruct& gic);
+    Area(const nlohmann::json& caf, const nlohmann::json& gic);
 
     virtual Common* common() override { return &common_; }
     virtual const Common* common() const override { return &common_; }
     virtual Area* as_area() override { return this; }
     virtual const Area* as_area() const override { return this; }
 
+    bool from_gff(const GffInputArchiveStruct& are, const GffInputArchiveStruct& git, const GffInputArchiveStruct& gic);
+    // Note that from/to_json does 'caf' style input/output, i.e. ARE + GIT.
+    bool from_json(const nlohmann::json& caf, const nlohmann::json& gic);
+    nlohmann::json to_json() const;
+
     Common common_;
+    AreaScripts scripts;
     std::vector<std::unique_ptr<Creature>> creatures;
     std::vector<std::unique_ptr<Door>> doors;
     std::vector<std::unique_ptr<Encounter>> encounters;
@@ -97,11 +126,6 @@ struct Area : public ObjectBase {
     int32_t spot_check_mod = 0;
     uint32_t version = 0;
     int32_t width = 0;
-
-    Resref on_enter;
-    Resref on_exit;
-    Resref on_heartbeat;
-    Resref on_user_defined;
 
     uint16_t loadscreen = 0;
     uint8_t no_rest = 0;
