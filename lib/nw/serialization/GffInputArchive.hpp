@@ -275,8 +275,8 @@ bool GffInputArchiveField::get_to(T& value) const
                 return false;
             }
         }
-        return true;
     }
+    return true;
 }
 
 #undef CHECK_OFF
