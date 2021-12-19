@@ -22,7 +22,7 @@ struct DialogPtr {
 
     Dialog* parent = nullptr;
     DialogNodeType type = DialogNodeType::entry;
-    uint32_t index = ~0;
+    uint32_t index = std::numeric_limits<uint32_t>::max();
 
     Resref script_appears;
     bool is_start = false;
@@ -39,7 +39,7 @@ public:
 
     std::string comment;
     std::string quest;
-    uint32_t quest_entry = ~0;
+    uint32_t quest_entry = std::numeric_limits<uint32_t>::max();
     Resref script_action;
     Resref sound;
     LocString text;

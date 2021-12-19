@@ -9,5 +9,5 @@ TEST_CASE("Tlk Table", "[i18n]")
     REQUIRE(t.is_valid());
     REQUIRE(t.get(1000) == "Silence");
     REQUIRE(t.get(0x01001000) == "Stay here and don't move until I return.");
-    REQUIRE(t.get(~0) == "");
+    REQUIRE(t.get(0xFFFFFFFF) == "");
 }

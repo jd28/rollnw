@@ -35,7 +35,7 @@ struct Common {
 
     // Blueprint only
     std::string comment;
-    uint8_t palette_id = ~0;
+    uint8_t palette_id = std::numeric_limits<uint8_t>::max();
 
 protected:
     bool valid_ = false;

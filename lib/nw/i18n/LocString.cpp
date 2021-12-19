@@ -82,7 +82,7 @@ void from_json(const nlohmann::json& j, LocString& loc)
     loc = LocString(j.at("strref").get<uint32_t>());
     auto strings = j.at("strings");
 
-    uint32_t lang = ~0;
+    uint32_t lang = std::numeric_limits<uint32_t>::max();
     std::string s;
     for (const auto& str : strings) {
         str.at("lang").get_to(lang);

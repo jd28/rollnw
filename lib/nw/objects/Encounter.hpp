@@ -67,7 +67,7 @@ struct Encounter : public ObjectBase {
     std::vector<glm::vec3> geometry;
     std::vector<SpawnPoint> spawn_points;
 
-    int32_t creatures_max = ~0;
+    int32_t creatures_max = -1;
     int32_t creatures_recommended = 0;
     int32_t difficulty = 0;
     int32_t difficulty_index = 0;
