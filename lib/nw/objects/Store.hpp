@@ -10,10 +10,21 @@
 namespace nw {
 
 struct Store : public ObjectBase {
-    Store(const GffInputArchiveStruct gff, SerializationProfile profile);
+    Store();
+    Store(const GffInputArchiveStruct& archive, SerializationProfile profile);
+    Store(const nlohmann::json& archive, SerializationProfile profile);
+
     virtual Common* common() override { return &common_; }
+    virtual const Common* common() const override { return &common_; }
+    virtual Store* as_store() override { return this; }
+    virtual const Store* as_store() const override { return this; }
+
+    bool from_gff(const GffInputArchiveStruct& archive, SerializationProfile profile);
+    bool from_json(const nlohmann::json& archive, SerializationProfile profile);
+    nlohmann::json to_json(SerializationProfile profile) const;
 
     bool valid_ = true;
+
     Common common_;
     Resref on_closed;
     Resref on_opened;
@@ -28,7 +39,7 @@ struct Store : public ObjectBase {
     std::vector<int32_t> will_not_buy;
     std::vector<int32_t> will_only_buy;
 
-    uint8_t blackmarket;
+    bool blackmarket;
 
     Inventory armor;
     Inventory miscellaneous;
