@@ -9,19 +9,13 @@ namespace nw {
 
 // For our purpose..  Module is going to be synonym to module.ifo.  NOT the Erf Container.
 
-struct Module {
-    explicit Module(const GffInputArchiveStruct gff);
+struct ModuleScripts {
+    ModuleScripts() = default;
 
-    std::vector<Resref> areas;
-    LocString description;
-    Resref entry_area;
-    glm::vec3 entry_orientation;
-    glm::vec3 entry_position;
-    std::vector<std::string> haks;
-    ByteArray id;
-    LocalData local_data;
-    std::string min_game_version;
-    LocString name;
+    bool from_gff(const GffInputArchiveStruct& archive);
+    bool from_json(const nlohmann::json& archive);
+    nlohmann::json to_json() const;
+
     Resref on_item_acquire;
     Resref on_item_activate;
     Resref on_item_unaquire;
@@ -40,8 +34,31 @@ struct Module {
     Resref on_player_uneqiup;
     Resref on_spawnbtndn;
     Resref on_user_defined;
-    Resref start_movie;
+};
+
+struct Module {
+    Module() = default;
+    explicit Module(const GffInputArchiveStruct& archive);
+    explicit Module(const nlohmann::json& archive);
+
+    // Serialization
+    bool from_gff(const GffInputArchiveStruct& archive);
+    bool from_json(const nlohmann::json& archive);
+    nlohmann::json to_json() const;
+
+    std::vector<Resref> areas;
+    LocString description;
+    Resref entry_area;
+    glm::vec3 entry_orientation;
+    glm::vec3 entry_position;
+    std::vector<std::string> haks;
+    ByteArray id;
+    LocalData local_data;
+    std::string min_game_version;
+    LocString name;
+    ModuleScripts scripts;
     uint32_t start_year;
+    Resref start_movie;
     std::string tag;
     std::string tlk;
 
