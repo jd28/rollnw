@@ -91,10 +91,10 @@ struct Expression : public AstNode {
 };
 
 struct AssignExpression : Expression {
-    AssignExpression(std::unique_ptr<Expression> left, NssToken op, std::unique_ptr<Expression> right)
-        : left{std::move(left)}
-        , op{op}
-        , right{std::move(right)}
+    AssignExpression(std::unique_ptr<Expression> lhs, NssToken token, std::unique_ptr<Expression> rhs)
+        : left{std::move(lhs)}
+        , op{token}
+        , right{std::move(rhs)}
     {
     }
 
@@ -107,12 +107,12 @@ struct AssignExpression : Expression {
 
 struct BinaryExpression : Expression {
     BinaryExpression(
-        std::unique_ptr<Expression> left,
-        NssToken op,
-        std::unique_ptr<Expression> right)
-        : left{std::move(left)}
-        , op{op}
-        , right{std::move(right)}
+        std::unique_ptr<Expression> lhs,
+        NssToken token,
+        std::unique_ptr<Expression> rhs)
+        : left{std::move(lhs)}
+        , op{token}
+        , right{std::move(rhs)}
     {
     }
 
@@ -124,8 +124,8 @@ struct BinaryExpression : Expression {
 };
 
 struct CallExpression : Expression {
-    explicit CallExpression(std::unique_ptr<Expression> expr)
-        : expr{std::move(expr)}
+    explicit CallExpression(std::unique_ptr<Expression> expr_)
+        : expr{std::move(expr_)}
     {
     }
 
@@ -137,12 +137,12 @@ struct CallExpression : Expression {
 
 struct ConditionalExpression : Expression {
     ConditionalExpression(
-        std::unique_ptr<Expression> expr,
-        std::unique_ptr<Expression> true_branch,
-        std::unique_ptr<Expression> false_branch)
-        : expr{std::move(expr)}
-        , true_branch{std::move(true_branch)}
-        , false_branch{std::move(false_branch)}
+        std::unique_ptr<Expression> expr_,
+        std::unique_ptr<Expression> true_branch_,
+        std::unique_ptr<Expression> false_branch_)
+        : expr{std::move(expr_)}
+        , true_branch{std::move(true_branch_)}
+        , false_branch{std::move(false_branch_)}
     {
     }
 
@@ -155,10 +155,10 @@ struct ConditionalExpression : Expression {
 
 struct DotExpression : Expression {
     DotExpression(
-        std::unique_ptr<Expression> left,
-        std::unique_ptr<Expression> right)
-        : left{std::move(left)}
-        , right{std::move(right)}
+        std::unique_ptr<Expression> lhs,
+        std::unique_ptr<Expression> rhs)
+        : left{std::move(lhs)}
+        , right{std::move(rhs)}
     {
     }
 
@@ -169,8 +169,8 @@ struct DotExpression : Expression {
 };
 
 struct GroupingExpression : Expression {
-    explicit GroupingExpression(std::unique_ptr<Expression> expr)
-        : expr{std::move(expr)}
+    explicit GroupingExpression(std::unique_ptr<Expression> expr_)
+        : expr{std::move(expr_)}
     {
     }
 
@@ -180,8 +180,8 @@ struct GroupingExpression : Expression {
 };
 
 struct LiteralExpression : Expression {
-    explicit LiteralExpression(NssToken literal)
-        : literal{literal}
+    explicit LiteralExpression(NssToken token)
+        : literal{token}
     {
     }
 
@@ -192,12 +192,12 @@ struct LiteralExpression : Expression {
 
 struct LogicalExpression : Expression {
     LogicalExpression(
-        std::unique_ptr<Expression> left,
-        NssToken op,
-        std::unique_ptr<Expression> right)
-        : left{std::move(left)}
-        , op{op}
-        , right{std::move(right)}
+        std::unique_ptr<Expression> lhs,
+        NssToken token,
+        std::unique_ptr<Expression> rhs)
+        : left{std::move(lhs)}
+        , op{token}
+        , right{std::move(rhs)}
     {
     }
 
@@ -209,9 +209,9 @@ struct LogicalExpression : Expression {
 };
 
 struct PostfixExpression : Expression {
-    PostfixExpression(std::unique_ptr<Expression> left, NssToken op)
-        : left{std::move(left)}
-        , op{op}
+    PostfixExpression(std::unique_ptr<Expression> lhs, NssToken token)
+        : left{std::move(lhs)}
+        , op{token}
     {
     }
 
@@ -222,9 +222,9 @@ struct PostfixExpression : Expression {
 };
 
 struct UnaryExpression : Expression {
-    UnaryExpression(NssToken op, std::unique_ptr<Expression> right)
-        : op{op}
-        , right{std::move(right)}
+    UnaryExpression(NssToken token, std::unique_ptr<Expression> rhs)
+        : op{token}
+        , right{std::move(rhs)}
     {
     }
 
@@ -235,8 +235,8 @@ struct UnaryExpression : Expression {
 };
 
 struct VariableExpression : Expression {
-    explicit VariableExpression(NssToken var)
-        : var{var}
+    explicit VariableExpression(NssToken token)
+        : var{token}
     {
     }
 
