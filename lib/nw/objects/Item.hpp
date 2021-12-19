@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ObjectBase.hpp"
+#include "components/Common.hpp"
 #include "components/Inventory.hpp"
 #include "components/LocalData.hpp"
 #include "components/Location.hpp"
@@ -57,22 +58,33 @@ struct ItemModelParts {
 };
 
 struct ItemProperty {
-    uint16_t type;
-    uint16_t subtype;
-    uint8_t cost_table;
-    uint16_t cost_value;
-    uint8_t param_table;
-    uint8_t param_value;
+    uint16_t type = 0;
+    uint16_t subtype = 0;
+    uint8_t cost_table = 0;
+    uint16_t cost_value = 0;
+    uint8_t param_table = std::numeric_limits<uint8_t>::max();
+    uint8_t param_value = std::numeric_limits<uint8_t>::max();
 };
 
-struct Item {
-    Item() = default;
-    Item(const GffInputArchiveStruct gff, SerializationProfile profile);
+struct Item : public ObjectBase {
+    Item();
+    Item(const GffInputArchiveStruct& archive, SerializationProfile profile);
+    Item(const nlohmann::json& archive, SerializationProfile profile);
     ~Item() = default;
 
-    Resref resref;
-    std::string tag;
-    LocString name;
+    // ObjectBase overrides
+    virtual Common* common() override { return &common_; }
+    virtual const Common* common() const override { return &common_; }
+    virtual Item* as_item() override { return this; }
+    virtual const Item* as_item() const override { return this; }
+
+    // Serialization
+    bool from_gff(const GffInputArchiveStruct& archive, SerializationProfile profile);
+    bool from_json(const nlohmann::json& archive, SerializationProfile profile);
+    nlohmann::json to_json(SerializationProfile profile) const;
+
+    Common common_;
+
     LocString description;
     LocString description_id;
     Inventory inventory;
@@ -82,23 +94,14 @@ struct Item {
     int32_t baseitem;
     uint16_t stacksize = 1;
     uint8_t charges = 0;
-    uint8_t cursed = 0;
-    uint8_t plot = 0;
-    uint8_t stolen = 0;
+    bool cursed = false;
+    bool plot = false;
+    bool stolen = false;
 
     ItemModelType model_type = ItemModelType::simple;
     std::array<uint8_t, 6> model_colors;
     std::array<uint8_t, 19> model_parts;
     std::vector<ItemProperty> properties;
-
-    // Blueprint only
-    std::string comment;
-    uint8_t palette_id = ~0;
-
-    // Instance only
-    Location loc;
-
-    LocalData local_data;
 };
 
 } // namespace nw
