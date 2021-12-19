@@ -98,31 +98,34 @@ bool LocalData::from_json(const nlohmann::json& archive)
 {
     try {
         for (const auto& [key, value] : archive.items()) {
-            LOG_F(INFO, "KEY: {}", key);
             auto& payload = vars_[key];
 
             auto it = value.find("float");
             if (it != std::end(value)) {
                 payload.float_ = it->get<float>();
+                payload.flags.set(LocalVarType::FLOAT);
             }
             it = value.find("integer");
             if (it != std::end(value)) {
                 payload.integer = it->get<int>();
+                payload.flags.set(LocalVarType::INTEGER);
             }
             it = value.find("object");
             if (it != std::end(value)) {
                 payload.object = static_cast<ObjectID>(it->get<uint32_t>());
+                payload.flags.set(LocalVarType::OBJECT);
             }
             it = value.find("string");
             if (it != std::end(value)) {
                 payload.string = it->get<std::string>();
+                payload.flags.set(LocalVarType::STRING);
             }
             it = value.find("location");
             if (it != std::end(value)) {
                 payload.loc = it->get<Location>();
+                payload.flags.set(LocalVarType::LOCATION);
             }
         }
-
     } catch (const nlohmann::json::exception& e) {
         LOG_F(ERROR, "LocalData::from_json exception: {}", e.what());
         return false;
