@@ -271,8 +271,6 @@ bool GffInputArchiveField::get_to(T& value) const
                     LOG_F(ERROR, "GffField: Invalid index ({}) into struct array", entry_->data_or_offset);
                     value = GffInputArchiveStruct();
                 }
-            } else {
-                return false;
             }
         }
     }
