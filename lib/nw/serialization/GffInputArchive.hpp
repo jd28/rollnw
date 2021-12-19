@@ -216,6 +216,7 @@ bool GffInputArchiveField::get_to(T& value) const
             return true;
         } else {
             size_t off = entry_->data_or_offset + parent_->head_->field_data_offset;
+            CHECK_OFF(off < parent_->bytes_.size());
 
             if constexpr (std::is_same_v<T, Resref>) {
                 char buffer[17] = {0};
@@ -227,7 +228,7 @@ bool GffInputArchiveField::get_to(T& value) const
                 return true;
             } else if constexpr (std::is_same_v<T, std::string>) {
                 uint32_t size;
-                parent_->bytes_.read_at(off, &size, 4);
+                CHECK_OFF(parent_->bytes_.read_at(off, &size, 4));
                 off += 4;
                 CHECK_OFF(off + size < parent_->bytes_.size());
                 std::string s{};
@@ -238,19 +239,19 @@ bool GffInputArchiveField::get_to(T& value) const
                 return true;
             } else if constexpr (std::is_same_v<T, LocString>) {
                 uint32_t size, strref, lang, strings;
-                parent_->bytes_.read_at(off, &size, 4);
+                CHECK_OFF(parent_->bytes_.read_at(off, &size, 4));
                 off += 4;
-                parent_->bytes_.read_at(off, &strref, 4);
+                CHECK_OFF(parent_->bytes_.read_at(off, &strref, 4));
                 off += 4;
-                parent_->bytes_.read_at(off, &strings, 4);
+                CHECK_OFF(parent_->bytes_.read_at(off, &strings, 4));
                 off += 4;
 
                 LocString ls{strref};
 
                 for (uint32_t i = 0; i < strings; ++i) {
-                    parent_->bytes_.read_at(off, &lang, 4);
+                    CHECK_OFF(parent_->bytes_.read_at(off, &lang, 4));
                     off += 4;
-                    parent_->bytes_.read_at(off, &size, 4);
+                    CHECK_OFF(parent_->bytes_.read_at(off, &size, 4));
                     off += 4;
                     CHECK_OFF(off + size < parent_->bytes_.size());
                     std::string s{reinterpret_cast<const char*>(parent_->bytes_.data() + off), size};
