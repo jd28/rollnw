@@ -124,7 +124,7 @@ private:
     friend struct GffInputArchiveStruct;
 
     detail::GffHeader* head_ = nullptr;
-    Resref* labels_ = nullptr; // Not techinically resref, but fine for now.
+    detail::GffLabel* labels_ = nullptr;
     detail::GffStructEntry* structs_ = nullptr;
     detail::GffFieldEntry* fields_ = nullptr;
     uint32_t* field_indices_ = nullptr;

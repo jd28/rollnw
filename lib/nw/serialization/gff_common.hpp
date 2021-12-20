@@ -42,6 +42,36 @@ struct GffStructEntry {
     uint32_t field_count;
 };
 
+struct GffLabel {
+    static constexpr size_t max_size = 16;
+    using Storage = std::array<char, max_size>;
+    using value_type = typename Storage::value_type;
+    using size_type = typename Storage::size_type;
+
+    GffLabel();
+    GffLabel(const GffLabel&) = default;
+    GffLabel(Storage data) noexcept;
+    GffLabel(const char* string) noexcept;
+    GffLabel(std::string_view string) noexcept;
+
+    GffLabel& operator=(const GffLabel&) = default;
+
+    /// Checks if the underlying array has no non-null characters
+    bool empty() const noexcept;
+
+    /// Returns the number of char elements in the array, excluding nulls.
+    size_type length() const noexcept;
+
+    /// Creates ``std::string`` of underlying array
+    std::string string() const;
+
+    /// Creates ``std::string_view`` of underlying array without null padding
+    std::string_view view() const noexcept;
+
+private:
+    Storage data_;
+};
+
 } // namespace detail
 
 } // namespace nw

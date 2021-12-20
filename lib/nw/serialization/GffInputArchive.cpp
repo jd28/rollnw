@@ -174,7 +174,7 @@ bool GffInputArchive::parse()
     CHECK_OFF(sizeof(detail::GffHeader) < bytes_.size());
     head_ = reinterpret_cast<detail::GffHeader*>(bytes_.data());
     CHECK_OFF(head_->label_offset < bytes_.size() && head_->label_offset + head_->label_count * sizeof(Resref) < bytes_.size());
-    labels_ = reinterpret_cast<Resref*>(bytes_.data() + head_->label_offset);
+    labels_ = reinterpret_cast<detail::GffLabel*>(bytes_.data() + head_->label_offset);
     CHECK_OFF(head_->struct_offset < bytes_.size() && head_->struct_offset + head_->struct_count * sizeof(detail::GffStructEntry) < bytes_.size());
     structs_ = reinterpret_cast<detail::GffStructEntry*>(bytes_.data() + head_->struct_offset);
     CHECK_OFF(head_->field_offset < bytes_.size() && head_->field_offset + head_->field_count * sizeof(detail::GffFieldEntry) < bytes_.size());
