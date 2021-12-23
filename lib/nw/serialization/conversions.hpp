@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../serialization/Archives.hpp"
+#include "Archives.hpp"
 
 #include <nlohmann/json.hpp>
 
