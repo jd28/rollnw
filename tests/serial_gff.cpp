@@ -3,7 +3,11 @@
 #include <nw/log.hpp>
 #include <nw/serialization/conversions.hpp>
 
+#include <nw/serialization/GffOutputArchive.hpp>
+
 #include <fstream>
+
+using namespace std::literals;
 
 TEST_CASE("GffInputArchive Validation", "[serialization]")
 {
@@ -70,4 +74,36 @@ TEST_CASE("GffInputArchive Object Poisoning", "[serialization]")
     auto top = g.toplevel();
     int32_t nonextant;
     REQUIRE_FALSE(top["thisdoesn't exist"][2000]["Or this"][1000000000]["Maybe this?"].get_to(nonextant));
+}
+
+TEST_CASE("GffOutputArchive construction", "[serialization]")
+{
+    nw::GffOutputArchive oa("UTC");
+    REQUIRE(std::memcmp(oa.header.type, "UTC ", 4) == 0);
+    REQUIRE(std::memcmp(oa.header.version, "V3.2", 4) == 0);
+}
+
+TEST_CASE("GffOutputArchive add_labels", "[serialization]")
+{
+    nw::GffOutputArchive oa("UTC");
+    auto idx1 = oa.add_label("ThisIsTest1");
+    oa.add_label("ThisIsTest2");
+    oa.add_label("ThisIsTest3");
+    auto idx4 = oa.add_label("ThisIsTest4");
+    REQUIRE(idx4 == 3);
+    auto idx1_2 = oa.add_label("ThisIsTest1");
+    REQUIRE(oa.labels.size() == 4);
+    REQUIRE(idx1 == idx1_2);
+
+    std::string s{"hello world"};
+    int32_t i = 0;
+    oa.top.add_fields({{"temp", s},
+        {"another", i}});
+
+    auto& skills = oa.top.add_list("SkillList");
+    for (int j = 0; j < 10; ++j) {
+        skills.push_back(0x3432, {{"Rank", j}});
+    }
+
+    REQUIRE(skills.size() == 10);
 }

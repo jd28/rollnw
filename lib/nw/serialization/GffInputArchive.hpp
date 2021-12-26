@@ -119,16 +119,16 @@ struct GffInputArchive {
     /// Get the Gff Version
     std::string_view version() const { return {head_->version, 4}; }
 
-private:
-    friend struct GffInputArchiveField;
-    friend struct GffInputArchiveStruct;
-
     detail::GffHeader* head_ = nullptr;
     detail::GffLabel* labels_ = nullptr;
     detail::GffStructEntry* structs_ = nullptr;
     detail::GffFieldEntry* fields_ = nullptr;
     uint32_t* field_indices_ = nullptr;
     uint32_t* list_indices_ = nullptr;
+
+private:
+    friend struct GffInputArchiveField;
+    friend struct GffInputArchiveStruct;
 
     ByteArray bytes_;
     bool is_loaded_ = false;

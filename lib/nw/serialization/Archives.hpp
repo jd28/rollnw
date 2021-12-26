@@ -1,6 +1,9 @@
 #pragma once
 
 #include "GffInputArchive.hpp"
+#include "GffOutputArchive.hpp"
+
+#include <nlohmann/json_fwd.hpp>
 
 namespace nw {
 

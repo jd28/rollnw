@@ -69,6 +69,7 @@ add_library(nw STATIC
 
     serialization/gff_common.cpp
     serialization/GffInputArchive.cpp
+    serialization/GffOutputArchive.cpp
     serialization/conversions.cpp
 
     util/base64.cpp

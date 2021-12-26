@@ -1,6 +1,13 @@
 #pragma once
 
+#include "../i18n/LocString.hpp"
+#include "../resources/Resref.hpp"
+#include "../util/ByteArray.hpp"
 #include "../util/templates.hpp"
+
+#include <cstdint>
+#include <string>
+#include <variant>
 
 using namespace std::literals;
 
@@ -126,5 +133,39 @@ constexpr std::string_view SerializationType::to_string(SerializationType::type 
         return "list"sv;
     }
 }
+
+using serialization_t = std::variant<
+    bool,
+    uint8_t,
+    int8_t,
+    uint16_t,
+    int16_t,
+    uint32_t,
+    int32_t,
+    uint64_t,
+    int64_t,
+    float,
+    double,
+    std::string,
+    Resref,
+    LocString,
+    ByteArray>;
+
+using serialization_cref = std::variant<
+    std::reference_wrapper<const bool>,
+    std::reference_wrapper<const uint8_t>,
+    std::reference_wrapper<const int8_t>,
+    std::reference_wrapper<const uint16_t>,
+    std::reference_wrapper<const int16_t>,
+    std::reference_wrapper<const uint32_t>,
+    std::reference_wrapper<const int32_t>,
+    std::reference_wrapper<const uint64_t>,
+    std::reference_wrapper<const int64_t>,
+    std::reference_wrapper<const float>,
+    std::reference_wrapper<const double>,
+    std::reference_wrapper<const std::string>,
+    std::reference_wrapper<const Resref>,
+    std::reference_wrapper<const LocString>,
+    std::reference_wrapper<const ByteArray>>;
 
 } // namespace nw
