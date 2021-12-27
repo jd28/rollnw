@@ -6,17 +6,32 @@ namespace nw {
 
 Store::Store()
     : common_{ObjectType::store}
+    , armor{this}
+    , miscellaneous{this}
+    , potions{this}
+    , rings{this}
+    , weapons{this}
 {
 }
 
 Store::Store(const GffInputArchiveStruct& archive, SerializationProfile profile)
     : common_{ObjectType::store}
+    , armor{this}
+    , miscellaneous{this}
+    , potions{this}
+    , rings{this}
+    , weapons{this}
 {
     valid_ = this->from_gff(archive, profile);
 }
 
 Store::Store(const nlohmann::json& archive, SerializationProfile profile)
     : common_{ObjectType::store}
+    , armor{this}
+    , miscellaneous{this}
+    , potions{this}
+    , rings{this}
+    , weapons{this}
 {
     valid_ = this->from_json(archive, profile);
 }

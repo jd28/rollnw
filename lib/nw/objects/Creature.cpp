@@ -69,16 +69,20 @@ nlohmann::json CreatureScripts::to_json() const
 
 Creature::Creature()
     : common_{ObjectType::creature}
+    , inventory{this}
 {
 }
 Creature::Creature(const GffInputArchiveStruct& archive, SerializationProfile profile)
     : common_{ObjectType::creature}
+    , inventory{this}
 
 {
     this->from_gff(archive, profile);
 }
 
 Creature::Creature(const nlohmann::json& archive, SerializationProfile profile)
+    : common_{ObjectType::creature}
+    , inventory{this}
 {
     this->from_json(archive, profile);
 }

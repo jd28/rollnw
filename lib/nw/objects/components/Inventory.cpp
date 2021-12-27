@@ -14,8 +14,11 @@ bool Inventory::from_gff(const GffInputArchiveStruct& archive, SerializationProf
         auto st = archive["ItemList"][i];
         InventoryItem ii;
 
+        if (owner->common()->object_type == ObjectType::store) {
+            st.get_to("Infinite", ii.infinite, false);
+        }
         st.get_to("Repos_PosX", ii.pos_x);
-        st.get_to("Repos_PosY", ii.pos_y);
+        st.get_to("Repos_Posy", ii.pos_y); // Not typo..
 
         if (SerializationProfile::blueprint == profile) {
             if (auto r = st.get<Resref>("InventoryRes")) {
@@ -39,6 +42,9 @@ bool Inventory::from_json(const nlohmann::json& archive, SerializationProfile pr
         items.reserve(archive.size());
         for (size_t i = 0; i < archive.size(); ++i) {
             InventoryItem ii;
+            if (owner->common()->object_type == ObjectType::store) {
+                archive[i].at("infinite").get_to(ii.infinite);
+            }
             archive[i].at("position")[0].get_to(ii.pos_x);
             archive[i].at("position")[1].get_to(ii.pos_y);
             if (profile == SerializationProfile::blueprint) {
@@ -62,8 +68,12 @@ bool Inventory::to_gff(GffOutputArchiveStruct& archive, SerializationProfile pro
     for (const auto& it : items) {
         auto& str = list.push_back(list.size(), {
                                                     {"Repos_PosX", it.pos_x},
-                                                    {"Repos_PosY", it.pos_y},
+                                                    {"Repos_Posy", it.pos_y},
                                                 });
+        if (owner->common()->object_type == ObjectType::store && it.infinite) {
+            str.add_field("Infinite", it.infinite);
+        }
+
         if (SerializationProfile::blueprint == profile) {
             str.add_field("InventoryRes", std::get<Resref>(it.item));
         } else {
@@ -81,6 +91,10 @@ nlohmann::json Inventory::to_json(SerializationProfile profile) const
         for (const auto& it : items) {
             j.push_back({});
             auto& payload = j.back();
+            if (owner->common()->object_type == ObjectType::store) {
+                payload["infinite"] = it.infinite;
+            }
+
             payload["position"] = {it.pos_x, it.pos_y};
             if (std::holds_alternative<std::unique_ptr<Item>>(it.item)) {
                 payload["item"] = std::get<std::unique_ptr<Item>>(it.item)->to_json(profile);

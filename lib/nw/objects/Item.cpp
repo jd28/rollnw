@@ -11,12 +11,14 @@ Item::Item()
 
 Item::Item(const GffInputArchiveStruct& archive, SerializationProfile profile)
     : common_{ObjectType::item}
+    , inventory{this}
 {
     this->from_gff(archive, profile);
 }
 
 Item::Item(const nlohmann::json& archive, SerializationProfile profile)
     : common_{ObjectType::item}
+    , inventory{this}
 {
     this->from_json(archive, profile);
 }
