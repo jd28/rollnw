@@ -34,6 +34,7 @@ bool Item::from_gff(const GffInputArchiveStruct& archive, SerializationProfile p
     archive.get_to("StackSize", stacksize);
     archive.get_to("Charges", charges);
     archive.get_to("Cursed", cursed);
+    archive.get_to("Identified", identified);
     archive.get_to("Plot", plot);
     archive.get_to("Stolen", stolen);
 
@@ -117,6 +118,7 @@ bool Item::from_json(const nlohmann::json& archive, SerializationProfile profile
         archive.at("stacksize").get_to(stacksize);
         archive.at("charges").get_to(charges);
         archive.at("cursed").get_to(cursed);
+        archive.at("identified").get_to(identified);
         archive.at("plot").get_to(plot);
         archive.at("stolen").get_to(stolen);
         archive.at("model_type").get_to(model_type);
@@ -144,6 +146,103 @@ bool Item::from_json(const nlohmann::json& archive, SerializationProfile profile
     return true;
 }
 
+bool Item::to_gff(GffOutputArchiveStruct& archive, SerializationProfile profile) const
+{
+    archive.add_fields({
+        {"TemplateResRef", common_.resref},
+        {"LocalizedName", common_.name},
+        {"Tag", common_.tag},
+    });
+
+    if (profile == SerializationProfile::blueprint) {
+        archive.add_field("Comment", common_.comment);
+        archive.add_field("PaletteID", common_.palette_id);
+    } else {
+        archive.add_fields({
+            {"PositionX", common_.location.position.x},
+            {"PositionY", common_.location.position.y},
+            {"PositionZ", common_.location.position.z},
+            {"OrientationX", common_.location.orientation.x},
+            {"OrientationY", common_.location.orientation.y},
+        });
+    }
+
+    common_.local_data.to_gff(archive);
+
+    if (inventory.items.size()) {
+        inventory.to_gff(archive, profile);
+    }
+    archive.add_fields({
+        {"Description", description},
+        {"DescIdentified", description_id},
+        {"Cost", cost},
+        {"AddCost", additional_cost},
+        {"BaseItem", baseitem},
+        {"StackSize", stacksize},
+        {"Charges", charges},
+        {"Cursed", cursed},
+        {"Identified", identified},
+        {"Plot", plot},
+        {"Stolen", stolen},
+    });
+
+    if (model_type == ItemModelType::armor) {
+        archive.add_fields({
+            {"ArmorPart_Belt", model_parts[ItemModelParts::armor_belt]},
+            {"ArmorPart_LBicep", model_parts[ItemModelParts::armor_lbicep]},
+            {"ArmorPart_LFArm", model_parts[ItemModelParts::armor_lfarm]},
+            {"ArmorPart_LFoot", model_parts[ItemModelParts::armor_lfoot]},
+            {"ArmorPart_LHand", model_parts[ItemModelParts::armor_lhand]},
+            {"ArmorPart_LShin", model_parts[ItemModelParts::armor_lshin]},
+            {"ArmorPart_LShoul", model_parts[ItemModelParts::armor_lshoul]},
+            {"ArmorPart_LThigh", model_parts[ItemModelParts::armor_lthigh]},
+            {"ArmorPart_Neck", model_parts[ItemModelParts::armor_neck]},
+            {"ArmorPart_Pelvis", model_parts[ItemModelParts::armor_pelvis]},
+            {"ArmorPart_RBicep", model_parts[ItemModelParts::armor_rbicep]},
+            {"ArmorPart_RFArm", model_parts[ItemModelParts::armor_rfarm]},
+            {"ArmorPart_RFoot", model_parts[ItemModelParts::armor_rfoot]},
+            {"ArmorPart_RHand", model_parts[ItemModelParts::armor_rhand]},
+            {"ArmorPart_Robe", model_parts[ItemModelParts::armor_robe]},
+            {"ArmorPart_RShin", model_parts[ItemModelParts::armor_rshin]},
+            {"ArmorPart_RShoul", model_parts[ItemModelParts::armor_rshoul]},
+            {"ArmorPart_RThigh", model_parts[ItemModelParts::armor_rthigh]},
+            {"ArmorPart_Torso", model_parts[ItemModelParts::armor_torso]},
+        });
+    } else if (model_type == ItemModelType::composite) {
+        archive.add_field("ModelPart1", model_parts[ItemModelParts::model1]);
+        archive.add_field("ModelPart2", model_parts[ItemModelParts::model2]);
+        archive.add_field("ModelPart3", model_parts[ItemModelParts::model3]);
+    } else {
+        archive.add_field("ModelPart1", model_parts[ItemModelParts::model1]);
+    }
+
+    if (model_type == ItemModelType::layered
+        || model_type == ItemModelType::armor) {
+        archive.add_field("Cloth1Color", model_colors[ItemColors::cloth1]);
+        archive.add_field("Cloth2Color", model_colors[ItemColors::cloth2]);
+        archive.add_field("Leather1Color", model_colors[ItemColors::leather1]);
+        archive.add_field("Leather2Color", model_colors[ItemColors::leather2]);
+        archive.add_field("Metal1Color", model_colors[ItemColors::metal1]);
+        archive.add_field("Metal2Color", model_colors[ItemColors::metal2]);
+    }
+
+    auto& property_list = archive.add_list("PropertiesList");
+    uint8_t chance = 100;
+    for (const auto& ip : properties) {
+        property_list.push_back(0, {
+                                       {"PropertyName", ip.type},
+                                       {"Subtype", ip.subtype},
+                                       {"CostTable", ip.cost_table},
+                                       {"CostValue", ip.cost_value},
+                                       {"Param1", ip.param_table},
+                                       {"Param1Value", ip.param_value},
+                                       {"ChanceAppear", chance},
+                                   });
+    }
+
+    return true;
+}
+
 nlohmann::json Item::to_json(SerializationProfile profile) const
 {
     nlohmann::json j;
@@ -161,6 +260,7 @@ nlohmann::json Item::to_json(SerializationProfile profile) const
     j["stacksize"] = stacksize;
     j["charges"] = charges;
     j["cursed"] = cursed;
+    j["identified"] = identified;
     j["plot"] = plot;
     j["stolen"] = stolen;
     j["model_type"] = model_type;

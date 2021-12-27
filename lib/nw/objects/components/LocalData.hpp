@@ -10,11 +10,11 @@
 namespace nw {
 
 struct LocalVarType {
-    static const uint32_t FLOAT = 1;
-    static const uint32_t INTEGER = 2;
-    static const uint32_t OBJECT = 3;
-    static const uint32_t STRING = 4;
-    static const uint32_t LOCATION = 5;
+    static constexpr uint32_t INTEGER = 1;
+    static constexpr uint32_t FLOAT = 2;
+    static constexpr uint32_t STRING = 3;
+    static constexpr uint32_t OBJECT = 4;
+    static constexpr uint32_t LOCATION = 5;
 };
 
 struct LocalVar {
@@ -34,6 +34,7 @@ struct LocalData {
 
     bool from_gff(const GffInputArchiveStruct& archive);
     bool from_json(const nlohmann::json& archive);
+    bool to_gff(GffOutputArchiveStruct& archive) const;
     nlohmann::json to_json(SerializationProfile profile) const;
 
     float get_local_float(std::string_view var) const;

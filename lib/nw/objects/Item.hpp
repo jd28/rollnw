@@ -81,6 +81,7 @@ struct Item : public ObjectBase {
     // Serialization
     bool from_gff(const GffInputArchiveStruct& archive, SerializationProfile profile);
     bool from_json(const nlohmann::json& archive, SerializationProfile profile);
+    bool to_gff(GffOutputArchiveStruct& archive, SerializationProfile profile) const;
     nlohmann::json to_json(SerializationProfile profile) const;
 
     Common common_;
@@ -95,6 +96,7 @@ struct Item : public ObjectBase {
     uint16_t stacksize = 1;
     uint8_t charges = 0;
     bool cursed = false;
+    bool identified = false;
     bool plot = false;
     bool stolen = false;
 

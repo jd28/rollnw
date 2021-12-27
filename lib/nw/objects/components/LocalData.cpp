@@ -134,6 +134,49 @@ bool LocalData::from_json(const nlohmann::json& archive)
     return true;
 }
 
+bool LocalData::to_gff(GffOutputArchiveStruct& archive) const
+{
+    auto& list = archive.add_list("VarTable");
+
+    for (const auto& [key, value] : vars_) {
+        if (!value.flags.any()) { continue; }
+        auto& payload = list.push_back(0, {{"Name", key}});
+
+        if (value.flags.test(LocalVarType::FLOAT)) {
+            payload.add_field("Type", LocalVarType::FLOAT);
+            payload.add_field("Value", value.float_);
+        }
+        if (value.flags.test(LocalVarType::INTEGER)) {
+            payload.add_field("Type", LocalVarType::INTEGER);
+            payload.add_field("Value", value.integer);
+        }
+        if (value.flags.test(LocalVarType::OBJECT)) {
+            payload.add_field("Type", LocalVarType::OBJECT);
+            uint32_t temp = static_cast<uint32_t>(value.object);
+            payload.add_field("Value", temp);
+        }
+        if (value.flags.test(LocalVarType::STRING)) {
+            payload.add_field("Type", LocalVarType::STRING);
+            payload.add_field("Value", value.string);
+        }
+        if (value.flags.test(LocalVarType::LOCATION)) {
+            payload.add_field("Type", LocalVarType::LOCATION);
+            uint32_t temp = static_cast<uint32_t>(value.loc.area);
+            payload.add_struct("Value", 1).add_fields({
+                {"Area", temp},
+                {"PositionX", value.loc.position.x},
+                {"PositionY", value.loc.position.y},
+                {"PositionZ", value.loc.position.z},
+                {"OrientationX", value.loc.orientation.x},
+                {"OrientationY", value.loc.orientation.y},
+                {"OrientationZ", value.loc.orientation.z},
+            });
+        }
+    }
+
+    return true;
+}
+
 nlohmann::json LocalData::to_json(SerializationProfile profile) const
 {
     nlohmann::json j = nlohmann::json::object();

@@ -56,6 +56,23 @@ bool Inventory::from_json(const nlohmann::json& archive, SerializationProfile pr
     return true;
 }
 
+bool Inventory::to_gff(GffOutputArchiveStruct& archive, SerializationProfile profile) const
+{
+    auto& list = archive.add_list("ItemList");
+    for (const auto& it : items) {
+        auto& str = list.push_back(list.size(), {
+                                                    {"Repos_PosX", it.pos_x},
+                                                    {"Repos_PosY", it.pos_y},
+                                                });
+        if (SerializationProfile::blueprint == profile) {
+            str.add_field("InventoryRes", std::get<Resref>(it.item));
+        } else {
+            std::get<std::unique_ptr<Item>>(it.item)->to_gff(str, profile);
+        }
+    }
+    return true;
+}
+
 nlohmann::json Inventory::to_json(SerializationProfile profile) const
 {
     nlohmann::json j = nlohmann::json::array();
