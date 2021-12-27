@@ -34,6 +34,43 @@ bool Waypoint::from_gff(const GffInputArchiveStruct& archive, SerializationProfi
     return true;
 }
 
+bool Waypoint::to_gff(GffOutputArchiveStruct& archive, SerializationProfile profile) const
+{
+    archive.add_fields({
+        {"TemplateResRef", common_.resref},
+        {"LocalizedName", common_.name},
+        {"Tag", common_.tag},
+    });
+
+    if (profile == SerializationProfile::blueprint) {
+        archive.add_field("Comment", common_.comment);
+        archive.add_field("PaletteID", common_.palette_id);
+    } else {
+        archive.add_fields({
+            {"PositionX", common_.location.position.x},
+            {"PositionY", common_.location.position.y},
+            {"PositionZ", common_.location.position.z},
+            {"OrientationX", common_.location.orientation.x},
+            {"OrientationY", common_.location.orientation.y},
+        });
+    }
+
+    if (common_.local_data.size()) {
+        common_.local_data.to_gff(archive);
+    }
+
+    archive.add_fields({
+        {"Appearance", appearance},
+        {"Description", description},
+        {"HasMapNote", has_map_note},
+        {"LinkedTo", linked_to},
+        {"MapNote", map_note},
+        {"MapNoteEnabled", map_note_enabled},
+    });
+
+    return true;
+}
+
 bool Waypoint::from_json(const nlohmann::json& archive, SerializationProfile profile)
 {
     if (archive.at("$type").get<std::string>() != "UTW") {
