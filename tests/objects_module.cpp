@@ -2,6 +2,7 @@
 
 #include <nw/objects/Module.hpp>
 #include <nw/serialization/Serialization.hpp>
+#include <nw/serialization/conversions.hpp>
 
 #include <nlohmann/json.hpp>
 
@@ -39,4 +40,37 @@ TEST_CASE("module: json to and from", "[objects]")
     nw::Module m2{j};
     nlohmann::json j2 = m2.to_json();
     REQUIRE(j == j2);
+}
+
+TEST_CASE("module: gff round trip", "[ojbects]")
+{
+    nw::GffInputArchive g("test_data/module.ifo");
+    REQUIRE(g.valid());
+
+    nw::Module mod{g.toplevel()};
+    nw::GffOutputArchive oa{"IFO"};
+    REQUIRE(mod.to_gff(oa.top));
+    oa.build();
+    oa.write_to("tmp/module_2.ifo");
+
+    nw::GffInputArchive g2("tmp/module_2.ifo");
+    REQUIRE(g2.valid());
+
+    std::ofstream f1{"tmp/module.ifo.gffjson", std::ios_base::binary};
+    f1 << std::setw(4) << nw::gff_to_json(g);
+    std::ofstream f2{"tmp/module_2.ifo.gffjson", std::ios_base::binary};
+    f2 << std::setw(4) << nw::gff_to_json(g2);
+
+    REQUIRE(oa.header.struct_offset == g.head_->struct_offset);
+    REQUIRE(oa.header.struct_count == g.head_->struct_count);
+    REQUIRE(oa.header.field_offset == g.head_->field_offset);
+    REQUIRE(oa.header.field_count == g.head_->field_count);
+    REQUIRE(oa.header.label_offset == g.head_->label_offset);
+    REQUIRE(oa.header.label_count == g.head_->label_count);
+    REQUIRE(oa.header.field_data_offset == g.head_->field_data_offset);
+    REQUIRE(oa.header.field_data_count == g.head_->field_data_count);
+    REQUIRE(oa.header.field_idx_offset == g.head_->field_idx_offset);
+    REQUIRE(oa.header.field_idx_count == g.head_->field_idx_count);
+    REQUIRE(oa.header.list_idx_offset == g.head_->list_idx_offset);
+    REQUIRE(oa.header.list_idx_count == g.head_->list_idx_count);
 }

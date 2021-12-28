@@ -55,6 +55,31 @@ bool ModuleScripts::from_json(const nlohmann::json& archive)
     return true;
 }
 
+bool ModuleScripts::to_gff(GffOutputArchiveStruct& archive) const
+{
+    archive.add_fields({
+        {"Mod_OnAcquirItem", on_item_acquire},
+        {"Mod_OnActvtItem", on_item_activate},
+        {"Mod_OnClientEntr", on_client_enter},
+        {"Mod_OnClientLeav", on_client_leave},
+        {"Mod_OnCutsnAbort", on_cutsnabort},
+        {"Mod_OnHeartbeat", on_heartbeat},
+        {"Mod_OnModLoad", on_load},
+        {"Mod_OnModStart", on_start},
+        {"Mod_OnPlrChat", on_player_chat},
+        {"Mod_OnPlrDeath", on_player_death},
+        {"Mod_OnPlrDying", on_player_dying},
+        {"Mod_OnPlrEqItm", on_player_equip},
+        {"Mod_OnPlrLvlUp", on_player_level_up},
+        {"Mod_OnPlrRest", on_player_rest},
+        {"Mod_OnPlrUnEqItm", on_player_uneqiup},
+        {"Mod_OnSpawnBtnDn", on_spawnbtndn},
+        {"Mod_OnUnAqreItem", on_item_unaquire},
+        {"Mod_OnUsrDefined", on_user_defined},
+    });
+    return true;
+}
+
 nlohmann::json ModuleScripts::to_json() const
 {
     nlohmann::json j;
@@ -106,18 +131,6 @@ bool Module::from_gff(const GffInputArchiveStruct& archive)
         }
     }
 
-    archive.get_to("Mod_Creator_ID", creator);
-    archive.get_to("Mod_CustomTlk", tlk);
-    archive.get_to("Mod_DawnHour", dawn_hour);
-    archive.get_to("Mod_Description", description);
-    archive.get_to("Mod_DuskHour", dusk_hour);
-    archive.get_to("Mod_Entry_Area", entry_area);
-    archive.get_to("Mod_Entry_Dir_X", entry_orientation.x);
-    archive.get_to("Mod_Entry_Dir_Y", entry_orientation.y);
-    archive.get_to("Mod_Entry_X", entry_position.x);
-    archive.get_to("Mod_Entry_Y", entry_position.y);
-    archive.get_to("Mod_Entry_Z", entry_position.z);
-
     sz = archive["Mod_HakList"].size();
     st = archive["Mod_HakList"];
     haks.reserve(sz);
@@ -129,6 +142,18 @@ bool Module::from_gff(const GffInputArchiveStruct& archive)
             break;
         }
     }
+
+    archive.get_to("Mod_Creator_ID", creator);
+    archive.get_to("Mod_CustomTlk", tlk);
+    archive.get_to("Mod_DawnHour", dawn_hour);
+    archive.get_to("Mod_Description", description);
+    archive.get_to("Mod_DuskHour", dusk_hour);
+    archive.get_to("Mod_Entry_Area", entry_area);
+    archive.get_to("Mod_Entry_Dir_X", entry_orientation.x);
+    archive.get_to("Mod_Entry_Dir_Y", entry_orientation.y);
+    archive.get_to("Mod_Entry_X", entry_position.x);
+    archive.get_to("Mod_Entry_Y", entry_position.y);
+    archive.get_to("Mod_Entry_Z", entry_position.z);
 
     scripts.from_gff(archive);
 
@@ -157,7 +182,7 @@ bool Module::from_json(const nlohmann::json& archive)
 
         entry_orientation.x = archive.at("entry_orientation")[0].get<float>();
         entry_orientation.y = archive.at("entry_orientation")[1].get<float>();
-        entry_orientation.z = archive.at("entry_orientation")[2].get<float>();
+        // entry_orientation.z = archive.at("entry_orientation")[2].get<float>();
         entry_position.x = archive.at("entry_position")[0].get<float>();
         entry_position.y = archive.at("entry_position")[1].get<float>();
         entry_position.z = archive.at("entry_position")[2].get<float>();
@@ -193,6 +218,57 @@ bool Module::from_json(const nlohmann::json& archive)
     return true;
 }
 
+bool Module::to_gff(GffOutputArchiveStruct& archive) const
+{
+    auto& area_list = archive.add_list("Mod_Area_list");
+    for (const auto& area : areas) {
+        area_list.push_back(6, {{"Area_Name", area}});
+    }
+
+    auto& hak_list = archive.add_list("Mod_HakList");
+    for (const auto& hak : haks) {
+        hak_list.push_back(8, {{"Mod_Hak", hak}});
+    }
+
+    // Always empty, obsolete, but NWN as of 1.69, at least, kept them in the GFF.
+    archive.add_list("Mod_CutSceneList");
+    archive.add_list("Mod_Expan_List");
+    archive.add_list("Mod_GVar_List");
+
+    local_data.to_gff(archive);
+    scripts.to_gff(archive);
+
+    archive.add_fields({
+        {"Expansion_Pack", expansion_pack},
+        {"Mod_Creator_ID", creator},
+        {"Mod_CustomTlk", tlk},
+        {"Mod_DawnHour", dawn_hour},
+        {"Mod_Description", description},
+        {"Mod_DuskHour", dusk_hour},
+        {"Mod_Entry_Area", entry_area},
+        {"Mod_Entry_Dir_X", entry_orientation.x},
+        {"Mod_Entry_Dir_Y", entry_orientation.y},
+        {"Mod_Entry_X", entry_position.x},
+        {"Mod_Entry_Y", entry_position.y},
+        {"Mod_Entry_Z", entry_position.z},
+        {"Mod_ID", id},
+        {"Mod_IsSaveGame", is_save_game},
+        {"Mod_MinGameVer", min_game_version},
+        {"Mod_MinPerHour", minutes_per_hour},
+        {"Mod_Name", name},
+        {"Mod_StartDay", start_day},
+        {"Mod_StartHour", start_hour},
+        {"Mod_StartMonth", start_month},
+        {"Mod_StartMovie", start_movie},
+        {"Mod_StartYear", start_year},
+        {"Mod_Tag", tag},
+        {"Mod_Version", version},
+        {"Mod_XPScale", xpscale},
+    });
+
+    return true;
+}
+
 nlohmann::json Module::to_json() const
 {
     nlohmann::json j;
@@ -203,7 +279,7 @@ nlohmann::json Module::to_json() const
     j["areas"] = areas;
     j["description"] = description;
     j["entry_area"] = entry_area;
-    j["entry_orientation"] = nlohmann::json{entry_orientation.x, entry_orientation.y, entry_orientation.z};
+    j["entry_orientation"] = nlohmann::json{entry_orientation.x, entry_orientation.y};
     j["entry_position"] = nlohmann::json{entry_position.x, entry_position.y, entry_position.z};
     j["haks"] = haks;
     j["id"] = id;

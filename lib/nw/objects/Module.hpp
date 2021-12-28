@@ -14,6 +14,7 @@ struct ModuleScripts {
 
     bool from_gff(const GffInputArchiveStruct& archive);
     bool from_json(const nlohmann::json& archive);
+    bool to_gff(GffOutputArchiveStruct& archive) const;
     nlohmann::json to_json() const;
 
     Resref on_item_acquire;
@@ -44,6 +45,7 @@ struct Module {
     // Serialization
     bool from_gff(const GffInputArchiveStruct& archive);
     bool from_json(const nlohmann::json& archive);
+    bool to_gff(GffOutputArchiveStruct& archive) const;
     nlohmann::json to_json() const;
 
     std::vector<Resref> areas;
