@@ -136,6 +136,8 @@ bool LocalData::from_json(const nlohmann::json& archive)
 
 bool LocalData::to_gff(GffOutputArchiveStruct& archive) const
 {
+    if (vars_.empty()) { return true; }
+
     auto& list = archive.add_list("VarTable");
 
     for (const auto& [key, value] : vars_) {
