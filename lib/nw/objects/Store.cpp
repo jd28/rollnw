@@ -42,6 +42,10 @@ bool Store::from_gff(const GffInputArchiveStruct& archive, SerializationProfile 
         return false;
     }
 
+    if (profile == SerializationProfile::blueprint) {
+        archive.get_to("ID", common_.palette_id);
+    }
+
     archive.get_to("BlackMarket", blackmarket);
     archive.get_to("BM_MarkDown", blackmarket_markdown);
     archive.get_to("IdentifyPrice", identify_price);
@@ -132,6 +136,63 @@ bool Store::from_json(const nlohmann::json& archive, SerializationProfile profil
     potions.from_json(archive.at("potions"), profile);
     rings.from_json(archive.at("rings"), profile);
     weapons.from_json(archive.at("weapons"), profile);
+
+    return true;
+}
+
+bool Store::to_gff(GffOutputArchiveStruct& archive, SerializationProfile profile) const
+{
+    archive.add_fields({
+        {"ResRef", common_.resref}, // Store does it's own thing, not typo.
+        {"LocName", common_.name},
+        {"Tag", common_.tag},
+    });
+
+    if (profile == SerializationProfile::blueprint) {
+        archive.add_field("Comment", common_.comment);
+        archive.add_field("ID", common_.palette_id);
+    } else {
+        archive.add_fields({
+            {"PositionX", common_.location.position.x},
+            {"PositionY", common_.location.position.y},
+            {"PositionZ", common_.location.position.z},
+            {"OrientationX", common_.location.orientation.x},
+            {"OrientationY", common_.location.orientation.y},
+        });
+    }
+
+    if (common_.local_data.size()) {
+        common_.local_data.to_gff(archive);
+    }
+
+    archive.add_fields({
+        {"BlackMarket", blackmarket},
+        {"BM_MarkDown", blackmarket_markdown},
+        {"IdentifyPrice", identify_price},
+        {"MarkDown", markdown},
+        {"MarkUp", markup},
+        {"MaxBuyPrice", max_price},
+        {"OnOpenStore", on_opened},
+        {"OnStoreClosed", on_closed},
+        {"StoreGold", gold},
+    });
+
+    auto& wnb_list = archive.add_list("WillNotBuy");
+    for (const auto bi : will_not_buy) {
+        wnb_list.push_back(0x17E4D, {{"BaseItem", bi}});
+    }
+
+    auto& wob_list = archive.add_list("WillOnlyBuy");
+    for (const auto bi : will_only_buy) {
+        wob_list.push_back(0x17E4D, {{"BaseItem", bi}});
+    }
+
+    auto& store_list = archive.add_list("StoreList");
+    armor.to_gff(store_list.push_back(0, {}), profile);
+    miscellaneous.to_gff(store_list.push_back(1, {}), profile);
+    potions.to_gff(store_list.push_back(2, {}), profile);
+    rings.to_gff(store_list.push_back(3, {}), profile);
+    weapons.to_gff(store_list.push_back(4, {}), profile);
 
     return true;
 }

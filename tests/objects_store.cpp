@@ -2,6 +2,7 @@
 
 #include <nw/objects/Store.hpp>
 #include <nw/serialization/Serialization.hpp>
+#include <nw/serialization/conversions.hpp>
 
 #include <nlohmann/json.hpp>
 
@@ -52,4 +53,37 @@ TEST_CASE("store: json to and from", "[objects]")
     nw::Store s2{j, nw::SerializationProfile::blueprint};
     nlohmann::json j2 = s2.to_json(nw::SerializationProfile::blueprint);
     REQUIRE(j == j2);
+}
+
+TEST_CASE("store: gff round trip", "[ojbects]")
+{
+    nw::GffInputArchive g("test_data/storethief002.utm");
+    REQUIRE(g.valid());
+
+    nw::Store store{g.toplevel(), nw::SerializationProfile::blueprint};
+    nw::GffOutputArchive oa{"UTM"};
+    REQUIRE(store.to_gff(oa.top, nw::SerializationProfile::blueprint));
+    oa.build();
+    oa.write_to("tmp/storethief002_2.utm");
+
+    nw::GffInputArchive g2("tmp/storethief002_2.utm");
+    REQUIRE(g2.valid());
+
+    std::ofstream f1{"tmp/storethief002.utm.gffjson", std::ios_base::binary};
+    f1 << std::setw(4) << nw::gff_to_json(g);
+    std::ofstream f2{"tmp/storethief002_2.utm.gffjson", std::ios_base::binary};
+    f2 << std::setw(4) << nw::gff_to_json(g2);
+
+    REQUIRE(oa.header.struct_offset == g.head_->struct_offset);
+    REQUIRE(oa.header.struct_count == g.head_->struct_count);
+    REQUIRE(oa.header.field_offset == g.head_->field_offset);
+    REQUIRE(oa.header.field_count == g.head_->field_count);
+    REQUIRE(oa.header.label_offset == g.head_->label_offset);
+    REQUIRE(oa.header.label_count == g.head_->label_count);
+    REQUIRE(oa.header.field_data_offset == g.head_->field_data_offset);
+    REQUIRE(oa.header.field_data_count == g.head_->field_data_count);
+    REQUIRE(oa.header.field_idx_offset == g.head_->field_idx_offset);
+    REQUIRE(oa.header.field_idx_count == g.head_->field_idx_count);
+    REQUIRE(oa.header.list_idx_offset == g.head_->list_idx_offset);
+    REQUIRE(oa.header.list_idx_count == g.head_->list_idx_count);
 }
