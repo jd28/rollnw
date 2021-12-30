@@ -5,9 +5,8 @@
 
 namespace nw {
 
-// There are a couple different approaches one can take here, either depth or breadth first.
-// The former has been opted for here, tho it seems likely given the nature of the GFF file format,
-// it was originally designed around a breadth first approach.
+// Not super concerned about the efficiency of this, only the correctness.  Ideally, the way it's written,
+// will be exactly the way an object reads it.
 
 struct GffOutputArchive;
 struct GffOutputArchiveField;
@@ -24,6 +23,7 @@ struct GffOutputArchiveStruct {
     GffOutputArchiveStruct& add_struct(std::string_view name, uint32_t id);
 
     GffOutputArchive* parent = nullptr;
+    uint32_t index = 0;
     uint32_t id = 0;
     std::vector<GffOutputArchiveField> field_entries;
 };
@@ -45,6 +45,7 @@ struct GffOutputArchiveField {
 
     GffOutputArchive* parent = nullptr;
     SerializationType::type type;
+    uint32_t index = 0;
     uint32_t label_index = 0;
     uint32_t data_or_offset = 0;
     std::variant<GffOutputArchiveStruct, GffOutputArchiveList> structures;
@@ -55,10 +56,10 @@ struct GffOutputArchive {
 
     size_t add_label(std::string_view name);
     void build();
-    void build(const GffOutputArchiveField& field);
-    void build(const GffOutputArchiveStruct& str);
-    uint32_t build_field_data(const GffOutputArchiveField& field);
-    uint32_t build_field_index(const GffOutputArchiveStruct& str);
+    void build_arrays(GffOutputArchiveField& field);
+    void build_arrays(GffOutputArchiveStruct& str);
+    void build_indicies(const GffOutputArchiveField& field);
+    void build_indicies(const GffOutputArchiveStruct& str);
 
     bool write_to(const std::filesystem::path& path) const;
 

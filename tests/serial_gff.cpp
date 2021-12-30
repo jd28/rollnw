@@ -107,3 +107,26 @@ TEST_CASE("GffOutputArchive add_labels", "[serialization]")
 
     REQUIRE(skills.size() == 10);
 }
+
+TEST_CASE("gff: nested lists")
+{
+    uint32_t temp = 0;
+    nw::GffOutputArchive out{"GFF"};
+    auto& list1 = out.top.add_list("list1");
+    auto& str1 = list1.push_back(1, {{"test1", temp}});
+    auto& list2 = str1.add_list("list2");
+    list2.push_back(2, {{"test2", temp}});
+    auto& list3 = out.top.add_list("list3");
+    list3.push_back(3, {{"test3", temp}});
+
+    out.build();
+    REQUIRE(out.struct_entries[0].field_count == 2);
+    REQUIRE(out.struct_entries.size() == 4);
+
+    out.write_to("tmp/test.gff");
+
+    nw::GffInputArchive in{"tmp/test.gff"};
+    auto j = nw::gff_to_json(in);
+    std::ofstream f{"tmp/test.gffjson"};
+    f << std::setw(4) << j;
+}

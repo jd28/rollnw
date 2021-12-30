@@ -1,5 +1,7 @@
 #include "GffOutputArchive.hpp"
 
+#include "../log.hpp"
+
 #include <filesystem>
 #include <fstream>
 
@@ -187,16 +189,9 @@ size_t GffOutputArchive::add_label(std::string_view name)
 
 void GffOutputArchive::build()
 {
-    // Add and Process top level struct.
-    detail::GffStructEntry se;
-    se.type = top.id;
-    se.field_count = top.field_entries.size();
-    se.field_index = build_field_index(top);
-    struct_entries.push_back(se);
-    ++structs_visited;
-
-    // Build the rest
-    build(top);
+    LOG_F(INFO, "GffOutputArchive::build()");
+    build_arrays(top);
+    build_indicies(top);
 
     header.struct_offset = sizeof(detail::GffHeader);
     header.struct_count = struct_entries.size();
@@ -212,75 +207,62 @@ void GffOutputArchive::build()
     header.list_idx_count = list_indices.size() * 4;
 }
 
-void GffOutputArchive::build(const GffOutputArchiveField& field)
+void GffOutputArchive::build_arrays(GffOutputArchiveField& field)
 {
+    field.index = field_entries.size();
+    field_entries.push_back({field.type, field.label_index, field.data_or_offset});
     if (field.type == SerializationType::STRUCT) {
-        auto& s = std::get<GffOutputArchiveStruct>(field.structures);
-        detail::GffStructEntry se{s.id, build_field_index(s), static_cast<uint32_t>(s.field_entries.size())};
-        struct_entries.push_back(se);
-        build(s);
+        build_arrays(std::get<GffOutputArchiveStruct>(field.structures));
     } else if (field.type == SerializationType::LIST) {
         auto& list = std::get<GffOutputArchiveList>(field.structures);
-        // Add all the structs
-        for (const auto& s : list.structs) {
-            struct_entries.push_back({s.id, build_field_index(s), static_cast<uint32_t>(s.field_entries.size())});
-        }
-        // Process all the structs
-        for (const auto& s : list.structs) {
-            build(s);
+        for (auto& s : list.structs) {
+            build_arrays(s);
         }
     }
 }
 
-void GffOutputArchive::build(const GffOutputArchiveStruct& str)
+void GffOutputArchive::build_arrays(GffOutputArchiveStruct& str)
 {
-    // Add all the fields.
-    for (const auto& f : str.field_entries) {
-        field_entries.push_back({f.type, f.label_index, build_field_data(f)});
-    }
-
-    // Process the fields
-    for (const auto& f : str.field_entries) {
-        build(f);
+    str.index = struct_entries.size();
+    struct_entries.push_back({str.id, 0, static_cast<uint32_t>(str.field_entries.size())});
+    for (auto& f : str.field_entries) {
+        build_arrays(f);
     }
 }
 
-uint32_t GffOutputArchive::build_field_data(const GffOutputArchiveField& field)
+void GffOutputArchive::build_indicies(const GffOutputArchiveField& field)
 {
-    // NOTE: The data array is built as fields are added.  The only thing that
-    // needs to be done is deal with STRUCTs and LISTs
-    uint32_t result = 0;
     if (field.type == SerializationType::STRUCT) {
-        result = structs_visited;
-        ++structs_visited;
+        const auto& data = std::get<GffOutputArchiveStruct>(field.structures);
+        field_entries[field.index].data_or_offset = data.index;
+        build_indicies(data);
     } else if (field.type == SerializationType::LIST) {
-        const GffOutputArchiveList& list = std::get<GffOutputArchiveList>(field.structures);
-        result = list_indices.size() * 4; // Byte offset
-        list_indices.push_back(list.size());
-        for (size_t i = 0; i < list.size(); ++i) {
-            list_indices.push_back(structs_visited);
-            ++structs_visited;
+        const auto& data = std::get<GffOutputArchiveList>(field.structures);
+        field_entries[field.index].data_or_offset = list_indices.size() * 4; // byte offset
+        list_indices.push_back(data.structs.size());
+        for (auto& s : data.structs) {
+            list_indices.push_back(s.index);
         }
-    } else {
-        result = field.data_or_offset;
+        for (auto& s : data.structs) {
+            build_indicies(s);
+        }
     }
-    return result;
 }
 
-uint32_t GffOutputArchive::build_field_index(const GffOutputArchiveStruct& str)
+void GffOutputArchive::build_indicies(const GffOutputArchiveStruct& str)
 {
-    uint32_t field_index;
     if (str.field_entries.size() == 1) {
-        field_index = fields_visited;
-        ++fields_visited;
+        struct_entries[str.index].field_index = str.field_entries[0].index;
+        build_indicies(str.field_entries[0]);
     } else {
-        field_index = field_indices.size() * 4; // Byte offset
-        for (size_t i = 0; i < str.field_entries.size(); ++i) {
-            field_indices.push_back(fields_visited);
-            ++fields_visited;
+        struct_entries[str.index].field_index = field_indices.size() * 4;
+        for (auto& f : str.field_entries) {
+            field_indices.push_back(f.index);
+        }
+        for (auto& f : str.field_entries) {
+            build_indicies(f);
         }
     }
-    return field_index;
 }
 
 namespace fs = std::filesystem;
