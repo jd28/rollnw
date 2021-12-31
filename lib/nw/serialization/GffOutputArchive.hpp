@@ -55,12 +55,9 @@ struct GffOutputArchive {
     explicit GffOutputArchive(std::string_view type, std::string_view version = "V3.2");
 
     size_t add_label(std::string_view name);
+    // Note, this must be called before `write_to` or `to_byte_array`
     void build();
-    void build_arrays(GffOutputArchiveField& field);
-    void build_arrays(GffOutputArchiveStruct& str);
-    void build_indicies(const GffOutputArchiveField& field);
-    void build_indicies(const GffOutputArchiveStruct& str);
-
+    ByteArray to_byte_array() const;
     bool write_to(const std::filesystem::path& path) const;
 
     GffOutputArchiveStruct top;
@@ -72,8 +69,6 @@ struct GffOutputArchive {
     std::vector<uint32_t> list_indices;
     std::vector<detail::GffFieldEntry> field_entries;
     std::vector<detail::GffStructEntry> struct_entries;
-    uint32_t structs_visited = 0;
-    uint32_t fields_visited = 0;
 };
 
 } // namespace nw
