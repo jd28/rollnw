@@ -13,6 +13,7 @@ namespace nw {
 struct EncounterScripts {
     bool from_gff(const GffInputArchiveStruct& archive);
     bool from_json(const nlohmann::json& archive);
+    bool to_gff(GffOutputArchiveStruct& archive) const;
     nlohmann::json to_json() const;
 
     Resref on_entered;
@@ -58,6 +59,7 @@ struct Encounter : public ObjectBase {
 
     bool from_gff(const GffInputArchiveStruct& archive, SerializationProfile profile);
     bool from_json(const nlohmann::json& archive, SerializationProfile profile);
+    GffOutputArchive to_gff(SerializationProfile profile) const;
     nlohmann::json to_json(SerializationProfile profile) const;
 
     Common common_;

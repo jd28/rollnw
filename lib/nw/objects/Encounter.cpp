@@ -31,6 +31,19 @@ bool EncounterScripts::from_json(const nlohmann::json& archive)
     return true;
 }
 
+bool EncounterScripts::to_gff(GffOutputArchiveStruct& archive) const
+{
+    archive.add_fields({
+        {"OnEntered", on_entered},
+        {"OnExhausted", on_exhausted},
+        {"OnExit", on_exit},
+        {"OnHeartbeat", on_heartbeat},
+        {"OnUserDefined", on_user_defined},
+    });
+
+    return true;
+}
+
 nlohmann::json EncounterScripts::to_json() const
 {
     return {
@@ -199,6 +212,85 @@ bool Encounter::from_json(const nlohmann::json& archive, SerializationProfile pr
     }
 
     return true;
+}
+
+GffOutputArchive Encounter::to_gff(SerializationProfile profile) const
+{
+    GffOutputArchive archive{"UTE"};
+
+    archive.top.add_fields({
+        {"TemplateResRef", common_.resref},
+        {"LocalizedName", common_.name},
+        {"Tag", common_.tag},
+        {"Faction", common_.faction},
+    });
+
+    if (profile == SerializationProfile::blueprint) {
+        archive.top.add_field("Comment", common_.comment);
+        archive.top.add_field("PaletteID", common_.palette_id);
+    } else {
+        archive.top.add_fields({
+            {"PositionX", common_.location.position.x},
+            {"PositionY", common_.location.position.y},
+            {"PositionZ", common_.location.position.z},
+            {"OrientationX", common_.location.orientation.x},
+            {"OrientationY", common_.location.orientation.y},
+        });
+    }
+
+    if (common_.local_data.size()) {
+        common_.local_data.to_gff(archive.top);
+    }
+
+    scripts.to_gff(archive.top);
+
+    auto& list = archive.top.add_list("CreatureList");
+    for (const auto& c : creatures) {
+        list.push_back(0, {
+                              {"Appearance", c.appearance},
+                              {"CR", c.cr},
+                              {"ResRef", c.resref},
+                              {"SingleSpawn", c.single_spawn},
+
+                          });
+    }
+
+    archive.top.add_fields({
+        {"MaxCreatures", creatures_max},
+        {"RecCreatures", creatures_recommended},
+        {"Difficulty", difficulty},
+        {"DifficultyIndex", difficulty_index},
+        {"ResetTime", reset_time},
+        {"Respawns", respawns},
+        {"SpawnOption", spawn_option},
+        {"Active", active},
+        {"PlayerOnly", player_only},
+        {"Reset", reset},
+    });
+
+    if (profile != SerializationProfile::blueprint) {
+        auto& geo_list = archive.top.add_list("Geometry");
+        for (const auto& g : geometry) {
+            geo_list.push_back(1, {
+                                      {"X", g.x},
+                                      {"Y", g.y},
+                                      {"Z", g.z},
+                                  });
+        }
+
+        auto& sp_list = archive.top.add_list("SpawnPointList");
+        for (const auto& sp : spawn_points) {
+            sp_list.push_back(0, {
+                                     {"Orientation", sp.orientation},
+                                     {"X", sp.position.x},
+                                     {"Y", sp.position.y},
+                                     {"Z", sp.position.z},
+                                 });
+        }
+    }
+
+    archive.build();
+    return archive;
 }
 
 nlohmann::json Encounter::to_json(SerializationProfile profile) const
