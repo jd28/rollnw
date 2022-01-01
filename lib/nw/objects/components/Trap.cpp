@@ -6,18 +6,13 @@ namespace nw {
 
 bool Trap::from_gff(const GffInputArchiveStruct& archive)
 {
-    if (!archive.get_to("TrapFlag", is_trapped)) {
-        LOG_F(ERROR, "attempting to read a trap from non-trappable object");
-        return false;
-    }
-    if (is_trapped) {
-        archive.get_to("TrapType", type);
-        archive.get_to("DisarmDC", disarm_dc);
-        archive.get_to("TrapDetectable", detectable);
-        archive.get_to("TrapDetectDC", detect_dc);
-        archive.get_to("TrapDisarmable", disarmable);
-        archive.get_to("TrapOneShot", one_shot);
-    }
+    archive.get_to("TrapFlag", is_trapped);
+    archive.get_to("TrapType", type);
+    archive.get_to("DisarmDC", disarm_dc);
+    archive.get_to("TrapDetectable", detectable);
+    archive.get_to("TrapDetectDC", detect_dc);
+    archive.get_to("TrapDisarmable", disarmable);
+    archive.get_to("TrapOneShot", one_shot);
 
     return true;
 }
@@ -37,6 +32,20 @@ bool Trap::from_json(const nlohmann::json& archive)
         return false;
     }
 
+    return true;
+}
+
+bool Trap::to_gff(GffOutputArchiveStruct& archive) const
+{
+    archive.add_fields({
+        {"TrapFlag", is_trapped},
+        {"TrapType", type},
+        {"DisarmDC", disarm_dc},
+        {"TrapDetectable", detectable},
+        {"TrapDetectDC", detect_dc},
+        {"TrapDisarmable", disarmable},
+        {"TrapOneShot", one_shot},
+    });
     return true;
 }
 

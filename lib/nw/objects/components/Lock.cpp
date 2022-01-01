@@ -6,11 +6,9 @@ namespace nw {
 
 bool Lock::from_gff(const GffInputArchiveStruct& gff)
 {
-    if (!gff.get_to("Lockable", lockable)) {
-        LOG_F(ERROR, "attempting to read a lock from non-lockable object");
-        return false;
-    }
-
+    gff.get_to("Lockable", lockable);
+    gff.get_to("KeyName", key_name);
+    gff.get_to("KeyRequired", key_required);
     gff.get_to("AutoRemoveKey", remove_key);
     gff.get_to("Locked", locked);
     gff.get_to("CloseLockDC", lock_dc);
@@ -22,6 +20,8 @@ bool Lock::from_gff(const GffInputArchiveStruct& gff)
 bool Lock::from_json(const nlohmann::json& archive)
 {
     try {
+        archive.at("key_name").get_to(key_name);
+        archive.at("key_required").get_to(key_required);
         archive.at("lockable").get_to(lockable);
         archive.at("locked").get_to(locked);
         archive.at("lock_dc").get_to(lock_dc);
@@ -34,10 +34,25 @@ bool Lock::from_json(const nlohmann::json& archive)
     return true;
 }
 
+bool Lock::to_gff(GffOutputArchiveStruct& archive) const
+{
+    archive.add_fields({
+        {"KeyName", key_name},
+        {"KeyRequired", key_required},
+        {"Lockable", lockable},
+        {"AutoRemoveKey", remove_key},
+        {"Locked", locked},
+        {"CloseLockDC", lock_dc},
+        {"OpenLockDC", unlock_dc},
+    });
+    return true;
+}
+
 nlohmann::json Lock::to_json() const
 {
     nlohmann::json j;
-
+    j["key_name"] = key_name;
+    j["key_required"] = key_required;
     j["lockable"] = lockable;
     j["locked"] = locked;
     j["lock_dc"] = lock_dc;

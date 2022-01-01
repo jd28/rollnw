@@ -6,6 +6,7 @@ namespace nw {
 
 bool PlaceableScripts::from_gff(const GffInputArchiveStruct& archive)
 {
+    archive.get_to("OnClick", on_click);
     archive.get_to("OnInvDisturbed", on_inventory_disturbed);
     archive.get_to("OnUsed", on_used);
     archive.get_to("OnClosed", on_closed);
@@ -26,6 +27,7 @@ bool PlaceableScripts::from_gff(const GffInputArchiveStruct& archive)
 
 bool PlaceableScripts::from_json(const nlohmann::json& archive)
 {
+    archive.at("on_click").get_to(on_click);
     archive.at("on_inventory_disturbed").get_to(on_inventory_disturbed);
     archive.at("on_used").get_to(on_used);
     archive.at("on_closed").get_to(on_closed);
@@ -44,10 +46,34 @@ bool PlaceableScripts::from_json(const nlohmann::json& archive)
     return true;
 }
 
+bool PlaceableScripts::to_gff(GffOutputArchiveStruct& archive) const
+{
+    archive.add_fields({
+        {"OnClick", on_click},
+        {"OnInvDisturbed", on_inventory_disturbed},
+        {"OnUsed", on_used},
+        {"OnClosed", on_closed},
+        {"OnDamaged", on_damaged},
+        {"OnDeath", on_death},
+        {"OnDisarm", on_disarm},
+        {"OnHeartbeat", on_heartbeat},
+        {"OnLock", on_lock},
+        {"OnMeleeAttacked", on_melee_attacked},
+        {"OnOpen", on_open},
+        {"OnSpellCastAt", on_spell_cast_at},
+        {"OnTrapTriggered", on_trap_triggered},
+        {"OnUnlock", on_unlock},
+        {"OnUserDefined", on_user_defined},
+    });
+
+    return true;
+}
+
 nlohmann::json PlaceableScripts::to_json() const
 {
     nlohmann::json j;
 
+    j["on_click"] = on_click;
     j["on_inventory_disturbed"] = on_inventory_disturbed;
     j["on_used"] = on_used;
     j["on_closed"] = on_closed;
@@ -89,6 +115,8 @@ bool Placeable::from_gff(const GffInputArchiveStruct& archive, SerializationProf
 {
     common_.from_gff(archive, profile);
     scripts.from_gff(archive);
+    lock.from_gff(archive);
+    trap.from_gff(archive);
 
     archive.get_to("AnimationState", animation_state);
 
@@ -150,6 +178,73 @@ bool Placeable::from_json(const nlohmann::json& archive, SerializationProfile pr
         return false;
     }
     return true;
+}
+
+GffOutputArchive Placeable::to_gff(SerializationProfile profile) const
+{
+    GffOutputArchive archive{"UTP"};
+
+    archive.top.add_fields({
+        {"TemplateResRef", common_.resref},
+        {"LocName", common_.name},
+        {"Tag", common_.tag},
+        {"Faction", common_.faction},
+    });
+
+    if (profile == SerializationProfile::blueprint) {
+        archive.top.add_field("Comment", common_.comment);
+        archive.top.add_field("PaletteID", common_.palette_id);
+    } else {
+        archive.top.add_fields({
+            {"PositionX", common_.location.position.x},
+            {"PositionY", common_.location.position.y},
+            {"PositionZ", common_.location.position.z},
+            {"OrientationX", common_.location.orientation.x},
+            {"OrientationY", common_.location.orientation.y},
+        });
+    }
+
+    if (common_.local_data.size()) {
+        common_.local_data.to_gff(archive.top);
+    }
+
+    lock.to_gff(archive.top);
+    trap.to_gff(archive.top);
+
+    scripts.to_gff(archive.top);
+    if (has_inventory) {
+        inventory.to_gff(archive.top, profile);
+    }
+
+    uint8_t type = 0;
+    uint8_t anim = static_cast<uint8_t>(animation_state);
+    archive.top.add_fields({
+        {"Type", type}, // Obsolete, unused
+        {"AnimationState", anim},
+        {"BodyBag", bodybag},
+        {"HasInventory", has_inventory},
+        {"Static", static_},
+        {"Useable", useable},
+        {"Appearance", appearance},
+        {"Conversation", conversation},
+        {"Description", description},
+        {"Hardness", hardness},
+        {"HP", hp},
+        {"CurrentHP", hp_current},
+        {"Interruptable", interruptable},
+        {"Plot", plot},
+        {"PortraitId", portrait_id},
+    });
+
+    uint8_t save = static_cast<uint8_t>(saves.fort);
+    archive.top.add_field("Fort", save);
+    save = static_cast<uint8_t>(saves.reflex);
+    archive.top.add_field("Ref", save);
+    save = static_cast<uint8_t>(saves.will);
+    archive.top.add_field("Will", save);
+
+    archive.build();
+    return archive;
 }
 
 nlohmann::json Placeable::to_json(SerializationProfile profile) const
