@@ -31,15 +31,19 @@ struct Spell {
     SpellFlags flags = SpellFlags::none;
 };
 
+void from_json(const nlohmann::json& j, Spell& spell);
+void to_json(nlohmann::json& j, const Spell& spell);
+
 struct SpellBook {
-    SpellBook() = default;
+    SpellBook();
 
     bool from_gff(const GffInputArchiveStruct& archive);
+    bool from_json(const nlohmann::json& archive);
     bool to_gff(GffOutputArchiveStruct& archive) const;
     nlohmann::json to_json() const;
 
-    std::array<std::vector<Spell>, 9> known;
-    std::array<std::vector<Spell>, 9> memorized;
+    std::vector<std::vector<Spell>> known;
+    std::vector<std::vector<Spell>> memorized;
 };
 
 } // namespace nw

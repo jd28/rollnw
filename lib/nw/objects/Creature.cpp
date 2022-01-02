@@ -163,6 +163,7 @@ bool Creature::from_json(const nlohmann::json& archive, SerializationProfile pro
         common_.from_json(archive.at("common"), profile);
         equipment.from_json(archive.at("equipment"), profile);
         inventory.from_json(archive.at("inventory"), profile);
+        levels.from_json(archive.at("levels"));
         scripts.from_json(archive.at("scripts"));
         stats.from_json(archive.at("stats"));
 
@@ -282,6 +283,7 @@ nlohmann::json Creature::to_json(SerializationProfile profile) const
     j["common"] = common_.to_json(profile);
     j["equipment"] = equipment.to_json(profile);
     j["inventory"] = inventory.to_json(profile);
+    j["levels"] = levels.to_json();
     j["scripts"] = scripts.to_json();
     j["stats"] = stats.to_json();
 
