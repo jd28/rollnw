@@ -1,5 +1,6 @@
 #include "GffOutputArchive.hpp"
 
+#include "../i18n/conversion.hpp"
 #include "../log.hpp"
 
 #include <filesystem>
@@ -70,9 +71,11 @@ void GffOutputArchiveStruct::add_field(std::string_view name, serialization_cref
         const std::string& temp = std::get<std::reference_wrapper<const std::string>>(value);
         f.type = SerializationType::id<std::string>();
         f.data_or_offset = parent->data.size();
-        uint32_t size = temp.size();
+        std::string s = string::desanitize_colors(temp);
+        s = from_utf8(s, Language::default_encoding(), true);
+        uint32_t size = s.size();
         parent->data.append(&size, 4);
-        parent->data.append(temp.data(), size);
+        parent->data.append(s.data(), size);
     } else if (std::holds_alternative<std::reference_wrapper<const Resref>>(value)) {
         const Resref& temp = std::get<std::reference_wrapper<const Resref>>(value);
         f.type = SerializationType::id<Resref>();
@@ -86,18 +89,20 @@ void GffOutputArchiveStruct::add_field(std::string_view name, serialization_cref
         f.data_or_offset = parent->data.size();
         uint32_t total_size = 8;
         uint32_t strref = temp.strref(), num_strings = temp.size();
-        for (const auto& [lang, str] : temp) {
-            total_size += 8 + str.size();
-        }
+        size_t placeholder = parent->data.size(); // Won't know total size till the end.
         parent->data.append(&total_size, 4);
         parent->data.append(&strref, 4);
         parent->data.append(&num_strings, 4);
         for (const auto& [lang, str] : temp) {
-            uint32_t size = str.size();
+            std::string s = string::desanitize_colors(str);
+            s = from_utf8_by_langid(s, static_cast<Language::ID>(lang), true);
+            uint32_t size = s.size();
+            total_size += 8 + size;
             parent->data.append(&lang, 4);
             parent->data.append(&size, 4);
-            parent->data.append(str.data(), size);
+            parent->data.append(s.data(), size);
         }
+        memcpy(parent->data.data() + placeholder, &total_size, 4);
     } else if (std::holds_alternative<std::reference_wrapper<const ByteArray>>(value)) {
         const ByteArray& temp = std::get<std::reference_wrapper<const ByteArray>>(value);
         f.type = SerializationType::id<ByteArray>();
