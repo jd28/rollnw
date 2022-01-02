@@ -14,6 +14,7 @@ struct SpecialAbility {
 struct CombatInfo {
     bool from_gff(const GffInputArchiveStruct& archive);
     bool from_json(const nlohmann::json& archive);
+    bool to_gff(GffOutputArchiveStruct& archive) const;
     nlohmann::json to_json() const;
 
     uint8_t ac_natural = 0;

@@ -54,6 +54,7 @@ add_library(nw STATIC
     objects/components/Location.cpp
     objects/components/Lock.cpp
     objects/components/Saves.cpp
+    objects/components/SpellBook.cpp
     objects/components/Trap.cpp
 
     resources/Bif.cpp

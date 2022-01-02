@@ -33,7 +33,10 @@ struct Spell {
 
 struct SpellBook {
     SpellBook() = default;
-    SpellBook(const GffInputArchiveStruct gff);
+
+    bool from_gff(const GffInputArchiveStruct& archive);
+    bool to_gff(GffOutputArchiveStruct& archive) const;
+    nlohmann::json to_json() const;
 
     std::array<std::vector<Spell>, 9> known;
     std::array<std::vector<Spell>, 9> memorized;

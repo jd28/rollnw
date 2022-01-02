@@ -19,7 +19,7 @@ bool Appearance::from_gff(const GffInputArchiveStruct& archive)
 
     archive.get_to("Appearance_Type", id);
     archive.get_to("PortraitId", portrait_id);
-
+    archive.get_to("Appearance_Head", body_parts.head);
     archive.get_to("BodyPart_Belt", body_parts.belt, false);
     archive.get_to("BodyPart_LBicep", body_parts.left_bicep, false);
     archive.get_to("BodyPart_LFArm", body_parts.left_forearm, false);
@@ -61,6 +61,7 @@ bool Appearance::from_json(const nlohmann::json& archive)
         archive.at("tattoo2").get_to(tattoo2);
 
         const auto& bp = archive.at("body_parts");
+        bp.at("head").get_to(body_parts.head);
         bp.at("belt").get_to(body_parts.belt);
         bp.at("left_bicep").get_to(body_parts.left_bicep);
         bp.at("left_foot").get_to(body_parts.left_foot);
@@ -86,6 +87,42 @@ bool Appearance::from_json(const nlohmann::json& archive)
     return true;
 }
 
+bool Appearance::to_gff(GffOutputArchiveStruct& archive) const
+{
+    archive.add_fields({
+        {"Tail_New", tail},
+        {"Wings_New", wings},
+        {"Appearance_Type", id},
+        {"PortraitId", portrait_id},
+        {"Appearance_Head", body_parts.head},
+        {"BodyPart_Belt", body_parts.belt},
+        {"BodyPart_LBicep", body_parts.left_bicep},
+        {"BodyPart_LFArm", body_parts.left_forearm},
+        {"BodyPart_LFoot", body_parts.left_foot},
+        {"BodyPart_LHand", body_parts.left_hand},
+        {"BodyPart_LShin", body_parts.left_shin},
+        {"BodyPart_LShoul", body_parts.left_shoulder},
+        {"BodyPart_LThigh", body_parts.left_thigh},
+        {"BodyPart_Neck", body_parts.neck},
+        {"BodyPart_Pelvis", body_parts.pelvis},
+        {"BodyPart_RBicep", body_parts.right_bicep},
+        {"BodyPart_RFArm", body_parts.right_forearm},
+        {"ArmorPart_RFoot", body_parts.right_foot},
+        {"BodyPart_RHand", body_parts.right_hand},
+        {"BodyPart_RShin", body_parts.right_shin},
+        {"BodyPart_RShoul", body_parts.right_shoulder},
+        {"BodyPart_RThigh", body_parts.right_thigh},
+        {"BodyPart_Torso", body_parts.torso},
+        {"Color_Hair", hair},
+        {"Color_Skin", skin},
+        {"Color_Tattoo1", tattoo1},
+        {"Color_Tattoo2", tattoo2},
+        {"Phenotype", phenotype},
+    });
+
+    return true;
+}
+
 nlohmann::json Appearance::to_json() const
 {
     nlohmann::json j;
@@ -100,6 +137,7 @@ nlohmann::json Appearance::to_json() const
     j["tattoo1"] = tattoo1;
     j["tattoo2"] = tattoo2;
     j["body_parts"] = {
+        {"head", body_parts.head},
         {"belt", body_parts.belt},
         {"left_bicep", body_parts.left_bicep},
         {"left_foot", body_parts.left_foot},

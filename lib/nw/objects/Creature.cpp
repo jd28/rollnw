@@ -18,7 +18,7 @@ bool CreatureScripts::from_gff(const GffInputArchiveStruct& archive)
     archive.get_to("ScriptRested", on_rested);
     archive.get_to("ScriptSpawn", on_spawn);
     archive.get_to("ScriptSpellAt", on_spell_cast_at);
-    archive.get_to("ScriptuserDefine", on_user_defined);
+    archive.get_to("ScriptUserDefine", on_user_defined);
 
     return true;
 }
@@ -43,6 +43,26 @@ bool CreatureScripts::from_json(const nlohmann::json& archive)
         LOG_F(ERROR, "from_json exception: {}", e.what());
         return false;
     }
+    return true;
+}
+
+bool CreatureScripts::to_gff(GffOutputArchiveStruct& archive) const
+{
+    archive.add_fields({
+        {"ScriptAttacked", on_attacked},
+        {"ScriptDamaged", on_damaged},
+        {"ScriptDeath", on_death},
+        {"ScriptDialogue", on_conversation},
+        {"ScriptDisturbed", on_disturbed},
+        {"ScriptEndRound", on_endround},
+        {"ScriptHeartbeat", on_heartbeat},
+        {"ScriptOnBlocked", on_blocked},
+        {"ScriptOnNotice", on_perceived},
+        {"ScriptRested", on_rested},
+        {"ScriptSpawn", on_spawn},
+        {"ScriptSpellAt", on_spell_cast_at},
+        {"ScriptUserDefine", on_user_defined},
+    });
     return true;
 }
 
@@ -94,6 +114,7 @@ bool Creature::from_gff(const GffInputArchiveStruct& archive, SerializationProfi
     common_.from_gff(archive, profile);
     equipment.from_gff(archive, profile);
     inventory.from_gff(archive, profile);
+    levels.from_gff(archive);
     scripts.from_gff(archive);
     stats.from_gff(archive);
 
@@ -178,6 +199,73 @@ bool Creature::from_json(const nlohmann::json& archive, SerializationProfile pro
         LOG_F(ERROR, "from_json exception: {}", e.what());
         return false;
     }
+
+    return true;
+}
+
+bool Creature::to_gff(GffOutputArchiveStruct& archive, SerializationProfile profile) const
+{
+    archive.add_fields({
+        {"TemplateResRef", common_.resref},
+        {"Tag", common_.tag},
+    });
+
+    if (profile == SerializationProfile::blueprint) {
+        archive.add_field("Comment", common_.comment);
+        archive.add_field("PaletteID", common_.palette_id);
+    } else {
+        archive.add_fields({
+            {"PositionX", common_.location.position.x},
+            {"PositionY", common_.location.position.y},
+            {"PositionZ", common_.location.position.z},
+            {"OrientationX", common_.location.orientation.x},
+            {"OrientationY", common_.location.orientation.y},
+        });
+    }
+
+    common_.local_data.to_gff(archive);
+
+    appearance.to_gff(archive);
+    combat_info.to_gff(archive);
+    equipment.to_gff(archive, profile);
+    inventory.to_gff(archive, profile);
+    levels.to_gff(archive);
+    scripts.to_gff(archive);
+    stats.to_gff(archive);
+
+    archive.add_list("TemplateList"); // Not sure if this is obsolete?
+
+    archive.add_fields({
+        {"FirstName", name_first},
+        {"LastName", name_last},
+        {"Conversation", conversation},
+        {"Deity", deity},
+        {"Description", description},
+        {"Subrace", subrace},
+        {"ChallengeRating", cr},
+        {"CRAdjust", cr_adjust},
+        {"DecayTime", decay_time},
+        {"CurrentHitPoints", hp_current},
+        {"HitPoints", hp},
+        {"MaxHitPoints", hp_max},
+        {"FactionID", faction_id},
+        {"SoundSetFile", soundset},
+        {"WalkRate", walkrate},
+        {"BodyBag", bodybag},
+        {"Disarmable", disarmable},
+        {"Gender", gender},
+        {"GoodEvil", good_evil},
+        {"IsImmortal", immortal},
+        {"Interruptable", interruptable},
+        {"LawfulChaotic", lawful_chaotic},
+        {"Lootable", lootable},
+        {"IsPC", pc},
+        {"NoPermDeath", chunk_death},
+        {"PerceptionRange", perception_range},
+        {"Plot", plot},
+        {"Race", race},
+        {"StartingPackage", starting_package},
+    });
 
     return true;
 }

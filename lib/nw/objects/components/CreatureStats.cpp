@@ -51,6 +51,33 @@ bool CreatureStats::from_json(const nlohmann::json& archive)
     return false;
 }
 
+bool CreatureStats::to_gff(GffOutputArchiveStruct& archive) const
+{
+    archive.add_fields({
+        {"Str", abilities[0]},
+        {"Dex", abilities[1]},
+        {"Con", abilities[2]},
+        {"Int", abilities[3]},
+        {"Wis", abilities[4]},
+        {"Cha", abilities[5]},
+        {"fortbonus", save_bonus.fort},
+        {"refbonus", save_bonus.reflex},
+        {"willbonus", save_bonus.will},
+    });
+
+    auto& ft_list = archive.add_list("FeatList");
+    for (uint16_t ft : feats) {
+        ft_list.push_back(1, {{"Feat", ft}});
+    }
+
+    auto& sk_list = archive.add_list("SkillList");
+    for (uint8_t sk : skills) {
+        sk_list.push_back(0, {{"Rank", sk}});
+    }
+
+    return true;
+}
+
 nlohmann::json CreatureStats::to_json() const
 {
     nlohmann::json j;

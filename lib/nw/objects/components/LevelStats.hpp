@@ -14,7 +14,10 @@ struct Class {
 };
 
 struct LevelStats {
-    LevelStats(const GffInputArchiveStruct gff);
+    LevelStats() = default;
+
+    bool from_gff(const GffInputArchiveStruct& archive);
+    bool to_gff(GffOutputArchiveStruct& archive) const;
 
     std::vector<Class> classes;
 };

@@ -9,6 +9,7 @@
 #include "components/CreatureStats.hpp"
 #include "components/Equips.hpp"
 #include "components/Inventory.hpp"
+#include "components/LevelStats.hpp"
 #include "components/Location.hpp"
 
 namespace nw {
@@ -18,6 +19,7 @@ struct CreatureScripts {
 
     bool from_gff(const GffInputArchiveStruct& archive);
     bool from_json(const nlohmann::json& archive);
+    bool to_gff(GffOutputArchiveStruct& archive) const;
     nlohmann::json to_json() const;
 
     Resref on_attacked;
@@ -47,6 +49,7 @@ struct Creature : public ObjectBase {
 
     bool from_gff(const GffInputArchiveStruct& archive, SerializationProfile profile);
     bool from_json(const nlohmann::json& archive, SerializationProfile profile);
+    bool to_gff(GffOutputArchiveStruct& archive, SerializationProfile profile) const;
     nlohmann::json to_json(SerializationProfile profile) const;
 
     Common common_;
@@ -57,6 +60,7 @@ struct Creature : public ObjectBase {
     CreatureStats stats;
     Equips equipment;
     Inventory inventory;
+    LevelStats levels;
     Resref conversation;
     std::string deity;
     LocString description;

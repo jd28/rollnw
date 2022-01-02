@@ -5,6 +5,7 @@
 namespace nw {
 
 struct BodyParts {
+    uint8_t head = 0;
     uint8_t belt = 0;
     uint8_t left_bicep = 0;
     uint8_t left_foot = 0;
@@ -28,6 +29,7 @@ struct BodyParts {
 struct Appearance {
     bool from_gff(const GffInputArchiveStruct& archive);
     bool from_json(const nlohmann::json& archive);
+    bool to_gff(GffOutputArchiveStruct& archive) const;
     nlohmann::json to_json() const;
 
     int32_t phenotype = 0;
