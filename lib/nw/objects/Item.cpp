@@ -170,10 +170,8 @@ bool Item::to_gff(GffOutputArchiveStruct& archive, SerializationProfile profile)
     }
 
     common_.local_data.to_gff(archive);
+    inventory.to_gff(archive, profile);
 
-    if (inventory.items.size()) {
-        inventory.to_gff(archive, profile);
-    }
     archive.add_fields({
         {"Description", description},
         {"DescIdentified", description_id},

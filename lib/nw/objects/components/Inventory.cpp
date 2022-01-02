@@ -64,6 +64,7 @@ bool Inventory::from_json(const nlohmann::json& archive, SerializationProfile pr
 
 bool Inventory::to_gff(GffOutputArchiveStruct& archive, SerializationProfile profile) const
 {
+    if (items.empty()) { return true; }
     auto& list = archive.add_list("ItemList");
     for (const auto& it : items) {
         auto& str = list.push_back(list.size(), {

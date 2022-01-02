@@ -212,9 +212,7 @@ GffOutputArchive Placeable::to_gff(SerializationProfile profile) const
     trap.to_gff(archive.top);
 
     scripts.to_gff(archive.top);
-    if (has_inventory) {
-        inventory.to_gff(archive.top, profile);
-    }
+    inventory.to_gff(archive.top, profile);
 
     uint8_t type = 0;
     uint8_t anim = static_cast<uint8_t>(animation_state);
