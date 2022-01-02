@@ -30,7 +30,7 @@ enum struct EquipSlot {
     creature_skin = (1 << 17),
 };
 
-enum struct EquipIndex {
+enum struct EquipIndex : uint32_t {
     head = 0,
     chest = 1,
     boots = 2,
@@ -49,7 +49,97 @@ enum struct EquipIndex {
     creature_right = 15,
     creature_bite = 16,
     creature_skin = 17,
+
+    invalid = 0xffffffff
 };
+
+constexpr std::string_view equip_index_to_string(EquipIndex idx)
+{
+    switch (idx) {
+    default:
+        return "EQUIP_INVALID";
+    case EquipIndex::head:
+        return "head";
+    case EquipIndex::chest:
+        return "chest";
+    case EquipIndex::boots:
+        return "boots";
+    case EquipIndex::arms:
+        return "arms";
+    case EquipIndex::righthand:
+        return "righthand";
+    case EquipIndex::lefthand:
+        return "lefthand";
+    case EquipIndex::cloak:
+        return "cloak";
+    case EquipIndex::leftring:
+        return "leftring";
+    case EquipIndex::rightring:
+        return "rightring";
+    case EquipIndex::neck:
+        return "neck";
+    case EquipIndex::belt:
+        return "belt";
+    case EquipIndex::arrows:
+        return "arrows";
+    case EquipIndex::bullets:
+        return "bullets";
+    case EquipIndex::bolts:
+        return "bolts";
+    case EquipIndex::creature_left:
+        return "creature_left";
+    case EquipIndex::creature_right:
+        return "creature_right";
+    case EquipIndex::creature_bite:
+        return "creature_bite";
+    case EquipIndex::creature_skin:
+        return "creature_skin";
+    }
+}
+
+constexpr EquipIndex equip_slot_to_index(EquipSlot slot)
+{
+    switch (slot) {
+    default:
+        return EquipIndex::invalid;
+    case EquipSlot::head:
+        return EquipIndex::head;
+    case EquipSlot::chest:
+        return EquipIndex::chest;
+    case EquipSlot::boots:
+        return EquipIndex::boots;
+    case EquipSlot::arms:
+        return EquipIndex::arms;
+    case EquipSlot::righthand:
+        return EquipIndex::righthand;
+    case EquipSlot::lefthand:
+        return EquipIndex::lefthand;
+    case EquipSlot::cloak:
+        return EquipIndex::cloak;
+    case EquipSlot::leftring:
+        return EquipIndex::leftring;
+    case EquipSlot::rightring:
+        return EquipIndex::rightring;
+    case EquipSlot::neck:
+        return EquipIndex::neck;
+    case EquipSlot::belt:
+        return EquipIndex::belt;
+    case EquipSlot::arrows:
+        return EquipIndex::arrows;
+    case EquipSlot::bullets:
+        return EquipIndex::bullets;
+    case EquipSlot::bolts:
+        return EquipIndex::bolts;
+    case EquipSlot::creature_left:
+        return EquipIndex::creature_left;
+    case EquipSlot::creature_right:
+        return EquipIndex::creature_right;
+    case EquipSlot::creature_bite:
+        return EquipIndex::creature_bite;
+    case EquipSlot::creature_skin:
+        return EquipIndex::creature_skin;
+    }
+}
 
 using EquipItem = std::variant<Resref, std::unique_ptr<Item>>;
 
@@ -58,26 +148,10 @@ struct Equips {
 
     bool from_gff(const GffInputArchiveStruct& archive, SerializationProfile profile);
     bool from_json(const nlohmann::json& archive, SerializationProfile profile);
+    bool to_gff(GffOutputArchiveStruct& archive, SerializationProfile profile) const;
     nlohmann::json to_json(SerializationProfile profile) const;
 
-    EquipItem head;
-    EquipItem chest;
-    EquipItem boots;
-    EquipItem arms;
-    EquipItem righthand;
-    EquipItem lefthand;
-    EquipItem cloak;
-    EquipItem leftring;
-    EquipItem rightring;
-    EquipItem neck;
-    EquipItem belt;
-    EquipItem arrows;
-    EquipItem bullets;
-    EquipItem bolts;
-    EquipItem creature_left;
-    EquipItem creature_right;
-    EquipItem creature_bite;
-    EquipItem creature_skin;
+    std::array<EquipItem, 18> equips;
 };
 
 } // namespace nw

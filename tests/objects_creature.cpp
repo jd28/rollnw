@@ -29,7 +29,7 @@ TEST_CASE("Loading test_creature", "[objects]")
     REQUIRE(c.appearance.body_parts.left_shin == 1);
     REQUIRE(c.stats.feats.size() == 37);
     REQUIRE(c.soundset == 171);
-    REQUIRE(std::get<nw::Resref>(c.equipment.chest) == "dk_agent_thread2");
+    REQUIRE(std::get<nw::Resref>(c.equipment.equips[1]) == "dk_agent_thread2");
     REQUIRE(c.combat_info.ac_natural == 0);
     REQUIRE(c.combat_info.special_abilities.size() == 1);
     REQUIRE(c.combat_info.special_abilities[0].spell == 120);
