@@ -11,8 +11,6 @@ namespace nw {
 
 struct GffInputArchiveStruct;
 
-namespace detail {
-
 struct GffHeader {
     char type[4];
     char version[4];
@@ -71,7 +69,5 @@ struct GffLabel {
 private:
     Storage data_;
 };
-
-} // namespace detail
 
 } // namespace nw

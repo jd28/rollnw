@@ -62,13 +62,13 @@ struct GffOutputArchive {
 
     GffOutputArchiveStruct top;
 
-    detail::GffHeader header;
+    GffHeader header;
     ByteArray data;
-    std::vector<detail::GffLabel> labels;
+    std::vector<GffLabel> labels;
     std::vector<uint32_t> field_indices;
     std::vector<uint32_t> list_indices;
-    std::vector<detail::GffFieldEntry> field_entries;
-    std::vector<detail::GffStructEntry> struct_entries;
+    std::vector<GffFieldEntry> field_entries;
+    std::vector<GffStructEntry> struct_entries;
 };
 
 } // namespace nw

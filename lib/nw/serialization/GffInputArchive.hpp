@@ -56,10 +56,10 @@ private:
     friend struct GffInputArchiveStruct;
 
     const GffInputArchive* parent_ = nullptr;
-    const detail::GffFieldEntry* entry_ = nullptr;
+    const GffFieldEntry* entry_ = nullptr;
 
     GffInputArchiveField();
-    GffInputArchiveField(const GffInputArchive* parent, const detail::GffFieldEntry* entry);
+    GffInputArchiveField(const GffInputArchive* parent, const GffFieldEntry* entry);
 };
 
 // -- GffInputArchiveStruct ----------------------------------------------------------------
@@ -96,10 +96,10 @@ private:
     friend struct GffInputArchiveField;
 
     const GffInputArchive* parent_ = nullptr;
-    const detail::GffStructEntry* entry_ = nullptr;
+    const GffStructEntry* entry_ = nullptr;
 
     GffInputArchiveStruct() = default;
-    GffInputArchiveStruct(const GffInputArchive* parent, const detail::GffStructEntry* entry);
+    GffInputArchiveStruct(const GffInputArchive* parent, const GffStructEntry* entry);
 };
 
 struct GffInputArchive {
@@ -119,10 +119,10 @@ struct GffInputArchive {
     /// Get the Gff Version
     std::string_view version() const { return {head_->version, 4}; }
 
-    detail::GffHeader* head_ = nullptr;
-    detail::GffLabel* labels_ = nullptr;
-    detail::GffStructEntry* structs_ = nullptr;
-    detail::GffFieldEntry* fields_ = nullptr;
+    GffHeader* head_ = nullptr;
+    GffLabel* labels_ = nullptr;
+    GffStructEntry* structs_ = nullptr;
+    GffFieldEntry* fields_ = nullptr;
     uint32_t* field_indices_ = nullptr;
     uint32_t* list_indices_ = nullptr;
 

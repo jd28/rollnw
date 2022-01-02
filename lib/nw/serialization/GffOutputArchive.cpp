@@ -181,7 +181,7 @@ GffOutputArchive::GffOutputArchive(std::string_view type, std::string_view versi
 size_t GffOutputArchive::add_label(std::string_view name)
 {
     auto it = std::find_if(std::begin(labels), std::end(labels),
-        [&name](const detail::GffLabel& label) -> bool {
+        [&name](const GffLabel& label) -> bool {
             return label.view() == name;
         });
     if (it == std::end(labels)) {
@@ -260,7 +260,7 @@ void GffOutputArchive::build()
     build_arrays(*this, top);
     build_indicies(*this, top);
 
-    header.struct_offset = sizeof(detail::GffHeader);
+    header.struct_offset = sizeof(GffHeader);
     header.struct_count = static_cast<uint32_t>(struct_entries.size());
     header.field_offset = static_cast<uint32_t>(header.struct_offset + struct_entries.size() * 12);
     header.field_count = static_cast<uint32_t>(field_entries.size());

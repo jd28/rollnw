@@ -16,7 +16,7 @@ GffInputArchiveField::GffInputArchiveField()
 {
 }
 
-GffInputArchiveField::GffInputArchiveField(const GffInputArchive* parent, const detail::GffFieldEntry* entry)
+GffInputArchiveField::GffInputArchiveField(const GffInputArchive* parent, const GffFieldEntry* entry)
     : parent_{parent}
     , entry_{entry}
 {
@@ -78,7 +78,7 @@ GffInputArchiveStruct GffInputArchiveField::operator[](size_t index) const
 
 // GffStruct ------------------------------------------------------------------
 
-GffInputArchiveStruct::GffInputArchiveStruct(const GffInputArchive* parent, const detail::GffStructEntry* entry)
+GffInputArchiveStruct::GffInputArchiveStruct(const GffInputArchive* parent, const GffStructEntry* entry)
     : parent_{parent}
     , entry_{entry}
 {
@@ -171,14 +171,14 @@ bool GffInputArchive::valid() const
 bool GffInputArchive::parse()
 {
     // Order is how file is laid out.
-    CHECK_OFF(sizeof(detail::GffHeader) < bytes_.size());
-    head_ = reinterpret_cast<detail::GffHeader*>(bytes_.data());
+    CHECK_OFF(sizeof(GffHeader) < bytes_.size());
+    head_ = reinterpret_cast<GffHeader*>(bytes_.data());
     CHECK_OFF(head_->label_offset < bytes_.size() && head_->label_offset + head_->label_count * sizeof(Resref) < bytes_.size());
-    labels_ = reinterpret_cast<detail::GffLabel*>(bytes_.data() + head_->label_offset);
-    CHECK_OFF(head_->struct_offset < bytes_.size() && head_->struct_offset + head_->struct_count * sizeof(detail::GffStructEntry) < bytes_.size());
-    structs_ = reinterpret_cast<detail::GffStructEntry*>(bytes_.data() + head_->struct_offset);
-    CHECK_OFF(head_->field_offset < bytes_.size() && head_->field_offset + head_->field_count * sizeof(detail::GffFieldEntry) < bytes_.size());
-    fields_ = reinterpret_cast<detail::GffFieldEntry*>(bytes_.data() + head_->field_offset);
+    labels_ = reinterpret_cast<GffLabel*>(bytes_.data() + head_->label_offset);
+    CHECK_OFF(head_->struct_offset < bytes_.size() && head_->struct_offset + head_->struct_count * sizeof(GffStructEntry) < bytes_.size());
+    structs_ = reinterpret_cast<GffStructEntry*>(bytes_.data() + head_->struct_offset);
+    CHECK_OFF(head_->field_offset < bytes_.size() && head_->field_offset + head_->field_count * sizeof(GffFieldEntry) < bytes_.size());
+    fields_ = reinterpret_cast<GffFieldEntry*>(bytes_.data() + head_->field_offset);
     CHECK_OFF(head_->field_data_offset < bytes_.size() && head_->field_data_offset + head_->field_data_count < bytes_.size());
     CHECK_OFF(head_->field_idx_offset < bytes_.size() && head_->field_idx_offset + head_->field_idx_count <= bytes_.size());
     field_indices_ = reinterpret_cast<uint32_t*>(bytes_.data() + head_->field_idx_offset);

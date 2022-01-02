@@ -4,8 +4,6 @@
 
 namespace nw {
 
-namespace detail {
-
 GffLabel::GffLabel()
 {
     data_.fill(0);
@@ -45,7 +43,5 @@ std::string GffLabel::string() const
 }
 
 std::string_view GffLabel::view() const noexcept { return std::string_view(data_.data(), length()); }
-
-} // namespace detail
 
 } // namespace nw
