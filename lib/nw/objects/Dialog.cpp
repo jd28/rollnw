@@ -1,14 +1,18 @@
 #include "Dialog.hpp"
 
+#include "../util/templates.hpp"
+
 #include <iostream>
 
 namespace nw {
+
+// -- DialogPtr ---------------------------------------------------------------
 
 DialogNode* DialogPtr::node()
 {
     switch (type) {
     default:
-        LOG_F(ERROR, "Unknown dialog node types: {}", type);
+        LOG_F(ERROR, "Unknown dialog node types: {}", to_underlying(type));
         return nullptr;
     case DialogNodeType::entry:
         if (index < parent->entries.size()) {
