@@ -18,6 +18,8 @@ jobs:
   build:
     env:
       buildDir: "${{ github.workspace }}/build/"
+      vcpkg-tag: "2022.01.01"
+      VCPKG_ROOT: vcpkg/
 
     name: build on macOS
     runs-on: macos-latest
@@ -37,7 +39,7 @@ jobs:
           HOMEBREW_NO_BOTTLE_SOURCE_FALLBACK: "ON"
           HOMEBREW_NO_INSTALL_CLEANUP: "ON"
         run: |
-          brew install pkg-config automake
+          brew install pkg-config automake ninja
 
       - name: set ENV variables for clang 13
         run: |
