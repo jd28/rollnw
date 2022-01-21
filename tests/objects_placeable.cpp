@@ -49,7 +49,9 @@ TEST_CASE("placeable: gff round trip", "[ojbects]")
     REQUIRE(g.valid());
 
     nw::Placeable place{g.toplevel(), nw::SerializationProfile::blueprint};
-    nw::GffOutputArchive oa = place.to_gff(nw::SerializationProfile::blueprint);
+    nw::GffOutputArchive oa{"UTP"};
+    place.to_gff(oa.top, nw::SerializationProfile::blueprint);
+    oa.build();
 
     REQUIRE(oa.header.struct_offset == g.head_->struct_offset);
     REQUIRE(oa.header.struct_count == g.head_->struct_count);

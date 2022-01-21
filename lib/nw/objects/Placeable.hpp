@@ -59,7 +59,7 @@ struct Placeable : public ObjectBase {
     // Serialization
     bool from_gff(const GffInputArchiveStruct& archive, SerializationProfile profile);
     bool from_json(const nlohmann::json& archive, SerializationProfile profile);
-    GffOutputArchive to_gff(SerializationProfile profile) const;
+    bool to_gff(GffOutputArchiveStruct& archive, SerializationProfile profile) const;
     nlohmann::json to_json(SerializationProfile profile) const;
 
     Common common_;

@@ -180,11 +180,10 @@ bool Placeable::from_json(const nlohmann::json& archive, SerializationProfile pr
     return true;
 }
 
-GffOutputArchive Placeable::to_gff(SerializationProfile profile) const
+bool Placeable::to_gff(GffOutputArchiveStruct& archive, SerializationProfile profile) const
 {
-    GffOutputArchive archive{"UTP"};
 
-    archive.top.add_fields({
+    archive.add_fields({
         {"TemplateResRef", common_.resref},
         {"LocName", common_.name},
         {"Tag", common_.tag},
@@ -192,10 +191,10 @@ GffOutputArchive Placeable::to_gff(SerializationProfile profile) const
     });
 
     if (profile == SerializationProfile::blueprint) {
-        archive.top.add_field("Comment", common_.comment);
-        archive.top.add_field("PaletteID", common_.palette_id);
+        archive.add_field("Comment", common_.comment);
+        archive.add_field("PaletteID", common_.palette_id);
     } else {
-        archive.top.add_fields({
+        archive.add_fields({
             {"PositionX", common_.location.position.x},
             {"PositionY", common_.location.position.y},
             {"PositionZ", common_.location.position.z},
@@ -205,18 +204,18 @@ GffOutputArchive Placeable::to_gff(SerializationProfile profile) const
     }
 
     if (common_.local_data.size()) {
-        common_.local_data.to_gff(archive.top);
+        common_.local_data.to_gff(archive);
     }
 
-    lock.to_gff(archive.top);
-    trap.to_gff(archive.top);
+    lock.to_gff(archive);
+    trap.to_gff(archive);
 
-    scripts.to_gff(archive.top);
-    inventory.to_gff(archive.top, profile);
+    scripts.to_gff(archive);
+    inventory.to_gff(archive, profile);
 
     uint8_t type = 0;
     uint8_t anim = static_cast<uint8_t>(animation_state);
-    archive.top.add_fields({
+    archive.add_fields({
         {"Type", type}, // Obsolete, unused
         {"AnimationState", anim},
         {"BodyBag", bodybag},
@@ -235,14 +234,13 @@ GffOutputArchive Placeable::to_gff(SerializationProfile profile) const
     });
 
     uint8_t save = static_cast<uint8_t>(saves.fort);
-    archive.top.add_field("Fort", save);
+    archive.add_field("Fort", save);
     save = static_cast<uint8_t>(saves.reflex);
-    archive.top.add_field("Ref", save);
+    archive.add_field("Ref", save);
     save = static_cast<uint8_t>(saves.will);
-    archive.top.add_field("Will", save);
+    archive.add_field("Will", save);
 
-    archive.build();
-    return archive;
+    return true;
 }
 
 nlohmann::json Placeable::to_json(SerializationProfile profile) const
