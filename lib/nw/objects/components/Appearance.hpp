@@ -5,24 +5,24 @@
 namespace nw {
 
 struct BodyParts {
-    uint8_t head = 0;
     uint8_t belt = 0;
-    uint8_t left_bicep = 0;
-    uint8_t left_foot = 0;
-    uint8_t left_forearm = 0;
-    uint8_t left_hand = 0;
-    uint8_t left_shin = 0;
-    uint8_t left_shoulder = 0;
-    uint8_t left_thigh = 0;
+    uint8_t bicep_left = 0;
+    uint8_t bicep_right = 0;
+    uint8_t foot_left = 0;
+    uint8_t foot_right = 0;
+    uint8_t forearm_left = 0;
+    uint8_t forearm_right = 0;
+    uint8_t hand_left = 0;
+    uint8_t hand_right = 0;
+    uint8_t head = 0;
     uint8_t neck = 0;
     uint8_t pelvis = 0;
-    uint8_t right_bicep = 0;
-    uint8_t right_foot = 0;
-    uint8_t right_forearm = 0;
-    uint8_t right_hand = 0;
-    uint8_t right_shin = 0;
-    uint8_t right_shoulder = 0;
-    uint8_t right_thigh = 0;
+    uint8_t shin_left = 0;
+    uint8_t shin_right = 0;
+    uint8_t shoulder_left = 0;
+    uint8_t shoulder_right = 0;
+    uint8_t thigh_left = 0;
+    uint8_t thigh_right = 0;
     uint8_t torso = 0;
 };
 

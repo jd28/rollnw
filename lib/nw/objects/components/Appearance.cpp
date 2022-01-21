@@ -20,24 +20,26 @@ bool Appearance::from_gff(const GffInputArchiveStruct& archive)
     archive.get_to("Appearance_Type", id);
     archive.get_to("PortraitId", portrait_id);
     archive.get_to("Appearance_Head", body_parts.head);
+
+    archive.get_to("ArmorPart_RFoot", body_parts.foot_right, false);
     archive.get_to("BodyPart_Belt", body_parts.belt, false);
-    archive.get_to("BodyPart_LBicep", body_parts.left_bicep, false);
-    archive.get_to("BodyPart_LFArm", body_parts.left_forearm, false);
-    archive.get_to("BodyPart_LFoot", body_parts.left_foot, false);
-    archive.get_to("BodyPart_LHand", body_parts.left_hand, false);
-    archive.get_to("BodyPart_LShin", body_parts.left_shin, false);
-    archive.get_to("BodyPart_LShoul", body_parts.left_shoulder, false);
-    archive.get_to("BodyPart_LThigh", body_parts.left_thigh, false);
+    archive.get_to("BodyPart_LBicep", body_parts.bicep_left, false);
+    archive.get_to("BodyPart_LFArm", body_parts.forearm_left, false);
+    archive.get_to("BodyPart_LFoot", body_parts.foot_left, false);
+    archive.get_to("BodyPart_LHand", body_parts.hand_left, false);
+    archive.get_to("BodyPart_LShin", body_parts.shin_left, false);
+    archive.get_to("BodyPart_LShoul", body_parts.shoulder_left, false);
+    archive.get_to("BodyPart_LThigh", body_parts.thigh_left, false);
     archive.get_to("BodyPart_Neck", body_parts.neck, false);
     archive.get_to("BodyPart_Pelvis", body_parts.pelvis, false);
-    archive.get_to("BodyPart_RBicep", body_parts.right_bicep, false);
-    archive.get_to("BodyPart_RFArm", body_parts.right_forearm, false);
-    archive.get_to("ArmorPart_RFoot", body_parts.right_foot, false);
-    archive.get_to("BodyPart_RHand", body_parts.right_hand, false);
-    archive.get_to("BodyPart_RShin", body_parts.right_shin, false);
-    archive.get_to("BodyPart_RShoul", body_parts.right_shoulder, false);
-    archive.get_to("BodyPart_RThigh", body_parts.right_thigh, false);
+    archive.get_to("BodyPart_RBicep", body_parts.bicep_right, false);
+    archive.get_to("BodyPart_RFArm", body_parts.forearm_right, false);
+    archive.get_to("BodyPart_RHand", body_parts.hand_right, false);
+    archive.get_to("BodyPart_RShin", body_parts.shin_right, false);
+    archive.get_to("BodyPart_RShoul", body_parts.shoulder_right, false);
+    archive.get_to("BodyPart_RThigh", body_parts.thigh_right, false);
     archive.get_to("BodyPart_Torso", body_parts.torso, false);
+
     archive.get_to("Color_Hair", hair, false);
     archive.get_to("Color_Skin", skin, false);
     archive.get_to("Color_Tattoo1", tattoo1, false);
@@ -61,24 +63,24 @@ bool Appearance::from_json(const nlohmann::json& archive)
         archive.at("tattoo2").get_to(tattoo2);
 
         const auto& bp = archive.at("body_parts");
-        bp.at("head").get_to(body_parts.head);
         bp.at("belt").get_to(body_parts.belt);
-        bp.at("left_bicep").get_to(body_parts.left_bicep);
-        bp.at("left_foot").get_to(body_parts.left_foot);
-        bp.at("left_forearm").get_to(body_parts.left_forearm);
-        bp.at("left_hand").get_to(body_parts.left_hand);
-        bp.at("left_shin").get_to(body_parts.left_shin);
-        bp.at("left_shoulder").get_to(body_parts.left_shoulder);
-        bp.at("left_thigh").get_to(body_parts.left_thigh);
+        bp.at("bicep_left").get_to(body_parts.bicep_left);
+        bp.at("bicep_right").get_to(body_parts.bicep_right);
+        bp.at("foot_left").get_to(body_parts.foot_left);
+        bp.at("foot_right").get_to(body_parts.foot_right);
+        bp.at("forearm_left").get_to(body_parts.forearm_left);
+        bp.at("forearm_right").get_to(body_parts.forearm_right);
+        bp.at("hand_left").get_to(body_parts.hand_left);
+        bp.at("hand_right").get_to(body_parts.hand_right);
+        bp.at("head").get_to(body_parts.head);
         bp.at("neck").get_to(body_parts.neck);
         bp.at("pelvis").get_to(body_parts.pelvis);
-        bp.at("right_bicep").get_to(body_parts.right_bicep);
-        bp.at("right_foot").get_to(body_parts.right_foot);
-        bp.at("right_forearm").get_to(body_parts.right_forearm);
-        bp.at("right_hand").get_to(body_parts.right_hand);
-        bp.at("right_shin").get_to(body_parts.right_shin);
-        bp.at("right_shoulder").get_to(body_parts.right_shoulder);
-        bp.at("right_thigh").get_to(body_parts.right_thigh);
+        bp.at("shin_left").get_to(body_parts.shin_left);
+        bp.at("shin_right").get_to(body_parts.shin_right);
+        bp.at("shoulder_left").get_to(body_parts.shoulder_left);
+        bp.at("shoulder_right").get_to(body_parts.shoulder_right);
+        bp.at("thigh_left").get_to(body_parts.thigh_left);
+        bp.at("thigh_right").get_to(body_parts.thigh_right);
         bp.at("torso").get_to(body_parts.torso);
     } catch (const nlohmann::json::exception& e) {
         LOG_F(ERROR, "from_json exception: {}", e.what());
@@ -96,22 +98,22 @@ bool Appearance::to_gff(GffOutputArchiveStruct& archive) const
         {"PortraitId", portrait_id},
         {"Appearance_Head", body_parts.head},
         {"BodyPart_Belt", body_parts.belt},
-        {"BodyPart_LBicep", body_parts.left_bicep},
-        {"BodyPart_LFArm", body_parts.left_forearm},
-        {"BodyPart_LFoot", body_parts.left_foot},
-        {"BodyPart_LHand", body_parts.left_hand},
-        {"BodyPart_LShin", body_parts.left_shin},
-        {"BodyPart_LShoul", body_parts.left_shoulder},
-        {"BodyPart_LThigh", body_parts.left_thigh},
+        {"BodyPart_LBicep", body_parts.bicep_left},
+        {"BodyPart_LFArm", body_parts.forearm_left},
+        {"BodyPart_LFoot", body_parts.foot_left},
+        {"BodyPart_LHand", body_parts.hand_left},
+        {"BodyPart_LShin", body_parts.shin_left},
+        {"BodyPart_LShoul", body_parts.shoulder_left},
+        {"BodyPart_LThigh", body_parts.thigh_left},
         {"BodyPart_Neck", body_parts.neck},
         {"BodyPart_Pelvis", body_parts.pelvis},
-        {"BodyPart_RBicep", body_parts.right_bicep},
-        {"BodyPart_RFArm", body_parts.right_forearm},
-        {"ArmorPart_RFoot", body_parts.right_foot},
-        {"BodyPart_RHand", body_parts.right_hand},
-        {"BodyPart_RShin", body_parts.right_shin},
-        {"BodyPart_RShoul", body_parts.right_shoulder},
-        {"BodyPart_RThigh", body_parts.right_thigh},
+        {"BodyPart_RBicep", body_parts.bicep_right},
+        {"BodyPart_RFArm", body_parts.forearm_right},
+        {"ArmorPart_RFoot", body_parts.foot_right},
+        {"BodyPart_RHand", body_parts.hand_right},
+        {"BodyPart_RShin", body_parts.shin_right},
+        {"BodyPart_RShoul", body_parts.shoulder_right},
+        {"BodyPart_RThigh", body_parts.thigh_right},
         {"BodyPart_Torso", body_parts.torso},
         {"Color_Hair", hair},
         {"Color_Skin", skin},
@@ -139,22 +141,22 @@ nlohmann::json Appearance::to_json() const
     j["body_parts"] = {
         {"head", body_parts.head},
         {"belt", body_parts.belt},
-        {"left_bicep", body_parts.left_bicep},
-        {"left_foot", body_parts.left_foot},
-        {"left_forearm", body_parts.left_forearm},
-        {"left_hand", body_parts.left_hand},
-        {"left_shin", body_parts.left_shin},
-        {"left_shoulder", body_parts.left_shoulder},
-        {"left_thigh", body_parts.left_thigh},
+        {"bicep_left", body_parts.bicep_left},
+        {"foot_left", body_parts.foot_left},
+        {"forearm_left", body_parts.forearm_left},
+        {"hand_left", body_parts.hand_left},
+        {"shin_left", body_parts.shin_left},
+        {"shoulder_left", body_parts.shoulder_left},
+        {"thigh_left", body_parts.thigh_left},
         {"neck", body_parts.neck},
         {"pelvis", body_parts.pelvis},
-        {"right_bicep", body_parts.right_bicep},
-        {"right_foot", body_parts.right_foot},
-        {"right_forearm", body_parts.right_forearm},
-        {"right_hand", body_parts.right_hand},
-        {"right_shin", body_parts.right_shin},
-        {"right_shoulder", body_parts.right_shoulder},
-        {"right_thigh", body_parts.right_thigh},
+        {"bicep_right", body_parts.bicep_right},
+        {"foot_right", body_parts.foot_right},
+        {"forearm_right", body_parts.forearm_right},
+        {"hand_right", body_parts.hand_right},
+        {"shin_right", body_parts.shin_right},
+        {"shoulder_right", body_parts.shoulder_right},
+        {"thigh_right", body_parts.thigh_right},
         {"torso", body_parts.torso},
     };
 

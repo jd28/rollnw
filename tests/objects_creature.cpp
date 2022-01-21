@@ -27,7 +27,7 @@ TEST_CASE("Loading test_creature", "[objects]")
     REQUIRE(c.stats.abilities[2] == 16);
     REQUIRE(c.scripts.on_attacked == "mon_ai_5attacked");
     REQUIRE(c.appearance.id == 6);
-    REQUIRE(c.appearance.body_parts.left_shin == 1);
+    REQUIRE(c.appearance.body_parts.shin_left == 1);
     REQUIRE(c.stats.feats.size() == 37);
     REQUIRE(c.soundset == 171);
     REQUIRE(std::get<nw::Resref>(c.equipment.equips[1]) == "dk_agent_thread2");
