@@ -1,5 +1,7 @@
 #include "Door.hpp"
 
+#include "../util/templates.hpp"
+
 #include <nlohmann/json.hpp>
 
 namespace nw {
@@ -49,6 +51,27 @@ bool DoorScripts::from_json(const nlohmann::json& archive)
     return true;
 }
 
+bool DoorScripts::to_gff(GffOutputArchiveStruct& archive) const
+{
+    archive.add_fields({
+        {"OnClick", on_click},
+        {"OnClosed", on_closed},
+        {"OnDamaged", on_damaged},
+        {"OnDeath", on_death},
+        {"OnDisarm", on_disarm},
+        {"OnFailToOpen", on_open_failure},
+        {"OnHeartbeat", on_heartbeat},
+        {"OnLock", on_lock},
+        {"OnMeleeAttacked", on_melee_attacked},
+        {"OnOpen", on_open},
+        {"OnSpellCastAt", on_spell_cast_at},
+        {"OnTrapTriggered", on_trap_triggered},
+        {"OnUnlock", on_unlock},
+        {"OnUserDefined", on_user_defined},
+    });
+    return true;
+}
+
 nlohmann::json DoorScripts::to_json() const
 {
     nlohmann::json j;
@@ -92,6 +115,8 @@ bool Door::from_gff(const GffInputArchiveStruct& archive, SerializationProfile p
 {
     common_.from_gff(archive, profile);
     scripts.from_gff(archive);
+    lock.from_gff(archive);
+    trap.from_gff(archive);
 
     archive.get_to("AnimationState", animation_state);
 
@@ -99,7 +124,6 @@ bool Door::from_gff(const GffInputArchiveStruct& archive, SerializationProfile p
     archive.get_to("LinkedTo", linked_to);
     archive.get_to("LinkedToFlags", linked_to_flags);
     archive.get_to("LoadScreenID", loadscreen);
-    trap.from_gff(archive);
 
     uint8_t save;
     // AnimationState
@@ -153,6 +177,63 @@ bool Door::from_json(const nlohmann::json& archive, SerializationProfile profile
     }
 
     return valid_ = true;
+}
+
+bool Door::to_gff(GffOutputArchiveStruct& archive, SerializationProfile profile) const
+{
+    archive.add_fields({
+        {"TemplateResRef", common_.resref},
+        {"LocName", common_.name},
+        {"Tag", common_.tag},
+        {"Faction", common_.faction},
+    });
+
+    if (profile == SerializationProfile::blueprint) {
+        archive.add_field("Comment", common_.comment);
+        archive.add_field("PaletteID", common_.palette_id);
+    } else {
+        archive.add_fields({
+            {"PositionX", common_.location.position.x},
+            {"PositionY", common_.location.position.y},
+            {"PositionZ", common_.location.position.z},
+            {"OrientationX", common_.location.orientation.x},
+            {"OrientationY", common_.location.orientation.y},
+        });
+    }
+
+    if (common_.local_data.size()) {
+        common_.local_data.to_gff(archive);
+    }
+
+    lock.to_gff(archive);
+    scripts.to_gff(archive);
+    trap.to_gff(archive);
+
+    auto anim = to_underlying(animation_state);
+    archive.add_field("AnimationState", anim);
+
+    archive.add_field("GenericType", generic_type);
+    archive.add_field("LinkedTo", linked_to);
+    archive.add_field("LinkedToFlags", linked_to_flags);
+    archive.add_field("LoadScreenID", loadscreen);
+    archive.add_field("Appearance", appearance);
+    archive.add_field("Conversation", conversation);
+    archive.add_field("Description", description);
+    archive.add_field("Hardness", hardness);
+    archive.add_field("HP", hp);
+    archive.add_field("CurrentHP", hp_current);
+    archive.add_field("Interruptable", interruptable);
+    archive.add_field("Plot", plot);
+    archive.add_field("PortraitId", portrait_id);
+
+    uint8_t save = static_cast<uint8_t>(saves.fort);
+    archive.add_field("Fort", save);
+    save = static_cast<uint8_t>(saves.reflex);
+    archive.add_field("Ref", save);
+    save = static_cast<uint8_t>(saves.will);
+    archive.add_field("Will", save);
+
+    return true;
 }
 
 nlohmann::json Door::to_json(SerializationProfile profile) const

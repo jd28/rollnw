@@ -41,3 +41,27 @@ TEST_CASE("door: to_json", "[objects]")
     std::ofstream f{"tmp/door_ttr_002.utd.json"};
     f << std::setw(4) << j;
 }
+
+TEST_CASE("door: gff round trip", "[ojbects]")
+{
+    nw::GffInputArchive g("test_data/door_ttr_002.utd");
+    REQUIRE(g.valid());
+
+    nw::Door door{g.toplevel(), nw::SerializationProfile::blueprint};
+    nw::GffOutputArchive oa{"UTD"};
+    door.to_gff(oa.top, nw::SerializationProfile::blueprint);
+    oa.build();
+
+    REQUIRE(oa.header.struct_offset == g.head_->struct_offset);
+    REQUIRE(oa.header.struct_count == g.head_->struct_count);
+    REQUIRE(oa.header.field_offset == g.head_->field_offset);
+    REQUIRE(oa.header.field_count == g.head_->field_count);
+    REQUIRE(oa.header.label_offset == g.head_->label_offset);
+    REQUIRE(oa.header.label_count == g.head_->label_count);
+    REQUIRE(oa.header.field_data_offset == g.head_->field_data_offset);
+    REQUIRE(oa.header.field_data_count == g.head_->field_data_count);
+    REQUIRE(oa.header.field_idx_offset == g.head_->field_idx_offset);
+    REQUIRE(oa.header.field_idx_count == g.head_->field_idx_count);
+    REQUIRE(oa.header.list_idx_offset == g.head_->list_idx_offset);
+    REQUIRE(oa.header.list_idx_count == g.head_->list_idx_count);
+}
