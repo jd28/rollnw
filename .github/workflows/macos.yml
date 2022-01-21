@@ -1,14 +1,11 @@
 name: macOS
 on:
   push:
-    branches:
-      - main
+    branches: [main]
     paths-ignore:
       - "**.md"
-
   pull_request:
-    branches:
-      - main
+    branches: [main]
     paths-ignore:
       - "**.md"
 
@@ -59,9 +56,6 @@ jobs:
           key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ env.vcpkg-tag }}-${{ hashFiles('vcpkg.json') }}
           restore-keys: |
             ${{ runner.os }}-build-${{ env.cache-name }}-${{ env.vcpkg-tag }}
-            ${{ runner.os }}-build-${{ env.cache-name }}-
-            ${{ runner.os }}-build-
-            ${{ runner.os }}-
 
       - name: download vcpkg
         if: steps.cache-vcpkg.outputs.cache-hit != 'true'
