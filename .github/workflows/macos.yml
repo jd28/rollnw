@@ -5,21 +5,19 @@ on:
       - main
     paths-ignore:
       - "**.md"
-      - "**.json"
 
   pull_request:
     branches:
       - main
     paths-ignore:
       - "**.md"
-      - "**.json"
 
 jobs:
   build:
     env:
       buildDir: "${{ github.workspace }}/build/"
       vcpkg-tag: "2022.01.01"
-      VCPKG_ROOT: vcpkg/
+      VCPKG_ROOT: "${{ github.workspace }}/vcpkg/"
 
     name: build on macOS
     runs-on: macos-latest
