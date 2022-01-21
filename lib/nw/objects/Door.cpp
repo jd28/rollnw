@@ -120,7 +120,12 @@ bool Door::from_gff(const GffInputArchiveStruct& archive, SerializationProfile p
 
     archive.get_to("AnimationState", animation_state);
 
-    archive.get_to("GenericType", generic_type);
+    if (!archive.get_to("GenericType_New", generic_type, false)) {
+        uint8_t temp = 0;
+        archive.get_to("GenericType", temp);
+        generic_type = temp;
+    }
+
     archive.get_to("LinkedTo", linked_to);
     archive.get_to("LinkedToFlags", linked_to_flags);
     archive.get_to("LoadScreenID", loadscreen);
@@ -212,7 +217,7 @@ bool Door::to_gff(GffOutputArchiveStruct& archive, SerializationProfile profile)
     auto anim = to_underlying(animation_state);
     archive.add_field("AnimationState", anim);
 
-    archive.add_field("GenericType", generic_type);
+    archive.add_field("GenericType_New", generic_type);
     archive.add_field("LinkedTo", linked_to);
     archive.add_field("LinkedToFlags", linked_to_flags);
     archive.add_field("LoadScreenID", loadscreen);
