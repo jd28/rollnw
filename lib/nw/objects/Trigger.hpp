@@ -50,6 +50,7 @@ struct Trigger : public ObjectBase {
     std::string linked_to;
     float highlight_height = 0.0f;
 
+    uint32_t faction = 0;
     uint16_t loadscreen = 0;
     uint16_t portrait = 0;
     uint8_t cursor = 0;

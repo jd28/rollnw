@@ -73,6 +73,7 @@ struct Encounter : public ObjectBase {
     int32_t creatures_recommended = 0;
     int32_t difficulty = 0;
     int32_t difficulty_index = 0;
+    uint32_t faction = 0;
     int32_t reset_time = 0;
     int32_t respawns = 0;
     int32_t spawn_option = 0;

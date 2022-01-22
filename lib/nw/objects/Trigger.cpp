@@ -56,6 +56,7 @@ bool Trigger::from_gff(const GffInputArchiveStruct& archive, SerializationProfil
     common_.from_gff(archive, profile);
     trap.from_gff(archive);
 
+    archive.get_to("Faction", faction);
     archive.get_to("Cursor", cursor);
     archive.get_to("HighlightHeight", highlight_height);
     archive.get_to("LinkedTo", linked_to);
@@ -93,6 +94,7 @@ bool Trigger::from_json(const nlohmann::json& archive, SerializationProfile prof
             return valid_ = false;
         }
 
+        archive.at("faction").get_to(faction);
         archive.at("cursor").get_to(cursor);
         archive.at("highlight_height").get_to(highlight_height);
         archive.at("linked_to_flags").get_to(linked_to_flags);
@@ -124,6 +126,7 @@ nlohmann::json Trigger::to_json(SerializationProfile profile) const
     j["scripts"] = scripts.to_json();
     j["trap"] = trap.to_json();
 
+    j["faction"] = faction;
     j["cursor"] = cursor;
     j["highlight_height"] = highlight_height;
     j["linked_to_flags"] = linked_to_flags;

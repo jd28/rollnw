@@ -68,6 +68,7 @@ struct Placeable : public ObjectBase {
     Inventory inventory;
     PlaceableAnimationState animation_state;
 
+    uint32_t faction = 0;
     uint8_t bodybag = 0;
     bool has_inventory = false;
     bool useable = false;

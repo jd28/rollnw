@@ -33,9 +33,6 @@ bool Common::from_gff(const GffInputArchiveStruct& archive, SerializationProfile
     }
 
     archive.get_to("Tag", tag);
-    if (object_type != ObjectType::creature) {
-        archive.get_to("Faction", faction);
-    }
 
     if (profile == SerializationProfile::blueprint) {
         archive.get_to("Comment", comment);
@@ -48,7 +45,6 @@ bool Common::from_gff(const GffInputArchiveStruct& archive, SerializationProfile
 bool Common::from_json(const nlohmann::json& archive, SerializationProfile profile)
 {
 
-    archive.at("faction").get_to(faction);
     archive.at("object_type").get_to(object_type);
     archive.at("resref").get_to(resref);
     archive.at("tag").get_to(tag);
@@ -75,7 +71,6 @@ nlohmann::json Common::to_json(SerializationProfile profile) const
 {
     nlohmann::json j;
 
-    j["faction"] = faction;
     if (id != object_invalid) {
         j["object_id"] = id;
     }

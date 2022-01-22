@@ -118,6 +118,7 @@ bool Door::from_gff(const GffInputArchiveStruct& archive, SerializationProfile p
     lock.from_gff(archive);
     trap.from_gff(archive);
 
+    archive.get_to("Faction", faction);
     archive.get_to("AnimationState", animation_state);
 
     if (!archive.get_to("GenericType_New", generic_type, false)) {
@@ -157,6 +158,7 @@ bool Door::from_json(const nlohmann::json& archive, SerializationProfile profile
         common_.from_json(archive.at("common"), profile);
         scripts.from_json(archive.at("scripts"));
 
+        archive.at("faction").get_to(faction);
         archive.at("animation_state").get_to(animation_state);
         archive.at("linked_to").get_to(linked_to);
         archive.at("loadscreen").get_to(loadscreen);
@@ -190,7 +192,7 @@ bool Door::to_gff(GffOutputArchiveStruct& archive, SerializationProfile profile)
         {"TemplateResRef", common_.resref},
         {"LocName", common_.name},
         {"Tag", common_.tag},
-        {"Faction", common_.faction},
+        {"Faction", faction},
     });
 
     if (profile == SerializationProfile::blueprint) {
@@ -250,6 +252,7 @@ nlohmann::json Door::to_json(SerializationProfile profile) const
     j["common"] = common_.to_json(profile);
     j["scripts"] = scripts.to_json();
 
+    j["faction"] = faction;
     j["animation_state"] = animation_state;
     j["linked_to"] = linked_to;
     j["loadscreen"] = loadscreen;

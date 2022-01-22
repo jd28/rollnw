@@ -118,8 +118,8 @@ bool Placeable::from_gff(const GffInputArchiveStruct& archive, SerializationProf
     lock.from_gff(archive);
     trap.from_gff(archive);
 
+    archive.get_to("Faction", faction);
     archive.get_to("AnimationState", animation_state);
-
     archive.get_to("BodyBag", bodybag);
     archive.get_to("HasInventory", has_inventory);
     archive.get_to("Static", static_);
@@ -158,6 +158,7 @@ bool Placeable::from_json(const nlohmann::json& archive, SerializationProfile pr
         scripts.from_json(archive.at("scripts"));
         trap.from_json(archive.at("trap"));
 
+        archive.at("faction").get_to(faction);
         archive.at("animation_state").get_to(animation_state);
         archive.at("bodybag").get_to(bodybag);
         archive.at("has_inventory").get_to(has_inventory);
@@ -187,7 +188,7 @@ bool Placeable::to_gff(GffOutputArchiveStruct& archive, SerializationProfile pro
         {"TemplateResRef", common_.resref},
         {"LocName", common_.name},
         {"Tag", common_.tag},
-        {"Faction", common_.faction},
+        {"Faction", faction},
     });
 
     if (profile == SerializationProfile::blueprint) {
@@ -253,6 +254,7 @@ nlohmann::json Placeable::to_json(SerializationProfile profile) const
     j["scripts"] = scripts.to_json();
 
     j["inventory"] = inventory.to_json(profile);
+    j["faction"] = faction;
     j["animation_state"] = animation_state;
 
     j["bodybag"] = bodybag;

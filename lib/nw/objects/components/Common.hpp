@@ -31,8 +31,6 @@ struct Common {
     LocalData local_data;
     Location location;
 
-    uint32_t faction = 0;
-
     // Blueprint only
     std::string comment;
     uint8_t palette_id = std::numeric_limits<uint8_t>::max();

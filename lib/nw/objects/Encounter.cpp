@@ -143,6 +143,7 @@ bool Encounter::from_gff(const GffInputArchiveStruct& archive, SerializationProf
         creatures[i].from_gff(archive["CreatureList"][i]);
     }
 
+    archive.get_to("Faction", faction);
     archive.get_to("MaxCreatures", creatures_max);
     archive.get_to("RecCreatures", creatures_recommended);
     archive.get_to("Difficulty", difficulty);
@@ -186,6 +187,7 @@ bool Encounter::from_json(const nlohmann::json& archive, SerializationProfile pr
         creatures[i].from_json(arr[i]);
     }
 
+    archive.at("faction").get_to(faction);
     archive.at("creatures_max").get_to(creatures_max);
     archive.at("creatures_recommended").get_to(creatures_recommended);
     archive.at("difficulty").get_to(difficulty);
@@ -222,7 +224,7 @@ GffOutputArchive Encounter::to_gff(SerializationProfile profile) const
         {"TemplateResRef", common_.resref},
         {"LocalizedName", common_.name},
         {"Tag", common_.tag},
-        {"Faction", common_.faction},
+        {"Faction", faction},
     });
 
     if (profile == SerializationProfile::blueprint) {
@@ -308,6 +310,7 @@ nlohmann::json Encounter::to_json(SerializationProfile profile) const
 
     j["scripts"] = scripts.to_json();
 
+    j["faction"] = faction;
     j["creatures_max"] = creatures_max;
     j["creatures_recommended"] = creatures_recommended;
     j["difficulty"] = difficulty;
