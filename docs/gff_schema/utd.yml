@@ -9,8 +9,8 @@ all:
   DisarmDC: byte
   Faction: dword
   Fort: byte
-  GenericType_New: dword [1.69]
-  GenericType: byte [until 1.69]
+  GenericType_New: dword # 1.69
+  GenericType: byte # until 1.69
   HP: short
   Hardness: byte
   Interruptable: byte
@@ -48,11 +48,15 @@ all:
   TrapFlag: byte
   TrapOneShot: byte
   TrapType: byte
-  VarTable:
-    - Name: string
-      Type: dword
-      Value: int
+  VarTable: vartable.yml
   Will: byte
+
 blueprint:
   Comment: string
   PaletteID: byte
+
+instance:
+  Bearing: float
+  X: float
+  "Y": float
+  Z: float

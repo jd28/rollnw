@@ -1,0 +1,63 @@
+all:
+  AddCost: dword
+  ArmorPart_Belt: byte
+  ArmorPart_LBicep: byte
+  ArmorPart_LFArm: byte
+  ArmorPart_LFoot: byte
+  ArmorPart_LHand: byte
+  ArmorPart_LShin: byte
+  ArmorPart_LShoul: byte
+  ArmorPart_LThigh: byte
+  ArmorPart_Neck: byte
+  ArmorPart_Pelvis: byte
+  ArmorPart_RBicep: byte
+  ArmorPart_RFArm: byte
+  ArmorPart_RFoot: byte
+  ArmorPart_RHand: byte
+  ArmorPart_RShin: byte
+  ArmorPart_RShoul: byte
+  ArmorPart_RThigh: byte
+  ArmorPart_Robe: byte
+  ArmorPart_Torso: byte
+  BaseItem: int
+  Charges: byte
+  Cloth1Color: byte
+  Cloth2Color: byte
+  Cost: dword
+  Cursed: byte
+  DescIdentified: locstring
+  Description: locstring
+  Identified: byte
+  Leather1Color: byte
+  Leather2Color: byte
+  LocalizedName: locstring
+  Metal1Color: byte
+  Metal2Color: byte
+  ModelPart1: byte
+  ModelPart2: byte
+  ModelPart3: byte
+  Plot: byte
+  PropertiesList:
+  - ChanceAppear: byte
+    CostTable: byte
+    CostValue: word
+    Param1: byte
+    Param1Value: byte
+    PropertyName: word
+    Subtype: word
+  StackSize: word
+  Stolen: byte
+  Tag: cexostr
+  TemplateResRef: resref
+  VarTable: vartable.yml
+
+blueprint:
+  Comment: cexostr
+  PaletteID: byte
+
+instance:
+  XOrientation: float
+  XPosition: float
+  YOrientation: float
+  YPosition: float
+  ZPosition: float

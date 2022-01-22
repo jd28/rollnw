@@ -1,8 +1,10 @@
 FactionList:
-  - FactionGlobal: word
-    FactionName: cexostr
+  - $struct_id: index
+    FactionGlobal: word
+    FactionName: string
     FactionParentID: dword
 RepList:
-  - FactionID1: dword
+  - $struct_id: index
+    FactionID1: dword
     FactionID2: dword
     FactionRep: dword

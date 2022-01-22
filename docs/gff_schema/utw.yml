@@ -1,15 +1,22 @@
-Appearance: byte
-Comment: cexostr
-Description: cexolocstr
-HasMapNote: byte
-LinkedTo: cexostr
-LocalizedName: cexolocstr
-MapNote: cexolocstr
-MapNoteEnabled: byte
-PaletteID: byte
-Tag: cexostr
-TemplateResRef: resref
-VarTable:
-  - Name: cexostr
-    Type: dword
-    Value: int|cexostr
+all:
+  Appearance: byte
+  Description: locstring
+  HasMapNote: byte
+  LinkedTo: string
+  LocalizedName: locstring
+  MapNote: locstring
+  MapNoteEnabled: byte
+  Tag: string
+  TemplateResRef: resref
+  VarTable: vartable.yml
+
+blueprint:
+  Comment: string
+  PaletteID: byte
+
+instance:
+  XOrientation: float
+  XPosition: float
+  YOrientation: float
+  YPosition: float
+  ZPosition: float

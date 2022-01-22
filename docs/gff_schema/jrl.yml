@@ -1,7 +1,9 @@
 Categories:
-  - Comment: cexostr
+  - $struct_id: index
+    Comment: cexostr
     EntryList:
-      - End: word
+      - $struct_id: index
+        End: word
         ID: dword
         Text: cexolocstr
     Name: cexolocstr

@@ -1,29 +1,42 @@
-BM_MarkDown: int
-BlackMarket: byte
-Comment: cexostr
-ID: byte
-IdentifyPrice: int
-LocName: cexolocstr
-MarkDown: int
-MarkUp: int
-MaxBuyPrice: int
-OnOpenStore: resref
-OnStoreClosed: resref
-ResRef: resref
-StoreGold: int
-StoreList:
-  - Comment: cexostr
-    ItemList:
-      - Infinite: byte
-        InventoryRes: resref
-        Repos_PosX: word
-        Repos_Posy: word
-Tag: cexostr
-VarTable:
-  - Name: cexostr
-    Type: dword
-    Value: int
-WillNotBuy:
-  - BaseItem: int
-WillOnlyBuy:
-  - BaseItem: int
+all:
+  BM_MarkDown: int
+  BlackMarket: byte
+  ID: byte
+  IdentifyPrice: int
+  LocName: locstring
+  MarkDown: int
+  MarkUp: int
+  MaxBuyPrice: int
+  OnOpenStore: resref
+  OnStoreClosed: resref
+  ResRef: resref
+  StoreGold: int
+  Tag: string
+  VarTable: vartable.yml
+  WillNotBuy:
+    - BaseItem: int
+  WillOnlyBuy:
+    - BaseItem: int
+
+blueprint:
+  Comment: string
+  StoreList:
+    - ItemList:
+        - Infinite: byte
+          InventoryRes: resref
+          Repos_PosX: word
+          Repos_Posy: word
+
+instance:
+  StoreList:
+    - Comment: string
+      ItemList:
+        - uti.yml: instance
+          Infinite: byte
+          Repos_PosX: word
+          Repos_Posy: word
+  XOrientation: float
+  XPosition: float
+  YOrientation: float
+  YPosition: float
+  ZPosition: float

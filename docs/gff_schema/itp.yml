@@ -1,14 +1,19 @@
+# Note, this is not good
+
 MAIN:
-  - ID: byte
+  - $struct_id: 1
+    ID: byte
     LIST:
-      - CR: float
-        FACTION: cexostr
+      - $struct_id: 1
+        CR: float
+        FACTION: string
         ID: byte
         LIST:
-          - NAME: cexostr
+          - $struct_id: 1
+            NAME: string
             RESREF: resref
             STRREF: dword
-        NAME: cexostr
+        NAME: string
         RESREF: resref
         STRREF: dword
     STRREF: dword

@@ -1,21 +1,28 @@
 Creature List:
-  - Comment: cexostr
+  - $struct_id: 4
+    Comment: string
 Door List:
-  - Comment: cexostr
+  - $struct_id: 8
+    Comment: string
 Encounter List:
-  - Comment: cexostr
-    Placeable List:
-      - {}
+  - $struct_id: 7
+    Comment: string
 List:
-  - Comment: cexostr
+  - $struct_id: 0
+    Comment: string
 Placeable List:
-  - Comment: cexostr
+  - $struct_id: 9
+    Comment: string
 SoundList:
-  - Comment: cexostr
+  - $struct_id: 6
+    Comment: string
     PlayInToolset: byte
 StoreList:
-  - Comment: cexostr
+  - $struct_id: 11
+    Comment: string
 TriggerList:
-  - Comment: cexostr
+  - $struct_id: 1
+    Comment: string
 WaypointList:
-  - Comment: cexostr
+  - $struct_id: 5
+    Comment: string

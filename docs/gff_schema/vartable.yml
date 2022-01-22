@@ -1,0 +1,4 @@
+VarTable:
+  - Name: string
+    Type: dword
+    Value: string|int|float|location|object # Not sure if any of the others are ever saved.
