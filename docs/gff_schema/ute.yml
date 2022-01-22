@@ -1,0 +1,26 @@
+Active: byte
+Comment: cexostr
+CreatureList:
+  - Appearance: int
+    CR: float
+    ResRef: resref
+    SingleSpawn: byte
+Difficulty: int
+DifficultyIndex: int
+Faction: dword
+LocalizedName: cexolocstr
+MaxCreatures: int
+OnEntered: resref
+OnExhausted: resref
+OnExit: resref
+OnHeartbeat: resref
+OnUserDefined: resref
+PaletteID: byte
+PlayerOnly: byte
+RecCreatures: int
+Reset: byte
+ResetTime: int
+Respawns: int
+SpawnOption: int
+Tag: cexostr
+TemplateResRef: resref

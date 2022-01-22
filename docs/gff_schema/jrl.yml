@@ -1,0 +1,11 @@
+Categories:
+  - Comment: cexostr
+    EntryList:
+      - End: word
+        ID: dword
+        Text: cexolocstr
+    Name: cexolocstr
+    Picture: word
+    Priority: dword
+    Tag: cexostr
+    XP: dword

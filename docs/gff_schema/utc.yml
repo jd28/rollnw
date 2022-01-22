@@ -1,0 +1,190 @@
+Appearance_Head: byte
+Appearance_Type: word
+ArmorPart_RFoot: byte
+BodyBag: byte
+BodyPart_Belt: byte
+BodyPart_LBicep: byte
+BodyPart_LFArm: byte
+BodyPart_LFoot: byte
+BodyPart_LHand: byte
+BodyPart_LShin: byte
+BodyPart_LShoul: byte
+BodyPart_LThigh: byte
+BodyPart_Neck: byte
+BodyPart_Pelvis: byte
+BodyPart_RBicep: byte
+BodyPart_RFArm: byte
+BodyPart_RHand: byte
+BodyPart_RShin: byte
+BodyPart_RShoul: byte
+BodyPart_RThigh: byte
+BodyPart_Torso: byte
+CRAdjust: int
+Cha: byte
+ChallengeRating: float
+ClassList:
+  - Class: int
+    ClassLevel: short
+    KnownList0:
+      - Spell: word
+        SpellFlags: byte
+        SpellMetaMagic: byte
+    KnownList1:
+      - Spell: word
+        SpellFlags: byte
+        SpellMetaMagic: byte
+    KnownList2:
+      - Spell: word
+        SpellFlags: byte
+        SpellMetaMagic: byte
+    KnownList3:
+      - Spell: word
+        SpellFlags: byte
+        SpellMetaMagic: byte
+    KnownList4:
+      - Spell: word
+        SpellFlags: byte
+        SpellMetaMagic: byte
+    KnownList5:
+      - Spell: word
+        SpellFlags: byte
+        SpellMetaMagic: byte
+    KnownList6:
+      - Spell: word
+        SpellFlags: byte
+        SpellMetaMagic: byte
+    KnownList7:
+      - Spell: word
+        SpellFlags: byte
+        SpellMetaMagic: byte
+    KnownList8:
+      - Spell: word
+        SpellFlags: byte
+        SpellMetaMagic: byte
+    KnownList9:
+      - Spell: word
+        SpellFlags: byte
+        SpellMetaMagic: byte
+    MemorizedList0:
+      - Spell: word
+        SpellFlags: byte
+        SpellMetaMagic: byte
+    MemorizedList1:
+      - Spell: word
+        SpellFlags: byte
+        SpellMetaMagic: byte
+    MemorizedList2:
+      - Spell: word
+        SpellFlags: byte
+        SpellMetaMagic: byte
+    MemorizedList3:
+      - Spell: word
+        SpellFlags: byte
+        SpellMetaMagic: byte
+    MemorizedList4:
+      - Spell: word
+        SpellFlags: byte
+        SpellMetaMagic: byte
+    MemorizedList5:
+      - Spell: word
+        SpellFlags: byte
+        SpellMetaMagic: byte
+    MemorizedList6:
+      - Spell: word
+        SpellFlags: byte
+        SpellMetaMagic: byte
+    MemorizedList7:
+      - Spell: word
+        SpellFlags: byte
+        SpellMetaMagic: byte
+    MemorizedList8:
+      - Spell: word
+        SpellFlags: byte
+        SpellMetaMagic: byte
+    MemorizedList9:
+      - Spell: word
+        SpellFlags: byte
+        SpellMetaMagic: byte
+Color_Hair: byte
+Color_Skin: byte
+Color_Tattoo1: byte
+Color_Tattoo2: byte
+Comment: cexostr
+Con: byte
+Conversation: resref
+CurrentHitPoints: short
+DecayTime: dword
+Deity: cexostr
+Description: cexolocstr
+Dex: byte
+Disarmable: byte
+Equip_ItemList:
+  - Dropable: byte
+    EquippedRes: resref
+FactionID: word
+FeatList:
+  - Feat: word
+FirstName: cexolocstr
+Gender: byte
+GoodEvil: byte
+HitPoints: short
+Int: byte
+Interruptable: byte
+IsImmortal: byte
+IsPC: byte
+ItemList:
+  - Dropable: byte
+    InventoryRes: resref
+    Pickpocketable: byte
+    Repos_PosX: word
+    Repos_Posy: word
+LastName: cexolocstr
+LawfulChaotic: byte
+Lootable: byte
+MaxHitPoints: short
+NaturalAC: byte
+NoPermDeath: byte
+PaletteID: byte
+PerceptionRange: byte
+Phenotype: int
+Plot: byte
+PortraitId: word
+Race: byte
+ScriptAttacked: resref
+ScriptDamaged: resref
+ScriptDeath: resref
+ScriptDialogue: resref
+ScriptDisturbed: resref
+ScriptEndRound: resref
+ScriptHeartbeat: resref
+ScriptOnBlocked: resref
+ScriptOnNotice: resref
+ScriptRested: resref
+ScriptSpawn: resref
+ScriptSpellAt: resref
+ScriptUserDefine: resref
+SkillList:
+  - Rank: byte
+SoundSetFile: word
+SpecAbilityList:
+  - Spell: word
+    SpellCasterLevel: byte
+    SpellFlags: byte
+StartingPackage: byte
+Str: byte
+Subrace: cexostr
+Tag: cexostr
+Tail_New: dword
+TemplateList:
+  - TemplateID: word
+TemplateResRef: resref
+VarTable:
+  - Name: cexostr
+    Type: dword
+    Value: int|cexostr
+WalkRate: int
+Wings_New: dword
+Wis: byte
+fortbonus: short
+refbonus: short
+willbonus: short

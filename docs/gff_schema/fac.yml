@@ -1,0 +1,8 @@
+FactionList:
+  - FactionGlobal: word
+    FactionName: cexostr
+    FactionParentID: dword
+RepList:
+  - FactionID1: dword
+    FactionID2: dword
+    FactionRep: dword

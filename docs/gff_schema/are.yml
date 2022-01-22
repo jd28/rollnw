@@ -1,0 +1,53 @@
+ChanceLightning: int
+ChanceRain: int
+ChanceSnow: int
+Comments: cexostr
+Creator_ID: int
+DayNightCycle: byte
+Expansion_List:
+  - {}
+Flags: dword
+FogClipDist: float
+Height: int
+ID: int
+IsNight: byte
+LightingScheme: byte
+LoadScreenID: word
+ModListenCheck: int
+ModSpotCheck: int
+MoonAmbientColor: dword
+MoonDiffuseColor: dword
+MoonFogAmount: byte
+MoonFogColor: dword
+MoonShadows: byte
+Name: cexolocstr
+NoRest: byte
+OnEnter: resref
+OnExit: resref
+OnHeartbeat: resref
+OnUserDefined: resref
+PlayerVsPlayer: byte
+ResRef: resref
+ShadowOpacity: byte
+SkyBox: byte
+SunAmbientColor: dword
+SunDiffuseColor: dword
+SunFogAmount: byte
+SunFogColor: dword
+SunShadows: byte
+Tag: cexostr
+Tile_List:
+  - Tile_AnimLoop1: byte
+    Tile_AnimLoop2: byte
+    Tile_AnimLoop3: byte
+    Tile_Height: int
+    Tile_ID: int
+    Tile_MainLight1: byte
+    Tile_MainLight2: byte
+    Tile_Orientation: int
+    Tile_SrcLight1: byte
+    Tile_SrcLight2: byte
+Tileset: resref
+Version: dword
+Width: int
+WindPower: int

@@ -1,0 +1,59 @@
+Expansion_Pack: word
+Mod_Area_list:
+  - Area_Name: resref
+Mod_CacheNSSList:
+  - {}
+Mod_Creator_ID: int
+Mod_CustomTlk: cexostr
+Mod_CutSceneList:
+  - {}
+Mod_DawnHour: byte
+Mod_Description: cexolocstr
+Mod_DuskHour: byte
+Mod_Entry_Area: resref
+Mod_Entry_Dir_X: float
+Mod_Entry_Dir_Y: float
+Mod_Entry_X: float
+Mod_Entry_Y: float
+Mod_Entry_Z: float
+Mod_Expan_List:
+  - {}
+Mod_GVar_List:
+  - {}
+Mod_HakList:
+  - Mod_Hak: cexostr
+Mod_ID: void
+Mod_IsSaveGame: byte
+Mod_MinGameVer: cexostr
+Mod_MinPerHour: byte
+Mod_Name: cexolocstr
+Mod_OnAcquirItem: resref
+Mod_OnActvtItem: resref
+Mod_OnClientEntr: resref
+Mod_OnClientLeav: resref
+Mod_OnCutsnAbort: resref
+Mod_OnHeartbeat: resref
+Mod_OnModLoad: resref
+Mod_OnModStart: resref
+Mod_OnPlrChat: resref
+Mod_OnPlrDeath: resref
+Mod_OnPlrDying: resref
+Mod_OnPlrEqItm: resref
+Mod_OnPlrLvlUp: resref
+Mod_OnPlrRest: resref
+Mod_OnPlrUnEqItm: resref
+Mod_OnSpawnBtnDn: resref
+Mod_OnUnAqreItem: resref
+Mod_OnUsrDefined: resref
+Mod_StartDay: byte
+Mod_StartHour: byte
+Mod_StartMonth: byte
+Mod_StartMovie: resref
+Mod_StartYear: dword
+Mod_Tag: cexostr
+Mod_Version: dword
+Mod_XPScale: byte
+VarTable:
+  - Name: cexostr
+    Type: dword
+    Value: int
