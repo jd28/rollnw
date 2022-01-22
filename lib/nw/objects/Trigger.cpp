@@ -34,6 +34,7 @@ bool TriggerScripts::from_json(const nlohmann::json& archive)
 
     return true;
 }
+
 Trigger::Trigger()
     : common_{ObjectType::trigger}
 {
@@ -70,16 +71,17 @@ bool Trigger::from_gff(const GffInputArchiveStruct& archive, SerializationProfil
     archive.get_to("ScriptOnEnter", scripts.on_enter);
     archive.get_to("ScriptOnExit", scripts.on_exit);
     archive.get_to("ScriptUserDefine", scripts.on_user_defined);
+    archive.get_to("Type", type);
 
     if (profile != SerializationProfile::blueprint) {
         size_t sz = archive["Geometry"].size();
-        geometery.reserve(sz);
+        geometry.reserve(sz);
         for (size_t i = 0; i < sz; ++i) {
             glm::vec3 v;
             archive["Geometry"][i].get_to("PointX", v[0]);
             archive["Geometry"][i].get_to("PointY", v[1]);
             archive["Geometry"][i].get_to("PointZ", v[2]);
-            geometery.push_back(v);
+            geometry.push_back(v);
         }
     }
     return true;
@@ -101,11 +103,12 @@ bool Trigger::from_json(const nlohmann::json& archive, SerializationProfile prof
         archive.at("linked_to").get_to(linked_to);
         archive.at("loadscreen").get_to(loadscreen);
         archive.at("portrait").get_to(portrait);
+        archive.at("type").get_to(type);
 
         if (profile != SerializationProfile::blueprint) {
-            auto& ref = archive.at("geometery");
+            auto& ref = archive.at("geometry");
             for (size_t i = 0; i < ref.size(); ++i) {
-                geometery.emplace_back(ref[i][0].get<float>(), ref[i][1].get<float>(), ref[i][2].get<float>());
+                geometry.emplace_back(ref[i][0].get<float>(), ref[i][1].get<float>(), ref[i][2].get<float>());
             }
         }
     } catch (const nlohmann::json::exception& e) {
@@ -113,6 +116,63 @@ bool Trigger::from_json(const nlohmann::json& archive, SerializationProfile prof
         return valid_ = false;
     }
     return valid_ = true;
+}
+
+bool Trigger::to_gff(GffOutputArchiveStruct& archive, SerializationProfile profile) const
+{
+    archive.add_fields({
+        {"TemplateResRef", common_.resref}, // Store does it's own thing, not typo.
+        {"LocalizedName", common_.name},
+        {"Tag", common_.tag},
+    });
+
+    trap.to_gff(archive);
+
+    uint8_t zero = 0;
+    std::string empty;
+
+    archive.add_fields({
+        {"Faction", faction},
+        {"Cursor", cursor},
+        {"HighlightHeight", highlight_height},
+        {"AutoRemoveKey", zero}, // obsolete
+        {"KeyName", empty},      // obsolete
+        {"LinkedTo", linked_to},
+        {"LinkedToFlags", linked_to_flags},
+        {"LoadScreenID", loadscreen},
+        {"OnClick", scripts.on_click},
+        {"OnDisarm", scripts.on_disarm},
+        {"OnTrapTriggered", scripts.on_trap_triggered},
+        {"PortraitId", portrait},
+        {"ScriptHeartbeat", scripts.on_heartbeat},
+        {"ScriptOnEnter", scripts.on_enter},
+        {"ScriptOnExit", scripts.on_exit},
+        {"ScriptUserDefine", scripts.on_user_defined},
+        {"Type", type},
+    });
+
+    if (profile == SerializationProfile::blueprint) {
+        archive.add_field("Comment", common_.comment);
+        archive.add_field("PaletteID", common_.palette_id);
+    } else {
+        archive.add_fields({
+            {"PositionX", common_.location.position.x},
+            {"PositionY", common_.location.position.y},
+            {"PositionZ", common_.location.position.z},
+            {"OrientationX", common_.location.orientation.x},
+            {"OrientationY", common_.location.orientation.y},
+        });
+
+        auto& list = archive.add_list("Geometry");
+        for (const auto& point : geometry) {
+            list.push_back(3, {
+                                  {"PointX", point[0]},
+                                  {"PointY", point[1]},
+                                  {"PointZ", point[2]},
+                              });
+        }
+    }
+    return true;
 }
 
 nlohmann::json Trigger::to_json(SerializationProfile profile) const
@@ -133,10 +193,11 @@ nlohmann::json Trigger::to_json(SerializationProfile profile) const
     j["linked_to"] = linked_to;
     j["loadscreen"] = loadscreen;
     j["portrait"] = portrait;
+    j["type"] = type;
 
     if (profile != SerializationProfile::blueprint) {
-        auto& ref = j["geometery"] = nlohmann::json::array();
-        for (const auto& g : geometery) {
+        auto& ref = j["geometry"] = nlohmann::json::array();
+        for (const auto& g : geometry) {
             ref.push_back({g.x, g.y, g.z});
         }
     }

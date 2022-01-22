@@ -1,14 +1,14 @@
-AutoRemoveKey: byte
-Comment: cexostr
+AutoRemoveKey: byte # Obsolete
+Comment: string
 Cursor: byte
 DisarmDC: byte
 Faction: dword
 HighlightHeight: float
-KeyName: cexostr
-LinkedTo: cexostr
+KeyName: string # Obsolete
+LinkedTo: string
 LinkedToFlags: byte
 LoadScreenID: word
-LocalizedName: cexolocstr
+LocalizedName: locstring
 OnClick: resref
 OnDisarm: resref
 OnTrapTriggered: resref
@@ -18,7 +18,7 @@ ScriptHeartbeat: resref
 ScriptOnEnter: resref
 ScriptOnExit: resref
 ScriptUserDefine: resref
-Tag: cexostr
+Tag: string
 TemplateResRef: resref
 TrapDetectDC: byte
 TrapDetectable: byte
@@ -28,6 +28,6 @@ TrapOneShot: byte
 TrapType: byte
 Type: int
 VarTable:
-  - Name: cexostr
+  - Name: string
     Type: dword
-    Value: cexostr|int
+    Value: string|int

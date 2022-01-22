@@ -41,15 +41,17 @@ struct Trigger : public ObjectBase {
     // Serialization
     bool from_gff(const GffInputArchiveStruct& archive, SerializationProfile profile);
     bool from_json(const nlohmann::json& archive, SerializationProfile profile);
+    bool to_gff(GffOutputArchiveStruct& archive, SerializationProfile profile) const;
     nlohmann::json to_json(SerializationProfile profile) const;
 
     Common common_;
     TriggerScripts scripts;
     Trap trap;
-    std::vector<glm::vec3> geometery;
+    std::vector<glm::vec3> geometry;
     std::string linked_to;
     float highlight_height = 0.0f;
 
+    int32_t type = 0;
     uint32_t faction = 0;
     uint16_t loadscreen = 0;
     uint16_t portrait = 0;
