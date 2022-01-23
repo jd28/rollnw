@@ -4,12 +4,10 @@ on:
     branches: [main]
     paths-ignore:
       - "**.md"
-      - "**.yml"
   pull_request:
     branches: [main]
     paths-ignore:
       - "**.md"
-      - "**.yml"
 
 jobs:
   build:
@@ -17,6 +15,7 @@ jobs:
       buildDir: "${{ github.workspace }}/build/"
       vcpkg-tag: "2022.01.01"
       VCPKG_ROOT: "${{ github.workspace }}/vcpkg/"
+      VCPKG_DEFAULT_BINARY_CACHE: "${{ github.workspace }}/vcpkg/.cache"
 
     name: buils on windows
     runs-on: windows-latest
@@ -29,27 +28,29 @@ jobs:
       # Install latest CMake.
       - uses: lukka/get-cmake@latest
 
-      - name: cache vcpkg
-        id: cache-vcpkg
-        uses: actions/cache@v2
-        env:
-          cache-name: cache-vcpgk
-        with:
-          path: |
-            ${{ github.workspace }}/vcpkg
-            ${{ github.workspace }}/build/vcpkg_installed
-          key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ env.vcpkg-tag }}-${{ hashFiles('vcpkg.json') }}
-          restore-keys: |
-            ${{ runner.os }}-build-${{ env.cache-name }}-${{ env.vcpkg-tag }}
-
       - name: download vcpkg
-        if: steps.cache-vcpkg.outputs.cache-hit != 'true'
         run: |
           git clone https://github.com/microsoft/vcpkg ${{ github.workspace }}/vcpkg
           pushd vcpkg
           git checkout --force ${{ env.vcpkg-tag }}
           .\bootstrap-vcpkg.bat
           popd
+
+      - name: cache vcpkg
+        id: cache-vcpkg
+        uses: actions/cache@v2
+        env:
+          cache-name: cache-vcpgk2
+        with:
+          path: |
+            ${{ github.workspace }}/vcpkg/.cache
+          key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ env.vcpkg-tag }}-${{ hashFiles('vcpkg.json') }}
+          restore-keys: |
+            ${{ runner.os }}-build-${{ env.cache-name }}-${{ env.vcpkg-tag }}
+
+      - name: Make cache dir
+        if: steps.cache-vcpkg.outputs.cache-hit != 'true'
+        run: mkdir "${{ github.workspace }}/vcpkg/.cache"
 
       - name: Configure
         run: |
