@@ -35,7 +35,7 @@ jobs:
           HOMEBREW_NO_BOTTLE_SOURCE_FALLBACK: "ON"
           HOMEBREW_NO_INSTALL_CLEANUP: "ON"
         run: |
-          brew install pkg-config automake ninja
+          brew install pkg-config automake ninja libtool
 
       - name: set ENV variables for clang 13
         run: |
