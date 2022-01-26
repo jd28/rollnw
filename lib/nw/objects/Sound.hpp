@@ -10,6 +10,8 @@ struct Sound : public ObjectBase {
     Sound(const GffInputArchiveStruct& archive, SerializationProfile profile);
     Sound(const nlohmann::json& archive, SerializationProfile profile);
 
+    static constexpr int json_archive_version = 1;
+
     virtual Common* common() override { return &common_; }
     virtual const Common* common() const override { return &common_; }
     virtual Sound* as_sound() override { return this; }

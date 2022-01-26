@@ -48,6 +48,8 @@ struct Encounter : public ObjectBase {
     Encounter(const GffInputArchiveStruct& archive, SerializationProfile profile);
     Encounter(const nlohmann::json& archive, SerializationProfile profile);
 
+    static constexpr int json_archive_version = 1;
+
     // Validity
     bool valid() const noexcept { return valid_; }
 
@@ -59,7 +61,7 @@ struct Encounter : public ObjectBase {
 
     bool from_gff(const GffInputArchiveStruct& archive, SerializationProfile profile);
     bool from_json(const nlohmann::json& archive, SerializationProfile profile);
-    GffOutputArchive to_gff(SerializationProfile profile) const;
+    bool to_gff(GffOutputArchiveStruct& archive, SerializationProfile profile) const;
     nlohmann::json to_json(SerializationProfile profile) const;
 
     Common common_;

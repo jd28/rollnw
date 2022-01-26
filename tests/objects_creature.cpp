@@ -1,8 +1,7 @@
 #include <catch2/catch.hpp>
 
 #include <nw/objects/Creature.hpp>
-#include <nw/serialization/Serialization.hpp>
-#include <nw/serialization/conversions.hpp>
+#include <nw/serialization/Archives.hpp>
 
 #include <nlohmann/json.hpp>
 
@@ -72,7 +71,7 @@ TEST_CASE("creature: gff round trip", "[ojbects]")
     // doesn't sort feats when it writes out the gff.
     // nw::GffInputArchive g2("tmp/pl_agent_001_2.utc");
     // REQUIRE(g2.valid());
-    // REQUIRE(nw::gff_to_json(g) == nw::gff_to_json(g2));
+    // REQUIRE(nw::gff_to_gffjson(g) == nw::gff_to_gffjson(g2));
 
     REQUIRE(oa.header.struct_offset == g.head_->struct_offset);
     REQUIRE(oa.header.struct_count == g.head_->struct_count);

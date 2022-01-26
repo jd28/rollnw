@@ -142,7 +142,7 @@ bool LocalData::to_gff(GffOutputArchiveStruct& archive) const
 
     for (const auto& [key, value] : vars_) {
         if (!value.flags.any()) { continue; }
-        auto& payload = list.push_back(0, {{"Name", key}});
+        auto& payload = list.push_back(0).add_field("Name", key);
 
         if (value.flags.test(LocalVarType::FLOAT)) {
             payload.add_field("Type", LocalVarType::FLOAT);
@@ -154,8 +154,7 @@ bool LocalData::to_gff(GffOutputArchiveStruct& archive) const
         }
         if (value.flags.test(LocalVarType::OBJECT)) {
             payload.add_field("Type", LocalVarType::OBJECT);
-            uint32_t temp = static_cast<uint32_t>(value.object);
-            payload.add_field("Value", temp);
+            payload.add_field("Value", static_cast<uint32_t>(value.object));
         }
         if (value.flags.test(LocalVarType::STRING)) {
             payload.add_field("Type", LocalVarType::STRING);
@@ -163,16 +162,14 @@ bool LocalData::to_gff(GffOutputArchiveStruct& archive) const
         }
         if (value.flags.test(LocalVarType::LOCATION)) {
             payload.add_field("Type", LocalVarType::LOCATION);
-            uint32_t temp = static_cast<uint32_t>(value.loc.area);
-            payload.add_struct("Value", 1).add_fields({
-                {"Area", temp},
-                {"PositionX", value.loc.position.x},
-                {"PositionY", value.loc.position.y},
-                {"PositionZ", value.loc.position.z},
-                {"OrientationX", value.loc.orientation.x},
-                {"OrientationY", value.loc.orientation.y},
-                {"OrientationZ", value.loc.orientation.z},
-            });
+            payload.add_struct("Value", 1)
+                .add_field("Area", static_cast<uint32_t>(value.loc.area))
+                .add_field("PositionX", value.loc.position.x)
+                .add_field("PositionY", value.loc.position.y)
+                .add_field("PositionZ", value.loc.position.z)
+                .add_field("OrientationX", value.loc.orientation.x)
+                .add_field("OrientationY", value.loc.orientation.y)
+                .add_field("OrientationZ", value.loc.orientation.z);
         }
     }
 

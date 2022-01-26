@@ -21,6 +21,8 @@ struct Reputation {
 struct Faction {
     explicit Faction(const GffInputArchiveStruct gff);
 
+    static constexpr int json_archive_version = 1;
+
     std::vector<FactionInfo> factions;
     std::vector<Reputation> reputations;
 };

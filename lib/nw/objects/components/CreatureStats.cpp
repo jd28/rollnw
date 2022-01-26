@@ -53,26 +53,24 @@ bool CreatureStats::from_json(const nlohmann::json& archive)
 
 bool CreatureStats::to_gff(GffOutputArchiveStruct& archive) const
 {
-    archive.add_fields({
-        {"Str", abilities[0]},
-        {"Dex", abilities[1]},
-        {"Con", abilities[2]},
-        {"Int", abilities[3]},
-        {"Wis", abilities[4]},
-        {"Cha", abilities[5]},
-        {"fortbonus", save_bonus.fort},
-        {"refbonus", save_bonus.reflex},
-        {"willbonus", save_bonus.will},
-    });
+    archive.add_field("Str", abilities[0])
+        .add_field("Dex", abilities[1])
+        .add_field("Con", abilities[2])
+        .add_field("Int", abilities[3])
+        .add_field("Wis", abilities[4])
+        .add_field("Cha", abilities[5])
+        .add_field("fortbonus", save_bonus.fort)
+        .add_field("refbonus", save_bonus.reflex)
+        .add_field("willbonus", save_bonus.will);
 
     auto& ft_list = archive.add_list("FeatList");
     for (uint16_t ft : feats) {
-        ft_list.push_back(1, {{"Feat", ft}});
+        ft_list.push_back(1).add_field("Feat", ft);
     }
 
     auto& sk_list = archive.add_list("SkillList");
     for (uint8_t sk : skills) {
-        sk_list.push_back(0, {{"Rank", sk}});
+        sk_list.push_back(0).add_field("Rank", sk);
     }
 
     return true;

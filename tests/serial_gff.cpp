@@ -1,9 +1,9 @@
 #include <catch2/catch.hpp>
 
 #include <nw/log.hpp>
-#include <nw/serialization/conversions.hpp>
+#include <nw/serialization/Archives.hpp>
 
-#include <nw/serialization/GffOutputArchive.hpp>
+#include <nlohmann/json.hpp>
 
 #include <fstream>
 
@@ -62,7 +62,7 @@ TEST_CASE("GffInputArchive Conversion", "[serialization]")
 {
     nw::GffInputArchive g("test_data/nw_chicken.utc");
     REQUIRE(g.valid());
-    auto j = nw::gff_to_json(g);
+    auto j = nw::gff_to_gffjson(g);
     std::ofstream f{"tmp/nw_chicken.utc.json", std::ios_base::binary};
     f << std::setw(4) << j;
 }
@@ -97,12 +97,12 @@ TEST_CASE("GffOutputArchive add_labels", "[serialization]")
 
     std::string s{"hello world"};
     int32_t i = 0;
-    oa.top.add_fields({{"temp", s},
-        {"another", i}});
+    oa.top.add_field("temp", s)
+        .add_field("another", i);
 
     auto& skills = oa.top.add_list("SkillList");
     for (int j = 0; j < 10; ++j) {
-        skills.push_back(0x3432, {{"Rank", j}});
+        skills.push_back(0x3432).add_field("Rank", j);
     }
 
     REQUIRE(skills.size() == 10);
@@ -113,11 +113,14 @@ TEST_CASE("gff: nested lists")
     uint32_t temp = 0;
     nw::GffOutputArchive out{"GFF"};
     auto& list1 = out.top.add_list("list1");
-    auto& str1 = list1.push_back(1, {{"test1", temp}});
+    auto& str1 = list1.push_back(1).add_field("test1", temp);
+    str1.add_field("hellow", 1);
+    str1.add_field("this", "dfs"s);
+
     auto& list2 = str1.add_list("list2");
-    list2.push_back(2, {{"test2", temp}});
+    list2.push_back(2).add_field("test2", temp);
     auto& list3 = out.top.add_list("list3");
-    list3.push_back(3, {{"test3", temp}});
+    list3.push_back(3).add_field("test3", temp);
 
     out.build();
     REQUIRE(out.struct_entries[0].field_count == 2);
@@ -126,7 +129,7 @@ TEST_CASE("gff: nested lists")
     out.write_to("tmp/test.gff");
 
     nw::GffInputArchive in{"tmp/test.gff"};
-    auto j = nw::gff_to_json(in);
+    auto j = nw::gff_to_gffjson(in);
     std::ofstream f{"tmp/test.gffjson"};
     f << std::setw(4) << j;
 }

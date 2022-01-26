@@ -51,6 +51,8 @@ struct Dialog {
 public:
     explicit Dialog(const GffInputArchiveStruct gff);
 
+    static constexpr int json_archive_version = 1;
+
     uint8_t prevent_zoom = 0;
     uint32_t delay_entry = 0;
     uint32_t delay_reply = 0;

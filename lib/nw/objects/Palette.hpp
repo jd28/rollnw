@@ -49,6 +49,8 @@ struct Palette {
     explicit Palette(const GffInputArchiveStruct gff);
     ~Palette() = default;
 
+    static constexpr int json_archive_version = 1;
+
     uint8_t max_id() const noexcept { return max_id_; }
     void set_max_id(uint8_t id) noexcept { max_id_ = std::max(id, max_id_); }
     bool valid() const noexcept { return is_valid_; }

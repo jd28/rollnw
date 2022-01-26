@@ -48,6 +48,8 @@ struct Placeable : public ObjectBase {
     Placeable(const GffInputArchiveStruct& archive, SerializationProfile profile);
     Placeable(const nlohmann::json& archive, SerializationProfile profile);
 
+    static constexpr int json_archive_version = 1;
+
     bool valid() const noexcept { return valid_; }
 
     // ObjectBase overrides

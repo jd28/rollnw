@@ -57,10 +57,10 @@ bool Equips::to_gff(GffOutputArchiveStruct& archive, SerializationProfile profil
         uint32_t struct_id = 1 << i;
         if (profile == SerializationProfile::blueprint) {
             if (std::get<Resref>(equips[i]).length()) {
-                list.push_back(struct_id, {{"EquippedRes", std::get<Resref>(equips[i])}});
+                list.push_back(struct_id).add_field("EquippedRes", std::get<Resref>(equips[i]));
             }
         } else if (std::get<std::unique_ptr<Item>>(equips[i])) {
-            std::get<std::unique_ptr<Item>>(equips[i])->to_gff(list.push_back(struct_id, {}), profile);
+            std::get<std::unique_ptr<Item>>(equips[i])->to_gff(list.push_back(struct_id), profile);
         }
         ++i;
     }

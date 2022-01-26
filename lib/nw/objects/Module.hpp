@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../serialization/Archives.hpp"
+#include "../serialization/Serialization.hpp"
 #include "components/LocalData.hpp"
 
 #include <glm/glm.hpp>
@@ -41,6 +41,8 @@ struct Module {
     Module() = default;
     explicit Module(const GffInputArchiveStruct& archive);
     explicit Module(const nlohmann::json& archive);
+
+    static constexpr int json_archive_version = 1;
 
     // Serialization
     bool from_gff(const GffInputArchiveStruct& archive);

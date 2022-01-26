@@ -1,8 +1,7 @@
 #include <catch2/catch.hpp>
 
 #include <nw/objects/Door.hpp>
-#include <nw/serialization/Serialization.hpp>
-#include <nw/serialization/conversions.hpp>
+#include <nw/serialization/Archives.hpp>
 
 #include <nlohmann/json.hpp>
 
@@ -56,7 +55,7 @@ TEST_CASE("door: gff round trip", "[ojbects]")
 
     nw::GffInputArchive g2("tmp/door_ttr_002.utd");
     REQUIRE(g2.valid());
-    REQUIRE(nw::gff_to_json(g) == nw::gff_to_json(g2));
+    REQUIRE(nw::gff_to_gffjson(g) == nw::gff_to_gffjson(g2));
 
     REQUIRE(oa.header.struct_offset == g.head_->struct_offset);
     REQUIRE(oa.header.struct_count == g.head_->struct_count);

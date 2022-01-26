@@ -1,8 +1,7 @@
 #include <catch2/catch.hpp>
 
 #include <nw/objects/Module.hpp>
-#include <nw/serialization/Serialization.hpp>
-#include <nw/serialization/conversions.hpp>
+#include <nw/serialization/Archives.hpp>
 
 #include <nlohmann/json.hpp>
 
@@ -57,9 +56,9 @@ TEST_CASE("module: gff round trip", "[ojbects]")
     REQUIRE(g2.valid());
 
     std::ofstream f1{"tmp/module.ifo.gffjson", std::ios_base::binary};
-    f1 << std::setw(4) << nw::gff_to_json(g);
+    f1 << std::setw(4) << nw::gff_to_gffjson(g);
     std::ofstream f2{"tmp/module_2.ifo.gffjson", std::ios_base::binary};
-    f2 << std::setw(4) << nw::gff_to_json(g2);
+    f2 << std::setw(4) << nw::gff_to_gffjson(g2);
 
     REQUIRE(oa.header.struct_offset == g.head_->struct_offset);
     REQUIRE(oa.header.struct_count == g.head_->struct_count);

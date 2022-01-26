@@ -14,6 +14,8 @@ struct Store : public ObjectBase {
     Store(const GffInputArchiveStruct& archive, SerializationProfile profile);
     Store(const nlohmann::json& archive, SerializationProfile profile);
 
+    static constexpr int json_archive_version = 1;
+
     virtual Common* common() override { return &common_; }
     virtual const Common* common() const override { return &common_; }
     virtual Store* as_store() override { return this; }

@@ -42,6 +42,8 @@ struct Creature : public ObjectBase {
     Creature(const GffInputArchiveStruct& archive, SerializationProfile profile);
     Creature(const nlohmann::json& archive, SerializationProfile profile);
 
+    static constexpr int json_archive_version = 1;
+
     virtual Common* common() override { return &common_; }
     virtual const Common* common() const override { return &common_; }
     virtual Creature* as_creature() override { return this; }

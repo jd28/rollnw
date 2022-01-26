@@ -43,10 +43,9 @@ bool LevelStats::to_gff(GffOutputArchiveStruct& archive) const
 {
     auto& list = archive.add_list("ClassList");
     for (const auto& cls : classes) {
-        cls.spells.to_gff(list.push_back(3, {
-                                                {"Class", cls.id},
-                                                {"ClassLevel", cls.level},
-                                            }));
+        cls.spells.to_gff(list.push_back(3)
+                              .add_field("Class", cls.id)
+                              .add_field("ClassLevel", cls.level));
     }
 
     return true;

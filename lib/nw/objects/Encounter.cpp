@@ -33,13 +33,11 @@ bool EncounterScripts::from_json(const nlohmann::json& archive)
 
 bool EncounterScripts::to_gff(GffOutputArchiveStruct& archive) const
 {
-    archive.add_fields({
-        {"OnEntered", on_entered},
-        {"OnExhausted", on_exhausted},
-        {"OnExit", on_exit},
-        {"OnHeartbeat", on_heartbeat},
-        {"OnUserDefined", on_user_defined},
-    });
+    archive.add_field("OnEntered", on_entered)
+        .add_field("OnExhausted", on_exhausted)
+        .add_field("OnExit", on_exit)
+        .add_field("OnHeartbeat", on_heartbeat)
+        .add_field("OnUserDefined", on_user_defined);
 
     return true;
 }
@@ -216,90 +214,77 @@ bool Encounter::from_json(const nlohmann::json& archive, SerializationProfile pr
     return true;
 }
 
-GffOutputArchive Encounter::to_gff(SerializationProfile profile) const
+bool Encounter::to_gff(GffOutputArchiveStruct& archive, SerializationProfile profile) const
 {
-    GffOutputArchive archive{"UTE"};
-
-    archive.top.add_fields({
-        {"TemplateResRef", common_.resref},
-        {"LocalizedName", common_.name},
-        {"Tag", common_.tag},
-        {"Faction", faction},
-    });
+    archive.add_field("TemplateResRef", common_.resref)
+        .add_field("LocalizedName", common_.name)
+        .add_field("Tag", common_.tag)
+        .add_field("Faction", faction);
 
     if (profile == SerializationProfile::blueprint) {
-        archive.top.add_field("Comment", common_.comment);
-        archive.top.add_field("PaletteID", common_.palette_id);
+        archive.add_field("Comment", common_.comment);
+        archive.add_field("PaletteID", common_.palette_id);
     } else {
-        archive.top.add_fields({
-            {"PositionX", common_.location.position.x},
-            {"PositionY", common_.location.position.y},
-            {"PositionZ", common_.location.position.z},
-            {"OrientationX", common_.location.orientation.x},
-            {"OrientationY", common_.location.orientation.y},
-        });
+        archive.add_field("PositionX", common_.location.position.x)
+            .add_field("PositionY", common_.location.position.y)
+            .add_field("PositionZ", common_.location.position.z)
+            .add_field("OrientationX", common_.location.orientation.x)
+            .add_field("OrientationY", common_.location.orientation.y);
     }
 
     if (common_.local_data.size()) {
-        common_.local_data.to_gff(archive.top);
+        common_.local_data.to_gff(archive);
     }
 
-    scripts.to_gff(archive.top);
+    scripts.to_gff(archive);
 
-    auto& list = archive.top.add_list("CreatureList");
+    auto& list = archive.add_list("CreatureList");
     for (const auto& c : creatures) {
-        list.push_back(0, {
-                              {"Appearance", c.appearance},
-                              {"CR", c.cr},
-                              {"ResRef", c.resref},
-                              {"SingleSpawn", c.single_spawn},
-
-                          });
+        list.push_back(0)
+            .add_field("Appearance", c.appearance)
+            .add_field("CR", c.cr)
+            .add_field("ResRef", c.resref)
+            .add_field("SingleSpawn", c.single_spawn);
     }
 
-    archive.top.add_fields({
-        {"MaxCreatures", creatures_max},
-        {"RecCreatures", creatures_recommended},
-        {"Difficulty", difficulty},
-        {"DifficultyIndex", difficulty_index},
-        {"ResetTime", reset_time},
-        {"Respawns", respawns},
-        {"SpawnOption", spawn_option},
-        {"Active", active},
-        {"PlayerOnly", player_only},
-        {"Reset", reset},
-    });
+    archive.add_field("MaxCreatures", creatures_max)
+        .add_field("RecCreatures", creatures_recommended)
+        .add_field("Difficulty", difficulty)
+        .add_field("DifficultyIndex", difficulty_index)
+        .add_field("ResetTime", reset_time)
+        .add_field("Respawns", respawns)
+        .add_field("SpawnOption", spawn_option)
+        .add_field("Active", active)
+        .add_field("PlayerOnly", player_only)
+        .add_field("Reset", reset);
 
     if (profile != SerializationProfile::blueprint) {
-        auto& geo_list = archive.top.add_list("Geometry");
+        auto& geo_list = archive.add_list("Geometry");
         for (const auto& g : geometry) {
-            geo_list.push_back(1, {
-                                      {"X", g.x},
-                                      {"Y", g.y},
-                                      {"Z", g.z},
-                                  });
+            geo_list.push_back(1)
+                .add_field("X", g.x)
+                .add_field("Y", g.y)
+                .add_field("Z", g.z);
         }
 
-        auto& sp_list = archive.top.add_list("SpawnPointList");
+        auto& sp_list = archive.add_list("SpawnPointList");
         for (const auto& sp : spawn_points) {
-            sp_list.push_back(0, {
-                                     {"Orientation", sp.orientation},
-                                     {"X", sp.position.x},
-                                     {"Y", sp.position.y},
-                                     {"Z", sp.position.z},
-                                 });
+            sp_list.push_back(0)
+                .add_field("Orientation", sp.orientation)
+                .add_field("X", sp.position.x)
+                .add_field("Y", sp.position.y)
+                .add_field("Z", sp.position.z);
         }
     }
 
-    archive.build();
-    return archive;
+    return true;
 }
 
 nlohmann::json Encounter::to_json(SerializationProfile profile) const
 {
     nlohmann::json j;
     j["$type"] = "UTE";
-    j["$version"] = LIBNW_JSON_ARCHIVE_VERSION;
+    j["$version"] = json_archive_version;
 
     j["common"] = common_.to_json(profile);
 

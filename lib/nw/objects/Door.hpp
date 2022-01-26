@@ -41,6 +41,8 @@ struct Door : public ObjectBase {
     Door(const GffInputArchiveStruct& archive, SerializationProfile profile);
     Door(const nlohmann::json& archive, SerializationProfile profile);
 
+    static constexpr int json_archive_version = 1;
+
     // Validity
     bool valid() { return valid_; }
 

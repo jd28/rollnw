@@ -57,26 +57,26 @@ bool ModuleScripts::from_json(const nlohmann::json& archive)
 
 bool ModuleScripts::to_gff(GffOutputArchiveStruct& archive) const
 {
-    archive.add_fields({
-        {"Mod_OnAcquirItem", on_item_acquire},
-        {"Mod_OnActvtItem", on_item_activate},
-        {"Mod_OnClientEntr", on_client_enter},
-        {"Mod_OnClientLeav", on_client_leave},
-        {"Mod_OnCutsnAbort", on_cutsnabort},
-        {"Mod_OnHeartbeat", on_heartbeat},
-        {"Mod_OnModLoad", on_load},
-        {"Mod_OnModStart", on_start},
-        {"Mod_OnPlrChat", on_player_chat},
-        {"Mod_OnPlrDeath", on_player_death},
-        {"Mod_OnPlrDying", on_player_dying},
-        {"Mod_OnPlrEqItm", on_player_equip},
-        {"Mod_OnPlrLvlUp", on_player_level_up},
-        {"Mod_OnPlrRest", on_player_rest},
-        {"Mod_OnPlrUnEqItm", on_player_uneqiup},
-        {"Mod_OnSpawnBtnDn", on_spawnbtndn},
-        {"Mod_OnUnAqreItem", on_item_unaquire},
-        {"Mod_OnUsrDefined", on_user_defined},
-    });
+
+    archive.add_field("Mod_OnAcquirItem", on_item_acquire)
+        .add_field("Mod_OnActvtItem", on_item_activate)
+        .add_field("Mod_OnClientEntr", on_client_enter)
+        .add_field("Mod_OnClientLeav", on_client_leave)
+        .add_field("Mod_OnCutsnAbort", on_cutsnabort)
+        .add_field("Mod_OnHeartbeat", on_heartbeat)
+        .add_field("Mod_OnModLoad", on_load)
+        .add_field("Mod_OnModStart", on_start)
+        .add_field("Mod_OnPlrChat", on_player_chat)
+        .add_field("Mod_OnPlrDeath", on_player_death)
+        .add_field("Mod_OnPlrDying", on_player_dying)
+        .add_field("Mod_OnPlrEqItm", on_player_equip)
+        .add_field("Mod_OnPlrLvlUp", on_player_level_up)
+        .add_field("Mod_OnPlrRest", on_player_rest)
+        .add_field("Mod_OnPlrUnEqItm", on_player_uneqiup)
+        .add_field("Mod_OnSpawnBtnDn", on_spawnbtndn)
+        .add_field("Mod_OnUnAqreItem", on_item_unaquire)
+        .add_field("Mod_OnUsrDefined", on_user_defined);
+
     return true;
 }
 
@@ -222,12 +222,12 @@ bool Module::to_gff(GffOutputArchiveStruct& archive) const
 {
     auto& area_list = archive.add_list("Mod_Area_list");
     for (const auto& area : areas) {
-        area_list.push_back(6, {{"Area_Name", area}});
+        area_list.push_back(6).add_field("Area_Name", area);
     }
 
     auto& hak_list = archive.add_list("Mod_HakList");
     for (const auto& hak : haks) {
-        hak_list.push_back(8, {{"Mod_Hak", hak}});
+        hak_list.push_back(8).add_field("Mod_Hak", hak);
     }
 
     // Always empty, obsolete, but NWN as of 1.69, at least, kept them in the GFF.
@@ -238,33 +238,31 @@ bool Module::to_gff(GffOutputArchiveStruct& archive) const
     local_data.to_gff(archive);
     scripts.to_gff(archive);
 
-    archive.add_fields({
-        {"Expansion_Pack", expansion_pack},
-        {"Mod_Creator_ID", creator},
-        {"Mod_CustomTlk", tlk},
-        {"Mod_DawnHour", dawn_hour},
-        {"Mod_Description", description},
-        {"Mod_DuskHour", dusk_hour},
-        {"Mod_Entry_Area", entry_area},
-        {"Mod_Entry_Dir_X", entry_orientation.x},
-        {"Mod_Entry_Dir_Y", entry_orientation.y},
-        {"Mod_Entry_X", entry_position.x},
-        {"Mod_Entry_Y", entry_position.y},
-        {"Mod_Entry_Z", entry_position.z},
-        {"Mod_ID", id},
-        {"Mod_IsSaveGame", is_save_game},
-        {"Mod_MinGameVer", min_game_version},
-        {"Mod_MinPerHour", minutes_per_hour},
-        {"Mod_Name", name},
-        {"Mod_StartDay", start_day},
-        {"Mod_StartHour", start_hour},
-        {"Mod_StartMonth", start_month},
-        {"Mod_StartMovie", start_movie},
-        {"Mod_StartYear", start_year},
-        {"Mod_Tag", tag},
-        {"Mod_Version", version},
-        {"Mod_XPScale", xpscale},
-    });
+    archive.add_field("Expansion_Pack", expansion_pack)
+        .add_field("Mod_Creator_ID", creator)
+        .add_field("Mod_CustomTlk", tlk)
+        .add_field("Mod_DawnHour", dawn_hour)
+        .add_field("Mod_Description", description)
+        .add_field("Mod_DuskHour", dusk_hour)
+        .add_field("Mod_Entry_Area", entry_area)
+        .add_field("Mod_Entry_Dir_X", entry_orientation.x)
+        .add_field("Mod_Entry_Dir_Y", entry_orientation.y)
+        .add_field("Mod_Entry_X", entry_position.x)
+        .add_field("Mod_Entry_Y", entry_position.y)
+        .add_field("Mod_Entry_Z", entry_position.z)
+        .add_field("Mod_ID", id)
+        .add_field("Mod_IsSaveGame", is_save_game)
+        .add_field("Mod_MinGameVer", min_game_version)
+        .add_field("Mod_MinPerHour", minutes_per_hour)
+        .add_field("Mod_Name", name)
+        .add_field("Mod_StartDay", start_day)
+        .add_field("Mod_StartHour", start_hour)
+        .add_field("Mod_StartMonth", start_month)
+        .add_field("Mod_StartMovie", start_movie)
+        .add_field("Mod_StartYear", start_year)
+        .add_field("Mod_Tag", tag)
+        .add_field("Mod_Version", version)
+        .add_field("Mod_XPScale", xpscale);
 
     return true;
 }
@@ -274,7 +272,7 @@ nlohmann::json Module::to_json() const
     nlohmann::json j;
 
     j["$type"] = "IFO";
-    j["$version"] = LIBNW_JSON_ARCHIVE_VERSION;
+    j["$version"] = json_archive_version;
 
     j["areas"] = areas;
     j["description"] = description;

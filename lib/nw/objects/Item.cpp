@@ -150,64 +150,56 @@ bool Item::from_json(const nlohmann::json& archive, SerializationProfile profile
 
 bool Item::to_gff(GffOutputArchiveStruct& archive, SerializationProfile profile) const
 {
-    archive.add_fields({
-        {"TemplateResRef", common_.resref},
-        {"LocalizedName", common_.name},
-        {"Tag", common_.tag},
-    });
+    archive.add_field("TemplateResRef", common_.resref)
+        .add_field("LocalizedName", common_.name)
+        .add_field("Tag", common_.tag);
 
     if (profile == SerializationProfile::blueprint) {
         archive.add_field("Comment", common_.comment);
         archive.add_field("PaletteID", common_.palette_id);
     } else {
-        archive.add_fields({
-            {"PositionX", common_.location.position.x},
-            {"PositionY", common_.location.position.y},
-            {"PositionZ", common_.location.position.z},
-            {"OrientationX", common_.location.orientation.x},
-            {"OrientationY", common_.location.orientation.y},
-        });
+        archive.add_field("PositionX", common_.location.position.x)
+            .add_field("PositionY", common_.location.position.y)
+            .add_field("PositionZ", common_.location.position.z)
+            .add_field("OrientationX", common_.location.orientation.x)
+            .add_field("OrientationY", common_.location.orientation.y);
     }
 
     common_.local_data.to_gff(archive);
     inventory.to_gff(archive, profile);
 
-    archive.add_fields({
-        {"Description", description},
-        {"DescIdentified", description_id},
-        {"Cost", cost},
-        {"AddCost", additional_cost},
-        {"BaseItem", baseitem},
-        {"StackSize", stacksize},
-        {"Charges", charges},
-        {"Cursed", cursed},
-        {"Identified", identified},
-        {"Plot", plot},
-        {"Stolen", stolen},
-    });
+    archive.add_field("Description", description)
+        .add_field("DescIdentified", description_id)
+        .add_field("Cost", cost)
+        .add_field("AddCost", additional_cost)
+        .add_field("BaseItem", baseitem)
+        .add_field("StackSize", stacksize)
+        .add_field("Charges", charges)
+        .add_field("Cursed", cursed)
+        .add_field("Identified", identified)
+        .add_field("Plot", plot)
+        .add_field("Stolen", stolen);
 
     if (model_type == ItemModelType::armor) {
-        archive.add_fields({
-            {"ArmorPart_Belt", model_parts[ItemModelParts::armor_belt]},
-            {"ArmorPart_LBicep", model_parts[ItemModelParts::armor_lbicep]},
-            {"ArmorPart_LFArm", model_parts[ItemModelParts::armor_lfarm]},
-            {"ArmorPart_LFoot", model_parts[ItemModelParts::armor_lfoot]},
-            {"ArmorPart_LHand", model_parts[ItemModelParts::armor_lhand]},
-            {"ArmorPart_LShin", model_parts[ItemModelParts::armor_lshin]},
-            {"ArmorPart_LShoul", model_parts[ItemModelParts::armor_lshoul]},
-            {"ArmorPart_LThigh", model_parts[ItemModelParts::armor_lthigh]},
-            {"ArmorPart_Neck", model_parts[ItemModelParts::armor_neck]},
-            {"ArmorPart_Pelvis", model_parts[ItemModelParts::armor_pelvis]},
-            {"ArmorPart_RBicep", model_parts[ItemModelParts::armor_rbicep]},
-            {"ArmorPart_RFArm", model_parts[ItemModelParts::armor_rfarm]},
-            {"ArmorPart_RFoot", model_parts[ItemModelParts::armor_rfoot]},
-            {"ArmorPart_RHand", model_parts[ItemModelParts::armor_rhand]},
-            {"ArmorPart_Robe", model_parts[ItemModelParts::armor_robe]},
-            {"ArmorPart_RShin", model_parts[ItemModelParts::armor_rshin]},
-            {"ArmorPart_RShoul", model_parts[ItemModelParts::armor_rshoul]},
-            {"ArmorPart_RThigh", model_parts[ItemModelParts::armor_rthigh]},
-            {"ArmorPart_Torso", model_parts[ItemModelParts::armor_torso]},
-        });
+        archive.add_field("ArmorPart_Belt", model_parts[ItemModelParts::armor_belt])
+            .add_field("ArmorPart_LBicep", model_parts[ItemModelParts::armor_lbicep])
+            .add_field("ArmorPart_LFArm", model_parts[ItemModelParts::armor_lfarm])
+            .add_field("ArmorPart_LFoot", model_parts[ItemModelParts::armor_lfoot])
+            .add_field("ArmorPart_LHand", model_parts[ItemModelParts::armor_lhand])
+            .add_field("ArmorPart_LShin", model_parts[ItemModelParts::armor_lshin])
+            .add_field("ArmorPart_LShoul", model_parts[ItemModelParts::armor_lshoul])
+            .add_field("ArmorPart_LThigh", model_parts[ItemModelParts::armor_lthigh])
+            .add_field("ArmorPart_Neck", model_parts[ItemModelParts::armor_neck])
+            .add_field("ArmorPart_Pelvis", model_parts[ItemModelParts::armor_pelvis])
+            .add_field("ArmorPart_RBicep", model_parts[ItemModelParts::armor_rbicep])
+            .add_field("ArmorPart_RFArm", model_parts[ItemModelParts::armor_rfarm])
+            .add_field("ArmorPart_RFoot", model_parts[ItemModelParts::armor_rfoot])
+            .add_field("ArmorPart_RHand", model_parts[ItemModelParts::armor_rhand])
+            .add_field("ArmorPart_Robe", model_parts[ItemModelParts::armor_robe])
+            .add_field("ArmorPart_RShin", model_parts[ItemModelParts::armor_rshin])
+            .add_field("ArmorPart_RShoul", model_parts[ItemModelParts::armor_rshoul])
+            .add_field("ArmorPart_RThigh", model_parts[ItemModelParts::armor_rthigh])
+            .add_field("ArmorPart_Torso", model_parts[ItemModelParts::armor_torso]);
     } else if (model_type == ItemModelType::composite) {
         archive.add_field("ModelPart1", model_parts[ItemModelParts::model1]);
         archive.add_field("ModelPart2", model_parts[ItemModelParts::model2]);
@@ -229,15 +221,14 @@ bool Item::to_gff(GffOutputArchiveStruct& archive, SerializationProfile profile)
     auto& property_list = archive.add_list("PropertiesList");
     uint8_t chance = 100;
     for (const auto& ip : properties) {
-        property_list.push_back(0, {
-                                       {"PropertyName", ip.type},
-                                       {"Subtype", ip.subtype},
-                                       {"CostTable", ip.cost_table},
-                                       {"CostValue", ip.cost_value},
-                                       {"Param1", ip.param_table},
-                                       {"Param1Value", ip.param_value},
-                                       {"ChanceAppear", chance},
-                                   });
+        property_list.push_back(0)
+            .add_field("PropertyName", ip.type)
+            .add_field("Subtype", ip.subtype)
+            .add_field("CostTable", ip.cost_table)
+            .add_field("CostValue", ip.cost_value)
+            .add_field("Param1", ip.param_table)
+            .add_field("Param1Value", ip.param_value)
+            .add_field("ChanceAppear", chance);
     }
 
     return true;
@@ -247,7 +238,7 @@ nlohmann::json Item::to_json(SerializationProfile profile) const
 {
     nlohmann::json j;
     j["$type"] = "UTI";
-    j["$version"] = LIBNW_JSON_ARCHIVE_VERSION;
+    j["$version"] = json_archive_version;
 
     j["common"] = common_.to_json(profile);
     j["inventory"] = inventory.to_json(profile);

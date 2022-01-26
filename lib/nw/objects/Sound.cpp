@@ -97,7 +97,7 @@ nlohmann::json Sound::to_json(SerializationProfile profile) const
     nlohmann::json j;
 
     j["$type"] = "UTS";
-    j["$version"] = LIBNW_JSON_ARCHIVE_VERSION;
+    j["$version"] = json_archive_version;
 
     j["common"] = common_.to_json(profile);
     j["distance_min"] = distance_min;

@@ -142,57 +142,51 @@ bool Store::from_json(const nlohmann::json& archive, SerializationProfile profil
 
 bool Store::to_gff(GffOutputArchiveStruct& archive, SerializationProfile profile) const
 {
-    archive.add_fields({
-        {"ResRef", common_.resref}, // Store does it's own thing, not typo.
-        {"LocName", common_.name},
-        {"Tag", common_.tag},
-    });
+    archive.add_field("ResRef", common_.resref) // Store does it's own thing, not typo.
+        .add_field("LocName", common_.name)
+        .add_field("Tag", common_.tag);
 
     if (profile == SerializationProfile::blueprint) {
         archive.add_field("Comment", common_.comment);
         archive.add_field("ID", common_.palette_id);
     } else {
-        archive.add_fields({
-            {"PositionX", common_.location.position.x},
-            {"PositionY", common_.location.position.y},
-            {"PositionZ", common_.location.position.z},
-            {"OrientationX", common_.location.orientation.x},
-            {"OrientationY", common_.location.orientation.y},
-        });
+        archive.add_field("PositionX", common_.location.position.x)
+            .add_field("PositionY", common_.location.position.y)
+            .add_field("PositionZ", common_.location.position.z)
+            .add_field("OrientationX", common_.location.orientation.x)
+            .add_field("OrientationY", common_.location.orientation.y);
     }
 
     if (common_.local_data.size()) {
         common_.local_data.to_gff(archive);
     }
 
-    archive.add_fields({
-        {"BlackMarket", blackmarket},
-        {"BM_MarkDown", blackmarket_markdown},
-        {"IdentifyPrice", identify_price},
-        {"MarkDown", markdown},
-        {"MarkUp", markup},
-        {"MaxBuyPrice", max_price},
-        {"OnOpenStore", on_opened},
-        {"OnStoreClosed", on_closed},
-        {"StoreGold", gold},
-    });
+    archive.add_field("BlackMarket", blackmarket)
+        .add_field("BM_MarkDown", blackmarket_markdown)
+        .add_field("IdentifyPrice", identify_price)
+        .add_field("MarkDown", markdown)
+        .add_field("MarkUp", markup)
+        .add_field("MaxBuyPrice", max_price)
+        .add_field("OnOpenStore", on_opened)
+        .add_field("OnStoreClosed", on_closed)
+        .add_field("StoreGold", gold);
 
     auto& wnb_list = archive.add_list("WillNotBuy");
     for (const auto bi : will_not_buy) {
-        wnb_list.push_back(0x17E4D, {{"BaseItem", bi}});
+        wnb_list.push_back(0x17E4D).add_field("BaseItem", bi);
     }
 
     auto& wob_list = archive.add_list("WillOnlyBuy");
     for (const auto bi : will_only_buy) {
-        wob_list.push_back(0x17E4D, {{"BaseItem", bi}});
+        wob_list.push_back(0x17E4D).add_field("BaseItem", bi);
     }
 
     auto& store_list = archive.add_list("StoreList");
-    armor.to_gff(store_list.push_back(0, {}), profile);
-    miscellaneous.to_gff(store_list.push_back(1, {}), profile);
-    potions.to_gff(store_list.push_back(2, {}), profile);
-    rings.to_gff(store_list.push_back(3, {}), profile);
-    weapons.to_gff(store_list.push_back(4, {}), profile);
+    armor.to_gff(store_list.push_back(0), profile);
+    miscellaneous.to_gff(store_list.push_back(1), profile);
+    potions.to_gff(store_list.push_back(2), profile);
+    rings.to_gff(store_list.push_back(3), profile);
+    weapons.to_gff(store_list.push_back(4), profile);
 
     return true;
 }
@@ -201,7 +195,7 @@ nlohmann::json Store::to_json(SerializationProfile profile) const
 {
     nlohmann::json j;
     j["$type"] = "UTM";
-    j["$version"] = LIBNW_JSON_ARCHIVE_VERSION;
+    j["$version"] = json_archive_version;
 
     j["common"] = common_.to_json(profile);
     j["on_closed"] = on_closed;

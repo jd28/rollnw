@@ -120,56 +120,49 @@ bool Trigger::from_json(const nlohmann::json& archive, SerializationProfile prof
 
 bool Trigger::to_gff(GffOutputArchiveStruct& archive, SerializationProfile profile) const
 {
-    archive.add_fields({
-        {"TemplateResRef", common_.resref}, // Store does it's own thing, not typo.
-        {"LocalizedName", common_.name},
-        {"Tag", common_.tag},
-    });
+    archive.add_field("TemplateResRef", common_.resref); // Store does it's own thing, not typo.
+    archive.add_field("LocalizedName", common_.name);
+    archive.add_field("Tag", common_.tag);
 
     trap.to_gff(archive);
 
     uint8_t zero = 0;
     std::string empty;
 
-    archive.add_fields({
-        {"Faction", faction},
-        {"Cursor", cursor},
-        {"HighlightHeight", highlight_height},
-        {"AutoRemoveKey", zero}, // obsolete
-        {"KeyName", empty},      // obsolete
-        {"LinkedTo", linked_to},
-        {"LinkedToFlags", linked_to_flags},
-        {"LoadScreenID", loadscreen},
-        {"OnClick", scripts.on_click},
-        {"OnDisarm", scripts.on_disarm},
-        {"OnTrapTriggered", scripts.on_trap_triggered},
-        {"PortraitId", portrait},
-        {"ScriptHeartbeat", scripts.on_heartbeat},
-        {"ScriptOnEnter", scripts.on_enter},
-        {"ScriptOnExit", scripts.on_exit},
-        {"ScriptUserDefine", scripts.on_user_defined},
-        {"Type", type},
-    });
+    archive.add_field("Faction", faction)
+        .add_field("Cursor", cursor)
+        .add_field("HighlightHeight", highlight_height)
+        .add_field("AutoRemoveKey", zero) // obsolete
+        .add_field("KeyName", empty)      // obsolete
+        .add_field("LinkedTo", linked_to)
+        .add_field("LinkedToFlags", linked_to_flags)
+        .add_field("LoadScreenID", loadscreen)
+        .add_field("OnClick", scripts.on_click)
+        .add_field("OnDisarm", scripts.on_disarm)
+        .add_field("OnTrapTriggered", scripts.on_trap_triggered)
+        .add_field("PortraitId", portrait)
+        .add_field("ScriptHeartbeat", scripts.on_heartbeat)
+        .add_field("ScriptOnEnter", scripts.on_enter)
+        .add_field("ScriptOnExit", scripts.on_exit)
+        .add_field("ScriptUserDefine", scripts.on_user_defined)
+        .add_field("Type", type);
 
     if (profile == SerializationProfile::blueprint) {
         archive.add_field("Comment", common_.comment);
         archive.add_field("PaletteID", common_.palette_id);
     } else {
-        archive.add_fields({
-            {"PositionX", common_.location.position.x},
-            {"PositionY", common_.location.position.y},
-            {"PositionZ", common_.location.position.z},
-            {"OrientationX", common_.location.orientation.x},
-            {"OrientationY", common_.location.orientation.y},
-        });
+        archive.add_field("PositionX", common_.location.position.x)
+            .add_field("PositionY", common_.location.position.y)
+            .add_field("PositionZ", common_.location.position.z)
+            .add_field("OrientationX", common_.location.orientation.x)
+            .add_field("OrientationY", common_.location.orientation.y);
 
         auto& list = archive.add_list("Geometry");
         for (const auto& point : geometry) {
-            list.push_back(3, {
-                                  {"PointX", point[0]},
-                                  {"PointY", point[1]},
-                                  {"PointZ", point[2]},
-                              });
+            list.push_back(3)
+                .add_field("PointX", point[0])
+                .add_field("PointY", point[1])
+                .add_field("PointZ", point[2]);
         }
     }
     return true;
@@ -180,7 +173,7 @@ nlohmann::json Trigger::to_json(SerializationProfile profile) const
     nlohmann::json j;
 
     j["$type"] = "UTT";
-    j["$version"] = LIBNW_JSON_ARCHIVE_VERSION;
+    j["$version"] = json_archive_version;
 
     j["common"] = common_.to_json(profile);
     j["scripts"] = scripts.to_json();

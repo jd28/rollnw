@@ -72,6 +72,8 @@ struct Item : public ObjectBase {
     Item(const nlohmann::json& archive, SerializationProfile profile);
     ~Item() = default;
 
+    static constexpr int json_archive_version = 1;
+
     // ObjectBase overrides
     virtual Common* common() override { return &common_; }
     virtual const Common* common() const override { return &common_; }

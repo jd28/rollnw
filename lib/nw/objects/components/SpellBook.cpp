@@ -74,13 +74,10 @@ bool SpellBook::to_gff(GffOutputArchiveStruct& archive) const
         auto k = fmt::format("KnownList{}", i);
         auto& klist = archive.add_list(k);
         for (const auto& sp : known[i]) {
-            flags = static_cast<uint8_t>(sp.flags);
-            meta = static_cast<uint8_t>(sp.meta);
-            klist.push_back(3, {
-                                   {"Spell", sp.spell},
-                                   {"SpellFlags", flags},
-                                   {"SpellMetaMagic", meta},
-                               });
+            klist.push_back(3)
+                .add_field("Spell", sp.spell)
+                .add_field("SpellFlags", static_cast<uint8_t>(sp.flags))
+                .add_field("SpellMetaMagic", static_cast<uint8_t>(sp.meta));
         }
     }
 
@@ -89,13 +86,10 @@ bool SpellBook::to_gff(GffOutputArchiveStruct& archive) const
         auto m = fmt::format("MemorizedList{}", i);
         auto& mlist = archive.add_list(m);
         for (const auto& sp : memorized[i]) {
-            flags = static_cast<uint8_t>(sp.flags);
-            meta = static_cast<uint8_t>(sp.meta);
-            mlist.push_back(3, {
-                                   {"Spell", sp.spell},
-                                   {"SpellFlags", flags},
-                                   {"SpellMetaMagic", meta},
-                               });
+            mlist.push_back(3)
+                .add_field("Spell", sp.spell)
+                .add_field("SpellFlags", static_cast<uint8_t>(sp.flags))
+                .add_field("SpellMetaMagic", static_cast<uint8_t>(sp.meta));
         }
     }
 

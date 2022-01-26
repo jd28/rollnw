@@ -7,6 +7,7 @@
 
 namespace nw {
 
-static const int LIBNW_JSON_ARCHIVE_VERSION = 1;
+/// Convert a Gff to JSON (nwn-lib/neverwinter.nim format, I think.)
+nlohmann::json gff_to_gffjson(const GffInputArchive& gff);
 
 } // namespace nw

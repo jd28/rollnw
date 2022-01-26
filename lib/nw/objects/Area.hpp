@@ -90,6 +90,8 @@ struct Area : public ObjectBase {
     Area(const GffInputArchiveStruct& are, const GffInputArchiveStruct& git, const GffInputArchiveStruct& gic);
     Area(const nlohmann::json& caf, const nlohmann::json& gic);
 
+    static constexpr int json_archive_version = 1;
+
     virtual Common* common() override { return &common_; }
     virtual const Common* common() const override { return &common_; }
     virtual Area* as_area() override { return this; }

@@ -37,15 +37,14 @@ bool Trap::from_json(const nlohmann::json& archive)
 
 bool Trap::to_gff(GffOutputArchiveStruct& archive) const
 {
-    archive.add_fields({
-        {"TrapFlag", is_trapped},
-        {"TrapType", type},
-        {"DisarmDC", disarm_dc},
-        {"TrapDetectable", detectable},
-        {"TrapDetectDC", detect_dc},
-        {"TrapDisarmable", disarmable},
-        {"TrapOneShot", one_shot},
-    });
+    archive.add_field("TrapFlag", is_trapped)
+        .add_field("TrapType", type)
+        .add_field("DisarmDC", disarm_dc)
+        .add_field("TrapDetectable", detectable)
+        .add_field("TrapDetectDC", detect_dc)
+        .add_field("TrapDisarmable", disarmable)
+        .add_field("TrapOneShot", one_shot);
+
     return true;
 }
 

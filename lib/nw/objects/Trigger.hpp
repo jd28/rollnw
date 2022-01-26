@@ -29,6 +29,8 @@ struct Trigger : public ObjectBase {
     Trigger(const GffInputArchiveStruct& archive, SerializationProfile profile);
     Trigger(const nlohmann::json& archive, SerializationProfile profile);
 
+    static constexpr int json_archive_version = 1;
+
     // Validity
     bool valid() { return valid_; }
 

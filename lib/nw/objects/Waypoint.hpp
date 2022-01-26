@@ -12,6 +12,8 @@ struct Waypoint : public ObjectBase {
     Waypoint(const GffInputArchiveStruct& archive, SerializationProfile profile);
     Waypoint(const nlohmann::json& archive, SerializationProfile profile);
 
+    static constexpr int json_archive_version = 1;
+
     // ObjectBase overrides
     virtual Common* common() override { return &common_; }
     virtual const Common* common() const override { return &common_; }

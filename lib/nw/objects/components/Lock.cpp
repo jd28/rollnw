@@ -36,15 +36,14 @@ bool Lock::from_json(const nlohmann::json& archive)
 
 bool Lock::to_gff(GffOutputArchiveStruct& archive) const
 {
-    archive.add_fields({
-        {"KeyName", key_name},
-        {"KeyRequired", key_required},
-        {"Lockable", lockable},
-        {"AutoRemoveKey", remove_key},
-        {"Locked", locked},
-        {"CloseLockDC", lock_dc},
-        {"OpenLockDC", unlock_dc},
-    });
+    archive.add_field("KeyName", key_name)
+        .add_field("KeyRequired", key_required)
+        .add_field("Lockable", lockable)
+        .add_field("AutoRemoveKey", remove_key)
+        .add_field("Locked", locked)
+        .add_field("CloseLockDC", lock_dc)
+        .add_field("OpenLockDC", unlock_dc);
+
     return true;
 }
 

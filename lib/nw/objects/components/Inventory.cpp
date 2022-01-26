@@ -67,10 +67,10 @@ bool Inventory::to_gff(GffOutputArchiveStruct& archive, SerializationProfile pro
     if (items.empty()) { return true; }
     auto& list = archive.add_list("ItemList");
     for (const auto& it : items) {
-        auto& str = list.push_back(list.size(), {
-                                                    {"Repos_PosX", it.pos_x},
-                                                    {"Repos_Posy", it.pos_y},
-                                                });
+        auto& str = list.push_back(static_cast<uint32_t>(list.size()))
+                        .add_field("Repos_PosX", it.pos_x)
+                        .add_field("Repos_Posy", it.pos_y);
+
         if (owner->common()->object_type == ObjectType::store && it.infinite) {
             str.add_field("Infinite", it.infinite);
         }

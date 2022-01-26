@@ -36,37 +36,30 @@ bool Waypoint::from_gff(const GffInputArchiveStruct& archive, SerializationProfi
 
 bool Waypoint::to_gff(GffOutputArchiveStruct& archive, SerializationProfile profile) const
 {
-    archive.add_fields({
-        {"TemplateResRef", common_.resref},
-        {"LocalizedName", common_.name},
-        {"Tag", common_.tag},
-    });
-
+    archive.add_field("TemplateResRef", common_.resref)
+        .add_field("LocalizedName", common_.name)
+        .add_field("Tag", common_.tag);
     if (profile == SerializationProfile::blueprint) {
         archive.add_field("Comment", common_.comment);
         archive.add_field("PaletteID", common_.palette_id);
     } else {
-        archive.add_fields({
-            {"PositionX", common_.location.position.x},
-            {"PositionY", common_.location.position.y},
-            {"PositionZ", common_.location.position.z},
-            {"OrientationX", common_.location.orientation.x},
-            {"OrientationY", common_.location.orientation.y},
-        });
+        archive.add_field("PositionX", common_.location.position.x)
+            .add_field("PositionY", common_.location.position.y)
+            .add_field("PositionZ", common_.location.position.z)
+            .add_field("OrientationX", common_.location.orientation.x)
+            .add_field("OrientationY", common_.location.orientation.y);
     }
 
     if (common_.local_data.size()) {
         common_.local_data.to_gff(archive);
     }
 
-    archive.add_fields({
-        {"Appearance", appearance},
-        {"Description", description},
-        {"HasMapNote", has_map_note},
-        {"LinkedTo", linked_to},
-        {"MapNote", map_note},
-        {"MapNoteEnabled", map_note_enabled},
-    });
+    archive.add_field("Appearance", appearance)
+        .add_field("Description", description)
+        .add_field("HasMapNote", has_map_note)
+        .add_field("LinkedTo", linked_to)
+        .add_field("MapNote", map_note)
+        .add_field("MapNoteEnabled", map_note_enabled);
 
     return true;
 }
@@ -94,7 +87,7 @@ nlohmann::json Waypoint::to_json(SerializationProfile profile) const
     nlohmann::json j;
 
     j["$type"] = "UTW";
-    j["$version"] = LIBNW_JSON_ARCHIVE_VERSION;
+    j["$version"] = json_archive_version;
 
     j["appearance"] = appearance;
     j["common"] = common_.to_json(profile);

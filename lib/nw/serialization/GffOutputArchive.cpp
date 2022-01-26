@@ -1,6 +1,5 @@
 #include "GffOutputArchive.hpp"
 
-#include "../i18n/conversion.hpp"
 #include "../log.hpp"
 
 #include <filesystem>
@@ -15,116 +14,10 @@ GffOutputArchiveStruct::GffOutputArchiveStruct(GffOutputArchive* parent_)
 {
 }
 
-void GffOutputArchiveStruct::add_field(std::string_view name, serialization_cref value)
-{
-    GffOutputArchiveField f{parent};
-    f.label_index = parent->add_label(name);
-
-    if (std::holds_alternative<std::reference_wrapper<const bool>>(value)) {
-        f.type = SerializationType::id<uint8_t>();
-        uint8_t temp = std::get<std::reference_wrapper<const bool>>(value);
-        std::memcpy(&f.data_or_offset, &temp, 1);
-    } else if (std::holds_alternative<std::reference_wrapper<const uint8_t>>(value)) {
-        f.type = SerializationType::id<uint8_t>();
-        uint8_t temp = std::get<std::reference_wrapper<const uint8_t>>(value);
-        std::memcpy(&f.data_or_offset, &temp, 1);
-    } else if (std::holds_alternative<std::reference_wrapper<const int8_t>>(value)) {
-        f.type = SerializationType::id<int8_t>();
-        int8_t temp = std::get<std::reference_wrapper<const int8_t>>(value);
-        std::memcpy(&f.data_or_offset, &temp, 1);
-    } else if (std::holds_alternative<std::reference_wrapper<const uint16_t>>(value)) {
-        f.type = SerializationType::id<uint16_t>();
-        uint16_t temp = std::get<std::reference_wrapper<const uint16_t>>(value);
-        std::memcpy(&f.data_or_offset, &temp, 2);
-    } else if (std::holds_alternative<std::reference_wrapper<const int16_t>>(value)) {
-        f.type = SerializationType::id<int16_t>();
-        int16_t temp = std::get<std::reference_wrapper<const int16_t>>(value);
-        std::memcpy(&f.data_or_offset, &temp, 2);
-    } else if (std::holds_alternative<std::reference_wrapper<const uint32_t>>(value)) {
-        f.type = SerializationType::id<uint32_t>();
-        uint32_t temp = std::get<std::reference_wrapper<const uint32_t>>(value);
-        std::memcpy(&f.data_or_offset, &temp, 4);
-    } else if (std::holds_alternative<std::reference_wrapper<const int32_t>>(value)) {
-        f.type = SerializationType::id<int32_t>();
-        int32_t temp = std::get<std::reference_wrapper<const int32_t>>(value);
-        std::memcpy(&f.data_or_offset, &temp, 4);
-    } else if (std::holds_alternative<std::reference_wrapper<const uint64_t>>(value)) {
-        f.data_or_offset = parent->data.size();
-        f.type = SerializationType::id<uint64_t>();
-        uint64_t temp = std::get<std::reference_wrapper<const uint64_t>>(value);
-        parent->data.append(&temp, 8);
-    } else if (std::holds_alternative<std::reference_wrapper<const int64_t>>(value)) {
-        f.data_or_offset = parent->data.size();
-        f.type = SerializationType::id<int64_t>();
-        int64_t temp = std::get<std::reference_wrapper<const int64_t>>(value);
-        parent->data.append(&temp, 8);
-    } else if (std::holds_alternative<std::reference_wrapper<const float>>(value)) {
-        f.type = SerializationType::id<float>();
-        float temp = std::get<std::reference_wrapper<const float>>(value);
-        std::memcpy(&f.data_or_offset, &temp, 4);
-    } else if (std::holds_alternative<std::reference_wrapper<const double>>(value)) {
-        f.data_or_offset = parent->data.size();
-        f.type = SerializationType::id<double>();
-        double temp = std::get<std::reference_wrapper<const double>>(value);
-        parent->data.append(&temp, 8);
-    } else if (std::holds_alternative<std::reference_wrapper<const std::string>>(value)) {
-        const std::string& temp = std::get<std::reference_wrapper<const std::string>>(value);
-        f.type = SerializationType::id<std::string>();
-        f.data_or_offset = parent->data.size();
-        std::string s = string::desanitize_colors(temp);
-        s = from_utf8(s, Language::default_encoding(), true);
-        uint32_t size = s.size();
-        parent->data.append(&size, 4);
-        parent->data.append(s.data(), size);
-    } else if (std::holds_alternative<std::reference_wrapper<const Resref>>(value)) {
-        const Resref& temp = std::get<std::reference_wrapper<const Resref>>(value);
-        f.type = SerializationType::id<Resref>();
-        f.data_or_offset = parent->data.size();
-        uint8_t size = static_cast<uint8_t>(temp.length());
-        parent->data.append(&size, 1);
-        parent->data.append(temp.view().data(), size);
-    } else if (std::holds_alternative<std::reference_wrapper<const LocString>>(value)) {
-        const LocString& temp = std::get<std::reference_wrapper<const LocString>>(value);
-        f.type = SerializationType::id<LocString>();
-        f.data_or_offset = parent->data.size();
-        uint32_t total_size = 8;
-        uint32_t strref = temp.strref(), num_strings = temp.size();
-        size_t placeholder = parent->data.size(); // Won't know total size till the end.
-        parent->data.append(&total_size, 4);
-        parent->data.append(&strref, 4);
-        parent->data.append(&num_strings, 4);
-        for (const auto& [lang, str] : temp) {
-            std::string s = string::desanitize_colors(str);
-            s = from_utf8_by_langid(s, static_cast<Language::ID>(lang), true);
-            uint32_t size = s.size();
-            total_size += 8 + size;
-            parent->data.append(&lang, 4);
-            parent->data.append(&size, 4);
-            parent->data.append(s.data(), size);
-        }
-        memcpy(parent->data.data() + placeholder, &total_size, 4);
-    } else if (std::holds_alternative<std::reference_wrapper<const ByteArray>>(value)) {
-        const ByteArray& temp = std::get<std::reference_wrapper<const ByteArray>>(value);
-        f.type = SerializationType::id<ByteArray>();
-        f.data_or_offset = parent->data.size();
-        uint32_t size = temp.size();
-        parent->data.append(&size, 4);
-        parent->data.append(temp.data(), size);
-    }
-    field_entries.push_back(f);
-}
-
-void GffOutputArchiveStruct::add_fields(std::initializer_list<std::pair<std::string_view, serialization_cref>> fields)
-{
-    for (const auto& [name, value] : fields) {
-        add_field(name, value);
-    }
-}
-
 GffOutputArchiveList& GffOutputArchiveStruct::add_list(std::string_view name)
 {
     GffOutputArchiveField f{parent};
-    f.label_index = parent->add_label(name);
+    f.label_index = static_cast<uint32_t>(parent->add_label(name));
     f.type = SerializationType::LIST;
     f.structures = GffOutputArchiveList{parent};
     field_entries.push_back(f);
@@ -136,7 +29,7 @@ GffOutputArchiveStruct& GffOutputArchiveStruct::add_struct(std::string_view name
 
     field_entries.emplace_back(parent);
     GffOutputArchiveField& f = field_entries.back();
-    f.label_index = parent->add_label(name);
+    f.label_index = static_cast<uint32_t>(parent->add_label(name));
     f.type = SerializationType::STRUCT;
     f.structures = GffOutputArchiveStruct{parent};
     return std::get<GffOutputArchiveStruct>(field_entries.back().structures);
@@ -149,13 +42,11 @@ GffOutputArchiveList::GffOutputArchiveList(GffOutputArchive* parent_)
 {
 }
 
-GffOutputArchiveStruct& GffOutputArchiveList::push_back(uint32_t id,
-    std::initializer_list<std::pair<std::string_view, serialization_cref>> fields)
+GffOutputArchiveStruct& GffOutputArchiveList::push_back(uint32_t id)
 {
     structs.emplace_back(parent);
     GffOutputArchiveStruct& result = structs.back();
     result.id = id;
-    result.add_fields(fields);
     return result;
 }
 

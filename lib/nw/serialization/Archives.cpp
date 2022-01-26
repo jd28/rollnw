@@ -1,7 +1,9 @@
-#include "conversions.hpp"
+#include "Archives.hpp"
 
 #include "../util/base64.hpp"
-#include "gff_common.hpp"
+#include "Serialization.hpp"
+
+#include <nlohmann/json.hpp>
 
 #include <limits>
 
@@ -17,9 +19,9 @@ inline void add_field_kv(json& j, const std::string& name, const T& value)
     o["type"] = SerializationType::to_string(SerializationType::id<T>());
 }
 
-bool gff_to_json(const GffInputArchiveStruct str, nlohmann::json& cursor);
+bool gff_to_gffjson(const GffInputArchiveStruct str, nlohmann::json& cursor);
 
-inline bool gff_to_json(const GffInputArchiveField field, nlohmann::json& cursor)
+inline bool gff_to_gffjson(const GffInputArchiveField field, nlohmann::json& cursor)
 {
     bool check = true;
     if (!field.valid()) {
@@ -93,13 +95,13 @@ inline bool gff_to_json(const GffInputArchiveField field, nlohmann::json& cursor
         auto& o = cursor[field_name] = json::object();
         o["type"] = SerializationType::to_string(SerializationType::STRUCT);
         auto& v = o["value"] = json::object();
-        check = check && gff_to_json(*field.get<GffInputArchiveStruct>(), v);
+        check = check && gff_to_gffjson(*field.get<GffInputArchiveStruct>(), v);
     } break;
     case SerializationType::LIST: {
         auto& v = cursor[field_name] = json::array();
         for (size_t i = 0; i < field.size(); ++i) {
             v.push_back(json::object());
-            check = check && gff_to_json(field[i], v[i]);
+            check = check && gff_to_gffjson(field[i], v[i]);
             if (!check) { break; }
         }
     } break;
@@ -107,7 +109,7 @@ inline bool gff_to_json(const GffInputArchiveField field, nlohmann::json& cursor
     return check;
 }
 
-bool gff_to_json(const GffInputArchiveStruct str, nlohmann::json& cursor)
+bool gff_to_gffjson(const GffInputArchiveStruct str, nlohmann::json& cursor)
 {
     bool check = true;
     if (!str.valid()) {
@@ -116,7 +118,7 @@ bool gff_to_json(const GffInputArchiveStruct str, nlohmann::json& cursor)
     }
     cursor["__struct_id"] = str.id();
     for (size_t i = 0; i < str.size(); ++i) {
-        check = check && gff_to_json(str[i], cursor);
+        check = check && gff_to_gffjson(str[i], cursor);
         if (!check) {
             LOG_F(ERROR, "Failed to conver struct");
             break;
@@ -125,19 +127,19 @@ bool gff_to_json(const GffInputArchiveStruct str, nlohmann::json& cursor)
     return check;
 }
 
-nlohmann::json gff_to_json(const GffInputArchive& gff)
+nlohmann::json gff_to_gffjson(const GffInputArchive& gff)
 {
     nlohmann::json j;
     if (!gff.valid()) {
         LOG_F(ERROR, "attempting to convert invalid gff to json");
     } else {
         try {
-            if (!gff_to_json(gff.toplevel(), j)) {
+            if (!gff_to_gffjson(gff.toplevel(), j)) {
                 j.clear();
-                LOG_F(ERROR, "gff_to_json failed conversion");
+                LOG_F(ERROR, "gff_to_gffjson failed conversion");
             }
         } catch (const std::exception& e) {
-            LOG_F(ERROR, "gff_to_json exception thrown: {}", e.what());
+            LOG_F(ERROR, "gff_to_gffjson exception thrown: {}", e.what());
             j.clear();
         }
     }

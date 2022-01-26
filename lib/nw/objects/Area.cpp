@@ -315,7 +315,7 @@ nlohmann::json Area::to_json() const
 {
     nlohmann::json j;
     j["$type"] = "CAF";
-    j["$version"] = LIBNW_JSON_ARCHIVE_VERSION;
+    j["$version"] = json_archive_version;
 
     j["common"] = common_.to_json(SerializationProfile::any);
     j["scripts"] = scripts.to_json();

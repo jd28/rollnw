@@ -1,8 +1,7 @@
 #include <catch2/catch.hpp>
 
 #include <nw/objects/Encounter.hpp>
-#include <nw/serialization/Serialization.hpp>
-#include <nw/serialization/conversions.hpp>
+#include <nw/serialization/Archives.hpp>
 
 #include <nlohmann/json.hpp>
 
@@ -49,10 +48,12 @@ TEST_CASE("encount: gff round trip", "[ojbects]")
     REQUIRE(g.valid());
 
     nw::Encounter enc{g.toplevel(), nw::SerializationProfile::blueprint};
-    nw::GffOutputArchive oa = enc.to_gff(nw::SerializationProfile::blueprint);
+    nw::GffOutputArchive oa{"UTE"};
+    enc.to_gff(oa.top, nw::SerializationProfile::blueprint);
+    oa.build();
     oa.write_to("tmp/boundelementallo_2.ute");
     nw::GffInputArchive g2{"tmp/boundelementallo_2.ute"};
-    REQUIRE(nw::gff_to_json(g) == nw::gff_to_json(g2));
+    REQUIRE(nw::gff_to_gffjson(g) == nw::gff_to_gffjson(g2));
 
     REQUIRE(oa.header.struct_offset == g.head_->struct_offset);
     REQUIRE(oa.header.struct_count == g.head_->struct_count);

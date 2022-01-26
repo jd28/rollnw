@@ -1,8 +1,7 @@
 #include <catch2/catch.hpp>
 
 #include <nw/objects/Placeable.hpp>
-#include <nw/serialization/Serialization.hpp>
-#include <nw/serialization/conversions.hpp>
+#include <nw/serialization/Archives.hpp>
 
 #include <nlohmann/json.hpp>
 

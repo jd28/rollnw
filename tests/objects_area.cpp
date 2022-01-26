@@ -1,7 +1,7 @@
 #include <catch2/catch.hpp>
 
 #include <nw/objects/Area.hpp>
-#include <nw/serialization/Serialization.hpp>
+#include <nw/serialization/Archives.hpp>
 
 #include <nlohmann/json.hpp>
 

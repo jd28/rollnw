@@ -48,21 +48,20 @@ bool CreatureScripts::from_json(const nlohmann::json& archive)
 
 bool CreatureScripts::to_gff(GffOutputArchiveStruct& archive) const
 {
-    archive.add_fields({
-        {"ScriptAttacked", on_attacked},
-        {"ScriptDamaged", on_damaged},
-        {"ScriptDeath", on_death},
-        {"ScriptDialogue", on_conversation},
-        {"ScriptDisturbed", on_disturbed},
-        {"ScriptEndRound", on_endround},
-        {"ScriptHeartbeat", on_heartbeat},
-        {"ScriptOnBlocked", on_blocked},
-        {"ScriptOnNotice", on_perceived},
-        {"ScriptRested", on_rested},
-        {"ScriptSpawn", on_spawn},
-        {"ScriptSpellAt", on_spell_cast_at},
-        {"ScriptUserDefine", on_user_defined},
-    });
+    archive.add_field("ScriptAttacked", on_attacked)
+        .add_field("ScriptDamaged", on_damaged)
+        .add_field("ScriptDeath", on_death)
+        .add_field("ScriptDialogue", on_conversation)
+        .add_field("ScriptDisturbed", on_disturbed)
+        .add_field("ScriptEndRound", on_endround)
+        .add_field("ScriptHeartbeat", on_heartbeat)
+        .add_field("ScriptOnBlocked", on_blocked)
+        .add_field("ScriptOnNotice", on_perceived)
+        .add_field("ScriptRested", on_rested)
+        .add_field("ScriptSpawn", on_spawn)
+        .add_field("ScriptSpellAt", on_spell_cast_at)
+        .add_field("ScriptUserDefine", on_user_defined);
+
     return true;
 }
 
@@ -206,22 +205,18 @@ bool Creature::from_json(const nlohmann::json& archive, SerializationProfile pro
 
 bool Creature::to_gff(GffOutputArchiveStruct& archive, SerializationProfile profile) const
 {
-    archive.add_fields({
-        {"TemplateResRef", common_.resref},
-        {"Tag", common_.tag},
-    });
+    archive.add_field("TemplateResRef", common_.resref)
+        .add_field("Tag", common_.tag);
 
     if (profile == SerializationProfile::blueprint) {
         archive.add_field("Comment", common_.comment);
         archive.add_field("PaletteID", common_.palette_id);
     } else {
-        archive.add_fields({
-            {"PositionX", common_.location.position.x},
-            {"PositionY", common_.location.position.y},
-            {"PositionZ", common_.location.position.z},
-            {"OrientationX", common_.location.orientation.x},
-            {"OrientationY", common_.location.orientation.y},
-        });
+        archive.add_field("PositionX", common_.location.position.x)
+            .add_field("PositionY", common_.location.position.y)
+            .add_field("PositionZ", common_.location.position.z)
+            .add_field("OrientationX", common_.location.orientation.x)
+            .add_field("OrientationY", common_.location.orientation.y);
     }
 
     common_.local_data.to_gff(archive);
@@ -236,37 +231,35 @@ bool Creature::to_gff(GffOutputArchiveStruct& archive, SerializationProfile prof
 
     archive.add_list("TemplateList"); // Not sure if this is obsolete?
 
-    archive.add_fields({
-        {"FirstName", name_first},
-        {"LastName", name_last},
-        {"Conversation", conversation},
-        {"Deity", deity},
-        {"Description", description},
-        {"Subrace", subrace},
-        {"ChallengeRating", cr},
-        {"CRAdjust", cr_adjust},
-        {"DecayTime", decay_time},
-        {"CurrentHitPoints", hp_current},
-        {"HitPoints", hp},
-        {"MaxHitPoints", hp_max},
-        {"FactionID", faction_id},
-        {"SoundSetFile", soundset},
-        {"WalkRate", walkrate},
-        {"BodyBag", bodybag},
-        {"Disarmable", disarmable},
-        {"Gender", gender},
-        {"GoodEvil", good_evil},
-        {"IsImmortal", immortal},
-        {"Interruptable", interruptable},
-        {"LawfulChaotic", lawful_chaotic},
-        {"Lootable", lootable},
-        {"IsPC", pc},
-        {"NoPermDeath", chunk_death},
-        {"PerceptionRange", perception_range},
-        {"Plot", plot},
-        {"Race", race},
-        {"StartingPackage", starting_package},
-    });
+    archive.add_field("FirstName", name_first)
+        .add_field("LastName", name_last)
+        .add_field("Conversation", conversation)
+        .add_field("Deity", deity)
+        .add_field("Description", description)
+        .add_field("Subrace", subrace)
+        .add_field("ChallengeRating", cr)
+        .add_field("CRAdjust", cr_adjust)
+        .add_field("DecayTime", decay_time)
+        .add_field("CurrentHitPoints", hp_current)
+        .add_field("HitPoints", hp)
+        .add_field("MaxHitPoints", hp_max)
+        .add_field("FactionID", faction_id)
+        .add_field("SoundSetFile", soundset)
+        .add_field("WalkRate", walkrate)
+        .add_field("BodyBag", bodybag)
+        .add_field("Disarmable", disarmable)
+        .add_field("Gender", gender)
+        .add_field("GoodEvil", good_evil)
+        .add_field("IsImmortal", immortal)
+        .add_field("Interruptable", interruptable)
+        .add_field("LawfulChaotic", lawful_chaotic)
+        .add_field("Lootable", lootable)
+        .add_field("IsPC", pc)
+        .add_field("NoPermDeath", chunk_death)
+        .add_field("PerceptionRange", perception_range)
+        .add_field("Plot", plot)
+        .add_field("Race", race)
+        .add_field("StartingPackage", starting_package);
 
     return true;
 }
@@ -276,7 +269,7 @@ nlohmann::json Creature::to_json(SerializationProfile profile) const
     nlohmann::json j;
 
     j["$type"] = "UTC";
-    j["$version"] = LIBNW_JSON_ARCHIVE_VERSION;
+    j["$version"] = json_archive_version;
 
     j["appearance"] = appearance.to_json();
     j["combat_info"] = combat_info.to_json();

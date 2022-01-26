@@ -91,36 +91,34 @@ bool Appearance::from_json(const nlohmann::json& archive)
 
 bool Appearance::to_gff(GffOutputArchiveStruct& archive) const
 {
-    archive.add_fields({
-        {"Tail_New", tail},
-        {"Wings_New", wings},
-        {"Appearance_Type", id},
-        {"PortraitId", portrait_id},
-        {"Appearance_Head", body_parts.head},
-        {"BodyPart_Belt", body_parts.belt},
-        {"BodyPart_LBicep", body_parts.bicep_left},
-        {"BodyPart_LFArm", body_parts.forearm_left},
-        {"BodyPart_LFoot", body_parts.foot_left},
-        {"BodyPart_LHand", body_parts.hand_left},
-        {"BodyPart_LShin", body_parts.shin_left},
-        {"BodyPart_LShoul", body_parts.shoulder_left},
-        {"BodyPart_LThigh", body_parts.thigh_left},
-        {"BodyPart_Neck", body_parts.neck},
-        {"BodyPart_Pelvis", body_parts.pelvis},
-        {"BodyPart_RBicep", body_parts.bicep_right},
-        {"BodyPart_RFArm", body_parts.forearm_right},
-        {"ArmorPart_RFoot", body_parts.foot_right},
-        {"BodyPart_RHand", body_parts.hand_right},
-        {"BodyPart_RShin", body_parts.shin_right},
-        {"BodyPart_RShoul", body_parts.shoulder_right},
-        {"BodyPart_RThigh", body_parts.thigh_right},
-        {"BodyPart_Torso", body_parts.torso},
-        {"Color_Hair", hair},
-        {"Color_Skin", skin},
-        {"Color_Tattoo1", tattoo1},
-        {"Color_Tattoo2", tattoo2},
-        {"Phenotype", phenotype},
-    });
+    archive.add_field("Tail_New", tail)
+        .add_field("Wings_New", wings)
+        .add_field("Appearance_Type", id)
+        .add_field("PortraitId", portrait_id)
+        .add_field("Appearance_Head", body_parts.head)
+        .add_field("BodyPart_Belt", body_parts.belt)
+        .add_field("BodyPart_LBicep", body_parts.bicep_left)
+        .add_field("BodyPart_LFArm", body_parts.forearm_left)
+        .add_field("BodyPart_LFoot", body_parts.foot_left)
+        .add_field("BodyPart_LHand", body_parts.hand_left)
+        .add_field("BodyPart_LShin", body_parts.shin_left)
+        .add_field("BodyPart_LShoul", body_parts.shoulder_left)
+        .add_field("BodyPart_LThigh", body_parts.thigh_left)
+        .add_field("BodyPart_Neck", body_parts.neck)
+        .add_field("BodyPart_Pelvis", body_parts.pelvis)
+        .add_field("BodyPart_RBicep", body_parts.bicep_right)
+        .add_field("BodyPart_RFArm", body_parts.forearm_right)
+        .add_field("ArmorPart_RFoot", body_parts.foot_right)
+        .add_field("BodyPart_RHand", body_parts.hand_right)
+        .add_field("BodyPart_RShin", body_parts.shin_right)
+        .add_field("BodyPart_RShoul", body_parts.shoulder_right)
+        .add_field("BodyPart_RThigh", body_parts.thigh_right)
+        .add_field("BodyPart_Torso", body_parts.torso)
+        .add_field("Color_Hair", hair)
+        .add_field("Color_Skin", skin)
+        .add_field("Color_Tattoo1", tattoo1)
+        .add_field("Color_Tattoo2", tattoo2)
+        .add_field("Phenotype", phenotype);
 
     return true;
 }

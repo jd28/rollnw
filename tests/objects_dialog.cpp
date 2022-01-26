@@ -1,7 +1,7 @@
 #include <catch2/catch.hpp>
 
 #include <nw/objects/Dialog.hpp>
-#include <nw/serialization/Serialization.hpp>
+#include <nw/serialization/Archives.hpp>
 
 #include <iostream>
 
