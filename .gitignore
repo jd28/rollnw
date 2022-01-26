@@ -17,3 +17,6 @@ bin/*
 
 # docs
 docs/_build/
+
+# macOS
+.DS_Store
