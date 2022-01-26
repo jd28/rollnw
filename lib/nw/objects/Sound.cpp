@@ -92,6 +92,65 @@ bool Sound::from_json(const nlohmann::json& archive, SerializationProfile profil
     return true;
 }
 
+bool Sound::to_gff(GffOutputArchiveStruct& archive, SerializationProfile profile) const
+{
+    archive.add_field("TemplateResRef", common_.resref)
+        .add_field("LocName", common_.name)
+        .add_field("Tag", common_.tag);
+
+    if (profile == SerializationProfile::blueprint) {
+        archive.add_field("Comment", common_.comment);
+        archive.add_field("PaletteID", common_.palette_id);
+    } else {
+        archive.add_field("PositionX", common_.location.position.x)
+            .add_field("PositionY", common_.location.position.y)
+            .add_field("PositionZ", common_.location.position.z);
+    }
+
+    if (common_.local_data.size()) {
+        common_.local_data.to_gff(archive);
+    }
+
+    archive.add_field("Active", active);
+    archive.add_field("Continuous", continuous);
+    archive.add_field("Elevation", elevation);
+    archive.add_field("Hours", hours);
+    archive.add_field("Interval", interval);
+    archive.add_field("IntervalVrtn", interval_variation);
+    archive.add_field("Looping", looping);
+    archive.add_field("MaxDistance", distance_max);
+    archive.add_field("MinDistance", distance_min);
+    archive.add_field("PitchVariation", pitch_variation);
+    archive.add_field("Positional", positional);
+    archive.add_field("Priority", priority);
+    archive.add_field("Random", random);
+    archive.add_field("RandomPosition", random_position);
+    archive.add_field("RandomRangeX", random_x);
+    archive.add_field("RandomRangeY", random_y);
+    archive.add_field("Times", times);
+    archive.add_field("Volume", volume);
+    archive.add_field("VolumeVrtn", volume_variation);
+
+    auto& list = archive.add_list("Sounds");
+    for (const auto& snd : sounds) {
+        list.push_back(0).add_field("Sound", snd);
+    }
+
+    if (profile == SerializationProfile::instance) {
+        archive.add_field("GeneratedType", generated_type);
+    }
+
+    return true;
+}
+
+GffOutputArchive Sound::to_gff(SerializationProfile profile) const
+{
+    GffOutputArchive result{"UTS"};
+    this->to_gff(result.top, profile);
+    result.build();
+    return result;
+}
+
 nlohmann::json Sound::to_json(SerializationProfile profile) const
 {
     nlohmann::json j;
