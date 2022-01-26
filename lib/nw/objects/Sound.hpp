@@ -47,7 +47,7 @@ struct Sound : public ObjectBase {
     uint8_t volume_variation = 0;
 
     // Instance only
-    uint8_t generated_type = 0;
+    uint32_t generated_type = 0;
 };
 
 } // namespace nw

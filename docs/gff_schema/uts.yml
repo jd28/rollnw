@@ -30,6 +30,7 @@ blueprint:
   PaletteID: byte
 
 instance:
+  GeneratedType: dword # Docs say byte, but GFFs say dword
   XPosition: float
   YPosition: float
   ZPosition: float
