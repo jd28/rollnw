@@ -232,6 +232,14 @@ bool Door::to_gff(GffOutputArchiveStruct& archive, SerializationProfile profile)
     return true;
 }
 
+GffOutputArchive Door::to_gff(SerializationProfile profile) const
+{
+    GffOutputArchive out{"UTD"};
+    this->to_gff(out.top, profile);
+    out.build();
+    return out;
+}
+
 nlohmann::json Door::to_json(SerializationProfile profile) const
 {
     nlohmann::json j;

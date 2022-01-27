@@ -48,9 +48,7 @@ TEST_CASE("encount: gff round trip", "[ojbects]")
     REQUIRE(g.valid());
 
     nw::Encounter enc{g.toplevel(), nw::SerializationProfile::blueprint};
-    nw::GffOutputArchive oa{"UTE"};
-    enc.to_gff(oa.top, nw::SerializationProfile::blueprint);
-    oa.build();
+    nw::GffOutputArchive oa = enc.to_gff(nw::SerializationProfile::blueprint);
     oa.write_to("tmp/boundelementallo_2.ute");
     nw::GffInputArchive g2{"tmp/boundelementallo_2.ute"};
     REQUIRE(nw::gff_to_gffjson(g) == nw::gff_to_gffjson(g2));

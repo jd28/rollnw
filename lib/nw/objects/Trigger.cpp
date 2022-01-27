@@ -168,6 +168,14 @@ bool Trigger::to_gff(GffOutputArchiveStruct& archive, SerializationProfile profi
     return true;
 }
 
+GffOutputArchive Trigger::to_gff(SerializationProfile profile) const
+{
+    GffOutputArchive out{"UTT"};
+    this->to_gff(out.top, profile);
+    out.build();
+    return out;
+}
+
 nlohmann::json Trigger::to_json(SerializationProfile profile) const
 {
     nlohmann::json j;

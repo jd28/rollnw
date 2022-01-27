@@ -62,9 +62,7 @@ TEST_CASE("creature: gff round trip", "[ojbects]")
     REQUIRE(g.valid());
 
     nw::Creature cre{g.toplevel(), nw::SerializationProfile::blueprint};
-    nw::GffOutputArchive oa{"UTC"};
-    cre.to_gff(oa.top, nw::SerializationProfile::blueprint);
-    oa.build();
+    nw::GffOutputArchive oa = cre.to_gff(nw::SerializationProfile::blueprint);
     oa.write_to("tmp/pl_agent_001_2.utc");
 
     // Note: the below will typically always fail because the toolset,

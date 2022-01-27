@@ -64,6 +64,14 @@ bool Waypoint::to_gff(GffOutputArchiveStruct& archive, SerializationProfile prof
     return true;
 }
 
+GffOutputArchive Waypoint::to_gff(SerializationProfile profile) const
+{
+    GffOutputArchive out{"UTW"};
+    this->to_gff(out.top, profile);
+    out.build();
+    return out;
+}
+
 bool Waypoint::from_json(const nlohmann::json& archive, SerializationProfile profile)
 {
     if (archive.at("$type").get<std::string>() != "UTW") {

@@ -232,6 +232,14 @@ bool Placeable::to_gff(GffOutputArchiveStruct& archive, SerializationProfile pro
     return true;
 }
 
+GffOutputArchive Placeable::to_gff(SerializationProfile profile) const
+{
+    GffOutputArchive out{"UTP"};
+    this->to_gff(out.top, profile);
+    out.build();
+    return out;
+}
+
 nlohmann::json Placeable::to_json(SerializationProfile profile) const
 {
     nlohmann::json j;

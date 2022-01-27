@@ -280,6 +280,14 @@ bool Encounter::to_gff(GffOutputArchiveStruct& archive, SerializationProfile pro
     return true;
 }
 
+GffOutputArchive Encounter::to_gff(SerializationProfile profile) const
+{
+    GffOutputArchive out{"UTE"};
+    this->to_gff(out.top, profile);
+    out.build();
+    return out;
+}
+
 nlohmann::json Encounter::to_json(SerializationProfile profile) const
 {
     nlohmann::json j;

@@ -53,9 +53,7 @@ TEST_CASE("waypoint: gff round trip", "[ojbects]")
     REQUIRE(g.valid());
 
     nw::Waypoint way{g.toplevel(), nw::SerializationProfile::blueprint};
-    nw::GffOutputArchive oa{"UTW"};
-    REQUIRE(way.to_gff(oa.top, nw::SerializationProfile::blueprint));
-    oa.build();
+    nw::GffOutputArchive oa = way.to_gff(nw::SerializationProfile::blueprint);
 
     REQUIRE(oa.header.struct_offset == g.head_->struct_offset);
     REQUIRE(oa.header.struct_count == g.head_->struct_count);

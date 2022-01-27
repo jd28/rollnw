@@ -60,9 +60,7 @@ TEST_CASE("store: gff round trip", "[ojbects]")
     REQUIRE(g.valid());
 
     nw::Store store{g.toplevel(), nw::SerializationProfile::blueprint};
-    nw::GffOutputArchive oa{"UTM"};
-    REQUIRE(store.to_gff(oa.top, nw::SerializationProfile::blueprint));
-    oa.build();
+    nw::GffOutputArchive oa = store.to_gff(nw::SerializationProfile::blueprint);
     oa.write_to("tmp/storethief002_2.utm");
 
     nw::GffInputArchive g2("tmp/storethief002_2.utm");

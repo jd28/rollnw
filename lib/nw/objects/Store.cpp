@@ -191,6 +191,14 @@ bool Store::to_gff(GffOutputArchiveStruct& archive, SerializationProfile profile
     return true;
 }
 
+GffOutputArchive Store::to_gff(SerializationProfile profile) const
+{
+    GffOutputArchive out{"UTS"};
+    this->to_gff(out.top, profile);
+    out.build();
+    return out;
+}
+
 nlohmann::json Store::to_json(SerializationProfile profile) const
 {
     nlohmann::json j;

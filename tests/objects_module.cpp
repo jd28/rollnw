@@ -47,9 +47,7 @@ TEST_CASE("module: gff round trip", "[ojbects]")
     REQUIRE(g.valid());
 
     nw::Module mod{g.toplevel()};
-    nw::GffOutputArchive oa{"IFO"};
-    REQUIRE(mod.to_gff(oa.top));
-    oa.build();
+    nw::GffOutputArchive oa = mod.to_gff();
     oa.write_to("tmp/module_2.ifo");
 
     nw::GffInputArchive g2("tmp/module_2.ifo");

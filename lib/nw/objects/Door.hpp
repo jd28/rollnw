@@ -56,6 +56,7 @@ struct Door : public ObjectBase {
     bool from_gff(const GffInputArchiveStruct& archive, SerializationProfile profile);
     bool from_json(const nlohmann::json& archive, SerializationProfile profile);
     bool to_gff(GffOutputArchiveStruct& archive, SerializationProfile profile) const;
+    GffOutputArchive to_gff(SerializationProfile profile) const;
     nlohmann::json to_json(SerializationProfile profile) const;
 
     Common common_;

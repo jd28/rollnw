@@ -39,9 +39,7 @@ TEST_CASE("trigger: gff round trip", "[ojbects]")
     REQUIRE(g.valid());
 
     nw::Trigger trig{g.toplevel(), nw::SerializationProfile::blueprint};
-    nw::GffOutputArchive oa{"UTT"};
-    trig.to_gff(oa.top, nw::SerializationProfile::blueprint);
-    oa.build();
+    nw::GffOutputArchive oa = trig.to_gff(nw::SerializationProfile::blueprint);
     oa.write_to("tmp/pl_spray_sewage_2.utt");
     nw::GffInputArchive g2{"tmp/pl_spray_sewage_2.utt"};
     REQUIRE(nw::gff_to_gffjson(g) == nw::gff_to_gffjson(g2));

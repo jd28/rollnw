@@ -48,9 +48,7 @@ TEST_CASE("door: gff round trip", "[ojbects]")
     REQUIRE(g.valid());
 
     nw::Door door{g.toplevel(), nw::SerializationProfile::blueprint};
-    nw::GffOutputArchive oa{"UTD"};
-    door.to_gff(oa.top, nw::SerializationProfile::blueprint);
-    oa.build();
+    nw::GffOutputArchive oa = door.to_gff(nw::SerializationProfile::blueprint);
     oa.write_to("tmp/door_ttr_002.utd");
 
     nw::GffInputArchive g2("tmp/door_ttr_002.utd");

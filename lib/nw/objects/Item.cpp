@@ -234,6 +234,14 @@ bool Item::to_gff(GffOutputArchiveStruct& archive, SerializationProfile profile)
     return true;
 }
 
+GffOutputArchive Item::to_gff(SerializationProfile profile) const
+{
+    GffOutputArchive out{"UTI"};
+    this->to_gff(out.top, profile);
+    out.build();
+    return out;
+}
+
 nlohmann::json Item::to_json(SerializationProfile profile) const
 {
     nlohmann::json j;

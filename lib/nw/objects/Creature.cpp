@@ -264,6 +264,14 @@ bool Creature::to_gff(GffOutputArchiveStruct& archive, SerializationProfile prof
     return true;
 }
 
+GffOutputArchive Creature::to_gff(SerializationProfile profile) const
+{
+    GffOutputArchive out{"UTC"};
+    this->to_gff(out.top, profile);
+    out.build();
+    return out;
+}
+
 nlohmann::json Creature::to_json(SerializationProfile profile) const
 {
     nlohmann::json j;

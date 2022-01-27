@@ -267,6 +267,14 @@ bool Module::to_gff(GffOutputArchiveStruct& archive) const
     return true;
 }
 
+GffOutputArchive Module::to_gff() const
+{
+    GffOutputArchive out{"IFO"};
+    this->to_gff(out.top);
+    out.build();
+    return out;
+}
+
 nlohmann::json Module::to_json() const
 {
     nlohmann::json j;

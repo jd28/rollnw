@@ -86,9 +86,7 @@ TEST_CASE("item: gff round trip", "[ojbects]")
     REQUIRE(g.valid());
 
     nw::Item item{g.toplevel(), nw::SerializationProfile::blueprint};
-    nw::GffOutputArchive oa{"UTI"};
-    REQUIRE(item.to_gff(oa.top, nw::SerializationProfile::blueprint));
-    oa.build();
+    nw::GffOutputArchive oa = item.to_gff(nw::SerializationProfile::blueprint);
 
     REQUIRE(oa.header.struct_offset == g.head_->struct_offset);
     REQUIRE(oa.header.struct_count == g.head_->struct_count);
