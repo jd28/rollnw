@@ -9,27 +9,29 @@
 #include "NWSync.hpp"
 #include "Zip.hpp"
 
+#include <nowide/convert.hpp>
+
 namespace nw {
 
 bool ResourceLocator::add_container(const std::filesystem::path& path)
 {
     if (!std::filesystem::exists(path)) {
-        LOG_F(ERROR, "path does not exist: {}", path.c_str());
+        LOG_F(ERROR, "path does not exist: {}", path.u8string());
         return false;
     }
 
     if (std::filesystem::is_directory(path)) {
         return add_container(new Directory(path));
-    } else if (string::icmp(path.extension().c_str(), ".erf")
-        || string::icmp(path.extension().c_str(), ".mod")
-        || string::icmp(path.extension().c_str(), ".hak")) {
+    } else if (string::icmp(path.extension().u8string(), ".erf")
+        || string::icmp(path.extension().u8string(), ".mod")
+        || string::icmp(path.extension().u8string(), ".hak")) {
         return add_container(new Erf(path));
-    } else if (string::icmp(path.extension().c_str(), ".key")) {
+    } else if (string::icmp(path.extension().u8string(), ".key")) {
         return add_container(new Key(path));
-    } else if (string::icmp(path.extension().c_str(), ".zip")) {
+    } else if (string::icmp(path.extension().u8string(), ".zip")) {
         return add_container(new Zip(path));
-    } else if (string::icmp(path.extension().c_str(), ".sav")) {
-        LOG_F(ERROR, ".sav files are not currently supported: {}", path.c_str());
+    } else if (string::icmp(path.extension().u8string(), ".sav")) {
+        LOG_F(ERROR, ".sav files are not currently supported: {}", path.u8string());
         return false;
     }
 
