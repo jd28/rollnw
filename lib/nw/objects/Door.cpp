@@ -203,8 +203,8 @@ bool Door::to_gff(GffOutputArchiveStruct& archive, SerializationProfile profile)
             .add_field("OrientationY", common_.location.orientation.y);
     }
 
-    if (common_.local_data.size()) {
-        common_.local_data.to_gff(archive);
+    if (common_.locals.size()) {
+        common_.locals.to_gff(archive);
     }
 
     lock.to_gff(archive);

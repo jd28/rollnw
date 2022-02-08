@@ -107,8 +107,8 @@ bool Sound::to_gff(GffOutputArchiveStruct& archive, SerializationProfile profile
             .add_field("PositionZ", common_.location.position.z);
     }
 
-    if (common_.local_data.size()) {
-        common_.local_data.to_gff(archive);
+    if (common_.locals.size()) {
+        common_.locals.to_gff(archive);
     }
 
     archive.add_field("Active", active);

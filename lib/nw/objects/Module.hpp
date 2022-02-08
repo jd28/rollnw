@@ -58,7 +58,7 @@ struct Module {
     glm::vec3 entry_position;
     std::vector<std::string> haks;
     ByteArray id;
-    LocalData local_data;
+    LocalData locals;
     std::string min_game_version;
     LocString name;
     ModuleScripts scripts;

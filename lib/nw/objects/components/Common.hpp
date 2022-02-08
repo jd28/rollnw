@@ -28,7 +28,7 @@ struct Common {
     std::string tag;
     LocString name;
 
-    LocalData local_data;
+    LocalData locals;
     Location location;
 
     // Blueprint only

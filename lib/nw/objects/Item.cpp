@@ -165,7 +165,7 @@ bool Item::to_gff(GffOutputArchiveStruct& archive, SerializationProfile profile)
             .add_field("OrientationY", common_.location.orientation.y);
     }
 
-    common_.local_data.to_gff(archive);
+    common_.locals.to_gff(archive);
     inventory.to_gff(archive, profile);
 
     archive.add_field("Description", description)

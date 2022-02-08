@@ -219,7 +219,7 @@ bool Creature::to_gff(GffOutputArchiveStruct& archive, SerializationProfile prof
             .add_field("OrientationY", common_.location.orientation.y);
     }
 
-    common_.local_data.to_gff(archive);
+    common_.locals.to_gff(archive);
 
     appearance.to_gff(archive);
     combat_info.to_gff(archive);

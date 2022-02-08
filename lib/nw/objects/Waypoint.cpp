@@ -50,8 +50,8 @@ bool Waypoint::to_gff(GffOutputArchiveStruct& archive, SerializationProfile prof
             .add_field("OrientationY", common_.location.orientation.y);
     }
 
-    if (common_.local_data.size()) {
-        common_.local_data.to_gff(archive);
+    if (common_.locals.size()) {
+        common_.locals.to_gff(archive);
     }
 
     archive.add_field("Appearance", appearance)

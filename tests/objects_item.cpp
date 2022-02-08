@@ -14,7 +14,7 @@ TEST_CASE("item: load armor item", "[objects]")
     REQUIRE(i.common()->resref == "cloth028");
     REQUIRE(i.properties.size() > 0);
     REQUIRE(i.model_type == nw::ItemModelType::armor);
-    REQUIRE(i.common()->local_data.size() > 0);
+    REQUIRE(i.common()->locals.size() > 0);
 }
 
 TEST_CASE("item: load layered item", "[objects]")
@@ -42,13 +42,15 @@ TEST_CASE("item: to_json", "[objects]")
     REQUIRE(i.common()->resref == "cloth028");
     REQUIRE(i.properties.size() > 0);
     REQUIRE(i.model_type == nw::ItemModelType::armor);
-    REQUIRE(i.common()->local_data.size() > 0);
+    REQUIRE(i.common()->locals.size() > 0);
 
     nlohmann::json j = i.to_json(nw::SerializationProfile::blueprint);
 
     nw::Item it2;
     it2.from_json(j, nw::SerializationProfile::blueprint);
-    REQUIRE(it2.common()->local_data.get_local_string("stringtest") == "0");
+    REQUIRE(it2.common()->locals.get_string("stringtest") == "0");
+    it2.common()->locals.set_int("inttest", 42);
+    REQUIRE(it2.common()->locals.get_int("inttest") == 42);
 
     std::ofstream f{"tmp/cloth028.uti.json"};
     f << std::setw(4) << j;
@@ -60,7 +62,7 @@ TEST_CASE("item: json to and from", "[objects]")
     nw::Item i{g.toplevel(), nw::SerializationProfile::blueprint};
     nlohmann::json j = i.to_json(nw::SerializationProfile::blueprint);
     nw::Item it2{j, nw::SerializationProfile::blueprint};
-    REQUIRE(it2.common()->local_data.get_local_string("stringtest") == "0");
+    REQUIRE(it2.common()->locals.get_string("stringtest") == "0");
     nlohmann::json j2 = it2.to_json(nw::SerializationProfile::blueprint);
     REQUIRE(j == j2);
 }

@@ -37,23 +37,23 @@ struct LocalData {
     bool to_gff(GffOutputArchiveStruct& archive) const;
     nlohmann::json to_json(SerializationProfile profile) const;
 
-    void delete_local_float(std::string_view var);
-    void delete_local_int(std::string_view var);
-    void delete_local_object(std::string_view var);
-    void delete_local_string(std::string_view var);
-    void delete_local_location(std::string_view var);
+    void delete_float(std::string_view var);
+    void delete_int(std::string_view var);
+    void delete_object(std::string_view var);
+    void delete_string(std::string_view var);
+    void delete_location(std::string_view var);
 
-    float get_local_float(std::string_view var) const;
-    int32_t get_local_int(std::string_view var) const;
-    ObjectID get_local_object(std::string_view var) const;
-    std::string get_local_string(std::string_view var) const;
-    Location get_local_location(std::string_view var) const;
+    float get_float(std::string_view var) const;
+    int32_t get_int(std::string_view var) const;
+    ObjectID get_object(std::string_view var) const;
+    std::string get_string(std::string_view var) const;
+    Location get_location(std::string_view var) const;
 
-    void set_local_float(std::string_view var, float value);
-    void set_local_int(std::string_view var, int32_t value);
-    void set_local_object(std::string_view var, ObjectID value);
-    void set_local_string(std::string_view var, std::string_view value);
-    void set_local_location(std::string_view var, Location value);
+    void set_float(std::string_view var, float value);
+    void set_int(std::string_view var, int32_t value);
+    void set_object(std::string_view var, ObjectID value);
+    void set_string(std::string_view var, std::string_view value);
+    void set_location(std::string_view var, Location value);
 
     size_t size() const noexcept { return vars_.size(); }
 

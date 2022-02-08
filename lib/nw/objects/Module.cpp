@@ -116,7 +116,7 @@ Module::Module(const nlohmann::json& archive)
 
 bool Module::from_gff(const GffInputArchiveStruct& archive)
 {
-    local_data.from_gff(archive);
+    locals.from_gff(archive);
     archive.get_to("Expansion_Pack", expansion_pack);
 
     size_t sz = archive["Mod_Area_list"].size();
@@ -177,7 +177,7 @@ bool Module::from_gff(const GffInputArchiveStruct& archive)
 bool Module::from_json(const nlohmann::json& archive)
 {
     try {
-        local_data.from_json(archive.at("local_data"));
+        locals.from_json(archive.at("locals"));
         scripts.from_json(archive.at("scripts"));
 
         entry_orientation.x = archive.at("entry_orientation")[0].get<float>();
@@ -235,7 +235,7 @@ bool Module::to_gff(GffOutputArchiveStruct& archive) const
     archive.add_list("Mod_Expan_List");
     archive.add_list("Mod_GVar_List");
 
-    local_data.to_gff(archive);
+    locals.to_gff(archive);
     scripts.to_gff(archive);
 
     archive.add_field("Expansion_Pack", expansion_pack)
@@ -289,7 +289,7 @@ nlohmann::json Module::to_json() const
     j["entry_position"] = nlohmann::json{entry_position.x, entry_position.y, entry_position.z};
     j["haks"] = haks;
     j["id"] = id;
-    j["local_data"] = local_data.to_json(SerializationProfile::any);
+    j["locals"] = locals.to_json(SerializationProfile::any);
     j["min_game_version"] = min_game_version;
     j["name"] = name;
     j["scripts"] = scripts.to_json();

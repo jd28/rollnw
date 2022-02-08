@@ -18,7 +18,7 @@ Common::Common(ObjectType obj_type, const GffInputArchiveStruct& archive, Serial
 bool Common::from_gff(const GffInputArchiveStruct& archive, SerializationProfile profile)
 {
     location.from_gff(archive, profile);
-    local_data.from_gff(archive);
+    locals.from_gff(archive);
 
     if (!archive.get_to("TemplateResRef", resref, false)
         && !archive.get_to("ResRef", resref, false)) { // Store blueprints do their own thing
@@ -53,7 +53,7 @@ bool Common::from_json(const nlohmann::json& archive, SerializationProfile profi
         archive.at("name").get_to(name);
     }
 
-    local_data.from_json(archive.at("local_data"));
+    locals.from_json(archive.at("locals"));
 
     if (profile == SerializationProfile::instance || profile == SerializationProfile::savegame) {
         archive.at("location").get_to(location);
@@ -82,7 +82,7 @@ nlohmann::json Common::to_json(SerializationProfile profile) const
         j["name"] = name;
     }
 
-    j["local_data"] = local_data.to_json(profile);
+    j["locals"] = locals.to_json(profile);
 
     if (profile == SerializationProfile::instance || profile == SerializationProfile::savegame) {
         j["location"] = location;
