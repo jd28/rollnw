@@ -62,8 +62,6 @@ jobs:
           path: |
             ${{ github.workspace }}/vcpkg/.cache
           key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ env.vcpkg-tag }}-${{ hashFiles('vcpkg.json') }}
-          restore-keys: |
-            ${{ runner.os }}-build-${{ env.cache-name }}-${{ env.vcpkg-tag }}
 
       - name: Make cache dir
         if: steps.cache-vcpkg.outputs.cache-hit != 'true'
