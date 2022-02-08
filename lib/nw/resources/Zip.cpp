@@ -4,8 +4,9 @@
 #include "../util/ByteArray.hpp"
 #include "../util/macros.hpp"
 
-#include <nowide/fstream.hpp>
 #include <nowide/convert.hpp>
+#include <nowide/fstream.hpp>
+
 
 #include <cstring>
 
@@ -103,6 +104,7 @@ ResourceDescriptor Zip::stat(const Resource& res)
         if (dot && dot - fname <= 16) {
             rd.size = info.uncompressed_size;
             rd.name = Resource(std::string_view(fname, dot - fname), ResourceType::from_extension(dot + 1));
+            rd.parent = this;
         }
     }
     return rd;
