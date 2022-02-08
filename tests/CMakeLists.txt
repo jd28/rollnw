@@ -55,6 +55,7 @@ add_executable(libnw_test
     resources_dir.cpp
     resources_erf.cpp
     resources_key.cpp
+    resources_locator.cpp
     resources_nwsync.cpp
     resources_zip.cpp
 

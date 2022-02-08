@@ -66,6 +66,7 @@ add_library(nw STATIC
     resources/Resref.cpp
     resources/Resource.cpp
     resources/ResourceDescriptor.cpp
+    resources/ResourceLocator.cpp
     resources/Zip.cpp
 
     serialization/Archives.cpp
