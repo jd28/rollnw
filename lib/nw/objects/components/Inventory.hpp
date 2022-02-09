@@ -20,11 +20,15 @@ struct InventoryItem {
 };
 
 struct Inventory {
-    Inventory() = default;
-    Inventory(ObjectBase* owner_)
+    explicit Inventory(ObjectBase* owner_)
         : owner{owner_}
     {
     }
+    Inventory(const Inventory&) = delete;
+    Inventory(Inventory&&) = default;
+    Inventory& operator=(const Inventory&) = delete;
+    Inventory& operator=(Inventory&&) = default;
+    ~Inventory() = default;
 
     bool from_gff(const GffInputArchiveStruct& archive, SerializationProfile profile);
     bool from_json(const nlohmann::json& archive, SerializationProfile profile);
