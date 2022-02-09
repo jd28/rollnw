@@ -92,7 +92,9 @@ nlohmann::json PlaceableScripts::to_json() const
 
 Placeable::Placeable()
     : common_{ObjectType::placeable}
+    , inventory{this}
 {
+    valid_ = true;
 }
 
 Placeable::Placeable(const GffInputArchiveStruct& archive, SerializationProfile profile)

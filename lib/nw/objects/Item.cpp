@@ -6,6 +6,7 @@ namespace nw {
 
 Item::Item()
     : common_{ObjectType::item}
+    , inventory{this}
 {
 }
 
