@@ -145,6 +145,11 @@ using EquipItem = std::variant<Resref, std::unique_ptr<Item>>;
 
 struct Equips {
     Equips() = default;
+    Equips(const Equips&) = delete;
+    Equips(Equips&&) = default;
+    Equips& operator=(const Equips&) = delete;
+    Equips& operator=(Equips&&) = default;
+    ~Equips() = default;
 
     bool from_gff(const GffInputArchiveStruct& archive, SerializationProfile profile);
     bool from_json(const nlohmann::json& archive, SerializationProfile profile);
