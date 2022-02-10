@@ -52,8 +52,8 @@ bool Store::from_gff(const GffInputArchiveStruct& archive, SerializationProfile 
     archive.get_to("MarkDown", markdown);
     archive.get_to("MarkUp", markup);
     archive.get_to("MaxBuyPrice", max_price);
-    archive.get_to("OnOpenStore", on_opened);
-    archive.get_to("OnStoreClosed", on_closed);
+    archive.get_to("OnOpenStore", scripts.on_opened);
+    archive.get_to("OnStoreClosed", scripts.on_closed);
     archive.get_to("StoreGold", gold);
 
     size_t sz = archive["WillNotBuy"].size();
@@ -116,8 +116,8 @@ bool Store::from_json(const nlohmann::json& archive, SerializationProfile profil
 {
     common_.from_json(archive.at("common"), profile);
 
-    archive.at("on_closed").get_to(on_closed);
-    archive.at("on_opened").get_to(on_opened);
+    archive.at("scripts").at("on_closed").get_to(scripts.on_closed);
+    archive.at("scripts").at("on_opened").get_to(scripts.on_opened);
 
     archive.at("blackmarket_markdown").get_to(blackmarket_markdown);
     archive.at("identify_price").get_to(identify_price);
@@ -167,8 +167,8 @@ bool Store::to_gff(GffOutputArchiveStruct& archive, SerializationProfile profile
         .add_field("MarkDown", markdown)
         .add_field("MarkUp", markup)
         .add_field("MaxBuyPrice", max_price)
-        .add_field("OnOpenStore", on_opened)
-        .add_field("OnStoreClosed", on_closed)
+        .add_field("OnOpenStore", scripts.on_opened)
+        .add_field("OnStoreClosed", scripts.on_closed)
         .add_field("StoreGold", gold);
 
     auto& wnb_list = archive.add_list("WillNotBuy");
@@ -206,8 +206,10 @@ nlohmann::json Store::to_json(SerializationProfile profile) const
     j["$version"] = json_archive_version;
 
     j["common"] = common_.to_json(profile);
-    j["on_closed"] = on_closed;
-    j["on_opened"] = on_opened;
+    j["scripts"] = {
+        {"on_closed", scripts.on_closed},
+        {"on_opened", scripts.on_opened},
+    };
 
     j["blackmarket_markdown"] = blackmarket_markdown;
     j["identify_price"] = identify_price;

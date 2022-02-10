@@ -9,6 +9,11 @@
 
 namespace nw {
 
+struct StoreScripts {
+    Resref on_closed;
+    Resref on_opened;
+};
+
 struct Store : public ObjectBase {
     Store();
     Store(const GffInputArchiveStruct& archive, SerializationProfile profile);
@@ -30,8 +35,7 @@ struct Store : public ObjectBase {
     bool valid_ = true;
 
     Common common_;
-    Resref on_closed;
-    Resref on_opened;
+    StoreScripts scripts;
 
     int32_t blackmarket_markdown = 0;
     int32_t identify_price = 100;
