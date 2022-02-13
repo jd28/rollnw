@@ -39,6 +39,7 @@ enum class ErfVersion {
 
 class Erf : public Container {
 public:
+    Erf() = default;
     explicit Erf(std::filesystem::path path);
     Erf(const Erf&) = delete;
     Erf(Erf&& other) = default;
@@ -56,9 +57,9 @@ public:
     virtual ResourceDescriptor stat(const Resource& res) override;
 
     /// Erf type.
-    ErfType type;
+    ErfType type = ErfType::erf;
     /// Version
-    ErfVersion version;
+    ErfVersion version = ErfVersion::v1_0;
     /// Description
     LocString description;
 
