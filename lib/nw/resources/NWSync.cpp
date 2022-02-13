@@ -44,11 +44,11 @@ std::vector<ResourceDescriptor> NWSyncManifest::all()
 
     while (sqlite3_step(stmt) == SQLITE_ROW) {
         ResourceDescriptor rd = {
-            .name = {std::string_view(reinterpret_cast<const char*>(sqlite3_column_text(stmt, 0))),
+            Resource{std::string_view(reinterpret_cast<const char*>(sqlite3_column_text(stmt, 0))),
                 static_cast<ResourceType::type>(sqlite3_column_int(stmt, 1))},
-            .size = 0, // No good way..
-            .mtime = 0,
-            .parent = this};
+            0, // No good way..
+            0,
+            this};
 
         result.push_back(rd);
     }

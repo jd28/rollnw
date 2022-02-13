@@ -33,10 +33,10 @@ std::vector<ResourceDescriptor> Directory::all()
         if (s.length() > 16) { continue; }
 
         ResourceDescriptor rd{
-            .name{s, t},
-            .mtime = static_cast<int64_t>(fs::last_write_time(it.path()).time_since_epoch().count() / 1000),
-            .size = std::filesystem::file_size(it.path()),
-            .parent = this,
+            Resource{s, t},
+            std::filesystem::file_size(it.path()),
+            static_cast<int64_t>(fs::last_write_time(it.path()).time_since_epoch().count() / 1000),
+            this,
         };
 
         res.push_back(rd);
