@@ -19,7 +19,7 @@ struct Zip : public Container {
     ~Zip();
 
     /// Get all resources
-    virtual std::vector<Resource> all() override;
+    virtual std::vector<ResourceDescriptor> all() override;
 
     /// Reads resourece data, empty ByteArray if no match.
     virtual ByteArray demand(Resource res) override;

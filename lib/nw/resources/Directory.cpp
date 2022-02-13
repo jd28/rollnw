@@ -3,6 +3,7 @@
 #include "../log.hpp"
 #include "../util/ByteArray.hpp"
 
+#include <chrono>
 #include <cstring>
 #include <nowide/fstream.hpp>
 #include <sys/stat.h>
@@ -17,9 +18,9 @@ Directory::Directory(const fs::path& path)
     LOG_F(INFO, "{}: Loading...", path_.string());
 }
 
-std::vector<Resource> Directory::all()
+std::vector<ResourceDescriptor> Directory::all()
 {
-    std::vector<Resource> res;
+    std::vector<ResourceDescriptor> res;
     for (auto it : fs::directory_iterator{path_}) {
         if (!it.is_regular_file()) { continue; }
 
@@ -31,7 +32,14 @@ std::vector<Resource> Directory::all()
         auto s = fn.stem().string();
         if (s.length() > 16) { continue; }
 
-        res.emplace_back(s, t);
+        ResourceDescriptor rd{
+            .name{s, t},
+            .mtime = static_cast<int64_t>(fs::last_write_time(it.path()).time_since_epoch().count() / 1000),
+            .size = std::filesystem::file_size(it.path()),
+            .parent = this,
+        };
+
+        res.push_back(rd);
     }
 
     return res;

@@ -22,7 +22,7 @@ TEST_CASE("nwsync", "[containers]")
         auto resource = manifest.all();
         REQUIRE(resource.size() > 0);
 
-        auto ba = manifest.demand(resource[0]);
+        auto ba = manifest.demand(resource[0].name);
         REQUIRE(ba.size());
         REQUIRE(manifest.extract(std::regex("ranges.2da"), "tmp/"));
     }

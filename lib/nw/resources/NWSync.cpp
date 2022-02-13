@@ -23,9 +23,9 @@ NWSyncManifest::NWSyncManifest(std::string manifest, NWSync* parent)
 {
 }
 
-std::vector<Resource> NWSyncManifest::all()
+std::vector<ResourceDescriptor> NWSyncManifest::all()
 {
-    std::vector<Resource> result;
+    std::vector<ResourceDescriptor> result;
 
     sqlite3_stmt* stmt = nullptr;
     const char* tail = nullptr;
@@ -43,9 +43,14 @@ std::vector<Resource> NWSyncManifest::all()
     }
 
     while (sqlite3_step(stmt) == SQLITE_ROW) {
-        result.emplace_back(
-            std::string_view(reinterpret_cast<const char*>(sqlite3_column_text(stmt, 0))),
-            static_cast<ResourceType::type>(sqlite3_column_int(stmt, 1)));
+        ResourceDescriptor rd = {
+            .name = {std::string_view(reinterpret_cast<const char*>(sqlite3_column_text(stmt, 0))),
+                static_cast<ResourceType::type>(sqlite3_column_int(stmt, 1))},
+            .size = 0, // No good way..
+            .mtime = 0,
+            .parent = this};
+
+        result.push_back(rd);
     }
     return result;
 }

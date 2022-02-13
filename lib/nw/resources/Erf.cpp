@@ -67,12 +67,12 @@ ByteArray Erf::read(const ErfElement& e)
     return ba;
 }
 
-std::vector<Resource> Erf::all()
+std::vector<ResourceDescriptor> Erf::all()
 {
-    std::vector<Resource> result;
+    std::vector<ResourceDescriptor> result;
     result.reserve(elements_.size());
     for (const auto& [k, v] : elements_) {
-        result.push_back(k);
+        result.push_back({k, v.info.size, 0, this});
     }
     return result;
 }

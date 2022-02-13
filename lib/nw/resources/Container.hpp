@@ -14,7 +14,7 @@ struct Container {
     virtual ~Container() = default;
 
     /// Get all resources
-    virtual std::vector<Resource> all() = 0;
+    virtual std::vector<ResourceDescriptor> all() = 0;
 
     /// Reads resourece data, empty ByteArray if no match.
     virtual ByteArray demand(Resource res) = 0;

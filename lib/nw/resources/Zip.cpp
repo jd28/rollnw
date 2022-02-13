@@ -7,7 +7,6 @@
 #include <nowide/convert.hpp>
 #include <nowide/fstream.hpp>
 
-
 #include <cstring>
 
 namespace fs = std::filesystem;
@@ -25,12 +24,12 @@ Zip::~Zip()
     unzClose(file_);
 }
 
-std::vector<Resource> Zip::all()
+std::vector<ResourceDescriptor> Zip::all()
 {
-    std::vector<Resource> res;
+    std::vector<ResourceDescriptor> res;
     res.reserve(elements_.size());
     for (const auto& it : elements_) {
-        res.push_back(it.resref);
+        res.push_back({it.resref, it.size, 0, this});
     }
     return res;
 }

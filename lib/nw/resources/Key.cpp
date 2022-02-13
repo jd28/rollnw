@@ -40,12 +40,12 @@ Key::Key(fs::path path)
     is_loaded_ = load();
 }
 
-std::vector<Resource> Key::all()
+std::vector<ResourceDescriptor> Key::all()
 {
-    std::vector<Resource> result;
+    std::vector<ResourceDescriptor> result;
     result.reserve(elements_.size());
     for (const auto& [k, v] : elements_) {
-        result.push_back(k);
+        result.push_back({k, bifs_[v.bif].elements[v.index].size, 0, this});
     }
     return result;
 }

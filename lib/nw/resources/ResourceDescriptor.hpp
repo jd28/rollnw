@@ -8,7 +8,7 @@ struct Container;
 
 struct ResourceDescriptor {
     Resource name;
-    int64_t size = 0;
+    size_t size = 0;
     int64_t mtime = 0;
     Container* parent = nullptr;
 

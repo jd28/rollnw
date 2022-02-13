@@ -29,7 +29,7 @@ struct Key : public Container {
     /// Returns if Key file was successfully loaded
     bool is_loaded() const noexcept { return is_loaded_; }
 
-    virtual std::vector<Resource> all() override;
+    virtual std::vector<ResourceDescriptor> all() override;
     virtual ByteArray demand(Resource res) override;
     virtual int extract(const std::regex& pattern, const std::filesystem::path& output) override;
     virtual size_t size() const override;
