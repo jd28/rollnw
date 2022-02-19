@@ -7,6 +7,7 @@
 #include <filesystem>
 #include <fstream>
 #include <limits>
+#include <stdexcept>
 #include <tuple>
 
 namespace nw {
@@ -35,8 +36,12 @@ struct FileTable {
 namespace fs = std::filesystem;
 
 Key::Key(fs::path path)
-    : path_(std::move(path))
 {
+    if (!fs::exists(path)) {
+        throw std::invalid_argument(fmt::format("file '{}' does not exist", path.u8string()));
+    }
+    path_ = std::filesystem::canonical(path).u8string();
+    name_ = path.filename().u8string();
     is_loaded_ = load();
 }
 
@@ -117,13 +122,13 @@ ResourceDescriptor Key::stat(const Resource& res)
 
 bool Key::load()
 {
-    nowide::ifstream file(path_.string(), std::ios::binary);
+    nowide::ifstream file(path_, std::ios::binary);
     if (!file.is_open()) {
-        LOG_F(ERROR, "{}: Unable to open file", path_.string());
+        LOG_F(ERROR, "{}: Unable to open file", path_);
         return false;
     }
 
-    LOG_F(INFO, "{}: Loading...", path_.string());
+    LOG_F(INFO, "{}: Loading...", path_);
 
     fsize_ = fs::file_size(path_);
 
@@ -142,6 +147,7 @@ bool Key::load()
     std::vector<std::string> bif_names;
     bif_names.reserve(header.bif_count);
 
+    auto bif_path = fs::path(path_).parent_path().parent_path();
     for (const auto& it : fts) {
         char buffer[256] = {0};
 
@@ -154,7 +160,8 @@ bool Key::load()
 
         LOG_F(INFO, "  {}: Loading...", s);
         bif_names.push_back(s);
-        bifs_.emplace_back(this, path_.parent_path().parent_path() / s);
+
+        bifs_.emplace_back(this, bif_path / s);
     }
 
     file.seekg(header.offset_key_table);
@@ -171,7 +178,7 @@ bool Key::load()
             KeyTableElement{id >> 20, id & 0xFFFFF});
     }
 
-    LOG_F(INFO, "{}: {} resources loaded.", path_.string(), elements_.size());
+    LOG_F(INFO, "{}: {} resources loaded.", path_, elements_.size());
     return true;
 }
 

@@ -20,10 +20,16 @@ struct Directory : public Container {
     virtual std::vector<ResourceDescriptor> all() override;
     virtual ByteArray demand(Resource res) override;
     virtual int extract(const std::regex& pattern, const std::filesystem::path& output) override;
+    virtual const std::string& name() const override { return name_; };
+    virtual const std::string& path() const override { return path_string_; };
     virtual ResourceDescriptor stat(const Resource& res) override;
+    virtual bool valid() const noexcept override { return is_valid_; }
 
 private:
     std::filesystem::path path_;
+    std::string path_string_;
+    std::string name_;
+    bool is_valid_ = false;
 };
 
 } // namespace nw

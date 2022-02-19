@@ -40,7 +40,7 @@ enum class ErfVersion {
 class Erf : public Container {
 public:
     Erf() = default;
-    explicit Erf(std::filesystem::path path);
+    explicit Erf(const std::filesystem::path& path);
     Erf(const Erf&) = delete;
     Erf(Erf&& other) = default;
     ~Erf() = default;
@@ -53,8 +53,11 @@ public:
     virtual std::vector<ResourceDescriptor> all() override;
     virtual ByteArray demand(Resource res) override;
     virtual int extract(const std::regex& pattern, const std::filesystem::path& output) override;
+    virtual const std::string& name() const override { return name_; };
+    virtual const std::string& path() const override { return path_; };
     virtual size_t size() const override;
     virtual ResourceDescriptor stat(const Resource& res) override;
+    virtual bool valid() const noexcept override { return is_loaded_; }
 
     /// Erf type.
     ErfType type = ErfType::erf;
@@ -67,7 +70,8 @@ public:
     Erf& operator=(Erf&&) = default;
 
 private:
-    std::filesystem::path path_;
+    std::string path_;
+    std::string name_;
     nowide::ifstream file_;
     std::streamsize fsize_;
     bool is_loaded_ = false;

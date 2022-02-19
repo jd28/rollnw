@@ -32,14 +32,18 @@ struct Key : public Container {
     virtual std::vector<ResourceDescriptor> all() override;
     virtual ByteArray demand(Resource res) override;
     virtual int extract(const std::regex& pattern, const std::filesystem::path& output) override;
+    virtual const std::string& name() const override { return name_; };
+    virtual const std::string& path() const override { return path_; };
     virtual size_t size() const override;
     virtual ResourceDescriptor stat(const Resource& res) override;
+    virtual bool valid() const noexcept override { return is_loaded_; }
 
     Key& operator=(const Key&) = delete;
     Key& operator=(Key&&) = default;
 
 private:
-    std::filesystem::path path_;
+    std::string path_;
+    std::string name_;
     std::streamsize fsize_;
     std::vector<Bif> bifs_;
     absl::flat_hash_map<Resource, KeyTableElement> elements_;

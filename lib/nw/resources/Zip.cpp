@@ -8,14 +8,19 @@
 #include <nowide/fstream.hpp>
 
 #include <cstring>
+#include <stdexcept>
 
 namespace fs = std::filesystem;
 
 namespace nw {
 
-Zip::Zip(fs::path filename)
-    : filename_{std::move(filename)}
+Zip::Zip(const fs::path& path)
 {
+    if (!fs::exists(path)) {
+        throw std::invalid_argument(fmt::format("file '{}' does not exist", path.u8string()));
+    }
+    path_ = std::filesystem::canonical(path).u8string();
+    name_ = path.filename().u8string();
     is_loaded_ = load();
 }
 
@@ -114,13 +119,13 @@ bool Zip::load()
 #ifdef _WIN32
     file_ = unzOpen(nowide::narrow(filename_.c_str()).c_str());
 #else
-    file_ = unzOpen(filename_.c_str());
+    file_ = unzOpen(path_.c_str());
 #endif
     if (!file_) {
-        LOG_F(ERROR, "zip unable to open {}", filename_.string());
+        LOG_F(ERROR, "zip unable to open {}", path_);
         return false;
     }
-    LOG_F(INFO, "{}: Loading...", filename_.string());
+    LOG_F(INFO, "{}: Loading...", path_);
 
     unz_global_info gi;
     unzGetGlobalInfo(file_, &gi);
@@ -143,7 +148,7 @@ bool Zip::load()
         res = unzGoToNextFile(file_);
     }
     // TODO: Sort
-    LOG_F(INFO, "{}: Loaded {} resource(s).", filename_.string(), elements_.size());
+    LOG_F(INFO, "{}: Loaded {} resource(s).", path_, elements_.size());
     return true;
 }
 

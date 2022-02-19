@@ -38,8 +38,11 @@ struct NWSyncManifest : public Container {
     virtual std::vector<ResourceDescriptor> all() override;
     virtual ByteArray demand(Resource res) override;
     virtual int extract(const std::regex& pattern, const std::filesystem::path& output) override;
+    virtual const std::string& name() const override { return manifest_; };
+    virtual const std::string& path() const override { return manifest_; };
     virtual size_t size() const override { return 0; }
     virtual ResourceDescriptor stat(const Resource& res) override;
+    virtual bool valid() const noexcept override { return true; } // [TODO] Figure something better out.
 
 private:
     std::string manifest_;
@@ -47,7 +50,7 @@ private:
 };
 
 struct NWSync {
-    explicit NWSync(std::filesystem::path path);
+    explicit NWSync(const std::filesystem::path& path);
     NWSync(const NWSync&) = delete;
     NWSync(NWSync&&) = default;
     ~NWSync() = default;

@@ -7,6 +7,7 @@
 #include <nowide/convert.hpp>
 
 #include <fstream>
+#include <stdexcept>
 
 namespace fs = std::filesystem;
 using namespace std::literals;
@@ -173,10 +174,14 @@ ResourceDescriptor NWSyncManifest::stat(const Resource& res)
     return result;
 }
 
-NWSync::NWSync(std::filesystem::path path)
-    : path_{fs::canonical(path)}
-    , meta_{nullptr, detail::sqlite3_deleter}
+NWSync::NWSync(const std::filesystem::path& path)
+    : meta_{nullptr, detail::sqlite3_deleter}
 {
+    if (!fs::exists(path)) {
+        throw std::invalid_argument(fmt::format("file '{}' does not exist", path.u8string()));
+    }
+
+    path_ = std::filesystem::canonical(path).u8string();
     is_loaded_ = load();
 }
 

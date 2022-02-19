@@ -6,16 +6,20 @@
 using namespace nw;
 using namespace std::literals;
 
-TEST_CASE("Erf loading", "[containers]")
+TEST_CASE("erf: loading", "[containers]")
 {
     Erf e("test_data/DockerDemo.mod");
+    REQUIRE(e.valid());
+    REQUIRE(e.name() == "DockerDemo.mod");
     REQUIRE(e.size() > 0);
     REQUIRE(e.all().size() > 0);
+    REQUIRE_THROWS(Erf{"doesnotexist.hak"});
 }
 
 TEST_CASE("Erf demanding", "[containers]")
 {
     Erf e("test_data/DockerDemo.mod");
+    REQUIRE(e.valid());
     auto ba = e.demand({"module"sv, ResourceType::ifo});
     REQUIRE(ba.size() > 0);
 }
@@ -23,6 +27,7 @@ TEST_CASE("Erf demanding", "[containers]")
 TEST_CASE("Erf extracting", "[containers]")
 {
     Erf e("test_data/DockerDemo.mod");
+    REQUIRE(e.valid());
     auto ba = e.demand({"module"sv, ResourceType::ifo});
     REQUIRE(e.extract(std::regex("module.ifo"), "tmp/") == 1);
     REQUIRE(ba.size() == std::filesystem::file_size("tmp/module.ifo"));

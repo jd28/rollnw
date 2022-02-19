@@ -15,29 +15,21 @@ struct ZipElement {
 };
 
 struct Zip : public Container {
-    Zip(std::filesystem::path filename);
+    Zip(const std::filesystem::path& path);
     ~Zip();
 
-    /// Get all resources
     virtual std::vector<ResourceDescriptor> all() override;
-
-    /// Reads resourece data, empty ByteArray if no match.
     virtual ByteArray demand(Resource res) override;
-
-    /// Extract elements from a container by regex
     virtual int extract(const std::regex& pattern, const std::filesystem::path& output) override;
-
-    /// Determines the size, if applicable, of the container
+    virtual const std::string& name() const override { return name_; };
+    virtual const std::string& path() const override { return path_; };
     virtual size_t size() const override;
-
-    /// Get some general data about a resource
     virtual ResourceDescriptor stat(const Resource& res) override;
-
-    /// Get if zip was loaded
-    bool valid() const noexcept { return is_loaded_; }
+    virtual bool valid() const noexcept override { return is_loaded_; }
 
 private:
-    std::filesystem::path filename_;
+    std::string path_;
+    std::string name_;
     unzFile file_ = nullptr;
     size_t total_size = 0;
     bool is_loaded_ = false;

@@ -3,19 +3,28 @@
 #include "../log.hpp"
 #include "../util/ByteArray.hpp"
 
-#include <chrono>
-#include <cstring>
 #include <nowide/fstream.hpp>
-#include <sys/stat.h>
+
+#include <chrono>
+#include <stdexcept>
 
 namespace fs = std::filesystem;
 
 namespace nw {
 
 Directory::Directory(const fs::path& path)
-    : path_{fs::canonical(path)}
 {
-    LOG_F(INFO, "{}: Loading...", path_.string());
+    if (!fs::exists(path)) {
+        throw std::invalid_argument(fmt::format("'{}' does not exist", path.u8string()));
+    } else if (!fs::is_directory(path)) {
+        throw std::invalid_argument(fmt::format("'{}' is not a directory", path.u8string()));
+    }
+    path_ = fs::canonical(path);
+    path_string_ = path_.u8string();
+    name_ = path_.stem();
+
+    LOG_F(INFO, "{}: Loading...", path_string_);
+    is_valid_ = true;
 }
 
 std::vector<ResourceDescriptor> Directory::all()

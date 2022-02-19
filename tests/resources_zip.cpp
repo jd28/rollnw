@@ -14,8 +14,8 @@ TEST_CASE("Load zip", "[resources]")
 {
     nw::Zip z{"test_data/temp0.zip"};
     REQUIRE(z.valid());
+    REQUIRE(z.name() == "temp0.zip");
     REQUIRE(z.extract(std::regex(".*"), "tmp") == 23);
 
-    nw::Zip z2{"test_data/non-extant.zip"};
-    REQUIRE(!z2.valid());
+    REQUIRE_THROWS(nw::Zip{"test_data/non-extant.zip"});
 }
