@@ -19,9 +19,13 @@ struct Reputation {
 };
 
 struct Faction {
-    explicit Faction(const GffInputArchiveStruct gff);
+    explicit Faction(const GffInputArchive& archive);
+    explicit Faction(const nlohmann::json& archive);
 
     static constexpr int json_archive_version = 1;
+
+    GffOutputArchive to_gff() const;
+    nlohmann::json to_json() const;
 
     std::vector<FactionInfo> factions;
     std::vector<Reputation> reputations;
