@@ -18,7 +18,7 @@ struct PaletteTreeNode {
     PaletteNodeType type;
     uint8_t id = std::numeric_limits<uint8_t>::max();
 
-    // Very rarely used, controls the visibility of nodes.
+    // Very rarely used, controls the visibility of category nodes.
     // 0 - Display only if not empty.
     // 1 - Never display (in Toolset)
     // 2 - Display in a custom blueprint palette, when creating a blueprint,
@@ -46,7 +46,7 @@ struct PaletteTreeNode {
 };
 
 struct Palette {
-    explicit Palette(const GffInputArchiveStruct gff);
+    explicit Palette(const GffInputArchive& gff);
     ~Palette() = default;
 
     static constexpr int json_archive_version = 1;
@@ -55,9 +55,11 @@ struct Palette {
     void set_max_id(uint8_t id) noexcept { max_id_ = std::max(id, max_id_); }
     bool valid() const noexcept { return is_valid_; }
 
+    nlohmann::json to_json(nw::ResourceType::type restype) const;
+
     PaletteTreeNode root;
-    ResourceType::type restype;
-    Resref tileset; // Only if restype is ResourceType::set
+    ResourceType::type resource_type; // Only in skeletons
+    Resref tileset;                   // Only if restype is ResourceType::set
     bool is_skeleton = false;
 
 private:

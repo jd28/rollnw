@@ -1,10 +1,12 @@
 #include "Palette.hpp"
 
+#include <nlohmann/json.hpp>
+
 namespace nw {
 
-Palette::Palette(const GffInputArchiveStruct gff)
+Palette::Palette(const GffInputArchive& archive)
 {
-    is_valid_ = load(gff);
+    is_valid_ = load(archive.toplevel());
 }
 
 bool Palette::load(const GffInputArchiveStruct gff)
@@ -19,10 +21,10 @@ bool Palette::load(const GffInputArchiveStruct gff)
     uint16_t temp;
     if (gff.get_to("RESTYPE", temp, false)) {
         is_skeleton = true;
-        restype = static_cast<ResourceType::type>(temp);
+        resource_type = static_cast<ResourceType::type>(temp);
         gff.get_to("NEXT_USEABLE_ID", next_id_, false);
 
-        if (restype == ResourceType::set && !gff.get_to("TILESETRESREF", tileset)) {
+        if (resource_type == ResourceType::set && !gff.get_to("TILESETRESREF", tileset)) {
             LOG_F(ERROR, "palette no tileset resref specified");
             return false;
         }
@@ -71,6 +73,56 @@ PaletteTreeNode Palette::read_child(Palette* parent, const GffInputArchiveStruct
     }
 
     return node;
+}
+
+nlohmann::json process_node(nw::ResourceType::type restype, const PaletteTreeNode& node)
+{
+    nlohmann::json res;
+
+    res["type"] = node.type;
+    if (node.type == PaletteNodeType::category) {
+        res["id"] = node.id;
+    }
+    if (node.display) {
+        res["display"] = node.display;
+    }
+    res["name"] = node.name;
+    res["strref"] = node.strref;
+    res["resref"] = node.resref;
+
+    if (restype == ResourceType::utc) {
+        res["cr"] = node.cr;
+        res["faction"] = node.faction;
+    }
+
+    if (node.type != PaletteNodeType::blueprint) {
+        // Easier to read if chidren come last.
+        auto& arr = res["|children"] = nlohmann::json::array();
+        for (const auto c : node.children) {
+            arr.push_back(process_node(restype, c));
+        }
+    }
+    return res;
+};
+
+nlohmann::json Palette::to_json(nw::ResourceType::type restype) const
+{
+    nlohmann::json j;
+
+    // This is in distinction to GFF, for some weird reason the toolset deletes resource type
+    // out of skeletons when building palettes.  While it's true that one will always know the
+    // resource type of an ITP, it still seems silly to delete it.
+    j["resource_type"] = ResourceType::to_string(restype);
+    if (is_skeleton && restype == ResourceType::set) {
+        j["tileset"] = tileset;
+    }
+    j["is_skeleton"] = is_skeleton;
+    auto& arr = j["root"] = nlohmann::json::array();
+    for (const auto c : root.children) {
+        arr.push_back(process_node(restype, c));
+    }
+
+    return j;
 }
 
 } // namespace nw

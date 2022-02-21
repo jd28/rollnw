@@ -3,10 +3,14 @@
 #include <nw/objects/Palette.hpp>
 #include <nw/serialization/Serialization.hpp>
 
-TEST_CASE("Loading Creature Palette", "[objects]")
+#include <nlohmann/json.hpp>
+
+#include <fstream>
+
+TEST_CASE("palette: load creature", "[objects]")
 {
     nw::GffInputArchive g{"test_data/creaturepalstd.itp"};
-    nw::Palette c{g.toplevel()};
+    nw::Palette c{g};
     REQUIRE(c.root.children.size() > 0);
     auto node = c.root.children[0];
 
@@ -25,15 +29,31 @@ TEST_CASE("Loading Creature Palette", "[objects]")
     REQUIRE(bluenode.faction == "Hostile");
 
     nw::GffInputArchive g2{"test_data/creaturepal.itp"};
-    nw::Palette p2{g2.toplevel()};
+    nw::Palette p2{g2};
     REQUIRE(p2.valid());
-    REQUIRE(p2.restype == nw::ResourceType::utc);
+    REQUIRE(p2.resource_type == nw::ResourceType::utc);
 }
 
-TEST_CASE("Loading Tileset Palette", "[objects]")
+TEST_CASE("palette: load tileset", "[objects]")
 {
     nw::GffInputArchive g{"test_data/tde01palstd.itp"};
-    nw::Palette c{g.toplevel()};
+    nw::Palette c{g};
     REQUIRE(c.valid());
     REQUIRE(c.root.children.size() > 0);
+}
+
+TEST_CASE("palette: to json")
+{
+    nw::GffInputArchive g{"test_data/tde01palstd.itp"};
+    nw::Palette c{g};
+    REQUIRE(c.valid());
+    auto j = c.to_json(nw::ResourceType::set);
+    std::ofstream f{"tmp/tde01palstd.itp.json"};
+    f << std::setw(4) << j;
+
+    nw::GffInputArchive g2{"test_data/creaturepalstd.itp"};
+    nw::Palette c2{g2};
+    auto j2 = c2.to_json(nw::ResourceType::utc);
+    std::ofstream f2{"tmp/creaturepalstd.itp.json"};
+    f2 << std::setw(4) << j2;
 }
