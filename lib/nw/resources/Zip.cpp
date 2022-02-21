@@ -116,11 +116,7 @@ ResourceDescriptor Zip::stat(const Resource& res)
 
 bool Zip::load()
 {
-#ifdef _WIN32
-    file_ = unzOpen(nowide::narrow(filename_.c_str()).c_str());
-#else
     file_ = unzOpen(path_.c_str());
-#endif
     if (!file_) {
         LOG_F(ERROR, "zip unable to open {}", path_);
         return false;

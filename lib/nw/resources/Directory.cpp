@@ -21,7 +21,7 @@ Directory::Directory(const fs::path& path)
     }
     path_ = fs::canonical(path);
     path_string_ = path_.u8string();
-    name_ = path_.stem();
+    name_ = path_.stem().u8string();
 
     LOG_F(INFO, "{}: Loading...", path_string_);
     is_valid_ = true;
