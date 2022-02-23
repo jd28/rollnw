@@ -2,9 +2,9 @@
 
 #include "../util/string.hpp"
 
+#include <array>
 #include <cstdint>
 #include <limits>
-#include <vector>
 
 namespace nw {
 
@@ -35,13 +35,13 @@ struct Language {
 private:
     struct Properties {
         ID id;
-        const char* lang_short;
-        const char* lang_long;
-        const char* encoding;
+        std::string_view lang_short;
+        std::string_view lang_long;
+        std::string_view encoding;
         bool has_feminine;
     };
 
-    static const std::vector<Properties> language_table;
+    static const std::array<Properties, 10> language_table;
     static std::string default_encoding_;
 
 public:
@@ -50,7 +50,7 @@ public:
     static const std::string& default_encoding();
 
     /// Gets the encoding for a particular language
-    static const char* encoding(ID lang);
+    static std::string_view encoding(ID lang);
 
     /// Converts string (short or long form) to ID
     static Language::ID from_string(std::string_view lang);

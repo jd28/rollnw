@@ -2,25 +2,25 @@
 
 namespace nw {
 
-const std::vector<Language::Properties> Language::language_table{
-    {Language::english, u8"en", u8"English", u8"CP1252", false},
-    {Language::french, u8"fr", u8"French", u8"CP1252", true},
-    {Language::german, u8"de", u8"German", u8"CP1252", true},
-    {Language::italian, u8"it", u8"Italian", u8"CP1252", true},
-    {Language::spanish, u8"es", u8"Spanish", u8"CP1252", true},
-    {Language::polish, u8"pl", u8"Polish", u8"CP1250", true},
+const std::array<Language::Properties, 10> Language::language_table{
+    Language::Properties{Language::english, "en", "English", "CP1252", false},
+    Language::Properties{Language::french, "fr", "French", "CP1252", true},
+    Language::Properties{Language::german, "de", "German", "CP1252", true},
+    Language::Properties{Language::italian, "it", "Italian", "CP1252", true},
+    Language::Properties{Language::spanish, "es", "Spanish", "CP1252", true},
+    Language::Properties{Language::polish, "pl", "Polish", "CP1250", true},
     // No clue if EE even supports the following.
-    {Language::korean, u8"ko", u8"Korean", u8"CP949", true},
-    {Language::chinese_simplified, u8"zh-cn", u8"Chinese Simplified", u8"CP936", true},
-    {Language::chinese_traditional, u8"zh-tw", u8"Chinese Traditional", u8"CP950", true},
-    {Language::japanese, u8"ja", u8"Japanese", u8"CP932", true},
+    Language::Properties{Language::korean, "ko", "Korean", "CP949", true},
+    Language::Properties{Language::chinese_simplified, "zh-cn", "Chinese Simplified", "CP936", true},
+    Language::Properties{Language::chinese_traditional, "zh-tw", "Chinese Traditional", "CP950", true},
+    Language::Properties{Language::japanese, "ja", "Japanese", "CP932", true},
 };
 
 std::string Language::default_encoding_ = "CP1252";
 
 const std::string& Language::default_encoding() { return Language::default_encoding_; }
 
-const char* Language::encoding(Language::ID lang)
+std::string_view Language::encoding(Language::ID lang)
 {
     for (const auto& info : language_table) {
         if (info.id == lang) { return info.encoding; }
