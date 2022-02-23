@@ -17,8 +17,8 @@ jobs:
       VCPKG_ROOT: "${{ github.workspace }}/vcpkg/"
       VCPKG_DEFAULT_BINARY_CACHE: "${{ github.workspace }}/vcpkg/.cache"
 
-    name: buils on windows
-    runs-on: windows-latest
+    name: build on windows
+    runs-on: windows-2019
 
     steps:
       - uses: actions/checkout@v2
