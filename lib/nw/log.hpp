@@ -4,6 +4,9 @@
 #define LOGURU_REDEFINE_ASSERT 1
 #include "loguru/loguru.hpp"
 
+// Needed to format std::filesystem::path
+#include <fmt/ostream.h>
+
 namespace nw {
 
 /// Initialize logger
