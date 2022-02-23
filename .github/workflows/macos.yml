@@ -69,7 +69,7 @@ jobs:
 
       - name: Configure
         run: |
-          cmake --preset default-test
+          cmake --preset macos-default-test
 
       - name: Build
         run: |

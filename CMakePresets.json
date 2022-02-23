@@ -52,6 +52,14 @@
                 "VCPKG_TARGET_TRIPLET": "x64-windows-static",
                 "VCPKG_HOST_TRIPLET": "x64-windows-static"
             }
+        },
+        {
+            "name": "macos-default-test",
+            "inherits": "default-test",
+            "displayName": "Default Config for macOS",
+            "cacheVariables": {
+                "CMAKE_OSX_DEPLOYMENT_TARGET": "10.15"
+            }
         }
     ],
     "buildPresets": [
