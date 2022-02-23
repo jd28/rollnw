@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.21)
 project(libnw VERSION 0.1.0 LANGUAGES CXX C)
-set (CMAKE_CXX_STANDARD 17)
+set (CMAKE_CXX_STANDARD 20)
 
 if(MSVC)
     set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
