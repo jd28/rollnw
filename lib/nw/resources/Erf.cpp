@@ -48,11 +48,18 @@ struct ErfKey {
 Erf::Erf(const std::filesystem::path& path)
 {
     if (!fs::exists(path)) {
-        throw std::invalid_argument(fmt::format("file '{}' does not exist", path.u8string()));
+        throw std::invalid_argument(fmt::format("file '{}' does not exist", path));
     }
-    path_ = std::filesystem::canonical(path).u8string();
-    name_ = path.filename().u8string();
-    is_loaded_ = load();
+
+#ifdef _MSC_VER
+    path_ = nowide::narrow(std::filesystem::canonical(path).c_str());
+    name_ = nowide::narrow(path.filename().c_str());
+#else
+    path_ = std::filesystem::canonical(path);
+    name_ = path.filename();
+#endif
+
+    is_loaded_ = load(path);
 }
 
 ByteArray Erf::read(const ErfElement& e)
@@ -142,7 +149,7 @@ ResourceDescriptor Erf::stat(const Resource& res)
         }                                                    \
     } while (0)
 
-bool Erf::load()
+bool Erf::load(const fs::path& path)
 {
     LOG_F(INFO, "{}: Loading...", path_);
 

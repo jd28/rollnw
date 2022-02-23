@@ -17,10 +17,17 @@ namespace nw {
 Zip::Zip(const fs::path& path)
 {
     if (!fs::exists(path)) {
-        throw std::invalid_argument(fmt::format("file '{}' does not exist", path.u8string()));
+        throw std::invalid_argument(fmt::format("file '{}' does not exist", path));
     }
-    path_ = std::filesystem::canonical(path).u8string();
-    name_ = path.filename().u8string();
+
+#if _MSC_VER
+    path_ = nowide::narrow(std::filesystem::canonical(path).c_str());
+    name_ = nowide::narrow(path.filename().c_str());
+#else
+    path_ = std::filesystem::canonical(path);
+    name_ = path.filename();
+#endif
+
     is_loaded_ = load();
 }
 

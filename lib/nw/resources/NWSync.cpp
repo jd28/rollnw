@@ -31,7 +31,7 @@ std::vector<ResourceDescriptor> NWSyncManifest::all()
     sqlite3_stmt* stmt = nullptr;
     const char* tail = nullptr;
     SCOPE_EXIT([stmt] { sqlite3_finalize(stmt); });
-    const char sql[] = u8"SELECT resref, restype from manifest_resrefs where manifest_sha1 = ?";
+    const char sql[] = "SELECT resref, restype from manifest_resrefs where manifest_sha1 = ?";
 
     if (SQLITE_OK != sqlite3_prepare_v2(parent_->meta(), sql, sizeof(sql), &stmt, &tail)) {
         LOG_F(ERROR, "sqlite3 error: {}", sqlite3_errmsg(parent_->meta()));
@@ -63,7 +63,7 @@ ByteArray NWSyncManifest::demand(Resource res)
     sqlite3_stmt* stmt = nullptr;
     const char* tail = nullptr;
     SCOPE_EXIT([stmt] { sqlite3_finalize(stmt); });
-    sqlite3_prepare_v2(parent_->meta(), u8R"x(SELECT resref_sha1
+    sqlite3_prepare_v2(parent_->meta(), R"x(SELECT resref_sha1
                                           FROM manifest_resrefs
                                           WHERE manifest_sha1 = ? AND resref = ? and restype = ?)x",
         -1, &stmt, &tail);
@@ -80,7 +80,7 @@ ByteArray NWSyncManifest::demand(Resource res)
         sqlite3_stmt* data_stmt = nullptr;
         const char* data_tail = nullptr;
         SCOPE_EXIT([data_stmt] { sqlite3_finalize(data_stmt); });
-        if (SQLITE_OK != sqlite3_prepare_v2(s.get(), u8R"x(SELECT data
+        if (SQLITE_OK != sqlite3_prepare_v2(s.get(), R"x(SELECT data
                                           FROM resrefs
                                           WHERE sha1 = ?)x",
                 -1, &data_stmt, &data_tail)) {
@@ -117,7 +117,7 @@ int NWSyncManifest::extract(const std::regex& pattern, const std::filesystem::pa
     sqlite3_stmt* stmt = nullptr;
     const char* tail = nullptr;
     SCOPE_EXIT([stmt] { sqlite3_finalize(stmt); });
-    const char sql[] = u8"SELECT resref, restype from manifest_resrefs where manifest_sha1 = ?";
+    const char sql[] = "SELECT resref, restype from manifest_resrefs where manifest_sha1 = ?";
 
     if (SQLITE_OK != sqlite3_prepare_v2(parent_->meta(), sql, sizeof(sql), &stmt, &tail)) {
         LOG_F(ERROR, "sqlite3: {}", sqlite3_errmsg(parent_->meta()));
@@ -153,7 +153,7 @@ ResourceDescriptor NWSyncManifest::stat(const Resource& res)
     sqlite3_stmt* stmt = nullptr;
     const char* tail = nullptr;
     SCOPE_EXIT([stmt] { sqlite3_finalize(stmt); });
-    sqlite3_prepare_v2(parent_->meta(), u8R"x(SELECT created_at
+    sqlite3_prepare_v2(parent_->meta(), R"x(SELECT created_at
                                           FROM manifest_resrefs
                                           WHERE manifest_sha1 = ? AND resref = ? and restype = ?)x",
         -1, &stmt, &tail);
@@ -178,10 +178,10 @@ NWSync::NWSync(const std::filesystem::path& path)
     : meta_{nullptr, detail::sqlite3_deleter}
 {
     if (!fs::exists(path)) {
-        throw std::invalid_argument(fmt::format("file '{}' does not exist", path.u8string()));
+        throw std::invalid_argument(fmt::format("file '{}' does not exist", path));
     }
 
-    path_ = std::filesystem::canonical(path).u8string();
+    path_ = std::filesystem::canonical(path);
     is_loaded_ = load();
 }
 
@@ -202,7 +202,7 @@ std::vector<std::string> NWSync::manifests()
     sqlite3_stmt* stmt = nullptr;
     const char* tail = nullptr;
     SCOPE_EXIT([stmt] { sqlite3_finalize(stmt); });
-    const char sql[] = u8"SELECT sha1 FROM manifests";
+    const char sql[] = "SELECT sha1 FROM manifests";
     if (SQLITE_OK != sqlite3_prepare_v2(meta_.get(), sql, sizeof(sql), &stmt, &tail)) {
         LOG_F(ERROR, "sqlite3 error: {}", sqlite3_errmsg(meta_.get()));
         return result;

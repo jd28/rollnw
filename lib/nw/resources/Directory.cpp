@@ -15,13 +15,20 @@ namespace nw {
 Directory::Directory(const fs::path& path)
 {
     if (!fs::exists(path)) {
-        throw std::invalid_argument(fmt::format("'{}' does not exist", path.u8string()));
+        throw std::invalid_argument(fmt::format("'{}' does not exist", path));
     } else if (!fs::is_directory(path)) {
-        throw std::invalid_argument(fmt::format("'{}' is not a directory", path.u8string()));
+        throw std::invalid_argument(fmt::format("'{}' is not a directory", path));
     }
+
     path_ = fs::canonical(path);
-    path_string_ = path_.u8string();
-    name_ = path_.stem().u8string();
+
+#ifdef _MSC_VER
+    path_string_ = nowide::narrow(path_.c_str());
+    name_ = nowide::narrow(path.filename().c_str());
+#else
+    path_string_ = std::filesystem::canonical(path);
+    name_ = path.stem();
+#endif
 
     LOG_F(INFO, "{}: Loading...", path_string_);
     is_valid_ = true;
@@ -43,7 +50,7 @@ std::vector<ResourceDescriptor> Directory::all()
 
         ResourceDescriptor rd{
             Resource{s, t},
-            std::filesystem::file_size(it.path()),
+            fs::file_size(it.path()),
             static_cast<int64_t>(fs::last_write_time(it.path()).time_since_epoch().count() / 1000),
             this,
         };
@@ -63,17 +70,17 @@ ByteArray Directory::demand(Resource res)
         return ba;
     }
 
-    nowide::ifstream f{p.string(), std::ios_base::binary};
+    nowide::ifstream f{p, std::ios_base::binary};
 
     if (!f.is_open()) {
-        LOG_F(INFO, "Skip - Unable to open file: {}", p.string());
+        LOG_F(INFO, "Skip - Unable to open file: {}", p);
         return ba;
     }
 
     if (size_t size = fs::file_size(p)) {
         ba.resize(size);
         if (!f.read((char*)ba.data(), size)) {
-            LOG_F(INFO, "Skip - Error reading file: {}", p.string());
+            LOG_F(INFO, "Skip - Error reading file: {}", p);
             ba.clear(); // Free the memory
         }
     }
@@ -83,10 +90,10 @@ ByteArray Directory::demand(Resource res)
 
 int Directory::extract(const std::regex& pattern, const fs::path& output)
 {
-    if (!std::filesystem::is_directory(output)) {
+    if (!fs::is_directory(output)) {
         // Needs to be create_directories to simplify usage.  Alternatively,
         // could assert that path must already exist.  Needs error handling.
-        std::filesystem::create_directories(output);
+        fs::create_directories(output);
     } else if (path_ == fs::canonical(output)) {
         LOG_F(ERROR, "Attempting to extra files to the same directory");
         return 0;

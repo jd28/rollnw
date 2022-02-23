@@ -16,22 +16,28 @@ namespace nw {
 bool ResourceLocator::add_container(const std::filesystem::path& path)
 {
     if (!std::filesystem::exists(path)) {
-        LOG_F(ERROR, "path does not exist: {}", path.u8string());
+        LOG_F(ERROR, "path does not exist: {}", path);
         return false;
     }
 
+#if _MSC_VER
+    std::string ext = nowide::narrow(path.extension().c_str());
+#else
+    std::string ext = path.extension();
+#endif
+
     if (std::filesystem::is_directory(path)) {
         return add_container(new Directory(path));
-    } else if (string::icmp(path.extension().u8string(), ".erf")
-        || string::icmp(path.extension().u8string(), ".mod")
-        || string::icmp(path.extension().u8string(), ".hak")) {
+    } else if (string::icmp(ext, ".erf")
+        || string::icmp(ext, ".mod")
+        || string::icmp(ext, ".hak")) {
         return add_container(new Erf(path));
-    } else if (string::icmp(path.extension().u8string(), ".key")) {
+    } else if (string::icmp(ext, ".key")) {
         return add_container(new Key(path));
-    } else if (string::icmp(path.extension().u8string(), ".zip")) {
+    } else if (string::icmp(ext, ".zip")) {
         return add_container(new Zip(path));
-    } else if (string::icmp(path.extension().u8string(), ".sav")) {
-        LOG_F(ERROR, ".sav files are not currently supported: {}", path.u8string());
+    } else if (string::icmp(ext, ".sav")) {
+        LOG_F(ERROR, ".sav files are not currently supported: {}", path);
         return false;
     }
 

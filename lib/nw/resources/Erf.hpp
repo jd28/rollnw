@@ -77,7 +77,7 @@ private:
     bool is_loaded_ = false;
     absl::flat_hash_map<Resource, ErfElement> elements_;
 
-    bool load();
+    bool load(const std::filesystem::path& path);
 };
 
 } // namespace nw
