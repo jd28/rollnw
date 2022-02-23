@@ -32,6 +32,8 @@ struct Resource {
     /// A resource is valid if resref is not empty and resref type is not invalid
     bool valid() const noexcept;
 
+    auto operator<=>(const Resource& other) const = default;
+
     Resource& operator=(const Resource&) = default;
     Resource& operator=(Resource&&) = default;
 };
@@ -41,11 +43,6 @@ H AbslHashValue(H h, const Resource& res)
 {
     return H::combine(std::move(h), res.resref.view(), res.type);
 }
-
-// [TODO] Replace with spaceship operator when c++20 is better supported.
-bool operator==(const Resource& lhs, const Resource& rhs);
-bool operator!=(const Resource& lhs, const Resource& rhs);
-bool operator<(const Resource& lhs, const Resource& rhs) noexcept;
 
 std::ostream& operator<<(std::ostream& out, const Resource& res);
 

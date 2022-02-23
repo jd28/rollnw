@@ -51,10 +51,6 @@ std::string Resref::string() const
 
 std::string_view Resref::view() const noexcept { return std::string_view(data_.data(), length()); }
 
-bool operator==(const Resref& lhs, const Resref& rhs) noexcept { return lhs.view() == rhs.view(); }
-bool operator!=(const Resref& lhs, const Resref& rhs) noexcept { return !(lhs == rhs); }
-bool operator<(const Resref& lhs, const Resref& rhs) noexcept { return lhs.view() < rhs.view(); }
-
 std::ostream& operator<<(std::ostream& out, const Resref& resref)
 {
     out << resref.view();
