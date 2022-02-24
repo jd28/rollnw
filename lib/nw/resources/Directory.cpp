@@ -70,7 +70,7 @@ ByteArray Directory::demand(Resource res)
         return ba;
     }
 
-    nowide::ifstream f{p, std::ios_base::binary};
+    nowide::ifstream f{p.c_str(), std::ios_base::binary};
 
     if (!f.is_open()) {
         LOG_F(INFO, "Skip - Unable to open file: {}", p);
