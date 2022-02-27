@@ -9,6 +9,7 @@
 
 #include "Erf.hpp"
 
+#include "../i18n/conversion.hpp"
 #include "../log.hpp"
 #include "../util/string.hpp"
 #include "Resource.hpp"
@@ -187,6 +188,28 @@ bool Erf::load(const fs::path& path)
     } else {
         LOG_F(ERROR, "{}: Invalid version type '{}'.", path_, std::string_view{header.version, 4});
         return false;
+    }
+
+    // It's not totally clear if `nwhak.exe` can have anything but English in the description.
+    // The ERF file format saves LocStrings uniquely, and differently between types.
+    // Per Bioware docs (might have changed with EE?):
+    //     In .erf and .hak files, the String portion of the structure is a NULL-terminated
+    //     character string. In .mod files, the String portion of the structure is a
+    //     non-NULL-terminated character string. Consequently, when reading the String,
+    //     a program should rely on the StringSize, not on the presence of a null terminator.
+    description = LocString(header.desc_strref);
+    CHECK_OFFSET(header.offset_locstring);
+    file_.seekg(header.offset_locstring, std::ios_base::beg);
+    for (uint32_t i = 0; i < header.locstring_count; ++i) {
+        std::string tmp;
+        uint32_t lang, sz;
+        CHECK_OFFSET((int)file_.tellg() + 8);
+        file_.read((char*)&lang, 4);
+        file_.read((char*)&sz, 4);
+        CHECK_OFFSET((int)file_.tellg() + sz);
+        tmp.resize(sz + 1, 0);
+        file_.read(tmp.data(), sz);
+        description.add(lang, to_utf8_by_langid(tmp, static_cast<Language::ID>(lang), true), false, true);
     }
 
     elements_.reserve(header.entry_count);

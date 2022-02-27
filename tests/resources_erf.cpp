@@ -2,6 +2,7 @@
 
 #include <nw/log.hpp>
 #include <nw/resources/Erf.hpp>
+#include <nw/util/string.hpp>
 
 using namespace nw;
 using namespace std::literals;
@@ -14,6 +15,9 @@ TEST_CASE("erf: loading", "[containers]")
     REQUIRE(e.size() > 0);
     REQUIRE(e.all().size() > 0);
     REQUIRE_THROWS(Erf{"doesnotexist.hak"});
+
+    Erf e2{"test_data/hak_with_description.hak"};
+    REQUIRE(nw::string::startswith(e2.description.get(0), "test\nhttp://example.com"));
 }
 
 TEST_CASE("Erf demanding", "[containers]")
