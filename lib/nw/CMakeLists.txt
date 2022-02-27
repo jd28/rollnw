@@ -111,7 +111,7 @@ endif()
 include(../../cmake/ProjectSettings.cmake)
 include(../../cmake/PreventInSourceBuilds.cmake)
 
-target_compile_features(nw INTERFACE cxx_std_20)
+target_compile_features(nw INTERFACE cxx_std_17)
 
 include(../../cmake/Cache.cmake)
 

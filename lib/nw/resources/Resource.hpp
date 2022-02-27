@@ -8,6 +8,7 @@
 
 #include <cstddef>
 #include <string>
+#include <tuple>
 
 namespace nw {
 
@@ -32,8 +33,6 @@ struct Resource {
     /// A resource is valid if resref is not empty and resref type is not invalid
     bool valid() const noexcept;
 
-    auto operator<=>(const Resource& other) const = default;
-
     Resource& operator=(const Resource&) = default;
     Resource& operator=(Resource&&) = default;
 };
@@ -42,6 +41,16 @@ template <typename H>
 H AbslHashValue(H h, const Resource& res)
 {
     return H::combine(std::move(h), res.resref.view(), res.type);
+}
+
+inline bool operator==(const Resource& lhs, const Resource& rhs)
+{
+    return std::tie(lhs.resref, lhs.type) == std::tie(rhs.resref, rhs.type);
+}
+
+inline bool operator<(const Resource& lhs, const Resource& rhs)
+{
+    return std::tie(lhs.resref, lhs.type) < std::tie(rhs.resref, rhs.type);
 }
 
 std::ostream& operator<<(std::ostream& out, const Resource& res);

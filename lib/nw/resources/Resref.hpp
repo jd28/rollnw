@@ -46,11 +46,19 @@ struct Resref {
     /// Creates ``std::string_view`` of underlying array without null padding
     std::string_view view() const noexcept;
 
-    std::strong_ordering operator<=>(const Resref& other) const = default;
-
 private:
     Storage data_;
 };
+
+inline bool operator==(const Resref& lhs, const Resref& rhs)
+{
+    return lhs.view() == rhs.view();
+}
+
+inline bool operator<(const Resref& lhs, const Resref& rhs)
+{
+    return lhs.view() < rhs.view();
+}
 
 std::ostream& operator<<(std::ostream& out, const Resref& resref);
 
