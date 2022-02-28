@@ -14,16 +14,16 @@ struct Container {
     virtual ~Container() = default;
 
     /// Get all resources
-    virtual std::vector<ResourceDescriptor> all() = 0;
+    virtual std::vector<ResourceDescriptor> all() const = 0;
 
     /// Reads resourece data, empty ByteArray if no match.
-    virtual ByteArray demand(Resource res) = 0;
+    virtual ByteArray demand(Resource res) const = 0;
 
     /// Extract elements from a container by glob pattern
-    virtual int extract_by_glob(std::string_view glob, const std::filesystem::path& output);
+    virtual int extract_by_glob(std::string_view glob, const std::filesystem::path& output) const;
 
     /// Extract elements from a container by regex
-    virtual int extract(const std::regex& pattern, const std::filesystem::path& output) = 0;
+    virtual int extract(const std::regex& pattern, const std::filesystem::path& output) const = 0;
 
     /// Equivalent to `basename path()`
     virtual const std::string& name() const = 0;
@@ -35,7 +35,7 @@ struct Container {
     virtual size_t size() const { return 0; }
 
     /// Get some general data about a resource
-    virtual ResourceDescriptor stat(const Resource& res) = 0;
+    virtual ResourceDescriptor stat(const Resource& res) const = 0;
 
     /// Return true if loaded, false if not.
     virtual bool valid() const noexcept = 0;

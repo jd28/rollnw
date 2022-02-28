@@ -18,13 +18,13 @@ struct Zip : public Container {
     Zip(const std::filesystem::path& path);
     ~Zip();
 
-    virtual std::vector<ResourceDescriptor> all() override;
-    virtual ByteArray demand(Resource res) override;
-    virtual int extract(const std::regex& pattern, const std::filesystem::path& output) override;
+    virtual std::vector<ResourceDescriptor> all() const override;
+    virtual ByteArray demand(Resource res) const override;
+    virtual int extract(const std::regex& pattern, const std::filesystem::path& output) const override;
     virtual const std::string& name() const override { return name_; };
     virtual const std::string& path() const override { return path_; };
     virtual size_t size() const override;
-    virtual ResourceDescriptor stat(const Resource& res) override;
+    virtual ResourceDescriptor stat(const Resource& res) const override;
     virtual bool valid() const noexcept override { return is_loaded_; }
 
 private:

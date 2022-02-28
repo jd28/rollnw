@@ -14,9 +14,12 @@
 #include "../util/string.hpp"
 #include "Resource.hpp"
 
+#include <nowide/convert.hpp>
+
 #include <algorithm>
 #include <cstring>
 #include <filesystem>
+#include <fstream>
 #include <limits>
 #include <stdexcept>
 
@@ -63,34 +66,17 @@ Erf::Erf(const std::filesystem::path& path)
     is_loaded_ = load(path);
 }
 
-ByteArray Erf::read(const ErfElement& e)
-{
-    ByteArray ba;
-
-    if (e.info.offset == std::numeric_limits<uint32_t>::max()) {
-        // Do nothing, but I forget why.  Maybe part of the nwserver docker build.
-    } else if (e.info.offset + e.info.size > fsize_) {
-        LOG_F(ERROR, "{}: Out of bounds.", path_);
-    } else {
-        ba.resize(e.info.size);
-        file_.seekg(e.info.offset, std::ios_base::beg);
-        file_.read((char*)ba.data(), e.info.size);
-    }
-
-    return ba;
-}
-
-std::vector<ResourceDescriptor> Erf::all()
+std::vector<ResourceDescriptor> Erf::all() const
 {
     std::vector<ResourceDescriptor> result;
     result.reserve(elements_.size());
     for (const auto& [k, v] : elements_) {
-        result.push_back({k, v.info.size, 0, this});
+        result.push_back(stat(k));
     }
     return result;
 }
 
-ByteArray Erf::demand(Resource res)
+ByteArray Erf::demand(Resource res) const
 {
     if (!is_loaded_) { return {}; }
     auto it = elements_.find(res);
@@ -98,7 +84,7 @@ ByteArray Erf::demand(Resource res)
     return read(it->second);
 }
 
-int Erf::extract(const std::regex& re, const std::filesystem::path& output)
+int Erf::extract(const std::regex& re, const std::filesystem::path& output) const
 {
     if (!std::filesystem::is_directory(output)) {
         // Needs to be create_directories to simplify usage.  Alternatively,
@@ -115,7 +101,7 @@ int Erf::extract(const std::regex& re, const std::filesystem::path& output)
             ba = read(v);
             if (ba.size()) {
                 ++count;
-                nowide::ofstream out{(output / fname).string(), std::ios_base::binary};
+                std::ofstream out{output / fs::u8path(fname), std::ios_base::binary};
                 out.write((char*)ba.data(), ba.size());
             }
         }
@@ -128,7 +114,7 @@ size_t Erf::size() const
     return elements_.size();
 }
 
-ResourceDescriptor Erf::stat(const Resource& res)
+ResourceDescriptor Erf::stat(const Resource& res) const
 {
     ResourceDescriptor result;
     auto it = elements_.find(res);
@@ -244,5 +230,22 @@ bool Erf::load(const fs::path& path)
 }
 
 #undef CHECK_OFFSET
+
+ByteArray Erf::read(const ErfElement& e) const
+{
+    ByteArray ba;
+
+    if (e.info.offset == std::numeric_limits<uint32_t>::max()) {
+        // Do nothing, but I forget why.  Maybe part of the nwserver docker build.
+    } else if (e.info.offset + e.info.size > fsize_) {
+        LOG_F(ERROR, "{}: Out of bounds.", path_);
+    } else {
+        ba.resize(e.info.size);
+        file_.seekg(e.info.offset, std::ios_base::beg);
+        file_.read((char*)ba.data(), e.info.size);
+    }
+
+    return ba;
+}
 
 } // namespace nw

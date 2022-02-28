@@ -35,13 +35,13 @@ struct NWSyncManifest : public Container {
     NWSyncManifest() = default;
     NWSyncManifest(std::string manifest, NWSync* parent);
 
-    virtual std::vector<ResourceDescriptor> all() override;
-    virtual ByteArray demand(Resource res) override;
-    virtual int extract(const std::regex& pattern, const std::filesystem::path& output) override;
+    virtual std::vector<ResourceDescriptor> all() const override;
+    virtual ByteArray demand(Resource res) const override;
+    virtual int extract(const std::regex& pattern, const std::filesystem::path& output) const override;
     virtual const std::string& name() const override { return manifest_; };
     virtual const std::string& path() const override { return manifest_; };
     virtual size_t size() const override { return 0; }
-    virtual ResourceDescriptor stat(const Resource& res) override;
+    virtual ResourceDescriptor stat(const Resource& res) const override;
     virtual bool valid() const noexcept override { return true; } // [TODO] Figure something better out.
 
 private:

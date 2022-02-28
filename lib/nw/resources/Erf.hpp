@@ -6,9 +6,8 @@
 
 #include <absl/container/flat_hash_map.h>
 
-#include <nowide/fstream.hpp>
-
 #include <filesystem>
+#include <fstream>
 #include <memory>
 #include <string>
 #include <vector>
@@ -48,15 +47,14 @@ public:
     /// Returns if Key file was successfully loaded
     bool is_loaded() const noexcept { return is_loaded_; }
 
-    ByteArray read(const ErfElement& element);
 
-    virtual std::vector<ResourceDescriptor> all() override;
-    virtual ByteArray demand(Resource res) override;
-    virtual int extract(const std::regex& pattern, const std::filesystem::path& output) override;
+    virtual std::vector<ResourceDescriptor> all() const override;
+    virtual ByteArray demand(Resource res) const override;
+    virtual int extract(const std::regex& pattern, const std::filesystem::path& output) const override;
     virtual const std::string& name() const override { return name_; };
     virtual const std::string& path() const override { return path_; };
     virtual size_t size() const override;
-    virtual ResourceDescriptor stat(const Resource& res) override;
+    virtual ResourceDescriptor stat(const Resource& res) const override;
     virtual bool valid() const noexcept override { return is_loaded_; }
 
     /// Erf type.
@@ -72,12 +70,13 @@ public:
 private:
     std::string path_;
     std::string name_;
-    nowide::ifstream file_;
+    mutable std::ifstream file_;
     std::streamsize fsize_;
     bool is_loaded_ = false;
     absl::flat_hash_map<Resource, ErfElement> elements_;
 
     bool load(const std::filesystem::path& path);
+    ByteArray read(const ErfElement& element) const;
 };
 
 } // namespace nw

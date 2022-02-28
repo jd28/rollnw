@@ -36,7 +36,7 @@ Zip::~Zip()
     unzClose(file_);
 }
 
-std::vector<ResourceDescriptor> Zip::all()
+std::vector<ResourceDescriptor> Zip::all() const
 {
     std::vector<ResourceDescriptor> res;
     res.reserve(elements_.size());
@@ -46,7 +46,7 @@ std::vector<ResourceDescriptor> Zip::all()
     return res;
 }
 
-ByteArray Zip::demand(Resource resref)
+ByteArray Zip::demand(Resource resref) const
 {
     ByteArray ba;
     char fname[64] = {0};
@@ -66,7 +66,7 @@ ByteArray Zip::demand(Resource resref)
     return ba;
 }
 
-int Zip::extract(const std::regex& pattern, const std::filesystem::path& output)
+int Zip::extract(const std::regex& pattern, const std::filesystem::path& output) const
 {
     if (!std::filesystem::is_directory(output)) {
         // Needs to be create_directories to simplify usage.  Alternatively,
@@ -103,7 +103,7 @@ size_t Zip::size() const
     return elements_.size();
 }
 
-ResourceDescriptor Zip::stat(const Resource& res)
+ResourceDescriptor Zip::stat(const Resource& res) const
 {
     ResourceDescriptor rd;
     std::string fn = res.filename();

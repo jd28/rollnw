@@ -1,8 +1,7 @@
 #pragma once
 
-#include <nowide/fstream.hpp>
-
 #include <filesystem>
+#include <fstream>
 #include <string>
 #include <vector>
 
@@ -26,7 +25,7 @@ struct Bif {
     Bif(const Bif&) = delete;
     Bif(Bif&& other) = default;
 
-    ByteArray demand(size_t index);
+    ByteArray demand(size_t index) const;
 
     Bif& operator=(const Bif&) = delete;
     Bif& operator=(Bif&& other) = default;
@@ -34,7 +33,7 @@ struct Bif {
 private:
     Key* key = nullptr;
     std::filesystem::path path_;
-    nowide::ifstream file_;
+    mutable std::ifstream file_;
     std::streamsize fsize_;
     std::vector<BifElement> elements;
     bool is_loaded_;

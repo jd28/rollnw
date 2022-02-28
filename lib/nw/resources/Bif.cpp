@@ -4,7 +4,6 @@
 #include "../util/ByteArray.hpp"
 
 #include <cstdint>
-#include <filesystem>
 
 namespace nw {
 
@@ -34,11 +33,14 @@ Bif::Bif(Key* key, fs::path path)
 
 bool Bif::load()
 {
-    if (!key) LOG_F(ERROR, "Null Key File");
+    if (!key) {
+        LOG_F(ERROR, "Invalid Key file");
+        return false;
+    }
 
-    if (!fs::exists(path_)) { LOG_F(ERROR, "File '{}' does not exist.", path_.string()); }
-    file_.open(path_.string(), std::ios_base::binary);
-    if (!file_.is_open()) { LOG_F(ERROR, "Unable to open '{}'", path_.string()); }
+    if (!fs::exists(path_)) { LOG_F(ERROR, "File '{}' does not exist.", path_); }
+    file_.open(path_, std::ios_base::binary);
+    if (!file_.is_open()) { LOG_F(ERROR, "Unable to open '{}'", path_); }
 
     fsize_ = fs::file_size(path_);
 
@@ -57,14 +59,14 @@ bool Bif::load()
     return true;
 }
 
-ByteArray Bif::demand(size_t index)
+ByteArray Bif::demand(size_t index) const
 {
     ByteArray ba;
 
     if (index >= elements.size()) {
-        LOG_F(ERROR, "{}: Invalid index: {}", path_.string(), index);
+        LOG_F(ERROR, "{}: Invalid index: {}", path_, index);
     } else if (elements[index].offset + elements[index].size > fsize_) {
-        LOG_F(ERROR, "{}: Invalid offset {} is greater than file size: {}", path_.string(),
+        LOG_F(ERROR, "{}: Invalid offset {} is greater than file size: {}", path_,
             elements[index].offset + elements[index].size, fsize_);
     } else {
         ba.resize(elements[index].size);

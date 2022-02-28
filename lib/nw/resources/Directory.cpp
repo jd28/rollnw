@@ -3,11 +3,11 @@
 #include "../log.hpp"
 #include "../util/ByteArray.hpp"
 
-#include <nowide/fstream.hpp>
+#include <nowide/convert.hpp>
 
 #include <chrono>
-#include <stdexcept>
 #include <fstream>
+#include <stdexcept>
 
 namespace fs = std::filesystem;
 
@@ -35,7 +35,7 @@ Directory::Directory(const fs::path& path)
     is_valid_ = true;
 }
 
-std::vector<ResourceDescriptor> Directory::all()
+std::vector<ResourceDescriptor> Directory::all() const
 {
     std::vector<ResourceDescriptor> res;
     for (auto it : fs::directory_iterator{path_}) {
@@ -62,7 +62,7 @@ std::vector<ResourceDescriptor> Directory::all()
     return res;
 }
 
-ByteArray Directory::demand(Resource res)
+ByteArray Directory::demand(Resource res) const
 {
     fs::path p = path_ / res.filename();
 
@@ -89,7 +89,7 @@ ByteArray Directory::demand(Resource res)
     return ba;
 }
 
-int Directory::extract(const std::regex& pattern, const fs::path& output)
+int Directory::extract(const std::regex& pattern, const fs::path& output) const
 {
     if (!fs::is_directory(output)) {
         // Needs to be create_directories to simplify usage.  Alternatively,
@@ -113,7 +113,7 @@ int Directory::extract(const std::regex& pattern, const fs::path& output)
     return count;
 }
 
-ResourceDescriptor Directory::stat(const Resource& res)
+ResourceDescriptor Directory::stat(const Resource& res) const
 {
     ResourceDescriptor result;
     auto p = path_ / res.filename();

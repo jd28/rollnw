@@ -3,6 +3,8 @@
 #include "../log.hpp"
 #include "../util/ByteArray.hpp"
 
+#include <nowide/convert.hpp>
+
 #include <algorithm>
 #include <filesystem>
 #include <fstream>
@@ -52,7 +54,7 @@ Key::Key(fs::path path)
     is_loaded_ = load();
 }
 
-std::vector<ResourceDescriptor> Key::all()
+std::vector<ResourceDescriptor> Key::all() const
 {
     std::vector<ResourceDescriptor> result;
     result.reserve(elements_.size());
@@ -62,7 +64,7 @@ std::vector<ResourceDescriptor> Key::all()
     return result;
 }
 
-ByteArray Key::demand(Resource res)
+ByteArray Key::demand(Resource res) const
 {
     ByteArray ba;
     if (!is_loaded_) { return ba; }
@@ -78,7 +80,7 @@ ByteArray Key::demand(Resource res)
     return bifs_[it->second.bif].demand(it->second.index);
 }
 
-int Key::extract(const std::regex& pattern, const std::filesystem::path& output)
+int Key::extract(const std::regex& pattern, const std::filesystem::path& output) const
 {
     if (!std::filesystem::is_directory(output)) {
         // Needs to be create_directories to simplify usage.  Alternatively,
@@ -94,7 +96,7 @@ int Key::extract(const std::regex& pattern, const std::filesystem::path& output)
         if (std::regex_match(fname, pattern)) {
             ++count;
             ba = bifs_[v.bif].demand(v.index);
-            nowide::ofstream out{(output / fname).string(), std::ios_base::binary};
+            std::ofstream out{output / fs::u8path(fname), std::ios_base::binary};
             out.write((char*)ba.data(), ba.size());
         }
     }
@@ -106,7 +108,7 @@ size_t Key::size() const
     return elements_.size();
 }
 
-ResourceDescriptor Key::stat(const Resource& res)
+ResourceDescriptor Key::stat(const Resource& res) const
 {
     ResourceDescriptor result;
     auto it = elements_.find(res);
@@ -129,7 +131,7 @@ ResourceDescriptor Key::stat(const Resource& res)
 
 bool Key::load()
 {
-    nowide::ifstream file(path_, std::ios::binary);
+    std::ifstream file(path_, std::ios::binary);
     if (!file.is_open()) {
         LOG_F(ERROR, "{}: Unable to open file", path_);
         return false;

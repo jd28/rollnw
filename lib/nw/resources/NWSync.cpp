@@ -24,7 +24,7 @@ NWSyncManifest::NWSyncManifest(std::string manifest, NWSync* parent)
 {
 }
 
-std::vector<ResourceDescriptor> NWSyncManifest::all()
+std::vector<ResourceDescriptor> NWSyncManifest::all() const
 {
     std::vector<ResourceDescriptor> result;
 
@@ -56,7 +56,7 @@ std::vector<ResourceDescriptor> NWSyncManifest::all()
     return result;
 }
 
-ByteArray NWSyncManifest::demand(Resource res)
+ByteArray NWSyncManifest::demand(Resource res) const
 {
     ByteArray result;
 
@@ -104,7 +104,7 @@ ByteArray NWSyncManifest::demand(Resource res)
     return result;
 }
 
-int NWSyncManifest::extract(const std::regex& pattern, const std::filesystem::path& output)
+int NWSyncManifest::extract(const std::regex& pattern, const std::filesystem::path& output) const
 {
     if (!std::filesystem::is_directory(output)) {
         // Needs to be create_directories to simplify usage.  Alternatively,
@@ -137,7 +137,7 @@ int NWSyncManifest::extract(const std::regex& pattern, const std::filesystem::pa
             auto ba = demand(r);
             if (ba.size()) {
                 ++count;
-                nowide::ofstream out{(output / fname).string(), std::ios_base::binary};
+                std::ofstream out{output / fs::u8path(fname), std::ios_base::binary};
                 out.write((char*)ba.data(), ba.size());
             }
         }
@@ -146,7 +146,7 @@ int NWSyncManifest::extract(const std::regex& pattern, const std::filesystem::pa
     return count;
 }
 
-ResourceDescriptor NWSyncManifest::stat(const Resource& res)
+ResourceDescriptor NWSyncManifest::stat(const Resource& res) const
 {
     ResourceDescriptor result;
 
