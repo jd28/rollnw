@@ -64,6 +64,9 @@ struct ByteArray {
     /// Constructs string view of the array
     std::string_view string_view() const;
 
+    /// Write contents to file
+    bool write_to(const std::filesystem::path& path) const;
+
     /// Load a file into memory
     static ByteArray from_file(const std::filesystem::path& path);
 

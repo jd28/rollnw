@@ -4,10 +4,10 @@
 #include "base64.hpp"
 
 #include <nlohmann/json.hpp>
-#include <nowide/fstream.hpp>
 
 #include <cstdio>
 #include <cstring>
+#include <fstream>
 #include <string_view>
 
 namespace fs = std::filesystem;
@@ -42,17 +42,31 @@ std::string_view ByteArray::string_view() const
     return {reinterpret_cast<const char*>(data()), size()};
 }
 
+bool ByteArray::write_to(const std::filesystem::path& path) const
+{
+    if (size() == 0) { return false; }
+    std::ofstream out{path, std::ios_base::binary};
+    if (!out.is_open()) { return false; }
+    return !!out.write(reinterpret_cast<const char*>(data()), size());
+}
+
 ByteArray ByteArray::from_file(const std::filesystem::path& path)
 {
     ByteArray ba;
 
     if (fs::exists(path)) {
-        nowide::ifstream f{path.string(), std::ios_base::binary};
+        std::ifstream f{path, std::ios_base::binary};
+        if (!f.is_open()) {
+            LOG_F(ERROR, "Unable to open file '{}'", path);
+        }
         auto size = fs::file_size(path);
         ba.resize(size);
-        f.read((char*)ba.data(), size);
+        if (!f.read((char*)ba.data(), size)) {
+            LOG_F(ERROR, "Failed to read file '{}'", path);
+            ba.clear();
+        }
     } else {
-        LOG_F(ERROR, "File '{}' does not exist", path.string());
+        LOG_F(ERROR, "File '{}' does not exist", path);
     }
 
     return ba;
