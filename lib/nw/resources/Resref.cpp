@@ -33,6 +33,8 @@ Resref::Resref(std::string_view string) noexcept
     std::transform(data_.begin(), data_.end(), data_.begin(), ::tolower);
 }
 
+const Resref::Storage& Resref::data() const noexcept { return data_; }
+
 bool Resref::empty() const noexcept { return !data_[0]; }
 
 Resref::size_type Resref::length() const noexcept

@@ -34,6 +34,9 @@ struct Resref {
 
     Resref& operator=(const Resref&) = default;
 
+    /// Get underlying storage.
+    const Storage& data() const noexcept;
+
     /// Checks if the underlying array has no non-null characters
     bool empty() const noexcept;
 
