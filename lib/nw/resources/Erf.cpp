@@ -1,27 +1,21 @@
-// Open Issues:
-// 1. Currently the implementation here uses a flatmap and binary search to locate
-//    resources.
-// 2. The question as to whether or not to throw exceptions.
-// 3. Some functions are logically const but due needing to modify the ifstream
-//    they cannot be const.  Marking that a mutable and some
-//    file locking is an option.
-// 4. Whether mmaping is worth it, probably not.
-
 #include "Erf.hpp"
 
 #include "../i18n/conversion.hpp"
 #include "../log.hpp"
+#include "../util/platform.hpp"
 #include "../util/string.hpp"
 #include "Resource.hpp"
 
 #include <nowide/convert.hpp>
 
 #include <algorithm>
+#include <chrono>
 #include <cstring>
 #include <filesystem>
 #include <fstream>
 #include <limits>
 #include <stdexcept>
+#include <tuple>
 
 namespace fs = std::filesystem;
 
@@ -43,13 +37,20 @@ struct ErfHeader {
 };
 
 struct ErfKey {
-    char resref[16];
+    std::array<char, 16> resref;
     uint32_t id;
-    uint16_t type;
+    ResourceType::type type;
     int16_t unused;
 };
 
+Erf::Erf()
+    : working_dir_{create_unique_tmp_path()}
+{
+    LOG_F(INFO, "erf: working directory {}", working_dir_);
+}
+
 Erf::Erf(const std::filesystem::path& path)
+    : Erf()
 {
     if (!fs::exists(path)) {
         throw std::invalid_argument(fmt::format("file '{}' does not exist", path));
@@ -64,6 +65,131 @@ Erf::Erf(const std::filesystem::path& path)
 #endif
 
     is_loaded_ = load(path);
+}
+
+Erf::~Erf()
+{
+    fs::remove_all(working_dir_);
+}
+
+bool Erf::add(Resource res, const ByteArray& bytes)
+{
+    auto p = working_dir_ / fs::u8path(res.filename());
+    bytes.write_to(p);
+    elements_[res] = p;
+    return true;
+}
+
+bool Erf::add(Resource res, const std::filesystem::path& path)
+{
+    auto p = working_dir_ / fs::u8path(res.filename());
+    fs::copy_file(path, working_dir_ / fs::u8path(res.filename()), fs::copy_options::overwrite_existing);
+    elements_[res] = p;
+    return true;
+}
+
+bool Erf::save() const
+{
+    return save_as(fs::u8path(path_));
+}
+
+bool Erf::save_as(const std::filesystem::path& path) const
+{
+    ErfHeader header;
+    memset(&header, 0, sizeof(ErfHeader));
+
+    // Set type
+    switch (type) {
+    case ErfType::erf:
+        memcpy(header.type, "ERF ", 4);
+        break;
+    case ErfType::hak:
+        memcpy(header.type, "HAK ", 4);
+        break;
+    case ErfType::mod:
+        memcpy(header.type, "MOD ", 4);
+        break;
+    case ErfType::sav:
+        memcpy(header.type, "SAV ", 4);
+        break;
+    }
+
+    // Set version
+    memcpy(header.version, "V1.0", 4);
+
+    // Set some easy stuff that requires no calculations
+    header.entry_count = static_cast<uint32_t>(elements_.size());
+    header.locstring_count = static_cast<uint32_t>(description.size());
+    header.desc_strref = description.strref();
+
+    // Set build date
+    auto now = std::chrono::system_clock::now();
+    time_t tt = std::chrono::system_clock::to_time_t(now);
+    tm local_tm = *localtime(&tt);
+    header.day_of_year = local_tm.tm_yday;
+    header.year = local_tm.tm_year + 1900;
+
+    // Construct byte array of LocStrings
+    ByteArray locstrings;
+    for (const auto& [lang, str] : description) {
+        locstrings.append(&lang, 4);
+        std::string tmp = from_utf8_by_langid(str, static_cast<Language::ID>(lang), true);
+        uint32_t tmp_sz = static_cast<uint32_t>(tmp.size());
+        locstrings.append(&tmp_sz, 4);
+        locstrings.append(tmp.c_str(), tmp.size());
+        if (type != ErfType::mod) {
+            locstrings.push_back(0); // Null Terminated in HAK and ERF..
+        }
+    }
+    header.locstring_size = locstrings.size();
+
+    // Calculate up the offsets
+    header.offset_locstring = sizeof(ErfHeader);
+    header.offset_keys = header.offset_locstring + locstrings.size();
+    header.offset_res = header.offset_keys + (header.entry_count * sizeof(ErfKey));
+    uint32_t data_offset = header.offset_res + (header.entry_count * sizeof(ErfElementInfo));
+
+    // Sort everything so same erf saved twice produces byte identical results.
+    std::vector<Resource> entries;
+    std::vector<ErfKey> entry_keys;
+    std::vector<ErfElementInfo> entry_info;
+    entries.reserve(elements_.size());
+    entry_keys.reserve(elements_.size());
+    entry_info.reserve(elements_.size());
+
+    for (auto& [k, v] : elements_) {
+        entries.push_back(k);
+    }
+
+    std::sort(std::begin(entries), std::end(entries));
+    uint32_t id = 0;
+    for (const auto& e : entries) {
+        auto rd = stat(e);
+        entry_keys.push_back({e.resref.data(), id++, e.type, 0});
+        entry_info.push_back({data_offset, static_cast<uint32_t>(rd.size)});
+        data_offset += rd.size;
+    }
+
+    fs::path temp_path = fs::temp_directory_path() / path.filename();
+    std::ofstream f{temp_path, std::ios_base::binary};
+    if (!f.is_open()) {
+        return false;
+    }
+
+    f.write((const char*)&header, sizeof(ErfHeader));
+    f.write((const char*)locstrings.data(), locstrings.size());
+    f.write((const char*)entry_keys.data(), entry_keys.size() * sizeof(ErfKey));
+    f.write((const char*)entry_info.data(), entry_info.size() * sizeof(ErfElementInfo));
+
+    ByteArray ba;
+    for (const auto& e : entries) {
+        ba = demand(e);
+        f.write((const char*)ba.data(), ba.size());
+    }
+    f.close();
+    fs::rename(temp_path, path);
+
+    return true;
 }
 
 std::vector<ResourceDescriptor> Erf::all() const
@@ -121,8 +247,13 @@ ResourceDescriptor Erf::stat(const Resource& res) const
     if (it != std::end(elements_)) {
         result.name = res;
         result.parent = this;
-        result.size = it->second.info.size;
-        result.mtime = fs::last_write_time(path_).time_since_epoch().count() / 1000;
+        if (std::holds_alternative<fs::path>(it->second)) {
+            result.size = fs::file_size(std::get<fs::path>(it->second));
+            result.mtime = fs::last_write_time(std::get<fs::path>(it->second)).time_since_epoch().count() / 1000;
+        } else {
+            result.size = std::get<ErfElementInfo>(it->second).size;
+            result.mtime = fs::last_write_time(path_).time_since_epoch().count() / 1000;
+        }
     }
     return result;
 }
@@ -138,15 +269,15 @@ ResourceDescriptor Erf::stat(const Resource& res) const
 
 bool Erf::load(const fs::path& path)
 {
-    LOG_F(INFO, "{}: Loading...", path_);
+    LOG_F(INFO, "{}: Loading...", path);
 
-    file_.open(path_, std::ios::in | std::ios::binary);
+    file_.open(path, std::ios::binary);
     if (!file_.is_open()) {
-        LOG_F(ERROR, "{}: Unable to open.", path_);
+        LOG_F(ERROR, "{}: Unable to open.", path);
         return false;
     }
 
-    fsize_ = fs::file_size(path_);
+    fsize_ = fs::file_size(path);
 
     CHECK_OFFSET(sizeof(ErfHeader));
 
@@ -165,14 +296,14 @@ bool Erf::load(const fs::path& path)
     } else if (strncmp(header.type, "SAV", 3) == 0) {
         type = ErfType::sav;
     } else {
-        LOG_F(ERROR, "{}: Invalid header type.", path_);
+        LOG_F(ERROR, "{}: Invalid header type.", path);
         return false;
     }
 
     if (strncmp(header.version, "V1.0", 4) == 0) {
         version = ErfVersion::v1_0;
     } else {
-        LOG_F(ERROR, "{}: Invalid version type '{}'.", path_, std::string_view{header.version, 4});
+        LOG_F(ERROR, "{}: Invalid version type '{}'.", path, std::string_view{header.version, 4});
         return false;
     }
 
@@ -185,7 +316,7 @@ bool Erf::load(const fs::path& path)
     //     a program should rely on the StringSize, not on the presence of a null terminator.
     description = LocString(header.desc_strref);
     CHECK_OFFSET(header.offset_locstring);
-    file_.seekg(header.offset_locstring, std::ios_base::beg);
+    file_.seekg(header.offset_locstring, std::ios::beg);
     for (uint32_t i = 0; i < header.locstring_count; ++i) {
         std::string tmp;
         uint32_t lang, sz;
@@ -195,37 +326,26 @@ bool Erf::load(const fs::path& path)
         CHECK_OFFSET((int)file_.tellg() + sz);
         tmp.resize(sz + 1, 0);
         file_.read(tmp.data(), sz);
-        description.add(lang, to_utf8_by_langid(tmp, static_cast<Language::ID>(lang), true), false, true);
+        description.add(lang, to_utf8_by_langid(tmp.c_str(), static_cast<Language::ID>(lang), true), false, true);
     }
 
     elements_.reserve(header.entry_count);
 
-    uint32_t index;
-    size_t entry_offset = header.offset_keys;
-    size_t res_offset = header.offset_res;
+    std::vector<ErfKey> keys;
+    keys.resize(header.entry_count);
+    file_.seekg(header.offset_keys, std::ios_base::beg);
+    file_.read((char*)keys.data(), sizeof(ErfKey) * header.entry_count);
+
+    std::vector<ErfElementInfo> info;
+    info.resize(header.entry_count);
+    file_.seekg(header.offset_res, std::ios_base::beg);
+    file_.read((char*)info.data(), sizeof(ErfElementInfo) * header.entry_count);
+
     for (size_t i = 0; i < header.entry_count; ++i) {
-        char buffer[17] = {0};
-        ResourceType::type type;
-
-        // I think that all ERF packers the key entry and the corresponding info are kept in the
-        // same order.. but who knows.  Maybe not?
-
-        file_.seekg(entry_offset, std::ios_base::beg);
-        file_.read(buffer, 16);
-        file_.read((char*)&index, 4);
-        file_.read((char*)&type, 2);
-        entry_offset += 16 + 8;
-
-        ErfElement ele;
-        file_.seekg(res_offset, std::ios_base::beg);
-        file_.read((char*)&ele.info, sizeof(ErfElementInfo));
-        res_offset += sizeof(ErfElementInfo);
-
-        // [TODO] Change this to not use std::string.. Maybe
-        elements_.emplace(Resource{std::string(buffer), type}, ele);
+        elements_.emplace(Resource{keys[i].resref, keys[i].type}, info[i]);
     }
 
-    LOG_F(INFO, "{}: {} resources loaded.", path_, elements_.size());
+    LOG_F(INFO, "{}: {} resources loaded.", path, elements_.size());
     return true;
 }
 
@@ -235,16 +355,20 @@ ByteArray Erf::read(const ErfElement& e) const
 {
     ByteArray ba;
 
-    if (e.info.offset == std::numeric_limits<uint32_t>::max()) {
-        // Do nothing, but I forget why.  Maybe part of the nwserver docker build.
-    } else if (e.info.offset + e.info.size > fsize_) {
-        LOG_F(ERROR, "{}: Out of bounds.", path_);
+    if (std::holds_alternative<std::filesystem::path>(e)) {
+        return ByteArray::from_file(std::get<std::filesystem::path>(e));
     } else {
-        ba.resize(e.info.size);
-        file_.seekg(e.info.offset, std::ios_base::beg);
-        file_.read((char*)ba.data(), e.info.size);
+        auto& ele = std::get<ErfElementInfo>(e);
+        if (ele.offset == std::numeric_limits<uint32_t>::max()) {
+            // Do nothing, but I forget why.  Maybe part of the nwserver docker build.
+        } else if (ele.offset + ele.size > fsize_) {
+            LOG_F(ERROR, "{}: Out of bounds.", path_);
+        } else {
+            ba.resize(ele.size);
+            file_.seekg(ele.offset, file_.beg);
+            file_.read((char*)ba.data(), ele.size);
+        }
     }
-
     return ba;
 }
 

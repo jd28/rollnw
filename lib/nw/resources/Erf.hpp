@@ -10,20 +10,17 @@
 #include <fstream>
 #include <memory>
 #include <string>
+#include <variant>
 #include <vector>
 
 namespace nw {
 
-/// @cond NEVER
 struct ErfElementInfo {
     uint32_t offset;
     uint32_t size;
 };
 
-struct ErfElement {
-    ErfElementInfo info;
-};
-/// @endcond
+using ErfElement = std::variant<ErfElementInfo, std::filesystem::path>;
 
 enum class ErfType {
     erf,
@@ -38,15 +35,16 @@ enum class ErfVersion {
 
 class Erf : public Container {
 public:
-    Erf() = default;
+    Erf();
     explicit Erf(const std::filesystem::path& path);
     Erf(const Erf&) = delete;
     Erf(Erf&& other) = default;
-    ~Erf() = default;
+    ~Erf();
 
-    /// Returns if Key file was successfully loaded
-    bool is_loaded() const noexcept { return is_loaded_; }
-
+    bool add(Resource res, const ByteArray& bytes);
+    bool add(Resource res, const std::filesystem::path& path);
+    bool save() const;
+    bool save_as(const std::filesystem::path& path) const;
 
     virtual std::vector<ResourceDescriptor> all() const override;
     virtual ByteArray demand(Resource res) const override;
@@ -74,6 +72,7 @@ private:
     std::streamsize fsize_;
     bool is_loaded_ = false;
     absl::flat_hash_map<Resource, ErfElement> elements_;
+    std::filesystem::path working_dir_;
 
     bool load(const std::filesystem::path& path);
     ByteArray read(const ErfElement& element) const;

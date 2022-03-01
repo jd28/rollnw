@@ -6,6 +6,7 @@
 
 using namespace nw;
 using namespace std::literals;
+namespace fs = std::filesystem;
 
 TEST_CASE("erf: loading", "[containers]")
 {
@@ -20,7 +21,7 @@ TEST_CASE("erf: loading", "[containers]")
     REQUIRE(nw::string::startswith(e2.description.get(0), "test\nhttp://example.com"));
 }
 
-TEST_CASE("Erf demanding", "[containers]")
+TEST_CASE("erf: demand", "[containers]")
 {
     Erf e("test_data/DockerDemo.mod");
     REQUIRE(e.valid());
@@ -28,11 +29,47 @@ TEST_CASE("Erf demanding", "[containers]")
     REQUIRE(ba.size() > 0);
 }
 
-TEST_CASE("Erf extracting", "[containers]")
+TEST_CASE("erf: extract", "[containers]")
 {
     Erf e("test_data/DockerDemo.mod");
     REQUIRE(e.valid());
     auto ba = e.demand({"module"sv, ResourceType::ifo});
     REQUIRE(e.extract(std::regex("module.ifo"), "tmp/") == 1);
     REQUIRE(ba.size() == std::filesystem::file_size("tmp/module.ifo"));
+}
+
+TEST_CASE("erf: add", "[containers]")
+{
+    Erf e{"test_data/hak_with_description.hak"};
+    Resource r{"cloth028"sv, nw::ResourceType::uti};
+    e.add(r, "test_data/cloth028.uti");
+    auto rd = e.stat(r);
+    REQUIRE(rd.name == r);
+    REQUIRE(rd.size == 1969);
+
+    nw::ByteArray ba = nw::ByteArray::from_file(u8"test_data/cloth028.uti");
+    auto ba2 = e.demand(r);
+    REQUIRE(ba == ba2);
+}
+
+TEST_CASE("erf: save", "[containers]")
+{
+    Erf e{"test_data/hak_with_description.hak"};
+    REQUIRE(e.valid());
+    Resource r2{"build"sv, nw::ResourceType::txt};
+    auto ba = e.demand(r2);
+
+    Resource r{"cloth028"sv, nw::ResourceType::uti};
+    e.add(r, "test_data/cloth028.uti");
+    REQUIRE(e.save_as(fs::u8path("tmp/hak_with_description.hak")));
+    Erf e2{"tmp/hak_with_description.hak"};
+    auto ba2 = e2.demand(r2);
+
+    REQUIRE(ba == ba2);
+    REQUIRE(e2.size() == 2);
+
+    auto ba3 = ByteArray::from_file("test_data/cloth028.uti");
+    auto ba4 = e2.demand(r);
+    REQUIRE(ba3 == ba4);
+    e2.extract_by_glob("build.txt", "tmp/");
 }
