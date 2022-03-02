@@ -21,46 +21,47 @@ LocString::iterator LocString::end() { return strings_.end(); }
 LocString::const_iterator LocString::begin() const { return strings_.begin(); }
 LocString::const_iterator LocString::end() const { return strings_.end(); }
 
-void LocString::add(uint32_t language, std::string string, bool feminine, bool force_language)
+bool LocString::add(LanguageID language, std::string_view string, bool feminine)
 {
-    if (!force_language) {
-        language *= 2;
-        if (feminine) ++language;
-    }
+    if (language == LanguageID::invalid) { return false; }
+    uint32_t l = Language::to_runtime_id(language);
 
     for (auto& [lang, str] : strings_) {
-        if (lang == language) {
-            str = std::move(string);
-            return;
+        if (lang == l) {
+            str = std::string(string);
+            return true;
         }
     }
 
-    strings_.emplace_back(language, std::move(string));
+    strings_.emplace_back(l, string);
     // Got to keep this thing sorted for == comparisons, etc.
     std::sort(strings_.begin(), strings_.end(), [](const LocStringPair& a, const LocStringPair& b) {
         return a.first < b.first;
     });
+
+    return true;
 }
 
-bool LocString::contains(uint32_t language, bool feminine) const
+bool LocString::contains(LanguageID language, bool feminine) const
 {
-    language *= 2;
-    if (feminine) ++language;
+    if (language == LanguageID::invalid) { return false; }
+    uint32_t l = Language::to_runtime_id(language);
+
     for (const auto& [lang, str] : strings_) {
-        if (lang == language) {
+        if (lang == l) {
             return true;
         }
     }
     return false;
 }
 
-std::string LocString::get(uint32_t language, bool feminine) const
+std::string LocString::get(LanguageID language, bool feminine) const
 {
-    language *= 2;
-    if (feminine) ++language;
+    if (language == LanguageID::invalid) { return {}; }
+    uint32_t l = Language::to_runtime_id(language);
 
     for (const auto& [lang, str] : strings_) {
-        if (lang == language) {
+        if (lang == l) {
             return str;
         }
     }
@@ -87,7 +88,8 @@ void from_json(const nlohmann::json& j, LocString& loc)
     for (const auto& str : strings) {
         str.at("lang").get_to(lang);
         str.at("string").get_to(s);
-        loc.add(lang, s, false, true);
+        auto base_lang = Language::to_base_id(lang);
+        loc.add(base_lang.first, s, base_lang.second);
     }
 }
 

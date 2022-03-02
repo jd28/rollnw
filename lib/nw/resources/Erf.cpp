@@ -133,11 +133,12 @@ bool Erf::save_as(const std::filesystem::path& path) const
     ByteArray locstrings;
     for (const auto& [lang, str] : description) {
         locstrings.append(&lang, 4);
-        std::string tmp = from_utf8_by_langid(str, static_cast<Language::ID>(lang), true);
+        auto base_lang = Language::to_base_id(lang);
+        std::string tmp = from_utf8_by_langid(str, base_lang.first, true);
         uint32_t tmp_sz = static_cast<uint32_t>(tmp.size());
         locstrings.append(&tmp_sz, 4);
         locstrings.append(tmp.c_str(), tmp.size());
-        if (type != ErfType::mod) {
+        if (type == ErfType::hak || type == ErfType::erf) {
             locstrings.push_back(0); // Null Terminated in HAK and ERF..
         }
     }
@@ -149,7 +150,6 @@ bool Erf::save_as(const std::filesystem::path& path) const
     header.offset_res = header.offset_keys + (header.entry_count * sizeof(ErfKey));
     uint32_t data_offset = header.offset_res + (header.entry_count * sizeof(ErfElementInfo));
 
-    // Sort everything so same erf saved twice produces byte identical results.
     std::vector<Resource> entries;
     std::vector<ErfKey> entry_keys;
     std::vector<ErfElementInfo> entry_info;
@@ -161,6 +161,7 @@ bool Erf::save_as(const std::filesystem::path& path) const
         entries.push_back(k);
     }
 
+    // Sort everything so same erf saved twice produces byte identical results.
     std::sort(std::begin(entries), std::end(entries));
     uint32_t id = 0;
     for (const auto& e : entries) {
@@ -171,7 +172,7 @@ bool Erf::save_as(const std::filesystem::path& path) const
     }
 
     fs::path temp_path = fs::temp_directory_path() / path.filename();
-    std::ofstream f{temp_path, std::ios_base::binary};
+    std::ofstream f{temp_path, std::ios::binary};
     if (!f.is_open()) {
         return false;
     }
@@ -326,7 +327,9 @@ bool Erf::load(const fs::path& path)
         CHECK_OFFSET((int)file_.tellg() + sz);
         tmp.resize(sz + 1, 0);
         file_.read(tmp.data(), sz);
-        description.add(lang, to_utf8_by_langid(tmp.c_str(), static_cast<Language::ID>(lang), true), false, true);
+        auto base_lang = Language::to_base_id(lang);
+        tmp = to_utf8_by_langid(tmp.c_str(), base_lang.first, true);
+        description.add(base_lang.first, tmp, base_lang.second);
     }
 
     elements_.reserve(header.entry_count);

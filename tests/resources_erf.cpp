@@ -18,7 +18,7 @@ TEST_CASE("erf: loading", "[containers]")
     REQUIRE_THROWS(Erf{"doesnotexist.hak"});
 
     Erf e2{"test_data/hak_with_description.hak"};
-    REQUIRE(nw::string::startswith(e2.description.get(0), "test\nhttp://example.com"));
+    REQUIRE(nw::string::startswith(e2.description.get(nw::LanguageID::english), "test\nhttp://example.com"));
 }
 
 TEST_CASE("erf: demand", "[containers]")

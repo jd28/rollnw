@@ -13,5 +13,5 @@ TEST_CASE("Loading dialog", "[objects]")
     REQUIRE(dlg.valid());
     REQUIRE(dlg.starts.size() > 0);
     REQUIRE(dlg.starts[0].is_start);
-    REQUIRE(dlg.starts[0].node()->text.get(0) == "Have you managed to get rid of the Bandit Leader?");
+    REQUIRE(dlg.starts[0].node()->text.get(nw::LanguageID::english) == "Have you managed to get rid of the Bandit Leader?");
 }

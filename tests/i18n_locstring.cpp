@@ -5,11 +5,11 @@
 
 #include <nlohmann/json.hpp>
 
-TEST_CASE("LocString <-> JSON", "[i18n]")
+TEST_CASE("locstring: to/from_json", "[i18n]")
 {
     nw::LocString l{1};
-    l.add(0, "test");
-    l.add(1, "french test");
+    l.add(nw::LanguageID::english, "test");
+    l.add(nw::LanguageID::french, "french test");
 
     nlohmann::json j;
     j["strref"] = 1;

@@ -256,9 +256,10 @@ bool GffInputArchiveField::get_to(T& value) const
                     CHECK_OFF(off + size < parent_->bytes_.size());
                     std::string s{reinterpret_cast<const char*>(parent_->bytes_.data() + off), size};
                     s = string::sanitize_colors(std::move(s));
-                    s = to_utf8_by_langid(s, static_cast<Language::ID>(lang), true);
+                    auto base_lang = Language::to_base_id(lang);
+                    s = to_utf8_by_langid(s, base_lang.first, true);
                     off += size;
-                    ls.add(lang, std::move(s));
+                    ls.add(base_lang.first, s, base_lang.second);
                 }
                 value = std::move(ls);
                 return true;

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Language.hpp"
+
 #include <nlohmann/json_fwd.hpp>
 
 #include <cstdint>
@@ -21,13 +23,13 @@ struct LocString {
     LocString(LocString&&) = default;
 
     /// Add a localized string.
-    void add(uint32_t language, std::string str, bool feminine = false, bool force_language = false);
+    bool add(LanguageID language, std::string_view str, bool feminine = false);
 
     /// Gets a localized string.
-    std::string get(uint32_t language, bool feminine = false) const;
+    std::string get(LanguageID language, bool feminine = false) const;
 
     /// Determines if a localized string is set
-    bool contains(uint32_t language, bool feminine = false) const;
+    bool contains(LanguageID language, bool feminine = false) const;
 
     /// Gets number of localized strings
     size_type size() const;

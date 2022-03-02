@@ -14,7 +14,7 @@ TEST_CASE("module: from_gff", "[objects]")
     nw::Module m{g.toplevel()};
     REQUIRE(m.haks.size() == 0);
     REQUIRE(!m.is_save_game);
-    REQUIRE(m.name.get(0) == "test_module");
+    REQUIRE(m.name.get(nw::LanguageID::english) == "test_module");
     REQUIRE(m.scripts.on_load == "x2_mod_def_load");
 }
 
