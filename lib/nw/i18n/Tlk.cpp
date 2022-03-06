@@ -55,7 +55,7 @@ size_t Tlk::size() const noexcept
     return header_->str_count;
 }
 
-bool Tlk::is_valid() const noexcept
+bool Tlk::valid() const noexcept
 {
     return loaded_;
 }

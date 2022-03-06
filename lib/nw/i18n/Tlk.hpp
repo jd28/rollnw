@@ -56,7 +56,7 @@ struct Tlk {
     size_t size() const noexcept;
 
     /// Get if successfully parsed
-    bool is_valid() const noexcept;
+    bool valid() const noexcept;
 
     Tlk& operator=(const Tlk&) = default;
     Tlk& operator=(Tlk&&) = default;
