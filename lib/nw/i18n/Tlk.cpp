@@ -44,7 +44,7 @@ std::string Tlk::get(uint32_t strref) const
     const auto& ele = elements_[strref];
     if (header_.str_offset + ele.offset + ele.size <= bytes_.size()) {
         std::string s = string::sanitize_colors({(const char*)bytes_.data() + header_.str_offset + ele.offset, ele.size});
-        result = to_utf8_by_langid(s, language_id(), false);
+        result = to_utf8_by_langid(s, language_id());
     } else {
         LOG_F(ERROR, "failed to read strref: {}", strref);
     }
@@ -103,7 +103,7 @@ void Tlk::save_as(const std::filesystem::path& path)
         if (it != std::end(modified_strings_)) {
             ele[i].flags = TlkFlags::text;
             ele[i].offset = offset;
-            tmp = from_utf8_by_langid(it->second, language_id(), false);
+            tmp = from_utf8_by_langid(it->second, language_id());
             ele[i].size = tmp.size();
             offset += tmp.size();
         } else if (i < header_.str_count) {
@@ -134,7 +134,7 @@ void Tlk::save_as(const std::filesystem::path& path)
     for (size_t i = 0; i < max_strref; ++i) {
         auto it = modified_strings_.find(i);
         if (it != std::end(modified_strings_)) {
-            tmp = from_utf8_by_langid(it->second, language_id(), false);
+            tmp = from_utf8_by_langid(it->second, language_id());
             f.write(it->second.data(), it->second.size());
         } else if (i < header_.str_count) {
             if (TlkFlags::text & elements_[i].flags) {

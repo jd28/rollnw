@@ -134,7 +134,7 @@ bool Erf::save_as(const std::filesystem::path& path) const
     for (const auto& [lang, str] : description) {
         locstrings.append(&lang, 4);
         auto base_lang = Language::to_base_id(lang);
-        std::string tmp = from_utf8_by_langid(str, base_lang.first, true);
+        std::string tmp = from_utf8_by_langid(str, base_lang.first);
         uint32_t tmp_sz = static_cast<uint32_t>(tmp.size());
         locstrings.append(&tmp_sz, 4);
         locstrings.append(tmp.c_str(), tmp.size());
@@ -328,7 +328,7 @@ bool Erf::load(const fs::path& path)
         tmp.resize(sz + 1, 0);
         file_.read(tmp.data(), sz);
         auto base_lang = Language::to_base_id(lang);
-        tmp = to_utf8_by_langid(tmp.c_str(), base_lang.first, true);
+        tmp = to_utf8_by_langid(tmp.c_str(), base_lang.first);
         description.add(base_lang.first, tmp, base_lang.second);
     }
 

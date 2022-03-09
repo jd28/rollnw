@@ -158,7 +158,7 @@ GffOutputArchiveStruct& GffOutputArchiveStruct::add_field(std::string_view name,
         for (const auto& [lang, str] : temp) {
             std::string s = string::desanitize_colors(str);
             auto base_lang = Language::to_base_id(lang);
-            s = from_utf8_by_langid(s, base_lang.first, true);
+            s = from_utf8_by_langid(s, base_lang.first);
             uint32_t size = static_cast<uint32_t>(s.size());
             total_size += 8 + size;
             parent->data.append(&lang, 4);

@@ -257,7 +257,7 @@ bool GffInputArchiveField::get_to(T& value) const
                     std::string s{reinterpret_cast<const char*>(parent_->bytes_.data() + off), size};
                     s = string::sanitize_colors(std::move(s));
                     auto base_lang = Language::to_base_id(lang);
-                    s = to_utf8_by_langid(s, base_lang.first, true);
+                    s = to_utf8_by_langid(s, base_lang.first);
                     off += size;
                     ls.add(base_lang.first, s, base_lang.second);
                 }
