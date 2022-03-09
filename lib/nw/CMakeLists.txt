@@ -24,7 +24,6 @@ add_library(nw STATIC
     i18n/Language.cpp
     i18n/LocString.cpp
     i18n/Tlk.cpp
-    i18n/TlkTable.cpp
 
     objects/Area.cpp
     objects/Creature.cpp
