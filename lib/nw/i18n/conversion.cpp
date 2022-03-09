@@ -59,7 +59,7 @@ std::string from_utf8_by_langid(std::string_view str, LanguageID id, bool ignore
 
 std::string from_utf8(std::string_view str, std::string_view encoding, bool ignore_errors)
 {
-    return detail::iconv_wrapper(str, encoding.data(), "UTF-8", ignore_errors);
+    return detail::iconv_wrapper(str, "UTF-8", encoding.data(), ignore_errors);
 }
 
 std::string to_utf8_by_langid(std::string_view str, LanguageID id, bool ignore_errors)
@@ -69,7 +69,7 @@ std::string to_utf8_by_langid(std::string_view str, LanguageID id, bool ignore_e
 
 std::string to_utf8(std::string_view str, std::string_view encoding, bool ignore_errors)
 {
-    return detail::iconv_wrapper(str, "UTF-8", encoding.data(), ignore_errors);
+    return detail::iconv_wrapper(str, encoding.data(), "UTF-8", ignore_errors);
 }
 
 } // namespace nw
