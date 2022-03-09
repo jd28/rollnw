@@ -1,6 +1,9 @@
 #pragma once
 
 #include "../util/ByteArray.hpp"
+#include "Language.hpp"
+
+#include <absl/container/flat_hash_map.h>
 
 #include <cstdint>
 #include <filesystem>
@@ -11,43 +14,59 @@
 namespace nw {
 
 /// Tlk Flags
-enum class TlkFlags : uint32_t {
-    text = 0x1,
-    snd = 0x2,
-    sndlength = 0x4
+struct TlkFlags {
+    static constexpr uint32_t empty = 0x0;
+    static constexpr uint32_t text = 0x1;
+    static constexpr uint32_t sound = 0x2;
+    static constexpr uint32_t sound_length = 0x4;
 };
 
-namespace detail {
-
-/// @cond NEVER
 struct TlkHeader {
-    char type[4];
-    char version[4];
-    uint32_t language_id;
-    uint32_t str_count;
-    uint32_t str_offset;
+    std::array<char, 4> type = {'T', 'L', 'K', ' '};
+    std::array<char, 4> version = {'V', '3', '.', '0'};
+    uint32_t language_id = 0;
+    uint32_t str_count = 0;
+    uint32_t str_offset = 0;
 };
 
 struct TlkElement {
-    TlkFlags flags;
-    char snd_resref[16];
+    TlkElement()
+    {
+        memset(this, 0, sizeof(TlkElement));
+    }
+    uint32_t flags;
+    std::array<char, 16> sound;
     uint32_t unused[2];
     uint32_t offset;
     uint32_t size;
     float snd_duration;
 };
-/// @endcond
-
-} // namespace detail
 
 struct Tlk {
-    Tlk() = default;
-    explicit Tlk(const std::filesystem::path& filename);
+    static constexpr uint32_t custom_flag = 0x01000000;
+
+    explicit Tlk(LanguageID language = LanguageID::english);
+    explicit Tlk(std::filesystem::path filename);
     Tlk(const Tlk&) = delete;
     Tlk(Tlk&&) = default;
 
     /// Get a localized string
-    std::string_view get(uint32_t strref) const;
+    std::string get(uint32_t strref) const;
+
+    /// Get language ID
+    LanguageID language_id() const noexcept;
+
+    /// Is Tlk modfied
+    bool modified() const noexcept;
+
+    /// Write TLK to file
+    void save();
+
+    /// Write TLK to file
+    void save_as(const std::filesystem::path& path);
+
+    /// Set a localized string
+    void set(uint32_t strref, std::string_view string);
 
     /**
      * @brief Get the number of tlk entries
@@ -58,13 +77,20 @@ struct Tlk {
     /// Get if successfully parsed
     bool valid() const noexcept;
 
-    Tlk& operator=(const Tlk&) = default;
+    /// Get a localized string
+    std::string operator[](uint32_t strref) const { return get(strref); };
+
+    Tlk& operator=(const Tlk&) = delete;
     Tlk& operator=(Tlk&&) = default;
 
 private:
+    std::filesystem::path path_;
     ByteArray bytes_;
-    detail::TlkHeader* header_ = nullptr;
-    detail::TlkElement* elements_ = nullptr;
+    TlkHeader header_;
+    TlkElement* elements_ = nullptr;
+    absl::flat_hash_map<uint32_t, std::string> modified_strings_;
+
+    void load();
     bool loaded_ = false;
 };
 
