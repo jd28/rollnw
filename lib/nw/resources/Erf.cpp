@@ -2,7 +2,6 @@
 
 #include "../i18n/conversion.hpp"
 #include "../log.hpp"
-#include "../util/platform.hpp"
 #include "../util/string.hpp"
 #include "Resource.hpp"
 
@@ -43,14 +42,7 @@ struct ErfKey {
     int16_t unused;
 };
 
-Erf::Erf()
-    : working_dir_{create_unique_tmp_path()}
-{
-    LOG_F(INFO, "erf: working directory {}", working_dir_);
-}
-
 Erf::Erf(const std::filesystem::path& path)
-    : Erf()
 {
     if (!fs::exists(path)) {
         throw std::invalid_argument(fmt::format("file '{}' does not exist", path));
@@ -67,14 +59,9 @@ Erf::Erf(const std::filesystem::path& path)
     is_loaded_ = load(path);
 }
 
-Erf::~Erf()
-{
-    fs::remove_all(working_dir_);
-}
-
 bool Erf::add(Resource res, const ByteArray& bytes)
 {
-    auto p = working_dir_ / fs::u8path(res.filename());
+    auto p = working_directory() / fs::u8path(res.filename());
     bytes.write_to(p);
     elements_[res] = p;
     return true;
@@ -82,8 +69,8 @@ bool Erf::add(Resource res, const ByteArray& bytes)
 
 bool Erf::add(Resource res, const std::filesystem::path& path)
 {
-    auto p = working_dir_ / fs::u8path(res.filename());
-    fs::copy_file(path, working_dir_ / fs::u8path(res.filename()), fs::copy_options::overwrite_existing);
+    auto p = working_directory() / fs::u8path(res.filename());
+    fs::copy_file(path, working_directory() / fs::u8path(res.filename()), fs::copy_options::overwrite_existing);
     elements_[res] = p;
     return true;
 }

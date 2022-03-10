@@ -11,7 +11,8 @@ namespace nw {
 
 /// Base class for all containers.
 struct Container {
-    virtual ~Container() = default;
+    Container();
+    virtual ~Container();
 
     /// Get all resources
     virtual std::vector<ResourceDescriptor> all() const = 0;
@@ -39,6 +40,12 @@ struct Container {
 
     /// Return true if loaded, false if not.
     virtual bool valid() const noexcept = 0;
+
+    /// Get container working directory
+    const std::filesystem::path& working_directory() const;
+
+private:
+    std::filesystem::path working_dir_;
 };
 
 } // namespace nw

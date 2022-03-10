@@ -35,11 +35,11 @@ enum class ErfVersion {
 
 class Erf : public Container {
 public:
-    Erf();
+    Erf() = default;
     explicit Erf(const std::filesystem::path& path);
     Erf(const Erf&) = delete;
     Erf(Erf&& other) = default;
-    ~Erf();
+    virtual ~Erf() = default;
 
     bool add(Resource res, const ByteArray& bytes);
     bool add(Resource res, const std::filesystem::path& path);
@@ -72,7 +72,6 @@ private:
     std::streamsize fsize_;
     bool is_loaded_ = false;
     absl::flat_hash_map<Resource, ErfElement> elements_;
-    std::filesystem::path working_dir_;
 
     bool load(const std::filesystem::path& path);
     ByteArray read(const ErfElement& element) const;
