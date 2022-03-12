@@ -21,7 +21,6 @@ Where necessary the reading will be implemented seperatly from the writing and l
 |   png   |    Yes     |   Yes  | [stbi_image](https://github.com/nothings/stb)
 |   set   |    Yes     |   No   | [inih](https://github.com/benhoyt/inih) - it's just an ini file.
 |   tga   |    Yes     |   Yes  | [stbi_image](https://github.com/nothings/stb). Conversions: png, dds
-|   tlk   |    Yes     |   No   | A 10 minute, easy-bake, read-only implementation.. for now.
 |   tml   |    Yes     |   Yes  | [toml++](https://github.com/marzer/tomlplusplus/)
 |   txi   |    No      |   No   | Parsing easy, do anything with it hard
 
