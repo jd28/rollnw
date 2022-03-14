@@ -25,6 +25,9 @@ add_library(nw STATIC
     i18n/LocString.cpp
     i18n/Tlk.cpp
 
+    kernel/Kernel.cpp
+    kernel/Strings.cpp
+
     objects/Area.cpp
     objects/Creature.cpp
     objects/Dialog.cpp
