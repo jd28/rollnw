@@ -23,7 +23,17 @@ libnw is a simple modern static C++ library for Neverwinter Nights(:EE) file for
 * hews as close to [C++ Core Guidelines](https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines) as possible.
 * aims to be as easily bindable as possible to other languages.  I.e. only custom or STL types at API boundaries.
 
-Find the status of [File Formats](lib/nw/formats/README.md), [Containers](lib/nw/resources/README.md), [Objects](lib/nw/objects/README.md) in their respective READMEs.
+## Project Structure
+
+The library is organized around modules (that will be converted to [C++ Modules](https://docs.microsoft.com/en-us/cpp/cpp/modules-cpp?view=msvc-170) when implementations of C++20 become more common):
+
+* [formats](lib/nw/formats/README.md) - Implementations of basic NWN(:EE) file formats.  E.g, Images, Ini, TwoDA, a nwscript lexer and (very basic) recursive decent parser.
+* [i18n](lib/nw/i18n/README.md) - Internationalization and localization functionality, conversions between default NWN(:EE) character encodings and UTF-8, implementation of Bioware's **TLK v3.0** file format.
+* [kernel](lib/nw/kernel/README.md) - Core services, global state.
+* [objects](lib/nw/objects/README.md) - Object types.  I.e. Creature, Door, Encounter, etc.
+* [resources](lib/nw/resources/README.md) - Resource loading
+* [serialization](lib/nw/serialization/README.md) - Serializing to/from Gff, JSON, GFFJSON, etc.
+* [util](lib/nw/util/README.md) - Basic utilities and functions, compression, tokenizing.
 
 ## Quickstart
 
