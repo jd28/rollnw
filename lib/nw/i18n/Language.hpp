@@ -41,13 +41,8 @@ private:
     };
 
     static const std::array<Properties, 10> language_table;
-    static std::string default_encoding_;
 
 public:
-    /// Get default encoding, should maybe just use locale?  I dunno..
-    /// Need some way to deal with CExoStrings.. default is cp-1251
-    static const std::string& default_encoding();
-
     /// Gets the encoding for a particular language
     static std::string_view encoding(LanguageID lang);
 
@@ -56,9 +51,6 @@ public:
 
     /// Determines if language has feminine translations
     static bool has_feminine(LanguageID lang);
-
-    /// Set default encoding, should maybe just use locale?  I dunno..
-    static void set_default_encoding(std::string_view encoding);
 
     /// Convert runtime language identifier to base language and bool indicating
     /// masc/fem.

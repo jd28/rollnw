@@ -18,10 +18,6 @@ const std::array<Language::Properties, 10> Language::language_table{
     Language::Properties{LanguageID::japanese, "ja", "Japanese", "CP932", true},
 };
 
-std::string Language::default_encoding_ = "CP1252";
-
-const std::string& Language::default_encoding() { return Language::default_encoding_; }
-
 std::string_view Language::encoding(LanguageID lang)
 {
     for (const auto& info : language_table) {
@@ -77,11 +73,6 @@ std::string_view Language::to_string(LanguageID lang, bool long_name)
         }
     }
     return {};
-}
-
-void Language::set_default_encoding(std::string_view encoding)
-{
-    Language::default_encoding_ = std::string(encoding);
 }
 
 } // namespace nw
