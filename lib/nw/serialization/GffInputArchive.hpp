@@ -3,7 +3,6 @@
 #include "../i18n/Language.hpp"
 #include "../i18n/LocString.hpp"
 #include "../i18n/conversion.hpp"
-#include "../kernel/Kernel.hpp"
 #include "../log.hpp"
 #include "../resources/Resource.hpp"
 #include "../util/ByteArray.hpp"
@@ -236,7 +235,7 @@ bool GffInputArchiveField::get_to(T& value) const
                 s.reserve(size + 12); // Reserve a little bit extra, in case of colors.
                 s.append(reinterpret_cast<const char*>(parent_->bytes_.data() + off), size);
                 value = string::sanitize_colors(std::move(s));
-                value = to_utf8_by_langid(value, kernel::strings().global_language());
+                value = to_utf8_by_global_lang(value);
                 return true;
             } else if constexpr (std::is_same_v<T, LocString>) {
                 uint32_t size, strref, lang, strings;

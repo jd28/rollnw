@@ -1,7 +1,6 @@
 #pragma once
 
 #include "../i18n/conversion.hpp"
-#include "../kernel/Kernel.hpp"
 #include "../util/templates.hpp"
 #include "Serialization.hpp"
 #include "gff_common.hpp"
@@ -135,7 +134,7 @@ GffOutputArchiveStruct& GffOutputArchiveStruct::add_field(std::string_view name,
         f.type = SerializationType::id<std::string>();
         f.data_or_offset = static_cast<uint32_t>(parent->data.size());
         std::string s = string::desanitize_colors(temp);
-        s = from_utf8_by_langid(s, kernel::strings().global_language());
+        s = from_utf8_by_global_lang(s);
         uint32_t size = static_cast<uint32_t>(s.size());
         parent->data.append(&size, 4);
         parent->data.append(s.data(), size);
