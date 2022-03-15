@@ -6,13 +6,26 @@
 
 namespace nw {
 
+// -- ObjectID ----------------------------------------------------------------
+//-----------------------------------------------------------------------------
+
 /// Opaque type.. for now.
 enum class ObjectID : uint32_t {};
 
 /// Invalid object ID
-static const ObjectID object_invalid{static_cast<ObjectID>(0x7f000000)};
+static constexpr ObjectID object_invalid{static_cast<ObjectID>(0x7f000000)};
 
-enum struct ObjectType {
+/// nlohmann::json specialization
+void from_json(const nlohmann::json& j, ObjectID& id);
+
+/// nlohmann::json specialization
+void to_json(nlohmann::json& j, ObjectID id);
+
+// -- ObjectType --------------------------------------------------------------
+//-----------------------------------------------------------------------------
+
+/// Object types
+enum struct ObjectType : uint16_t {
     invalid = 0, // Not real
     gui = 1,
     tile = 2,
@@ -32,6 +45,35 @@ enum struct ObjectType {
     sound = 16,
 };
 
+/// nlohmann::json specialization
+void from_json(const nlohmann::json& j, ObjectType& type);
+
+/// nlohmann::json specialization
+void to_json(nlohmann::json& j, ObjectType type);
+
+// -- ObjectHandle ------------------------------------------------------------
+//-----------------------------------------------------------------------------
+
+/// Unique identifier for Objects
+struct ObjectHandle {
+    ObjectID id{object_invalid};
+    uint16_t version{0};
+    ObjectType type{ObjectType::invalid};
+
+    operator bool() const noexcept;
+    bool operator==(ObjectHandle handle) const noexcept;
+    bool operator!=(ObjectHandle handle) const noexcept;
+};
+
+/// nlohmann::json specialization
+void from_json(const nlohmann::json& j, ObjectHandle& handle);
+
+/// nlohmann::json specialization
+void to_json(nlohmann::json& j, ObjectHandle handle);
+
+// -- ObjectBase --------------------------------------------------------------
+//-----------------------------------------------------------------------------
+
 struct Area;
 struct Common;
 struct Creature;
@@ -46,12 +88,16 @@ struct Trigger;
 struct Waypoint;
 
 struct ObjectBase {
-    virtual ~ObjectBase() { }
+    virtual ~ObjectBase() = default;
+
+    const ObjectHandle& handle() const noexcept;
+    void set_handle(ObjectHandle handle) noexcept;
+
+    virtual Common* common() { return nullptr; }
+    virtual const Common* common() const { return nullptr; }
 
     virtual Area* as_area() { return nullptr; }
     virtual const Area* as_area() const { return nullptr; }
-    virtual Common* common() { return nullptr; }
-    virtual const Common* common() const { return nullptr; }
     virtual Creature* as_creature() { return nullptr; }
     virtual const Creature* as_creature() const { return nullptr; }
     virtual Door* as_door() { return nullptr; }
@@ -72,18 +118,9 @@ struct ObjectBase {
     virtual const Trigger* as_trigger() const { return nullptr; }
     virtual Waypoint* as_waypoint() { return nullptr; }
     virtual const Waypoint* as_waypoint() const { return nullptr; }
+
+private:
+    ObjectHandle handle_;
 };
-
-/// nlohmann::json specialization
-void from_json(const nlohmann::json& j, ObjectID& id);
-
-/// nlohmann::json specialization
-void from_json(const nlohmann::json& j, ObjectType& type);
-
-/// nlohmann::json specialization
-void to_json(nlohmann::json& j, ObjectID id);
-
-/// nlohmann::json specialization
-void to_json(nlohmann::json& j, ObjectType type);
 
 } // namespace nw
