@@ -41,9 +41,26 @@ public:
     Erf(Erf&& other) = default;
     virtual ~Erf() = default;
 
+    /// Adds resources from array of bytes
     bool add(Resource res, const ByteArray& bytes);
+
+    /// Adds resources from path
     bool add(const std::filesystem::path& path);
+
+    /// Merges the contents of another container
+    bool merge(const Container* container);
+
+    /// Reloads Erf
+    /// @note Erf::working_directory() will not change
+    bool reload();
+
+    /// Saves Erf to Erf::path()
+    /// @note It's probably best to call Erf::reload after save.
     bool save() const;
+
+    /// Saves Erf to different path
+    /// @note Current Erf unmodified, to load Erf at new path a new Erf must
+    /// be constructed.
     bool save_as(const std::filesystem::path& path) const;
 
     virtual std::vector<ResourceDescriptor> all() const override;

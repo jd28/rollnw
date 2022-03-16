@@ -80,6 +80,24 @@ bool Erf::add(const std::filesystem::path& path)
     return true;
 }
 
+bool Erf::merge(const Container* container)
+{
+    if (!container) { return false; }
+    auto all = container->all();
+    bool result = true;
+    for (const auto& a : all) {
+        result &= add(a.name, container->demand(a.name));
+    }
+    return result;
+}
+
+bool Erf::reload()
+{
+    file_.close();
+    elements_.clear();
+    return is_loaded_ = load(path());
+}
+
 bool Erf::save() const
 {
     return save_as(fs::u8path(path_));

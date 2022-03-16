@@ -54,7 +54,27 @@ TEST_CASE("erf: add", "[containers]")
     REQUIRE_FALSE(e.add("this_is_invalid_path_to_resource.xxxx"));
 }
 
-TEST_CASE("erf: save", "[containers]")
+TEST_CASE("Erf::merge", "[containers]")
+{
+    Resource r{"build"sv, nw::ResourceType::txt};
+    Erf e1("test_data/DockerDemo.mod");
+    Erf e2{"test_data/hak_with_description.hak"};
+    REQUIRE(e1.merge(&e2));
+    REQUIRE(e1.stat(r).size == e2.stat(r).size);
+}
+
+TEST_CASE("Erf::save", "[containers]")
+{
+    Erf e{"test_data/hak_with_description.hak"};
+    REQUIRE(e.valid());
+    REQUIRE(e.save());
+    REQUIRE(e.reload());
+    Resource r2{"build"sv, nw::ResourceType::txt};
+    auto ba = e.demand(r2);
+    REQUIRE(ba.size() > 0);
+}
+
+TEST_CASE("Erf::save_as", "[containers]")
 {
     Erf e{"test_data/hak_with_description.hak"};
     REQUIRE(e.valid());
