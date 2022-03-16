@@ -2,6 +2,7 @@
 
 #include "../i18n/Language.hpp"
 #include "../log.hpp"
+#include "../util/templates.hpp"
 
 namespace fs = std::filesystem;
 
@@ -36,7 +37,7 @@ void Strings::load_custom_tlk(const std::filesystem::path& path)
     custom_ = Tlk{path};
     if (custom_.language_id() != global_lang_) {
         LOG_F(WARNING, "tlk language does not match global language: {} != {}",
-            custom_.language_id(), global_lang_);
+            to_underlying(custom_.language_id()), to_underlying(global_lang_));
     }
 
     if (Language::has_feminine(custom_.language_id())) {
@@ -53,7 +54,7 @@ void Strings::load_dialog_tlk(const std::filesystem::path& path)
     dialog_ = Tlk{path};
     if (dialog_.language_id() != global_lang_) {
         LOG_F(WARNING, "tlk language does not match global language: {} != {}",
-            dialog_.language_id(), global_lang_);
+            to_underlying(dialog_.language_id()), to_underlying(global_lang_));
     }
 
     if (Language::has_feminine(dialog_.language_id())) {

@@ -13,7 +13,7 @@ jobs:
   build:
     env:
       buildDir: "${{ github.workspace }}/build/"
-      vcpkg-tag: "2022.01.01"
+      vcpkg-tag: "2022.02.02"
       VCPKG_ROOT: "${{ github.workspace }}/vcpkg/"
       VCPKG_DEFAULT_BINARY_CACHE: "${{ github.workspace }}/vcpkg/.cache"
 
