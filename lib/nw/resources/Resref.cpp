@@ -28,8 +28,11 @@ Resref::Resref(const char* string) noexcept
 Resref::Resref(std::string_view string) noexcept
     : data_{}
 {
-    DCHECK_F(string.size() <= 16, "Resrefs are limited to 16 characters.");
-    memcpy(data_.data(), string.data(), std::min(size_type(16), string.size()));
+    if (string.length() > max_size) {
+        LOG_F(ERROR, "invalid resref: '{}', resref must be less than {} characters", string, max_size);
+        return;
+    }
+    memcpy(data_.data(), string.data(), std::min(size_type(max_size), string.size()));
     std::transform(data_.begin(), data_.end(), data_.begin(), ::tolower);
 }
 
