@@ -7,6 +7,7 @@
 #include <nlohmann/json_fwd.hpp>
 
 #include <cstddef>
+#include <filesystem>
 #include <string>
 #include <tuple>
 
@@ -23,6 +24,8 @@ struct Resource {
     Resource(std::string_view resref, ResourceType::type type) noexcept;
     Resource(const Resource&) = default;
     Resource(Resource&&) = default;
+
+    static Resource from_path(const std::filesystem::path& path);
 
     Resref resref;
     ResourceType::type type;

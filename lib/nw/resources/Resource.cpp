@@ -27,6 +27,13 @@ Resource::Resource(std::string_view resref, ResourceType::type type) noexcept
 {
 }
 
+Resource Resource::from_path(const std::filesystem::path& path)
+{
+    std::string ext = path.extension().u8string();
+    std::string stem = path.stem().u8string();
+    return {stem, ResourceType::from_extension(ext)};
+}
+
 bool Resource::valid() const noexcept
 {
     return type != ResourceType::invalid && !resref.empty();

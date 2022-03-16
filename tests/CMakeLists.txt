@@ -58,6 +58,7 @@ add_executable(libnw_test
     resources_key.cpp
     resources_locator.cpp
     resources_nwsync.cpp
+    resources_resource.cpp
     resources_zip.cpp
 
     serial_gff.cpp
