@@ -42,7 +42,7 @@ TEST_CASE("erf: add", "[containers]")
 {
     Erf e{"test_data/hak_with_description.hak"};
     Resource r{"cloth028"sv, nw::ResourceType::uti};
-    e.add(r, "test_data/cloth028.uti");
+    e.add("test_data/cloth028.uti");
     auto rd = e.stat(r);
     REQUIRE(rd.name == r);
     REQUIRE(rd.size == 1969);
@@ -50,6 +50,8 @@ TEST_CASE("erf: add", "[containers]")
     nw::ByteArray ba = nw::ByteArray::from_file(u8"test_data/cloth028.uti");
     auto ba2 = e.demand(r);
     REQUIRE(ba == ba2);
+
+    REQUIRE_FALSE(e.add("this_is_invalid_path_to_resource.xxxx"));
 }
 
 TEST_CASE("erf: save", "[containers]")
@@ -60,7 +62,7 @@ TEST_CASE("erf: save", "[containers]")
     auto ba = e.demand(r2);
 
     Resource r{"cloth028"sv, nw::ResourceType::uti};
-    e.add(r, "test_data/cloth028.uti");
+    e.add("test_data/cloth028.uti");
     REQUIRE(e.save_as(fs::u8path("tmp/hak_with_description.hak")));
     Erf e2{"tmp/hak_with_description.hak"};
     auto ba2 = e2.demand(r2);

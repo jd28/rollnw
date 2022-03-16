@@ -67,8 +67,13 @@ bool Erf::add(Resource res, const ByteArray& bytes)
     return true;
 }
 
-bool Erf::add(Resource res, const std::filesystem::path& path)
+bool Erf::add(const std::filesystem::path& path)
 {
+    Resource res = Resource::from_path(path);
+    if (!res.valid()) {
+        LOG_F(ERROR, "erf: attempting to add resource with invalid name '{}'.", path);
+        return false;
+    }
     auto p = working_directory() / fs::u8path(res.filename());
     fs::copy_file(path, working_directory() / fs::u8path(res.filename()), fs::copy_options::overwrite_existing);
     elements_[res] = p;

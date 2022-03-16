@@ -42,7 +42,7 @@ public:
     virtual ~Erf() = default;
 
     bool add(Resource res, const ByteArray& bytes);
-    bool add(Resource res, const std::filesystem::path& path);
+    bool add(const std::filesystem::path& path);
     bool save() const;
     bool save_as(const std::filesystem::path& path) const;
 
