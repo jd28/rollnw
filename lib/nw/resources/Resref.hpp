@@ -4,7 +4,6 @@
 
 #include <array>
 #include <cctype>
-#include <compare>
 #include <string>
 
 namespace nw {
