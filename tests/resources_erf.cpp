@@ -54,6 +54,14 @@ TEST_CASE("erf: add", "[containers]")
     REQUIRE_FALSE(e.add("this_is_invalid_path_to_resource.xxxx"));
 }
 
+TEST_CASE("Erf::erase", "[containers]")
+{
+    Resource r{"build"sv, nw::ResourceType::txt};
+    Erf e{"test_data/hak_with_description.hak"};
+    REQUIRE(e.erase(r) != 0);
+    REQUIRE(e.size() == 0);
+}
+
 TEST_CASE("Erf::merge", "[containers]")
 {
     Resource r{"build"sv, nw::ResourceType::txt};

@@ -80,6 +80,11 @@ bool Erf::add(const std::filesystem::path& path)
     return true;
 }
 
+size_t Erf::erase(const Resource& res)
+{
+    return elements_.erase(res);
+}
+
 bool Erf::merge(const Container* container)
 {
     if (!container) { return false; }

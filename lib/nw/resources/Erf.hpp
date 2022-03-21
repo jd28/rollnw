@@ -47,6 +47,9 @@ public:
     /// Adds resources from path
     bool add(const std::filesystem::path& path);
 
+    /// Removes resource
+    size_t erase(const Resource& res);
+
     /// Merges the contents of another container
     bool merge(const Container* container);
 
