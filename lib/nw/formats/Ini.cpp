@@ -1,6 +1,7 @@
 #include "Ini.hpp"
 
 #include "../log.hpp"
+#include "../util/string.hpp"
 
 namespace fs = std::filesystem;
 
@@ -18,8 +19,9 @@ Ini::Ini(ByteArray bytes)
     loaded_ = parse();
 }
 
-bool Ini::get_to(absl::string_view key, std::string& out) const
+bool Ini::get_to(std::string key, std::string& out) const
 {
+    string::tolower(&key);
     auto it = map_.find(key);
     if (it == std::end(map_))
         return false;
@@ -27,8 +29,9 @@ bool Ini::get_to(absl::string_view key, std::string& out) const
     return true;
 }
 
-bool Ini::get_to(absl::string_view key, int& out) const
+bool Ini::get_to(std::string key, int& out) const
 {
+    string::tolower(&key);
     auto it = map_.find(key);
     if (it == std::end(map_))
         return false;
@@ -42,8 +45,9 @@ bool Ini::get_to(absl::string_view key, int& out) const
     return true;
 }
 
-bool Ini::get_to(absl::string_view key, float& out) const
+bool Ini::get_to(std::string key, float& out) const
 {
+    string::tolower(&key);
     auto it = map_.find(key);
     if (it == std::end(map_))
         return false;
@@ -57,7 +61,7 @@ bool Ini::get_to(absl::string_view key, float& out) const
     return true;
 }
 
-bool Ini::is_valid()
+bool Ini::valid()
 {
     return loaded_;
 }
@@ -81,6 +85,8 @@ int Ini::parse_ini(void* user, const char* section, const char* name, const char
         return 1;
     Ini* reader = static_cast<Ini*>(user);
     std::string key = std::string(section) + "/" + name;
+    string::tolower(&key);
+
     reader->map_[key] = value ? value : "";
     return 1;
 }

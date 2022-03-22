@@ -13,20 +13,17 @@
 
 namespace nw {
 
-class Ini {
-public:
+struct Ini {
+    Ini() = default;
     explicit Ini(const std::filesystem::path& filename);
     explicit Ini(ByteArray bytes);
 
-    // absl::flat_hash_map doesn't support hertogeneous lookup with std::string_view
-    // hence the absl::string_view below.
-
     template <typename T>
-    std::optional<T> get(absl::string_view key) const;
-    bool get_to(absl::string_view key, std::string& out) const;
-    bool get_to(absl::string_view key, int& out) const;
-    bool get_to(absl::string_view key, float& out) const;
-    bool is_valid();
+    std::optional<T> get(std::string key) const;
+    bool get_to(std::string key, std::string& out) const;
+    bool get_to(std::string key, int& out) const;
+    bool get_to(std::string key, float& out) const;
+    bool valid();
 
 private:
     ByteArray bytes_;
@@ -38,10 +35,10 @@ private:
 };
 
 template <typename T>
-std::optional<T> Ini::get(absl::string_view key) const
+std::optional<T> Ini::get(std::string key) const
 {
     std::string val;
-    if (!get_to(key, val))
+    if (!get_to(std::move(key), val))
         return {};
 
     if constexpr (std::is_same_v<T, float> || std::is_convertible_v<T, int>) {
