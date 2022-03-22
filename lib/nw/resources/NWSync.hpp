@@ -51,6 +51,7 @@ private:
 };
 
 struct NWSync {
+    NWSync();
     explicit NWSync(const std::filesystem::path& path);
     NWSync(const NWSync&) = delete;
     NWSync(NWSync&&) = default;

@@ -14,6 +14,7 @@ namespace fs = std::filesystem;
 // it checks disk on every demand.
 
 struct Directory : public Container {
+    Directory() = default;
     explicit Directory(const std::filesystem::path& path);
     ~Directory() = default;
 

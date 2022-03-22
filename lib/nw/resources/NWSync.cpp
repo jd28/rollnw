@@ -179,6 +179,11 @@ ResourceDescriptor NWSyncManifest::stat(const Resource& res) const
     return result;
 }
 
+NWSync::NWSync()
+    : meta_{nullptr, detail::sqlite3_deleter}
+{
+}
+
 NWSync::NWSync(const std::filesystem::path& path)
     : meta_{nullptr, detail::sqlite3_deleter}
 {
