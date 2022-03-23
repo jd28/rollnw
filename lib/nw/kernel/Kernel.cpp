@@ -19,12 +19,16 @@ void Services::shutdown()
 
 void Services::start()
 {
+    if (!config_) {
+        config_ = std::make_unique<Config>();
+    }
     if (!strings_) {
         strings_ = std::make_unique<Strings>();
     }
 }
 
 Services& services() { return detail::s_services; }
+Config& config() { return *detail::s_services.config_.get(); }
 Strings& strings() { return *detail::s_services.strings_.get(); }
 
 } // namespace nw::kernel

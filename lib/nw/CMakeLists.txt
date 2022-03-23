@@ -26,6 +26,7 @@ add_library(nw STATIC
     i18n/Tlk.cpp
 
     kernel/Kernel.cpp
+    kernel/Config.cpp
     kernel/Strings.cpp
 
     objects/Area.cpp

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Config.hpp"
 #include "Strings.hpp"
 
 #include <memory>
@@ -22,9 +23,11 @@ struct Services {
     /// Start all services, if no services are provided, default services will be used.
     void start();
 
+    friend Config& config();
     friend Strings& strings();
 
 private:
+    std::unique_ptr<Config> config_;
     std::unique_ptr<Strings> strings_;
 };
 
@@ -33,6 +36,7 @@ static Services s_services;
 } // namespace detail
 
 Services& services();
+Config& config();
 Strings& strings();
 
 } // namespace nw::kernel
