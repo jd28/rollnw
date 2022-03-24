@@ -4,14 +4,11 @@
 
 namespace nw {
 
-struct NWNPaths {
-    std::filesystem::path install;
-    std::filesystem::path user;
-};
+/// Gets user's documents path
+std::filesystem::path documents_path();
 
-/// Gets user and install paths.
-/// WARNING - HUGE PUNT - JUST READS ENV VARS ``NWN_ROOT`` and ``NWN_HOME``
-NWNPaths get_nwn_paths();
+/// Gets user's home path
+std::filesystem::path home_path();
 
 /// Creates randomly named folder in tmp.  Analguous to POSIX `mkdtemp`.
 std::filesystem::path create_unique_tmp_path();

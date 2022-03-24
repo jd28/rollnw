@@ -2,7 +2,7 @@
 
 #include <nw/i18n/Tlk.hpp>
 #include <nw/log.hpp>
-#include <nw/util/platform.hpp>
+#include <nw/util/game_install.hpp>
 
 TEST_CASE("Tlk", "[formats]")
 {
@@ -15,7 +15,12 @@ TEST_CASE("Tlk", "[formats]")
 
 TEST_CASE("tlk: load languages")
 {
-    auto paths = nw::get_nwn_paths();
+    nw::InstallInfo paths;
+    try {
+        paths = nw::probe_nwn_install();
+    } catch (...) {
+    }
+
     if (std::filesystem::exists(paths.install)) {
         nw::Tlk de{paths.install / "lang/de/data/dialog.tlk"};
         REQUIRE(de.valid());

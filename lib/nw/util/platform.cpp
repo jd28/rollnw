@@ -1,27 +1,47 @@
 #include "platform.hpp"
 
-#include <cstdlib>
+#include <nowide/convert.hpp>
 #include <nowide/cstdlib.hpp>
 
+#include <cstdlib>
 #include <random>
 #include <sstream>
+#if defined(LIBNW_OS_LINUX) || defined(LIBNW_OS_MACOS)
+#include <pwd.h>
+#include <unistd.h>
+#endif
 
 namespace nw {
 
-NWNPaths get_nwn_paths()
+std::filesystem::path documents_path()
 {
-    // [TODO] PUNT, for now.
-    NWNPaths result;
-
-    if (auto p = nowide::getenv("NWN_HOME")) {
-        result.user = p;
+#if defined(LIBNW_OS_MACOS) || defined(LIBNW_OS_LINUX)
+    return home_path() / "Documents"; // On macOS finder shows localized, but is "Documents"
+                                      // on disk.  Don't know if this is true on Linux.
+#elif defined(LIBNW_OS_WINDOWS)
+    PWSTR path;
+    if(SUCEEDED(SHGetKnownFolderPath(FOLDERID_Personal, KF_FLAG_DEFAULT, NULL, &path)) {
+        return nowide::narrow(path);
     }
+#endif
+    throw std::runtime_error("unable to determine user document path");
+}
 
-    if (auto p = nowide::getenv("NWN_ROOT")) {
-        result.install = p;
+std::filesystem::path home_path()
+{
+    const char* home = nullptr;
+#if defined(LIBNW_OS_MACOS) || defined(LIBNW_OS_LINUX)
+    home = nowide::getenv("HOME");
+    if (!home) {
+        home = getpwuid(getuid())->pw_dir;
     }
-
-    return result;
+#elif defined(LIBNW_OS_WINDOWS)
+    home = nowide::getenv("USERPROFILE");
+#endif
+    if (!home) {
+        throw std::runtime_error("unable to determine user home path");
+    }
+    return std::filesystem::path(home);
 }
 
 std::filesystem::path create_unique_tmp_path()

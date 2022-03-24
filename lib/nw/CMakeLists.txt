@@ -80,6 +80,7 @@ add_library(nw STATIC
     util/base64.cpp
     util/ByteArray.cpp
     util/compression.cpp
+    util/game_install.cpp
     util/platform.cpp
     util/string.cpp
     util/Tokenizer.cpp

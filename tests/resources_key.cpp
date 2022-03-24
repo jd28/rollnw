@@ -2,7 +2,7 @@
 
 #include <nw/log.hpp>
 #include <nw/resources/Key.hpp>
-#include <nw/util/platform.hpp>
+#include <nw/util/game_install.hpp>
 
 #include <filesystem>
 #include <regex>
@@ -12,7 +12,12 @@ using namespace std::literals;
 
 TEST_CASE("Load Key", "[resources]")
 {
-    auto paths = nw::get_nwn_paths();
+    nw::InstallInfo paths;
+    try {
+        paths = nw::probe_nwn_install();
+    } catch (...) {
+    }
+
     if (fs::exists(paths.install)) {
         nw::Key k{paths.install / "data/nwn_base.key"};
         REQUIRE(k.size() > 0);
