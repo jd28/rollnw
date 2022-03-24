@@ -227,8 +227,8 @@ bool NWSync::load()
     sqlite3* db = nullptr;
     fs::path db_path = path_ / "nwsyncmeta.sqlite3";
     if (!fs::exists(db_path)) { return false; }
-    if (SQLITE_OK != sqlite3_open(db_path.string().c_str(), &db)) {
-        LOG_F(ERROR, "sqlite3 error: {}", sqlite3_errmsg(meta_.get()));
+    if (SQLITE_OK != sqlite3_open(db_path.u8string().c_str(), &db)) {
+        LOG_F(ERROR, "sqlite3 error: {}", sqlite3_errmsg(db));
         return false;
     }
     meta_ = sqlite3_ptr(db, detail::sqlite3_deleter);
@@ -240,8 +240,8 @@ bool NWSync::load()
         db_path = path_ / db_name;
 
         if (!fs::exists(db_path)) { break; }
-        if (SQLITE_OK != sqlite3_open(db_path.string().c_str(), &db)) {
-            LOG_F(ERROR, "sqlite3 error: {}", sqlite3_errmsg(meta_.get()));
+        if (SQLITE_OK != sqlite3_open(db_path.u8string().c_str(), &db)) {
+            LOG_F(ERROR, "sqlite3 error: {}", sqlite3_errmsg(db));
             return false;
         }
         shards_.emplace_back(db, detail::sqlite3_deleter);
@@ -252,7 +252,7 @@ bool NWSync::load()
         map_.emplace(m, NWSyncManifest{m, this});
     }
 
-    return i != 0;
+    return true;
 }
 
 } // namespace nw
