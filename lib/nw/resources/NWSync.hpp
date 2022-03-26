@@ -36,6 +36,7 @@ struct NWSyncManifest : public Container {
     NWSyncManifest(std::string manifest, NWSync* parent);
 
     virtual std::vector<ResourceDescriptor> all() const override;
+    virtual bool contains(Resource res) const override;
     virtual ByteArray demand(Resource res) const override;
     virtual int extract(const std::regex& pattern, const std::filesystem::path& output) const override;
     virtual const std::string& name() const override { return manifest_; };

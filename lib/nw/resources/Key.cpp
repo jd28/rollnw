@@ -64,6 +64,11 @@ std::vector<ResourceDescriptor> Key::all() const
     return result;
 }
 
+bool Key::contains(Resource res) const
+{
+    return elements_.find(res) != std::end(elements_);
+}
+
 ByteArray Key::demand(Resource res) const
 {
     ByteArray ba;

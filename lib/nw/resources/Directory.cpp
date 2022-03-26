@@ -62,6 +62,12 @@ std::vector<ResourceDescriptor> Directory::all() const
     return res;
 }
 
+bool Directory::contains(Resource res) const
+{
+    fs::path p = path_ / res.filename();
+    return fs::exists(p) && fs::is_regular_file(p);
+}
+
 ByteArray Directory::demand(Resource res) const
 {
     fs::path p = path_ / res.filename();

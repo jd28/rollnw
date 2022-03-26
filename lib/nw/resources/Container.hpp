@@ -17,6 +17,9 @@ struct Container {
     /// Get all resources
     virtual std::vector<ResourceDescriptor> all() const = 0;
 
+    /// Get if container contains resource
+    virtual bool contains(Resource res) const = 0;
+
     /// Reads resourece data, empty ByteArray if no match.
     virtual ByteArray demand(Resource res) const = 0;
 

@@ -56,6 +56,11 @@ std::vector<ResourceDescriptor> NWSyncManifest::all() const
     return result;
 }
 
+bool NWSyncManifest::contains(Resource res) const
+{
+    return !!stat(res);
+}
+
 ByteArray NWSyncManifest::demand(Resource res) const
 {
     ByteArray result;

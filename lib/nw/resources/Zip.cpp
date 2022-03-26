@@ -46,6 +46,11 @@ std::vector<ResourceDescriptor> Zip::all() const
     return res;
 }
 
+bool Zip::contains(Resource res) const
+{
+    return !!stat(res);
+}
+
 ByteArray Zip::demand(Resource resref) const
 {
     ByteArray ba;

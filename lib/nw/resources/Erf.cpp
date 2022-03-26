@@ -218,6 +218,11 @@ std::vector<ResourceDescriptor> Erf::all() const
     return result;
 }
 
+bool Erf::contains(Resource res) const
+{
+    return elements_.find(res) != std::end(elements_);
+}
+
 ByteArray Erf::demand(Resource res) const
 {
     if (!is_loaded_) { return {}; }
