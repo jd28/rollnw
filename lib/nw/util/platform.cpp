@@ -9,6 +9,11 @@
 #if defined(LIBNW_OS_LINUX) || defined(LIBNW_OS_MACOS)
 #include <pwd.h>
 #include <unistd.h>
+#elif defined(LIBNW_OS_WINDOWS)
+#define WINVER 0x0A00
+#define _WIN32_WINNT_WIN10                  0x0A00 // Windows 10
+#include <windows.h>
+#include <ShlObj.h>
 #endif
 
 namespace nw {
@@ -20,7 +25,7 @@ std::filesystem::path documents_path()
                                       // on disk.  Don't know if this is true on Linux.
 #elif defined(LIBNW_OS_WINDOWS)
     PWSTR path;
-    if(SUCEEDED(SHGetKnownFolderPath(FOLDERID_Personal, KF_FLAG_DEFAULT, NULL, &path)) {
+    if(SUCCEEDED(SHGetKnownFolderPath(FOLDERID_Documents, KF_FLAG_DEFAULT, NULL, &path))) {
         return nowide::narrow(path);
     }
 #endif
