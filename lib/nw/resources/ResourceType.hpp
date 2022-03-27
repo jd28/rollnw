@@ -405,7 +405,7 @@ struct ResourceType {
     }
 
     /// Gets if a resource type is a container
-    constexpr bool is_container(ResourceType::type type)
+    static constexpr bool is_container(ResourceType::type type)
     {
         return type == ResourceType::bif
             || type == ResourceType::erf
@@ -416,7 +416,7 @@ struct ResourceType {
     }
 
     /// Gets if a resource type is a gff
-    constexpr bool is_gff(ResourceType::type type)
+    static constexpr bool is_gff(ResourceType::type type)
     {
         return type == ResourceType::are
             || type == ResourceType::bic
@@ -441,7 +441,7 @@ struct ResourceType {
     }
 
     /// Gets if a resource type is a texture
-    constexpr bool is_texture(ResourceType::type type)
+    static constexpr bool is_texture(ResourceType::type type)
     {
         return type == ResourceType::dds
             || type == ResourceType::tga
