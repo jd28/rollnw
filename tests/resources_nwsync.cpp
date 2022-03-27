@@ -16,7 +16,7 @@ TEST_CASE("nwsync", "[containers]")
     } catch (...) {
     }
 
-    if (fs::exists(paths.user)) {
+    if (fs::exists(paths.user / "nwsync/nwsyncmeta.sqlite3")) {
         auto n = nw::NWSync(paths.user / "nwsync/");
         REQUIRE(n.is_loaded());
         auto manifests = n.manifests();
