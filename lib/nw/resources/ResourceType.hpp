@@ -410,7 +410,7 @@ struct ResourceType {
         return type == ResourceType::bif
             || type == ResourceType::erf
             || type == ResourceType::key
-            || type == ResourceType::erf
+            || type == ResourceType::mod
             || type == ResourceType::nwm
             || type == ResourceType::sav;
     }
