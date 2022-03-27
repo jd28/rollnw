@@ -403,6 +403,50 @@ struct ResourceType {
             return "key";
         }
     }
+
+    /// Gets if a resource type is a container
+    constexpr bool is_container(ResourceType::type type)
+    {
+        return type == ResourceType::bif
+            || type == ResourceType::erf
+            || type == ResourceType::key
+            || type == ResourceType::erf
+            || type == ResourceType::nwm
+            || type == ResourceType::sav;
+    }
+
+    /// Gets if a resource type is a gff
+    constexpr bool is_gff(ResourceType::type type)
+    {
+        return type == ResourceType::are
+            || type == ResourceType::bic
+            || type == ResourceType::caf
+            || type == ResourceType::dlg
+            || type == ResourceType::fac
+            || type == ResourceType::gff
+            || type == ResourceType::gic
+            || type == ResourceType::git
+            || type == ResourceType::ifo
+            || type == ResourceType::itp
+            || type == ResourceType::jrl
+            || type == ResourceType::utc
+            || type == ResourceType::utd
+            || type == ResourceType::ute
+            || type == ResourceType::uti
+            || type == ResourceType::utm
+            || type == ResourceType::utp
+            || type == ResourceType::uts
+            || type == ResourceType::utt
+            || type == ResourceType::utw;
+    }
+
+    /// Gets if a resource type is a texture
+    constexpr bool is_texture(ResourceType::type type)
+    {
+        return type == ResourceType::dds
+            || type == ResourceType::tga
+            || type == ResourceType::plt;
+    }
 };
 
 } // namespace nw
