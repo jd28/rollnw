@@ -61,7 +61,7 @@ bool Ini::get_to(std::string key, float& out) const
     return true;
 }
 
-bool Ini::valid()
+bool Ini::valid() const noexcept
 {
     return loaded_;
 }

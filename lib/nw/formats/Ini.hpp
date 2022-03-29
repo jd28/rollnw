@@ -23,7 +23,7 @@ struct Ini {
     bool get_to(std::string key, std::string& out) const;
     bool get_to(std::string key, int& out) const;
     bool get_to(std::string key, float& out) const;
-    bool valid();
+    bool valid() const noexcept;
 
 private:
     ByteArray bytes_;
