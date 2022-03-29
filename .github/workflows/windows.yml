@@ -52,7 +52,7 @@ jobs:
 
       - name: Configure
         run: |
-          cmake --preset windows-default-test
+          cmake --preset windows
 
       - name: Build
         run: |

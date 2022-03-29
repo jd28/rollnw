@@ -20,3 +20,6 @@ docs/_build/
 
 # macOS
 .DS_Store
+
+# Coverage
+coverage.info

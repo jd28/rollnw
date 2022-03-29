@@ -106,6 +106,8 @@ target_link_libraries(nw PUBLIC
 
     stb_image
     inih
+
+    coverage_config
 )
 
 if(NOT Iconv_IS_BUILT_IN)

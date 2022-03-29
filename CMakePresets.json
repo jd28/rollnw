@@ -9,23 +9,14 @@
         {
             "name": "default",
             "displayName": "Default Config",
-            "description": "Default build using Ninja generator",
+            "description": "Default build using Ninja",
             "binaryDir": "${sourceDir}/build",
             "generator": "Ninja",
             "cacheVariables": {
                 "CMAKE_TOOLCHAIN_FILE": {
                     "value": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
                     "type": "FILEPATH"
-                }
-            }
-        },
-        {
-            "name": "default-test",
-            "inherits": "default",
-            "displayName": "default-test",
-            "description": "Default build with tests",
-            "generator": "Ninja",
-            "cacheVariables": {
+                },
                 "ENABLE_TESTING": {
                     "type": "BOOL",
                     "value": "ON"
@@ -33,12 +24,28 @@
             }
         },
         {
-            "name": "windows-default-test",
-            "inherits": "default-test",
+            "name": "ci-linux",
+            "inherits": "default",
+            "displayName": "ci-linux",
+            "description": "Default build with tests and code coverage",
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Linux"
+            },
+            "cacheVariables": {
+                "CODE_COVERAGE": {
+                    "type": "BOOL",
+                    "value": "ON"
+                }
+            }
+        },
+        {
+            "name": "windows",
+            "inherits": "default",
             "generator": "Visual Studio 16 2019",
             "displayName": "Windows-only configuration",
             "description": "This build is only available on Windows",
-            "binaryDir": "${sourceDir}/build",
             "condition": {
                 "type": "equals",
                 "lhs": "${hostSystemName}",
@@ -54,9 +61,14 @@
             }
         },
         {
-            "name": "macos-default-test",
-            "inherits": "default-test",
-            "displayName": "Default Config for macOS",
+            "name": "macos",
+            "inherits": "default",
+            "displayName": "macOS-only configuration",
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Darwin"
+            },
             "cacheVariables": {
                 "CMAKE_OSX_DEPLOYMENT_TARGET": "10.15"
             }
@@ -71,7 +83,7 @@
     "testPresets": [
         {
             "name": "default",
-            "configurePreset": "default-test",
+            "configurePreset": "default",
             "output": {
                 "outputOnFailure": true
             },
