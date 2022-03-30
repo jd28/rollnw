@@ -4,6 +4,7 @@
 [![windows](https://github.com/jd28/libnw/actions/workflows/windows.yml/badge.svg)](https://github.com/jd28/libnw/actions?query=workflow%3Awindows)
 [![Language grade: C/C++](https://img.shields.io/lgtm/grade/cpp/g/jd28/libnw.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/jd28/libnw/context:cpp)
 [![CodeQL](https://github.com/jd28/libnw/actions/workflows/codeql-analysis.yml/badge.svg)](https://github.com/jd28/libnw/actions/workflows/codeql-analysis.yml)
+[![codecov](https://codecov.io/gh/jd28/libnw/branch/main/graph/badge.svg?token=79PNROEEUU)](https://codecov.io/gh/jd28/libnw)
 
 # libnw
 
