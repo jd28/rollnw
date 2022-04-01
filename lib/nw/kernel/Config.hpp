@@ -38,13 +38,13 @@ enum struct PathAlias {
 namespace kernel {
 
 struct Config {
-    Config() = default;
+    explicit Config(InstallInfo info);
 
     /// Gets the path of an alias
     std::filesystem::path alias_path(PathAlias alias);
 
-    /// Loads configuration files
-    void load(const InstallInfo& info);
+    /// Gets installation info
+    const InstallInfo& install_info() const noexcept;
 
     /// Gets nwn.ini
     const Ini& nwn_ini() const noexcept;
@@ -63,6 +63,7 @@ struct Config {
     const Ini& userpatch_ini() const noexcept;
 
 private:
+    InstallInfo install_info_;
     // Config
     Ini nwn_ini_;
     Ini nwnplayer_ini_;

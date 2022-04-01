@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../util/game_install.hpp"
 #include "Config.hpp"
 #include "Strings.hpp"
 
@@ -21,7 +22,7 @@ struct Services {
     void shutdown();
 
     /// Start all services, if no services are provided, default services will be used.
-    void start();
+    void start(InstallInfo info);
 
     friend Config& config();
     friend Strings& strings();

@@ -7,6 +7,28 @@ namespace fs = std::filesystem;
 
 namespace nw::kernel {
 
+Config::Config(InstallInfo info)
+    : install_info_{std::move(info)}
+{
+    LOG_F(INFO, "kernel: initializing config system");
+
+    if (install_info_.version == InstallVersion::invalid) {
+        LOG_F(ERROR, "Failed to find valid NWN(:EE) install.");
+        return;
+    }
+
+    if (install_info_.version == InstallVersion::vEE) {
+        nwn_ini_ = Ini{install_info_.user / "nwn.ini"};
+        nwnplayer_ini_ = Ini{install_info_.user / "nwnplayer.ini"};
+        userpatch_ini_ = Ini{install_info_.user / "userpatch.ini"};
+        settings_tml_ = toml::parse_file((install_info_.user / "settings.tml").u8string());
+    } else if (install_info_.version == InstallVersion::v1_69) {
+        nwn_ini_ = Ini{install_info_.install / "nwn.ini"};
+        nwnplayer_ini_ = Ini{install_info_.install / "nwnplayer.ini"};
+        userpatch_ini_ = Ini{install_info_.install / "nwnpatch.ini"};
+    }
+}
+
 fs::path Config::alias_path(PathAlias alias)
 {
     std::optional<std::string> str;
@@ -89,18 +111,9 @@ fs::path Config::alias_path(PathAlias alias)
     }
 }
 
-void Config::load(const InstallInfo& info)
+const InstallInfo& Config::install_info() const noexcept
 {
-    if (info.version == InstallVersion::vEE) {
-        nwn_ini_ = Ini{info.user / "nwn.ini"};
-        nwnplayer_ini_ = Ini{info.user / "nwnplayer.ini"};
-        userpatch_ini_ = Ini{info.user / "userpatch.ini"};
-        settings_tml_ = toml::parse_file((info.user / "settings.tml").u8string());
-    } else if (info.version == InstallVersion::v1_69) {
-        nwn_ini_ = Ini{info.install / "nwn.ini"};
-        nwnplayer_ini_ = Ini{info.install / "nwnplayer.ini"};
-        userpatch_ini_ = Ini{info.install / "nwnpatch.ini"};
-    }
+    return install_info_;
 }
 
 const Ini& Config::nwn_ini() const noexcept

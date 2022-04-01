@@ -17,11 +17,10 @@ void Services::shutdown()
     // Nothing for now...
 }
 
-void Services::start()
+void Services::start(InstallInfo info)
 {
-    if (!config_) {
-        config_ = std::make_unique<Config>();
-    }
+    config_ = std::make_unique<Config>(std::move(info));
+
     if (!strings_) {
         strings_ = std::make_unique<Strings>();
     }

@@ -7,7 +7,13 @@
 int main(int argc, char* argv[])
 {
     nw::init_logger(argc, argv);
-    nw::kernel::services().start();
+
+    nw::InstallInfo info{
+        "test_data/",
+        "test_data/",
+        nw::InstallVersion::vEE};
+
+    nw::kernel::services().start(info);
 
     Catch::Session session; // There must be exactly one instance
 
