@@ -11,7 +11,7 @@ int main(int argc, char* argv[])
     nw::InstallInfo info{
         "test_data/",
         "test_data/",
-        nw::InstallVersion::vEE};
+        nw::GameVersion::vEE};
 
     nw::kernel::services().start(info);
 

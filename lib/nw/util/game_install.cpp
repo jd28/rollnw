@@ -44,7 +44,7 @@ static constexpr BeamdogInstall beamdog_versions[] = {
     {"00839", "NWN EE Digital Deluxe"},
     {"00785", "NWN EE"}};
 
-InstallInfo probe_nwn_install(InstallVersion only)
+InstallInfo probe_nwn_install(GameVersion only)
 {
     InstallInfo result;
     bool install_found = false;
@@ -54,11 +54,11 @@ InstallInfo probe_nwn_install(InstallVersion only)
     auto probe_keys = [&result, &install_found](const fs::path& p) {
         if (fs::exists(p / "data/nwn_base.key")) {
             result.install = p;
-            result.version = InstallVersion::vEE;
+            result.version = GameVersion::vEE;
             install_found = true;
         } else if (fs::exists(p / "chitin.key")) {
             result.install = p;
-            result.version = InstallVersion::v1_69;
+            result.version = GameVersion::v1_69;
             install_found = true;
         }
     };
@@ -99,7 +99,7 @@ InstallInfo probe_nwn_install(InstallVersion only)
     // [TODO] Windows Registery
 
     // In 1.69 user and install paths are the same
-    if (result.version == InstallVersion::v1_69) {
+    if (result.version == GameVersion::v1_69) {
         result.user = result.install;
         return result;
     }

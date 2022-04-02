@@ -12,17 +12,17 @@ Config::Config(InstallInfo info)
 {
     LOG_F(INFO, "kernel: initializing config system");
 
-    if (install_info_.version == InstallVersion::invalid) {
+    if (install_info_.version == GameVersion::invalid) {
         LOG_F(ERROR, "Failed to find valid NWN(:EE) install.");
         return;
     }
 
-    if (install_info_.version == InstallVersion::vEE) {
+    if (install_info_.version == GameVersion::vEE) {
         nwn_ini_ = Ini{install_info_.user / "nwn.ini"};
         nwnplayer_ini_ = Ini{install_info_.user / "nwnplayer.ini"};
         userpatch_ini_ = Ini{install_info_.user / "userpatch.ini"};
         settings_tml_ = toml::parse_file((install_info_.user / "settings.tml").u8string());
-    } else if (install_info_.version == InstallVersion::v1_69) {
+    } else if (install_info_.version == GameVersion::v1_69) {
         nwn_ini_ = Ini{install_info_.install / "nwn.ini"};
         nwnplayer_ini_ = Ini{install_info_.install / "nwnplayer.ini"};
         userpatch_ini_ = Ini{install_info_.install / "nwnpatch.ini"};
