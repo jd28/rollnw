@@ -27,6 +27,11 @@ std::string Strings::get(const LocString& locstring, bool feminine) const
     }
 }
 
+void Strings::initialize()
+{
+    // Stub
+}
+
 InternedString Strings::intern(std::string_view str)
 {
     return InternedString(&*interned_.insert(std::string(str)).first);
