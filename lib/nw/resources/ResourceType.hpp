@@ -14,6 +14,14 @@ struct ResourceType {
     enum type : uint16_t {
         invalid = 0,
 
+        // Custom - Resource Type Categories
+        container = std::numeric_limits<uint16_t>::max(),
+        gff_archive = std::numeric_limits<uint16_t>::max() - 1,
+        movie = std::numeric_limits<uint16_t>::max() - 2,
+        player = std::numeric_limits<uint16_t>::max() - 3,
+        sound = std::numeric_limits<uint16_t>::max() - 4,
+        texture = std::numeric_limits<uint16_t>::max() - 5,
+
         bmp = 1,
         mve = 2,
         tga = 3,
@@ -404,48 +412,53 @@ struct ResourceType {
         }
     }
 
-    /// Gets if a resource type is a container
-    static constexpr bool is_container(ResourceType::type type)
+    static constexpr bool check_category(ResourceType::type category, ResourceType::type type)
     {
-        return type == ResourceType::bif
-            || type == ResourceType::erf
-            || type == ResourceType::key
-            || type == ResourceType::mod
-            || type == ResourceType::nwm
-            || type == ResourceType::sav;
-    }
-
-    /// Gets if a resource type is a gff
-    static constexpr bool is_gff(ResourceType::type type)
-    {
-        return type == ResourceType::are
-            || type == ResourceType::bic
-            || type == ResourceType::caf
-            || type == ResourceType::dlg
-            || type == ResourceType::fac
-            || type == ResourceType::gff
-            || type == ResourceType::gic
-            || type == ResourceType::git
-            || type == ResourceType::ifo
-            || type == ResourceType::itp
-            || type == ResourceType::jrl
-            || type == ResourceType::utc
-            || type == ResourceType::utd
-            || type == ResourceType::ute
-            || type == ResourceType::uti
-            || type == ResourceType::utm
-            || type == ResourceType::utp
-            || type == ResourceType::uts
-            || type == ResourceType::utt
-            || type == ResourceType::utw;
-    }
-
-    /// Gets if a resource type is a texture
-    static constexpr bool is_texture(ResourceType::type type)
-    {
-        return type == ResourceType::dds
-            || type == ResourceType::tga
-            || type == ResourceType::plt;
+        if (category == type) { return true; }
+        switch (category) {
+        default:
+            return false;
+        case ResourceType::container:
+            return type == ResourceType::bif
+                || type == ResourceType::erf
+                || type == ResourceType::key
+                || type == ResourceType::mod
+                || type == ResourceType::nwm
+                || type == ResourceType::sav;
+        case ResourceType::gff_archive:
+            return type == ResourceType::are
+                || type == ResourceType::bic
+                || type == ResourceType::caf
+                || type == ResourceType::dlg
+                || type == ResourceType::fac
+                || type == ResourceType::gff
+                || type == ResourceType::gic
+                || type == ResourceType::git
+                || type == ResourceType::ifo
+                || type == ResourceType::itp
+                || type == ResourceType::jrl
+                || type == ResourceType::utc
+                || type == ResourceType::utd
+                || type == ResourceType::ute
+                || type == ResourceType::uti
+                || type == ResourceType::utm
+                || type == ResourceType::utp
+                || type == ResourceType::uts
+                || type == ResourceType::utt
+                || type == ResourceType::utw;
+        case ResourceType::movie:
+            return type == ResourceType::wbm;
+        case ResourceType::player:
+            return type == ResourceType::bic;
+        case ResourceType::sound:
+            return type == ResourceType::bmu
+                || type == ResourceType::wav;
+        case ResourceType::texture:
+            return type == ResourceType::dds
+                || type == ResourceType::tga
+                || type == ResourceType::plt;
+        }
+        return false;
     }
 };
 
