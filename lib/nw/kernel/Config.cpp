@@ -7,28 +7,6 @@ namespace fs = std::filesystem;
 
 namespace nw::kernel {
 
-Config::Config(InstallInfo info)
-    : install_info_{std::move(info)}
-{
-    LOG_F(INFO, "kernel: initializing config system");
-
-    if (install_info_.version == GameVersion::invalid) {
-        LOG_F(ERROR, "Failed to find valid NWN(:EE) install.");
-        return;
-    }
-
-    if (install_info_.version == GameVersion::vEE) {
-        nwn_ini_ = Ini{install_info_.user / "nwn.ini"};
-        nwnplayer_ini_ = Ini{install_info_.user / "nwnplayer.ini"};
-        userpatch_ini_ = Ini{install_info_.user / "userpatch.ini"};
-        settings_tml_ = toml::parse_file((install_info_.user / "settings.tml").u8string());
-    } else if (install_info_.version == GameVersion::v1_69) {
-        nwn_ini_ = Ini{install_info_.install / "nwn.ini"};
-        nwnplayer_ini_ = Ini{install_info_.install / "nwnplayer.ini"};
-        userpatch_ini_ = Ini{install_info_.install / "nwnpatch.ini"};
-    }
-}
-
 fs::path Config::alias_path(PathAlias alias)
 {
     std::optional<std::string> str;
@@ -111,9 +89,31 @@ fs::path Config::alias_path(PathAlias alias)
     }
 }
 
-const InstallInfo& Config::install_info() const noexcept
+void Config::initialize(ConfigOptions options)
 {
-    return install_info_;
+    options_ = std::move(options);
+    LOG_F(INFO, "kernel: initializing config system");
+
+    if (options_.info.version == GameVersion::invalid) {
+        LOG_F(ERROR, "Failed to find valid NWN(:EE) install.");
+        return;
+    }
+
+    if (options_.info.version == GameVersion::vEE) {
+        nwn_ini_ = Ini{options_.info.user / "nwn.ini"};
+        nwnplayer_ini_ = Ini{options_.info.user / "nwnplayer.ini"};
+        userpatch_ini_ = Ini{options_.info.user / "userpatch.ini"};
+        settings_tml_ = toml::parse_file((options_.info.user / "settings.tml").u8string());
+    } else if (options_.info.version == GameVersion::v1_69) {
+        nwn_ini_ = Ini{options_.info.install / "nwn.ini"};
+        nwnplayer_ini_ = Ini{options_.info.install / "nwnplayer.ini"};
+        userpatch_ini_ = Ini{options_.info.install / "nwnpatch.ini"};
+    }
+}
+
+const ConfigOptions& Config::options() const noexcept
+{
+    return options_;
 }
 
 const Ini& Config::nwn_ini() const noexcept

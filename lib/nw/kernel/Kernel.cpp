@@ -17,17 +17,15 @@ void Services::shutdown()
     // Nothing for now...
 }
 
-void Services::start(InstallInfo info)
+void Services::start()
 {
-    config_ = std::make_unique<Config>(std::move(info));
-
     if (!strings_) {
         strings_ = std::make_unique<Strings>();
     }
 }
 
 Services& services() { return detail::s_services; }
-Config& config() { return *detail::s_services.config_.get(); }
+Config& config() { return detail::s_config; }
 Strings& strings() { return *detail::s_services.strings_.get(); }
 
 } // namespace nw::kernel

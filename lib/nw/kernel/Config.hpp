@@ -6,22 +6,32 @@
 
 namespace nw {
 
+/// Configuration options, maybe there will be an actual config file.. someday.
+struct ConfigOptions {
+    InstallInfo info;
+    bool include_install = true;
+    bool include_nwsync = true;
+};
+
 namespace kernel {
 
 struct Config {
-    explicit Config(InstallInfo info);
+    explicit Config() = default;
 
     /// Gets the path of an alias
     std::filesystem::path alias_path(PathAlias alias);
 
-    /// Gets installation info
-    const InstallInfo& install_info() const noexcept;
+    /// Initializes configuration system
+    void initialize(ConfigOptions options);
 
     /// Gets nwn.ini
     const Ini& nwn_ini() const noexcept;
 
     /// Gets nwnplayer.ini
     const Ini& nwnplayer_ini() const noexcept;
+
+    /// Gets installation info
+    const ConfigOptions& options() const noexcept;
 
     /// Resolves a path alias
     std::filesystem::path resolve_alias(std::string_view alias_path) const;
@@ -34,7 +44,7 @@ struct Config {
     const Ini& userpatch_ini() const noexcept;
 
 private:
-    InstallInfo install_info_;
+    ConfigOptions options_;
     // Config
     Ini nwn_ini_;
     Ini nwnplayer_ini_;

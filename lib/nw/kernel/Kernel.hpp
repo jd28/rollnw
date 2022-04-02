@@ -22,17 +22,17 @@ struct Services {
     void shutdown();
 
     /// Start all services, if no services are provided, default services will be used.
-    void start(InstallInfo info);
+    void start();
 
     friend Config& config();
     friend Strings& strings();
 
 private:
-    std::unique_ptr<Config> config_;
     std::unique_ptr<Strings> strings_;
 };
 
 namespace detail {
+static Config s_config;
 static Services s_services;
 } // namespace detail
 

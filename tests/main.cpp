@@ -13,7 +13,8 @@ int main(int argc, char* argv[])
         "test_data/",
         nw::GameVersion::vEE};
 
-    nw::kernel::services().start(info);
+    nw::kernel::config().initialize({info, false, false});
+    nw::kernel::services().start();
 
     Catch::Session session; // There must be exactly one instance
 
