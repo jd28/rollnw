@@ -6,35 +6,6 @@
 
 namespace nw {
 
-enum struct PathAlias {
-    ambient,
-    cache,
-    currentgame,
-    database,
-    development,
-    dmvault,
-    hak,
-    hd0,
-    localvault,
-    logs,
-    modelcompiler,
-    modules,
-    movies,
-    music,
-    nwsync,
-    oldservervault,
-    override,
-    patch,
-    portraits,
-    saves,
-    screenshots,
-    servervault,
-    temp,
-    tempclient,
-    tlk,
-    user = hd0,
-};
-
 namespace kernel {
 
 struct Config {

@@ -22,6 +22,11 @@ static std::vector<std::filesystem::path> install_paths
     "/Library/Application Support/Steam/steamapps/common/Neverwinter Nights/",
 #elif defined(LIBNW_OS_WINDOWS)
     "C:/Program Files (x86)/Steam/steamapps/common/Neverwinter Nights/",
+        "D:/Program Files (x86)/Steam/steamapps/common/Neverwinter Nights/",
+        "C:/Program Files (x86)/Neverwinter Nights/",
+        "D:/Program Files (x86)/Neverwinter Nights/",
+        "C:/Program Files (x86)/GOG Galaxy/Games/NWN Diamond/",
+        "D:/Program Files (x86)/GOG Galaxy/Games/NWN Diamond/",
 #endif
 };
 
@@ -32,6 +37,15 @@ static std::filesystem::path beamdog_settings = "/Library/Application Support/Be
 #elif defined(LIBNW_OS_WINDOWS)
 static std::filesystem::path beamdog_settings = home_path() / "Beamdog Client/settings.json";
 #endif
+
+static std::vector<std::filesystem::path> user_paths
+{
+#if defined(LIBNW_OS_MACOS) || defined(LIBNW_OS_WINDOWS)
+    documents_path() / "Neverwinter Nights"
+#elif defined(LIBNW_OS_LINUX)
+    home_path() / ".local/share/Neverwinter Nights/",
+#endif
+};
 
 struct BeamdogInstall {
     const char* appid;
@@ -51,12 +65,12 @@ InstallInfo probe_nwn_install(GameVersion only)
     bool user_found = false;
 
     // This probes both EE and 1.69 keys even though most of these paths are NWN:EE only.
-    auto probe_keys = [&result, &install_found](const fs::path& p) {
-        if (fs::exists(p / "data/nwn_base.key")) {
+    auto probe_keys = [&result, &install_found, only](const fs::path& p) {
+        if (only != GameVersion::v1_69 && fs::exists(p / "data/nwn_base.key")) {
             result.install = p;
             result.version = GameVersion::vEE;
             install_found = true;
-        } else if (fs::exists(p / "chitin.key")) {
+        } else if (only != GameVersion::vEE && fs::exists(p / "chitin.key")) {
             result.install = p;
             result.version = GameVersion::v1_69;
             install_found = true;
@@ -112,9 +126,9 @@ InstallInfo probe_nwn_install(GameVersion only)
         }
     }
 
-    if (!user_found) {
-        if (fs::exists(documents_path() / "Neverwinter Nights")) {
-            result.user = documents_path() / "Neverwinter Nights";
+    for (const auto& p : user_paths) {
+        if (fs::exists(p)) {
+            result.user = p;
         }
     }
 
