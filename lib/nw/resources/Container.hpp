@@ -5,6 +5,7 @@
 #include "ResourceDescriptor.hpp"
 
 #include <filesystem>
+#include <memory>
 #include <vector>
 
 namespace nw {
@@ -50,5 +51,7 @@ struct Container {
 private:
     std::filesystem::path working_dir_;
 };
+
+using unique_container = std::unique_ptr<Container>;
 
 } // namespace nw
