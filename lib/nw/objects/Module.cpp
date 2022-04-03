@@ -135,9 +135,9 @@ bool Module::from_gff(const GffInputArchiveStruct& archive)
     st = archive["Mod_HakList"];
     haks.reserve(sz);
     for (size_t i = 0; i < sz; ++i) {
-        Resref r;
+        std::string r;
         if (st[i].get_to("Mod_Hak", r)) {
-            areas.push_back(r);
+            haks.push_back(r);
         } else {
             break;
         }
