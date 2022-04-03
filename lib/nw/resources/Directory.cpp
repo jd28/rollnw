@@ -16,19 +16,21 @@ namespace nw {
 Directory::Directory(const fs::path& path)
 {
     if (!fs::exists(path)) {
-        throw std::invalid_argument(fmt::format("'{}' does not exist", path));
+        LOG_F(WARNING, "'{}' does not exist", path);
+        return;
     } else if (!fs::is_directory(path)) {
-        throw std::invalid_argument(fmt::format("'{}' is not a directory", path));
+        LOG_F(WARNING, "'{}' is not a directory", path);
+        return;
     }
 
     path_ = fs::canonical(path);
 
 #ifdef _MSC_VER
     path_string_ = nowide::narrow(path_.c_str());
-    name_ = nowide::narrow(path.filename().c_str());
+    name_ = nowide::narrow(path.parent_path().filename().c_str());
 #else
     path_string_ = std::filesystem::canonical(path);
-    name_ = path.stem();
+    name_ = path.parent_path().filename();
 #endif
 
     LOG_F(INFO, "{}: Loading...", path_string_);
