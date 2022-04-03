@@ -14,7 +14,7 @@ TEST_CASE("config manager", "[kernel]")
     REQUIRE(config.resolve_alias("HAK:test.hak")
         == config.alias_path(nw::PathAlias::hak) / "test.hak");
 
-    if (config.options().info.version == nw::GameVersion::vEE) {
+    if (config.options().version == nw::GameVersion::vEE) {
         REQUIRE_FALSE(config.settings_tml().empty());
         REQUIRE(*config.settings_tml()["game"]["gore"].as<int64_t>() == 1);
     } else {

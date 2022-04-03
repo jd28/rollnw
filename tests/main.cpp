@@ -8,12 +8,11 @@ int main(int argc, char* argv[])
 {
     nw::init_logger(argc, argv);
 
-    nw::InstallInfo info{
+    nw::kernel::config().initialize({
+        nw::GameVersion::vEE,
         "test_data/root/",
         "test_data/user/",
-        nw::GameVersion::vEE};
-
-    nw::kernel::config().initialize({info});
+    });
     nw::kernel::services().start();
 
     Catch::Session session; // There must be exactly one instance

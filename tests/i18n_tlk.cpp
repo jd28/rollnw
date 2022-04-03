@@ -15,7 +15,7 @@ TEST_CASE("Tlk", "[formats]")
 
 TEST_CASE("tlk: load languages")
 {
-    auto install_path = nw::kernel::config().options().info.install;
+    auto install_path = nw::kernel::config().options().install;
     nw::Tlk de{install_path / "lang/de/data/dialog.tlk"};
     REQUIRE(de.valid());
     REQUIRE(de.get(10) == "Mönch");

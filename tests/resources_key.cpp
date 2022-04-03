@@ -12,7 +12,7 @@ using namespace std::literals;
 
 TEST_CASE("Load Key", "[resources]")
 {
-    auto install_path = nw::kernel::config().options().info.install;
+    auto install_path = nw::kernel::config().options().install;
     if (fs::exists(install_path / "data/nwn_base.key")) {
         nw::Key k{install_path / "data/nwn_base.key"};
         REQUIRE(k.size() > 0);

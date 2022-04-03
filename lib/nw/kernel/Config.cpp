@@ -94,20 +94,20 @@ void Config::initialize(ConfigOptions options)
     options_ = std::move(options);
     LOG_F(INFO, "kernel: initializing config system");
 
-    if (options_.info.version == GameVersion::invalid) {
+    if (options_.version == GameVersion::invalid) {
         LOG_F(ERROR, "Failed to find valid NWN(:EE) install.");
         return;
     }
 
-    if (options_.info.version == GameVersion::vEE) {
-        nwn_ini_ = Ini{options_.info.user / "nwn.ini"};
-        nwnplayer_ini_ = Ini{options_.info.user / "nwnplayer.ini"};
-        userpatch_ini_ = Ini{options_.info.user / "userpatch.ini"};
-        settings_tml_ = toml::parse_file((options_.info.user / "settings.tml").u8string());
-    } else if (options_.info.version == GameVersion::v1_69) {
-        nwn_ini_ = Ini{options_.info.install / "nwn.ini"};
-        nwnplayer_ini_ = Ini{options_.info.install / "nwnplayer.ini"};
-        userpatch_ini_ = Ini{options_.info.install / "nwnpatch.ini"};
+    if (options_.version == GameVersion::vEE) {
+        nwn_ini_ = Ini{options_.user / "nwn.ini"};
+        nwnplayer_ini_ = Ini{options_.user / "nwnplayer.ini"};
+        userpatch_ini_ = Ini{options_.user / "userpatch.ini"};
+        settings_tml_ = toml::parse_file((options_.user / "settings.tml").u8string());
+    } else if (options_.version == GameVersion::v1_69) {
+        nwn_ini_ = Ini{options_.install / "nwn.ini"};
+        nwnplayer_ini_ = Ini{options_.install / "nwnplayer.ini"};
+        userpatch_ini_ = Ini{options_.install / "nwnpatch.ini"};
     }
 }
 

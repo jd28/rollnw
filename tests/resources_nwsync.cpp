@@ -10,7 +10,7 @@ using namespace std::literals;
 
 TEST_CASE("nwsync", "[containers]")
 {
-    auto user_path = nw::kernel::config().options().info.user;
+    auto user_path = nw::kernel::config().options().user;
     auto n = nw::NWSync(user_path / "nwsync/");
     REQUIRE(n.is_loaded());
     auto manifests = n.manifests();
