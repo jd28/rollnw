@@ -15,7 +15,7 @@ TEST_CASE("erf: loading", "[containers]")
     REQUIRE(e.name() == "DockerDemo.mod");
     REQUIRE(e.size() > 0);
     REQUIRE(e.all().size() > 0);
-    REQUIRE_THROWS(Erf{"doesnotexist.hak"});
+    REQUIRE_FALSE(Erf{"doesnotexist.hak"}.valid());
 
     Erf e2{"test_data/user/hak/hak_with_description.hak"};
     REQUIRE(nw::string::startswith(e2.description.get(nw::LanguageID::english), "test\nhttp://example.com"));
