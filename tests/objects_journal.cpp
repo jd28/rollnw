@@ -5,7 +5,7 @@
 
 TEST_CASE("Loading journal", "[objects]")
 {
-    nw::GffInputArchive g{"test_data/module.jrl"};
+    nw::GffInputArchive g{"test_data/user/development/module.jrl"};
     REQUIRE(g.valid());
     nw::Journal j{g.toplevel()};
     REQUIRE(j.categories.size() > 0);

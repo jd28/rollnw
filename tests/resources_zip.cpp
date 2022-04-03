@@ -12,10 +12,10 @@ using namespace std::literals;
 
 TEST_CASE("Load zip", "[resources]")
 {
-    nw::Zip z{"test_data/temp0.zip"};
+    nw::Zip z{"test_data/user/modules/module_as_zip.zip"};
     REQUIRE(z.valid());
-    REQUIRE(z.name() == "temp0.zip");
+    REQUIRE(z.name() == "module_as_zip.zip");
     REQUIRE(z.extract(std::regex(".*"), "tmp") == 23);
 
-    REQUIRE_THROWS(nw::Zip{"test_data/non-extant.zip"});
+    REQUIRE_THROWS(nw::Zip{"test_data/user/development/non-extant.zip"});
 }

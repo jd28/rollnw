@@ -4,7 +4,7 @@
 
 TEST_CASE("Parse INI", "[formats]")
 {
-    nw::Ini i{"test_data/nwnplayer.ini"};
+    nw::Ini i{"test_data/user/nwnplayer.ini"};
     REQUIRE(i.valid());
     int server_down_timer = 0;
     REQUIRE(i.get_to("Server Options/ServerDownTimer", server_down_timer));

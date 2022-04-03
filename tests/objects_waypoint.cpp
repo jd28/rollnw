@@ -9,7 +9,7 @@
 
 TEST_CASE("waypoint: from_gff", "[objects]")
 {
-    nw::GffInputArchive g{"test_data/wp_behexit001.utw"};
+    nw::GffInputArchive g{"test_data/user/development/wp_behexit001.utw"};
     REQUIRE(g.valid());
     REQUIRE(g.valid());
     nw::Waypoint w{g.toplevel(), nw::SerializationProfile::blueprint};
@@ -20,7 +20,7 @@ TEST_CASE("waypoint: from_gff", "[objects]")
 
 TEST_CASE("waypoint: to_json", "[objects]")
 {
-    nw::GffInputArchive g{"test_data/wp_behexit001.utw"};
+    nw::GffInputArchive g{"test_data/user/development/wp_behexit001.utw"};
     REQUIRE(g.valid());
     nw::Waypoint w{g.toplevel(), nw::SerializationProfile::blueprint};
 
@@ -38,7 +38,7 @@ TEST_CASE("waypoint: to_json", "[objects]")
 
 TEST_CASE("waypoint: json to and from", "[objects]")
 {
-    nw::GffInputArchive g{"test_data/wp_behexit001.utw"};
+    nw::GffInputArchive g{"test_data/user/development/wp_behexit001.utw"};
     REQUIRE(g.valid());
     nw::Waypoint w{g.toplevel(), nw::SerializationProfile::blueprint};
     nlohmann::json j = w.to_json(nw::SerializationProfile::blueprint);
@@ -49,7 +49,7 @@ TEST_CASE("waypoint: json to and from", "[objects]")
 
 TEST_CASE("waypoint: gff round trip", "[ojbects]")
 {
-    nw::GffInputArchive g("test_data/wp_behexit001.utw");
+    nw::GffInputArchive g("test_data/user/development/wp_behexit001.utw");
     REQUIRE(g.valid());
 
     nw::Waypoint way{g.toplevel(), nw::SerializationProfile::blueprint};

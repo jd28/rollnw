@@ -9,7 +9,7 @@
 
 TEST_CASE("item: load armor item", "[objects]")
 {
-    nw::GffInputArchive g{"test_data/cloth028.uti"};
+    nw::GffInputArchive g{"test_data/user/development/cloth028.uti"};
     nw::Item i{g.toplevel(), nw::SerializationProfile::blueprint};
     REQUIRE(i.common()->resref == "cloth028");
     REQUIRE(i.properties.size() > 0);
@@ -19,7 +19,7 @@ TEST_CASE("item: load armor item", "[objects]")
 
 TEST_CASE("item: load layered item", "[objects]")
 {
-    nw::GffInputArchive g{"test_data/wduersc004.uti"};
+    nw::GffInputArchive g{"test_data/user/development/wduersc004.uti"};
     nw::Item i{g.toplevel(), nw::SerializationProfile::blueprint};
     REQUIRE(i.common()->resref == "wduersc004");
     REQUIRE(i.properties.size() > 0);
@@ -28,7 +28,7 @@ TEST_CASE("item: load layered item", "[objects]")
 
 TEST_CASE("item: load simple item", "[objects]")
 {
-    nw::GffInputArchive g{"test_data/pl_aleu_shuriken.uti"};
+    nw::GffInputArchive g{"test_data/user/development/pl_aleu_shuriken.uti"};
     nw::Item i{g.toplevel(), nw::SerializationProfile::blueprint};
     REQUIRE(i.common()->resref == "pl_aleu_shuriken");
     REQUIRE(i.properties.size() > 0);
@@ -37,7 +37,7 @@ TEST_CASE("item: load simple item", "[objects]")
 
 TEST_CASE("item: to_json", "[objects]")
 {
-    nw::GffInputArchive g{"test_data/cloth028.uti"};
+    nw::GffInputArchive g{"test_data/user/development/cloth028.uti"};
     nw::Item i{g.toplevel(), nw::SerializationProfile::blueprint};
     REQUIRE(i.common()->resref == "cloth028");
     REQUIRE(i.properties.size() > 0);
@@ -58,7 +58,7 @@ TEST_CASE("item: to_json", "[objects]")
 
 TEST_CASE("item: json to and from", "[objects]")
 {
-    nw::GffInputArchive g{"test_data/cloth028.uti"};
+    nw::GffInputArchive g{"test_data/user/development/cloth028.uti"};
     nw::Item i{g.toplevel(), nw::SerializationProfile::blueprint};
     nlohmann::json j = i.to_json(nw::SerializationProfile::blueprint);
     nw::Item it2{j, nw::SerializationProfile::blueprint};
@@ -69,7 +69,7 @@ TEST_CASE("item: json to and from", "[objects]")
 
 TEST_CASE("item: armor to_gff", "[objects]")
 {
-    nw::GffInputArchive g{"test_data/cloth028.uti"};
+    nw::GffInputArchive g{"test_data/user/development/cloth028.uti"};
     nw::Item i{g.toplevel(), nw::SerializationProfile::blueprint};
     nw::GffOutputArchive oa{"UTI"};
     REQUIRE(i.to_gff(oa.top, nw::SerializationProfile::blueprint));
@@ -84,7 +84,7 @@ TEST_CASE("item: armor to_gff", "[objects]")
 
 TEST_CASE("item: gff round trip", "[ojbects]")
 {
-    nw::GffInputArchive g("test_data/cloth028.uti");
+    nw::GffInputArchive g("test_data/user/development/cloth028.uti");
     REQUIRE(g.valid());
 
     nw::Item item{g.toplevel(), nw::SerializationProfile::blueprint};

@@ -9,9 +9,9 @@
 
 TEST_CASE("area: from_gff", "[objects]")
 {
-    nw::GffInputArchive are{"test_data/test_area.are"};
-    nw::GffInputArchive git{"test_data/test_area.git"};
-    nw::GffInputArchive gic{"test_data/test_area.gic"};
+    nw::GffInputArchive are{"test_data/user/development/test_area.are"};
+    nw::GffInputArchive git{"test_data/user/development/test_area.git"};
+    nw::GffInputArchive gic{"test_data/user/development/test_area.gic"};
 
     nw::Area area{are.toplevel(), git.toplevel(), gic.toplevel()};
     REQUIRE(area.tileset == "ttf02");
@@ -29,9 +29,9 @@ TEST_CASE("area: from_gff", "[objects]")
 
 TEST_CASE("area: to_json", "[objects]")
 {
-    nw::GffInputArchive are{"test_data/test_area.are"};
-    nw::GffInputArchive git{"test_data/test_area.git"};
-    nw::GffInputArchive gic{"test_data/test_area.gic"};
+    nw::GffInputArchive are{"test_data/user/development/test_area.are"};
+    nw::GffInputArchive git{"test_data/user/development/test_area.git"};
+    nw::GffInputArchive gic{"test_data/user/development/test_area.gic"};
 
     nw::Area area{are.toplevel(), git.toplevel(), gic.toplevel()};
 
@@ -43,9 +43,9 @@ TEST_CASE("area: to_json", "[objects]")
 
 TEST_CASE("area: json roundtrip", "[objects]")
 {
-    nw::GffInputArchive are{"test_data/test_area.are"};
-    nw::GffInputArchive git{"test_data/test_area.git"};
-    nw::GffInputArchive gic{"test_data/test_area.gic"};
+    nw::GffInputArchive are{"test_data/user/development/test_area.are"};
+    nw::GffInputArchive git{"test_data/user/development/test_area.git"};
+    nw::GffInputArchive gic{"test_data/user/development/test_area.gic"};
 
     nw::Area area{are.toplevel(), git.toplevel(), gic.toplevel()};
 

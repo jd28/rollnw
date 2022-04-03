@@ -7,7 +7,7 @@
 
 TEST_CASE("Loading dialog", "[objects]")
 {
-    nw::GffInputArchive g{"test_data/alue_ranger.dlg"};
+    nw::GffInputArchive g{"test_data/user/development/alue_ranger.dlg"};
     nw::Dialog dlg{g.toplevel()};
 
     REQUIRE(dlg.valid());

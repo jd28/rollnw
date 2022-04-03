@@ -9,7 +9,7 @@
 
 TEST_CASE("trigger: from_gff", "[objects]")
 {
-    nw::GffInputArchive g{"test_data/pl_spray_sewage.utt"};
+    nw::GffInputArchive g{"test_data/user/development/pl_spray_sewage.utt"};
     REQUIRE(g.valid());
     nw::Trigger t{g.toplevel(), nw::SerializationProfile::blueprint};
     REQUIRE(t.common()->resref == "pl_spray_sewage");
@@ -20,7 +20,7 @@ TEST_CASE("trigger: from_gff", "[objects]")
 
 TEST_CASE("trigger: to_json", "[objects]")
 {
-    nw::GffInputArchive g{"test_data/pl_spray_sewage.utt"};
+    nw::GffInputArchive g{"test_data/user/development/pl_spray_sewage.utt"};
     REQUIRE(g.valid());
     nw::Trigger t{g.toplevel(), nw::SerializationProfile::blueprint};
 
@@ -35,7 +35,7 @@ TEST_CASE("trigger: to_json", "[objects]")
 
 TEST_CASE("trigger: gff round trip", "[ojbects]")
 {
-    nw::GffInputArchive g("test_data/pl_spray_sewage.utt");
+    nw::GffInputArchive g("test_data/user/development/pl_spray_sewage.utt");
     REQUIRE(g.valid());
 
     nw::Trigger trig{g.toplevel(), nw::SerializationProfile::blueprint};
