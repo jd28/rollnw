@@ -200,9 +200,11 @@ bool NWSync::is_loaded() const noexcept
     return is_loaded_;
 }
 
-NWSyncManifest& NWSync::get(const std::string& manifest)
+NWSyncManifest* NWSync::get(std::string_view manifest)
 {
-    return map_[manifest];
+    absl::string_view v{manifest.data(), manifest.length()};
+    auto it = map_.find(v);
+    return it != std::end(map_) ? &it->second : nullptr;
 }
 
 std::vector<std::string> NWSync::manifests()

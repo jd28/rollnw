@@ -58,7 +58,7 @@ struct NWSync {
     ~NWSync() = default;
 
     /// Get a particular manifest as a container
-    NWSyncManifest& get(const std::string& manifest);
+    NWSyncManifest* get(std::string_view manifest);
 
     /// Get if NWSync was successfully loaded
     bool is_loaded() const noexcept;
