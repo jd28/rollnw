@@ -3,6 +3,7 @@
 #include "../util/string.hpp"
 
 #include <cstdint>
+#include <limits>
 #include <string>
 #include <string_view>
 
@@ -15,12 +16,12 @@ struct ResourceType {
         invalid = 0,
 
         // Custom - Resource Type Categories
-        container = std::numeric_limits<uint16_t>::max(),
-        gff_archive = std::numeric_limits<uint16_t>::max() - 1,
-        movie = std::numeric_limits<uint16_t>::max() - 2,
-        player = std::numeric_limits<uint16_t>::max() - 3,
-        sound = std::numeric_limits<uint16_t>::max() - 4,
-        texture = std::numeric_limits<uint16_t>::max() - 5,
+        container = std::numeric_limits<uint16_t>::max() - 1,
+        gff_archive = std::numeric_limits<uint16_t>::max() - 2,
+        movie = std::numeric_limits<uint16_t>::max() - 3,
+        player = std::numeric_limits<uint16_t>::max() - 4,
+        sound = std::numeric_limits<uint16_t>::max() - 5,
+        texture = std::numeric_limits<uint16_t>::max() - 6,
 
         bmp = 1,
         mve = 2,
