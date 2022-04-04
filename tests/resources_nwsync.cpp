@@ -10,19 +10,17 @@ using namespace std::literals;
 
 TEST_CASE("nwsync", "[containers]")
 {
-    auto user_path = nw::kernel::config().options().info.user;
-    if (fs::exists(user_path / "nwsync/nwsyncmeta.sqlite3")) {
-        auto n = nw::NWSync(user_path / "nwsync/");
-        REQUIRE(n.is_loaded());
-        auto manifests = n.manifests();
-        if (manifests.size() > 0) {
-            auto manifest = n.get(manifests[0]);
-            auto resource = manifest->all();
-            REQUIRE(resource.size() > 0);
+    auto user_path = nw::kernel::config().options().user;
+    auto n = nw::NWSync(user_path / "nwsync/");
+    REQUIRE(n.is_loaded());
+    auto manifests = n.manifests();
+    if (manifests.size() > 0) {
+        auto manifest = n.get(manifests[0]);
+        auto resource = manifest->all();
+        REQUIRE(resource.size() > 0);
 
-            auto ba = manifest->demand(resource[0].name);
-            REQUIRE(ba.size());
-            REQUIRE(manifest->extract(std::regex(resource[0].name.filename()), "tmp/"));
-        }
+        auto ba = manifest->demand(resource[0].name);
+        REQUIRE(ba.size());
+        REQUIRE(manifest->extract(std::regex(resource[0].name.filename()), "tmp/"));
     }
 }

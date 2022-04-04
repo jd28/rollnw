@@ -11,7 +11,7 @@ using namespace std::literals;
 
 TEST_CASE("GffInputArchive Validation", "[serialization]")
 {
-    nw::GffInputArchive g("test_data/nw_chicken.utc");
+    nw::GffInputArchive g("test_data/user/development/nw_chicken.utc");
     REQUIRE(g.valid());
     auto top = g.toplevel();
     REQUIRE(top.size() > 0);
@@ -33,7 +33,7 @@ TEST_CASE("GffInputArchive Validation", "[serialization]")
 
 TEST_CASE("GffInputArchive Lists", "[serialization]")
 {
-    nw::GffInputArchive g("test_data/nw_chicken.utc");
+    nw::GffInputArchive g("test_data/user/development/nw_chicken.utc");
     REQUIRE(g.valid());
     auto top = g.toplevel();
     auto skills = top["SkillList"];
@@ -60,7 +60,7 @@ TEST_CASE("GffInputArchive Lists", "[serialization]")
 
 TEST_CASE("GffInputArchive Conversion", "[serialization]")
 {
-    nw::GffInputArchive g("test_data/nw_chicken.utc");
+    nw::GffInputArchive g("test_data/user/development/nw_chicken.utc");
     REQUIRE(g.valid());
     auto j = nw::gff_to_gffjson(g);
     std::ofstream f{"tmp/nw_chicken.utc.json", std::ios_base::binary};
@@ -69,7 +69,7 @@ TEST_CASE("GffInputArchive Conversion", "[serialization]")
 
 TEST_CASE("GffInputArchive Object Poisoning", "[serialization]")
 {
-    nw::GffInputArchive g("test_data/nw_chicken.utc");
+    nw::GffInputArchive g("test_data/user/development/nw_chicken.utc");
     REQUIRE(g.valid());
     auto top = g.toplevel();
     int32_t nonextant;

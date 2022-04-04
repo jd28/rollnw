@@ -8,7 +8,7 @@
 TEST_CASE("Parse Bioware DDS", "[formats]")
 {
     std::filesystem::create_directory("tmp");
-    nw::Image dds{"test_data/bioRGBA.dds"};
+    nw::Image dds{"test_data/user/development/bioRGBA.dds"};
     REQUIRE(dds.valid());
 #ifndef _WIN32
     CHECK(dds.write_to("tmp/bioRGBA.dds"));
@@ -20,7 +20,7 @@ TEST_CASE("Parse Bioware DDS", "[formats]")
 TEST_CASE("Parse Standard DDS", "[formats]")
 {
     std::filesystem::create_directory("tmp");
-    nw::Image dds{"test_data/dxtRBG.dds"};
+    nw::Image dds{"test_data/user/development/dxtRBG.dds"};
     REQUIRE(dds.valid());
 #ifndef _WIN32
     CHECK(dds.write_to("tmp/dxtRBG.dds"));
@@ -32,7 +32,7 @@ TEST_CASE("Parse Standard DDS", "[formats]")
 TEST_CASE("Parse TGA", "[formats]")
 {
     std::filesystem::create_directory("tmp");
-    nw::Image tga{"test_data/qfpp_001_L.tga"};
+    nw::Image tga{"test_data/user/development/qfpp_001_L.tga"};
     REQUIRE(tga.valid());
 #ifndef _WIN32
     CHECK(tga.write_to("tmp/qfpp_001_L.dds"));

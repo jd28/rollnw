@@ -9,7 +9,7 @@
 
 TEST_CASE("Loading nw_chicken", "[objects]")
 {
-    nw::GffInputArchive g{"test_data/nw_chicken.utc"};
+    nw::GffInputArchive g{"test_data/user/development/nw_chicken.utc"};
     nw::Creature c{g.toplevel(), nw::SerializationProfile::blueprint};
     REQUIRE(c.common()->resref == "nw_chicken");
     REQUIRE(c.stats.abilities[2] == 8);
@@ -20,7 +20,7 @@ TEST_CASE("Loading nw_chicken", "[objects]")
 
 TEST_CASE("Loading test_creature", "[objects]")
 {
-    nw::GffInputArchive g{"test_data/pl_agent_001.utc"};
+    nw::GffInputArchive g{"test_data/user/development/pl_agent_001.utc"};
     nw::Creature c{g.toplevel(), nw::SerializationProfile::blueprint};
     REQUIRE(c.common()->resref == "pl_agent_001");
     REQUIRE(c.stats.abilities[2] == 16);
@@ -37,7 +37,7 @@ TEST_CASE("Loading test_creature", "[objects]")
 
 TEST_CASE("creature: to_json", "[objects]")
 {
-    nw::GffInputArchive g{"test_data/pl_agent_001.utc"};
+    nw::GffInputArchive g{"test_data/user/development/pl_agent_001.utc"};
     nw::Creature c{g.toplevel(), nw::SerializationProfile::blueprint};
 
     nlohmann::json j = c.to_json(nw::SerializationProfile::blueprint);
@@ -48,7 +48,7 @@ TEST_CASE("creature: to_json", "[objects]")
 
 TEST_CASE("creature: json to and from", "[objects]")
 {
-    nw::GffInputArchive g{"test_data/pl_agent_001.utc"};
+    nw::GffInputArchive g{"test_data/user/development/pl_agent_001.utc"};
     nw::Creature c{g.toplevel(), nw::SerializationProfile::blueprint};
     nlohmann::json j = c.to_json(nw::SerializationProfile::blueprint);
     nw::Creature c2{j, nw::SerializationProfile::blueprint};
@@ -58,7 +58,7 @@ TEST_CASE("creature: json to and from", "[objects]")
 
 TEST_CASE("creature: gff round trip", "[ojbects]")
 {
-    nw::GffInputArchive g("test_data/pl_agent_001.utc");
+    nw::GffInputArchive g("test_data/user/development/pl_agent_001.utc");
     REQUIRE(g.valid());
 
     nw::Creature cre{g.toplevel(), nw::SerializationProfile::blueprint};

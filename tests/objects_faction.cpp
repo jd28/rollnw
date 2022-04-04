@@ -5,7 +5,7 @@
 
 TEST_CASE("faction: from_gff", "[objects]")
 {
-    nw::GffInputArchive g{"test_data/Repute.fac"};
+    nw::GffInputArchive g{"test_data/user/development/Repute.fac"};
     REQUIRE(g.valid());
     nw::Faction f{g};
     REQUIRE(f.factions.size() >= 4);
@@ -18,7 +18,7 @@ TEST_CASE("faction: from_gff", "[objects]")
 
 TEST_CASE("faction: gff roundtrip", "[objects]")
 {
-    nw::GffInputArchive g{"test_data/Repute.fac"};
+    nw::GffInputArchive g{"test_data/user/development/Repute.fac"};
     REQUIRE(g.valid());
     nw::Faction f{g};
     nw::GffOutputArchive out = f.to_gff();

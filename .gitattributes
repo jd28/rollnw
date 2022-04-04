@@ -18,6 +18,7 @@
 *.mod binary
 *.tlk binary
 *.zip binary
+*.sqlite3
 
 # Github
-tests/test_data/** -linguist-detectable
+tests/test_data/user/development/** -linguist-detectable

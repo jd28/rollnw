@@ -8,17 +8,17 @@ using namespace std::literals;
 
 TEST_CASE("Directory", "[containers]")
 {
-    std::filesystem::path p{"./test_data"};
+    std::filesystem::path p{"./test_data/user/development/"};
     Directory d(p);
     REQUIRE(d.valid());
-    REQUIRE(d.name() == "test_data");
+    REQUIRE(d.name() == "development");
     REQUIRE(d.path() == std::filesystem::canonical(p));
 
     auto ba = d.demand(Resource{"test"sv, ResourceType::nss});
     REQUIRE(ba.size());
-    REQUIRE(ba.size() == std::filesystem::file_size("./test_data/test.nss"));
+    REQUIRE(ba.size() == std::filesystem::file_size("./test_data/user/development/test.nss"));
     REQUIRE(d.all().size() > 0);
 
-    REQUIRE_THROWS(Directory{"./test_data/test.nss"});
-    REQUIRE_THROWS(Directory{"./doesnotexist"});
+    REQUIRE_FALSE(Directory{"./test_data/user/development/test.nss"}.valid());
+    REQUIRE_FALSE(Directory{"./doesnotexist"}.valid());
 }

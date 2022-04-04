@@ -17,7 +17,7 @@ namespace nw {
 Zip::Zip(const fs::path& path)
 {
     if (!fs::exists(path)) {
-        throw std::invalid_argument(fmt::format("file '{}' does not exist", path));
+        LOG_F(WARNING, "file '{}' does not exist", path);
     }
 
 #if _MSC_VER

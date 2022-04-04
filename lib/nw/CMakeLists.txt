@@ -27,6 +27,7 @@ add_library(nw STATIC
 
     kernel/Kernel.cpp
     kernel/Config.cpp
+    kernel/Resources.cpp
     kernel/Strings.cpp
 
     objects/Area.cpp
@@ -69,7 +70,6 @@ add_library(nw STATIC
     resources/Resref.cpp
     resources/Resource.cpp
     resources/ResourceDescriptor.cpp
-    resources/ResourceLocator.cpp
     resources/Zip.cpp
 
     serialization/Archives.cpp

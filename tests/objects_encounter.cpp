@@ -9,7 +9,7 @@
 
 TEST_CASE("encounter: from_gff", "[objects]")
 {
-    nw::GffInputArchive g{"test_data/boundelementallo.ute"};
+    nw::GffInputArchive g{"test_data/user/development/boundelementallo.ute"};
     REQUIRE(g.valid());
     nw::Encounter e{g.toplevel(), nw::SerializationProfile::blueprint};
     REQUIRE(e.common()->resref == "boundelementallo");
@@ -21,7 +21,7 @@ TEST_CASE("encounter: from_gff", "[objects]")
 
 TEST_CASE("encounter: to_json", "[objects]")
 {
-    nw::GffInputArchive g{"test_data/boundelementallo.ute"};
+    nw::GffInputArchive g{"test_data/user/development/boundelementallo.ute"};
     nw::Encounter e{g.toplevel(), nw::SerializationProfile::blueprint};
 
     // REQUIRE(e.valid());
@@ -34,7 +34,7 @@ TEST_CASE("encounter: to_json", "[objects]")
 
 TEST_CASE("encounter: json back and forth", "[objects]")
 {
-    nw::GffInputArchive g{"test_data/boundelementallo.ute"};
+    nw::GffInputArchive g{"test_data/user/development/boundelementallo.ute"};
     nw::Encounter e{g.toplevel(), nw::SerializationProfile::blueprint};
     nlohmann::json j = e.to_json(nw::SerializationProfile::blueprint);
     nw::Encounter e2{j, nw::SerializationProfile::blueprint};
@@ -44,7 +44,7 @@ TEST_CASE("encounter: json back and forth", "[objects]")
 
 TEST_CASE("encount: gff round trip", "[ojbects]")
 {
-    nw::GffInputArchive g("test_data/boundelementallo.ute");
+    nw::GffInputArchive g("test_data/user/development/boundelementallo.ute");
     REQUIRE(g.valid());
 
     nw::Encounter enc{g.toplevel(), nw::SerializationProfile::blueprint};

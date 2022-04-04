@@ -45,7 +45,8 @@ struct ErfKey {
 Erf::Erf(const std::filesystem::path& path)
 {
     if (!fs::exists(path)) {
-        throw std::invalid_argument(fmt::format("file '{}' does not exist", path));
+        LOG_F(WARNING, "file '{}' does not exist", path);
+        return;
     }
 
 #ifdef _MSC_VER

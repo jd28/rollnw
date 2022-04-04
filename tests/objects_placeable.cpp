@@ -9,7 +9,7 @@
 
 TEST_CASE("placeable: from_gff", "[objects]")
 {
-    nw::GffInputArchive g{"test_data/arrowcorpse001.utp"};
+    nw::GffInputArchive g{"test_data/user/development/arrowcorpse001.utp"};
     REQUIRE(g.valid());
     nw::Placeable p{g.toplevel(), nw::SerializationProfile::blueprint};
     REQUIRE(p.common()->resref == "arrowcorpse001");
@@ -21,7 +21,7 @@ TEST_CASE("placeable: from_gff", "[objects]")
 
 TEST_CASE("placeable: to_json", "[objects]")
 {
-    nw::GffInputArchive g{"test_data/arrowcorpse001.utp"};
+    nw::GffInputArchive g{"test_data/user/development/arrowcorpse001.utp"};
     REQUIRE(g.valid());
     nw::Placeable p{g.toplevel(), nw::SerializationProfile::blueprint};
 
@@ -33,7 +33,7 @@ TEST_CASE("placeable: to_json", "[objects]")
 
 TEST_CASE("placeable: json to and from", "[objects]")
 {
-    nw::GffInputArchive g{"test_data/arrowcorpse001.utp"};
+    nw::GffInputArchive g{"test_data/user/development/arrowcorpse001.utp"};
     REQUIRE(g.valid());
     nw::Placeable p{g.toplevel(), nw::SerializationProfile::blueprint};
     nlohmann::json j = p.to_json(nw::SerializationProfile::blueprint);
@@ -44,7 +44,7 @@ TEST_CASE("placeable: json to and from", "[objects]")
 
 TEST_CASE("placeable: gff round trip", "[ojbects]")
 {
-    nw::GffInputArchive g("test_data/arrowcorpse001.utp");
+    nw::GffInputArchive g("test_data/user/development/arrowcorpse001.utp");
     REQUIRE(g.valid());
 
     nw::Placeable place{g.toplevel(), nw::SerializationProfile::blueprint};

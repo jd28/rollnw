@@ -2,6 +2,7 @@
 
 #include "../util/game_install.hpp"
 #include "Config.hpp"
+#include "Resources.hpp"
 #include "Strings.hpp"
 
 #include <memory>
@@ -16,6 +17,7 @@ struct Services {
     Services& operator=(Services&&) = delete;
 
     /// Provide global service
+    void provide(Resources* resources);
     void provide(Strings* strings);
 
     /// Shutdown all services
@@ -23,12 +25,17 @@ struct Services {
 
     /// Start all services, if no services are provided, default services will be used.
     void start();
+    bool started();
 
     friend Config& config();
+    friend Resources& resman();
     friend Strings& strings();
 
 private:
+    std::unique_ptr<Resources> resources_;
     std::unique_ptr<Strings> strings_;
+
+    bool started_;
 };
 
 namespace detail {
@@ -38,6 +45,7 @@ static Services s_services;
 
 Services& services();
 Config& config();
+Resources& resman();
 Strings& strings();
 
 } // namespace nw::kernel

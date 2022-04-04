@@ -9,7 +9,7 @@
 
 TEST_CASE("module: from_gff", "[objects]")
 {
-    nw::GffInputArchive g{"test_data/module.ifo"};
+    nw::GffInputArchive g{"test_data/user/development/module.ifo"};
     REQUIRE(g.valid());
     nw::Module m{g.toplevel()};
     REQUIRE(m.haks.size() == 0);
@@ -20,7 +20,7 @@ TEST_CASE("module: from_gff", "[objects]")
 
 TEST_CASE("module: to_json", "[objects]")
 {
-    nw::GffInputArchive g{"test_data/module.ifo"};
+    nw::GffInputArchive g{"test_data/user/development/module.ifo"};
     REQUIRE(g.valid());
     nw::Module m{g.toplevel()};
 
@@ -32,7 +32,7 @@ TEST_CASE("module: to_json", "[objects]")
 
 TEST_CASE("module: json to and from", "[objects]")
 {
-    nw::GffInputArchive g{"test_data/module.ifo"};
+    nw::GffInputArchive g{"test_data/user/development/module.ifo"};
     REQUIRE(g.valid());
     nw::Module m{g.toplevel()};
     nlohmann::json j = m.to_json();
@@ -43,7 +43,7 @@ TEST_CASE("module: json to and from", "[objects]")
 
 TEST_CASE("module: gff round trip", "[ojbects]")
 {
-    nw::GffInputArchive g("test_data/module.ifo");
+    nw::GffInputArchive g("test_data/user/development/module.ifo");
     REQUIRE(g.valid());
 
     nw::Module mod{g.toplevel()};

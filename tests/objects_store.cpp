@@ -9,7 +9,7 @@
 
 TEST_CASE("Loading store blueprint", "[objects]")
 {
-    nw::GffInputArchive g{"test_data/storethief002.utm"};
+    nw::GffInputArchive g{"test_data/user/development/storethief002.utm"};
     REQUIRE(g.valid());
     nw::Store s{g.toplevel(), nw::SerializationProfile::blueprint};
     REQUIRE(s.common()->resref == "storethief002");
@@ -21,7 +21,7 @@ TEST_CASE("Loading store blueprint", "[objects]")
 
 TEST_CASE("store: to_json", "[objects]")
 {
-    nw::GffInputArchive g{"test_data/storethief002.utm"};
+    nw::GffInputArchive g{"test_data/user/development/storethief002.utm"};
     REQUIRE(g.valid());
     nw::Store s{g.toplevel(), nw::SerializationProfile::blueprint};
 
@@ -44,7 +44,7 @@ TEST_CASE("store: from_json", "[objects]")
 
 TEST_CASE("store: json to and from", "[objects]")
 {
-    nw::GffInputArchive g{"test_data/storethief002.utm"};
+    nw::GffInputArchive g{"test_data/user/development/storethief002.utm"};
     REQUIRE(g.valid());
     nw::Store s{g.toplevel(), nw::SerializationProfile::blueprint};
 
@@ -56,7 +56,7 @@ TEST_CASE("store: json to and from", "[objects]")
 
 TEST_CASE("store: gff round trip", "[ojbects]")
 {
-    nw::GffInputArchive g("test_data/storethief002.utm");
+    nw::GffInputArchive g("test_data/user/development/storethief002.utm");
     REQUIRE(g.valid());
 
     nw::Store store{g.toplevel(), nw::SerializationProfile::blueprint};

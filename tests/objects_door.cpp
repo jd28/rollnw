@@ -9,7 +9,7 @@
 
 TEST_CASE("door: from_gff", "[objects]")
 {
-    nw::GffInputArchive g{"test_data/door_ttr_002.utd"};
+    nw::GffInputArchive g{"test_data/user/development/door_ttr_002.utd"};
     REQUIRE(g.valid());
     nw::Door d{g.toplevel(), nw::SerializationProfile::blueprint};
     REQUIRE(d.valid());
@@ -22,7 +22,7 @@ TEST_CASE("door: from_gff", "[objects]")
 
 TEST_CASE("door: to_json", "[objects]")
 {
-    nw::GffInputArchive g{"test_data/door_ttr_002.utd"};
+    nw::GffInputArchive g{"test_data/user/development/door_ttr_002.utd"};
     REQUIRE(g.valid());
     nw::Door d{g.toplevel(), nw::SerializationProfile::blueprint};
     REQUIRE(d.valid());
@@ -44,7 +44,7 @@ TEST_CASE("door: to_json", "[objects]")
 
 TEST_CASE("door: gff round trip", "[ojbects]")
 {
-    nw::GffInputArchive g("test_data/door_ttr_002.utd");
+    nw::GffInputArchive g("test_data/user/development/door_ttr_002.utd");
     REQUIRE(g.valid());
 
     nw::Door door{g.toplevel(), nw::SerializationProfile::blueprint};
