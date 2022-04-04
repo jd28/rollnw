@@ -35,6 +35,7 @@ add_executable(libnw_test
     i18n_tlk.cpp
 
     kernel_config.cpp
+    kernel_resources.cpp
     kernel_strings.cpp
 
     objects_area.cpp

@@ -9,13 +9,14 @@ The `kernel` module provides submodules for handling global resources and servic
 
 - `Config`
 - `Strings`
+- `Resources`
 
 Once all services are loaded, the kernel will call `service->intialize()` in the case default construction
 isn't enough.
 
 ### Usage
 
-The below is an example of how it might be used as is, of course at some point..  There will be a `nw::kernel::load_module(...)` to abstract this.
+The below is an example of how it might be used as is, of course at some point.. there will be a `nw::kernel::load_module(...)` to abstract this.
 
 ```c++
 int main(int argc, char* argv[])
@@ -30,6 +31,10 @@ int main(int argc, char* argv[])
 ## Config
 
 The `Config` module provides access to installation info, path aliases, Ini and Toml settings.
+
+## Resources
+
+The `Resources` module is similar to NWN's ResMan.
 
 ## Strings
 
