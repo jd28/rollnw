@@ -20,6 +20,8 @@ struct Resources : public Container {
     Resources() = default;
     virtual ~Resources() = default;
 
+    using SearchVector = std::vector<std::tuple<const Container*, ResourceType::type, bool>>;
+
     /// Add already created container
     virtual bool add_container(Container* container, bool take_ownership = true);
 
@@ -49,7 +51,7 @@ private:
 
     NWSync nwsync_;
 
-    std::vector<std::tuple<const Container*, ResourceType::type, bool>> search_;
+    SearchVector search_;
 
     std::vector<LocatorVariant> custom_;
 

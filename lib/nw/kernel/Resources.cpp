@@ -2,6 +2,7 @@
 
 #include "../objects/Module.hpp"
 #include "../util/game_install.hpp"
+#include "../util/templates.hpp"
 #include "Kernel.hpp"
 
 #include <memory>
@@ -113,6 +114,7 @@ Module* Resources::load_module(std::string_view name, std::string_view manifest)
         haks_.emplace_back(config().alias_path(PathAlias::hak) / (h + ".hak"));
     }
     nwsync_manifest_ = nwsync_.get(manifest);
+    update_container_search();
     return mod;
 }
 
@@ -169,7 +171,7 @@ ByteArray Resources::demand(Resource res) const
 int Resources::extract(const std::regex& pattern, const std::filesystem::path& output) const
 {
     int result = 0;
-    for (auto [cont, type, user] : search_) {
+    for (auto [cont, type, user] : reverse(search_)) {
         result += cont->extract(pattern, output);
     }
     return result;
