@@ -11,6 +11,8 @@ fs::path Config::alias_path(PathAlias alias)
 {
     std::optional<std::string> str;
     switch (alias) {
+    default:
+        return {};
     case PathAlias::ambient:
         str = nwn_ini_.get<std::string>("alias/ambient");
         return str ? fs::u8path(*str) : fs::path{};

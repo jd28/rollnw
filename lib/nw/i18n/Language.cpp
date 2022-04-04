@@ -23,7 +23,7 @@ std::string_view Language::encoding(LanguageID lang)
     for (const auto& info : language_table) {
         if (info.id == lang) { return info.encoding; }
     }
-    return nullptr;
+    return {};
 }
 
 LanguageID Language::from_string(std::string_view lang)
