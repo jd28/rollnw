@@ -216,13 +216,21 @@ void Resources::update_container_search()
 
     push_container(&development_, ResourceType::invalid, true);
 
+    push_container(nwsync_manifest_, ResourceType::invalid, true);
+
     for (const auto& c : haks_) {
         push_container(&c, ResourceType::invalid, false);
     }
 
     push_container(module_.get(), ResourceType::invalid, true);
 
-    push_container(nwsync_manifest_, ResourceType::invalid, true);
+    push_container(&override_user_, ResourceType::invalid, true);
+    push_container(&override_install_, ResourceType::invalid, false);
+
+    push_container(&ambient_user_, ResourceType::sound, true);
+    push_container(&music_user_, ResourceType::sound, true);
+    push_container(&ambient_install_, ResourceType::sound, false);
+    push_container(&music_install_, ResourceType::sound, false);
 
     for (auto& c : patches_) {
         push_container(c.get(), ResourceType::invalid, false);
