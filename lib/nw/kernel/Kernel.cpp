@@ -4,6 +4,14 @@
 
 namespace nw::kernel {
 
+void Services::provide(Resources* resources)
+{
+    if (resources_) {
+        LOG_F(WARNING, "Objects service already loaded, overriding...");
+    }
+    resources_ = std::unique_ptr<Resources>(resources);
+}
+
 void Services::provide(Strings* strings)
 {
     if (strings_) {
