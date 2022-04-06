@@ -18,6 +18,10 @@ void Services::provide(Objects* objects)
 
 void Services::provide(Resources* resources)
 {
+    if (started_) {
+        LOG_F(WARNING, "Services are unable to be provided after start");
+    }
+
     if (resources_) {
         LOG_F(WARNING, "Objects service already loaded, overriding...");
     }
@@ -26,6 +30,10 @@ void Services::provide(Resources* resources)
 
 void Services::provide(Strings* strings)
 {
+    if (started_) {
+        LOG_F(WARNING, "Services are unable to be provided after start");
+    }
+
     if (strings_) {
         LOG_F(WARNING, "Strings service already loaded, overriding...");
     }
@@ -43,6 +51,11 @@ void Services::shutdown()
 
 void Services::start()
 {
+    if (started_) {
+        LOG_F(WARNING, "Services have already been started...");
+        return;
+    }
+
     if (!objects_) {
         objects_ = std::make_unique<Objects>();
     }
