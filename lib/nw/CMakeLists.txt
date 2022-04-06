@@ -27,6 +27,7 @@ add_library(nw STATIC
 
     kernel/Kernel.cpp
     kernel/Config.cpp
+    kernel/Objects.cpp
     kernel/Resources.cpp
     kernel/Strings.cpp
 
