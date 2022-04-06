@@ -2,6 +2,7 @@
 
 #include "../util/game_install.hpp"
 #include "Config.hpp"
+#include "Objects.hpp"
 #include "Resources.hpp"
 #include "Strings.hpp"
 
@@ -17,6 +18,7 @@ struct Services {
     Services& operator=(Services&&) = delete;
 
     /// Provide global service
+    void provide(Objects* objects);
     void provide(Resources* resources);
     void provide(Strings* strings);
 
@@ -28,10 +30,12 @@ struct Services {
     bool started();
 
     friend Config& config();
+    friend Objects& objects();
     friend Resources& resman();
     friend Strings& strings();
 
 private:
+    std::unique_ptr<Objects> objects_;
     std::unique_ptr<Resources> resources_;
     std::unique_ptr<Strings> strings_;
 
@@ -45,6 +49,7 @@ static Services s_services;
 
 Services& services();
 Config& config();
+Objects& objects();
 Resources& resman();
 Strings& strings();
 

@@ -32,9 +32,62 @@ int main(int argc, char* argv[])
 
 The `Config` module provides access to installation info, path aliases, Ini and Toml settings.
 
+-------------------
+
+## Objects
+> Provides a fairly basic and fairly incomplete object management system.  Lookup is O(1), just an index into a `std::deque`.
+> If creating and deleting a *massive* amount of objects it will slowly start to leak in 64bit increments.
+
+<br>
+
+```c++
+virtual void destroy(ObjectHandle handle);
+```
+> Destroys object
+
+<br>
+
+```c++
+virtual ObjectBase* get(ObjectHandle handle) const;
+```
+> Gets object
+
+<br>
+
+```c++
+virtual void initialize();
+```
+> Initializes object system.
+>
+> note: in the current implementation this does nothing.
+
+<br>
+
+```c++
+virtual ObjectHandle load(std::string_view resref, ObjectType type);
+```
+> Instantiates object from a blueprint
+>
+> note: will call kernel::resources()
+
+<br>
+
+```c++
+virtual bool valid(ObjectHandle handle) const;
+```
+
+> Tests if object is valid
+>
+> note: This is a simple nullptr check around Objects::get.  Not calling this before
+> the latter is **not** undefined behavior.
+
+-------------------
+
 ## Resources
 
 The `Resources` module is similar to NWN's ResMan.
+
+-------------------
 
 ## Strings
 
