@@ -16,12 +16,12 @@ struct ResourceType {
         invalid = 0,
 
         // Custom - Resource Type Categories
-        container = std::numeric_limits<uint16_t>::max() - 1,
-        gff_archive = std::numeric_limits<uint16_t>::max() - 2,
-        movie = std::numeric_limits<uint16_t>::max() - 3,
-        player = std::numeric_limits<uint16_t>::max() - 4,
-        sound = std::numeric_limits<uint16_t>::max() - 5,
-        texture = std::numeric_limits<uint16_t>::max() - 6,
+        container = 65534,
+        gff_archive = 65533,
+        movie = 65532,
+        player = 65531,
+        sound = 65530,
+        texture = 65529,
 
         bmp = 1,
         mve = 2,

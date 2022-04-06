@@ -21,6 +21,11 @@ jobs:
     runs-on: windows-2019
 
     steps:
+      - name: Visual Studio shell
+        uses: egor-tensin/vs-shell@v2
+        with:
+          arch: x64
+
       - uses: actions/checkout@v2
         with:
           submodules: true
@@ -52,7 +57,7 @@ jobs:
 
       - name: Configure
         run: |
-          cmake --preset windows
+          cmake --preset ci-windows
 
       - name: Build
         run: |

@@ -2,6 +2,9 @@ cmake_minimum_required(VERSION 3.21)
 project(libnw VERSION 0.1.0 LANGUAGES CXX C)
 set (CMAKE_CXX_STANDARD 17)
 
+# Generate compile_commands.json to make it easier to work with clang based tools
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 if(MSVC)
     set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 

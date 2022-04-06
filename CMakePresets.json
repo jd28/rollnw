@@ -61,6 +61,13 @@
             }
         },
         {
+            "name": "ci-windows",
+            "inherits": "windows",
+            "generator": "NMake Makefiles",
+            "displayName": "windows ci build",
+            "description": "windows ci build"
+        },
+        {
             "name": "macos",
             "inherits": "default",
             "displayName": "macOS-only configuration",
