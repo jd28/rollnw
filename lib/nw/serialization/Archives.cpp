@@ -36,47 +36,47 @@ inline bool gff_to_gffjson(const GffInputArchiveField field, nlohmann::json& cur
     default:
         LOG_F(ERROR, "attempted to convert invalid field type");
         return false;
-    case SerializationType::UINT8:
+    case SerializationType::uint8:
         add_field_kv(cursor, field_name, *field.get<uint8_t>());
         break;
-    case SerializationType::INT8: {
+    case SerializationType::int8: {
         add_field_kv(cursor, field_name, *field.get<int8_t>());
     } break;
-    case SerializationType::UINT16: {
+    case SerializationType::uint16: {
         add_field_kv(cursor, field_name, *field.get<uint16_t>());
     } break;
-    case SerializationType::INT16: {
+    case SerializationType::int16: {
         add_field_kv(cursor, field_name, *field.get<int16_t>());
     } break;
-    case SerializationType::UINT32: {
+    case SerializationType::uint32: {
         add_field_kv(cursor, field_name, *field.get<uint32_t>());
     } break;
-    case SerializationType::INT32: {
+    case SerializationType::int32: {
         add_field_kv(cursor, field_name, *field.get<int32_t>());
     } break;
-    case SerializationType::UINT64: {
+    case SerializationType::uint64: {
         add_field_kv(cursor, field_name, *field.get<uint64_t>());
     } break;
-    case SerializationType::INT64: {
+    case SerializationType::int64: {
         add_field_kv(cursor, field_name, *field.get<uint32_t>());
     } break;
-    case SerializationType::FLOAT: {
+    case SerializationType::float_: {
         add_field_kv(cursor, field_name, *field.get<float>());
     } break;
-    case SerializationType::DOUBLE: {
+    case SerializationType::double_: {
         add_field_kv(cursor, field_name, *field.get<double>());
     } break;
-    case SerializationType::STRING: {
+    case SerializationType::string: {
         add_field_kv(cursor, field_name, *field.get<std::string>());
     } break;
-    case SerializationType::RESREF: {
+    case SerializationType::resref: {
         auto& o = cursor[field_name] = json::object();
         o["value"] = (*field.get<Resref>()).string();
-        o["type"] = SerializationType::to_string(SerializationType::RESREF);
+        o["type"] = SerializationType::to_string(SerializationType::resref);
     } break;
-    case SerializationType::LOCSTRING: {
+    case SerializationType::locstring: {
         auto& o = cursor[field_name] = json::object();
-        o["type"] = SerializationType::to_string(SerializationType::LOCSTRING);
+        o["type"] = SerializationType::to_string(SerializationType::locstring);
         LocString ls = *field.get<LocString>();
         if (ls.strref() != std::numeric_limits<uint32_t>::max()) {
             o["strref"] = ls.strref();
@@ -86,18 +86,18 @@ inline bool gff_to_gffjson(const GffInputArchiveField field, nlohmann::json& cur
             a[std::to_string(lang)] = str;
         }
     } break;
-    case SerializationType::VOID: {
+    case SerializationType::void_: {
         auto& o = cursor[field_name] = json::object();
         o["value"] = to_base64((*field.get<ByteArray>()).span());
-        o["type"] = SerializationType::to_string(SerializationType::VOID);
+        o["type"] = SerializationType::to_string(SerializationType::void_);
     } break;
-    case SerializationType::STRUCT: {
+    case SerializationType::struct_: {
         auto& o = cursor[field_name] = json::object();
-        o["type"] = SerializationType::to_string(SerializationType::STRUCT);
+        o["type"] = SerializationType::to_string(SerializationType::struct_);
         auto& v = o["value"] = json::object();
         check = check && gff_to_gffjson(*field.get<GffInputArchiveStruct>(), v);
     } break;
-    case SerializationType::LIST: {
+    case SerializationType::list: {
         auto& v = cursor[field_name] = json::array();
         for (size_t i = 0; i < field.size(); ++i) {
             v.push_back(json::object());

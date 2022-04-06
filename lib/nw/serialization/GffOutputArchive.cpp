@@ -18,7 +18,7 @@ GffOutputArchiveList& GffOutputArchiveStruct::add_list(std::string_view name)
 {
     GffOutputArchiveField f{parent};
     f.label_index = static_cast<uint32_t>(parent->add_label(name));
-    f.type = SerializationType::LIST;
+    f.type = SerializationType::list;
     f.structures = GffOutputArchiveList{parent};
     field_entries.push_back(f);
     return std::get<GffOutputArchiveList>(field_entries.back().structures);
@@ -30,7 +30,7 @@ GffOutputArchiveStruct& GffOutputArchiveStruct::add_struct(std::string_view name
     field_entries.emplace_back(parent);
     GffOutputArchiveField& f = field_entries.back();
     f.label_index = static_cast<uint32_t>(parent->add_label(name));
-    f.type = SerializationType::STRUCT;
+    f.type = SerializationType::struct_;
     f.structures = GffOutputArchiveStruct{parent};
     return std::get<GffOutputArchiveStruct>(field_entries.back().structures);
 }
@@ -92,9 +92,9 @@ void build_arrays(GffOutputArchive& archive, GffOutputArchiveField& field)
 {
     field.index = archive.field_entries.size();
     archive.field_entries.push_back({field.type, field.label_index, field.data_or_offset});
-    if (field.type == SerializationType::STRUCT) {
+    if (field.type == SerializationType::struct_) {
         build_arrays(archive, std::get<GffOutputArchiveStruct>(field.structures));
-    } else if (field.type == SerializationType::LIST) {
+    } else if (field.type == SerializationType::list) {
         auto& list = std::get<GffOutputArchiveList>(field.structures);
         for (auto& s : list.structs) {
             build_arrays(archive, s);
@@ -113,11 +113,11 @@ void build_arrays(GffOutputArchive& archive, GffOutputArchiveStruct& str)
 
 void build_indicies(GffOutputArchive& archive, const GffOutputArchiveField& field)
 {
-    if (field.type == SerializationType::STRUCT) {
+    if (field.type == SerializationType::struct_) {
         const auto& data = std::get<GffOutputArchiveStruct>(field.structures);
         archive.field_entries[field.index].data_or_offset = data.index;
         build_indicies(archive, data);
-    } else if (field.type == SerializationType::LIST) {
+    } else if (field.type == SerializationType::list) {
         const auto& data = std::get<GffOutputArchiveList>(field.structures);
         archive.field_entries[field.index].data_or_offset = archive.list_indices.size() * 4; // byte offset
         archive.list_indices.push_back(data.structs.size());

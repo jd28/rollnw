@@ -30,23 +30,23 @@ enum struct SerializationProfile {
 /// Gff types, renamed for clarity
 struct SerializationType {
     enum type : uint32_t {
-        INVALID = std::numeric_limits<uint32_t>::max(),
-        UINT8 = 0,  // BYTE
-        INT8 = 1,   // CHAR
-        UINT16 = 2, // WORD
-        INT16 = 3,  // SHORT
-        UINT32 = 4, // DWORD
-        INT32 = 5,  // INT
-        UINT64 = 6, // DWORD64
-        INT64 = 7,
-        FLOAT = 8,
-        DOUBLE = 9,
-        STRING = 10, // CEXOSTRING
-        RESREF = 11,
-        LOCSTRING = 12, // CEXOLOCSTRING
-        VOID = 13,
-        STRUCT = 14,
-        LIST = 15,
+        invalid = std::numeric_limits<uint32_t>::max(),
+        uint8 = 0,  // BYTE
+        int8 = 1,   // CHAR
+        uint16 = 2, // WORD
+        int16 = 3,  // SHORT
+        uint32 = 4, // DWORD
+        int32 = 5,  // INT
+        uint64 = 6, // DWORD64
+        int64 = 7,
+        float_ = 8,
+        double_ = 9,
+        string = 10, // CEXOSTRING
+        resref = 11,
+        locstring = 12, // CEXOLOCSTRING
+        void_ = 13,
+        struct_ = 14,
+        list = 15,
     };
 
     /// Convert type to SerializationType
@@ -60,35 +60,35 @@ template <typename T>
 constexpr SerializationType::type SerializationType::id()
 {
     if constexpr (std::is_same_v<T, uint8_t>) {
-        return SerializationType::UINT8;
+        return SerializationType::uint8;
     } else if constexpr (std::is_same_v<T, int8_t>) {
-        return SerializationType::INT8;
+        return SerializationType::int8;
     } else if constexpr (std::is_same_v<T, uint16_t>) {
-        return SerializationType::UINT16;
+        return SerializationType::uint16;
     } else if constexpr (std::is_same_v<T, int16_t>) {
-        return SerializationType::INT16;
+        return SerializationType::int16;
     } else if constexpr (std::is_same_v<T, uint32_t>) {
-        return SerializationType::UINT32;
+        return SerializationType::uint32;
     } else if constexpr (std::is_same_v<T, int32_t>) {
-        return SerializationType::INT32;
+        return SerializationType::int32;
     } else if constexpr (std::is_same_v<T, uint64_t>) {
-        return SerializationType::UINT64;
+        return SerializationType::uint64;
     } else if constexpr (std::is_same_v<T, int64_t>) {
-        return SerializationType::INT64;
+        return SerializationType::int64;
     } else if constexpr (std::is_same_v<T, float>) {
-        return SerializationType::FLOAT;
+        return SerializationType::float_;
     } else if constexpr (std::is_same_v<T, double>) {
-        return SerializationType::DOUBLE;
+        return SerializationType::double_;
     } else if constexpr (std::is_same_v<T, std::string>) {
-        return SerializationType::STRING;
+        return SerializationType::string;
     } else if constexpr (std::is_same_v<T, Resref>) {
-        return SerializationType::RESREF;
+        return SerializationType::resref;
     } else if constexpr (std::is_same_v<T, LocString>) {
-        return SerializationType::LOCSTRING;
+        return SerializationType::locstring;
     } else if constexpr (std::is_same_v<T, ByteArray>) {
-        return SerializationType::VOID;
+        return SerializationType::void_;
     } else if constexpr (std::is_same_v<T, GffInputArchiveStruct>) { // Have to get rid of this somehow
-        return SerializationType::STRUCT;
+        return SerializationType::struct_;
     } else {
         static_assert(always_false<T>(), "Unknown GFF type.");
     }
@@ -99,37 +99,37 @@ constexpr std::string_view SerializationType::to_string(SerializationType::type 
     switch (type) {
     default:
         return {};
-    case SerializationType::UINT8:
+    case SerializationType::uint8:
         return "byte"sv;
-    case SerializationType::INT8:
+    case SerializationType::int8:
         return "char"sv;
-    case SerializationType::UINT16:
+    case SerializationType::uint16:
         return "word"sv;
-    case SerializationType::INT16:
+    case SerializationType::int16:
         return "short"sv;
-    case SerializationType::UINT32:
+    case SerializationType::uint32:
         return "dword"sv;
-    case SerializationType::INT32:
+    case SerializationType::int32:
         return "int"sv;
-    case SerializationType::UINT64:
+    case SerializationType::uint64:
         return "dword64"sv;
-    case SerializationType::INT64:
+    case SerializationType::int64:
         return "int64"sv;
-    case SerializationType::FLOAT:
+    case SerializationType::float_:
         return "float"sv;
-    case SerializationType::DOUBLE:
+    case SerializationType::double_:
         return "double"sv;
-    case SerializationType::STRING:
+    case SerializationType::string:
         return "cexostring"sv;
-    case SerializationType::RESREF:
+    case SerializationType::resref:
         return "resref"sv;
-    case SerializationType::LOCSTRING:
+    case SerializationType::locstring:
         return "cexolocstring"sv;
-    case SerializationType::VOID:
+    case SerializationType::void_:
         return "void"sv;
-    case SerializationType::STRUCT:
+    case SerializationType::struct_:
         return "struct"sv;
-    case SerializationType::LIST:
+    case SerializationType::list:
         return "list"sv;
     }
 }

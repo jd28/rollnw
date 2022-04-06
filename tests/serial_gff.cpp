@@ -21,7 +21,7 @@ TEST_CASE("GffInputArchive Validation", "[serialization]")
     auto field = g.toplevel()["TemplateResRef"];
     REQUIRE(field.valid());
     REQUIRE(field.name() == "TemplateResRef");
-    REQUIRE(field.type() == nw::SerializationType::RESREF);
+    REQUIRE(field.type() == nw::SerializationType::resref);
 
     nw::Resref r;
     REQUIRE(field.get_to(r));
