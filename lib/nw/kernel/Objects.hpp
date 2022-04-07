@@ -20,6 +20,9 @@ struct Objects {
     /// Gets object
     virtual ObjectBase* get(ObjectHandle handle) const;
 
+    template <typename T>
+    T* get_as(ObjectHandle handle) const;
+
     /// Initializes object system.
     /// @note: in the current implementation this does nothing.
     virtual void initialize();
@@ -40,5 +43,15 @@ private:
     std::stack<uint32_t> object_free_list_;
     std::deque<std::variant<ObjectBase*, ObjectHandle>> objects_;
 };
+
+template <typename T>
+T* Objects::get_as(ObjectHandle handle) const
+{
+    auto obj = get(handle);
+    if (obj && obj->handle().type == T::object_type) {
+        return static_cast<T*>(obj);
+    }
+    return nullptr;
+}
 
 } // namespace nw::kernel
