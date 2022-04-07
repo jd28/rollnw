@@ -18,7 +18,7 @@ isn't enough.
 
 The below is an example of how it might be used as is, of course at some point.. there will be a `nw::kernel::load_module(...)` to abstract this.
 
-```c++
+```cpp
 int main(int argc, char* argv[])
 {
     nw::init_logger(argc, argv);
@@ -42,7 +42,7 @@ The `Config` module provides access to installation info, path aliases, Ini and 
 
 <br>
 
-```c++
+```cpp
 virtual void clear();
 ```
 > Clears all objects
@@ -52,21 +52,21 @@ virtual void clear();
 
 <br>
 
-```c++
+```cpp
 virtual void destroy(ObjectHandle handle);
 ```
 > Destroys object
 
 <br>
 
-```c++
+```cpp
 virtual ObjectBase* get(ObjectHandle handle) const;
 ```
 > Gets object
 
 <br>
 
-```c++
+```cpp
 virtual void initialize();
 ```
 > Initializes object system.
@@ -75,7 +75,7 @@ virtual void initialize();
 
 <br>
 
-```c++
+```cpp
 virtual ObjectHandle load(std::string_view resref, ObjectType type);
 ```
 > Instantiates object from a blueprint
@@ -84,7 +84,7 @@ virtual ObjectHandle load(std::string_view resref, ObjectType type);
 
 <br>
 
-```c++
+```cpp
 virtual bool valid(ObjectHandle handle) const;
 ```
 > Tests if object is valid
@@ -101,5 +101,77 @@ The `Resources` module is similar to NWN's ResMan.
 -------------------
 
 ## Strings
+> Provides access to dialog/custom TLKs and localized strings.  It also provides a mechanism for interning
+> commonly used strings.
 
-The `Strings` module provides access to dialog/custom TLKs and localized strings.  It also provides a mechanism for interning commonly used strings.
+<br>
+
+```cpp
+virtual std::string get(const LocString& locstring, bool feminine = false) const;
+```
+> Gets string by LocString
+> note: if Tlk strref, use that; if not look in localized strings.  [TODO] This is backwards!!
+
+<br>
+
+```cpp
+virtual std::string get(uint32_t strref, bool feminine = false) const;
+```
+> Gets string by Tlk strref
+
+<br>
+
+```cpp
+virtual void initialize();
+```
+> Initializes strings system
+
+<br>
+
+```cpp
+virtual InternedString intern(std::string_view str);
+```
+> Interns a string
+>
+> note: Multiple calls to `intern` with the same string will and must return
+> the same exact underlying string, such that equality can be determined
+> by a comparison of pointers.
+
+<br>
+
+```cpp
+virtual void load_custom_tlk(const std::filesystem::path& path);
+```
+> Loads a modules custom Tlk and feminine version if available
+
+<br>
+
+```cpp
+virtual void load_dialog_tlk(const std::filesystem::path& path);
+```
+> Loads a dialog Tlk and feminine version if available
+
+<br>
+
+```cpp
+LanguageID global_language() const noexcept;
+```
+> Gets the language ID that is considered 'default'
+>
+> note: This determines the character encoding of strings as they are stored
+> in game resources, TLK, GFF, etc.  In EE the only encoding that isn't CP1252
+> is Polish, so generally safe to not worry too much.
+
+<br>
+
+```cpp
+void set_global_language(LanguageID language) noexcept;
+```
+> Sets the language ID that is considered 'default'
+
+<br>
+
+```cpp
+virtual void unload_custom_tlk();
+```
+> Unloads a modules custom Tlk and feminine version if available
