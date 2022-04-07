@@ -43,6 +43,8 @@ struct Module : public ObjectBase {
     explicit Module(const GffInputArchiveStruct& archive);
     explicit Module(const nlohmann::json& archive);
 
+    using AreaVariant = std::variant<std::vector<Resref>, std::vector<Area*>>;
+
     static constexpr int json_archive_version = 1;
     static constexpr ObjectType object_type = ObjectType::module;
 
@@ -57,7 +59,7 @@ struct Module : public ObjectBase {
     GffOutputArchive to_gff() const;
     nlohmann::json to_json() const;
 
-    std::vector<Resref> areas;
+    AreaVariant areas;
     LocString description;
     Resref entry_area;
     glm::vec3 entry_orientation;
