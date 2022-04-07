@@ -119,6 +119,14 @@ bool Resources::load_module(std::filesystem::path path, std::string_view manifes
     return true;
 }
 
+void Resources::load_module_haks(const std::vector<std::string>& haks)
+{
+    // [TODO]
+    for (const auto& h : haks) {
+        haks_.emplace_back(config().alias_path(PathAlias::hak) / (h + ".hak"));
+    }
+}
+
 void Resources::unload_module()
 {
     nwsync_manifest_ = nullptr;

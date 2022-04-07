@@ -31,6 +31,9 @@ struct Resources : public Container {
     /// Loads container resources for a module
     virtual bool load_module(std::filesystem::path path, std::string_view manifest = {});
 
+    /// Loads module haks
+    virtual void load_module_haks(const std::vector<std::string>& haks);
+
     /// Unloads module
     virtual void unload_module();
 

@@ -95,8 +95,44 @@ virtual bool valid(ObjectHandle handle) const;
 -------------------
 
 ## Resources
+> Provides resource management features.  Analogous NWN's ResMan.
 
-The `Resources` module is similar to NWN's ResMan.
+ <br>
+
+```cpp
+virtual bool add_container(Container* container, bool take_ownership = true);
+```
+> Adds already created container and optionally takes ownership.
+
+ <br>
+
+```cpp
+virtual void initialize();
+```
+> Initializes resources management system
+
+<br>
+
+```cpp
+virtual bool load_module(std::filesystem::path path, std::string_view manifest = {});
+```
+> Loads module container, either an Erf or a directory.  Nothing more.
+
+<br>
+
+```cpp
+virtual void load_module_haks(const std::vector<std::string>& haks);
+```
+> Loads hak files
+
+<br>
+
+```cpp
+virtual void unload_module();
+```
+> Unloads module
+
+<br>
 
 -------------------
 
