@@ -53,4 +53,7 @@ Objects& objects();
 Resources& resman();
 Strings& strings();
 
+Module* load_module(const std::filesystem::path& path, std::string_view manifest = {});
+void unload_module();
+
 } // namespace nw::kernel
