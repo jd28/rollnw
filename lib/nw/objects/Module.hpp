@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../serialization/Serialization.hpp"
+#include "ObjectBase.hpp"
 #include "components/LocalData.hpp"
 
 #include <glm/glm.hpp>
@@ -37,12 +38,16 @@ struct ModuleScripts {
     Resref on_user_defined;
 };
 
-struct Module {
+struct Module : public ObjectBase {
     Module() = default;
     explicit Module(const GffInputArchiveStruct& archive);
     explicit Module(const nlohmann::json& archive);
 
     static constexpr int json_archive_version = 1;
+
+    // Overrides
+    virtual Module* as_module() { return this; }
+    virtual const Module* as_module() const { return this; }
 
     // Serialization
     bool from_gff(const GffInputArchiveStruct& archive);
