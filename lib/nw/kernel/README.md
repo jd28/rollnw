@@ -76,11 +76,26 @@ virtual void initialize();
 <br>
 
 ```cpp
+virtual Module* initialize_module();
+```
+> Intializes the loaded module
+> warning: `nw::kernel::resman().load_module(...)` **must** be called before this.
+
+<br>
+
+```cpp
 virtual ObjectHandle load(std::string_view resref, ObjectType type);
 ```
 > Instantiates object from a blueprint
 >
 > note: will call kernel::resources()
+
+<br>
+
+```cpp
+    virtual Area* load_area(Resref area);
+```
+> Loads an area
 
 <br>
 
