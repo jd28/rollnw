@@ -32,8 +32,8 @@ TEST_CASE("resources: extract", "[kernel]")
 TEST_CASE("resources: load module", "[kernel]")
 {
     auto& rm = nw::kernel::resman();
-    auto user_path = nw::kernel::config().options().user;
-    auto n = nw::NWSync(user_path / "nwsync/");
+    auto path = nw::kernel::config().alias_path(nw::PathAlias::nwsync);
+    auto n = nw::NWSync(path);
     REQUIRE(n.is_loaded());
     auto manifests = n.manifests();
 
