@@ -103,7 +103,7 @@ private:
 };
 
 struct GffInputArchive {
-    GffInputArchive();
+    GffInputArchive() = default;
     explicit GffInputArchive(const std::filesystem::path& fileName);
     explicit GffInputArchive(ByteArray bytes);
 

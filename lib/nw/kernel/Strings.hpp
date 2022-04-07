@@ -47,6 +47,9 @@ struct Strings {
     /// Sets the language ID that is considered 'default'
     void set_global_language(LanguageID language) noexcept;
 
+    /// Unloads a modules custom Tlk and feminine version if available
+    virtual void unload_custom_tlk();
+
 private:
     Tlk dialog_;
     Tlk dialogf_;

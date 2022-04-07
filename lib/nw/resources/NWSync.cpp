@@ -238,7 +238,10 @@ bool NWSync::load()
 {
     sqlite3* db = nullptr;
     fs::path db_path = path_ / "nwsyncmeta.sqlite3";
-    if (!fs::exists(db_path)) { return false; }
+    if (!fs::exists(db_path)) {
+        LOG_F(ERROR, "'{}' does not exist", db_path);
+        return false;
+    }
     if (SQLITE_OK != sqlite3_open(db_path.u8string().c_str(), &db)) {
         LOG_F(ERROR, "sqlite3 error: {}", sqlite3_errmsg(db));
         return false;

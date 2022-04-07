@@ -1,5 +1,8 @@
 #include "Module.hpp"
 
+#include "../kernel/Kernel.hpp"
+#include "Area.hpp"
+
 #include <nlohmann/json.hpp>
 
 namespace nw {
@@ -114,6 +117,48 @@ Module::Module(const nlohmann::json& archive)
     this->from_json(archive);
 }
 
+Area* Module::operator[](size_t index)
+{
+    if (std::holds_alternative<std::vector<Area*>>(areas) && index < area_count()) {
+        return std::get<std::vector<Area*>>(areas)[index];
+    }
+
+    return nullptr;
+}
+
+size_t Module::area_count() const noexcept
+{
+    if (std::holds_alternative<std::vector<Area*>>(areas)) {
+        return std::get<std::vector<Area*>>(areas).size();
+    }
+    return 0;
+}
+
+bool Module::instantiate()
+{
+    LOG_F(INFO, "instantiating module");
+
+    if (haks.size()) {
+        nw::kernel::resman().load_module_haks(haks);
+    }
+
+    if (tlk.size()) {
+        auto path = nw::kernel::config().alias_path(PathAlias::tlk);
+        nw::kernel::strings().load_custom_tlk(path / (tlk + ".tlk"));
+    }
+
+    auto& area_list = std::get<std::vector<Resref>>(areas);
+    std::vector<Area*> area_objects;
+    area_objects.reserve(area_list.size());
+    for (auto& area : area_list) {
+        LOG_F(INFO, "  loading area: {}", area);
+        area_objects.push_back(nw::kernel::objects().load_area(area));
+    }
+    areas = std::move(area_objects);
+
+    return true;
+}
+
 bool Module::from_gff(const GffInputArchiveStruct& archive)
 {
     locals.from_gff(archive);
@@ -121,15 +166,18 @@ bool Module::from_gff(const GffInputArchiveStruct& archive)
 
     size_t sz = archive["Mod_Area_list"].size();
     auto st = archive["Mod_Area_list"];
-    areas.reserve(sz);
+    std::vector<Resref> area_list;
+    area_list.reserve(sz);
+
     for (size_t i = 0; i < sz; ++i) {
         Resref r;
         if (st[i].get_to("Area_Name", r)) {
-            areas.push_back(r);
+            area_list.push_back(r);
         } else {
             break;
         }
     }
+    areas = std::move(area_list);
 
     sz = archive["Mod_HakList"].size();
     st = archive["Mod_HakList"];
@@ -187,7 +235,10 @@ bool Module::from_json(const nlohmann::json& archive)
         entry_position.y = archive.at("entry_position")[1].get<float>();
         entry_position.z = archive.at("entry_position")[2].get<float>();
 
-        archive.at("areas").get_to(areas);
+        std::vector<Resref> area_list;
+        archive.at("areas").get_to(area_list);
+        areas = std::move(area_list);
+
         archive.at("creator").get_to(creator);
         archive.at("dawn_hour").get_to(dawn_hour);
         archive.at("description").get_to(description);
@@ -221,8 +272,14 @@ bool Module::from_json(const nlohmann::json& archive)
 bool Module::to_gff(GffOutputArchiveStruct& archive) const
 {
     auto& area_list = archive.add_list("Mod_Area_list");
-    for (const auto& area : areas) {
-        area_list.push_back(6).add_field("Area_Name", area);
+    if (std::holds_alternative<std::vector<Resref>>(areas)) {
+        for (const auto& area : std::get<std::vector<Resref>>(areas)) {
+            area_list.push_back(6).add_field("Area_Name", area);
+        }
+    } else {
+        for (const auto& area : std::get<std::vector<Area*>>(areas)) {
+            area_list.push_back(6).add_field("Area_Name", area->common()->resref);
+        }
     }
 
     auto& hak_list = archive.add_list("Mod_HakList");
@@ -282,7 +339,15 @@ nlohmann::json Module::to_json() const
     j["$type"] = "IFO";
     j["$version"] = json_archive_version;
 
-    j["areas"] = areas;
+    if (std::holds_alternative<std::vector<Resref>>(areas)) {
+        j["areas"] = std::get<std::vector<Resref>>(areas);
+    } else {
+        auto& area_list = j["areas"] = nlohmann::json::array();
+        for (const auto& area : std::get<std::vector<Area*>>(areas)) {
+            area_list.push_back(area->common()->resref);
+        }
+    }
+
     j["description"] = description;
     j["entry_area"] = entry_area;
     j["entry_orientation"] = nlohmann::json{entry_orientation.x, entry_orientation.y};

@@ -220,7 +220,6 @@ bool Area::from_gff(const GffInputArchiveStruct& are, const GffInputArchiveStruc
 
 #define GIT_LIST(name, holder, type)                                                            \
     do {                                                                                        \
-        LOG_F(INFO, name);                                                                      \
         st = git[name];                                                                         \
         sz = st.size();                                                                         \
         holder.reserve(sz);                                                                     \

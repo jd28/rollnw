@@ -34,7 +34,7 @@ ObjectBase* construct_internal(ObjectType type, const T& archive, SerializationP
         return {};
 
     case ObjectType::module:
-        // obj = new Module{archive};
+        obj = new Module{archive};
         break;
     case ObjectType::area:
         // obj = new Area{archive};
@@ -78,6 +78,14 @@ Objects::~Objects()
             delete std::get<ObjectBase*>(o);
         }
     }
+}
+
+void Objects::clear()
+{
+    std::stack<uint32_t> empty{};
+    object_free_list_.swap(empty);
+    objects_.clear();
+    module_ = nullptr;
 }
 
 ObjectBase* Objects::get(ObjectHandle handle) const
@@ -131,6 +139,7 @@ ObjectHandle Objects::load(std::string_view resref, ObjectType type)
             }
         }
     }
+
     ObjectHandle h;
     if (obj) {
         h = next_handle(type);
@@ -139,6 +148,57 @@ ObjectHandle Objects::load(std::string_view resref, ObjectType type)
     }
 
     return h;
+}
+
+Area* Objects::load_area(Resref area)
+{
+    GffInputArchive are{resman().demand({area, ResourceType::are})};
+    GffInputArchive git{resman().demand({area, ResourceType::git})};
+    GffInputArchive gic;
+
+    auto obj = new Area{are.toplevel(), git.toplevel(), gic.toplevel()};
+    ObjectHandle h;
+    if (obj) {
+        h = next_handle(ObjectType::area);
+        obj->set_handle(h);
+        objects_[to_underlying(h.id)] = obj;
+    }
+
+    return obj;
+}
+
+Module* Objects::initialize_module()
+{
+    Module* mod = nullptr;
+    auto ba = nw::kernel::resman().demand({"module"sv, ResourceType::ifo});
+
+    if (!ba.size()) {
+        LOG_F(ERROR, "Unable to load module.ifo from resman");
+        return mod;
+    }
+
+    if (memcmp(ba.data(), "IFO V3.2", 8) == 0) {
+        GffInputArchive in{std::move(ba)};
+        if (in.valid()) {
+            mod = new Module{in.toplevel()};
+        }
+    } else {
+        auto sv = ba.string_view();
+        try {
+            nlohmann::json j = nlohmann::json::parse(sv.begin(), sv.end());
+            mod = new Module{j};
+        } catch (std::exception& e) {
+            return nullptr;
+        }
+    }
+
+    ObjectHandle h;
+    if (mod) {
+        h = next_handle(ObjectType::module);
+        mod->set_handle(h);
+        objects_[to_underlying(h.id)] = mod;
+    }
+    return module_ = mod;
 }
 
 bool Objects::valid(ObjectHandle handle) const

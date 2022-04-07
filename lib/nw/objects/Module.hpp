@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../serialization/Serialization.hpp"
+#include "ObjectBase.hpp"
 #include "components/LocalData.hpp"
 
 #include <glm/glm.hpp>
@@ -37,12 +38,23 @@ struct ModuleScripts {
     Resref on_user_defined;
 };
 
-struct Module {
+struct Module : public ObjectBase {
     Module() = default;
     explicit Module(const GffInputArchiveStruct& archive);
     explicit Module(const nlohmann::json& archive);
 
+    using AreaVariant = std::variant<std::vector<Resref>, std::vector<Area*>>;
+
     static constexpr int json_archive_version = 1;
+    static constexpr ObjectType object_type = ObjectType::module;
+
+    Area* operator[](size_t index);
+    size_t area_count() const noexcept;
+
+    // Overrides
+    virtual bool instantiate();
+    virtual Module* as_module() { return this; }
+    virtual const Module* as_module() const { return this; }
 
     // Serialization
     bool from_gff(const GffInputArchiveStruct& archive);
@@ -51,7 +63,7 @@ struct Module {
     GffOutputArchive to_gff() const;
     nlohmann::json to_json() const;
 
-    std::vector<Resref> areas;
+    AreaVariant areas;
     LocString description;
     Resref entry_area;
     glm::vec3 entry_orientation;

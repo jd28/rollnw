@@ -91,6 +91,7 @@ struct Area : public ObjectBase {
     Area(const nlohmann::json& caf, const nlohmann::json& gic);
 
     static constexpr int json_archive_version = 1;
+    static constexpr ObjectType object_type = ObjectType::area;
 
     virtual Common* common() override { return &common_; }
     virtual const Common* common() const override { return &common_; }

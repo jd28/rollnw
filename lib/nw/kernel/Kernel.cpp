@@ -1,6 +1,7 @@
 #include "Kernel.hpp"
 
 #include "../log.hpp"
+#include "../objects/Module.hpp"
 
 namespace nw::kernel {
 
@@ -85,5 +86,23 @@ Config& config() { return detail::s_config; }
 Objects& objects() { return *detail::s_services.objects_.get(); }
 Resources& resman() { return *detail::s_services.resources_.get(); }
 Strings& strings() { return *detail::s_services.strings_.get(); }
+
+Module* load_module(const std::filesystem::path& path, std::string_view manifest)
+{
+    resman().load_module(path, manifest);
+    auto mod = objects().initialize_module();
+    if (mod) {
+        mod->instantiate();
+    }
+
+    return mod;
+}
+
+void unload_module()
+{
+    objects().clear();
+    resman().unload_module();
+    strings().unload_custom_tlk();
+}
 
 } // namespace nw::kernel

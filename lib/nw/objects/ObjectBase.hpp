@@ -93,6 +93,9 @@ struct ObjectBase {
     const ObjectHandle& handle() const noexcept;
     void set_handle(ObjectHandle handle) noexcept;
 
+    /// Instantiates an object loaded from a blueprint
+    virtual bool instantiate() { return true; }
+
     virtual Common* common() { return nullptr; }
     virtual const Common* common() const { return nullptr; }
 

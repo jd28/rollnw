@@ -30,6 +30,7 @@ struct Trigger : public ObjectBase {
     Trigger(const nlohmann::json& archive, SerializationProfile profile);
 
     static constexpr int json_archive_version = 1;
+    static constexpr ObjectType object_type = ObjectType::trigger;
 
     // Validity
     bool valid() { return valid_; }

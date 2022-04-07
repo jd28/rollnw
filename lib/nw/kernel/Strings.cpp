@@ -81,4 +81,10 @@ void Strings::set_global_language(LanguageID language) noexcept
     global_lang_ = language;
 }
 
+void Strings::unload_custom_tlk()
+{
+    custom_ = Tlk{global_lang_};
+    customf_ = Tlk{global_lang_};
+}
+
 } // namespace nw::kernel
