@@ -117,6 +117,23 @@ Module::Module(const nlohmann::json& archive)
     this->from_json(archive);
 }
 
+Area* Module::operator[](size_t index)
+{
+    if (std::holds_alternative<std::vector<Area*>>(areas) && index < area_count()) {
+        return std::get<std::vector<Area*>>(areas)[index];
+    }
+
+    return nullptr;
+}
+
+size_t Module::area_count() const noexcept
+{
+    if (std::holds_alternative<std::vector<Area*>>(areas)) {
+        return std::get<std::vector<Area*>>(areas).size();
+    }
+    return 0;
+}
+
 bool Module::instantiate()
 {
     LOG_F(INFO, "instantiating module");
