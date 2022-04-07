@@ -27,6 +27,7 @@ bool Common::from_gff(const GffInputArchiveStruct& archive, SerializationProfile
     }
 
     if (object_type != ObjectType::creature
+        && object_type != ObjectType::area
         && !archive.get_to("LocalizedName", name, false)
         && !archive.get_to("LocName", name, false)) {
         LOG_F(WARNING, "object no localized name");
