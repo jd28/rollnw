@@ -80,6 +80,13 @@ Objects::~Objects()
     }
 }
 
+void Objects::clear()
+{
+    std::stack<uint32_t> empty{};
+    object_free_list_.swap(empty);
+    objects_.clear();
+}
+
 ObjectBase* Objects::get(ObjectHandle handle) const
 {
     if (!handle) { return nullptr; }

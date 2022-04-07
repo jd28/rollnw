@@ -11,6 +11,9 @@ namespace nw::kernel {
 struct Objects {
     virtual ~Objects();
 
+    /// Clears all objects
+    virtual void clear();
+
     /// Destroys object
     virtual void destroy(ObjectHandle handle);
 

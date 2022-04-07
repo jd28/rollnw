@@ -26,6 +26,8 @@ int main(int argc, char* argv[])
     // NWN_ROOT and NWN_USER to be certain.
     nw::kernel::config().initialize({nw::probe_nwn_install()});
     nw::kernel::services().start();
+    // ...
+}
 ```
 
 ## Config
@@ -37,6 +39,16 @@ The `Config` module provides access to installation info, path aliases, Ini and 
 ## Objects
 > Provides a fairly basic and fairly incomplete object management system.  Lookup is O(1), just an index into a `std::deque`.
 > If creating and deleting a *massive* amount of objects it will slowly start to leak in 64bit increments.
+
+<br>
+
+```c++
+virtual void clear();
+```
+> Clears all objects
+>
+> warning: **All** objects and references are invalidated.  If direct references to an object were
+> retained and attempted to be used, the only outcome will be a segfault.
 
 <br>
 
@@ -75,7 +87,6 @@ virtual ObjectHandle load(std::string_view resref, ObjectType type);
 ```c++
 virtual bool valid(ObjectHandle handle) const;
 ```
-
 > Tests if object is valid
 >
 > note: This is a simple nullptr check around Objects::get.  Not calling this before
