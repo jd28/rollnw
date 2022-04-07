@@ -20,6 +20,7 @@ struct Store : public ObjectBase {
     Store(const nlohmann::json& archive, SerializationProfile profile);
 
     static constexpr int json_archive_version = 1;
+    static constexpr ObjectType object_type = ObjectType::store;
 
     virtual Common* common() override { return &common_; }
     virtual const Common* common() const override { return &common_; }

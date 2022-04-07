@@ -73,6 +73,7 @@ struct Item : public ObjectBase {
     ~Item() = default;
 
     static constexpr int json_archive_version = 1;
+    static constexpr ObjectType object_type = ObjectType::item;
 
     // ObjectBase overrides
     virtual Common* common() override { return &common_; }

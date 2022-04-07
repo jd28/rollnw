@@ -11,6 +11,7 @@ struct Sound : public ObjectBase {
     Sound(const nlohmann::json& archive, SerializationProfile profile);
 
     static constexpr int json_archive_version = 1;
+    static constexpr ObjectType object_type = ObjectType::sound;
 
     virtual Common* common() override { return &common_; }
     virtual const Common* common() const override { return &common_; }

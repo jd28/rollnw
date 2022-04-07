@@ -49,6 +49,7 @@ struct Encounter : public ObjectBase {
     Encounter(const nlohmann::json& archive, SerializationProfile profile);
 
     static constexpr int json_archive_version = 1;
+    static constexpr ObjectType object_type = ObjectType::encounter;
 
     // Validity
     bool valid() const noexcept { return valid_; }

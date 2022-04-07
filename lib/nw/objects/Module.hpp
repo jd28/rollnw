@@ -44,6 +44,7 @@ struct Module : public ObjectBase {
     explicit Module(const nlohmann::json& archive);
 
     static constexpr int json_archive_version = 1;
+    static constexpr ObjectType object_type = ObjectType::module;
 
     // Overrides
     virtual Module* as_module() { return this; }
