@@ -1,5 +1,6 @@
 #include "Module.hpp"
 
+#include "../kernel/Kernel.hpp"
 #include "Area.hpp"
 
 #include <nlohmann/json.hpp>
@@ -114,6 +115,31 @@ Module::Module(const GffInputArchiveStruct& archive)
 Module::Module(const nlohmann::json& archive)
 {
     this->from_json(archive);
+}
+
+bool Module::instantiate()
+{
+    LOG_F(INFO, "instantiating module");
+
+    if (haks.size()) {
+        nw::kernel::resman().load_module_haks(haks);
+    }
+
+    if (tlk.size()) {
+        auto path = nw::kernel::config().alias_path(PathAlias::tlk);
+        nw::kernel::strings().load_custom_tlk(path / (tlk + ".tlk"));
+    }
+
+    auto& area_list = std::get<std::vector<Resref>>(areas);
+    std::vector<Area*> area_objects;
+    area_objects.reserve(area_list.size());
+    for (auto& area : area_list) {
+        LOG_F(INFO, "  loading area: {}", area);
+        area_objects.push_back(nw::kernel::objects().load_area(area));
+    }
+    areas = std::move(area_objects);
+
+    return true;
 }
 
 bool Module::from_gff(const GffInputArchiveStruct& archive)

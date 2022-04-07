@@ -49,6 +49,7 @@ struct Module : public ObjectBase {
     static constexpr ObjectType object_type = ObjectType::module;
 
     // Overrides
+    virtual bool instantiate();
     virtual Module* as_module() { return this; }
     virtual const Module* as_module() const { return this; }
 
