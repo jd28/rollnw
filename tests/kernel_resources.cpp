@@ -37,11 +37,9 @@ TEST_CASE("resources: load module", "[kernel]")
     REQUIRE(n.is_loaded());
     auto manifests = n.manifests();
 
-    nw::Module* mod = nullptr;
     if (manifests.size() > 0) {
-        mod = rm.load_module("DockerDemo", manifests[0]);
+        REQUIRE(rm.load_module("test_data/user/modules/DockerDemo.mod", manifests[0]));
     } else {
-        mod = rm.load_module("DockerDemo");
+        REQUIRE(rm.load_module("test_data/user/modules/DockerDemo.mod"));
     }
-    REQUIRE(mod);
 }

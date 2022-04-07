@@ -29,7 +29,7 @@ struct Resources : public Container {
     virtual void initialize();
 
     /// Loads container resources for a module
-    virtual Module* load_module(std::string_view name, std::string_view manifest = {});
+    virtual bool load_module(std::filesystem::path path, std::string_view manifest = {});
 
     /// Unloads module
     virtual void unload_module();
@@ -70,6 +70,7 @@ private:
     // currentgame, savegame, nwsync_savegame - Not dealing with this for now..
 
     unique_container module_;
+    std::filesystem::path module_path_;
 
     std::vector<unique_container> patches_;
 

@@ -100,22 +100,23 @@ void Resources::initialize()
     update_container_search();
 }
 
-Module* Resources::load_module(std::string_view name, std::string_view manifest)
+bool Resources::load_module(std::filesystem::path path, std::string_view manifest)
 {
-    auto mod_path = config().alias_path(PathAlias::modules);
-    if (fs::is_directory(mod_path / name)) {
-        module_ = std::make_unique<Directory>(mod_path / name);
-    } else {
-        module_ = std::make_unique<Erf>(mod_path / (std::string(name) + ".mod"));
+    module_path_ = std::move(path);
+    if (fs::is_directory(module_path_) && fs::exists(module_path_ / "module.ifo")) {
+        module_ = std::make_unique<Directory>(module_path_);
+    } else if (fs::exists(module_path_)) {
+        module_ = std::make_unique<Erf>(module_path_);
     }
-    auto archive = GffInputArchive(module_->demand({"module"sv, ResourceType::ifo}));
-    Module* mod = new Module(archive.toplevel());
-    for (const auto& h : mod->haks) {
-        haks_.emplace_back(config().alias_path(PathAlias::hak) / (h + ".hak"));
+
+    if (!module_ || !module_->valid()) {
+        LOG_F(ERROR, "Failed to load module at '{}'", module_path_);
+        return false;
     }
+
     nwsync_manifest_ = nwsync_.get(manifest);
     update_container_search();
-    return mod;
+    return true;
 }
 
 void Resources::unload_module()
