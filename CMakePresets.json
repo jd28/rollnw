@@ -37,6 +37,14 @@
                 "CODE_COVERAGE": {
                     "type": "BOOL",
                     "value": "ON"
+                },
+                "ENABLE_SANITIZER_ADDRESS": {
+                    "type": "BOOL",
+                    "value": true
+                },
+                "ENABLE_SANITIZER_UNDEFINED_BEHAVIOR": {
+                    "type": "BOOL",
+                    "value": true
                 }
             }
         },
