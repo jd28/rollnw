@@ -73,15 +73,16 @@ ObjectBase* construct_internal(ObjectType type, const T& archive, SerializationP
 
 Objects::~Objects()
 {
+    clear();
+}
+
+void Objects::clear()
+{
     for (auto& o : objects_) {
         if (std::holds_alternative<ObjectBase*>(o)) {
             delete std::get<ObjectBase*>(o);
         }
     }
-}
-
-void Objects::clear()
-{
     std::stack<uint32_t> empty{};
     object_free_list_.swap(empty);
     objects_.clear();
@@ -140,14 +141,21 @@ ObjectHandle Objects::load(std::string_view resref, ObjectType type)
         }
     }
 
-    ObjectHandle h;
-    if (obj) {
-        h = next_handle(type);
-        obj->set_handle(h);
-        objects_[to_underlying(h.id)] = obj;
-    }
+    return commit_object(obj, type);
+}
 
-    return h;
+ObjectHandle Objects::load_from_archive(ObjectType type, const GffInputArchiveStruct& archive,
+    SerializationProfile profile)
+{
+    auto obj = construct_internal(type, archive, profile);
+    return commit_object(obj, type);
+}
+
+ObjectHandle Objects::load_from_archive(ObjectType type, const nlohmann::json& archive,
+    SerializationProfile profile)
+{
+    auto obj = construct_internal(type, archive, profile);
+    return commit_object(obj, type);
 }
 
 Area* Objects::load_area(Resref area)
@@ -157,13 +165,7 @@ Area* Objects::load_area(Resref area)
     GffInputArchive gic;
 
     auto obj = new Area{are.toplevel(), git.toplevel(), gic.toplevel()};
-    ObjectHandle h;
-    if (obj) {
-        h = next_handle(ObjectType::area);
-        obj->set_handle(h);
-        objects_[to_underlying(h.id)] = obj;
-    }
-
+    commit_object(obj, ObjectType::area);
     return obj;
 }
 
@@ -174,10 +176,10 @@ Module* Objects::initialize_module()
 
     if (!ba.size()) {
         LOG_F(ERROR, "Unable to load module.ifo from resman");
-        return mod;
+        return nullptr;
     }
 
-    if (memcmp(ba.data(), "IFO V3.2", 8) == 0) {
+    if (ba.size() > 8 && memcmp(ba.data(), "IFO V3.2", 8) == 0) {
         GffInputArchive in{std::move(ba)};
         if (in.valid()) {
             mod = new Module{in.toplevel()};
@@ -192,12 +194,7 @@ Module* Objects::initialize_module()
         }
     }
 
-    ObjectHandle h;
-    if (mod) {
-        h = next_handle(ObjectType::module);
-        mod->set_handle(h);
-        objects_[to_underlying(h.id)] = mod;
-    }
+    commit_object(mod, ObjectType::module);
     return module_ = mod;
 }
 
@@ -206,6 +203,8 @@ bool Objects::valid(ObjectHandle handle) const
     return !!get(handle);
 }
 
+// -- protected ---------------------------------------------------------------
+
 ObjectHandle Objects::next_handle(ObjectType type)
 {
     if (object_free_list_.size()) {
@@ -213,14 +212,29 @@ ObjectHandle Objects::next_handle(ObjectType type)
         object_free_list_.pop();
         ObjectHandle h = std::get<ObjectHandle>(objects_[id]);
         h.type = type;
-        objects_[id] = nullptr;
         return h;
     } else {
         auto id = static_cast<ObjectID>(objects_.size());
         ObjectHandle h{id, 0, type};
-        objects_.push_back(nullptr);
         return h;
     }
+}
+
+// -- private -----------------------------------------------------------------
+
+ObjectHandle Objects::commit_object(ObjectBase* obj, ObjectType type)
+{
+    ObjectHandle h;
+    if (obj) {
+        h = next_handle(type);
+        obj->set_handle(h);
+        if (to_underlying(h.id) == objects_.size()) {
+            objects_.push_back(obj);
+        } else {
+            objects_[to_underlying(h.id)] = obj;
+        }
+    }
+    return h;
 }
 
 } // namespace nw::kernel

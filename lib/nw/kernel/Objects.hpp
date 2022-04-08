@@ -38,6 +38,16 @@ struct Objects {
     /// Loads an area
     virtual Area* load_area(Resref area);
 
+    /// Instantiates object from a blueprint
+    /// @note will call kernel::resources()
+    virtual ObjectHandle load_from_archive(ObjectType type, const GffInputArchiveStruct& archive,
+        SerializationProfile profile = SerializationProfile::instance);
+
+    /// Instantiates object from a blueprint
+    /// @note will call kernel::resources()
+    virtual ObjectHandle load_from_archive(ObjectType type, const nlohmann::json& archive,
+        SerializationProfile profile = SerializationProfile::instance);
+
     /// Tests if object is valid
     /// @note This is a simple nullptr check around Objects::get.  Not calling this before
     /// the latter is **not** undefined behavior.
@@ -47,6 +57,7 @@ protected:
     virtual ObjectHandle next_handle(ObjectType type);
 
 private:
+    ObjectHandle commit_object(ObjectBase* obj, ObjectType type);
     Module* module_ = nullptr;
     std::stack<uint32_t> object_free_list_;
     std::deque<std::variant<ObjectBase*, ObjectHandle>> objects_;
