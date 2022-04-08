@@ -105,15 +105,15 @@ struct Area : public ObjectBase {
 
     Common common_;
     AreaScripts scripts;
-    std::vector<std::unique_ptr<Creature>> creatures;
-    std::vector<std::unique_ptr<Door>> doors;
-    std::vector<std::unique_ptr<Encounter>> encounters;
-    std::vector<std::unique_ptr<Item>> items;
-    std::vector<std::unique_ptr<Placeable>> placeables;
-    std::vector<std::unique_ptr<Sound>> sounds;
-    std::vector<std::unique_ptr<Store>> stores;
-    std::vector<std::unique_ptr<Trigger>> triggers;
-    std::vector<std::unique_ptr<Waypoint>> waypoints;
+    std::vector<Creature*> creatures;
+    std::vector<Door*> doors;
+    std::vector<Encounter*> encounters;
+    std::vector<Item*> items;
+    std::vector<Placeable*> placeables;
+    std::vector<Sound*> sounds;
+    std::vector<Store*> stores;
+    std::vector<Trigger*> triggers;
+    std::vector<Waypoint*> waypoints;
 
     std::string comments;
     AreaFlags flags;

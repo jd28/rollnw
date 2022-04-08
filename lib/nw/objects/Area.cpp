@@ -1,5 +1,7 @@
 #include "Area.hpp"
 
+#include "../kernel/Kernel.hpp"
+
 #include <nlohmann/json.hpp>
 
 namespace nw {
@@ -218,14 +220,20 @@ bool Area::from_gff(const GffInputArchiveStruct& are, const GffInputArchiveStruc
         tiles[i].from_gff(st[i]);
     }
 
-#define GIT_LIST(name, holder, type)                                                            \
-    do {                                                                                        \
-        st = git[name];                                                                         \
-        sz = st.size();                                                                         \
-        holder.reserve(sz);                                                                     \
-        for (size_t i = 0; i < sz; ++i) {                                                       \
-            holder.emplace_back(std::make_unique<type>(st[i], SerializationProfile::instance)); \
-        }                                                                                       \
+#define GIT_LIST(name, holder, type)                                                     \
+    do {                                                                                 \
+        st = git[name];                                                                  \
+        sz = st.size();                                                                  \
+        holder.reserve(sz);                                                              \
+        for (size_t i = 0; i < sz; ++i) {                                                \
+            auto oh = nw::kernel::objects().load_from_archive(type::object_type, st[i]); \
+            auto obj = nw::kernel::objects().get_as<type>(oh);                           \
+            if (obj) {                                                                   \
+                holder.push_back(obj);                                                   \
+            } else {                                                                     \
+                LOG_F(WARNING, "Something dreadfully wrong.");                           \
+            }                                                                            \
+        }                                                                                \
     } while (0)
 
     GIT_LIST("Creature List", creatures, Creature);
@@ -245,14 +253,20 @@ bool Area::from_gff(const GffInputArchiveStruct& are, const GffInputArchiveStruc
 
 bool Area::from_json(const nlohmann::json& caf, const nlohmann::json& gic)
 {
-#define OBJECT_LIST_FROM_JSON(holder, type)                                             \
-    do {                                                                                \
-        auto& arr = caf.at(#holder);                                                    \
-        size_t sz = arr.size();                                                         \
-        holder.resize(sz);                                                              \
-        for (size_t i = 0; i < sz; ++i) {                                               \
-            holder[i] = std::make_unique<type>(arr[i], SerializationProfile::instance); \
-        }                                                                               \
+#define OBJECT_LIST_FROM_JSON(holder, type)                                               \
+    do {                                                                                  \
+        auto& arr = caf.at(#holder);                                                      \
+        size_t sz = arr.size();                                                           \
+        holder.reserve(sz);                                                               \
+        for (size_t i = 0; i < sz; ++i) {                                                 \
+            auto oh = nw::kernel::objects().load_from_archive(type::object_type, arr[i]); \
+            auto obj = nw::kernel::objects().get_as<type>(oh);                            \
+            if (obj) {                                                                    \
+                holder.push_back(obj);                                                    \
+            } else {                                                                      \
+                LOG_F(WARNING, "Something dreadfully wrong.");                            \
+            }                                                                             \
+        }                                                                                 \
     } while (0)
 
     try {
@@ -305,7 +319,7 @@ bool Area::from_json(const nlohmann::json& caf, const nlohmann::json& gic)
 #define OBJECT_LIST_TO_JSON(name)                                        \
     do {                                                                 \
         auto& ref = j[#name] = nlohmann::json::array();                  \
-        for (const auto& obj : name) {                                   \
+        for (const auto obj : name) {                                    \
             ref.push_back(obj->to_json(SerializationProfile::instance)); \
         }                                                                \
     } while (0)
