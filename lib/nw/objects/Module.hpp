@@ -48,8 +48,8 @@ struct Module : public ObjectBase {
     static constexpr int json_archive_version = 1;
     static constexpr ObjectType object_type = ObjectType::module;
 
-    Area* operator[](size_t index);
     size_t area_count() const noexcept;
+    Area* get_area(size_t index) const;
 
     // Overrides
     virtual bool instantiate();
