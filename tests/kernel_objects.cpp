@@ -26,4 +26,6 @@ TEST_CASE("objects manager", "[kernel]")
     REQUIRE(obj2.id == nw::ObjectID{0});
     REQUIRE(obj2.version == 1);
     REQUIRE(nw::kernel::objects().get(obj2));
+
+    nw::kernel::objects().clear();
 }

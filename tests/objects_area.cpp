@@ -1,5 +1,6 @@
 #include <catch2/catch.hpp>
 
+#include <nw/kernel/Kernel.hpp>
 #include <nw/objects/Area.hpp>
 #include <nw/serialization/Archives.hpp>
 
@@ -53,4 +54,5 @@ TEST_CASE("area: json roundtrip", "[objects]")
     nw::Area area2{j, {}};
     nlohmann::json j2 = area2.to_json();
     REQUIRE(j == j2);
+    nw::kernel::objects().clear();
 }
