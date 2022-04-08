@@ -18,6 +18,7 @@ namespace nw {
 
 Image::Image(const std::filesystem::path& filename)
     : bytes_{ByteArray::from_file(filename)}
+    , data_{nullptr, nullptr}
 {
     is_dds_ = string::icmp(filename.extension().string(), ".dds");
     is_loaded_ = parse();
@@ -26,6 +27,7 @@ Image::Image(const std::filesystem::path& filename)
 Image::Image(ByteArray bytes, bool is_dds)
     : bytes_{std::move(bytes)}
     , is_dds_(is_dds)
+    , data_{nullptr, nullptr}
 {
     is_loaded_ = parse();
 }
@@ -46,7 +48,7 @@ bool Image::write_to(const std::filesystem::path& filename) const
 
     fs::path temp = fs::temp_directory_path() / filename.filename();
     std::string ext = filename.extension().string();
-    const char *temp_path;
+    const char* temp_path;
 #ifdef _MSC_VER
     temp_path = temp.string().c_str();
 #else
@@ -92,8 +94,9 @@ bool Image::parse()
     if (is_dds_) {
         result = parse_dds();
     } else { // Defer to stb_image
-        data_ = std::unique_ptr<uint8_t[]>(stbi_load_from_memory((stbi_uc*)bytes_.data(),
-            static_cast<int>(bytes_.size()), &width_, &height_, &channels_, 0));
+        data_ = std::unique_ptr<uint8_t[], void (*)(void*)>(stbi_load_from_memory((stbi_uc*)bytes_.data(),
+                                                                static_cast<int>(bytes_.size()), &width_, &height_, &channels_, 0),
+            free);
         if (!data_) {
             LOG_F(ERROR, "Failed to load image: {}", stbi_failure_reason());
             result = false;
@@ -149,7 +152,7 @@ bool Image::parse_bioware()
         return false;
 
     D3DCOLOR* pixels = new D3DCOLOR[height_ * width_];
-    data_ = std::unique_ptr<uint8_t[]>((uint8_t*)pixels);
+    data_ = std::unique_ptr<uint8_t[], void (*)(void*)>((uint8_t*)pixels, free);
 
     int x = 0, y = 0;
 
@@ -177,8 +180,9 @@ bool Image::parse_bioware()
 
 bool Image::parse_dxt()
 {
-    data_ = std::unique_ptr<uint8_t[]>(stbi_load_from_memory((stbi_uc*)bytes_.data(),
-        static_cast<int>(bytes_.size()), &height_, &width_, &channels_, 0));
+    data_ = std::unique_ptr<uint8_t[], void (*)(void*)>(stbi_load_from_memory((stbi_uc*)bytes_.data(),
+                                                            static_cast<int>(bytes_.size()), &height_, &width_, &channels_, 0),
+        free);
     if (data_ == nullptr) {
         LOG_F(INFO, "Failed to load DDS: {}", stbi_failure_reason());
         return false;

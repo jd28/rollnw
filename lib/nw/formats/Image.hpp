@@ -37,7 +37,7 @@ struct Image {
 private:
     ByteArray bytes_;
     bool is_loaded_ = false;
-    std::unique_ptr<uint8_t[]> data_;
+    std::unique_ptr<uint8_t[], void (*)(void*)> data_;
     int channels_;
     int height_;
     int width_;
