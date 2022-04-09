@@ -67,10 +67,9 @@ struct Encounter : public ObjectBase {
     nlohmann::json to_json(SerializationProfile profile) const;
 
     Common common_;
-    EncounterScripts scripts;
-
     std::vector<SpawnCreature> creatures;
     std::vector<glm::vec3> geometry;
+    EncounterScripts scripts;
     std::vector<SpawnPoint> spawn_points;
 
     int32_t creatures_max = -1;

@@ -46,41 +46,7 @@ bool Store::from_gff(const GffInputArchiveStruct& archive, SerializationProfile 
         archive.get_to("ID", common_.palette_id);
     }
 
-    archive.get_to("BlackMarket", blackmarket);
-    archive.get_to("BM_MarkDown", blackmarket_markdown);
-    archive.get_to("IdentifyPrice", identify_price);
-    archive.get_to("MarkDown", markdown);
-    archive.get_to("MarkUp", markup);
-    archive.get_to("MaxBuyPrice", max_price);
-    archive.get_to("OnOpenStore", scripts.on_opened);
-    archive.get_to("OnStoreClosed", scripts.on_closed);
-    archive.get_to("StoreGold", gold);
-
-    size_t sz = archive["WillNotBuy"].size();
-    will_not_buy.reserve(sz);
-    for (size_t i = 0; i < sz; ++i) {
-        int32_t base;
-        if (!archive["WillNotBuy"][i].get_to("BaseItem", base)) {
-            LOG_F(ERROR, "store will not buy, invalid base item at index {}", i);
-            break;
-        } else {
-            will_not_buy.push_back(base);
-        }
-    }
-
-    sz = archive["WillOnlyBuy"].size();
-    will_only_buy.reserve(sz);
-    for (size_t i = 0; i < sz; ++i) {
-        int32_t base;
-        if (!archive["WillOnlyBuy"][i].get_to("BaseItem", base)) {
-            LOG_F(ERROR, "store will not buy, invalid base item at index {}", i);
-            break;
-        } else {
-            will_only_buy.push_back(base);
-        }
-    }
-
-    sz = archive["StoreList"].size();
+    size_t sz = archive["StoreList"].size();
     if (sz != 5) {
         valid_ = false;
         LOG_F(ERROR, "store invalid number of store containers");
@@ -109,6 +75,43 @@ bool Store::from_gff(const GffInputArchiveStruct& archive, SerializationProfile 
             }
         }
     }
+
+    archive.get_to("OnOpenStore", scripts.on_opened);
+    archive.get_to("OnStoreClosed", scripts.on_closed);
+
+    sz = archive["WillNotBuy"].size();
+    will_not_buy.reserve(sz);
+    for (size_t i = 0; i < sz; ++i) {
+        int32_t base;
+        if (!archive["WillNotBuy"][i].get_to("BaseItem", base)) {
+            LOG_F(ERROR, "store will not buy, invalid base item at index {}", i);
+            break;
+        } else {
+            will_not_buy.push_back(base);
+        }
+    }
+
+    sz = archive["WillOnlyBuy"].size();
+    will_only_buy.reserve(sz);
+    for (size_t i = 0; i < sz; ++i) {
+        int32_t base;
+        if (!archive["WillOnlyBuy"][i].get_to("BaseItem", base)) {
+            LOG_F(ERROR, "store will not buy, invalid base item at index {}", i);
+            break;
+        } else {
+            will_only_buy.push_back(base);
+        }
+    }
+
+    archive.get_to("BM_MarkDown", blackmarket_markdown);
+    archive.get_to("IdentifyPrice", identify_price);
+    archive.get_to("MarkDown", markdown);
+    archive.get_to("MarkUp", markup);
+    archive.get_to("MaxBuyPrice", max_price);
+    archive.get_to("StoreGold", gold);
+
+    archive.get_to("BlackMarket", blackmarket);
+
     return true;
 }
 
@@ -116,8 +119,16 @@ bool Store::from_json(const nlohmann::json& archive, SerializationProfile profil
 {
     common_.from_json(archive.at("common"), profile);
 
+    armor.from_json(archive.at("armor"), profile);
+    miscellaneous.from_json(archive.at("miscellaneous"), profile);
+    potions.from_json(archive.at("potions"), profile);
+    rings.from_json(archive.at("rings"), profile);
+    weapons.from_json(archive.at("weapons"), profile);
+
     archive.at("scripts").at("on_closed").get_to(scripts.on_closed);
     archive.at("scripts").at("on_opened").get_to(scripts.on_opened);
+    archive.at("will_not_buy").get_to(will_not_buy);
+    archive.at("will_only_buy").get_to(will_only_buy);
 
     archive.at("blackmarket_markdown").get_to(blackmarket_markdown);
     archive.at("identify_price").get_to(identify_price);
@@ -126,16 +137,7 @@ bool Store::from_json(const nlohmann::json& archive, SerializationProfile profil
     archive.at("max_price").get_to(max_price);
     archive.at("gold").get_to(gold);
 
-    archive.at("will_not_buy").get_to(will_not_buy);
-    archive.at("will_only_buy").get_to(will_only_buy);
-
     archive.at("blackmarket").get_to(blackmarket);
-
-    armor.from_json(archive.at("armor"), profile);
-    miscellaneous.from_json(archive.at("miscellaneous"), profile);
-    potions.from_json(archive.at("potions"), profile);
-    rings.from_json(archive.at("rings"), profile);
-    weapons.from_json(archive.at("weapons"), profile);
 
     return true;
 }
@@ -161,15 +163,15 @@ bool Store::to_gff(GffOutputArchiveStruct& archive, SerializationProfile profile
         common_.locals.to_gff(archive);
     }
 
-    archive.add_field("BlackMarket", blackmarket)
-        .add_field("BM_MarkDown", blackmarket_markdown)
-        .add_field("IdentifyPrice", identify_price)
-        .add_field("MarkDown", markdown)
-        .add_field("MarkUp", markup)
-        .add_field("MaxBuyPrice", max_price)
-        .add_field("OnOpenStore", scripts.on_opened)
-        .add_field("OnStoreClosed", scripts.on_closed)
-        .add_field("StoreGold", gold);
+    auto& store_list = archive.add_list("StoreList");
+    armor.to_gff(store_list.push_back(0), profile);
+    miscellaneous.to_gff(store_list.push_back(1), profile);
+    potions.to_gff(store_list.push_back(2), profile);
+    rings.to_gff(store_list.push_back(3), profile);
+    weapons.to_gff(store_list.push_back(4), profile);
+
+    archive.add_field("OnOpenStore", scripts.on_opened)
+        .add_field("OnStoreClosed", scripts.on_closed);
 
     auto& wnb_list = archive.add_list("WillNotBuy");
     for (const auto bi : will_not_buy) {
@@ -181,12 +183,14 @@ bool Store::to_gff(GffOutputArchiveStruct& archive, SerializationProfile profile
         wob_list.push_back(0x17E4D).add_field("BaseItem", bi);
     }
 
-    auto& store_list = archive.add_list("StoreList");
-    armor.to_gff(store_list.push_back(0), profile);
-    miscellaneous.to_gff(store_list.push_back(1), profile);
-    potions.to_gff(store_list.push_back(2), profile);
-    rings.to_gff(store_list.push_back(3), profile);
-    weapons.to_gff(store_list.push_back(4), profile);
+    archive.add_field("BM_MarkDown", blackmarket_markdown)
+        .add_field("IdentifyPrice", identify_price)
+        .add_field("MarkDown", markdown)
+        .add_field("MarkUp", markup)
+        .add_field("MaxBuyPrice", max_price)
+        .add_field("StoreGold", gold);
+
+    archive.add_field("BlackMarket", blackmarket);
 
     return true;
 }

@@ -53,18 +53,19 @@ public:
 
     static constexpr int json_archive_version = 1;
 
-    uint8_t prevent_zoom = 0;
-    uint32_t delay_entry = 0;
-    uint32_t delay_reply = 0;
-    Resref script_abort;
-    Resref script_end;
-    uint32_t word_count = 0;
+    bool valid() const noexcept { return is_valid_; }
 
     std::vector<DialogNode> entries;
     std::vector<DialogNode> replies;
+    Resref script_abort;
+    Resref script_end;
     std::vector<DialogPtr> starts;
 
-    bool valid() const noexcept { return is_valid_; }
+    uint32_t delay_entry = 0;
+    uint32_t delay_reply = 0;
+    uint32_t word_count = 0;
+
+    uint8_t prevent_zoom = 0;
 
 private:
     bool is_valid_ = false;

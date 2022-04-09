@@ -141,19 +141,6 @@ bool Encounter::from_gff(const GffInputArchiveStruct& archive, SerializationProf
         creatures[i].from_gff(archive["CreatureList"][i]);
     }
 
-    archive.get_to("Faction", faction);
-    archive.get_to("MaxCreatures", creatures_max);
-    archive.get_to("RecCreatures", creatures_recommended);
-    archive.get_to("Difficulty", difficulty);
-    archive.get_to("DifficultyIndex", difficulty_index);
-    archive.get_to("ResetTime", reset_time);
-    archive.get_to("Respawns", respawns);
-    archive.get_to("SpawnOption", spawn_option);
-
-    archive.get_to("Active", active);
-    archive.get_to("PlayerOnly", player_only);
-    archive.get_to("Reset", reset);
-
     if (profile == SerializationProfile::instance) {
         size_t sz = archive["Geometry"].size();
         geometry.reserve(sz);
@@ -171,32 +158,32 @@ bool Encounter::from_gff(const GffInputArchiveStruct& archive, SerializationProf
             spawn_points[i].from_gff(archive["SpawnPointList"][i]);
         }
     }
+
+    archive.get_to("Faction", faction);
+    archive.get_to("MaxCreatures", creatures_max);
+    archive.get_to("RecCreatures", creatures_recommended);
+    archive.get_to("Difficulty", difficulty);
+    archive.get_to("DifficultyIndex", difficulty_index);
+    archive.get_to("ResetTime", reset_time);
+    archive.get_to("Respawns", respawns);
+    archive.get_to("SpawnOption", spawn_option);
+
+    archive.get_to("Active", active);
+    archive.get_to("PlayerOnly", player_only);
+    archive.get_to("Reset", reset);
+
     return true;
 }
 
 bool Encounter::from_json(const nlohmann::json& archive, SerializationProfile profile)
 {
     common_.from_json(archive.at("common"), profile);
-    scripts.from_json(archive.at("scripts"));
 
     auto& arr = archive.at("creatures");
     creatures.resize(arr.size());
     for (size_t i = 0; i < arr.size(); ++i) {
         creatures[i].from_json(arr[i]);
     }
-
-    archive.at("faction").get_to(faction);
-    archive.at("creatures_max").get_to(creatures_max);
-    archive.at("creatures_recommended").get_to(creatures_recommended);
-    archive.at("difficulty").get_to(difficulty);
-    archive.at("difficulty_index").get_to(difficulty_index);
-    archive.at("reset_time").get_to(reset_time);
-    archive.at("respawns").get_to(respawns);
-    archive.at("spawn_option").get_to(spawn_option);
-
-    archive.at("active").get_to(active);
-    archive.at("player_only").get_to(player_only);
-    archive.at("reset").get_to(reset);
 
     if (profile == SerializationProfile::instance) {
         const auto& g = archive.at("geometry");
@@ -211,6 +198,21 @@ bool Encounter::from_json(const nlohmann::json& archive, SerializationProfile pr
         }
     }
 
+    scripts.from_json(archive.at("scripts"));
+
+    archive.at("creatures_max").get_to(creatures_max);
+    archive.at("creatures_recommended").get_to(creatures_recommended);
+    archive.at("difficulty").get_to(difficulty);
+    archive.at("difficulty_index").get_to(difficulty_index);
+    archive.at("faction").get_to(faction);
+    archive.at("reset_time").get_to(reset_time);
+    archive.at("respawns").get_to(respawns);
+    archive.at("spawn_option").get_to(spawn_option);
+
+    archive.at("active").get_to(active);
+    archive.at("player_only").get_to(player_only);
+    archive.at("reset").get_to(reset);
+
     return true;
 }
 
@@ -218,8 +220,7 @@ bool Encounter::to_gff(GffOutputArchiveStruct& archive, SerializationProfile pro
 {
     archive.add_field("TemplateResRef", common_.resref)
         .add_field("LocalizedName", common_.name)
-        .add_field("Tag", common_.tag)
-        .add_field("Faction", faction);
+        .add_field("Tag", common_.tag);
 
     if (profile == SerializationProfile::blueprint) {
         archive.add_field("Comment", common_.comment);
@@ -236,8 +237,6 @@ bool Encounter::to_gff(GffOutputArchiveStruct& archive, SerializationProfile pro
         common_.locals.to_gff(archive);
     }
 
-    scripts.to_gff(archive);
-
     auto& list = archive.add_list("CreatureList");
     for (const auto& c : creatures) {
         list.push_back(0)
@@ -246,17 +245,6 @@ bool Encounter::to_gff(GffOutputArchiveStruct& archive, SerializationProfile pro
             .add_field("ResRef", c.resref)
             .add_field("SingleSpawn", c.single_spawn);
     }
-
-    archive.add_field("MaxCreatures", creatures_max)
-        .add_field("RecCreatures", creatures_recommended)
-        .add_field("Difficulty", difficulty)
-        .add_field("DifficultyIndex", difficulty_index)
-        .add_field("ResetTime", reset_time)
-        .add_field("Respawns", respawns)
-        .add_field("SpawnOption", spawn_option)
-        .add_field("Active", active)
-        .add_field("PlayerOnly", player_only)
-        .add_field("Reset", reset);
 
     if (profile != SerializationProfile::blueprint) {
         auto& geo_list = archive.add_list("Geometry");
@@ -276,6 +264,21 @@ bool Encounter::to_gff(GffOutputArchiveStruct& archive, SerializationProfile pro
                 .add_field("Z", sp.position.z);
         }
     }
+
+    scripts.to_gff(archive);
+
+    archive.add_field("MaxCreatures", creatures_max)
+        .add_field("RecCreatures", creatures_recommended)
+        .add_field("Difficulty", difficulty)
+        .add_field("DifficultyIndex", difficulty_index)
+        .add_field("Faction", faction)
+        .add_field("ResetTime", reset_time)
+        .add_field("Respawns", respawns)
+        .add_field("SpawnOption", spawn_option);
+
+    archive.add_field("Active", active)
+        .add_field("PlayerOnly", player_only)
+        .add_field("Reset", reset);
 
     return true;
 }
@@ -301,21 +304,6 @@ nlohmann::json Encounter::to_json(SerializationProfile profile) const
         arr.push_back(c.to_json());
     }
 
-    j["scripts"] = scripts.to_json();
-
-    j["faction"] = faction;
-    j["creatures_max"] = creatures_max;
-    j["creatures_recommended"] = creatures_recommended;
-    j["difficulty"] = difficulty;
-    j["difficulty_index"] = difficulty_index;
-    j["reset_time"] = reset_time;
-    j["respawns"] = respawns;
-    j["spawn_option"] = spawn_option;
-
-    j["active"] = active;
-    j["player_only"] = player_only;
-    j["reset"] = reset;
-
     if (profile == SerializationProfile::instance) {
         auto& g = j["geometry"] = nlohmann::json::array();
         for (const auto& geom : geometry) {
@@ -327,6 +315,21 @@ nlohmann::json Encounter::to_json(SerializationProfile profile) const
             sp.push_back(spawn.to_json());
         }
     }
+
+    j["scripts"] = scripts.to_json();
+
+    j["creatures_max"] = creatures_max;
+    j["creatures_recommended"] = creatures_recommended;
+    j["difficulty"] = difficulty;
+    j["difficulty_index"] = difficulty_index;
+    j["faction"] = faction;
+    j["reset_time"] = reset_time;
+    j["respawns"] = respawns;
+    j["spawn_option"] = spawn_option;
+
+    j["active"] = active;
+    j["player_only"] = player_only;
+    j["reset"] = reset;
 
     return j;
 }

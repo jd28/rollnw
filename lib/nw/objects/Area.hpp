@@ -76,6 +76,7 @@ struct Tile {
     int32_t id = 0;
     int32_t height = 0;
     int32_t orientation = 0;
+
     uint8_t animloop1 = 0;
     uint8_t animloop2 = 0;
     uint8_t animloop3 = 0;
@@ -104,7 +105,6 @@ struct Area : public ObjectBase {
     nlohmann::json to_json() const;
 
     Common common_;
-    AreaScripts scripts;
     std::vector<Creature*> creatures;
     std::vector<Door*> doors;
     std::vector<Encounter*> encounters;
@@ -114,15 +114,15 @@ struct Area : public ObjectBase {
     std::vector<Store*> stores;
     std::vector<Trigger*> triggers;
     std::vector<Waypoint*> waypoints;
-
     std::string comments;
-    AreaFlags flags;
     LocString name;
+    AreaScripts scripts;
     Resref tileset;
     std::vector<Tile> tiles;
     AreaWeather weather;
 
     int32_t creator_id = 0;
+    AreaFlags flags;
     int32_t height = 0;
     int32_t id = 0;
     int32_t listen_check_mod = 0;
@@ -131,6 +131,7 @@ struct Area : public ObjectBase {
     int32_t width = 0;
 
     uint16_t loadscreen = 0;
+
     uint8_t no_rest = 0;
     uint8_t pvp = 0;
     uint8_t shadow_opacity = 0;

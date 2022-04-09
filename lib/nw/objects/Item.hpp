@@ -11,7 +11,7 @@
 
 namespace nw {
 
-enum struct ItemModelType {
+enum struct ItemModelType : uint8_t {
     simple,
     layered,
     composite,
@@ -93,11 +93,14 @@ struct Item : public ObjectBase {
     LocString description;
     LocString description_id;
     Inventory inventory;
+    std::vector<ItemProperty> properties;
 
     uint32_t cost = 0;
     uint32_t additional_cost = 0;
     int32_t baseitem;
+
     uint16_t stacksize = 1;
+
     uint8_t charges = 0;
     bool cursed = false;
     bool identified = false;
@@ -107,7 +110,6 @@ struct Item : public ObjectBase {
     ItemModelType model_type = ItemModelType::simple;
     std::array<uint8_t, 6> model_colors;
     std::array<uint8_t, 19> model_parts;
-    std::vector<ItemProperty> properties;
 };
 
 } // namespace nw

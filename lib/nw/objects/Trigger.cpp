@@ -55,23 +55,6 @@ Trigger::Trigger(const nlohmann::json& archive, SerializationProfile profile)
 bool Trigger::from_gff(const GffInputArchiveStruct& archive, SerializationProfile profile)
 {
     common_.from_gff(archive, profile);
-    trap.from_gff(archive);
-
-    archive.get_to("Faction", faction);
-    archive.get_to("Cursor", cursor);
-    archive.get_to("HighlightHeight", highlight_height);
-    archive.get_to("LinkedTo", linked_to);
-    archive.get_to("LinkedToFlags", linked_to_flags);
-    archive.get_to("LoadScreenID", loadscreen);
-    archive.get_to("OnClick", scripts.on_click);
-    archive.get_to("OnDisarm", scripts.on_disarm);
-    archive.get_to("OnTrapTriggered", scripts.on_trap_triggered);
-    archive.get_to("PortraitId", portrait);
-    archive.get_to("ScriptHeartbeat", scripts.on_heartbeat);
-    archive.get_to("ScriptOnEnter", scripts.on_enter);
-    archive.get_to("ScriptOnExit", scripts.on_exit);
-    archive.get_to("ScriptUserDefine", scripts.on_user_defined);
-    archive.get_to("Type", type);
 
     if (profile != SerializationProfile::blueprint) {
         size_t sz = archive["Geometry"].size();
@@ -84,6 +67,27 @@ bool Trigger::from_gff(const GffInputArchiveStruct& archive, SerializationProfil
             geometry.push_back(v);
         }
     }
+
+    archive.get_to("LinkedTo", linked_to);
+    archive.get_to("OnClick", scripts.on_click);
+    archive.get_to("OnDisarm", scripts.on_disarm);
+    archive.get_to("ScriptOnEnter", scripts.on_enter);
+    archive.get_to("ScriptOnExit", scripts.on_exit);
+    archive.get_to("ScriptHeartbeat", scripts.on_heartbeat);
+    archive.get_to("OnTrapTriggered", scripts.on_trap_triggered);
+    archive.get_to("ScriptUserDefine", scripts.on_user_defined);
+    trap.from_gff(archive);
+
+    archive.get_to("Faction", faction);
+    archive.get_to("HighlightHeight", highlight_height);
+    archive.get_to("Type", type);
+
+    archive.get_to("LoadScreenID", loadscreen);
+    archive.get_to("PortraitId", portrait);
+
+    archive.get_to("Cursor", cursor);
+    archive.get_to("LinkedToFlags", linked_to_flags);
+
     return true;
 }
 
@@ -91,19 +95,10 @@ bool Trigger::from_json(const nlohmann::json& archive, SerializationProfile prof
 {
     try {
         if (!common_.from_json(archive.at("common"), profile)
-            || !trap.from_json(archive.at("trap"))
-            || !scripts.from_json(archive.at("scripts"))) {
+            || !scripts.from_json(archive.at("scripts"))
+            || !trap.from_json(archive.at("trap"))) {
             return valid_ = false;
         }
-
-        archive.at("faction").get_to(faction);
-        archive.at("cursor").get_to(cursor);
-        archive.at("highlight_height").get_to(highlight_height);
-        archive.at("linked_to_flags").get_to(linked_to_flags);
-        archive.at("linked_to").get_to(linked_to);
-        archive.at("loadscreen").get_to(loadscreen);
-        archive.at("portrait").get_to(portrait);
-        archive.at("type").get_to(type);
 
         if (profile != SerializationProfile::blueprint) {
             auto& ref = archive.at("geometry");
@@ -111,6 +106,19 @@ bool Trigger::from_json(const nlohmann::json& archive, SerializationProfile prof
                 geometry.emplace_back(ref[i][0].get<float>(), ref[i][1].get<float>(), ref[i][2].get<float>());
             }
         }
+
+        archive.at("linked_to").get_to(linked_to);
+
+        archive.at("faction").get_to(faction);
+        archive.at("highlight_height").get_to(highlight_height);
+        archive.at("type").get_to(type);
+
+        archive.at("loadscreen").get_to(loadscreen);
+        archive.at("portrait").get_to(portrait);
+
+        archive.at("cursor").get_to(cursor);
+        archive.at("linked_to_flags").get_to(linked_to_flags);
+
     } catch (const nlohmann::json::exception& e) {
         LOG_F(ERROR, "Trigger::from_json exception: {}", e.what());
         return valid_ = false;
@@ -123,29 +131,6 @@ bool Trigger::to_gff(GffOutputArchiveStruct& archive, SerializationProfile profi
     archive.add_field("TemplateResRef", common_.resref); // Store does it's own thing, not typo.
     archive.add_field("LocalizedName", common_.name);
     archive.add_field("Tag", common_.tag);
-
-    trap.to_gff(archive);
-
-    uint8_t zero = 0;
-    std::string empty;
-
-    archive.add_field("Faction", faction)
-        .add_field("Cursor", cursor)
-        .add_field("HighlightHeight", highlight_height)
-        .add_field("AutoRemoveKey", zero) // obsolete
-        .add_field("KeyName", empty)      // obsolete
-        .add_field("LinkedTo", linked_to)
-        .add_field("LinkedToFlags", linked_to_flags)
-        .add_field("LoadScreenID", loadscreen)
-        .add_field("OnClick", scripts.on_click)
-        .add_field("OnDisarm", scripts.on_disarm)
-        .add_field("OnTrapTriggered", scripts.on_trap_triggered)
-        .add_field("PortraitId", portrait)
-        .add_field("ScriptHeartbeat", scripts.on_heartbeat)
-        .add_field("ScriptOnEnter", scripts.on_enter)
-        .add_field("ScriptOnExit", scripts.on_exit)
-        .add_field("ScriptUserDefine", scripts.on_user_defined)
-        .add_field("Type", type);
 
     if (profile == SerializationProfile::blueprint) {
         archive.add_field("Comment", common_.comment);
@@ -165,6 +150,33 @@ bool Trigger::to_gff(GffOutputArchiveStruct& archive, SerializationProfile profi
                 .add_field("PointZ", point[2]);
         }
     }
+
+    archive.add_field("LinkedTo", linked_to)
+        .add_field("OnClick", scripts.on_click)
+        .add_field("OnDisarm", scripts.on_disarm)
+        .add_field("ScriptOnEnter", scripts.on_enter)
+        .add_field("ScriptOnExit", scripts.on_exit)
+        .add_field("ScriptHeartbeat", scripts.on_heartbeat)
+        .add_field("OnTrapTriggered", scripts.on_trap_triggered)
+        .add_field("ScriptUserDefine", scripts.on_user_defined);
+
+    trap.to_gff(archive);
+
+    uint8_t zero = 0;
+    std::string empty;
+
+    archive.add_field("Faction", faction)
+        .add_field("HighlightHeight", highlight_height)
+        .add_field("Type", type);
+
+    archive.add_field("LoadScreenID", loadscreen)
+        .add_field("PortraitId", portrait);
+
+    archive.add_field("Cursor", cursor)
+        .add_field("LinkedToFlags", linked_to_flags)
+        .add_field("AutoRemoveKey", zero) // obsolete
+        .add_field("KeyName", empty);     // obsolete
+
     return true;
 }
 
@@ -184,17 +196,6 @@ nlohmann::json Trigger::to_json(SerializationProfile profile) const
     j["$version"] = json_archive_version;
 
     j["common"] = common_.to_json(profile);
-    j["scripts"] = scripts.to_json();
-    j["trap"] = trap.to_json();
-
-    j["faction"] = faction;
-    j["cursor"] = cursor;
-    j["highlight_height"] = highlight_height;
-    j["linked_to_flags"] = linked_to_flags;
-    j["linked_to"] = linked_to;
-    j["loadscreen"] = loadscreen;
-    j["portrait"] = portrait;
-    j["type"] = type;
 
     if (profile != SerializationProfile::blueprint) {
         auto& ref = j["geometry"] = nlohmann::json::array();
@@ -202,6 +203,20 @@ nlohmann::json Trigger::to_json(SerializationProfile profile) const
             ref.push_back({g.x, g.y, g.z});
         }
     }
+
+    j["linked_to"] = linked_to;
+    j["scripts"] = scripts.to_json();
+    j["trap"] = trap.to_json();
+
+    j["faction"] = faction;
+    j["highlight_height"] = highlight_height;
+    j["type"] = type;
+
+    j["loadscreen"] = loadscreen;
+    j["portrait"] = portrait;
+
+    j["cursor"] = cursor;
+    j["linked_to_flags"] = linked_to_flags;
 
     return j;
 }

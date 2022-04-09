@@ -49,16 +49,18 @@ struct Trigger : public ObjectBase {
     nlohmann::json to_json(SerializationProfile profile) const;
 
     Common common_;
-    TriggerScripts scripts;
-    Trap trap;
     std::vector<glm::vec3> geometry;
     std::string linked_to;
-    float highlight_height = 0.0f;
+    TriggerScripts scripts;
+    Trap trap;
 
-    int32_t type = 0;
     uint32_t faction = 0;
+    float highlight_height = 0.0f;
+    int32_t type = 0;
+
     uint16_t loadscreen = 0;
     uint16_t portrait = 0;
+
     uint8_t cursor = 0;
     uint8_t linked_to_flags = 0;
 

@@ -58,19 +58,18 @@ struct Creature : public ObjectBase {
 
     Common common_;
     Appearance appearance;
-    LocString name_first;
-    LocString name_last;
     CombatInfo combat_info;
-    CreatureStats stats;
-    Equips equipment;
-    Inventory inventory;
-    LevelStats levels;
     Resref conversation;
     std::string deity;
     LocString description;
-    std::string subrace;
-
+    Equips equipment;
+    Inventory inventory;
+    LevelStats levels;
+    LocString name_first;
+    LocString name_last;
     CreatureScripts scripts;
+    CreatureStats stats;
+    std::string subrace;
 
     float cr = 0.0;
     int32_t cr_adjust = 0;
@@ -94,7 +93,7 @@ struct Creature : public ObjectBase {
     uint8_t lootable = 0;
     uint8_t pc = 0;
     uint8_t perception_range = 0;
-    uint8_t plot = 0;
+    bool plot = false;
     uint8_t race = 0;
     uint8_t starting_package = 0;
 };
