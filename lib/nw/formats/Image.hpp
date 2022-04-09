@@ -11,6 +11,12 @@ struct Image {
     explicit Image(const std::filesystem::path& filename);
     explicit Image(ByteArray bytes, bool is_dds = false);
 
+    Image(Image&& other);
+    Image(const Image& other) = delete;
+    Image& operator=(Image&& other);
+    Image& operator=(const Image& other) = delete;
+    ~Image();
+
     /// Get BBP
     int channels();
 
@@ -37,7 +43,8 @@ struct Image {
 private:
     ByteArray bytes_;
     bool is_loaded_ = false;
-    std::unique_ptr<uint8_t[], void (*)(void*)> data_;
+    uint8_t* data_ = nullptr;
+    size_t size_;
     int channels_;
     int height_;
     int width_;

@@ -1,6 +1,7 @@
 #include "Image.hpp"
 
 #include "../log.hpp"
+#include "../util/platform.hpp"
 #include "../util/string.hpp"
 
 #include "d3dtypes.h"
@@ -18,7 +19,7 @@ namespace nw {
 
 Image::Image(const std::filesystem::path& filename)
     : bytes_{ByteArray::from_file(filename)}
-    , data_{nullptr, nullptr}
+    , data_{nullptr}
 {
     is_dds_ = string::icmp(filename.extension().string(), ".dds");
     is_loaded_ = parse();
@@ -27,14 +28,53 @@ Image::Image(const std::filesystem::path& filename)
 Image::Image(ByteArray bytes, bool is_dds)
     : bytes_{std::move(bytes)}
     , is_dds_(is_dds)
-    , data_{nullptr, nullptr}
+    , data_{nullptr}
 {
     is_loaded_ = parse();
 }
 
+Image::Image(Image&& other)
+    : bytes_{std::move(other.bytes_)}
+    , is_loaded_{other.is_loaded_}
+    , data_{other.data_}
+    , size_{other.size_}
+    , channels_{other.channels_}
+    , height_{other.height_}
+    , width_{other.width_}
+    , is_dds_{other.is_dds_}
+{
+    other.is_loaded_ = false;
+    other.data_ = nullptr;
+    other.size_ = 0;
+}
+
+Image& Image::operator=(Image&& other)
+{
+    if (this != &other) {
+        bytes_ = std::move(other.bytes_);
+        is_loaded_ = other.is_loaded_;
+        data_ = other.data_;
+        size_ = other.size_;
+        channels_ = other.channels_;
+        height_ = other.height_;
+        width_ = other.width_;
+        is_dds_ = other.is_dds_;
+
+        other.is_loaded_ = false;
+        other.data_ = nullptr;
+        other.size_ = 0;
+    }
+    return *this;
+}
+
+Image::~Image()
+{
+    if (data_) { free(data_); }
+}
+
 int Image::channels() { return channels_; }
 
-uint8_t* Image::data() { return data_.get(); }
+uint8_t* Image::data() { return data_; }
 
 int Image::height() const { return height_; }
 
@@ -55,17 +95,17 @@ bool Image::write_to(const std::filesystem::path& filename) const
     temp_path = temp.c_str();
 #endif
     if (string::icmp(ext, ".dds")) {
-        if (!save_image_as_DDS(temp_path, width_, height_, channels_, data_.get())) {
+        if (!save_image_as_DDS(temp_path, width_, height_, channels_, data_)) {
             LOG_F(INFO, "Failed to write DDS");
             return false;
         }
     } else if (string::icmp(ext, ".png")) {
-        if (!stbi_write_png(temp_path, width_, height_, channels_, data_.get(), 0)) {
+        if (!stbi_write_png(temp_path, width_, height_, channels_, data_, 0)) {
             LOG_F(INFO, "Failed to write PNG");
             return false;
         }
     } else if (string::icmp(ext, ".tga")) {
-        if (!stbi_write_tga(temp_path, width_, height_, channels_, data_.get())) {
+        if (!stbi_write_tga(temp_path, width_, height_, channels_, data_)) {
             LOG_F(INFO, "Failed to write TGA");
             return false;
         }
@@ -86,9 +126,8 @@ bool Image::parse()
     if (is_dds_) {
         result = parse_dds();
     } else { // Defer to stb_image
-        data_ = std::unique_ptr<uint8_t[], void (*)(void*)>(stbi_load_from_memory((stbi_uc*)bytes_.data(),
-                                                                static_cast<int>(bytes_.size()), &width_, &height_, &channels_, 0),
-            free);
+        data_ = stbi_load_from_memory((stbi_uc*)bytes_.data(),
+            static_cast<int>(bytes_.size()), &width_, &height_, &channels_, 0);
         if (!data_) {
             LOG_F(ERROR, "Failed to load image: {}", stbi_failure_reason());
             result = false;
@@ -143,8 +182,8 @@ bool Image::parse_bioware()
     if (channels_ != 3 && channels_ != 4)
         return false;
 
-    D3DCOLOR* pixels = new D3DCOLOR[height_ * width_];
-    data_ = std::unique_ptr<uint8_t[], void (*)(void*)>((uint8_t*)pixels, free);
+    D3DCOLOR* pixels = reinterpret_cast<D3DCOLOR*>(malloc(sizeof(D3DCOLOR) * height_ * width_));
+    data_ = (uint8_t*)pixels;
 
     int x = 0, y = 0;
 
@@ -172,9 +211,8 @@ bool Image::parse_bioware()
 
 bool Image::parse_dxt()
 {
-    data_ = std::unique_ptr<uint8_t[], void (*)(void*)>(stbi_load_from_memory((stbi_uc*)bytes_.data(),
-                                                            static_cast<int>(bytes_.size()), &height_, &width_, &channels_, 0),
-        free);
+    data_ = stbi_load_from_memory((stbi_uc*)bytes_.data(),
+        static_cast<int>(bytes_.size()), &height_, &width_, &channels_, 0);
     if (data_ == nullptr) {
         LOG_F(INFO, "Failed to load DDS: {}", stbi_failure_reason());
         return false;
