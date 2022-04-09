@@ -35,6 +35,11 @@ struct Objects {
     /// @note will call kernel::resources()
     virtual ObjectHandle load(std::string_view resref, ObjectType type);
 
+    /// Instantiates object from a blueprint
+    /// @note will call kernel::resources()
+    template <typename T>
+    T* load_as(std::string_view resref);
+
     /// Loads an area
     virtual Area* load_area(Resref area);
 
@@ -46,6 +51,10 @@ struct Objects {
     /// Instantiates object from a blueprint
     /// @note will call kernel::resources()
     virtual ObjectHandle load_from_archive(ObjectType type, const nlohmann::json& archive,
+        SerializationProfile profile = SerializationProfile::instance);
+
+    template <typename T, typename Archive>
+    T* load_from_archive_as(const Archive& archive,
         SerializationProfile profile = SerializationProfile::instance);
 
     /// Tests if object is valid
@@ -71,6 +80,20 @@ T* Objects::get_as(ObjectHandle handle) const
         return static_cast<T*>(obj);
     }
     return nullptr;
+}
+
+template <typename T>
+T* Objects::load_as(std::string_view resref)
+{
+    auto oh = load(resref, T::object_type);
+    return get_as<T>(oh);
+}
+
+template <typename T, typename Archive>
+T* Objects::load_from_archive_as(const Archive& archive, SerializationProfile profile)
+{
+    auto oh = load_from_archive(T::object_type, archive, profile);
+    return get_as<T>(oh);
 }
 
 } // namespace nw::kernel
