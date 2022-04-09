@@ -74,15 +74,7 @@ bool Image::write_to(const std::filesystem::path& filename) const
         return false;
     }
 
-    std::error_code ec;
-    fs::copy_file(temp, filename, fs::copy_options::overwrite_existing, ec);
-    fs::remove(temp);
-    if (ec) {
-        LOG_F(ERROR, "Failed to write {}, error: {}", filename.string(), ec.value());
-        return false;
-    }
-
-    return true;
+    return move_file_safely(temp, filename);
 }
 
 // ---- Private ---------------------------------------------------------------

@@ -2,6 +2,7 @@
 
 #include "../i18n/conversion.hpp"
 #include "../log.hpp"
+#include "../util/platform.hpp"
 #include "../util/string.hpp"
 #include "Resource.hpp"
 
@@ -204,9 +205,7 @@ bool Erf::save_as(const std::filesystem::path& path) const
         f.write((const char*)ba.data(), ba.size());
     }
     f.close();
-    fs::rename(temp_path, path);
-
-    return true;
+    return move_file_safely(temp_path, path);
 }
 
 std::vector<ResourceDescriptor> Erf::all() const

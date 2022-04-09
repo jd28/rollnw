@@ -2,6 +2,7 @@
 
 #include "../log.hpp"
 #include "../util/macros.hpp"
+#include "../util/platform.hpp"
 #include "Language.hpp"
 #include "conversion.hpp"
 
@@ -144,9 +145,10 @@ void Tlk::save_as(const std::filesystem::path& path)
     }
 
     f.close();
-    fs::rename(temp_path, path);
-    path_ = path;
-    load(); // Maybe reloading isn't necessary..
+    if (move_file_safely(temp_path, path)) {
+        path_ = path;
+        load(); // Maybe reloading isn't necessary..
+    }
 }
 
 void Tlk::load()
