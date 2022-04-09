@@ -6,6 +6,8 @@
 
 int main(int argc, char* argv[])
 {
+    std::filesystem::create_directory("tmp");
+
     nw::init_logger(argc, argv);
 
     nw::kernel::config().initialize({
