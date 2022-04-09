@@ -16,6 +16,7 @@ jobs:
       vcpkg-tag: "2022.03.10"
       VCPKG_ROOT: "${{ github.workspace }}/vcpkg/"
       VCPKG_DEFAULT_BINARY_CACHE: "${{ github.workspace }}/vcpkg/.cache"
+      ASAN_OPTIONS: "detect_leaks=0" # Not read for this yet..
 
     name: build on linux
     runs-on: ubuntu-latest
