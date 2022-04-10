@@ -15,6 +15,7 @@
             "name": "libiconv",
             "platform": "windows"
         },
-        "glm"
+        "glm",
+        "benchmark"
     ]
 }
