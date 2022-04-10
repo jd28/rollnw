@@ -163,6 +163,12 @@ bool Resources::add_container(Container* container, bool take_ownership)
     return true;
 }
 
+void Resources::clear_containers()
+{
+    custom_.clear();
+    update_container_search();
+}
+
 bool Resources::contains(Resource res) const
 {
     for (auto [cont, type, user] : search_) {

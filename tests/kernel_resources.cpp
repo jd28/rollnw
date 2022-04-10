@@ -27,6 +27,8 @@ TEST_CASE("resources: extract", "[kernel]")
     REQUIRE(rm->contains({"module"sv, nw::ResourceType::ifo}));
     REQUIRE(rm->contains({"test_area"sv, nw::ResourceType::are}));
     REQUIRE(rm->extract(std::regex(".*"), "tmp") == 37);
+    rm->clear_containers();
+    REQUIRE_FALSE(rm->contains({"test_area"sv, nw::ResourceType::are}));
 }
 
 TEST_CASE("resources: load module", "[kernel]")

@@ -25,6 +25,9 @@ struct Resources : public Container {
     /// Add already created container
     virtual bool add_container(Container* container, bool take_ownership = true);
 
+    /// Clears any custom loaded containers
+    virtual void clear_containers();
+
     /// Initializes resources management system
     virtual void initialize();
 
