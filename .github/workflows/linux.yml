@@ -56,7 +56,7 @@ jobs:
 
       - name: Make cache dir
         if: steps.cache-vcpkg.outputs.cache-hit != 'true'
-        run: mkdir "${{ github.workspace }}/vcpkg/.cache"
+        run: mkdir -p "${{ github.workspace }}/vcpkg/.cache"
 
       - name: Configure
         run: |

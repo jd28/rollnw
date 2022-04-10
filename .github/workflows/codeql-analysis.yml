@@ -86,7 +86,7 @@ jobs:
 
       - name: Make cache dir
         if: steps.cache-vcpkg.outputs.cache-hit != 'true'
-        run: mkdir "${{ github.workspace }}/vcpkg/.cache"
+        run: mkdir -p "${{ github.workspace }}/vcpkg/.cache"
 
       - name: Configure
         run: |
@@ -95,7 +95,3 @@ jobs:
       - name: Build
         run: |
           cmake --build --preset default
-
-      - name: Test
-        run: |
-          ctest --preset default
