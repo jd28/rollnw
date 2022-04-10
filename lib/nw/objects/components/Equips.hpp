@@ -141,7 +141,7 @@ constexpr EquipIndex equip_slot_to_index(EquipSlot slot)
     }
 }
 
-using EquipItem = std::variant<Resref, std::unique_ptr<Item>>;
+using EquipItem = std::variant<Resref, Item*>;
 
 struct Equips {
     Equips() = default;
@@ -151,6 +151,7 @@ struct Equips {
     Equips& operator=(Equips&&) = default;
     ~Equips() = default;
 
+    bool instantiate();
     bool from_gff(const GffInputArchiveStruct& archive, SerializationProfile profile);
     bool from_json(const nlohmann::json& archive, SerializationProfile profile);
     bool to_gff(GffOutputArchiveStruct& archive, SerializationProfile profile) const;

@@ -1,16 +1,34 @@
 #include "Inventory.hpp"
 
+#include "../../kernel/Kernel.hpp"
 #include "../Item.hpp"
 
 #include <nlohmann/json.hpp>
 
 namespace nw {
 
+bool Inventory::instantiate()
+{
+    for (auto& ii : items) {
+        if (std::holds_alternative<Resref>(ii.item)) {
+            auto temp = nw::kernel::objects().load_as<Item>(std::get<Resref>(ii.item).view());
+            if (temp) {
+                ii.item = temp;
+            } else {
+                LOG_F(WARNING, "failed to instantiate item, perhaps you're missing '{}.uti'?",
+                    std::get<Resref>(ii.item));
+            }
+        }
+    }
+    return true;
+}
+
 bool Inventory::from_gff(const GffInputArchiveStruct& archive, SerializationProfile profile)
 {
     size_t sz = archive["ItemList"].size();
     items.reserve(sz);
     for (size_t i = 0; i < sz; ++i) {
+        bool valid_entry = true;
         auto st = archive["ItemList"][i];
         InventoryItem ii;
 
@@ -25,10 +43,11 @@ bool Inventory::from_gff(const GffInputArchiveStruct& archive, SerializationProf
                 ii.item = *r;
             }
         } else if (SerializationProfile::instance == profile) {
-            ii.item = std::make_unique<Item>(st, profile);
+            auto temp = nw::kernel::objects().load_from_archive_as<Item>(st, profile);
+            ii.item = temp;
+            if (!temp) { valid_entry = false; }
         }
-
-        items.push_back(std::move(ii));
+        if (valid_entry) { items.push_back(std::move(ii)); }
     }
 
     return true;
@@ -41,6 +60,7 @@ bool Inventory::from_json(const nlohmann::json& archive, SerializationProfile pr
     try {
         items.reserve(archive.size());
         for (size_t i = 0; i < archive.size(); ++i) {
+            bool valid_entry = true;
             InventoryItem ii;
             if (owner->common()->object_type == ObjectType::store) {
                 archive[i].at("infinite").get_to(ii.infinite);
@@ -50,9 +70,11 @@ bool Inventory::from_json(const nlohmann::json& archive, SerializationProfile pr
             if (profile == SerializationProfile::blueprint) {
                 ii.item = archive[i].at("item").get<Resref>();
             } else {
-                ii.item = std::make_unique<Item>(archive[i].at("item"), profile);
+                auto temp = nw::kernel::objects().load_from_archive_as<Item>(archive[i].at("item"), profile);
+                ii.item = temp;
+                if (!temp) { valid_entry = false; }
             }
-            items.push_back(std::move(ii));
+            if (valid_entry) { items.push_back(std::move(ii)); }
         }
     } catch (const nlohmann::json::exception& e) {
         LOG_F(ERROR, "Inventory::from_json exception: {}", e.what());
@@ -76,9 +98,13 @@ bool Inventory::to_gff(GffOutputArchiveStruct& archive, SerializationProfile pro
         }
 
         if (SerializationProfile::blueprint == profile) {
-            str.add_field("InventoryRes", std::get<Resref>(it.item));
+            if (std::holds_alternative<Resref>(it.item)) {
+                str.add_field("InventoryRes", std::get<Resref>(it.item));
+            } else {
+                str.add_field("InventoryRes", std::get<Item*>(it.item)->common()->resref);
+            }
         } else {
-            std::get<std::unique_ptr<Item>>(it.item)->to_gff(str, profile);
+            std::get<Item*>(it.item)->to_gff(str, profile);
         }
     }
     return true;
@@ -97,8 +123,8 @@ nlohmann::json Inventory::to_json(SerializationProfile profile) const
             }
 
             payload["position"] = {it.pos_x, it.pos_y};
-            if (std::holds_alternative<std::unique_ptr<Item>>(it.item)) {
-                payload["item"] = std::get<std::unique_ptr<Item>>(it.item)->to_json(profile);
+            if (std::holds_alternative<Item*>(it.item)) {
+                payload["item"] = std::get<Item*>(it.item)->to_json(profile);
             } else {
                 if (SerializationProfile::blueprint == profile) {
                     payload["item"] = std::get<Resref>(it.item);
