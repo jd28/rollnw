@@ -9,14 +9,14 @@ namespace nw {
 
 bool ModuleScripts::from_gff(const GffInputArchiveStruct& archive)
 {
-    archive.get_to("Mod_OnAcquirItem", on_item_acquire);
-    archive.get_to("Mod_OnActvtItem", on_item_activate);
     archive.get_to("Mod_OnClientEntr", on_client_enter);
     archive.get_to("Mod_OnClientLeav", on_client_leave);
     archive.get_to("Mod_OnCutsnAbort", on_cutsnabort);
     archive.get_to("Mod_OnHeartbeat", on_heartbeat);
+    archive.get_to("Mod_OnAcquirItem", on_item_acquire);
+    archive.get_to("Mod_OnActvtItem", on_item_activate);
+    archive.get_to("Mod_OnUnAqreItem", on_item_unaquire);
     archive.get_to("Mod_OnModLoad", on_load);
-    archive.get_to("Mod_OnModStart", on_start);
     archive.get_to("Mod_OnPlrChat", on_player_chat);
     archive.get_to("Mod_OnPlrDeath", on_player_death);
     archive.get_to("Mod_OnPlrDying", on_player_dying);
@@ -25,7 +25,7 @@ bool ModuleScripts::from_gff(const GffInputArchiveStruct& archive)
     archive.get_to("Mod_OnPlrRest", on_player_rest);
     archive.get_to("Mod_OnPlrUnEqItm", on_player_uneqiup);
     archive.get_to("Mod_OnSpawnBtnDn", on_spawnbtndn);
-    archive.get_to("Mod_OnUnAqreItem", on_item_unaquire);
+    archive.get_to("Mod_OnModStart", on_start);
     archive.get_to("Mod_OnUsrDefined", on_user_defined);
     return true;
 }
@@ -60,15 +60,14 @@ bool ModuleScripts::from_json(const nlohmann::json& archive)
 
 bool ModuleScripts::to_gff(GffOutputArchiveStruct& archive) const
 {
-
-    archive.add_field("Mod_OnAcquirItem", on_item_acquire)
-        .add_field("Mod_OnActvtItem", on_item_activate)
-        .add_field("Mod_OnClientEntr", on_client_enter)
+    archive.add_field("Mod_OnClientEntr", on_client_enter)
         .add_field("Mod_OnClientLeav", on_client_leave)
         .add_field("Mod_OnCutsnAbort", on_cutsnabort)
         .add_field("Mod_OnHeartbeat", on_heartbeat)
+        .add_field("Mod_OnAcquirItem", on_item_acquire)
+        .add_field("Mod_OnActvtItem", on_item_activate)
+        .add_field("Mod_OnUnAqreItem", on_item_unaquire)
         .add_field("Mod_OnModLoad", on_load)
-        .add_field("Mod_OnModStart", on_start)
         .add_field("Mod_OnPlrChat", on_player_chat)
         .add_field("Mod_OnPlrDeath", on_player_death)
         .add_field("Mod_OnPlrDying", on_player_dying)
@@ -77,7 +76,7 @@ bool ModuleScripts::to_gff(GffOutputArchiveStruct& archive) const
         .add_field("Mod_OnPlrRest", on_player_rest)
         .add_field("Mod_OnPlrUnEqItm", on_player_uneqiup)
         .add_field("Mod_OnSpawnBtnDn", on_spawnbtndn)
-        .add_field("Mod_OnUnAqreItem", on_item_unaquire)
+        .add_field("Mod_OnModStart", on_start)
         .add_field("Mod_OnUsrDefined", on_user_defined);
 
     return true;
@@ -161,8 +160,6 @@ bool Module::instantiate()
 
 bool Module::from_gff(const GffInputArchiveStruct& archive)
 {
-    locals.from_gff(archive);
-    archive.get_to("Expansion_Pack", expansion_pack);
 
     size_t sz = archive["Mod_Area_list"].size();
     auto st = archive["Mod_Area_list"];
@@ -179,6 +176,14 @@ bool Module::from_gff(const GffInputArchiveStruct& archive)
     }
     areas = std::move(area_list);
 
+    archive.get_to("Mod_Description", description);
+    archive.get_to("Mod_Entry_Area", entry_area);
+    archive.get_to("Mod_Entry_Dir_X", entry_orientation.x);
+    archive.get_to("Mod_Entry_Dir_Y", entry_orientation.y);
+    archive.get_to("Mod_Entry_X", entry_position.x);
+    archive.get_to("Mod_Entry_Y", entry_position.y);
+    archive.get_to("Mod_Entry_Z", entry_position.z);
+
     sz = archive["Mod_HakList"].size();
     st = archive["Mod_HakList"];
     haks.reserve(sz);
@@ -191,32 +196,28 @@ bool Module::from_gff(const GffInputArchiveStruct& archive)
         }
     }
 
-    archive.get_to("Mod_Creator_ID", creator);
-    archive.get_to("Mod_CustomTlk", tlk);
-    archive.get_to("Mod_DawnHour", dawn_hour);
-    archive.get_to("Mod_Description", description);
-    archive.get_to("Mod_DuskHour", dusk_hour);
-    archive.get_to("Mod_Entry_Area", entry_area);
-    archive.get_to("Mod_Entry_Dir_X", entry_orientation.x);
-    archive.get_to("Mod_Entry_Dir_Y", entry_orientation.y);
-    archive.get_to("Mod_Entry_X", entry_position.x);
-    archive.get_to("Mod_Entry_Y", entry_position.y);
-    archive.get_to("Mod_Entry_Z", entry_position.z);
-
-    scripts.from_gff(archive);
-
     archive.get_to("Mod_ID", id);
-    archive.get_to("Mod_IsSaveGame", is_save_game);
+    locals.from_gff(archive);
     archive.get_to("Mod_MinGameVer", min_game_version);
-    archive.get_to("Mod_MinPerHour", minutes_per_hour);
     archive.get_to("Mod_Name", name);
+    scripts.from_gff(archive);
+    archive.get_to("Mod_StartMovie", start_movie);
+    archive.get_to("Mod_Tag", tag);
+    archive.get_to("Mod_CustomTlk", tlk);
+
+    archive.get_to("Mod_Creator_ID", creator);
+    archive.get_to("Mod_StartYear", start_year);
+    archive.get_to("Mod_Version", version);
+
+    archive.get_to("Expansion_Pack", expansion_pack);
+
+    archive.get_to("Mod_DawnHour", dawn_hour);
+    archive.get_to("Mod_DuskHour", dusk_hour);
+    archive.get_to("Mod_IsSaveGame", is_save_game);
+    archive.get_to("Mod_MinPerHour", minutes_per_hour);
     archive.get_to("Mod_StartDay", start_day);
     archive.get_to("Mod_StartHour", start_hour);
     archive.get_to("Mod_StartMonth", start_month);
-    archive.get_to("Mod_StartMovie", start_movie);
-    archive.get_to("Mod_StartYear", start_year);
-    archive.get_to("Mod_Tag", tag);
-    archive.get_to("Mod_Version", version);
     archive.get_to("Mod_XPScale", xpscale);
 
     return true;
@@ -225,9 +226,11 @@ bool Module::from_gff(const GffInputArchiveStruct& archive)
 bool Module::from_json(const nlohmann::json& archive)
 {
     try {
-        locals.from_json(archive.at("locals"));
-        scripts.from_json(archive.at("scripts"));
+        std::vector<Resref> area_list;
+        archive.at("areas").get_to(area_list);
+        areas = std::move(area_list);
 
+        archive.at("description").get_to(description);
         entry_orientation.x = archive.at("entry_orientation")[0].get<float>();
         entry_orientation.y = archive.at("entry_orientation")[1].get<float>();
         // entry_orientation.z = archive.at("entry_orientation")[2].get<float>();
@@ -235,30 +238,30 @@ bool Module::from_json(const nlohmann::json& archive)
         entry_position.y = archive.at("entry_position")[1].get<float>();
         entry_position.z = archive.at("entry_position")[2].get<float>();
 
-        std::vector<Resref> area_list;
-        archive.at("areas").get_to(area_list);
-        areas = std::move(area_list);
-
-        archive.at("creator").get_to(creator);
-        archive.at("dawn_hour").get_to(dawn_hour);
-        archive.at("description").get_to(description);
-        archive.at("dusk_hour").get_to(dusk_hour);
-        archive.at("entry_area").get_to(entry_area);
-        archive.at("expansion_pack").get_to(expansion_pack);
         archive.at("haks").get_to(haks);
         archive.at("id").get_to(id);
-        archive.at("is_save_game").get_to(is_save_game);
+        locals.from_json(archive.at("locals"));
         archive.at("min_game_version").get_to(min_game_version);
-        archive.at("minutes_per_hour").get_to(minutes_per_hour);
         archive.at("name").get_to(name);
+        scripts.from_json(archive.at("scripts"));
+        archive.at("start_movie").get_to(start_movie);
+        archive.at("tag").get_to(tag);
+        archive.at("tlk").get_to(tlk);
+
+        archive.at("creator").get_to(creator);
+        archive.at("start_year").get_to(start_year);
+        archive.at("version").get_to(version);
+
+        archive.at("expansion_pack").get_to(expansion_pack);
+
+        archive.at("dawn_hour").get_to(dawn_hour);
+        archive.at("dusk_hour").get_to(dusk_hour);
+        archive.at("entry_area").get_to(entry_area);
+        archive.at("is_save_game").get_to(is_save_game);
+        archive.at("minutes_per_hour").get_to(minutes_per_hour);
         archive.at("start_day").get_to(start_day);
         archive.at("start_hour").get_to(start_hour);
         archive.at("start_month").get_to(start_month);
-        archive.at("start_movie").get_to(start_movie);
-        archive.at("start_year").get_to(start_year);
-        archive.at("tag").get_to(tag);
-        archive.at("tlk").get_to(tlk);
-        archive.at("version").get_to(version);
         archive.at("xpscale").get_to(xpscale);
 
     } catch (const nlohmann::json::exception& e) {
@@ -282,43 +285,47 @@ bool Module::to_gff(GffOutputArchiveStruct& archive) const
         }
     }
 
+    archive.add_field("Mod_Description", description);
+
+    archive.add_field("Mod_Entry_Area", entry_area)
+        .add_field("Mod_Entry_Dir_X", entry_orientation.x)
+        .add_field("Mod_Entry_Dir_Y", entry_orientation.y)
+        .add_field("Mod_Entry_X", entry_position.x)
+        .add_field("Mod_Entry_Y", entry_position.y)
+        .add_field("Mod_Entry_Z", entry_position.z);
+
     auto& hak_list = archive.add_list("Mod_HakList");
     for (const auto& hak : haks) {
         hak_list.push_back(8).add_field("Mod_Hak", hak);
     }
+
+    archive.add_field("Mod_ID", id);
+    locals.to_gff(archive);
+    archive.add_field("Mod_MinGameVer", min_game_version);
+    archive.add_field("Mod_Name", name);
+    scripts.to_gff(archive);
+    archive.add_field("Mod_StartMovie", start_movie);
+    archive.add_field("Mod_Tag", tag);
+    archive.add_field("Mod_CustomTlk", tlk);
 
     // Always empty, obsolete, but NWN as of 1.69, at least, kept them in the GFF.
     archive.add_list("Mod_CutSceneList");
     archive.add_list("Mod_Expan_List");
     archive.add_list("Mod_GVar_List");
 
-    locals.to_gff(archive);
-    scripts.to_gff(archive);
+    archive.add_field("Mod_Creator_ID", creator)
+        .add_field("Mod_StartYear", start_year)
+        .add_field("Mod_Version", version);
 
-    archive.add_field("Expansion_Pack", expansion_pack)
-        .add_field("Mod_Creator_ID", creator)
-        .add_field("Mod_CustomTlk", tlk)
-        .add_field("Mod_DawnHour", dawn_hour)
-        .add_field("Mod_Description", description)
+    archive.add_field("Expansion_Pack", expansion_pack);
+
+    archive.add_field("Mod_DawnHour", dawn_hour)
         .add_field("Mod_DuskHour", dusk_hour)
-        .add_field("Mod_Entry_Area", entry_area)
-        .add_field("Mod_Entry_Dir_X", entry_orientation.x)
-        .add_field("Mod_Entry_Dir_Y", entry_orientation.y)
-        .add_field("Mod_Entry_X", entry_position.x)
-        .add_field("Mod_Entry_Y", entry_position.y)
-        .add_field("Mod_Entry_Z", entry_position.z)
-        .add_field("Mod_ID", id)
         .add_field("Mod_IsSaveGame", is_save_game)
-        .add_field("Mod_MinGameVer", min_game_version)
         .add_field("Mod_MinPerHour", minutes_per_hour)
-        .add_field("Mod_Name", name)
         .add_field("Mod_StartDay", start_day)
         .add_field("Mod_StartHour", start_hour)
         .add_field("Mod_StartMonth", start_month)
-        .add_field("Mod_StartMovie", start_movie)
-        .add_field("Mod_StartYear", start_year)
-        .add_field("Mod_Tag", tag)
-        .add_field("Mod_Version", version)
         .add_field("Mod_XPScale", xpscale);
 
     return true;

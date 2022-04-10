@@ -24,17 +24,42 @@ Item::Item(const nlohmann::json& archive, SerializationProfile profile)
     this->from_json(archive, profile);
 }
 
+bool Item::instantiate()
+{
+    return inventory.instantiate();
+}
+
 bool Item::from_gff(const GffInputArchiveStruct& archive, SerializationProfile profile)
 {
 
     common_.from_gff(archive, profile);
-    inventory.from_gff(archive, profile);
     archive.get_to("Description", description);
     archive.get_to("DescIdentified", description_id);
+    inventory.from_gff(archive, profile);
+
+    auto prop_size = archive["PropertiesList"].size();
+    properties.reserve(prop_size);
+    auto list = archive["PropertiesList"];
+    for (size_t i = 0; i < prop_size; ++i) {
+        ItemProperty ip;
+        if (!list[i].get_to("PropertyName", ip.type)
+            || !list[i].get_to("Subtype", ip.subtype)
+            || !list[i].get_to("CostTable", ip.cost_table)
+            || !list[i].get_to("CostValue", ip.cost_value)
+            || !list[i].get_to("Param1", ip.param_table)
+            || !list[i].get_to("Param1Value", ip.param_value)) {
+            LOG_F(WARNING, "item invalid property at index {}", i);
+        } else {
+            properties.push_back(ip);
+        }
+    }
+
     archive.get_to("Cost", cost);
     archive.get_to("AddCost", additional_cost);
     archive.get_to("BaseItem", baseitem);
+
     archive.get_to("StackSize", stacksize);
+
     archive.get_to("Charges", charges);
     archive.get_to("Cursed", cursed);
     archive.get_to("Identified", identified);
@@ -87,23 +112,6 @@ bool Item::from_gff(const GffInputArchiveStruct& archive, SerializationProfile p
         archive.get_to("Metal2Color", model_colors[ItemColors::metal2]);
     }
 
-    auto prop_size = archive["PropertiesList"].size();
-    properties.reserve(prop_size);
-    auto list = archive["PropertiesList"];
-    for (size_t i = 0; i < prop_size; ++i) {
-        ItemProperty ip;
-        if (!list[i].get_to("PropertyName", ip.type)
-            || !list[i].get_to("Subtype", ip.subtype)
-            || !list[i].get_to("CostTable", ip.cost_table)
-            || !list[i].get_to("CostValue", ip.cost_value)
-            || !list[i].get_to("Param1", ip.param_table)
-            || !list[i].get_to("Param1Value", ip.param_value)) {
-            LOG_F(WARNING, "item invalid property at index {}", i);
-        } else {
-            properties.push_back(ip);
-        }
-    }
-
     return true;
 }
 
@@ -111,22 +119,9 @@ bool Item::from_json(const nlohmann::json& archive, SerializationProfile profile
 {
     try {
         common_.from_json(archive.at("common"), profile);
-        inventory.from_json(archive.at("inventory"), profile);
-
         archive.at("description").get_to(description);
         archive.at("description_id").get_to(description_id);
-        archive.at("cost").get_to(cost);
-        archive.at("additional_cost").get_to(additional_cost);
-        archive.at("baseitem").get_to(baseitem);
-        archive.at("stacksize").get_to(stacksize);
-        archive.at("charges").get_to(charges);
-        archive.at("cursed").get_to(cursed);
-        archive.at("identified").get_to(identified);
-        archive.at("plot").get_to(plot);
-        archive.at("stolen").get_to(stolen);
-        archive.at("model_type").get_to(model_type);
-        archive.at("model_colors").get_to(model_colors);
-        archive.at("model_parts").get_to(model_parts);
+        inventory.from_json(archive.at("inventory"), profile);
 
         const auto& ref = archive.at("properties");
         properties.reserve(ref.size());
@@ -140,6 +135,21 @@ bool Item::from_json(const nlohmann::json& archive, SerializationProfile profile
             ref[i].at("param_value").get_to(ip.param_value);
             properties.push_back(ip);
         }
+
+        archive.at("cost").get_to(cost);
+        archive.at("additional_cost").get_to(additional_cost);
+        archive.at("baseitem").get_to(baseitem);
+
+        archive.at("stacksize").get_to(stacksize);
+
+        archive.at("charges").get_to(charges);
+        archive.at("cursed").get_to(cursed);
+        archive.at("identified").get_to(identified);
+        archive.at("plot").get_to(plot);
+        archive.at("stolen").get_to(stolen);
+        archive.at("model_type").get_to(model_type);
+        archive.at("model_colors").get_to(model_colors);
+        archive.at("model_parts").get_to(model_parts);
 
     } catch (const nlohmann::json::exception& e) {
         LOG_F(ERROR, "Item::from_json exception: {}", e.what());
@@ -167,15 +177,17 @@ bool Item::to_gff(GffOutputArchiveStruct& archive, SerializationProfile profile)
     }
 
     common_.locals.to_gff(archive);
+    archive.add_field("Description", description);
+    archive.add_field("DescIdentified", description_id);
     inventory.to_gff(archive, profile);
 
-    archive.add_field("Description", description)
-        .add_field("DescIdentified", description_id)
-        .add_field("Cost", cost)
+    archive.add_field("Cost", cost)
         .add_field("AddCost", additional_cost)
-        .add_field("BaseItem", baseitem)
-        .add_field("StackSize", stacksize)
-        .add_field("Charges", charges)
+        .add_field("BaseItem", baseitem);
+
+    archive.add_field("StackSize", stacksize);
+
+    archive.add_field("Charges", charges)
         .add_field("Cursed", cursed)
         .add_field("Identified", identified)
         .add_field("Plot", plot)
@@ -250,14 +262,16 @@ nlohmann::json Item::to_json(SerializationProfile profile) const
     j["$version"] = json_archive_version;
 
     j["common"] = common_.to_json(profile);
-    j["inventory"] = inventory.to_json(profile);
-
     j["description"] = description;
     j["description_id"] = description_id;
+    j["inventory"] = inventory.to_json(profile);
+
     j["cost"] = cost;
     j["additional_cost"] = additional_cost;
     j["baseitem"] = baseitem;
+
     j["stacksize"] = stacksize;
+
     j["charges"] = charges;
     j["cursed"] = cursed;
     j["identified"] = identified;

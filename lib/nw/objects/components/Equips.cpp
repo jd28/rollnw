@@ -1,10 +1,27 @@
 #include "Equips.hpp"
 
+#include "../../kernel/Kernel.hpp"
 #include "../Item.hpp"
 
 #include <nlohmann/json.hpp>
 
 namespace nw {
+
+bool Equips::instantiate()
+{
+    for (auto& e : equips) {
+        if (std::holds_alternative<Resref>(e) && std::get<Resref>(e).length()) {
+            auto temp = nw::kernel::objects().load_as<Item>(std::get<Resref>(e).view());
+            if (temp) {
+                e = temp;
+            } else {
+                LOG_F(WARNING, "failed to instantiate item, perhaps you're missing '{}.uti'?",
+                    std::get<Resref>(e));
+            }
+        }
+    }
+    return true;
+}
 
 bool Equips::from_gff(const GffInputArchiveStruct& archive, SerializationProfile profile)
 {
@@ -23,7 +40,7 @@ bool Equips::from_gff(const GffInputArchiveStruct& archive, SerializationProfile
             st.get_to("EquippedRes", r);
             equips[idx] = r;
         } else {
-            equips[idx] = std::make_unique<Item>(st, profile);
+            equips[idx] = nw::kernel::objects().load_from_archive_as<Item>(st, profile);
         }
     }
     return true;
@@ -38,7 +55,7 @@ bool Equips::from_json(const nlohmann::json& archive, SerializationProfile profi
                 if (profile == SerializationProfile::blueprint) {
                     equips[i] = archive.at(lookup).get<Resref>();
                 } else {
-                    equips[i] = std::make_unique<Item>(archive.at("head"), profile);
+                    equips[i] = nw::kernel::objects().load_from_archive_as<Item>(archive.at(lookup), profile);
                 }
             }
         }
@@ -56,11 +73,17 @@ bool Equips::to_gff(GffOutputArchiveStruct& archive, SerializationProfile profil
     for (const auto& equip : equips) {
         uint32_t struct_id = 1 << i;
         if (profile == SerializationProfile::blueprint) {
-            if (std::get<Resref>(equips[i]).length()) {
-                list.push_back(struct_id).add_field("EquippedRes", std::get<Resref>(equips[i]));
+            if (std::holds_alternative<Resref>(equip)) {
+                const auto& r = std::get<Resref>(equip);
+                if (r.length()) {
+                    list.push_back(struct_id).add_field("EquippedRes", r);
+                }
+            } else if (std::get<Item*>(equip)) {
+                list.push_back(struct_id).add_field("EquippedRes",
+                    std::get<Item*>(equip)->common()->resref);
             }
-        } else if (std::get<std::unique_ptr<Item>>(equips[i])) {
-            std::get<std::unique_ptr<Item>>(equips[i])->to_gff(list.push_back(struct_id), profile);
+        } else if (std::get<Item*>(equip)) {
+            std::get<Item*>(equip)->to_gff(list.push_back(struct_id), profile);
         }
         ++i;
     }
@@ -76,10 +99,15 @@ nlohmann::json Equips::to_json(SerializationProfile profile) const
         std::string lookup{equip_index_to_string(static_cast<EquipIndex>(i))};
         if (profile == SerializationProfile::blueprint) {
             if (std::holds_alternative<Resref>(equips[i])) {
-                j[lookup] = std::get<Resref>(equips[i]);
+                const auto& r = std::get<Resref>(equips[i]);
+                if (r.length()) { j[lookup] = r; }
+            } else if (std::get<Item*>(equips[i])) {
+                j[lookup] = std::get<Item*>(equips[i])->common()->resref;
             }
-        } else if (std::holds_alternative<std::unique_ptr<Item>>(equips[i])) {
-            j[lookup] = std::get<std::unique_ptr<Item>>(equips[i])->to_json(profile);
+        } else {
+            if (std::holds_alternative<Item*>(equips[i]) && std::get<Item*>(equips[i])) {
+                j[lookup] = std::get<Item*>(equips[i])->to_json(profile);
+            }
         }
     }
 

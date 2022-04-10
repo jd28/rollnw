@@ -140,8 +140,12 @@ ObjectHandle Objects::load(std::string_view resref, ObjectType type)
             }
         }
     }
-
-    return commit_object(obj, type);
+    if (obj && obj->instantiate()) {
+        return commit_object(obj, type);
+    } else {
+        delete obj;
+        return {};
+    }
 }
 
 ObjectHandle Objects::load_from_archive(ObjectType type, const GffInputArchiveStruct& archive,

@@ -195,35 +195,11 @@ Area::Area(const nlohmann::json& caf, const nlohmann::json& gic)
 bool Area::from_gff(const GffInputArchiveStruct& are, const GffInputArchiveStruct& git, const GffInputArchiveStruct& gic)
 {
     common_.from_gff(are, SerializationProfile::any);
-    scripts.from_gff(are);
-    weather.from_gff(are);
-
-    are.get_to("Flags", flags);
-    are.get_to("Tileset", tileset);
-    are.get_to("Height", height);
-    are.get_to("ID", id);
-    are.get_to("LoadScreenID", loadscreen);
-    are.get_to("ModListenCheck", listen_check_mod);
-    are.get_to("ModSpotCheck", spot_check_mod);
-    are.get_to("Name", name);
-    are.get_to("NoRest", no_rest);
-    are.get_to("PlayerVsPlayer", pvp);
-    are.get_to("ShadowOpacity", shadow_opacity);
-    are.get_to("SkyBox", skybox);
-    are.get_to("Version", version);
-    are.get_to("Width", width);
-
-    auto st = are["Tile_List"];
-    size_t sz = st.size();
-    tiles.resize(sz);
-    for (size_t i = 0; i < sz; ++i) {
-        tiles[i].from_gff(st[i]);
-    }
 
 #define GIT_LIST(name, holder, type)                                                     \
     do {                                                                                 \
-        st = git[name];                                                                  \
-        sz = st.size();                                                                  \
+        auto st = git[name];                                                             \
+        auto sz = st.size();                                                             \
         holder.reserve(sz);                                                              \
         for (size_t i = 0; i < sz; ++i) {                                                \
             auto oh = nw::kernel::objects().load_from_archive(type::object_type, st[i]); \
@@ -246,9 +222,37 @@ bool Area::from_gff(const GffInputArchiveStruct& are, const GffInputArchiveStruc
     GIT_LIST("TriggerList", triggers, Trigger);
     GIT_LIST("WaypointList", waypoints, Waypoint);
 
-    return true;
-
 #undef GIT_LIST
+
+    are.get_to("Name", name);
+    scripts.from_gff(are);
+
+    auto st = are["Tile_List"];
+    size_t sz = st.size();
+    tiles.resize(sz);
+    for (size_t i = 0; i < sz; ++i) {
+        tiles[i].from_gff(st[i]);
+    }
+    are.get_to("Tileset", tileset);
+
+    weather.from_gff(are);
+
+    are.get_to("Flags", flags);
+    are.get_to("Height", height);
+    are.get_to("ID", id);
+    are.get_to("ModListenCheck", listen_check_mod);
+    are.get_to("ModSpotCheck", spot_check_mod);
+    are.get_to("Version", version);
+    are.get_to("Width", width);
+
+    are.get_to("LoadScreenID", loadscreen);
+
+    are.get_to("NoRest", no_rest);
+    are.get_to("PlayerVsPlayer", pvp);
+    are.get_to("ShadowOpacity", shadow_opacity);
+    are.get_to("SkyBox", skybox);
+
+    return true;
 }
 
 bool Area::from_json(const nlohmann::json& caf, const nlohmann::json& gic)
@@ -271,31 +275,6 @@ bool Area::from_json(const nlohmann::json& caf, const nlohmann::json& gic)
 
     try {
         common_.from_json(caf.at("common"), SerializationProfile::any);
-        scripts.from_json(caf.at("scripts"));
-        weather.from_json(caf.at("weather"));
-
-        caf.at("comments").get_to(comments);
-        caf.at("creator_id").get_to(creator_id);
-        caf.at("flags").get_to(flags);
-        caf.at("height").get_to(height);
-        caf.at("id").get_to(id);
-        caf.at("listen_check_mod").get_to(listen_check_mod);
-        caf.at("loadscreen").get_to(loadscreen);
-        caf.at("name").get_to(name);
-        caf.at("no_rest").get_to(no_rest);
-        caf.at("pvp").get_to(pvp);
-        caf.at("shadow_opacity").get_to(shadow_opacity);
-        caf.at("skybox").get_to(skybox);
-        caf.at("spot_check_mod").get_to(spot_check_mod);
-        caf.at("tileset").get_to(tileset);
-        caf.at("version").get_to(version);
-        caf.at("width").get_to(width);
-
-        auto& ts = caf.at("tiles");
-        tiles.resize(ts.size());
-        for (size_t i = 0; i < ts.size(); ++i) {
-            tiles[i].from_json(ts[i]);
-        }
 
         OBJECT_LIST_FROM_JSON(creatures, Creature);
         OBJECT_LIST_FROM_JSON(doors, Door);
@@ -306,6 +285,35 @@ bool Area::from_json(const nlohmann::json& caf, const nlohmann::json& gic)
         OBJECT_LIST_FROM_JSON(stores, Store);
         OBJECT_LIST_FROM_JSON(triggers, Trigger);
         OBJECT_LIST_FROM_JSON(waypoints, Waypoint);
+
+        caf.at("comments").get_to(comments);
+        caf.at("name").get_to(name);
+        scripts.from_json(caf.at("scripts"));
+
+        auto& ts = caf.at("tiles");
+        tiles.resize(ts.size());
+        for (size_t i = 0; i < ts.size(); ++i) {
+            tiles[i].from_json(ts[i]);
+        }
+        caf.at("tileset").get_to(tileset);
+
+        weather.from_json(caf.at("weather"));
+
+        caf.at("creator_id").get_to(creator_id);
+        caf.at("flags").get_to(flags);
+        caf.at("height").get_to(height);
+        caf.at("id").get_to(id);
+        caf.at("listen_check_mod").get_to(listen_check_mod);
+        caf.at("spot_check_mod").get_to(spot_check_mod);
+        caf.at("version").get_to(version);
+        caf.at("width").get_to(width);
+
+        caf.at("loadscreen").get_to(loadscreen);
+
+        caf.at("no_rest").get_to(no_rest);
+        caf.at("pvp").get_to(pvp);
+        caf.at("shadow_opacity").get_to(shadow_opacity);
+        caf.at("skybox").get_to(skybox);
 
     } catch (const nlohmann::json::exception& e) {
         LOG_F(ERROR, "from_json exception: {}", e.what());
@@ -331,30 +339,6 @@ nlohmann::json Area::to_json() const
     j["$version"] = json_archive_version;
 
     j["common"] = common_.to_json(SerializationProfile::any);
-    j["scripts"] = scripts.to_json();
-    j["weather"] = weather.to_json();
-
-    j["comments"] = comments;
-    j["creator_id"] = creator_id;
-    j["flags"] = flags;
-    j["height"] = height;
-    j["id"] = id;
-    j["listen_check_mod"] = listen_check_mod;
-    j["loadscreen"] = loadscreen;
-    j["name"] = name;
-    j["no_rest"] = no_rest;
-    j["pvp"] = pvp;
-    j["shadow_opacity"] = shadow_opacity;
-    j["skybox"] = skybox;
-    j["spot_check_mod"] = spot_check_mod;
-    j["tileset"] = tileset;
-    j["version"] = version;
-    j["width"] = width;
-
-    auto& ts = j["tiles"] = nlohmann::json::array();
-    for (const auto& tile : tiles) {
-        ts.push_back(tile.to_json());
-    }
 
     OBJECT_LIST_TO_JSON(creatures);
     OBJECT_LIST_TO_JSON(doors);
@@ -365,6 +349,34 @@ nlohmann::json Area::to_json() const
     OBJECT_LIST_TO_JSON(stores);
     OBJECT_LIST_TO_JSON(triggers);
     OBJECT_LIST_TO_JSON(waypoints);
+
+    j["comments"] = comments;
+    j["name"] = name;
+    j["scripts"] = scripts.to_json();
+
+    auto& ts = j["tiles"] = nlohmann::json::array();
+    for (const auto& tile : tiles) {
+        ts.push_back(tile.to_json());
+    }
+
+    j["tileset"] = tileset;
+    j["weather"] = weather.to_json();
+
+    j["creator_id"] = creator_id;
+    j["flags"] = flags;
+    j["height"] = height;
+    j["id"] = id;
+    j["listen_check_mod"] = listen_check_mod;
+    j["spot_check_mod"] = spot_check_mod;
+    j["version"] = version;
+    j["width"] = width;
+
+    j["loadscreen"] = loadscreen;
+
+    j["no_rest"] = no_rest;
+    j["pvp"] = pvp;
+    j["shadow_opacity"] = shadow_opacity;
+    j["skybox"] = skybox;
 
     return j;
 }

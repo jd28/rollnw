@@ -56,6 +56,7 @@ struct Placeable : public ObjectBase {
     // ObjectBase overrides
     virtual Common* common() override { return &common_; }
     virtual const Common* common() const override { return &common_; }
+    virtual bool instantiate() override;
     virtual Placeable* as_placeable() override { return this; }
     virtual const Placeable* as_placeable() const override { return this; }
 
@@ -67,30 +68,29 @@ struct Placeable : public ObjectBase {
     nlohmann::json to_json(SerializationProfile profile) const;
 
     Common common_;
-    PlaceableScripts scripts;
-
+    Resref conversation;
+    LocString description;
     Inventory inventory;
-    PlaceableAnimationState animation_state;
-
-    uint32_t faction = 0;
-    uint8_t bodybag = 0;
-    bool has_inventory = false;
-    bool useable = false;
-    bool static_ = false;
+    Lock lock;
+    Saves saves;
+    PlaceableScripts scripts;
+    Trap trap;
 
     uint32_t appearance;
-    uint16_t portrait_id;
+    uint32_t faction = 0;
+
     int16_t hp = 0;
     int16_t hp_current = 0;
+    uint16_t portrait_id;
+
+    PlaceableAnimationState animation_state;
+    uint8_t bodybag = 0;
     uint8_t hardness;
+    bool has_inventory = false;
     bool interruptable = 0;
     bool plot = 0;
-
-    LocString description;
-    Resref conversation;
-    Saves saves;
-    Lock lock;
-    Trap trap;
+    bool static_ = false;
+    bool useable = false;
 
 private:
     bool valid_ = false;

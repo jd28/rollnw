@@ -23,12 +23,12 @@ Waypoint::Waypoint(const nlohmann::json& archive, SerializationProfile profile)
 bool Waypoint::from_gff(const GffInputArchiveStruct& archive, SerializationProfile profile)
 {
     common_.from_gff(archive, profile);
-
-    archive.get_to("Appearance", appearance);
     archive.get_to("Description", description);
-    archive.get_to("HasMapNote", has_map_note);
     archive.get_to("LinkedTo", linked_to);
     archive.get_to("MapNote", map_note);
+
+    archive.get_to("Appearance", appearance);
+    archive.get_to("HasMapNote", has_map_note);
     archive.get_to("MapNoteEnabled", map_note_enabled);
 
     return true;
@@ -54,11 +54,12 @@ bool Waypoint::to_gff(GffOutputArchiveStruct& archive, SerializationProfile prof
         common_.locals.to_gff(archive);
     }
 
-    archive.add_field("Appearance", appearance)
-        .add_field("Description", description)
-        .add_field("HasMapNote", has_map_note)
+    archive.add_field("Description", description)
         .add_field("LinkedTo", linked_to)
-        .add_field("MapNote", map_note)
+        .add_field("MapNote", map_note);
+
+    archive.add_field("Appearance", appearance)
+        .add_field("HasMapNote", has_map_note)
         .add_field("MapNoteEnabled", map_note_enabled);
 
     return true;
@@ -79,12 +80,13 @@ bool Waypoint::from_json(const nlohmann::json& archive, SerializationProfile pro
         return false;
     }
 
-    archive.at("appearance").get_to(appearance);
     common_.from_json(archive.at("common"), profile);
     archive.at("description").get_to(description);
-    archive.at("has_map_note").get_to(has_map_note);
     archive.at("linked_to").get_to(linked_to);
     archive.at("map_note").get_to(map_note);
+
+    archive.at("appearance").get_to(appearance);
+    archive.at("has_map_note").get_to(has_map_note);
     archive.at("map_note_enabled").get_to(map_note_enabled);
 
     return true;
@@ -97,12 +99,13 @@ nlohmann::json Waypoint::to_json(SerializationProfile profile) const
     j["$type"] = "UTW";
     j["$version"] = json_archive_version;
 
-    j["appearance"] = appearance;
     j["common"] = common_.to_json(profile);
     j["description"] = description;
-    j["has_map_note"] = has_map_note;
     j["linked_to"] = linked_to;
     j["map_note"] = map_note;
+
+    j["appearance"] = appearance;
+    j["has_map_note"] = has_map_note;
     j["map_note_enabled"] = map_note_enabled;
 
     return j;

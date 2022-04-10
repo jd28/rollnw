@@ -106,36 +106,42 @@ Creature::Creature(const nlohmann::json& archive, SerializationProfile profile)
     this->from_json(archive, profile);
 }
 
+bool Creature::instantiate()
+{
+    return equipment.instantiate()
+        && inventory.instantiate();
+}
+
 bool Creature::from_gff(const GffInputArchiveStruct& archive, SerializationProfile profile)
 {
+    common_.from_gff(archive, profile);
     appearance.from_gff(archive);
     combat_info.from_gff(archive);
-    common_.from_gff(archive, profile);
-    equipment.from_gff(archive, profile);
-    inventory.from_gff(archive, profile);
-    levels.from_gff(archive);
-    scripts.from_gff(archive);
-    stats.from_gff(archive);
-
-    archive.get_to("FirstName", name_first);
-    archive.get_to("LastName", name_last);
     archive.get_to("Conversation", conversation);
     archive.get_to("Deity", deity);
     archive.get_to("Description", description);
+    equipment.from_gff(archive, profile);
+    inventory.from_gff(archive, profile);
+    levels.from_gff(archive);
+    archive.get_to("FirstName", name_first);
+    archive.get_to("LastName", name_last);
+    scripts.from_gff(archive);
+    stats.from_gff(archive);
     archive.get_to("Subrace", subrace);
 
     archive.get_to("ChallengeRating", cr);
     archive.get_to("CRAdjust", cr_adjust);
     archive.get_to("DecayTime", decay_time);
+    archive.get_to("WalkRate", walkrate);
 
+    archive.get_to("FactionID", faction_id);
     archive.get_to("CurrentHitPoints", hp_current);
     archive.get_to("HitPoints", hp);
     archive.get_to("MaxHitPoints", hp_max);
-    archive.get_to("FactionID", faction_id);
     archive.get_to("SoundSetFile", soundset);
-    archive.get_to("WalkRate", walkrate);
 
     archive.get_to("BodyBag", bodybag);
+    archive.get_to("NoPermDeath", chunk_death);
     archive.get_to("Disarmable", disarmable);
     archive.get_to("Gender", gender);
     archive.get_to("GoodEvil", good_evil);
@@ -144,8 +150,6 @@ bool Creature::from_gff(const GffInputArchiveStruct& archive, SerializationProfi
     archive.get_to("LawfulChaotic", lawful_chaotic);
     archive.get_to("Lootable", lootable);
     archive.get_to("IsPC", pc);
-
-    archive.get_to("NoPermDeath", chunk_death);
     archive.get_to("PerceptionRange", perception_range);
     archive.get_to("Plot", plot);
     archive.get_to("Race", race);
@@ -160,41 +164,43 @@ bool Creature::from_json(const nlohmann::json& archive, SerializationProfile pro
         appearance.from_json(archive.at("appearance"));
         combat_info.from_json(archive.at("combat_info"));
         common_.from_json(archive.at("common"), profile);
+        archive.at("conversation").get_to(conversation);
+        archive.at("description").get_to(description);
         equipment.from_json(archive.at("equipment"), profile);
         inventory.from_json(archive.at("inventory"), profile);
         levels.from_json(archive.at("levels"));
+        archive.at("name_first").get_to(name_first);
+        archive.at("name_last").get_to(name_last);
         scripts.from_json(archive.at("scripts"));
         stats.from_json(archive.at("stats"));
+        archive.at("subrace").get_to(subrace);
+
+        archive.at("cr").get_to(cr);
+        archive.at("cr_adjust").get_to(cr_adjust);
+        archive.at("decay_time").get_to(decay_time);
+        archive.at("walkrate").get_to(walkrate);
+
+        archive.at("faction_id").get_to(faction_id);
+        archive.at("hp").get_to(hp);
+        archive.at("hp_current").get_to(hp_current);
+        archive.at("hp_max").get_to(hp_max);
 
         archive.at("bodybag").get_to(bodybag);
         archive.at("chunk_death").get_to(chunk_death);
-        archive.at("conversation").get_to(conversation);
-        archive.at("cr_adjust").get_to(cr_adjust);
-        archive.at("cr").get_to(cr);
-        archive.at("decay_time").get_to(decay_time);
         archive.at("deity").get_to(deity);
-        archive.at("description").get_to(description);
         archive.at("disarmable").get_to(disarmable);
-        archive.at("faction_id").get_to(faction_id);
         archive.at("gender").get_to(gender);
         archive.at("good_evil").get_to(good_evil);
-        archive.at("hp_current").get_to(hp_current);
-        archive.at("hp_max").get_to(hp_max);
-        archive.at("hp").get_to(hp);
         archive.at("immortal").get_to(immortal);
         archive.at("interruptable").get_to(interruptable);
         archive.at("lawful_chaotic").get_to(lawful_chaotic);
         archive.at("lootable").get_to(lootable);
-        archive.at("name_first").get_to(name_first);
-        archive.at("name_last").get_to(name_last);
         archive.at("pc").get_to(pc);
         archive.at("perception_range").get_to(perception_range);
         archive.at("plot").get_to(plot);
         archive.at("race").get_to(race);
         archive.at("soundset").get_to(soundset);
         archive.at("starting_package").get_to(starting_package);
-        archive.at("subrace").get_to(subrace);
-        archive.at("walkrate").get_to(walkrate);
     } catch (const nlohmann::json::exception& e) {
         LOG_F(ERROR, "from_json exception: {}", e.what());
         return false;
@@ -223,30 +229,32 @@ bool Creature::to_gff(GffOutputArchiveStruct& archive, SerializationProfile prof
 
     appearance.to_gff(archive);
     combat_info.to_gff(archive);
+    archive.add_field("Conversation", conversation);
+    archive.add_field("Deity", deity);
+    archive.add_field("Description", description);
     equipment.to_gff(archive, profile);
     inventory.to_gff(archive, profile);
     levels.to_gff(archive);
+    archive.add_field("FirstName", name_first);
+    archive.add_field("LastName", name_last);
     scripts.to_gff(archive);
     stats.to_gff(archive);
+    archive.add_field("Subrace", subrace);
 
     archive.add_list("TemplateList"); // Not sure if this is obsolete?
 
-    archive.add_field("FirstName", name_first)
-        .add_field("LastName", name_last)
-        .add_field("Conversation", conversation)
-        .add_field("Deity", deity)
-        .add_field("Description", description)
-        .add_field("Subrace", subrace)
-        .add_field("ChallengeRating", cr)
+    archive.add_field("ChallengeRating", cr)
         .add_field("CRAdjust", cr_adjust)
         .add_field("DecayTime", decay_time)
+        .add_field("WalkRate", walkrate);
+
+    archive.add_field("HitPoints", hp)
         .add_field("CurrentHitPoints", hp_current)
-        .add_field("HitPoints", hp)
         .add_field("MaxHitPoints", hp_max)
         .add_field("FactionID", faction_id)
-        .add_field("SoundSetFile", soundset)
-        .add_field("WalkRate", walkrate)
-        .add_field("BodyBag", bodybag)
+        .add_field("SoundSetFile", soundset);
+
+    archive.add_field("BodyBag", bodybag)
         .add_field("Disarmable", disarmable)
         .add_field("Gender", gender)
         .add_field("GoodEvil", good_evil)

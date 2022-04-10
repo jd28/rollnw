@@ -28,8 +28,8 @@ struct DoorScripts {
     Resref on_heartbeat;
     Resref on_lock;
     Resref on_melee_attacked;
-    Resref on_open_failure;
     Resref on_open;
+    Resref on_open_failure;
     Resref on_spell_cast_at;
     Resref on_trap_triggered;
     Resref on_unlock;
@@ -61,28 +61,28 @@ struct Door : public ObjectBase {
     nlohmann::json to_json(SerializationProfile profile) const;
 
     Common common_;
-    DoorScripts scripts;
-
-    DoorAnimationState animation_state = DoorAnimationState::closed;
+    Resref conversation;
+    LocString description;
     std::string linked_to;
-    uint32_t faction = 0;
-    uint16_t loadscreen = 0;
-    uint32_t generic_type = 0;
-    uint8_t linked_to_flags = 0;
+    Lock lock;
+    DoorScripts scripts;
+    Saves saves;
+    Trap trap;
 
     uint32_t appearance;
-    uint16_t portrait_id;
+    uint32_t faction = 0;
+    uint32_t generic_type = 0;
+
     int16_t hp = 0;
     int16_t hp_current = 0;
+    uint16_t loadscreen = 0;
+    uint16_t portrait_id;
+
+    DoorAnimationState animation_state = DoorAnimationState::closed;
     uint8_t hardness;
     bool interruptable = 0;
-    bool plot = 0;
-
-    LocString description;
-    Resref conversation;
-    Saves saves;
-    Lock lock;
-    Trap trap;
+    uint8_t linked_to_flags = 0;
+    bool plot = false;
 
 private:
     bool valid_ = false;

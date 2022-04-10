@@ -16,7 +16,7 @@ struct InventoryItem {
     bool infinite = false;
     uint16_t pos_x;
     uint16_t pos_y;
-    std::variant<Resref, std::unique_ptr<Item>> item;
+    std::variant<Resref, Item*> item;
 };
 
 struct Inventory {
@@ -29,6 +29,8 @@ struct Inventory {
     Inventory& operator=(const Inventory&) = delete;
     Inventory& operator=(Inventory&&) = default;
     ~Inventory() = default;
+
+    bool instantiate();
 
     bool from_gff(const GffInputArchiveStruct& archive, SerializationProfile profile);
     bool from_json(const nlohmann::json& archive, SerializationProfile profile);

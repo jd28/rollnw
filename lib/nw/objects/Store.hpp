@@ -24,6 +24,7 @@ struct Store : public ObjectBase {
 
     virtual Common* common() override { return &common_; }
     virtual const Common* common() const override { return &common_; }
+    virtual bool instantiate() override;
     virtual Store* as_store() override { return this; }
     virtual const Store* as_store() const override { return this; }
 
@@ -33,10 +34,15 @@ struct Store : public ObjectBase {
     GffOutputArchive to_gff(SerializationProfile profile) const;
     nlohmann::json to_json(SerializationProfile profile) const;
 
-    bool valid_ = true;
-
     Common common_;
+    Inventory armor;
+    Inventory miscellaneous;
+    Inventory potions;
+    Inventory rings;
+    Inventory weapons;
     StoreScripts scripts;
+    std::vector<int32_t> will_not_buy;
+    std::vector<int32_t> will_only_buy;
 
     int32_t blackmarket_markdown = 0;
     int32_t identify_price = 100;
@@ -45,16 +51,10 @@ struct Store : public ObjectBase {
     int32_t max_price = -1;
     int32_t gold = -1;
 
-    std::vector<int32_t> will_not_buy;
-    std::vector<int32_t> will_only_buy;
-
     bool blackmarket;
 
-    Inventory armor;
-    Inventory miscellaneous;
-    Inventory potions;
-    Inventory rings;
-    Inventory weapons;
+private:
+    bool valid_ = true;
 };
 
 } // namespace nw
