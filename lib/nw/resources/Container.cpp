@@ -8,7 +8,6 @@ namespace nw {
 Container::Container()
     : working_dir_{create_unique_tmp_path()}
 {
-    LOG_F(INFO, "container: working directory {}", working_dir_);
 }
 
 Container::~Container()

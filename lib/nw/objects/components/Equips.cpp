@@ -82,7 +82,7 @@ bool Equips::to_gff(GffOutputArchiveStruct& archive, SerializationProfile profil
                 list.push_back(struct_id).add_field("EquippedRes",
                     std::get<Item*>(equip)->common()->resref);
             }
-        } else if (std::get<Item*>(equip)) {
+        } else if (std::holds_alternative<Item*>(equip) && std::get<Item*>(equip)) {
             std::get<Item*>(equip)->to_gff(list.push_back(struct_id), profile);
         }
         ++i;

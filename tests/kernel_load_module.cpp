@@ -13,10 +13,7 @@ TEST_CASE("load module from .mod", "[kernel]")
     REQUIRE(mod);
     REQUIRE(mod->area_count() == 1);
     nw::Area& area = *mod->get_area(0);
-    REQUIRE(area.common()->resref == "test_area");
-    REQUIRE(area.creatures.size() > 0);
-    REQUIRE(area.creatures[0]->hp_max == 110);
-
+    REQUIRE(area.common()->resref == "start");
     nw::kernel::unload_module();
 }
 

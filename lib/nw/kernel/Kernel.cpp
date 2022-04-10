@@ -89,6 +89,8 @@ Strings& strings() { return *detail::s_services.strings_.get(); }
 
 Module* load_module(const std::filesystem::path& path, std::string_view manifest)
 {
+    if (!services().started()) { services().start(); }
+
     resman().load_module(path, manifest);
     auto mod = objects().initialize_module();
     if (mod) {

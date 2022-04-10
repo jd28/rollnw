@@ -16,7 +16,7 @@ namespace fs = std::filesystem;
 struct Directory : public Container {
     Directory() = default;
     explicit Directory(const std::filesystem::path& path);
-    ~Directory() = default;
+    virtual ~Directory() = default;
 
     virtual std::vector<ResourceDescriptor> all() const override;
     virtual bool contains(Resource res) const override;

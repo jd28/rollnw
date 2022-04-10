@@ -43,7 +43,9 @@ void Resources::initialize()
     servervault_user_ = Directory{config().alias_path(PathAlias::servervault)};
 
     if (config().options().version == GameVersion::vEE) {
-        nwsync_ = NWSync{config().alias_path(PathAlias::nwsync)};
+        if (config().options().include_nwsync) {
+            nwsync_ = NWSync{config().alias_path(PathAlias::nwsync)};
+        }
         development_ = Directory{config().alias_path(PathAlias::development)};
     }
 
@@ -102,18 +104,22 @@ void Resources::initialize()
 
 bool Resources::load_module(std::filesystem::path path, std::string_view manifest)
 {
-    module_path_ = std::move(path);
-    if (fs::is_directory(module_path_) && fs::exists(module_path_ / "module.ifo")) {
-        module_ = std::make_unique<Directory>(module_path_);
-    } else if (fs::exists(module_path_)) {
-        module_ = std::make_unique<Erf>(module_path_);
+    LOG_F(INFO, "resman: loading module container: {}", path);
+
+    if (fs::is_directory(path) && fs::exists(path / "module.ifo")) {
+        module_ = std::make_unique<Directory>(path);
+    } else if (fs::exists(path) && string::icmp(path.extension().u8string(), ".mod")) {
+        module_ = std::make_unique<Erf>(path);
+    } else if (fs::exists(path) && string::icmp(path.extension().u8string(), ".zip")) {
+        module_ = std::make_unique<Zip>(path);
     }
 
     if (!module_ || !module_->valid()) {
-        LOG_F(ERROR, "Failed to load module at '{}'", module_path_);
+        LOG_F(ERROR, "Failed to load module at '{}'", path);
         return false;
     }
 
+    module_path_ = std::move(path);
     nwsync_manifest_ = nwsync_.get(manifest);
     update_container_search();
     return true;
@@ -129,6 +135,8 @@ void Resources::load_module_haks(const std::vector<std::string>& haks)
 
 void Resources::unload_module()
 {
+    LOG_F(INFO, "resman: unloading module container: {}", module_path_);
+    module_path_.clear();
     nwsync_manifest_ = nullptr;
     haks_.clear();
     module_.reset();
