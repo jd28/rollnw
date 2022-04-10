@@ -22,11 +22,12 @@ struct Store : public ObjectBase {
     static constexpr int json_archive_version = 1;
     static constexpr ObjectType object_type = ObjectType::store;
 
-    virtual Common* common() override { return &common_; }
-    virtual const Common* common() const override { return &common_; }
+    virtual bool valid() const noexcept override;
+    virtual Common* common() override;
+    virtual const Common* common() const override;
     virtual bool instantiate() override;
-    virtual Store* as_store() override { return this; }
-    virtual const Store* as_store() const override { return this; }
+    virtual Store* as_store() override;
+    virtual const Store* as_store() const override;
 
     bool from_gff(const GffInputArchiveStruct& archive, SerializationProfile profile);
     bool from_json(const nlohmann::json& archive, SerializationProfile profile);

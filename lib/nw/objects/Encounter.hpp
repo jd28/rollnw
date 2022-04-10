@@ -51,14 +51,12 @@ struct Encounter : public ObjectBase {
     static constexpr int json_archive_version = 1;
     static constexpr ObjectType object_type = ObjectType::encounter;
 
-    // Validity
-    bool valid() const noexcept { return valid_; }
-
     // ObjectBase overrids
-    virtual Common* common() override { return &common_; }
-    virtual const Common* common() const override { return &common_; }
-    virtual Encounter* as_encounter() override { return this; }
-    virtual const Encounter* as_encounter() const override { return this; }
+    virtual bool valid() const noexcept override;
+    virtual Common* common() override;
+    virtual const Common* common() const override;
+    virtual Encounter* as_encounter() override;
+    virtual const Encounter* as_encounter() const override;
 
     bool from_gff(const GffInputArchiveStruct& archive, SerializationProfile profile);
     bool from_json(const nlohmann::json& archive, SerializationProfile profile);

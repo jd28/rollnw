@@ -96,21 +96,29 @@ Creature::Creature(const GffInputArchiveStruct& archive, SerializationProfile pr
     , inventory{this}
 
 {
-    this->from_gff(archive, profile);
+    valid_ = this->from_gff(archive, profile);
 }
 
 Creature::Creature(const nlohmann::json& archive, SerializationProfile profile)
     : common_{ObjectType::creature}
     , inventory{this}
 {
-    this->from_json(archive, profile);
+    valid_ = this->from_json(archive, profile);
 }
+
+Common* Creature::common() { return &common_; }
+const Common* Creature::common() const { return &common_; }
 
 bool Creature::instantiate()
 {
     return equipment.instantiate()
         && inventory.instantiate();
 }
+
+bool Creature::valid() const noexcept { return valid_; }
+
+Creature* Creature::as_creature() { return this; }
+const Creature* Creature::as_creature() const { return this; }
 
 bool Creature::from_gff(const GffInputArchiveStruct& archive, SerializationProfile profile)
 {

@@ -94,10 +94,11 @@ struct Area : public ObjectBase {
     static constexpr int json_archive_version = 1;
     static constexpr ObjectType object_type = ObjectType::area;
 
-    virtual Common* common() override { return &common_; }
-    virtual const Common* common() const override { return &common_; }
-    virtual Area* as_area() override { return this; }
-    virtual const Area* as_area() const override { return this; }
+    virtual bool valid() const noexcept override;
+    virtual Common* common() override;
+    virtual const Common* common() const override;
+    virtual Area* as_area() override;
+    virtual const Area* as_area() const override;
 
     bool from_gff(const GffInputArchiveStruct& are, const GffInputArchiveStruct& git, const GffInputArchiveStruct& gic);
     // Note that from/to_json does 'caf' style input/output, i.e. ARE + GIT.
@@ -139,6 +140,7 @@ struct Area : public ObjectBase {
 
 private:
     bool is_caf_ = false;
+    bool valid_ = false;
 };
 
 } // namespace nw

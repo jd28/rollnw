@@ -108,13 +108,17 @@ nlohmann::json ModuleScripts::to_json() const
 
 Module::Module(const GffInputArchiveStruct& archive)
 {
-    this->from_gff(archive);
+    valid_ = this->from_gff(archive);
 }
 
 Module::Module(const nlohmann::json& archive)
 {
-    this->from_json(archive);
+    valid_ = this->from_json(archive);
 }
+
+bool Module::valid() const noexcept { return valid_; }
+Module* Module::as_module() { return this; }
+const Module* Module::as_module() const { return this; }
 
 size_t Module::area_count() const noexcept
 {

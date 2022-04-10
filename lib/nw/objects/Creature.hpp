@@ -45,11 +45,12 @@ struct Creature : public ObjectBase {
     static constexpr int json_archive_version = 1;
     static constexpr ObjectType object_type = ObjectType::creature;
 
-    virtual Common* common() override { return &common_; }
-    virtual const Common* common() const override { return &common_; }
     virtual bool instantiate() override;
-    virtual Creature* as_creature() override { return this; }
-    virtual const Creature* as_creature() const override { return this; }
+    virtual bool valid() const noexcept override;
+    virtual Common* common() override;
+    virtual const Common* common() const override;
+    virtual Creature* as_creature() override;
+    virtual const Creature* as_creature() const override;
 
     bool from_gff(const GffInputArchiveStruct& archive, SerializationProfile profile);
     bool from_json(const nlohmann::json& archive, SerializationProfile profile);
@@ -97,6 +98,9 @@ struct Creature : public ObjectBase {
     bool plot = false;
     uint8_t race = 0;
     uint8_t starting_package = 0;
+
+private:
+    bool valid_ = false;
 };
 
 } // namespace nw

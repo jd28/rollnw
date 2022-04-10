@@ -16,10 +16,11 @@ struct Waypoint : public ObjectBase {
     static constexpr ObjectType object_type = ObjectType::waypoint;
 
     // ObjectBase overrides
-    virtual Common* common() override { return &common_; }
-    virtual const Common* common() const override { return &common_; }
-    virtual Waypoint* as_waypoint() override { return this; }
-    virtual const Waypoint* as_waypoint() const override { return this; }
+    virtual bool valid() const noexcept override;
+    virtual Common* common() override;
+    virtual const Common* common() const override;
+    virtual Waypoint* as_waypoint() override;
+    virtual const Waypoint* as_waypoint() const override;
 
     // Serialization
     bool from_gff(const GffInputArchiveStruct& archive, SerializationProfile profile);

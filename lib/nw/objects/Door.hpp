@@ -44,14 +44,12 @@ struct Door : public ObjectBase {
     static constexpr int json_archive_version = 1;
     static constexpr ObjectType object_type = ObjectType::door;
 
-    // Validity
-    bool valid() { return valid_; }
-
     // ObjectBase overrides
-    virtual Common* common() override { return &common_; }
-    virtual const Common* common() const override { return &common_; }
-    virtual Door* as_door() override { return this; }
-    virtual const Door* as_door() const override { return this; }
+    virtual bool valid() const noexcept override;
+    virtual Common* common() override;
+    virtual const Common* common() const override;
+    virtual Door* as_door() override;
+    virtual const Door* as_door() const override;
 
     // Serialization
     bool from_gff(const GffInputArchiveStruct& archive, SerializationProfile profile);

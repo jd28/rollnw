@@ -50,8 +50,10 @@ TEST_CASE("creature: json to and from", "[objects]")
 {
     nw::GffInputArchive g{"test_data/user/development/pl_agent_001.utc"};
     nw::Creature c{g.toplevel(), nw::SerializationProfile::blueprint};
+    REQUIRE(c.valid());
     nlohmann::json j = c.to_json(nw::SerializationProfile::blueprint);
     nw::Creature c2{j, nw::SerializationProfile::blueprint};
+    REQUIRE(c2.valid());
     nlohmann::json j2 = c2.to_json(nw::SerializationProfile::blueprint);
     REQUIRE(j == j2);
 }

@@ -184,13 +184,19 @@ Area::Area(const GffInputArchiveStruct& caf, const GffInputArchiveStruct& gic)
 Area::Area(const GffInputArchiveStruct& are, const GffInputArchiveStruct& git, const GffInputArchiveStruct& gic)
     : common_{ObjectType::area}
 {
-    this->from_gff(are, git, gic);
+    valid_ = this->from_gff(are, git, gic);
 }
 
 Area::Area(const nlohmann::json& caf, const nlohmann::json& gic)
 {
-    this->from_json(caf, gic);
+    valid_ = this->from_json(caf, gic);
 }
+
+bool Area::valid() const noexcept { return valid_; }
+Common* Area::common() { return &common_; }
+const Common* Area::common() const { return &common_; }
+Area* Area::as_area() { return this; }
+const Area* Area::as_area() const { return this; }
 
 bool Area::from_gff(const GffInputArchiveStruct& are, const GffInputArchiveStruct& git, const GffInputArchiveStruct& gic)
 {

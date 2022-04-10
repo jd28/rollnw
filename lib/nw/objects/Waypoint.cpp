@@ -20,6 +20,12 @@ Waypoint::Waypoint(const nlohmann::json& archive, SerializationProfile profile)
     valid_ = this->from_json(archive, profile);
 }
 
+bool Waypoint::valid() const noexcept { return valid_; }
+Common* Waypoint::common() { return &common_; }
+const Common* Waypoint::common() const { return &common_; }
+Waypoint* Waypoint::as_waypoint() { return this; }
+const Waypoint* Waypoint::as_waypoint() const { return this; }
+
 bool Waypoint::from_gff(const GffInputArchiveStruct& archive, SerializationProfile profile)
 {
     common_.from_gff(archive, profile);

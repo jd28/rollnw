@@ -32,14 +32,12 @@ struct Trigger : public ObjectBase {
     static constexpr int json_archive_version = 1;
     static constexpr ObjectType object_type = ObjectType::trigger;
 
-    // Validity
-    bool valid() { return valid_; }
-
     // ObjectBase overrides
-    virtual Common* common() override { return &common_; }
-    virtual const Common* common() const override { return &common_; }
-    virtual Trigger* as_trigger() override { return this; }
-    virtual const Trigger* as_trigger() const override { return this; }
+    virtual bool valid() const noexcept override;
+    virtual Common* common() override;
+    virtual const Common* common() const override;
+    virtual Trigger* as_trigger() override;
+    virtual const Trigger* as_trigger() const override;
 
     // Serialization
     bool from_gff(const GffInputArchiveStruct& archive, SerializationProfile profile);

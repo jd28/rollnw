@@ -110,6 +110,12 @@ Door::Door(const nlohmann::json& archive, SerializationProfile profile)
     valid_ = this->from_json(archive, profile);
 }
 
+bool Door::valid() const noexcept { return valid_; }
+Common* Door::common() { return &common_; }
+const Common* Door::common() const { return &common_; }
+Door* Door::as_door() { return this; }
+const Door* Door::as_door() const { return this; }
+
 bool Door::from_gff(const GffInputArchiveStruct& archive, SerializationProfile profile)
 {
     bool result = true;

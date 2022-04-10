@@ -52,6 +52,12 @@ Trigger::Trigger(const nlohmann::json& archive, SerializationProfile profile)
     valid_ = this->from_json(archive, profile);
 }
 
+bool Trigger::valid() const noexcept { return valid_; }
+Common* Trigger::common() { return &common_; }
+const Common* Trigger::common() const { return &common_; }
+Trigger* Trigger::as_trigger() { return this; }
+const Trigger* Trigger::as_trigger() const { return this; }
+
 bool Trigger::from_gff(const GffInputArchiveStruct& archive, SerializationProfile profile)
 {
     common_.from_gff(archive, profile);

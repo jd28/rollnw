@@ -76,11 +76,12 @@ struct Item : public ObjectBase {
     static constexpr ObjectType object_type = ObjectType::item;
 
     // ObjectBase overrides
-    virtual Common* common() override { return &common_; }
-    virtual const Common* common() const override { return &common_; }
+    virtual bool valid() const noexcept override;
+    virtual Common* common() override;
+    virtual const Common* common() const override;
     virtual bool instantiate() override;
-    virtual Item* as_item() override { return this; }
-    virtual const Item* as_item() const override { return this; }
+    virtual Item* as_item() override;
+    virtual const Item* as_item() const override;
 
     // Serialization
     bool from_gff(const GffInputArchiveStruct& archive, SerializationProfile profile);
@@ -111,6 +112,9 @@ struct Item : public ObjectBase {
     ItemModelType model_type = ItemModelType::simple;
     std::array<uint8_t, 6> model_colors;
     std::array<uint8_t, 19> model_parts;
+
+private:
+    bool valid_ = false;
 };
 
 } // namespace nw

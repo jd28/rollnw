@@ -13,10 +13,11 @@ struct Sound : public ObjectBase {
     static constexpr int json_archive_version = 1;
     static constexpr ObjectType object_type = ObjectType::sound;
 
-    virtual Common* common() override { return &common_; }
-    virtual const Common* common() const override { return &common_; }
-    virtual Sound* as_sound() override { return this; }
-    virtual const Sound* as_sound() const override { return this; }
+    virtual bool valid() const noexcept override;
+    virtual Common* common() override;
+    virtual const Common* common() const override;
+    virtual Sound* as_sound() override;
+    virtual const Sound* as_sound() const override;
 
     bool from_gff(const GffInputArchiveStruct& archive, SerializationProfile profile);
     bool from_json(const nlohmann::json& archive, SerializationProfile profile);
@@ -48,6 +49,9 @@ struct Sound : public ObjectBase {
     uint8_t times = 3; // Always
     uint8_t volume = 100;
     uint8_t volume_variation = 0;
+
+private:
+    bool valid_ = false;
 };
 
 } // namespace nw

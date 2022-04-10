@@ -36,6 +36,10 @@ Store::Store(const nlohmann::json& archive, SerializationProfile profile)
     valid_ = this->from_json(archive, profile);
 }
 
+bool Store::valid() const noexcept { return valid_; }
+Common* Store::common() { return &common_; }
+const Common* Store::common() const { return &common_; }
+
 bool Store::instantiate()
 {
     return armor.instantiate()
@@ -44,6 +48,9 @@ bool Store::instantiate()
         && rings.instantiate()
         && weapons.instantiate();
 }
+
+Store* Store::as_store() { return this; }
+const Store* Store::as_store() const { return this; }
 
 bool Store::from_gff(const GffInputArchiveStruct& archive, SerializationProfile profile)
 {

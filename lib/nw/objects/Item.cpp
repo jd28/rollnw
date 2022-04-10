@@ -14,15 +14,21 @@ Item::Item(const GffInputArchiveStruct& archive, SerializationProfile profile)
     : common_{ObjectType::item}
     , inventory{this}
 {
-    this->from_gff(archive, profile);
+    valid_ = this->from_gff(archive, profile);
 }
 
 Item::Item(const nlohmann::json& archive, SerializationProfile profile)
     : common_{ObjectType::item}
     , inventory{this}
 {
-    this->from_json(archive, profile);
+    valid_ = this->from_json(archive, profile);
 }
+
+bool Item::valid() const noexcept { return valid_; }
+Item* Item::as_item() { return this; }
+const Item* Item::as_item() const { return this; }
+Common* Item::common() { return &common_; }
+const Common* Item::common() const { return &common_; }
 
 bool Item::instantiate()
 {

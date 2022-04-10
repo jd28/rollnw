@@ -90,11 +90,17 @@ struct Waypoint;
 struct ObjectBase {
     virtual ~ObjectBase() = default;
 
+    /// Gets object handle
     const ObjectHandle& handle() const noexcept;
+
+    /// Sets object handle
     void set_handle(ObjectHandle handle) noexcept;
 
     /// Instantiates an object loaded from a blueprint
     virtual bool instantiate() { return true; }
+
+    /// Gets if object is valid
+    virtual bool valid() const noexcept = 0;
 
     virtual Common* common() { return nullptr; }
     virtual const Common* common() const { return nullptr; }

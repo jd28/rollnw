@@ -131,6 +131,12 @@ Encounter::Encounter(const nlohmann::json& archive, SerializationProfile profile
     valid_ = this->from_json(archive, profile);
 }
 
+bool Encounter::valid() const noexcept { return valid_; };
+Common* Encounter::common() { return &common_; }
+const Common* Encounter::common() const { return &common_; }
+Encounter* Encounter::as_encounter() { return this; }
+const Encounter* Encounter::as_encounter() const { return this; }
+
 bool Encounter::from_gff(const GffInputArchiveStruct& archive, SerializationProfile profile)
 {
     if (!common_.from_gff(archive, profile)) { return false; }

@@ -7,14 +7,20 @@ namespace nw {
 Sound::Sound(const GffInputArchiveStruct& archive, SerializationProfile profile)
     : common_{ObjectType::sound}
 {
-    this->from_gff(archive, profile);
+    valid_ = this->from_gff(archive, profile);
 }
 
 Sound::Sound(const nlohmann::json& archive, SerializationProfile profile)
     : common_{ObjectType::sound}
 {
-    this->from_json(archive, profile);
+    valid_ = this->from_json(archive, profile);
 }
+
+bool Sound::valid() const noexcept { return valid_; }
+Common* Sound::common() { return &common_; }
+const Common* Sound::common() const { return &common_; }
+Sound* Sound::as_sound() { return this; }
+const Sound* Sound::as_sound() const { return this; }
 
 bool Sound::from_gff(const GffInputArchiveStruct& archive, SerializationProfile profile)
 {
