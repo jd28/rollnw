@@ -5,7 +5,23 @@
 #include <nw/objects/Area.hpp>
 #include <nw/objects/Module.hpp>
 
+#include <nowide/cstdlib.hpp>
+
 using namespace std::literals;
+
+TEST_CASE("load real module", "[kernel]")
+{
+    std::string mod_path;
+    if (const char* var = nowide::getenv("LIBNW_TEST_MODULE")) {
+        mod_path = var;
+    }
+    if (!mod_path.empty()) {
+        auto mod = nw::kernel::load_module(mod_path);
+        REQUIRE(mod);
+        REQUIRE(mod->area_count());
+        nw::kernel::unload_module();
+    }
+}
 
 TEST_CASE("load module from .mod", "[kernel]")
 {

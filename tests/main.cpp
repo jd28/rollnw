@@ -3,18 +3,38 @@
 
 #include <nw/kernel/Kernel.hpp>
 #include <nw/log.hpp>
+#include <nw/util/string.hpp>
+
+#include <nowide/cstdlib.hpp>
 
 int main(int argc, char* argv[])
 {
     std::filesystem::create_directory("tmp");
+    bool probe = false;
+    const char* var = nowide::getenv("LIBNW_TEST_PROBE_INSTALL");
+    if (var) {
+        if (auto val = nw::string::from<bool>(var)) {
+            probe = *val;
+        }
+    }
 
     nw::init_logger(argc, argv);
 
-    nw::kernel::config().initialize({
-        nw::GameVersion::vEE,
-        "test_data/root/",
-        "test_data/user/",
-    });
+    if (probe) {
+        auto info = nw::probe_nwn_install();
+        nw::kernel::config().initialize({
+            info.version,
+            info.install,
+            info.user,
+        });
+    } else {
+        nw::kernel::config().initialize({
+            nw::GameVersion::vEE,
+            "test_data/root/",
+            "test_data/user/",
+        });
+    }
+
     nw::kernel::services().start();
 
     Catch::Session session; // There must be exactly one instance
