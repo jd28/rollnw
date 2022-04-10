@@ -111,6 +111,11 @@ Placeable::Placeable(const nlohmann::json& archive, SerializationProfile profile
     valid_ = this->from_json(archive, profile);
 }
 
+bool Placeable::instantiate()
+{
+    return inventory.instantiate();
+}
+
 bool Placeable::from_gff(const GffInputArchiveStruct& archive, SerializationProfile profile)
 {
     common_.from_gff(archive, profile);

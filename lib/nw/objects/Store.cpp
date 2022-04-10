@@ -36,6 +36,15 @@ Store::Store(const nlohmann::json& archive, SerializationProfile profile)
     valid_ = this->from_json(archive, profile);
 }
 
+bool Store::instantiate()
+{
+    return armor.instantiate()
+        && miscellaneous.instantiate()
+        && potions.instantiate()
+        && rings.instantiate()
+        && weapons.instantiate();
+}
+
 bool Store::from_gff(const GffInputArchiveStruct& archive, SerializationProfile profile)
 {
     if (!common_.from_gff(archive, profile)) {

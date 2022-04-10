@@ -24,6 +24,7 @@ struct Store : public ObjectBase {
 
     virtual Common* common() override { return &common_; }
     virtual const Common* common() const override { return &common_; }
+    virtual bool instantiate() override;
     virtual Store* as_store() override { return this; }
     virtual const Store* as_store() const override { return this; }
 

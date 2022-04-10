@@ -24,6 +24,11 @@ Item::Item(const nlohmann::json& archive, SerializationProfile profile)
     this->from_json(archive, profile);
 }
 
+bool Item::instantiate()
+{
+    return inventory.instantiate();
+}
+
 bool Item::from_gff(const GffInputArchiveStruct& archive, SerializationProfile profile)
 {
 

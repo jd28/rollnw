@@ -78,6 +78,7 @@ struct Item : public ObjectBase {
     // ObjectBase overrides
     virtual Common* common() override { return &common_; }
     virtual const Common* common() const override { return &common_; }
+    virtual bool instantiate() override;
     virtual Item* as_item() override { return this; }
     virtual const Item* as_item() const override { return this; }
 

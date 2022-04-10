@@ -106,6 +106,12 @@ Creature::Creature(const nlohmann::json& archive, SerializationProfile profile)
     this->from_json(archive, profile);
 }
 
+bool Creature::instantiate()
+{
+    return equipment.instantiate()
+        && inventory.instantiate();
+}
+
 bool Creature::from_gff(const GffInputArchiveStruct& archive, SerializationProfile profile)
 {
     common_.from_gff(archive, profile);

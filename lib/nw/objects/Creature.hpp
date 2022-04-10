@@ -47,6 +47,7 @@ struct Creature : public ObjectBase {
 
     virtual Common* common() override { return &common_; }
     virtual const Common* common() const override { return &common_; }
+    virtual bool instantiate() override;
     virtual Creature* as_creature() override { return this; }
     virtual const Creature* as_creature() const override { return this; }
 
