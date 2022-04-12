@@ -50,7 +50,7 @@ void Services::shutdown()
     started_ = false;
 }
 
-void Services::start()
+void Services::start(bool fail_hard)
 {
     if (started_) {
         LOG_F(WARNING, "Services have already been started...");
