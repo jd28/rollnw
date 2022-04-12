@@ -19,7 +19,7 @@ static std::vector<std::filesystem::path> install_paths
 #if defined(LIBNW_OS_LINUX)
     home_path() / ".local/share/Steam/steamapps/common/Neverwinter Nights/",
 #elif defined(LIBNW_OS_MACOS)
-    "/Library/Application Support/Steam/steamapps/common/Neverwinter Nights/",
+    home_path() / "Library/Application Support/Steam/steamapps/common/Neverwinter Nights/",
 #elif defined(LIBNW_OS_WINDOWS)
     "C:/Program Files (x86)/Steam/steamapps/common/Neverwinter Nights/",
         "D:/Program Files (x86)/Steam/steamapps/common/Neverwinter Nights/",
@@ -33,7 +33,7 @@ static std::vector<std::filesystem::path> install_paths
 #if defined(LIBNW_OS_LINUX)
 static std::filesystem::path beamdog_settings = home_path() / ".config/Beamdog Client/settings.json";
 #elif defined(LIBNW_OS_MACOS)
-static std::filesystem::path beamdog_settings = "/Library/Application Support/Beamdog Client/settings.json";
+static std::filesystem::path beamdog_settings = home_path() / "Library/Application Support/Beamdog Client/settings.json";
 #elif defined(LIBNW_OS_WINDOWS)
 static std::filesystem::path beamdog_settings = home_path() / "Beamdog Client/settings.json";
 #endif
