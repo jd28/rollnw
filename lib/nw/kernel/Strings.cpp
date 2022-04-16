@@ -34,7 +34,16 @@ void Strings::initialize()
 
 InternedString Strings::intern(std::string_view str)
 {
+    if (str.empty()) {
+        LOG_F(ERROR, "strings: attempting to intern empty string");
+        return {};
+    }
     return InternedString(&*interned_.insert(std::string(str)).first);
+}
+
+InternedString Strings::intern(uint32_t strref)
+{
+    return intern(get(strref));
 }
 
 void Strings::load_custom_tlk(const std::filesystem::path& path)

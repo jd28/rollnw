@@ -26,7 +26,7 @@ struct Services {
     void shutdown();
 
     /// Start all services, if no services are provided, default services will be used.
-    void start();
+    void start(bool fail_hard = true);
     bool started();
 
     friend Config& config();

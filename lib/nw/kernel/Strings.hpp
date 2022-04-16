@@ -27,10 +27,16 @@ struct Strings {
     virtual void initialize();
 
     /// Interns a string
-    /// @note Multiple calls to `inter` with the same string will and must return
+    /// @note Multiple calls to `intern` with the same string will and must return
     /// the same exact underlying string, such that equality can be determined
     /// by a comparison of pointers.
     virtual InternedString intern(std::string_view str);
+
+    /// Interns a string by strref
+    /// @note Multiple calls to `intern` with the same string will and must return
+    /// the same exact underlying string, such that equality can be determined
+    /// by a comparison of pointers.
+    virtual InternedString intern(uint32_t strref);
 
     /// Loads a modules custom Tlk and feminine version if available
     virtual void load_custom_tlk(const std::filesystem::path& path);
@@ -63,13 +69,15 @@ private:
 };
 
 struct InternedString {
+    InternedString() = default;
     explicit InternedString(const std::string* str)
         : string_{str}
     {
     }
 
     int compare(std::string_view other) const noexcept { return view().compare(other); }
-    std::string_view view() const noexcept { return *string_; }
+    std::string_view view() const noexcept { return string_ ? *string_ : std::string_view{}; }
+    operator bool() const noexcept { return !!string_; }
     operator std::string_view() const noexcept { return view(); }
     bool operator==(InternedString rhs) const noexcept { return string_ == rhs.string_; }
     bool operator==(std::string_view rhs) const noexcept { return compare(rhs) == 0; }

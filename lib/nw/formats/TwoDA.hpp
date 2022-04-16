@@ -34,6 +34,8 @@ struct StringVariant {
 } // namespace detail
 
 struct TwoDA {
+    TwoDA() = default;
+
     /// Constructs TwoDA object from a file
     explicit TwoDA(const std::filesystem::path& filename);
 
@@ -84,7 +86,7 @@ private:
 
     ByteArray bytes_;
     bool is_loaded_ = false;
-    int32_t row_count_;
+    int32_t row_count_ = 0;
 
     std::string default_;
     std::vector<size_t> widths_;
