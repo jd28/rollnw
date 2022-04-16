@@ -5,6 +5,8 @@ set (CMAKE_CXX_STANDARD 17)
 # Generate compile_commands.json to make it easier to work with clang based tools
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+include(cmake/PreventInSourceBuilds.cmake)
+
 if(MSVC)
     set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 

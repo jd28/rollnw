@@ -150,7 +150,7 @@ GffOutputArchiveStruct& GffOutputArchiveStruct::add_field(std::string_view name,
         f.type = SerializationType::id<LocString>();
         f.data_or_offset = static_cast<uint32_t>(parent->data.size());
         uint32_t total_size = 8;
-        uint32_t strref = temp.strref(), num_strings = temp.size();
+        uint32_t strref = temp.strref(), num_strings = static_cast<uint32_t>(temp.size());
         size_t placeholder = parent->data.size(); // Won't know total size till the end.
         parent->data.append(&total_size, 4);
         parent->data.append(&strref, 4);
