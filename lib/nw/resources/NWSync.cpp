@@ -2,6 +2,7 @@
 
 #include "../log.hpp"
 #include "../util/scope_exit.hpp"
+#include "../util/templates.hpp"
 
 #include <fmt/format.h>
 #include <nowide/convert.hpp>
@@ -143,7 +144,7 @@ int NWSyncManifest::extract(const std::regex& pattern, const std::filesystem::pa
             if (ba.size()) {
                 ++count;
                 std::ofstream out{output / fs::u8path(fname), std::ios_base::binary};
-                out.write((char*)ba.data(), ba.size());
+                ostream_write(out, ba.data(), ba.size());
             }
         }
     }
@@ -173,7 +174,7 @@ ResourceDescriptor NWSyncManifest::stat(const Resource& res) const
 
     result.name = res;
     result.mtime = sqlite3_column_int(stmt, 0);
-    result.size = -1; // Punting
+    result.size = ~0u; // Punting
     result.parent = this;
 
     return result;

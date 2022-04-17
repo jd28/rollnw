@@ -2,6 +2,7 @@
 
 #include "../log.hpp"
 #include "../util/ByteArray.hpp"
+#include "../util/templates.hpp"
 
 #include <nowide/convert.hpp>
 
@@ -103,7 +104,7 @@ int Key::extract(const std::regex& pattern, const std::filesystem::path& output)
             ++count;
             ba = bifs_[v.bif].demand(v.index);
             std::ofstream out{output / fs::u8path(fname), std::ios_base::binary};
-            out.write((char*)ba.data(), ba.size());
+            ostream_write(out, ba.data(), ba.size());
         }
     }
     return count;
@@ -149,14 +150,14 @@ bool Key::load()
 
     KeyHeader header;
     CHECK_OFFSET(sizeof(KeyHeader));
-    file.read((char*)&header, sizeof(KeyHeader));
+    istream_read(file, &header, sizeof(KeyHeader));
 
     std::vector<FileTable> fts;
     fts.resize(header.bif_count);
     CHECK_OFFSET(header.offset_file_table);
     file.seekg(header.offset_file_table);
     CHECK_OFFSET(header.offset_file_table + sizeof(FileTable) * header.bif_count);
-    file.read((char*)&fts[0], sizeof(FileTable) * header.bif_count);
+    istream_read(file, &fts[0], sizeof(FileTable) * header.bif_count);
 
     bifs_.reserve(header.bif_count);
     std::vector<std::string> bif_names;
@@ -187,8 +188,8 @@ bool Key::load()
 
         uint32_t id;
         ResourceType::type type;
-        file.read((char*)&type, 2);
-        file.read((char*)&id, 4);
+        istream_read(file, &type, 2);
+        istream_read(file, &id, 4);
         elements_.emplace(Resource{std::string(buffer), type},
             KeyTableElement{id >> 20, id & 0xFFFFF});
     }

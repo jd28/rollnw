@@ -4,7 +4,10 @@
 #include "../log.hpp"
 #include "../util/platform.hpp"
 #include "../util/string.hpp"
+#include "../util/templates.hpp"
 #include "Resource.hpp"
+
+#include "../util/templates.hpp"
 
 #include <nowide/convert.hpp>
 
@@ -143,8 +146,8 @@ bool Erf::save_as(const std::filesystem::path& path) const
     auto now = std::chrono::system_clock::now();
     time_t tt = std::chrono::system_clock::to_time_t(now);
     tm local_tm = *localtime(&tt);
-    header.day_of_year = local_tm.tm_yday;
-    header.year = local_tm.tm_year + 1900;
+    header.day_of_year = static_cast<uint32_t>(local_tm.tm_yday);
+    header.year = static_cast<uint32_t>(local_tm.tm_year + 1900);
 
     // Construct byte array of LocStrings
     ByteArray locstrings;
@@ -194,15 +197,15 @@ bool Erf::save_as(const std::filesystem::path& path) const
         return false;
     }
 
-    f.write((const char*)&header, sizeof(ErfHeader));
-    f.write((const char*)locstrings.data(), locstrings.size());
-    f.write((const char*)entry_keys.data(), entry_keys.size() * sizeof(ErfKey));
-    f.write((const char*)entry_info.data(), entry_info.size() * sizeof(ErfElementInfo));
+    ostream_write(f, &header, sizeof(ErfHeader));
+    ostream_write(f, locstrings.data(), locstrings.size());
+    ostream_write(f, entry_keys.data(), entry_keys.size() * sizeof(ErfKey));
+    ostream_write(f, entry_info.data(), entry_info.size() * sizeof(ErfElementInfo));
 
     ByteArray ba;
     for (const auto& e : entries) {
         ba = demand(e);
-        f.write((const char*)ba.data(), ba.size());
+        ostream_write(f, ba.data(), ba.size());
     }
     f.close();
     return move_file_safely(temp_path, path);
@@ -249,7 +252,7 @@ int Erf::extract(const std::regex& re, const std::filesystem::path& output) cons
             if (ba.size()) {
                 ++count;
                 std::ofstream out{output / fs::u8path(fname), std::ios_base::binary};
-                out.write((char*)ba.data(), ba.size());
+                ostream_write(out, ba.data(), ba.size());
             }
         }
     }
@@ -270,10 +273,10 @@ ResourceDescriptor Erf::stat(const Resource& res) const
         result.parent = this;
         if (std::holds_alternative<fs::path>(it->second)) {
             result.size = fs::file_size(std::get<fs::path>(it->second));
-            result.mtime = fs::last_write_time(std::get<fs::path>(it->second)).time_since_epoch().count() / 1000;
+            result.mtime = int64_t(fs::last_write_time(std::get<fs::path>(it->second)).time_since_epoch().count() / 1000);
         } else {
             result.size = std::get<ErfElementInfo>(it->second).size;
-            result.mtime = fs::last_write_time(path_).time_since_epoch().count() / 1000;
+            result.mtime = int64_t(fs::last_write_time(path_).time_since_epoch().count() / 1000);
         }
     }
     return result;
@@ -303,7 +306,7 @@ bool Erf::load(const fs::path& path)
     CHECK_OFFSET(sizeof(ErfHeader));
 
     ErfHeader header;
-    file_.read((char*)&header, sizeof(ErfHeader));
+    istream_read(file_, &header, sizeof(ErfHeader));
 
     CHECK_OFFSET(header.offset_keys + header.entry_count * sizeof(ErfKey));
     CHECK_OFFSET(header.offset_res + header.entry_count * sizeof(ErfElementInfo));
@@ -341,10 +344,10 @@ bool Erf::load(const fs::path& path)
     for (uint32_t i = 0; i < header.locstring_count; ++i) {
         std::string tmp;
         uint32_t lang, sz;
-        CHECK_OFFSET((int)file_.tellg() + 8);
-        file_.read((char*)&lang, 4);
-        file_.read((char*)&sz, 4);
-        CHECK_OFFSET((int)file_.tellg() + sz);
+        CHECK_OFFSET(int(file_.tellg()) + 8);
+        istream_read(file_, &lang, 4);
+        istream_read(file_, &sz, 4);
+        CHECK_OFFSET(size_t(file_.tellg()) + sz);
         tmp.resize(sz + 1, 0);
         file_.read(tmp.data(), sz);
         auto base_lang = Language::to_base_id(lang);
@@ -357,12 +360,12 @@ bool Erf::load(const fs::path& path)
     std::vector<ErfKey> keys;
     keys.resize(header.entry_count);
     file_.seekg(header.offset_keys, std::ios_base::beg);
-    file_.read((char*)keys.data(), sizeof(ErfKey) * header.entry_count);
+    istream_read(file_, keys.data(), sizeof(ErfKey) * header.entry_count);
 
     std::vector<ErfElementInfo> info;
     info.resize(header.entry_count);
     file_.seekg(header.offset_res, std::ios_base::beg);
-    file_.read((char*)info.data(), sizeof(ErfElementInfo) * header.entry_count);
+    istream_read(file_, info.data(), sizeof(ErfElementInfo) * header.entry_count);
 
     for (size_t i = 0; i < header.entry_count; ++i) {
         elements_.emplace(Resource{keys[i].resref, keys[i].type}, info[i]);
@@ -389,7 +392,7 @@ ByteArray Erf::read(const ErfElement& e) const
         } else {
             ba.resize(ele.size);
             file_.seekg(ele.offset, file_.beg);
-            file_.read((char*)ba.data(), ele.size);
+            istream_read(file_, ba.data(), ele.size);
         }
     }
     return ba;

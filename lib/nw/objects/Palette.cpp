@@ -98,7 +98,7 @@ nlohmann::json process_node(nw::ResourceType::type restype, const PaletteTreeNod
     if (node.type != PaletteNodeType::blueprint) {
         // Easier to read if chidren come last.
         auto& arr = res["|children"] = nlohmann::json::array();
-        for (const auto c : node.children) {
+        for (const auto& c : node.children) {
             arr.push_back(process_node(restype, c));
         }
     }
@@ -118,7 +118,7 @@ nlohmann::json Palette::to_json(nw::ResourceType::type restype) const
     }
     j["is_skeleton"] = is_skeleton;
     auto& arr = j["root"] = nlohmann::json::array();
-    for (const auto c : root.children) {
+    for (const auto& c : root.children) {
         arr.push_back(process_node(restype, c));
     }
 

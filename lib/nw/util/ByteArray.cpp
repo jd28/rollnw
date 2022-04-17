@@ -1,6 +1,7 @@
 #include "ByteArray.hpp"
 
 #include "../log.hpp"
+#include "../util/templates.hpp"
 #include "base64.hpp"
 
 #include <nlohmann/json.hpp>
@@ -47,7 +48,7 @@ bool ByteArray::write_to(const std::filesystem::path& path) const
     if (size() == 0) { return false; }
     std::ofstream out{path, std::ios_base::binary};
     if (!out.is_open()) { return false; }
-    return !!out.write(reinterpret_cast<const char*>(data()), size());
+    return !!ostream_write(out, data(), size());
 }
 
 ByteArray ByteArray::from_file(const std::filesystem::path& path)
@@ -61,7 +62,7 @@ ByteArray ByteArray::from_file(const std::filesystem::path& path)
         }
         auto size = fs::file_size(path);
         ba.resize(size);
-        if (!f.read((char*)ba.data(), size)) {
+        if (!istream_read(f, ba.data(), size)) {
             LOG_F(ERROR, "Failed to read file '{}'", path);
             ba.clear();
         }

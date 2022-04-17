@@ -8,7 +8,7 @@ namespace nw {
 
 Nss::Nss(const std::filesystem::path& filename)
     : bytes_{ByteArray::from_file(filename)}
-    , parser_{{(const char*)bytes_.data(), bytes_.size()}}
+    , parser_{bytes_.string_view()}
 {
     is_loaded_ = load();
 }

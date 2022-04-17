@@ -3,6 +3,7 @@
 #include "../log.hpp"
 #include "../util/macros.hpp"
 #include "../util/platform.hpp"
+#include "../util/templates.hpp"
 #include "Language.hpp"
 #include "conversion.hpp"
 
@@ -44,7 +45,8 @@ std::string Tlk::get(uint32_t strref) const
 
     const auto& ele = elements_[strref];
     if (header_.str_offset + ele.offset + ele.size <= bytes_.size()) {
-        std::string s = string::sanitize_colors({(const char*)bytes_.data() + header_.str_offset + ele.offset, ele.size});
+        const char* temp = reinterpret_cast<const char*>(bytes_.data() + header_.str_offset + ele.offset);
+        std::string s = string::sanitize_colors({temp, ele.size});
         result = to_utf8_by_langid(s, language_id());
     } else {
         LOG_F(ERROR, "failed to read strref: {}", strref);
@@ -94,18 +96,18 @@ void Tlk::save_as(const std::filesystem::path& path)
     ele.resize(max_strref);
 
     uint32_t orig_str_offset = header_.str_offset;
-    header_.str_offset = sizeof(TlkHeader) + (ele.size() * sizeof(TlkElement));
+    header_.str_offset = static_cast<uint32_t>(sizeof(TlkHeader) + (ele.size() * sizeof(TlkElement)));
     uint32_t offset = 0;
     std::string tmp;
     ByteArray strings;
 
-    for (size_t i = 0; i < max_strref; ++i) {
+    for (uint32_t i = 0; i < max_strref; ++i) {
         auto it = modified_strings_.find(i);
         if (it != std::end(modified_strings_)) {
             ele[i].flags = TlkFlags::text;
             ele[i].offset = offset;
             tmp = from_utf8_by_langid(it->second, language_id());
-            ele[i].size = tmp.size();
+            ele[i].size = static_cast<uint32_t>(tmp.size());
             offset += tmp.size();
         } else if (i < header_.str_count) {
             if (TlkFlags::text & elements_[i].flags) {
@@ -129,17 +131,17 @@ void Tlk::save_as(const std::filesystem::path& path)
     std::ofstream f{temp_path, std::ios::binary};
 
     header_.str_count = max_strref;
-    f.write((const char*)&header_, sizeof(TlkHeader));
-    f.write((const char*)ele.data(), ele.size() * sizeof(TlkElement));
+    ostream_write(f, &header_, sizeof(TlkHeader));
+    ostream_write(f, ele.data(), ele.size() * sizeof(TlkElement));
 
-    for (size_t i = 0; i < max_strref; ++i) {
+    for (uint32_t i = 0; i < max_strref; ++i) {
         auto it = modified_strings_.find(i);
         if (it != std::end(modified_strings_)) {
             tmp = from_utf8_by_langid(it->second, language_id());
-            f.write(it->second.data(), it->second.size());
+            ostream_write(f, it->second.data(), it->second.size());
         } else if (i < header_.str_count) {
             if (TlkFlags::text & elements_[i].flags) {
-                f.write((const char*)bytes_.data() + orig_str_offset + elements_[i].offset, elements_[i].size);
+                ostream_write(f, bytes_.data() + orig_str_offset + elements_[i].offset, elements_[i].size);
             }
         }
     }

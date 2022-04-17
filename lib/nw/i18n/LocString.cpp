@@ -24,7 +24,7 @@ LocString::const_iterator LocString::end() const { return strings_.end(); }
 bool LocString::add(LanguageID language, std::string_view string, bool feminine)
 {
     if (language == LanguageID::invalid) { return false; }
-    uint32_t l = Language::to_runtime_id(language);
+    uint32_t l = Language::to_runtime_id(language, feminine);
 
     for (auto& [lang, str] : strings_) {
         if (lang == l) {
@@ -45,7 +45,7 @@ bool LocString::add(LanguageID language, std::string_view string, bool feminine)
 bool LocString::contains(LanguageID language, bool feminine) const
 {
     if (language == LanguageID::invalid) { return false; }
-    uint32_t l = Language::to_runtime_id(language);
+    uint32_t l = Language::to_runtime_id(language, feminine);
 
     for (const auto& [lang, str] : strings_) {
         if (lang == l) {
@@ -58,7 +58,7 @@ bool LocString::contains(LanguageID language, bool feminine) const
 std::string LocString::get(LanguageID language, bool feminine) const
 {
     if (language == LanguageID::invalid) { return {}; }
-    uint32_t l = Language::to_runtime_id(language);
+    uint32_t l = Language::to_runtime_id(language, feminine);
 
     for (const auto& [lang, str] : strings_) {
         if (lang == l) {

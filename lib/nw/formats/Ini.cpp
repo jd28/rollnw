@@ -71,7 +71,7 @@ bool Ini::valid() const noexcept
 bool Ini::parse()
 {
     if (bytes_.size() == 0) { return false; }
-    int result = ini_parse_string((const char*)bytes_.data(), bytes_.size(), parse_ini, this);
+    int result = ini_parse_string(reinterpret_cast<const char*>(bytes_.data()), bytes_.size(), parse_ini, this);
     if (result) {
         LOG_F(ERROR, "Failed to parse, error on line: {}", result);
         return false;

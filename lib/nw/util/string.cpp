@@ -204,10 +204,10 @@ std::string desanitize_colors(std::string str)
             continue;
         }
 
-        str[i + 1] = c1;
-        str[i + 2] = c2;
-        str[i + 3] = c3;
-        str.erase(std::begin(str) + i + 4, std::begin(str) + i + 7);
+        str[i + 1] = static_cast<char>(c1);
+        str[i + 2] = static_cast<char>(c2);
+        str[i + 3] = static_cast<char>(c3);
+        str.erase(std::begin(str) + ptrdiff_t(i) + 4, std::begin(str) + ptrdiff_t(i) + 7);
         len -= 3;
     }
     return str;

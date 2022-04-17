@@ -200,6 +200,9 @@ const Area* Area::as_area() const { return this; }
 
 bool Area::from_gff(const GffInputArchiveStruct& are, const GffInputArchiveStruct& git, const GffInputArchiveStruct& gic)
 {
+    // [TODO] Load this..
+    LIBNW_UNUSED(gic);
+
     common_.from_gff(are, SerializationProfile::any);
 
 #define GIT_LIST(name, holder, type)                                                     \
@@ -263,6 +266,9 @@ bool Area::from_gff(const GffInputArchiveStruct& are, const GffInputArchiveStruc
 
 bool Area::from_json(const nlohmann::json& caf, const nlohmann::json& gic)
 {
+    // [TODO] Load this..
+    LIBNW_UNUSED(gic);
+
 #define OBJECT_LIST_FROM_JSON(holder, type)                                               \
     do {                                                                                  \
         auto& arr = caf.at(#holder);                                                      \

@@ -148,7 +148,7 @@ bool Encounter::from_gff(const GffInputArchiveStruct& archive, SerializationProf
     }
 
     if (profile == SerializationProfile::instance) {
-        size_t sz = archive["Geometry"].size();
+        sz = archive["Geometry"].size();
         geometry.reserve(sz);
         for (size_t i = 0; i < sz; ++i) {
             glm::vec3 v;

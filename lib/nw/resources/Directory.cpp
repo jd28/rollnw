@@ -2,6 +2,7 @@
 
 #include "../log.hpp"
 #include "../util/ByteArray.hpp"
+#include "../util/templates.hpp"
 
 #include <nowide/convert.hpp>
 
@@ -88,7 +89,7 @@ ByteArray Directory::demand(Resource res) const
 
     if (size_t size = fs::file_size(p)) {
         ba.resize(size);
-        if (!f.read((char*)ba.data(), size)) {
+        if (!istream_read(f, ba.data(), size)) {
             LOG_F(INFO, "Skip - Error reading file: {}", p);
             ba.clear(); // Free the memory
         }

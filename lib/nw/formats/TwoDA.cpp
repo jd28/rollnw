@@ -150,7 +150,7 @@ bool TwoDA::parse()
     // Columns
     for (; !is_newline(tk) && !tk.empty(); tk = tknz.next()) {
         columns_.emplace_back(tk);
-        widths_.push_back(tk.size());
+        widths_.push_back(int(tk.size()));
     }
 
     while (is_newline(tknz.next()))
@@ -163,8 +163,8 @@ bool TwoDA::parse()
         if (!is_newline(tk)) {
             rows_.push_back(tk);
             bool quote = needs_quote(tk);
-            size_t& width = widths_[cur % columns_.size()];
-            width = std::max(width, tk.size() + (quote ? 2 : 0));
+            int& width = widths_[cur % columns_.size()];
+            width = std::max(width, int(tk.size()) + (quote ? 2 : 0));
             ++cur;
         } else {
             ++row;
@@ -238,7 +238,7 @@ std::ostream& operator<<(std::ostream& out, const nw::TwoDA& tda)
     for (size_t i = 0; i < tda.columns_.size(); ++i) {
         out << tda.columns_[i];
         if (i + 1 < tda.columns_.size()) {
-            sep.resize(pad + tda.widths_[i] - tda.columns_[i].size(), ' ');
+            sep.resize(size_t(pad + tda.widths_[i] - int(tda.columns_[i].size())), ' ');
             out << sep;
         }
     }
@@ -260,7 +260,7 @@ std::ostream& operator<<(std::ostream& out, const nw::TwoDA& tda)
             out << tda.rows_[j].view;
             if (quote) out << '"';
             if (j + 1 < stop) {
-                size_t p = tda.widths_[j % tda.columns()] - tda.rows_[j].view.size() + pad + (quote ? -2 : 0);
+                size_t p = size_t(tda.widths_[j % tda.columns()] - int(tda.rows_[j].view.size()) + pad + (quote ? -2 : 0));
                 sep.resize(p, ' ');
                 out << sep;
             }

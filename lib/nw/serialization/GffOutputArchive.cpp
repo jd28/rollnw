@@ -1,6 +1,7 @@
 #include "GffOutputArchive.hpp"
 
 #include "../log.hpp"
+#include "../util/templates.hpp"
 
 #include <filesystem>
 #include <fstream>
@@ -188,13 +189,13 @@ bool GffOutputArchive::write_to(const fs::path& filename) const
     if (!out.good())
         return false;
 
-    out.write((const char*)&header, sizeof(header));
-    out.write((const char*)struct_entries.data(), struct_entries.size() * 12);
-    out.write((const char*)field_entries.data(), field_entries.size() * 12);
-    out.write((const char*)labels.data(), labels.size() * 16);
-    out.write((const char*)data.data(), data.size());
-    out.write((const char*)field_indices.data(), field_indices.size() * 4);
-    out.write((const char*)list_indices.data(), list_indices.size() * 4);
+    ostream_write(out, &header, sizeof(header));
+    ostream_write(out, struct_entries.data(), struct_entries.size() * 12);
+    ostream_write(out, field_entries.data(), field_entries.size() * 12);
+    ostream_write(out, labels.data(), labels.size() * 16);
+    ostream_write(out, data.data(), data.size());
+    ostream_write(out, field_indices.data(), field_indices.size() * 4);
+    ostream_write(out, list_indices.data(), list_indices.size() * 4);
     out.close();
 
     fs::copy_file(temp, filename, fs::copy_options::overwrite_existing);

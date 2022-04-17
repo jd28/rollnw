@@ -2,6 +2,7 @@
 
 #include "../log.hpp"
 #include "../util/ByteArray.hpp"
+#include "../util/templates.hpp"
 
 #include <cstdint>
 
@@ -46,7 +47,7 @@ bool Bif::load()
 
     BifHeader header;
     CHECK_OFFSET(sizeof(BifHeader));
-    file_.read((char*)&header, sizeof(BifHeader));
+    istream_read(file_, &header, sizeof(BifHeader));
 
     uint32_t offset = header.var_table_offset;
     CHECK_OFFSET(header.var_table_offset);
@@ -54,7 +55,7 @@ bool Bif::load()
     elements.resize(header.var_res_count);
 
     CHECK_OFFSET(header.var_table_offset + sizeof(BifElement) * header.var_res_count);
-    file_.read(reinterpret_cast<char*>(&elements[0]), sizeof(BifElement) * header.var_res_count);
+    istream_read(file_, &elements[0], sizeof(BifElement) * header.var_res_count);
 
     return true;
 }
@@ -71,7 +72,7 @@ ByteArray Bif::demand(size_t index) const
     } else {
         ba.resize(elements[index].size);
         file_.seekg(elements[index].offset, std::ios_base::beg);
-        file_.read((char*)ba.data(), elements[index].size);
+        istream_read(file_, ba.data(), elements[index].size);
     }
 
     return ba;

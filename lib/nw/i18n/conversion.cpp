@@ -65,7 +65,7 @@ std::string from_utf8(std::string_view str, std::string_view encoding, bool igno
 
 std::string from_utf8_by_global_lang(std::string_view str, bool ignore_errors)
 {
-    return from_utf8_by_langid(str, kernel::strings().global_language());
+    return from_utf8_by_langid(str, kernel::strings().global_language(), ignore_errors);
 }
 
 std::string to_utf8_by_langid(std::string_view str, LanguageID id, bool ignore_errors)
@@ -80,7 +80,7 @@ std::string to_utf8(std::string_view str, std::string_view encoding, bool ignore
 
 std::string to_utf8_by_global_lang(std::string_view str, bool ignore_errors)
 {
-    return to_utf8_by_langid(str, kernel::strings().global_language());
+    return to_utf8_by_langid(str, kernel::strings().global_language(), ignore_errors);
 }
 
 } // namespace nw

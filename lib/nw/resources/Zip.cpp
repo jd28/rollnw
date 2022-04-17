@@ -3,6 +3,7 @@
 #include "../log.hpp"
 #include "../util/ByteArray.hpp"
 #include "../util/macros.hpp"
+#include "../util/templates.hpp"
 
 #include <nowide/convert.hpp>
 #include <nowide/fstream.hpp>
@@ -86,13 +87,13 @@ int Zip::extract(const std::regex& pattern, const std::filesystem::path& output)
         unz_file_info info;
         unzGetCurrentFileInfo(file_, &info, fname, 64, nullptr, 0, nullptr, 0);
         char* dot = strchr(fname, '.');
-        if (dot && dot - fname <= 16) {
-            Resource r(std::string_view(fname, dot - fname), ResourceType::from_extension(dot + 1));
+        if (dot && static_cast<size_t>(dot - fname) <= 16) {
+            Resource r(std::string_view(fname, static_cast<size_t>(dot - fname)), ResourceType::from_extension(dot + 1));
             if (r.valid() && std::regex_match(fname, pattern)) {
                 auto ba = demand(r);
                 if (ba.size() > 0) {
                     nowide::ofstream out{(output / r.filename()).string(), std::ios_base::binary};
-                    out.write((char*)ba.data(), ba.size());
+                    ostream_write(out, ba.data(), ba.size());
                     ++extracted;
                 }
             }
@@ -117,9 +118,9 @@ ResourceDescriptor Zip::stat(const Resource& res) const
         unz_file_info info;
         unzGetCurrentFileInfo(file_, &info, fname, 64, nullptr, 0, nullptr, 0);
         char* dot = strchr(fname, '.');
-        if (dot && dot - fname <= 16) {
+        if (dot && static_cast<size_t>(dot - fname) <= 16) {
             rd.size = info.uncompressed_size;
-            rd.name = Resource(std::string_view(fname, dot - fname), ResourceType::from_extension(dot + 1));
+            rd.name = Resource(std::string_view(fname, static_cast<size_t>(dot - fname)), ResourceType::from_extension(dot + 1));
             rd.parent = this;
         }
     }
@@ -145,9 +146,9 @@ bool Zip::load()
         unz_file_info info;
         unzGetCurrentFileInfo(file_, &info, fname, 64, nullptr, 0, nullptr, 0);
         char* dot = strchr(fname, '.');
-        if (dot && dot - fname <= 16) {
+        if (dot && static_cast<size_t>(dot - fname) <= 16) {
             e.size = info.uncompressed_size;
-            e.resref = Resource(std::string_view(fname, dot - fname), ResourceType::from_extension(dot + 1));
+            e.resref = Resource(std::string_view(fname, static_cast<size_t>(dot - fname)), ResourceType::from_extension(dot + 1));
             if (e.resref.valid())
                 elements_.push_back(e);
         } else {

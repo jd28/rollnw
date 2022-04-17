@@ -32,7 +32,6 @@ private:
     std::string path_;
     std::string name_;
     unzFile file_ = nullptr;
-    size_t total_size = 0;
     bool is_loaded_ = false;
     std::vector<ZipElement> elements_;
 

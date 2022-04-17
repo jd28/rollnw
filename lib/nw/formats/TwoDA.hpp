@@ -86,10 +86,9 @@ private:
 
     ByteArray bytes_;
     bool is_loaded_ = false;
-    int32_t row_count_ = 0;
 
     std::string default_;
-    std::vector<size_t> widths_;
+    std::vector<int> widths_;
     std::vector<std::string> columns_;
     std::vector<detail::StringVariant> rows_;
 
