@@ -38,4 +38,12 @@ std::ostream& ostream_write(std::ostream& stream, const T* data, U size)
         static_cast<std::streamsize>(size));
 }
 
+template <typename T, typename U>
+std::istream& istream_read(std::istream& stream, T* data, U size)
+{
+    static_assert(std::is_integral_v<U>, "size must be an integral type");
+    return stream.read(reinterpret_cast<char*>(data),
+        static_cast<std::streamsize>(size));
+}
+
 } // namespace nw
