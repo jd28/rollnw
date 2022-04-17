@@ -6,6 +6,7 @@
 
 #include <filesystem>
 #include <iostream>
+#include <limits>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -34,6 +35,8 @@ struct StringVariant {
 } // namespace detail
 
 struct TwoDA {
+    static constexpr size_t npos = std::numeric_limits<size_t>::max();
+
     TwoDA() = default;
 
     /// Constructs TwoDA object from a file
@@ -43,7 +46,7 @@ struct TwoDA {
     explicit TwoDA(ByteArray bytes);
 
     /// Finds the index of a column, or -1
-    int column_index(std::string_view column) const;
+    size_t column_index(std::string_view column) const;
 
     /// Get the number of columns
     size_t columns() const noexcept;
@@ -107,13 +110,13 @@ std::optional<T> TwoDA::get(size_t row, size_t col)
 template <typename T>
 std::optional<T> TwoDA::get(size_t row, std::string_view col)
 {
-    int ci = column_index(col);
-    if (ci < 0) {
+    size_t ci = column_index(col);
+    if (ci == npos) {
         LOG_F(WARNING, "unknown column: {}", col);
         return std::optional<T>{};
     }
 
-    return get<T>(row, static_cast<size_t>(ci));
+    return get<T>(row, ci);
 }
 
 template <typename T>
@@ -149,12 +152,12 @@ bool TwoDA::get_to(size_t row, size_t col, T& out)
 template <typename T>
 bool TwoDA::get_to(size_t row, std::string_view col, T& out)
 {
-    int ci = column_index(col);
-    if (ci == -1) {
+    size_t ci = column_index(col);
+    if (ci == npos) {
         LOG_F(WARNING, "unknown column: {}", col);
         return false;
     }
-    return get_to<T>(row, column_index(col), out);
+    return get_to<T>(row, ci, out);
 }
 
 template <typename T>
