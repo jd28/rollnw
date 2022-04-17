@@ -1,5 +1,7 @@
 #pragma once
 
+#include <fstream>
+
 namespace nw {
 
 template <typename T>
@@ -27,5 +29,13 @@ auto end(reversion_wrapper<T> w) { return std::rend(w.iterable); }
 
 template <typename T>
 reversion_wrapper<T> reverse(T&& iterable) { return {iterable}; }
+
+template <typename T, typename U>
+std::ostream& ostream_write(std::ostream& stream, const T* data, U size)
+{
+    static_assert(std::is_integral_v<U>, "size must be an integral type");
+    return stream.write(reinterpret_cast<const char*>(data),
+        static_cast<std::streamsize>(size));
+}
 
 } // namespace nw
