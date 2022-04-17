@@ -18,19 +18,19 @@ struct Image {
     ~Image();
 
     /// Get BBP
-    int channels();
+    uint32_t channels() const noexcept;
 
     /// Get raw data
     uint8_t* data();
 
     /// Get height
-    int height() const;
+    uint32_t height() const noexcept;
 
     /// Determine if successfully loaded.
     bool valid() const;
 
     /// Get width
-    int width() const;
+    uint32_t width() const noexcept;
 
     /**
      * @brief Write Image to file
@@ -44,10 +44,10 @@ private:
     ByteArray bytes_;
     bool is_loaded_ = false;
     uint8_t* data_ = nullptr;
-    size_t size_;
-    int channels_;
-    int height_;
-    int width_;
+    size_t size_ = 0;
+    uint32_t channels_ = 0;
+    uint32_t height_ = 0;
+    uint32_t width_ = 0;
     bool is_dds_ = false;
 
     bool parse();

@@ -27,8 +27,8 @@ Image::Image(const std::filesystem::path& filename)
 
 Image::Image(ByteArray bytes, bool is_dds)
     : bytes_{std::move(bytes)}
-    , is_dds_(is_dds)
     , data_{nullptr}
+    , is_dds_(is_dds)
 {
     is_loaded_ = parse();
 }
@@ -72,13 +72,13 @@ Image::~Image()
     if (data_) { free(data_); }
 }
 
-int Image::channels() { return channels_; }
+uint32_t Image::channels() const noexcept { return channels_; }
 
 uint8_t* Image::data() { return data_; }
 
-int Image::height() const { return height_; }
+uint32_t Image::height() const noexcept { return height_; }
 
-int Image::width() const { return width_; }
+uint32_t Image::width() const noexcept { return width_; }
 
 bool Image::valid() const { return is_loaded_; }
 
@@ -94,18 +94,22 @@ bool Image::write_to(const std::filesystem::path& filename) const
 #else
     temp_path = temp.c_str();
 #endif
+    int width = static_cast<int>(width_);
+    int height = static_cast<int>(height_);
+    int channels = static_cast<int>(channels_);
+
     if (string::icmp(ext, ".dds")) {
-        if (!save_image_as_DDS(temp_path, width_, height_, channels_, data_)) {
+        if (!save_image_as_DDS(temp_path, width, height, channels, data_)) {
             LOG_F(INFO, "Failed to write DDS");
             return false;
         }
     } else if (string::icmp(ext, ".png")) {
-        if (!stbi_write_png(temp_path, width_, height_, channels_, data_, 0)) {
+        if (!stbi_write_png(temp_path, width, height, channels, data_, 0)) {
             LOG_F(INFO, "Failed to write PNG");
             return false;
         }
     } else if (string::icmp(ext, ".tga")) {
-        if (!stbi_write_tga(temp_path, width_, height_, channels_, data_)) {
+        if (!stbi_write_tga(temp_path, width, height, channels, data_)) {
             LOG_F(INFO, "Failed to write TGA");
             return false;
         }
@@ -126,12 +130,18 @@ bool Image::parse()
     if (is_dds_) {
         result = parse_dds();
     } else { // Defer to stb_image
-        data_ = stbi_load_from_memory((stbi_uc*)bytes_.data(),
-            static_cast<int>(bytes_.size()), &width_, &height_, &channels_, 0);
+        int width, height, channels;
+
+        data_ = stbi_load_from_memory(reinterpret_cast<stbi_uc*>(bytes_.data()),
+            static_cast<int>(bytes_.size()), &width, &height, &channels, 0);
+
         if (!data_) {
             LOG_F(ERROR, "Failed to load image: {}", stbi_failure_reason());
             result = false;
         } else {
+            width_ = static_cast<uint32_t>(width);
+            height_ = static_cast<uint32_t>(height);
+            channels_ = static_cast<uint32_t>(channels);
             result = true;
         }
     }
@@ -149,10 +159,10 @@ struct BiowareDdsHeader {
     uint32_t reserved[2];
 };
 
-static int DdsRound(double d);
-static void DecompressDdsDXT3AlphaBlock(const uint8_t* data, D3DCOLOR* dest, int x, int y, int width);
-static void DecompressDdsDXT5AlphaBlock(const uint8_t* data, D3DCOLOR* dest, int x, int y, int width);
-static void DecompressDdsColorBlock(const uint8_t* data, D3DCOLOR* dest, int x, int y, int width, int colors);
+static uint8_t DdsRound(double d);
+static void DecompressDdsDXT3AlphaBlock(const uint8_t* data, D3DCOLOR* dest, uint32_t x, uint32_t y, uint32_t width);
+static void DecompressDdsDXT5AlphaBlock(const uint8_t* data, D3DCOLOR* dest, uint32_t x, uint32_t y, uint32_t width);
+static void DecompressDdsColorBlock(const uint8_t* data, D3DCOLOR* dest, uint32_t x, uint32_t y, uint32_t width, uint32_t colors);
 
 } // namespace detail
 
@@ -183,20 +193,20 @@ bool Image::parse_bioware()
         return false;
 
     D3DCOLOR* pixels = reinterpret_cast<D3DCOLOR*>(malloc(sizeof(D3DCOLOR) * height_ * width_));
-    data_ = (uint8_t*)pixels;
+    data_ = reinterpret_cast<uint8_t*>(pixels);
 
-    int x = 0, y = 0;
+    uint32_t x = 0, y = 0;
 
     while (y < height_) {
         if (0) {
-            detail::DecompressDdsDXT3AlphaBlock((uint8_t*)bytes_.data() + off, pixels, x, y, width_);
+            detail::DecompressDdsDXT3AlphaBlock(bytes_.data() + off, pixels, x, y, width_);
             off += 8;
         } else if (channels_ == 4) {
-            detail::DecompressDdsDXT5AlphaBlock((uint8_t*)bytes_.data() + off, pixels, x, y, width_);
+            detail::DecompressDdsDXT5AlphaBlock(bytes_.data() + off, pixels, x, y, width_);
             off += 8;
         }
 
-        detail::DecompressDdsColorBlock((uint8_t*)bytes_.data() + off, pixels, x, y, width_, channels_);
+        detail::DecompressDdsColorBlock(bytes_.data() + off, pixels, x, y, width_, channels_);
         off += 8;
 
         x += 4;
@@ -211,21 +221,28 @@ bool Image::parse_bioware()
 
 bool Image::parse_dxt()
 {
-    data_ = stbi_load_from_memory((stbi_uc*)bytes_.data(),
-        static_cast<int>(bytes_.size()), &height_, &width_, &channels_, 0);
+    int width, height, channels;
+
+    data_ = stbi_load_from_memory(reinterpret_cast<stbi_uc*>(bytes_.data()),
+        static_cast<int>(bytes_.size()), &height, &width, &channels, 0);
+
     if (data_ == nullptr) {
         LOG_F(INFO, "Failed to load DDS: {}", stbi_failure_reason());
         return false;
     }
+
+    width_ = static_cast<uint32_t>(width);
+    height_ = static_cast<uint32_t>(height);
+    channels_ = static_cast<uint32_t>(channels);
 
     return true;
 }
 
 namespace detail {
 
-static int DdsRound(double d)
+static uint8_t DdsRound(double d)
 {
-    int ret = (int)(d + 0.500001);
+    uint8_t ret = static_cast<uint8_t>(d + 0.500001);
 
     if (ret < 0)
         return 0;
@@ -235,9 +252,9 @@ static int DdsRound(double d)
     return ret;
 }
 
-static void DecompressDdsDXT3AlphaBlock(const uint8_t* data, D3DCOLOR* dest, int x, int y, int width)
+static void DecompressDdsDXT3AlphaBlock(const uint8_t* data, D3DCOLOR* dest, uint32_t x, uint32_t y, uint32_t width)
 {
-    int i, j;
+    uint32_t i, j;
     uint8_t c = 0;
 
     for (i = 0; i < 4; i++) {
@@ -247,18 +264,23 @@ static void DecompressDdsDXT3AlphaBlock(const uint8_t* data, D3DCOLOR* dest, int
             else
                 c = *(data++);
 
-            dest[((y + i) * width) + (x + j)] = RGBA_SETALPHA(dest[((y + i) * width) + (x + j)],
-                DdsRound((double)(c & 0x0F) * 0xFF / 0x0F));
+            dest[((y + i) * width) + (x + j)] = rgba_setalpha(dest[((y + i) * width) + (x + j)],
+                DdsRound(static_cast<double>(c & 0x0F) * 0xFF / 0x0F));
         }
     }
 }
 
-static void DecompressDdsDXT5AlphaBlock(const uint8_t* data, D3DCOLOR* dest, int x, int y, int width)
+inline constexpr uint8_t dds_get_bit(const uint8_t* data, uint8_t x)
+{
+    return static_cast<uint8_t>((data[x / 8] >> (x % 8)) & uint8_t(0x01));
+}
+
+static void DecompressDdsDXT5AlphaBlock(const uint8_t* data, D3DCOLOR* dest, uint32_t x, uint32_t y, uint32_t width)
 {
     uint8_t a[8];
     uint8_t alphaIndex;
-    int bitPos;
-    int i, j;
+    uint8_t bitPos;
+    uint32_t i, j;
 
     a[0] = *data;
     a[1] = *(data + 1);
@@ -282,24 +304,25 @@ static void DecompressDdsDXT5AlphaBlock(const uint8_t* data, D3DCOLOR* dest, int
     data += 2;
     bitPos = 0;
 
-#define DDS_GET_BIT(X) (((*(data + (X) / 8)) >> ((X) % 8)) & 0x01)
     for (i = 0; i < 4; i++) {
         for (j = 0; j < 4; j++) {
-            alphaIndex = (DDS_GET_BIT(bitPos + 2) << 2) | (DDS_GET_BIT(bitPos + 1) << 1) | DDS_GET_BIT(bitPos);
+            alphaIndex = static_cast<uint8_t>((dds_get_bit(data, bitPos + 2) << 2)
+                | (dds_get_bit(data, bitPos + 1) << 1)
+                | dds_get_bit(data, bitPos));
 
-            dest[((y + i) * width) + (x + j)] = RGBA_SETALPHA(dest[((y + i) * width) + (x + j)], a[alphaIndex]);
+            dest[((y + i) * width) + (x + j)] = rgba_setalpha(dest[((y + i) * width) + (x + j)], a[alphaIndex]);
 
             bitPos += 3;
         }
     }
-#undef DDS_GET_BIT
 }
 
-static void DecompressDdsColorBlock(const uint8_t* data, D3DCOLOR* dest, int x, int y, int width, int colors)
+static void DecompressDdsColorBlock(const uint8_t* data, D3DCOLOR* dest, uint32_t x, uint32_t y, uint32_t width, uint32_t colors)
 {
-    int i, j, oneBitTrans;
+    uint32_t i, j, oneBitTrans;
     uint8_t colorIndex;
-    uint16_t w, word1, word2, *pData = (uint16_t*)data;
+    uint16_t w, word1, word2;
+    const uint16_t* pData = reinterpret_cast<const uint16_t*>(data);
 
     struct DDS_COLOR {
         uint8_t r;
@@ -322,23 +345,23 @@ static void DecompressDdsColorBlock(const uint8_t* data, D3DCOLOR* dest, int x, 
     }
 
     if (oneBitTrans)
-        alphas = (const uint8_t*)"\xff\xff\xff\x00";
+        alphas = reinterpret_cast<const uint8_t*>("\xff\xff\xff\x00");
     else
-        alphas = (const uint8_t*)"\xff\xff\xff\xff";
+        alphas = reinterpret_cast<const uint8_t*>("\xff\xff\xff\xff");
 
     c[0].r = (word1 >> 11) & 0x1F;
-    c[0].r = DdsRound((double)c[0].r * 0xFF / 0x1F);
+    c[0].r = DdsRound(static_cast<double>(c[0].r) * 0xFF / 0x1F);
     c[0].g = (word1 >> 5) & 0x3F;
-    c[0].g = DdsRound((double)c[0].g * 0xFF / 0x3F);
+    c[0].g = DdsRound(static_cast<double>(c[0].g) * 0xFF / 0x3F);
     c[0].b = (word1)&0x1F;
-    c[0].b = DdsRound((double)c[0].b * 0xFF / 0x1F);
+    c[0].b = DdsRound(static_cast<double>(c[0].b) * 0xFF / 0x1F);
 
     c[1].r = (word2 >> 11) & 0x1F;
-    c[1].r = DdsRound((double)c[1].r * 0xFF / 0x1F);
+    c[1].r = DdsRound(static_cast<double>(c[1].r) * 0xFF / 0x1F);
     c[1].g = (word2 >> 5) & 0x3F;
-    c[1].g = DdsRound((double)c[1].g * 0xFF / 0x3F);
+    c[1].g = DdsRound(static_cast<double>(c[1].g) * 0xFF / 0x3F);
     c[1].b = (word2)&0x1F;
-    c[1].b = DdsRound((double)c[1].b * 0xFF / 0x1F);
+    c[1].b = DdsRound(static_cast<double>(c[1].b) * 0xFF / 0x1F);
 
     if (oneBitTrans) {
         c[2].r = DdsRound(0.5 * c[0].r + 0.5 * c[1].r);
@@ -368,7 +391,7 @@ static void DecompressDdsColorBlock(const uint8_t* data, D3DCOLOR* dest, int x, 
             for (j = 0; j < 4; j++) {
                 colorIndex = w & 0x03;
 
-                dest[((y + i) * width) + (x + j)] = RGBA_MAKE(c[colorIndex].b, c[colorIndex].g, c[colorIndex].r, alphas[colorIndex]);
+                dest[((y + i) * width) + (x + j)] = rgba_make(c[colorIndex].b, c[colorIndex].g, c[colorIndex].r, alphas[colorIndex]);
 
                 w >>= 2;
             }
@@ -381,8 +404,8 @@ static void DecompressDdsColorBlock(const uint8_t* data, D3DCOLOR* dest, int x, 
             for (j = 0; j < 4; j++) {
                 colorIndex = w & 0x03;
 
-                dest[((y + i) * width) + (x + j)] = RGBA_MAKE(c[colorIndex].b, c[colorIndex].g, c[colorIndex].r,
-                    RGBA_GETALPHA(dest[((y + i) * width) + (x + j)]));
+                dest[((y + i) * width) + (x + j)] = rgba_make(c[colorIndex].b, c[colorIndex].g, c[colorIndex].r,
+                    rgba_getalpha(dest[((y + i) * width) + (x + j)]));
                 w >>= 2;
             }
         }
