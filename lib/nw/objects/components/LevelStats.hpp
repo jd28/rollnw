@@ -7,7 +7,7 @@
 
 namespace nw {
 
-struct Class {
+struct ClassEntry {
     int32_t id;
     int16_t level;
     SpellBook spells;
@@ -21,7 +21,7 @@ struct LevelStats {
     bool to_gff(GffOutputArchiveStruct& archive) const;
     nlohmann::json to_json() const;
 
-    std::vector<Class> classes;
+    std::vector<ClassEntry> classes;
 };
 
 } // namespace nw

@@ -7,14 +7,14 @@
 
 namespace nw {
 
-void from_json(const nlohmann::json& j, Spell& spell)
+void from_json(const nlohmann::json& j, SpellEntry& spell)
 {
     j.at("spell").get_to(spell.spell);
     j.at("metamagic").get_to(spell.meta);
     j.at("flags").get_to(spell.flags);
 }
 
-void to_json(nlohmann::json& j, const Spell& spell)
+void to_json(nlohmann::json& j, const SpellEntry& spell)
 {
     j["spell"] = spell.spell;
     j["metamagic"] = spell.meta;
@@ -33,7 +33,7 @@ bool SpellBook::from_gff(const GffInputArchiveStruct& gff)
         auto k = fmt::format("KnownList{}", i);
         size_t sz = gff[k].size();
         for (size_t j = 0; j < sz; ++j) {
-            Spell s;
+            SpellEntry s;
             gff[k][j].get_to("Spell", s.spell);
             gff[k][j].get_to("SpellFlags", s.flags);
             gff[k][j].get_to("SpellMetaMagic", s.meta);
@@ -43,7 +43,7 @@ bool SpellBook::from_gff(const GffInputArchiveStruct& gff)
         auto m = fmt::format("MemorizedList{}", i);
         sz = gff[m].size();
         for (size_t j = 0; j < sz; ++j) {
-            Spell s;
+            SpellEntry s;
             gff[m][j].get_to("Spell", s.spell);
             gff[m][j].get_to("SpellFlags", s.flags);
             gff[m][j].get_to("SpellMetaMagic", s.meta);

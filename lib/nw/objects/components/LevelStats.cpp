@@ -11,7 +11,7 @@ bool LevelStats::from_gff(const GffInputArchiveStruct& archive)
     size_t sz = archive["ClassList"].size();
     classes.reserve(sz);
     for (size_t i = 0; i < sz; ++i) {
-        Class c;
+        ClassEntry c;
         archive["ClassList"][i].get_to("Class", c.id);
         archive["ClassList"][i].get_to("ClassLevel", c.level);
         c.spells.from_gff(archive["ClassList"][i]);
@@ -25,7 +25,7 @@ bool LevelStats::from_json(const nlohmann::json& archive)
 {
     try {
         for (const auto& cls : archive) {
-            Class c;
+            ClassEntry c;
             cls.at("class").get_to(c.id);
             cls.at("level").get_to(c.level);
             c.spells.from_json(cls.at("spellbook"));

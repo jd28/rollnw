@@ -25,14 +25,14 @@ enum struct SpellMetaMagic : uint8_t {
     still = 0x20,
 };
 
-struct Spell {
+struct SpellEntry {
     uint16_t spell;
     SpellMetaMagic meta = SpellMetaMagic::none;
     SpellFlags flags = SpellFlags::none;
 };
 
-void from_json(const nlohmann::json& j, Spell& spell);
-void to_json(nlohmann::json& j, const Spell& spell);
+void from_json(const nlohmann::json& j, SpellEntry& spell);
+void to_json(nlohmann::json& j, const SpellEntry& spell);
 
 struct SpellBook {
     SpellBook();
@@ -42,8 +42,8 @@ struct SpellBook {
     bool to_gff(GffOutputArchiveStruct& archive) const;
     nlohmann::json to_json() const;
 
-    std::vector<std::vector<Spell>> known;
-    std::vector<std::vector<Spell>> memorized;
+    std::vector<std::vector<SpellEntry>> known;
+    std::vector<std::vector<SpellEntry>> memorized;
 };
 
 } // namespace nw
