@@ -8,7 +8,8 @@ namespace nw::kernel {
 void Services::provide(Objects* objects)
 {
     if (started_) {
-        LOG_F(WARNING, "Services are unable to be provided after start");
+        LOG_F(ERROR, "Services are unable to be provided after start");
+        return;
     }
 
     if (objects_) {
@@ -20,7 +21,8 @@ void Services::provide(Objects* objects)
 void Services::provide(Resources* resources)
 {
     if (started_) {
-        LOG_F(WARNING, "Services are unable to be provided after start");
+        LOG_F(ERROR, "Services are unable to be provided after start");
+        return;
     }
 
     if (resources_) {
@@ -45,7 +47,8 @@ void Services::provide(Rules* rules)
 void Services::provide(Strings* strings)
 {
     if (started_) {
-        LOG_F(WARNING, "Services are unable to be provided after start");
+        LOG_F(ERROR, "Services are unable to be provided after start");
+        return;
     }
 
     if (strings_) {

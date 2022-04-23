@@ -2,12 +2,12 @@
 
 #include "../formats/TwoDA.hpp"
 #include "../resources/Resource.hpp"
-#include "../rules/BaseItem.hpp"
-#include "../rules/Class.hpp"
-#include "../rules/Feat.hpp"
-#include "../rules/Race.hpp"
+// #include "../rules/BaseItem.hpp"
+// #include "../rules/Class.hpp"
+// #include "../rules/Feat.hpp"
+// #include "../rules/Race.hpp"
 #include "../rules/Skill.hpp"
-#include "../rules/Spell.hpp"
+//#include "../rules/Spell.hpp"
 #include "../rules/system.hpp"
 #include "Strings.hpp"
 
