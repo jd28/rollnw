@@ -4,6 +4,7 @@
 #include "Config.hpp"
 #include "Objects.hpp"
 #include "Resources.hpp"
+#include "Rules.hpp"
 #include "Strings.hpp"
 
 #include <memory>
@@ -20,6 +21,7 @@ struct Services {
     /// Provide global service
     void provide(Objects* objects);
     void provide(Resources* resources);
+    void provide(Rules* rules);
     void provide(Strings* strings);
 
     /// Shutdown all services
@@ -32,11 +34,13 @@ struct Services {
     friend Config& config();
     friend Objects& objects();
     friend Resources& resman();
+    friend Rules& rules();
     friend Strings& strings();
 
 private:
     std::unique_ptr<Objects> objects_;
     std::unique_ptr<Resources> resources_;
+    std::unique_ptr<Rules> rules_;
     std::unique_ptr<Strings> strings_;
 
     bool started_;
@@ -51,6 +55,7 @@ Services& services();
 Config& config();
 Objects& objects();
 Resources& resman();
+Rules& rules();
 Strings& strings();
 
 Module* load_module(const std::filesystem::path& path, std::string_view manifest = {});
