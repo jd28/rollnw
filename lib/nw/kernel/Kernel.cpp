@@ -8,7 +8,8 @@ namespace nw::kernel {
 void Services::provide(Objects* objects)
 {
     if (started_) {
-        LOG_F(WARNING, "Services are unable to be provided after start");
+        LOG_F(ERROR, "Services are unable to be provided after start");
+        return;
     }
 
     if (objects_) {
@@ -20,7 +21,8 @@ void Services::provide(Objects* objects)
 void Services::provide(Resources* resources)
 {
     if (started_) {
-        LOG_F(WARNING, "Services are unable to be provided after start");
+        LOG_F(ERROR, "Services are unable to be provided after start");
+        return;
     }
 
     if (resources_) {
@@ -29,10 +31,24 @@ void Services::provide(Resources* resources)
     resources_ = std::unique_ptr<Resources>(resources);
 }
 
+void Services::provide(Rules* rules)
+{
+    if (started_) {
+        LOG_F(ERROR, "Services are unable to be provided after start");
+        return;
+    }
+
+    if (rules_) {
+        LOG_F(WARNING, "Rules service already loaded, overriding...");
+    }
+    rules_ = std::unique_ptr<Rules>(rules);
+}
+
 void Services::provide(Strings* strings)
 {
     if (started_) {
-        LOG_F(WARNING, "Services are unable to be provided after start");
+        LOG_F(ERROR, "Services are unable to be provided after start");
+        return;
     }
 
     if (strings_) {
@@ -44,6 +60,7 @@ void Services::provide(Strings* strings)
 void Services::shutdown()
 {
     // Opposite start order
+    rules_.reset();
     objects_.reset();
     resources_.reset();
     strings_.reset();
@@ -67,6 +84,10 @@ void Services::start(bool fail_hard)
         resources_ = std::make_unique<Resources>();
     }
 
+    if (!rules_) {
+        rules_ = std::make_unique<Rules>();
+    }
+
     if (!strings_) {
         strings_ = std::make_unique<Strings>();
     }
@@ -74,6 +95,7 @@ void Services::start(bool fail_hard)
     strings_->initialize();
     resources_->initialize();
     objects_->initialize();
+    rules_->initialize();
 
     started_ = true;
 }
@@ -87,6 +109,7 @@ Services& services() { return detail::s_services; }
 Config& config() { return detail::s_config; }
 Objects& objects() { return *detail::s_services.objects_.get(); }
 Resources& resman() { return *detail::s_services.resources_.get(); }
+Rules& rules() { return *detail::s_services.rules_.get(); }
 Strings& strings() { return *detail::s_services.strings_.get(); }
 
 Module* load_module(const std::filesystem::path& path, std::string_view manifest)
@@ -98,12 +121,14 @@ Module* load_module(const std::filesystem::path& path, std::string_view manifest
     if (mod) {
         mod->instantiate();
     }
+    rules().load();
 
     return mod;
 }
 
 void unload_module()
 {
+    rules().clear();
     objects().clear();
     resman().unload_module();
     strings().unload_custom_tlk();

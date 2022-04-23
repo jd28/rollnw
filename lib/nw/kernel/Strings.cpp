@@ -27,6 +27,16 @@ std::string Strings::get(const LocString& locstring, bool feminine) const
     }
 }
 
+InternedString Strings::get_interned(std::string_view str) const
+{
+    absl::string_view sv{str.data(), str.size()};
+    auto it = interned_.find(sv);
+    if (it != std::end(interned_)) {
+        return InternedString{&*it};
+    }
+    return {};
+}
+
 void Strings::initialize()
 {
     // Stub

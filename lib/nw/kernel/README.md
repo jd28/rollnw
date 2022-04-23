@@ -10,6 +10,7 @@ The `kernel` module provides submodules for handling global resources and servic
 - `Config`
 - `Strings`
 - `Resources`
+- `Rules`
 
 Once all services are loaded, the kernel will call `service->intialize()` in the case default construction
 isn't enough.
@@ -148,6 +149,17 @@ virtual void unload_module();
 > Unloads module
 
 <br>
+
+-------------------
+
+## Rules
+
+Provides access rules loaded from 2DA and a mechanism for caching other 2DA files.
+
+### Not Yet Implemented
+
+* The vast bulk of it..
+* `ruleset.2da`
 
 -------------------
 

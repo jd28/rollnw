@@ -91,13 +91,13 @@ TwoDA::TwoDA(ByteArray bytes)
     is_loaded_ = parse();
 }
 
-int TwoDA::column_index(const std::string_view column) const
+size_t TwoDA::column_index(const std::string_view column) const
 {
     for (size_t i = 0; i < columns_.size(); ++i) {
         if (string::icmp(columns_[i], column))
-            return static_cast<int>(i);
+            return i;
     }
-    return -1;
+    return npos;
 }
 
 size_t TwoDA::columns() const noexcept

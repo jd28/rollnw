@@ -38,6 +38,7 @@ add_executable(libnw_test
     kernel_load_module.cpp
     kernel_objects.cpp
     kernel_resources.cpp
+    kernel_rules.cpp
     kernel_strings.cpp
 
     objects_area.cpp

@@ -17,4 +17,10 @@ TEST_CASE("strings intern", "[kernel]")
 {
     auto str = nw::kernel::strings().intern("This is a Test");
     REQUIRE(str == "This is a Test");
+
+    auto str2 = nw::kernel::strings().get_interned("asdf;lkj");
+    REQUIRE_FALSE(str2);
+
+    auto str3 = nw::kernel::strings().get_interned("This is a Test");
+    REQUIRE(str3);
 }

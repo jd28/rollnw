@@ -3,6 +3,7 @@ add_library(nw-kernel STATIC
     Config.cpp
     Objects.cpp
     Resources.cpp
+    Rules.cpp
     Strings.cpp
 )
 

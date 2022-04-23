@@ -23,6 +23,10 @@ struct Strings {
     /// Gets string by Tlk strref
     virtual std::string get(uint32_t strref, bool feminine = false) const;
 
+    /// Gets interned string
+    /// @note Return will not be valid if there is no interned string
+    virtual InternedString get_interned(std::string_view str) const;
+
     /// Initializes strings system
     virtual void initialize();
 
@@ -85,7 +89,51 @@ struct InternedString {
     bool operator>(std::string_view rhs) const noexcept { return compare(rhs) > 0; }
 
 private:
+    template <typename H>
+    friend H AbslHashValue(H h, const InternedString& res);
+
     const std::string* string_ = nullptr;
+};
+
+template <typename H>
+H AbslHashValue(H h, const InternedString& str)
+{
+    return H::combine(std::move(h), str.view());
+}
+
+struct InternedStringHash {
+    using is_transparent = void;
+
+    size_t operator()(absl::string_view v) const
+    {
+        return absl::Hash<absl::string_view>{}(v);
+    }
+
+    size_t operator()(const InternedString& v) const
+    {
+        return absl::Hash<InternedString>{}(v);
+    }
+};
+
+struct InternedStringEq {
+    using is_transparent = void;
+
+    bool operator()(const InternedString& a, absl::string_view b) const
+    {
+        return std::equal(a.view().begin(), a.view().end(), b.begin(), b.end());
+    }
+    bool operator()(absl::string_view b, const InternedString& a) const
+    {
+        return std::equal(a.view().begin(), a.view().end(), b.begin(), b.end());
+    }
+    bool operator()(const InternedString& a, const InternedString& b) const
+    {
+        return a.compare(b) == 0;
+    }
+    bool operator()(absl::string_view b, absl::string_view a) const
+    {
+        return std::equal(a.begin(), a.end(), b.begin(), b.end());
+    }
 };
 
 } // namespace nw::kernel
