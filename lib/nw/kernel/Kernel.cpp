@@ -118,6 +118,7 @@ Module* load_module(const std::filesystem::path& path, std::string_view manifest
     if (mod) {
         mod->instantiate();
     }
+    rules().load();
 
     return mod;
 }
