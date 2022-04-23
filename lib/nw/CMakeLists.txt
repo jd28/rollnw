@@ -49,6 +49,7 @@ add_subdirectory(i18n)
 add_subdirectory(kernel)
 add_subdirectory(objects)
 add_subdirectory(resources)
+add_subdirectory(rules)
 add_subdirectory(serialization)
 add_subdirectory(util)
 
@@ -60,6 +61,7 @@ target_link_libraries(nw PUBLIC
     nw-kernel
     nw-objects
     nw-resources
+    nw-rules
     nw-serialization
     nw-util
 )
