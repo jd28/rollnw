@@ -42,6 +42,8 @@ struct Constant {
 
     /// Determines if variant is holding a std::string
     bool is_string() const noexcept;
+
+    operator bool() const noexcept { return !!name; }
 };
 
 bool operator==(const Constant& lhs, const Constant& rhs);
