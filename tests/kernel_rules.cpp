@@ -14,5 +14,9 @@ TEST_CASE("rules manager", "[kernel]")
     REQUIRE(sk.name == 269);
     REQUIRE(sk.constant.name == "SKILL_ANIMAL_EMPATHY");
 
+    auto place2da = nw::Resource{"placeables"sv, nw::ResourceType::twoda};
+    REQUIRE(nw::kernel::rules().cache_2da(place2da));
+    REQUIRE(nw::kernel::rules().get_cached_2da(place2da).rows() > 0);
+
     nw::kernel::unload_module();
 }

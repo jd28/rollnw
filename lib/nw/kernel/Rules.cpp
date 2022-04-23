@@ -14,6 +14,7 @@ Rules::~Rules()
 void Rules::clear()
 {
     skill_info_.clear();
+    cached_2das_.clear();
     constants_.clear();
 }
 
@@ -132,6 +133,26 @@ bool Rules::reload(bool fail_hard)
 {
     clear();
     return load(fail_hard);
+}
+
+bool Rules::cache_2da(const Resource& res)
+{
+    auto it = cached_2das_.find(res);
+    if (it != std::end(cached_2das_) && it->second.is_valid() && it->second.rows() != 0) {
+        return true;
+    }
+
+    auto tda = TwoDA{resman().demand(res)};
+    if (tda.is_valid()) {
+        cached_2das_[res] = std::move(tda);
+        return true;
+    }
+    return false;
+}
+
+TwoDA& Rules::get_cached_2da(const Resource& res)
+{
+    return cached_2das_[res];
 }
 
 Constant Rules::get_constant(std::string_view name) const

@@ -36,6 +36,12 @@ struct Rules {
     /// Clears rules system of all rules and cached 2da files
     virtual void clear();
 
+    /// Caches
+    virtual bool cache_2da(const Resource& res);
+
+    /// Gets a cached TwoDA
+    virtual TwoDA& get_cached_2da(const Resource& res);
+
     /// Gets constant
     virtual Constant get_constant(std::string_view name) const;
 
@@ -51,6 +57,7 @@ struct Rules {
 
 private:
     std::vector<Skill> skill_info_;
+    absl::flat_hash_map<Resource, TwoDA> cached_2das_;
     absl::flat_hash_map<InternedString, RuleVariant, InternedStringHash, InternedStringEq> constants_;
 };
 

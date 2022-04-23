@@ -154,6 +154,13 @@ virtual void unload_module();
 
 ## Rules
 
+Provides access rules loaded from 2DA and a mechanism for caching other 2DA files.
+
+### Not Yet Implemented
+
+* The vast bulk of it..
+* `ruleset.2da`
+
 -------------------
 
 ## Strings
