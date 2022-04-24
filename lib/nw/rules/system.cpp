@@ -128,4 +128,26 @@ Qualifier skill(Constant id, int min, int max)
 
 } // namespace qualifier
 
+// == Requirement =============================================================
+
+Requirement::Requirement(std::initializer_list<Qualifier> quals)
+{
+    for (const auto& q : quals) {
+        qualifiers_.push_back(q);
+    }
+}
+
+void Requirement::add(Qualifier qualifier)
+{
+    qualifiers_.push_back(qualifier);
+}
+
+bool Requirement::met(const Creature& cre) const
+{
+    for (const auto& q : qualifiers_) {
+        if (!q.match(cre)) { return false; }
+    }
+    return true;
+}
+
 } // namespace nw

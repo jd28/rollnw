@@ -97,4 +97,16 @@ Qualifier skill(Constant id, int min, int max = 0);
 
 } // namespace qualifier
 
+// == Requirement =============================================================
+
+struct Requirement {
+    Requirement() = default;
+    Requirement(std::initializer_list<Qualifier> quals);
+    void add(Qualifier qualifier);
+    bool met(const Creature& cre) const;
+
+private:
+    absl::InlinedVector<Qualifier, 8> qualifiers_;
+};
+
 } // namespace nw

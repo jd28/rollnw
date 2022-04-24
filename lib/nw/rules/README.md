@@ -29,8 +29,6 @@ if(c.is_int()) {
 
 A `Selector` gets some piece of information from a creature using a type and maybe a constant (loaded from 2das) without needing to worry about the exact layout of the data.
 
-One could do this with lambdas, but it seems unnecessary.  Regardless of what attributes a creature has, what those attributes mean, how they affect the rules of the game, and so on; a creature will always have some set of abilities, some set of skills, some set of armor classes, etc, etc.
-
 Example:
 
 ```cpp
@@ -54,6 +52,29 @@ A `Qualifier` is a `Selector` with some constraints thereupon.  In the example b
 auto q = nw::qualifier::ability(ability_strength, 20, 40);
 // ...
 if(q.match(creature)) {
+    // ...
+}
+```
+
+### **Requirement**
+> header: nw/rules/system.hpp<br>
+> tests: nw/tests/rules_requirement.cpp
+
+A `Requirement` is just a set of one or more `Qualifier`s.
+
+Example: Some thing has requirement of level 4, wisdom betwee [12, 20], and a minium appraise skill of
+6.
+```cpp
+auto ability_wisdom = nw::rules().get_constant("ABILITY_WISDOM");
+auto skill_appraise = nw::rules().get_constant("SKILL_APPRAISE");
+
+auto req = nw::Requirement{
+    nw::qualifier::level(4),
+    nw::qualifier::ability(ability_wisdom, 12, 20), // Min, Max
+    nw::qualifier::skill(skill_appraise, 6),
+};
+// ...
+if(req.met(creature)) {
     // ...
 }
 ```
