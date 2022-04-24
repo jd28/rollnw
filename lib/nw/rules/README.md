@@ -19,3 +19,23 @@ if(c.is_int()) {
 }
 ```
 
+### **Selector**
+> header: nw/rules/system.hpp
+
+A `Selector` gets some piece of information from a creature using a type and maybe a constant (loaded from 2das) without needing to worry about the exact layout of the data.
+
+One could do this with lambdas, but it seems unnecessary.  Regardless of what attributes a creature has, what those attributes mean, how they affect the rules of the game, and so on; a creature will always have some set of abilities, some set of skills, some set of armor classes, etc, etc.
+
+Example:
+
+```cpp
+auto ability_strength = nw::rules().get_constant("ABILITY_STRENGHT");
+// ...
+auto s = nw::select::ability(ability_strength);
+// ...
+auto str = s.select(creature);
+if(str && *str > 20) {
+    // ...
+}
+```
+

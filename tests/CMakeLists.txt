@@ -65,6 +65,8 @@ add_executable(libnw_test
     resources_resource.cpp
     resources_zip.cpp
 
+    rules_selector.cpp
+
     serial_gff.cpp
 
     util_string.cpp

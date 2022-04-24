@@ -48,4 +48,37 @@ struct Constant {
 
 bool operator==(const Constant& lhs, const Constant& rhs);
 
+// == Selector ================================================================
+
+enum struct SelectorType {
+    race,
+    ability,
+    level,
+    class_level,
+    feat,
+    skill,
+    bab,
+    ac,
+};
+
+struct Selector {
+    SelectorType type;
+    std::optional<Constant> subtype;
+    bool base = false;
+
+    std::optional<int> select(const Creature& cre) const;
+};
+
+// Convenience functions
+namespace select {
+
+Selector ability(Constant id);
+// Selector armor_class(int id, bool base = false);
+// Selector class_level(int id);
+// Selector feat(int id);
+Selector skill(Constant id);
+Selector race();
+
+} // namespace select
+
 } // namespace nw

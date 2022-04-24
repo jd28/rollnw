@@ -1,5 +1,7 @@
 #include "system.hpp"
 
+#include "../objects/Creature.hpp"
+
 namespace nw {
 
 // == Constant ================================================================
@@ -43,5 +45,42 @@ bool operator==(const Constant& lhs, const Constant& rhs)
 {
     return std::tie(lhs.name, lhs.value) == std::tie(rhs.name, rhs.value);
 }
+
+// == Selector ================================================================
+
+std::optional<int> Selector::select(const Creature& cre) const
+{
+    switch (type) {
+    default:
+        return {};
+    case SelectorType::race:
+        return static_cast<int>(cre.race);
+    case SelectorType::ability:
+        return static_cast<int>(cre.stats.abilities[subtype->as_index()]);
+    case SelectorType::skill:
+        return static_cast<int>(cre.stats.skills[subtype->as_index()]);
+    }
+
+    return {};
+}
+
+namespace select {
+
+Selector ability(Constant id)
+{
+    return {SelectorType::ability, std::optional<Constant>{id}};
+}
+
+Selector skill(Constant id)
+{
+    return {SelectorType::skill, id};
+}
+
+Selector race()
+{
+    return {SelectorType::race, std::optional<Constant>{}};
+}
+
+} // namespace select
 
 } // namespace nw
