@@ -83,4 +83,49 @@ Selector race()
 
 } // namespace select
 
+// == Qualifier ===============================================================
+
+bool Qualifier::match(const Creature& cre) const
+{
+    if (auto value = selector.select(cre)) {
+        int val = *value;
+
+        switch (selector.type) {
+        default:
+            return false;
+        case SelectorType::skill:
+        case SelectorType::ability: {
+            auto min = params[0];
+            auto max = params[1];
+            if (val < min) { return false; }
+            if (max != 0 && val > max) { return false; }
+            return true;
+        } break;
+        }
+    }
+    return false;
+}
+
+namespace qualifier {
+
+Qualifier ability(Constant id, int min, int max)
+{
+    Qualifier q;
+    q.selector = select::ability(id);
+    q.params.push_back(min);
+    q.params.push_back(max);
+    return q;
+}
+
+Qualifier skill(Constant id, int min, int max)
+{
+    Qualifier q;
+    q.selector = select::skill(id);
+    q.params.push_back(min);
+    q.params.push_back(max);
+    return q;
+}
+
+} // namespace qualifier
+
 } // namespace nw

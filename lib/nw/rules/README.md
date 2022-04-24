@@ -2,6 +2,10 @@
 
 The `Rules` module presents some difficulties in the sense that if one was to sit down and design a system for rules capable of expressing relatively arbitrary sets of rules and modifiers, it would not look much like NWN(:EE).
 
+Warnings:
+* This is massively incomplete
+* This only operational at the most base level, it takes in to account no modifiers.
+
 ## System
 
 The foundation of system is just three types: `int`, `float`, strings.
@@ -20,7 +24,8 @@ if(c.is_int()) {
 ```
 
 ### **Selector**
-> header: nw/rules/system.hpp
+> header: nw/rules/system.hpp<br>
+> tests: nw/tests/rules_selector.cpp
 
 A `Selector` gets some piece of information from a creature using a type and maybe a constant (loaded from 2das) without needing to worry about the exact layout of the data.
 
@@ -29,12 +34,26 @@ One could do this with lambdas, but it seems unnecessary.  Regardless of what at
 Example:
 
 ```cpp
-auto ability_strength = nw::rules().get_constant("ABILITY_STRENGHT");
+auto ability_strength = nw::rules().get_constant("ABILITY_STRENGTH");
 // ...
 auto s = nw::select::ability(ability_strength);
 // ...
 auto str = s.select(creature);
 if(str && *str > 20) {
+    // ...
+}
+```
+
+### **Qualifier**
+> header: nw/rules/system.hpp<br>
+> tests: nw/tests/rules_qualifier.cpp
+
+A `Qualifier` is a `Selector` with some constraints thereupon.  In the example below any creature with an unmodified strength between [20, 40] inclusive would match.
+
+```cpp
+auto q = nw::qualifier::ability(ability_strength, 20, 40);
+// ...
+if(q.match(creature)) {
     // ...
 }
 ```

@@ -81,4 +81,20 @@ Selector race();
 
 } // namespace select
 
+// == Qualifier ===============================================================
+
+struct Qualifier {
+    Selector selector;
+    absl::InlinedVector<int, 8> params;
+
+    bool match(const Creature& cre) const;
+};
+
+namespace qualifier {
+
+Qualifier ability(Constant id, int min, int max = 0);
+Qualifier skill(Constant id, int min, int max = 0);
+
+} // namespace qualifier
+
 } // namespace nw
