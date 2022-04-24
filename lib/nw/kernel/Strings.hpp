@@ -111,7 +111,8 @@ struct InternedStringHash {
 
     size_t operator()(const InternedString& v) const
     {
-        return absl::Hash<InternedString>{}(v);
+        absl::string_view v2{v.view().data(), v.view().size()};
+        return absl::Hash<absl::string_view>{}(v2);
     }
 };
 
