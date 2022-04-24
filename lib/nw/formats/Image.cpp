@@ -242,14 +242,7 @@ namespace detail {
 
 static uint8_t DdsRound(double d)
 {
-    uint8_t ret = static_cast<uint8_t>(d + 0.500001);
-
-    if (ret < 0)
-        return 0;
-    else if (ret > 255)
-        return 255;
-
-    return ret;
+    return static_cast<uint8_t>(d + 0.500001);
 }
 
 static void DecompressDdsDXT3AlphaBlock(const uint8_t* data, D3DCOLOR* dest, uint32_t x, uint32_t y, uint32_t width)
