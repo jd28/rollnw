@@ -13,6 +13,7 @@ Rules::~Rules()
 
 void Rules::clear()
 {
+    ability_info_.clear();
     skill_info_.clear();
     cached_2das_.clear();
     constants_.clear();
@@ -65,12 +66,13 @@ bool Rules::load(bool fail_hard)
     temp_string.reserve(100);
 
     // Abilities - Going to have to cheat on this for now..
-    register_constant("ABILITY_STRENGTH", 0);
-    register_constant("ABILITY_DEXTERITY", 1);
-    register_constant("ABILITY_CONSTITUTION", 2);
-    register_constant("ABILITY_INTELLIGENCE", 3);
-    register_constant("ABILITY_WISDOM", 4);
-    register_constant("ABILITY_CHARISMA", 5);
+    ability_info_.reserve(6);
+    ability_info_.push_back({135, register_constant("ABILITY_STRENGTH", 0)});
+    ability_info_.push_back({133, register_constant("ABILITY_DEXTERITY", 1)});
+    ability_info_.push_back({132, register_constant("ABILITY_CONSTITUTION", 2)});
+    ability_info_.push_back({134, register_constant("ABILITY_INTELLIGENCE", 3)});
+    ability_info_.push_back({136, register_constant("ABILITY_WISDOM", 4)});
+    ability_info_.push_back({131, register_constant("ABILITY_CHARISMA", 5)});
 
     // Skills
     tda = TwoDA{resman().demand({"skills"sv, ResourceType::twoda})};
@@ -164,6 +166,16 @@ Constant Rules::get_constant(std::string_view name) const
     }
 
     return {};
+}
+
+const Ability& Rules::ability(size_t index) const
+{
+    return ability_info_.at(index);
+}
+
+size_t Rules::ability_count() const noexcept
+{
+    return ability_info_.size();
 }
 
 Constant Rules::register_constant(std::string_view name, int value)

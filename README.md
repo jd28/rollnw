@@ -33,6 +33,7 @@ The library is organized around modules (that will be converted to [C++ Modules]
 * [kernel](lib/nw/kernel/README.md) - Core services, global state.
 * [objects](lib/nw/objects/README.md) - Object types.  I.e. Creature, Door, Encounter, etc.
 * [resources](lib/nw/resources/README.md) - Resource loading
+* [rules](lib/nw/rules/README.md) - Rules related classes and functions.
 * [serialization](lib/nw/serialization/README.md) - Serializing to/from Gff, JSON, GFFJSON, etc.
 * [util](lib/nw/util/README.md) - Basic utilities and functions, compression, tokenizing.
 

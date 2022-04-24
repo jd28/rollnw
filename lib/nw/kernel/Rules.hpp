@@ -6,6 +6,7 @@
 // #include "../rules/Class.hpp"
 // #include "../rules/Feat.hpp"
 // #include "../rules/Race.hpp"
+#include "../rules/Ability.hpp"
 #include "../rules/Skill.hpp"
 //#include "../rules/Spell.hpp"
 #include "../rules/system.hpp"
@@ -45,6 +46,12 @@ struct Rules {
     /// Gets constant
     virtual Constant get_constant(std::string_view name) const;
 
+    /// Gets a ability
+    const Ability& ability(size_t index) const;
+    /// Gets the number of loaded abilitys
+    /// @note There is no 2da for this, so it's hardcoded to default NWN.
+    size_t ability_count() const noexcept;
+
     /// Registers constant
     /// @note If constant by name is already registered, it will return that.
     virtual Constant register_constant(std::string_view name, int value);
@@ -56,6 +63,7 @@ struct Rules {
     size_t skill_count() const noexcept;
 
 private:
+    std::vector<Ability> ability_info_;
     std::vector<Skill> skill_info_;
     absl::flat_hash_map<Resource, TwoDA> cached_2das_;
     absl::flat_hash_map<InternedString, RuleVariant, InternedStringHash, InternedStringEq> constants_;
