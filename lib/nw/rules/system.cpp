@@ -108,6 +108,9 @@ bool Qualifier::match(const Creature& cre) const
         switch (selector.type) {
         default:
             return false;
+        case SelectorType::race: {
+            return val == params[0];
+        }
         case SelectorType::skill:
         case SelectorType::ability: {
             auto min = params[0];
@@ -129,6 +132,14 @@ Qualifier ability(Constant id, int min, int max)
     q.selector = select::ability(id);
     q.params.push_back(min);
     q.params.push_back(max);
+    return q;
+}
+
+Qualifier race(Constant id)
+{
+    Qualifier q;
+    q.selector = select::race();
+    q.params.push_back(id.as_int());
     return q;
 }
 

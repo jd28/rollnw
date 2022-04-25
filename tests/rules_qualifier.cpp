@@ -28,3 +28,23 @@ TEST_CASE("qualifier", "[rules]")
 
     nw::kernel::unload_module();
 }
+
+TEST_CASE("qualifier: race", "[rules]")
+{
+    auto mod = nw::kernel::load_module("test_data/user/modules/DockerDemo.mod");
+    REQUIRE(mod);
+
+    nw::GffInputArchive g{"test_data/user/development/pl_agent_001.utc"};
+    nw::Creature c{g.toplevel(), nw::SerializationProfile::blueprint};
+
+    const auto race_human = nw::kernel::rules().get_constant("RACIAL_TYPE_HUMAN");
+    const auto race_ooze = nw::kernel::rules().get_constant("RACIAL_TYPE_OOZE");
+
+    auto qual1 = nw::qualifier::race(race_human);
+    REQUIRE(qual1.match(c));
+
+    auto qual2 = nw::qualifier::race(race_ooze);
+    REQUIRE_FALSE(qual2.match(c));
+
+    nw::kernel::unload_module();
+}

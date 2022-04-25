@@ -97,6 +97,7 @@ struct Qualifier {
 namespace qualifier {
 
 Qualifier ability(Constant id, int min, int max = 0);
+Qualifier race(Constant id);
 Qualifier skill(Constant id, int min, int max = 0);
 
 } // namespace qualifier
