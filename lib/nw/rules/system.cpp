@@ -46,6 +46,11 @@ bool operator==(const Constant& lhs, const Constant& rhs)
     return std::tie(lhs.name, lhs.value) == std::tie(rhs.name, rhs.value);
 }
 
+bool operator<(const Constant& lhs, const Constant& rhs)
+{
+    return std::tie(lhs.name, lhs.value) < std::tie(rhs.name, rhs.value);
+}
+
 // == Selector ================================================================
 
 std::optional<int> Selector::select(const Creature& cre) const
@@ -62,6 +67,16 @@ std::optional<int> Selector::select(const Creature& cre) const
     }
 
     return {};
+}
+
+bool operator==(const Selector& lhs, const Selector& rhs)
+{
+    return std::tie(lhs.type, lhs.subtype, lhs.base) == std::tie(rhs.type, rhs.subtype, rhs.base);
+}
+
+bool operator<(const Selector& lhs, const Selector& rhs)
+{
+    return std::tie(lhs.type, lhs.subtype, lhs.base) < std::tie(rhs.type, rhs.subtype, rhs.base);
 }
 
 namespace select {

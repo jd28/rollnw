@@ -86,7 +86,9 @@ struct InternedString {
     bool operator==(InternedString rhs) const noexcept { return string_ == rhs.string_; }
     bool operator==(std::string_view rhs) const noexcept { return compare(rhs) == 0; }
     bool operator<(std::string_view rhs) const noexcept { return compare(rhs) < 0; }
+    bool operator<(const InternedString& rhs) const noexcept { return string_ < rhs.string_; }
     bool operator>(std::string_view rhs) const noexcept { return compare(rhs) > 0; }
+    bool operator>(const InternedString& rhs) const noexcept { return string_ > rhs.string_; }
 
 private:
     template <typename H>

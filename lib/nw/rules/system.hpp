@@ -47,6 +47,7 @@ struct Constant {
 };
 
 bool operator==(const Constant& lhs, const Constant& rhs);
+bool operator<(const Constant& lhs, const Constant& rhs);
 
 // == Selector ================================================================
 
@@ -68,6 +69,9 @@ struct Selector {
 
     std::optional<int> select(const Creature& cre) const;
 };
+
+bool operator==(const Selector& lhs, const Selector& rhs);
+bool operator<(const Selector& lhs, const Selector& rhs);
 
 // Convenience functions
 namespace select {
