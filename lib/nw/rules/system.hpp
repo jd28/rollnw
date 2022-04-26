@@ -64,8 +64,7 @@ enum struct SelectorType {
 
 struct Selector {
     SelectorType type;
-    std::optional<Constant> subtype;
-    bool base = false;
+    Constant subtype;
 
     std::optional<int> select(const Creature& cre) const;
 };
@@ -90,7 +89,7 @@ Selector race();
 
 struct Qualifier {
     Selector selector;
-    absl::InlinedVector<int, 8> params;
+    absl::InlinedVector<int, 4> params;
 
     bool match(const Creature& cre) const;
 };

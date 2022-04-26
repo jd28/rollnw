@@ -59,7 +59,7 @@ std::optional<int> Selector::select(const Creature& cre) const
     default:
         return {};
     case SelectorType::ability:
-        return static_cast<int>(cre.stats.abilities[subtype->as_index()]);
+        return static_cast<int>(cre.stats.abilities[subtype.as_index()]);
     case SelectorType::level: {
         int level = 0;
         for (const auto& ce : cre.levels.classes) {
@@ -70,7 +70,7 @@ std::optional<int> Selector::select(const Creature& cre) const
     case SelectorType::race:
         return static_cast<int>(cre.race);
     case SelectorType::skill:
-        return static_cast<int>(cre.stats.skills[subtype->as_index()]);
+        return static_cast<int>(cre.stats.skills[subtype.as_index()]);
     }
 
     return {};
@@ -78,24 +78,24 @@ std::optional<int> Selector::select(const Creature& cre) const
 
 bool operator==(const Selector& lhs, const Selector& rhs)
 {
-    return std::tie(lhs.type, lhs.subtype, lhs.base) == std::tie(rhs.type, rhs.subtype, rhs.base);
+    return std::tie(lhs.type, lhs.subtype) == std::tie(rhs.type, rhs.subtype);
 }
 
 bool operator<(const Selector& lhs, const Selector& rhs)
 {
-    return std::tie(lhs.type, lhs.subtype, lhs.base) < std::tie(rhs.type, rhs.subtype, rhs.base);
+    return std::tie(lhs.type, lhs.subtype) < std::tie(rhs.type, rhs.subtype);
 }
 
 namespace select {
 
 Selector ability(Constant id)
 {
-    return {SelectorType::ability, std::optional<Constant>{id}};
+    return {SelectorType::ability, id};
 }
 
 Selector level()
 {
-    return {SelectorType::level, {}, true};
+    return {SelectorType::level, {}};
 }
 
 Selector skill(Constant id)
@@ -105,7 +105,7 @@ Selector skill(Constant id)
 
 Selector race()
 {
-    return {SelectorType::race, std::optional<Constant>{}};
+    return {SelectorType::race, {}};
 }
 
 } // namespace select
@@ -192,7 +192,7 @@ Requirement::Requirement(std::initializer_list<Qualifier> quals)
 
 void Requirement::add(Qualifier qualifier)
 {
-    qualifiers_.push_back(qualifier);
+    qualifiers_.push_back(std::move(qualifier));
 }
 
 bool Requirement::met(const Creature& cre) const

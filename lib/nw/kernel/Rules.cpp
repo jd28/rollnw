@@ -27,7 +27,7 @@ bool Rules::initialize()
 
 bool Rules::load(bool fail_hard)
 {
-#define TDA_GET_STRREF(name, row, column)           \
+#define TDA_GET_UINT32(name, row, column)           \
     do {                                            \
         if (tda.get_to(row, column, temp_int)) {    \
             name = static_cast<uint32_t>(temp_int); \
@@ -84,8 +84,8 @@ bool Rules::load(bool fail_hard)
             // float temp_float = 0.0f;
 
             if (tda.get_to(0, "label", temp_string)) {
-                TDA_GET_STRREF(info.name, i, "Name");
-                TDA_GET_STRREF(info.description, i, "Description");
+                TDA_GET_UINT32(info.name, i, "Name");
+                TDA_GET_UINT32(info.description, i, "Description");
                 TDA_GET_RES(info.icon, i, "Icon", ResourceType::texture);
                 TDA_GET_BOOL(info.untrained, i, "Untrained");
 

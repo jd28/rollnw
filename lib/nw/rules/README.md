@@ -62,7 +62,7 @@ if(q.match(creature)) {
 
 A `Requirement` is just a set of one or more `Qualifier`s.
 
-Example: Some thing has requirement of level 4, wisdom betwee [12, 20], and a minium appraise skill of
+Example: Some thing a has requirement of level 4, wisdom between [12, 20], and a minimum appraise skill of
 6.
 ```cpp
 auto ability_wisdom = nw::rules().get_constant("ABILITY_WISDOM");

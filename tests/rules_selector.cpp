@@ -18,7 +18,7 @@ TEST_CASE("selectors", "[rules]")
     const auto skill_disc = nw::kernel::rules().get_constant("SKILL_DISCIPLINE");
 
     auto sel1 = nw::select::ability(ability_strength);
-    REQUIRE(sel1.subtype->name.view() == "ABILITY_STRENGTH");
+    REQUIRE(sel1.subtype.name.view() == "ABILITY_STRENGTH");
     REQUIRE(*sel1.select(c) == 40);
 
     auto sel2 = nw::select::ability(ability_con);
@@ -30,8 +30,8 @@ TEST_CASE("selectors", "[rules]")
     auto sel4 = nw::select::skill(skill_disc);
     REQUIRE(sel4.type == nw::SelectorType::skill);
     REQUIRE(sel4.subtype);
-    REQUIRE(sel4.subtype->name.view() == "SKILL_DISCIPLINE");
-    REQUIRE(sel4.subtype->as_index() == 3);
+    REQUIRE(sel4.subtype.name.view() == "SKILL_DISCIPLINE");
+    REQUIRE(sel4.subtype.as_index() == 3);
     REQUIRE(*sel4.select(c) == 40);
 
     nw::kernel::unload_module();
