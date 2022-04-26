@@ -36,3 +36,17 @@ TEST_CASE("selectors", "[rules]")
 
     nw::kernel::unload_module();
 }
+
+TEST_CASE("selector: level", "[rules]")
+{
+    auto mod = nw::kernel::load_module("test_data/user/modules/DockerDemo.mod");
+    REQUIRE(mod);
+
+    nw::GffInputArchive g{"test_data/user/development/pl_agent_001.utc"};
+    nw::Creature c{g.toplevel(), nw::SerializationProfile::blueprint};
+
+    auto sel1 = nw::select::level();
+    REQUIRE(*sel1.select(c) == 40);
+
+    nw::kernel::unload_module();
+}

@@ -80,6 +80,7 @@ Selector ability(Constant id);
 // Selector armor_class(int id, bool base = false);
 // Selector class_level(int id);
 // Selector feat(int id);
+Selector level();
 Selector skill(Constant id);
 Selector race();
 
@@ -97,6 +98,7 @@ struct Qualifier {
 namespace qualifier {
 
 Qualifier ability(Constant id, int min, int max = 0);
+Qualifier level(int min, int max = 0);
 Qualifier race(Constant id);
 Qualifier skill(Constant id, int min, int max = 0);
 

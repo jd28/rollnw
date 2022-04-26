@@ -48,3 +48,20 @@ TEST_CASE("qualifier: race", "[rules]")
 
     nw::kernel::unload_module();
 }
+
+TEST_CASE("qualifier: level", "[rules]")
+{
+    auto mod = nw::kernel::load_module("test_data/user/modules/DockerDemo.mod");
+    REQUIRE(mod);
+
+    nw::GffInputArchive g{"test_data/user/development/pl_agent_001.utc"};
+    nw::Creature c{g.toplevel(), nw::SerializationProfile::blueprint};
+
+    auto qual1 = nw::qualifier::level(0, 1);
+    REQUIRE_FALSE(qual1.match(c));
+
+    auto qual2 = nw::qualifier::level(1);
+    REQUIRE(qual2.match(c));
+
+    nw::kernel::unload_module();
+}

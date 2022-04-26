@@ -58,10 +58,17 @@ std::optional<int> Selector::select(const Creature& cre) const
     switch (type) {
     default:
         return {};
-    case SelectorType::race:
-        return static_cast<int>(cre.race);
     case SelectorType::ability:
         return static_cast<int>(cre.stats.abilities[subtype->as_index()]);
+    case SelectorType::level: {
+        int level = 0;
+        for (const auto& ce : cre.levels.classes) {
+            level += ce.level;
+        }
+        return level;
+    }
+    case SelectorType::race:
+        return static_cast<int>(cre.race);
     case SelectorType::skill:
         return static_cast<int>(cre.stats.skills[subtype->as_index()]);
     }
@@ -86,6 +93,11 @@ Selector ability(Constant id)
     return {SelectorType::ability, std::optional<Constant>{id}};
 }
 
+Selector level()
+{
+    return {SelectorType::level, {}, true};
+}
+
 Selector skill(Constant id)
 {
     return {SelectorType::skill, id};
@@ -108,6 +120,12 @@ bool Qualifier::match(const Creature& cre) const
         switch (selector.type) {
         default:
             return false;
+        case SelectorType::level: {
+            auto min = params[0];
+            auto max = params[1];
+            if (val < min || (max != 0 && val > max)) { return false; }
+            return true;
+        }
         case SelectorType::race: {
             return val == params[0];
         }
@@ -147,6 +165,15 @@ Qualifier skill(Constant id, int min, int max)
 {
     Qualifier q;
     q.selector = select::skill(id);
+    q.params.push_back(min);
+    q.params.push_back(max);
+    return q;
+}
+
+Qualifier level(int min, int max)
+{
+    Qualifier q;
+    q.selector = select::level();
     q.params.push_back(min);
     q.params.push_back(max);
     return q;
