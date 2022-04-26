@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../rules/BaseItem.hpp"
 #include "ObjectBase.hpp"
 #include "components/Common.hpp"
 #include "components/Inventory.hpp"
@@ -10,52 +11,6 @@
 #include <vector>
 
 namespace nw {
-
-enum struct ItemModelType : uint8_t {
-    simple,
-    layered,
-    composite,
-    armor
-};
-
-struct ItemColors {
-    enum type : uint8_t {
-        cloth1 = 0,
-        cloth2 = 1,
-        leather1 = 2,
-        leather2 = 3,
-        metal1 = 4,
-        metal2 = 5,
-    };
-};
-
-struct ItemModelParts {
-    enum type : uint8_t {
-        model1 = 0,
-        model2 = 1,
-        model3 = 2,
-
-        armor_belt = model1,
-        armor_lbicep = model2,
-        armor_lfarm = model3,
-        armor_lfoot = 3,
-        armor_lhand = 4,
-        armor_lshin = 5,
-        armor_lshoul = 6,
-        armor_lthigh = 7,
-        armor_neck = 8,
-        armor_pelvis = 9,
-        armor_rbicep = 10,
-        armor_rfarm = 11,
-        armor_rfoot = 12,
-        armor_rhand = 13,
-        armor_robe = 14,
-        armor_rshin = 15,
-        armor_rshoul = 16,
-        armor_rthigh = 17,
-        armor_torso = 18
-    };
-};
 
 struct ItemProperty {
     uint16_t type = 0;

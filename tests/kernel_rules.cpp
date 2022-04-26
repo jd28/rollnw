@@ -8,7 +8,12 @@ TEST_CASE("rules manager", "[kernel]")
     auto mod = nw::kernel::load_module("test_data/user/modules/DockerDemo.mod");
     REQUIRE(mod);
     REQUIRE(nw::kernel::rules().ability_count() == 6);
+    REQUIRE(nw::kernel::rules().baseitem_count() > 0);
+    REQUIRE(nw::kernel::rules().class_count() > 0);
+    REQUIRE(nw::kernel::rules().feat_count() > 0);
+    REQUIRE(nw::kernel::rules().race_count() > 0);
     REQUIRE(nw::kernel::rules().skill_count() > 0);
+    REQUIRE(nw::kernel::rules().spell_count() > 0);
 
     auto& sk = nw::kernel::rules().skill(0);
     REQUIRE(sk);
