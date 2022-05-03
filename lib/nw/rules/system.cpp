@@ -173,7 +173,13 @@ Qualifier level(int min, int max)
 
 // == Requirement =============================================================
 
-Requirement::Requirement(std::initializer_list<Qualifier> quals)
+Requirement::Requirement(bool conjunction)
+    : conjunction_{conjunction}
+{
+}
+
+Requirement::Requirement(std::initializer_list<Qualifier> quals, bool conjunction)
+    : conjunction_{conjunction}
 {
     for (const auto& q : quals) {
         qualifiers_.push_back(q);
@@ -188,7 +194,11 @@ void Requirement::add(Qualifier qualifier)
 bool Requirement::met(const Creature& cre) const
 {
     for (const auto& q : qualifiers_) {
-        if (!q.match(cre)) { return false; }
+        if (conjunction_) {
+            if (!q.match(cre)) { return false; }
+        } else if (q.match(cre)) {
+            return true;
+        }
     }
     return true;
 }

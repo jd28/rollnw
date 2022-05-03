@@ -32,5 +32,12 @@ TEST_CASE("requirement", "[rules]")
 
     REQUIRE(req2.met(c));
 
+    nw::Requirement req3{{nw::qualifier::ability(ability_con, 15, 20),
+                             nw::qualifier::ability(ability_strength, 0, 20),
+                             nw::qualifier::skill(skill_disc, 35)},
+        false};
+
+    REQUIRE(req3.met(c));
+
     nw::kernel::unload_module();
 }

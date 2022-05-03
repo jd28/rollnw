@@ -37,7 +37,7 @@ auto ability_strength = nw::rules().get_constant("ABILITY_STRENGTH");
 auto s = nw::select::ability(ability_strength);
 // ...
 auto str = s.select(creature);
-if(str && *str > 20) {
+if(str.is<int32_t>() && str.as<int32_t>() > 20) {
     // ...
 }
 ```
@@ -62,20 +62,27 @@ if(q.match(creature)) {
 
 A `Requirement` is just a set of one or more `Qualifier`s.
 
-Example: Some thing a has requirement of level 4, wisdom between [12, 20], and a minimum appraise skill of
-6.
+Example: Some thing a has requirement of level 4, wisdom between [12, 20], and a minimum appraise skill of 6.
+
 ```cpp
 auto ability_wisdom = nw::rules().get_constant("ABILITY_WISDOM");
 auto skill_appraise = nw::rules().get_constant("SKILL_APPRAISE");
 
-auto req = nw::Requirement{
+auto req = nw::Requirement{{
     nw::qualifier::level(4),
     nw::qualifier::ability(ability_wisdom, 12, 20), // Min, Max
     nw::qualifier::skill(skill_appraise, 6),
-};
+}};
 // ...
 if(req.met(creature)) {
     // ...
 }
 ```
 
+By default a `Requirement` uses logical conjunction, to use disjunction pass `false` at construction.
+
+```cpp
+auto req = nw::Requirement{{
+    // Qualifiers ...
+}, false};
+```
