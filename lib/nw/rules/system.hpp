@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../kernel/Strings.hpp"
+#include "../util/Variant.hpp"
 
 #include <absl/container/inlined_vector.h>
 
@@ -14,36 +15,24 @@ namespace nw {
 struct ObjectBase;
 struct Creature;
 
-using RuleVariant = std::variant<int, float, std::string>;
+using RuleBaseVariant = Variant<int32_t, float, std::string>;
 
 // == Constant ================================================================
 
 struct Constant {
+    Constant() = default;
+    Constant(kernel::InternedString name_, RuleBaseVariant value_)
+        : name{name_}
+        , value{std::move(value_)}
+    {
+    }
+
     kernel::InternedString name;
-    RuleVariant value;
+    RuleBaseVariant value;
 
-    /// Convenience function for using a constant as an index into a vector/array.
-    size_t as_index() const;
-
-    /// Gets integer value
-    int as_int() const;
-
-    /// Gets floating point value
-    float as_float() const;
-
-    /// Gets string value
-    const std::string& as_string() const;
-
-    /// Determines if variant is holding an int
-    bool is_int() const noexcept;
-
-    /// Determines if variant is holding an float
-    bool is_float() const noexcept;
-
-    /// Determines if variant is holding a std::string
-    bool is_string() const noexcept;
-
-    operator bool() const noexcept { return !!name; }
+    RuleBaseVariant* operator->() noexcept { return &value; }
+    const RuleBaseVariant* operator->() const noexcept { return &value; }
+    bool empty() const noexcept { return !name; }
 };
 
 bool operator==(const Constant& lhs, const Constant& rhs);
@@ -64,9 +53,9 @@ enum struct SelectorType {
 
 struct Selector {
     SelectorType type;
-    Constant subtype;
+    int subtype;
 
-    std::optional<int> select(const Creature& cre) const;
+    RuleBaseVariant select(const Creature& cre) const;
 };
 
 bool operator==(const Selector& lhs, const Selector& rhs);
@@ -78,7 +67,7 @@ namespace select {
 Selector ability(Constant id);
 // Selector armor_class(int id, bool base = false);
 // Selector class_level(int id);
-// Selector feat(int id);
+Selector feat(Constant id);
 Selector level();
 Selector skill(Constant id);
 Selector race();
@@ -89,7 +78,7 @@ Selector race();
 
 struct Qualifier {
     Selector selector;
-    absl::InlinedVector<int, 4> params;
+    absl::InlinedVector<RuleBaseVariant, 4> params;
 
     bool match(const Creature& cre) const;
 };
@@ -98,6 +87,7 @@ namespace qualifier {
 
 Qualifier ability(Constant id, int min, int max = 0);
 Qualifier level(int min, int max = 0);
+Qualifier feat(Constant id);
 Qualifier race(Constant id);
 Qualifier skill(Constant id, int min, int max = 0);
 

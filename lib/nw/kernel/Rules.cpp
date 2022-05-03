@@ -57,9 +57,9 @@ bool Rules::initialize()
         if (tda.get_to(row, column, temp_string)) { name = Resource{temp_string, type}; } \
     } while (0)
 
-#define TDA_GET_CONSTANT(name, row, column)                                                                         \
-    do {                                                                                                            \
-        if (tda.get_to(row, column, temp_string)) { name = register_constant(temp_string, static_cast<int>(row)); } \
+#define TDA_GET_CONSTANT(name, row, column)                                                                             \
+    do {                                                                                                                \
+        if (tda.get_to(row, column, temp_string)) { name = register_constant(temp_string, static_cast<int32_t>(row)); } \
     } while (0)
 
 #define TDA_GET_STRING(name, row, column)                                            \
@@ -70,10 +70,6 @@ bool Rules::initialize()
 bool Rules::load(bool fail_hard)
 {
     LOG_F(INFO, "kernel: initializing rules system");
-
-    TwoDA tda;
-    std::string temp_string;
-    temp_string.reserve(100);
 
     load_abilities(fail_hard);
     load_skills(fail_hard);
@@ -469,7 +465,7 @@ Constant Rules::get_constant(std::string_view name) const
     absl::string_view v{name.data(), name.size()};
     auto it = constants_.find(v);
     if (it != std::end(constants_)) {
-        return {it->first, it->second};
+        return Constant{it->first, it->second};
     }
 
     return {};
@@ -525,12 +521,12 @@ size_t Rules::race_count() const noexcept
     return race_info_.size();
 }
 
-Constant Rules::register_constant(std::string_view name, int value)
+Constant Rules::register_constant(std::string_view name, RuleBaseVariant value)
 {
     absl::string_view v{name.data(), name.size()};
     auto it = constants_.find(v);
     if (it != std::end(constants_)) {
-        return {it->first, it->second};
+        return Constant{it->first, it->second};
     }
 
     auto intstr = kernel::strings().intern(name);

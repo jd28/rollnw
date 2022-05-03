@@ -18,8 +18,8 @@ A `Constant` is an interned string and an `int`, `float`, or `std::string` value
 It is necessary to check what the `Constant`s type is before accessing its value, i.e.:
 ```cpp
 Constant c = ...;
-if(c.is_int()) {
-    int v = c.as_int();
+if(c->is<int32_t>()) {
+    int v = c->as<int32_t>();
 }
 ```
 

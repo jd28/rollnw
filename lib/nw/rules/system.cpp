@@ -6,41 +6,6 @@ namespace nw {
 
 // == Constant ================================================================
 
-size_t Constant::as_index() const
-{
-    return static_cast<size_t>(std::get<int>(value));
-}
-
-int Constant::as_int() const
-{
-    return std::get<int>(value);
-}
-
-float Constant::as_float() const
-{
-    return std::get<float>(value);
-}
-
-const std::string& Constant::as_string() const
-{
-    return std::get<std::string>(value);
-}
-
-bool Constant::is_int() const noexcept
-{
-    return std::holds_alternative<int>(value);
-}
-
-bool Constant::is_float() const noexcept
-{
-    return std::holds_alternative<float>(value);
-}
-
-bool Constant::is_string() const noexcept
-{
-    return std::holds_alternative<std::string>(value);
-}
-
 bool operator==(const Constant& lhs, const Constant& rhs)
 {
     return std::tie(lhs.name, lhs.value) == std::tie(rhs.name, rhs.value);
@@ -53,13 +18,18 @@ bool operator<(const Constant& lhs, const Constant& rhs)
 
 // == Selector ================================================================
 
-std::optional<int> Selector::select(const Creature& cre) const
+RuleBaseVariant Selector::select(const Creature& cre) const
 {
     switch (type) {
     default:
         return {};
-    case SelectorType::ability:
-        return static_cast<int>(cre.stats.abilities[subtype.as_index()]);
+    case SelectorType::ability: {
+        auto idx = static_cast<size_t>(subtype);
+        return static_cast<int>(cre.stats.abilities[idx]);
+    }
+    case SelectorType::feat: {
+        return cre.stats.has_feat(static_cast<uint16_t>(subtype));
+    }
     case SelectorType::level: {
         int level = 0;
         for (const auto& ce : cre.levels.classes) {
@@ -67,10 +37,13 @@ std::optional<int> Selector::select(const Creature& cre) const
         }
         return level;
     }
-    case SelectorType::race:
+    case SelectorType::race: {
         return static_cast<int>(cre.race);
-    case SelectorType::skill:
-        return static_cast<int>(cre.stats.skills[subtype.as_index()]);
+    }
+    case SelectorType::skill: {
+        auto idx = static_cast<size_t>(subtype);
+        return static_cast<int>(cre.stats.skills[idx]);
+    }
     }
 
     return {};
@@ -90,7 +63,12 @@ namespace select {
 
 Selector ability(Constant id)
 {
-    return {SelectorType::ability, id};
+    return {SelectorType::ability, id->as<int32_t>()};
+}
+
+Selector feat(Constant id)
+{
+    return {SelectorType::feat, id->as<int32_t>()};
 }
 
 Selector level()
@@ -100,7 +78,7 @@ Selector level()
 
 Selector skill(Constant id)
 {
-    return {SelectorType::skill, id};
+    return {SelectorType::skill, id->as<int32_t>()};
 }
 
 Selector race()
@@ -114,25 +92,30 @@ Selector race()
 
 bool Qualifier::match(const Creature& cre) const
 {
-    if (auto value = selector.select(cre)) {
-        int val = *value;
-
+    auto value = selector.select(cre);
+    if (!value.empty()) {
         switch (selector.type) {
         default:
             return false;
         case SelectorType::level: {
-            auto min = params[0];
-            auto max = params[1];
+            auto val = value.as<int32_t>();
+            auto min = params[0].as<int32_t>();
+            auto max = params[1].as<int32_t>();
             if (val < min || (max != 0 && val > max)) { return false; }
             return true;
         }
+        case SelectorType::feat: {
+            return value.is<int32_t>() && value.as<int32_t>();
+        }
         case SelectorType::race: {
-            return val == params[0];
+            auto val = value.as<int32_t>();
+            return val == params[0].as<int32_t>();
         }
         case SelectorType::skill:
         case SelectorType::ability: {
-            auto min = params[0];
-            auto max = params[1];
+            auto val = value.as<int32_t>();
+            auto min = params[0].as<int32_t>();
+            auto max = params[1].as<int32_t>();
             if (val < min) { return false; }
             if (max != 0 && val > max) { return false; }
             return true;
@@ -153,11 +136,18 @@ Qualifier ability(Constant id, int min, int max)
     return q;
 }
 
+Qualifier feat(Constant id)
+{
+    Qualifier q;
+    q.selector = select::feat(id);
+    return q;
+}
+
 Qualifier race(Constant id)
 {
     Qualifier q;
     q.selector = select::race();
-    q.params.push_back(id.as_int());
+    q.params.push_back(id->as<int32_t>());
     return q;
 }
 

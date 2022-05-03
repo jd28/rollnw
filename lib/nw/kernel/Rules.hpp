@@ -86,7 +86,7 @@ struct Rules {
 
     /// Registers constant
     /// @note If constant by name is already registered, it will return that.
-    virtual Constant register_constant(std::string_view name, int value);
+    virtual Constant register_constant(std::string_view name, RuleBaseVariant value);
 
     /// Gets a skill
     const Skill& skill(size_t index);
@@ -109,7 +109,7 @@ private:
     std::vector<Skill> skill_info_;
     std::vector<Spell> spell_info_;
     absl::flat_hash_map<Resource, TwoDA> cached_2das_;
-    absl::flat_hash_map<InternedString, RuleVariant, InternedStringHash, InternedStringEq> constants_;
+    absl::flat_hash_map<InternedString, RuleBaseVariant, InternedStringHash, InternedStringEq> constants_;
 };
 
 } // namespace nw::kernel
