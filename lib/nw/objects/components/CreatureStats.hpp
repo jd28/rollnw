@@ -16,10 +16,16 @@ struct CreatureStats {
     bool to_gff(GffOutputArchiveStruct& archive) const;
     nlohmann::json to_json() const;
 
+    bool add_feat(int32_t feat);
+    const std::vector<uint16_t>& feats() const noexcept;
+    bool has_feat(int32_t feat) const noexcept;
+
     std::array<uint8_t, 6> abilities;
-    std::vector<uint16_t> feats;
     std::vector<uint8_t> skills;
     Saves save_bonus;
+
+private:
+    std::vector<uint16_t> feats_;
 };
 
 } // namespace nw

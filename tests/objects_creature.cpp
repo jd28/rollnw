@@ -27,12 +27,21 @@ TEST_CASE("Loading test_creature", "[objects]")
     REQUIRE(c.scripts.on_attacked == "mon_ai_5attacked");
     REQUIRE(c.appearance.id == 6);
     REQUIRE(c.appearance.body_parts.shin_left == 1);
-    REQUIRE(c.stats.feats.size() == 37);
     REQUIRE(c.soundset == 171);
     REQUIRE(std::get<nw::Resref>(c.equipment.equips[1]) == "dk_agent_thread2");
     REQUIRE(c.combat_info.ac_natural == 0);
     REQUIRE(c.combat_info.special_abilities.size() == 1);
     REQUIRE(c.combat_info.special_abilities[0].spell == 120);
+}
+
+TEST_CASE("creature: add/has/remove_feat", "[objects]")
+{
+    nw::GffInputArchive g{"test_data/user/development/pl_agent_001.utc"};
+    nw::Creature c{g.toplevel(), nw::SerializationProfile::blueprint};
+
+    REQUIRE(c.stats.feats().size() == 37);
+    REQUIRE(c.stats.has_feat(c.stats.feats()[20]));
+    REQUIRE_FALSE(c.stats.add_feat(c.stats.feats()[20]));
 }
 
 TEST_CASE("creature: to_json", "[objects]")

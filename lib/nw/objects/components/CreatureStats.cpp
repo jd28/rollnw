@@ -23,12 +23,12 @@ bool CreatureStats::from_gff(const GffInputArchiveStruct& archive)
 
     auto feat_list = archive["FeatList"];
     size_t sz = feat_list.size();
-    feats.resize(sz);
+    feats_.resize(sz);
     for (size_t i = 0; i < sz; ++i) {
-        feat_list[i].get_to("Feat", feats[i]);
+        feat_list[i].get_to("Feat", feats_[i]);
     }
 
-    std::sort(std::begin(feats), std::end(feats));
+    std::sort(std::begin(feats_), std::end(feats_));
 
     archive.get_to("fortbonus", save_bonus.fort);
     archive.get_to("refbonus", save_bonus.reflex);
@@ -41,7 +41,7 @@ bool CreatureStats::from_json(const nlohmann::json& archive)
 {
     try {
         archive.at("abilities").get_to(abilities);
-        archive.at("feats").get_to(feats);
+        archive.at("feats").get_to(feats_);
         archive.at("skills").get_to(skills);
         archive.at("save_bonus").get_to(save_bonus);
     } catch (const nlohmann::json::exception& e) {
@@ -64,7 +64,7 @@ bool CreatureStats::to_gff(GffOutputArchiveStruct& archive) const
         .add_field("willbonus", save_bonus.will);
 
     auto& ft_list = archive.add_list("FeatList");
-    for (uint16_t ft : feats) {
+    for (uint16_t ft : feats_) {
         ft_list.push_back(1).add_field("Feat", ft);
     }
 
@@ -80,10 +80,37 @@ nlohmann::json CreatureStats::to_json() const
 {
     nlohmann::json j;
     j["abilities"] = abilities;
-    j["feats"] = feats;
+    j["feats"] = feats_;
     j["skills"] = skills;
     j["save_bonus"] = save_bonus;
     return j;
+}
+
+bool CreatureStats::add_feat(int32_t feat)
+{
+    uint16_t ft = static_cast<uint16_t>(feat);
+
+    auto it = std::lower_bound(std::begin(feats_), std::end(feats_), ft);
+    if (it == std::end(feats_)) {
+        feats_.push_back(ft);
+    } else if (*it != ft) {
+        feats_.insert(it, ft);
+        return true;
+    }
+    return false;
+}
+
+const std::vector<uint16_t>& CreatureStats::feats() const noexcept
+{
+    return feats_;
+}
+
+bool CreatureStats::has_feat(int32_t feat) const noexcept
+{
+    uint16_t ft = static_cast<uint16_t>(feat);
+
+    auto it = std::lower_bound(std::begin(feats_), std::end(feats_), ft);
+    return it != std::end(feats_) && *it == ft;
 }
 
 } // namespace nw
