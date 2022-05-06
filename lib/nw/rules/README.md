@@ -1,10 +1,31 @@
 # Rules
 
-The `Rules` module presents some difficulties in the sense that if one was to sit down and design a system for rules capable of expressing relatively arbitrary sets of rules and modifiers, it would not look much like NWN(:EE).
+The `Rules` module presents some difficulties in the sense that if one was to sit down and design a system capable of expressing relatively arbitrary sets of rules and modifiers, it probably would not look much like NWN.  Enhanced Edition's approach largely was to unhardcode *values*, but not systems[^1].
 
-Warnings:
+### An Historical Example of a Rule Problem
+
+- In NWN1 weapon feats (Weapon Focus, etc) were all hardcoded.  New weapon baseitem types could be added but were not fully functional
+- Acaos created a [nwnx2](https://github.com/NWNX/nwnx2-linux) plugin, nwnx_weapons, which allowed programmatically setting weapon feats for abitrary baseitems and some custom feats specific to Higher Ground.
+- While the above solution was good, why not [rewrite the whole thing in Lua](https://github.com/jd28/Solstice/blob/develop/src/solstice/rules/weapons.lua) and let people do whatever it is they please.
+- The Community Patch Project later took a configuration approach to the problem adding new columns to `baseitems.2da` for each default weapon feat.
+- NWN:EE is released and its Techincal Director disregarded all the above.  So, someone implemented an [NWNX:EE](https://github.com/nwnxee/unified) plugin, Weapon, which took a programmatic approach but limited only default weapon feats[^2].
+- Years on NWN:EE adopted the Community Patch Project approach.
+
+What does this bit of boring history lead to?  The goals.
+
+### Goals
+
+- Rules must be overrideable, expandable, removable either through configuration (2da) or at the very least programmitically.  Nothing should be hardcoded.
+- The rules system must be queryable.  Example: Given one creature attacking one chair in one bar of Chicago, what are all the modifiers that affect this particular situation?
+
+### Warnings
 * This is massively incomplete
 * This only operational at the most base level, it takes in to account no modifiers.
+
+[^1]: There are some exceptions, parts of the custom spellcaster system.
+[^2]: No offense to the author of this plugin, it's hard to understate what a gigantic step backward NWNX:EE was at release.
+
+-----------
 
 ## System
 

@@ -16,11 +16,11 @@ And know the place for the first time.
    --T.S. Eliot, Little Gidding, The Four Quartets.
 ```
 
-libnw is a simple modern static C++ library for Neverwinter Nights(:EE) file formats and objects, that
+libnw is a simple modern static C++ library for Neverwinter Nights (and some Enhanced Edition) file formats and objects, that
 
 * focuses on usage, above all.  Most of NWN's file formats are incredibly simple, a library implementing them should be no different.
 * focuses on live objects, not serialized formats.  Converting NWN(:EE) file formats to textual representations or modifying serialized formats (e,g. GFF) in situ are well handled by other tools/libraries.
-* follows the principles of [utf8 everywhere](https://utf8everywhere.org/).  This is aspirational and a huge can of worms.  Currently, here, to help facilitate this goal color codes are sanitized to \<cXXXXXX\>, where XX is hexidecimal.
+* follows the principles of [utf8 everywhere](https://utf8everywhere.org/).  Currently, here, to help facilitate this goal color codes are sanitized to \<cXXXXXX\>, where XX is hexidecimal.
 * hews as close to [C++ Core Guidelines](https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines) as possible.
 * aims to be as easily bindable as possible to other languages.  I.e. only custom or STL types at API boundaries.
 
