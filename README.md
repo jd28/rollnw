@@ -18,15 +18,17 @@ And know the place for the first time.
 
 libnw is a simple modern static C++ library for Neverwinter Nights (and some Enhanced Edition) file formats and objects, that
 
-* focuses on usage, above all.  Most of NWN's file formats are incredibly simple, a library implementing them should be no different.
-* focuses on live objects, not serialized formats.  Converting NWN(:EE) file formats to textual representations or modifying serialized formats (e,g. GFF) in situ are well handled by other tools/libraries.
-* follows the principles of [utf8 everywhere](https://utf8everywhere.org/).  Currently, here, to help facilitate this goal color codes are sanitized to \<cXXXXXX\>, where XX is hexidecimal.
-* hews as close to [C++ Core Guidelines](https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines) as possible.
-* aims to be as easily bindable as possible to other languages.  I.e. only custom or STL types at API boundaries.
+- aims to implement an RPG engine inspired by NWN, excluding graphics and networking.
+- focuses on usage, instead doing things the Aurora Engine Way.
+- follows [utf8 everywhere](https://utf8everywhere.org/).
+- hews as close to [C++ Core Guidelines](https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines) as possible.
+- aims to be as easily bindable as possible to other languages.  I.e. only custom or STL types at API boundaries.
+
+The library will be renamed as there was already an Open Knights project named [libnw](https://sourceforge.net/projects/openknights/files/libnw/).
 
 ## Project Structure
 
-The library is organized around modules (that will be converted to [C++ Modules](https://docs.microsoft.com/en-us/cpp/cpp/modules-cpp?view=msvc-170) when implementations of C++20 become more common):
+The library is organized around modules (that will be converted to [C++ Modules](https://en.cppreference.com/w/cpp/language/modules) when implementations of C++20 become more common):
 
 * [formats](lib/nw/formats/README.md) - Implementations of basic NWN(:EE) file formats.  E.g, Images, Ini, TwoDA, a nwscript lexer and (very basic) recursive decent parser.
 * [i18n](lib/nw/i18n/README.md) - Internationalization and localization functionality, conversions between default NWN(:EE) character encodings and UTF-8, implementation of Bioware's **TLK v3.0** file format.
