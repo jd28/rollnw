@@ -8,7 +8,7 @@ The `Rules` module presents some difficulties in the sense that if one was to si
 - Acaos created a [nwnx2](https://github.com/NWNX/nwnx2-linux) plugin, nwnx_weapons, which allowed programmatically setting weapon feats for abitrary baseitems and some custom feats specific to Higher Ground.
 - While the above solution was good, why not [rewrite the whole thing in Lua](https://github.com/jd28/Solstice/blob/develop/src/solstice/rules/weapons.lua) and let people do whatever it is they please.
 - The Community Patch Project later took a configuration approach to the problem adding new columns to `baseitems.2da` for each default weapon feat.
-- NWN:EE is released and its Techincal Director disregarded all the above.  So, someone implemented an [NWNX:EE](https://github.com/nwnxee/unified) plugin, Weapon, which took a programmatic approach but limited only default weapon feats[^2].
+- NWN:EE is released and its Techincal Director disregarded all the above.  So, someone implemented an [NWNX:EE](https://github.com/nwnxee/unified) plugin, Weapon, which took a programmatic approach but limited only default weapon feats.
 - Years on NWN:EE adopted the Community Patch Project approach.
 
 What does this bit of boring history lead to?  The goals.
@@ -23,7 +23,6 @@ What does this bit of boring history lead to?  The goals.
 * This only operational at the most base level, it takes in to account no modifiers.
 
 [^1]: There are some exceptions, parts of the custom spellcaster system.
-[^2]: No offense to the author of this plugin, it's hard to understate what a gigantic step backward NWNX:EE was at release.
 
 -----------
 

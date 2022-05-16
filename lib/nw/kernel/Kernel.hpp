@@ -1,11 +1,14 @@
 #pragma once
 
+#include "../rules/RuleProfile.hpp"
 #include "../util/game_install.hpp"
 #include "Config.hpp"
 #include "Objects.hpp"
 #include "Resources.hpp"
 #include "Rules.hpp"
 #include "Strings.hpp"
+
+#include <flecs/flecs.h>
 
 #include <memory>
 
@@ -36,12 +39,14 @@ struct Services {
     friend Resources& resman();
     friend Rules& rules();
     friend Strings& strings();
+    friend flecs::world& world();
 
 private:
     std::unique_ptr<Objects> objects_;
     std::unique_ptr<Resources> resources_;
     std::unique_ptr<Rules> rules_;
     std::unique_ptr<Strings> strings_;
+    flecs::world world_;
 
     bool started_;
 };
@@ -57,8 +62,12 @@ Objects& objects();
 Resources& resman();
 Rules& rules();
 Strings& strings();
+flecs::world& world();
 
-Module* load_module(const std::filesystem::path& path, std::string_view manifest = {});
+Module* load_module(const RuleProfile* profile,
+    const std::filesystem::path& path,
+    std::string_view manifest = {});
+
 void unload_module();
 
 } // namespace nw::kernel

@@ -1,4 +1,6 @@
 add_library(nw-rules STATIC
+    BaseItem.cpp
+    Constant.cpp
     system.cpp
 )
 

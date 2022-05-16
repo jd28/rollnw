@@ -4,18 +4,6 @@
 
 namespace nw {
 
-// == Constant ================================================================
-
-bool operator==(const Constant& lhs, const Constant& rhs)
-{
-    return std::tie(lhs.name, lhs.value) == std::tie(rhs.name, rhs.value);
-}
-
-bool operator<(const Constant& lhs, const Constant& rhs)
-{
-    return std::tie(lhs.name, lhs.value) < std::tie(rhs.name, rhs.value);
-}
-
 // == Selector ================================================================
 
 RuleBaseVariant Selector::select(const Creature& cre) const

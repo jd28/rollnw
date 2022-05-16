@@ -1,9 +1,13 @@
 #pragma once
 
 #include "../resources/Resource.hpp"
+#include "system.hpp"
+
+#include <absl/container/inlined_vector.h>
 
 #include <cstdint>
 #include <utility>
+#include <vector>
 
 namespace nw {
 
@@ -62,21 +66,20 @@ struct BaseItem {
     // ItemClass
     bool gender_specific = false;
     std::tuple<bool, bool, bool> composite_env_map;
-    // Part1EnvMap, Part2EnvMap, Part3EnvMap
     Resource default_model;
     std::string default_icon;
     bool is_container = false;
     // WeaponWield
     // WeaponType
     // WeaponSize
-    bool ranged = false; // RangedWeapon
+    bool ranged = false;
     // PrefAttackDist
     // MinRange
     // MaxRange
     // NumDice
     // DieToRoll
-    // CritThreat
-    // CritHitMult
+    int crit_threat = 0;
+    int crit_multiplier = 0;
     // Category
     // BaseCost
     // Stacking
@@ -87,7 +90,7 @@ struct BaseItem {
     // MinProps
     // PropColumn
     // StorePanel
-    // ReqFeat0, ReqFeat1, ReqFeat2, ReqFeat3, ReqFeat4
+    Requirement feat_requirement{{}, false};
     // AC_Enchant
     // BaseAC
     // ArmorCheckPen
@@ -104,16 +107,18 @@ struct BaseItem {
     // %AnimSlashS
     // StorePanelSort
     // ILRStackSize
-    // WeaponFocusFeat
-    // EpicWeaponFocusFeat
-    // WeaponSpecializationFeat
-    // EpicWeaponSpecializationFeat
-    // WeaponImprovedCriticalFeat
-    // EpicWeaponOverwhelmingCriticalFeat
-    // EpicWeaponDevastatingCriticalFeat
-    // WeaponOfChoiceFeat
+
+    // Don't care what these feats represent, could be Weapon Focus, could be Dev Crit, etc.
+    // How they actually affect combat will be dealt with by their Master Feats in a different
+    // part of the rules system.
+    absl::InlinedVector<int, 8> weapon_modifiers_feats;
+
     bool is_monk_weapon = false;
     // WeaponFinesseMinimumCreatureSize
+};
+
+struct BaseItemArray {
+    std::vector<BaseItem> baseitems;
 };
 
 } // namespace nw

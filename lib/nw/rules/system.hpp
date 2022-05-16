@@ -2,6 +2,7 @@
 
 #include "../kernel/Strings.hpp"
 #include "../util/Variant.hpp"
+#include "Constant.hpp"
 
 #include <absl/container/inlined_vector.h>
 
@@ -16,27 +17,6 @@ struct ObjectBase;
 struct Creature;
 
 using RuleBaseVariant = Variant<int32_t, float, std::string>;
-
-// == Constant ================================================================
-
-struct Constant {
-    Constant() = default;
-    Constant(kernel::InternedString name_, RuleBaseVariant value_)
-        : name{name_}
-        , value{std::move(value_)}
-    {
-    }
-
-    kernel::InternedString name;
-    RuleBaseVariant value;
-
-    RuleBaseVariant* operator->() noexcept { return &value; }
-    const RuleBaseVariant* operator->() const noexcept { return &value; }
-    bool empty() const noexcept { return !name; }
-};
-
-bool operator==(const Constant& lhs, const Constant& rhs);
-bool operator<(const Constant& lhs, const Constant& rhs);
 
 // == Selector ================================================================
 

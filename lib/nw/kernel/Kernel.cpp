@@ -10,9 +10,7 @@ void Services::provide(Objects* objects)
     if (started_) {
         LOG_F(ERROR, "Services are unable to be provided after start");
         return;
-    }
-
-    if (objects_) {
+    } else if (objects_) {
         LOG_F(WARNING, "Objects service already loaded, overriding...");
     }
     objects_ = std::unique_ptr<Objects>(objects);
@@ -23,9 +21,7 @@ void Services::provide(Resources* resources)
     if (started_) {
         LOG_F(ERROR, "Services are unable to be provided after start");
         return;
-    }
-
-    if (resources_) {
+    } else if (resources_) {
         LOG_F(WARNING, "Objects service already loaded, overriding...");
     }
     resources_ = std::unique_ptr<Resources>(resources);
@@ -36,11 +32,10 @@ void Services::provide(Rules* rules)
     if (started_) {
         LOG_F(ERROR, "Services are unable to be provided after start");
         return;
-    }
-
-    if (rules_) {
+    } else if (rules_) {
         LOG_F(WARNING, "Rules service already loaded, overriding...");
     }
+
     rules_ = std::unique_ptr<Rules>(rules);
 }
 
@@ -111,17 +106,27 @@ Objects& objects() { return *detail::s_services.objects_.get(); }
 Resources& resman() { return *detail::s_services.resources_.get(); }
 Rules& rules() { return *detail::s_services.rules_.get(); }
 Strings& strings() { return *detail::s_services.strings_.get(); }
+flecs::world& world() { return detail::s_services.world_; }
 
-Module* load_module(const std::filesystem::path& path, std::string_view manifest)
+Module* load_module(const RuleProfile* profile,
+    const std::filesystem::path& path,
+    std::string_view manifest)
 {
+    world().add<ConstantRegistry>();
+
     if (!services().started()) { services().start(); }
+
+    if (!profile) { return nullptr; }
+
+    if (!profile->load_constants()) return nullptr;
+    profile->load_compontents();
 
     resman().load_module(path, manifest);
     auto mod = objects().initialize_module();
     if (mod) {
         mod->instantiate();
     }
-    rules().load();
+    rules().load(profile);
 
     return mod;
 }
@@ -132,6 +137,8 @@ void unload_module()
     objects().clear();
     resman().unload_module();
     strings().unload_custom_tlk();
+
+    world().get_mut<ConstantRegistry>()->clear();
 }
 
 } // namespace nw::kernel

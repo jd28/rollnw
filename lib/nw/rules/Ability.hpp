@@ -1,9 +1,8 @@
 #pragma once
 
-#include "system.hpp"
+#include "Constant.hpp"
 
-#include <array>
-#include <initializer_list>
+#include <vector>
 
 namespace nw {
 
@@ -12,6 +11,10 @@ namespace nw {
 struct Ability {
     uint32_t name = 0xFFFFFFFF;
     Constant constant;
+};
+
+struct AbilityArray {
+    std::vector<Ability> abiliites;
 };
 
 } // namespace nw

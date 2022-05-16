@@ -6,6 +6,7 @@ namespace nw {
 
 // Ignored 2da columns: Category, MaxCR
 
+/// Skill definition
 struct Skill {
     uint32_t name = 0xFFFFFFFF;
     uint32_t description;
@@ -18,6 +19,11 @@ struct Skill {
     bool hostile = false;
 
     operator bool() const noexcept { return name != 0xFFFFFFFF; }
+};
+
+/// Singleton Component for Skils
+struct SkillArray {
+    std::vector<Skill> skills;
 };
 
 } // namespace nw

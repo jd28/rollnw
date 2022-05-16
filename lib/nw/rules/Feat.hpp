@@ -1,13 +1,14 @@
 #pragma once
 
 #include "../resources/Resource.hpp"
-#include "system.hpp"
+#include "Constant.hpp"
 
 #include <cstdint>
 #include <limits>
 
 namespace nw {
 
+/// Feat definition
 struct Feat {
     uint32_t name = 0xFFFFFFFF;
     uint32_t description = 0xFFFFFFFF;
@@ -29,15 +30,18 @@ struct Feat {
 
     Requirement requirements;
 
-    operator bool() const noexcept { return name != 0xFFFFFFFF; }
+    bool valid() const noexcept { return name != 0xFFFFFFFF; }
+};
+
+/// Feat Singleton Component
+struct FeatArray {
+    std::vector<Feat> feats;
 };
 
 // Not Implemented Yet
 // - MINATTACKBONUS
-// - MINSTR, MINDEX, MININT, MINWIS, MINCON, MINCHA
 // - MINSPELLLVL
 // - PREREQFEAT1, PREREQFEAT2
-// - MinLevel
 // - MinLevelClass
 // - MinFortSave
 // - OrReqFeat0, OrReqFeat1, OrReqFeat2, OrReqFeat3, OrReqFeat4

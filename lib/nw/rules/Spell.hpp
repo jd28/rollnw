@@ -59,4 +59,8 @@ struct Spell {
     operator bool() const noexcept { return name != 0xFFFFFFFF; }
 };
 
+struct SpellArray {
+    std::vector<Spell> spells;
+};
+
 } // namespace nw

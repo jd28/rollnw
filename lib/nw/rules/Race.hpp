@@ -1,11 +1,13 @@
 #pragma once
 
 #include "../resources/Resource.hpp"
-#include "system.hpp"
+#include "Constant.hpp"
+
 #include <cstdint>
 
 namespace nw {
 
+/// Race definition
 struct Race {
     uint32_t name = 0xFFFFFFFF;
     uint32_t name_conversation = 0xFFFFFFFF;
@@ -32,6 +34,11 @@ struct Race {
     int skillpoints_ability = 0;
 
     operator bool() const noexcept { return name != 0xFFFFFFFF; }
+};
+
+/// Race singleton component
+struct RaceArray {
+    std::vector<Race> races;
 };
 
 // Not Implemented Yet

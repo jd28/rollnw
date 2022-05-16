@@ -57,6 +57,10 @@ struct Class {
     operator bool() const noexcept { return name != 0xFFFFFFFF; }
 };
 
+struct ClassArray {
+    std::vector<Class> classes;
+};
+
 // Unimplemented
 // - Str, Dex, Con, Wis, Int, Cha
 // - EffCRLvl01-20
