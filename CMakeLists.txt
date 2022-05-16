@@ -48,6 +48,7 @@ else()
 endif()
 
 include_directories(external)
+add_subdirectory(external/flecs)
 add_subdirectory(external/inih)
 add_subdirectory(external/stb)
 add_subdirectory(lib/nw)

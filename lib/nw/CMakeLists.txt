@@ -30,6 +30,7 @@ target_link_libraries(nw-libraries INTERFACE
 
     stb_image
     inih
+    flecs
 
     coverage_config
 )
