@@ -1,6 +1,5 @@
 #pragma once
 
-#include "../rules/RuleProfile.hpp"
 #include "../util/game_install.hpp"
 #include "Config.hpp"
 #include "Objects.hpp"
@@ -12,20 +11,28 @@
 
 #include <memory>
 
-namespace nw::kernel {
+namespace nw {
+
+struct GameProfile;
+
+namespace kernel {
 
 struct Services {
-    Services() = default;
+    Services();
     Services(const Services&) = delete;
     Services(Services&&) = delete;
     Services& operator=(const Services&) = delete;
     Services& operator=(Services&&) = delete;
+    ~Services();
 
     /// Provide global service
     void provide(Objects* objects);
     void provide(Resources* resources);
     void provide(Rules* rules);
     void provide(Strings* strings);
+
+    // Sets game profile
+    void set_profile(const GameProfile* profile);
 
     /// Shutdown all services
     void shutdown();
@@ -47,6 +54,7 @@ private:
     std::unique_ptr<Rules> rules_;
     std::unique_ptr<Strings> strings_;
     flecs::world world_;
+    std::unique_ptr<const GameProfile> profile_;
 
     bool started_;
 };
@@ -64,10 +72,19 @@ Rules& rules();
 Strings& strings();
 flecs::world& world();
 
-Module* load_module(const RuleProfile* profile,
+/**
+ * @brief
+ *
+ * @param profile
+ * @param path
+ * @param manifest
+ * @return `nullptr` on error
+ */
+Module* load_module(const GameProfile* profile,
     const std::filesystem::path& path,
     std::string_view manifest = {});
 
 void unload_module();
 
-} // namespace nw::kernel
+} // namespace kernel
+} // namespace nw

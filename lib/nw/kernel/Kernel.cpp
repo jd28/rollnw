@@ -2,8 +2,12 @@
 
 #include "../log.hpp"
 #include "../objects/Module.hpp"
+#include "../profiles/GameProfile.hpp"
 
 namespace nw::kernel {
+
+Services::Services() { }
+Services::~Services() { }
 
 void Services::provide(Objects* objects)
 {
@@ -50,6 +54,11 @@ void Services::provide(Strings* strings)
         LOG_F(WARNING, "Strings service already loaded, overriding...");
     }
     strings_ = std::unique_ptr<Strings>(strings);
+}
+
+void Services::set_profile(const GameProfile* profile)
+{
+    profile_.reset(profile);
 }
 
 void Services::shutdown()
@@ -108,7 +117,7 @@ Rules& rules() { return *detail::s_services.rules_.get(); }
 Strings& strings() { return *detail::s_services.strings_.get(); }
 flecs::world& world() { return detail::s_services.world_; }
 
-Module* load_module(const RuleProfile* profile,
+Module* load_module(const GameProfile* profile,
     const std::filesystem::path& path,
     std::string_view manifest)
 {
@@ -117,16 +126,18 @@ Module* load_module(const RuleProfile* profile,
     if (!services().started()) { services().start(); }
 
     if (!profile) { return nullptr; }
+    services().set_profile(profile);
 
     if (!profile->load_constants()) return nullptr;
     profile->load_compontents();
+    profile->load_rules();
 
     resman().load_module(path, manifest);
     auto mod = objects().initialize_module();
     if (mod) {
         mod->instantiate();
     }
-    rules().load(profile);
+    rules().load();
 
     return mod;
 }
@@ -138,7 +149,7 @@ void unload_module()
     resman().unload_module();
     strings().unload_custom_tlk();
 
-    world().get_mut<ConstantRegistry>()->clear();
+    world() = flecs::world();
 }
 
 } // namespace nw::kernel

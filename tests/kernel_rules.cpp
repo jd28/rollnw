@@ -1,7 +1,7 @@
 #include <catch2/catch.hpp>
 
 #include <nw/kernel/Kernel.hpp>
-#include <nw/profiles/nwn1/RuleProfile.hpp>
+#include <nw/profiles/nwn1/Profile.hpp>
 #include <nw/rules/Ability.hpp>
 #include <nw/rules/BaseItem.hpp>
 #include <nw/rules/Class.hpp>
