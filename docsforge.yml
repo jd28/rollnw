@@ -51,7 +51,6 @@ autodocSettings:
 additionalSettings:
   autolink: true
   autolink_exclude: []
-  wiki_repo_path: false
   markdown_commonmark_gfm: true
   markdown_tabs: false
   markdown_math: false
