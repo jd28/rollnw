@@ -2,6 +2,7 @@
 
 namespace nw {
 
+/// Abstract base class for game profiles
 struct GameProfile {
     virtual ~GameProfile() = default;
 

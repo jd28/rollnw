@@ -7,6 +7,17 @@
 
 namespace nw {
 
+/**
+ * @brief Image Resource
+ *
+ * Read/Write Support:
+ * - jpg, png, dds, tga (thanks to stb_image and SOIL)
+ * - Bioware dds (thanks to NWNExplorer)
+ *
+ * @note Even though this supports writing images, this is **catagorically**
+ *       not a tool for converting/compressing textures.
+ * @todo plt
+ */
 struct Image {
     explicit Image(const std::filesystem::path& filename);
     explicit Image(ByteArray bytes, bool is_dds = false);
@@ -32,12 +43,7 @@ struct Image {
     /// Get width
     uint32_t width() const noexcept;
 
-    /**
-     * @brief Write Image to file
-     *
-     * @note This included for utility purposes.  There is no goal of it being a worthwhile
-     *       image conversion library.
-     */
+    /// Write Image to file
     bool write_to(const std::filesystem::path& filename) const;
 
 private:

@@ -1,0 +1,60 @@
+sidebar:
+  Basic Tutorial:
+  - Getting Started: README.md
+  - License: LICENSE
+  Project Structure:
+  - formats:
+    - README: docs/structure/formats.md
+  - i18n:
+    - README: docs/structure/i18n.md
+  - kernel:
+    - README: docs/structure/kernel.md
+  - objects:
+    - README: docs/structure/objects.md
+  - profiles:
+    - README: docs/structure/profiles.md
+  - resources:
+    - README: docs/structure/resources.md
+  - rules:
+    - README: docs/structure/rules.md
+  - serialization:
+    - README: docs/structure/serialization.md
+  - util:
+    - README: docs/structure/util.md
+autodocSettings:
+  Public API:
+    language: cpp
+    INPUT: lib/nw
+    EXCLUDE: test tests examples
+    EXCLUDE_PATTERNS: '*/tests/* */test/*'
+    includeApi: []
+    excludeApi: []
+    documentSingleUnderscore: true
+    documentStatic: true
+    documentProtected: true
+    extractNonDocComments: false
+    extract_namespace_comments: true
+    sort_by_type: true
+    sort_alphabetically: true
+    separate_defines: false
+    star_mentioned: true
+    star_list: []
+    ENABLE_PREPROCESSING: 'YES'
+    MACRO_EXPANSION: 'NO'
+    EXPAND_ONLY_PREDEF: 'NO'
+    PREDEFINED: ''
+    SEARCH_INCLUDES: 'YES'
+    INCLUDE_PATH: ''
+    INCLUDE_FILE_PATTERNS: ''
+    ALIASES: ''
+    EXAMPLE_PATH: ''
+additionalSettings:
+  autolink: true
+  autolink_exclude: []
+  wiki_repo_path: false
+  markdown_commonmark_gfm: true
+  markdown_tabs: false
+  markdown_math: false
+  markdown_tasklist: true
+  markdown_emoji: true
+  markdown_fenced_code_tabs: true

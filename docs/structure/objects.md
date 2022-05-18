@@ -1,4 +1,4 @@
-# libnw - Objects
+# Objects
 
 The first phase of Objects is essentially NWN toolset like structures. No information hiding, no getters/setters and the like.  Future phases may include simulation, etc.  The main goal is transparent initialization of objects from Gff or libnw's JSON format.
 

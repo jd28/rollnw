@@ -1,4 +1,4 @@
-# libnw - File Formats
+# File Formats
 
 One thing that makes NWN(:EE) so great is that it's a local optima of power and simplicity.  It's file formats are no different many of them -- at the reader level -- can be implemented as a thin wrapper over a handful of casts.
 

@@ -106,3 +106,12 @@ auto req = nw::Requirement{{
     // Qualifiers ...
 }, false};
 ```
+
+### **Modifier**
+
+A `Modifier` is a `Selector`, an optional `Requirement`
+
+```cpp
+auto m = nw::modifier::ac(AC_DODGE,
+    { nw::select::skill(SKILL_TUMBLE), 5, nw::Operator::div });
+```
