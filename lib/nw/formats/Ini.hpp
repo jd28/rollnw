@@ -13,16 +13,38 @@
 
 namespace nw {
 
+/**
+ * @brief Ini file format parser
+ *
+ * Lookup is by "<section>/<key>"
+ *
+ * @note This is read only currently.
+ */
 struct Ini {
     Ini() = default;
     explicit Ini(const std::filesystem::path& filename);
     explicit Ini(ByteArray bytes);
 
+    /**
+     * @brief Gets a value
+     *
+     * @tparam T `int32_t`, `float`, or `std::string`
+     * @param key
+     * @return std::optional<T>
+     */
     template <typename T>
     std::optional<T> get(std::string key) const;
+
+    /// Gets string value
     bool get_to(std::string key, std::string& out) const;
+
+    /// Gets int value
     bool get_to(std::string key, int& out) const;
+
+    /// Gets float value
     bool get_to(std::string key, float& out) const;
+
+    /// Deterimes if Ini file was successfully parsed
     bool valid() const noexcept;
 
 private:

@@ -22,24 +22,15 @@ libnw is a simple modern static C++ library for Neverwinter Nights (and some Enh
 - focuses on usage, instead doing things the Aurora Engine Way.
 - follows [utf8 everywhere](https://utf8everywhere.org/).
 - hews as close to [C++ Core Guidelines](https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines) as possible.
-- aims to be as easily bindable as possible to other languages.  I.e. only custom or STL types at API boundaries.
+- aims to be as easily bindable as possible to other languages.  I.e. only library specific or STL types at API boundaries.
 
 The library will be renamed as there was already an Open Knights project named [libnw](https://sourceforge.net/projects/openknights/files/libnw/).
 
-## Project Structure
+## Current Project
 
-The library is organized around modules (that will be converted to [C++ Modules](https://en.cppreference.com/w/cpp/language/modules) when implementations of C++20 become more common):
+Convert objects and systems to [flecs](https://github.com/SanderMertens/flecs).  This will allow decoupling everything a lot simpler.  Currently entities only have one component, their old Object.
 
-* [formats](lib/nw/formats/README.md) - Implementations of basic NWN(:EE) file formats.  E.g, Images, Ini, TwoDA, a nwscript lexer and (very basic) recursive decent parser.
-* [i18n](lib/nw/i18n/README.md) - Internationalization and localization functionality, conversions between default NWN(:EE) character encodings and UTF-8, implementation of Bioware's **TLK v3.0** file format.
-* [kernel](lib/nw/kernel/README.md) - Core services, global state.
-* [objects](lib/nw/objects/README.md) - Object types.  I.e. Creature, Door, Encounter, etc.
-* [resources](lib/nw/resources/README.md) - Resource loading
-* [rules](lib/nw/rules/README.md) - Rules related classes and functions.
-* [serialization](lib/nw/serialization/README.md) - Serializing to/from Gff, JSON, GFFJSON, etc.
-* [util](lib/nw/util/README.md) - Basic utilities and functions, compression, tokenizing.
-
-## Quickstart
+## Quickstart - Open VS Code in your Browswer
 
 [![Open in Gitpod](https://gitpod.io/button/open-in-gitpod.svg)](https://gitpod.io/#https://github.com/jd28/libnw)
 
@@ -70,8 +61,6 @@ A lot of what's here was written in the 2011-2015 range as part of personal mini
 ## General Warning
 
 This library is a work-in-progress.  There will be serious refactorings and until there is a real release, it should be assumed the library is in flux.
-
-There is no documentation besides the source itself, unless something is found that isn't a javadoc-esque thing, that's likely how it will remain.
 
 If you've somehow found your way here by accident, you should head to [neverwinter.nim](https://github.com/niv/neverwinter.nim), those are the official tools of NWN:EE and can handle basic workflows out of the box.
 
