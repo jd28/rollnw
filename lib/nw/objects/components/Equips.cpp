@@ -11,7 +11,7 @@ bool Equips::instantiate()
 {
     for (auto& e : equips) {
         if (std::holds_alternative<Resref>(e) && std::get<Resref>(e).length()) {
-            auto temp = nw::kernel::objects().load_as<Item>(std::get<Resref>(e).view());
+            auto temp = nw::kernel::objects().make(std::get<Resref>(e).view(), ObjectType::item);
             if (temp) {
                 e = temp;
             } else {
@@ -40,7 +40,7 @@ bool Equips::from_gff(const GffInputArchiveStruct& archive, SerializationProfile
             st.get_to("EquippedRes", r);
             equips[idx] = r;
         } else {
-            equips[idx] = nw::kernel::objects().load_from_archive_as<Item>(st, profile);
+            equips[idx] = nw::kernel::objects().make(ObjectType::item, st, profile);
         }
     }
     return true;
@@ -55,7 +55,7 @@ bool Equips::from_json(const nlohmann::json& archive, SerializationProfile profi
                 if (profile == SerializationProfile::blueprint) {
                     equips[i] = archive.at(lookup).get<Resref>();
                 } else {
-                    equips[i] = nw::kernel::objects().load_from_archive_as<Item>(archive.at(lookup), profile);
+                    equips[i] = nw::kernel::objects().make(ObjectType::item, archive.at(lookup), profile);
                 }
             }
         }
@@ -78,12 +78,12 @@ bool Equips::to_gff(GffOutputArchiveStruct& archive, SerializationProfile profil
                 if (r.length()) {
                     list.push_back(struct_id).add_field("EquippedRes", r);
                 }
-            } else if (std::get<Item*>(equip)) {
+            } else if (std::get<flecs::entity>(equip)) {
                 list.push_back(struct_id).add_field("EquippedRes",
-                    std::get<Item*>(equip)->common()->resref);
+                    std::get<flecs::entity>(equip).get<Item>()->common()->resref);
             }
-        } else if (std::holds_alternative<Item*>(equip) && std::get<Item*>(equip)) {
-            std::get<Item*>(equip)->to_gff(list.push_back(struct_id), profile);
+        } else if (std::holds_alternative<flecs::entity>(equip) && std::get<flecs::entity>(equip)) {
+            std::get<flecs::entity>(equip).get<Item>()->to_gff(list.push_back(struct_id), profile);
         }
         ++i;
     }
@@ -101,12 +101,12 @@ nlohmann::json Equips::to_json(SerializationProfile profile) const
             if (std::holds_alternative<Resref>(equips[i])) {
                 const auto& r = std::get<Resref>(equips[i]);
                 if (r.length()) { j[lookup] = r; }
-            } else if (std::get<Item*>(equips[i])) {
-                j[lookup] = std::get<Item*>(equips[i])->common()->resref;
+            } else if (std::get<flecs::entity>(equips[i])) {
+                j[lookup] = std::get<flecs::entity>(equips[i]).get<Item>()->common()->resref;
             }
         } else {
-            if (std::holds_alternative<Item*>(equips[i]) && std::get<Item*>(equips[i])) {
-                j[lookup] = std::get<Item*>(equips[i])->to_json(profile);
+            if (std::holds_alternative<flecs::entity>(equips[i]) && std::get<flecs::entity>(equips[i])) {
+                j[lookup] = std::get<flecs::entity>(equips[i]).get<Item>()->to_json(profile);
             }
         }
     }

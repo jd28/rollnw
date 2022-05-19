@@ -6,11 +6,10 @@
 
 TEST_CASE("objects manager", "[kernel]")
 {
-    auto obj = nw::kernel::objects().load("nw_chicken", nw::ObjectType::creature);
+    auto obj = nw::kernel::objects().make("nw_chicken", nw::ObjectType::creature);
     REQUIRE(nw::kernel::objects().valid(obj));
-    auto base = nw::kernel::objects().get(obj);
-    REQUIRE(base);
-    auto c = base->as_creature();
+
+    auto c = obj.get<nw::Creature>();
     REQUIRE(c);
     REQUIRE(c->common()->resref == "nw_chicken");
     REQUIRE(c->stats.abilities[2] == 8);
@@ -19,13 +18,5 @@ TEST_CASE("objects manager", "[kernel]")
     REQUIRE(c->gender == 1);
 
     nw::kernel::objects().destroy(obj);
-    REQUIRE_FALSE(nw::kernel::objects().get(obj));
-
-    auto obj2 = nw::kernel::objects().load("nw_chicken", nw::ObjectType::creature);
-    REQUIRE(nw::kernel::objects().valid(obj2));
-    REQUIRE(obj2.id == nw::ObjectID{0});
-    REQUIRE(obj2.version == 1);
-    REQUIRE(nw::kernel::objects().get(obj2));
-
-    nw::kernel::objects().clear();
+    REQUIRE_FALSE(obj.is_alive());
 }

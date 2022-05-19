@@ -11,7 +11,7 @@ bool Inventory::instantiate()
 {
     for (auto& ii : items) {
         if (std::holds_alternative<Resref>(ii.item)) {
-            auto temp = nw::kernel::objects().load_as<Item>(std::get<Resref>(ii.item).view());
+            auto temp = nw::kernel::objects().make(std::get<Resref>(ii.item).view(), ObjectType::item);
             if (temp) {
                 ii.item = temp;
             } else {
@@ -43,7 +43,7 @@ bool Inventory::from_gff(const GffInputArchiveStruct& archive, SerializationProf
                 ii.item = *r;
             }
         } else if (SerializationProfile::instance == profile) {
-            auto temp = nw::kernel::objects().load_from_archive_as<Item>(st, profile);
+            auto temp = nw::kernel::objects().make(ObjectType::item, st, profile);
             ii.item = temp;
             if (!temp) { valid_entry = false; }
         }
@@ -70,7 +70,7 @@ bool Inventory::from_json(const nlohmann::json& archive, SerializationProfile pr
             if (profile == SerializationProfile::blueprint) {
                 ii.item = archive[i].at("item").get<Resref>();
             } else {
-                auto temp = nw::kernel::objects().load_from_archive_as<Item>(archive[i].at("item"), profile);
+                auto temp = nw::kernel::objects().make(ObjectType::item, archive[i].at("item"), profile);
                 ii.item = temp;
                 if (!temp) { valid_entry = false; }
             }
@@ -101,10 +101,10 @@ bool Inventory::to_gff(GffOutputArchiveStruct& archive, SerializationProfile pro
             if (std::holds_alternative<Resref>(it.item)) {
                 str.add_field("InventoryRes", std::get<Resref>(it.item));
             } else {
-                str.add_field("InventoryRes", std::get<Item*>(it.item)->common()->resref);
+                str.add_field("InventoryRes", std::get<flecs::entity>(it.item).get<Item>()->common()->resref);
             }
         } else {
-            std::get<Item*>(it.item)->to_gff(str, profile);
+            std::get<flecs::entity>(it.item).get<Item>()->to_gff(str, profile);
         }
     }
     return true;
@@ -123,8 +123,8 @@ nlohmann::json Inventory::to_json(SerializationProfile profile) const
             }
 
             payload["position"] = {it.pos_x, it.pos_y};
-            if (std::holds_alternative<Item*>(it.item)) {
-                payload["item"] = std::get<Item*>(it.item)->to_json(profile);
+            if (std::holds_alternative<flecs::entity>(it.item)) {
+                payload["item"] = std::get<flecs::entity>(it.item).get<Item>()->to_json(profile);
             } else {
                 if (SerializationProfile::blueprint == profile) {
                     payload["item"] = std::get<Resref>(it.item);

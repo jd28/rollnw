@@ -4,6 +4,7 @@
 #include "ObjectBase.hpp"
 #include "components/LocalData.hpp"
 
+#include <flecs/flecs.h>
 #include <glm/glm.hpp>
 
 namespace nw {
@@ -43,13 +44,13 @@ struct Module : public ObjectBase {
     explicit Module(const GffInputArchiveStruct& archive);
     explicit Module(const nlohmann::json& archive);
 
-    using AreaVariant = std::variant<std::vector<Resref>, std::vector<Area*>>;
+    using AreaVariant = std::variant<std::vector<Resref>, std::vector<flecs::entity>>;
 
     static constexpr int json_archive_version = 1;
     static constexpr ObjectType object_type = ObjectType::module;
 
     size_t area_count() const noexcept;
-    Area* get_area(size_t index) const;
+    flecs::entity get_area(size_t index) const;
 
     // Overrides
     virtual bool valid() const noexcept override;

@@ -3,6 +3,8 @@
 #include "../../serialization/Archives.hpp"
 #include "../ObjectBase.hpp"
 
+#include <flecs/flecs.h>
+
 #include <cstdint>
 #include <memory>
 #include <variant>
@@ -16,7 +18,7 @@ struct InventoryItem {
     bool infinite = false;
     uint16_t pos_x;
     uint16_t pos_y;
-    std::variant<Resref, Item*> item;
+    std::variant<Resref, flecs::entity> item;
 };
 
 struct Inventory {

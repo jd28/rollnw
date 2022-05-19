@@ -7,8 +7,12 @@
 namespace nw {
 
 struct Sound : public ObjectBase {
+    Sound() = default;
     Sound(const GffInputArchiveStruct& archive, SerializationProfile profile);
     Sound(const nlohmann::json& archive, SerializationProfile profile);
+    Sound(Sound&&) = default;
+
+    Sound& operator=(Sound&&) = default;
 
     static constexpr int json_archive_version = 1;
     static constexpr ObjectType object_type = ObjectType::sound;

@@ -9,6 +9,7 @@
 
 #include <flecs/flecs.h>
 
+#include <functional>
 #include <memory>
 
 namespace nw {
@@ -26,7 +27,7 @@ struct Services {
     ~Services();
 
     /// Provide global service
-    void provide(Objects* objects);
+    void provide(ObjectSystem* objects);
     void provide(Resources* resources);
     void provide(Rules* rules);
     void provide(Strings* strings);
@@ -42,14 +43,14 @@ struct Services {
     bool started();
 
     friend Config& config();
-    friend Objects& objects();
+    friend ObjectSystem& objects();
     friend Resources& resman();
     friend Rules& rules();
     friend Strings& strings();
     friend flecs::world& world();
 
 private:
-    std::unique_ptr<Objects> objects_;
+    std::unique_ptr<ObjectSystem> objects_;
     std::unique_ptr<Resources> resources_;
     std::unique_ptr<Rules> rules_;
     std::unique_ptr<Strings> strings_;
@@ -66,7 +67,7 @@ static Services s_services;
 
 Services& services();
 Config& config();
-Objects& objects();
+ObjectSystem& objects();
 Resources& resman();
 Rules& rules();
 Strings& strings();
@@ -80,7 +81,7 @@ flecs::world& world();
  * @param manifest
  * @return `nullptr` on error
  */
-Module* load_module(const GameProfile* profile,
+flecs::entity load_module(const GameProfile* profile,
     const std::filesystem::path& path,
     std::string_view manifest = {});
 

@@ -23,9 +23,12 @@ struct ItemProperty {
 
 struct Item : public ObjectBase {
     Item();
+    Item(Item&&) = default;
     Item(const GffInputArchiveStruct& archive, SerializationProfile profile);
     Item(const nlohmann::json& archive, SerializationProfile profile);
     ~Item() = default;
+
+    Item& operator=(Item&&) = default;
 
     static constexpr int json_archive_version = 1;
     static constexpr ObjectType object_type = ObjectType::item;

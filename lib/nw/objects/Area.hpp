@@ -12,6 +12,8 @@
 #include "Trigger.hpp"
 #include "Waypoint.hpp"
 
+#include <flecs/flecs.h>
+
 #include <bitset>
 
 namespace nw {
@@ -87,6 +89,7 @@ struct Tile {
 };
 
 struct Area : public ObjectBase {
+    Area() = default;
     Area(const GffInputArchiveStruct& caf, const GffInputArchiveStruct& gic);
     Area(const GffInputArchiveStruct& are, const GffInputArchiveStruct& git, const GffInputArchiveStruct& gic);
     Area(const nlohmann::json& caf, const nlohmann::json& gic);
@@ -106,15 +109,15 @@ struct Area : public ObjectBase {
     nlohmann::json to_json() const;
 
     Common common_;
-    std::vector<Creature*> creatures;
-    std::vector<Door*> doors;
-    std::vector<Encounter*> encounters;
-    std::vector<Item*> items;
-    std::vector<Placeable*> placeables;
-    std::vector<Sound*> sounds;
-    std::vector<Store*> stores;
-    std::vector<Trigger*> triggers;
-    std::vector<Waypoint*> waypoints;
+    std::vector<flecs::entity> creatures;
+    std::vector<flecs::entity> doors;
+    std::vector<flecs::entity> encounters;
+    std::vector<flecs::entity> items;
+    std::vector<flecs::entity> placeables;
+    std::vector<flecs::entity> sounds;
+    std::vector<flecs::entity> stores;
+    std::vector<flecs::entity> triggers;
+    std::vector<flecs::entity> waypoints;
     std::string comments;
     LocString name;
     AreaScripts scripts;

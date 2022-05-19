@@ -9,7 +9,7 @@ namespace nw::kernel {
 Services::Services() { }
 Services::~Services() { }
 
-void Services::provide(Objects* objects)
+void Services::provide(ObjectSystem* objects)
 {
     if (started_) {
         LOG_F(ERROR, "Services are unable to be provided after start");
@@ -17,7 +17,7 @@ void Services::provide(Objects* objects)
     } else if (objects_) {
         LOG_F(WARNING, "Objects service already loaded, overriding...");
     }
-    objects_ = std::unique_ptr<Objects>(objects);
+    objects_ = std::unique_ptr<ObjectSystem>(objects);
 }
 
 void Services::provide(Resources* resources)
@@ -81,7 +81,7 @@ void Services::start(bool fail_hard)
     }
 
     if (!objects_) {
-        objects_ = std::make_unique<Objects>();
+        objects_ = std::make_unique<ObjectSystem>();
     }
 
     if (!resources_) {
@@ -98,7 +98,7 @@ void Services::start(bool fail_hard)
 
     strings_->initialize();
     resources_->initialize();
-    objects_->initialize();
+    // objects_->initialize();
     rules_->initialize();
 
     started_ = true;
@@ -111,31 +111,32 @@ bool Services::started()
 
 Services& services() { return detail::s_services; }
 Config& config() { return detail::s_config; }
-Objects& objects() { return *detail::s_services.objects_.get(); }
+ObjectSystem& objects() { return *detail::s_services.objects_.get(); }
 Resources& resman() { return *detail::s_services.resources_.get(); }
 Rules& rules() { return *detail::s_services.rules_.get(); }
 Strings& strings() { return *detail::s_services.strings_.get(); }
 flecs::world& world() { return detail::s_services.world_; }
 
-Module* load_module(const GameProfile* profile,
+flecs::entity load_module(const GameProfile* profile,
     const std::filesystem::path& path,
     std::string_view manifest)
 {
+    flecs::entity mod;
     world().add<ConstantRegistry>();
 
     if (!services().started()) { services().start(); }
 
-    if (!profile) { return nullptr; }
+    if (!profile) { return mod; }
     services().set_profile(profile);
 
-    if (!profile->load_constants()) return nullptr;
+    if (!profile->load_constants()) return mod;
     profile->load_compontents();
     profile->load_rules();
 
     resman().load_module(path, manifest);
-    auto mod = objects().initialize_module();
-    if (mod) {
-        mod->instantiate();
+    mod = objects().make_module();
+    if (objects().valid(mod)) {
+        mod.get_mut<Module>()->instantiate();
     }
     rules().load();
 

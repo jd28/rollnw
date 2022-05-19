@@ -122,19 +122,20 @@ const Module* Module::as_module() const { return this; }
 
 size_t Module::area_count() const noexcept
 {
-    if (std::holds_alternative<std::vector<Area*>>(areas)) {
-        return std::get<std::vector<Area*>>(areas).size();
+    if (std::holds_alternative<std::vector<flecs::entity>>(areas)) {
+        return std::get<std::vector<flecs::entity>>(areas).size();
     }
     return 0;
 }
 
-Area* Module::get_area(size_t index) const
+flecs::entity Module::get_area(size_t index) const
 {
-    if (std::holds_alternative<std::vector<Area*>>(areas) && index < area_count()) {
-        return std::get<std::vector<Area*>>(areas)[index];
+    flecs::entity ent;
+    if (std::holds_alternative<std::vector<flecs::entity>>(areas) && index < area_count()) {
+        ent = std::get<std::vector<flecs::entity>>(areas)[index];
     }
 
-    return nullptr;
+    return ent;
 }
 
 bool Module::instantiate()
@@ -151,11 +152,11 @@ bool Module::instantiate()
     }
 
     auto& area_list = std::get<std::vector<Resref>>(areas);
-    std::vector<Area*> area_objects;
+    std::vector<flecs::entity> area_objects;
     area_objects.reserve(area_list.size());
     for (auto& area : area_list) {
         LOG_F(INFO, "  loading area: {}", area);
-        area_objects.push_back(nw::kernel::objects().load_area(area));
+        area_objects.push_back(nw::kernel::objects().make_area(area));
     }
     areas = std::move(area_objects);
 
@@ -284,8 +285,8 @@ bool Module::to_gff(GffOutputArchiveStruct& archive) const
             area_list.push_back(6).add_field("Area_Name", area);
         }
     } else {
-        for (const auto& area : std::get<std::vector<Area*>>(areas)) {
-            area_list.push_back(6).add_field("Area_Name", area->common()->resref);
+        for (const auto& area : std::get<std::vector<flecs::entity>>(areas)) {
+            area_list.push_back(6).add_field("Area_Name", area.get<Area>()->common()->resref);
         }
     }
 
@@ -354,8 +355,8 @@ nlohmann::json Module::to_json() const
         j["areas"] = std::get<std::vector<Resref>>(areas);
     } else {
         auto& area_list = j["areas"] = nlohmann::json::array();
-        for (const auto& area : std::get<std::vector<Area*>>(areas)) {
-            area_list.push_back(area->common()->resref);
+        for (const auto area : std::get<std::vector<flecs::entity>>(areas)) {
+            area_list.push_back(area.get<Area>()->common()->resref);
         }
     }
 

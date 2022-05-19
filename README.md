@@ -89,9 +89,11 @@ You make ask yourself, why?  But, to paraphrase Tennyson, ours isn't to question
 - [vcpkg](https://github.com/microsoft/vcpkg) - Package Management
 - [abseil](https://abseil.io/) - Foundational
 - [Catch2](https://github.com/catchorg/Catch2) - Testing
-- [loguru](https://github.com/emilk/loguru), [fmt](https://github.com/fmtlib/fmt) - Logging
+- [flecs](https://github.com/SanderMertens/flecs) - Entity-Component-System
 - [glm](https://www.opengl.org/sdk/libs/GLM/) - Mathematics
+- [loguru](https://github.com/emilk/loguru), [fmt](https://github.com/fmtlib/fmt) - Logging
 - [stbi_image](https://github.com/nothings/stb), [NWNExplorer](https://github.com/virusman/nwnexplorer), [SOIL2](https://github.com/SpartanJ/SOIL2/) - Image/Texture loading.
 - [inih](https://github.com/benhoyt/inih) - INI, SET parsing
 - [nholmann_json](https://github.com/nlohmann/json) - JSON
 - [toml++](https://github.com/marzer/tomlplusplus/) - For settings.tml
+- [libiconv](https://www.gnu.org/software/libiconv/), [boost::nowide](https://github.com/boostorg/nowide) - i18n, string conversion
