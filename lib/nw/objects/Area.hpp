@@ -88,27 +88,24 @@ struct Tile {
     uint8_t srclight2 = 0;
 };
 
-struct Area : public ObjectBase {
-    Area() = default;
-    Area(const GffInputArchiveStruct& caf, const GffInputArchiveStruct& gic);
-    Area(const GffInputArchiveStruct& are, const GffInputArchiveStruct& git, const GffInputArchiveStruct& gic);
-    Area(const nlohmann::json& caf, const nlohmann::json& gic);
-
+struct Area {
     static constexpr int json_archive_version = 1;
     static constexpr ObjectType object_type = ObjectType::area;
 
-    virtual bool valid() const noexcept override;
-    virtual Common* common() override;
-    virtual const Common* common() const override;
-    virtual Area* as_area() override;
-    virtual const Area* as_area() const override;
+    /// Deserialize from GFF
+    static bool deserialize(flecs::entity ent, const GffInputArchiveStruct& are,
+        const GffInputArchiveStruct& git, const GffInputArchiveStruct& gic);
 
-    bool from_gff(const GffInputArchiveStruct& are, const GffInputArchiveStruct& git, const GffInputArchiveStruct& gic);
-    // Note that from/to_json does 'caf' style input/output, i.e. ARE + GIT.
-    bool from_json(const nlohmann::json& caf, const nlohmann::json& gic);
-    nlohmann::json to_json() const;
+    /// Deserialize from JSON
+    /// @note Note only supports does 'caf' style input/output, i.e. ARE + GIT + GIC.
+    static bool deserialize(flecs::entity ent, const nlohmann::json& caf);
 
-    Common common_;
+    static bool deserialize(flecs::entity ent, const nlohmann::json& are,
+        const nlohmann::json& git, const nlohmann::json& gic);
+
+    /// Serialize to JSON
+    static void serialize(const flecs::entity ent, nlohmann::json& archive);
+
     std::vector<flecs::entity> creatures;
     std::vector<flecs::entity> doors;
     std::vector<flecs::entity> encounters;
@@ -120,10 +117,8 @@ struct Area : public ObjectBase {
     std::vector<flecs::entity> waypoints;
     std::string comments;
     LocString name;
-    AreaScripts scripts;
     Resref tileset;
     std::vector<Tile> tiles;
-    AreaWeather weather;
 
     int32_t creator_id = 0;
     AreaFlags flags;
@@ -140,10 +135,6 @@ struct Area : public ObjectBase {
     uint8_t pvp = 0;
     uint8_t shadow_opacity = 0;
     uint8_t skybox = 0;
-
-private:
-    bool is_caf_ = false;
-    bool valid_ = false;
 };
 
 } // namespace nw

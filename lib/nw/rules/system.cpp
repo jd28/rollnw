@@ -6,31 +6,43 @@ namespace nw {
 
 // == Selector ================================================================
 
-RuleBaseVariant Selector::select(const Creature& cre) const
+RuleBaseVariant Selector::select(const flecs::entity cre) const
 {
     switch (type) {
     default:
         return {};
     case SelectorType::ability: {
+        auto stats = cre.get<CreatureStats>();
+        if (!stats) { return {}; }
         auto idx = static_cast<size_t>(subtype);
-        return static_cast<int>(cre.stats.abilities[idx]);
+        return static_cast<int>(stats->abilities[idx]);
     }
     case SelectorType::feat: {
-        return cre.stats.has_feat(static_cast<uint16_t>(subtype));
+        auto stats = cre.get<CreatureStats>();
+        if (!stats) { return {}; }
+        return stats->has_feat(static_cast<uint16_t>(subtype));
     }
     case SelectorType::level: {
+        auto levels = cre.get<LevelStats>();
+        if (!levels) { return {}; }
+
         int level = 0;
-        for (const auto& ce : cre.levels.classes) {
+        for (const auto& ce : levels->classes) {
             level += ce.level;
         }
         return level;
     }
     case SelectorType::race: {
-        return static_cast<int>(cre.race);
+        auto c = cre.get<Creature>();
+        if (!c) { return {}; }
+        return static_cast<int>(c->race);
     }
     case SelectorType::skill: {
+        auto stats = cre.get<CreatureStats>();
+        if (!stats) { return {}; }
+
         auto idx = static_cast<size_t>(subtype);
-        return static_cast<int>(cre.stats.skills[idx]);
+        return static_cast<int>(stats->skills[idx]);
     }
     }
 
@@ -78,7 +90,7 @@ Selector race()
 
 // == Qualifier ===============================================================
 
-bool Qualifier::match(const Creature& cre) const
+bool Qualifier::match(const flecs::entity cre) const
 {
     auto value = selector.select(cre);
     if (!value.empty()) {
@@ -179,7 +191,7 @@ void Requirement::add(Qualifier qualifier)
     qualifiers_.push_back(std::move(qualifier));
 }
 
-bool Requirement::met(const Creature& cre) const
+bool Requirement::met(const flecs::entity cre) const
 {
     for (const auto& q : qualifiers_) {
         if (conjunction_) {

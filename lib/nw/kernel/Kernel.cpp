@@ -136,7 +136,7 @@ flecs::entity load_module(const GameProfile* profile,
     resman().load_module(path, manifest);
     mod = objects().make_module();
     if (objects().valid(mod)) {
-        mod.get_mut<Module>()->instantiate();
+        Module::instantiate(mod);
     }
     rules().load();
 

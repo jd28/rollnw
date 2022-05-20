@@ -5,6 +5,7 @@
 #include "components/Common.hpp"
 #include "components/Trap.hpp"
 
+#include <flecs/flecs.h>
 #include <glm/glm.hpp>
 
 #include <vector>
@@ -24,33 +25,19 @@ struct TriggerScripts {
     Resref on_user_defined;
 };
 
-struct Trigger : public ObjectBase {
-    Trigger();
-    Trigger(const GffInputArchiveStruct& archive, SerializationProfile profile);
-    Trigger(const nlohmann::json& archive, SerializationProfile profile);
-
+struct Trigger {
     static constexpr int json_archive_version = 1;
     static constexpr ObjectType object_type = ObjectType::trigger;
 
-    // ObjectBase overrides
-    virtual bool valid() const noexcept override;
-    virtual Common* common() override;
-    virtual const Common* common() const override;
-    virtual Trigger* as_trigger() override;
-    virtual const Trigger* as_trigger() const override;
-
     // Serialization
-    bool from_gff(const GffInputArchiveStruct& archive, SerializationProfile profile);
-    bool from_json(const nlohmann::json& archive, SerializationProfile profile);
-    bool to_gff(GffOutputArchiveStruct& archive, SerializationProfile profile) const;
-    GffOutputArchive to_gff(SerializationProfile profile) const;
-    nlohmann::json to_json(SerializationProfile profile) const;
+    static bool deserialize(flecs::entity ent, const GffInputArchiveStruct& archive, SerializationProfile profile);
+    static bool deserialize(flecs::entity ent, const nlohmann::json& archive, SerializationProfile profile);
+    static GffOutputArchive serialize(const flecs::entity ent, SerializationProfile profile);
+    static bool serialize(const flecs::entity ent, GffOutputArchiveStruct& archive, SerializationProfile profile);
+    static bool serialize(const flecs::entity ent, nlohmann::json& archive, SerializationProfile profile);
 
-    Common common_;
     std::vector<glm::vec3> geometry;
     std::string linked_to;
-    TriggerScripts scripts;
-    Trap trap;
 
     uint32_t faction = 0;
     float highlight_height = 0.0f;
@@ -61,9 +48,6 @@ struct Trigger : public ObjectBase {
 
     uint8_t cursor = 0;
     uint8_t linked_to_flags = 0;
-
-private:
-    bool valid_ = false;
 };
 
 } // namespace nw

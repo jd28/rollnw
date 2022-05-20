@@ -1,47 +1,75 @@
 # Objects
 
-The first phase of Objects is essentially NWN toolset like structures. No information hiding, no getters/setters and the like.  Future phases may include simulation, etc.  The main goal is transparent initialization of objects from Gff or libnw's JSON format.
+## The System
 
-## Profiles
+The object system is largely handled by the Entity-Component-System [flecs](https://github.com/SanderMertens/flecs).  This is a departure from the architecture of NWN which use a more traditional
+inheritance based approach.  The main advantage is that entities can be treated maps the keys of which are types and the values are instantiations of those types.  The performance implications have not been considered.
 
-NWN has three different (de)serialization profiles:
+## Object Componenents
 
-* **blueprint** - UTC, UTT, etc, etc.  BIC is included here, though not a blueprint itself.
-* **instance** - Instances of blueprints stored in an area's GIT file.
-* **savegame** - All game and object state.  This is outside of the scope of this library.. for now.
+All entities representing an object has a component that both stores state and serves as a tag
+to determine type.  Some objects also have other components specific to their type.
 
-## ObjectID, ObjectType, and ObjectHandle
+- `Area`
+  - `Common`
+  - `AreaScripts`
+  - `AreaWeather`
+- `Creature`
+  - `Common`
+  - `Appearance`
+  - `CombatInfo`
+  - `CreatureScripts`
+  - `CreatureStats`
+  - `Equips`
+  - `Inventory`
+  - `LevelStats`
+- `Door`
+  - `Common`
+  - `Lock`
+  - `DoorScripts`
+  - `Trap`
+- `Encounter`
+  - `Common`
+  - `EncounterScripts`
+- `Item`
+  - `Common`
+  - `Inventory`
+- `Module`
+  - `Common`
+  - `ModuleScripts`
+- `Placeable`
+  - `Common`
+  - `Inventory`
+  - `Lock`
+  - `PlaceableScripts`
+  - `Trap`
+- `Sound`
+  - `Common`
+- `Store`
+  - `Common`
+  - `StoreInventory`
+  - `StoreScripts`
+- `Trigger`
+  - `Common`
+  - `Trap`
+  - `TriggerScripts`
 
-libnw expands how NWN(:EE) identifies objects.  In addition to a unsigned 32bit integer ID, an `ObjectHandle` contains 16bits for object type and 16bits for version.  This allows ID to be a simple index into an array that can be safely reused 2^16 times while still being able to be backward compatible if (big if) loading save games is ever supported.
+In some cases an entity could have multiple object components, e.g. both a `Player` and a `Creature`.
 
-## Components
+**Example**:
 
-|   Type    |   Read   |  Write   |                        Notes                        |
-| --------- | -------- | -------- | --------------------------------------------------- |
-| Common    | Gff      | No       | Things common to all objects, writing handled by parent object.
-| Location  | Gff/JSON | Gff/JSON | Writing will be a little tricky because some things store their heading in radians, others in vectors.  |
-| LocalData | Gff/JSON | Gff/JSON | Will encompasses local variables, baked sqlite3, and NWNX:EE POS.  Only local variables.. for now |
-| Lock     | Gff/JSON | Gff/JSON | Encapsulate lockable objects
-| Saves    | Gff/JSON | Gff/JSON | a struct for saves, may be moved elsewhere
-| Trap     | Gff/JSON | Gff/JSON | Encapsulate trapable objects
+```cpp
+if(entity.has<Store>()) {
+    // This entity is a store.
+} else if(auto it = entity.get<Item>()) {
+    // This entity is an item.
+}
+```
 
-## Status
+**Example**:
 
-|      Type      |   Read   |   Write  | Notes
-| -------------- | -------- | -------- | -----------------------------------------------|
-| ObjectBase     |    Gff   |    No    | Base class for objects.
-| Area           | Gff/JSON |  JSON    | ARE and GIT only
-| Creature       | Gff/JSON | Gff/JSON |
-| Dialog         |    Gff   |    No    | This is very old, doesn't include new EE stuff.. yet.
-| Door           | Gff/JSON | Gff/JSON |
-| Encounter      | Gff/JSON | Gff/JSON |
-| Faction        | Gff/JSON | Gff/JSON |
-| Item           | Gff/JSON | Gff/JSON | Probably missing new EE stuff.
-| Journal        | Gff/JSON | Gff/JSON |
-| Module         | Gff/JSON | Gff/JSON |
-| Palette        |    Gff   |   JSON   | Surprised this wasn't ditched first thing in EE.
-| Placeable      | Gff/JSON | Gff/JSON |
-| Sound          | Gff/JSON | Gff/JSON |
-| Store          | Gff/JSON | Gff/JSON |
-| Trigger        | Gff/JSON | Gff/JSON |
-| Waypoint       | Gff/JSON | Gff/JSON |
+```cpp
+if(auto common = entity.get<Common>()) {
+    std::cout << "This is my resref: " << common->resref << std::endl;
+}
+```

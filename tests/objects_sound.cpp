@@ -1,30 +1,41 @@
 #include <catch2/catch.hpp>
 
+#include <nw/kernel/Kernel.hpp>
 #include <nw/objects/Sound.hpp>
 #include <nw/serialization/Serialization.hpp>
 
 #include <nlohmann/json.hpp>
 
+#include <filesystem>
 #include <fstream>
+
+namespace fs = std::filesystem;
 
 TEST_CASE("sound: from_gff", "[objects]")
 {
-    nw::GffInputArchive g{"test_data/user/development/blue_bell.uts"};
-    REQUIRE(g.valid());
-    nw::Sound s{g.toplevel(), nw::SerializationProfile::blueprint};
-    REQUIRE(s.common()->resref == "blue_bell");
+    auto ent = nw::kernel::objects().load(fs::path("test_data/user/development/blue_bell.uts"));
+    REQUIRE(ent.is_alive());
+
+    auto common = ent.get<nw::Common>();
+    REQUIRE(common->resref == "blue_bell");
 }
 
-TEST_CASE("sound: to_json", "[objects]")
+TEST_CASE("sound: json round trip", "[objects]")
 {
-    nw::GffInputArchive g{"test_data/user/development/blue_bell.uts"};
-    REQUIRE(g.valid());
-    nw::Sound s{g.toplevel(), nw::SerializationProfile::blueprint};
+    auto ent = nw::kernel::objects().load(fs::path("test_data/user/development/blue_bell.uts"));
+    REQUIRE(ent.is_alive());
 
-    nlohmann::json j = s.to_json(nw::SerializationProfile::blueprint);
-    nw::Sound s2{j, nw::SerializationProfile::blueprint};
-    nlohmann::json j2 = s2.to_json(nw::SerializationProfile::blueprint);
-    REQUIRE(s2.common()->resref == "blue_bell");
+    nlohmann::json j;
+    nw::kernel::objects().serialize(ent, j, nw::SerializationProfile::blueprint);
+
+    auto ent2 = nw::kernel::objects().deserialize(nw::ObjectType::sound,
+        j,
+        nw::SerializationProfile::blueprint);
+    REQUIRE(ent2.is_alive());
+
+    nlohmann::json j2;
+    nw::kernel::objects().serialize(ent2, j2, nw::SerializationProfile::blueprint);
+
     REQUIRE(j == j2);
 
     std::ofstream f{"tmp/blue_bell.uts.json"};
@@ -36,8 +47,18 @@ TEST_CASE("sound: gff round trip", "[ojbects]")
     nw::GffInputArchive g("test_data/user/development/blue_bell.uts");
     REQUIRE(g.valid());
 
-    nw::Sound sound{g.toplevel(), nw::SerializationProfile::blueprint};
-    nw::GffOutputArchive oa = sound.to_gff(nw::SerializationProfile::blueprint);
+    auto ent = nw::kernel::objects().deserialize(nw::ObjectType::sound,
+        g.toplevel(),
+        nw::SerializationProfile::blueprint);
+    REQUIRE(ent.is_alive());
+
+    nw::GffOutputArchive oa = nw::kernel::objects().serialize(ent, nw::SerializationProfile::blueprint);
+    oa.write_to("tmp/blue_bell.uts");
+
+    nw::GffInputArchive g2("tmp/blue_bell.uts");
+    REQUIRE(g2.valid());
+
+    REQUIRE(nw::gff_to_gffjson(g) == nw::gff_to_gffjson(g2));
 
     REQUIRE(oa.header.struct_offset == g.head_->struct_offset);
     REQUIRE(oa.header.struct_count == g.head_->struct_count);

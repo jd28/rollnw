@@ -90,108 +90,89 @@ nlohmann::json PlaceableScripts::to_json() const
     return j;
 }
 
-Placeable::Placeable()
-    : common_{ObjectType::placeable}
-    , inventory{this}
+bool Placeable::deserialize(flecs::entity ent, const GffInputArchiveStruct& archive, SerializationProfile profile)
 {
-    valid_ = true;
-}
+    auto placeable = ent.get_mut<Placeable>();
+    auto scripts = ent.get_mut<PlaceableScripts>();
+    auto common = ent.get_mut<Common>();
+    auto inventory = ent.get_mut<Inventory>();
+    auto lock = ent.get_mut<Lock>();
+    auto trap = ent.get_mut<Trap>();
 
-Placeable::Placeable(const GffInputArchiveStruct& archive, SerializationProfile profile)
-    : common_{ObjectType::placeable}
-    , inventory{this}
-{
-    valid_ = this->from_gff(archive, profile);
-}
+    common->from_gff(archive, profile);
 
-Placeable::Placeable(const nlohmann::json& archive, SerializationProfile profile)
-    : common_{ObjectType::placeable}
-    , inventory{this}
-{
-    valid_ = this->from_json(archive, profile);
-}
-
-bool Placeable::valid() const noexcept { return valid_; }
-Common* Placeable::common() { return &common_; }
-const Common* Placeable::common() const { return &common_; }
-
-bool Placeable::instantiate()
-{
-    return inventory.instantiate();
-}
-
-Placeable* Placeable::as_placeable() { return this; }
-const Placeable* Placeable::as_placeable() const { return this; }
-
-bool Placeable::from_gff(const GffInputArchiveStruct& archive, SerializationProfile profile)
-{
-    common_.from_gff(archive, profile);
-    archive.get_to("Conversation", conversation);
-    archive.get_to("Description", description);
-
-    archive.get_to("HasInventory", has_inventory);
-    if (has_inventory) {
-        inventory.from_gff(archive, profile);
+    archive.get_to("HasInventory", placeable->has_inventory);
+    if (placeable->has_inventory) {
+        inventory->from_gff(archive, profile);
     }
 
-    lock.from_gff(archive);
+    lock->from_gff(archive);
+    scripts->from_gff(archive);
+    trap->from_gff(archive);
 
+    archive.get_to("Conversation", placeable->conversation);
+    archive.get_to("Description", placeable->description);
     uint8_t save;
     archive.get_to("Fort", save);
-    saves.fort = save;
+    placeable->saves.fort = save;
     archive.get_to("Ref", save);
-    saves.reflex = save;
+    placeable->saves.reflex = save;
     archive.get_to("Will", save);
-    saves.will = save;
+    placeable->saves.will = save;
 
-    scripts.from_gff(archive);
-    trap.from_gff(archive);
+    archive.get_to("Appearance", placeable->appearance);
+    archive.get_to("Faction", placeable->faction);
 
-    archive.get_to("Appearance", appearance);
-    archive.get_to("Faction", faction);
+    archive.get_to("HP", placeable->hp);
+    archive.get_to("CurrentHP", placeable->hp_current);
+    archive.get_to("PortraitId", placeable->portrait_id);
 
-    archive.get_to("HP", hp);
-    archive.get_to("CurrentHP", hp_current);
-    archive.get_to("PortraitId", portrait_id);
-
-    archive.get_to("AnimationState", animation_state);
-    archive.get_to("BodyBag", bodybag);
-    archive.get_to("Hardness", hardness);
-    archive.get_to("Interruptable", interruptable);
-    archive.get_to("Plot", plot);
-    archive.get_to("Static", static_);
-    archive.get_to("Useable", useable);
+    archive.get_to("AnimationState", placeable->animation_state);
+    archive.get_to("BodyBag", placeable->bodybag);
+    archive.get_to("Hardness", placeable->hardness);
+    archive.get_to("Interruptable", placeable->interruptable);
+    archive.get_to("Plot", placeable->plot);
+    archive.get_to("Static", placeable->static_);
+    archive.get_to("Useable", placeable->useable);
 
     return true;
 }
 
-bool Placeable::from_json(const nlohmann::json& archive, SerializationProfile profile)
+bool Placeable::deserialize(flecs::entity ent, const nlohmann::json& archive, SerializationProfile profile)
 {
+    auto placeable = ent.get_mut<Placeable>();
+    auto scripts = ent.get_mut<PlaceableScripts>();
+    auto common = ent.get_mut<Common>();
+    auto inventory = ent.get_mut<Inventory>();
+    auto lock = ent.get_mut<Lock>();
+    auto trap = ent.get_mut<Trap>();
+
     try {
-        common_.from_json(archive.at("common"), profile);
-        archive.at("conversation").get_to(conversation);
-        archive.at("description").get_to(description);
-        inventory.from_json(archive.at("inventory"), profile);
-        lock.from_json(archive.at("lock"));
-        archive.at("saves").get_to(saves);
-        scripts.from_json(archive.at("scripts"));
-        trap.from_json(archive.at("trap"));
+        common->from_json(archive.at("common"), profile);
+        inventory->from_json(archive.at("inventory"), profile);
+        lock->from_json(archive.at("lock"));
+        scripts->from_json(archive.at("scripts"));
+        trap->from_json(archive.at("trap"));
 
-        archive.at("appearance").get_to(appearance);
-        archive.at("faction").get_to(faction);
+        archive.at("conversation").get_to(placeable->conversation);
+        archive.at("description").get_to(placeable->description);
+        archive.at("saves").get_to(placeable->saves);
 
-        archive.at("hp").get_to(hp);
-        archive.at("hp_current").get_to(hp_current);
-        archive.at("portrait_id").get_to(portrait_id);
+        archive.at("appearance").get_to(placeable->appearance);
+        archive.at("faction").get_to(placeable->faction);
 
-        archive.at("animation_state").get_to(animation_state);
-        archive.at("bodybag").get_to(bodybag);
-        archive.at("has_inventory").get_to(has_inventory);
-        archive.at("hardness").get_to(hardness);
-        archive.at("interruptable").get_to(interruptable);
-        archive.at("plot").get_to(plot);
-        archive.at("static").get_to(static_);
-        archive.at("useable").get_to(useable);
+        archive.at("hp").get_to(placeable->hp);
+        archive.at("hp_current").get_to(placeable->hp_current);
+        archive.at("portrait_id").get_to(placeable->portrait_id);
+
+        archive.at("animation_state").get_to(placeable->animation_state);
+        archive.at("bodybag").get_to(placeable->bodybag);
+        archive.at("has_inventory").get_to(placeable->has_inventory);
+        archive.at("hardness").get_to(placeable->hardness);
+        archive.at("interruptable").get_to(placeable->interruptable);
+        archive.at("plot").get_to(placeable->plot);
+        archive.at("static").get_to(placeable->static_);
+        archive.at("useable").get_to(placeable->useable);
     } catch (const nlohmann::json::exception& e) {
         LOG_F(ERROR, "Placeable::from_json exception {}", e.what());
         return false;
@@ -199,99 +180,114 @@ bool Placeable::from_json(const nlohmann::json& archive, SerializationProfile pr
     return true;
 }
 
-bool Placeable::to_gff(GffOutputArchiveStruct& archive, SerializationProfile profile) const
+bool Placeable::serialize(const flecs::entity ent, GffOutputArchiveStruct& archive, SerializationProfile profile)
 {
+    auto placeable = ent.get<Placeable>();
+    auto scripts = ent.get<PlaceableScripts>();
+    auto common = ent.get<Common>();
+    auto inventory = ent.get<Inventory>();
+    auto lock = ent.get<Lock>();
+    auto trap = ent.get<Trap>();
 
-    archive.add_field("TemplateResRef", common_.resref)
-        .add_field("LocName", common_.name)
-        .add_field("Tag", common_.tag);
+    archive.add_field("TemplateResRef", common->resref)
+        .add_field("LocName", common->name)
+        .add_field("Tag", common->tag);
 
     if (profile == SerializationProfile::blueprint) {
-        archive.add_field("Comment", common_.comment);
-        archive.add_field("PaletteID", common_.palette_id);
+        archive.add_field("Comment", common->comment);
+        archive.add_field("PaletteID", common->palette_id);
     } else {
-        archive.add_field("PositionX", common_.location.position.x)
-            .add_field("PositionY", common_.location.position.y)
-            .add_field("PositionZ", common_.location.position.z)
-            .add_field("OrientationX", common_.location.orientation.x)
-            .add_field("OrientationY", common_.location.orientation.y);
+        archive.add_field("PositionX", common->location.position.x)
+            .add_field("PositionY", common->location.position.y)
+            .add_field("PositionZ", common->location.position.z)
+            .add_field("OrientationX", common->location.orientation.x)
+            .add_field("OrientationY", common->location.orientation.y);
     }
 
-    if (common_.locals.size()) {
-        common_.locals.to_gff(archive);
+    if (common->locals.size()) {
+        common->locals.to_gff(archive);
     }
-    archive.add_field("Conversation", conversation)
-        .add_field("Description", description);
 
-    inventory.to_gff(archive, profile);
-    lock.to_gff(archive);
-    archive.add_field("Fort", static_cast<uint8_t>(saves.fort))
-        .add_field("Ref", static_cast<uint8_t>(saves.reflex))
-        .add_field("Will", static_cast<uint8_t>(saves.will));
-    scripts.to_gff(archive);
-    trap.to_gff(archive);
+    inventory->to_gff(archive, profile);
+    lock->to_gff(archive);
+    scripts->to_gff(archive);
+    trap->to_gff(archive);
 
-    archive.add_field("Appearance", appearance)
-        .add_field("Faction", faction);
+    archive.add_field("Conversation", placeable->conversation)
+        .add_field("Description", placeable->description);
 
-    archive.add_field("HP", hp)
-        .add_field("CurrentHP", hp_current)
-        .add_field("PortraitId", portrait_id);
+    archive.add_field("Fort", static_cast<uint8_t>(placeable->saves.fort))
+        .add_field("Ref", static_cast<uint8_t>(placeable->saves.reflex))
+        .add_field("Will", static_cast<uint8_t>(placeable->saves.will));
+
+    archive.add_field("Appearance", placeable->appearance)
+        .add_field("Faction", placeable->faction);
+
+    archive.add_field("HP", placeable->hp)
+        .add_field("CurrentHP", placeable->hp_current)
+        .add_field("PortraitId", placeable->portrait_id);
 
     uint8_t type = 0;
     archive.add_field("Type", type) // Obsolete, unused
-        .add_field("AnimationState", animation_state)
-        .add_field("BodyBag", bodybag)
-        .add_field("HasInventory", has_inventory)
-        .add_field("Hardness", hardness)
-        .add_field("Interruptable", interruptable)
-        .add_field("Plot", plot)
-        .add_field("Static", static_)
-        .add_field("Useable", useable);
+        .add_field("AnimationState", placeable->animation_state)
+        .add_field("BodyBag", placeable->bodybag)
+        .add_field("HasInventory", placeable->has_inventory)
+        .add_field("Hardness", placeable->hardness)
+        .add_field("Interruptable", placeable->interruptable)
+        .add_field("Plot", placeable->plot)
+        .add_field("Static", placeable->static_)
+        .add_field("Useable", placeable->useable);
 
     return true;
 }
 
-GffOutputArchive Placeable::to_gff(SerializationProfile profile) const
+GffOutputArchive Placeable::serialize(const flecs::entity ent, SerializationProfile profile)
 {
     GffOutputArchive out{"UTP"};
-    this->to_gff(out.top, profile);
+    Placeable::serialize(ent, out.top, profile);
     out.build();
     return out;
 }
 
-nlohmann::json Placeable::to_json(SerializationProfile profile) const
+bool Placeable::serialize(const flecs::entity ent, nlohmann::json& archive, SerializationProfile profile)
 {
-    nlohmann::json j;
-    j["$type"] = "UTP";
-    j["$version"] = json_archive_version;
+    auto placeable = ent.get<Placeable>();
+    auto scripts = ent.get<PlaceableScripts>();
+    auto common = ent.get<Common>();
+    auto inventory = ent.get<Inventory>();
+    auto lock = ent.get<Lock>();
+    auto trap = ent.get<Trap>();
 
-    j["common"] = common_.to_json(profile);
-    j["description"] = description;
-    j["conversation"] = conversation;
-    j["inventory"] = inventory.to_json(profile);
-    j["lock"] = lock.to_json();
-    j["saves"] = saves;
-    j["scripts"] = scripts.to_json();
-    j["trap"] = trap.to_json();
+    archive["$type"] = "UTP";
+    archive["$version"] = json_archive_version;
 
-    j["appearance"] = appearance;
-    j["faction"] = faction;
+    archive["common"] = common->to_json(profile);
+    archive["inventory"] = inventory->to_json(profile);
+    archive["lock"] = lock->to_json();
+    archive["scripts"] = scripts->to_json();
+    archive["trap"] = trap->to_json();
 
-    j["hp"] = hp;
-    j["hp_current"] = hp_current;
-    j["portrait_id"] = portrait_id;
+    archive["description"] = placeable->description;
+    archive["conversation"] = placeable->conversation;
+    archive["saves"] = placeable->saves;
 
-    j["animation_state"] = animation_state;
-    j["bodybag"] = bodybag;
-    j["has_inventory"] = has_inventory;
-    j["useable"] = useable;
-    j["static"] = static_;
-    j["hardness"] = hardness;
-    j["interruptable"] = interruptable;
-    j["plot"] = plot;
+    archive["appearance"] = placeable->appearance;
+    archive["faction"] = placeable->faction;
 
-    return j;
+    archive["hp"] = placeable->hp;
+    archive["hp_current"] = placeable->hp_current;
+    archive["portrait_id"] = placeable->portrait_id;
+
+    archive["animation_state"] = placeable->animation_state;
+    archive["bodybag"] = placeable->bodybag;
+    archive["has_inventory"] = placeable->has_inventory;
+    archive["useable"] = placeable->useable;
+    archive["static"] = placeable->static_;
+    archive["hardness"] = placeable->hardness;
+    archive["interruptable"] = placeable->interruptable;
+    archive["plot"] = placeable->plot;
+
+    return true;
 }
 
 } // namespace nw

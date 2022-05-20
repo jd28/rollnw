@@ -6,6 +6,8 @@
 #include "components/Saves.hpp"
 #include "components/Trap.hpp"
 
+#include <flecs/flecs.h>
+
 namespace nw {
 
 enum struct DoorAnimationState : uint8_t {
@@ -36,36 +38,21 @@ struct DoorScripts {
     Resref on_user_defined;
 };
 
-struct Door : public ObjectBase {
-    Door();
-    Door(const GffInputArchiveStruct& archive, SerializationProfile profile);
-    Door(const nlohmann::json& archive, SerializationProfile profile);
-
+struct Door {
     static constexpr int json_archive_version = 1;
     static constexpr ObjectType object_type = ObjectType::door;
 
-    // ObjectBase overrides
-    virtual bool valid() const noexcept override;
-    virtual Common* common() override;
-    virtual const Common* common() const override;
-    virtual Door* as_door() override;
-    virtual const Door* as_door() const override;
-
     // Serialization
-    bool from_gff(const GffInputArchiveStruct& archive, SerializationProfile profile);
-    bool from_json(const nlohmann::json& archive, SerializationProfile profile);
-    bool to_gff(GffOutputArchiveStruct& archive, SerializationProfile profile) const;
-    GffOutputArchive to_gff(SerializationProfile profile) const;
-    nlohmann::json to_json(SerializationProfile profile) const;
+    static bool deserialize(flecs::entity ent, const GffInputArchiveStruct& archive, SerializationProfile profile);
+    static bool deserialize(flecs::entity ent, const nlohmann::json& archive, SerializationProfile profile);
+    static bool serialize(const flecs::entity ent, GffOutputArchiveStruct& archive, SerializationProfile profile);
+    static GffOutputArchive serialize(const flecs::entity ent, SerializationProfile profile);
+    static bool serialize(const flecs::entity ent, nlohmann::json& archive, SerializationProfile profile);
 
-    Common common_;
     Resref conversation;
     LocString description;
     std::string linked_to;
-    Lock lock;
-    DoorScripts scripts;
     Saves saves;
-    Trap trap;
 
     uint32_t appearance;
     uint32_t faction = 0;
@@ -81,9 +68,6 @@ struct Door : public ObjectBase {
     bool interruptable = 0;
     uint8_t linked_to_flags = 0;
     bool plot = false;
-
-private:
-    bool valid_ = false;
 };
 
 } // namespace nw

@@ -4,32 +4,20 @@
 #include "ObjectBase.hpp"
 #include "components/Common.hpp"
 
+#include <flecs/flecs.h>
+
 namespace nw {
 
-struct Sound : public ObjectBase {
-    Sound() = default;
-    Sound(const GffInputArchiveStruct& archive, SerializationProfile profile);
-    Sound(const nlohmann::json& archive, SerializationProfile profile);
-    Sound(Sound&&) = default;
-
-    Sound& operator=(Sound&&) = default;
-
+struct Sound {
     static constexpr int json_archive_version = 1;
     static constexpr ObjectType object_type = ObjectType::sound;
 
-    virtual bool valid() const noexcept override;
-    virtual Common* common() override;
-    virtual const Common* common() const override;
-    virtual Sound* as_sound() override;
-    virtual const Sound* as_sound() const override;
+    static bool deserialize(flecs::entity ent, const GffInputArchiveStruct& archive, SerializationProfile profile);
+    static bool deserialize(flecs::entity ent, const nlohmann::json& archive, SerializationProfile profile);
+    static bool serialize(const flecs::entity ent, GffOutputArchiveStruct& archive, SerializationProfile profile);
+    static GffOutputArchive serialize(const flecs::entity ent, SerializationProfile profile);
+    static void serialize(const flecs::entity ent, nlohmann::json& archive, SerializationProfile profile);
 
-    bool from_gff(const GffInputArchiveStruct& archive, SerializationProfile profile);
-    bool from_json(const nlohmann::json& archive, SerializationProfile profile);
-    bool to_gff(GffOutputArchiveStruct& archive, SerializationProfile profile) const;
-    GffOutputArchive to_gff(SerializationProfile profile) const;
-    nlohmann::json to_json(SerializationProfile profile) const;
-
-    Common common_;
     std::vector<Resref> sounds;
 
     float distance_min = 0.0f;
@@ -53,9 +41,6 @@ struct Sound : public ObjectBase {
     uint8_t times = 3; // Always
     uint8_t volume = 100;
     uint8_t volume_variation = 0;
-
-private:
-    bool valid_ = false;
 };
 
 } // namespace nw

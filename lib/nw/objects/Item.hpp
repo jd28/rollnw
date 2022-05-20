@@ -21,38 +21,19 @@ struct ItemProperty {
     uint8_t param_value = std::numeric_limits<uint8_t>::max();
 };
 
-struct Item : public ObjectBase {
-    Item();
-    Item(Item&&) = default;
-    Item(const GffInputArchiveStruct& archive, SerializationProfile profile);
-    Item(const nlohmann::json& archive, SerializationProfile profile);
-    ~Item() = default;
-
-    Item& operator=(Item&&) = default;
-
+struct Item {
     static constexpr int json_archive_version = 1;
     static constexpr ObjectType object_type = ObjectType::item;
 
-    // ObjectBase overrides
-    virtual bool valid() const noexcept override;
-    virtual Common* common() override;
-    virtual const Common* common() const override;
-    virtual bool instantiate() override;
-    virtual Item* as_item() override;
-    virtual const Item* as_item() const override;
-
     // Serialization
-    bool from_gff(const GffInputArchiveStruct& archive, SerializationProfile profile);
-    bool from_json(const nlohmann::json& archive, SerializationProfile profile);
-    bool to_gff(GffOutputArchiveStruct& archive, SerializationProfile profile) const;
-    GffOutputArchive to_gff(SerializationProfile profile) const;
-    nlohmann::json to_json(SerializationProfile profile) const;
-
-    Common common_;
+    static bool deserialize(flecs::entity ent, const GffInputArchiveStruct& archive, SerializationProfile profile);
+    static bool deserialize(flecs::entity ent, const nlohmann::json& archive, SerializationProfile profile);
+    static GffOutputArchive serialize(const flecs::entity ent, SerializationProfile profile);
+    static bool serialize(const flecs::entity ent, GffOutputArchiveStruct& archive, SerializationProfile profile);
+    static bool serialize(const flecs::entity ent, nlohmann::json& archive, SerializationProfile profile);
 
     LocString description;
     LocString description_id;
-    Inventory inventory;
     std::vector<ItemProperty> properties;
 
     uint32_t cost = 0;
@@ -70,9 +51,6 @@ struct Item : public ObjectBase {
     ItemModelType model_type = ItemModelType::simple;
     std::array<uint8_t, 6> model_colors;
     std::array<uint8_t, 19> model_parts;
-
-private:
-    bool valid_ = false;
 };
 
 } // namespace nw

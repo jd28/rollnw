@@ -3,43 +3,52 @@
 #include "ObjectBase.hpp"
 #include "components/Common.hpp"
 
+#include <flecs/flecs.h>
+
 #include <string>
 
 namespace nw {
 
-struct Waypoint : public ObjectBase {
-    Waypoint();
-    Waypoint(const GffInputArchiveStruct& archive, SerializationProfile profile);
-    Waypoint(const nlohmann::json& archive, SerializationProfile profile);
-
+struct Waypoint {
     static constexpr int json_archive_version = 1;
     static constexpr ObjectType object_type = ObjectType::waypoint;
 
-    // ObjectBase overrides
-    virtual bool valid() const noexcept override;
-    virtual Common* common() override;
-    virtual const Common* common() const override;
-    virtual Waypoint* as_waypoint() override;
-    virtual const Waypoint* as_waypoint() const override;
+    /// Deserializes entity from GFF
+    static bool deserialize(flecs::entity entity, const GffInputArchiveStruct& archive,
+        SerializationProfile profile);
 
-    // Serialization
-    bool from_gff(const GffInputArchiveStruct& archive, SerializationProfile profile);
-    bool from_json(const nlohmann::json& archive, SerializationProfile profile);
-    bool to_gff(GffOutputArchiveStruct& archive, SerializationProfile profile) const;
-    GffOutputArchive to_gff(SerializationProfile profile) const;
-    nlohmann::json to_json(SerializationProfile profile) const;
+    /// Deserializes entity from JSON
+    static bool deserialize(flecs::entity entity, const nlohmann::json& archive,
+        SerializationProfile profile);
 
-    Common common_;
+    /// Deserializes entity to GFF
+    static GffOutputArchive serialize(const flecs::entity entity, SerializationProfile profile);
+
+    /// Deserializes entity to GFF
+    static bool serialize(const flecs::entity entity, GffOutputArchiveStruct& archive,
+        SerializationProfile profile);
+
+    /// Deserializes entity to JSON
+    static void serialize(const flecs::entity entity, nlohmann::json& archive,
+        SerializationProfile profile);
+
+    /// Description of waypoint
     LocString description;
+
+    /// Tag of entity waypoint is linked to
     std::string linked_to;
+
+    /// Map not for player minimap
     LocString map_note;
 
+    /// Apearance
     uint8_t appearance;
-    bool has_map_note = false;
-    bool map_note_enabled = false;
 
-private:
-    bool valid_ = false;
+    /// If true waypoint has map note.
+    bool has_map_note = false;
+
+    /// If true show map note
+    bool map_note_enabled = false;
 };
 
 } // namespace nw

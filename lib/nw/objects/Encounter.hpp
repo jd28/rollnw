@@ -4,6 +4,7 @@
 #include "ObjectBase.hpp"
 #include "components/Common.hpp"
 
+#include <flecs/flecs.h>
 #include <glm/glm.hpp>
 
 #include <vector>
@@ -43,31 +44,18 @@ struct SpawnPoint {
     glm::vec3 position;
 };
 
-struct Encounter : public ObjectBase {
-    Encounter();
-    Encounter(const GffInputArchiveStruct& archive, SerializationProfile profile);
-    Encounter(const nlohmann::json& archive, SerializationProfile profile);
-
+struct Encounter {
     static constexpr int json_archive_version = 1;
     static constexpr ObjectType object_type = ObjectType::encounter;
 
-    // ObjectBase overrids
-    virtual bool valid() const noexcept override;
-    virtual Common* common() override;
-    virtual const Common* common() const override;
-    virtual Encounter* as_encounter() override;
-    virtual const Encounter* as_encounter() const override;
+    static bool deserialize(flecs::entity ent, const GffInputArchiveStruct& archive, SerializationProfile profile);
+    static bool deserialize(flecs::entity ent, const nlohmann::json& archive, SerializationProfile profile);
+    static GffOutputArchive serialize(const flecs::entity ent, SerializationProfile profile);
+    static bool serialize(const flecs::entity ent, GffOutputArchiveStruct& archive, SerializationProfile profile);
+    static bool serialize(const flecs::entity ent, nlohmann::json& archive, SerializationProfile profile);
 
-    bool from_gff(const GffInputArchiveStruct& archive, SerializationProfile profile);
-    bool from_json(const nlohmann::json& archive, SerializationProfile profile);
-    bool to_gff(GffOutputArchiveStruct& archive, SerializationProfile profile) const;
-    GffOutputArchive to_gff(SerializationProfile profile) const;
-    nlohmann::json to_json(SerializationProfile profile) const;
-
-    Common common_;
     std::vector<SpawnCreature> creatures;
     std::vector<glm::vec3> geometry;
-    EncounterScripts scripts;
     std::vector<SpawnPoint> spawn_points;
 
     int32_t creatures_max = -1;
@@ -82,9 +70,6 @@ struct Encounter : public ObjectBase {
     bool active = true;
     bool player_only = false;
     bool reset = true;
-
-private:
-    bool valid_ = false;
 };
 
 } // namespace nw

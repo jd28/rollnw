@@ -22,7 +22,7 @@ struct InventoryItem {
 };
 
 struct Inventory {
-    explicit Inventory(ObjectBase* owner_)
+    explicit Inventory(flecs::entity owner_)
         : owner{owner_}
     {
     }
@@ -39,7 +39,7 @@ struct Inventory {
     bool to_gff(GffOutputArchiveStruct& archive, SerializationProfile profile) const;
     nlohmann::json to_json(SerializationProfile profile) const;
 
-    ObjectBase* owner = nullptr;
+    flecs::entity owner;
     std::vector<InventoryItem> items;
 };
 

@@ -93,197 +93,198 @@ nlohmann::json DoorScripts::to_json() const
     return j;
 }
 
-Door::Door()
-    : common_{ObjectType::door}
+bool Door::deserialize(flecs::entity ent, const GffInputArchiveStruct& archive, SerializationProfile profile)
 {
-}
+    auto door = ent.get_mut<Door>();
+    auto common = ent.get_mut<Common>();
+    auto lock = ent.get_mut<Lock>();
+    auto scripts = ent.get_mut<DoorScripts>();
+    auto trap = ent.get_mut<Trap>();
 
-Door::Door(const GffInputArchiveStruct& archive, SerializationProfile profile)
-    : common_{ObjectType::door}
-{
-    valid_ = this->from_gff(archive, profile);
-}
+    common->from_gff(archive, profile);
+    lock->from_gff(archive);
+    scripts->from_gff(archive);
+    trap->from_gff(archive);
 
-Door::Door(const nlohmann::json& archive, SerializationProfile profile)
-    : common_{ObjectType::door}
-{
-    valid_ = this->from_json(archive, profile);
-}
-
-bool Door::valid() const noexcept { return valid_; }
-Common* Door::common() { return &common_; }
-const Common* Door::common() const { return &common_; }
-Door* Door::as_door() { return this; }
-const Door* Door::as_door() const { return this; }
-
-bool Door::from_gff(const GffInputArchiveStruct& archive, SerializationProfile profile)
-{
     bool result = true;
     uint8_t save;
 
-    common_.from_gff(archive, profile);
-    archive.get_to("Conversation", conversation);
-    archive.get_to("Description", description);
-    archive.get_to("LinkedTo", linked_to);
-    lock.from_gff(archive);
+    archive.get_to("Conversation", door->conversation);
+    archive.get_to("Description", door->description);
+    archive.get_to("LinkedTo", door->linked_to);
 
     archive.get_to("Fort", save);
-    saves.fort = save;
+    door->saves.fort = save;
     archive.get_to("Ref", save);
-    saves.reflex = save;
+    door->saves.reflex = save;
     archive.get_to("Will", save);
-    saves.will = save;
+    door->saves.will = save;
 
-    scripts.from_gff(archive);
-    trap.from_gff(archive);
-
-    archive.get_to("Appearance", appearance);
-    archive.get_to("Faction", faction);
-    if (!archive.get_to("GenericType_New", generic_type, false)) {
+    archive.get_to("Appearance", door->appearance);
+    archive.get_to("Faction", door->faction);
+    if (!archive.get_to("GenericType_New", door->generic_type, false)) {
         uint8_t temp = 0;
         archive.get_to("GenericType", temp);
-        generic_type = temp;
+        door->generic_type = temp;
     }
 
-    archive.get_to("HP", hp);
-    archive.get_to("CurrentHP", hp_current);
-    archive.get_to("LoadScreenID", loadscreen);
-    archive.get_to("PortraitId", portrait_id);
+    archive.get_to("HP", door->hp);
+    archive.get_to("CurrentHP", door->hp_current);
+    archive.get_to("LoadScreenID", door->loadscreen);
+    archive.get_to("PortraitId", door->portrait_id);
 
-    archive.get_to("AnimationState", animation_state);
-    archive.get_to("Hardness", hardness);
-    archive.get_to("Interruptable", interruptable);
-    archive.get_to("LinkedToFlags", linked_to_flags);
-    archive.get_to("Plot", plot);
+    archive.get_to("AnimationState", door->animation_state);
+    archive.get_to("Hardness", door->hardness);
+    archive.get_to("Interruptable", door->interruptable);
+    archive.get_to("LinkedToFlags", door->linked_to_flags);
+    archive.get_to("Plot", door->plot);
 
     return result;
 }
 
-bool Door::from_json(const nlohmann::json& archive, SerializationProfile profile)
+bool Door::deserialize(flecs::entity ent, const nlohmann::json& archive, SerializationProfile profile)
 {
+    auto door = ent.get_mut<Door>();
+    auto common = ent.get_mut<Common>();
+    auto lock = ent.get_mut<Lock>();
+    auto scripts = ent.get_mut<DoorScripts>();
+    auto trap = ent.get_mut<Trap>();
+
     try {
-        common_.from_json(archive.at("common"), profile);
-        archive.at("conversation").get_to(conversation);
-        archive.at("description").get_to(description);
-        lock.from_json(archive.at("lock"));
-        archive.at("saves").get_to(saves);
-        scripts.from_json(archive.at("scripts"));
-        trap.from_json(archive.at("trap"));
+        common->from_json(archive.at("common"), profile);
+        lock->from_json(archive.at("lock"));
+        scripts->from_json(archive.at("scripts"));
+        trap->from_json(archive.at("trap"));
 
-        archive.at("appearance").get_to(appearance);
-        archive.at("faction").get_to(faction);
-        archive.at("generic_type").get_to(generic_type);
+        archive.at("conversation").get_to(door->conversation);
+        archive.at("description").get_to(door->description);
+        archive.at("saves").get_to(door->saves);
 
-        archive.at("hp").get_to(hp);
-        archive.at("hp_current").get_to(hp_current);
-        archive.at("loadscreen").get_to(loadscreen);
-        archive.at("portrait_id").get_to(portrait_id);
+        archive.at("appearance").get_to(door->appearance);
+        archive.at("faction").get_to(door->faction);
+        archive.at("generic_type").get_to(door->generic_type);
 
-        archive.at("animation_state").get_to(animation_state);
-        archive.at("hardness").get_to(hardness);
-        archive.at("interruptable").get_to(interruptable);
-        archive.at("linked_to_flags").get_to(linked_to_flags);
-        archive.at("linked_to").get_to(linked_to);
-        archive.at("plot").get_to(plot);
+        archive.at("hp").get_to(door->hp);
+        archive.at("hp_current").get_to(door->hp_current);
+        archive.at("loadscreen").get_to(door->loadscreen);
+        archive.at("portrait_id").get_to(door->portrait_id);
+
+        archive.at("animation_state").get_to(door->animation_state);
+        archive.at("hardness").get_to(door->hardness);
+        archive.at("interruptable").get_to(door->interruptable);
+        archive.at("linked_to_flags").get_to(door->linked_to_flags);
+        archive.at("linked_to").get_to(door->linked_to);
+        archive.at("plot").get_to(door->plot);
     } catch (const nlohmann::json::exception& e) {
         LOG_F(ERROR, "Door::to_json exception: {}", e.what());
-        return valid_ = false;
+        return false;
     }
-
-    return valid_ = true;
-}
-
-bool Door::to_gff(GffOutputArchiveStruct& archive, SerializationProfile profile) const
-{
-    archive.add_field("TemplateResRef", common_.resref)
-        .add_field("LocName", common_.name)
-        .add_field("Tag", common_.tag);
-
-    if (profile == SerializationProfile::blueprint) {
-        archive.add_field("Comment", common_.comment);
-        archive.add_field("PaletteID", common_.palette_id);
-    } else {
-        archive.add_field("PositionX", common_.location.position.x)
-            .add_field("PositionY", common_.location.position.y)
-            .add_field("PositionZ", common_.location.position.z)
-            .add_field("OrientationX", common_.location.orientation.x)
-            .add_field("OrientationY", common_.location.orientation.y);
-    }
-
-    if (common_.locals.size()) {
-        common_.locals.to_gff(archive);
-    }
-
-    archive.add_field("Conversation", conversation)
-        .add_field("Description", description)
-        .add_field("LinkedTo", linked_to);
-
-    lock.to_gff(archive);
-    scripts.to_gff(archive);
-
-    archive.add_field("Fort", static_cast<uint8_t>(saves.fort))
-        .add_field("Ref", static_cast<uint8_t>(saves.reflex))
-        .add_field("Will", static_cast<uint8_t>(saves.will));
-
-    trap.to_gff(archive);
-
-    archive.add_field("Appearance", appearance)
-        .add_field("Faction", faction)
-        .add_field("GenericType_New", generic_type);
-
-    archive.add_field("HP", hp)
-        .add_field("CurrentHP", hp_current)
-        .add_field("LoadScreenID", loadscreen)
-        .add_field("PortraitId", portrait_id);
-
-    archive.add_field("AnimationState", animation_state)
-        .add_field("Hardness", hardness)
-        .add_field("Interruptable", interruptable)
-        .add_field("LinkedToFlags", linked_to_flags)
-        .add_field("Plot", plot);
 
     return true;
 }
 
-GffOutputArchive Door::to_gff(SerializationProfile profile) const
+bool Door::serialize(const flecs::entity ent, GffOutputArchiveStruct& archive, SerializationProfile profile)
+{
+    auto door = ent.get<Door>();
+    auto common = ent.get<Common>();
+    auto lock = ent.get<Lock>();
+    auto scripts = ent.get<DoorScripts>();
+    auto trap = ent.get<Trap>();
+
+    archive.add_field("TemplateResRef", common->resref)
+        .add_field("LocName", common->name)
+        .add_field("Tag", common->tag);
+
+    if (profile == SerializationProfile::blueprint) {
+        archive.add_field("Comment", common->comment);
+        archive.add_field("PaletteID", common->palette_id);
+    } else {
+        archive.add_field("PositionX", common->location.position.x)
+            .add_field("PositionY", common->location.position.y)
+            .add_field("PositionZ", common->location.position.z)
+            .add_field("OrientationX", common->location.orientation.x)
+            .add_field("OrientationY", common->location.orientation.y);
+    }
+
+    if (common->locals.size()) {
+        common->locals.to_gff(archive);
+    }
+
+    lock->to_gff(archive);
+    scripts->to_gff(archive);
+    trap->to_gff(archive);
+
+    archive.add_field("Conversation", door->conversation)
+        .add_field("Description", door->description)
+        .add_field("LinkedTo", door->linked_to);
+
+    archive.add_field("Fort", static_cast<uint8_t>(door->saves.fort))
+        .add_field("Ref", static_cast<uint8_t>(door->saves.reflex))
+        .add_field("Will", static_cast<uint8_t>(door->saves.will));
+
+    archive.add_field("Appearance", door->appearance)
+        .add_field("Faction", door->faction)
+        .add_field("GenericType_New", door->generic_type);
+
+    archive.add_field("HP", door->hp)
+        .add_field("CurrentHP", door->hp_current)
+        .add_field("LoadScreenID", door->loadscreen)
+        .add_field("PortraitId", door->portrait_id);
+
+    archive.add_field("AnimationState", door->animation_state)
+        .add_field("Hardness", door->hardness)
+        .add_field("Interruptable", door->interruptable)
+        .add_field("LinkedToFlags", door->linked_to_flags)
+        .add_field("Plot", door->plot);
+
+    return true;
+}
+
+GffOutputArchive Door::serialize(const flecs::entity ent, SerializationProfile profile)
 {
     GffOutputArchive out{"UTD"};
-    this->to_gff(out.top, profile);
+    Door::serialize(ent, out.top, profile);
     out.build();
     return out;
 }
 
-nlohmann::json Door::to_json(SerializationProfile profile) const
+bool Door::serialize(const flecs::entity ent, nlohmann::json& archive, SerializationProfile profile)
 {
-    nlohmann::json j;
-    j["$type"] = "UTD";
-    j["$version"] = json_archive_version;
+    auto door = ent.get<Door>();
+    auto common = ent.get<Common>();
+    auto lock = ent.get<Lock>();
+    auto scripts = ent.get<DoorScripts>();
+    auto trap = ent.get<Trap>();
 
-    j["common"] = common_.to_json(profile);
-    j["conversation"] = conversation;
-    j["description"] = description;
-    j["linked_to"] = linked_to;
-    j["lock"] = lock.to_json();
-    j["saves"] = saves;
-    j["scripts"] = scripts.to_json();
-    j["trap"] = trap.to_json();
+    archive["$type"] = "UTD";
+    archive["$version"] = Door::json_archive_version;
 
-    j["appearance"] = appearance;
-    j["faction"] = faction;
-    j["generic_type"] = generic_type;
+    archive["common"] = common->to_json(profile);
+    archive["lock"] = lock->to_json();
+    archive["scripts"] = scripts->to_json();
+    archive["trap"] = trap->to_json();
 
-    j["hp"] = hp;
-    j["hp_current"] = hp_current;
-    j["loadscreen"] = loadscreen;
-    j["portrait_id"] = portrait_id;
+    archive["conversation"] = door->conversation;
+    archive["description"] = door->description;
+    archive["linked_to"] = door->linked_to;
+    archive["saves"] = door->saves;
 
-    j["animation_state"] = animation_state;
-    j["hardness"] = hardness;
-    j["interruptable"] = interruptable;
-    j["linked_to_flags"] = linked_to_flags;
-    j["plot"] = plot;
+    archive["appearance"] = door->appearance;
+    archive["faction"] = door->faction;
+    archive["generic_type"] = door->generic_type;
 
-    return j;
+    archive["hp"] = door->hp;
+    archive["hp_current"] = door->hp_current;
+    archive["loadscreen"] = door->loadscreen;
+    archive["portrait_id"] = door->portrait_id;
+
+    archive["animation_state"] = door->animation_state;
+    archive["hardness"] = door->hardness;
+    archive["interruptable"] = door->interruptable;
+    archive["linked_to_flags"] = door->linked_to_flags;
+    archive["plot"] = door->plot;
+
+    return true;
 }
 
 } // namespace nw

@@ -1,42 +1,45 @@
 #include <catch2/catch.hpp>
 
+#include <nlohmann/json.hpp>
+#include <nw/kernel/Kernel.hpp>
 #include <nw/objects/Door.hpp>
 #include <nw/serialization/Archives.hpp>
 
-#include <nlohmann/json.hpp>
-
+#include <filesystem>
 #include <fstream>
+
+namespace fs = std::filesystem;
 
 TEST_CASE("door: from_gff", "[objects]")
 {
-    nw::GffInputArchive g{"test_data/user/development/door_ttr_002.utd"};
-    REQUIRE(g.valid());
-    nw::Door d{g.toplevel(), nw::SerializationProfile::blueprint};
-    REQUIRE(d.valid());
+    auto door = nw::kernel::objects().load(fs::path("test_data/user/development/door_ttr_002.utd"));
 
-    REQUIRE(d.common()->resref == "door_ttr_002");
-    REQUIRE(d.appearance == 0);
-    REQUIRE(!d.plot);
-    REQUIRE(!d.lock.locked);
+    auto d = door.get<nw::Door>();
+    auto common = door.get<nw::Common>();
+    auto lock = door.get<nw::Lock>();
+
+    REQUIRE(common->resref == "door_ttr_002");
+    REQUIRE(d->appearance == 0);
+    REQUIRE(!d->plot);
+    REQUIRE(!lock->locked);
+
+    door.destruct();
 }
 
 TEST_CASE("door: to_json", "[objects]")
 {
-    nw::GffInputArchive g{"test_data/user/development/door_ttr_002.utd"};
-    REQUIRE(g.valid());
-    nw::Door d{g.toplevel(), nw::SerializationProfile::blueprint};
-    REQUIRE(d.valid());
+    auto door = nw::kernel::objects().load(fs::path("test_data/user/development/door_ttr_002.utd"));
 
-    nlohmann::json j = d.to_json(nw::SerializationProfile::blueprint);
-    nw::Door d2{j, nw::SerializationProfile::blueprint};
-    REQUIRE(d2.valid());
+    nlohmann::json j;
+    nw::kernel::objects().serialize(door, j, nw::SerializationProfile::blueprint);
 
-    nlohmann::json j2 = d2.to_json(nw::SerializationProfile::blueprint);
+    auto door2 = nw::kernel::objects().deserialize(nw::ObjectType::door, j,
+        nw::SerializationProfile::blueprint);
+    REQUIRE(door2.is_alive());
+
+    nlohmann::json j2;
+    nw::kernel::objects().serialize(door, j2, nw::SerializationProfile::blueprint);
     REQUIRE(j == j2);
-
-    nw::Lock l;
-    l.from_json(d.lock.to_json());
-    REQUIRE(l.lockable == d.lock.lockable);
 
     std::ofstream f{"tmp/door_ttr_002.utd.json"};
     f << std::setw(4) << j;
@@ -47,8 +50,9 @@ TEST_CASE("door: gff round trip", "[ojbects]")
     nw::GffInputArchive g("test_data/user/development/door_ttr_002.utd");
     REQUIRE(g.valid());
 
-    nw::Door door{g.toplevel(), nw::SerializationProfile::blueprint};
-    nw::GffOutputArchive oa = door.to_gff(nw::SerializationProfile::blueprint);
+    auto door = nw::kernel::objects().load(fs::path("test_data/user/development/door_ttr_002.utd"));
+
+    nw::GffOutputArchive oa = nw::kernel::objects().serialize(door, nw::SerializationProfile::blueprint);
     oa.write_to("tmp/door_ttr_002.utd");
 
     nw::GffInputArchive g2("tmp/door_ttr_002.utd");

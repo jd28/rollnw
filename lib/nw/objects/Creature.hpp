@@ -12,6 +12,8 @@
 #include "components/LevelStats.hpp"
 #include "components/Location.hpp"
 
+#include <flecs/flecs.h>
+
 namespace nw {
 
 struct CreatureScripts {
@@ -37,40 +39,22 @@ struct CreatureScripts {
     Resref on_user_defined;
 };
 
-struct Creature : public ObjectBase {
-    Creature();
-    Creature(const GffInputArchiveStruct& archive, SerializationProfile profile);
-    Creature(const nlohmann::json& archive, SerializationProfile profile);
-
+struct Creature {
     static constexpr int json_archive_version = 1;
     static constexpr ObjectType object_type = ObjectType::creature;
 
-    virtual bool instantiate() override;
-    virtual bool valid() const noexcept override;
-    virtual Common* common() override;
-    virtual const Common* common() const override;
-    virtual Creature* as_creature() override;
-    virtual const Creature* as_creature() const override;
+    static bool deserialize(flecs::entity ent, const GffInputArchiveStruct& archive, SerializationProfile profile);
+    static bool deserialize(flecs::entity ent, const nlohmann::json& archive, SerializationProfile profile);
 
-    bool from_gff(const GffInputArchiveStruct& archive, SerializationProfile profile);
-    bool from_json(const nlohmann::json& archive, SerializationProfile profile);
-    bool to_gff(GffOutputArchiveStruct& archive, SerializationProfile profile) const;
-    GffOutputArchive to_gff(SerializationProfile profile) const;
-    nlohmann::json to_json(SerializationProfile profile) const;
+    static GffOutputArchive serialize(const flecs::entity ent, SerializationProfile profile);
+    static bool serialize(const flecs::entity ent, GffOutputArchiveStruct& archive, SerializationProfile profile);
+    static bool serialize(const flecs::entity ent, nlohmann::json& archive, SerializationProfile profile);
 
-    Common common_;
-    Appearance appearance;
-    CombatInfo combat_info;
     Resref conversation;
     std::string deity;
     LocString description;
-    Equips equipment;
-    Inventory inventory;
-    LevelStats levels;
     LocString name_first;
     LocString name_last;
-    CreatureScripts scripts;
-    CreatureStats stats;
     std::string subrace;
 
     float cr = 0.0;
@@ -98,9 +82,6 @@ struct Creature : public ObjectBase {
     bool plot = false;
     uint8_t race = 0;
     uint8_t starting_package = 0;
-
-private:
-    bool valid_ = false;
 };
 
 } // namespace nw

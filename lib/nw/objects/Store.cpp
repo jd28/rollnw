@@ -4,68 +4,43 @@
 
 namespace nw {
 
-Store::Store()
-    : common_{ObjectType::store}
-    , armor{this}
-    , miscellaneous{this}
-    , potions{this}
-    , rings{this}
-    , weapons{this}
+StoreInventory::StoreInventory(flecs::entity owner)
+    : armor{owner}
+    , miscellaneous{owner}
+    , potions{owner}
+    , rings{owner}
+    , weapons{owner}
 {
 }
 
-Store::Store(const GffInputArchiveStruct& archive, SerializationProfile profile)
-    : common_{ObjectType::store}
-    , armor{this}
-    , miscellaneous{this}
-    , potions{this}
-    , rings{this}
-    , weapons{this}
+// bool Store::instantiate()
+// {
+//     return armor.instantiate()
+//         && miscellaneous.instantiate()
+//         && potions.instantiate()
+//         && rings.instantiate()
+//         && weapons.instantiate();
+// }
+
+bool Store::deserialize(flecs::entity ent, const GffInputArchiveStruct& archive, SerializationProfile profile)
 {
-    valid_ = this->from_gff(archive, profile);
-}
+    auto store = ent.get_mut<Store>();
+    auto inventory = ent.get_mut<StoreInventory>();
+    auto scripts = ent.get_mut<StoreScripts>();
+    auto common = ent.get_mut<Common>();
 
-Store::Store(const nlohmann::json& archive, SerializationProfile profile)
-    : common_{ObjectType::store}
-    , armor{this}
-    , miscellaneous{this}
-    , potions{this}
-    , rings{this}
-    , weapons{this}
-{
-    valid_ = this->from_json(archive, profile);
-}
-
-bool Store::valid() const noexcept { return valid_; }
-Common* Store::common() { return &common_; }
-const Common* Store::common() const { return &common_; }
-
-bool Store::instantiate()
-{
-    return armor.instantiate()
-        && miscellaneous.instantiate()
-        && potions.instantiate()
-        && rings.instantiate()
-        && weapons.instantiate();
-}
-
-Store* Store::as_store() { return this; }
-const Store* Store::as_store() const { return this; }
-
-bool Store::from_gff(const GffInputArchiveStruct& archive, SerializationProfile profile)
-{
-    if (!common_.from_gff(archive, profile)) {
+    if (!common->from_gff(archive, profile)) {
         return false;
     }
 
     if (profile == SerializationProfile::blueprint) {
-        archive.get_to("ID", common_.palette_id);
+        archive.get_to("ID", common->palette_id);
     }
 
     size_t sz = archive["StoreList"].size();
     if (sz != 5) {
-        valid_ = false;
         LOG_F(ERROR, "store invalid number of store containers");
+        return false;
     } else {
         for (size_t i = 0; i < sz; ++i) {
             auto st = archive["StoreList"][i];
@@ -74,182 +49,195 @@ bool Store::from_gff(const GffInputArchiveStruct& archive, SerializationProfile 
                 LOG_F(ERROR, "store invalid store container id: {}", st.id());
                 break;
             case 0:
-                armor.from_gff(st, profile);
+                inventory->armor.from_gff(st, profile);
                 break;
             case 1:
-                miscellaneous.from_gff(st, profile);
+                inventory->miscellaneous.from_gff(st, profile);
                 break;
             case 2:
-                potions.from_gff(st, profile);
+                inventory->potions.from_gff(st, profile);
                 break;
             case 3:
-                rings.from_gff(st, profile);
+                inventory->rings.from_gff(st, profile);
                 break;
             case 4:
-                weapons.from_gff(st, profile);
+                inventory->weapons.from_gff(st, profile);
                 break;
             }
         }
     }
 
-    archive.get_to("OnOpenStore", scripts.on_opened);
-    archive.get_to("OnStoreClosed", scripts.on_closed);
+    archive.get_to("OnOpenStore", scripts->on_opened);
+    archive.get_to("OnStoreClosed", scripts->on_closed);
 
     sz = archive["WillNotBuy"].size();
-    will_not_buy.reserve(sz);
+    inventory->will_not_buy.reserve(sz);
     for (size_t i = 0; i < sz; ++i) {
         int32_t base;
         if (!archive["WillNotBuy"][i].get_to("BaseItem", base)) {
             LOG_F(ERROR, "store will not buy, invalid base item at index {}", i);
             break;
         } else {
-            will_not_buy.push_back(base);
+            inventory->will_not_buy.push_back(base);
         }
     }
 
     sz = archive["WillOnlyBuy"].size();
-    will_only_buy.reserve(sz);
+    inventory->will_only_buy.reserve(sz);
     for (size_t i = 0; i < sz; ++i) {
         int32_t base;
         if (!archive["WillOnlyBuy"][i].get_to("BaseItem", base)) {
             LOG_F(ERROR, "store will not buy, invalid base item at index {}", i);
             break;
         } else {
-            will_only_buy.push_back(base);
+            inventory->will_only_buy.push_back(base);
         }
     }
 
-    archive.get_to("BM_MarkDown", blackmarket_markdown);
-    archive.get_to("IdentifyPrice", identify_price);
-    archive.get_to("MarkDown", markdown);
-    archive.get_to("MarkUp", markup);
-    archive.get_to("MaxBuyPrice", max_price);
-    archive.get_to("StoreGold", gold);
+    archive.get_to("BM_MarkDown", store->blackmarket_markdown);
+    archive.get_to("IdentifyPrice", store->identify_price);
+    archive.get_to("MarkDown", store->markdown);
+    archive.get_to("MarkUp", store->markup);
+    archive.get_to("MaxBuyPrice", store->max_price);
+    archive.get_to("StoreGold", store->gold);
 
-    archive.get_to("BlackMarket", blackmarket);
-
-    return true;
-}
-
-bool Store::from_json(const nlohmann::json& archive, SerializationProfile profile)
-{
-    common_.from_json(archive.at("common"), profile);
-
-    armor.from_json(archive.at("armor"), profile);
-    miscellaneous.from_json(archive.at("miscellaneous"), profile);
-    potions.from_json(archive.at("potions"), profile);
-    rings.from_json(archive.at("rings"), profile);
-    weapons.from_json(archive.at("weapons"), profile);
-
-    archive.at("scripts").at("on_closed").get_to(scripts.on_closed);
-    archive.at("scripts").at("on_opened").get_to(scripts.on_opened);
-    archive.at("will_not_buy").get_to(will_not_buy);
-    archive.at("will_only_buy").get_to(will_only_buy);
-
-    archive.at("blackmarket_markdown").get_to(blackmarket_markdown);
-    archive.at("identify_price").get_to(identify_price);
-    archive.at("markdown").get_to(markdown);
-    archive.at("markup").get_to(markup);
-    archive.at("max_price").get_to(max_price);
-    archive.at("gold").get_to(gold);
-
-    archive.at("blackmarket").get_to(blackmarket);
+    archive.get_to("BlackMarket", store->blackmarket);
 
     return true;
 }
 
-bool Store::to_gff(GffOutputArchiveStruct& archive, SerializationProfile profile) const
+bool Store::deserialize(flecs::entity ent, const nlohmann::json& archive, SerializationProfile profile)
 {
-    archive.add_field("ResRef", common_.resref) // Store does it's own thing, not typo.
-        .add_field("LocName", common_.name)
-        .add_field("Tag", common_.tag);
+    auto store = ent.get_mut<Store>();
+    auto inventory = ent.get_mut<StoreInventory>();
+    auto scripts = ent.get_mut<StoreScripts>();
+    auto common = ent.get_mut<Common>();
+
+    common->from_json(archive.at("common"), profile);
+
+    inventory->armor.from_json(archive.at("armor"), profile);
+    inventory->miscellaneous.from_json(archive.at("miscellaneous"), profile);
+    inventory->potions.from_json(archive.at("potions"), profile);
+    inventory->rings.from_json(archive.at("rings"), profile);
+    inventory->weapons.from_json(archive.at("weapons"), profile);
+    archive.at("will_not_buy").get_to(inventory->will_not_buy);
+    archive.at("will_only_buy").get_to(inventory->will_only_buy);
+
+    archive.at("scripts").at("on_closed").get_to(scripts->on_closed);
+    archive.at("scripts").at("on_opened").get_to(scripts->on_opened);
+
+    archive.at("blackmarket_markdown").get_to(store->blackmarket_markdown);
+    archive.at("identify_price").get_to(store->identify_price);
+    archive.at("markdown").get_to(store->markdown);
+    archive.at("markup").get_to(store->markup);
+    archive.at("max_price").get_to(store->max_price);
+    archive.at("gold").get_to(store->gold);
+
+    archive.at("blackmarket").get_to(store->blackmarket);
+
+    return true;
+}
+
+bool Store::serialize(const flecs::entity ent, GffOutputArchiveStruct& archive, SerializationProfile profile)
+{
+    auto store = ent.get<Store>();
+    auto inventory = ent.get<StoreInventory>();
+    auto scripts = ent.get<StoreScripts>();
+    auto common = ent.get<Common>();
+
+    archive.add_field("ResRef", common->resref) // Store does it's own thing, not typo.
+        .add_field("LocName", common->name)
+        .add_field("Tag", common->tag);
 
     if (profile == SerializationProfile::blueprint) {
-        archive.add_field("Comment", common_.comment);
-        archive.add_field("ID", common_.palette_id);
+        archive.add_field("Comment", common->comment);
+        archive.add_field("ID", common->palette_id);
     } else {
-        archive.add_field("PositionX", common_.location.position.x)
-            .add_field("PositionY", common_.location.position.y)
-            .add_field("PositionZ", common_.location.position.z)
-            .add_field("OrientationX", common_.location.orientation.x)
-            .add_field("OrientationY", common_.location.orientation.y);
+        archive.add_field("PositionX", common->location.position.x)
+            .add_field("PositionY", common->location.position.y)
+            .add_field("PositionZ", common->location.position.z)
+            .add_field("OrientationX", common->location.orientation.x)
+            .add_field("OrientationY", common->location.orientation.y);
     }
 
-    if (common_.locals.size()) {
-        common_.locals.to_gff(archive);
+    if (common->locals.size()) {
+        common->locals.to_gff(archive);
     }
 
     auto& store_list = archive.add_list("StoreList");
-    armor.to_gff(store_list.push_back(0), profile);
-    miscellaneous.to_gff(store_list.push_back(1), profile);
-    potions.to_gff(store_list.push_back(2), profile);
-    rings.to_gff(store_list.push_back(3), profile);
-    weapons.to_gff(store_list.push_back(4), profile);
-
-    archive.add_field("OnOpenStore", scripts.on_opened)
-        .add_field("OnStoreClosed", scripts.on_closed);
+    inventory->armor.to_gff(store_list.push_back(0), profile);
+    inventory->miscellaneous.to_gff(store_list.push_back(1), profile);
+    inventory->potions.to_gff(store_list.push_back(2), profile);
+    inventory->rings.to_gff(store_list.push_back(3), profile);
+    inventory->weapons.to_gff(store_list.push_back(4), profile);
 
     auto& wnb_list = archive.add_list("WillNotBuy");
-    for (const auto bi : will_not_buy) {
+    for (const auto bi : inventory->will_not_buy) {
         wnb_list.push_back(0x17E4D).add_field("BaseItem", bi);
     }
 
     auto& wob_list = archive.add_list("WillOnlyBuy");
-    for (const auto bi : will_only_buy) {
+    for (const auto bi : inventory->will_only_buy) {
         wob_list.push_back(0x17E4D).add_field("BaseItem", bi);
     }
 
-    archive.add_field("BM_MarkDown", blackmarket_markdown)
-        .add_field("IdentifyPrice", identify_price)
-        .add_field("MarkDown", markdown)
-        .add_field("MarkUp", markup)
-        .add_field("MaxBuyPrice", max_price)
-        .add_field("StoreGold", gold);
+    archive.add_field("OnOpenStore", scripts->on_opened)
+        .add_field("OnStoreClosed", scripts->on_closed);
 
-    archive.add_field("BlackMarket", blackmarket);
+    archive.add_field("BM_MarkDown", store->blackmarket_markdown)
+        .add_field("IdentifyPrice", store->identify_price)
+        .add_field("MarkDown", store->markdown)
+        .add_field("MarkUp", store->markup)
+        .add_field("MaxBuyPrice", store->max_price)
+        .add_field("StoreGold", store->gold);
+
+    archive.add_field("BlackMarket", store->blackmarket);
 
     return true;
 }
 
-GffOutputArchive Store::to_gff(SerializationProfile profile) const
+GffOutputArchive Store::serialize(const flecs::entity ent, SerializationProfile profile)
 {
     GffOutputArchive out{"UTS"};
-    this->to_gff(out.top, profile);
+    Store::serialize(ent, out.top, profile);
     out.build();
     return out;
 }
 
-nlohmann::json Store::to_json(SerializationProfile profile) const
+bool Store::serialize(const flecs::entity ent, nlohmann::json& archive, SerializationProfile profile)
 {
-    nlohmann::json j;
-    j["$type"] = "UTM";
-    j["$version"] = json_archive_version;
+    auto store = ent.get<Store>();
+    auto inventory = ent.get<StoreInventory>();
+    auto scripts = ent.get<StoreScripts>();
+    auto common = ent.get<Common>();
 
-    j["common"] = common_.to_json(profile);
-    j["scripts"] = {
-        {"on_closed", scripts.on_closed},
-        {"on_opened", scripts.on_opened},
+    archive["$type"] = "UTM";
+    archive["$version"] = json_archive_version;
+
+    archive["common"] = common->to_json(profile);
+    archive["scripts"] = {
+        {"on_closed", scripts->on_closed},
+        {"on_opened", scripts->on_opened},
     };
 
-    j["blackmarket_markdown"] = blackmarket_markdown;
-    j["identify_price"] = identify_price;
-    j["markdown"] = markdown;
-    j["markup"] = markup;
-    j["max_price"] = max_price;
-    j["gold"] = gold;
+    archive["blackmarket_markdown"] = store->blackmarket_markdown;
+    archive["identify_price"] = store->identify_price;
+    archive["markdown"] = store->markdown;
+    archive["markup"] = store->markup;
+    archive["max_price"] = store->max_price;
+    archive["gold"] = store->gold;
 
-    j["will_not_buy"] = will_not_buy;
-    j["will_only_buy"] = will_only_buy;
+    archive["blackmarket"] = store->blackmarket;
 
-    j["blackmarket"] = blackmarket;
+    archive["armor"] = inventory->armor.to_json(profile);
+    archive["miscellaneous"] = inventory->miscellaneous.to_json(profile);
+    archive["potions"] = inventory->potions.to_json(profile);
+    archive["rings"] = inventory->rings.to_json(profile);
+    archive["weapons"] = inventory->weapons.to_json(profile);
+    archive["will_not_buy"] = inventory->will_not_buy;
+    archive["will_only_buy"] = inventory->will_only_buy;
 
-    j["armor"] = armor.to_json(profile);
-    j["miscellaneous"] = miscellaneous.to_json(profile);
-    j["potions"] = potions.to_json(profile);
-    j["rings"] = rings.to_json(profile);
-    j["weapons"] = weapons.to_json(profile);
-
-    return j;
+    return true;
 }
 
 } // namespace nw

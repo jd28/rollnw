@@ -5,6 +5,7 @@
 #include "Constant.hpp"
 
 #include <absl/container/inlined_vector.h>
+#include <flecs/flecs.h>
 
 #include <optional>
 #include <string>
@@ -35,7 +36,7 @@ struct Selector {
     SelectorType type;
     int subtype;
 
-    RuleBaseVariant select(const Creature& cre) const;
+    RuleBaseVariant select(const flecs::entity cre) const;
 };
 
 bool operator==(const Selector& lhs, const Selector& rhs);
@@ -60,7 +61,7 @@ struct Qualifier {
     Selector selector;
     absl::InlinedVector<RuleBaseVariant, 4> params;
 
-    bool match(const Creature& cre) const;
+    bool match(const flecs::entity cre) const;
 };
 
 namespace qualifier {
@@ -79,7 +80,7 @@ struct Requirement {
     explicit Requirement(bool conjunction = true);
     explicit Requirement(std::initializer_list<Qualifier> quals, bool conjunction = true);
     void add(Qualifier qualifier);
-    bool met(const Creature& cre) const;
+    bool met(const flecs::entity cre) const;
 
 private:
     absl::InlinedVector<Qualifier, 8> qualifiers_;

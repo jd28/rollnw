@@ -14,28 +14,8 @@ struct StoreScripts {
     Resref on_opened;
 };
 
-struct Store : public ObjectBase {
-    Store();
-    Store(const GffInputArchiveStruct& archive, SerializationProfile profile);
-    Store(const nlohmann::json& archive, SerializationProfile profile);
-
-    static constexpr int json_archive_version = 1;
-    static constexpr ObjectType object_type = ObjectType::store;
-
-    virtual bool valid() const noexcept override;
-    virtual Common* common() override;
-    virtual const Common* common() const override;
-    virtual bool instantiate() override;
-    virtual Store* as_store() override;
-    virtual const Store* as_store() const override;
-
-    bool from_gff(const GffInputArchiveStruct& archive, SerializationProfile profile);
-    bool from_json(const nlohmann::json& archive, SerializationProfile profile);
-    bool to_gff(GffOutputArchiveStruct& archive, SerializationProfile profile) const;
-    GffOutputArchive to_gff(SerializationProfile profile) const;
-    nlohmann::json to_json(SerializationProfile profile) const;
-
-    Common common_;
+struct StoreInventory {
+    StoreInventory(flecs::entity owner);
     Inventory armor;
     Inventory miscellaneous;
     Inventory potions;
@@ -44,6 +24,17 @@ struct Store : public ObjectBase {
     StoreScripts scripts;
     std::vector<int32_t> will_not_buy;
     std::vector<int32_t> will_only_buy;
+};
+
+struct Store {
+    static constexpr int json_archive_version = 1;
+    static constexpr ObjectType object_type = ObjectType::store;
+
+    static bool deserialize(flecs::entity ent, const GffInputArchiveStruct& archive, SerializationProfile profile);
+    static bool deserialize(flecs::entity ent, const nlohmann::json& archive, SerializationProfile profile);
+    static GffOutputArchive serialize(const flecs::entity ent, SerializationProfile profile);
+    static bool serialize(const flecs::entity ent, GffOutputArchiveStruct& archive, SerializationProfile profile);
+    static bool serialize(const flecs::entity ent, nlohmann::json& archive, SerializationProfile profile);
 
     int32_t blackmarket_markdown = 0;
     int32_t identify_price = 100;
@@ -53,9 +44,6 @@ struct Store : public ObjectBase {
     int32_t gold = -1;
 
     bool blackmarket;
-
-private:
-    bool valid_ = true;
 };
 
 } // namespace nw

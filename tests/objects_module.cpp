@@ -1,62 +1,70 @@
 #include <catch2/catch.hpp>
 
+#include <nw/kernel/Kernel.hpp>
 #include <nw/objects/Module.hpp>
 #include <nw/serialization/Archives.hpp>
 
 #include <nlohmann/json.hpp>
 
+#include <filesystem>
 #include <fstream>
+
+namespace fs = std::filesystem;
 
 TEST_CASE("module: from_gff", "[objects]")
 {
+    auto ent = nw::kernel::objects().make(nw::ObjectType::module);
     nw::GffInputArchive g{"test_data/user/scratch/module.ifo"};
     REQUIRE(g.valid());
-    nw::Module m{g.toplevel()};
-    REQUIRE(m.haks.size() == 0);
-    REQUIRE(!m.is_save_game);
-    REQUIRE(m.name.get(nw::LanguageID::english) == "test_module");
-    REQUIRE(m.scripts.on_load == "x2_mod_def_load");
+    nw::Module::deserialize(ent, g.toplevel());
+
+    auto mod = ent.get<nw::Module>();
+    auto scripts = ent.get<nw::ModuleScripts>();
+
+    REQUIRE(mod->haks.size() == 0);
+    REQUIRE(!mod->is_save_game);
+    REQUIRE(mod->name.get(nw::LanguageID::english) == "test_module");
+    REQUIRE(scripts->on_load == "x2_mod_def_load");
 }
 
-TEST_CASE("module: to_json", "[objects]")
+TEST_CASE("module: json round trip", "[objects]")
 {
+    auto ent = nw::kernel::objects().make(nw::ObjectType::module);
     nw::GffInputArchive g{"test_data/user/scratch/module.ifo"};
     REQUIRE(g.valid());
-    nw::Module m{g.toplevel()};
+    nw::Module::deserialize(ent, g.toplevel());
+    REQUIRE(ent.is_alive());
 
-    nlohmann::json j = m.to_json();
+    nlohmann::json j;
+    nw::kernel::objects().serialize(ent, j, nw::SerializationProfile::blueprint);
+
+    auto ent2 = nw::kernel::objects().make(nw::ObjectType::module);
+    nw::Module::deserialize(ent2, j);
+    REQUIRE(ent2.is_alive());
+
+    nlohmann::json j2;
+    nw::kernel::objects().serialize(ent2, j2, nw::SerializationProfile::blueprint);
+
+    REQUIRE(j == j2);
 
     std::ofstream f{"tmp/module.ifo.json"};
     f << std::setw(4) << j;
 }
 
-TEST_CASE("module: json to and from", "[objects]")
-{
-    nw::GffInputArchive g{"test_data/user/scratch/module.ifo"};
-    REQUIRE(g.valid());
-    nw::Module m{g.toplevel()};
-    nlohmann::json j = m.to_json();
-    nw::Module m2{j};
-    nlohmann::json j2 = m2.to_json();
-    REQUIRE(j == j2);
-}
-
 TEST_CASE("module: gff round trip", "[ojbects]")
 {
-    nw::GffInputArchive g("test_data/user/scratch/module.ifo");
+    auto ent = nw::kernel::objects().make(nw::ObjectType::module);
+    nw::GffInputArchive g{"test_data/user/scratch/module.ifo"};
     REQUIRE(g.valid());
+    nw::Module::deserialize(ent, g.toplevel());
+    REQUIRE(ent.is_alive());
 
-    nw::Module mod{g.toplevel()};
-    nw::GffOutputArchive oa = mod.to_gff();
+    nw::GffOutputArchive oa = nw::Module::serialize(ent);
     oa.write_to("tmp/module_2.ifo");
 
     nw::GffInputArchive g2("tmp/module_2.ifo");
     REQUIRE(g2.valid());
-
-    std::ofstream f1{"tmp/module.ifo.gffjson", std::ios_base::binary};
-    f1 << std::setw(4) << nw::gff_to_gffjson(g);
-    std::ofstream f2{"tmp/module_2.ifo.gffjson", std::ios_base::binary};
-    f2 << std::setw(4) << nw::gff_to_gffjson(g2);
+    REQUIRE(nw::gff_to_gffjson(g) == nw::gff_to_gffjson(g2));
 
     REQUIRE(oa.header.struct_offset == g.head_->struct_offset);
     REQUIRE(oa.header.struct_count == g.head_->struct_count);
@@ -70,4 +78,17 @@ TEST_CASE("module: gff round trip", "[ojbects]")
     REQUIRE(oa.header.field_idx_count == g.head_->field_idx_count);
     REQUIRE(oa.header.list_idx_offset == g.head_->list_idx_offset);
     REQUIRE(oa.header.list_idx_count == g.head_->list_idx_count);
+
+    REQUIRE(g2.head_->struct_offset == g.head_->struct_offset);
+    REQUIRE(g2.head_->struct_count == g.head_->struct_count);
+    REQUIRE(g2.head_->field_offset == g.head_->field_offset);
+    REQUIRE(g2.head_->field_count == g.head_->field_count);
+    REQUIRE(g2.head_->label_offset == g.head_->label_offset);
+    REQUIRE(g2.head_->label_count == g.head_->label_count);
+    REQUIRE(g2.head_->field_data_offset == g.head_->field_data_offset);
+    REQUIRE(g2.head_->field_data_count == g.head_->field_data_count);
+    REQUIRE(g2.head_->field_idx_offset == g.head_->field_idx_offset);
+    REQUIRE(g2.head_->field_idx_count == g.head_->field_idx_count);
+    REQUIRE(g2.head_->list_idx_offset == g.head_->list_idx_offset);
+    REQUIRE(g2.head_->list_idx_count == g.head_->list_idx_count);
 }

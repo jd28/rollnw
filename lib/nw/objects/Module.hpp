@@ -39,11 +39,7 @@ struct ModuleScripts {
     Resref on_user_defined;
 };
 
-struct Module : public ObjectBase {
-    Module() = default;
-    explicit Module(const GffInputArchiveStruct& archive);
-    explicit Module(const nlohmann::json& archive);
-
+struct Module {
     using AreaVariant = std::variant<std::vector<Resref>, std::vector<flecs::entity>>;
 
     static constexpr int json_archive_version = 1;
@@ -52,18 +48,14 @@ struct Module : public ObjectBase {
     size_t area_count() const noexcept;
     flecs::entity get_area(size_t index) const;
 
-    // Overrides
-    virtual bool valid() const noexcept override;
-    virtual bool instantiate() override;
-    virtual Module* as_module() override;
-    virtual const Module* as_module() const override;
+    static bool instantiate(flecs::entity ent);
 
     // Serialization
-    bool from_gff(const GffInputArchiveStruct& archive);
-    bool from_json(const nlohmann::json& archive);
-    bool to_gff(GffOutputArchiveStruct& archive) const;
-    GffOutputArchive to_gff() const;
-    nlohmann::json to_json() const;
+    static bool deserialize(flecs::entity ent, const GffInputArchiveStruct& archive);
+    static bool deserialize(flecs::entity ent, const nlohmann::json& archive);
+    static GffOutputArchive serialize(const flecs::entity ent);
+    static bool serialize(const flecs::entity ent, GffOutputArchiveStruct& archive);
+    static bool serialize(const flecs::entity ent, nlohmann::json& archive);
 
     AreaVariant areas;
     LocString description;
@@ -72,10 +64,8 @@ struct Module : public ObjectBase {
     glm::vec3 entry_position;
     std::vector<std::string> haks;
     ByteArray id;
-    LocalData locals;
     std::string min_game_version;
     LocString name;
-    ModuleScripts scripts;
     Resref start_movie;
     std::string tag;
     std::string tlk;
@@ -94,9 +84,6 @@ struct Module : public ObjectBase {
     uint8_t start_hour = 0;
     uint8_t start_month = 0;
     uint8_t xpscale = 0;
-
-private:
-    bool valid_ = false;
 };
 
 } // namespace nw

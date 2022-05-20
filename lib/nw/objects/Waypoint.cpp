@@ -4,117 +4,108 @@
 
 namespace nw {
 
-Waypoint::Waypoint()
-    : common_{ObjectType::waypoint}
+bool Waypoint::deserialize(flecs::entity entity, const GffInputArchiveStruct& archive, SerializationProfile profile)
 {
-}
+    auto common = entity.get_mut<Common>();
+    common->from_gff(archive, profile);
 
-Waypoint::Waypoint(const GffInputArchiveStruct& archive, SerializationProfile profile)
-    : common_{ObjectType::waypoint}
-{
-    valid_ = this->from_gff(archive, profile);
-}
+    auto way = entity.get_mut<Waypoint>();
+    archive.get_to("Description", way->description);
+    archive.get_to("LinkedTo", way->linked_to);
+    archive.get_to("MapNote", way->map_note);
 
-Waypoint::Waypoint(const nlohmann::json& archive, SerializationProfile profile)
-{
-    valid_ = this->from_json(archive, profile);
-}
-
-bool Waypoint::valid() const noexcept { return valid_; }
-Common* Waypoint::common() { return &common_; }
-const Common* Waypoint::common() const { return &common_; }
-Waypoint* Waypoint::as_waypoint() { return this; }
-const Waypoint* Waypoint::as_waypoint() const { return this; }
-
-bool Waypoint::from_gff(const GffInputArchiveStruct& archive, SerializationProfile profile)
-{
-    common_.from_gff(archive, profile);
-    archive.get_to("Description", description);
-    archive.get_to("LinkedTo", linked_to);
-    archive.get_to("MapNote", map_note);
-
-    archive.get_to("Appearance", appearance);
-    archive.get_to("HasMapNote", has_map_note);
-    archive.get_to("MapNoteEnabled", map_note_enabled);
+    archive.get_to("Appearance", way->appearance);
+    archive.get_to("HasMapNote", way->has_map_note);
+    archive.get_to("MapNoteEnabled", way->map_note_enabled);
 
     return true;
 }
 
-bool Waypoint::to_gff(GffOutputArchiveStruct& archive, SerializationProfile profile) const
-{
-    archive.add_field("TemplateResRef", common_.resref)
-        .add_field("LocalizedName", common_.name)
-        .add_field("Tag", common_.tag);
-    if (profile == SerializationProfile::blueprint) {
-        archive.add_field("Comment", common_.comment);
-        archive.add_field("PaletteID", common_.palette_id);
-    } else {
-        archive.add_field("PositionX", common_.location.position.x)
-            .add_field("PositionY", common_.location.position.y)
-            .add_field("PositionZ", common_.location.position.z)
-            .add_field("OrientationX", common_.location.orientation.x)
-            .add_field("OrientationY", common_.location.orientation.y);
-    }
-
-    if (common_.locals.size()) {
-        common_.locals.to_gff(archive);
-    }
-
-    archive.add_field("Description", description)
-        .add_field("LinkedTo", linked_to)
-        .add_field("MapNote", map_note);
-
-    archive.add_field("Appearance", appearance)
-        .add_field("HasMapNote", has_map_note)
-        .add_field("MapNoteEnabled", map_note_enabled);
-
-    return true;
-}
-
-GffOutputArchive Waypoint::to_gff(SerializationProfile profile) const
-{
-    GffOutputArchive out{"UTW"};
-    this->to_gff(out.top, profile);
-    out.build();
-    return out;
-}
-
-bool Waypoint::from_json(const nlohmann::json& archive, SerializationProfile profile)
+bool Waypoint::deserialize(flecs::entity entity, const nlohmann::json& archive,
+    SerializationProfile profile)
 {
     if (archive.at("$type").get<std::string>() != "UTW") {
         LOG_F(ERROR, "waypoint: invalid json type");
         return false;
     }
 
-    common_.from_json(archive.at("common"), profile);
-    archive.at("description").get_to(description);
-    archive.at("linked_to").get_to(linked_to);
-    archive.at("map_note").get_to(map_note);
+    auto common = entity.get_mut<Common>();
+    common->from_json(archive.at("common"), profile);
 
-    archive.at("appearance").get_to(appearance);
-    archive.at("has_map_note").get_to(has_map_note);
-    archive.at("map_note_enabled").get_to(map_note_enabled);
+    auto way = entity.get_mut<Waypoint>();
+    archive.at("appearance").get_to(way->appearance);
+    archive.at("description").get_to(way->description);
+    archive.at("has_map_note").get_to(way->has_map_note);
+    archive.at("linked_to").get_to(way->linked_to);
+    archive.at("map_note_enabled").get_to(way->map_note_enabled);
+    archive.at("map_note").get_to(way->map_note);
 
     return true;
 }
 
-nlohmann::json Waypoint::to_json(SerializationProfile profile) const
+bool Waypoint::serialize(const flecs::entity entity, GffOutputArchiveStruct& archive,
+    SerializationProfile profile)
 {
-    nlohmann::json j;
+    auto common = entity.get_mut<Common>();
+    if (!common) { return false; }
 
-    j["$type"] = "UTW";
-    j["$version"] = json_archive_version;
+    archive.add_field("TemplateResRef", common->resref)
+        .add_field("LocalizedName", common->name)
+        .add_field("Tag", common->tag);
+    if (profile == SerializationProfile::blueprint) {
+        archive.add_field("Comment", common->comment);
+        archive.add_field("PaletteID", common->palette_id);
+    } else {
+        archive.add_field("PositionX", common->location.position.x)
+            .add_field("PositionY", common->location.position.y)
+            .add_field("PositionZ", common->location.position.z)
+            .add_field("OrientationX", common->location.orientation.x)
+            .add_field("OrientationY", common->location.orientation.y);
+    }
 
-    j["common"] = common_.to_json(profile);
-    j["description"] = description;
-    j["linked_to"] = linked_to;
-    j["map_note"] = map_note;
+    if (common->locals.size()) {
+        common->locals.to_gff(archive);
+    }
 
-    j["appearance"] = appearance;
-    j["has_map_note"] = has_map_note;
-    j["map_note_enabled"] = map_note_enabled;
+    auto way = entity.get<Waypoint>();
+    if (!way) { return false; }
 
-    return j;
+    archive.add_field("Description", way->description)
+        .add_field("LinkedTo", way->linked_to)
+        .add_field("MapNote", way->map_note);
+
+    archive.add_field("Appearance", way->appearance)
+        .add_field("HasMapNote", way->has_map_note)
+        .add_field("MapNoteEnabled", way->map_note_enabled);
+
+    return true;
+}
+
+GffOutputArchive Waypoint::serialize(const flecs::entity ent, SerializationProfile profile)
+{
+    GffOutputArchive out{"UTW"};
+    Waypoint::serialize(ent, out.top, profile);
+    out.build();
+    return out;
+}
+
+void Waypoint::serialize(const flecs::entity entity, nlohmann::json& archive,
+    SerializationProfile profile)
+{
+    archive["$type"] = "UTW";
+    archive["$version"] = Waypoint::json_archive_version;
+
+    auto common = entity.get<Common>();
+    auto way = entity.get<Waypoint>();
+
+    archive["common"] = common->to_json(profile);
+    archive["description"] = way->description;
+    archive["linked_to"] = way->linked_to;
+    archive["map_note"] = way->map_note;
+
+    archive["appearance"] = way->appearance;
+    archive["has_map_note"] = way->has_map_note;
+    archive["map_note_enabled"] = way->map_note_enabled;
 }
 
 } // namespace nw

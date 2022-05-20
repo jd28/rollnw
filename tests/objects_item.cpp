@@ -1,56 +1,63 @@
 #include <catch2/catch.hpp>
 
+#include <nw/kernel/Kernel.hpp>
 #include <nw/objects/Item.hpp>
 #include <nw/serialization/Serialization.hpp>
 
 #include <nlohmann/json.hpp>
 
+#include <filesystem>
 #include <fstream>
+
+namespace fs = std::filesystem;
 
 TEST_CASE("item: load armor item", "[objects]")
 {
-    nw::GffInputArchive g{"test_data/user/development/cloth028.uti"};
-    nw::Item i{g.toplevel(), nw::SerializationProfile::blueprint};
-    REQUIRE(i.common()->resref == "cloth028");
-    REQUIRE(i.properties.size() > 0);
-    REQUIRE(i.model_type == nw::ItemModelType::armor);
-    REQUIRE(i.common()->locals.size() > 0);
+    auto ent = nw::kernel::objects().load(fs::path("test_data/user/development/cloth028.uti"));
+    REQUIRE(ent.is_alive());
+
+    auto item = ent.get<nw::Item>();
+    auto common = ent.get<nw::Common>();
+
+    REQUIRE(common->resref == "cloth028");
+    REQUIRE(item->properties.size() > 0);
+    REQUIRE(item->model_type == nw::ItemModelType::armor);
+    REQUIRE(common->locals.size() > 0);
 }
 
 TEST_CASE("item: load layered item", "[objects]")
 {
-    nw::GffInputArchive g{"test_data/user/development/wduersc004.uti"};
-    nw::Item i{g.toplevel(), nw::SerializationProfile::blueprint};
-    REQUIRE(i.common()->resref == "wduersc004");
-    REQUIRE(i.properties.size() > 0);
-    REQUIRE(i.model_type == nw::ItemModelType::composite);
+    auto ent = nw::kernel::objects().load(fs::path("test_data/user/development/wduersc004.uti"));
+    REQUIRE(ent.is_alive());
+
+    auto item = ent.get<nw::Item>();
+    auto common = ent.get<nw::Common>();
+
+    REQUIRE(common->resref == "wduersc004");
+    REQUIRE(item->properties.size() > 0);
+    REQUIRE(item->model_type == nw::ItemModelType::composite);
 }
 
 TEST_CASE("item: load simple item", "[objects]")
 {
-    nw::GffInputArchive g{"test_data/user/development/pl_aleu_shuriken.uti"};
-    nw::Item i{g.toplevel(), nw::SerializationProfile::blueprint};
-    REQUIRE(i.common()->resref == "pl_aleu_shuriken");
-    REQUIRE(i.properties.size() > 0);
-    REQUIRE(i.model_type == nw::ItemModelType::simple);
+    auto ent = nw::kernel::objects().load(fs::path("test_data/user/development/pl_aleu_shuriken.uti"));
+    REQUIRE(ent.is_alive());
+
+    auto item = ent.get<nw::Item>();
+    auto common = ent.get<nw::Common>();
+
+    REQUIRE(common->resref == "pl_aleu_shuriken");
+    REQUIRE(item->properties.size() > 0);
+    REQUIRE(item->model_type == nw::ItemModelType::simple);
 }
 
 TEST_CASE("item: to_json", "[objects]")
 {
-    nw::GffInputArchive g{"test_data/user/development/cloth028.uti"};
-    nw::Item i{g.toplevel(), nw::SerializationProfile::blueprint};
-    REQUIRE(i.common()->resref == "cloth028");
-    REQUIRE(i.properties.size() > 0);
-    REQUIRE(i.model_type == nw::ItemModelType::armor);
-    REQUIRE(i.common()->locals.size() > 0);
+    auto ent = nw::kernel::objects().load(fs::path("test_data/user/development/cloth028.uti"));
+    REQUIRE(ent.is_alive());
 
-    nlohmann::json j = i.to_json(nw::SerializationProfile::blueprint);
-
-    nw::Item it2;
-    it2.from_json(j, nw::SerializationProfile::blueprint);
-    REQUIRE(it2.common()->locals.get_string("stringtest") == "0");
-    it2.common()->locals.set_int("inttest", 42);
-    REQUIRE(it2.common()->locals.get_int("inttest") == 42);
+    nlohmann::json j;
+    nw::kernel::objects().serialize(ent, j, nw::SerializationProfile::blueprint);
 
     std::ofstream f{"tmp/cloth028.uti.json"};
     f << std::setw(4) << j;
@@ -58,37 +65,39 @@ TEST_CASE("item: to_json", "[objects]")
 
 TEST_CASE("item: json to and from", "[objects]")
 {
-    nw::GffInputArchive g{"test_data/user/development/cloth028.uti"};
-    nw::Item i{g.toplevel(), nw::SerializationProfile::blueprint};
-    nlohmann::json j = i.to_json(nw::SerializationProfile::blueprint);
-    nw::Item it2{j, nw::SerializationProfile::blueprint};
-    REQUIRE(it2.common()->locals.get_string("stringtest") == "0");
-    nlohmann::json j2 = it2.to_json(nw::SerializationProfile::blueprint);
+    auto ent = nw::kernel::objects().load(fs::path("test_data/user/development/cloth028.uti"));
+    REQUIRE(ent.is_alive());
+
+    nlohmann::json j;
+    nw::kernel::objects().serialize(ent, j, nw::SerializationProfile::blueprint);
+
+    auto ent2 = nw::kernel::objects().deserialize(nw::ObjectType::item,
+        j,
+        nw::SerializationProfile::blueprint);
+    REQUIRE(ent2.is_alive());
+
+    nlohmann::json j2;
+    nw::kernel::objects().serialize(ent2, j2, nw::SerializationProfile::blueprint);
+
     REQUIRE(j == j2);
-}
-
-TEST_CASE("item: armor to_gff", "[objects]")
-{
-    nw::GffInputArchive g{"test_data/user/development/cloth028.uti"};
-    nw::Item i{g.toplevel(), nw::SerializationProfile::blueprint};
-    nw::GffOutputArchive oa{"UTI"};
-    REQUIRE(i.to_gff(oa.top, nw::SerializationProfile::blueprint));
-    oa.build();
-    oa.write_to("tmp/cloth028.uti");
-
-    nw::GffInputArchive g2{"tmp/cloth028.uti"};
-    REQUIRE(g2.valid());
-    nw::Item i2{g2.toplevel(), nw::SerializationProfile::blueprint};
-    REQUIRE(i.to_json(nw::SerializationProfile::blueprint) == i2.to_json(nw::SerializationProfile::blueprint));
 }
 
 TEST_CASE("item: gff round trip", "[ojbects]")
 {
+    auto ent = nw::kernel::objects().load(fs::path("test_data/user/development/cloth028.uti"));
+    REQUIRE(ent.is_alive());
+
     nw::GffInputArchive g("test_data/user/development/cloth028.uti");
     REQUIRE(g.valid());
 
-    nw::Item item{g.toplevel(), nw::SerializationProfile::blueprint};
-    nw::GffOutputArchive oa = item.to_gff(nw::SerializationProfile::blueprint);
+    nw::GffOutputArchive oa = nw::kernel::objects().serialize(ent, nw::SerializationProfile::blueprint);
+    oa.write_to("tmp/cloth028.uti");
+
+    nw::GffInputArchive g2{"tmp/cloth028.uti"};
+    REQUIRE(g2.valid());
+
+    // Problem: local vars arent always saved in same order
+    // REQUIRE(nw::gff_to_gffjson(g) == nw::gff_to_gffjson(g2));
 
     REQUIRE(oa.header.struct_offset == g.head_->struct_offset);
     REQUIRE(oa.header.struct_count == g.head_->struct_count);

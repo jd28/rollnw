@@ -72,11 +72,11 @@ struct GffInputArchiveStruct {
     uint32_t id() const { return valid() ? entry_->type : 0; }
 
     /// Gets a value from a field in the struct
-    template <typename T>
+    template <typename T, typename Underlying = T>
     std::optional<T> get(std::string_view label, bool warn_missing = true) const;
 
     /// Gets a value from a field in the struct
-    template <typename T>
+    template <typename T, typename Underlying = T>
     bool get_to(std::string_view label, T& out, bool warn_missing = true) const;
 
     /// Number of fields in the struct.
@@ -136,16 +136,16 @@ private:
     bool parse();
 };
 
-template <typename T>
+template <typename T, typename Underlying>
 std::optional<T> GffInputArchiveStruct::get(std::string_view label, bool warn_missing) const
 {
     T temp;
-    return get_to(label, temp, warn_missing)
+    return get_to<Underlying>(label, temp, warn_missing)
         ? std::optional<T>{std::move(temp)}
         : std::optional<T>{};
 }
 
-template <typename T>
+template <typename T, typename Underlying>
 bool GffInputArchiveStruct::get_to(std::string_view label, T& out, bool warn_missing) const
 {
     if (!valid()) { return false; }
@@ -154,12 +154,17 @@ bool GffInputArchiveStruct::get_to(std::string_view label, T& out, bool warn_mis
         if (warn_missing) { LOG_F(ERROR, "gff missing field '{}'", label); }
         return false;
     }
-    T temp;
+    Underlying temp;
     if (!val.get_to(temp)) {
         if (warn_missing) { LOG_F(ERROR, "gff unable to read field '{}' value", label); }
         return false;
     }
-    out = std::move(temp);
+
+    if constexpr (!std::is_same_v<T, Underlying> && std::is_integral_v<T> && std::is_integral_v<Underlying>) {
+        out = static_cast<T>(temp);
+    } else {
+        out = std::move(temp);
+    }
     return true;
 }
 

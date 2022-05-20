@@ -38,8 +38,6 @@ The `Config` module provides access to installation info, path aliases, Ini and 
 -------------------
 
 ## Objects
-> Provides a fairly basic and fairly incomplete object management system.  Lookup is O(1), just an index into a `std::deque`.
-> If creating and deleting a *massive* amount of objects it will slowly start to leak in 64bit increments.
 
 -------------------
 

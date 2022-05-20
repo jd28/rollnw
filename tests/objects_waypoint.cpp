@@ -1,5 +1,6 @@
 #include <catch2/catch.hpp>
 
+#include <nw/kernel/Kernel.hpp>
 #include <nw/objects/Waypoint.hpp>
 #include <nw/serialization/Serialization.hpp>
 
@@ -7,44 +8,34 @@
 
 #include <fstream>
 
+namespace fs = std::filesystem;
+
 TEST_CASE("waypoint: from_gff", "[objects]")
 {
-    nw::GffInputArchive g{"test_data/user/development/wp_behexit001.utw"};
-    REQUIRE(g.valid());
-    REQUIRE(g.valid());
-    nw::Waypoint w{g.toplevel(), nw::SerializationProfile::blueprint};
-
-    REQUIRE(w.common()->resref == "wp_behexit001");
-    REQUIRE(w.linked_to == "");
+    flecs::entity ent = nw::kernel::objects().load(fs::path("test_data/user/development/wp_behexit001.utw"));
+    REQUIRE(ent.is_alive());
 }
 
-TEST_CASE("waypoint: to_json", "[objects]")
+TEST_CASE("waypoint: json round trip", "[objects]")
 {
-    nw::GffInputArchive g{"test_data/user/development/wp_behexit001.utw"};
-    REQUIRE(g.valid());
-    nw::Waypoint w{g.toplevel(), nw::SerializationProfile::blueprint};
+    flecs::entity ent = nw::kernel::objects().load(fs::path("test_data/user/development/wp_behexit001.utw"));
+    REQUIRE(ent.is_alive());
 
-    nlohmann::json j = w.to_json(nw::SerializationProfile::blueprint);
+    nlohmann::json j;
+    nw::kernel::objects().serialize(ent, j, nw::SerializationProfile::blueprint);
 
-    nw::Waypoint w2;
-    w2.from_json(j, nw::SerializationProfile::blueprint);
+    auto ent2 = nw::kernel::objects().deserialize(nw::ObjectType::waypoint,
+        j,
+        nw::SerializationProfile::blueprint);
+    REQUIRE(ent2.is_alive());
 
-    REQUIRE(w2.common()->resref == "wp_behexit001");
-    REQUIRE(w2.linked_to == "");
+    nlohmann::json j2;
+    nw::kernel::objects().serialize(ent2, j2, nw::SerializationProfile::blueprint);
+
+    REQUIRE(j == j2);
 
     std::ofstream f{"tmp/wp_behexit001.utw.json"};
     f << std::setw(4) << j;
-}
-
-TEST_CASE("waypoint: json to and from", "[objects]")
-{
-    nw::GffInputArchive g{"test_data/user/development/wp_behexit001.utw"};
-    REQUIRE(g.valid());
-    nw::Waypoint w{g.toplevel(), nw::SerializationProfile::blueprint};
-    nlohmann::json j = w.to_json(nw::SerializationProfile::blueprint);
-    nw::Waypoint w2{j, nw::SerializationProfile::blueprint};
-    nlohmann::json j2 = w2.to_json(nw::SerializationProfile::blueprint);
-    REQUIRE(j == j2);
 }
 
 TEST_CASE("waypoint: gff round trip", "[ojbects]")
@@ -52,8 +43,16 @@ TEST_CASE("waypoint: gff round trip", "[ojbects]")
     nw::GffInputArchive g("test_data/user/development/wp_behexit001.utw");
     REQUIRE(g.valid());
 
-    nw::Waypoint way{g.toplevel(), nw::SerializationProfile::blueprint};
-    nw::GffOutputArchive oa = way.to_gff(nw::SerializationProfile::blueprint);
+    flecs::entity ent = nw::kernel::objects().deserialize(nw::ObjectType::waypoint,
+        g.toplevel(),
+        nw::SerializationProfile::blueprint);
+
+    nw::GffOutputArchive oa = nw::kernel::objects().serialize(ent, nw::SerializationProfile::blueprint);
+    oa.write_to("tmp/wp_behexit001.utw");
+
+    nw::GffInputArchive g2{"tmp/wp_behexit001.utw"};
+    REQUIRE(g2.valid());
+    REQUIRE(nw::gff_to_gffjson(g) == nw::gff_to_gffjson(g2));
 
     REQUIRE(oa.header.struct_offset == g.head_->struct_offset);
     REQUIRE(oa.header.struct_count == g.head_->struct_count);
@@ -67,4 +66,17 @@ TEST_CASE("waypoint: gff round trip", "[ojbects]")
     REQUIRE(oa.header.field_idx_count == g.head_->field_idx_count);
     REQUIRE(oa.header.list_idx_offset == g.head_->list_idx_offset);
     REQUIRE(oa.header.list_idx_count == g.head_->list_idx_count);
+
+    REQUIRE(g2.head_->struct_offset == g.head_->struct_offset);
+    REQUIRE(g2.head_->struct_count == g.head_->struct_count);
+    REQUIRE(g2.head_->field_offset == g.head_->field_offset);
+    REQUIRE(g2.head_->field_count == g.head_->field_count);
+    REQUIRE(g2.head_->label_offset == g.head_->label_offset);
+    REQUIRE(g2.head_->label_count == g.head_->label_count);
+    REQUIRE(g2.head_->field_data_offset == g.head_->field_data_offset);
+    REQUIRE(g2.head_->field_data_count == g.head_->field_data_count);
+    REQUIRE(g2.head_->field_idx_offset == g.head_->field_idx_offset);
+    REQUIRE(g2.head_->field_idx_count == g.head_->field_idx_count);
+    REQUIRE(g2.head_->list_idx_offset == g.head_->list_idx_offset);
+    REQUIRE(g2.head_->list_idx_count == g.head_->list_idx_count);
 }

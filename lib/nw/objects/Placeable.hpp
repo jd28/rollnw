@@ -8,6 +8,8 @@
 #include "components/Saves.hpp"
 #include "components/Trap.hpp"
 
+#include <flecs/flecs.h>
+
 namespace nw {
 
 enum struct PlaceableAnimationState : uint8_t {
@@ -43,37 +45,20 @@ struct PlaceableScripts {
     Resref on_user_defined;
 };
 
-struct Placeable : public ObjectBase {
-    Placeable();
-    Placeable(const GffInputArchiveStruct& archive, SerializationProfile profile);
-    Placeable(const nlohmann::json& archive, SerializationProfile profile);
-
+struct Placeable {
     static constexpr int json_archive_version = 1;
     static constexpr ObjectType object_type = ObjectType::placeable;
 
-    // ObjectBase overrides
-    virtual bool valid() const noexcept override;
-    virtual Common* common() override;
-    virtual const Common* common() const override;
-    virtual bool instantiate() override;
-    virtual Placeable* as_placeable() override;
-    virtual const Placeable* as_placeable() const override;
-
     // Serialization
-    bool from_gff(const GffInputArchiveStruct& archive, SerializationProfile profile);
-    bool from_json(const nlohmann::json& archive, SerializationProfile profile);
-    bool to_gff(GffOutputArchiveStruct& archive, SerializationProfile profile) const;
-    GffOutputArchive to_gff(SerializationProfile profile) const;
-    nlohmann::json to_json(SerializationProfile profile) const;
+    static bool deserialize(flecs::entity ent, const GffInputArchiveStruct& archive, SerializationProfile profile);
+    static bool deserialize(flecs::entity ent, const nlohmann::json& archive, SerializationProfile profile);
+    static GffOutputArchive serialize(const flecs::entity ent, SerializationProfile profile);
+    static bool serialize(const flecs::entity ent, GffOutputArchiveStruct& archive, SerializationProfile profile);
+    static bool serialize(const flecs::entity ent, nlohmann::json& archive, SerializationProfile profile);
 
-    Common common_;
     Resref conversation;
     LocString description;
-    Inventory inventory;
-    Lock lock;
     Saves saves;
-    PlaceableScripts scripts;
-    Trap trap;
 
     uint32_t appearance;
     uint32_t faction = 0;
@@ -90,9 +75,6 @@ struct Placeable : public ObjectBase {
     bool plot = 0;
     bool static_ = false;
     bool useable = false;
-
-private:
-    bool valid_ = false;
 };
 
 } // namespace nw

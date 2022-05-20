@@ -106,20 +106,6 @@ nlohmann::json ModuleScripts::to_json() const
     return j;
 }
 
-Module::Module(const GffInputArchiveStruct& archive)
-{
-    valid_ = this->from_gff(archive);
-}
-
-Module::Module(const nlohmann::json& archive)
-{
-    valid_ = this->from_json(archive);
-}
-
-bool Module::valid() const noexcept { return valid_; }
-Module* Module::as_module() { return this; }
-const Module* Module::as_module() const { return this; }
-
 size_t Module::area_count() const noexcept
 {
     if (std::holds_alternative<std::vector<flecs::entity>>(areas)) {
@@ -138,33 +124,40 @@ flecs::entity Module::get_area(size_t index) const
     return ent;
 }
 
-bool Module::instantiate()
+bool Module::instantiate(flecs::entity ent)
 {
     LOG_F(INFO, "instantiating module");
+    auto mod = ent.get_mut<Module>();
 
-    if (haks.size()) {
-        nw::kernel::resman().load_module_haks(haks);
+    if (mod->haks.size()) {
+        nw::kernel::resman().load_module_haks(mod->haks);
     }
 
-    if (tlk.size()) {
+    if (mod->tlk.size()) {
         auto path = nw::kernel::config().alias_path(PathAlias::tlk);
-        nw::kernel::strings().load_custom_tlk(path / (tlk + ".tlk"));
+        nw::kernel::strings().load_custom_tlk(path / (mod->tlk + ".tlk"));
     }
 
-    auto& area_list = std::get<std::vector<Resref>>(areas);
+    auto& area_list = std::get<std::vector<Resref>>(mod->areas);
     std::vector<flecs::entity> area_objects;
     area_objects.reserve(area_list.size());
     for (auto& area : area_list) {
         LOG_F(INFO, "  loading area: {}", area);
         area_objects.push_back(nw::kernel::objects().make_area(area));
     }
-    areas = std::move(area_objects);
+    mod->areas = std::move(area_objects);
 
     return true;
 }
 
-bool Module::from_gff(const GffInputArchiveStruct& archive)
+bool Module::deserialize(flecs::entity ent, const GffInputArchiveStruct& archive)
 {
+    auto mod = ent.get_mut<Module>();
+    auto scripts = ent.get_mut<ModuleScripts>();
+    auto locals = ent.get_mut<LocalData>();
+
+    locals->from_gff(archive);
+    scripts->from_gff(archive);
 
     size_t sz = archive["Mod_Area_list"].size();
     auto st = archive["Mod_Area_list"];
@@ -179,95 +172,98 @@ bool Module::from_gff(const GffInputArchiveStruct& archive)
             break;
         }
     }
-    areas = std::move(area_list);
+    mod->areas = std::move(area_list);
 
-    archive.get_to("Mod_Description", description);
-    archive.get_to("Mod_Entry_Area", entry_area);
-    archive.get_to("Mod_Entry_Dir_X", entry_orientation.x);
-    archive.get_to("Mod_Entry_Dir_Y", entry_orientation.y);
-    archive.get_to("Mod_Entry_X", entry_position.x);
-    archive.get_to("Mod_Entry_Y", entry_position.y);
-    archive.get_to("Mod_Entry_Z", entry_position.z);
+    archive.get_to("Mod_Description", mod->description);
+    archive.get_to("Mod_Entry_Area", mod->entry_area);
+    archive.get_to("Mod_Entry_Dir_X", mod->entry_orientation.x);
+    archive.get_to("Mod_Entry_Dir_Y", mod->entry_orientation.y);
+    archive.get_to("Mod_Entry_X", mod->entry_position.x);
+    archive.get_to("Mod_Entry_Y", mod->entry_position.y);
+    archive.get_to("Mod_Entry_Z", mod->entry_position.z);
 
     sz = archive["Mod_HakList"].size();
     st = archive["Mod_HakList"];
-    haks.reserve(sz);
+    mod->haks.reserve(sz);
     for (size_t i = 0; i < sz; ++i) {
         std::string r;
         if (st[i].get_to("Mod_Hak", r)) {
-            haks.push_back(r);
+            mod->haks.push_back(r);
         } else {
             break;
         }
     }
 
-    archive.get_to("Mod_ID", id);
-    locals.from_gff(archive);
-    archive.get_to("Mod_MinGameVer", min_game_version);
-    archive.get_to("Mod_Name", name);
-    scripts.from_gff(archive);
-    archive.get_to("Mod_StartMovie", start_movie);
-    archive.get_to("Mod_Tag", tag);
-    archive.get_to("Mod_CustomTlk", tlk);
+    archive.get_to("Mod_ID", mod->id);
+    archive.get_to("Mod_MinGameVer", mod->min_game_version);
+    archive.get_to("Mod_Name", mod->name);
+    archive.get_to("Mod_StartMovie", mod->start_movie);
+    archive.get_to("Mod_Tag", mod->tag);
+    archive.get_to("Mod_CustomTlk", mod->tlk);
 
-    archive.get_to("Mod_Creator_ID", creator);
-    archive.get_to("Mod_StartYear", start_year);
-    archive.get_to("Mod_Version", version);
+    archive.get_to("Mod_Creator_ID", mod->creator);
+    archive.get_to("Mod_StartYear", mod->start_year);
+    archive.get_to("Mod_Version", mod->version);
 
-    archive.get_to("Expansion_Pack", expansion_pack);
+    archive.get_to("Expansion_Pack", mod->expansion_pack);
 
-    archive.get_to("Mod_DawnHour", dawn_hour);
-    archive.get_to("Mod_DuskHour", dusk_hour);
-    archive.get_to("Mod_IsSaveGame", is_save_game);
-    archive.get_to("Mod_MinPerHour", minutes_per_hour);
-    archive.get_to("Mod_StartDay", start_day);
-    archive.get_to("Mod_StartHour", start_hour);
-    archive.get_to("Mod_StartMonth", start_month);
-    archive.get_to("Mod_XPScale", xpscale);
+    archive.get_to("Mod_DawnHour", mod->dawn_hour);
+    archive.get_to("Mod_DuskHour", mod->dusk_hour);
+    archive.get_to("Mod_IsSaveGame", mod->is_save_game);
+    archive.get_to("Mod_MinPerHour", mod->minutes_per_hour);
+    archive.get_to("Mod_StartDay", mod->start_day);
+    archive.get_to("Mod_StartHour", mod->start_hour);
+    archive.get_to("Mod_StartMonth", mod->start_month);
+    archive.get_to("Mod_XPScale", mod->xpscale);
 
     return true;
 }
 
-bool Module::from_json(const nlohmann::json& archive)
+bool Module::deserialize(flecs::entity ent, const nlohmann::json& archive)
 {
+    auto mod = ent.get_mut<Module>();
+    auto scripts = ent.get_mut<ModuleScripts>();
+    auto locals = ent.get_mut<LocalData>();
+
     try {
+        locals->from_json(archive.at("locals"));
+        scripts->from_json(archive.at("scripts"));
+
         std::vector<Resref> area_list;
         archive.at("areas").get_to(area_list);
-        areas = std::move(area_list);
+        mod->areas = std::move(area_list);
 
-        archive.at("description").get_to(description);
-        entry_orientation.x = archive.at("entry_orientation")[0].get<float>();
-        entry_orientation.y = archive.at("entry_orientation")[1].get<float>();
+        archive.at("description").get_to(mod->description);
+        mod->entry_orientation.x = archive.at("entry_orientation")[0].get<float>();
+        mod->entry_orientation.y = archive.at("entry_orientation")[1].get<float>();
         // entry_orientation.z = archive.at("entry_orientation")[2].get<float>();
-        entry_position.x = archive.at("entry_position")[0].get<float>();
-        entry_position.y = archive.at("entry_position")[1].get<float>();
-        entry_position.z = archive.at("entry_position")[2].get<float>();
+        mod->entry_position.x = archive.at("entry_position")[0].get<float>();
+        mod->entry_position.y = archive.at("entry_position")[1].get<float>();
+        mod->entry_position.z = archive.at("entry_position")[2].get<float>();
 
-        archive.at("haks").get_to(haks);
-        archive.at("id").get_to(id);
-        locals.from_json(archive.at("locals"));
-        archive.at("min_game_version").get_to(min_game_version);
-        archive.at("name").get_to(name);
-        scripts.from_json(archive.at("scripts"));
-        archive.at("start_movie").get_to(start_movie);
-        archive.at("tag").get_to(tag);
-        archive.at("tlk").get_to(tlk);
+        archive.at("haks").get_to(mod->haks);
+        archive.at("id").get_to(mod->id);
+        archive.at("min_game_version").get_to(mod->min_game_version);
+        archive.at("name").get_to(mod->name);
+        archive.at("start_movie").get_to(mod->start_movie);
+        archive.at("tag").get_to(mod->tag);
+        archive.at("tlk").get_to(mod->tlk);
 
-        archive.at("creator").get_to(creator);
-        archive.at("start_year").get_to(start_year);
-        archive.at("version").get_to(version);
+        archive.at("creator").get_to(mod->creator);
+        archive.at("start_year").get_to(mod->start_year);
+        archive.at("version").get_to(mod->version);
 
-        archive.at("expansion_pack").get_to(expansion_pack);
+        archive.at("expansion_pack").get_to(mod->expansion_pack);
 
-        archive.at("dawn_hour").get_to(dawn_hour);
-        archive.at("dusk_hour").get_to(dusk_hour);
-        archive.at("entry_area").get_to(entry_area);
-        archive.at("is_save_game").get_to(is_save_game);
-        archive.at("minutes_per_hour").get_to(minutes_per_hour);
-        archive.at("start_day").get_to(start_day);
-        archive.at("start_hour").get_to(start_hour);
-        archive.at("start_month").get_to(start_month);
-        archive.at("xpscale").get_to(xpscale);
+        archive.at("dawn_hour").get_to(mod->dawn_hour);
+        archive.at("dusk_hour").get_to(mod->dusk_hour);
+        archive.at("entry_area").get_to(mod->entry_area);
+        archive.at("is_save_game").get_to(mod->is_save_game);
+        archive.at("minutes_per_hour").get_to(mod->minutes_per_hour);
+        archive.at("start_day").get_to(mod->start_day);
+        archive.at("start_hour").get_to(mod->start_hour);
+        archive.at("start_month").get_to(mod->start_month);
+        archive.at("xpscale").get_to(mod->xpscale);
 
     } catch (const nlohmann::json::exception& e) {
         LOG_F(ERROR, "Module::from_json exception: {}", e.what());
@@ -277,119 +273,135 @@ bool Module::from_json(const nlohmann::json& archive)
     return true;
 }
 
-bool Module::to_gff(GffOutputArchiveStruct& archive) const
+bool Module::serialize(const flecs::entity ent, GffOutputArchiveStruct& archive)
 {
+    auto mod = ent.get<Module>();
+    auto scripts = ent.get<ModuleScripts>();
+    auto locals = ent.get<LocalData>();
+
+    locals->to_gff(archive);
+    scripts->to_gff(archive);
+
     auto& area_list = archive.add_list("Mod_Area_list");
-    if (std::holds_alternative<std::vector<Resref>>(areas)) {
-        for (const auto& area : std::get<std::vector<Resref>>(areas)) {
+    if (std::holds_alternative<std::vector<Resref>>(mod->areas)) {
+        for (const auto& area : std::get<std::vector<Resref>>(mod->areas)) {
             area_list.push_back(6).add_field("Area_Name", area);
         }
     } else {
-        for (const auto& area : std::get<std::vector<flecs::entity>>(areas)) {
-            area_list.push_back(6).add_field("Area_Name", area.get<Area>()->common()->resref);
+        for (const auto& area : std::get<std::vector<flecs::entity>>(mod->areas)) {
+            area_list.push_back(6).add_field("Area_Name", area.get<Common>()->resref);
         }
     }
 
-    archive.add_field("Mod_Description", description);
+    archive.add_field("Mod_Description", mod->description);
 
-    archive.add_field("Mod_Entry_Area", entry_area)
-        .add_field("Mod_Entry_Dir_X", entry_orientation.x)
-        .add_field("Mod_Entry_Dir_Y", entry_orientation.y)
-        .add_field("Mod_Entry_X", entry_position.x)
-        .add_field("Mod_Entry_Y", entry_position.y)
-        .add_field("Mod_Entry_Z", entry_position.z);
+    archive.add_field("Mod_Entry_Area", mod->entry_area)
+        .add_field("Mod_Entry_Dir_X", mod->entry_orientation.x)
+        .add_field("Mod_Entry_Dir_Y", mod->entry_orientation.y)
+        .add_field("Mod_Entry_X", mod->entry_position.x)
+        .add_field("Mod_Entry_Y", mod->entry_position.y)
+        .add_field("Mod_Entry_Z", mod->entry_position.z);
 
     auto& hak_list = archive.add_list("Mod_HakList");
-    for (const auto& hak : haks) {
+    for (const auto& hak : mod->haks) {
         hak_list.push_back(8).add_field("Mod_Hak", hak);
     }
 
-    archive.add_field("Mod_ID", id);
-    locals.to_gff(archive);
-    archive.add_field("Mod_MinGameVer", min_game_version);
-    archive.add_field("Mod_Name", name);
-    scripts.to_gff(archive);
-    archive.add_field("Mod_StartMovie", start_movie);
-    archive.add_field("Mod_Tag", tag);
-    archive.add_field("Mod_CustomTlk", tlk);
+    archive.add_field("Mod_ID", mod->id);
+    archive.add_field("Mod_MinGameVer", mod->min_game_version);
+    archive.add_field("Mod_Name", mod->name);
+    archive.add_field("Mod_StartMovie", mod->start_movie);
+    archive.add_field("Mod_Tag", mod->tag);
+    archive.add_field("Mod_CustomTlk", mod->tlk);
 
     // Always empty, obsolete, but NWN as of 1.69, at least, kept them in the GFF.
     archive.add_list("Mod_CutSceneList");
     archive.add_list("Mod_Expan_List");
     archive.add_list("Mod_GVar_List");
 
-    archive.add_field("Mod_Creator_ID", creator)
-        .add_field("Mod_StartYear", start_year)
-        .add_field("Mod_Version", version);
+    archive.add_field("Mod_Creator_ID", mod->creator)
+        .add_field("Mod_StartYear", mod->start_year)
+        .add_field("Mod_Version", mod->version);
 
-    archive.add_field("Expansion_Pack", expansion_pack);
+    archive.add_field("Expansion_Pack", mod->expansion_pack);
 
-    archive.add_field("Mod_DawnHour", dawn_hour)
-        .add_field("Mod_DuskHour", dusk_hour)
-        .add_field("Mod_IsSaveGame", is_save_game)
-        .add_field("Mod_MinPerHour", minutes_per_hour)
-        .add_field("Mod_StartDay", start_day)
-        .add_field("Mod_StartHour", start_hour)
-        .add_field("Mod_StartMonth", start_month)
-        .add_field("Mod_XPScale", xpscale);
+    archive.add_field("Mod_DawnHour", mod->dawn_hour)
+        .add_field("Mod_DuskHour", mod->dusk_hour)
+        .add_field("Mod_IsSaveGame", mod->is_save_game)
+        .add_field("Mod_MinPerHour", mod->minutes_per_hour)
+        .add_field("Mod_StartDay", mod->start_day)
+        .add_field("Mod_StartHour", mod->start_hour)
+        .add_field("Mod_StartMonth", mod->start_month)
+        .add_field("Mod_XPScale", mod->xpscale);
 
     return true;
 }
 
-GffOutputArchive Module::to_gff() const
+GffOutputArchive Module::serialize(const flecs::entity ent)
 {
     GffOutputArchive out{"IFO"};
-    this->to_gff(out.top);
+    Module::serialize(ent, out.top);
     out.build();
     return out;
 }
 
-nlohmann::json Module::to_json() const
+bool Module::serialize(const flecs::entity ent, nlohmann::json& archive)
 {
-    nlohmann::json j;
+    auto mod = ent.get<Module>();
+    auto scripts = ent.get<ModuleScripts>();
+    auto locals = ent.get<LocalData>();
 
-    j["$type"] = "IFO";
-    j["$version"] = json_archive_version;
+    archive["$type"] = "IFO";
+    archive["$version"] = json_archive_version;
 
-    if (std::holds_alternative<std::vector<Resref>>(areas)) {
-        j["areas"] = std::get<std::vector<Resref>>(areas);
+    archive["locals"] = locals->to_json(SerializationProfile::any);
+    archive["scripts"] = scripts->to_json();
+
+    if (std::holds_alternative<std::vector<Resref>>(mod->areas)) {
+        archive["areas"] = std::get<std::vector<Resref>>(mod->areas);
     } else {
-        auto& area_list = j["areas"] = nlohmann::json::array();
-        for (const auto area : std::get<std::vector<flecs::entity>>(areas)) {
-            area_list.push_back(area.get<Area>()->common()->resref);
+        auto& area_list = archive["areas"] = nlohmann::json::array();
+        for (const auto area : std::get<std::vector<flecs::entity>>(mod->areas)) {
+            area_list.push_back(area.get<Common>()->resref);
         }
     }
 
-    j["description"] = description;
-    j["entry_area"] = entry_area;
-    j["entry_orientation"] = nlohmann::json{entry_orientation.x, entry_orientation.y};
-    j["entry_position"] = nlohmann::json{entry_position.x, entry_position.y, entry_position.z};
-    j["haks"] = haks;
-    j["id"] = id;
-    j["locals"] = locals.to_json(SerializationProfile::any);
-    j["min_game_version"] = min_game_version;
-    j["name"] = name;
-    j["scripts"] = scripts.to_json();
-    j["start_movie"] = start_movie;
-    j["start_year"] = start_year;
-    j["tag"] = tag;
-    j["tlk"] = tlk;
+    archive["description"] = mod->description;
+    archive["entry_area"] = mod->entry_area;
 
-    j["version"] = version;
-    j["creator"] = creator;
+    archive["entry_orientation"] = nlohmann::json{
+        mod->entry_orientation.x,
+        mod->entry_orientation.y};
 
-    j["expansion_pack"] = expansion_pack;
+    archive["entry_position"] = nlohmann::json{
+        mod->entry_position.x,
+        mod->entry_position.y,
+        mod->entry_position.z};
 
-    j["dawn_hour"] = dawn_hour;
-    j["dusk_hour"] = dusk_hour;
-    j["is_save_game"] = is_save_game;
-    j["minutes_per_hour"] = minutes_per_hour;
-    j["start_day"] = start_day;
-    j["start_hour"] = start_hour;
-    j["start_month"] = start_month;
-    j["xpscale"] = xpscale;
+    archive["haks"] = mod->haks;
+    archive["id"] = mod->id;
+    archive["min_game_version"] = mod->min_game_version;
+    archive["name"] = mod->name;
+    archive["start_movie"] = mod->start_movie;
+    archive["start_year"] = mod->start_year;
+    archive["tag"] = mod->tag;
+    archive["tlk"] = mod->tlk;
 
-    return j;
+    archive["version"] = mod->version;
+    archive["creator"] = mod->creator;
+
+    archive["expansion_pack"] = mod->expansion_pack;
+
+    archive["dawn_hour"] = mod->dawn_hour;
+    archive["dusk_hour"] = mod->dusk_hour;
+    archive["is_save_game"] = mod->is_save_game;
+    archive["minutes_per_hour"] = mod->minutes_per_hour;
+    archive["start_day"] = mod->start_day;
+    archive["start_hour"] = mod->start_hour;
+    archive["start_month"] = mod->start_month;
+    archive["xpscale"] = mod->xpscale;
+
+    return true;
 }
 
 } // namespace nw
