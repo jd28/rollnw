@@ -22,6 +22,7 @@ struct ResourceType {
         player = 65531,
         sound = 65530,
         texture = 65529,
+        json = 65528,
 
         bmp = 1,
         mve = 2,
@@ -215,6 +216,9 @@ struct ResourceType {
         if (string::icmp(ext, "erf")) return erf;
         if (string::icmp(ext, "bif")) return bif;
         if (string::icmp(ext, "key")) return key;
+
+        // Custom types
+        if (string::icmp(ext, "json")) return json;
 
         return invalid;
     }
@@ -410,6 +414,8 @@ struct ResourceType {
             return "bif";
         case key:
             return "key";
+        case json:
+            return "json";
         }
     }
 
