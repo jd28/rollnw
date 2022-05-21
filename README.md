@@ -30,7 +30,7 @@ The library will be renamed as there was already an Open Knights project named [
 
 Convert objects and systems to [flecs](https://github.com/SanderMertens/flecs).  This will allow decoupling everything a lot simpler.  Currently entities only have one component, their old Object.
 
-## Quickstart - Open VS Code in your Browswer
+## Quickstart - Open VS Code in your Browser
 
 [![Open in Gitpod](https://gitpod.io/button/open-in-gitpod.svg)](https://gitpod.io/#https://github.com/jd28/libnw)
 
