@@ -2,6 +2,7 @@
 
 #include "../../kernel/Kernel.hpp"
 #include "../../kernel/components/ConstantRegistry.hpp"
+#include "../../objects/Creature.hpp"
 #include "../../rules/Ability.hpp"
 #include "../../rules/BaseItem.hpp"
 #include "../../rules/Class.hpp"
@@ -9,6 +10,7 @@
 #include "../../rules/Race.hpp"
 #include "../../rules/Skill.hpp"
 #include "../../rules/Spell.hpp"
+#include "../../rules/system.hpp"
 
 namespace nwn1 {
 
@@ -160,6 +162,49 @@ bool Profile::load_compontents() const
     return true;
 }
 
+static nw::RuleValue selector(const nw::Selector& selector, const flecs::entity ent)
+{
+    switch (selector.type) {
+    default:
+        return {};
+    case nw::SelectorType::ability: {
+        auto stats = ent.get<nw::CreatureStats>();
+        if (!stats) { return {}; }
+        auto idx = static_cast<size_t>(selector.subtype);
+        return static_cast<int>(stats->abilities[idx]);
+    }
+    case nw::SelectorType::feat: {
+        auto stats = ent.get<nw::CreatureStats>();
+        if (!stats) { return {}; }
+        return stats->has_feat(static_cast<uint16_t>(selector.subtype));
+    }
+    case nw::SelectorType::level: {
+        auto levels = ent.get<nw::LevelStats>();
+        if (!levels) { return {}; }
+
+        int level = 0;
+        for (const auto& ce : levels->classes) {
+            level += ce.level;
+        }
+        return level;
+    }
+    case nw::SelectorType::race: {
+        auto c = ent.get<nw::Creature>();
+        if (!c) { return {}; }
+        return static_cast<int>(c->race);
+    }
+    case nw::SelectorType::skill: {
+        auto stats = ent.get<nw::CreatureStats>();
+        if (!stats) { return {}; }
+
+        auto idx = static_cast<size_t>(selector.subtype);
+        return static_cast<int>(stats->skills[idx]);
+    }
+    }
+
+    return {};
+}
+
 #define TDA_GET_UINT32(tda, name, row, column)      \
     do {                                            \
         if (tda.get_to(row, column, temp_int)) {    \
@@ -199,6 +244,9 @@ bool Profile::load_compontents() const
 
 bool Profile::load_rules() const
 {
+    // == Set Selector ========================================================
+    nw::kernel::rules().set_selector(selector);
+
     // == Load Info ===========================================================
 
     auto* consts = nw::kernel::world().get_mut<nw::ConstantRegistry>();

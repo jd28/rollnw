@@ -54,4 +54,19 @@ TwoDA& Rules::get_cached_2da(const Resource& res)
     return cached_2das_[res];
 }
 
+RuleValue Rules::select(const Selector& selector, const flecs::entity ent) const
+{
+    if (!selector_) {
+        LOG_F(ERROR, "rules: no selector set");
+        return {};
+    }
+
+    return selector_(selector, ent);
+}
+
+void Rules::set_selector(std::function<RuleValue(const Selector&, flecs::entity)> selector)
+{
+    selector_ = std::move(selector);
+}
+
 } // namespace nw::kernel

@@ -1,53 +1,10 @@
 #include "system.hpp"
 
-#include "../objects/Creature.hpp"
+#include "../kernel/Kernel.hpp"
 
 namespace nw {
 
 // == Selector ================================================================
-
-RuleValue Selector::select(const flecs::entity cre) const
-{
-    switch (type) {
-    default:
-        return {};
-    case SelectorType::ability: {
-        auto stats = cre.get<CreatureStats>();
-        if (!stats) { return {}; }
-        auto idx = static_cast<size_t>(subtype);
-        return static_cast<int>(stats->abilities[idx]);
-    }
-    case SelectorType::feat: {
-        auto stats = cre.get<CreatureStats>();
-        if (!stats) { return {}; }
-        return stats->has_feat(static_cast<uint16_t>(subtype));
-    }
-    case SelectorType::level: {
-        auto levels = cre.get<LevelStats>();
-        if (!levels) { return {}; }
-
-        int level = 0;
-        for (const auto& ce : levels->classes) {
-            level += ce.level;
-        }
-        return level;
-    }
-    case SelectorType::race: {
-        auto c = cre.get<Creature>();
-        if (!c) { return {}; }
-        return static_cast<int>(c->race);
-    }
-    case SelectorType::skill: {
-        auto stats = cre.get<CreatureStats>();
-        if (!stats) { return {}; }
-
-        auto idx = static_cast<size_t>(subtype);
-        return static_cast<int>(stats->skills[idx]);
-    }
-    }
-
-    return {};
-}
 
 bool operator==(const Selector& lhs, const Selector& rhs)
 {
@@ -92,7 +49,7 @@ Selector race()
 
 bool Qualifier::match(const flecs::entity cre) const
 {
-    auto value = selector.select(cre);
+    auto value = kernel::rules().select(selector, cre);
     if (!value.empty()) {
         switch (selector.type) {
         default:

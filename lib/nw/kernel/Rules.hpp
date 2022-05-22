@@ -6,6 +6,7 @@
 #include "Strings.hpp"
 
 #include <absl/container/flat_hash_map.h>
+#include <flecs/flecs.h>
 
 #include <cstdint>
 #include <limits>
@@ -15,6 +16,8 @@
 namespace nw::kernel {
 
 struct Rules {
+    using selector_type = std::function<RuleValue(const Selector&, const flecs::entity)>;
+
     virtual ~Rules();
 
     // Intializes rules system
@@ -35,8 +38,15 @@ struct Rules {
     /// Gets a cached TwoDA
     virtual TwoDA& get_cached_2da(const Resource& res);
 
+    /// Select
+    RuleValue select(const Selector&, const flecs::entity) const;
+
+    /// Set rules selector
+    void set_selector(selector_type selector);
+
 private:
     absl::flat_hash_map<Resource, TwoDA> cached_2das_;
+    selector_type selector_;
 };
 
 } // namespace nw::kernel

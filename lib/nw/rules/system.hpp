@@ -22,21 +22,19 @@ using RuleValue = Variant<int32_t, float, std::string>;
 // == Selector ================================================================
 
 enum struct SelectorType {
-    race,
-    ability,
-    level,
-    class_level,
-    feat,
-    skill,
-    bab,
-    ac,
+    ability,     // Subtype: ABILITY_* constant
+    ac,          // Subtype: AC_* constant
+    bab,         // Subtype: none
+    class_level, // Subtype: CLASS_* constant
+    feat,        // Subtype: AC_* constant
+    level,       // Subtype: none
+    race,        // Subtype: none
+    skill,       // Subtype: SKILL_* constant
 };
 
 struct Selector {
     SelectorType type;
     int subtype;
-
-    RuleValue select(const flecs::entity cre) const;
 };
 
 bool operator==(const Selector& lhs, const Selector& rhs);
