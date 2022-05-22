@@ -318,7 +318,7 @@ flecs::entity ObjectSystem::make_module() const
     return ent;
 }
 
-GffOutputArchive ObjectSystem::serialize(flecs::entity ent,
+GffOutputArchive ObjectSystem::serialize(const flecs::entity ent,
     SerializationProfile profile) const
 {
     if (ent.has<Area>()) {
@@ -345,7 +345,7 @@ GffOutputArchive ObjectSystem::serialize(flecs::entity ent,
     return GffOutputArchive{"XXX"};
 }
 
-void ObjectSystem::serialize(flecs::entity ent, GffOutputArchiveStruct& archive,
+void ObjectSystem::serialize(const flecs::entity ent, GffOutputArchiveStruct& archive,
     SerializationProfile profile) const
 {
     if (ent.has<Area>()) {
@@ -371,7 +371,7 @@ void ObjectSystem::serialize(flecs::entity ent, GffOutputArchiveStruct& archive,
     }
 }
 
-void ObjectSystem::serialize(flecs::entity ent, nlohmann::json& archive,
+void ObjectSystem::serialize(const flecs::entity ent, nlohmann::json& archive,
     SerializationProfile profile) const
 {
     if (ent.has<Area>()) {

@@ -49,15 +49,15 @@ struct ObjectSystem {
     virtual flecs::entity make_module() const;
 
     /// Makes a GFF archive from an entity
-    virtual void serialize(flecs::entity ent, GffOutputArchiveStruct& archive,
+    virtual void serialize(const flecs::entity ent, GffOutputArchiveStruct& archive,
         SerializationProfile profile = SerializationProfile::instance) const;
 
     /// Makes a GFF archive from an entity
-    virtual GffOutputArchive serialize(flecs::entity ent,
+    virtual GffOutputArchive serialize(const flecs::entity ent,
         SerializationProfile profile = SerializationProfile::instance) const;
 
     /// Makes a JSON archive from an entity
-    virtual void serialize(flecs::entity ent, nlohmann::json& archive,
+    virtual void serialize(const flecs::entity ent, nlohmann::json& archive,
         SerializationProfile profile = SerializationProfile::instance) const;
 
     virtual bool valid(flecs::entity ent) const;
