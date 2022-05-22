@@ -1,6 +1,7 @@
 #include "Profile.hpp"
 
 #include "../../kernel/Kernel.hpp"
+#include "../../kernel/components/ConstantRegistry.hpp"
 #include "../../rules/Ability.hpp"
 #include "../../rules/BaseItem.hpp"
 #include "../../rules/Class.hpp"

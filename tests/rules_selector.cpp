@@ -1,6 +1,7 @@
 #include <catch2/catch.hpp>
 
 #include <nw/kernel/Kernel.hpp>
+#include <nw/kernel/components/ConstantRegistry.hpp>
 #include <nw/objects/Creature.hpp>
 #include <nw/profiles/nwn1/Profile.hpp>
 #include <nw/rules/system.hpp>

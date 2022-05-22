@@ -7,6 +7,17 @@
 
 namespace nw {
 
+/**
+ * @brief A `Constant` is an InternedString and an `int`, `float`, or `std::string` value.
+ *
+ * @code {.cpp}
+ * Constant c = ...;
+ * if(c->is<int32_t>()) {
+ *     int v = c->as<int32_t>();
+ * }
+ * @endcode
+ *
+ */
 struct Constant {
     using variant_type = Variant<int32_t, float, std::string>;
 
@@ -27,27 +38,5 @@ struct Constant {
 
 bool operator==(const Constant& lhs, const Constant& rhs);
 bool operator<(const Constant& lhs, const Constant& rhs);
-
-// == ConstantRegistry ========================================================
-
-struct ConstantRegistry {
-    using container_type = absl::flat_hash_map<
-        kernel::InternedString,
-        Constant::variant_type,
-        kernel::InternedStringHash,
-        kernel::InternedStringEq>;
-
-    /// Adds constant
-    Constant add(std::string_view name, Constant::variant_type value);
-
-    /// Clears all constants
-    void clear();
-
-    /// Gets constant
-    Constant get(std::string_view name) const;
-
-private:
-    container_type constants_;
-};
 
 } // namespace nw

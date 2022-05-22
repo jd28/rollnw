@@ -3,6 +3,7 @@
 #include "../log.hpp"
 #include "../objects/Module.hpp"
 #include "../profiles/GameProfile.hpp"
+#include "components/ConstantRegistry.hpp"
 
 namespace nw::kernel {
 

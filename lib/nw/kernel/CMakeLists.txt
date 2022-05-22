@@ -1,4 +1,6 @@
 add_library(nw-kernel STATIC
+    components/ConstantRegistry.cpp
+
     Kernel.cpp
     Config.cpp
     Objects.cpp
