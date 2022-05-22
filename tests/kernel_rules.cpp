@@ -14,7 +14,7 @@
 
 TEST_CASE("rules manager", "[kernel]")
 {
-    auto mod = nw::kernel::load_module(new nwn1::Profile, "test_data/user/modules/DockerDemo.mod");
+    auto mod = nw::kernel::load_module("test_data/user/modules/DockerDemo.mod");
     REQUIRE(mod);
 
     auto* abs = nw::kernel::world().get<nw::AbilityArray>();

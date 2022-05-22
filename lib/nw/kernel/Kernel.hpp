@@ -33,7 +33,7 @@ struct Services {
     void provide(Strings* strings);
 
     // Sets game profile
-    void set_profile(const GameProfile* profile);
+    bool set_profile(const GameProfile* profile);
 
     /// Shutdown all services
     void shutdown();
@@ -73,18 +73,13 @@ Rules& rules();
 Strings& strings();
 flecs::world& world();
 
-/**
- * @brief
- *
- * @param profile
- * @param path
- * @param manifest
- * @return `nullptr` on error
- */
-flecs::entity load_module(const GameProfile* profile,
-    const std::filesystem::path& path,
-    std::string_view manifest = {});
+/// Loads game profile
+bool load_profile(const GameProfile* profile);
 
+/// Loads a module
+flecs::entity load_module(const std::filesystem::path& path, std::string_view manifest = {});
+
+/// Unloads currently active module
 void unload_module();
 
 } // namespace kernel

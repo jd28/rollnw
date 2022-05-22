@@ -3,6 +3,7 @@
 
 #include <nw/kernel/Kernel.hpp>
 #include <nw/log.hpp>
+#include <nw/profiles/nwn1/Profile.hpp>
 #include <nw/util/string.hpp>
 
 #include <nowide/cstdlib.hpp>
@@ -36,6 +37,7 @@ int main(int argc, char* argv[])
     }
 
     nw::kernel::services().start();
+    nw::kernel::load_profile(new nwn1::Profile);
 
     Catch::Session session; // There must be exactly one instance
 

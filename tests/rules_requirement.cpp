@@ -9,7 +9,7 @@ namespace fs = std::filesystem;
 
 TEST_CASE("requirement", "[rules]")
 {
-    auto mod = nw::kernel::load_module(new nwn1::Profile, "test_data/user/modules/DockerDemo.mod");
+    auto mod = nw::kernel::load_module("test_data/user/modules/DockerDemo.mod");
     REQUIRE(mod);
 
     auto ent = nw::kernel::objects().load(fs::path("test_data/user/development/pl_agent_001.utc"));

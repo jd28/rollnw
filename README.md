@@ -54,6 +54,40 @@ $ cmake --build --preset default
 $ ctest --preset default
 ```
 
+## Using
+
+While the library is far from done, basic usage would be as follows.
+
+```cpp
+#include <nw/kernel/Kernel.hpp>
+#include <nw/log.hpp>
+#include <nw/profiles/nwn1/Profile.hpp>
+
+int main(int argc, char* argv[])
+{
+   // Initialize logger
+   nw::init_logger(argc, argv);
+
+   // Sets config for the system, paths, version, etc.
+   auto info = nw::probe_nwn_install();
+   nw::kernel::config().initialize({
+       info.version,
+       info.install,
+       info.user,
+   });
+
+   // Initializes all systems
+   nw::kernel::services().start();
+
+   // Loads a game profile, in this case something vaguely like NWN1
+   nw::kernel::load_profile(new nwn1::Profile);
+
+   // Do neat stuff
+
+   return 0;
+}
+```
+
 ## History
 
 A lot of what's here was written in the 2011-2015 range as part of personal minimalist toolset, modernized and with new EE stuff added.  In some sense, it's a work of historical fiction -- it's what I'd have suggested at the start of NWN:EE: get the game and the community on the same set of libraries.  Similarly to an older project that asked ["what if Bioware had stuck with Lua?"](https://solstice.readthedocs.io/en/latest/).  The awnser to that was pretty positive: a decade ahead, at least, of nwscript.

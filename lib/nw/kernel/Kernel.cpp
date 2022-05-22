@@ -57,9 +57,13 @@ void Services::provide(Strings* strings)
     strings_ = std::unique_ptr<Strings>(strings);
 }
 
-void Services::set_profile(const GameProfile* profile)
+bool Services::set_profile(const GameProfile* profile)
 {
     profile_.reset(profile);
+    if (!profile->load_constants()) return false;
+    profile->load_compontents();
+    profile->load_rules();
+    return true;
 }
 
 void Services::shutdown()
@@ -80,6 +84,8 @@ void Services::start(bool fail_hard)
         LOG_F(WARNING, "Services have already been started...");
         return;
     }
+
+    world().add<ConstantRegistry>();
 
     if (!objects_) {
         objects_ = std::make_unique<ObjectSystem>();
@@ -118,21 +124,14 @@ Rules& rules() { return *detail::s_services.rules_.get(); }
 Strings& strings() { return *detail::s_services.strings_.get(); }
 flecs::world& world() { return detail::s_services.world_; }
 
-flecs::entity load_module(const GameProfile* profile,
-    const std::filesystem::path& path,
-    std::string_view manifest)
+bool load_profile(const GameProfile* profile)
+{
+    return services().set_profile(profile);
+}
+
+flecs::entity load_module(const std::filesystem::path& path, std::string_view manifest)
 {
     flecs::entity mod;
-    world().add<ConstantRegistry>();
-
-    if (!services().started()) { services().start(); }
-
-    if (!profile) { return mod; }
-    services().set_profile(profile);
-
-    if (!profile->load_constants()) return mod;
-    profile->load_compontents();
-    profile->load_rules();
 
     resman().load_module(path, manifest);
     mod = objects().make_module();

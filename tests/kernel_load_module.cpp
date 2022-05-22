@@ -17,7 +17,7 @@ TEST_CASE("load real module", "[kernel]")
         mod_path = var;
     }
     if (!mod_path.empty()) {
-        auto mod = nw::kernel::load_module(new nwn1::Profile, mod_path);
+        auto mod = nw::kernel::load_module(mod_path);
         REQUIRE(mod.is_alive());
         REQUIRE(mod.get<nw::Module>()->area_count());
         nw::kernel::unload_module();
@@ -26,7 +26,7 @@ TEST_CASE("load real module", "[kernel]")
 
 TEST_CASE("load module from .mod", "[kernel]")
 {
-    auto mod = nw::kernel::load_module(new nwn1::Profile, "test_data/user/modules/DockerDemo.mod");
+    auto mod = nw::kernel::load_module("test_data/user/modules/DockerDemo.mod");
     REQUIRE(mod.is_alive());
     REQUIRE(mod.get<nw::Module>()->area_count() == 1);
     auto area = mod.get<nw::Module>()->get_area(0);
@@ -37,7 +37,7 @@ TEST_CASE("load module from .mod", "[kernel]")
 
 TEST_CASE("load module from directory", "[kernel]")
 {
-    auto mod = nw::kernel::load_module(new nwn1::Profile, "test_data/user/modules/module_as_dir/");
+    auto mod = nw::kernel::load_module("test_data/user/modules/module_as_dir/");
     REQUIRE(mod.is_alive());
     REQUIRE(mod.get<nw::Module>()->area_count() == 1);
     auto area = mod.get<nw::Module>()->get_area(0);
@@ -52,7 +52,7 @@ TEST_CASE("load module from directory", "[kernel]")
 
 TEST_CASE("load module from .zip", "[kernel]")
 {
-    auto mod = nw::kernel::load_module(new nwn1::Profile, "test_data/user/modules/module_as_zip.zip");
+    auto mod = nw::kernel::load_module("test_data/user/modules/module_as_zip.zip");
     REQUIRE(mod.is_alive());
     REQUIRE(mod.get<nw::Module>()->area_count() == 1);
     auto area = mod.get<nw::Module>()->get_area(0);

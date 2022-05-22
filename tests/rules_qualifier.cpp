@@ -9,7 +9,7 @@ namespace fs = std::filesystem;
 
 TEST_CASE("qualifier", "[rules]")
 {
-    auto mod = nw::kernel::load_module(new nwn1::Profile, "test_data/user/modules/DockerDemo.mod");
+    auto mod = nw::kernel::load_module("test_data/user/modules/DockerDemo.mod");
     REQUIRE(mod);
 
     auto ent = nw::kernel::objects().load(fs::path("test_data/user/development/pl_agent_001.utc"));
@@ -34,7 +34,7 @@ TEST_CASE("qualifier", "[rules]")
 
 TEST_CASE("qualifier: race", "[rules]")
 {
-    auto mod = nw::kernel::load_module(new nwn1::Profile, "test_data/user/modules/DockerDemo.mod");
+    auto mod = nw::kernel::load_module("test_data/user/modules/DockerDemo.mod");
     REQUIRE(mod);
 
     auto ent = nw::kernel::objects().load(fs::path("test_data/user/development/pl_agent_001.utc"));
@@ -51,7 +51,7 @@ TEST_CASE("qualifier: race", "[rules]")
 
 TEST_CASE("qualifier: level", "[rules]")
 {
-    auto mod = nw::kernel::load_module(new nwn1::Profile, "test_data/user/modules/DockerDemo.mod");
+    auto mod = nw::kernel::load_module("test_data/user/modules/DockerDemo.mod");
     REQUIRE(mod);
 
     auto ent = nw::kernel::objects().load(fs::path("test_data/user/development/pl_agent_001.utc"));
