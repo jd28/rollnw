@@ -4,6 +4,7 @@
 #include "../objects/Module.hpp"
 #include "../profiles/GameProfile.hpp"
 #include "components/ConstantRegistry.hpp"
+#include "components/TwoDACache.hpp"
 
 namespace nw::kernel {
 
@@ -75,6 +76,10 @@ void Services::shutdown()
     objects_.reset();
     resources_.reset();
     strings_.reset();
+
+    world().get_mut<ConstantRegistry>()->clear();
+    world().get_mut<TwoDACache>()->clear();
+
     started_ = false;
 }
 
@@ -88,6 +93,7 @@ void Services::start(bool fail_hard)
     }
 
     world().add<ConstantRegistry>();
+    world().add<TwoDACache>();
 
     if (!objects_) {
         objects_ = std::make_unique<ObjectSystem>();
@@ -140,7 +146,6 @@ flecs::entity load_module(const std::filesystem::path& path, std::string_view ma
     if (objects().valid(mod)) {
         Module::instantiate(mod);
     }
-    rules().load();
 
     return mod;
 }

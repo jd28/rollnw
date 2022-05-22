@@ -1,6 +1,7 @@
 #include <catch2/catch.hpp>
 
 #include <nw/kernel/Kernel.hpp>
+#include <nw/kernel/components/TwoDACache.hpp>
 #include <nw/profiles/nwn1/Profile.hpp>
 #include <nw/rules/Ability.hpp>
 #include <nw/rules/BaseItem.hpp>
@@ -12,36 +13,38 @@
 
 #include <nw/util/game_install.hpp>
 
+namespace nwk = nw::kernel;
+
 TEST_CASE("rules manager", "[kernel]")
 {
-    auto mod = nw::kernel::load_module("test_data/user/modules/DockerDemo.mod");
+    auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
     REQUIRE(mod);
 
-    auto* abs = nw::kernel::world().get<nw::AbilityArray>();
+    auto* abs = nwk::world().get<nw::AbilityArray>();
     REQUIRE(abs);
     REQUIRE(abs->abiliites.size() == 6);
 
-    auto* ba = nw::kernel::world().get<nw::BaseItemArray>();
+    auto* ba = nwk::world().get<nw::BaseItemArray>();
     REQUIRE(ba);
     REQUIRE(ba->baseitems.size() > 0);
 
-    auto* cl = nw::kernel::world().get<nw::ClassArray>();
+    auto* cl = nwk::world().get<nw::ClassArray>();
     REQUIRE(cl);
     REQUIRE(cl->classes.size() > 0);
 
-    auto* ft = nw::kernel::world().get<nw::FeatArray>();
+    auto* ft = nwk::world().get<nw::FeatArray>();
     REQUIRE(ft);
     REQUIRE(ft->feats.size() > 0);
 
-    auto* ra = nw::kernel::world().get<nw::RaceArray>();
+    auto* ra = nwk::world().get<nw::RaceArray>();
     REQUIRE(ra);
     REQUIRE(ra->races.size() > 0);
 
-    auto* sk = nw::kernel::world().get<nw::SkillArray>();
+    auto* sk = nwk::world().get<nw::SkillArray>();
     REQUIRE(sk);
     REQUIRE(sk->skills.size() > 0);
 
-    auto* sp = nw::kernel::world().get<nw::SpellArray>();
+    auto* sp = nwk::world().get<nw::SpellArray>();
     REQUIRE(sp);
     REQUIRE(sp->spells.size() > 0);
 
@@ -50,9 +53,8 @@ TEST_CASE("rules manager", "[kernel]")
     REQUIRE(skill.name == 269);
     REQUIRE(skill.constant.name == "SKILL_ANIMAL_EMPATHY");
 
-    auto place2da = nw::Resource{"placeables"sv, nw::ResourceType::twoda};
-    REQUIRE(nw::kernel::rules().cache_2da(place2da));
-    REQUIRE(nw::kernel::rules().get_cached_2da(place2da).rows() > 0);
+    REQUIRE(nwk::world().get_mut<nw::TwoDACache>()->cache("placeables"sv));
+    REQUIRE(nwk::world().get<nw::TwoDACache>()->get("placeables"sv)->rows() > 0);
 
     nw::kernel::unload_module();
 }

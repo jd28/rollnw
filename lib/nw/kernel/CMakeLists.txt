@@ -1,5 +1,6 @@
 add_library(nw-kernel STATIC
     components/ConstantRegistry.cpp
+    components/TwoDACache.cpp
 
     Kernel.cpp
     Config.cpp

@@ -1,5 +1,6 @@
 #include "Profile.hpp"
 
+#include "../../formats/TwoDA.hpp"
 #include "../../kernel/Kernel.hpp"
 #include "../../kernel/components/ConstantRegistry.hpp"
 #include "../../objects/Creature.hpp"
