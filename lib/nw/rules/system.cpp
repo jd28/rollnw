@@ -6,7 +6,7 @@ namespace nw {
 
 // == Selector ================================================================
 
-RuleBaseVariant Selector::select(const flecs::entity cre) const
+RuleValue Selector::select(const flecs::entity cre) const
 {
     switch (type) {
     default:

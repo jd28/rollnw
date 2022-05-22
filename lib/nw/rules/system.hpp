@@ -17,7 +17,7 @@ namespace nw {
 struct ObjectBase;
 struct Creature;
 
-using RuleBaseVariant = Variant<int32_t, float, std::string>;
+using RuleValue = Variant<int32_t, float, std::string>;
 
 // == Selector ================================================================
 
@@ -36,7 +36,7 @@ struct Selector {
     SelectorType type;
     int subtype;
 
-    RuleBaseVariant select(const flecs::entity cre) const;
+    RuleValue select(const flecs::entity cre) const;
 };
 
 bool operator==(const Selector& lhs, const Selector& rhs);
@@ -59,7 +59,7 @@ Selector race();
 
 struct Qualifier {
     Selector selector;
-    absl::InlinedVector<RuleBaseVariant, 4> params;
+    absl::InlinedVector<RuleValue, 4> params;
 
     bool match(const flecs::entity cre) const;
 };
