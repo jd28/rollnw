@@ -34,7 +34,7 @@ Convert objects and systems to [flecs](https://github.com/SanderMertens/flecs). 
 
 [![Open in Gitpod](https://gitpod.io/button/open-in-gitpod.svg)](https://gitpod.io/#https://github.com/jd28/libnw)
 
-[Github Codespaces](https://github.com/features/codespaces) will be added when it becomes publicly available.
+[Github Codespaces](https://github.com/features/codespaces) is available to those in the beta.
 
 ## Building
 
