@@ -22,6 +22,7 @@ struct InventoryItem {
 };
 
 struct Inventory {
+    Inventory() = default;
     explicit Inventory(flecs::entity owner_)
         : owner{owner_}
     {
