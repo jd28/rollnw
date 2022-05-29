@@ -7,7 +7,9 @@
 
 namespace nw::kernel {
 
-Services::Services() { }
+Services::Services()
+    : world_{}
+{ }
 Services::~Services() { }
 
 void Services::provide(ObjectSystem* objects)

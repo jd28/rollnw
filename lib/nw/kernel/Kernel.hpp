@@ -57,7 +57,7 @@ private:
     flecs::world world_;
     std::unique_ptr<const GameProfile> profile_;
 
-    bool started_;
+    bool started_ = false;
 };
 
 namespace detail {

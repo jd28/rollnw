@@ -79,6 +79,7 @@ target_include_directories(libnw_test PRIVATE ../lib)
 
 target_link_libraries(libnw_test PRIVATE
     nw
+    flecs
     Threads::Threads
     Catch2::Catch2)
 

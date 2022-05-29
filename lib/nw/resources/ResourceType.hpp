@@ -465,7 +465,6 @@ struct ResourceType {
                 || type == ResourceType::tga
                 || type == ResourceType::plt;
         }
-        return false;
     }
 };
 
