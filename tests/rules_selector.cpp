@@ -66,3 +66,20 @@ TEST_CASE("selector: feat", "[rules]")
 
     nw::kernel::unload_module();
 }
+
+TEST_CASE("selector: alignment", "[rules]")
+{
+    auto mod = nw::kernel::load_module("test_data/user/modules/DockerDemo.mod");
+    REQUIRE(mod);
+
+    auto ent = nw::kernel::objects().load(fs::path("test_data/user/development/pl_agent_001.utc"));
+    REQUIRE(ent.is_alive());
+
+    auto sel1 = nw::select::alignment(nw::AlignmentAxis::law_chaos);
+    REQUIRE(nwk::rules().select(sel1, ent).as<int32_t>() == 50);
+
+    auto sel2 = nw::select::alignment(nw::AlignmentAxis::good_evil);
+    REQUIRE(nwk::rules().select(sel2, ent).as<int32_t>() == 100);
+
+    nw::kernel::unload_module();
+}

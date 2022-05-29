@@ -6,13 +6,14 @@
 #include <nw/rules/system.hpp>
 
 namespace fs = std::filesystem;
+namespace nwk = nw::kernel;
 
 TEST_CASE("qualifier", "[rules]")
 {
-    auto mod = nw::kernel::load_module("test_data/user/modules/DockerDemo.mod");
+    auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
     REQUIRE(mod);
 
-    auto ent = nw::kernel::objects().load(fs::path("test_data/user/development/pl_agent_001.utc"));
+    auto ent = nwk::objects().load(fs::path("test_data/user/development/pl_agent_001.utc"));
     REQUIRE(ent.is_alive());
 
     REQUIRE_FALSE(nwn1::ability_strength.empty());
@@ -29,15 +30,15 @@ TEST_CASE("qualifier", "[rules]")
     auto qual3 = nw::qualifier::skill(nwn1::skill_discipline, 35); // at least 35
     REQUIRE(qual3.match(ent));
 
-    nw::kernel::unload_module();
+    nwk::unload_module();
 }
 
 TEST_CASE("qualifier: race", "[rules]")
 {
-    auto mod = nw::kernel::load_module("test_data/user/modules/DockerDemo.mod");
+    auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
     REQUIRE(mod);
 
-    auto ent = nw::kernel::objects().load(fs::path("test_data/user/development/pl_agent_001.utc"));
+    auto ent = nwk::objects().load(fs::path("test_data/user/development/pl_agent_001.utc"));
     REQUIRE(ent.is_alive());
 
     auto qual1 = nw::qualifier::race(nwn1::racial_type_human);
@@ -46,15 +47,15 @@ TEST_CASE("qualifier: race", "[rules]")
     auto qual2 = nw::qualifier::race(nwn1::racial_type_ooze);
     REQUIRE_FALSE(qual2.match(ent));
 
-    nw::kernel::unload_module();
+    nwk::unload_module();
 }
 
 TEST_CASE("qualifier: level", "[rules]")
 {
-    auto mod = nw::kernel::load_module("test_data/user/modules/DockerDemo.mod");
+    auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
     REQUIRE(mod);
 
-    auto ent = nw::kernel::objects().load(fs::path("test_data/user/development/pl_agent_001.utc"));
+    auto ent = nwk::objects().load(fs::path("test_data/user/development/pl_agent_001.utc"));
     REQUIRE(ent.is_alive());
 
     auto qual1 = nw::qualifier::level(0, 1);
@@ -63,5 +64,67 @@ TEST_CASE("qualifier: level", "[rules]")
     auto qual2 = nw::qualifier::level(1);
     REQUIRE(qual2.match(ent));
 
-    nw::kernel::unload_module();
+    nwk::unload_module();
+}
+
+TEST_CASE("qualifier: alignment", "[rules]")
+{
+    auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
+    REQUIRE(mod);
+
+    auto ent = nwk::objects().load(fs::path("test_data/user/development/pl_agent_001.utc"));
+    REQUIRE(ent.is_alive());
+
+    auto ent2 = nwk::objects().load(fs::path("test_data/user/development/nw_chicken.utc"));
+    REQUIRE(ent2.is_alive());
+
+    auto qual1 = nw::qualifier::alignment(nw::AlignmentAxis::good_evil,
+        nw::AlignmentFlags::good);
+
+    REQUIRE(qual1.match(ent));
+    REQUIRE_FALSE(qual1.match(ent2));
+
+    auto qual2 = nw::qualifier::alignment(nw::AlignmentAxis::both,
+        nw::AlignmentFlags::neutral);
+
+    REQUIRE_FALSE(qual2.match(ent));
+    REQUIRE(qual2.match(ent2));
+
+    auto qual3 = nw::qualifier::alignment(nw::AlignmentAxis::law_chaos,
+        nw::AlignmentFlags::lawful);
+
+    REQUIRE_FALSE(qual3.match(ent));
+    REQUIRE_FALSE(qual3.match(ent2));
+
+    auto qual4 = nw::qualifier::alignment(nw::AlignmentAxis::law_chaos,
+        nw::AlignmentFlags::chaotic);
+
+    REQUIRE_FALSE(qual4.match(ent));
+    REQUIRE_FALSE(qual4.match(ent2));
+
+    auto qual5 = nw::qualifier::alignment(nw::AlignmentAxis::law_chaos,
+        nw::AlignmentFlags::lawful | nw::AlignmentFlags::neutral);
+
+    REQUIRE(qual5.match(ent));
+    REQUIRE(qual5.match(ent2));
+
+    auto qual6 = nw::qualifier::alignment(nw::AlignmentAxis::good_evil,
+        nw::AlignmentFlags::evil);
+
+    REQUIRE_FALSE(qual6.match(ent));
+    REQUIRE_FALSE(qual6.match(ent2));
+
+    auto qual7 = nw::qualifier::alignment(nw::AlignmentAxis::good_evil,
+        nw::AlignmentFlags::neutral | nw::AlignmentFlags::good);
+
+    REQUIRE(qual7.match(ent));
+    REQUIRE(qual7.match(ent2));
+
+    auto qual8 = nw::qualifier::alignment(nw::AlignmentAxis::law_chaos,
+        nw::AlignmentFlags::neutral);
+
+    REQUIRE(qual8.match(ent));
+    REQUIRE(qual8.match(ent2));
+
+    nwk::unload_module();
 }

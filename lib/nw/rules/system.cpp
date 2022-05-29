@@ -23,6 +23,11 @@ Selector ability(Constant id)
     return {SelectorType::ability, id->as<int32_t>()};
 }
 
+Selector alignment(AlignmentAxis id)
+{
+    return {SelectorType::alignment, static_cast<int32_t>(id)};
+}
+
 Selector feat(Constant id)
 {
     return {SelectorType::feat, id->as<int32_t>()};
@@ -54,6 +59,46 @@ bool Qualifier::match(const flecs::entity cre) const
         switch (selector.type) {
         default:
             return false;
+        case SelectorType::alignment: {
+            auto target_axis = static_cast<AlignmentAxis>(selector.subtype);
+            auto flags = static_cast<AlignmentFlags>(params[0].as<int32_t>());
+            auto ge = 50;
+            auto lc = 50;
+
+            auto ge_sel = kernel::rules().select(select::alignment(AlignmentAxis::good_evil), cre);
+            if (ge_sel.is<int32_t>()) { ge = ge_sel.as<int32_t>(); }
+
+            auto lc_sel = kernel::rules().select(select::alignment(AlignmentAxis::law_chaos), cre);
+            if (lc_sel.is<int32_t>()) { lc = lc_sel.as<int32_t>(); }
+
+            if (!!(flags & AlignmentFlags::good) && !!(target_axis | AlignmentAxis::good_evil)) {
+                if (ge > 50) { return true; }
+            }
+
+            if (!!(flags & AlignmentFlags::evil) && !!(target_axis | AlignmentAxis::good_evil)) {
+                if (ge < 50) { return true; }
+            }
+
+            if (!!(flags & AlignmentFlags::lawful) && !!(target_axis | AlignmentAxis::law_chaos)) {
+                if (lc > 50) { return true; }
+            }
+
+            if (!!(flags & AlignmentFlags::chaotic) && !!(target_axis | AlignmentAxis::law_chaos)) {
+                if (lc < 50) { return true; }
+            }
+
+            if (!!(flags & AlignmentFlags::neutral)) {
+                if (target_axis == AlignmentAxis::both) {
+                    return ge == 50 && lc == 50;
+                }
+                if (target_axis == AlignmentAxis::good_evil) {
+                    return ge == 50;
+                }
+                if (target_axis == AlignmentAxis::law_chaos) {
+                    return lc == 50;
+                }
+            }
+        } break;
         case SelectorType::level: {
             auto val = value.as<int32_t>();
             auto min = params[0].as<int32_t>();
@@ -90,6 +135,14 @@ Qualifier ability(Constant id, int min, int max)
     q.selector = select::ability(id);
     q.params.push_back(min);
     q.params.push_back(max);
+    return q;
+}
+
+Qualifier alignment(AlignmentAxis axis, AlignmentFlags flags)
+{
+    Qualifier q;
+    q.selector = select::alignment(axis);
+    q.params.push_back(static_cast<int32_t>(flags));
     return q;
 }
 

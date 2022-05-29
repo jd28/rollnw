@@ -174,6 +174,17 @@ static nw::RuleValue selector(const nw::Selector& selector, const flecs::entity 
         auto idx = static_cast<size_t>(selector.subtype);
         return static_cast<int>(stats->abilities[idx]);
     }
+    case nw::SelectorType::alignment: {
+        auto cre = ent.get<nw::Creature>();
+        if (!cre) { return {}; }
+        if (selector.subtype == 0x1) {
+            return cre->lawful_chaotic;
+        } else if (selector.subtype == 0x2) {
+            return cre->good_evil;
+        } else {
+            return -1;
+        }
+    }
     case nw::SelectorType::feat: {
         auto stats = ent.get<nw::CreatureStats>();
         if (!stats) { return {}; }

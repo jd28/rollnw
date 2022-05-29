@@ -2,6 +2,7 @@
 
 #include "../kernel/Strings.hpp"
 #include "../util/Variant.hpp"
+#include "Alignment.hpp"
 #include "Constant.hpp"
 
 #include <absl/container/inlined_vector.h>
@@ -13,23 +14,20 @@
 
 namespace nw {
 
-// Forward Decls
-struct ObjectBase;
-struct Creature;
-
 using RuleValue = Variant<int32_t, float, std::string>;
 
 // == Selector ================================================================
 
 enum struct SelectorType {
-    ability,     // Subtype: ABILITY_* constant
-    ac,          // Subtype: AC_* constant
-    bab,         // Subtype: none
-    class_level, // Subtype: CLASS_* constant
-    feat,        // Subtype: AC_* constant
-    level,       // Subtype: none
-    race,        // Subtype: none
-    skill,       // Subtype: SKILL_* constant
+    ability,     ///< Subtype: ABILITY_* constant
+    ac,          ///< Subtype: AC_* constant
+    alignment,   ///< Subtype: AlignmentAxis
+    bab,         ///< Subtype: none
+    class_level, ///< Subtype: CLASS_* constant
+    feat,        ///< Subtype: FEAT_* constant
+    level,       ///< Subtype: none
+    race,        ///< Subtype: none
+    skill,       ///< Subtype: SKILL_* constant
 };
 
 struct Selector {
@@ -46,6 +44,7 @@ namespace select {
 Selector ability(Constant id);
 // Selector armor_class(int id, bool base = false);
 // Selector class_level(int id);
+Selector alignment(AlignmentAxis id);
 Selector feat(Constant id);
 Selector level();
 Selector skill(Constant id);
@@ -65,6 +64,7 @@ struct Qualifier {
 namespace qualifier {
 
 Qualifier ability(Constant id, int min, int max = 0);
+Qualifier alignment(AlignmentAxis axis, AlignmentFlags flags);
 Qualifier level(int min, int max = 0);
 Qualifier feat(Constant id);
 Qualifier race(Constant id);
