@@ -43,8 +43,8 @@ namespace select {
 
 Selector ability(Constant id);
 // Selector armor_class(int id, bool base = false);
-// Selector class_level(int id);
 Selector alignment(AlignmentAxis id);
+Selector class_level(Constant id);
 Selector feat(Constant id);
 Selector level();
 Selector skill(Constant id);
@@ -65,6 +65,7 @@ namespace qualifier {
 
 Qualifier ability(Constant id, int min, int max = 0);
 Qualifier alignment(AlignmentAxis axis, AlignmentFlags flags);
+Qualifier class_level(Constant id, int min, int max = 0);
 Qualifier level(int min, int max = 0);
 Qualifier feat(Constant id);
 Qualifier race(Constant id);

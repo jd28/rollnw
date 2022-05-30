@@ -28,6 +28,11 @@ Selector alignment(AlignmentAxis id)
     return {SelectorType::alignment, static_cast<int32_t>(id)};
 }
 
+Selector class_level(Constant id)
+{
+    return {SelectorType::class_level, id->as<int32_t>()};
+}
+
 Selector feat(Constant id)
 {
     return {SelectorType::feat, id->as<int32_t>()};
@@ -99,6 +104,7 @@ bool Qualifier::match(const flecs::entity cre) const
                 }
             }
         } break;
+        case SelectorType::class_level:
         case SelectorType::level: {
             auto val = value.as<int32_t>();
             auto min = params[0].as<int32_t>();
@@ -143,6 +149,15 @@ Qualifier alignment(AlignmentAxis axis, AlignmentFlags flags)
     Qualifier q;
     q.selector = select::alignment(axis);
     q.params.push_back(static_cast<int32_t>(flags));
+    return q;
+}
+
+Qualifier class_level(Constant id, int min, int max)
+{
+    Qualifier q;
+    q.selector = select::class_level(id);
+    q.params.push_back(min);
+    q.params.push_back(max);
     return q;
 }
 

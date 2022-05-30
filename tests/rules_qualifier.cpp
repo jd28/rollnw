@@ -1,6 +1,7 @@
 #include <catch2/catch.hpp>
 
 #include <nw/kernel/Kernel.hpp>
+#include <nw/kernel/components/ConstantRegistry.hpp>
 #include <nw/objects/Creature.hpp>
 #include <nw/profiles/nwn1/Profile.hpp>
 #include <nw/rules/system.hpp>
@@ -125,6 +126,33 @@ TEST_CASE("qualifier: alignment", "[rules]")
 
     REQUIRE(qual8.match(ent));
     REQUIRE(qual8.match(ent2));
+
+    nwk::unload_module();
+}
+
+TEST_CASE("qualifier: class_level", "[rules]")
+{
+    auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
+    REQUIRE(mod);
+    auto* cr = nwk::world().get<nw::ConstantRegistry>();
+
+    auto ent = nwk::objects().load(fs::path("test_data/user/development/pl_agent_001.utc"));
+    REQUIRE(ent.is_alive());
+
+    const auto class_type_fighter = cr->get("CLASS_TYPE_FIGHTER");
+    REQUIRE_FALSE(class_type_fighter.empty());
+
+    auto qual1 = nw::qualifier::class_level(class_type_fighter, 30, 40);
+    REQUIRE_FALSE(qual1.match(ent));
+
+    auto qual2 = nw::qualifier::class_level(class_type_fighter, 10);
+    REQUIRE(qual2.match(ent));
+
+    auto qual3 = nw::qualifier::class_level(class_type_fighter, 1, 1);
+    REQUIRE_FALSE(qual3.match(ent));
+
+    auto qual4 = nw::qualifier::class_level(class_type_fighter, 4, 5);
+    REQUIRE_FALSE(qual4.match(ent));
 
     nwk::unload_module();
 }

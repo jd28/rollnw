@@ -185,14 +185,24 @@ static nw::RuleValue selector(const nw::Selector& selector, const flecs::entity 
             return -1;
         }
     }
+    case nw::SelectorType::class_level: {
+        auto stats = ent.get<nw::LevelStats>();
+        if (!stats) { return 0; }
+        for (const auto& ce : stats->classes) {
+            if (ce.id == selector.subtype) {
+                return ce.level;
+            }
+        }
+        return 0;
+    }
     case nw::SelectorType::feat: {
         auto stats = ent.get<nw::CreatureStats>();
-        if (!stats) { return {}; }
+        if (!stats) { return 0; }
         return stats->has_feat(static_cast<uint16_t>(selector.subtype));
     }
     case nw::SelectorType::level: {
         auto levels = ent.get<nw::LevelStats>();
-        if (!levels) { return {}; }
+        if (!levels) { return 0; }
 
         int level = 0;
         for (const auto& ce : levels->classes) {

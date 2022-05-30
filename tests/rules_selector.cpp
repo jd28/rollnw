@@ -67,6 +67,24 @@ TEST_CASE("selector: feat", "[rules]")
     nw::kernel::unload_module();
 }
 
+TEST_CASE("selector: class_level", "[rules]")
+{
+    auto mod = nw::kernel::load_module("test_data/user/modules/DockerDemo.mod");
+    REQUIRE(mod);
+    auto* cr = nw::kernel::world().get<nw::ConstantRegistry>();
+
+    auto ent = nw::kernel::objects().load(fs::path("test_data/user/development/pl_agent_001.utc"));
+    REQUIRE(ent.is_alive());
+
+    const auto class_type_fighter = cr->get("CLASS_TYPE_FIGHTER");
+    REQUIRE_FALSE(class_type_fighter.empty());
+
+    auto sel1 = nw::select::class_level(class_type_fighter);
+    REQUIRE(nwk::rules().select(sel1, ent).as<int32_t>() == 10);
+
+    nw::kernel::unload_module();
+}
+
 TEST_CASE("selector: alignment", "[rules]")
 {
     auto mod = nw::kernel::load_module("test_data/user/modules/DockerDemo.mod");
