@@ -13,6 +13,15 @@ StoreInventory::StoreInventory(flecs::entity owner)
 {
 }
 
+void StoreInventory::set_owner(flecs::entity owner)
+{
+    armor.owner = owner;
+    miscellaneous.owner = owner;
+    potions.owner = owner;
+    rings.owner = owner;
+    weapons.owner = owner;
+}
+
 // bool Store::instantiate()
 // {
 //     return armor.instantiate()

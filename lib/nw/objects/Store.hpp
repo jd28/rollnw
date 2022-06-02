@@ -14,14 +14,19 @@ struct StoreScripts {
     Resref on_opened;
 };
 
+/// Store Inventory component
 struct StoreInventory {
+    StoreInventory() = default;
     StoreInventory(flecs::entity owner);
+
+    /// Sets inventory owner
+    void set_owner(flecs::entity owner);
+
     Inventory armor;
     Inventory miscellaneous;
     Inventory potions;
     Inventory rings;
     Inventory weapons;
-    StoreScripts scripts;
     std::vector<int32_t> will_not_buy;
     std::vector<int32_t> will_only_buy;
 };
