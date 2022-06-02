@@ -65,7 +65,7 @@ bool Qualifier::match(const flecs::entity cre) const
         default:
             return false;
         case SelectorType::alignment: {
-            auto target_axis = static_cast<AlignmentAxis>(selector.subtype);
+            auto target_axis = static_cast<AlignmentAxis>(selector.subtype.as<int32_t>());
             auto flags = static_cast<AlignmentFlags>(params[0].as<int32_t>());
             auto ge = 50;
             auto lc = 50;

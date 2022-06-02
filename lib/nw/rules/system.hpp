@@ -32,7 +32,7 @@ enum struct SelectorType {
 
 struct Selector {
     SelectorType type;
-    int subtype;
+    RuleValue subtype;
 };
 
 bool operator==(const Selector& lhs, const Selector& rhs);

@@ -18,7 +18,6 @@ TEST_CASE("selectors", "[rules]")
     REQUIRE(ent.is_alive());
 
     auto sel1 = nw::select::ability(nwn1::ability_strength);
-    // REQUIRE(sel1.subtype == "ABILITY_STRENGTH");
     REQUIRE(nwk::rules().select(sel1, ent).as<int32_t>() == 40);
 
     auto sel2 = nw::select::ability(nwn1::ability_constitution);
@@ -29,8 +28,8 @@ TEST_CASE("selectors", "[rules]")
 
     auto sel4 = nw::select::skill(nwn1::skill_discipline);
     REQUIRE(sel4.type == nw::SelectorType::skill);
-    REQUIRE(sel4.subtype);
-    REQUIRE(sel4.subtype == 3);
+    REQUIRE(sel4.subtype.is<int32_t>());
+    REQUIRE(sel4.subtype.as<int32_t>() == 3);
     REQUIRE(nwk::rules().select(sel4, ent).as<int32_t>() == 40);
 
     nw::kernel::unload_module();

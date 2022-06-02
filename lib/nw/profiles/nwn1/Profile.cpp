@@ -169,36 +169,54 @@ static nw::RuleValue selector(const nw::Selector& selector, const flecs::entity 
     default:
         return {};
     case nw::SelectorType::ability: {
+        if (!selector.subtype.is<int32_t>()) {
+            LOG_F(ERROR, "selector - ability: inavlid subtype");
+            return {};
+        }
         auto stats = ent.get<nw::CreatureStats>();
         if (!stats) { return {}; }
-        auto idx = static_cast<size_t>(selector.subtype);
+        auto idx = static_cast<size_t>(selector.subtype.as<int32_t>());
         return static_cast<int>(stats->abilities[idx]);
     }
     case nw::SelectorType::alignment: {
+        if (!selector.subtype.is<int32_t>()) {
+            LOG_F(ERROR, "selector - alignment: inavlid subtype");
+            return {};
+        }
         auto cre = ent.get<nw::Creature>();
         if (!cre) { return {}; }
-        if (selector.subtype == 0x1) {
+        if (selector.subtype.as<int32_t>() == 0x1) {
             return cre->lawful_chaotic;
-        } else if (selector.subtype == 0x2) {
+        } else if (selector.subtype.as<int32_t>() == 0x2) {
             return cre->good_evil;
         } else {
             return -1;
         }
     }
     case nw::SelectorType::class_level: {
+        if (!selector.subtype.is<int32_t>()) {
+            LOG_F(ERROR, "selector - class_level: inavlid subtype");
+            return {};
+        }
+
         auto stats = ent.get<nw::LevelStats>();
         if (!stats) { return 0; }
         for (const auto& ce : stats->classes) {
-            if (ce.id == selector.subtype) {
+            if (ce.id == selector.subtype.as<int32_t>()) {
                 return ce.level;
             }
         }
         return 0;
     }
     case nw::SelectorType::feat: {
+        if (!selector.subtype.is<int32_t>()) {
+            LOG_F(ERROR, "selector - feat: inavlid subtype");
+            return {};
+        }
+
         auto stats = ent.get<nw::CreatureStats>();
         if (!stats) { return 0; }
-        return stats->has_feat(static_cast<uint16_t>(selector.subtype));
+        return stats->has_feat(static_cast<uint16_t>(selector.subtype.as<int32_t>()));
     }
     case nw::SelectorType::level: {
         auto levels = ent.get<nw::LevelStats>();
@@ -216,10 +234,14 @@ static nw::RuleValue selector(const nw::Selector& selector, const flecs::entity 
         return static_cast<int>(c->race);
     }
     case nw::SelectorType::skill: {
+        if (!selector.subtype.is<int32_t>()) {
+            LOG_F(ERROR, "selector - skill: inavlid subtype");
+            return {};
+        }
+
         auto stats = ent.get<nw::CreatureStats>();
         if (!stats) { return {}; }
-
-        auto idx = static_cast<size_t>(selector.subtype);
+        auto idx = static_cast<size_t>(selector.subtype.as<int32_t>());
         return static_cast<int>(stats->skills[idx]);
     }
     }
