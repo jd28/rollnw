@@ -66,10 +66,10 @@ private:
     Tlk custom_;
     Tlk customf_;
 
+    // Node hash set for pointer stability
     absl::node_hash_set<std::string> interned_;
 
     LanguageID global_lang_ = LanguageID::english;
-    bool is_valid_ = false;
 };
 
 struct InternedString {
@@ -96,6 +96,10 @@ private:
 
     const std::string* string_ = nullptr;
 };
+
+// Note: The below is only to support heterogenous lookup.  In an ideal case,
+// if you were using an InternedString as a key to hashtable, you'd just
+// hash and compare the string pointer.
 
 template <typename H>
 H AbslHashValue(H h, const InternedString& str)

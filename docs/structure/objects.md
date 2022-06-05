@@ -3,7 +3,7 @@
 ## The System
 
 The object system is largely handled by the Entity-Component-System [flecs](https://github.com/SanderMertens/flecs).  This is a departure from the architecture of NWN which use a more traditional
-inheritance based approach.  The main advantage is that entities can be treated maps the keys of which are types and the values are instantiations of those types.  The performance implications have not been considered.
+inheritance based approach.  The main advantage is that entities can be treated maps the keys to which are types and the values are instantiations of those types.  The performance implications have not been considered.
 
 ## Object Componenents
 

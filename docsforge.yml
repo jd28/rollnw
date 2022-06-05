@@ -29,7 +29,7 @@ autodocSettings:
     sort_by_type: true
     sort_alphabetically: true
     separate_defines: false
-    star_mentioned: true
+    star_mentioned: false
     star_list: []
     ENABLE_PREPROCESSING: 'YES'
     SKIP_FUNCTION_MACROS: 'YES'
