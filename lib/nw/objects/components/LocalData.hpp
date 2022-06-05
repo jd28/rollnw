@@ -10,11 +10,11 @@
 namespace nw {
 
 struct LocalVarType {
-    static constexpr uint32_t INTEGER = 1;
-    static constexpr uint32_t FLOAT = 2;
-    static constexpr uint32_t STRING = 3;
-    static constexpr uint32_t OBJECT = 4;
-    static constexpr uint32_t LOCATION = 5;
+    static constexpr uint32_t integer = 1;
+    static constexpr uint32_t float_ = 2;
+    static constexpr uint32_t string = 3;
+    static constexpr uint32_t object = 4;
+    static constexpr uint32_t location = 5;
 };
 
 struct LocalVar {
