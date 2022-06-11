@@ -84,3 +84,11 @@ jobs:
           lcov --remove coverage.info '/usr/*' "${HOME}"'/.cache/*' '/Library/*' $(pwd)'/tests/*' $(pwd)'/build/vcpkg_installed/*' $(pwd)'/external/*' --output-file coverage.info
           lcov --list coverage.info
           bash <(curl -s https://codecov.io/bash) -f coverage.info || echo "Codecov did not collect coverage reports"
+
+      - name: deploy docs to github pages
+        if: github.event_name == 'push'
+        uses: JamesIves/github-pages-deploy-action@v4.3.3
+        with:
+          branch: gh-pages
+          folder: "${{ github.workspace }}/build/docs/sphinx"
+          clean: true
