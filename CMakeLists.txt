@@ -49,7 +49,7 @@ else()
     message(FATAL "Unsupported target platform")
 endif()
 
-include_directories(external)
+include_directories(SYSTEM external)
 add_subdirectory(external/flecs)
 add_subdirectory(external/inih)
 add_subdirectory(external/stb)
