@@ -15,25 +15,27 @@
 
 namespace nw {
 
+/// @private
 struct ErfElementInfo {
     uint32_t offset;
     uint32_t size;
 };
 
+/// @private
 using ErfElement = std::variant<ErfElementInfo, std::filesystem::path>;
 
-enum class ErfType {
+enum struct ErfType {
     erf,
     hak,
     mod,
     sav
 };
 
-enum class ErfVersion {
+enum struct ErfVersion {
     v1_0,
 };
 
-class Erf : public Container {
+struct Erf : public Container {
 public:
     Erf() = default;
     explicit Erf(const std::filesystem::path& path);

@@ -17,6 +17,8 @@ bin/*
 
 # docs
 docs/_build/
+__pycache__
+venv
 
 # macOS
 .DS_Store

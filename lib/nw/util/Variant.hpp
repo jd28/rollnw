@@ -5,6 +5,7 @@
 
 namespace nw {
 
+/// Empty helper struct for Variant
 struct Null {
 };
 

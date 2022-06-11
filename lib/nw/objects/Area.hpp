@@ -19,10 +19,10 @@
 namespace nw {
 
 enum struct AreaFlags : uint32_t {
-    none = 0,
-    interior = 0x0001,    // (exterior if unset)
-    underground = 0x0002, // (aboveground if unset)
-    natural = 0x0004,     // (urban if unset)
+    none = 0,             ///< Unspecified
+    interior = 0x0001,    ///< Exterior if unset
+    underground = 0x0002, ///< Above ground if unset
+    natural = 0x0004,     ///< Urban if unset
 };
 
 DEFINE_ENUM_FLAGS(AreaFlags)

@@ -4,6 +4,7 @@
 
 namespace nw {
 
+/// Component for lockable objects
 struct Lock {
     Lock() = default;
 
