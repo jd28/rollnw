@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>nw::script::NssTokenType &mdash; rollNW  documentation</title>
+      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/doctools.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="functions" href="../functionlist.html" />
+    <link rel="prev" title="nw::SpellMetaMagic" href="nw__SpellMetaMagic.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../index.html" class="icon icon-home"> rollNW
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">structure</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../structure/formats.html">formats</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../structure/i18n.html">i18n</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../structure/kernel.html">kernel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../structure/objects.html">objects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../structure/profiles.html">profiles</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../structure/resources.html">resources</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../structure/rules.html">rules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../structure/serialization.html">serialization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../structure/util.html">util</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">c++ api</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../classlist.html">classes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../definelist.html">defines</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../enumlist.html">enums</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="nw__AlignmenType.html">nw::AlignmenType</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__AlignmentAxis.html">nw::AlignmentAxis</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__AlignmentFlags.html">nw::AlignmentFlags</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__AreaFlags.html">nw::AreaFlags</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__DamageFlags.html">nw::DamageFlags</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__DialogNodeType.html">nw::DialogNodeType</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__DoorAnimationState.html">nw::DoorAnimationState</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__EquipIndex.html">nw::EquipIndex</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__EquipSlot.html">nw::EquipSlot</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ErfType.html">nw::ErfType</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ErfVersion.html">nw::ErfVersion</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__GameVersion.html">nw::GameVersion</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ItemModelType.html">nw::ItemModelType</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__LanguageID.html">nw::LanguageID</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ObjectID.html">nw::ObjectID</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ObjectType.html">nw::ObjectType</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__PaletteNodeType.html">nw::PaletteNodeType</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__PathAlias.html">nw::PathAlias</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__PlaceableAnimationState.html">nw::PlaceableAnimationState</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__SelectorType.html">nw::SelectorType</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__SerializationProfile.html">nw::SerializationProfile</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__SpellFlags.html">nw::SpellFlags</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__SpellMetaMagic.html">nw::SpellMetaMagic</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">nw::script::NssTokenType</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../functionlist.html">functions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../typedeflist.html">typedefs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">gff schemas</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/are.html">are</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/dlg.html">dlg</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/fac.html">fac</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/gic.html">gic</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/git.html">git</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/ifo.html">ifo</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/itp.html">itp</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/jrl.html">jrl</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/utc.html">utc</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/utd.html">utd</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/ute.html">ute</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/uti.html">uti</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/utm.html">utm</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/utp.html">utp</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/uts.html">uts</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/utt.html">utt</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/utw.html">utw</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/vartable.html">vartable</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">rollNW</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="../enumlist.html">enums</a> &raquo;</li>
+      <li>nw::script::NssTokenType</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/api/enum/nw__script__NssTokenType.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="nw-script-nsstokentype">
+<h1>nw::script::NssTokenType<a class="headerlink" href="#nw-script-nsstokentype" title="Permalink to this headline"></a></h1>
+<dl class="cpp enum-class">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script12NssTokenTypeE">
+<span id="_CPPv3N2nw6script12NssTokenTypeE"></span><span id="_CPPv2N2nw6script12NssTokenTypeE"></span><span class="target" id="_nss_lexer_8hpp_1a87a6e9937512af3a846743558e190153"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">nw</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">script</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">NssTokenType</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script12NssTokenTypeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p><em>Values:</em></p>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script12NssTokenType7INVALIDE">
+<span id="_CPPv3N2nw6script12NssTokenType7INVALIDE"></span><span id="_CPPv2N2nw6script12NssTokenType7INVALIDE"></span><span class="target" id="_nss_lexer_8hpp_1a87a6e9937512af3a846743558e190153accc0377a8afbf50e7094f5c23a8af223"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">INVALID</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script12NssTokenType7INVALIDE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script12NssTokenType3ENDE">
+<span id="_CPPv3N2nw6script12NssTokenType3ENDE"></span><span id="_CPPv2N2nw6script12NssTokenType3ENDE"></span><span class="target" id="_nss_lexer_8hpp_1a87a6e9937512af3a846743558e190153ab1a326c06d88bf042f73d70f50197905"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">END</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script12NssTokenType3ENDE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script12NssTokenType10IDENTIFIERE">
+<span id="_CPPv3N2nw6script12NssTokenType10IDENTIFIERE"></span><span id="_CPPv2N2nw6script12NssTokenType10IDENTIFIERE"></span><span class="target" id="_nss_lexer_8hpp_1a87a6e9937512af3a846743558e190153a6fcc416051346daca31c571646af127a"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">IDENTIFIER</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script12NssTokenType10IDENTIFIERE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script12NssTokenType6LPARENE">
+<span id="_CPPv3N2nw6script12NssTokenType6LPARENE"></span><span id="_CPPv2N2nw6script12NssTokenType6LPARENE"></span><span class="target" id="_nss_lexer_8hpp_1a87a6e9937512af3a846743558e190153a45bf4f3d35a115aaa2df577ba7861286"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">LPAREN</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script12NssTokenType6LPARENE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script12NssTokenType6RPARENE">
+<span id="_CPPv3N2nw6script12NssTokenType6RPARENE"></span><span id="_CPPv2N2nw6script12NssTokenType6RPARENE"></span><span class="target" id="_nss_lexer_8hpp_1a87a6e9937512af3a846743558e190153afccedc90f87593a3b31536bd658808b1"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">RPAREN</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script12NssTokenType6RPARENE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script12NssTokenType6LBRACEE">
+<span id="_CPPv3N2nw6script12NssTokenType6LBRACEE"></span><span id="_CPPv2N2nw6script12NssTokenType6LBRACEE"></span><span class="target" id="_nss_lexer_8hpp_1a87a6e9937512af3a846743558e190153ad5e4de54911c050245979d940dc65c3a"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">LBRACE</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script12NssTokenType6LBRACEE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script12NssTokenType6RBRACEE">
+<span id="_CPPv3N2nw6script12NssTokenType6RBRACEE"></span><span id="_CPPv2N2nw6script12NssTokenType6RBRACEE"></span><span class="target" id="_nss_lexer_8hpp_1a87a6e9937512af3a846743558e190153a7907975edd3cb3611c6808f3ea6bd290"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">RBRACE</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script12NssTokenType6RBRACEE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script12NssTokenType5COMMAE">
+<span id="_CPPv3N2nw6script12NssTokenType5COMMAE"></span><span id="_CPPv2N2nw6script12NssTokenType5COMMAE"></span><span class="target" id="_nss_lexer_8hpp_1a87a6e9937512af3a846743558e190153a4d9b3e9fc12849d060371eb65154c751"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">COMMA</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script12NssTokenType5COMMAE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script12NssTokenType5COLONE">
+<span id="_CPPv3N2nw6script12NssTokenType5COLONE"></span><span id="_CPPv2N2nw6script12NssTokenType5COLONE"></span><span class="target" id="_nss_lexer_8hpp_1a87a6e9937512af3a846743558e190153af65f22e75defc168edfc6444e6aaf4f8"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">COLON</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script12NssTokenType5COLONE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script12NssTokenType8QUESTIONE">
+<span id="_CPPv3N2nw6script12NssTokenType8QUESTIONE"></span><span id="_CPPv2N2nw6script12NssTokenType8QUESTIONE"></span><span class="target" id="_nss_lexer_8hpp_1a87a6e9937512af3a846743558e190153a2799482497469e61e6ce62588cc7b71f"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">QUESTION</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script12NssTokenType8QUESTIONE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script12NssTokenType9SEMICOLONE">
+<span id="_CPPv3N2nw6script12NssTokenType9SEMICOLONE"></span><span id="_CPPv2N2nw6script12NssTokenType9SEMICOLONE"></span><span class="target" id="_nss_lexer_8hpp_1a87a6e9937512af3a846743558e190153abaaceccc27b1d4e0968c999583f97de5"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SEMICOLON</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script12NssTokenType9SEMICOLONE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script12NssTokenType5POUNDE">
+<span id="_CPPv3N2nw6script12NssTokenType5POUNDE"></span><span id="_CPPv2N2nw6script12NssTokenType5POUNDE"></span><span class="target" id="_nss_lexer_8hpp_1a87a6e9937512af3a846743558e190153ab7759d7f7e254ec48628af1511c85e4f"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">POUND</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script12NssTokenType5POUNDE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script12NssTokenType3DOTE">
+<span id="_CPPv3N2nw6script12NssTokenType3DOTE"></span><span id="_CPPv2N2nw6script12NssTokenType3DOTE"></span><span class="target" id="_nss_lexer_8hpp_1a87a6e9937512af3a846743558e190153a40679521b5da0954b705341a2859f782"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">DOT</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script12NssTokenType3DOTE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script12NssTokenType3ANDE">
+<span id="_CPPv3N2nw6script12NssTokenType3ANDE"></span><span id="_CPPv2N2nw6script12NssTokenType3ANDE"></span><span class="target" id="_nss_lexer_8hpp_1a87a6e9937512af3a846743558e190153a558ffc8f5770d8e4f95f51d822685532"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">AND</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script12NssTokenType3ANDE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script12NssTokenType6ANDANDE">
+<span id="_CPPv3N2nw6script12NssTokenType6ANDANDE"></span><span id="_CPPv2N2nw6script12NssTokenType6ANDANDE"></span><span class="target" id="_nss_lexer_8hpp_1a87a6e9937512af3a846743558e190153a4bbeceb3961f500cd37cb2e1be22d6d9"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ANDAND</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script12NssTokenType6ANDANDE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script12NssTokenType5ANDEQE">
+<span id="_CPPv3N2nw6script12NssTokenType5ANDEQE"></span><span id="_CPPv2N2nw6script12NssTokenType5ANDEQE"></span><span class="target" id="_nss_lexer_8hpp_1a87a6e9937512af3a846743558e190153a180b5921708f25c2a7232212678b39e2"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ANDEQ</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script12NssTokenType5ANDEQE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script12NssTokenType3DIVE">
+<span id="_CPPv3N2nw6script12NssTokenType3DIVE"></span><span id="_CPPv2N2nw6script12NssTokenType3DIVE"></span><span class="target" id="_nss_lexer_8hpp_1a87a6e9937512af3a846743558e190153a29bbf66f7f8529ec47e394fb5a36c646"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">DIV</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script12NssTokenType3DIVE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script12NssTokenType5DIVEQE">
+<span id="_CPPv3N2nw6script12NssTokenType5DIVEQE"></span><span id="_CPPv2N2nw6script12NssTokenType5DIVEQE"></span><span class="target" id="_nss_lexer_8hpp_1a87a6e9937512af3a846743558e190153aa460fd45c8fb96aebf40abef45384630"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">DIVEQ</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script12NssTokenType5DIVEQE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script12NssTokenType2EQE">
+<span id="_CPPv3N2nw6script12NssTokenType2EQE"></span><span id="_CPPv2N2nw6script12NssTokenType2EQE"></span><span class="target" id="_nss_lexer_8hpp_1a87a6e9937512af3a846743558e190153a2dcbad7477fd40561e8b8198f173bd47"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">EQ</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script12NssTokenType2EQE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script12NssTokenType4EQEQE">
+<span id="_CPPv3N2nw6script12NssTokenType4EQEQE"></span><span id="_CPPv2N2nw6script12NssTokenType4EQEQE"></span><span class="target" id="_nss_lexer_8hpp_1a87a6e9937512af3a846743558e190153afa78d1b4121345ad96488fd13717cc00"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">EQEQ</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script12NssTokenType4EQEQE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script12NssTokenType2GTE">
+<span id="_CPPv3N2nw6script12NssTokenType2GTE"></span><span id="_CPPv2N2nw6script12NssTokenType2GTE"></span><span class="target" id="_nss_lexer_8hpp_1a87a6e9937512af3a846743558e190153acd6a9bd2a175104eed40f0d33a8b4020"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">GT</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script12NssTokenType2GTE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script12NssTokenType4GTEQE">
+<span id="_CPPv3N2nw6script12NssTokenType4GTEQE"></span><span id="_CPPv2N2nw6script12NssTokenType4GTEQE"></span><span class="target" id="_nss_lexer_8hpp_1a87a6e9937512af3a846743558e190153a4113dcabf12e31c4ed5baac5a1bbb7e0"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">GTEQ</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script12NssTokenType4GTEQE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script12NssTokenType2LTE">
+<span id="_CPPv3N2nw6script12NssTokenType2LTE"></span><span id="_CPPv2N2nw6script12NssTokenType2LTE"></span><span class="target" id="_nss_lexer_8hpp_1a87a6e9937512af3a846743558e190153ac562607189d77eb9dfb707464c1e7b0b"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">LT</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script12NssTokenType2LTE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script12NssTokenType4LTEQE">
+<span id="_CPPv3N2nw6script12NssTokenType4LTEQE"></span><span id="_CPPv2N2nw6script12NssTokenType4LTEQE"></span><span class="target" id="_nss_lexer_8hpp_1a87a6e9937512af3a846743558e190153a16b2112ef4fcdb383c65d5884ac87867"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">LTEQ</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script12NssTokenType4LTEQE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script12NssTokenType5MINUSE">
+<span id="_CPPv3N2nw6script12NssTokenType5MINUSE"></span><span id="_CPPv2N2nw6script12NssTokenType5MINUSE"></span><span class="target" id="_nss_lexer_8hpp_1a87a6e9937512af3a846743558e190153affc0d9b54a1fe677c4c9e6b050e67c81"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">MINUS</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script12NssTokenType5MINUSE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script12NssTokenType7MINUSEQE">
+<span id="_CPPv3N2nw6script12NssTokenType7MINUSEQE"></span><span id="_CPPv2N2nw6script12NssTokenType7MINUSEQE"></span><span class="target" id="_nss_lexer_8hpp_1a87a6e9937512af3a846743558e190153ab06cd298c45ae9381afabfc7d4ed8400"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">MINUSEQ</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script12NssTokenType7MINUSEQE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script12NssTokenType10MINUSMINUSE">
+<span id="_CPPv3N2nw6script12NssTokenType10MINUSMINUSE"></span><span id="_CPPv2N2nw6script12NssTokenType10MINUSMINUSE"></span><span class="target" id="_nss_lexer_8hpp_1a87a6e9937512af3a846743558e190153ac6ac6309780367e573f9522c43802de9"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">MINUSMINUS</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script12NssTokenType10MINUSMINUSE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script12NssTokenType3MODE">
+<span id="_CPPv3N2nw6script12NssTokenType3MODE"></span><span id="_CPPv2N2nw6script12NssTokenType3MODE"></span><span class="target" id="_nss_lexer_8hpp_1a87a6e9937512af3a846743558e190153ac5a28f4b35a2884fa3277150ac5d0967"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">MOD</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script12NssTokenType3MODE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script12NssTokenType5MODEQE">
+<span id="_CPPv3N2nw6script12NssTokenType5MODEQE"></span><span id="_CPPv2N2nw6script12NssTokenType5MODEQE"></span><span class="target" id="_nss_lexer_8hpp_1a87a6e9937512af3a846743558e190153af909933cc7772a01581a8a901a2dc5d8"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">MODEQ</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script12NssTokenType5MODEQE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script12NssTokenType5TIMESE">
+<span id="_CPPv3N2nw6script12NssTokenType5TIMESE"></span><span id="_CPPv2N2nw6script12NssTokenType5TIMESE"></span><span class="target" id="_nss_lexer_8hpp_1a87a6e9937512af3a846743558e190153aa541906f54b023eb41750e762c1e321a"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">TIMES</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script12NssTokenType5TIMESE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script12NssTokenType7TIMESEQE">
+<span id="_CPPv3N2nw6script12NssTokenType7TIMESEQE"></span><span id="_CPPv2N2nw6script12NssTokenType7TIMESEQE"></span><span class="target" id="_nss_lexer_8hpp_1a87a6e9937512af3a846743558e190153aaa36df17fffad687fe02fb801d9a9c33"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">TIMESEQ</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script12NssTokenType7TIMESEQE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script12NssTokenType3NOTE">
+<span id="_CPPv3N2nw6script12NssTokenType3NOTE"></span><span id="_CPPv2N2nw6script12NssTokenType3NOTE"></span><span class="target" id="_nss_lexer_8hpp_1a87a6e9937512af3a846743558e190153a10df3d67626099df882920ba6552f16d"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">NOT</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script12NssTokenType3NOTE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script12NssTokenType5NOTEQE">
+<span id="_CPPv3N2nw6script12NssTokenType5NOTEQE"></span><span id="_CPPv2N2nw6script12NssTokenType5NOTEQE"></span><span class="target" id="_nss_lexer_8hpp_1a87a6e9937512af3a846743558e190153a9fed8c0c119a164bd3d0992eef4826b2"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">NOTEQ</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script12NssTokenType5NOTEQE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script12NssTokenType2ORE">
+<span id="_CPPv3N2nw6script12NssTokenType2ORE"></span><span id="_CPPv2N2nw6script12NssTokenType2ORE"></span><span class="target" id="_nss_lexer_8hpp_1a87a6e9937512af3a846743558e190153a1d00e7dce692e8dc3f6877f035e3a616"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">OR</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script12NssTokenType2ORE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script12NssTokenType4OREQE">
+<span id="_CPPv3N2nw6script12NssTokenType4OREQE"></span><span id="_CPPv2N2nw6script12NssTokenType4OREQE"></span><span class="target" id="_nss_lexer_8hpp_1a87a6e9937512af3a846743558e190153a9c882344dd16101e7ceb8e8148e79ad5"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">OREQ</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script12NssTokenType4OREQE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script12NssTokenType4ORORE">
+<span id="_CPPv3N2nw6script12NssTokenType4ORORE"></span><span id="_CPPv2N2nw6script12NssTokenType4ORORE"></span><span class="target" id="_nss_lexer_8hpp_1a87a6e9937512af3a846743558e190153a7410109b01d3bb52b9c28f317241ce4d"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">OROR</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script12NssTokenType4ORORE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script12NssTokenType4PLUSE">
+<span id="_CPPv3N2nw6script12NssTokenType4PLUSE"></span><span id="_CPPv2N2nw6script12NssTokenType4PLUSE"></span><span class="target" id="_nss_lexer_8hpp_1a87a6e9937512af3a846743558e190153a883acd43c77567e1c3baced84ccf6ed7"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">PLUS</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script12NssTokenType4PLUSE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script12NssTokenType6PLUSEQE">
+<span id="_CPPv3N2nw6script12NssTokenType6PLUSEQE"></span><span id="_CPPv2N2nw6script12NssTokenType6PLUSEQE"></span><span class="target" id="_nss_lexer_8hpp_1a87a6e9937512af3a846743558e190153a597ac66971f31b0e5085b7abac42def3"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">PLUSEQ</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script12NssTokenType6PLUSEQE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script12NssTokenType8PLUSPLUSE">
+<span id="_CPPv3N2nw6script12NssTokenType8PLUSPLUSE"></span><span id="_CPPv2N2nw6script12NssTokenType8PLUSPLUSE"></span><span class="target" id="_nss_lexer_8hpp_1a87a6e9937512af3a846743558e190153ab15d167ee32a8b90981f6d0f723915bc"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">PLUSPLUS</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script12NssTokenType8PLUSPLUSE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script12NssTokenType2SLE">
+<span id="_CPPv3N2nw6script12NssTokenType2SLE"></span><span id="_CPPv2N2nw6script12NssTokenType2SLE"></span><span class="target" id="_nss_lexer_8hpp_1a87a6e9937512af3a846743558e190153a74b8d5453b654b3a79e7b8985a2fc71c"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SL</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script12NssTokenType2SLE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script12NssTokenType4SLEQE">
+<span id="_CPPv3N2nw6script12NssTokenType4SLEQE"></span><span id="_CPPv2N2nw6script12NssTokenType4SLEQE"></span><span class="target" id="_nss_lexer_8hpp_1a87a6e9937512af3a846743558e190153a82b477f47d21afe7158090dd2f0edc03"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SLEQ</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script12NssTokenType4SLEQE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script12NssTokenType2SRE">
+<span id="_CPPv3N2nw6script12NssTokenType2SRE"></span><span id="_CPPv2N2nw6script12NssTokenType2SRE"></span><span class="target" id="_nss_lexer_8hpp_1a87a6e9937512af3a846743558e190153a8cb2010d27e13509d364436256e972c0"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SR</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script12NssTokenType2SRE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script12NssTokenType4SREQE">
+<span id="_CPPv3N2nw6script12NssTokenType4SREQE"></span><span id="_CPPv2N2nw6script12NssTokenType4SREQE"></span><span class="target" id="_nss_lexer_8hpp_1a87a6e9937512af3a846743558e190153ae33bcb6ab560b5c11fd9a992ec6bf1ae"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SREQ</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script12NssTokenType4SREQE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script12NssTokenType3USRE">
+<span id="_CPPv3N2nw6script12NssTokenType3USRE"></span><span id="_CPPv2N2nw6script12NssTokenType3USRE"></span><span class="target" id="_nss_lexer_8hpp_1a87a6e9937512af3a846743558e190153a2b6cc9c30eaad9c109091ea928529cbd"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">USR</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script12NssTokenType3USRE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script12NssTokenType5USREQE">
+<span id="_CPPv3N2nw6script12NssTokenType5USREQE"></span><span id="_CPPv2N2nw6script12NssTokenType5USREQE"></span><span class="target" id="_nss_lexer_8hpp_1a87a6e9937512af3a846743558e190153aa9068c6f1321f4099288d239c1bcbffc"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">USREQ</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script12NssTokenType5USREQE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script12NssTokenType3XORE">
+<span id="_CPPv3N2nw6script12NssTokenType3XORE"></span><span id="_CPPv2N2nw6script12NssTokenType3XORE"></span><span class="target" id="_nss_lexer_8hpp_1a87a6e9937512af3a846743558e190153a97675eb3f268048604dc5155511a2a4d"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">XOR</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script12NssTokenType3XORE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script12NssTokenType5XOREQE">
+<span id="_CPPv3N2nw6script12NssTokenType5XOREQE"></span><span id="_CPPv2N2nw6script12NssTokenType5XOREQE"></span><span class="target" id="_nss_lexer_8hpp_1a87a6e9937512af3a846743558e190153aa853d21193bb033c649d2f120d0d77ca"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">XOREQ</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script12NssTokenType5XOREQE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script12NssTokenType11FLOAT_CONSTE">
+<span id="_CPPv3N2nw6script12NssTokenType11FLOAT_CONSTE"></span><span id="_CPPv2N2nw6script12NssTokenType11FLOAT_CONSTE"></span><span class="target" id="_nss_lexer_8hpp_1a87a6e9937512af3a846743558e190153ab5d22c92fbb276ab4715e454a926ef92"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">FLOAT_CONST</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script12NssTokenType11FLOAT_CONSTE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script12NssTokenType13INTEGER_CONSTE">
+<span id="_CPPv3N2nw6script12NssTokenType13INTEGER_CONSTE"></span><span id="_CPPv2N2nw6script12NssTokenType13INTEGER_CONSTE"></span><span class="target" id="_nss_lexer_8hpp_1a87a6e9937512af3a846743558e190153ace6ae7bf8016b2586140d869b62d0cef"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">INTEGER_CONST</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script12NssTokenType13INTEGER_CONSTE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script12NssTokenType20OBJECT_INVALID_CONSTE">
+<span id="_CPPv3N2nw6script12NssTokenType20OBJECT_INVALID_CONSTE"></span><span id="_CPPv2N2nw6script12NssTokenType20OBJECT_INVALID_CONSTE"></span><span class="target" id="_nss_lexer_8hpp_1a87a6e9937512af3a846743558e190153ab5141689258a1ed81c3594791aced07b"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">OBJECT_INVALID_CONST</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script12NssTokenType20OBJECT_INVALID_CONSTE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script12NssTokenType17OBJECT_SELF_CONSTE">
+<span id="_CPPv3N2nw6script12NssTokenType17OBJECT_SELF_CONSTE"></span><span id="_CPPv2N2nw6script12NssTokenType17OBJECT_SELF_CONSTE"></span><span class="target" id="_nss_lexer_8hpp_1a87a6e9937512af3a846743558e190153ad74b68e50a2a5684c38d9cb95c8a606e"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">OBJECT_SELF_CONST</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script12NssTokenType17OBJECT_SELF_CONSTE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script12NssTokenType12STRING_CONSTE">
+<span id="_CPPv3N2nw6script12NssTokenType12STRING_CONSTE"></span><span id="_CPPv2N2nw6script12NssTokenType12STRING_CONSTE"></span><span class="target" id="_nss_lexer_8hpp_1a87a6e9937512af3a846743558e190153af4e1c68d2c79cc09a737b1a4db17adbc"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">STRING_CONST</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script12NssTokenType12STRING_CONSTE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script12NssTokenType6ACTIONE">
+<span id="_CPPv3N2nw6script12NssTokenType6ACTIONE"></span><span id="_CPPv2N2nw6script12NssTokenType6ACTIONE"></span><span class="target" id="_nss_lexer_8hpp_1a87a6e9937512af3a846743558e190153ae58a1b00942e66d8b4abc960da7877ab"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ACTION</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script12NssTokenType6ACTIONE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script12NssTokenType5BREAKE">
+<span id="_CPPv3N2nw6script12NssTokenType5BREAKE"></span><span id="_CPPv2N2nw6script12NssTokenType5BREAKE"></span><span class="target" id="_nss_lexer_8hpp_1a87a6e9937512af3a846743558e190153a14d6a3e0201f58bfe7c01e775973e80e"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">BREAK</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script12NssTokenType5BREAKE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script12NssTokenType4CASEE">
+<span id="_CPPv3N2nw6script12NssTokenType4CASEE"></span><span id="_CPPv2N2nw6script12NssTokenType4CASEE"></span><span class="target" id="_nss_lexer_8hpp_1a87a6e9937512af3a846743558e190153abea5438a9521adc1b23a9117024bbb43"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">CASE</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script12NssTokenType4CASEE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script12NssTokenType5CONSTE">
+<span id="_CPPv3N2nw6script12NssTokenType5CONSTE"></span><span id="_CPPv2N2nw6script12NssTokenType5CONSTE"></span><span class="target" id="_nss_lexer_8hpp_1a87a6e9937512af3a846743558e190153ab4f1540c6f7bdeebaa42943a2405478d"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">CONST</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script12NssTokenType5CONSTE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script12NssTokenType8CONTINUEE">
+<span id="_CPPv3N2nw6script12NssTokenType8CONTINUEE"></span><span id="_CPPv2N2nw6script12NssTokenType8CONTINUEE"></span><span class="target" id="_nss_lexer_8hpp_1a87a6e9937512af3a846743558e190153a2f453cfe638e57e27bb0c9512436111e"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">CONTINUE</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script12NssTokenType8CONTINUEE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script12NssTokenType7DEFAULTE">
+<span id="_CPPv3N2nw6script12NssTokenType7DEFAULTE"></span><span id="_CPPv2N2nw6script12NssTokenType7DEFAULTE"></span><span class="target" id="_nss_lexer_8hpp_1a87a6e9937512af3a846743558e190153a5b39c8b553c821e7cddc6da64b5bd2ee"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">DEFAULT</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script12NssTokenType7DEFAULTE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script12NssTokenType2DOE">
+<span id="_CPPv3N2nw6script12NssTokenType2DOE"></span><span id="_CPPv2N2nw6script12NssTokenType2DOE"></span><span class="target" id="_nss_lexer_8hpp_1a87a6e9937512af3a846743558e190153ac23fa9996925b610710d93e28c59a3e2"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">DO</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script12NssTokenType2DOE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script12NssTokenType6EFFECTE">
+<span id="_CPPv3N2nw6script12NssTokenType6EFFECTE"></span><span id="_CPPv2N2nw6script12NssTokenType6EFFECTE"></span><span class="target" id="_nss_lexer_8hpp_1a87a6e9937512af3a846743558e190153a7d48183be5b6641b73f3451e7a9ed44f"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">EFFECT</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script12NssTokenType6EFFECTE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script12NssTokenType4ELSEE">
+<span id="_CPPv3N2nw6script12NssTokenType4ELSEE"></span><span id="_CPPv2N2nw6script12NssTokenType4ELSEE"></span><span class="target" id="_nss_lexer_8hpp_1a87a6e9937512af3a846743558e190153a778537b0acce06229cb78d5f72c907ab"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ELSE</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script12NssTokenType4ELSEE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script12NssTokenType5FLOATE">
+<span id="_CPPv3N2nw6script12NssTokenType5FLOATE"></span><span id="_CPPv2N2nw6script12NssTokenType5FLOATE"></span><span class="target" id="_nss_lexer_8hpp_1a87a6e9937512af3a846743558e190153ae738c26bf4ce1037fa81b039a915cbf6"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">FLOAT</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script12NssTokenType5FLOATE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script12NssTokenType3FORE">
+<span id="_CPPv3N2nw6script12NssTokenType3FORE"></span><span id="_CPPv2N2nw6script12NssTokenType3FORE"></span><span class="target" id="_nss_lexer_8hpp_1a87a6e9937512af3a846743558e190153a7885ad399f9cab93cb42befbe402c588"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">FOR</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script12NssTokenType3FORE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script12NssTokenType2IFE">
+<span id="_CPPv3N2nw6script12NssTokenType2IFE"></span><span id="_CPPv2N2nw6script12NssTokenType2IFE"></span><span class="target" id="_nss_lexer_8hpp_1a87a6e9937512af3a846743558e190153ade6ee2b5d856295add4d5e3631fbfb93"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">IF</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script12NssTokenType2IFE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script12NssTokenType3INTE">
+<span id="_CPPv3N2nw6script12NssTokenType3INTE"></span><span id="_CPPv2N2nw6script12NssTokenType3INTE"></span><span class="target" id="_nss_lexer_8hpp_1a87a6e9937512af3a846743558e190153a53f93baa3057821107c750323892fa92"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">INT</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script12NssTokenType3INTE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script12NssTokenType12ITEMPROPERTYE">
+<span id="_CPPv3N2nw6script12NssTokenType12ITEMPROPERTYE"></span><span id="_CPPv2N2nw6script12NssTokenType12ITEMPROPERTYE"></span><span class="target" id="_nss_lexer_8hpp_1a87a6e9937512af3a846743558e190153a593e94e2e488729342faa795149080b8"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ITEMPROPERTY</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script12NssTokenType12ITEMPROPERTYE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script12NssTokenType6OBJECTE">
+<span id="_CPPv3N2nw6script12NssTokenType6OBJECTE"></span><span id="_CPPv2N2nw6script12NssTokenType6OBJECTE"></span><span class="target" id="_nss_lexer_8hpp_1a87a6e9937512af3a846743558e190153a8eee8e217391199668cbac89472ace53"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">OBJECT</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script12NssTokenType6OBJECTE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script12NssTokenType6RETURNE">
+<span id="_CPPv3N2nw6script12NssTokenType6RETURNE"></span><span id="_CPPv2N2nw6script12NssTokenType6RETURNE"></span><span class="target" id="_nss_lexer_8hpp_1a87a6e9937512af3a846743558e190153aa2bec276a54439fe011eb523b845dac5"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">RETURN</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script12NssTokenType6RETURNE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script12NssTokenType6STRINGE">
+<span id="_CPPv3N2nw6script12NssTokenType6STRINGE"></span><span id="_CPPv2N2nw6script12NssTokenType6STRINGE"></span><span class="target" id="_nss_lexer_8hpp_1a87a6e9937512af3a846743558e190153a63b588d5559f64f89a416e656880b949"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">STRING</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script12NssTokenType6STRINGE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script12NssTokenType6STRUCTE">
+<span id="_CPPv3N2nw6script12NssTokenType6STRUCTE"></span><span id="_CPPv2N2nw6script12NssTokenType6STRUCTE"></span><span class="target" id="_nss_lexer_8hpp_1a87a6e9937512af3a846743558e190153ab8223be2455e0ea5a0e63e8f018d6fc3"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">STRUCT</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script12NssTokenType6STRUCTE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script12NssTokenType6SWITCHE">
+<span id="_CPPv3N2nw6script12NssTokenType6SWITCHE"></span><span id="_CPPv2N2nw6script12NssTokenType6SWITCHE"></span><span class="target" id="_nss_lexer_8hpp_1a87a6e9937512af3a846743558e190153a4239f063a3d4fb9d38a0182be6e39e76"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SWITCH</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script12NssTokenType6SWITCHE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script12NssTokenType6TALENTE">
+<span id="_CPPv3N2nw6script12NssTokenType6TALENTE"></span><span id="_CPPv2N2nw6script12NssTokenType6TALENTE"></span><span class="target" id="_nss_lexer_8hpp_1a87a6e9937512af3a846743558e190153a070a34c989d1e37f3aa70525c9d6ba2e"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">TALENT</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script12NssTokenType6TALENTE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script12NssTokenType6VECTORE">
+<span id="_CPPv3N2nw6script12NssTokenType6VECTORE"></span><span id="_CPPv2N2nw6script12NssTokenType6VECTORE"></span><span class="target" id="_nss_lexer_8hpp_1a87a6e9937512af3a846743558e190153a87752381b583740610f1dfeb07fdad7e"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">VECTOR</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script12NssTokenType6VECTORE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script12NssTokenType4VOIDE">
+<span id="_CPPv3N2nw6script12NssTokenType4VOIDE"></span><span id="_CPPv2N2nw6script12NssTokenType4VOIDE"></span><span class="target" id="_nss_lexer_8hpp_1a87a6e9937512af3a846743558e190153a6d0c9fc747131795e6e5d0c5119f12cb"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">VOID</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script12NssTokenType4VOIDE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script12NssTokenType5WHILEE">
+<span id="_CPPv3N2nw6script12NssTokenType5WHILEE"></span><span id="_CPPv2N2nw6script12NssTokenType5WHILEE"></span><span class="target" id="_nss_lexer_8hpp_1a87a6e9937512af3a846743558e190153ac0ca84371abbc18f52fd48e32195cd15"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">WHILE</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script12NssTokenType5WHILEE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="nw__SpellMetaMagic.html" class="btn btn-neutral float-left" title="nw::SpellMetaMagic" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../functionlist.html" class="btn btn-neutral float-right" title="functions" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright .</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>utc &mdash; rollNW  documentation</title>
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/doctools.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="utd" href="utd.html" />
+    <link rel="prev" title="jrl" href="jrl.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../index.html" class="icon icon-home"> rollNW
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">structure</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../structure/formats.html">formats</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../structure/i18n.html">i18n</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../structure/kernel.html">kernel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../structure/objects.html">objects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../structure/profiles.html">profiles</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../structure/resources.html">resources</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../structure/rules.html">rules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../structure/serialization.html">serialization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../structure/util.html">util</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">c++ api</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../api/classlist.html">classes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api/definelist.html">defines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api/enumlist.html">enums</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api/functionlist.html">functions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api/typedeflist.html">typedefs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">gff schemas</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="are.html">are</a></li>
+<li class="toctree-l1"><a class="reference internal" href="dlg.html">dlg</a></li>
+<li class="toctree-l1"><a class="reference internal" href="fac.html">fac</a></li>
+<li class="toctree-l1"><a class="reference internal" href="gic.html">gic</a></li>
+<li class="toctree-l1"><a class="reference internal" href="git.html">git</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ifo.html">ifo</a></li>
+<li class="toctree-l1"><a class="reference internal" href="itp.html">itp</a></li>
+<li class="toctree-l1"><a class="reference internal" href="jrl.html">jrl</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">utc</a></li>
+<li class="toctree-l1"><a class="reference internal" href="utd.html">utd</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ute.html">ute</a></li>
+<li class="toctree-l1"><a class="reference internal" href="uti.html">uti</a></li>
+<li class="toctree-l1"><a class="reference internal" href="utm.html">utm</a></li>
+<li class="toctree-l1"><a class="reference internal" href="utp.html">utp</a></li>
+<li class="toctree-l1"><a class="reference internal" href="uts.html">uts</a></li>
+<li class="toctree-l1"><a class="reference internal" href="utt.html">utt</a></li>
+<li class="toctree-l1"><a class="reference internal" href="utw.html">utw</a></li>
+<li class="toctree-l1"><a class="reference internal" href="vartable.html">vartable</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">rollNW</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+      <li>utc</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/gff_schema/utc.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="utc">
+<h1>utc<a class="headerlink" href="#utc" title="Permalink to this headline"></a></h1>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">all</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">Appearance_Head</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">byte</span><span class="w"></span>
+<span class="w">  </span><span class="nt">Appearance_Type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">word</span><span class="w"></span>
+<span class="w">  </span><span class="nt">ArmorPart_RFoot</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">byte</span><span class="w"></span>
+<span class="w">  </span><span class="nt">BodyBag</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">byte</span><span class="w"></span>
+<span class="w">  </span><span class="nt">BodyPart_Belt</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">byte</span><span class="w"></span>
+<span class="w">  </span><span class="nt">BodyPart_LBicep</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">byte</span><span class="w"></span>
+<span class="w">  </span><span class="nt">BodyPart_LFArm</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">byte</span><span class="w"></span>
+<span class="w">  </span><span class="nt">BodyPart_LFoot</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">byte</span><span class="w"></span>
+<span class="w">  </span><span class="nt">BodyPart_LHand</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">byte</span><span class="w"></span>
+<span class="w">  </span><span class="nt">BodyPart_LShin</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">byte</span><span class="w"></span>
+<span class="w">  </span><span class="nt">BodyPart_LShoul</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">byte</span><span class="w"></span>
+<span class="w">  </span><span class="nt">BodyPart_LThigh</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">byte</span><span class="w"></span>
+<span class="w">  </span><span class="nt">BodyPart_Neck</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">byte</span><span class="w"></span>
+<span class="w">  </span><span class="nt">BodyPart_Pelvis</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">byte</span><span class="w"></span>
+<span class="w">  </span><span class="nt">BodyPart_RBicep</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">byte</span><span class="w"></span>
+<span class="w">  </span><span class="nt">BodyPart_RFArm</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">byte</span><span class="w"></span>
+<span class="w">  </span><span class="nt">BodyPart_RHand</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">byte</span><span class="w"></span>
+<span class="w">  </span><span class="nt">BodyPart_RShin</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">byte</span><span class="w"></span>
+<span class="w">  </span><span class="nt">BodyPart_RShoul</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">byte</span><span class="w"></span>
+<span class="w">  </span><span class="nt">BodyPart_RThigh</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">byte</span><span class="w"></span>
+<span class="w">  </span><span class="nt">BodyPart_Torso</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">byte</span><span class="w"></span>
+<span class="w">  </span><span class="nt">CRAdjust</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">int</span><span class="w"></span>
+<span class="w">  </span><span class="nt">Cha</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">byte</span><span class="w"></span>
+<span class="w">  </span><span class="nt">ChallengeRating</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">float</span><span class="w"></span>
+<span class="w">  </span><span class="nt">ClassList</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">Class</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">int</span><span class="w"></span>
+<span class="w">      </span><span class="nt">ClassLevel</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">short</span><span class="w"></span>
+<span class="w">      </span><span class="nt">KnownList0</span><span class="p">:</span><span class="w"></span>
+<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">Spell</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">word</span><span class="w"></span>
+<span class="w">          </span><span class="nt">SpellFlags</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">byte</span><span class="w"></span>
+<span class="w">          </span><span class="nt">SpellMetaMagic</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">byte</span><span class="w"></span>
+<span class="w">      </span><span class="nt">KnownList1</span><span class="p">:</span><span class="w"></span>
+<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">Spell</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">word</span><span class="w"></span>
+<span class="w">          </span><span class="nt">SpellFlags</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">byte</span><span class="w"></span>
+<span class="w">          </span><span class="nt">SpellMetaMagic</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">byte</span><span class="w"></span>
+<span class="w">      </span><span class="nt">KnownList2</span><span class="p">:</span><span class="w"></span>
+<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">Spell</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">word</span><span class="w"></span>
+<span class="w">          </span><span class="nt">SpellFlags</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">byte</span><span class="w"></span>
+<span class="w">          </span><span class="nt">SpellMetaMagic</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">byte</span><span class="w"></span>
+<span class="w">      </span><span class="nt">KnownList3</span><span class="p">:</span><span class="w"></span>
+<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">Spell</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">word</span><span class="w"></span>
+<span class="w">          </span><span class="nt">SpellFlags</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">byte</span><span class="w"></span>
+<span class="w">          </span><span class="nt">SpellMetaMagic</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">byte</span><span class="w"></span>
+<span class="w">      </span><span class="nt">KnownList4</span><span class="p">:</span><span class="w"></span>
+<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">Spell</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">word</span><span class="w"></span>
+<span class="w">          </span><span class="nt">SpellFlags</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">byte</span><span class="w"></span>
+<span class="w">          </span><span class="nt">SpellMetaMagic</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">byte</span><span class="w"></span>
+<span class="w">      </span><span class="nt">KnownList5</span><span class="p">:</span><span class="w"></span>
+<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">Spell</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">word</span><span class="w"></span>
+<span class="w">          </span><span class="nt">SpellFlags</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">byte</span><span class="w"></span>
+<span class="w">          </span><span class="nt">SpellMetaMagic</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">byte</span><span class="w"></span>
+<span class="w">      </span><span class="nt">KnownList6</span><span class="p">:</span><span class="w"></span>
+<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">Spell</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">word</span><span class="w"></span>
+<span class="w">          </span><span class="nt">SpellFlags</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">byte</span><span class="w"></span>
+<span class="w">          </span><span class="nt">SpellMetaMagic</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">byte</span><span class="w"></span>
+<span class="w">      </span><span class="nt">KnownList7</span><span class="p">:</span><span class="w"></span>
+<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">Spell</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">word</span><span class="w"></span>
+<span class="w">          </span><span class="nt">SpellFlags</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">byte</span><span class="w"></span>
+<span class="w">          </span><span class="nt">SpellMetaMagic</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">byte</span><span class="w"></span>
+<span class="w">      </span><span class="nt">KnownList8</span><span class="p">:</span><span class="w"></span>
+<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">Spell</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">word</span><span class="w"></span>
+<span class="w">          </span><span class="nt">SpellFlags</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">byte</span><span class="w"></span>
+<span class="w">          </span><span class="nt">SpellMetaMagic</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">byte</span><span class="w"></span>
+<span class="w">      </span><span class="nt">KnownList9</span><span class="p">:</span><span class="w"></span>
+<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">Spell</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">word</span><span class="w"></span>
+<span class="w">          </span><span class="nt">SpellFlags</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">byte</span><span class="w"></span>
+<span class="w">          </span><span class="nt">SpellMetaMagic</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">byte</span><span class="w"></span>
+<span class="w">      </span><span class="nt">MemorizedList0</span><span class="p">:</span><span class="w"></span>
+<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">Spell</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">word</span><span class="w"></span>
+<span class="w">          </span><span class="nt">SpellFlags</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">byte</span><span class="w"></span>
+<span class="w">          </span><span class="nt">SpellMetaMagic</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">byte</span><span class="w"></span>
+<span class="w">      </span><span class="nt">MemorizedList1</span><span class="p">:</span><span class="w"></span>
+<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">Spell</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">word</span><span class="w"></span>
+<span class="w">          </span><span class="nt">SpellFlags</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">byte</span><span class="w"></span>
+<span class="w">          </span><span class="nt">SpellMetaMagic</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">byte</span><span class="w"></span>
+<span class="w">      </span><span class="nt">MemorizedList2</span><span class="p">:</span><span class="w"></span>
+<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">Spell</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">word</span><span class="w"></span>
+<span class="w">          </span><span class="nt">SpellFlags</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">byte</span><span class="w"></span>
+<span class="w">          </span><span class="nt">SpellMetaMagic</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">byte</span><span class="w"></span>
+<span class="w">      </span><span class="nt">MemorizedList3</span><span class="p">:</span><span class="w"></span>
+<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">Spell</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">word</span><span class="w"></span>
+<span class="w">          </span><span class="nt">SpellFlags</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">byte</span><span class="w"></span>
+<span class="w">          </span><span class="nt">SpellMetaMagic</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">byte</span><span class="w"></span>
+<span class="w">      </span><span class="nt">MemorizedList4</span><span class="p">:</span><span class="w"></span>
+<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">Spell</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">word</span><span class="w"></span>
+<span class="w">          </span><span class="nt">SpellFlags</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">byte</span><span class="w"></span>
+<span class="w">          </span><span class="nt">SpellMetaMagic</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">byte</span><span class="w"></span>
+<span class="w">      </span><span class="nt">MemorizedList5</span><span class="p">:</span><span class="w"></span>
+<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">Spell</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">word</span><span class="w"></span>
+<span class="w">          </span><span class="nt">SpellFlags</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">byte</span><span class="w"></span>
+<span class="w">          </span><span class="nt">SpellMetaMagic</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">byte</span><span class="w"></span>
+<span class="w">      </span><span class="nt">MemorizedList6</span><span class="p">:</span><span class="w"></span>
+<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">Spell</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">word</span><span class="w"></span>
+<span class="w">          </span><span class="nt">SpellFlags</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">byte</span><span class="w"></span>
+<span class="w">          </span><span class="nt">SpellMetaMagic</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">byte</span><span class="w"></span>
+<span class="w">      </span><span class="nt">MemorizedList7</span><span class="p">:</span><span class="w"></span>
+<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">Spell</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">word</span><span class="w"></span>
+<span class="w">          </span><span class="nt">SpellFlags</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">byte</span><span class="w"></span>
+<span class="w">          </span><span class="nt">SpellMetaMagic</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">byte</span><span class="w"></span>
+<span class="w">      </span><span class="nt">MemorizedList8</span><span class="p">:</span><span class="w"></span>
+<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">Spell</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">word</span><span class="w"></span>
+<span class="w">          </span><span class="nt">SpellFlags</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">byte</span><span class="w"></span>
+<span class="w">          </span><span class="nt">SpellMetaMagic</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">byte</span><span class="w"></span>
+<span class="w">      </span><span class="nt">MemorizedList9</span><span class="p">:</span><span class="w"></span>
+<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">Spell</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">word</span><span class="w"></span>
+<span class="w">          </span><span class="nt">SpellFlags</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">byte</span><span class="w"></span>
+<span class="w">          </span><span class="nt">SpellMetaMagic</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">byte</span><span class="w"></span>
+<span class="w">  </span><span class="nt">Color_Hair</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">byte</span><span class="w"></span>
+<span class="w">  </span><span class="nt">Color_Skin</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">byte</span><span class="w"></span>
+<span class="w">  </span><span class="nt">Color_Tattoo1</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">byte</span><span class="w"></span>
+<span class="w">  </span><span class="nt">Color_Tattoo2</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">byte</span><span class="w"></span>
+<span class="w">  </span><span class="nt">Con</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">byte</span><span class="w"></span>
+<span class="w">  </span><span class="nt">Conversation</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">resref</span><span class="w"></span>
+<span class="w">  </span><span class="nt">CurrentHitPoints</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">short</span><span class="w"></span>
+<span class="w">  </span><span class="nt">DecayTime</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dword</span><span class="w"></span>
+<span class="w">  </span><span class="nt">Deity</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">cexostr</span><span class="w"></span>
+<span class="w">  </span><span class="nt">Description</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">cexolocstr</span><span class="w"></span>
+<span class="w">  </span><span class="nt">Dex</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">byte</span><span class="w"></span>
+<span class="w">  </span><span class="nt">Disarmable</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">byte</span><span class="w"></span>
+<span class="w">  </span><span class="nt">FactionID</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">word</span><span class="w"></span>
+<span class="w">  </span><span class="nt">FeatList</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">Feat</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">word</span><span class="w"></span>
+<span class="w">  </span><span class="nt">FirstName</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">cexolocstr</span><span class="w"></span>
+<span class="w">  </span><span class="nt">Gender</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">byte</span><span class="w"></span>
+<span class="w">  </span><span class="nt">GoodEvil</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">byte</span><span class="w"></span>
+<span class="w">  </span><span class="nt">HitPoints</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">short</span><span class="w"></span>
+<span class="w">  </span><span class="nt">Int</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">byte</span><span class="w"></span>
+<span class="w">  </span><span class="nt">Interruptable</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">byte</span><span class="w"></span>
+<span class="w">  </span><span class="nt">IsImmortal</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">byte</span><span class="w"></span>
+<span class="w">  </span><span class="nt">IsPC</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">byte</span><span class="w"></span>
+<span class="w">  </span><span class="nt">LastName</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">cexolocstr</span><span class="w"></span>
+<span class="w">  </span><span class="nt">LawfulChaotic</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">byte</span><span class="w"></span>
+<span class="w">  </span><span class="nt">Lootable</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">byte</span><span class="w"></span>
+<span class="w">  </span><span class="nt">MaxHitPoints</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">short</span><span class="w"></span>
+<span class="w">  </span><span class="nt">NaturalAC</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">byte</span><span class="w"></span>
+<span class="w">  </span><span class="nt">NoPermDeath</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">byte</span><span class="w"></span>
+<span class="w">  </span><span class="nt">PerceptionRange</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">byte</span><span class="w"></span>
+<span class="w">  </span><span class="nt">Phenotype</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">int</span><span class="w"></span>
+<span class="w">  </span><span class="nt">Plot</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">byte</span><span class="w"></span>
+<span class="w">  </span><span class="nt">PortraitId</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">word</span><span class="w"></span>
+<span class="w">  </span><span class="nt">Race</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">byte</span><span class="w"></span>
+<span class="w">  </span><span class="nt">ScriptAttacked</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">resref</span><span class="w"></span>
+<span class="w">  </span><span class="nt">ScriptDamaged</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">resref</span><span class="w"></span>
+<span class="w">  </span><span class="nt">ScriptDeath</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">resref</span><span class="w"></span>
+<span class="w">  </span><span class="nt">ScriptDialogue</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">resref</span><span class="w"></span>
+<span class="w">  </span><span class="nt">ScriptDisturbed</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">resref</span><span class="w"></span>
+<span class="w">  </span><span class="nt">ScriptEndRound</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">resref</span><span class="w"></span>
+<span class="w">  </span><span class="nt">ScriptHeartbeat</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">resref</span><span class="w"></span>
+<span class="w">  </span><span class="nt">ScriptOnBlocked</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">resref</span><span class="w"></span>
+<span class="w">  </span><span class="nt">ScriptOnNotice</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">resref</span><span class="w"></span>
+<span class="w">  </span><span class="nt">ScriptRested</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">resref</span><span class="w"></span>
+<span class="w">  </span><span class="nt">ScriptSpawn</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">resref</span><span class="w"></span>
+<span class="w">  </span><span class="nt">ScriptSpellAt</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">resref</span><span class="w"></span>
+<span class="w">  </span><span class="nt">ScriptUserDefine</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">resref</span><span class="w"></span>
+<span class="w">  </span><span class="nt">SkillList</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">Rank</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">byte</span><span class="w"></span>
+<span class="w">  </span><span class="nt">SoundSetFile</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">word</span><span class="w"></span>
+<span class="w">  </span><span class="nt">SpecAbilityList</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">Spell</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">word</span><span class="w"></span>
+<span class="w">      </span><span class="nt">SpellCasterLevel</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">byte</span><span class="w"></span>
+<span class="w">      </span><span class="nt">SpellFlags</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">byte</span><span class="w"></span>
+<span class="w">  </span><span class="nt">StartingPackage</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">byte</span><span class="w"></span>
+<span class="w">  </span><span class="nt">Str</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">byte</span><span class="w"></span>
+<span class="w">  </span><span class="nt">Subrace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">cexostr</span><span class="w"></span>
+<span class="w">  </span><span class="nt">Tag</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">cexostr</span><span class="w"></span>
+<span class="w">  </span><span class="nt">Tail_New</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dword</span><span class="w"> </span><span class="c1"># 1.69</span><span class="w"></span>
+<span class="w">  </span><span class="nt">TemplateList</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">TemplateID</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">word</span><span class="w"></span>
+<span class="w">  </span><span class="nt">TemplateResRef</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">resref</span><span class="w"></span>
+<span class="w">  </span><span class="nt">VarTable</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">vartable.yml</span><span class="w"></span>
+<span class="w">  </span><span class="nt">WalkRate</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">int</span><span class="w"></span>
+<span class="w">  </span><span class="nt">Wings_New</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dword</span><span class="w"> </span><span class="c1"># 1.69</span><span class="w"></span>
+<span class="w">  </span><span class="nt">Wis</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">byte</span><span class="w"></span>
+<span class="w">  </span><span class="nt">fortbonus</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">short</span><span class="w"></span>
+<span class="w">  </span><span class="nt">refbonus</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">short</span><span class="w"></span>
+<span class="w">  </span><span class="nt">willbonus</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">short</span><span class="w"></span>
+
+<span class="nt">blueprint</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">Comment</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">cexostr</span><span class="w"></span>
+<span class="w">  </span><span class="nt">Equip_ItemList</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">Dropable</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">byte</span><span class="w"></span>
+<span class="w">    </span><span class="nt">EquippedRes</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">resref</span><span class="w"></span>
+<span class="w">  </span><span class="nt">ItemList</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">Dropable</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">byte</span><span class="w"></span>
+<span class="w">      </span><span class="nt">InventoryRes</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">resref</span><span class="w"></span>
+<span class="w">      </span><span class="nt">Pickpocketable</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">byte</span><span class="w"></span>
+<span class="w">      </span><span class="nt">Repos_PosX</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">word</span><span class="w"></span>
+<span class="w">      </span><span class="nt">Repos_Posy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">word</span><span class="w"></span>
+<span class="w">  </span><span class="nt">PaletteID</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">byte</span><span class="w"></span>
+
+<span class="nt">instance</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">Equip_ItemList</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">uti.yml</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">instance</span><span class="w"></span>
+<span class="w">    </span><span class="nt">Dropable</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">byte</span><span class="w"></span>
+<span class="w">  </span><span class="nt">ItemList</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">uti.yml</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">instance</span><span class="w"></span>
+<span class="w">      </span><span class="nt">Dropable</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">byte</span><span class="w"></span>
+<span class="w">      </span><span class="nt">Pickpocketable</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">byte</span><span class="w"></span>
+<span class="w">      </span><span class="nt">Repos_PosX</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">word</span><span class="w"></span>
+<span class="w">      </span><span class="nt">Repos_Posy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">word</span><span class="w"></span>
+</pre></div>
+</div>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="jrl.html" class="btn btn-neutral float-left" title="jrl" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="utd.html" class="btn btn-neutral float-right" title="utd" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright .</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

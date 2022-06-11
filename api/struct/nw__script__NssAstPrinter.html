@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>nw::script::NssAstPrinter &mdash; rollNW  documentation</title>
+      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/doctools.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="nw::script::NssLexer" href="nw__script__NssLexer.html" />
+    <link rel="prev" title="nw::script::Nss" href="nw__script__Nss.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../index.html" class="icon icon-home"> rollNW
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">structure</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../structure/formats.html">formats</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../structure/i18n.html">i18n</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../structure/kernel.html">kernel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../structure/objects.html">objects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../structure/profiles.html">profiles</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../structure/resources.html">resources</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../structure/rules.html">rules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../structure/serialization.html">serialization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../structure/util.html">util</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">c++ api</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="../classlist.html">classes</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../class/nw__scope_exit.html">nw::scope_exit</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Ability.html">nw::Ability</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__AbilityArray.html">nw::AbilityArray</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Appearance.html">nw::Appearance</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Area.html">nw::Area</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__AreaScripts.html">nw::AreaScripts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__AreaWeather.html">nw::AreaWeather</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__BaseItem.html">nw::BaseItem</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__BaseItemArray.html">nw::BaseItemArray</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__BeamdogInstall.html">nw::BeamdogInstall</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Bif.html">nw::Bif</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__BifElement.html">nw::BifElement</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__BifHeader.html">nw::BifHeader</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__BodyParts.html">nw::BodyParts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ByteArray.html">nw::ByteArray</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Class.html">nw::Class</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ClassArray.html">nw::ClassArray</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ClassEntry.html">nw::ClassEntry</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__CombatInfo.html">nw::CombatInfo</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Common.html">nw::Common</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__CompressionHeader.html">nw::CompressionHeader</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ConfigOptions.html">nw::ConfigOptions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Constant.html">nw::Constant</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ConstantRegistry.html">nw::ConstantRegistry</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Container.html">nw::Container</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Creature.html">nw::Creature</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__CreatureScripts.html">nw::CreatureScripts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__CreatureStats.html">nw::CreatureStats</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__DamageRoll.html">nw::DamageRoll</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Dialog.html">nw::Dialog</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__DialogNode.html">nw::DialogNode</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__DialogPtr.html">nw::DialogPtr</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__DiceRoll.html">nw::DiceRoll</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Directory.html">nw::Directory</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Door.html">nw::Door</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__DoorScripts.html">nw::DoorScripts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Effect.html">nw::Effect</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__EffectHandle.html">nw::EffectHandle</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Encounter.html">nw::Encounter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__EncounterScripts.html">nw::EncounterScripts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Equips.html">nw::Equips</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Erf.html">nw::Erf</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ErfElementInfo.html">nw::ErfElementInfo</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ErfHeader.html">nw::ErfHeader</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ErfKey.html">nw::ErfKey</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Faction.html">nw::Faction</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__FactionInfo.html">nw::FactionInfo</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Feat.html">nw::Feat</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__FeatArray.html">nw::FeatArray</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__GameProfile.html">nw::GameProfile</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__GffFieldEntry.html">nw::GffFieldEntry</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__GffHeader.html">nw::GffHeader</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__GffInputArchive.html">nw::GffInputArchive</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__GffInputArchiveField.html">nw::GffInputArchiveField</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__GffInputArchiveStruct.html">nw::GffInputArchiveStruct</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__GffLabel.html">nw::GffLabel</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__GffOutputArchive.html">nw::GffOutputArchive</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__GffOutputArchiveField.html">nw::GffOutputArchiveField</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__GffOutputArchiveList.html">nw::GffOutputArchiveList</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__GffOutputArchiveStruct.html">nw::GffOutputArchiveStruct</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__GffStructEntry.html">nw::GffStructEntry</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Image.html">nw::Image</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Ini.html">nw::Ini</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__InstallInfo.html">nw::InstallInfo</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Inventory.html">nw::Inventory</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__InventoryItem.html">nw::InventoryItem</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Item.html">nw::Item</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ItemColors.html">nw::ItemColors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ItemModelParts.html">nw::ItemModelParts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ItemProperty.html">nw::ItemProperty</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Journal.html">nw::Journal</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__JournalCategory.html">nw::JournalCategory</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__JournalEntry.html">nw::JournalEntry</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Key.html">nw::Key</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__KeyTableElement.html">nw::KeyTableElement</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Language.html">nw::Language</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Language__Properties.html">nw::Language::Properties</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__LevelHistory.html">nw::LevelHistory</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__LevelHistoryEntry.html">nw::LevelHistoryEntry</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__LevelStats.html">nw::LevelStats</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__LocString.html">nw::LocString</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__LocalData.html">nw::LocalData</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__LocalVar.html">nw::LocalVar</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__LocalVarType.html">nw::LocalVarType</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Location.html">nw::Location</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Lock.html">nw::Lock</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Module.html">nw::Module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ModuleScripts.html">nw::ModuleScripts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__NWSync.html">nw::NWSync</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__NWSyncManifest.html">nw::NWSyncManifest</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Null.html">nw::Null</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Palette.html">nw::Palette</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__PaletteTreeNode.html">nw::PaletteTreeNode</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Placeable.html">nw::Placeable</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__PlaceableScripts.html">nw::PlaceableScripts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Qualifier.html">nw::Qualifier</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Race.html">nw::Race</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__RaceArray.html">nw::RaceArray</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Reputation.html">nw::Reputation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Requirement.html">nw::Requirement</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Resource.html">nw::Resource</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ResourceDescriptor.html">nw::ResourceDescriptor</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ResourceType.html">nw::ResourceType</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Resref.html">nw::Resref</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Save.html">nw::Save</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Saves.html">nw::Saves</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Selector.html">nw::Selector</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__SerializationType.html">nw::SerializationType</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Situation.html">nw::Situation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Skill.html">nw::Skill</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__SkillArray.html">nw::SkillArray</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Sound.html">nw::Sound</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__SpawnCreature.html">nw::SpawnCreature</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__SpawnPoint.html">nw::SpawnPoint</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__SpecialAbility.html">nw::SpecialAbility</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Spell.html">nw::Spell</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__SpellArray.html">nw::SpellArray</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__SpellBook.html">nw::SpellBook</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__SpellEntry.html">nw::SpellEntry</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Store.html">nw::Store</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__StoreInventory.html">nw::StoreInventory</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__StoreScripts.html">nw::StoreScripts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Tile.html">nw::Tile</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Tlk.html">nw::Tlk</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__TlkElement.html">nw::TlkElement</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__TlkFlags.html">nw::TlkFlags</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__TlkHeader.html">nw::TlkHeader</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Tokenizer.html">nw::Tokenizer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Trap.html">nw::Trap</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Trigger.html">nw::Trigger</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__TriggerScripts.html">nw::TriggerScripts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__TwoDA.html">nw::TwoDA</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__TwoDACache.html">nw::TwoDACache</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Variant.html">nw::Variant</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Waypoint.html">nw::Waypoint</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Zip.html">nw::Zip</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ZipElement.html">nw::ZipElement</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ZlibHeader.html">nw::ZlibHeader</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ZstdHeader.html">nw::ZstdHeader</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__kernel__Config.html">nw::kernel::Config</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__kernel__InternedString.html">nw::kernel::InternedString</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__kernel__InternedStringEq.html">nw::kernel::InternedStringEq</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__kernel__InternedStringHash.html">nw::kernel::InternedStringHash</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__kernel__ObjectSystem.html">nw::kernel::ObjectSystem</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__kernel__Resources.html">nw::kernel::Resources</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__kernel__Rules.html">nw::kernel::Rules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__kernel__Services.html">nw::kernel::Services</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__kernel__Strings.html">nw::kernel::Strings</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__AssignExpression.html">nw::script::AssignExpression</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__AstNode.html">nw::script::AstNode</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__BaseVisitor.html">nw::script::BaseVisitor</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__BinaryExpression.html">nw::script::BinaryExpression</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__BlockStatement.html">nw::script::BlockStatement</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__CallExpression.html">nw::script::CallExpression</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__ConditionalExpression.html">nw::script::ConditionalExpression</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__Declaration.html">nw::script::Declaration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__DoStatement.html">nw::script::DoStatement</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__DotExpression.html">nw::script::DotExpression</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__ExprStatement.html">nw::script::ExprStatement</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__Expression.html">nw::script::Expression</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__ForStatement.html">nw::script::ForStatement</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__FunctionDecl.html">nw::script::FunctionDecl</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__FunctionDefinition.html">nw::script::FunctionDefinition</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__GroupingExpression.html">nw::script::GroupingExpression</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__IfStatement.html">nw::script::IfStatement</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__JumpStatement.html">nw::script::JumpStatement</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__LabelStatement.html">nw::script::LabelStatement</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__LiteralExpression.html">nw::script::LiteralExpression</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__LogicalExpression.html">nw::script::LogicalExpression</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__Nss.html">nw::script::Nss</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">nw::script::NssAstPrinter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__NssLexer.html">nw::script::NssLexer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__NssParser.html">nw::script::NssParser</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__NssToken.html">nw::script::NssToken</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__PostfixExpression.html">nw::script::PostfixExpression</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__Script.html">nw::script::Script</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__Statement.html">nw::script::Statement</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__StructDecl.html">nw::script::StructDecl</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__SwitchStatement.html">nw::script::SwitchStatement</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__Type.html">nw::script::Type</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__UnaryExpression.html">nw::script::UnaryExpression</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__VarDecl.html">nw::script::VarDecl</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__VariableExpression.html">nw::script::VariableExpression</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__WhileStatement.html">nw::script::WhileStatement</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nwn1__Profile.html">nwn1::Profile</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../definelist.html">defines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../enumlist.html">enums</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../functionlist.html">functions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../typedeflist.html">typedefs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">gff schemas</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/are.html">are</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/dlg.html">dlg</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/fac.html">fac</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/gic.html">gic</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/git.html">git</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/ifo.html">ifo</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/itp.html">itp</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/jrl.html">jrl</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/utc.html">utc</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/utd.html">utd</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/ute.html">ute</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/uti.html">uti</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/utm.html">utm</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/utp.html">utp</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/uts.html">uts</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/utt.html">utt</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/utw.html">utw</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/vartable.html">vartable</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">rollNW</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="../classlist.html">classes</a> &raquo;</li>
+      <li>nw::script::NssAstPrinter</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/api/struct/nw__script__NssAstPrinter.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="nw-script-nssastprinter">
+<h1>nw::script::NssAstPrinter<a class="headerlink" href="#nw-script-nssastprinter" title="Permalink to this headline"></a></h1>
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script13NssAstPrinterE">
+<span id="_CPPv3N2nw6script13NssAstPrinterE"></span><span id="_CPPv2N2nw6script13NssAstPrinterE"></span><span id="nw::script::NssAstPrinter"></span><span class="target" id="structnw_1_1script_1_1_nss_ast_printer"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">nw</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">script</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">NssAstPrinter</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><span class="n"><span class="pre">nw</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">script</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="nw__script__BaseVisitor.html#_CPPv4N2nw6script11BaseVisitorE" title="nw::script::BaseVisitor"><span class="n"><span class="pre">BaseVisitor</span></span></a><a class="headerlink" href="#_CPPv4N2nw6script13NssAstPrinterE" title="Permalink to this definition"></a><br /></dt>
+<dd><div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script13NssAstPrinterD0Ev">
+<span id="_CPPv3N2nw6script13NssAstPrinterD0Ev"></span><span id="_CPPv2N2nw6script13NssAstPrinterD0Ev"></span><span id="nw::script::NssAstPrinter::~NssAstPrinter"></span><span class="target" id="structnw_1_1script_1_1_nss_ast_printer_1a216719149d71265871e6bbbc6672cd72"></span><span class="sig-name descname"><span class="n"><span class="pre">~NssAstPrinter</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">default</span></span><a class="headerlink" href="#_CPPv4N2nw6script13NssAstPrinterD0Ev" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script13NssAstPrinter5visitEP6Script">
+<span id="_CPPv3N2nw6script13NssAstPrinter5visitEP6Script"></span><span id="_CPPv2N2nw6script13NssAstPrinter5visitEP6Script"></span><span id="nw::script::NssAstPrinter::visit__ScriptP"></span><span class="target" id="structnw_1_1script_1_1_nss_ast_printer_1a9aa25e3040cc886a6f2a33118aab979b"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">visit</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="nw__script__Script.html#_CPPv4N2nw6script6ScriptE" title="nw::script::Script"><span class="n"><span class="pre">Script</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">script</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">override</span></span><a class="headerlink" href="#_CPPv4N2nw6script13NssAstPrinter5visitEP6Script" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script13NssAstPrinter5visitEP12FunctionDecl">
+<span id="_CPPv3N2nw6script13NssAstPrinter5visitEP12FunctionDecl"></span><span id="_CPPv2N2nw6script13NssAstPrinter5visitEP12FunctionDecl"></span><span id="nw::script::NssAstPrinter::visit__FunctionDeclP"></span><span class="target" id="structnw_1_1script_1_1_nss_ast_printer_1a8a76cae95831a855fd7a153ea3662a7b"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">visit</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="nw__script__FunctionDecl.html#_CPPv4N2nw6script12FunctionDeclE" title="nw::script::FunctionDecl"><span class="n"><span class="pre">FunctionDecl</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">decl</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">override</span></span><a class="headerlink" href="#_CPPv4N2nw6script13NssAstPrinter5visitEP12FunctionDecl" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script13NssAstPrinter5visitEP18FunctionDefinition">
+<span id="_CPPv3N2nw6script13NssAstPrinter5visitEP18FunctionDefinition"></span><span id="_CPPv2N2nw6script13NssAstPrinter5visitEP18FunctionDefinition"></span><span id="nw::script::NssAstPrinter::visit__FunctionDefinitionP"></span><span class="target" id="structnw_1_1script_1_1_nss_ast_printer_1a80dcec4692227bea75b6acffdfc9538d"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">visit</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="nw__script__FunctionDefinition.html#_CPPv4N2nw6script18FunctionDefinitionE" title="nw::script::FunctionDefinition"><span class="n"><span class="pre">FunctionDefinition</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">decl</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">override</span></span><a class="headerlink" href="#_CPPv4N2nw6script13NssAstPrinter5visitEP18FunctionDefinition" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script13NssAstPrinter5visitEP10StructDecl">
+<span id="_CPPv3N2nw6script13NssAstPrinter5visitEP10StructDecl"></span><span id="_CPPv2N2nw6script13NssAstPrinter5visitEP10StructDecl"></span><span id="nw::script::NssAstPrinter::visit__StructDeclP"></span><span class="target" id="structnw_1_1script_1_1_nss_ast_printer_1abbc576fa7ec5b0dcb18fcbe6f7bdd40f"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">visit</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="nw__script__StructDecl.html#_CPPv4N2nw6script10StructDeclE" title="nw::script::StructDecl"><span class="n"><span class="pre">StructDecl</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">decl</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">override</span></span><a class="headerlink" href="#_CPPv4N2nw6script13NssAstPrinter5visitEP10StructDecl" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script13NssAstPrinter5visitEP7VarDecl">
+<span id="_CPPv3N2nw6script13NssAstPrinter5visitEP7VarDecl"></span><span id="_CPPv2N2nw6script13NssAstPrinter5visitEP7VarDecl"></span><span id="nw::script::NssAstPrinter::visit__VarDeclP"></span><span class="target" id="structnw_1_1script_1_1_nss_ast_printer_1a55202254a21c6e2f41bf3799dd4b24d8"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">visit</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="nw__script__VarDecl.html#_CPPv4N2nw6script7VarDeclE" title="nw::script::VarDecl"><span class="n"><span class="pre">VarDecl</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">decl</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">override</span></span><a class="headerlink" href="#_CPPv4N2nw6script13NssAstPrinter5visitEP7VarDecl" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script13NssAstPrinter5visitEP16AssignExpression">
+<span id="_CPPv3N2nw6script13NssAstPrinter5visitEP16AssignExpression"></span><span id="_CPPv2N2nw6script13NssAstPrinter5visitEP16AssignExpression"></span><span id="nw::script::NssAstPrinter::visit__AssignExpressionP"></span><span class="target" id="structnw_1_1script_1_1_nss_ast_printer_1a625626d4d4114a545082b219b3a793e5"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">visit</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="nw__script__AssignExpression.html#_CPPv4N2nw6script16AssignExpressionE" title="nw::script::AssignExpression"><span class="n"><span class="pre">AssignExpression</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">expr</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">override</span></span><a class="headerlink" href="#_CPPv4N2nw6script13NssAstPrinter5visitEP16AssignExpression" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script13NssAstPrinter5visitEP16BinaryExpression">
+<span id="_CPPv3N2nw6script13NssAstPrinter5visitEP16BinaryExpression"></span><span id="_CPPv2N2nw6script13NssAstPrinter5visitEP16BinaryExpression"></span><span id="nw::script::NssAstPrinter::visit__BinaryExpressionP"></span><span class="target" id="structnw_1_1script_1_1_nss_ast_printer_1acfb393a65a27f8d357ec1782bfffd7be"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">visit</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="nw__script__BinaryExpression.html#_CPPv4N2nw6script16BinaryExpressionE" title="nw::script::BinaryExpression"><span class="n"><span class="pre">BinaryExpression</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">expr</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">override</span></span><a class="headerlink" href="#_CPPv4N2nw6script13NssAstPrinter5visitEP16BinaryExpression" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script13NssAstPrinter5visitEP14CallExpression">
+<span id="_CPPv3N2nw6script13NssAstPrinter5visitEP14CallExpression"></span><span id="_CPPv2N2nw6script13NssAstPrinter5visitEP14CallExpression"></span><span id="nw::script::NssAstPrinter::visit__CallExpressionP"></span><span class="target" id="structnw_1_1script_1_1_nss_ast_printer_1af39d3f35a57e8e535ccf318b3f87c101"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">visit</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="nw__script__CallExpression.html#_CPPv4N2nw6script14CallExpressionE" title="nw::script::CallExpression"><span class="n"><span class="pre">CallExpression</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">expr</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">override</span></span><a class="headerlink" href="#_CPPv4N2nw6script13NssAstPrinter5visitEP14CallExpression" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script13NssAstPrinter5visitEP21ConditionalExpression">
+<span id="_CPPv3N2nw6script13NssAstPrinter5visitEP21ConditionalExpression"></span><span id="_CPPv2N2nw6script13NssAstPrinter5visitEP21ConditionalExpression"></span><span id="nw::script::NssAstPrinter::visit__ConditionalExpressionP"></span><span class="target" id="structnw_1_1script_1_1_nss_ast_printer_1a53cb1058c5f899215864743952ee4458"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">visit</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="nw__script__ConditionalExpression.html#_CPPv4N2nw6script21ConditionalExpressionE" title="nw::script::ConditionalExpression"><span class="n"><span class="pre">ConditionalExpression</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">expr</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">override</span></span><a class="headerlink" href="#_CPPv4N2nw6script13NssAstPrinter5visitEP21ConditionalExpression" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script13NssAstPrinter5visitEP13DotExpression">
+<span id="_CPPv3N2nw6script13NssAstPrinter5visitEP13DotExpression"></span><span id="_CPPv2N2nw6script13NssAstPrinter5visitEP13DotExpression"></span><span id="nw::script::NssAstPrinter::visit__DotExpressionP"></span><span class="target" id="structnw_1_1script_1_1_nss_ast_printer_1a56e471536b85d28d03ddfc6cb88df9ba"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">visit</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="nw__script__DotExpression.html#_CPPv4N2nw6script13DotExpressionE" title="nw::script::DotExpression"><span class="n"><span class="pre">DotExpression</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">expr</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">override</span></span><a class="headerlink" href="#_CPPv4N2nw6script13NssAstPrinter5visitEP13DotExpression" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script13NssAstPrinter5visitEP18GroupingExpression">
+<span id="_CPPv3N2nw6script13NssAstPrinter5visitEP18GroupingExpression"></span><span id="_CPPv2N2nw6script13NssAstPrinter5visitEP18GroupingExpression"></span><span id="nw::script::NssAstPrinter::visit__GroupingExpressionP"></span><span class="target" id="structnw_1_1script_1_1_nss_ast_printer_1a40b3ca940bce5e622fa2ce091e9b1b31"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">visit</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="nw__script__GroupingExpression.html#_CPPv4N2nw6script18GroupingExpressionE" title="nw::script::GroupingExpression"><span class="n"><span class="pre">GroupingExpression</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">expr</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">override</span></span><a class="headerlink" href="#_CPPv4N2nw6script13NssAstPrinter5visitEP18GroupingExpression" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script13NssAstPrinter5visitEP17LiteralExpression">
+<span id="_CPPv3N2nw6script13NssAstPrinter5visitEP17LiteralExpression"></span><span id="_CPPv2N2nw6script13NssAstPrinter5visitEP17LiteralExpression"></span><span id="nw::script::NssAstPrinter::visit__LiteralExpressionP"></span><span class="target" id="structnw_1_1script_1_1_nss_ast_printer_1a01b5cfb5dbc5e09bbf74557fb67e67e0"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">visit</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="nw__script__LiteralExpression.html#_CPPv4N2nw6script17LiteralExpressionE" title="nw::script::LiteralExpression"><span class="n"><span class="pre">LiteralExpression</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">expr</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">override</span></span><a class="headerlink" href="#_CPPv4N2nw6script13NssAstPrinter5visitEP17LiteralExpression" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script13NssAstPrinter5visitEP17LogicalExpression">
+<span id="_CPPv3N2nw6script13NssAstPrinter5visitEP17LogicalExpression"></span><span id="_CPPv2N2nw6script13NssAstPrinter5visitEP17LogicalExpression"></span><span id="nw::script::NssAstPrinter::visit__LogicalExpressionP"></span><span class="target" id="structnw_1_1script_1_1_nss_ast_printer_1a4eba6b2b553e3ab19d725aa26c669ce3"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">visit</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="nw__script__LogicalExpression.html#_CPPv4N2nw6script17LogicalExpressionE" title="nw::script::LogicalExpression"><span class="n"><span class="pre">LogicalExpression</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">expr</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">override</span></span><a class="headerlink" href="#_CPPv4N2nw6script13NssAstPrinter5visitEP17LogicalExpression" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script13NssAstPrinter5visitEP17PostfixExpression">
+<span id="_CPPv3N2nw6script13NssAstPrinter5visitEP17PostfixExpression"></span><span id="_CPPv2N2nw6script13NssAstPrinter5visitEP17PostfixExpression"></span><span id="nw::script::NssAstPrinter::visit__PostfixExpressionP"></span><span class="target" id="structnw_1_1script_1_1_nss_ast_printer_1a5c0ec0b21260bc6b594b73792febfc48"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">visit</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="nw__script__PostfixExpression.html#_CPPv4N2nw6script17PostfixExpressionE" title="nw::script::PostfixExpression"><span class="n"><span class="pre">PostfixExpression</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">expr</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">override</span></span><a class="headerlink" href="#_CPPv4N2nw6script13NssAstPrinter5visitEP17PostfixExpression" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script13NssAstPrinter5visitEP15UnaryExpression">
+<span id="_CPPv3N2nw6script13NssAstPrinter5visitEP15UnaryExpression"></span><span id="_CPPv2N2nw6script13NssAstPrinter5visitEP15UnaryExpression"></span><span id="nw::script::NssAstPrinter::visit__UnaryExpressionP"></span><span class="target" id="structnw_1_1script_1_1_nss_ast_printer_1a19970b604505d731e4f10bd3aa449868"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">visit</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="nw__script__UnaryExpression.html#_CPPv4N2nw6script15UnaryExpressionE" title="nw::script::UnaryExpression"><span class="n"><span class="pre">UnaryExpression</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">expr</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">override</span></span><a class="headerlink" href="#_CPPv4N2nw6script13NssAstPrinter5visitEP15UnaryExpression" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script13NssAstPrinter5visitEP18VariableExpression">
+<span id="_CPPv3N2nw6script13NssAstPrinter5visitEP18VariableExpression"></span><span id="_CPPv2N2nw6script13NssAstPrinter5visitEP18VariableExpression"></span><span id="nw::script::NssAstPrinter::visit__VariableExpressionP"></span><span class="target" id="structnw_1_1script_1_1_nss_ast_printer_1ab25ee61a420c290db5e7a4d2637b04f1"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">visit</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="nw__script__VariableExpression.html#_CPPv4N2nw6script18VariableExpressionE" title="nw::script::VariableExpression"><span class="n"><span class="pre">VariableExpression</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">expr</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">override</span></span><a class="headerlink" href="#_CPPv4N2nw6script13NssAstPrinter5visitEP18VariableExpression" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script13NssAstPrinter5visitEP14BlockStatement">
+<span id="_CPPv3N2nw6script13NssAstPrinter5visitEP14BlockStatement"></span><span id="_CPPv2N2nw6script13NssAstPrinter5visitEP14BlockStatement"></span><span id="nw::script::NssAstPrinter::visit__BlockStatementP"></span><span class="target" id="structnw_1_1script_1_1_nss_ast_printer_1a4fed127d9f5a8384b308019fba8a55e2"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">visit</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="nw__script__BlockStatement.html#_CPPv4N2nw6script14BlockStatementE" title="nw::script::BlockStatement"><span class="n"><span class="pre">BlockStatement</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">stmt</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">override</span></span><a class="headerlink" href="#_CPPv4N2nw6script13NssAstPrinter5visitEP14BlockStatement" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script13NssAstPrinter5visitEP11DoStatement">
+<span id="_CPPv3N2nw6script13NssAstPrinter5visitEP11DoStatement"></span><span id="_CPPv2N2nw6script13NssAstPrinter5visitEP11DoStatement"></span><span id="nw::script::NssAstPrinter::visit__DoStatementP"></span><span class="target" id="structnw_1_1script_1_1_nss_ast_printer_1a5dc7d2ea1bee5eea9df705d50f447c7f"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">visit</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="nw__script__DoStatement.html#_CPPv4N2nw6script11DoStatementE" title="nw::script::DoStatement"><span class="n"><span class="pre">DoStatement</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">stmt</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">override</span></span><a class="headerlink" href="#_CPPv4N2nw6script13NssAstPrinter5visitEP11DoStatement" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script13NssAstPrinter5visitEP13ExprStatement">
+<span id="_CPPv3N2nw6script13NssAstPrinter5visitEP13ExprStatement"></span><span id="_CPPv2N2nw6script13NssAstPrinter5visitEP13ExprStatement"></span><span id="nw::script::NssAstPrinter::visit__ExprStatementP"></span><span class="target" id="structnw_1_1script_1_1_nss_ast_printer_1a4f99150bcd1feacfc8b02287e3fab7ea"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">visit</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="nw__script__ExprStatement.html#_CPPv4N2nw6script13ExprStatementE" title="nw::script::ExprStatement"><span class="n"><span class="pre">ExprStatement</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">stmt</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">override</span></span><a class="headerlink" href="#_CPPv4N2nw6script13NssAstPrinter5visitEP13ExprStatement" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script13NssAstPrinter5visitEP11IfStatement">
+<span id="_CPPv3N2nw6script13NssAstPrinter5visitEP11IfStatement"></span><span id="_CPPv2N2nw6script13NssAstPrinter5visitEP11IfStatement"></span><span id="nw::script::NssAstPrinter::visit__IfStatementP"></span><span class="target" id="structnw_1_1script_1_1_nss_ast_printer_1a55c9acf1297e3b042deb59bedaf9c884"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">visit</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="nw__script__IfStatement.html#_CPPv4N2nw6script11IfStatementE" title="nw::script::IfStatement"><span class="n"><span class="pre">IfStatement</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">stmt</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">override</span></span><a class="headerlink" href="#_CPPv4N2nw6script13NssAstPrinter5visitEP11IfStatement" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script13NssAstPrinter5visitEP12ForStatement">
+<span id="_CPPv3N2nw6script13NssAstPrinter5visitEP12ForStatement"></span><span id="_CPPv2N2nw6script13NssAstPrinter5visitEP12ForStatement"></span><span id="nw::script::NssAstPrinter::visit__ForStatementP"></span><span class="target" id="structnw_1_1script_1_1_nss_ast_printer_1ae3a73c43db4f81951a94f7f017f70020"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">visit</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="nw__script__ForStatement.html#_CPPv4N2nw6script12ForStatementE" title="nw::script::ForStatement"><span class="n"><span class="pre">ForStatement</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">stmt</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">override</span></span><a class="headerlink" href="#_CPPv4N2nw6script13NssAstPrinter5visitEP12ForStatement" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script13NssAstPrinter5visitEP13JumpStatement">
+<span id="_CPPv3N2nw6script13NssAstPrinter5visitEP13JumpStatement"></span><span id="_CPPv2N2nw6script13NssAstPrinter5visitEP13JumpStatement"></span><span id="nw::script::NssAstPrinter::visit__JumpStatementP"></span><span class="target" id="structnw_1_1script_1_1_nss_ast_printer_1aaa0bf6d9feffd6a165db94ad20799c38"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">visit</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="nw__script__JumpStatement.html#_CPPv4N2nw6script13JumpStatementE" title="nw::script::JumpStatement"><span class="n"><span class="pre">JumpStatement</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">stmt</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">override</span></span><a class="headerlink" href="#_CPPv4N2nw6script13NssAstPrinter5visitEP13JumpStatement" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script13NssAstPrinter5visitEP14LabelStatement">
+<span id="_CPPv3N2nw6script13NssAstPrinter5visitEP14LabelStatement"></span><span id="_CPPv2N2nw6script13NssAstPrinter5visitEP14LabelStatement"></span><span id="nw::script::NssAstPrinter::visit__LabelStatementP"></span><span class="target" id="structnw_1_1script_1_1_nss_ast_printer_1aad49eefc408125a86b839ed9181de374"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">visit</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="nw__script__LabelStatement.html#_CPPv4N2nw6script14LabelStatementE" title="nw::script::LabelStatement"><span class="n"><span class="pre">LabelStatement</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">stmt</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">override</span></span><a class="headerlink" href="#_CPPv4N2nw6script13NssAstPrinter5visitEP14LabelStatement" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script13NssAstPrinter5visitEP15SwitchStatement">
+<span id="_CPPv3N2nw6script13NssAstPrinter5visitEP15SwitchStatement"></span><span id="_CPPv2N2nw6script13NssAstPrinter5visitEP15SwitchStatement"></span><span id="nw::script::NssAstPrinter::visit__SwitchStatementP"></span><span class="target" id="structnw_1_1script_1_1_nss_ast_printer_1a28b57a94e909fde8dfdb0522528a8d8f"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">visit</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="nw__script__SwitchStatement.html#_CPPv4N2nw6script15SwitchStatementE" title="nw::script::SwitchStatement"><span class="n"><span class="pre">SwitchStatement</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">stmt</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">override</span></span><a class="headerlink" href="#_CPPv4N2nw6script13NssAstPrinter5visitEP15SwitchStatement" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script13NssAstPrinter5visitEP14WhileStatement">
+<span id="_CPPv3N2nw6script13NssAstPrinter5visitEP14WhileStatement"></span><span id="_CPPv2N2nw6script13NssAstPrinter5visitEP14WhileStatement"></span><span id="nw::script::NssAstPrinter::visit__WhileStatementP"></span><span class="target" id="structnw_1_1script_1_1_nss_ast_printer_1a3a98b85412e22ecced82c8e9c95abd0e"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">visit</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="nw__script__WhileStatement.html#_CPPv4N2nw6script14WhileStatementE" title="nw::script::WhileStatement"><span class="n"><span class="pre">WhileStatement</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">stmt</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">override</span></span><a class="headerlink" href="#_CPPv4N2nw6script13NssAstPrinter5visitEP14WhileStatement" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script13NssAstPrinter2ssE">
+<span id="_CPPv3N2nw6script13NssAstPrinter2ssE"></span><span id="_CPPv2N2nw6script13NssAstPrinter2ssE"></span><span id="nw::script::NssAstPrinter::ss__std::stringstream"></span><span class="target" id="structnw_1_1script_1_1_nss_ast_printer_1a2806356eacca348e92f7e4fdc75695fd"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">stringstream</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ss</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script13NssAstPrinter2ssE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script13NssAstPrinter5depthE">
+<span id="_CPPv3N2nw6script13NssAstPrinter5depthE"></span><span id="_CPPv2N2nw6script13NssAstPrinter5depthE"></span><span id="nw::script::NssAstPrinter::depth__i"></span><span class="target" id="structnw_1_1script_1_1_nss_ast_printer_1ab5fa32154888f1922963a3a0f735ab1d"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">depth</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N2nw6script13NssAstPrinter5depthE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+</div>
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="nw__script__Nss.html" class="btn btn-neutral float-left" title="nw::script::Nss" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="nw__script__NssLexer.html" class="btn btn-neutral float-right" title="nw::script::NssLexer" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright .</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

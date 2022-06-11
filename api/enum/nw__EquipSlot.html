@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>nw::EquipSlot &mdash; rollNW  documentation</title>
+      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/doctools.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="nw::ErfType" href="nw__ErfType.html" />
+    <link rel="prev" title="nw::EquipIndex" href="nw__EquipIndex.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../index.html" class="icon icon-home"> rollNW
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">structure</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../structure/formats.html">formats</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../structure/i18n.html">i18n</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../structure/kernel.html">kernel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../structure/objects.html">objects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../structure/profiles.html">profiles</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../structure/resources.html">resources</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../structure/rules.html">rules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../structure/serialization.html">serialization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../structure/util.html">util</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">c++ api</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../classlist.html">classes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../definelist.html">defines</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../enumlist.html">enums</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="nw__AlignmenType.html">nw::AlignmenType</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__AlignmentAxis.html">nw::AlignmentAxis</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__AlignmentFlags.html">nw::AlignmentFlags</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__AreaFlags.html">nw::AreaFlags</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__DamageFlags.html">nw::DamageFlags</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__DialogNodeType.html">nw::DialogNodeType</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__DoorAnimationState.html">nw::DoorAnimationState</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__EquipIndex.html">nw::EquipIndex</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">nw::EquipSlot</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ErfType.html">nw::ErfType</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ErfVersion.html">nw::ErfVersion</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__GameVersion.html">nw::GameVersion</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ItemModelType.html">nw::ItemModelType</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__LanguageID.html">nw::LanguageID</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ObjectID.html">nw::ObjectID</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ObjectType.html">nw::ObjectType</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__PaletteNodeType.html">nw::PaletteNodeType</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__PathAlias.html">nw::PathAlias</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__PlaceableAnimationState.html">nw::PlaceableAnimationState</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__SelectorType.html">nw::SelectorType</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__SerializationProfile.html">nw::SerializationProfile</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__SpellFlags.html">nw::SpellFlags</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__SpellMetaMagic.html">nw::SpellMetaMagic</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__NssTokenType.html">nw::script::NssTokenType</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../functionlist.html">functions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../typedeflist.html">typedefs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">gff schemas</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/are.html">are</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/dlg.html">dlg</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/fac.html">fac</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/gic.html">gic</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/git.html">git</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/ifo.html">ifo</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/itp.html">itp</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/jrl.html">jrl</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/utc.html">utc</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/utd.html">utd</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/ute.html">ute</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/uti.html">uti</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/utm.html">utm</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/utp.html">utp</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/uts.html">uts</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/utt.html">utt</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/utw.html">utw</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/vartable.html">vartable</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">rollNW</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="../enumlist.html">enums</a> &raquo;</li>
+      <li>nw::EquipSlot</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/api/enum/nw__EquipSlot.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="nw-equipslot">
+<h1>nw::EquipSlot<a class="headerlink" href="#nw-equipslot" title="Permalink to this headline"></a></h1>
+<dl class="cpp enum-class">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw9EquipSlotE">
+<span id="_CPPv3N2nw9EquipSlotE"></span><span id="_CPPv2N2nw9EquipSlotE"></span><span class="target" id="namespacenw_1ae7455b84defd09d5156964eaf1a65d17"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">nw</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">EquipSlot</span></span></span><a class="headerlink" href="#_CPPv4N2nw9EquipSlotE" title="Permalink to this definition"></a><br /></dt>
+<dd><p><em>Values:</em></p>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw9EquipSlot4headE">
+<span id="_CPPv3N2nw9EquipSlot4headE"></span><span id="_CPPv2N2nw9EquipSlot4headE"></span><span class="target" id="namespacenw_1ae7455b84defd09d5156964eaf1a65d17a96e89a298e0a9f469b9ae458d6afae9f"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">head</span></span></span><a class="headerlink" href="#_CPPv4N2nw9EquipSlot4headE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw9EquipSlot5chestE">
+<span id="_CPPv3N2nw9EquipSlot5chestE"></span><span id="_CPPv2N2nw9EquipSlot5chestE"></span><span class="target" id="namespacenw_1ae7455b84defd09d5156964eaf1a65d17a14952ea782ad87d7e30059fa3cc516f1"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">chest</span></span></span><a class="headerlink" href="#_CPPv4N2nw9EquipSlot5chestE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw9EquipSlot5bootsE">
+<span id="_CPPv3N2nw9EquipSlot5bootsE"></span><span id="_CPPv2N2nw9EquipSlot5bootsE"></span><span class="target" id="namespacenw_1ae7455b84defd09d5156964eaf1a65d17a680561bec052fdbd2e3f98957ab1d28b"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">boots</span></span></span><a class="headerlink" href="#_CPPv4N2nw9EquipSlot5bootsE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw9EquipSlot4armsE">
+<span id="_CPPv3N2nw9EquipSlot4armsE"></span><span id="_CPPv2N2nw9EquipSlot4armsE"></span><span class="target" id="namespacenw_1ae7455b84defd09d5156964eaf1a65d17aa541acf8ad7bb54808898334efce364a"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">arms</span></span></span><a class="headerlink" href="#_CPPv4N2nw9EquipSlot4armsE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw9EquipSlot9righthandE">
+<span id="_CPPv3N2nw9EquipSlot9righthandE"></span><span id="_CPPv2N2nw9EquipSlot9righthandE"></span><span class="target" id="namespacenw_1ae7455b84defd09d5156964eaf1a65d17ae69d0fdbb9b24128373b9a88ceb72516"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">righthand</span></span></span><a class="headerlink" href="#_CPPv4N2nw9EquipSlot9righthandE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw9EquipSlot8lefthandE">
+<span id="_CPPv3N2nw9EquipSlot8lefthandE"></span><span id="_CPPv2N2nw9EquipSlot8lefthandE"></span><span class="target" id="namespacenw_1ae7455b84defd09d5156964eaf1a65d17af879ae0916b902baba486f268bc16161"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">lefthand</span></span></span><a class="headerlink" href="#_CPPv4N2nw9EquipSlot8lefthandE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw9EquipSlot5cloakE">
+<span id="_CPPv3N2nw9EquipSlot5cloakE"></span><span id="_CPPv2N2nw9EquipSlot5cloakE"></span><span class="target" id="namespacenw_1ae7455b84defd09d5156964eaf1a65d17a7d067ef3bf74d1659b8fa9df3de1a047"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">cloak</span></span></span><a class="headerlink" href="#_CPPv4N2nw9EquipSlot5cloakE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw9EquipSlot8leftringE">
+<span id="_CPPv3N2nw9EquipSlot8leftringE"></span><span id="_CPPv2N2nw9EquipSlot8leftringE"></span><span class="target" id="namespacenw_1ae7455b84defd09d5156964eaf1a65d17a693db9a544b87730676a94913ff9a771"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">leftring</span></span></span><a class="headerlink" href="#_CPPv4N2nw9EquipSlot8leftringE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw9EquipSlot9rightringE">
+<span id="_CPPv3N2nw9EquipSlot9rightringE"></span><span id="_CPPv2N2nw9EquipSlot9rightringE"></span><span class="target" id="namespacenw_1ae7455b84defd09d5156964eaf1a65d17ad5c82f02315cf48ba6de8e86623a295f"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">rightring</span></span></span><a class="headerlink" href="#_CPPv4N2nw9EquipSlot9rightringE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw9EquipSlot4neckE">
+<span id="_CPPv3N2nw9EquipSlot4neckE"></span><span id="_CPPv2N2nw9EquipSlot4neckE"></span><span class="target" id="namespacenw_1ae7455b84defd09d5156964eaf1a65d17a45fe7e5529d283851d93b74536e095a0"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">neck</span></span></span><a class="headerlink" href="#_CPPv4N2nw9EquipSlot4neckE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw9EquipSlot4beltE">
+<span id="_CPPv3N2nw9EquipSlot4beltE"></span><span id="_CPPv2N2nw9EquipSlot4beltE"></span><span class="target" id="namespacenw_1ae7455b84defd09d5156964eaf1a65d17a960dc476150dbdbee160fe289705baf3"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">belt</span></span></span><a class="headerlink" href="#_CPPv4N2nw9EquipSlot4beltE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw9EquipSlot6arrowsE">
+<span id="_CPPv3N2nw9EquipSlot6arrowsE"></span><span id="_CPPv2N2nw9EquipSlot6arrowsE"></span><span class="target" id="namespacenw_1ae7455b84defd09d5156964eaf1a65d17aea2d5ea28af3632befc6fb34db4e1d1e"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">arrows</span></span></span><a class="headerlink" href="#_CPPv4N2nw9EquipSlot6arrowsE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw9EquipSlot7bulletsE">
+<span id="_CPPv3N2nw9EquipSlot7bulletsE"></span><span id="_CPPv2N2nw9EquipSlot7bulletsE"></span><span class="target" id="namespacenw_1ae7455b84defd09d5156964eaf1a65d17ab839f85c13316672597dd5970ab06016"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">bullets</span></span></span><a class="headerlink" href="#_CPPv4N2nw9EquipSlot7bulletsE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw9EquipSlot5boltsE">
+<span id="_CPPv3N2nw9EquipSlot5boltsE"></span><span id="_CPPv2N2nw9EquipSlot5boltsE"></span><span class="target" id="namespacenw_1ae7455b84defd09d5156964eaf1a65d17aaf996f701c8d57179b9ef2ad95314bfc"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">bolts</span></span></span><a class="headerlink" href="#_CPPv4N2nw9EquipSlot5boltsE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw9EquipSlot13creature_leftE">
+<span id="_CPPv3N2nw9EquipSlot13creature_leftE"></span><span id="_CPPv2N2nw9EquipSlot13creature_leftE"></span><span class="target" id="namespacenw_1ae7455b84defd09d5156964eaf1a65d17a5c50984fc0d04a7ed63a7c6617cd9cc1"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">creature_left</span></span></span><a class="headerlink" href="#_CPPv4N2nw9EquipSlot13creature_leftE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw9EquipSlot14creature_rightE">
+<span id="_CPPv3N2nw9EquipSlot14creature_rightE"></span><span id="_CPPv2N2nw9EquipSlot14creature_rightE"></span><span class="target" id="namespacenw_1ae7455b84defd09d5156964eaf1a65d17a09b7130b74106b189476aedb83a55038"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">creature_right</span></span></span><a class="headerlink" href="#_CPPv4N2nw9EquipSlot14creature_rightE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw9EquipSlot13creature_biteE">
+<span id="_CPPv3N2nw9EquipSlot13creature_biteE"></span><span id="_CPPv2N2nw9EquipSlot13creature_biteE"></span><span class="target" id="namespacenw_1ae7455b84defd09d5156964eaf1a65d17a0e1d75c7fdec5044098c14f8ab8d2adb"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">creature_bite</span></span></span><a class="headerlink" href="#_CPPv4N2nw9EquipSlot13creature_biteE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw9EquipSlot13creature_skinE">
+<span id="_CPPv3N2nw9EquipSlot13creature_skinE"></span><span id="_CPPv2N2nw9EquipSlot13creature_skinE"></span><span class="target" id="namespacenw_1ae7455b84defd09d5156964eaf1a65d17abb28e873342ad8bade5c0b331ae52e2c"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">creature_skin</span></span></span><a class="headerlink" href="#_CPPv4N2nw9EquipSlot13creature_skinE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="nw__EquipIndex.html" class="btn btn-neutral float-left" title="nw::EquipIndex" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="nw__ErfType.html" class="btn btn-neutral float-right" title="nw::ErfType" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright .</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

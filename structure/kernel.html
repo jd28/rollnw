@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>kernel &mdash; rollNW  documentation</title>
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/doctools.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="objects" href="objects.html" />
+    <link rel="prev" title="i18n" href="i18n.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../index.html" class="icon icon-home"> rollNW
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">structure</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="formats.html">formats</a></li>
+<li class="toctree-l1"><a class="reference internal" href="i18n.html">i18n</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">kernel</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#basics">Basics</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#config">Config</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#systems">Systems</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#objects">Objects</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#resources">Resources</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#rules">Rules</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#not-yet-implemented">Not Yet Implemented</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#strings">Strings</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#components">Components</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#constantregistry">ConstantRegistry</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#twodacache">TwoDACache</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="objects.html">objects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="profiles.html">profiles</a></li>
+<li class="toctree-l1"><a class="reference internal" href="resources.html">resources</a></li>
+<li class="toctree-l1"><a class="reference internal" href="rules.html">rules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="serialization.html">serialization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="util.html">util</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">c++ api</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../api/classlist.html">classes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api/definelist.html">defines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api/enumlist.html">enums</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api/functionlist.html">functions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api/typedeflist.html">typedefs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">gff schemas</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../gff_schema/are.html">are</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../gff_schema/dlg.html">dlg</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../gff_schema/fac.html">fac</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../gff_schema/gic.html">gic</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../gff_schema/git.html">git</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../gff_schema/ifo.html">ifo</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../gff_schema/itp.html">itp</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../gff_schema/jrl.html">jrl</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../gff_schema/utc.html">utc</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../gff_schema/utd.html">utd</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../gff_schema/ute.html">ute</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../gff_schema/uti.html">uti</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../gff_schema/utm.html">utm</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../gff_schema/utp.html">utp</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../gff_schema/uts.html">uts</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../gff_schema/utt.html">utt</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../gff_schema/utw.html">utw</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../gff_schema/vartable.html">vartable</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">rollNW</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+      <li>kernel</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/structure/kernel.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="kernel">
+<h1>kernel<a class="headerlink" href="#kernel" title="Permalink to this headline"></a></h1>
+<p>The <code class="docutils literal notranslate"><span class="pre">kernel</span></code> module provides submodules for handling global resources
+and services. It’s designed around some explicit goals:</p>
+<ul class="simple">
+<li><p>Every service should be easily overrideable to allow for <a class="reference external" href="http://sevangelatos.com/john-carmack-on-parallel-implementations/">parallel
+implementation</a>.</p></li>
+<li><p>Any function or object that can modify global state must be contained
+in this module for easy search/grepability.</p></li>
+</ul>
+<section id="basics">
+<h2>Basics<a class="headerlink" href="#basics" title="Permalink to this headline"></a></h2>
+<section id="config">
+<h3>Config<a class="headerlink" href="#config" title="Permalink to this headline"></a></h3>
+<p>The <code class="docutils literal notranslate"><span class="pre">Config</span></code> module provides access to installation info, path
+aliases, Ini and Toml settings.</p>
+</section>
+</section>
+<section id="systems">
+<h2>Systems<a class="headerlink" href="#systems" title="Permalink to this headline"></a></h2>
+<section id="objects">
+<h3>Objects<a class="headerlink" href="#objects" title="Permalink to this headline"></a></h3>
+</section>
+<section id="resources">
+<h3>Resources<a class="headerlink" href="#resources" title="Permalink to this headline"></a></h3>
+</section>
+<section id="rules">
+<h3>Rules<a class="headerlink" href="#rules" title="Permalink to this headline"></a></h3>
+<section id="not-yet-implemented">
+<h4>Not Yet Implemented<a class="headerlink" href="#not-yet-implemented" title="Permalink to this headline"></a></h4>
+<ul class="simple">
+<li><p>The vast bulk of it..</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ruleset.2da</span></code></p></li>
+</ul>
+</section>
+</section>
+<hr class="docutils" />
+<section id="strings">
+<h3>Strings<a class="headerlink" href="#strings" title="Permalink to this headline"></a></h3>
+<blockquote>
+<div><p>Provides access to dialog/custom TLKs and localized strings. It also
+provides a mechanism for interning commonly used strings.</p>
+</div></blockquote>
+</section>
+</section>
+<section id="components">
+<h2>Components<a class="headerlink" href="#components" title="Permalink to this headline"></a></h2>
+<section id="constantregistry">
+<h3>ConstantRegistry<a class="headerlink" href="#constantregistry" title="Permalink to this headline"></a></h3>
+</section>
+<section id="twodacache">
+<h3>TwoDACache<a class="headerlink" href="#twodacache" title="Permalink to this headline"></a></h3>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="i18n.html" class="btn btn-neutral float-left" title="i18n" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="objects.html" class="btn btn-neutral float-right" title="objects" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright .</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

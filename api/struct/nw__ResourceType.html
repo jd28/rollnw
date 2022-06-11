@@ -1,0 +1,864 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>nw::ResourceType &mdash; rollNW  documentation</title>
+      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/doctools.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="nw::Resref" href="nw__Resref.html" />
+    <link rel="prev" title="nw::ResourceDescriptor" href="nw__ResourceDescriptor.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../index.html" class="icon icon-home"> rollNW
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">structure</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../structure/formats.html">formats</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../structure/i18n.html">i18n</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../structure/kernel.html">kernel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../structure/objects.html">objects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../structure/profiles.html">profiles</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../structure/resources.html">resources</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../structure/rules.html">rules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../structure/serialization.html">serialization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../structure/util.html">util</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">c++ api</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="../classlist.html">classes</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../class/nw__scope_exit.html">nw::scope_exit</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Ability.html">nw::Ability</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__AbilityArray.html">nw::AbilityArray</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Appearance.html">nw::Appearance</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Area.html">nw::Area</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__AreaScripts.html">nw::AreaScripts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__AreaWeather.html">nw::AreaWeather</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__BaseItem.html">nw::BaseItem</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__BaseItemArray.html">nw::BaseItemArray</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__BeamdogInstall.html">nw::BeamdogInstall</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Bif.html">nw::Bif</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__BifElement.html">nw::BifElement</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__BifHeader.html">nw::BifHeader</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__BodyParts.html">nw::BodyParts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ByteArray.html">nw::ByteArray</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Class.html">nw::Class</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ClassArray.html">nw::ClassArray</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ClassEntry.html">nw::ClassEntry</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__CombatInfo.html">nw::CombatInfo</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Common.html">nw::Common</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__CompressionHeader.html">nw::CompressionHeader</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ConfigOptions.html">nw::ConfigOptions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Constant.html">nw::Constant</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ConstantRegistry.html">nw::ConstantRegistry</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Container.html">nw::Container</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Creature.html">nw::Creature</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__CreatureScripts.html">nw::CreatureScripts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__CreatureStats.html">nw::CreatureStats</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__DamageRoll.html">nw::DamageRoll</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Dialog.html">nw::Dialog</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__DialogNode.html">nw::DialogNode</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__DialogPtr.html">nw::DialogPtr</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__DiceRoll.html">nw::DiceRoll</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Directory.html">nw::Directory</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Door.html">nw::Door</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__DoorScripts.html">nw::DoorScripts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Effect.html">nw::Effect</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__EffectHandle.html">nw::EffectHandle</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Encounter.html">nw::Encounter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__EncounterScripts.html">nw::EncounterScripts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Equips.html">nw::Equips</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Erf.html">nw::Erf</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ErfElementInfo.html">nw::ErfElementInfo</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ErfHeader.html">nw::ErfHeader</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ErfKey.html">nw::ErfKey</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Faction.html">nw::Faction</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__FactionInfo.html">nw::FactionInfo</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Feat.html">nw::Feat</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__FeatArray.html">nw::FeatArray</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__GameProfile.html">nw::GameProfile</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__GffFieldEntry.html">nw::GffFieldEntry</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__GffHeader.html">nw::GffHeader</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__GffInputArchive.html">nw::GffInputArchive</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__GffInputArchiveField.html">nw::GffInputArchiveField</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__GffInputArchiveStruct.html">nw::GffInputArchiveStruct</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__GffLabel.html">nw::GffLabel</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__GffOutputArchive.html">nw::GffOutputArchive</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__GffOutputArchiveField.html">nw::GffOutputArchiveField</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__GffOutputArchiveList.html">nw::GffOutputArchiveList</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__GffOutputArchiveStruct.html">nw::GffOutputArchiveStruct</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__GffStructEntry.html">nw::GffStructEntry</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Image.html">nw::Image</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Ini.html">nw::Ini</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__InstallInfo.html">nw::InstallInfo</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Inventory.html">nw::Inventory</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__InventoryItem.html">nw::InventoryItem</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Item.html">nw::Item</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ItemColors.html">nw::ItemColors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ItemModelParts.html">nw::ItemModelParts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ItemProperty.html">nw::ItemProperty</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Journal.html">nw::Journal</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__JournalCategory.html">nw::JournalCategory</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__JournalEntry.html">nw::JournalEntry</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Key.html">nw::Key</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__KeyTableElement.html">nw::KeyTableElement</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Language.html">nw::Language</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Language__Properties.html">nw::Language::Properties</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__LevelHistory.html">nw::LevelHistory</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__LevelHistoryEntry.html">nw::LevelHistoryEntry</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__LevelStats.html">nw::LevelStats</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__LocString.html">nw::LocString</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__LocalData.html">nw::LocalData</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__LocalVar.html">nw::LocalVar</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__LocalVarType.html">nw::LocalVarType</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Location.html">nw::Location</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Lock.html">nw::Lock</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Module.html">nw::Module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ModuleScripts.html">nw::ModuleScripts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__NWSync.html">nw::NWSync</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__NWSyncManifest.html">nw::NWSyncManifest</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Null.html">nw::Null</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Palette.html">nw::Palette</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__PaletteTreeNode.html">nw::PaletteTreeNode</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Placeable.html">nw::Placeable</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__PlaceableScripts.html">nw::PlaceableScripts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Qualifier.html">nw::Qualifier</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Race.html">nw::Race</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__RaceArray.html">nw::RaceArray</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Reputation.html">nw::Reputation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Requirement.html">nw::Requirement</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Resource.html">nw::Resource</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ResourceDescriptor.html">nw::ResourceDescriptor</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">nw::ResourceType</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Resref.html">nw::Resref</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Save.html">nw::Save</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Saves.html">nw::Saves</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Selector.html">nw::Selector</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__SerializationType.html">nw::SerializationType</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Situation.html">nw::Situation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Skill.html">nw::Skill</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__SkillArray.html">nw::SkillArray</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Sound.html">nw::Sound</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__SpawnCreature.html">nw::SpawnCreature</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__SpawnPoint.html">nw::SpawnPoint</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__SpecialAbility.html">nw::SpecialAbility</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Spell.html">nw::Spell</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__SpellArray.html">nw::SpellArray</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__SpellBook.html">nw::SpellBook</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__SpellEntry.html">nw::SpellEntry</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Store.html">nw::Store</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__StoreInventory.html">nw::StoreInventory</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__StoreScripts.html">nw::StoreScripts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Tile.html">nw::Tile</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Tlk.html">nw::Tlk</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__TlkElement.html">nw::TlkElement</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__TlkFlags.html">nw::TlkFlags</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__TlkHeader.html">nw::TlkHeader</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Tokenizer.html">nw::Tokenizer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Trap.html">nw::Trap</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Trigger.html">nw::Trigger</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__TriggerScripts.html">nw::TriggerScripts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__TwoDA.html">nw::TwoDA</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__TwoDACache.html">nw::TwoDACache</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Variant.html">nw::Variant</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Waypoint.html">nw::Waypoint</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Zip.html">nw::Zip</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ZipElement.html">nw::ZipElement</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ZlibHeader.html">nw::ZlibHeader</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ZstdHeader.html">nw::ZstdHeader</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__kernel__Config.html">nw::kernel::Config</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__kernel__InternedString.html">nw::kernel::InternedString</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__kernel__InternedStringEq.html">nw::kernel::InternedStringEq</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__kernel__InternedStringHash.html">nw::kernel::InternedStringHash</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__kernel__ObjectSystem.html">nw::kernel::ObjectSystem</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__kernel__Resources.html">nw::kernel::Resources</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__kernel__Rules.html">nw::kernel::Rules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__kernel__Services.html">nw::kernel::Services</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__kernel__Strings.html">nw::kernel::Strings</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__AssignExpression.html">nw::script::AssignExpression</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__AstNode.html">nw::script::AstNode</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__BaseVisitor.html">nw::script::BaseVisitor</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__BinaryExpression.html">nw::script::BinaryExpression</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__BlockStatement.html">nw::script::BlockStatement</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__CallExpression.html">nw::script::CallExpression</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__ConditionalExpression.html">nw::script::ConditionalExpression</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__Declaration.html">nw::script::Declaration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__DoStatement.html">nw::script::DoStatement</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__DotExpression.html">nw::script::DotExpression</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__ExprStatement.html">nw::script::ExprStatement</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__Expression.html">nw::script::Expression</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__ForStatement.html">nw::script::ForStatement</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__FunctionDecl.html">nw::script::FunctionDecl</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__FunctionDefinition.html">nw::script::FunctionDefinition</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__GroupingExpression.html">nw::script::GroupingExpression</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__IfStatement.html">nw::script::IfStatement</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__JumpStatement.html">nw::script::JumpStatement</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__LabelStatement.html">nw::script::LabelStatement</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__LiteralExpression.html">nw::script::LiteralExpression</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__LogicalExpression.html">nw::script::LogicalExpression</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__Nss.html">nw::script::Nss</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__NssAstPrinter.html">nw::script::NssAstPrinter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__NssLexer.html">nw::script::NssLexer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__NssParser.html">nw::script::NssParser</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__NssToken.html">nw::script::NssToken</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__PostfixExpression.html">nw::script::PostfixExpression</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__Script.html">nw::script::Script</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__Statement.html">nw::script::Statement</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__StructDecl.html">nw::script::StructDecl</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__SwitchStatement.html">nw::script::SwitchStatement</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__Type.html">nw::script::Type</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__UnaryExpression.html">nw::script::UnaryExpression</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__VarDecl.html">nw::script::VarDecl</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__VariableExpression.html">nw::script::VariableExpression</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__WhileStatement.html">nw::script::WhileStatement</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nwn1__Profile.html">nwn1::Profile</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../definelist.html">defines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../enumlist.html">enums</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../functionlist.html">functions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../typedeflist.html">typedefs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">gff schemas</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/are.html">are</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/dlg.html">dlg</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/fac.html">fac</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/gic.html">gic</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/git.html">git</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/ifo.html">ifo</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/itp.html">itp</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/jrl.html">jrl</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/utc.html">utc</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/utd.html">utd</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/ute.html">ute</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/uti.html">uti</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/utm.html">utm</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/utp.html">utp</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/uts.html">uts</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/utt.html">utt</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/utw.html">utw</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/vartable.html">vartable</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">rollNW</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="../classlist.html">classes</a> &raquo;</li>
+      <li>nw::ResourceType</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/api/struct/nw__ResourceType.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="nw-resourcetype">
+<h1>nw::ResourceType<a class="headerlink" href="#nw-resourcetype" title="Permalink to this headline"></a></h1>
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw12ResourceTypeE">
+<span id="_CPPv3N2nw12ResourceTypeE"></span><span id="_CPPv2N2nw12ResourceTypeE"></span><span id="nw::ResourceType"></span><span class="target" id="structnw_1_1_resource_type"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">nw</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">ResourceType</span></span></span><a class="headerlink" href="#_CPPv4N2nw12ResourceTypeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p><a class="reference internal" href="nw__Resource.html#structnw_1_1_resource"><span class="std std-ref">Resource</span></a> type constants and helper functions. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-types">Public Types</p>
+<dl class="cpp enum">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw12ResourceType4typeE">
+<span id="_CPPv3N2nw12ResourceType4typeE"></span><span id="_CPPv2N2nw12ResourceType4typeE"></span><span class="target" id="structnw_1_1_resource_type_1a56a171e06b998c919d8fd53ea948cfdd"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">type</span></span></span><a class="headerlink" href="#_CPPv4N2nw12ResourceType4typeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Enumeration of <a class="reference internal" href="nw__Resource.html#structnw_1_1_resource"><span class="std std-ref">Resource</span></a> types. </p>
+<p><em>Values:</em></p>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw12ResourceType4type7invalidE">
+<span id="_CPPv3N2nw12ResourceType4type7invalidE"></span><span id="_CPPv2N2nw12ResourceType4type7invalidE"></span><span class="target" id="structnw_1_1_resource_type_1a56a171e06b998c919d8fd53ea948cfdda07e64d1571f1d16364b9a4b3252fd1ad"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">invalid</span></span></span><a class="headerlink" href="#_CPPv4N2nw12ResourceType4type7invalidE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw12ResourceType4type9containerE">
+<span id="_CPPv3N2nw12ResourceType4type9containerE"></span><span id="_CPPv2N2nw12ResourceType4type9containerE"></span><span class="target" id="structnw_1_1_resource_type_1a56a171e06b998c919d8fd53ea948cfdda6b3a7c5b24adac06189949f8b04ffa1b"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">container</span></span></span><a class="headerlink" href="#_CPPv4N2nw12ResourceType4type9containerE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw12ResourceType4type11gff_archiveE">
+<span id="_CPPv3N2nw12ResourceType4type11gff_archiveE"></span><span id="_CPPv2N2nw12ResourceType4type11gff_archiveE"></span><span class="target" id="structnw_1_1_resource_type_1a56a171e06b998c919d8fd53ea948cfdda0a8c2ae24041bead270efc3a82e88d0c"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">gff_archive</span></span></span><a class="headerlink" href="#_CPPv4N2nw12ResourceType4type11gff_archiveE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw12ResourceType4type5movieE">
+<span id="_CPPv3N2nw12ResourceType4type5movieE"></span><span id="_CPPv2N2nw12ResourceType4type5movieE"></span><span class="target" id="structnw_1_1_resource_type_1a56a171e06b998c919d8fd53ea948cfddabab088c29e1d54b5f4ec3e5b0cb5a990"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">movie</span></span></span><a class="headerlink" href="#_CPPv4N2nw12ResourceType4type5movieE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw12ResourceType4type6playerE">
+<span id="_CPPv3N2nw12ResourceType4type6playerE"></span><span id="_CPPv2N2nw12ResourceType4type6playerE"></span><span class="target" id="structnw_1_1_resource_type_1a56a171e06b998c919d8fd53ea948cfdda3c95083ee9250cb1b3c9e4e688ea04a1"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">player</span></span></span><a class="headerlink" href="#_CPPv4N2nw12ResourceType4type6playerE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw12ResourceType4type5soundE">
+<span id="_CPPv3N2nw12ResourceType4type5soundE"></span><span id="_CPPv2N2nw12ResourceType4type5soundE"></span><span class="target" id="structnw_1_1_resource_type_1a56a171e06b998c919d8fd53ea948cfdda71617523903c7f4a4e3ea948636585d9"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">sound</span></span></span><a class="headerlink" href="#_CPPv4N2nw12ResourceType4type5soundE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw12ResourceType4type7textureE">
+<span id="_CPPv3N2nw12ResourceType4type7textureE"></span><span id="_CPPv2N2nw12ResourceType4type7textureE"></span><span class="target" id="structnw_1_1_resource_type_1a56a171e06b998c919d8fd53ea948cfddad751393a41fb0ca7f0ce2a404bc9321e"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">texture</span></span></span><a class="headerlink" href="#_CPPv4N2nw12ResourceType4type7textureE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw12ResourceType4type4jsonE">
+<span id="_CPPv3N2nw12ResourceType4type4jsonE"></span><span id="_CPPv2N2nw12ResourceType4type4jsonE"></span><span class="target" id="structnw_1_1_resource_type_1a56a171e06b998c919d8fd53ea948cfdda33af68084fd77f0960ac2de27f165fda"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">json</span></span></span><a class="headerlink" href="#_CPPv4N2nw12ResourceType4type4jsonE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw12ResourceType4type3bmpE">
+<span id="_CPPv3N2nw12ResourceType4type3bmpE"></span><span id="_CPPv2N2nw12ResourceType4type3bmpE"></span><span class="target" id="structnw_1_1_resource_type_1a56a171e06b998c919d8fd53ea948cfddab3e5b93a19d911583bc6f6aad20d7256"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">bmp</span></span></span><a class="headerlink" href="#_CPPv4N2nw12ResourceType4type3bmpE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw12ResourceType4type3mveE">
+<span id="_CPPv3N2nw12ResourceType4type3mveE"></span><span id="_CPPv2N2nw12ResourceType4type3mveE"></span><span class="target" id="structnw_1_1_resource_type_1a56a171e06b998c919d8fd53ea948cfdda3205cec57a70d9d351ae279cb4fb4c2b"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">mve</span></span></span><a class="headerlink" href="#_CPPv4N2nw12ResourceType4type3mveE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw12ResourceType4type3tgaE">
+<span id="_CPPv3N2nw12ResourceType4type3tgaE"></span><span id="_CPPv2N2nw12ResourceType4type3tgaE"></span><span class="target" id="structnw_1_1_resource_type_1a56a171e06b998c919d8fd53ea948cfddaed45a62b1f0c8b56440eeff4beab5c02"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">tga</span></span></span><a class="headerlink" href="#_CPPv4N2nw12ResourceType4type3tgaE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw12ResourceType4type3wavE">
+<span id="_CPPv3N2nw12ResourceType4type3wavE"></span><span id="_CPPv2N2nw12ResourceType4type3wavE"></span><span class="target" id="structnw_1_1_resource_type_1a56a171e06b998c919d8fd53ea948cfdda99769d4ecac57c00ea278eafc5483282"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">wav</span></span></span><a class="headerlink" href="#_CPPv4N2nw12ResourceType4type3wavE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw12ResourceType4type3pltE">
+<span id="_CPPv3N2nw12ResourceType4type3pltE"></span><span id="_CPPv2N2nw12ResourceType4type3pltE"></span><span class="target" id="structnw_1_1_resource_type_1a56a171e06b998c919d8fd53ea948cfdda9f189d8cb48310160b1c7db08557bb53"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">plt</span></span></span><a class="headerlink" href="#_CPPv4N2nw12ResourceType4type3pltE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw12ResourceType4type3iniE">
+<span id="_CPPv3N2nw12ResourceType4type3iniE"></span><span id="_CPPv2N2nw12ResourceType4type3iniE"></span><span class="target" id="structnw_1_1_resource_type_1a56a171e06b998c919d8fd53ea948cfddab23a545392358e9bec1f02da3301a1a4"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ini</span></span></span><a class="headerlink" href="#_CPPv4N2nw12ResourceType4type3iniE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw12ResourceType4type3bmuE">
+<span id="_CPPv3N2nw12ResourceType4type3bmuE"></span><span id="_CPPv2N2nw12ResourceType4type3bmuE"></span><span class="target" id="structnw_1_1_resource_type_1a56a171e06b998c919d8fd53ea948cfddaa29f19101307bca4196bbc0f7b063ea8"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">bmu</span></span></span><a class="headerlink" href="#_CPPv4N2nw12ResourceType4type3bmuE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw12ResourceType4type3mpgE">
+<span id="_CPPv3N2nw12ResourceType4type3mpgE"></span><span id="_CPPv2N2nw12ResourceType4type3mpgE"></span><span class="target" id="structnw_1_1_resource_type_1a56a171e06b998c919d8fd53ea948cfddaaad31c7b5f10cc25e4151393cea1241e"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">mpg</span></span></span><a class="headerlink" href="#_CPPv4N2nw12ResourceType4type3mpgE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw12ResourceType4type3txtE">
+<span id="_CPPv3N2nw12ResourceType4type3txtE"></span><span id="_CPPv2N2nw12ResourceType4type3txtE"></span><span class="target" id="structnw_1_1_resource_type_1a56a171e06b998c919d8fd53ea948cfddacf6b6f6b4a3fd68449aaedd8ed4fba8b"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">txt</span></span></span><a class="headerlink" href="#_CPPv4N2nw12ResourceType4type3txtE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw12ResourceType4type3plhE">
+<span id="_CPPv3N2nw12ResourceType4type3plhE"></span><span id="_CPPv2N2nw12ResourceType4type3plhE"></span><span class="target" id="structnw_1_1_resource_type_1a56a171e06b998c919d8fd53ea948cfdda194509b4922d89217765b4acfde78ab1"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">plh</span></span></span><a class="headerlink" href="#_CPPv4N2nw12ResourceType4type3plhE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw12ResourceType4type3texE">
+<span id="_CPPv3N2nw12ResourceType4type3texE"></span><span id="_CPPv2N2nw12ResourceType4type3texE"></span><span class="target" id="structnw_1_1_resource_type_1a56a171e06b998c919d8fd53ea948cfdda383017365dc58ec0e30e9f0381bafbbc"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">tex</span></span></span><a class="headerlink" href="#_CPPv4N2nw12ResourceType4type3texE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw12ResourceType4type3mdlE">
+<span id="_CPPv3N2nw12ResourceType4type3mdlE"></span><span id="_CPPv2N2nw12ResourceType4type3mdlE"></span><span class="target" id="structnw_1_1_resource_type_1a56a171e06b998c919d8fd53ea948cfddae81a69636b838ea5bc13b1e470154f3f"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">mdl</span></span></span><a class="headerlink" href="#_CPPv4N2nw12ResourceType4type3mdlE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw12ResourceType4type3thgE">
+<span id="_CPPv3N2nw12ResourceType4type3thgE"></span><span id="_CPPv2N2nw12ResourceType4type3thgE"></span><span class="target" id="structnw_1_1_resource_type_1a56a171e06b998c919d8fd53ea948cfddaa298b7800650bb33ad7f954f1d6f995c"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">thg</span></span></span><a class="headerlink" href="#_CPPv4N2nw12ResourceType4type3thgE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw12ResourceType4type3fntE">
+<span id="_CPPv3N2nw12ResourceType4type3fntE"></span><span id="_CPPv2N2nw12ResourceType4type3fntE"></span><span class="target" id="structnw_1_1_resource_type_1a56a171e06b998c919d8fd53ea948cfddaca8c9a0f5b73cbcfeed6ded1f386750e"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">fnt</span></span></span><a class="headerlink" href="#_CPPv4N2nw12ResourceType4type3fntE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw12ResourceType4type3luaE">
+<span id="_CPPv3N2nw12ResourceType4type3luaE"></span><span id="_CPPv2N2nw12ResourceType4type3luaE"></span><span class="target" id="structnw_1_1_resource_type_1a56a171e06b998c919d8fd53ea948cfddac5bd94583d15a5a8c246dff9bb3b9f7c"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">lua</span></span></span><a class="headerlink" href="#_CPPv4N2nw12ResourceType4type3luaE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw12ResourceType4type3sltE">
+<span id="_CPPv3N2nw12ResourceType4type3sltE"></span><span id="_CPPv2N2nw12ResourceType4type3sltE"></span><span class="target" id="structnw_1_1_resource_type_1a56a171e06b998c919d8fd53ea948cfdda7fb608da11889e094793b305ffe0c54c"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">slt</span></span></span><a class="headerlink" href="#_CPPv4N2nw12ResourceType4type3sltE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw12ResourceType4type3nssE">
+<span id="_CPPv3N2nw12ResourceType4type3nssE"></span><span id="_CPPv2N2nw12ResourceType4type3nssE"></span><span class="target" id="structnw_1_1_resource_type_1a56a171e06b998c919d8fd53ea948cfdda3c7443a068fdf297c8406731a0591beb"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">nss</span></span></span><a class="headerlink" href="#_CPPv4N2nw12ResourceType4type3nssE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw12ResourceType4type3ncsE">
+<span id="_CPPv3N2nw12ResourceType4type3ncsE"></span><span id="_CPPv2N2nw12ResourceType4type3ncsE"></span><span class="target" id="structnw_1_1_resource_type_1a56a171e06b998c919d8fd53ea948cfdda8aa1ab30b458e79093a328fff9012c5d"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ncs</span></span></span><a class="headerlink" href="#_CPPv4N2nw12ResourceType4type3ncsE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw12ResourceType4type3modE">
+<span id="_CPPv3N2nw12ResourceType4type3modE"></span><span id="_CPPv2N2nw12ResourceType4type3modE"></span><span class="target" id="structnw_1_1_resource_type_1a56a171e06b998c919d8fd53ea948cfddaa86f4772cdaa64fc780f363824fafa3a"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">mod</span></span></span><a class="headerlink" href="#_CPPv4N2nw12ResourceType4type3modE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw12ResourceType4type3areE">
+<span id="_CPPv3N2nw12ResourceType4type3areE"></span><span id="_CPPv2N2nw12ResourceType4type3areE"></span><span class="target" id="structnw_1_1_resource_type_1a56a171e06b998c919d8fd53ea948cfdda3f64686f522fb3e1abe299f92f852729"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">are</span></span></span><a class="headerlink" href="#_CPPv4N2nw12ResourceType4type3areE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw12ResourceType4type3setE">
+<span id="_CPPv3N2nw12ResourceType4type3setE"></span><span id="_CPPv2N2nw12ResourceType4type3setE"></span><span class="target" id="structnw_1_1_resource_type_1a56a171e06b998c919d8fd53ea948cfdda44e0eebea5deefc521425aa74572e019"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set</span></span></span><a class="headerlink" href="#_CPPv4N2nw12ResourceType4type3setE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw12ResourceType4type3ifoE">
+<span id="_CPPv3N2nw12ResourceType4type3ifoE"></span><span id="_CPPv2N2nw12ResourceType4type3ifoE"></span><span class="target" id="structnw_1_1_resource_type_1a56a171e06b998c919d8fd53ea948cfddabac7b030212b4563227b05f15f06fd02"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ifo</span></span></span><a class="headerlink" href="#_CPPv4N2nw12ResourceType4type3ifoE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw12ResourceType4type3bicE">
+<span id="_CPPv3N2nw12ResourceType4type3bicE"></span><span id="_CPPv2N2nw12ResourceType4type3bicE"></span><span class="target" id="structnw_1_1_resource_type_1a56a171e06b998c919d8fd53ea948cfdda18c3927ef174f29aa385f26fbce81dca"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">bic</span></span></span><a class="headerlink" href="#_CPPv4N2nw12ResourceType4type3bicE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw12ResourceType4type3wokE">
+<span id="_CPPv3N2nw12ResourceType4type3wokE"></span><span id="_CPPv2N2nw12ResourceType4type3wokE"></span><span class="target" id="structnw_1_1_resource_type_1a56a171e06b998c919d8fd53ea948cfdda3574e0664bc2e50953d6b2be22f4bdcb"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">wok</span></span></span><a class="headerlink" href="#_CPPv4N2nw12ResourceType4type3wokE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw12ResourceType4type5twodaE">
+<span id="_CPPv3N2nw12ResourceType4type5twodaE"></span><span id="_CPPv2N2nw12ResourceType4type5twodaE"></span><span class="target" id="structnw_1_1_resource_type_1a56a171e06b998c919d8fd53ea948cfdda699016018bc9813a586f6af2d7c32a1e"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">twoda</span></span></span><a class="headerlink" href="#_CPPv4N2nw12ResourceType4type5twodaE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw12ResourceType4type3tlkE">
+<span id="_CPPv3N2nw12ResourceType4type3tlkE"></span><span id="_CPPv2N2nw12ResourceType4type3tlkE"></span><span class="target" id="structnw_1_1_resource_type_1a56a171e06b998c919d8fd53ea948cfdda4ee490a274ad5bf748a1ec5b7807f204"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">tlk</span></span></span><a class="headerlink" href="#_CPPv4N2nw12ResourceType4type3tlkE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw12ResourceType4type3txiE">
+<span id="_CPPv3N2nw12ResourceType4type3txiE"></span><span id="_CPPv2N2nw12ResourceType4type3txiE"></span><span class="target" id="structnw_1_1_resource_type_1a56a171e06b998c919d8fd53ea948cfdda1ded118775a9b7543dd6e62a65e1e784"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">txi</span></span></span><a class="headerlink" href="#_CPPv4N2nw12ResourceType4type3txiE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw12ResourceType4type3gitE">
+<span id="_CPPv3N2nw12ResourceType4type3gitE"></span><span id="_CPPv2N2nw12ResourceType4type3gitE"></span><span class="target" id="structnw_1_1_resource_type_1a56a171e06b998c919d8fd53ea948cfdda98f8652c1ac940888d51b534db362a92"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">git</span></span></span><a class="headerlink" href="#_CPPv4N2nw12ResourceType4type3gitE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw12ResourceType4type3btiE">
+<span id="_CPPv3N2nw12ResourceType4type3btiE"></span><span id="_CPPv2N2nw12ResourceType4type3btiE"></span><span class="target" id="structnw_1_1_resource_type_1a56a171e06b998c919d8fd53ea948cfddafb20f66839e63bcb5f6681653df0974e"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">bti</span></span></span><a class="headerlink" href="#_CPPv4N2nw12ResourceType4type3btiE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw12ResourceType4type3utiE">
+<span id="_CPPv3N2nw12ResourceType4type3utiE"></span><span id="_CPPv2N2nw12ResourceType4type3utiE"></span><span class="target" id="structnw_1_1_resource_type_1a56a171e06b998c919d8fd53ea948cfddabcbc5f90f19debc7e83b03eef5d744d4"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">uti</span></span></span><a class="headerlink" href="#_CPPv4N2nw12ResourceType4type3utiE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw12ResourceType4type3btcE">
+<span id="_CPPv3N2nw12ResourceType4type3btcE"></span><span id="_CPPv2N2nw12ResourceType4type3btcE"></span><span class="target" id="structnw_1_1_resource_type_1a56a171e06b998c919d8fd53ea948cfddadf6d4b251558d8f3b58147fffac77cfa"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">btc</span></span></span><a class="headerlink" href="#_CPPv4N2nw12ResourceType4type3btcE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw12ResourceType4type3utcE">
+<span id="_CPPv3N2nw12ResourceType4type3utcE"></span><span id="_CPPv2N2nw12ResourceType4type3utcE"></span><span class="target" id="structnw_1_1_resource_type_1a56a171e06b998c919d8fd53ea948cfddab25f2c2d5cf975ec3687dca85baf2395"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">utc</span></span></span><a class="headerlink" href="#_CPPv4N2nw12ResourceType4type3utcE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw12ResourceType4type3dlgE">
+<span id="_CPPv3N2nw12ResourceType4type3dlgE"></span><span id="_CPPv2N2nw12ResourceType4type3dlgE"></span><span class="target" id="structnw_1_1_resource_type_1a56a171e06b998c919d8fd53ea948cfdda544e472fec654096b16f5bd7d8e9760a"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">dlg</span></span></span><a class="headerlink" href="#_CPPv4N2nw12ResourceType4type3dlgE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw12ResourceType4type3itpE">
+<span id="_CPPv3N2nw12ResourceType4type3itpE"></span><span id="_CPPv2N2nw12ResourceType4type3itpE"></span><span class="target" id="structnw_1_1_resource_type_1a56a171e06b998c919d8fd53ea948cfddaf5c1c0d9745783b49f80d0457ff722cf"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">itp</span></span></span><a class="headerlink" href="#_CPPv4N2nw12ResourceType4type3itpE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw12ResourceType4type3bttE">
+<span id="_CPPv3N2nw12ResourceType4type3bttE"></span><span id="_CPPv2N2nw12ResourceType4type3bttE"></span><span class="target" id="structnw_1_1_resource_type_1a56a171e06b998c919d8fd53ea948cfdda2f4a4f367a1dd45aa41bb39405a4c48b"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">btt</span></span></span><a class="headerlink" href="#_CPPv4N2nw12ResourceType4type3bttE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw12ResourceType4type3uttE">
+<span id="_CPPv3N2nw12ResourceType4type3uttE"></span><span id="_CPPv2N2nw12ResourceType4type3uttE"></span><span class="target" id="structnw_1_1_resource_type_1a56a171e06b998c919d8fd53ea948cfdda165f006001f49e6712dc31809a0c07ce"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">utt</span></span></span><a class="headerlink" href="#_CPPv4N2nw12ResourceType4type3uttE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw12ResourceType4type3ddsE">
+<span id="_CPPv3N2nw12ResourceType4type3ddsE"></span><span id="_CPPv2N2nw12ResourceType4type3ddsE"></span><span class="target" id="structnw_1_1_resource_type_1a56a171e06b998c919d8fd53ea948cfddaa1f59f9f443fb29ca0029e6afc89c884"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">dds</span></span></span><a class="headerlink" href="#_CPPv4N2nw12ResourceType4type3ddsE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw12ResourceType4type3btsE">
+<span id="_CPPv3N2nw12ResourceType4type3btsE"></span><span id="_CPPv2N2nw12ResourceType4type3btsE"></span><span class="target" id="structnw_1_1_resource_type_1a56a171e06b998c919d8fd53ea948cfdda5f207a1bd1710714236fe7ed08f60c08"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">bts</span></span></span><a class="headerlink" href="#_CPPv4N2nw12ResourceType4type3btsE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw12ResourceType4type3utsE">
+<span id="_CPPv3N2nw12ResourceType4type3utsE"></span><span id="_CPPv2N2nw12ResourceType4type3utsE"></span><span class="target" id="structnw_1_1_resource_type_1a56a171e06b998c919d8fd53ea948cfdda5d594aa928bd2bdc70562bcc5f12af77"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">uts</span></span></span><a class="headerlink" href="#_CPPv4N2nw12ResourceType4type3utsE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw12ResourceType4type3ltrE">
+<span id="_CPPv3N2nw12ResourceType4type3ltrE"></span><span id="_CPPv2N2nw12ResourceType4type3ltrE"></span><span class="target" id="structnw_1_1_resource_type_1a56a171e06b998c919d8fd53ea948cfddad63ad71acc24df8e851ecfa142f24522"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ltr</span></span></span><a class="headerlink" href="#_CPPv4N2nw12ResourceType4type3ltrE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw12ResourceType4type3gffE">
+<span id="_CPPv3N2nw12ResourceType4type3gffE"></span><span id="_CPPv2N2nw12ResourceType4type3gffE"></span><span class="target" id="structnw_1_1_resource_type_1a56a171e06b998c919d8fd53ea948cfdda9e135f514fda0a1009393cc0588e0557"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">gff</span></span></span><a class="headerlink" href="#_CPPv4N2nw12ResourceType4type3gffE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw12ResourceType4type3facE">
+<span id="_CPPv3N2nw12ResourceType4type3facE"></span><span id="_CPPv2N2nw12ResourceType4type3facE"></span><span class="target" id="structnw_1_1_resource_type_1a56a171e06b998c919d8fd53ea948cfdda74f350899f9aa4750e1368a9502d6fac"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">fac</span></span></span><a class="headerlink" href="#_CPPv4N2nw12ResourceType4type3facE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw12ResourceType4type3bteE">
+<span id="_CPPv3N2nw12ResourceType4type3bteE"></span><span id="_CPPv2N2nw12ResourceType4type3bteE"></span><span class="target" id="structnw_1_1_resource_type_1a56a171e06b998c919d8fd53ea948cfddac45f98c1f37541bcd31ea46b5c1a5a13"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">bte</span></span></span><a class="headerlink" href="#_CPPv4N2nw12ResourceType4type3bteE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw12ResourceType4type3uteE">
+<span id="_CPPv3N2nw12ResourceType4type3uteE"></span><span id="_CPPv2N2nw12ResourceType4type3uteE"></span><span class="target" id="structnw_1_1_resource_type_1a56a171e06b998c919d8fd53ea948cfddab6c0561691cafe18769dcf3a5507d389"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ute</span></span></span><a class="headerlink" href="#_CPPv4N2nw12ResourceType4type3uteE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw12ResourceType4type3btdE">
+<span id="_CPPv3N2nw12ResourceType4type3btdE"></span><span id="_CPPv2N2nw12ResourceType4type3btdE"></span><span class="target" id="structnw_1_1_resource_type_1a56a171e06b998c919d8fd53ea948cfdda7f9acf622462a002acbfaee43e8c1ab1"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">btd</span></span></span><a class="headerlink" href="#_CPPv4N2nw12ResourceType4type3btdE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw12ResourceType4type3utdE">
+<span id="_CPPv3N2nw12ResourceType4type3utdE"></span><span id="_CPPv2N2nw12ResourceType4type3utdE"></span><span class="target" id="structnw_1_1_resource_type_1a56a171e06b998c919d8fd53ea948cfdda71ebfb5dc7b6f20c9570cf716abed2f8"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">utd</span></span></span><a class="headerlink" href="#_CPPv4N2nw12ResourceType4type3utdE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw12ResourceType4type3btpE">
+<span id="_CPPv3N2nw12ResourceType4type3btpE"></span><span id="_CPPv2N2nw12ResourceType4type3btpE"></span><span class="target" id="structnw_1_1_resource_type_1a56a171e06b998c919d8fd53ea948cfddaf3d998bf8cd3898277bab45644acfffd"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">btp</span></span></span><a class="headerlink" href="#_CPPv4N2nw12ResourceType4type3btpE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw12ResourceType4type3utpE">
+<span id="_CPPv3N2nw12ResourceType4type3utpE"></span><span id="_CPPv2N2nw12ResourceType4type3utpE"></span><span class="target" id="structnw_1_1_resource_type_1a56a171e06b998c919d8fd53ea948cfdda17b0689a75f157ef1bd237237bf31cce"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">utp</span></span></span><a class="headerlink" href="#_CPPv4N2nw12ResourceType4type3utpE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw12ResourceType4type3dftE">
+<span id="_CPPv3N2nw12ResourceType4type3dftE"></span><span id="_CPPv2N2nw12ResourceType4type3dftE"></span><span class="target" id="structnw_1_1_resource_type_1a56a171e06b998c919d8fd53ea948cfdda4525bcabc801a5a24f8e21a739cd5f18"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">dft</span></span></span><a class="headerlink" href="#_CPPv4N2nw12ResourceType4type3dftE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw12ResourceType4type3gicE">
+<span id="_CPPv3N2nw12ResourceType4type3gicE"></span><span id="_CPPv2N2nw12ResourceType4type3gicE"></span><span class="target" id="structnw_1_1_resource_type_1a56a171e06b998c919d8fd53ea948cfdda31138798686c8a2d9fe49c79b913d8f1"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">gic</span></span></span><a class="headerlink" href="#_CPPv4N2nw12ResourceType4type3gicE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw12ResourceType4type3guiE">
+<span id="_CPPv3N2nw12ResourceType4type3guiE"></span><span id="_CPPv2N2nw12ResourceType4type3guiE"></span><span class="target" id="structnw_1_1_resource_type_1a56a171e06b998c919d8fd53ea948cfdda47437f17b78f9d3694829a84fa06b200"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">gui</span></span></span><a class="headerlink" href="#_CPPv4N2nw12ResourceType4type3guiE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw12ResourceType4type3cssE">
+<span id="_CPPv3N2nw12ResourceType4type3cssE"></span><span id="_CPPv2N2nw12ResourceType4type3cssE"></span><span class="target" id="structnw_1_1_resource_type_1a56a171e06b998c919d8fd53ea948cfdda2f7d79c20f16e811326f0d0f63a9ac88"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">css</span></span></span><a class="headerlink" href="#_CPPv4N2nw12ResourceType4type3cssE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw12ResourceType4type3ccsE">
+<span id="_CPPv3N2nw12ResourceType4type3ccsE"></span><span id="_CPPv2N2nw12ResourceType4type3ccsE"></span><span class="target" id="structnw_1_1_resource_type_1a56a171e06b998c919d8fd53ea948cfddaa114d801fbc28ae9c5ae6ecb4380f354"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ccs</span></span></span><a class="headerlink" href="#_CPPv4N2nw12ResourceType4type3ccsE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw12ResourceType4type3btmE">
+<span id="_CPPv3N2nw12ResourceType4type3btmE"></span><span id="_CPPv2N2nw12ResourceType4type3btmE"></span><span class="target" id="structnw_1_1_resource_type_1a56a171e06b998c919d8fd53ea948cfddaf3c51681c66f25f87eb3441751d7b103"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">btm</span></span></span><a class="headerlink" href="#_CPPv4N2nw12ResourceType4type3btmE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw12ResourceType4type3utmE">
+<span id="_CPPv3N2nw12ResourceType4type3utmE"></span><span id="_CPPv2N2nw12ResourceType4type3utmE"></span><span class="target" id="structnw_1_1_resource_type_1a56a171e06b998c919d8fd53ea948cfdda91e47f29e04bc99cb01c3487dde8c744"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">utm</span></span></span><a class="headerlink" href="#_CPPv4N2nw12ResourceType4type3utmE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw12ResourceType4type3dwkE">
+<span id="_CPPv3N2nw12ResourceType4type3dwkE"></span><span id="_CPPv2N2nw12ResourceType4type3dwkE"></span><span class="target" id="structnw_1_1_resource_type_1a56a171e06b998c919d8fd53ea948cfdda7f02261b8b9ef391a2b7776db8bce2b7"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">dwk</span></span></span><a class="headerlink" href="#_CPPv4N2nw12ResourceType4type3dwkE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw12ResourceType4type3pwkE">
+<span id="_CPPv3N2nw12ResourceType4type3pwkE"></span><span id="_CPPv2N2nw12ResourceType4type3pwkE"></span><span class="target" id="structnw_1_1_resource_type_1a56a171e06b998c919d8fd53ea948cfddaa8ae92eb38f8d383f8d3cab04ae5bb4c"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">pwk</span></span></span><a class="headerlink" href="#_CPPv4N2nw12ResourceType4type3pwkE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw12ResourceType4type3btgE">
+<span id="_CPPv3N2nw12ResourceType4type3btgE"></span><span id="_CPPv2N2nw12ResourceType4type3btgE"></span><span class="target" id="structnw_1_1_resource_type_1a56a171e06b998c919d8fd53ea948cfddafc9455e7132d68a3a265594f41fc88af"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">btg</span></span></span><a class="headerlink" href="#_CPPv4N2nw12ResourceType4type3btgE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw12ResourceType4type3utgE">
+<span id="_CPPv3N2nw12ResourceType4type3utgE"></span><span id="_CPPv2N2nw12ResourceType4type3utgE"></span><span class="target" id="structnw_1_1_resource_type_1a56a171e06b998c919d8fd53ea948cfdda183a1f416ec06f285549bcc1f7293a74"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">utg</span></span></span><a class="headerlink" href="#_CPPv4N2nw12ResourceType4type3utgE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw12ResourceType4type3jrlE">
+<span id="_CPPv3N2nw12ResourceType4type3jrlE"></span><span id="_CPPv2N2nw12ResourceType4type3jrlE"></span><span class="target" id="structnw_1_1_resource_type_1a56a171e06b998c919d8fd53ea948cfdda805f32863872ee6d89a0f7a665d4dad0"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">jrl</span></span></span><a class="headerlink" href="#_CPPv4N2nw12ResourceType4type3jrlE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw12ResourceType4type3savE">
+<span id="_CPPv3N2nw12ResourceType4type3savE"></span><span id="_CPPv2N2nw12ResourceType4type3savE"></span><span class="target" id="structnw_1_1_resource_type_1a56a171e06b998c919d8fd53ea948cfdda17db053b670d2756b928e679f4a24a37"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">sav</span></span></span><a class="headerlink" href="#_CPPv4N2nw12ResourceType4type3savE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw12ResourceType4type3utwE">
+<span id="_CPPv3N2nw12ResourceType4type3utwE"></span><span id="_CPPv2N2nw12ResourceType4type3utwE"></span><span class="target" id="structnw_1_1_resource_type_1a56a171e06b998c919d8fd53ea948cfddacda9272fc4b98fc3935b0a43b1458230"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">utw</span></span></span><a class="headerlink" href="#_CPPv4N2nw12ResourceType4type3utwE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw12ResourceType4type6fourpcE">
+<span id="_CPPv3N2nw12ResourceType4type6fourpcE"></span><span id="_CPPv2N2nw12ResourceType4type6fourpcE"></span><span class="target" id="structnw_1_1_resource_type_1a56a171e06b998c919d8fd53ea948cfddae91d5bb1aacedfd565105ca8a48d432a"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">fourpc</span></span></span><a class="headerlink" href="#_CPPv4N2nw12ResourceType4type6fourpcE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw12ResourceType4type3ssfE">
+<span id="_CPPv3N2nw12ResourceType4type3ssfE"></span><span id="_CPPv2N2nw12ResourceType4type3ssfE"></span><span class="target" id="structnw_1_1_resource_type_1a56a171e06b998c919d8fd53ea948cfddaa1f2fc04bad6673dd66f9a89b4977686"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ssf</span></span></span><a class="headerlink" href="#_CPPv4N2nw12ResourceType4type3ssfE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw12ResourceType4type3hakE">
+<span id="_CPPv3N2nw12ResourceType4type3hakE"></span><span id="_CPPv2N2nw12ResourceType4type3hakE"></span><span class="target" id="structnw_1_1_resource_type_1a56a171e06b998c919d8fd53ea948cfdda545629598d8f611289e5e2963da19a8a"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">hak</span></span></span><a class="headerlink" href="#_CPPv4N2nw12ResourceType4type3hakE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw12ResourceType4type3nwmE">
+<span id="_CPPv3N2nw12ResourceType4type3nwmE"></span><span id="_CPPv2N2nw12ResourceType4type3nwmE"></span><span class="target" id="structnw_1_1_resource_type_1a56a171e06b998c919d8fd53ea948cfdda96b34e41426c3941b01eae151df81164"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">nwm</span></span></span><a class="headerlink" href="#_CPPv4N2nw12ResourceType4type3nwmE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw12ResourceType4type3bikE">
+<span id="_CPPv3N2nw12ResourceType4type3bikE"></span><span id="_CPPv2N2nw12ResourceType4type3bikE"></span><span class="target" id="structnw_1_1_resource_type_1a56a171e06b998c919d8fd53ea948cfddae4394a89d2798ceebd3eb0c45aa2c8ac"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">bik</span></span></span><a class="headerlink" href="#_CPPv4N2nw12ResourceType4type3bikE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw12ResourceType4type3ndbE">
+<span id="_CPPv3N2nw12ResourceType4type3ndbE"></span><span id="_CPPv2N2nw12ResourceType4type3ndbE"></span><span class="target" id="structnw_1_1_resource_type_1a56a171e06b998c919d8fd53ea948cfddae0801f8ceb92c3b71dfe9ef1ef6ae2c4"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ndb</span></span></span><a class="headerlink" href="#_CPPv4N2nw12ResourceType4type3ndbE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw12ResourceType4type3ptmE">
+<span id="_CPPv3N2nw12ResourceType4type3ptmE"></span><span id="_CPPv2N2nw12ResourceType4type3ptmE"></span><span class="target" id="structnw_1_1_resource_type_1a56a171e06b998c919d8fd53ea948cfddadac153cf93f87e46bf7c5a00c1ecc6e6"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ptm</span></span></span><a class="headerlink" href="#_CPPv4N2nw12ResourceType4type3ptmE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw12ResourceType4type3pttE">
+<span id="_CPPv3N2nw12ResourceType4type3pttE"></span><span id="_CPPv2N2nw12ResourceType4type3pttE"></span><span class="target" id="structnw_1_1_resource_type_1a56a171e06b998c919d8fd53ea948cfdda5c4ff315592843a1812b985772e98259"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ptt</span></span></span><a class="headerlink" href="#_CPPv4N2nw12ResourceType4type3pttE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw12ResourceType4type3bakE">
+<span id="_CPPv3N2nw12ResourceType4type3bakE"></span><span id="_CPPv2N2nw12ResourceType4type3bakE"></span><span class="target" id="structnw_1_1_resource_type_1a56a171e06b998c919d8fd53ea948cfdda8a568b7d68be2e03e019d7623c0eec21"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">bak</span></span></span><a class="headerlink" href="#_CPPv4N2nw12ResourceType4type3bakE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw12ResourceType4type3datE">
+<span id="_CPPv3N2nw12ResourceType4type3datE"></span><span id="_CPPv2N2nw12ResourceType4type3datE"></span><span class="target" id="structnw_1_1_resource_type_1a56a171e06b998c919d8fd53ea948cfdda40cf817704ed8be69cf2f5f2a2f5245d"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">dat</span></span></span><a class="headerlink" href="#_CPPv4N2nw12ResourceType4type3datE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw12ResourceType4type3shdE">
+<span id="_CPPv3N2nw12ResourceType4type3shdE"></span><span id="_CPPv2N2nw12ResourceType4type3shdE"></span><span class="target" id="structnw_1_1_resource_type_1a56a171e06b998c919d8fd53ea948cfdda0c7ca8ba5a65d69eb131ffe9f0bfe38e"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">shd</span></span></span><a class="headerlink" href="#_CPPv4N2nw12ResourceType4type3shdE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw12ResourceType4type3xbcE">
+<span id="_CPPv3N2nw12ResourceType4type3xbcE"></span><span id="_CPPv2N2nw12ResourceType4type3xbcE"></span><span class="target" id="structnw_1_1_resource_type_1a56a171e06b998c919d8fd53ea948cfdda58c89cdcace262ffac981705b6a40da1"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">xbc</span></span></span><a class="headerlink" href="#_CPPv4N2nw12ResourceType4type3xbcE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw12ResourceType4type3wbmE">
+<span id="_CPPv3N2nw12ResourceType4type3wbmE"></span><span id="_CPPv2N2nw12ResourceType4type3wbmE"></span><span class="target" id="structnw_1_1_resource_type_1a56a171e06b998c919d8fd53ea948cfddaf49e8dbdcc2f342cba4012fcb037daa5"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">wbm</span></span></span><a class="headerlink" href="#_CPPv4N2nw12ResourceType4type3wbmE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw12ResourceType4type3mtrE">
+<span id="_CPPv3N2nw12ResourceType4type3mtrE"></span><span id="_CPPv2N2nw12ResourceType4type3mtrE"></span><span class="target" id="structnw_1_1_resource_type_1a56a171e06b998c919d8fd53ea948cfdda81e36b867a654be5a5c71354437966ec"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">mtr</span></span></span><a class="headerlink" href="#_CPPv4N2nw12ResourceType4type3mtrE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw12ResourceType4type3ktxE">
+<span id="_CPPv3N2nw12ResourceType4type3ktxE"></span><span id="_CPPv2N2nw12ResourceType4type3ktxE"></span><span class="target" id="structnw_1_1_resource_type_1a56a171e06b998c919d8fd53ea948cfdda9de3bc73ca8a5e7190ba291275a159f5"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ktx</span></span></span><a class="headerlink" href="#_CPPv4N2nw12ResourceType4type3ktxE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw12ResourceType4type3ttfE">
+<span id="_CPPv3N2nw12ResourceType4type3ttfE"></span><span id="_CPPv2N2nw12ResourceType4type3ttfE"></span><span class="target" id="structnw_1_1_resource_type_1a56a171e06b998c919d8fd53ea948cfdda51b20ddf04b796780ec0e22fa73b9f2a"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ttf</span></span></span><a class="headerlink" href="#_CPPv4N2nw12ResourceType4type3ttfE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw12ResourceType4type3sqlE">
+<span id="_CPPv3N2nw12ResourceType4type3sqlE"></span><span id="_CPPv2N2nw12ResourceType4type3sqlE"></span><span class="target" id="structnw_1_1_resource_type_1a56a171e06b998c919d8fd53ea948cfddad83b545bad4a7dc8e4525068c605275d"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">sql</span></span></span><a class="headerlink" href="#_CPPv4N2nw12ResourceType4type3sqlE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw12ResourceType4type3tmlE">
+<span id="_CPPv3N2nw12ResourceType4type3tmlE"></span><span id="_CPPv2N2nw12ResourceType4type3tmlE"></span><span class="target" id="structnw_1_1_resource_type_1a56a171e06b998c919d8fd53ea948cfdda429d9a4f648e21e99770cbbcaf57bced"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">tml</span></span></span><a class="headerlink" href="#_CPPv4N2nw12ResourceType4type3tmlE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw12ResourceType4type3sq3E">
+<span id="_CPPv3N2nw12ResourceType4type3sq3E"></span><span id="_CPPv2N2nw12ResourceType4type3sq3E"></span><span class="target" id="structnw_1_1_resource_type_1a56a171e06b998c919d8fd53ea948cfdda524f130728d62213f9bb07f8c5626556"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">sq3</span></span></span><a class="headerlink" href="#_CPPv4N2nw12ResourceType4type3sq3E" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw12ResourceType4type3lodE">
+<span id="_CPPv3N2nw12ResourceType4type3lodE"></span><span id="_CPPv2N2nw12ResourceType4type3lodE"></span><span class="target" id="structnw_1_1_resource_type_1a56a171e06b998c919d8fd53ea948cfdda9b08e658731e1a60ec9291a63da8a79c"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">lod</span></span></span><a class="headerlink" href="#_CPPv4N2nw12ResourceType4type3lodE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw12ResourceType4type3gifE">
+<span id="_CPPv3N2nw12ResourceType4type3gifE"></span><span id="_CPPv2N2nw12ResourceType4type3gifE"></span><span class="target" id="structnw_1_1_resource_type_1a56a171e06b998c919d8fd53ea948cfdda6ec6406359f6024cbe6cfc1046bd0274"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">gif</span></span></span><a class="headerlink" href="#_CPPv4N2nw12ResourceType4type3gifE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw12ResourceType4type3pngE">
+<span id="_CPPv3N2nw12ResourceType4type3pngE"></span><span id="_CPPv2N2nw12ResourceType4type3pngE"></span><span class="target" id="structnw_1_1_resource_type_1a56a171e06b998c919d8fd53ea948cfddaed9f892de1777c942933860a06fe285a"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">png</span></span></span><a class="headerlink" href="#_CPPv4N2nw12ResourceType4type3pngE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw12ResourceType4type3jpgE">
+<span id="_CPPv3N2nw12ResourceType4type3jpgE"></span><span id="_CPPv2N2nw12ResourceType4type3jpgE"></span><span class="target" id="structnw_1_1_resource_type_1a56a171e06b998c919d8fd53ea948cfddac4ba8445214eba16e15fa80903da019a"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">jpg</span></span></span><a class="headerlink" href="#_CPPv4N2nw12ResourceType4type3jpgE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw12ResourceType4type3cafE">
+<span id="_CPPv3N2nw12ResourceType4type3cafE"></span><span id="_CPPv2N2nw12ResourceType4type3cafE"></span><span class="target" id="structnw_1_1_resource_type_1a56a171e06b998c919d8fd53ea948cfdda5fa33b45042209405e2780b11f2fbf4c"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">caf</span></span></span><a class="headerlink" href="#_CPPv4N2nw12ResourceType4type3cafE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw12ResourceType4type3idsE">
+<span id="_CPPv3N2nw12ResourceType4type3idsE"></span><span id="_CPPv2N2nw12ResourceType4type3idsE"></span><span class="target" id="structnw_1_1_resource_type_1a56a171e06b998c919d8fd53ea948cfddace8df97d6ab8e4ac94ae4da93c0a8efb"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ids</span></span></span><a class="headerlink" href="#_CPPv4N2nw12ResourceType4type3idsE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw12ResourceType4type3erfE">
+<span id="_CPPv3N2nw12ResourceType4type3erfE"></span><span id="_CPPv2N2nw12ResourceType4type3erfE"></span><span class="target" id="structnw_1_1_resource_type_1a56a171e06b998c919d8fd53ea948cfdda756b3daf41bd51aee35f33533a5aedf8"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">erf</span></span></span><a class="headerlink" href="#_CPPv4N2nw12ResourceType4type3erfE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw12ResourceType4type3bifE">
+<span id="_CPPv3N2nw12ResourceType4type3bifE"></span><span id="_CPPv2N2nw12ResourceType4type3bifE"></span><span class="target" id="structnw_1_1_resource_type_1a56a171e06b998c919d8fd53ea948cfddad229d2477e1a45f5b1ebc867059d9ee7"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">bif</span></span></span><a class="headerlink" href="#_CPPv4N2nw12ResourceType4type3bifE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw12ResourceType4type3keyE">
+<span id="_CPPv3N2nw12ResourceType4type3keyE"></span><span id="_CPPv2N2nw12ResourceType4type3keyE"></span><span class="target" id="structnw_1_1_resource_type_1a56a171e06b998c919d8fd53ea948cfddaae4d0a190be9054b2056c2dc97c0d0a6"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">key</span></span></span><a class="headerlink" href="#_CPPv4N2nw12ResourceType4type3keyE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-static-functions">Public Static Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw12ResourceType14from_extensionENSt11string_viewE">
+<span id="_CPPv3N2nw12ResourceType14from_extensionENSt11string_viewE"></span><span id="_CPPv2N2nw12ResourceType14from_extensionENSt11string_viewE"></span><span id="nw::ResourceType::from_extension__std::string_view"></span><span class="target" id="structnw_1_1_resource_type_1a12a73edd2014379eb454891f12a327a3"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N2nw12ResourceType4typeE" title="nw::ResourceType::type"><span class="n"><span class="pre">type</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">from_extension</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">ext</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw12ResourceType14from_extensionENSt11string_viewE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Converts extension to <a class="reference internal" href="#structnw_1_1_resource_type_1a56a171e06b998c919d8fd53ea948cfdd"><span class="std std-ref">ResourceType::type</span></a>. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw12ResourceType9to_stringEN12ResourceType4typeE">
+<span id="_CPPv3N2nw12ResourceType9to_stringEN12ResourceType4typeE"></span><span id="_CPPv2N2nw12ResourceType9to_stringEN12ResourceType4typeE"></span><span id="nw::ResourceType::to_string__ResourceType::type"></span><span class="target" id="structnw_1_1_resource_type_1a8cadf6eac06eda538e72a809ff65d4c6"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">to_string</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N2nw12ResourceTypeE" title="nw::ResourceType"><span class="n"><span class="pre">ResourceType</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N2nw12ResourceType4typeE" title="nw::ResourceType::type"><span class="n"><span class="pre">type</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">value</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw12ResourceType9to_stringEN12ResourceType4typeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Convert <a class="reference internal" href="#structnw_1_1_resource_type_1a56a171e06b998c919d8fd53ea948cfdd"><span class="std std-ref">ResourceType::type</span></a> to extension. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The only compilers and standard libraries that are targeted have small string optimization, so there is no great overhead to just returning a <code class="docutils literal notranslate"><span class="pre">std::string</span></code> </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>extension or empty string on failure </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw12ResourceType14check_categoryEN12ResourceType4typeEN12ResourceType4typeE">
+<span id="_CPPv3N2nw12ResourceType14check_categoryEN12ResourceType4typeEN12ResourceType4typeE"></span><span id="_CPPv2N2nw12ResourceType14check_categoryEN12ResourceType4typeEN12ResourceType4typeE"></span><span id="nw::ResourceType::check_category__ResourceType::type.ResourceType::typeCE"></span><span class="target" id="structnw_1_1_resource_type_1a8a74d646db0f4b9f1ae15a91783d60d0"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">check_category</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N2nw12ResourceTypeE" title="nw::ResourceType"><span class="n"><span class="pre">ResourceType</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N2nw12ResourceType4typeE" title="nw::ResourceType::type"><span class="n"><span class="pre">type</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">category</span></span>, <a class="reference internal" href="#_CPPv4N2nw12ResourceTypeE" title="nw::ResourceType"><span class="n"><span class="pre">ResourceType</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N2nw12ResourceType4typeE" title="nw::ResourceType::type"><span class="n"><span class="pre">type</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">type</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw12ResourceType14check_categoryEN12ResourceType4typeEN12ResourceType4typeE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+</div>
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="nw__ResourceDescriptor.html" class="btn btn-neutral float-left" title="nw::ResourceDescriptor" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="nw__Resref.html" class="btn btn-neutral float-right" title="nw::Resref" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright .</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

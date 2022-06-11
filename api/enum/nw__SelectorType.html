@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>nw::SelectorType &mdash; rollNW  documentation</title>
+      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/doctools.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="nw::SerializationProfile" href="nw__SerializationProfile.html" />
+    <link rel="prev" title="nw::PlaceableAnimationState" href="nw__PlaceableAnimationState.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../index.html" class="icon icon-home"> rollNW
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">structure</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../structure/formats.html">formats</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../structure/i18n.html">i18n</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../structure/kernel.html">kernel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../structure/objects.html">objects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../structure/profiles.html">profiles</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../structure/resources.html">resources</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../structure/rules.html">rules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../structure/serialization.html">serialization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../structure/util.html">util</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">c++ api</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../classlist.html">classes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../definelist.html">defines</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../enumlist.html">enums</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="nw__AlignmenType.html">nw::AlignmenType</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__AlignmentAxis.html">nw::AlignmentAxis</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__AlignmentFlags.html">nw::AlignmentFlags</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__AreaFlags.html">nw::AreaFlags</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__DamageFlags.html">nw::DamageFlags</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__DialogNodeType.html">nw::DialogNodeType</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__DoorAnimationState.html">nw::DoorAnimationState</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__EquipIndex.html">nw::EquipIndex</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__EquipSlot.html">nw::EquipSlot</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ErfType.html">nw::ErfType</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ErfVersion.html">nw::ErfVersion</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__GameVersion.html">nw::GameVersion</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ItemModelType.html">nw::ItemModelType</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__LanguageID.html">nw::LanguageID</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ObjectID.html">nw::ObjectID</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ObjectType.html">nw::ObjectType</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__PaletteNodeType.html">nw::PaletteNodeType</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__PathAlias.html">nw::PathAlias</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__PlaceableAnimationState.html">nw::PlaceableAnimationState</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">nw::SelectorType</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__SerializationProfile.html">nw::SerializationProfile</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__SpellFlags.html">nw::SpellFlags</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__SpellMetaMagic.html">nw::SpellMetaMagic</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__NssTokenType.html">nw::script::NssTokenType</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../functionlist.html">functions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../typedeflist.html">typedefs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">gff schemas</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/are.html">are</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/dlg.html">dlg</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/fac.html">fac</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/gic.html">gic</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/git.html">git</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/ifo.html">ifo</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/itp.html">itp</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/jrl.html">jrl</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/utc.html">utc</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/utd.html">utd</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/ute.html">ute</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/uti.html">uti</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/utm.html">utm</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/utp.html">utp</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/uts.html">uts</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/utt.html">utt</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/utw.html">utw</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/vartable.html">vartable</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">rollNW</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="../enumlist.html">enums</a> &raquo;</li>
+      <li>nw::SelectorType</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/api/enum/nw__SelectorType.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="nw-selectortype">
+<h1>nw::SelectorType<a class="headerlink" href="#nw-selectortype" title="Permalink to this headline"></a></h1>
+<dl class="cpp enum-class">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw12SelectorTypeE">
+<span id="_CPPv3N2nw12SelectorTypeE"></span><span id="_CPPv2N2nw12SelectorTypeE"></span><span class="target" id="namespacenw_1a62afaa17c70eff4a8aa8065bbeda1756"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">nw</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">SelectorType</span></span></span><a class="headerlink" href="#_CPPv4N2nw12SelectorTypeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p><em>Values:</em></p>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw12SelectorType7abilityE">
+<span id="_CPPv3N2nw12SelectorType7abilityE"></span><span id="_CPPv2N2nw12SelectorType7abilityE"></span><span class="target" id="namespacenw_1a62afaa17c70eff4a8aa8065bbeda1756a424dbe533d5a5b0904ee6f79262caa5c"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ability</span></span></span><a class="headerlink" href="#_CPPv4N2nw12SelectorType7abilityE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Subtype: ABILITY_* constant. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw12SelectorType2acE">
+<span id="_CPPv3N2nw12SelectorType2acE"></span><span id="_CPPv2N2nw12SelectorType2acE"></span><span class="target" id="namespacenw_1a62afaa17c70eff4a8aa8065bbeda1756ae2075474294983e013ee4dd2201c7a73"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ac</span></span></span><a class="headerlink" href="#_CPPv4N2nw12SelectorType2acE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Subtype: AC_* constant. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw12SelectorType9alignmentE">
+<span id="_CPPv3N2nw12SelectorType9alignmentE"></span><span id="_CPPv2N2nw12SelectorType9alignmentE"></span><span class="target" id="namespacenw_1a62afaa17c70eff4a8aa8065bbeda1756a5a159214b169da90d96590d47fff379e"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">alignment</span></span></span><a class="headerlink" href="#_CPPv4N2nw12SelectorType9alignmentE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Subtype: AlignmentAxis. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw12SelectorType3babE">
+<span id="_CPPv3N2nw12SelectorType3babE"></span><span id="_CPPv2N2nw12SelectorType3babE"></span><span class="target" id="namespacenw_1a62afaa17c70eff4a8aa8065bbeda1756ad9d7dbddc29177b121a6aa1bb09d15fd"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">bab</span></span></span><a class="headerlink" href="#_CPPv4N2nw12SelectorType3babE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Subtype: none. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw12SelectorType11class_levelE">
+<span id="_CPPv3N2nw12SelectorType11class_levelE"></span><span id="_CPPv2N2nw12SelectorType11class_levelE"></span><span class="target" id="namespacenw_1a62afaa17c70eff4a8aa8065bbeda1756a5e24bacc5866570776baf52ca425349a"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">class_level</span></span></span><a class="headerlink" href="#_CPPv4N2nw12SelectorType11class_levelE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Subtype: CLASS_* constant. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw12SelectorType4featE">
+<span id="_CPPv3N2nw12SelectorType4featE"></span><span id="_CPPv2N2nw12SelectorType4featE"></span><span class="target" id="namespacenw_1a62afaa17c70eff4a8aa8065bbeda1756a1ba8aba1a88b9c65257f4a4e1b3cad3d"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">feat</span></span></span><a class="headerlink" href="#_CPPv4N2nw12SelectorType4featE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Subtype: FEAT_* constant. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw12SelectorType5levelE">
+<span id="_CPPv3N2nw12SelectorType5levelE"></span><span id="_CPPv2N2nw12SelectorType5levelE"></span><span class="target" id="namespacenw_1a62afaa17c70eff4a8aa8065bbeda1756ac9e9a848920877e76685b2e4e76de38d"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">level</span></span></span><a class="headerlink" href="#_CPPv4N2nw12SelectorType5levelE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Subtype: none. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw12SelectorType4raceE">
+<span id="_CPPv3N2nw12SelectorType4raceE"></span><span id="_CPPv2N2nw12SelectorType4raceE"></span><span class="target" id="namespacenw_1a62afaa17c70eff4a8aa8065bbeda1756a2e2a7a2e57d1578bf33a559b20c463f6"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">race</span></span></span><a class="headerlink" href="#_CPPv4N2nw12SelectorType4raceE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Subtype: none. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw12SelectorType5skillE">
+<span id="_CPPv3N2nw12SelectorType5skillE"></span><span id="_CPPv2N2nw12SelectorType5skillE"></span><span class="target" id="namespacenw_1a62afaa17c70eff4a8aa8065bbeda1756a713dd4d0b2e842c08da62ddeec872331"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">skill</span></span></span><a class="headerlink" href="#_CPPv4N2nw12SelectorType5skillE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Subtype: SKILL_* constant. </p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="nw__PlaceableAnimationState.html" class="btn btn-neutral float-left" title="nw::PlaceableAnimationState" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="nw__SerializationProfile.html" class="btn btn-neutral float-right" title="nw::SerializationProfile" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright .</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

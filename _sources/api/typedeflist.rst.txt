@@ -1,0 +1,7 @@
+typedefs
+========
+
+.. toctree::
+   :glob:
+
+   typedef/*

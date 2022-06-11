@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>libnw &mdash; rollNW  documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="formats" href="structure/formats.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="#" class="icon icon-home"> rollNW
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">structure</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="structure/formats.html">formats</a></li>
+<li class="toctree-l1"><a class="reference internal" href="structure/i18n.html">i18n</a></li>
+<li class="toctree-l1"><a class="reference internal" href="structure/kernel.html">kernel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="structure/objects.html">objects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="structure/profiles.html">profiles</a></li>
+<li class="toctree-l1"><a class="reference internal" href="structure/resources.html">resources</a></li>
+<li class="toctree-l1"><a class="reference internal" href="structure/rules.html">rules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="structure/serialization.html">serialization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="structure/util.html">util</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">c++ api</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="api/classlist.html">classes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api/definelist.html">defines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api/enumlist.html">enums</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api/functionlist.html">functions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api/typedeflist.html">typedefs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">gff schemas</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="gff_schema/are.html">are</a></li>
+<li class="toctree-l1"><a class="reference internal" href="gff_schema/dlg.html">dlg</a></li>
+<li class="toctree-l1"><a class="reference internal" href="gff_schema/fac.html">fac</a></li>
+<li class="toctree-l1"><a class="reference internal" href="gff_schema/gic.html">gic</a></li>
+<li class="toctree-l1"><a class="reference internal" href="gff_schema/git.html">git</a></li>
+<li class="toctree-l1"><a class="reference internal" href="gff_schema/ifo.html">ifo</a></li>
+<li class="toctree-l1"><a class="reference internal" href="gff_schema/itp.html">itp</a></li>
+<li class="toctree-l1"><a class="reference internal" href="gff_schema/jrl.html">jrl</a></li>
+<li class="toctree-l1"><a class="reference internal" href="gff_schema/utc.html">utc</a></li>
+<li class="toctree-l1"><a class="reference internal" href="gff_schema/utd.html">utd</a></li>
+<li class="toctree-l1"><a class="reference internal" href="gff_schema/ute.html">ute</a></li>
+<li class="toctree-l1"><a class="reference internal" href="gff_schema/uti.html">uti</a></li>
+<li class="toctree-l1"><a class="reference internal" href="gff_schema/utm.html">utm</a></li>
+<li class="toctree-l1"><a class="reference internal" href="gff_schema/utp.html">utp</a></li>
+<li class="toctree-l1"><a class="reference internal" href="gff_schema/uts.html">uts</a></li>
+<li class="toctree-l1"><a class="reference internal" href="gff_schema/utt.html">utt</a></li>
+<li class="toctree-l1"><a class="reference internal" href="gff_schema/utw.html">utw</a></li>
+<li class="toctree-l1"><a class="reference internal" href="gff_schema/vartable.html">vartable</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="#">rollNW</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="#" class="icon icon-home"></a> &raquo;</li>
+      <li>libnw</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/index.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <p><a class="reference external" href="https://opensource.org/licenses/MIT"><img alt="License: MIT" src="https://img.shields.io/badge/License-MIT-yellow.svg" /></a> <a class="reference external" href="https://github.com/jd28/libnw/actions?query=workflow%3Alinux"><img alt="linux" src="https://github.com/jd28/libnw/actions/workflows/linux.yml/badge.svg" /></a> <a class="reference external" href="https://github.com/jd28/libnw/actions?query=workflow%3Amacos"><img alt="macos" src="https://github.com/jd28/libnw/actions/workflows/macos.yml/badge.svg" /></a> <a class="reference external" href="https://github.com/jd28/libnw/actions?query=workflow%3Awindows"><img alt="windows" src="https://github.com/jd28/libnw/actions/workflows/windows.yml/badge.svg" /></a> <a class="reference external" href="https://lgtm.com/projects/g/jd28/libnw/context:cpp"><img alt="Language grade: C/C++" src="https://img.shields.io/lgtm/grade/cpp/g/jd28/libnw.svg?logo=lgtm&amp;logoWidth=18" /></a>
+<a class="reference external" href="https://github.com/jd28/libnw/actions/workflows/codeql-analysis.yml"><img alt="CodeQL" src="https://github.com/jd28/libnw/actions/workflows/codeql-analysis.yml/badge.svg" /></a> <a class="reference external" href="https://codecov.io/gh/jd28/libnw"><img alt="codecov" src="https://codecov.io/gh/jd28/libnw/branch/main/graph/badge.svg?token=79PNROEEUU" /></a></p>
+<section id="libnw">
+<h1>libnw<a class="headerlink" href="#libnw" title="Permalink to this headline"></a></h1>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">We</span> <span class="n">shall</span> <span class="ow">not</span> <span class="n">cease</span> <span class="kn">from</span> <span class="nn">exploration</span>
+<span class="n">And</span> <span class="n">the</span> <span class="n">end</span> <span class="n">of</span> <span class="nb">all</span> <span class="n">our</span> <span class="n">exploring</span>
+<span class="n">Will</span> <span class="n">be</span> <span class="n">to</span> <span class="n">arrive</span> <span class="n">where</span> <span class="n">we</span> <span class="n">started</span>
+<span class="n">And</span> <span class="n">know</span> <span class="n">the</span> <span class="n">place</span> <span class="k">for</span> <span class="n">the</span> <span class="n">first</span> <span class="n">time</span><span class="o">.</span>
+   <span class="o">--</span><span class="n">T</span><span class="o">.</span><span class="n">S</span><span class="o">.</span> <span class="n">Eliot</span><span class="p">,</span> <span class="n">Little</span> <span class="n">Gidding</span><span class="p">,</span> <span class="n">The</span> <span class="n">Four</span> <span class="n">Quartets</span><span class="o">.</span>
+</pre></div>
+</div>
+<p>libnw is a simple modern static C++ library for Neverwinter Nights (and
+some Enhanced Edition) file formats and objects, that</p>
+<ul class="simple">
+<li><p>aims to implement an RPG engine inspired by NWN, excluding graphics
+and networking.</p></li>
+<li><p>focuses on usage, instead doing things the Aurora Engine Way.</p></li>
+<li><p>follows <a class="reference external" href="https://utf8everywhere.org/">utf8 everywhere</a>.</p></li>
+<li><p>hews as close to <a class="reference external" href="https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines">C++ Core
+Guidelines</a>
+as possible.</p></li>
+<li><p>aims to be as easily bindable as possible to other languages. I.e.
+only library specific or STL types at API boundaries.</p></li>
+</ul>
+<p>The library will be renamed as there was already an Open Knights project
+named
+<a class="reference external" href="https://sourceforge.net/projects/openknights/files/libnw/">libnw</a>.</p>
+<hr class="docutils" />
+<section id="quickstart-open-vs-code-in-your-browser">
+<h2>Quickstart - Open VS Code in your Browser<a class="headerlink" href="#quickstart-open-vs-code-in-your-browser" title="Permalink to this headline"></a></h2>
+<p><a class="reference external" href="https://gitpod.io/#https://github.com/jd28/libnw"><img alt="Open in Gitpod" src="https://gitpod.io/button/open-in-gitpod.svg" /></a></p>
+<p><a class="reference external" href="https://github.com/features/codespaces">Github Codespaces</a> is
+available to those in the beta.</p>
+</section>
+<hr class="docutils" />
+<section id="building">
+<h2>Building<a class="headerlink" href="#building" title="Permalink to this headline"></a></h2>
+<p>libnw uses cmake as its build system and more specifically
+<a class="reference external" href="https://cmake.org/cmake/help/latest/manual/cmake-presets.7.html">CMakePresets.json</a>.</p>
+<p>Install <a class="reference external" href="https://github.com/microsoft/vcpkg">vcpkg</a>. Note that
+windows build requires VS Studio 2019 (Community Edition), but it
+doesn’t have to. All vcpkg packages required will be built
+automatically.</p>
+<p>The example below is building on Linux, but it’s virtually the same for
+all platforms. The only difference is the configuration preset.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ <span class="nb">export</span> <span class="nv">VCPKG_ROOT</span><span class="o">=</span>path/to/vcpkg
+$ <span class="nb">export</span> <span class="nv">NWN_ROOT</span><span class="o">=</span>path/to/game
+$ <span class="nb">export</span> <span class="nv">NWN_USER</span><span class="o">=</span>path/to/nwn-user-dir
+$ <span class="nb">cd</span> path/to/libnw
+$ cmake --preset default-test
+$ cmake --build --preset default
+$ ctest --preset default
+</pre></div>
+</div>
+</section>
+<section id="using">
+<h2>Using<a class="headerlink" href="#using" title="Permalink to this headline"></a></h2>
+<p>While the library is far from done, basic usage would be as follows.</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;nw/kernel/Kernel.hpp&gt;</span><span class="cp"></span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;nw/log.hpp&gt;</span><span class="cp"></span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;nw/profiles/nwn1/Profile.hpp&gt;</span><span class="cp"></span>
+
+<span class="kt">int</span><span class="w"> </span><span class="nf">main</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">argc</span><span class="p">,</span><span class="w"> </span><span class="kt">char</span><span class="o">*</span><span class="w"> </span><span class="n">argv</span><span class="p">[])</span><span class="w"></span>
+<span class="p">{</span><span class="w"></span>
+<span class="w">   </span><span class="c1">// Initialize logger</span>
+<span class="w">   </span><span class="n">nw</span><span class="o">::</span><span class="n">init_logger</span><span class="p">(</span><span class="n">argc</span><span class="p">,</span><span class="w"> </span><span class="n">argv</span><span class="p">);</span><span class="w"></span>
+
+<span class="w">   </span><span class="c1">// Sets config for the system, paths, version, etc.</span>
+<span class="w">   </span><span class="k">auto</span><span class="w"> </span><span class="n">info</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">nw</span><span class="o">::</span><span class="n">probe_nwn_install</span><span class="p">();</span><span class="w"></span>
+<span class="w">   </span><span class="n">nw</span><span class="o">::</span><span class="n">kernel</span><span class="o">::</span><span class="n">config</span><span class="p">().</span><span class="n">initialize</span><span class="p">({</span><span class="w"></span>
+<span class="w">       </span><span class="n">info</span><span class="p">.</span><span class="n">version</span><span class="p">,</span><span class="w"></span>
+<span class="w">       </span><span class="n">info</span><span class="p">.</span><span class="n">install</span><span class="p">,</span><span class="w"></span>
+<span class="w">       </span><span class="n">info</span><span class="p">.</span><span class="n">user</span><span class="p">,</span><span class="w"></span>
+<span class="w">   </span><span class="p">});</span><span class="w"></span>
+
+<span class="w">   </span><span class="c1">// Initializes all systems</span>
+<span class="w">   </span><span class="n">nw</span><span class="o">::</span><span class="n">kernel</span><span class="o">::</span><span class="n">services</span><span class="p">().</span><span class="n">start</span><span class="p">();</span><span class="w"></span>
+
+<span class="w">   </span><span class="c1">// Loads a game profile, in this case something vaguely like NWN1</span>
+<span class="w">   </span><span class="n">nw</span><span class="o">::</span><span class="n">kernel</span><span class="o">::</span><span class="n">load_profile</span><span class="p">(</span><span class="k">new</span><span class="w"> </span><span class="n">nwn1</span><span class="o">::</span><span class="n">Profile</span><span class="p">);</span><span class="w"></span>
+
+<span class="w">   </span><span class="c1">// Do neat stuff</span>
+
+<span class="w">   </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"></span>
+<span class="p">}</span><span class="w"></span>
+</pre></div>
+</div>
+</section>
+<hr class="docutils" />
+<section id="history">
+<h2>History<a class="headerlink" href="#history" title="Permalink to this headline"></a></h2>
+<p>A lot of what’s here was written in the 2011-2015 range as part of
+personal minimalist toolset, modernized and with new EE stuff added. In
+some sense, it’s a work of historical fiction – it’s what I’d have
+suggested at the start of NWN:EE: get the game and the community on the
+same set of libraries. Similarly to an older project that asked <a class="reference external" href="https://solstice.readthedocs.io/en/latest/">“what
+if Bioware had stuck with
+Lua?”</a>. The awnser to
+that was pretty positive: a decade ahead, at least, of nwscript.</p>
+</section>
+<hr class="docutils" />
+<section id="general-warning">
+<h2>General Warning<a class="headerlink" href="#general-warning" title="Permalink to this headline"></a></h2>
+<p>This library is a work-in-progress. There will be serious refactorings
+and until there is a real release, it should be assumed the library is
+in flux.</p>
+<p>If you’ve somehow found your way here by accident, you should head to
+<a class="reference external" href="https://github.com/niv/neverwinter.nim">neverwinter.nim</a>, those are
+the official tools of NWN:EE and can handle basic workflows out of the
+box.</p>
+</section>
+<hr class="docutils" />
+<section id="moonshots">
+<h2>Moonshots<a class="headerlink" href="#moonshots" title="Permalink to this headline"></a></h2>
+<p>You make ask yourself, why? But, to paraphrase Tennyson, ours isn’t to
+question why, it’s but to do and die and learn and maybe make neat
+things. In that spirit, here is a list of crazy projects that this
+library hopes to facilitate and that all fly in the face of “WHY?”.</p>
+<ul class="simple">
+<li><p>A nwscript <a class="reference external" href="https://en.wikipedia.org/wiki/Language_Server_Protocol">Language
+Server</a></p></li>
+<li><p>A modern, cross-platform nwexplorer.</p></li>
+<li><p>And, of course, the ever elusive open source NWN Toolset, with
+plugins, scripting, and a built-in console.</p></li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="credits">
+<h2>Credits<a class="headerlink" href="#credits" title="Permalink to this headline"></a></h2>
+<ul class="simple">
+<li><p><a class="reference external" href="https://bioware.com">Bioware</a>, <a class="reference external" href="https://beamdog.com">Beamdog</a>
+- The game itself</p></li>
+<li><p><a class="reference external" href="https://github.com/microsoft/vcpkg">vcpkg</a> - Package Management</p></li>
+<li><p><a class="reference external" href="https://abseil.io/">abseil</a> - Foundational</p></li>
+<li><p><a class="reference external" href="https://github.com/catchorg/Catch2">Catch2</a> - Testing</p></li>
+<li><p><a class="reference external" href="https://github.com/SanderMertens/flecs">flecs</a> -
+Entity-Component-System</p></li>
+<li><p><a class="reference external" href="https://www.opengl.org/sdk/libs/GLM/">glm</a> - Mathematics</p></li>
+<li><p><a class="reference external" href="https://github.com/emilk/loguru">loguru</a>,
+<a class="reference external" href="https://github.com/fmtlib/fmt">fmt</a> - Logging</p></li>
+<li><p><a class="reference external" href="https://github.com/nothings/stb">stbi_image</a>,
+<a class="reference external" href="https://github.com/virusman/nwnexplorer">NWNExplorer</a>,
+<a class="reference external" href="https://github.com/SpartanJ/SOIL2/">SOIL2</a> - Image/Texture
+loading.</p></li>
+<li><p><a class="reference external" href="https://github.com/benhoyt/inih">inih</a> - INI, SET parsing</p></li>
+<li><p><a class="reference external" href="https://github.com/nlohmann/json">nholmann_json</a> - JSON</p></li>
+<li><p><a class="reference external" href="https://github.com/marzer/tomlplusplus/">toml++</a> - For
+settings.tml</p></li>
+<li><p><a class="reference external" href="https://www.gnu.org/software/libiconv/">libiconv</a>,
+<a class="reference external" href="https://github.com/boostorg/nowide">boost::nowide</a> - i18n, string
+conversion</p></li>
+</ul>
+<div class="toctree-wrapper compound">
+<p class="caption" role="heading"><span class="caption-text">structure</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="structure/formats.html">formats</a></li>
+<li class="toctree-l1"><a class="reference internal" href="structure/i18n.html">i18n</a></li>
+<li class="toctree-l1"><a class="reference internal" href="structure/kernel.html">kernel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="structure/objects.html">objects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="structure/profiles.html">profiles</a></li>
+<li class="toctree-l1"><a class="reference internal" href="structure/resources.html">resources</a></li>
+<li class="toctree-l1"><a class="reference internal" href="structure/rules.html">rules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="structure/serialization.html">serialization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="structure/util.html">util</a></li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<p class="caption" role="heading"><span class="caption-text">c++ api</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="api/classlist.html">classes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api/definelist.html">defines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api/enumlist.html">enums</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api/functionlist.html">functions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api/typedeflist.html">typedefs</a></li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<p class="caption" role="heading"><span class="caption-text">gff schemas</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="gff_schema/are.html">are</a></li>
+<li class="toctree-l1"><a class="reference internal" href="gff_schema/dlg.html">dlg</a></li>
+<li class="toctree-l1"><a class="reference internal" href="gff_schema/fac.html">fac</a></li>
+<li class="toctree-l1"><a class="reference internal" href="gff_schema/gic.html">gic</a></li>
+<li class="toctree-l1"><a class="reference internal" href="gff_schema/git.html">git</a></li>
+<li class="toctree-l1"><a class="reference internal" href="gff_schema/ifo.html">ifo</a></li>
+<li class="toctree-l1"><a class="reference internal" href="gff_schema/itp.html">itp</a></li>
+<li class="toctree-l1"><a class="reference internal" href="gff_schema/jrl.html">jrl</a></li>
+<li class="toctree-l1"><a class="reference internal" href="gff_schema/utc.html">utc</a></li>
+<li class="toctree-l1"><a class="reference internal" href="gff_schema/utd.html">utd</a></li>
+<li class="toctree-l1"><a class="reference internal" href="gff_schema/ute.html">ute</a></li>
+<li class="toctree-l1"><a class="reference internal" href="gff_schema/uti.html">uti</a></li>
+<li class="toctree-l1"><a class="reference internal" href="gff_schema/utm.html">utm</a></li>
+<li class="toctree-l1"><a class="reference internal" href="gff_schema/utp.html">utp</a></li>
+<li class="toctree-l1"><a class="reference internal" href="gff_schema/uts.html">uts</a></li>
+<li class="toctree-l1"><a class="reference internal" href="gff_schema/utt.html">utt</a></li>
+<li class="toctree-l1"><a class="reference internal" href="gff_schema/utw.html">utw</a></li>
+<li class="toctree-l1"><a class="reference internal" href="gff_schema/vartable.html">vartable</a></li>
+</ul>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="structure/formats.html" class="btn btn-neutral float-right" title="formats" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright .</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
