@@ -206,7 +206,7 @@ Credits
   :caption: c++ api
   :maxdepth: 1
 
-  api/structlist
+  api/classlist
   api/definelist
   api/enumlist
   api/functionlist
