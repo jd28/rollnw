@@ -2,7 +2,7 @@
 
 #include "../log.hpp"
 
-namespace nw {
+namespace nw::script {
 
 NssParser::NssParser(std::string_view view)
     : view_{view}
@@ -516,7 +516,7 @@ std::unique_ptr<Statement> NssParser::parse_decl()
         return vd;
     }
     auto s = parse_stmt();
-    //consume(NssTokenType::SEMICOLON, "Expected ';'.");
+    // consume(NssTokenType::SEMICOLON, "Expected ';'.");
     return s;
 }
 
@@ -636,4 +636,4 @@ std::unique_ptr<VarDecl> NssParser::parse_decl_global_var()
     return ret;
 }
 
-} // namespace nw
+} // namespace nw::script

@@ -3,7 +3,7 @@
 #include <iostream>
 #include <string_view>
 
-namespace nw {
+namespace nw::script {
 
 enum class NssTokenType {
     INVALID = -1,
@@ -118,9 +118,9 @@ private:
     NssToken current_;
 };
 
-} // namespace nw
+} // namespace nw::script
 
-inline std::ostream& operator<<(std::ostream& out, const nw::NssToken& token)
+inline std::ostream& operator<<(std::ostream& out, const nw::script::NssToken& token)
 {
     out << "<'";
     out << token.id;

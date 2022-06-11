@@ -7,7 +7,7 @@
 #include <sstream>
 #include <string>
 
-namespace nw {
+namespace nw::script {
 
 struct NssAstPrinter : BaseVisitor {
     ~NssAstPrinter() = default;
@@ -395,4 +395,4 @@ struct NssAstPrinter : BaseVisitor {
     }
 };
 
-} // namespace nw
+} // namespace nw::script

@@ -11,9 +11,9 @@ using namespace nw;
 
 TEST_CASE("NWScript Parser", "[formats]")
 {
-    Nss nss("test_data/user/development/test.nss");
+    script::Nss nss("test_data/user/development/test.nss");
     auto prog = nss.parse();
-    NssAstPrinter p;
+    script::NssAstPrinter p;
     prog.accept(&p);
     LOG_F(INFO, "{}", p.ss.str());
 }
