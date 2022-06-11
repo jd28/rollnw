@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 
+/// namespace for string related functions
 namespace nw::string {
 
 /**

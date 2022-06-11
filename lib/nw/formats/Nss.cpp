@@ -4,7 +4,7 @@
 #include <fstream>
 #include <string_view>
 
-namespace nw {
+namespace nw::script {
 
 Nss::Nss(const std::filesystem::path& filename)
     : bytes_{ByteArray::from_file(filename)}
@@ -23,4 +23,4 @@ Script Nss::parse()
     return parser_.parse_program();
 }
 
-} // namespace nw
+} // namespace nw::script

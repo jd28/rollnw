@@ -9,7 +9,7 @@
 #include <iostream>
 #include <string>
 
-namespace nw {
+namespace nw::script {
 
 struct Nss {
     explicit Nss(const std::filesystem::path& filename);
@@ -24,4 +24,4 @@ private:
     bool is_loaded_ = false;
 };
 
-} // namespace nw
+} // namespace nw::script

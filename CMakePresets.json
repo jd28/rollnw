@@ -45,6 +45,10 @@
                 "ENABLE_SANITIZER_UNDEFINED_BEHAVIOR": {
                     "type": "BOOL",
                     "value": true
+                },
+                "BUILD_DOCS": {
+                    "type": "BOOL",
+                    "value": true
                 }
             }
         },

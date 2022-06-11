@@ -24,6 +24,7 @@ namespace fs = std::filesystem;
 
 namespace nw {
 
+/// @private
 struct ErfHeader {
     char type[4];
     char version[4];
@@ -39,6 +40,7 @@ struct ErfHeader {
     char reserved[116];
 };
 
+/// @private
 struct ErfKey {
     std::array<char, 16> resref;
     uint32_t id;

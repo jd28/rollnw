@@ -7,6 +7,7 @@
 // Needed to format std::filesystem::path
 #include <fmt/ostream.h>
 
+/// rollNW namespace
 namespace nw {
 
 /// Initialize logger

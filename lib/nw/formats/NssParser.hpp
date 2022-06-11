@@ -9,7 +9,7 @@
 #include <unordered_map>
 #include <vector>
 
-namespace nw {
+namespace nw::script {
 
 struct Script;
 
@@ -422,4 +422,4 @@ struct NssParser {
     Script parse_program();
 };
 
-} // namespace nw
+} // namespace nw::script

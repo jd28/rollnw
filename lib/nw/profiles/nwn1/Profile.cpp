@@ -249,6 +249,7 @@ static nw::RuleValue selector(const nw::Selector& selector, const flecs::entity 
     return {};
 }
 
+/// @private
 #define TDA_GET_UINT32(tda, name, row, column)      \
     do {                                            \
         if (tda.get_to(row, column, temp_int)) {    \
@@ -256,31 +257,37 @@ static nw::RuleValue selector(const nw::Selector& selector, const flecs::entity 
         }                                           \
     } while (0)
 
+/// @private
 #define TDA_GET_FLOAT(tda, name, row, column)                           \
     do {                                                                \
         if (tda.get_to(row, column, temp_float)) { name = temp_float; } \
     } while (0)
 
+/// @private
 #define TDA_GET_INT(tda, name, row, column)                         \
     do {                                                            \
         if (tda.get_to(row, column, temp_int)) { name = temp_int; } \
     } while (0)
 
+/// @private
 #define TDA_GET_BOOL(tda, name, row, column)                          \
     do {                                                              \
         if (tda.get_to(row, column, temp_int)) { name = !!temp_int; } \
     } while (0)
 
+/// @private
 #define TDA_GET_RES(tda, name, row, column, type)                                             \
     do {                                                                                      \
         if (tda.get_to(row, column, temp_string)) { name = nw::Resource{temp_string, type}; } \
     } while (0)
 
+/// @private
 #define TDA_GET_CONSTANT(tda, name, row, column)                                                              \
     do {                                                                                                      \
         if (tda.get_to(row, column, temp_string)) { name = consts->add(temp_string, static_cast<int>(row)); } \
     } while (0)
 
+/// @private
 #define TDA_GET_STRING(tda, name, row, column)                                       \
     do {                                                                             \
         if (tda.get_to(row, column, temp_string)) { name = std::move(temp_string); } \

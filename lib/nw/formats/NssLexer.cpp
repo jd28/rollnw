@@ -7,7 +7,7 @@
 #include <stdexcept>
 #include <string_view>
 
-namespace nw {
+namespace nw::script {
 
 NssToken::NssToken(NssTokenType type, std::string_view id, size_t line, size_t start, size_t end)
     : type{type}
@@ -465,4 +465,4 @@ NssToken NssLexer::next()
     return current_ = NssToken{NssTokenType::END, {}, line_, pos_, pos_};
 }
 
-} // namespace nw
+} // namespace nw::script

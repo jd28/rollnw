@@ -36,7 +36,9 @@ scope_exit<T> create_scope_exit(T&& exit)
 
 } // namespace nw
 
+/// @private
 #define _EXIT_SCOPE_LINENAME_CAT(name, line) name##line
+/// @private
 #define _EXIT_SCOPE_LINENAME(name, line) _EXIT_SCOPE_LINENAME_CAT(name, line)
 
 // clang-format off
