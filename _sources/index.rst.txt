@@ -170,6 +170,9 @@ Credits
 -  `libiconv <https://www.gnu.org/software/libiconv/>`__,
    `boost::nowide <https://github.com/boostorg/nowide>`__ - i18n, string
    conversion
+- `doxygen <https://doxygen.nl/>`__, `sphinx <https://www.sphinx-doc.org/en/master/>`__,
+  `breathe <https://breathe.readthedocs.io/en/latest/>`__ - documentation
+
 
 .. |License: MIT| image:: https://img.shields.io/badge/License-MIT-yellow.svg
    :target: https://opensource.org/licenses/MIT

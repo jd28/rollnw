@@ -7,6 +7,4 @@ nw::operator<<
 
 .. doxygenfunction:: operator<<(std::ostream &out, const TwoDA &tda)
 
-.. doxygenfunction:: operator<<(std::ostream &out, const TwoDA &tda)
-
 .. doxygenfunction:: operator<<(std::ostream &out, const nw::script::NssToken &token)
