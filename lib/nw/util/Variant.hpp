@@ -27,6 +27,7 @@ struct Variant {
     {
     }
 
+    /// Checks variant value is `T`
     template <typename T>
     bool is() const noexcept
     {
@@ -34,6 +35,7 @@ struct Variant {
         return std::holds_alternative<T>(payload_);
     }
 
+    /// Gets variant value as `T`
     template <typename T>
     T& as()
     {
@@ -41,11 +43,21 @@ struct Variant {
         return std::get<T>(payload_);
     }
 
+    /// Gets variant value as `T`
     template <typename T>
     const T& as() const
     {
         static_assert(std::disjunction<std::is_same<T, Ts>...>::value, "incompatible type");
         return std::get<T>(payload_);
+    }
+
+    /// Checks variant value is `std::optional<T>`
+    /// @note This does entail a copy
+    template <typename T>
+    std::optional<T> get() const
+    {
+        static_assert(std::disjunction<std::is_same<T, Ts>...>::value, "incompatible type");
+        return is<T>() ? std::get<T>(payload_) : std::optional<T>();
     }
 
     bool operator<(const Variant& rhs) const noexcept
