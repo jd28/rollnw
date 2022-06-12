@@ -1,9 +1,11 @@
 #pragma once
 
+#include "Index.hpp"
+
 namespace nw {
 
 struct Save {
-    Constant consant;
+    Index index;
 };
 
 } // namespace nw

@@ -10,4 +10,9 @@ struct DiceRoll {
     int bonus = 0; ///< Additional bonus
 };
 
+bool operator==(const DiceRoll& lhs, const DiceRoll& rhs);
+bool operator<(const DiceRoll& lhs, const DiceRoll& rhs);
+
+int roll_dice(DiceRoll roll);
+
 } // namespace nw

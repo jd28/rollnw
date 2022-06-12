@@ -86,7 +86,7 @@ nlohmann::json CreatureStats::to_json() const
     return j;
 }
 
-bool CreatureStats::add_feat(int32_t feat)
+bool CreatureStats::add_feat(size_t feat)
 {
     uint16_t ft = static_cast<uint16_t>(feat);
 
@@ -105,7 +105,7 @@ const std::vector<uint16_t>& CreatureStats::feats() const noexcept
     return feats_;
 }
 
-bool CreatureStats::has_feat(int32_t feat) const noexcept
+bool CreatureStats::has_feat(size_t feat) const noexcept
 {
     uint16_t ft = static_cast<uint16_t>(feat);
 

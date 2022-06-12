@@ -12,6 +12,13 @@ struct SpecialAbility {
 };
 
 struct CombatInfo {
+    CombatInfo() = default;
+    CombatInfo(CombatInfo&) = default;
+    CombatInfo(CombatInfo&&) = default;
+
+    CombatInfo& operator=(CombatInfo&) = delete;
+    CombatInfo& operator=(CombatInfo&&) = default;
+
     bool from_gff(const GffInputArchiveStruct& archive);
     bool from_json(const nlohmann::json& archive);
     bool to_gff(GffOutputArchiveStruct& archive) const;

@@ -1,7 +1,7 @@
 #include <catch2/catch.hpp>
 
 #include <nw/kernel/Kernel.hpp>
-#include <nw/kernel/components/ConstantRegistry.hpp>
+#include <nw/kernel/components/IndexRegistry.hpp>
 #include <nw/objects/Creature.hpp>
 #include <nw/profiles/nwn1/Profile.hpp>
 #include <nw/rules/system.hpp>
@@ -22,14 +22,14 @@ TEST_CASE("qualifier", "[rules]")
     REQUIRE_FALSE(nwn1::skill_tumble.empty());
     REQUIRE_FALSE(nwn1::skill_discipline.empty());
 
-    auto qual1 = nw::qualifier::ability(nwn1::ability_strength, 0, 20); // less than 20 str.
-    REQUIRE_FALSE(qual1.match(ent));
+    auto qual1 = nwn1::qual::ability(nwn1::ability_strength, 0, 20); // less than 20 str.
+    REQUIRE_FALSE(nwn1::match(qual1, ent));
 
-    auto qual2 = nw::qualifier::ability(nwn1::ability_constitution, 15, 20); // between 15 and 20
-    REQUIRE(qual2.match(ent));
+    auto qual2 = nwn1::qual::ability(nwn1::ability_constitution, 15, 20); // between 15 and 20
+    REQUIRE(nwn1::match(qual2, ent));
 
-    auto qual3 = nw::qualifier::skill(nwn1::skill_discipline, 35); // at least 35
-    REQUIRE(qual3.match(ent));
+    auto qual3 = nwn1::qual::skill(nwn1::skill_discipline, 35); // at least 35
+    REQUIRE(nwn1::match(qual3, ent));
 
     nwk::unload_module();
 }
@@ -42,11 +42,11 @@ TEST_CASE("qualifier: race", "[rules]")
     auto ent = nwk::objects().load(fs::path("test_data/user/development/pl_agent_001.utc"));
     REQUIRE(ent.is_alive());
 
-    auto qual1 = nw::qualifier::race(nwn1::racial_type_human);
-    REQUIRE(qual1.match(ent));
+    auto qual1 = nwn1::qual::race(nwn1::racial_type_human);
+    REQUIRE(nwn1::match(qual1, ent));
 
-    auto qual2 = nw::qualifier::race(nwn1::racial_type_ooze);
-    REQUIRE_FALSE(qual2.match(ent));
+    auto qual2 = nwn1::qual::race(nwn1::racial_type_ooze);
+    REQUIRE_FALSE(nwn1::match(qual2, ent));
 
     nwk::unload_module();
 }
@@ -59,11 +59,11 @@ TEST_CASE("qualifier: level", "[rules]")
     auto ent = nwk::objects().load(fs::path("test_data/user/development/pl_agent_001.utc"));
     REQUIRE(ent.is_alive());
 
-    auto qual1 = nw::qualifier::level(0, 1);
-    REQUIRE_FALSE(qual1.match(ent));
+    auto qual1 = nwn1::qual::level(0, 1);
+    REQUIRE_FALSE(nwn1::match(qual1, ent));
 
-    auto qual2 = nw::qualifier::level(1);
-    REQUIRE(qual2.match(ent));
+    auto qual2 = nwn1::qual::level(1);
+    REQUIRE(nwn1::match(qual2, ent));
 
     nwk::unload_module();
 }
@@ -79,53 +79,53 @@ TEST_CASE("qualifier: alignment", "[rules]")
     auto ent2 = nwk::objects().load(fs::path("test_data/user/development/nw_chicken.utc"));
     REQUIRE(ent2.is_alive());
 
-    auto qual1 = nw::qualifier::alignment(nw::AlignmentAxis::good_evil,
+    auto qual1 = nwn1::qual::alignment(nw::AlignmentAxis::good_evil,
         nw::AlignmentFlags::good);
 
-    REQUIRE(qual1.match(ent));
-    REQUIRE_FALSE(qual1.match(ent2));
+    REQUIRE(nwn1::match(qual1, ent));
+    REQUIRE_FALSE(nwn1::match(qual1, ent2));
 
-    auto qual2 = nw::qualifier::alignment(nw::AlignmentAxis::both,
+    auto qual2 = nwn1::qual::alignment(nw::AlignmentAxis::both,
         nw::AlignmentFlags::neutral);
 
-    REQUIRE_FALSE(qual2.match(ent));
-    REQUIRE(qual2.match(ent2));
+    REQUIRE_FALSE(nwn1::match(qual2, ent));
+    REQUIRE(nwn1::match(qual2, ent2));
 
-    auto qual3 = nw::qualifier::alignment(nw::AlignmentAxis::law_chaos,
+    auto qual3 = nwn1::qual::alignment(nw::AlignmentAxis::law_chaos,
         nw::AlignmentFlags::lawful);
 
-    REQUIRE_FALSE(qual3.match(ent));
-    REQUIRE_FALSE(qual3.match(ent2));
+    REQUIRE_FALSE(nwn1::match(qual3, ent));
+    REQUIRE_FALSE(nwn1::match(qual3, ent2));
 
-    auto qual4 = nw::qualifier::alignment(nw::AlignmentAxis::law_chaos,
+    auto qual4 = nwn1::qual::alignment(nw::AlignmentAxis::law_chaos,
         nw::AlignmentFlags::chaotic);
 
-    REQUIRE_FALSE(qual4.match(ent));
-    REQUIRE_FALSE(qual4.match(ent2));
+    REQUIRE_FALSE(nwn1::match(qual4, ent));
+    REQUIRE_FALSE(nwn1::match(qual4, ent2));
 
-    auto qual5 = nw::qualifier::alignment(nw::AlignmentAxis::law_chaos,
+    auto qual5 = nwn1::qual::alignment(nw::AlignmentAxis::law_chaos,
         nw::AlignmentFlags::lawful | nw::AlignmentFlags::neutral);
 
-    REQUIRE(qual5.match(ent));
-    REQUIRE(qual5.match(ent2));
+    REQUIRE(nwn1::match(qual5, ent));
+    REQUIRE(nwn1::match(qual5, ent2));
 
-    auto qual6 = nw::qualifier::alignment(nw::AlignmentAxis::good_evil,
+    auto qual6 = nwn1::qual::alignment(nw::AlignmentAxis::good_evil,
         nw::AlignmentFlags::evil);
 
-    REQUIRE_FALSE(qual6.match(ent));
-    REQUIRE_FALSE(qual6.match(ent2));
+    REQUIRE_FALSE(nwn1::match(qual6, ent));
+    REQUIRE_FALSE(nwn1::match(qual6, ent2));
 
-    auto qual7 = nw::qualifier::alignment(nw::AlignmentAxis::good_evil,
+    auto qual7 = nwn1::qual::alignment(nw::AlignmentAxis::good_evil,
         nw::AlignmentFlags::neutral | nw::AlignmentFlags::good);
 
-    REQUIRE(qual7.match(ent));
-    REQUIRE(qual7.match(ent2));
+    REQUIRE(nwn1::match(qual7, ent));
+    REQUIRE(nwn1::match(qual7, ent2));
 
-    auto qual8 = nw::qualifier::alignment(nw::AlignmentAxis::law_chaos,
+    auto qual8 = nwn1::qual::alignment(nw::AlignmentAxis::law_chaos,
         nw::AlignmentFlags::neutral);
 
-    REQUIRE(qual8.match(ent));
-    REQUIRE(qual8.match(ent2));
+    REQUIRE(nwn1::match(qual8, ent));
+    REQUIRE(nwn1::match(qual8, ent2));
 
     nwk::unload_module();
 }
@@ -134,7 +134,7 @@ TEST_CASE("qualifier: class_level", "[rules]")
 {
     auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
     REQUIRE(mod);
-    auto* cr = nwk::world().get<nw::ConstantRegistry>();
+    auto* cr = nwk::world().get<nw::IndexRegistry>();
 
     auto ent = nwk::objects().load(fs::path("test_data/user/development/pl_agent_001.utc"));
     REQUIRE(ent.is_alive());
@@ -142,17 +142,17 @@ TEST_CASE("qualifier: class_level", "[rules]")
     const auto class_type_fighter = cr->get("CLASS_TYPE_FIGHTER");
     REQUIRE_FALSE(class_type_fighter.empty());
 
-    auto qual1 = nw::qualifier::class_level(class_type_fighter, 30, 40);
-    REQUIRE_FALSE(qual1.match(ent));
+    auto qual1 = nwn1::qual::class_level(class_type_fighter, 30, 40);
+    REQUIRE_FALSE(nwn1::match(qual1, ent));
 
-    auto qual2 = nw::qualifier::class_level(class_type_fighter, 10);
-    REQUIRE(qual2.match(ent));
+    auto qual2 = nwn1::qual::class_level(class_type_fighter, 10);
+    REQUIRE(nwn1::match(qual2, ent));
 
-    auto qual3 = nw::qualifier::class_level(class_type_fighter, 1, 1);
-    REQUIRE_FALSE(qual3.match(ent));
+    auto qual3 = nwn1::qual::class_level(class_type_fighter, 1, 1);
+    REQUIRE_FALSE(nwn1::match(qual3, ent));
 
-    auto qual4 = nw::qualifier::class_level(class_type_fighter, 4, 5);
-    REQUIRE_FALSE(qual4.match(ent));
+    auto qual4 = nwn1::qual::class_level(class_type_fighter, 4, 5);
+    REQUIRE_FALSE(nwn1::match(qual4, ent));
 
     nwk::unload_module();
 }

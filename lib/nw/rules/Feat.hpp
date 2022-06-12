@@ -1,10 +1,14 @@
 #pragma once
 
 #include "../resources/Resource.hpp"
-#include "Constant.hpp"
+#include "../util/InternedString.hpp"
+#include "system.hpp"
+
+#include <flecs/flecs.h>
 
 #include <cstdint>
 #include <limits>
+#include <vector>
 
 namespace nw {
 
@@ -22,7 +26,7 @@ struct Feat {
     int uses = 0;
     int master = 0;
     bool target_self = false;
-    Constant constant;
+    nw::Index index;
     int tools_categories = 0;
     bool hostile = false;
     bool epic = false;
@@ -37,6 +41,8 @@ struct Feat {
 struct FeatArray {
     std::vector<Feat> entries;
 };
+
+std::vector<size_t> get_all_available_feats(flecs::entity ent);
 
 // Not Implemented Yet
 // - MINATTACKBONUS

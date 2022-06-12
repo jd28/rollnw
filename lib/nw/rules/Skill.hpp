@@ -12,10 +12,10 @@ struct Skill {
     uint32_t description;
     Resource icon;
     bool untrained = false;
-    Constant ability;
+    Index ability;
     bool armor_check_penalty = false;
     bool all_can_use = false;
-    Constant constant;
+    Index index;
     bool hostile = false;
 
     operator bool() const noexcept { return name != 0xFFFFFFFF; }

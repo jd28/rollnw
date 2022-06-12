@@ -10,7 +10,7 @@ struct GameProfile {
     virtual bool load_constants() const = 0;
 
     /// Loads game specific components
-    virtual bool load_compontents() const = 0;
+    virtual bool load_components() const = 0;
 
     /// Loads game specific rules
     virtual bool load_rules() const = 0;

@@ -7,54 +7,50 @@ arbitrary sets of rules and modifiers, it probably would not look much
 like NWN. Enhanced Edition's approach largely was to unhardcode
 *values*, but not systems [1]_.
 
-The approach here is inspired by previous projects and Orth's
+The approach here is inspired by `Solstice <https://github.com/jd28/Solstice>`__ and Orth's NWNX:EE plugins
 `Race <https://github.com/nwnxee/unified/tree/master/Plugins/Race>`__,
 `SkillRank <https://github.com/nwnxee/unified/tree/master/Plugins/SkillRanks>`__,
 and
 `Feat <https://github.com/nwnxee/unified/tree/master/Plugins/Feat>`__.
 
-Goals
------
+The Goals
+---------
 
--  Rules must be overrideable, expandable, removable either through
-   configuration (2da) or at the very least programmitically. Nothing
+-  Rules must be overridable, expandable, removable either through
+   configuration (2da) or at the very least programmatically. Nothing
    should be hardcoded.
 -  The rules system must be queryable. Example: Given one creature
    attacking one chair with one handaxe in one bar of Chicago, what are
    all the modifiers that affect this particular situation?
 
-Warnings
-~~~~~~~~
-
--  This is massively incomplete
--  This only operational at the most base level, it takes in to account
-   no modifiers.
-
 --------------
 
-System
-------
+The System
+----------
 
 The foundation of system is just four types: ``int``, ``float``, strings
-and ``Constant``\ s.
+and ``nw::Index``.
+
+**Index**
+~~~~~~~~~
+
+A :cpp:struct:`nw::Index` is an interned string and unsigned integer pair for abstracting over constants
+that are indices into arrays, vectors, etc.  The goal is to facilitate a serialization format that could be
+2da row independent.
 
 **Selector**
 ~~~~~~~~~~~~
 
-A ``Selector`` gets some piece of information from a creature using a
-type and maybe a constant (loaded from 2das or manually) without needing
-to worry about the exact layout of the data.
+A ``Selector`` gets some piece of information from an entity.
 
 **Example**:
 
 .. code:: cpp
 
-   auto s = nw::select::ability(ability_strength);
+   auto s = nwn1::sel::ability(ability_strength);
    // ...
-   auto str = nw::kernel::rules().select(s, creature);
-   if(str.is<int32_t>() && str.as<int32_t>() > 20) {
-       // ...
-   }
+   auto str = nw::kernel::rules().select<int>(s, entity);
+   // ...
 
 **Qualifier**
 ~~~~~~~~~~~~~
@@ -65,9 +61,9 @@ the example below any creature with an unmodified strength between [20,
 
 .. code:: cpp
 
-   auto q = nw::qualifier::ability(ability_strength, 20, 40);
+   auto q = nwn1::qual::ability(ability_strength, 20, 40);
    // ...
-   if(q.match(creature)) {
+   if(nw::kernel::rules().match(q, creature)) {
        // ...
    }
 
@@ -83,16 +79,13 @@ minimum appraise skill of 6.
 
 .. code:: cpp
 
-   auto ability_wisdom = nw::rules().get_constant("ABILITY_WISDOM");
-   auto skill_appraise = nw::rules().get_constant("SKILL_APPRAISE");
-
    auto req = nw::Requirement{{
-       nw::qualifier::level(4),
-       nw::qualifier::ability(ability_wisdom, 12, 20), // Min, Max
-       nw::qualifier::skill(skill_appraise, 6),
+       nwn1::qual::level(4),
+       nwn1::qual::ability(ability_wisdom, 12, 20), // Min, Max
+       nwn1::qual::skill(skill_appraise, 6),
    }};
    // ...
-   if(req.met(creature)) {
+   if(nw::kernel::rules().meets_requirement(req, creature)) {
        // ...
    }
 
@@ -105,5 +98,77 @@ disjunction pass ``false`` at construction.
        // Qualifiers ...
    }, false};
 
+**Modifier**
+~~~~~~~~~~~~
+
+A :cpp:struct:`nw::Modifier` is
+
+-  an ``int``, a ``float``, or a function returning an ``int`` or ``float``. [2]_
+-  an optional interned string tag to facilitate searching, modifying, removing modifiers.
+-  an optional :cpp:struct:`nw::Requirement`
+-  an optional :cpp:struct:`nw::Versus`
+-  an optional source, e.g. whether this modifier from a feat, an ability, a skill, etc.
+
+Modifiers are stored in a global table in :cpp:struct:`nw::kernel::Rules`.
+
+**Example - Adding a Modifier**:
+
+.. code:: cpp
+
+   // This is just an example, one would most likely do all epic toughness modifiers together.
+   auto mod2 = nwn1::mod::hitpoints(
+      20, // Modifier value, if the below requirement is met
+      { nwn1::qual::feat(nwn1::feat_epic_toughness_1) },
+      {}, // No Versus component to this
+      "dnd-3.0-epic-toughness-01",
+      nw::ModifierSource::feat
+   );
+
+   // Add it to the global modifier table
+   nw::kernel::rules().add(mod2);
+
+**Example - Pale Master Armor Class Bonus**:
+
+.. code:: cpp
+
+   namespace nwk = nw::kernel;
+
+   auto ent = // ...
+
+   auto is_pm = nw::Requirement{{nwn1::qual::class_level(nwn1::class_type_pale_master, 1)}};
+
+   auto pm_ac = [](flecs::entity ent) -> nw::ModifierResult {
+      auto stat = ent.get<nw::LevelStats>();
+      if (!stat) { return 0; }
+      auto pm_level = stat->level_by_class(nwn1::class_type_pale_master);
+      return ((pm_level / 4) + 1) * 2;
+   };
+
+   // Ignoring whether PM ac is natural or not for now
+   auto mod2 = nwn1::mod::ac_natural(pm_ac, is_pm, {}, "dnd-3.0-palemaster-ac");
+
+   nw::kernel::rules().add(mod2);
+   // RDD AC bonus ... etc, etc, etc
+
+   // Calculate all bonuses in the Natural AC modifier category
+   auto ac_natural_mod = nw::kernel::rules().calculate<int>(nw::ModifierType::ac_natural, ent);
+
+   auto pm_ac_nerf = [](flecs::entity ent) -> nw::ModifierResult {
+       auto stat = ent.get<nw::LevelStats>();
+       if (!stat) { return 0; }
+       auto pm_level = stat->level_by_class(nwn1::class_type_pale_master);
+       return ((pm_level / 4) + 1);
+   };
+
+   // Set a nerf
+   nwk::rules().replace("dnd-3.0-palemaster-ac", pm_ac_nerf);
+   ac_natural_mod = nwk::rules().calculate<int>(nw::ModifierType::ac_natural, ent);
+
+   // Nerf wasn't enough, delete the whole thing
+   nwk::rules().remove("dnd-3.0-palemaster-ac");
+
 .. [1]
    There are some exceptions, parts of the custom spellcaster system.
+.. [2]
+   One could imagine in a different context, say NWNX:EE, you could add a callback to
+   nwnx_dotnet/lua/etc or a string for use with ``ExecuteScriptChunk``.

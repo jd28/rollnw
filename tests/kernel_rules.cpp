@@ -51,7 +51,7 @@ TEST_CASE("rules manager", "[kernel]")
     auto& skill = sk->entries[0];
     REQUIRE(skill);
     REQUIRE(skill.name == 269);
-    REQUIRE(skill.constant.name == "SKILL_ANIMAL_EMPATHY");
+    REQUIRE(skill.index.name == "SKILL_ANIMAL_EMPATHY");
 
     REQUIRE(nwk::world().get_mut<nw::TwoDACache>()->cache("placeables"sv));
     REQUIRE(nwk::world().get<nw::TwoDACache>()->get("placeables"sv)->rows() > 0);

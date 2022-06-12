@@ -13,6 +13,7 @@
 #include <fstream>
 
 namespace fs = std::filesystem;
+namespace nwk = nw::kernel;
 
 static void BM_parse_feat_2da(benchmark::State& state)
 {
@@ -70,10 +71,45 @@ static void BM_creature_to_gff(benchmark::State& state)
 static void BM_creature_select(benchmark::State& state)
 {
     auto ent = nw::kernel::objects().load(fs::path("../tests/test_data/user/development/pl_agent_001.utc"));
-    auto sel = nw::select::ability(nwn1::ability_strength);
+    auto sel = nwn1::sel::ability(nwn1::ability_strength);
 
     for (auto _ : state) {
         auto out = nw::kernel::rules().select(sel, ent);
+        benchmark::DoNotOptimize(out);
+    }
+}
+
+static void BM_creature_select2(benchmark::State& state)
+{
+    auto ent = nw::kernel::objects().load(fs::path("../tests/test_data/user/development/pl_agent_001.utc"));
+    auto sel = nwn1::sel::ability(nwn1::ability_strength);
+
+    for (auto _ : state) {
+        auto out = nwn1::selector(sel, ent);
+        benchmark::DoNotOptimize(out);
+    }
+}
+
+static void BM_creature_modifier(benchmark::State& state)
+{
+    auto ent = nw::kernel::objects().load(fs::path("../tests/test_data/user/development/pl_agent_001.utc"));
+    auto stats = ent.get_mut<nw::LevelStats>();
+    stats->entries[0].id = int(*nwn1::class_type_pale_master);
+
+    auto is_pm = nw::Requirement{{nwn1::qual::class_level(nwn1::class_type_pale_master, 1)}};
+
+    auto pm_ac = [](flecs::entity ent) -> nw::ModifierResult {
+        auto stat = ent.get<nw::LevelStats>();
+        if (!stat) { return 0; }
+        auto pm_level = stat->level_by_class(nwn1::class_type_pale_master);
+        return ((pm_level / 4) + 1) * 2;
+    };
+
+    auto mod = nwn1::mod::ac_natural(pm_ac, is_pm);
+    auto& rules = nw::kernel::rules();
+
+    for (auto _ : state) {
+        auto out = rules.calculate<int>(mod, ent);
         benchmark::DoNotOptimize(out);
     }
 }
@@ -85,6 +121,8 @@ BENCHMARK(BM_creature_from_json);
 BENCHMARK(BM_creature_to_gff);
 BENCHMARK(BM_creature_to_json);
 BENCHMARK(BM_creature_select);
+BENCHMARK(BM_creature_select2);
+BENCHMARK(BM_creature_modifier);
 
 int main(int argc, char** argv)
 {

@@ -1,6 +1,9 @@
 add_library(nw-rules STATIC
+    Alignment.cpp
     BaseItem.cpp
-    Constant.cpp
+    Effect.cpp
+    Feat.cpp
+    Index.cpp
     system.cpp
 )
 

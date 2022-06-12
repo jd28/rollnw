@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Constant.hpp"
+#include "Index.hpp"
 
 #include <vector>
 
@@ -10,7 +10,7 @@ namespace nw {
 
 struct Ability {
     uint32_t name = 0xFFFFFFFF;
-    Constant constant;
+    Index index;
 };
 
 /// Ability singleton component

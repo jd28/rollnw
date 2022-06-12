@@ -9,13 +9,13 @@ namespace nw {
 bool LevelStats::from_gff(const GffInputArchiveStruct& archive)
 {
     size_t sz = archive["ClassList"].size();
-    classes.reserve(sz);
+    entries.reserve(sz);
     for (size_t i = 0; i < sz; ++i) {
         ClassEntry c;
         archive["ClassList"][i].get_to("Class", c.id);
         archive["ClassList"][i].get_to("ClassLevel", c.level);
         c.spells.from_gff(archive["ClassList"][i]);
-        classes.push_back(std::move(c));
+        entries.push_back(std::move(c));
     }
 
     return true;
@@ -29,7 +29,7 @@ bool LevelStats::from_json(const nlohmann::json& archive)
             cls.at("class").get_to(c.id);
             cls.at("level").get_to(c.level);
             c.spells.from_json(cls.at("spellbook"));
-            classes.push_back(std::move(c));
+            entries.push_back(std::move(c));
         }
     } catch (const nlohmann::json::exception& e) {
         LOG_F(ERROR, "LevelStats: json exception: {}", e.what());
@@ -42,7 +42,7 @@ bool LevelStats::from_json(const nlohmann::json& archive)
 bool LevelStats::to_gff(GffOutputArchiveStruct& archive) const
 {
     auto& list = archive.add_list("ClassList");
-    for (const auto& cls : classes) {
+    for (const auto& cls : entries) {
         cls.spells.to_gff(list.push_back(3)
                               .add_field("Class", cls.id)
                               .add_field("ClassLevel", cls.level));
@@ -54,7 +54,7 @@ bool LevelStats::to_gff(GffOutputArchiveStruct& archive) const
 nlohmann::json LevelStats::to_json() const
 {
     nlohmann::json j = nlohmann::json::array();
-    for (const auto& cls : classes) {
+    for (const auto& cls : entries) {
         j.push_back({
             {"class", cls.id},
             {"level", cls.level},
@@ -63,6 +63,25 @@ nlohmann::json LevelStats::to_json() const
     }
 
     return j;
+}
+
+int LevelStats::level() const noexcept
+{
+    int result = 0;
+    for (const auto& cl : entries) {
+        result += cl.level;
+    }
+    return result;
+}
+
+int LevelStats::level_by_class(Index id) const noexcept
+{
+    for (const auto& cl : entries) {
+        if (*id == cl.id) {
+            return cl.level;
+        }
+    }
+    return 0;
 }
 
 } // namespace nw

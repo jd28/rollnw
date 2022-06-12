@@ -32,7 +32,7 @@ struct Class {
     uint32_t alignment_restriction = 0;
     uint32_t alignment_rstrction_type = 0;
     bool invert_restriction = false;
-    Constant constant;
+    Index index;
     Resource prereq_table;
     int max_level = 0;
     int xp_penalty = 0;

@@ -3,7 +3,7 @@
 #include "../kernel/Strings.hpp"
 #include "../util/Variant.hpp"
 #include "Alignment.hpp"
-#include "Constant.hpp"
+#include "Index.hpp"
 
 #include <absl/container/inlined_vector.h>
 #include <flecs/flecs.h>
@@ -14,20 +14,26 @@
 
 namespace nw {
 
-using RuleValue = Variant<int32_t, float, std::string>;
+using RuleValue = Variant<int32_t, float, std::string, Index>;
 
 // == Selector ================================================================
 
-enum struct SelectorType {
-    ability,     ///< Subtype: ABILITY_* constant
-    ac,          ///< Subtype: AC_* constant
-    alignment,   ///< Subtype: AlignmentAxis
-    bab,         ///< Subtype: none
-    class_level, ///< Subtype: CLASS_* constant
-    feat,        ///< Subtype: FEAT_* constant
-    level,       ///< Subtype: none
-    race,        ///< Subtype: none
-    skill,       ///< Subtype: SKILL_* constant
+/// Selector types
+enum struct SelectorType : uint32_t {
+    ability,       ///< Subtype: ABILITY_* constant
+    ac,            ///< Subtype: AC_* constant
+    alignment,     ///< Subtype: AlignmentAxis
+    arcane_level,  ///< Subtype: none
+    bab,           ///< Subtype: none
+    caster_level,  ///< Subtype:
+    class_level,   ///< Subtype: CLASS_* constant
+    feat,          ///< Subtype: FEAT_* constant
+    level,         ///< Subtype: none
+    local_var_int, ///< Subtype: local var name, eg. "X1_AllowArcher"
+    local_var_str, ///< Subtype: local var name, eg. "some_var"
+    race,          ///< Subtype: none
+    skill,         ///< Subtype: SKILL_* constant
+    spell_level,   ///< Subtype:
 };
 
 struct Selector {
@@ -38,52 +44,71 @@ struct Selector {
 bool operator==(const Selector& lhs, const Selector& rhs);
 bool operator<(const Selector& lhs, const Selector& rhs);
 
-// Convenience functions
-namespace select {
-
-Selector ability(Constant id);
-// Selector armor_class(int id, bool base = false);
-Selector alignment(AlignmentAxis id);
-Selector class_level(Constant id);
-Selector feat(Constant id);
-Selector level();
-Selector skill(Constant id);
-Selector race();
-
-} // namespace select
-
 // == Qualifier ===============================================================
 
 struct Qualifier {
     Selector selector;
     absl::InlinedVector<RuleValue, 4> params;
-
-    bool match(const flecs::entity cre) const;
 };
-
-namespace qualifier {
-
-Qualifier ability(Constant id, int min, int max = 0);
-Qualifier alignment(AlignmentAxis axis, AlignmentFlags flags);
-Qualifier class_level(Constant id, int min, int max = 0);
-Qualifier level(int min, int max = 0);
-Qualifier feat(Constant id);
-Qualifier race(Constant id);
-Qualifier skill(Constant id, int min, int max = 0);
-
-} // namespace qualifier
 
 // == Requirement =============================================================
 
 struct Requirement {
-    explicit Requirement(bool conjunction = true);
-    explicit Requirement(std::initializer_list<Qualifier> quals, bool conjunction = true);
+    explicit Requirement(bool conjunction_ = true);
+    explicit Requirement(std::initializer_list<Qualifier> quals, bool conjunction_ = true);
     void add(Qualifier qualifier);
-    bool met(const flecs::entity cre) const;
 
-private:
-    absl::InlinedVector<Qualifier, 8> qualifiers_;
-    bool conjunction_ = true;
+    absl::InlinedVector<Qualifier, 8> qualifiers;
+    bool conjunction = true;
 };
+
+// == Versus ==================================================================
+
+struct Versus {
+    uint64_t race_flags = 0;
+    AlignmentFlags align_flags = AlignmentFlags::none;
+    AlignmentAxis align_axis = AlignmentAxis::neither;
+    bool trap = false;
+};
+
+// == Modifier ================================================================
+
+enum struct ModifierSource {
+    unknown,
+    ability,
+    class_,
+    environment,
+    feat,
+    race,
+    situation,
+    skill,
+};
+
+enum struct ModifierType {
+    attack_bonus,
+    ac_dodge,
+    ac_natural,
+    hitpoints,
+    crit_threat,
+    crit_multiplier,
+};
+
+using ModifierResult = Variant<int, float>;
+using ModifierFunction = std::function<ModifierResult(flecs::entity)>;
+using ModifierVariant = Variant<int, float, ModifierFunction>;
+
+struct Modifier {
+    ModifierType type;
+    ModifierVariant value;
+    Requirement requirement;
+    Versus versus;
+    InternedString tagged;
+    ModifierSource source = ModifierSource::unknown;
+};
+
+inline bool operator<(const Modifier& lhs, const Modifier& rhs)
+{
+    return std::tie(lhs.type, lhs.source) < std::tie(rhs.type, rhs.source);
+}
 
 } // namespace nw

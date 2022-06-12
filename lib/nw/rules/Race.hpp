@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../resources/Resource.hpp"
-#include "Constant.hpp"
+#include "../util/InternedString.hpp"
 
 #include <cstdint>
 
@@ -21,7 +21,7 @@ struct Race {
     Resource feats_table;
     uint32_t biography = 0xFFFFFFFF;
     bool player_race = false;
-    Constant constant;
+    Index index;
     int age = 1;
     int toolset_class = 0;
     float cr_modifier = 1.0f;

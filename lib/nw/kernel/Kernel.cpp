@@ -3,14 +3,15 @@
 #include "../log.hpp"
 #include "../objects/Module.hpp"
 #include "../profiles/GameProfile.hpp"
-#include "components/ConstantRegistry.hpp"
+#include "components/IndexRegistry.hpp"
 #include "components/TwoDACache.hpp"
 
 namespace nw::kernel {
 
 Services::Services()
     : world_{}
-{ }
+{
+}
 Services::~Services() { }
 
 void Services::provide(ObjectSystem* objects)
@@ -64,7 +65,7 @@ bool Services::set_profile(const GameProfile* profile)
 {
     profile_.reset(profile);
     if (!profile->load_constants()) return false;
-    profile->load_compontents();
+    profile->load_components();
     profile->load_rules();
     return true;
 }
@@ -77,7 +78,7 @@ void Services::shutdown()
     resources_.reset();
     strings_.reset();
 
-    world().get_mut<ConstantRegistry>()->clear();
+    world().get_mut<IndexRegistry>()->clear();
     world().get_mut<TwoDACache>()->clear();
 
     started_ = false;
@@ -92,7 +93,7 @@ void Services::start(bool fail_hard)
         return;
     }
 
-    world().add<ConstantRegistry>();
+    world().add<IndexRegistry>();
     world().add<TwoDACache>();
 
     if (!objects_) {

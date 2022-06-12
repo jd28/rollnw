@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../../rules/Index.hpp"
 #include "../../serialization/Archives.hpp"
 #include "SpellBook.hpp"
 
@@ -21,7 +22,10 @@ struct LevelStats {
     bool to_gff(GffOutputArchiveStruct& archive) const;
     nlohmann::json to_json() const;
 
-    std::vector<ClassEntry> classes;
+    int level() const noexcept;
+    int level_by_class(Index id) const noexcept;
+
+    std::vector<ClassEntry> entries;
 };
 
 } // namespace nw
