@@ -57,8 +57,9 @@ struct Class {
     operator bool() const noexcept { return name != 0xFFFFFFFF; }
 };
 
+/// Class Singleton component
 struct ClassArray {
-    std::vector<Class> classes;
+    std::vector<Class> entries;
 };
 
 // Unimplemented

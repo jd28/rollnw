@@ -23,7 +23,7 @@ struct Skill {
 
 /// Singleton Component for Skils
 struct SkillArray {
-    std::vector<Skill> skills;
+    std::vector<Skill> entries;
 };
 
 } // namespace nw

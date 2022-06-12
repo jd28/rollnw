@@ -59,8 +59,9 @@ struct Spell {
     operator bool() const noexcept { return name != 0xFFFFFFFF; }
 };
 
+/// Spell singleton component
 struct SpellArray {
-    std::vector<Spell> spells;
+    std::vector<Spell> entries;
 };
 
 } // namespace nw

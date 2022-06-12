@@ -117,8 +117,9 @@ struct BaseItem {
     // WeaponFinesseMinimumCreatureSize
 };
 
+/// BaseItem singleton component
 struct BaseItemArray {
-    std::vector<BaseItem> baseitems;
+    std::vector<BaseItem> entries;
 };
 
 } // namespace nw

@@ -313,13 +313,13 @@ bool Profile::load_rules() const
 
     // Abilities
     auto* ability_array = nw::kernel::world().get_mut<nw::AbilityArray>();
-    ability_array->abiliites.reserve(6);
-    ability_array->abiliites.push_back({135, ability_strength});
-    ability_array->abiliites.push_back({133, ability_dexterity});
-    ability_array->abiliites.push_back({132, ability_constitution});
-    ability_array->abiliites.push_back({134, ability_intelligence});
-    ability_array->abiliites.push_back({136, ability_wisdom});
-    ability_array->abiliites.push_back({131, ability_charisma});
+    ability_array->entries.reserve(6);
+    ability_array->entries.push_back({135, ability_strength});
+    ability_array->entries.push_back({133, ability_dexterity});
+    ability_array->entries.push_back({132, ability_constitution});
+    ability_array->entries.push_back({134, ability_intelligence});
+    ability_array->entries.push_back({136, ability_wisdom});
+    ability_array->entries.push_back({131, ability_charisma});
 
     // BaseItems
     auto* baseitem_array = nw::kernel::world().get_mut<nw::BaseItemArray>();
@@ -419,7 +419,7 @@ bool Profile::load_rules() const
             TDA_GET_BOOL(baseitems, info.is_monk_weapon, i, "IsMonkWeapon");
             // WeaponFinesseMinimumCreatureSize
 
-            baseitem_array->baseitems.push_back(std::move(info));
+            baseitem_array->entries.push_back(std::move(info));
         }
     } else {
         throw std::runtime_error("rules: failed to load 'baseitems.2da'");
@@ -428,7 +428,7 @@ bool Profile::load_rules() const
     // Classes
     auto* class_array = nw::kernel::world().get_mut<nw::ClassArray>();
     if (class_array && classes.is_valid()) {
-        class_array->classes.reserve(classes.rows());
+        class_array->entries.reserve(classes.rows());
         for (size_t i = 0; i < classes.rows(); ++i) {
             nw::Class info;
 
@@ -488,7 +488,7 @@ bool Profile::load_rules() const
                     TDA_GET_BOOL(classes, info.can_cast_spontaneously, i, "CanCastSpontaneously");
                 }
             }
-            class_array->classes.push_back(info);
+            class_array->entries.push_back(info);
         }
 
     } else {
@@ -498,7 +498,7 @@ bool Profile::load_rules() const
     // Feats
     auto* feat_array = nw::kernel::world().get_mut<nw::FeatArray>();
     if (feat_array && feat.is_valid()) {
-        feat_array->feats.reserve(feat.rows());
+        feat_array->entries.reserve(feat.rows());
         for (size_t i = 0; i < feat.rows(); ++i) {
             nw::Feat info;
 
@@ -522,7 +522,7 @@ bool Profile::load_rules() const
             TDA_GET_BOOL(feat, info.epic, i, "PreReqEpic");
             TDA_GET_BOOL(feat, info.requires_action, i, "ReqAction");
 
-            feat_array->feats.push_back(std::move(info));
+            feat_array->entries.push_back(std::move(info));
         }
     } else {
         throw std::runtime_error("rules: failed to load 'feat.2da'");
@@ -531,7 +531,7 @@ bool Profile::load_rules() const
     // Races
     auto* race_array = nw::kernel::world().get_mut<nw::RaceArray>();
     if (race_array && racialtypes.is_valid()) {
-        race_array->races.reserve(racialtypes.rows());
+        race_array->entries.reserve(racialtypes.rows());
         for (size_t i = 0; i < racialtypes.rows(); ++i) {
             nw::Race info;
 
@@ -565,7 +565,7 @@ bool Profile::load_rules() const
                 TDA_GET_INT(racialtypes, info.skillpoints_ability, i, "SkillPointModifierAbility");
             }
 
-            race_array->races.push_back(info);
+            race_array->entries.push_back(info);
         }
     } else {
         throw std::runtime_error("rules: failed to load 'racialtypes.2da'");
@@ -574,7 +574,7 @@ bool Profile::load_rules() const
     // Skills
     auto* skill_array = nw::kernel::world().get_mut<nw::SkillArray>();
     if (skill_array && skills.is_valid()) {
-        skill_array->skills.reserve(skills.rows());
+        skill_array->entries.reserve(skills.rows());
 
         for (size_t i = 0; i < skills.rows(); ++i) {
             nw::Skill info;
@@ -607,7 +607,7 @@ bool Profile::load_rules() const
                 TDA_GET_BOOL(skills, info.hostile, i, "HostileSkill");
             }
 
-            skill_array->skills.push_back(info);
+            skill_array->entries.push_back(info);
         }
     } else {
         throw std::runtime_error("rules: failed to load 'skills.2da'");
@@ -616,7 +616,7 @@ bool Profile::load_rules() const
     // Spells
     auto* spell_array = nw::kernel::world().get_mut<nw::SpellArray>();
     if (spell_array && spells.is_valid()) {
-        spell_array->spells.reserve(spells.rows());
+        spell_array->entries.reserve(spells.rows());
         for (size_t i = 0; i < spells.rows(); ++i) {
             nw::Spell info;
             // float temp_float = 0.0f;
@@ -626,7 +626,7 @@ bool Profile::load_rules() const
                 TDA_GET_RES(spells, info.icon, i, "IconResRef", nw::ResourceType::texture);
             }
 
-            spell_array->spells.push_back(info);
+            spell_array->entries.push_back(info);
         }
     } else {
         throw std::runtime_error("rules: failed to load 'spells.2da'");
@@ -635,31 +635,31 @@ bool Profile::load_rules() const
     // == Process Requirements ================================================
 
     // BaseItems
-    for (size_t i = 0; i < baseitem_array->baseitems.size(); ++i) {
-        nw::BaseItem& info = baseitem_array->baseitems[i];
+    for (size_t i = 0; i < baseitem_array->entries.size(); ++i) {
+        nw::BaseItem& info = baseitem_array->entries[i];
         if (baseitems.get_to(i, "ReqFeat0", temp_int)) {
             info.feat_requirement.add(nw::qualifier::feat(
-                feat_array->feats[static_cast<size_t>(temp_int)].constant));
+                feat_array->entries[static_cast<size_t>(temp_int)].constant));
         }
 
         if (baseitems.get_to(i, "ReqFeat1", temp_int)) {
             info.feat_requirement.add(nw::qualifier::feat(
-                feat_array->feats[static_cast<size_t>(temp_int)].constant));
+                feat_array->entries[static_cast<size_t>(temp_int)].constant));
         }
 
         if (baseitems.get_to(i, "ReqFeat2", temp_int)) {
             info.feat_requirement.add(nw::qualifier::feat(
-                feat_array->feats[static_cast<size_t>(temp_int)].constant));
+                feat_array->entries[static_cast<size_t>(temp_int)].constant));
         }
 
         if (baseitems.get_to(i, "ReqFeat3", temp_int)) {
             info.feat_requirement.add(nw::qualifier::feat(
-                feat_array->feats[static_cast<size_t>(temp_int)].constant));
+                feat_array->entries[static_cast<size_t>(temp_int)].constant));
         }
 
         if (baseitems.get_to(i, "ReqFeat4", temp_int)) {
             info.feat_requirement.add(nw::qualifier::feat(
-                feat_array->feats[static_cast<size_t>(temp_int)].constant));
+                feat_array->entries[static_cast<size_t>(temp_int)].constant));
         }
     }
 
@@ -667,8 +667,8 @@ bool Profile::load_rules() const
 
     // Feats
 
-    for (size_t i = 0; i < feat_array->feats.size(); ++i) {
-        nw::Feat& info = feat_array->feats[i];
+    for (size_t i = 0; i < feat_array->entries.size(); ++i) {
+        nw::Feat& info = feat_array->entries[i];
         if (!info.valid()) { continue; }
 
         if (feat.get_to(i, "MaxLevel", temp_int)) {
@@ -676,51 +676,41 @@ bool Profile::load_rules() const
         }
 
         if (feat.get_to(i, "MINSTR", temp_int)) {
-            info.requirements.add(nw::qualifier::ability(
-                ability_array->abiliites[0].constant, temp_int));
+            info.requirements.add(nw::qualifier::ability(ability_strength, temp_int));
         }
 
         if (feat.get_to(i, "MINDEX", temp_int)) {
-            info.requirements.add(nw::qualifier::ability(
-                ability_array->abiliites[1].constant, temp_int));
+            info.requirements.add(nw::qualifier::ability(ability_dexterity, temp_int));
         }
 
         if (feat.get_to(i, "MINCON", temp_int)) {
-            info.requirements.add(nw::qualifier::ability(
-                ability_array->abiliites[2].constant, temp_int));
+            info.requirements.add(nw::qualifier::ability(ability_constitution, temp_int));
         }
 
         if (feat.get_to(i, "MININT", temp_int)) {
-            info.requirements.add(nw::qualifier::ability(
-                ability_array->abiliites[3].constant, temp_int));
+            info.requirements.add(nw::qualifier::ability(ability_intelligence, temp_int));
         }
 
         if (feat.get_to(i, "MINWIS", temp_int)) {
-            info.requirements.add(nw::qualifier::ability(
-                ability_array->abiliites[4].constant, temp_int));
+            info.requirements.add(nw::qualifier::ability(ability_wisdom, temp_int));
         }
 
         if (feat.get_to(i, "MINCHA", temp_int)) {
-            info.requirements.add(nw::qualifier::ability(
-                ability_array->abiliites[5].constant, temp_int));
+            info.requirements.add(nw::qualifier::ability(ability_charisma, temp_int));
         }
 
         if (feat.get_to(i, "PREREQFEAT1", temp_int)) {
             info.requirements.add(nw::qualifier::feat(
-                feat_array->feats[static_cast<size_t>(temp_int)].constant));
+                feat_array->entries[static_cast<size_t>(temp_int)].constant));
         }
 
         if (feat.get_to(i, "PREREQFEAT2", temp_int)) {
             info.requirements.add(nw::qualifier::feat(
-                feat_array->feats[static_cast<size_t>(temp_int)].constant));
+                feat_array->entries[static_cast<size_t>(temp_int)].constant));
         }
     }
 
     // Races
-
-    // Skills
-
-    // Spells
 
     return true;
 }

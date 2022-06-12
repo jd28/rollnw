@@ -38,7 +38,7 @@ struct Race {
 
 /// Race singleton component
 struct RaceArray {
-    std::vector<Race> races;
+    std::vector<Race> entries;
 };
 
 // Not Implemented Yet

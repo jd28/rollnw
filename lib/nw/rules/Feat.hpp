@@ -35,7 +35,7 @@ struct Feat {
 
 /// Feat Singleton Component
 struct FeatArray {
-    std::vector<Feat> feats;
+    std::vector<Feat> entries;
 };
 
 // Not Implemented Yet

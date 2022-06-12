@@ -13,8 +13,9 @@ struct Ability {
     Constant constant;
 };
 
+/// Ability singleton component
 struct AbilityArray {
-    std::vector<Ability> abiliites;
+    std::vector<Ability> entries;
 };
 
 } // namespace nw

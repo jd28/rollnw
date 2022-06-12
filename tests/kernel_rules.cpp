@@ -22,33 +22,33 @@ TEST_CASE("rules manager", "[kernel]")
 
     auto* abs = nwk::world().get<nw::AbilityArray>();
     REQUIRE(abs);
-    REQUIRE(abs->abiliites.size() == 6);
+    REQUIRE(abs->entries.size() == 6);
 
     auto* ba = nwk::world().get<nw::BaseItemArray>();
     REQUIRE(ba);
-    REQUIRE(ba->baseitems.size() > 0);
+    REQUIRE(ba->entries.size() > 0);
 
     auto* cl = nwk::world().get<nw::ClassArray>();
     REQUIRE(cl);
-    REQUIRE(cl->classes.size() > 0);
+    REQUIRE(cl->entries.size() > 0);
 
     auto* ft = nwk::world().get<nw::FeatArray>();
     REQUIRE(ft);
-    REQUIRE(ft->feats.size() > 0);
+    REQUIRE(ft->entries.size() > 0);
 
     auto* ra = nwk::world().get<nw::RaceArray>();
     REQUIRE(ra);
-    REQUIRE(ra->races.size() > 0);
+    REQUIRE(ra->entries.size() > 0);
 
     auto* sk = nwk::world().get<nw::SkillArray>();
     REQUIRE(sk);
-    REQUIRE(sk->skills.size() > 0);
+    REQUIRE(sk->entries.size() > 0);
 
     auto* sp = nwk::world().get<nw::SpellArray>();
     REQUIRE(sp);
-    REQUIRE(sp->spells.size() > 0);
+    REQUIRE(sp->entries.size() > 0);
 
-    auto& skill = sk->skills[0];
+    auto& skill = sk->entries[0];
     REQUIRE(skill);
     REQUIRE(skill.name == 269);
     REQUIRE(skill.constant.name == "SKILL_ANIMAL_EMPATHY");
