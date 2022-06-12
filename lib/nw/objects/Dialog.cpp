@@ -2,6 +2,8 @@
 
 #include "../util/templates.hpp"
 
+#include <nlohmann/json.hpp>
+
 #include <iostream>
 
 namespace nw {
@@ -34,10 +36,66 @@ const DialogNode* DialogPtr::node() const
     return const_cast<DialogPtr*>(this)->node();
 }
 
-Dialog::Dialog(const GffInputArchiveStruct gff)
+void from_json(const nlohmann::json& archive, DialogPtr& ptr)
+{
+    archive["type"].get_to(ptr.type);
+    archive["index"].get_to(ptr.index);
+    archive["script_appears"].get_to(ptr.script_appears);
+    archive["is_start"].get_to(ptr.is_start);
+    archive["is_link"].get_to(ptr.is_link);
+    archive["comment"].get_to(ptr.comment);
+}
+
+void to_json(nlohmann::json& archive, const DialogPtr& ptr)
+{
+    archive["type"] = ptr.type;
+    archive["index"] = ptr.index;
+    archive["script_appears"] = ptr.script_appears;
+    archive["is_start"] = ptr.is_start;
+    archive["is_link"] = ptr.is_link;
+    archive["comment"] = ptr.comment;
+}
+
+void from_json(const nlohmann::json& archive, DialogNode& node)
+{
+    archive["type"].get_to(node.type);
+    archive["comment"].get_to(node.comment);
+    archive["quest"].get_to(node.quest);
+    archive["quest_entry"].get_to(node.quest_entry);
+    archive["script_action"].get_to(node.script_action);
+    archive["sound"].get_to(node.sound);
+    archive["text"].get_to(node.text);
+}
+
+void to_json(nlohmann::json& archive, const DialogNode& node)
+{
+    archive["type"] = node.type;
+    archive["comment"] = node.comment;
+    archive["quest"] = node.quest;
+    archive["quest_entry"] = node.quest_entry;
+    archive["script_action"] = node.script_action;
+    archive["sound"] = node.sound;
+    archive["text"] = node.text;
+}
+
+Dialog::Dialog()
+    : is_valid_{true}
+{
+}
+
+Dialog::Dialog(const GffInputArchiveStruct archive)
     : prevent_zoom(0)
 {
-    is_valid_ = load(gff);
+    is_valid_ = load(archive);
+}
+
+Dialog::Dialog(const nlohmann::json& archive)
+{
+    try {
+        from_json(archive, *this);
+    } catch (nlohmann::json::exception& e) {
+        is_valid_ = false;
+    }
 }
 
 bool Dialog::read_nodes(const GffInputArchiveStruct gff, DialogNodeType node_type)
@@ -140,6 +198,52 @@ bool Dialog::load(const GffInputArchiveStruct gff)
     }
 
     return valid;
+}
+
+void from_json(const nlohmann::json& archive, Dialog& node)
+{
+    if (archive["$type"].get<std::string>() != "DLG") {
+        LOG_F(ERROR, "invalid dlg json");
+        return;
+    }
+
+    archive["entries"].get_to(node.entries);
+    archive["replies"].get_to(node.replies);
+    archive["script_abort"].get_to(node.script_abort);
+    archive["script_end"].get_to(node.script_end);
+    archive["starts"].get_to(node.starts);
+    archive["delay_entry"].get_to(node.delay_entry);
+    archive["delay_reply"].get_to(node.delay_reply);
+    archive["word_count"].get_to(node.word_count);
+    archive["prevent_zoom"].get_to(node.prevent_zoom);
+
+    for (auto& entry : node.entries) {
+        entry.parent = &node;
+    }
+
+    for (auto& reply : node.replies) {
+        reply.parent = &node;
+    }
+
+    for (auto& start : node.starts) {
+        start.parent = &node;
+    }
+}
+
+void to_json(nlohmann::json& archive, const Dialog& node)
+{
+    archive["$type"] = "DLG";
+    archive["$type"] = Dialog::json_archive_version;
+
+    archive["entries"] = node.entries;
+    archive["replies"] = node.replies;
+    archive["script_abort"] = node.script_abort;
+    archive["script_end"] = node.script_end;
+    archive["starts"] = node.starts;
+    archive["delay_entry"] = node.delay_entry;
+    archive["delay_reply"] = node.delay_reply;
+    archive["word_count"] = node.word_count;
+    archive["prevent_zoom"] = node.prevent_zoom;
 }
 
 } // namespace nw

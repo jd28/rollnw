@@ -2,6 +2,8 @@
 
 #include "../serialization/Archives.hpp"
 
+#include <nlohmann/json_fwd.hpp>
+
 #include <string>
 #include <vector>
 
@@ -26,9 +28,12 @@ struct DialogPtr {
 
     Resref script_appears;
     bool is_start = false;
-    uint8_t is_link = 0;
+    bool is_link = false;
     std::string comment;
 };
+
+void from_json(const nlohmann::json& archive, DialogPtr& ptr);
+void to_json(nlohmann::json& archive, const DialogPtr& ptr);
 
 struct DialogNode {
 public:
@@ -47,12 +52,18 @@ public:
     std::vector<DialogPtr> pointers;
 };
 
+void from_json(const nlohmann::json& archive, DialogNode& node);
+void to_json(nlohmann::json& archive, const DialogNode& node);
+
 struct Dialog {
 public:
-    explicit Dialog(const GffInputArchiveStruct gff);
+    Dialog();
+    explicit Dialog(const GffInputArchiveStruct archive);
+    explicit Dialog(const nlohmann::json& archive);
 
     static constexpr int json_archive_version = 1;
 
+    /// Checks id dialog was successfully parsed
     bool valid() const noexcept { return is_valid_; }
 
     std::vector<DialogNode> entries;
@@ -65,7 +76,7 @@ public:
     uint32_t delay_reply = 0;
     uint32_t word_count = 0;
 
-    uint8_t prevent_zoom = 0;
+    bool prevent_zoom = false;
 
 private:
     bool is_valid_ = false;
@@ -73,5 +84,8 @@ private:
     bool load(const GffInputArchiveStruct gff);
     bool read_nodes(const GffInputArchiveStruct gff, DialogNodeType node_type);
 };
+
+void from_json(const nlohmann::json& archive, Dialog& node);
+void to_json(nlohmann::json& archive, const Dialog& node);
 
 } // namespace nw

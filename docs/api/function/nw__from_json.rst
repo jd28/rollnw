@@ -1,20 +1,26 @@
 nw::from_json
 =============
 
-.. doxygenfunction:: from_json(const nlohmann::json &j, LocString &loc)
+.. doxygenfunction:: from_json(const nlohmann::json&, ByteArray&)
 
-.. doxygenfunction:: from_json(const nlohmann::json &j, ObjectID &id)
+.. doxygenfunction:: from_json(const nlohmann::json&, Dialog&)
 
-.. doxygenfunction:: from_json(const nlohmann::json &j, ObjectType &type)
+.. doxygenfunction:: from_json(const nlohmann::json&, DialogNode&)
 
-.. doxygenfunction:: from_json(const nlohmann::json &j, Resource &r)
+.. doxygenfunction:: from_json(const nlohmann::json&, DialogPtr&)
 
-.. doxygenfunction:: from_json(const nlohmann::json &j, Resref &r)
+.. doxygenfunction:: from_json(const nlohmann::json&, Location&)
 
-.. doxygenfunction:: from_json(const nlohmann::json &j, SpellEntry &spell)
+.. doxygenfunction:: from_json(const nlohmann::json&, LocString&)
 
-.. doxygenfunction:: from_json(const nlohmann::json &json, ByteArray &ba)
+.. doxygenfunction:: from_json(const nlohmann::json&, ObjectID&)
 
-.. doxygenfunction:: from_json(const nlohmann::json &json, Location &loc)
+.. doxygenfunction:: from_json(const nlohmann::json&, ObjectType&)
 
-.. doxygenfunction:: from_json(const nlohmann::json &json, Saves &saves)
+.. doxygenfunction:: from_json(const nlohmann::json&, Resource&)
+
+.. doxygenfunction:: from_json(const nlohmann::json&, Resref&)
+
+.. doxygenfunction:: from_json(const nlohmann::json&, Saves&)
+
+.. doxygenfunction:: from_json(const nlohmann::json&, SpellEntry &)
