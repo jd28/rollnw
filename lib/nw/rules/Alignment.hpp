@@ -31,6 +31,8 @@ enum struct AlignmentFlags {
     evil = 0x10,
 };
 
+/// Gets alignment axis from alignment flags
+AlignmentAxis alignment_axis_from_flags(AlignmentFlags flags);
 
 DEFINE_ENUM_FLAGS(AlignmentFlags)
 
