@@ -18,10 +18,12 @@ DialogNode* DialogPtr::node()
         if (index < parent->entries.size()) {
             return &parent->entries[index];
         }
+        break;
     case DialogNodeType::reply:
         if (index < parent->replies.size()) {
             return &parent->replies[index];
         }
+        break;
     }
 
     return nullptr;
