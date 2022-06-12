@@ -74,7 +74,7 @@ inline constexpr D3DCOLOR rgba_make(uint8_t r, uint8_t g, uint8_t b, uint8_t a)
 inline constexpr uint32_t rgba_setalpha(uint32_t rgba, uint8_t a)
 {
     uint32_t a2 = a;
-    return static_cast<uint32_t>((a2 << 24u) | (rgba & 0x00ffffffu));
+    return (a2 << 24u) | (rgba & 0x00ffffffu);
 }
 
 #define RGB_MAKE(r, g, b) ((D3DCOLOR)(((r) << 16) | ((g) << 8) | (b)))

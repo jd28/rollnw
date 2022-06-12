@@ -9,12 +9,12 @@
 
 namespace nw::script {
 
-NssToken::NssToken(NssTokenType type, std::string_view id, size_t line, size_t start, size_t end)
-    : type{type}
-    , id{id}
-    , line{line}
-    , start{start}
-    , end{end}
+NssToken::NssToken(NssTokenType type_, std::string_view id_, size_t line_, size_t start_, size_t end_)
+    : type{type_}
+    , id{id_}
+    , line{line_}
+    , start{start_}
+    , end{end_}
 {
 }
 

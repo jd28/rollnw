@@ -108,7 +108,7 @@ void Tlk::save_as(const std::filesystem::path& path)
             ele[i].offset = offset;
             tmp = from_utf8_by_langid(it->second, language_id());
             ele[i].size = static_cast<uint32_t>(tmp.size());
-            offset += tmp.size();
+            offset += ele[i].size;
         } else if (i < header_.str_count) {
             if (TlkFlags::text & elements_[i].flags) {
                 ele[i].flags |= TlkFlags::text;

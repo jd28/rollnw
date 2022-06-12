@@ -121,7 +121,7 @@ void build_indicies(GffOutputArchive& archive, const GffOutputArchiveField& fiel
     } else if (field.type == SerializationType::list) {
         const auto& data = std::get<GffOutputArchiveList>(field.structures);
         archive.field_entries[field.index].data_or_offset = archive.list_indices.size() * 4; // byte offset
-        archive.list_indices.push_back(data.structs.size());
+        archive.list_indices.push_back(static_cast<uint32_t>(data.structs.size()));
         for (auto& s : data.structs) {
             archive.list_indices.push_back(s.index);
         }

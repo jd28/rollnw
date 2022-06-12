@@ -13,16 +13,16 @@ namespace nw {
 struct ResourceType {
     /// Enumeration of Resource types.
     enum type : uint16_t {
-        invalid = 0,
+        invalid = 0xFFFF,
 
         // Custom - Resource Type Categories
-        container = 65534,
-        gff_archive = 65533,
-        movie = 65532,
-        player = 65531,
-        sound = 65530,
-        texture = 65529,
-        json = 65528,
+        container = 0xFFFF - 1,
+        gff_archive = 0xFFFF - 2,
+        movie = 0xFFFF - 3,
+        player = 0xFFFF - 4,
+        sound = 0xFFFF - 5,
+        texture = 0xFFFF - 6,
+        json = 0xFFFF - 7,
 
         bmp = 1,
         mve = 2,

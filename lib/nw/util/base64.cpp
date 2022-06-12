@@ -13,17 +13,17 @@ ByteArray from_base64(const std::string& in)
     out.reserve(3 * in.length() / 4 + 4);
 
     static int Table[256];
-    if (Table['+'] == 0) {
+    if (Table[43] == 0) {
         memset(Table, 0xFF, sizeof(Table));
         for (int i = 0; i < 64; i++)
-            Table[(uint8_t)(base64_key[i])] = i;
+            Table[static_cast<uint8_t>(base64_key[i])] = i;
     }
 
     int val = 0, valb = -8;
     for (char c : in) {
-        if (Table[(uint8_t)c] == -1)
+        if (Table[static_cast<uint8_t>(c)] == -1)
             break;
-        val = (val << 6) + Table[(uint8_t)c];
+        val = (val << 6) + Table[static_cast<uint8_t>(c)];
         valb += 6;
         if (valb >= 0) {
             out.push_back(uint8_t((val >> valb) & 0xFF));

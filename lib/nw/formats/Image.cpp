@@ -132,8 +132,8 @@ bool Image::parse()
     } else { // Defer to stb_image
         int width, height, channels;
 
-        data_ = stbi_load_from_memory(reinterpret_cast<stbi_uc*>(bytes_.data()),
-            static_cast<int>(bytes_.size()), &width, &height, &channels, 0);
+        data_ = stbi_load_from_memory(bytes_.data(), static_cast<int>(bytes_.size()),
+            &width, &height, &channels, 0);
 
         if (!data_) {
             LOG_F(ERROR, "Failed to load image: {}", stbi_failure_reason());
@@ -223,8 +223,8 @@ bool Image::parse_dxt()
 {
     int width, height, channels;
 
-    data_ = stbi_load_from_memory(reinterpret_cast<stbi_uc*>(bytes_.data()),
-        static_cast<int>(bytes_.size()), &height, &width, &channels, 0);
+    data_ = stbi_load_from_memory(bytes_.data(), static_cast<int>(bytes_.size()),
+        &height, &width, &channels, 0);
 
     if (data_ == nullptr) {
         LOG_F(INFO, "Failed to load DDS: {}", stbi_failure_reason());

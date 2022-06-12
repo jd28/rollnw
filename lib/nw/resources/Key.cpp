@@ -132,6 +132,7 @@ ResourceDescriptor Key::stat(const Resource& res) const
 #define CHECK_OFFSET(offset)                                 \
     do {                                                     \
         if (static_cast<std::streamsize>(offset) > fsize_) { \
+            LOG_F(ERROR, "corrupted key file");              \
             return false;                                    \
         }                                                    \
     } while (0)
@@ -146,7 +147,7 @@ bool Key::load()
 
     LOG_F(INFO, "{}: Loading...", path_);
 
-    fsize_ = fs::file_size(path_);
+    fsize_ = static_cast<std::streamsize>(fs::file_size(path_));
 
     KeyHeader header;
     CHECK_OFFSET(sizeof(KeyHeader));

@@ -164,13 +164,13 @@ bool Erf::save_as(const std::filesystem::path& path) const
             locstrings.push_back(0); // Null Terminated in HAK and ERF..
         }
     }
-    header.locstring_size = locstrings.size();
+    header.locstring_size = static_cast<uint32_t>(locstrings.size());
 
     // Calculate up the offsets
     header.offset_locstring = sizeof(ErfHeader);
-    header.offset_keys = header.offset_locstring + locstrings.size();
-    header.offset_res = header.offset_keys + (header.entry_count * sizeof(ErfKey));
-    uint32_t data_offset = header.offset_res + (header.entry_count * sizeof(ErfElementInfo));
+    header.offset_keys = header.offset_locstring + header.locstring_size;
+    header.offset_res = header.offset_keys + static_cast<uint32_t>(header.entry_count * sizeof(ErfKey));
+    uint32_t data_offset = header.offset_res + static_cast<uint32_t>(header.entry_count * sizeof(ErfElementInfo));
 
     std::vector<Resource> entries;
     std::vector<ErfKey> entry_keys;

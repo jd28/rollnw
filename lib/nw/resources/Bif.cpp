@@ -19,7 +19,7 @@ struct BifHeader {
 };
 
 Bif::Bif(Key* key, fs::path path)
-    : key(key)
+    : key_(key)
     , path_(std::move(path))
 {
     is_loaded_ = load();
@@ -28,13 +28,14 @@ Bif::Bif(Key* key, fs::path path)
 #define CHECK_OFFSET(offset)                                 \
     do {                                                     \
         if (static_cast<std::streamsize>(offset) > fsize_) { \
+            LOG_F(ERROR, "corrupted bif file");              \
             return false;                                    \
         }                                                    \
     } while (0)
 
 bool Bif::load()
 {
-    if (!key) {
+    if (!key_) {
         LOG_F(ERROR, "Invalid Key file");
         return false;
     }
@@ -43,7 +44,7 @@ bool Bif::load()
     file_.open(path_, std::ios_base::binary);
     if (!file_.is_open()) { LOG_F(ERROR, "Unable to open '{}'", path_); }
 
-    fsize_ = fs::file_size(path_);
+    fsize_ = static_cast<std::streamsize>(fs::file_size(path_));
 
     BifHeader header;
     CHECK_OFFSET(sizeof(BifHeader));

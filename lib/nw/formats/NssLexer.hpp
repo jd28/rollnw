@@ -95,7 +95,7 @@ enum class NssTokenType {
 
 struct NssToken {
     NssToken() = default;
-    NssToken(NssTokenType type, std::string_view id, size_t line, size_t start, size_t end);
+    NssToken(NssTokenType type_, std::string_view id_, size_t line_, size_t start_, size_t end_);
     NssTokenType type = NssTokenType::INVALID;
     std::string_view id;
     size_t line, start, end;

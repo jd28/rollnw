@@ -62,7 +62,6 @@ InstallInfo probe_nwn_install(GameVersion only)
 {
     InstallInfo result;
     bool install_found = false;
-    bool user_found = false;
 
     // This probes both EE and 1.69 keys even though most of these paths are NWN:EE only.
     auto probe_keys = [&result, &install_found, only](const fs::path& p) {
@@ -122,7 +121,6 @@ InstallInfo probe_nwn_install(GameVersion only)
         fs::path pp{p};
         if (fs::exists(pp)) {
             result.user = pp;
-            user_found = true;
         }
     }
 

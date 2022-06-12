@@ -20,8 +20,8 @@ namespace nw {
  */
 struct Resource {
     Resource() noexcept;
-    Resource(const Resref& resref, ResourceType::type type) noexcept;
-    Resource(std::string_view resref, ResourceType::type type) noexcept;
+    Resource(const Resref& resref_, ResourceType::type type_) noexcept;
+    Resource(std::string_view resref_, ResourceType::type type_) noexcept;
     Resource(const Resource&) = default;
     Resource(Resource&&) = default;
 

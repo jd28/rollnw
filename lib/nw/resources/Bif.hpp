@@ -31,7 +31,7 @@ struct Bif {
     Bif& operator=(Bif&& other) = default;
 
 private:
-    Key* key = nullptr;
+    Key* key_ = nullptr;
     std::filesystem::path path_;
     mutable std::ifstream file_;
     std::streamsize fsize_;

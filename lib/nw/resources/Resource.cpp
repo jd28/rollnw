@@ -16,14 +16,14 @@ Resource::Resource() noexcept
 {
 }
 
-Resource::Resource(const Resref& resref, ResourceType::type type) noexcept
-    : resref{resref}
-    , type{type}
+Resource::Resource(const Resref& resref_, ResourceType::type type_) noexcept
+    : resref{resref_}
+    , type{type_}
 {
 }
 
-Resource::Resource(std::string_view resref, ResourceType::type type) noexcept
-    : Resource(Resref(resref), type)
+Resource::Resource(std::string_view resref_, ResourceType::type type_) noexcept
+    : Resource(Resref(resref_), type_)
 {
 }
 
