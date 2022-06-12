@@ -252,6 +252,9 @@ bool Area::deserialize(flecs::entity ent, const nlohmann::json& caf)
 bool Area::deserialize(flecs::entity ent, const nlohmann::json& are,
     const nlohmann::json& git, const nlohmann::json& gic)
 {
+    // [TODO] Load this..
+    LIBNW_UNUSED(gic);
+
     auto area = ent.get_mut<Area>();
     auto common = ent.get_mut<Common>();
     auto scripts = ent.get_mut<AreaScripts>();

@@ -123,7 +123,7 @@ ResourceDescriptor Key::stat(const Resource& res) const
         result.name = res;
         result.parent = this;
         result.size = bifs_[it->second.bif].elements[it->second.index].size;
-        result.mtime = fs::last_write_time(path_).time_since_epoch().count() / 1000;
+        result.mtime = int64_t(fs::last_write_time(path_).time_since_epoch().count() / 1000);
     }
     return result;
 }

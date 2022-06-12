@@ -44,7 +44,6 @@ bool CombatInfo::to_gff(GffOutputArchiveStruct& archive) const
     archive.add_field("NaturalAC", ac_natural);
     auto& list = archive.add_list("SpecAbilityList");
     for (const auto& spec : special_abilities) {
-        uint8_t flags = static_cast<uint8_t>(spec.flags);
         list.push_back(4)
             .add_field("Spell", spec.spell)
             .add_field("SpellCasterLevel", spec.level)

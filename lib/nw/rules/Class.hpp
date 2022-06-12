@@ -10,6 +10,8 @@ namespace nw {
 struct Creature;
 
 struct Class {
+    Requirement requirements;
+
     uint32_t name = 0xFFFFFFFF;
     uint32_t plural = 0xFFFFFFFF;
     uint32_t lower = 0xFFFFFFFF;
@@ -53,7 +55,6 @@ struct Class {
     int level_min_associate = 0;
     bool can_cast_spontaneously = false;
 
-    bool meets_requirements(const Creature& cre);
     operator bool() const noexcept { return name != 0xFFFFFFFF; }
 };
 

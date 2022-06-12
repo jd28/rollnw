@@ -128,7 +128,7 @@ ResourceDescriptor Directory::stat(const Resource& res) const
     auto p = path_ / res.filename();
     if (fs::exists(p)) {
         result.name = res;
-        result.mtime = fs::last_write_time(p).time_since_epoch().count() / 1000;
+        result.mtime = int64_t(fs::last_write_time(p).time_since_epoch().count() / 1000);
         result.parent = this;
         result.size = fs::file_size(p);
     }

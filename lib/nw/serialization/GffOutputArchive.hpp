@@ -24,7 +24,7 @@ struct GffOutputArchiveStruct {
     template <typename T>
     GffOutputArchiveStruct& add_field(std::string_view name, const T& value);
     GffOutputArchiveList& add_list(std::string_view name);
-    GffOutputArchiveStruct& add_struct(std::string_view name, uint32_t id);
+    GffOutputArchiveStruct& add_struct(std::string_view name, uint32_t id_);
 
     GffOutputArchive* parent = nullptr;
     uint32_t index = 0;

@@ -25,7 +25,7 @@ GffOutputArchiveList& GffOutputArchiveStruct::add_list(std::string_view name)
     return std::get<GffOutputArchiveList>(field_entries.back().structures);
 }
 
-GffOutputArchiveStruct& GffOutputArchiveStruct::add_struct(std::string_view name, uint32_t id)
+GffOutputArchiveStruct& GffOutputArchiveStruct::add_struct(std::string_view name, uint32_t id_)
 {
 
     field_entries.emplace_back(parent);
@@ -33,7 +33,9 @@ GffOutputArchiveStruct& GffOutputArchiveStruct::add_struct(std::string_view name
     f.label_index = static_cast<uint32_t>(parent->add_label(name));
     f.type = SerializationType::struct_;
     f.structures = GffOutputArchiveStruct{parent};
-    return std::get<GffOutputArchiveStruct>(field_entries.back().structures);
+    auto& result = std::get<GffOutputArchiveStruct>(field_entries.back().structures);
+    result.id = id_;
+    return result;
 }
 
 // -- GffOutputArchiveList ----------------------------------------------------
@@ -91,7 +93,7 @@ void build_indicies(GffOutputArchive& archive, const GffOutputArchiveStruct& str
 
 void build_arrays(GffOutputArchive& archive, GffOutputArchiveField& field)
 {
-    field.index = archive.field_entries.size();
+    field.index = static_cast<uint32_t>(archive.field_entries.size());
     archive.field_entries.push_back({field.type, field.label_index, field.data_or_offset});
     if (field.type == SerializationType::struct_) {
         build_arrays(archive, std::get<GffOutputArchiveStruct>(field.structures));
@@ -105,7 +107,7 @@ void build_arrays(GffOutputArchive& archive, GffOutputArchiveField& field)
 
 void build_arrays(GffOutputArchive& archive, GffOutputArchiveStruct& str)
 {
-    str.index = archive.struct_entries.size();
+    str.index = static_cast<uint32_t>(archive.struct_entries.size());
     archive.struct_entries.push_back({str.id, 0, static_cast<uint32_t>(str.field_entries.size())});
     for (auto& f : str.field_entries) {
         build_arrays(archive, f);
@@ -120,7 +122,7 @@ void build_indicies(GffOutputArchive& archive, const GffOutputArchiveField& fiel
         build_indicies(archive, data);
     } else if (field.type == SerializationType::list) {
         const auto& data = std::get<GffOutputArchiveList>(field.structures);
-        archive.field_entries[field.index].data_or_offset = archive.list_indices.size() * 4; // byte offset
+        archive.field_entries[field.index].data_or_offset = static_cast<uint32_t>(archive.list_indices.size() * 4); // byte offset
         archive.list_indices.push_back(static_cast<uint32_t>(data.structs.size()));
         for (auto& s : data.structs) {
             archive.list_indices.push_back(s.index);
@@ -137,7 +139,7 @@ void build_indicies(GffOutputArchive& archive, const GffOutputArchiveStruct& str
         archive.struct_entries[str.index].field_index = str.field_entries[0].index;
         build_indicies(archive, str.field_entries[0]);
     } else {
-        archive.struct_entries[str.index].field_index = archive.field_indices.size() * 4; // byte offset
+        archive.struct_entries[str.index].field_index = static_cast<uint32_t>(archive.field_indices.size() * 4); // byte offset
         for (auto& f : str.field_entries) {
             archive.field_indices.push_back(f.index);
         }

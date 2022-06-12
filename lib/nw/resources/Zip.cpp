@@ -64,7 +64,7 @@ ByteArray Zip::demand(Resource resref) const
         unz_file_info info;
         unzGetCurrentFileInfo(file_, &info, fname, 64, nullptr, 0, nullptr, 0);
         ba.resize(info.uncompressed_size);
-        if (unzReadCurrentFile(file_, ba.data(), info.uncompressed_size) == 0) {
+        if (unzReadCurrentFile(file_, ba.data(), static_cast<uint32_t>(info.uncompressed_size)) == 0) {
             // Not sure about the return here..
         }
         unzCloseCurrentFile(file_);

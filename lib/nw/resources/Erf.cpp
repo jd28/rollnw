@@ -303,7 +303,7 @@ bool Erf::load(const fs::path& path)
         return false;
     }
 
-    fsize_ = fs::file_size(path);
+    fsize_ = static_cast<std::streamsize>(fs::file_size(path));
 
     CHECK_OFFSET(sizeof(ErfHeader));
 
