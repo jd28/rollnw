@@ -116,3 +116,4 @@ You make ask yourself, why?  But, to paraphrase Tennyson, ours isn't to question
 - [nholmann_json](https://github.com/nlohmann/json) - JSON
 - [toml++](https://github.com/marzer/tomlplusplus/) - For settings.tml
 - [libiconv](https://www.gnu.org/software/libiconv/), [boost::nowide](https://github.com/boostorg/nowide) - i18n, string conversion
+- [doxygen](https://doxygen.nl/), [sphinx](https://www.sphinx-doc.org/en/master/), [breathe](https://breathe.readthedocs.io/en/latest/) - documentation

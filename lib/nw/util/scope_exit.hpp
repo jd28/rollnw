@@ -42,7 +42,9 @@ scope_exit<T> create_scope_exit(T&& exit)
 #define _EXIT_SCOPE_LINENAME(name, line) _EXIT_SCOPE_LINENAME_CAT(name, line)
 
 // clang-format off
-/// Create scope exit.
+
+/// Creates scope exit.
 #define SCOPE_EXIT(f)                                                        \
     const auto& _EXIT_SCOPE_LINENAME(EXIT, __LINE__) = create_scope_exit(f); (void)_EXIT_SCOPE_LINENAME(EXIT, __LINE__)
+
 // clang-format on
