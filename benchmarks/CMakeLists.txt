@@ -5,10 +5,11 @@ add_executable(libnw_benchmark
 )
 
 target_include_directories(libnw_benchmark PRIVATE ../lib)
-target_include_directories(libnw_benchmark PRIVATE ../external)
+target_include_directories(libnw_benchmark SYSTEM PRIVATE ../external)
 
 target_link_libraries(libnw_benchmark PRIVATE
     benchmark::benchmark
     benchmark::benchmark_main
     nw
+    flecs
 )
