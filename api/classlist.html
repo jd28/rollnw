@@ -14,11 +14,12 @@
         <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
         <script src="../_static/jquery.js"></script>
         <script src="../_static/underscore.js"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="../_static/doctools.js"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="nw::scope_exit" href="class/nw__scope_exit.html" />
+    <link rel="next" title="nw::Ability" href="struct/nw__Ability.html" />
     <link rel="prev" title="util" href="../structure/util.html" /> 
 </head>
 
@@ -52,7 +53,6 @@
 <p class="caption" role="heading"><span class="caption-text">c++ api</span></p>
 <ul class="current">
 <li class="toctree-l1 current"><a class="current reference internal" href="#">classes</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="class/nw__scope_exit.html">nw::scope_exit</a></li>
 <li class="toctree-l2"><a class="reference internal" href="struct/nw__Ability.html">nw::Ability</a></li>
 <li class="toctree-l2"><a class="reference internal" href="struct/nw__AbilityArray.html">nw::AbilityArray</a></li>
 <li class="toctree-l2"><a class="reference internal" href="struct/nw__Appearance.html">nw::Appearance</a></li>
@@ -74,8 +74,6 @@
 <li class="toctree-l2"><a class="reference internal" href="struct/nw__Common.html">nw::Common</a></li>
 <li class="toctree-l2"><a class="reference internal" href="struct/nw__CompressionHeader.html">nw::CompressionHeader</a></li>
 <li class="toctree-l2"><a class="reference internal" href="struct/nw__ConfigOptions.html">nw::ConfigOptions</a></li>
-<li class="toctree-l2"><a class="reference internal" href="struct/nw__Constant.html">nw::Constant</a></li>
-<li class="toctree-l2"><a class="reference internal" href="struct/nw__ConstantRegistry.html">nw::ConstantRegistry</a></li>
 <li class="toctree-l2"><a class="reference internal" href="struct/nw__Container.html">nw::Container</a></li>
 <li class="toctree-l2"><a class="reference internal" href="struct/nw__Creature.html">nw::Creature</a></li>
 <li class="toctree-l2"><a class="reference internal" href="struct/nw__CreatureScripts.html">nw::CreatureScripts</a></li>
@@ -114,8 +112,11 @@
 <li class="toctree-l2"><a class="reference internal" href="struct/nw__GffOutputArchiveStruct.html">nw::GffOutputArchiveStruct</a></li>
 <li class="toctree-l2"><a class="reference internal" href="struct/nw__GffStructEntry.html">nw::GffStructEntry</a></li>
 <li class="toctree-l2"><a class="reference internal" href="struct/nw__Image.html">nw::Image</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct/nw__Index.html">nw::Index</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct/nw__IndexRegistry.html">nw::IndexRegistry</a></li>
 <li class="toctree-l2"><a class="reference internal" href="struct/nw__Ini.html">nw::Ini</a></li>
 <li class="toctree-l2"><a class="reference internal" href="struct/nw__InstallInfo.html">nw::InstallInfo</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct/nw__InternedString.html">nw::InternedString</a></li>
 <li class="toctree-l2"><a class="reference internal" href="struct/nw__Inventory.html">nw::Inventory</a></li>
 <li class="toctree-l2"><a class="reference internal" href="struct/nw__InventoryItem.html">nw::InventoryItem</a></li>
 <li class="toctree-l2"><a class="reference internal" href="struct/nw__Item.html">nw::Item</a></li>
@@ -186,15 +187,13 @@
 <li class="toctree-l2"><a class="reference internal" href="struct/nw__TwoDA.html">nw::TwoDA</a></li>
 <li class="toctree-l2"><a class="reference internal" href="struct/nw__TwoDACache.html">nw::TwoDACache</a></li>
 <li class="toctree-l2"><a class="reference internal" href="struct/nw__Variant.html">nw::Variant</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct/nw__Versus.html">nw::Versus</a></li>
 <li class="toctree-l2"><a class="reference internal" href="struct/nw__Waypoint.html">nw::Waypoint</a></li>
 <li class="toctree-l2"><a class="reference internal" href="struct/nw__Zip.html">nw::Zip</a></li>
 <li class="toctree-l2"><a class="reference internal" href="struct/nw__ZipElement.html">nw::ZipElement</a></li>
 <li class="toctree-l2"><a class="reference internal" href="struct/nw__ZlibHeader.html">nw::ZlibHeader</a></li>
 <li class="toctree-l2"><a class="reference internal" href="struct/nw__ZstdHeader.html">nw::ZstdHeader</a></li>
 <li class="toctree-l2"><a class="reference internal" href="struct/nw__kernel__Config.html">nw::kernel::Config</a></li>
-<li class="toctree-l2"><a class="reference internal" href="struct/nw__kernel__InternedString.html">nw::kernel::InternedString</a></li>
-<li class="toctree-l2"><a class="reference internal" href="struct/nw__kernel__InternedStringEq.html">nw::kernel::InternedStringEq</a></li>
-<li class="toctree-l2"><a class="reference internal" href="struct/nw__kernel__InternedStringHash.html">nw::kernel::InternedStringHash</a></li>
 <li class="toctree-l2"><a class="reference internal" href="struct/nw__kernel__ObjectSystem.html">nw::kernel::ObjectSystem</a></li>
 <li class="toctree-l2"><a class="reference internal" href="struct/nw__kernel__Resources.html">nw::kernel::Resources</a></li>
 <li class="toctree-l2"><a class="reference internal" href="struct/nw__kernel__Rules.html">nw::kernel::Rules</a></li>
@@ -291,10 +290,9 @@
            <div itemprop="articleBody">
              
   <section id="classes">
-<h1>classes<a class="headerlink" href="#classes" title="Permalink to this headline"></a></h1>
+<h1>classes<a class="headerlink" href="#classes" title="Permalink to this heading"></a></h1>
 <div class="toctree-wrapper compound">
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="class/nw__scope_exit.html">nw::scope_exit</a></li>
 <li class="toctree-l1"><a class="reference internal" href="struct/nw__Ability.html">nw::Ability</a></li>
 <li class="toctree-l1"><a class="reference internal" href="struct/nw__AbilityArray.html">nw::AbilityArray</a></li>
 <li class="toctree-l1"><a class="reference internal" href="struct/nw__Appearance.html">nw::Appearance</a></li>
@@ -316,8 +314,6 @@
 <li class="toctree-l1"><a class="reference internal" href="struct/nw__Common.html">nw::Common</a></li>
 <li class="toctree-l1"><a class="reference internal" href="struct/nw__CompressionHeader.html">nw::CompressionHeader</a></li>
 <li class="toctree-l1"><a class="reference internal" href="struct/nw__ConfigOptions.html">nw::ConfigOptions</a></li>
-<li class="toctree-l1"><a class="reference internal" href="struct/nw__Constant.html">nw::Constant</a></li>
-<li class="toctree-l1"><a class="reference internal" href="struct/nw__ConstantRegistry.html">nw::ConstantRegistry</a></li>
 <li class="toctree-l1"><a class="reference internal" href="struct/nw__Container.html">nw::Container</a></li>
 <li class="toctree-l1"><a class="reference internal" href="struct/nw__Creature.html">nw::Creature</a></li>
 <li class="toctree-l1"><a class="reference internal" href="struct/nw__CreatureScripts.html">nw::CreatureScripts</a></li>
@@ -356,8 +352,11 @@
 <li class="toctree-l1"><a class="reference internal" href="struct/nw__GffOutputArchiveStruct.html">nw::GffOutputArchiveStruct</a></li>
 <li class="toctree-l1"><a class="reference internal" href="struct/nw__GffStructEntry.html">nw::GffStructEntry</a></li>
 <li class="toctree-l1"><a class="reference internal" href="struct/nw__Image.html">nw::Image</a></li>
+<li class="toctree-l1"><a class="reference internal" href="struct/nw__Index.html">nw::Index</a></li>
+<li class="toctree-l1"><a class="reference internal" href="struct/nw__IndexRegistry.html">nw::IndexRegistry</a></li>
 <li class="toctree-l1"><a class="reference internal" href="struct/nw__Ini.html">nw::Ini</a></li>
 <li class="toctree-l1"><a class="reference internal" href="struct/nw__InstallInfo.html">nw::InstallInfo</a></li>
+<li class="toctree-l1"><a class="reference internal" href="struct/nw__InternedString.html">nw::InternedString</a></li>
 <li class="toctree-l1"><a class="reference internal" href="struct/nw__Inventory.html">nw::Inventory</a></li>
 <li class="toctree-l1"><a class="reference internal" href="struct/nw__InventoryItem.html">nw::InventoryItem</a></li>
 <li class="toctree-l1"><a class="reference internal" href="struct/nw__Item.html">nw::Item</a></li>
@@ -428,15 +427,13 @@
 <li class="toctree-l1"><a class="reference internal" href="struct/nw__TwoDA.html">nw::TwoDA</a></li>
 <li class="toctree-l1"><a class="reference internal" href="struct/nw__TwoDACache.html">nw::TwoDACache</a></li>
 <li class="toctree-l1"><a class="reference internal" href="struct/nw__Variant.html">nw::Variant</a></li>
+<li class="toctree-l1"><a class="reference internal" href="struct/nw__Versus.html">nw::Versus</a></li>
 <li class="toctree-l1"><a class="reference internal" href="struct/nw__Waypoint.html">nw::Waypoint</a></li>
 <li class="toctree-l1"><a class="reference internal" href="struct/nw__Zip.html">nw::Zip</a></li>
 <li class="toctree-l1"><a class="reference internal" href="struct/nw__ZipElement.html">nw::ZipElement</a></li>
 <li class="toctree-l1"><a class="reference internal" href="struct/nw__ZlibHeader.html">nw::ZlibHeader</a></li>
 <li class="toctree-l1"><a class="reference internal" href="struct/nw__ZstdHeader.html">nw::ZstdHeader</a></li>
 <li class="toctree-l1"><a class="reference internal" href="struct/nw__kernel__Config.html">nw::kernel::Config</a></li>
-<li class="toctree-l1"><a class="reference internal" href="struct/nw__kernel__InternedString.html">nw::kernel::InternedString</a></li>
-<li class="toctree-l1"><a class="reference internal" href="struct/nw__kernel__InternedStringEq.html">nw::kernel::InternedStringEq</a></li>
-<li class="toctree-l1"><a class="reference internal" href="struct/nw__kernel__InternedStringHash.html">nw::kernel::InternedStringHash</a></li>
 <li class="toctree-l1"><a class="reference internal" href="struct/nw__kernel__ObjectSystem.html">nw::kernel::ObjectSystem</a></li>
 <li class="toctree-l1"><a class="reference internal" href="struct/nw__kernel__Resources.html">nw::kernel::Resources</a></li>
 <li class="toctree-l1"><a class="reference internal" href="struct/nw__kernel__Rules.html">nw::kernel::Rules</a></li>
@@ -488,7 +485,7 @@
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="../structure/util.html" class="btn btn-neutral float-left" title="util" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="class/nw__scope_exit.html" class="btn btn-neutral float-right" title="nw::scope_exit" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="struct/nw__Ability.html" class="btn btn-neutral float-right" title="nw::Ability" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

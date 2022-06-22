@@ -14,6 +14,7 @@
         <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
         <script src="_static/jquery.js"></script>
         <script src="_static/underscore.js"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="_static/doctools.js"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
@@ -105,7 +106,7 @@
   <p><a class="reference external" href="https://opensource.org/licenses/MIT"><img alt="License: MIT" src="https://img.shields.io/badge/License-MIT-yellow.svg" /></a> <a class="reference external" href="https://github.com/jd28/libnw/actions?query=workflow%3Alinux"><img alt="linux" src="https://github.com/jd28/libnw/actions/workflows/linux.yml/badge.svg" /></a> <a class="reference external" href="https://github.com/jd28/libnw/actions?query=workflow%3Amacos"><img alt="macos" src="https://github.com/jd28/libnw/actions/workflows/macos.yml/badge.svg" /></a> <a class="reference external" href="https://github.com/jd28/libnw/actions?query=workflow%3Awindows"><img alt="windows" src="https://github.com/jd28/libnw/actions/workflows/windows.yml/badge.svg" /></a> <a class="reference external" href="https://lgtm.com/projects/g/jd28/libnw/context:cpp"><img alt="Language grade: C/C++" src="https://img.shields.io/lgtm/grade/cpp/g/jd28/libnw.svg?logo=lgtm&amp;logoWidth=18" /></a>
 <a class="reference external" href="https://github.com/jd28/libnw/actions/workflows/codeql-analysis.yml"><img alt="CodeQL" src="https://github.com/jd28/libnw/actions/workflows/codeql-analysis.yml/badge.svg" /></a> <a class="reference external" href="https://codecov.io/gh/jd28/libnw"><img alt="codecov" src="https://codecov.io/gh/jd28/libnw/branch/main/graph/badge.svg?token=79PNROEEUU" /></a></p>
 <section id="libnw">
-<h1>libnw<a class="headerlink" href="#libnw" title="Permalink to this headline"></a></h1>
+<h1>libnw<a class="headerlink" href="#libnw" title="Permalink to this heading"></a></h1>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">We</span> <span class="n">shall</span> <span class="ow">not</span> <span class="n">cease</span> <span class="kn">from</span> <span class="nn">exploration</span>
 <span class="n">And</span> <span class="n">the</span> <span class="n">end</span> <span class="n">of</span> <span class="nb">all</span> <span class="n">our</span> <span class="n">exploring</span>
 <span class="n">Will</span> <span class="n">be</span> <span class="n">to</span> <span class="n">arrive</span> <span class="n">where</span> <span class="n">we</span> <span class="n">started</span>
@@ -131,14 +132,14 @@ named
 <a class="reference external" href="https://sourceforge.net/projects/openknights/files/libnw/">libnw</a>.</p>
 <hr class="docutils" />
 <section id="quickstart-open-vs-code-in-your-browser">
-<h2>Quickstart - Open VS Code in your Browser<a class="headerlink" href="#quickstart-open-vs-code-in-your-browser" title="Permalink to this headline"></a></h2>
+<h2>Quickstart - Open VS Code in your Browser<a class="headerlink" href="#quickstart-open-vs-code-in-your-browser" title="Permalink to this heading"></a></h2>
 <p><a class="reference external" href="https://gitpod.io/#https://github.com/jd28/libnw"><img alt="Open in Gitpod" src="https://gitpod.io/button/open-in-gitpod.svg" /></a></p>
 <p><a class="reference external" href="https://github.com/features/codespaces">Github Codespaces</a> is
 available to those in the beta.</p>
 </section>
 <hr class="docutils" />
 <section id="building">
-<h2>Building<a class="headerlink" href="#building" title="Permalink to this headline"></a></h2>
+<h2>Building<a class="headerlink" href="#building" title="Permalink to this heading"></a></h2>
 <p>libnw uses cmake as its build system and more specifically
 <a class="reference external" href="https://cmake.org/cmake/help/latest/manual/cmake-presets.7.html">CMakePresets.json</a>.</p>
 <p>Install <a class="reference external" href="https://github.com/microsoft/vcpkg">vcpkg</a>. Note that
@@ -158,7 +159,7 @@ $ ctest --preset default
 </div>
 </section>
 <section id="using">
-<h2>Using<a class="headerlink" href="#using" title="Permalink to this headline"></a></h2>
+<h2>Using<a class="headerlink" href="#using" title="Permalink to this heading"></a></h2>
 <p>While the library is far from done, basic usage would be as follows.</p>
 <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;nw/kernel/Kernel.hpp&gt;</span><span class="cp"></span>
 <span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;nw/log.hpp&gt;</span><span class="cp"></span>
@@ -192,7 +193,7 @@ $ ctest --preset default
 </section>
 <hr class="docutils" />
 <section id="history">
-<h2>History<a class="headerlink" href="#history" title="Permalink to this headline"></a></h2>
+<h2>History<a class="headerlink" href="#history" title="Permalink to this heading"></a></h2>
 <p>A lot of what’s here was written in the 2011-2015 range as part of
 personal minimalist toolset, modernized and with new EE stuff added. In
 some sense, it’s a work of historical fiction – it’s what I’d have
@@ -204,7 +205,7 @@ that was pretty positive: a decade ahead, at least, of nwscript.</p>
 </section>
 <hr class="docutils" />
 <section id="general-warning">
-<h2>General Warning<a class="headerlink" href="#general-warning" title="Permalink to this headline"></a></h2>
+<h2>General Warning<a class="headerlink" href="#general-warning" title="Permalink to this heading"></a></h2>
 <p>This library is a work-in-progress. There will be serious refactorings
 and until there is a real release, it should be assumed the library is
 in flux.</p>
@@ -215,7 +216,7 @@ box.</p>
 </section>
 <hr class="docutils" />
 <section id="moonshots">
-<h2>Moonshots<a class="headerlink" href="#moonshots" title="Permalink to this headline"></a></h2>
+<h2>Moonshots<a class="headerlink" href="#moonshots" title="Permalink to this heading"></a></h2>
 <p>You make ask yourself, why? But, to paraphrase Tennyson, ours isn’t to
 question why, it’s but to do and die and learn and maybe make neat
 things. In that spirit, here is a list of crazy projects that this
@@ -230,7 +231,7 @@ plugins, scripting, and a built-in console.</p></li>
 </section>
 <hr class="docutils" />
 <section id="credits">
-<h2>Credits<a class="headerlink" href="#credits" title="Permalink to this headline"></a></h2>
+<h2>Credits<a class="headerlink" href="#credits" title="Permalink to this heading"></a></h2>
 <ul class="simple">
 <li><p><a class="reference external" href="https://bioware.com">Bioware</a>, <a class="reference external" href="https://beamdog.com">Beamdog</a>
 - The game itself</p></li>

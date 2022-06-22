@@ -14,6 +14,7 @@
         <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
         <script src="../../_static/jquery.js"></script>
         <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="../../_static/doctools.js"></script>
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
@@ -52,7 +53,6 @@
 <p class="caption" role="heading"><span class="caption-text">c++ api</span></p>
 <ul class="current">
 <li class="toctree-l1 current"><a class="reference internal" href="../classlist.html">classes</a><ul class="current">
-<li class="toctree-l2"><a class="reference internal" href="../class/nw__scope_exit.html">nw::scope_exit</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Ability.html">nw::Ability</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__AbilityArray.html">nw::AbilityArray</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Appearance.html">nw::Appearance</a></li>
@@ -74,8 +74,6 @@
 <li class="toctree-l2"><a class="reference internal" href="nw__Common.html">nw::Common</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__CompressionHeader.html">nw::CompressionHeader</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__ConfigOptions.html">nw::ConfigOptions</a></li>
-<li class="toctree-l2"><a class="reference internal" href="nw__Constant.html">nw::Constant</a></li>
-<li class="toctree-l2"><a class="reference internal" href="nw__ConstantRegistry.html">nw::ConstantRegistry</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Container.html">nw::Container</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Creature.html">nw::Creature</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__CreatureScripts.html">nw::CreatureScripts</a></li>
@@ -114,8 +112,11 @@
 <li class="toctree-l2"><a class="reference internal" href="nw__GffOutputArchiveStruct.html">nw::GffOutputArchiveStruct</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__GffStructEntry.html">nw::GffStructEntry</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Image.html">nw::Image</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Index.html">nw::Index</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__IndexRegistry.html">nw::IndexRegistry</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Ini.html">nw::Ini</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__InstallInfo.html">nw::InstallInfo</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__InternedString.html">nw::InternedString</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Inventory.html">nw::Inventory</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__InventoryItem.html">nw::InventoryItem</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Item.html">nw::Item</a></li>
@@ -186,15 +187,13 @@
 <li class="toctree-l2"><a class="reference internal" href="nw__TwoDA.html">nw::TwoDA</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__TwoDACache.html">nw::TwoDACache</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Variant.html">nw::Variant</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Versus.html">nw::Versus</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Waypoint.html">nw::Waypoint</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Zip.html">nw::Zip</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__ZipElement.html">nw::ZipElement</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__ZlibHeader.html">nw::ZlibHeader</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__ZstdHeader.html">nw::ZstdHeader</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__kernel__Config.html">nw::kernel::Config</a></li>
-<li class="toctree-l2"><a class="reference internal" href="nw__kernel__InternedString.html">nw::kernel::InternedString</a></li>
-<li class="toctree-l2"><a class="reference internal" href="nw__kernel__InternedStringEq.html">nw::kernel::InternedStringEq</a></li>
-<li class="toctree-l2"><a class="reference internal" href="nw__kernel__InternedStringHash.html">nw::kernel::InternedStringHash</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__kernel__ObjectSystem.html">nw::kernel::ObjectSystem</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__kernel__Resources.html">nw::kernel::Resources</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__kernel__Rules.html">nw::kernel::Rules</a></li>
@@ -292,17 +291,12 @@
            <div itemprop="articleBody">
              
   <section id="nw-class">
-<h1>nw::Class<a class="headerlink" href="#nw-class" title="Permalink to this headline"></a></h1>
+<h1>nw::Class<a class="headerlink" href="#nw-class" title="Permalink to this heading"></a></h1>
 <dl class="cpp struct">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw5ClassE">
-<span id="_CPPv3N2nw5ClassE"></span><span id="_CPPv2N2nw5ClassE"></span><span id="nw::Class"></span><span class="target" id="structnw_1_1_class"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">nw</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">Class</span></span></span><a class="headerlink" href="#_CPPv4N2nw5ClassE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw5ClassE"></span><span id="_CPPv2N2nw5ClassE"></span><span id="nw::Class"></span><span class="target" id="structnw_1_1_class"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Class</span></span></span><a class="headerlink" href="#_CPPv4N2nw5ClassE" title="Permalink to this definition"></a><br /></dt>
 <dd><div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
-<dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N2nw5Class18meets_requirementsERK8Creature">
-<span id="_CPPv3N2nw5Class18meets_requirementsERK8Creature"></span><span id="_CPPv2N2nw5Class18meets_requirementsERK8Creature"></span><span id="nw::Class::meets_requirements__CreatureCR"></span><span class="target" id="structnw_1_1_class_1adb1ae0dd22f65a9b66b1642848d9b1b1"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">meets_requirements</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="nw__Creature.html#_CPPv4N2nw8CreatureE" title="nw::Creature"><span class="n"><span class="pre">Creature</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">cre</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw5Class18meets_requirementsERK8Creature" title="Permalink to this definition"></a><br /></dt>
-<dd></dd></dl>
-
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4NK2nw5ClasscvbEv">
 <span id="_CPPv3NK2nw5ClasscvbEv"></span><span id="_CPPv2NK2nw5ClasscvbEv"></span><span id="nw::Class::castto-b-operatorC"></span><span class="target" id="structnw_1_1_class_1a39e017a8947e7254a1bd4f473a61a701"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="k"><span class="pre">noexcept</span></span><a class="headerlink" href="#_CPPv4NK2nw5ClasscvbEv" title="Permalink to this definition"></a><br /></dt>
@@ -311,6 +305,11 @@
 </div>
 <div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw5Class12requirementsE">
+<span id="_CPPv3N2nw5Class12requirementsE"></span><span id="_CPPv2N2nw5Class12requirementsE"></span><span id="nw::Class::requirements__Requirement"></span><span class="target" id="structnw_1_1_class_1a2250259c7e01b81bece9b60a01ef95d7"></span><a class="reference internal" href="nw__Requirement.html#_CPPv4N2nw11RequirementE" title="nw::Requirement"><span class="n"><span class="pre">Requirement</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">requirements</span></span></span><a class="headerlink" href="#_CPPv4N2nw5Class12requirementsE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw5Class4nameE">
 <span id="_CPPv3N2nw5Class4nameE"></span><span id="_CPPv2N2nw5Class4nameE"></span><span id="nw::Class::name__uint32_t"></span><span class="target" id="structnw_1_1_class_1a95e0e1f1991cf22fdfecfe742323d41c"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">name</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0xFFFFFFFF</span></span><a class="headerlink" href="#_CPPv4N2nw5Class4nameE" title="Permalink to this definition"></a><br /></dt>
@@ -412,8 +411,8 @@
 <dd></dd></dl>
 
 <dl class="cpp var">
-<dt class="sig sig-object cpp" id="_CPPv4N2nw5Class8constantE">
-<span id="_CPPv3N2nw5Class8constantE"></span><span id="_CPPv2N2nw5Class8constantE"></span><span id="nw::Class::constant__Constant"></span><span class="target" id="structnw_1_1_class_1ae9dc91cb9b948eb7f4db250f5aedb376"></span><a class="reference internal" href="nw__Constant.html#_CPPv4N2nw8ConstantE" title="nw::Constant"><span class="n"><span class="pre">Constant</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">constant</span></span></span><a class="headerlink" href="#_CPPv4N2nw5Class8constantE" title="Permalink to this definition"></a><br /></dt>
+<dt class="sig sig-object cpp" id="_CPPv4N2nw5Class5indexE">
+<span id="_CPPv3N2nw5Class5indexE"></span><span id="_CPPv2N2nw5Class5indexE"></span><span id="nw::Class::index__Index"></span><span class="target" id="structnw_1_1_class_1aefd46b53b51bb17f670c3fb07cecca8e"></span><a class="reference internal" href="nw__Index.html#_CPPv4N2nw5IndexE" title="nw::Index"><span class="n"><span class="pre">Index</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">index</span></span></span><a class="headerlink" href="#_CPPv4N2nw5Class5indexE" title="Permalink to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">

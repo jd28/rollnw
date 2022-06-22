@@ -14,12 +14,13 @@
         <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
         <script src="../../_static/jquery.js"></script>
         <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="../../_static/doctools.js"></script>
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
     <link rel="next" title="nw::Creature" href="nw__Creature.html" />
-    <link rel="prev" title="nw::ConstantRegistry" href="nw__ConstantRegistry.html" /> 
+    <link rel="prev" title="nw::ConfigOptions" href="nw__ConfigOptions.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -52,7 +53,6 @@
 <p class="caption" role="heading"><span class="caption-text">c++ api</span></p>
 <ul class="current">
 <li class="toctree-l1 current"><a class="reference internal" href="../classlist.html">classes</a><ul class="current">
-<li class="toctree-l2"><a class="reference internal" href="../class/nw__scope_exit.html">nw::scope_exit</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Ability.html">nw::Ability</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__AbilityArray.html">nw::AbilityArray</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Appearance.html">nw::Appearance</a></li>
@@ -74,8 +74,6 @@
 <li class="toctree-l2"><a class="reference internal" href="nw__Common.html">nw::Common</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__CompressionHeader.html">nw::CompressionHeader</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__ConfigOptions.html">nw::ConfigOptions</a></li>
-<li class="toctree-l2"><a class="reference internal" href="nw__Constant.html">nw::Constant</a></li>
-<li class="toctree-l2"><a class="reference internal" href="nw__ConstantRegistry.html">nw::ConstantRegistry</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">nw::Container</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Creature.html">nw::Creature</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__CreatureScripts.html">nw::CreatureScripts</a></li>
@@ -114,8 +112,11 @@
 <li class="toctree-l2"><a class="reference internal" href="nw__GffOutputArchiveStruct.html">nw::GffOutputArchiveStruct</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__GffStructEntry.html">nw::GffStructEntry</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Image.html">nw::Image</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Index.html">nw::Index</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__IndexRegistry.html">nw::IndexRegistry</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Ini.html">nw::Ini</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__InstallInfo.html">nw::InstallInfo</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__InternedString.html">nw::InternedString</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Inventory.html">nw::Inventory</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__InventoryItem.html">nw::InventoryItem</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Item.html">nw::Item</a></li>
@@ -186,15 +187,13 @@
 <li class="toctree-l2"><a class="reference internal" href="nw__TwoDA.html">nw::TwoDA</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__TwoDACache.html">nw::TwoDACache</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Variant.html">nw::Variant</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Versus.html">nw::Versus</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Waypoint.html">nw::Waypoint</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Zip.html">nw::Zip</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__ZipElement.html">nw::ZipElement</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__ZlibHeader.html">nw::ZlibHeader</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__ZstdHeader.html">nw::ZstdHeader</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__kernel__Config.html">nw::kernel::Config</a></li>
-<li class="toctree-l2"><a class="reference internal" href="nw__kernel__InternedString.html">nw::kernel::InternedString</a></li>
-<li class="toctree-l2"><a class="reference internal" href="nw__kernel__InternedStringEq.html">nw::kernel::InternedStringEq</a></li>
-<li class="toctree-l2"><a class="reference internal" href="nw__kernel__InternedStringHash.html">nw::kernel::InternedStringHash</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__kernel__ObjectSystem.html">nw::kernel::ObjectSystem</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__kernel__Resources.html">nw::kernel::Resources</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__kernel__Rules.html">nw::kernel::Rules</a></li>
@@ -292,10 +291,10 @@
            <div itemprop="articleBody">
              
   <section id="nw-container">
-<h1>nw::Container<a class="headerlink" href="#nw-container" title="Permalink to this headline"></a></h1>
+<h1>nw::Container<a class="headerlink" href="#nw-container" title="Permalink to this heading"></a></h1>
 <dl class="cpp struct">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw9ContainerE">
-<span id="_CPPv3N2nw9ContainerE"></span><span id="_CPPv2N2nw9ContainerE"></span><span id="nw::Container"></span><span class="target" id="structnw_1_1_container"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">nw</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">Container</span></span></span><a class="headerlink" href="#_CPPv4N2nw9ContainerE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw9ContainerE"></span><span id="_CPPv2N2nw9ContainerE"></span><span id="nw::Container"></span><span class="target" id="structnw_1_1_container"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Container</span></span></span><a class="headerlink" href="#_CPPv4N2nw9ContainerE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Base class for all containers. </p>
 <p>Subclassed by <a class="reference internal" href="nw__Directory.html#structnw_1_1_directory"><span class="std std-ref">nw::Directory</span></a>, <a class="reference internal" href="nw__Erf.html#structnw_1_1_erf"><span class="std std-ref">nw::Erf</span></a>, <a class="reference internal" href="nw__kernel__Resources.html#structnw_1_1kernel_1_1_resources"><span class="std std-ref">nw::kernel::Resources</span></a>, <a class="reference internal" href="nw__Key.html#structnw_1_1_key"><span class="std std-ref">nw::Key</span></a>, <a class="reference internal" href="nw__NWSyncManifest.html#structnw_1_1_n_w_sync_manifest"><span class="std std-ref">nw::NWSyncManifest</span></a>, <a class="reference internal" href="nw__Zip.html#structnw_1_1_zip"><span class="std std-ref">nw::Zip</span></a></p>
 <div class="breathe-sectiondef docutils container">
@@ -385,7 +384,7 @@
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="nw__ConstantRegistry.html" class="btn btn-neutral float-left" title="nw::ConstantRegistry" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="nw__ConfigOptions.html" class="btn btn-neutral float-left" title="nw::ConfigOptions" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
         <a href="nw__Creature.html" class="btn btn-neutral float-right" title="nw::Creature" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 

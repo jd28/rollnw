@@ -14,6 +14,7 @@
         <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
         <script src="../../_static/jquery.js"></script>
         <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="../../_static/doctools.js"></script>
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
@@ -52,7 +53,6 @@
 <p class="caption" role="heading"><span class="caption-text">c++ api</span></p>
 <ul class="current">
 <li class="toctree-l1 current"><a class="reference internal" href="../classlist.html">classes</a><ul class="current">
-<li class="toctree-l2"><a class="reference internal" href="../class/nw__scope_exit.html">nw::scope_exit</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Ability.html">nw::Ability</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__AbilityArray.html">nw::AbilityArray</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Appearance.html">nw::Appearance</a></li>
@@ -74,8 +74,6 @@
 <li class="toctree-l2"><a class="reference internal" href="nw__Common.html">nw::Common</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__CompressionHeader.html">nw::CompressionHeader</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__ConfigOptions.html">nw::ConfigOptions</a></li>
-<li class="toctree-l2"><a class="reference internal" href="nw__Constant.html">nw::Constant</a></li>
-<li class="toctree-l2"><a class="reference internal" href="nw__ConstantRegistry.html">nw::ConstantRegistry</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Container.html">nw::Container</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Creature.html">nw::Creature</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__CreatureScripts.html">nw::CreatureScripts</a></li>
@@ -114,8 +112,11 @@
 <li class="toctree-l2"><a class="reference internal" href="nw__GffOutputArchiveStruct.html">nw::GffOutputArchiveStruct</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__GffStructEntry.html">nw::GffStructEntry</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Image.html">nw::Image</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Index.html">nw::Index</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__IndexRegistry.html">nw::IndexRegistry</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Ini.html">nw::Ini</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__InstallInfo.html">nw::InstallInfo</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__InternedString.html">nw::InternedString</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Inventory.html">nw::Inventory</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__InventoryItem.html">nw::InventoryItem</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Item.html">nw::Item</a></li>
@@ -186,15 +187,13 @@
 <li class="toctree-l2"><a class="reference internal" href="nw__TwoDA.html">nw::TwoDA</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__TwoDACache.html">nw::TwoDACache</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Variant.html">nw::Variant</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Versus.html">nw::Versus</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Waypoint.html">nw::Waypoint</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Zip.html">nw::Zip</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__ZipElement.html">nw::ZipElement</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__ZlibHeader.html">nw::ZlibHeader</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__ZstdHeader.html">nw::ZstdHeader</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__kernel__Config.html">nw::kernel::Config</a></li>
-<li class="toctree-l2"><a class="reference internal" href="nw__kernel__InternedString.html">nw::kernel::InternedString</a></li>
-<li class="toctree-l2"><a class="reference internal" href="nw__kernel__InternedStringEq.html">nw::kernel::InternedStringEq</a></li>
-<li class="toctree-l2"><a class="reference internal" href="nw__kernel__InternedStringHash.html">nw::kernel::InternedStringHash</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__kernel__ObjectSystem.html">nw::kernel::ObjectSystem</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__kernel__Resources.html">nw::kernel::Resources</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">nw::kernel::Rules</a></li>
@@ -292,12 +291,17 @@
            <div itemprop="articleBody">
              
   <section id="nw-kernel-rules">
-<h1>nw::kernel::Rules<a class="headerlink" href="#nw-kernel-rules" title="Permalink to this headline"></a></h1>
+<h1>nw::kernel::Rules<a class="headerlink" href="#nw-kernel-rules" title="Permalink to this heading"></a></h1>
 <dl class="cpp struct">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw6kernel5RulesE">
-<span id="_CPPv3N2nw6kernel5RulesE"></span><span id="_CPPv2N2nw6kernel5RulesE"></span><span id="nw::kernel::Rules"></span><span class="target" id="structnw_1_1kernel_1_1_rules"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">nw</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">kernel</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">Rules</span></span></span><a class="headerlink" href="#_CPPv4N2nw6kernel5RulesE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw6kernel5RulesE"></span><span id="_CPPv2N2nw6kernel5RulesE"></span><span id="nw::kernel::Rules"></span><span class="target" id="structnw_1_1kernel_1_1_rules"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Rules</span></span></span><a class="headerlink" href="#_CPPv4N2nw6kernel5RulesE" title="Permalink to this definition"></a><br /></dt>
 <dd><div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-types">Public Types</p>
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6kernel5Rules14qualifier_typeE">
+<span id="_CPPv3N2nw6kernel5Rules14qualifier_typeE"></span><span id="_CPPv2N2nw6kernel5Rules14qualifier_typeE"></span><span class="target" id="structnw_1_1kernel_1_1_rules_1a59821c997aeb9a1d2d5399966356246f"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">qualifier_type</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">bool</span></span><span class="p"><span class="pre">(</span></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="nw__Qualifier.html#_CPPv4N2nw9QualifierE" title="nw::Qualifier"><span class="n"><span class="pre">Qualifier</span></span></a><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">flecs</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">entity</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><a class="headerlink" href="#_CPPv4N2nw6kernel5Rules14qualifier_typeE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
 <dl class="cpp type">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw6kernel5Rules13selector_typeE">
 <span id="_CPPv3N2nw6kernel5Rules13selector_typeE"></span><span id="_CPPv2N2nw6kernel5Rules13selector_typeE"></span><span class="target" id="structnw_1_1kernel_1_1_rules_1a8bf069c64b343489a8df208d8aaf404e"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">selector_type</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="../typedef/nw__RuleValue.html#_CPPv4N2nw9RuleValueE" title="nw::RuleValue"><span class="n"><span class="pre">RuleValue</span></span></a><span class="p"><span class="pre">(</span></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="nw__Selector.html#_CPPv4N2nw8SelectorE" title="nw::Selector"><span class="n"><span class="pre">Selector</span></span></a><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">flecs</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">entity</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><a class="headerlink" href="#_CPPv4N2nw6kernel5Rules13selector_typeE" title="Permalink to this definition"></a><br /></dt>
@@ -314,7 +318,36 @@
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw6kernel5Rules10initializeEv">
 <span id="_CPPv3N2nw6kernel5Rules10initializeEv"></span><span id="_CPPv2N2nw6kernel5Rules10initializeEv"></span><span id="nw::kernel::Rules::initialize"></span><span class="target" id="structnw_1_1kernel_1_1_rules_1aa57c61917e838f35c9a2e09dfb34f59f"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">initialize</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6kernel5Rules10initializeEv" title="Permalink to this definition"></a><br /></dt>
-<dd></dd></dl>
+<dd><p>Intializes rules system. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6kernel5Rules3addE8Modifier">
+<span id="_CPPv3N2nw6kernel5Rules3addE8Modifier"></span><span id="_CPPv2N2nw6kernel5Rules3addE8Modifier"></span><span id="nw::kernel::Rules::add__Modifier"></span><span class="target" id="structnw_1_1kernel_1_1_rules_1ab22cc00770288d046800e9b1e01b592c"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">add</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">Modifier</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">mod</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6kernel5Rules3addE8Modifier" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Adds a modifier to the system. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4I0ENK2nw6kernel5Rules9calculateE1T12ModifierTypeN5flecs6entityE">
+<span id="_CPPv3I0ENK2nw6kernel5Rules9calculateE12ModifierTypeN5flecs6entityE"></span><span id="_CPPv2I0ENK2nw6kernel5Rules9calculateE12ModifierTypeN5flecs6entityE"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">T</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="structnw_1_1kernel_1_1_rules_1a085c17e63b881c98e18d5733c48a22d8"></span><a class="reference internal" href="#_CPPv4I0ENK2nw6kernel5Rules9calculateE1T12ModifierTypeN5flecs6entityE" title="nw::kernel::Rules::calculate::T"><span class="n"><span class="pre">T</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">calculate</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">ModifierType</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">type</span></span>, <span class="n"><span class="pre">flecs</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">entity</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">ent</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4I0ENK2nw6kernel5Rules9calculateE1T12ModifierTypeN5flecs6entityE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Calculates all modifiers of <code class="docutils literal notranslate"><span class="pre">type</span></code> </p>
+<dl class="field-list simple">
+<dt class="field-odd">Template Parameters</dt>
+<dd class="field-odd"><p><strong>T</strong> – is <code class="docutils literal notranslate"><span class="pre">int</span></code> or <code class="docutils literal notranslate"><span class="pre">float</span></code> </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4I0ENK2nw6kernel5Rules9calculateE1TRK8ModifierKN5flecs6entityE">
+<span id="_CPPv3I0ENK2nw6kernel5Rules9calculateERK8ModifierKN5flecs6entityE"></span><span id="_CPPv2I0ENK2nw6kernel5Rules9calculateERK8ModifierKN5flecs6entityE"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">T</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="structnw_1_1kernel_1_1_rules_1a09a08d93f4c656f4a837bc5bd5ebbb0f"></span><a class="reference internal" href="#_CPPv4I0ENK2nw6kernel5Rules9calculateE1TRK8ModifierKN5flecs6entityE" title="nw::kernel::Rules::calculate::T"><span class="n"><span class="pre">T</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">calculate</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">Modifier</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">mod</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">flecs</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">entity</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">ent</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4I0ENK2nw6kernel5Rules9calculateE1TRK8ModifierKN5flecs6entityE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Calculates a modifier. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Template Parameters</dt>
+<dd class="field-odd"><p><strong>T</strong> – is <code class="docutils literal notranslate"><span class="pre">int</span></code> or <code class="docutils literal notranslate"><span class="pre">float</span></code> </p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw6kernel5Rules5clearEv">
@@ -323,9 +356,75 @@
 </dd></dl>
 
 <dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK2nw6kernel5Rules5matchERK9QualifierKN5flecs6entityE">
+<span id="_CPPv3NK2nw6kernel5Rules5matchERK9QualifierKN5flecs6entityE"></span><span id="_CPPv2NK2nw6kernel5Rules5matchERK9QualifierKN5flecs6entityE"></span><span id="nw::kernel::Rules::match__QualifierCR.flecs::entityCC"></span><span class="target" id="structnw_1_1kernel_1_1_rules_1a42bd403642092778a697519b15b42fde"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">match</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="nw__Qualifier.html#_CPPv4N2nw9QualifierE" title="nw::Qualifier"><span class="n"><span class="pre">Qualifier</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">qual</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">flecs</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">entity</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">ent</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK2nw6kernel5Rules5matchERK9QualifierKN5flecs6entityE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Match. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK2nw6kernel5Rules17meets_requirementERK11RequirementKN5flecs6entityE">
+<span id="_CPPv3NK2nw6kernel5Rules17meets_requirementERK11RequirementKN5flecs6entityE"></span><span id="_CPPv2NK2nw6kernel5Rules17meets_requirementERK11RequirementKN5flecs6entityE"></span><span id="nw::kernel::Rules::meets_requirement__RequirementCR.flecs::entityCC"></span><span class="target" id="structnw_1_1kernel_1_1_rules_1a32ac7cceca2d6faf4ffb69532d3e39e6"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">meets_requirement</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="nw__Requirement.html#_CPPv4N2nw11RequirementE" title="nw::Requirement"><span class="n"><span class="pre">Requirement</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">req</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">flecs</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">entity</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">ent</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK2nw6kernel5Rules17meets_requirementERK11RequirementKN5flecs6entityE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Meets requirements. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6kernel5Rules6removeENSt11string_viewE">
+<span id="_CPPv3N2nw6kernel5Rules6removeENSt11string_viewE"></span><span id="_CPPv2N2nw6kernel5Rules6removeENSt11string_viewE"></span><span id="nw::kernel::Rules::remove__std::string_view"></span><span class="target" id="structnw_1_1kernel_1_1_rules_1a9d2edcc81bcd5d8d7b56c63e4438fc64"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">remove</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">tag</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6kernel5Rules6removeENSt11string_viewE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Removes modifiers by tag. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>tag</strong> – if <code class="docutils literal notranslate"><span class="pre">string_view</span></code> ends with ‘*’ then matches any tag that starts with <code class="docutils literal notranslate"><span class="pre">tag</span></code> </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>int number of modifiers affected </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6kernel5Rules7replaceENSt11string_viewE15ModifierVariant">
+<span id="_CPPv3N2nw6kernel5Rules7replaceENSt11string_viewE15ModifierVariant"></span><span id="_CPPv2N2nw6kernel5Rules7replaceENSt11string_viewE15ModifierVariant"></span><span id="nw::kernel::Rules::replace__std::string_view.ModifierVariant"></span><span class="target" id="structnw_1_1kernel_1_1_rules_1addba7a4ed15b5d269096553e4f98a049"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">replace</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">tag</span></span>, <span class="n"><span class="pre">ModifierVariant</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">value</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6kernel5Rules7replaceENSt11string_viewE15ModifierVariant" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Replace modifier value. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>tag</strong> – if <code class="docutils literal notranslate"><span class="pre">string_view</span></code> ends with ‘*’ then matches any tag that starts with <code class="docutils literal notranslate"><span class="pre">tag</span></code> </p></li>
+<li><p><strong>value</strong> – new value </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>int number of modifiers affected </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6kernel5Rules7replaceENSt11string_viewE11Requirement">
+<span id="_CPPv3N2nw6kernel5Rules7replaceENSt11string_viewE11Requirement"></span><span id="_CPPv2N2nw6kernel5Rules7replaceENSt11string_viewE11Requirement"></span><span id="nw::kernel::Rules::replace__std::string_view.Requirement"></span><span class="target" id="structnw_1_1kernel_1_1_rules_1a628d5450bf36bfd1e056e18821a8eed2"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">replace</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">tag</span></span>, <a class="reference internal" href="nw__Requirement.html#_CPPv4N2nw11RequirementE" title="nw::Requirement"><span class="n"><span class="pre">Requirement</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">req</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6kernel5Rules7replaceENSt11string_viewE11Requirement" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Replace modifier requirement. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>tag</strong> – if <code class="docutils literal notranslate"><span class="pre">string_view</span></code> ends with ‘*’ then matches any tag that starts with <code class="docutils literal notranslate"><span class="pre">tag</span></code> </p></li>
+<li><p><strong>req</strong> – new requirement </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>int number of modifiers affected </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4NK2nw6kernel5Rules6selectERK8SelectorKN5flecs6entityE">
 <span id="_CPPv3NK2nw6kernel5Rules6selectERK8SelectorKN5flecs6entityE"></span><span id="_CPPv2NK2nw6kernel5Rules6selectERK8SelectorKN5flecs6entityE"></span><span id="nw::kernel::Rules::select__SelectorCR.flecs::entityCC"></span><span class="target" id="structnw_1_1kernel_1_1_rules_1a5ce4b0db8a5f72216612255df7549b1b"></span><a class="reference internal" href="../typedef/nw__RuleValue.html#_CPPv4N2nw9RuleValueE" title="nw::RuleValue"><span class="n"><span class="pre">RuleValue</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">select</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="nw__Selector.html#_CPPv4N2nw8SelectorE" title="nw::Selector"><span class="n"><span class="pre">Selector</span></span></a><span class="p"><span class="pre">&amp;</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">flecs</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">entity</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK2nw6kernel5Rules6selectERK8SelectorKN5flecs6entityE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Select. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6kernel5Rules13set_qualifierE14qualifier_type">
+<span id="_CPPv3N2nw6kernel5Rules13set_qualifierE14qualifier_type"></span><span id="_CPPv2N2nw6kernel5Rules13set_qualifierE14qualifier_type"></span><span id="nw::kernel::Rules::set_qualifier__qualifier_type"></span><span class="target" id="structnw_1_1kernel_1_1_rules_1ac17d0b153ba4616f2d8ac086a10478b8"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_qualifier</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N2nw6kernel5Rules14qualifier_typeE" title="nw::kernel::Rules::qualifier_type"><span class="n"><span class="pre">qualifier_type</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">match</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6kernel5Rules13set_qualifierE14qualifier_type" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set rules qualifier. </p>
 </dd></dl>
 
 <dl class="cpp function">

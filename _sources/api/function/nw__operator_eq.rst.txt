@@ -1,9 +1,9 @@
 nw::operator==
 ==============
 
-.. doxygenfunction:: operator==(const Constant &lhs, const Constant &rhs)
-
 .. doxygenfunction:: operator==(const DiceRoll &lhs, const DiceRoll &rhs)
+
+.. doxygenfunction:: operator==(const Index &lhs, const Index &rhs)
 
 .. doxygenfunction:: operator==(const Null&, const Null&)
 
