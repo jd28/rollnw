@@ -86,7 +86,7 @@ void Services::shutdown()
 
 void Services::start(bool fail_hard)
 {
-    LIBNW_UNUSED(fail_hard);
+    ROLLNW_UNUSED(fail_hard);
 
     if (started_) {
         LOG_F(WARNING, "Services have already been started...");

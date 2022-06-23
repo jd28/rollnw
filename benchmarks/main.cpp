@@ -127,7 +127,7 @@ BENCHMARK(BM_creature_modifier);
 int main(int argc, char** argv)
 {
     bool probe = false;
-    const char* var = nowide::getenv("LIBNW_TEST_PROBE_INSTALL");
+    const char* var = nowide::getenv("ROLLNW_TEST_PROBE_INSTALL");
     if (var) {
         if (auto val = nw::string::from<bool>(var)) {
             probe = *val;

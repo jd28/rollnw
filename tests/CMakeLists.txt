@@ -23,7 +23,7 @@ add_custom_target(
 )
 
 # Need .cpp extension for ctest
-add_executable(libnw_test
+add_executable(rollnw_test
     main.cpp
 
     formats_image.cpp
@@ -76,17 +76,17 @@ add_executable(libnw_test
     util_tokenizer.cpp
 )
 
-target_include_directories(libnw_test PRIVATE ../lib)
+target_include_directories(rollnw_test PRIVATE ../lib)
 
-target_link_libraries(libnw_test PRIVATE
+target_link_libraries(rollnw_test PRIVATE
     nw
     flecs
     Threads::Threads
     Catch2::Catch2)
 
 if(CMAKE_HOST_UNIX)
-    target_link_libraries(libnw_test PRIVATE dl)
+    target_link_libraries(rollnw_test PRIVATE dl)
 endif()
 
 include(Catch)
-catch_discover_tests(libnw_test)
+catch_discover_tests(rollnw_test)

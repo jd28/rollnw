@@ -12,7 +12,7 @@ int main(int argc, char* argv[])
 {
     std::filesystem::create_directory("tmp");
     bool probe = false;
-    const char* var = nowide::getenv("LIBNW_TEST_PROBE_INSTALL");
+    const char* var = nowide::getenv("ROLLNW_TEST_PROBE_INSTALL");
     if (var) {
         if (auto val = nw::string::from<bool>(var)) {
             probe = *val;

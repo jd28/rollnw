@@ -178,7 +178,7 @@ nlohmann::json Tile::to_json() const
 bool Area::deserialize(flecs::entity ent, const GffInputArchiveStruct& are, const GffInputArchiveStruct& git, const GffInputArchiveStruct& gic)
 {
     // [TODO] Load this..
-    LIBNW_UNUSED(gic);
+    ROLLNW_UNUSED(gic);
 
     auto area = ent.get_mut<Area>();
     auto common = ent.get_mut<Common>();
@@ -253,7 +253,7 @@ bool Area::deserialize(flecs::entity ent, const nlohmann::json& are,
     const nlohmann::json& git, const nlohmann::json& gic)
 {
     // [TODO] Load this..
-    LIBNW_UNUSED(gic);
+    ROLLNW_UNUSED(gic);
 
     auto area = ent.get_mut<Area>();
     auto common = ent.get_mut<Common>();

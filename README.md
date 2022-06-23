@@ -1,12 +1,12 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![linux](https://github.com/jd28/libnw/actions/workflows/linux.yml/badge.svg)](https://github.com/jd28/libnw/actions?query=workflow%3Alinux)
-[![macos](https://github.com/jd28/libnw/actions/workflows/macos.yml/badge.svg)](https://github.com/jd28/libnw/actions?query=workflow%3Amacos)
-[![windows](https://github.com/jd28/libnw/actions/workflows/windows.yml/badge.svg)](https://github.com/jd28/libnw/actions?query=workflow%3Awindows)
-[![Language grade: C/C++](https://img.shields.io/lgtm/grade/cpp/g/jd28/libnw.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/jd28/libnw/context:cpp)
-[![CodeQL](https://github.com/jd28/libnw/actions/workflows/codeql-analysis.yml/badge.svg)](https://github.com/jd28/libnw/actions/workflows/codeql-analysis.yml)
-[![codecov](https://codecov.io/gh/jd28/libnw/branch/main/graph/badge.svg?token=79PNROEEUU)](https://codecov.io/gh/jd28/libnw)
+[![linux](https://github.com/jd28/rollnw/actions/workflows/linux.yml/badge.svg)](https://github.com/jd28/rollnw/actions?query=workflow%3Alinux)
+[![macos](https://github.com/jd28/rollnw/actions/workflows/macos.yml/badge.svg)](https://github.com/jd28/rollnw/actions?query=workflow%3Amacos)
+[![windows](https://github.com/jd28/rollnw/actions/workflows/windows.yml/badge.svg)](https://github.com/jd28/rollnw/actions?query=workflow%3Awindows)
+[![Language grade: C/C++](https://img.shields.io/lgtm/grade/cpp/g/jd28/rollnw.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/jd28/rollnw/context:cpp)
+[![CodeQL](https://github.com/jd28/rollnw/actions/workflows/codeql-analysis.yml/badge.svg)](https://github.com/jd28/rollnw/actions/workflows/codeql-analysis.yml)
+[![codecov](https://codecov.io/gh/jd28/rollnw/branch/main/graph/badge.svg?token=79PNROEEUU)](https://codecov.io/gh/jd28/rollnw)
 
-# libnw
+# rollNW
 
 ```
 We shall not cease from exploration
@@ -16,7 +16,7 @@ And know the place for the first time.
    --T.S. Eliot, Little Gidding, The Four Quartets.
 ```
 
-libnw is a simple modern static C++ library for Neverwinter Nights (and some Enhanced Edition) file formats and objects, that
+rollNW is a simple modern static C++ library for Neverwinter Nights (and some Enhanced Edition) file formats and objects, that
 
 - aims to implement an RPG engine inspired by NWN, excluding graphics and networking.
 - focuses on usage, instead doing things the Aurora Engine Way.
@@ -24,17 +24,17 @@ libnw is a simple modern static C++ library for Neverwinter Nights (and some Enh
 - hews as close to [C++ Core Guidelines](https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines) as possible.
 - aims to be as easily bindable as possible to other languages.  I.e. only library specific or STL types at API boundaries.
 
-The library will be renamed as there was already an Open Knights project named [libnw](https://sourceforge.net/projects/openknights/files/libnw/).
+**This library is a work-in-progress.  There will be serious refactoring and until there is a real release, it should be assumed the library is a work-in-progress.**
 
 ## Quickstart - Open VS Code in your Browser
 
-[![Open in Gitpod](https://gitpod.io/button/open-in-gitpod.svg)](https://gitpod.io/#https://github.com/jd28/libnw)
+[![Open in Gitpod](https://gitpod.io/button/open-in-gitpod.svg)](https://gitpod.io/#https://github.com/jd28/rollnw)
 
 [Github Codespaces](https://github.com/features/codespaces) is available to those in the beta.
 
 ## Building
 
-libnw uses cmake as its build system and more specifically [CMakePresets.json](https://cmake.org/cmake/help/latest/manual/cmake-presets.7.html).
+rollNW uses cmake as its build system and more specifically [CMakePresets.json](https://cmake.org/cmake/help/latest/manual/cmake-presets.7.html).
 
 Install [vcpkg](https://github.com/microsoft/vcpkg).  Note that windows build requires VS Studio 2019 (Community Edition), but it doesn't have to.  All vcpkg packages required will be built automatically.
 
@@ -44,7 +44,7 @@ The example below is building on Linux, but it's virtually the same for all plat
 $ export VCPKG_ROOT=path/to/vcpkg
 $ export NWN_ROOT=path/to/game
 $ export NWN_USER=path/to/nwn-user-dir
-$ cd path/to/libnw
+$ cd path/to/rollnw
 $ cmake --preset default-test
 $ cmake --build --preset default
 $ ctest --preset default
@@ -87,12 +87,6 @@ int main(int argc, char* argv[])
 ## History
 
 A lot of what's here was written in the 2011-2015 range as part of personal minimalist toolset, modernized and with new EE stuff added.  In some sense, it's a work of historical fiction -- it's what I'd have suggested at the start of NWN:EE: get the game and the community on the same set of libraries.  Similarly to an older project that asked ["what if Bioware had stuck with Lua?"](https://solstice.readthedocs.io/en/latest/).  The awnser to that was pretty positive: a decade ahead, at least, of nwscript.
-
-## General Warning
-
-This library is a work-in-progress.  There will be serious refactorings and until there is a real release, it should be assumed the library is in flux.
-
-If you've somehow found your way here by accident, you should head to [neverwinter.nim](https://github.com/niv/neverwinter.nim), those are the official tools of NWN:EE and can handle basic workflows out of the box.
 
 ## Moonshots
 

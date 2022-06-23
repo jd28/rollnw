@@ -7,8 +7,8 @@ find_package(Doxygen REQUIRED)
 #find_package(Sphinx REQUIRED)
 
 # Find all the public headers
-get_target_property(LIBNW_PUBLIC_HEADER_DIR nw INTERFACE_INCLUDE_DIRECTORIES)
-file(GLOB_RECURSE LIBNW_PUBLIC_HEADERS ${PROJECT_SOURCE_DIR}/lib/nw/*.hpp)
+get_target_property(ROLLNW_PUBLIC_HEADER_DIR nw INTERFACE_INCLUDE_DIRECTORIES)
+file(GLOB_RECURSE ROLLNW_PUBLIC_HEADERS ${PROJECT_SOURCE_DIR}/lib/nw/*.hpp)
 
 set(DOXYGEN_INPUT_DIR ${PROJECT_SOURCE_DIR}/lib/nw)
 set(DOXYGEN_OUTPUT_DIR ${CMAKE_CURRENT_BINARY_DIR}/doxygen)
@@ -24,7 +24,7 @@ file(MAKE_DIRECTORY ${DOXYGEN_OUTPUT_DIR})
 
 # Only regenerate Doxygen when the Doxyfile or public headers change
 add_custom_command(OUTPUT ${DOXYGEN_INDEX_FILE}
-                   DEPENDS ${LIBNW_PUBLIC_HEADERS}
+                   DEPENDS ${ROLLNW_PUBLIC_HEADERS}
                    COMMAND ${DOXYGEN_EXECUTABLE} ${DOXYFILE_OUT}
                    MAIN_DEPENDENCY ${DOXYFILE_OUT} ${DOXYFILE_IN}
                    COMMENT "Generating docs"

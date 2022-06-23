@@ -7,10 +7,10 @@
 #include <cstdlib>
 #include <random>
 #include <sstream>
-#if defined(LIBNW_OS_LINUX) || defined(LIBNW_OS_MACOS)
+#if defined(ROLLNW_OS_LINUX) || defined(ROLLNW_OS_MACOS)
 #include <pwd.h>
 #include <unistd.h>
-#elif defined(LIBNW_OS_WINDOWS)
+#elif defined(ROLLNW_OS_WINDOWS)
 #define WINVER 0x0A00
 #define _WIN32_WINNT_WIN10 0x0A00 // Windows 10
 #include <ShlObj.h>
@@ -23,10 +23,10 @@ namespace nw {
 
 fs::path documents_path()
 {
-#if defined(LIBNW_OS_MACOS) || defined(LIBNW_OS_LINUX)
+#if defined(ROLLNW_OS_MACOS) || defined(ROLLNW_OS_LINUX)
     return home_path() / "Documents"; // On macOS finder shows localized, but is "Documents"
                                       // on disk.  Don't know if this is true on Linux.
-#elif defined(LIBNW_OS_WINDOWS)
+#elif defined(ROLLNW_OS_WINDOWS)
     PWSTR path;
     if (SUCCEEDED(SHGetKnownFolderPath(FOLDERID_Documents, KF_FLAG_DEFAULT, NULL, &path))) {
         return nowide::narrow(path);
@@ -38,12 +38,12 @@ fs::path documents_path()
 fs::path home_path()
 {
     const char* home = nullptr;
-#if defined(LIBNW_OS_MACOS) || defined(LIBNW_OS_LINUX)
+#if defined(ROLLNW_OS_MACOS) || defined(ROLLNW_OS_LINUX)
     home = nowide::getenv("HOME");
     if (!home) {
         home = getpwuid(getuid())->pw_dir;
     }
-#elif defined(LIBNW_OS_WINDOWS)
+#elif defined(ROLLNW_OS_WINDOWS)
     home = nowide::getenv("USERPROFILE");
 #endif
     if (!home) {

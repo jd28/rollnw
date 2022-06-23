@@ -160,11 +160,11 @@ void Tlk::load()
         modified_strings_.clear();
     }
 
-#define CHECK_OFF(value, msg)                                                                                             \
-    do {                                                                                                                  \
-        if (!(value)) {                                                                                                   \
-            throw std::runtime_error(fmt::format("corrupt tlk: {}, error: {} ({})", path_, msg, LIBNW_STRINGIFY(value))); \
-        }                                                                                                                 \
+#define CHECK_OFF(value, msg)                                                                                              \
+    do {                                                                                                                   \
+        if (!(value)) {                                                                                                    \
+            throw std::runtime_error(fmt::format("corrupt tlk: {}, error: {} ({})", path_, msg, ROLLNW_STRINGIFY(value))); \
+        }                                                                                                                  \
     } while (0)
 
     CHECK_OFF(bytes_.size() > sizeof(TlkHeader), "invalid header");

@@ -175,12 +175,12 @@ std::optional<T> GffInputArchiveField::get() const
     return get_to(temp) ? std::optional<T>{std::move(temp)} : std::optional<T>{};
 }
 
-#define CHECK_OFF(cond)                                             \
-    do {                                                            \
-        if (!(cond)) {                                              \
-            LOG_F(ERROR, "Corrupt GFF: {}", LIBNW_STRINGIFY(cond)); \
-            return false;                                           \
-        }                                                           \
+#define CHECK_OFF(cond)                                              \
+    do {                                                             \
+        if (!(cond)) {                                               \
+            LOG_F(ERROR, "Corrupt GFF: {}", ROLLNW_STRINGIFY(cond)); \
+            return false;                                            \
+        }                                                            \
     } while (0)
 
 template <typename T>

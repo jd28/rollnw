@@ -13,7 +13,7 @@ using namespace std::literals;
 TEST_CASE("load real module", "[kernel]")
 {
     std::string mod_path;
-    if (const char* var = nowide::getenv("LIBNW_TEST_MODULE")) {
+    if (const char* var = nowide::getenv("ROLLNW_TEST_MODULE")) {
         mod_path = var;
     }
     if (!mod_path.empty()) {

@@ -160,12 +160,12 @@ bool GffInputArchive::valid() const
     return is_loaded_;
 }
 
-#define CHECK_OFF(cond)                                             \
-    do {                                                            \
-        if (!(cond)) {                                              \
-            LOG_F(ERROR, "Corrupt GFF: {}", LIBNW_STRINGIFY(cond)); \
-            return false;                                           \
-        }                                                           \
+#define CHECK_OFF(cond)                                              \
+    do {                                                             \
+        if (!(cond)) {                                               \
+            LOG_F(ERROR, "Corrupt GFF: {}", ROLLNW_STRINGIFY(cond)); \
+            return false;                                            \
+        }                                                            \
     } while (0)
 
 bool GffInputArchive::parse()
