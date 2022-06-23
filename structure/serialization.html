@@ -38,7 +38,11 @@
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <p class="caption" role="heading"><span class="caption-text">structure</span></p>
+              <p class="caption" role="heading"><span class="caption-text">getting started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../gs/building.html">building</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">structure</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="formats.html">formats</a></li>
 <li class="toctree-l1"><a class="reference internal" href="i18n.html">i18n</a></li>
@@ -49,7 +53,7 @@
 <li class="toctree-l1"><a class="reference internal" href="rules.html">rules</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">serialization</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#definitions">Definitions</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#sample-libnw-json-serialization-format">Sample libnw JSON serialization format</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#sample-rollnw-json-serialization-format">Sample rollnw JSON serialization format</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="util.html">util</a></li>
@@ -153,15 +157,15 @@ character string and the value is one of the above types (almost).</p></li>
 <li><p><strong>gffjson</strong> refers to the nwn-lib/neverwinter.nim json format that
 mimics GFF. The extent to which this is supported by the library is
 an open issue.</p></li>
-<li><p><strong>json</strong> refers specifically to libnw json serialization. This very
+<li><p><strong>json</strong> refers specifically to rollnw json serialization. This very
 closely mimics the structure of a given object, such that if you load
 the JSON into another language, or a dynamic language that can
 construct arbitrary objects from JSON, the usage is identical or
 analogous to the C++ objects.</p></li>
 </ul>
 </section>
-<section id="sample-libnw-json-serialization-format">
-<h2>Sample libnw JSON serialization format<a class="headerlink" href="#sample-libnw-json-serialization-format" title="Permalink to this heading"></a></h2>
+<section id="sample-rollnw-json-serialization-format">
+<h2>Sample rollnw JSON serialization format<a class="headerlink" href="#sample-rollnw-json-serialization-format" title="Permalink to this heading"></a></h2>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span><span class="w"></span>
 <span class="w">    </span><span class="nt">&quot;$type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;UTC&quot;</span><span class="p">,</span><span class="w"></span>
 <span class="w">    </span><span class="nt">&quot;$version&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"></span>

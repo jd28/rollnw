@@ -44,13 +44,13 @@ The library may support the lifting of numeric types, i.e. reading a
    mimics GFF. The extent to which this is supported by the library is
    an open issue.
 
--  **json** refers specifically to libnw json serialization. This very
+-  **json** refers specifically to rollnw json serialization. This very
    closely mimics the structure of a given object, such that if you load
    the JSON into another language, or a dynamic language that can
    construct arbitrary objects from JSON, the usage is identical or
    analogous to the C++ objects.
 
-Sample libnw JSON serialization format
+Sample rollnw JSON serialization format
 --------------------------------------
 
 .. code:: json

@@ -1,8 +1,8 @@
 |License: MIT| |linux| |macos| |windows| |Language grade: C/C++|
 |CodeQL| |codecov|
 
-libnw
-=====
+rollNW
+======
 
 ::
 
@@ -12,7 +12,7 @@ libnw
    And know the place for the first time.
       --T.S. Eliot, Little Gidding, The Four Quartets.
 
-libnw is a simple modern static C++ library for Neverwinter Nights (and
+rollNW is a simple modern static C++ library for Neverwinter Nights (and
 some Enhanced Edition) file formats and objects, that
 
 -  aims to implement an RPG engine inspired by NWN, excluding graphics
@@ -25,9 +25,9 @@ some Enhanced Edition) file formats and objects, that
 -  aims to be as easily bindable as possible to other languages. I.e.
    only library specific or STL types at API boundaries.
 
-The library will be renamed as there was already an Open Knights project
-named
-`libnw <https://sourceforge.net/projects/openknights/files/libnw/>`__.
+**This library is a work-in-progress. There will be serious refactoring
+and until there is a real release, it should be assumed the library is
+in flux.**
 
 -----------------------------------------
 
@@ -40,30 +40,6 @@ Quickstart - Open VS Code in your Browser
 available to those in the beta.
 
 -----------------------------------------
-
-Building
---------
-
-libnw uses cmake as its build system and more specifically
-`CMakePresets.json <https://cmake.org/cmake/help/latest/manual/cmake-presets.7.html>`__.
-
-Install `vcpkg <https://github.com/microsoft/vcpkg>`__. Note that
-windows build requires VS Studio 2019 (Community Edition), but it
-doesn’t have to. All vcpkg packages required will be built
-automatically.
-
-The example below is building on Linux, but it’s virtually the same for
-all platforms. The only difference is the configuration preset.
-
-.. code:: bash
-
-   $ export VCPKG_ROOT=path/to/vcpkg
-   $ export NWN_ROOT=path/to/game
-   $ export NWN_USER=path/to/nwn-user-dir
-   $ cd path/to/libnw
-   $ cmake --preset default-test
-   $ cmake --build --preset default
-   $ ctest --preset default
 
 Using
 -----
@@ -105,9 +81,9 @@ While the library is far from done, basic usage would be as follows.
 History
 -------
 
-A lot of what’s here was written in the 2011-2015 range as part of
+A lot of what's here was written in the 2011-2015 range as part of
 personal minimalist toolset, modernized and with new EE stuff added. In
-some sense, it’s a work of historical fiction – it’s what I’d have
+some sense, it's a work of historical fiction - it's what I'd have
 suggested at the start of NWN:EE: get the game and the community on the
 same set of libraries. Similarly to an older project that asked `“what
 if Bioware had stuck with
@@ -119,11 +95,8 @@ that was pretty positive: a decade ahead, at least, of nwscript.
 General Warning
 ---------------
 
-This library is a work-in-progress. There will be serious refactorings
-and until there is a real release, it should be assumed the library is
-in flux.
 
-If you’ve somehow found your way here by accident, you should head to
+If you've somehow found your way here by accident, you should head to
 `neverwinter.nim <https://github.com/niv/neverwinter.nim>`__, those are
 the official tools of NWN:EE and can handle basic workflows out of the
 box.
@@ -133,8 +106,8 @@ box.
 Moonshots
 ---------
 
-You make ask yourself, why? But, to paraphrase Tennyson, ours isn’t to
-question why, it’s but to do and die and learn and maybe make neat
+You make ask yourself, why? But, to paraphrase Tennyson, ours isn't to
+question why, it's but to do and die and learn and maybe make neat
 things. In that spirit, here is a list of crazy projects that this
 library hopes to facilitate and that all fly in the face of “WHY?”.
 
@@ -176,20 +149,26 @@ Credits
 
 .. |License: MIT| image:: https://img.shields.io/badge/License-MIT-yellow.svg
    :target: https://opensource.org/licenses/MIT
-.. |linux| image:: https://github.com/jd28/libnw/actions/workflows/linux.yml/badge.svg
-   :target: https://github.com/jd28/libnw/actions?query=workflow%3Alinux
-.. |macos| image:: https://github.com/jd28/libnw/actions/workflows/macos.yml/badge.svg
-   :target: https://github.com/jd28/libnw/actions?query=workflow%3Amacos
-.. |windows| image:: https://github.com/jd28/libnw/actions/workflows/windows.yml/badge.svg
-   :target: https://github.com/jd28/libnw/actions?query=workflow%3Awindows
-.. |Language grade: C/C++| image:: https://img.shields.io/lgtm/grade/cpp/g/jd28/libnw.svg?logo=lgtm&logoWidth=18
-   :target: https://lgtm.com/projects/g/jd28/libnw/context:cpp
-.. |CodeQL| image:: https://github.com/jd28/libnw/actions/workflows/codeql-analysis.yml/badge.svg
-   :target: https://github.com/jd28/libnw/actions/workflows/codeql-analysis.yml
-.. |codecov| image:: https://codecov.io/gh/jd28/libnw/branch/main/graph/badge.svg?token=79PNROEEUU
-   :target: https://codecov.io/gh/jd28/libnw
+.. |linux| image:: https://github.com/jd28/rollnw/actions/workflows/linux.yml/badge.svg
+   :target: https://github.com/jd28/rollnw/actions?query=workflow%3Alinux
+.. |macos| image:: https://github.com/jd28/rollnw/actions/workflows/macos.yml/badge.svg
+   :target: https://github.com/jd28/rollnw/actions?query=workflow%3Amacos
+.. |windows| image:: https://github.com/jd28/rollnw/actions/workflows/windows.yml/badge.svg
+   :target: https://github.com/jd28/rollnw/actions?query=workflow%3Awindows
+.. |Language grade: C/C++| image:: https://img.shields.io/lgtm/grade/cpp/g/jd28/rollnw.svg?logo=lgtm&logoWidth=18
+   :target: https://lgtm.com/projects/g/jd28/rollnw/context:cpp
+.. |CodeQL| image:: https://github.com/jd28/rollnw/actions/workflows/codeql-analysis.yml/badge.svg
+   :target: https://github.com/jd28/rollnw/actions/workflows/codeql-analysis.yml
+.. |codecov| image:: https://codecov.io/gh/jd28/rollnw/branch/main/graph/badge.svg?token=79PNROEEUU
+   :target: https://codecov.io/gh/jd28/rollnw
 .. |Open in Gitpod| image:: https://gitpod.io/button/open-in-gitpod.svg
-   :target: https://gitpod.io/#https://github.com/jd28/libnw
+   :target: https://gitpod.io/#https://github.com/jd28/rollnw
+
+.. toctree::
+  :caption: getting started
+  :maxdepth: 1
+
+  gs/building
 
 .. toctree::
   :caption: structure
