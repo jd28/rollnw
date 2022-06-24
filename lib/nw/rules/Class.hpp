@@ -30,7 +30,7 @@ struct Class {
     bool spellcaster = false;
     int primary_ability;
     uint32_t alignment_restriction = 0;
-    uint32_t alignment_rstrction_type = 0;
+    uint32_t alignment_restriction_type = 0;
     bool invert_restriction = false;
     Index index;
     Resource prereq_table;

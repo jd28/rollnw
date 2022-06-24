@@ -6,18 +6,18 @@ namespace nwn1 {
 
 namespace mod {
 
-#define DEFINE_MOD(name, type)                                              \
-    nw::Modifier name(nw::ModifierVariant value, nw::Requirement req,       \
-        nw::Versus versus, std::string_view tag, nw::ModifierSource source) \
-    {                                                                       \
-        return nw::Modifier{                                                \
-            type,                                                           \
-            value,                                                          \
-            req,                                                            \
-            versus,                                                         \
-            nw::kernel::strings().intern(tag),                              \
-            source,                                                         \
-        };                                                                  \
+#define DEFINE_MOD(name, type)                                                     \
+    nw::Modifier name(nw::ModifierVariant value, nw::Requirement req,              \
+        nw::Versus versus, std::string_view tag, nw::ModifierSource source)        \
+    {                                                                              \
+        return nw::Modifier{                                                       \
+            type,                                                                  \
+            value,                                                                 \
+            std::move(req),                                                        \
+            versus,                                                                \
+            tag.size() ? nw::kernel::strings().intern(tag) : nw::InternedString{}, \
+            source,                                                                \
+        };                                                                         \
     }
 
 DEFINE_MOD(ac_dodge, nw::ModifierType::ac_dodge)

@@ -77,7 +77,7 @@ int LevelStats::level() const noexcept
 int LevelStats::level_by_class(Index id) const noexcept
 {
     for (const auto& cl : entries) {
-        if (*id == cl.id) {
+        if (*id == static_cast<size_t>(cl.id)) {
             return cl.level;
         }
     }

@@ -73,7 +73,7 @@ struct Rules {
      * @param req new requirement
      * @return int number of modifiers affected
      */
-    int replace(std::string_view tag, Requirement req);
+    int replace(std::string_view tag, const Requirement& req);
 
     /// Select
     RuleValue select(const Selector&, const flecs::entity) const;

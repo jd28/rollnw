@@ -112,7 +112,7 @@ int Rules::replace(std::string_view tag, ModifierVariant value)
     return result;
 }
 
-int Rules::replace(std::string_view tag, Requirement req)
+int Rules::replace(std::string_view tag, const Requirement& req)
 {
     std::string_view prefix = tag;
     bool starts = false;

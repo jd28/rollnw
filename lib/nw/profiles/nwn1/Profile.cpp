@@ -1397,7 +1397,7 @@ bool Profile::load_rules() const
 
                 TDA_GET_INT(classes, info.primary_ability, i, "PrimaryAbil");
                 TDA_GET_UINT32(classes, info.alignment_restriction, i, "AlignRestrict");
-                TDA_GET_UINT32(classes, info.alignment_rstrction_type, i, "AlignRstrctType");
+                TDA_GET_UINT32(classes, info.alignment_restriction_type, i, "AlignRstrctType");
                 TDA_GET_BOOL(classes, info.invert_restriction, i, "InvertRestrict");
                 TDA_GET_INDEX(classes, info.index, i, "Constant");
                 TDA_GET_RES(classes, info.prereq_table, i, "PreReqTable", nw::ResourceType::twoda);

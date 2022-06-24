@@ -53,19 +53,19 @@ struct TwoDA {
 
     /// Gets an element
     template <typename T>
-    std::optional<T> get(size_t row, size_t col);
+    std::optional<T> get(size_t row, size_t col) const;
 
     /// Gets an element
     template <typename T>
-    std::optional<T> get(size_t row, std::string_view col);
+    std::optional<T> get(size_t row, std::string_view col) const;
 
     /// Gets an element
     template <typename T>
-    bool get_to(size_t row, size_t col, T& out);
+    bool get_to(size_t row, size_t col, T& out) const;
 
     /// Gets an element
     template <typename T>
-    bool get_to(size_t row, std::string_view, T& out);
+    bool get_to(size_t row, std::string_view col, T& out) const;
 
     /// Pads the 2da with ``count`` rows.
     void pad(size_t count);
@@ -99,7 +99,7 @@ private:
 };
 
 template <typename T>
-std::optional<T> TwoDA::get(size_t row, size_t col)
+std::optional<T> TwoDA::get(size_t row, size_t col) const
 {
     T temp;
     return get_to(row, col, temp)
@@ -108,7 +108,7 @@ std::optional<T> TwoDA::get(size_t row, size_t col)
 }
 
 template <typename T>
-std::optional<T> TwoDA::get(size_t row, std::string_view col)
+std::optional<T> TwoDA::get(size_t row, std::string_view col) const
 {
     size_t ci = column_index(col);
     if (ci == npos) {
@@ -120,11 +120,11 @@ std::optional<T> TwoDA::get(size_t row, std::string_view col)
 }
 
 template <typename T>
-bool TwoDA::get_to(size_t row, size_t col, T& out)
+bool TwoDA::get_to(size_t row, size_t col, T& out) const
 {
     static_assert(
         std::is_same_v<T, std::string> || std::is_same_v<T, float> || std::is_convertible_v<T, int32_t> || std::is_same_v<T, std::string_view>,
-        "TwoDA only supports float, std::string, std::string_view, or anything convertable to int32_t");
+        "TwoDA only supports float, std::string, std::string_view, or anything convertible to int32_t");
 
     size_t idx = row * columns_.size() + col;
     if (idx >= rows_.size()) {
@@ -150,7 +150,7 @@ bool TwoDA::get_to(size_t row, size_t col, T& out)
 }
 
 template <typename T>
-bool TwoDA::get_to(size_t row, std::string_view col, T& out)
+bool TwoDA::get_to(size_t row, std::string_view col, T& out) const
 {
     size_t ci = column_index(col);
     if (ci == npos) {
