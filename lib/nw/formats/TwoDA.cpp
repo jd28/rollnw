@@ -202,8 +202,9 @@ bool TwoDA::parse()
 
 TwoDARowView TwoDA::row(size_t row) const noexcept
 {
+    if (row >= rows()) { return {}; }
     auto start = row * columns_.size();
-    return {{&rows_[start], columns_.size()}, this};
+    return {{&rows_[start], columns_.size()}, this, row};
 }
 
 size_t TwoDA::rows() const noexcept

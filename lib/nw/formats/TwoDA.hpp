@@ -205,6 +205,7 @@ std::ostream& operator<<(std::ostream& out, const TwoDA& tda);
 struct TwoDARowView {
     absl::Span<const detail::StringVariant> data;
     const TwoDA* parent = nullptr;
+    size_t row_number = TwoDA::npos;
 
     /// Gets an element
     template <typename T>
@@ -230,47 +231,21 @@ template <typename T>
 std::optional<T> TwoDARowView::get(size_t col) const
 {
     if (!parent || col >= data.size()) { return {}; }
-    T temp;
-    return get_to(col, temp)
-        ? std::optional<T>{std::move(temp)}
-        : std::optional<T>{};
+    return parent->get<T>(row_number, col);
 }
 
 template <typename T>
 std::optional<T> TwoDARowView::get(std::string_view col) const
 {
     if (!parent) { return {}; }
-    size_t ci = parent->column_index(col);
-    if (ci == TwoDA::npos) {
-        LOG_F(WARNING, "unknown column: {}", col);
-        return std::optional<T>{};
-    }
-    return get<T>(ci);
+    return parent->get<T>(row_number, col);
 }
 
 template <typename T>
 bool TwoDARowView::get_to(size_t col, T& out) const
 {
     if (!parent || col >= data.size()) { return false; }
-    static_assert(
-        std::is_same_v<T, std::string> || std::is_same_v<T, float> || std::is_convertible_v<T, int32_t> || std::is_same_v<T, std::string_view>,
-        "TwoDA only supports float, std::string, std::string_view, or anything convertible to int32_t");
-
-    std::string_view res = data[col].view;
-
-    if (res == "****") return false;
-
-    if constexpr (std::is_same_v<T, float> || std::is_convertible_v<T, int>) {
-        auto opt = string::from<T>(res);
-        if (!opt) return false;
-        out = *opt;
-    } else if constexpr (std::is_same_v<T, std::string_view>) {
-        out = res;
-    } else {
-        out = std::string(res);
-    }
-
-    return true;
+    return parent->get_to(row_number, col, out);
 }
 
 template <typename T>
@@ -282,7 +257,7 @@ bool TwoDARowView::get_to(std::string_view col, T& out) const
         LOG_F(WARNING, "unknown column: {}", col);
         return false;
     }
-    return get_to<T>(ci, out);
+    return parent->get_to(row_number, col, out);
 }
 
 } // namespace nw
