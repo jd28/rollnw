@@ -15,7 +15,10 @@ struct TwoDACache {
     void clear();
 
     /// Gets a cached TwoDA
-    const TwoDA* get(std::string_view tda) const;
+    const TwoDA* get(std::string_view tda);
+
+    /// Gets a cached TwoDA
+    const TwoDA* get(const nw::Resource& tda);
 
 private:
     absl::flat_hash_map<Resource, TwoDA> cached_2das_;

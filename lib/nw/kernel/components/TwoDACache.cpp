@@ -25,12 +25,24 @@ void TwoDACache::clear()
     cached_2das_.clear();
 }
 
-const TwoDA* TwoDACache::get(std::string_view tda) const
+const TwoDA* TwoDACache::get(std::string_view tda)
 {
     Resource res{tda, ResourceType::twoda};
-    auto it = cached_2das_.find(res);
+    return get(res);
+}
+
+const TwoDA* TwoDACache::get(const Resource& tda)
+{
+    if (tda.type != ResourceType::twoda) { return nullptr; }
+    auto it = cached_2das_.find(tda);
     if (it != std::end(cached_2das_)) {
         return &it->second;
+    } else {
+        auto t = TwoDA{kernel::resman().demand(tda)};
+        if (t.is_valid()) {
+            auto& res = cached_2das_[tda] = std::move(t);
+            return &res;
+        }
     }
 
     return nullptr;

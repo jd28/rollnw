@@ -54,7 +54,7 @@ TEST_CASE("rules manager", "[kernel]")
     REQUIRE(skill.index.name == "SKILL_ANIMAL_EMPATHY");
 
     REQUIRE(nwk::world().get_mut<nw::TwoDACache>()->cache("placeables"sv));
-    REQUIRE(nwk::world().get<nw::TwoDACache>()->get("placeables"sv)->rows() > 0);
+    REQUIRE(nwk::world().get_mut<nw::TwoDACache>()->get("placeables"sv)->rows() > 0);
 
     nw::kernel::unload_module();
 }
