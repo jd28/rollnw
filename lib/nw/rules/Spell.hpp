@@ -4,7 +4,12 @@
 
 namespace nw {
 
+struct TwoDARowView;
+
 struct Spell {
+    Spell() = default;
+    Spell(const TwoDARowView& tda);
+
     uint32_t name = 0xFFFFFFFF;
     Resource icon;
     // School

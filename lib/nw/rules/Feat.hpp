@@ -12,8 +12,13 @@
 
 namespace nw {
 
+struct TwoDARowView;
+
 /// Feat definition
 struct Feat {
+    Feat() = default;
+    Feat(const TwoDARowView& tda);
+
     uint32_t name = 0xFFFFFFFF;
     uint32_t description = 0xFFFFFFFF;
     Resource icon;

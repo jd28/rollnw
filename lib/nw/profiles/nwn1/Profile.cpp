@@ -1183,6 +1183,7 @@ bool Profile::load_constants() const
 
 bool Profile::load_components() const
 {
+    LOG_F(INFO, "[nwn1] loading components...");
     nw::kernel::world().add<nw::AbilityArray>();
     nw::kernel::world().add<nw::BaseItemArray>();
     nw::kernel::world().add<nw::ClassArray>();
@@ -1193,52 +1194,10 @@ bool Profile::load_components() const
     return true;
 }
 
-/// @private
-#define TDA_GET_UINT32(tda, name, row, column)      \
-    do {                                            \
-        if (tda.get_to(row, column, temp_int)) {    \
-            name = static_cast<uint32_t>(temp_int); \
-        }                                           \
-    } while (0)
-
-/// @private
-#define TDA_GET_FLOAT(tda, name, row, column)                           \
-    do {                                                                \
-        if (tda.get_to(row, column, temp_float)) { name = temp_float; } \
-    } while (0)
-
-/// @private
-#define TDA_GET_INT(tda, name, row, column)                         \
-    do {                                                            \
-        if (tda.get_to(row, column, temp_int)) { name = temp_int; } \
-    } while (0)
-
-/// @private
-#define TDA_GET_BOOL(tda, name, row, column)                          \
-    do {                                                              \
-        if (tda.get_to(row, column, temp_int)) { name = !!temp_int; } \
-    } while (0)
-
-/// @private
-#define TDA_GET_RES(tda, name, row, column, type)                                             \
-    do {                                                                                      \
-        if (tda.get_to(row, column, temp_string)) { name = nw::Resource{temp_string, type}; } \
-    } while (0)
-
-/// @private
-#define TDA_GET_INDEX(tda, name, row, column)                                                                  \
-    do {                                                                                                       \
-        if (tda.get_to(row, column, temp_string)) { name = idxs->add(temp_string, static_cast<size_t>(row)); } \
-    } while (0)
-
-/// @private
-#define TDA_GET_STRING(tda, name, row, column)                                       \
-    do {                                                                             \
-        if (tda.get_to(row, column, temp_string)) { name = std::move(temp_string); } \
-    } while (0)
-
 bool Profile::load_rules() const
 {
+    LOG_F(INFO, "[nwn1] loading rules...");
+
     // == Set global rule functions ===========================================
     nw::kernel::rules().set_selector(selector);
     nw::kernel::rules().set_qualifier(match);
@@ -1270,101 +1229,7 @@ bool Profile::load_rules() const
     auto* baseitem_array = nw::kernel::world().get_mut<nw::BaseItemArray>();
     if (baseitem_array && baseitems.is_valid()) {
         for (size_t i = 0; i < baseitems.rows(); ++i) {
-            if (!baseitems.get_to(0, "label", temp_string)) { continue; }
-
-            nw::BaseItem info;
-            TDA_GET_UINT32(baseitems, info.name, i, "Name");
-            TDA_GET_INT(baseitems, info.inventory_slot_size.first, i, "InvSlotWidth");
-            TDA_GET_INT(baseitems, info.inventory_slot_size.second, i, "InvSlotHeight");
-            TDA_GET_UINT32(baseitems, info.equipable_slots, i, "EquipableSlots");
-            TDA_GET_BOOL(baseitems, info.can_rotate_icon, i, "CanRotateIcon");
-            // ModelType
-            // ItemClass
-            TDA_GET_BOOL(baseitems, info.gender_specific, i, "GenderSpecific");
-            TDA_GET_BOOL(baseitems, std::get<0>(info.composite_env_map), i, "Part1EnvMap");
-            TDA_GET_BOOL(baseitems, std::get<1>(info.composite_env_map), i, "Part2EnvMap");
-            TDA_GET_BOOL(baseitems, std::get<2>(info.composite_env_map), i, "Part3EnvMap");
-            TDA_GET_RES(baseitems, info.default_model, i, "DefaultModel", nw::ResourceType::mdl);
-            TDA_GET_STRING(baseitems, info.default_icon, i, "DefaultIcon");
-            TDA_GET_BOOL(baseitems, info.is_container, i, "Container");
-            // WeaponWield
-            // WeaponType
-            // WeaponSize
-            TDA_GET_BOOL(baseitems, info.ranged, i, "RangedWeapon");
-            // PrefAttackDist
-            // MinRange
-            // MaxRange
-            // NumDice
-            // DieToRoll
-            TDA_GET_INT(baseitems, info.crit_threat, i, "CritThreat");
-            TDA_GET_INT(baseitems, info.crit_multiplier, i, "CritHitMult");
-            // Category
-            // BaseCost
-            // Stacking
-            // ItemMultiplier
-            TDA_GET_UINT32(baseitems, info.description, i, "Description");
-            // InvSoundType
-            // MaxProps
-            // MinProps
-            // PropColumn
-            // StorePanel
-
-            // AC_Enchant
-            // BaseAC
-            // ArmorCheckPen
-            // BaseItemStatRef
-            // ChargesStarting
-            // RotateOnGround
-            // TenthLBS
-            // WeaponMatType
-            // AmmunitionType
-            // QBBehaviour
-            // ArcaneSpellFailure
-            // %AnimSlashL
-            // %AnimSlashR
-            // %AnimSlashS
-            // StorePanelSort
-            // ILRStackSize
-
-            if (baseitems.get_to(i, "WeaponFocusFeat", temp_int)) {
-                info.weapon_modifiers_feats.push_back(temp_int);
-            }
-
-            if (baseitems.get_to(i, "EpicWeaponFocusFeat", temp_int)) {
-                info.weapon_modifiers_feats.push_back(temp_int);
-            }
-
-            if (baseitems.get_to(i, "WeaponSpecializationFeat", temp_int)) {
-                info.weapon_modifiers_feats.push_back(temp_int);
-            }
-
-            if (baseitems.get_to(i, "EpicWeaponSpecializationFeat", temp_int)) {
-                info.weapon_modifiers_feats.push_back(temp_int);
-            }
-
-            if (baseitems.get_to(i, "WeaponImprovedCriticalFeat", temp_int)) {
-                info.weapon_modifiers_feats.push_back(temp_int);
-            }
-
-            if (baseitems.get_to(i, "EpicWeaponOverwhelmingCriticalFeat", temp_int)) {
-                info.weapon_modifiers_feats.push_back(temp_int);
-            }
-
-            if (baseitems.get_to(i, "EpicWeaponDevastatingCriticalFeat", temp_int)) {
-                info.weapon_modifiers_feats.push_back(temp_int);
-            }
-
-            if (baseitems.get_to(i, "WeaponOfChoiceFeat", temp_int)) {
-                info.weapon_modifiers_feats.push_back(temp_int);
-            }
-
-            std::sort(std::begin(info.weapon_modifiers_feats),
-                std::end(info.weapon_modifiers_feats));
-
-            TDA_GET_BOOL(baseitems, info.is_monk_weapon, i, "IsMonkWeapon");
-            // WeaponFinesseMinimumCreatureSize
-
-            baseitem_array->entries.push_back(std::move(info));
+            baseitem_array->entries.emplace_back(baseitems.row(i));
         }
     } else {
         throw std::runtime_error("rules: failed to load 'baseitems.2da'");
@@ -1375,65 +1240,7 @@ bool Profile::load_rules() const
     if (class_array && classes.is_valid()) {
         class_array->entries.reserve(classes.rows());
         for (size_t i = 0; i < classes.rows(); ++i) {
-            nw::Class info;
-
-            if (classes.get_to(0, "label", temp_string)) {
-                TDA_GET_UINT32(classes, info.name, i, "Name");
-                TDA_GET_UINT32(classes, info.plural, i, "Plural");
-                TDA_GET_UINT32(classes, info.lower, i, "Lower");
-                TDA_GET_UINT32(classes, info.description, i, "Description");
-                TDA_GET_RES(classes, info.icon, i, "Icon", nw::ResourceType::texture);
-                TDA_GET_INT(classes, info.hitdie, i, "HitDie");
-                TDA_GET_RES(classes, info.attack_bonus_table, i, "AttackBonusTable", nw::ResourceType::twoda);
-                TDA_GET_RES(classes, info.feats_table, i, "FeatsTable", nw::ResourceType::twoda);
-                TDA_GET_RES(classes, info.saving_throw_table, i, "SavingThrowTable", nw::ResourceType::twoda);
-                TDA_GET_RES(classes, info.skills_table, i, "SkillsTable", nw::ResourceType::twoda);
-                TDA_GET_RES(classes, info.bonus_feats_table, i, "BonusFeatsTable", nw::ResourceType::twoda);
-                TDA_GET_INT(classes, info.skill_point_base, i, "SkillPointBase");
-                TDA_GET_RES(classes, info.spell_gain_table, i, "SpellGainTable", nw::ResourceType::twoda);
-                TDA_GET_RES(classes, info.spell_known_table, i, "SpellKnownTable", nw::ResourceType::twoda);
-                TDA_GET_BOOL(classes, info.player_class, i, "PlayerClass");
-                TDA_GET_BOOL(classes, info.spellcaster, i, "SpellCaster");
-
-                TDA_GET_INT(classes, info.primary_ability, i, "PrimaryAbil");
-                TDA_GET_UINT32(classes, info.alignment_restriction, i, "AlignRestrict");
-                TDA_GET_UINT32(classes, info.alignment_restriction_type, i, "AlignRstrctType");
-                TDA_GET_BOOL(classes, info.invert_restriction, i, "InvertRestrict");
-                TDA_GET_INDEX(classes, info.index, i, "Constant");
-                TDA_GET_RES(classes, info.prereq_table, i, "PreReqTable", nw::ResourceType::twoda);
-                TDA_GET_INT(classes, info.max_level, i, "MaxLevel");
-                TDA_GET_INT(classes, info.xp_penalty, i, "XPPenalty");
-
-                if (!info.spellcaster) {
-                    TDA_GET_INT(classes, info.arcane_spellgain_mod, i, "ArcSpellLvlMod");
-                    TDA_GET_INT(classes, info.divine_spellgain_mod, i, "DivSpellLvlMod");
-                }
-
-                TDA_GET_INT(classes, info.epic_level_limit, i, "EpicLevel");
-                TDA_GET_INT(classes, info.package, i, "Package");
-                TDA_GET_RES(classes, info.stat_gain_table, i, "StatGainTable", nw::ResourceType::twoda);
-
-                // No point in checking for anyone else
-                if (info.spellcaster) {
-                    TDA_GET_BOOL(classes, info.memorizes_spells, i, "MemorizesSpells");
-                    TDA_GET_BOOL(classes, info.spellbook_restricted, i, "SpellbookRestricted");
-                    TDA_GET_BOOL(classes, info.pick_domains, i, "PickDomains");
-                    TDA_GET_BOOL(classes, info.pick_school, i, "PickSchool");
-                    TDA_GET_BOOL(classes, info.learn_scroll, i, "LearnScroll");
-                    TDA_GET_BOOL(classes, info.arcane, i, "Arcane");
-                    TDA_GET_BOOL(classes, info.arcane_spell_failure, i, "ASF");
-                    TDA_GET_INT(classes, info.caster_ability, i, "SpellcastingAbil");
-                    TDA_GET_STRING(classes, info.spell_table_column, i, "SpellTableColumn");
-                    TDA_GET_FLOAT(classes, info.caster_level_multiplier, i, "CLMultiplier");
-                    TDA_GET_INT(classes, info.level_min_caster, i, "MinCastingLevel");
-                    TDA_GET_INT(classes, info.level_min_associate, i, "MinAssociateLevel");
-                }
-
-                if (info.spellcaster) {
-                    TDA_GET_BOOL(classes, info.can_cast_spontaneously, i, "CanCastSpontaneously");
-                }
-            }
-            class_array->entries.push_back(info);
+            class_array->entries.emplace_back(classes.row(i));
         }
 
     } else {
@@ -1445,29 +1252,7 @@ bool Profile::load_rules() const
     if (feat_array && feat.is_valid()) {
         feat_array->entries.reserve(feat.rows());
         for (size_t i = 0; i < feat.rows(); ++i) {
-            nw::Feat info;
-
-            if (!feat.get_to(0, "label", temp_string)) { continue; }
-
-            TDA_GET_UINT32(feat, info.name, i, "FEAT");
-            TDA_GET_UINT32(feat, info.description, i, "DESCRIPTION");
-            TDA_GET_RES(feat, info.icon, i, "ICON", nw::ResourceType::texture);
-            TDA_GET_BOOL(feat, info.all_can_use, i, "ALLCLASSESCANUSE");
-            TDA_GET_INT(feat, info.category, i, "CATEGORY");
-            TDA_GET_INT(feat, info.max_cr, i, "MAXCR");
-            TDA_GET_INT(feat, info.spell, i, "SPELLID");
-            TDA_GET_UINT32(feat, info.successor, i, "SUCCESSOR");
-            TDA_GET_FLOAT(feat, info.cr_value, i, "CRValue");
-            TDA_GET_INT(feat, info.uses, i, "USESPERDAY");
-            TDA_GET_INT(feat, info.master, i, "MASTERFEAT");
-            TDA_GET_BOOL(feat, info.target_self, i, "TARGETSELF");
-            TDA_GET_INDEX(feat, info.index, i, "Constant");
-            TDA_GET_INT(feat, info.tools_categories, i, "TOOLSCATEGORIES");
-            TDA_GET_BOOL(feat, info.hostile, i, "HostileFeat");
-            TDA_GET_BOOL(feat, info.epic, i, "PreReqEpic");
-            TDA_GET_BOOL(feat, info.requires_action, i, "ReqAction");
-
-            feat_array->entries.push_back(std::move(info));
+            feat_array->entries.emplace_back(feat.row(i));
         }
     } else {
         throw std::runtime_error("rules: failed to load 'feat.2da'");
@@ -1478,39 +1263,7 @@ bool Profile::load_rules() const
     if (race_array && racialtypes.is_valid()) {
         race_array->entries.reserve(racialtypes.rows());
         for (size_t i = 0; i < racialtypes.rows(); ++i) {
-            nw::Race info;
-
-            if (racialtypes.get_to(0, "label", temp_string)) {
-                TDA_GET_UINT32(racialtypes, info.name, i, "Name");
-                TDA_GET_UINT32(racialtypes, info.name_conversation, i, "ConverName");
-                TDA_GET_UINT32(racialtypes, info.name_conversation_lower, i, "ConverNameLower");
-                TDA_GET_UINT32(racialtypes, info.name_plural, i, "NamePlural");
-                TDA_GET_UINT32(racialtypes, info.description, i, "Description");
-                TDA_GET_RES(racialtypes, info.icon, i, "Icon", nw::ResourceType::texture);
-                TDA_GET_INT(racialtypes, info.appearance, i, "appearance");
-                TDA_GET_INT(racialtypes, info.ability_modifiers[0], i, "StrAdjust");
-                TDA_GET_INT(racialtypes, info.ability_modifiers[1], i, "DexAdjust");
-                TDA_GET_INT(racialtypes, info.ability_modifiers[2], i, "ConAdjust");
-                TDA_GET_INT(racialtypes, info.ability_modifiers[3], i, "IntAdjust");
-                TDA_GET_INT(racialtypes, info.ability_modifiers[4], i, "WisAdjust");
-                TDA_GET_INT(racialtypes, info.ability_modifiers[5], i, "ChaAdjust");
-                TDA_GET_INT(racialtypes, info.favored_class, i, "Favored");
-                TDA_GET_RES(racialtypes, info.feats_table, i, "FeatsTable", nw::ResourceType::twoda);
-                TDA_GET_UINT32(racialtypes, info.biography, i, "Biography");
-                TDA_GET_BOOL(racialtypes, info.player_race, i, "PlayerRace");
-                TDA_GET_INDEX(racialtypes, info.index, i, "Constant");
-                TDA_GET_INT(racialtypes, info.age, i, "age");
-                TDA_GET_FLOAT(racialtypes, info.cr_modifier, i, "CRModifier");
-                TDA_GET_INT(racialtypes, info.feats_extra_1st_level, i, "ExtraFeatsAtFirstLevel");
-                TDA_GET_INT(racialtypes, info.skillpoints_extra_per_level, i, "ExtraSkillPointsPerLevel");
-                TDA_GET_INT(racialtypes, info.skillpoints_1st_level_multiplier, i, "FirstLevelSkillPointsMultiplier");
-                TDA_GET_INT(racialtypes, info.ability_point_buy_number, i, "AbilitiesPointBuyNumber");
-                TDA_GET_INT(racialtypes, info.feats_normal_level, i, "NormalFeatEveryNthLevel");
-                TDA_GET_INT(racialtypes, info.feats_normal_amount, i, "NumberNormalFeatsEveryNthLevel");
-                TDA_GET_INT(racialtypes, info.skillpoints_ability, i, "SkillPointModifierAbility");
-            }
-
-            race_array->entries.push_back(info);
+            race_array->entries.emplace_back(racialtypes.row(i));
         }
     } else {
         throw std::runtime_error("rules: failed to load 'racialtypes.2da'");
@@ -1522,37 +1275,22 @@ bool Profile::load_rules() const
         skill_array->entries.reserve(skills.rows());
 
         for (size_t i = 0; i < skills.rows(); ++i) {
-            nw::Skill info;
-
-            if (skills.get_to(0, "label", temp_string)) {
-                TDA_GET_UINT32(skills, info.name, i, "Name");
-                TDA_GET_UINT32(skills, info.description, i, "Description");
-                TDA_GET_RES(skills, info.icon, i, "Icon", nw::ResourceType::texture);
-                TDA_GET_BOOL(skills, info.untrained, i, "Untrained");
-
-                if (skills.get_to(i, "KeyAbility", temp_string)) {
-                    if (nw::string::icmp("str", temp_string)) {
-                        info.ability = ability_strength;
-                    } else if (nw::string::icmp("dex", temp_string)) {
-                        info.ability = ability_dexterity;
-                    } else if (nw::string::icmp("con", temp_string)) {
-                        info.ability = ability_constitution;
-                    } else if (nw::string::icmp("int", temp_string)) {
-                        info.ability = ability_intelligence;
-                    } else if (nw::string::icmp("wis", temp_string)) {
-                        info.ability = ability_wisdom;
-                    } else if (nw::string::icmp("cha", temp_string)) {
-                        info.ability = ability_charisma;
-                    }
+            auto& info = skill_array->entries.emplace_back(skills.row(i));
+            if (skills.get_to(i, "KeyAbility", temp_string)) {
+                if (nw::string::icmp("str", temp_string)) {
+                    info.ability = ability_strength;
+                } else if (nw::string::icmp("dex", temp_string)) {
+                    info.ability = ability_dexterity;
+                } else if (nw::string::icmp("con", temp_string)) {
+                    info.ability = ability_constitution;
+                } else if (nw::string::icmp("int", temp_string)) {
+                    info.ability = ability_intelligence;
+                } else if (nw::string::icmp("wis", temp_string)) {
+                    info.ability = ability_wisdom;
+                } else if (nw::string::icmp("cha", temp_string)) {
+                    info.ability = ability_charisma;
                 }
-
-                TDA_GET_BOOL(skills, info.armor_check_penalty, i, "ArmorCheckPenalty");
-                TDA_GET_BOOL(skills, info.all_can_use, i, "AllClassesCanUse");
-                TDA_GET_INDEX(skills, info.index, i, "Constant");
-                TDA_GET_BOOL(skills, info.hostile, i, "HostileSkill");
             }
-
-            skill_array->entries.push_back(info);
         }
     } else {
         throw std::runtime_error("rules: failed to load 'skills.2da'");
@@ -1563,15 +1301,7 @@ bool Profile::load_rules() const
     if (spell_array && spells.is_valid()) {
         spell_array->entries.reserve(spells.rows());
         for (size_t i = 0; i < spells.rows(); ++i) {
-            nw::Spell info;
-            // float temp_float = 0.0f;
-
-            if (spells.get_to(0, "label", temp_string)) {
-                TDA_GET_UINT32(spells, info.name, i, "Name");
-                TDA_GET_RES(spells, info.icon, i, "IconResRef", nw::ResourceType::texture);
-            }
-
-            spell_array->entries.push_back(info);
+            spell_array->entries.emplace_back(spells.row(i));
         }
     } else {
         throw std::runtime_error("rules: failed to load 'spells.2da'");
@@ -1662,12 +1392,5 @@ bool Profile::load_rules() const
 
     return true;
 }
-
-#undef TDA_GET_STRING
-#undef TDA_GET_STRREF
-#undef TDA_GET_FLOAT
-#undef TDA_GET_INT
-#undef TDA_GET_BOOL
-#undef TDA_GET_RES
 
 } // namespace nwn1

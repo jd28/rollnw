@@ -1,14 +1,19 @@
 #pragma once
 
 #include "../resources/Resource.hpp"
-#include "../util/InternedString.hpp"
+#include "../rules/Index.hpp"
 
 #include <cstdint>
 
 namespace nw {
 
+struct TwoDARowView;
+
 /// Race definition
 struct Race {
+    Race() = default;
+    Race(const TwoDARowView& tda);
+
     uint32_t name = 0xFFFFFFFF;
     uint32_t name_conversation = 0xFFFFFFFF;
     uint32_t name_conversation_lower = 0xFFFFFFFF;

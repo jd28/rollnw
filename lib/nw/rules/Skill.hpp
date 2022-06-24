@@ -1,13 +1,19 @@
 #pragma once
 
+#include "../resources/Resource.hpp"
 #include "system.hpp"
 
 namespace nw {
+
+struct TwoDARowView;
 
 // Ignored 2da columns: Category, MaxCR
 
 /// Skill definition
 struct Skill {
+    Skill() = default;
+    Skill(const TwoDARowView& tda);
+
     uint32_t name = 0xFFFFFFFF;
     uint32_t description;
     Resource icon;

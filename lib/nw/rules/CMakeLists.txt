@@ -1,9 +1,13 @@
 add_library(nw-rules STATIC
     Alignment.cpp
     BaseItem.cpp
+    Class.cpp
     Effect.cpp
     Feat.cpp
     Index.cpp
+    Race.cpp
+    Skill.cpp
+    Spell.cpp
     system.cpp
 )
 

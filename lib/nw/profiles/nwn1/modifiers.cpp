@@ -9,6 +9,8 @@ namespace nwn1 {
 
 void load_modifiers()
 {
+    LOG_F(INFO, "[nwn1] loading modifiers...");
+
     nw::kernel::rules().add(mod::ac_natural(
         dragon_disciple_ac,
         nw::Requirement{qual::class_level(class_type_dragon_disciple, 1)},

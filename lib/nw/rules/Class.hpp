@@ -8,8 +8,12 @@
 namespace nw {
 
 struct Creature;
+struct TwoDARowView;
 
 struct Class {
+    Class() = default;
+    Class(const TwoDARowView& tda);
+
     Requirement requirements;
 
     uint32_t name = 0xFFFFFFFF;
@@ -60,6 +64,7 @@ struct Class {
 
 /// Class Singleton component
 struct ClassArray {
+    std::vector<int> attack_tables;
     std::vector<Class> entries;
 };
 

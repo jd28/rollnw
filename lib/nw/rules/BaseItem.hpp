@@ -1,6 +1,8 @@
 #pragma once
 
 #include "../resources/Resource.hpp"
+#include "../util/Variant.hpp"
+#include "Dice.hpp"
 #include "system.hpp"
 
 #include <absl/container/inlined_vector.h>
@@ -10,6 +12,8 @@
 #include <vector>
 
 namespace nw {
+
+struct TwoDARowView;
 
 enum struct ItemModelType : uint8_t {
     simple,
@@ -57,7 +61,27 @@ struct ItemModelParts {
     };
 };
 
+enum struct WeaponModiferType {
+    attack_bonus,
+    crit_damage,
+    crit_mult,
+    crit_threat,
+    damage,
+};
+
+struct WeaponModifier {
+    WeaponModiferType type;
+    int feat = -1;
+    Variant<int, float, DiceRoll> value;
+};
+
+bool operator==(const WeaponModifier& lhs, const WeaponModifier& rhs);
+bool operator<(const WeaponModifier& lhs, const WeaponModifier& rhs);
+
 struct BaseItem {
+    BaseItem() = default;
+    BaseItem(const TwoDARowView& tda);
+
     uint32_t name = 0xFFFFFFFF;
     std::pair<int, int> inventory_slot_size;
     uint32_t equipable_slots = 0;
