@@ -14,6 +14,10 @@ TEST_CASE("TwoDA Parse", "[formats]")
     REQUIRE(*feat.get<std::string_view>(4, 0) == "ArmProfMed");
     REQUIRE(*feat.get<int32_t>(0, "FEAT") == 289);
 
+    auto row = feat.row(12);
+    REQUIRE(row.size() == feat.columns());
+    REQUIRE(*feat.get<int32_t>(12, "FEAT") == *row.get<int32_t>("FEAT"));
+
     nw::TwoDA empty("test_data/user/development/empty.2da");
     REQUIRE(!empty.is_valid());
 

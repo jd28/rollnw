@@ -200,6 +200,12 @@ bool TwoDA::parse()
     return true;
 }
 
+TwoDARowView TwoDA::row(size_t row) const noexcept
+{
+    auto start = row * columns_.size();
+    return {{&rows_[start], columns_.size()}, this};
+}
+
 size_t TwoDA::rows() const noexcept
 {
     return columns_.empty() ? 0 : rows_.size() / columns_.size();

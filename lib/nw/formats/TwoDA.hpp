@@ -4,6 +4,8 @@
 #include "../util/ByteArray.hpp"
 #include "../util/string.hpp"
 
+#include <absl/types/span.h>
+
 #include <filesystem>
 #include <iostream>
 #include <limits>
@@ -33,6 +35,10 @@ struct StringVariant {
 };
 
 } // namespace detail
+
+struct TwoDARowView;
+
+// == TwoDA ===================================================================
 
 struct TwoDA {
     static constexpr size_t npos = std::numeric_limits<size_t>::max();
@@ -69,6 +75,9 @@ struct TwoDA {
 
     /// Pads the 2da with ``count`` rows.
     void pad(size_t count);
+
+    /// Gets entire row as
+    TwoDARowView row(size_t row) const noexcept;
 
     /// Number of rows
     size_t rows() const noexcept;
@@ -186,5 +195,94 @@ void TwoDA::set(size_t row, std::string_view col, const T& value)
 
 /// Overload for ``operator<<``
 std::ostream& operator<<(std::ostream& out, const TwoDA& tda);
+
+// == TwoDARowView ============================================================
+
+/**
+ * @brief A view of a row in a TwoDA file
+ * @note This behaves as ``std::string_view``, i.e. constant view only
+ */
+struct TwoDARowView {
+    absl::Span<const detail::StringVariant> data;
+    const TwoDA* parent = nullptr;
+
+    /// Gets an element
+    template <typename T>
+    std::optional<T> get(size_t col) const;
+
+    /// Gets an element
+    template <typename T>
+    std::optional<T> get(std::string_view col) const;
+
+    /// Gets an element
+    template <typename T>
+    bool get_to(size_t col, T& out) const;
+
+    /// Gets an element
+    template <typename T>
+    bool get_to(std::string_view col, T& out) const;
+
+    /// Gets the number of columns
+    constexpr size_t size() const noexcept { return data.size(); }
+};
+
+template <typename T>
+std::optional<T> TwoDARowView::get(size_t col) const
+{
+    if (!parent || col >= data.size()) { return {}; }
+    T temp;
+    return get_to(col, temp)
+        ? std::optional<T>{std::move(temp)}
+        : std::optional<T>{};
+}
+
+template <typename T>
+std::optional<T> TwoDARowView::get(std::string_view col) const
+{
+    if (!parent) { return {}; }
+    size_t ci = parent->column_index(col);
+    if (ci == TwoDA::npos) {
+        LOG_F(WARNING, "unknown column: {}", col);
+        return std::optional<T>{};
+    }
+    return get<T>(ci);
+}
+
+template <typename T>
+bool TwoDARowView::get_to(size_t col, T& out) const
+{
+    if (!parent || col >= data.size()) { return false; }
+    static_assert(
+        std::is_same_v<T, std::string> || std::is_same_v<T, float> || std::is_convertible_v<T, int32_t> || std::is_same_v<T, std::string_view>,
+        "TwoDA only supports float, std::string, std::string_view, or anything convertible to int32_t");
+
+    std::string_view res = data[col].view;
+
+    if (res == "****") return false;
+
+    if constexpr (std::is_same_v<T, float> || std::is_convertible_v<T, int>) {
+        auto opt = string::from<T>(res);
+        if (!opt) return false;
+        out = *opt;
+    } else if constexpr (std::is_same_v<T, std::string_view>) {
+        out = res;
+    } else {
+        out = std::string(res);
+    }
+
+    return true;
+}
+
+template <typename T>
+bool TwoDARowView::get_to(std::string_view col, T& out) const
+{
+    if (!parent) { return false; }
+    size_t ci = parent->column_index(col);
+    if (ci == TwoDA::npos) {
+        LOG_F(WARNING, "unknown column: {}", col);
+        return false;
+    }
+    return get_to<T>(ci, out);
+}
 
 } // namespace nw
