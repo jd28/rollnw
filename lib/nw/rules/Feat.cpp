@@ -2,6 +2,7 @@
 
 #include "../formats/TwoDA.hpp"
 #include "../kernel/Kernel.hpp"
+#include "../kernel/components/IndexRegistry.hpp"
 #include "../objects/components/CreatureStats.hpp"
 
 namespace nw {
@@ -30,7 +31,8 @@ Feat::Feat(const TwoDARowView& tda)
     tda.get_to("TARGETSELF", target_self);
 
     if (tda.get_to("Constant", temp_string)) {
-        index = {nw::kernel::strings().intern(temp_string), tda.row_number};
+        auto* idxs = nw::kernel::world().get_mut<nw::IndexRegistry>();
+        index = idxs->add(temp_string, tda.row_number);
     }
 
     tda.get_to("TOOLSCATEGORIES", tools_categories);

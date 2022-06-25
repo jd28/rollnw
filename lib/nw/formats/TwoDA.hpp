@@ -252,11 +252,6 @@ template <typename T>
 bool TwoDARowView::get_to(std::string_view col, T& out) const
 {
     if (!parent) { return false; }
-    size_t ci = parent->column_index(col);
-    if (ci == TwoDA::npos) {
-        LOG_F(WARNING, "unknown column: {}", col);
-        return false;
-    }
     return parent->get_to(row_number, col, out);
 }
 

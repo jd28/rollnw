@@ -2,6 +2,7 @@
 
 #include "../formats/TwoDA.hpp"
 #include "../kernel/Kernel.hpp"
+#include "../kernel/components/IndexRegistry.hpp"
 
 namespace nw {
 
@@ -47,7 +48,8 @@ Class::Class(const TwoDARowView& tda)
         tda.get_to("AlignRstrctType", alignment_restriction_type);
         tda.get_to("InvertRestrict", invert_restriction);
         if (tda.get_to("Constant", temp_string)) {
-            index = {nw::kernel::strings().intern(temp_string), tda.row_number};
+            auto* idxs = nw::kernel::world().get_mut<nw::IndexRegistry>();
+            index = idxs->add(temp_string, tda.row_number);
         }
         if (tda.get_to("PreReqTable", temp_string)) {
             prereq_table = {temp_string, nw::ResourceType::twoda};

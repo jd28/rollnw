@@ -13,7 +13,7 @@ enum struct AlignmentAxis {
 
 DEFINE_ENUM_FLAGS(AlignmentAxis)
 
-enum struct AlignmenType {
+enum struct AlignmentType {
     all = 0,
     neutral = 1,
     lawful = 2,

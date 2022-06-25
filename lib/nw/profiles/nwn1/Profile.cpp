@@ -1204,7 +1204,6 @@ bool Profile::load_rules() const
 
     // == Load Info ===========================================================
 
-    auto* idxs = nw::kernel::world().get_mut<nw::IndexRegistry>();
     nw::TwoDA baseitems{nw::kernel::resman().demand({"baseitems"sv, nw::ResourceType::twoda})};
     nw::TwoDA classes{nw::kernel::resman().demand({"classes"sv, nw::ResourceType::twoda})};
     nw::TwoDA feat{nw::kernel::resman().demand({"feat"sv, nw::ResourceType::twoda})};
@@ -1213,7 +1212,6 @@ bool Profile::load_rules() const
     nw::TwoDA spells{nw::kernel::resman().demand({"spells"sv, nw::ResourceType::twoda})};
     std::string temp_string;
     int temp_int = 0;
-    float temp_float = 0.0f;
 
     // Abilities
     auto* ability_array = nw::kernel::world().get_mut<nw::AbilityArray>();
