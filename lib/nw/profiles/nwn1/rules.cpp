@@ -189,47 +189,35 @@ nw::RuleValue selector(const nw::Selector& selector, const flecs::entity ent)
     return {};
 }
 
-std::pair<nw::Index, int> has_feat_successor(flecs::entity ent, nw::Index feat)
-{
-    nw::Index highest;
-    int count = 0;
-
-    auto featarray = nw::kernel::world().get<nw::FeatArray>();
-    if (!featarray) { return {highest, count}; }
-
-    auto stats = ent.get<nw::CreatureStats>();
-    if (!stats) { return {highest, count}; }
-
-    while (stats->has_feat(feat)) { // [TODO] Make this more efficient
-        highest = feat;
-        ++count;
-
-        const auto& next_entry = featarray->entries[feat];
-        if (next_entry.successor == std::numeric_limits<size_t>::max()) {
-            break;
-        }
-        feat = featarray->entries[next_entry.successor].index;
-    }
-
-    return {highest, count};
-}
-
-size_t highest_feat_in_range(flecs::entity ent, size_t start, size_t end)
-{
-    auto stats = ent.get<nw::CreatureStats>();
-    if (!stats) { return ~0u; }
-    while (end >= start) {
-        if (stats->has_feat(end)) { return end; }
-        --end;
-    }
-    return ~0u;
-}
-
 nw::ModifierResult dragon_disciple_ac(flecs::entity ent)
 {
+    // auto cls = nw::kernel::world().get<nw::ClassArray>();
+    //  if (!cls) { return 0; }
+    //  if (cls->entries.size() < nwn1::class_type_dragon_disciple) {
+    //      return 0;
+    //  }
+    //  if (cls->entries[nwn1::class_type_dragon_disciple].index != nwn1::class_type_dragon_disciple) {
+    //      return 0;
+    //  }
+
     auto stat = ent.get<nw::LevelStats>();
     if (!stat) { return 0; }
     auto level = stat->level_by_class(nwn1::class_type_dragon_disciple);
+
+    // auto tdas = nw::kernel::world().get_mut<nw::TwoDACache>();
+    // if (tdas) {
+    //     auto cls_stat_2da = tdas->get(cls->entries[nwn1::class_type_dragon_disciple].stat_gain_table);
+    //     if (cls_stat_2da) {
+    //         int res = 0, tmp;
+    //         for (int i = 0; i < level; ++i) {
+    //             if (cls_stat_2da->get_to(i, "NaturalAC", tmp)) {
+    //                 res += tmp;
+    //             }
+    //         }
+    //         return res;
+    //     }
+    // }
+
     if (level >= 10) {
         return (level / 5) + 2;
     } else if (level >= 1 && level <= 4) {

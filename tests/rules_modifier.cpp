@@ -82,4 +82,6 @@ TEST_CASE("modifier kernel 2", "[rules]")
 
     auto res = nwk::rules().calculate<int>(nw::ModifierType::hitpoints, ent);
     REQUIRE(res == 80);
+
+    nwk::unload_module();
 }

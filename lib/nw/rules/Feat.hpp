@@ -47,8 +47,6 @@ struct FeatArray {
     std::vector<Feat> entries;
 };
 
-std::vector<size_t> get_all_available_feats(flecs::entity ent);
-
 // Not Implemented Yet
 // - MINATTACKBONUS
 // - MINSPELLLVL

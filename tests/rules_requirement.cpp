@@ -38,6 +38,7 @@ TEST_CASE("requirement", "[rules]")
         false};
 
     REQUIRE(nwk::rules().meets_requirement(req3, ent));
+    nw::kernel::unload_module();
 }
 
 TEST_CASE("requirement: feats", "[rules]")
@@ -48,6 +49,7 @@ TEST_CASE("requirement: feats", "[rules]")
     auto ent = nw::kernel::objects().load(fs::path("test_data/user/development/pl_agent_001.utc"));
     REQUIRE(ent.is_alive());
 
-    auto feats = nw::get_all_available_feats(ent);
+    auto feats = nwn1::get_all_available_feats(ent);
     REQUIRE(feats.size() > 0);
+    nw::kernel::unload_module();
 }

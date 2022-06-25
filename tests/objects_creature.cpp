@@ -2,6 +2,8 @@
 
 #include <nw/kernel/Kernel.hpp>
 #include <nw/objects/Creature.hpp>
+#include <nw/profiles/nwn1/Profile.hpp>
+#include <nw/rules/Feat.hpp>
 #include <nw/serialization/Archives.hpp>
 
 #include <nlohmann/json.hpp>
@@ -10,6 +12,7 @@
 #include <fstream>
 
 namespace fs = std::filesystem;
+namespace nwk = nw::kernel;
 
 TEST_CASE("creature: load nw_chicken", "[objects]")
 {
@@ -71,6 +74,33 @@ TEST_CASE("creature: add/has/remove_feat", "[objects]")
     REQUIRE(stats->feats().size() == 37);
     REQUIRE(stats->has_feat(stats->feats()[20]));
     REQUIRE_FALSE(stats->add_feat(stats->feats()[20]));
+}
+
+TEST_CASE("creature: feat search", "[objects]")
+{
+    auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
+    REQUIRE(mod);
+
+    auto ent = nwk::objects().load(fs::path("test_data/user/development/pl_agent_001.utc"));
+    REQUIRE(ent.is_alive());
+
+    REQUIRE(nwn1::knows_feat(ent, nwn1::feat_epic_toughness_2));
+    REQUIRE_FALSE(nwn1::knows_feat(ent, nwn1::feat_epic_toughness_1));
+
+    auto [feat, nth] = nwn1::has_feat_successor(ent, nwn1::feat_epic_toughness_2);
+    REQUIRE(nth);
+    REQUIRE(feat == nwn1::feat_epic_toughness_4);
+
+    auto [feat2, nth2] = nwn1::has_feat_successor(ent, nwn1::feat_epic_great_wisdom_1);
+    REQUIRE(nth2 == 0);
+
+    auto feat3 = nwn1::highest_feat_in_range(ent, nwn1::feat_epic_toughness_1, nwn1::feat_epic_toughness_10);
+    REQUIRE(feat3 == nwn1::feat_epic_toughness_4);
+
+    auto n = nwn1::count_feats_in_range(ent, nwn1::feat_epic_toughness_1, nwn1::feat_epic_toughness_10);
+    REQUIRE(n == 3); // char doesn't have et1.
+
+    nwk::unload_module();
 }
 
 TEST_CASE("creature: to_json", "[objects]")
