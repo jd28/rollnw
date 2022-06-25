@@ -18,7 +18,7 @@ struct Rules {
 
     virtual ~Rules();
 
-    /// Intializes rules system
+    /// Initializes rules system
     virtual bool initialize();
 
     /// Adds a modifier to the system
@@ -119,7 +119,7 @@ T Rules::calculate(ModifierType type, flecs::entity ent) const
     if (it == std::end(entries_)) { return T{}; }
 
     T result{};
-    for (; it->type == type; ++it) {
+    for (; it != std::end(entries_) && it->type == type; ++it) {
         result += calculate<T>(*it, ent);
     }
 
