@@ -24,6 +24,8 @@ rollNW is a simple modern static C++ library for Neverwinter Nights (and some En
 - hews as close to [C++ Core Guidelines](https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines) as possible.
 - aims to be as easily bindable as possible to other languages.  I.e. only library specific or STL types at API boundaries.
 
+See the [docs](https://jd28.github.io/rollnw/) for more info.
+
 **This library is a work-in-progress.  There will be serious refactoring and until there is a real release, it should be assumed the library is a work-in-progress.**
 
 ## Quickstart - Open VS Code in your Browser
@@ -32,57 +34,8 @@ rollNW is a simple modern static C++ library for Neverwinter Nights (and some En
 
 [Github Codespaces](https://github.com/features/codespaces) is available to those in the beta.
 
-## Building
-
-rollNW uses cmake as its build system and more specifically [CMakePresets.json](https://cmake.org/cmake/help/latest/manual/cmake-presets.7.html).
-
-Install [vcpkg](https://github.com/microsoft/vcpkg).  Note that windows build requires VS Studio 2019 (Community Edition), but it doesn't have to.  All vcpkg packages required will be built automatically.
-
-The example below is building on Linux, but it's virtually the same for all platforms.  The only difference is the configuration preset.
-
-```
-$ export VCPKG_ROOT=path/to/vcpkg
-$ export NWN_ROOT=path/to/game
-$ export NWN_USER=path/to/nwn-user-dir
-$ cd path/to/rollnw
-$ cmake --preset default-test
-$ cmake --build --preset default
-$ ctest --preset default
-```
-
 ## Using
 
-While the library is far from done, basic usage would be as follows.
-
-```cpp
-#include <nw/kernel/Kernel.hpp>
-#include <nw/log.hpp>
-#include <nw/profiles/nwn1/Profile.hpp>
-
-int main(int argc, char* argv[])
-{
-   // Initialize logger
-   nw::init_logger(argc, argv);
-
-   // Sets config for the system, paths, version, etc.
-   auto info = nw::probe_nwn_install();
-   nw::kernel::config().initialize({
-       info.version,
-       info.install,
-       info.user,
-   });
-
-   // Initializes all systems
-   nw::kernel::services().start();
-
-   // Loads a game profile, in this case something vaguely like NWN1
-   nw::kernel::load_profile(new nwn1::Profile);
-
-   // Do neat stuff
-
-   return 0;
-}
-```
 
 ## History
 

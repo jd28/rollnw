@@ -169,6 +169,7 @@ Credits
   :maxdepth: 1
 
   gs/building
+  gs/using
 
 .. toctree::
   :caption: structure
