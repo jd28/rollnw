@@ -19,7 +19,7 @@ And know the place for the first time.
 rollNW is a simple modern static C++ library for Neverwinter Nights (and some Enhanced Edition) file formats and objects, that
 
 - aims to implement an RPG engine inspired by NWN, excluding graphics and networking.
-- focuses on usage, instead doing things the Aurora Engine Way.
+- focuses on usage, instead of doing things the Aurora Engine Way.
 - follows [utf8 everywhere](https://utf8everywhere.org/).
 - hews as close to [C++ Core Guidelines](https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines) as possible.
 - aims to be as easily bindable as possible to other languages.  I.e. only library specific or STL types at API boundaries.

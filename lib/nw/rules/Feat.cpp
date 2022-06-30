@@ -2,16 +2,17 @@
 
 #include "../formats/TwoDA.hpp"
 #include "../kernel/Kernel.hpp"
-#include "../kernel/components/IndexRegistry.hpp"
 #include "../objects/components/CreatureStats.hpp"
 
 namespace nw {
 
-Feat::Feat(const TwoDARowView& tda)
+FeatInfo::FeatInfo(const TwoDARowView& tda)
 {
     std::string temp_string;
     int temp_int;
-    if (!tda.get_to("label", temp_string)) { return; }
+    if (!tda.get_to("label", temp_string)) {
+        return;
+    }
 
     tda.get_to("FEAT", name);
     tda.get_to("DESCRIPTION", description);
@@ -23,7 +24,7 @@ Feat::Feat(const TwoDARowView& tda)
     tda.get_to("MAXCR", max_cr);
     tda.get_to("SPELLID", spell);
     if (tda.get_to("SUCCESSOR", temp_int)) {
-        successor = static_cast<size_t>(temp_int);
+        successor = make_feat(temp_int);
     }
     tda.get_to("CRValue", cr_value);
     tda.get_to("USESPERDAY", uses);
@@ -31,14 +32,40 @@ Feat::Feat(const TwoDARowView& tda)
     tda.get_to("TARGETSELF", target_self);
 
     if (tda.get_to("Constant", temp_string)) {
-        auto* idxs = nw::kernel::world().get_mut<nw::IndexRegistry>();
-        index = idxs->add(temp_string, tda.row_number);
+        constant = nw::kernel::strings().intern(temp_string);
     }
 
     tda.get_to("TOOLSCATEGORIES", tools_categories);
     tda.get_to("HostileFeat", hostile);
     tda.get_to("PreReqEpic", epic);
     tda.get_to("ReqAction", requires_action);
+}
+
+const FeatInfo* FeatArray::get(Feat feat) const noexcept
+{
+    auto ft = static_cast<uint32_t>(feat);
+    if (ft < entries.size() && entries[ft].valid()) {
+        return &entries[ft];
+    } else {
+        return nullptr;
+    }
+}
+
+bool FeatArray::is_valid(Feat feat) const noexcept
+{
+    auto ft = static_cast<uint32_t>(feat);
+    return ft < entries.size() && entries[ft].valid();
+}
+
+Feat FeatArray::from_constant(std::string_view constant) const
+{
+    absl::string_view v{constant.data(), constant.size()};
+    auto it = constant_to_index.find(v);
+    if (it == constant_to_index.end()) {
+        return Feat::invalid;
+    } else {
+        return it->second;
+    }
 }
 
 } // namespace nw

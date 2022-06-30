@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../../rules/Index.hpp"
+#include "../../rules/Class.hpp"
 #include "../../serialization/Archives.hpp"
 #include "SpellBook.hpp"
 
@@ -9,7 +9,7 @@
 namespace nw {
 
 struct ClassEntry {
-    int32_t id;
+    Class id;
     int16_t level;
     SpellBook spells;
 };
@@ -23,7 +23,7 @@ struct LevelStats {
     nlohmann::json to_json() const;
 
     int level() const noexcept;
-    int level_by_class(Index id) const noexcept;
+    int level_by_class(Class id) const noexcept;
 
     std::vector<ClassEntry> entries;
 };

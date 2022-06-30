@@ -5,7 +5,7 @@
 
 namespace nw {
 
-Skill::Skill(const TwoDARowView& tda)
+SkillInfo::SkillInfo(const TwoDARowView& tda)
 {
     std::string temp_string;
     if (tda.get_to("label", temp_string)) {
@@ -19,9 +19,35 @@ Skill::Skill(const TwoDARowView& tda)
         tda.get_to("ArmorCheckPenalty", armor_check_penalty);
         tda.get_to("AllClassesCanUse", all_can_use);
         if (tda.get_to("Constant", temp_string)) {
-            index = {nw::kernel::strings().intern(temp_string), tda.row_number};
+            constant = nw::kernel::strings().intern(temp_string);
         }
         tda.get_to("HostileSkill", hostile);
+    }
+}
+
+const SkillInfo* SkillArray::get(Skill skill) const noexcept
+{
+    size_t sk = static_cast<size_t>(skill);
+    if (sk < entries.size() && entries[sk].valid()) {
+        return &entries[sk];
+    }
+    return nullptr;
+}
+
+bool SkillArray::is_valid(Skill skill) const noexcept
+{
+    size_t sk = static_cast<size_t>(skill);
+    return sk < entries.size() && entries[sk].valid();
+}
+
+Skill SkillArray::from_constant(std::string_view constant) const
+{
+    absl::string_view v{constant.data(), constant.size()};
+    auto it = constant_to_index.find(v);
+    if (it == constant_to_index.end()) {
+        return Skill::invalid;
+    } else {
+        return it->second;
     }
 }
 

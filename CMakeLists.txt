@@ -54,6 +54,7 @@ add_subdirectory(external/flecs)
 add_subdirectory(external/inih)
 add_subdirectory(external/stb)
 add_subdirectory(lib/nw)
+add_subdirectory(profiles)
 
 if (ENABLE_TESTING)
 include(CTest)

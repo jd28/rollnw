@@ -25,7 +25,10 @@ bool CreatureStats::from_gff(const GffInputArchiveStruct& archive)
     size_t sz = feat_list.size();
     feats_.resize(sz);
     for (size_t i = 0; i < sz; ++i) {
-        feat_list[i].get_to("Feat", feats_[i]);
+        uint16_t temp;
+        if (feat_list[i].get_to("Feat", temp)) {
+            feats_[i] = make_feat(temp);
+        }
     }
 
     std::sort(std::begin(feats_), std::end(feats_));
@@ -64,8 +67,8 @@ bool CreatureStats::to_gff(GffOutputArchiveStruct& archive) const
         .add_field("willbonus", save_bonus.will);
 
     auto& ft_list = archive.add_list("FeatList");
-    for (uint16_t ft : feats_) {
-        ft_list.push_back(1).add_field("Feat", ft);
+    for (auto ft : feats_) {
+        ft_list.push_back(1).add_field("Feat", static_cast<uint16_t>(ft));
     }
 
     auto& sk_list = archive.add_list("SkillList");
@@ -86,31 +89,27 @@ nlohmann::json CreatureStats::to_json() const
     return j;
 }
 
-bool CreatureStats::add_feat(size_t feat)
+bool CreatureStats::add_feat(Feat feat)
 {
-    uint16_t ft = static_cast<uint16_t>(feat);
-
-    auto it = std::lower_bound(std::begin(feats_), std::end(feats_), ft);
+    auto it = std::lower_bound(std::begin(feats_), std::end(feats_), feat);
     if (it == std::end(feats_)) {
-        feats_.push_back(ft);
-    } else if (*it != ft) {
-        feats_.insert(it, ft);
+        feats_.push_back(feat);
+    } else if (*it != feat) {
+        feats_.insert(it, feat);
         return true;
     }
     return false;
 }
 
-const std::vector<uint16_t>& CreatureStats::feats() const noexcept
+const std::vector<Feat>& CreatureStats::feats() const noexcept
 {
     return feats_;
 }
 
-bool CreatureStats::has_feat(size_t feat) const noexcept
+bool CreatureStats::has_feat(Feat feat) const noexcept
 {
-    uint16_t ft = static_cast<uint16_t>(feat);
-
-    auto it = std::lower_bound(std::begin(feats_), std::end(feats_), ft);
-    return it != std::end(feats_) && *it == ft;
+    auto it = std::lower_bound(std::begin(feats_), std::end(feats_), feat);
+    return it != std::end(feats_) && *it == feat;
 }
 
 } // namespace nw

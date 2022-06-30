@@ -34,7 +34,10 @@ bool SpellBook::from_gff(const GffInputArchiveStruct& gff)
         size_t sz = gff[k].size();
         for (size_t j = 0; j < sz; ++j) {
             SpellEntry s;
-            gff[k][j].get_to("Spell", s.spell);
+            uint16_t temp;
+            if (gff[k][j].get_to("Spell", temp)) {
+                s.spell = make_spell(temp);
+            }
             gff[k][j].get_to("SpellFlags", s.flags);
             gff[k][j].get_to("SpellMetaMagic", s.meta);
             known[i].push_back(s);
@@ -44,7 +47,10 @@ bool SpellBook::from_gff(const GffInputArchiveStruct& gff)
         sz = gff[m].size();
         for (size_t j = 0; j < sz; ++j) {
             SpellEntry s;
-            gff[m][j].get_to("Spell", s.spell);
+            uint16_t temp;
+            if (gff[k][j].get_to("Spell", temp)) {
+                s.spell = make_spell(temp);
+            }
             gff[m][j].get_to("SpellFlags", s.flags);
             gff[m][j].get_to("SpellMetaMagic", s.meta);
             memorized[i].push_back(s);
@@ -75,7 +81,7 @@ bool SpellBook::to_gff(GffOutputArchiveStruct& archive) const
         auto& klist = archive.add_list(k);
         for (const auto& sp : known[i]) {
             klist.push_back(3)
-                .add_field("Spell", sp.spell)
+                .add_field("Spell", uint16_t(sp.spell))
                 .add_field("SpellFlags", static_cast<uint8_t>(sp.flags))
                 .add_field("SpellMetaMagic", static_cast<uint8_t>(sp.meta));
         }
@@ -87,7 +93,7 @@ bool SpellBook::to_gff(GffOutputArchiveStruct& archive) const
         auto& mlist = archive.add_list(m);
         for (const auto& sp : memorized[i]) {
             mlist.push_back(3)
-                .add_field("Spell", sp.spell)
+                .add_field("Spell", uint16_t(sp.spell))
                 .add_field("SpellFlags", static_cast<uint8_t>(sp.flags))
                 .add_field("SpellMetaMagic", static_cast<uint8_t>(sp.meta));
         }

@@ -2,12 +2,12 @@
 
 #include "../formats/TwoDA.hpp"
 #include "../kernel/Kernel.hpp"
-#include "../kernel/components/IndexRegistry.hpp"
 
 namespace nw {
 
-Class::Class(const TwoDARowView& tda)
+ClassInfo::ClassInfo(const TwoDARowView& tda)
 {
+    auto class_array = nw::kernel::world().get_mut<ClassArray>();
     std::string temp_string;
     if (tda.get_to("label", temp_string)) {
         tda.get_to("Name", name);
@@ -19,7 +19,17 @@ Class::Class(const TwoDARowView& tda)
         }
         tda.get_to("HitDie", hitdie);
         if (tda.get_to("AttackBonusTable", temp_string)) {
-            attack_bonus_table = {temp_string, nw::ResourceType::twoda};
+            TwoDA ab_2da(nw::kernel::resman().demand({temp_string, nw::ResourceType::twoda}));
+            std::vector<int> ab;
+            if (ab_2da.is_valid()) {
+                for (size_t i = 0; i < ab_2da.rows(); ++i) {
+                    int temp;
+                    if (ab_2da.get_to(i, "BAB", temp)) {
+                        ab.push_back(temp);
+                    }
+                }
+                attack_bonus_table = &*class_array->attack_tables.insert(ab).first;
+            }
         }
         if (tda.get_to("FeatsTable", temp_string)) {
             feats_table = {temp_string, nw::ResourceType::twoda};
@@ -48,8 +58,7 @@ Class::Class(const TwoDARowView& tda)
         tda.get_to("AlignRstrctType", alignment_restriction_type);
         tda.get_to("InvertRestrict", invert_restriction);
         if (tda.get_to("Constant", temp_string)) {
-            auto* idxs = nw::kernel::world().get_mut<nw::IndexRegistry>();
-            index = idxs->add(temp_string, tda.row_number);
+            constant = nw::kernel::strings().intern(temp_string);
         }
         if (tda.get_to("PreReqTable", temp_string)) {
             prereq_table = {temp_string, nw::ResourceType::twoda};
@@ -84,6 +93,32 @@ Class::Class(const TwoDARowView& tda)
             tda.get_to("MinAssociateLevel", level_min_associate);
             tda.get_to("CanCastSpontaneously", can_cast_spontaneously);
         }
+    }
+}
+
+const ClassInfo* ClassArray::get(Class class_) const noexcept
+{
+    size_t idx = static_cast<size_t>(class_);
+    if (idx < entries.size() && entries[idx].valid()) {
+        return &entries[idx];
+    }
+    return nullptr;
+}
+
+bool ClassArray::is_valid(Class class_) const noexcept
+{
+    size_t idx = static_cast<size_t>(class_);
+    return idx < entries.size() && entries[idx].valid();
+}
+
+Class ClassArray::from_constant(std::string_view constant) const
+{
+    absl::string_view v{constant.data(), constant.size()};
+    auto it = constant_to_index.find(v);
+    if (it == constant_to_index.end()) {
+        return Class::invalid;
+    } else {
+        return it->second;
     }
 }
 

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../../rules/Spell.hpp"
 #include "../../serialization/Archives.hpp"
 
 #include <array>
@@ -11,7 +12,7 @@ namespace nw {
 enum struct SpellFlags : uint8_t {
     none = 0x0,
     readied = 0x01,
-    spontaneouss = 0x02,
+    spontaneous = 0x02,
     unlimited = 0x04,
 };
 
@@ -26,7 +27,7 @@ enum struct SpellMetaMagic : uint8_t {
 };
 
 struct SpellEntry {
-    uint16_t spell;
+    Spell spell = Spell::invalid;
     SpellMetaMagic meta = SpellMetaMagic::none;
     SpellFlags flags = SpellFlags::none;
 };

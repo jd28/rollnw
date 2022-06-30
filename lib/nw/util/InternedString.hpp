@@ -1,5 +1,8 @@
 #pragma once
 
+#include <absl/hash/hash.h>
+#include <absl/strings/string_view.h>
+
 #include <string>
 
 namespace nw {

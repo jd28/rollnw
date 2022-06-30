@@ -2,9 +2,10 @@
 
 #include <nw/kernel/Kernel.hpp>
 #include <nw/objects/Creature.hpp>
-#include <nw/profiles/nwn1/Profile.hpp>
 #include <nw/rules/Feat.hpp>
 #include <nw/serialization/Archives.hpp>
+#include <nwn1/Profile.hpp>
+#include <nwn1/functions.hpp>
 
 #include <nlohmann/json.hpp>
 
@@ -99,6 +100,36 @@ TEST_CASE("creature: feat search", "[objects]")
 
     auto n = nwn1::count_feats_in_range(ent, nwn1::feat_epic_toughness_1, nwn1::feat_epic_toughness_10);
     REQUIRE(n == 3); // char doesn't have et1.
+
+    nwk::unload_module();
+}
+
+TEST_CASE("creature: base attack bonus", "[objects]")
+{
+    auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
+    REQUIRE(mod);
+
+    auto ent = nw::kernel::objects().load(fs::path("test_data/user/development/pl_agent_001.utc"));
+    REQUIRE(ent.is_alive());
+
+    REQUIRE(32 == nwn1::attack_bonus(ent, true));
+
+    nwk::unload_module();
+}
+
+TEST_CASE("creature: skills ", "[objects]")
+{
+    auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
+    REQUIRE(mod);
+
+    auto ent = nw::kernel::objects().load(fs::path("test_data/user/development/pl_agent_001.utc"));
+    REQUIRE(ent.is_alive());
+
+    REQUIRE(nwn1::get_skill_rank(ent, nwn1::skill_discipline, true) == 40);
+    ent.get_mut<nw::CreatureStats>()->add_feat(nwn1::feat_skill_focus_discipline);
+    REQUIRE(nwn1::get_skill_rank(ent, nwn1::skill_discipline, false) == 58);
+    ent.get_mut<nw::CreatureStats>()->add_feat(nwn1::feat_epic_skill_focus_discipline);
+    REQUIRE(nwn1::get_skill_rank(ent, nwn1::skill_discipline, false) == 68);
 
     nwk::unload_module();
 }

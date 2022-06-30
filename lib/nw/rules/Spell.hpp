@@ -1,14 +1,27 @@
 #pragma once
 
 #include "../resources/Resource.hpp"
+#include "type_traits.hpp"
 
 namespace nw {
 
 struct TwoDARowView;
 
-struct Spell {
-    Spell() = default;
-    Spell(const TwoDARowView& tda);
+enum struct Spell : int32_t {
+    invalid = -1,
+};
+
+/// Converts integer into a Spell
+constexpr Spell make_spell(int32_t id) { return static_cast<Spell>(id); }
+
+/// Converts integer into a Spell
+template <>
+struct is_rule_type_base<Spell> : std::true_type {
+};
+
+struct SpellInfo {
+    SpellInfo() = default;
+    SpellInfo(const TwoDARowView& tda);
 
     uint32_t name = 0xFFFFFFFF;
     Resource icon;
@@ -61,12 +74,12 @@ struct Spell {
     // Counter2
     // HasProjectile
 
-    operator bool() const noexcept { return name != 0xFFFFFFFF; }
+    bool valid() const noexcept { return name != 0xFFFFFFFF; }
 };
 
 /// Spell singleton component
 struct SpellArray {
-    std::vector<Spell> entries;
+    std::vector<SpellInfo> entries;
 };
 
 } // namespace nw

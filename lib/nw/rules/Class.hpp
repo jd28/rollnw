@@ -1,18 +1,35 @@
 #pragma once
 
 #include "../resources/Resource.hpp"
+#include "../util/InternedString.hpp"
 #include "system.hpp"
+#include "type_traits.hpp"
+
+#include <absl/container/flat_hash_map.h>
 
 #include <cstdint>
+#include <limits>
+#include <set>
 
 namespace nw {
 
 struct Creature;
 struct TwoDARowView;
 
-struct Class {
-    Class() = default;
-    Class(const TwoDARowView& tda);
+enum struct Class : int32_t {
+    invalid = -1,
+};
+constexpr Class make_class(int32_t id) { return static_cast<Class>(id); }
+
+template <>
+struct is_rule_type_base<Class> : std::true_type {
+};
+
+struct ClassInfo {
+    ClassInfo() = default;
+    ClassInfo(const TwoDARowView& tda);
+
+    bool valid() const noexcept { return name != 0xFFFFFFFF; }
 
     Requirement requirements;
 
@@ -22,7 +39,7 @@ struct Class {
     uint32_t description = 0xFFFFFFFF;
     Resource icon;
     int hitdie = 0;
-    Resource attack_bonus_table;
+    const std::vector<int>* attack_bonus_table = nullptr;
     Resource feats_table;
     Resource saving_throw_table;
     Resource skills_table;
@@ -36,7 +53,7 @@ struct Class {
     uint32_t alignment_restriction = 0;
     uint32_t alignment_restriction_type = 0;
     bool invert_restriction = false;
-    Index index;
+    InternedString constant;
     Resource prereq_table;
     int max_level = 0;
     int xp_penalty = 0;
@@ -58,14 +75,26 @@ struct Class {
     int level_min_caster = 0;
     int level_min_associate = 0;
     bool can_cast_spontaneously = false;
-
-    operator bool() const noexcept { return name != 0xFFFFFFFF; }
 };
 
 /// Class Singleton component
 struct ClassArray {
-    std::vector<int> attack_tables;
-    std::vector<Class> entries;
+    using map_type = absl::flat_hash_map<
+        InternedString,
+        Class,
+        InternedStringHash,
+        InternedStringEq>;
+
+    const ClassInfo* get(Class class_) const noexcept;
+    bool is_valid(Class class_) const noexcept;
+    Class from_constant(std::string_view constant) const;
+
+    std::set<std::vector<int>> attack_tables;
+    std::vector<int> skill_table;
+    std::vector<int> stat_gain_tables;
+
+    std::vector<ClassInfo> entries;
+    map_type constant_to_index;
 };
 
 // Unimplemented

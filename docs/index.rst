@@ -17,7 +17,7 @@ some Enhanced Edition) file formats and objects, that
 
 -  aims to implement an RPG engine inspired by NWN, excluding graphics
    and networking.
--  focuses on usage, instead doing things the Aurora Engine Way.
+-  focuses on usage, instead of doing things the Aurora Engine Way.
 -  follows `utf8 everywhere <https://utf8everywhere.org/>`__.
 -  hews as close to `C++ Core
    Guidelines <https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines>`__

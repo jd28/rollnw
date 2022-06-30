@@ -1,10 +1,9 @@
 #include <catch2/catch.hpp>
 
 #include <nw/kernel/Kernel.hpp>
-#include <nw/kernel/components/IndexRegistry.hpp>
 #include <nw/objects/Creature.hpp>
-#include <nw/profiles/nwn1/Profile.hpp>
 #include <nw/rules/system.hpp>
+#include <nwn1/Profile.hpp>
 
 namespace fs = std::filesystem;
 namespace nwk = nw::kernel;
@@ -17,10 +16,10 @@ TEST_CASE("qualifier", "[rules]")
     auto ent = nwk::objects().load(fs::path("test_data/user/development/pl_agent_001.utc"));
     REQUIRE(ent.is_alive());
 
-    REQUIRE_FALSE(nwn1::ability_strength.empty());
-    REQUIRE_FALSE(nwn1::ability_constitution.empty());
-    REQUIRE_FALSE(nwn1::skill_tumble.empty());
-    REQUIRE_FALSE(nwn1::skill_discipline.empty());
+    REQUIRE(nwn1::ability_strength != nw::Ability::invalid);
+    REQUIRE(nwn1::ability_constitution != nw::Ability::invalid);
+    REQUIRE(nwn1::skill_tumble != nw::Skill::invalid);
+    REQUIRE(nwn1::skill_discipline != nw::Skill::invalid);
 
     auto qual1 = nwn1::qual::ability(nwn1::ability_strength, 0, 20); // less than 20 str.
     REQUIRE_FALSE(nwn1::match(qual1, ent));
@@ -134,24 +133,20 @@ TEST_CASE("qualifier: class_level", "[rules]")
 {
     auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
     REQUIRE(mod);
-    auto* cr = nwk::world().get<nw::IndexRegistry>();
 
     auto ent = nwk::objects().load(fs::path("test_data/user/development/pl_agent_001.utc"));
     REQUIRE(ent.is_alive());
 
-    const auto class_type_fighter = cr->get("CLASS_TYPE_FIGHTER");
-    REQUIRE_FALSE(class_type_fighter.empty());
-
-    auto qual1 = nwn1::qual::class_level(class_type_fighter, 30, 40);
+    auto qual1 = nwn1::qual::class_level(nwn1::class_type_fighter, 30, 40);
     REQUIRE_FALSE(nwn1::match(qual1, ent));
 
-    auto qual2 = nwn1::qual::class_level(class_type_fighter, 10);
+    auto qual2 = nwn1::qual::class_level(nwn1::class_type_fighter, 10);
     REQUIRE(nwn1::match(qual2, ent));
 
-    auto qual3 = nwn1::qual::class_level(class_type_fighter, 1, 1);
+    auto qual3 = nwn1::qual::class_level(nwn1::class_type_fighter, 1, 1);
     REQUIRE_FALSE(nwn1::match(qual3, ent));
 
-    auto qual4 = nwn1::qual::class_level(class_type_fighter, 4, 5);
+    auto qual4 = nwn1::qual::class_level(nwn1::class_type_fighter, 4, 5);
     REQUIRE_FALSE(nwn1::match(qual4, ent));
 
     nwk::unload_module();

@@ -2,7 +2,6 @@
 
 #include <nw/kernel/Kernel.hpp>
 #include <nw/kernel/components/TwoDACache.hpp>
-#include <nw/profiles/nwn1/Profile.hpp>
 #include <nw/rules/Ability.hpp>
 #include <nw/rules/BaseItem.hpp>
 #include <nw/rules/Class.hpp>
@@ -10,6 +9,7 @@
 #include <nw/rules/Race.hpp>
 #include <nw/rules/Skill.hpp>
 #include <nw/rules/Spell.hpp>
+#include <nwn1/Profile.hpp>
 
 #include <nw/util/game_install.hpp>
 
@@ -49,9 +49,9 @@ TEST_CASE("rules manager", "[kernel]")
     REQUIRE(sp->entries.size() > 0);
 
     auto& skill = sk->entries[0];
-    REQUIRE(skill);
+    REQUIRE(skill.valid());
     REQUIRE(skill.name == 269);
-    REQUIRE(skill.index.name == "SKILL_ANIMAL_EMPATHY");
+    REQUIRE(skill.constant == "SKILL_ANIMAL_EMPATHY");
 
     REQUIRE(nwk::world().get_mut<nw::TwoDACache>()->cache("placeables"sv));
     REQUIRE(nwk::world().get_mut<nw::TwoDACache>()->get("placeables"sv)->rows() > 0);

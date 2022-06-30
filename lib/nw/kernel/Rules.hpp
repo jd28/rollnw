@@ -28,9 +28,10 @@ struct Rules {
      * @brief Calculates all modifiers of `type`
      *
      * @tparam T is ``int`` or ``float``
+     * @tparam U is some subtype that **must** be convertible to int
      */
-    template <typename T>
-    T calculate(ModifierType type, flecs::entity ent) const;
+    template <typename T, typename U = int>
+    T calculate(flecs::entity ent, int type, U subtype = -1) const;
 
     /**
      * @brief Calculates a modifier
@@ -38,7 +39,7 @@ struct Rules {
      * @tparam T is ``int`` or ``float``
      */
     template <typename T>
-    T calculate(const Modifier& mod, const flecs::entity ent) const;
+    T calculate(const flecs::entity ent, const Modifier& mod) const;
 
     /// Clears rules system of all rules and cached 2da files
     virtual void clear();
@@ -91,12 +92,14 @@ private:
 };
 
 template <typename T>
-T Rules::calculate(const Modifier& mod, const flecs::entity ent) const
+T Rules::calculate(const flecs::entity ent, const Modifier& mod) const
 {
     static_assert(std::is_same_v<T, int> || std::is_same_v<T, float>,
         "only int and float are allowed");
 
-    if (!meets_requirement(mod.requirement, ent)) { return {}; }
+    if (!meets_requirement(mod.requirement, ent)) {
+        return {};
+    }
     if (mod.value.is<T>()) {
         return mod.value.as<T>();
     } else if (mod.value.is<ModifierFunction>()) {
@@ -108,19 +111,18 @@ T Rules::calculate(const Modifier& mod, const flecs::entity ent) const
     }
 }
 
-template <typename T>
-T Rules::calculate(ModifierType type, flecs::entity ent) const
+template <typename T, typename U>
+T Rules::calculate(flecs::entity ent, int type, U subtype) const
 {
     static_assert(std::is_same_v<T, int> || std::is_same_v<T, float>,
         "only int and float are allowed");
 
-    Modifier temp{type, {}, Requirement{}, {}, {}, ModifierSource::unknown};
+    Modifier temp{type, {}, Requirement{}, {}, {}, ModifierSource::unknown, static_cast<int>(subtype)};
     auto it = std::lower_bound(std::begin(entries_), std::end(entries_), temp);
-    if (it == std::end(entries_)) { return T{}; }
 
     T result{};
     for (; it != std::end(entries_) && it->type == type; ++it) {
-        result += calculate<T>(*it, ent);
+        result += calculate<T>(ent, *it);
     }
 
     return result;

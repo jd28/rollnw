@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../../rules/Feat.hpp"
 #include "../../serialization/Archives.hpp"
 #include "Saves.hpp"
 
@@ -16,16 +17,16 @@ struct CreatureStats {
     bool to_gff(GffOutputArchiveStruct& archive) const;
     nlohmann::json to_json() const;
 
-    bool add_feat(size_t feat);
-    const std::vector<uint16_t>& feats() const noexcept;
-    bool has_feat(size_t feat) const noexcept;
+    bool add_feat(Feat feat);
+    const std::vector<Feat>& feats() const noexcept;
+    bool has_feat(Feat feat) const noexcept;
 
     std::array<uint8_t, 6> abilities;
     std::vector<uint8_t> skills;
     Saves save_bonus;
 
 private:
-    std::vector<uint16_t> feats_;
+    std::vector<Feat> feats_;
 };
 
 } // namespace nw

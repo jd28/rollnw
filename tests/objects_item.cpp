@@ -3,6 +3,7 @@
 #include <nw/kernel/Kernel.hpp>
 #include <nw/objects/Item.hpp>
 #include <nw/serialization/Serialization.hpp>
+#include <nwn1/functions.hpp>
 
 #include <nlohmann/json.hpp>
 
@@ -13,8 +14,19 @@ namespace fs = std::filesystem;
 
 TEST_CASE("item: load armor item", "[objects]")
 {
+    auto mod = nw::kernel::load_module("test_data/user/modules/DockerDemo.mod");
+    REQUIRE(mod);
+
     auto ent = nw::kernel::objects().load(fs::path("test_data/user/development/cloth028.uti"));
     REQUIRE(ent.is_alive());
+    // auto light = nw::kernel::objects().load("nw_maarcl004", nw::ObjectType::item);
+    // REQUIRE(light.is_alive());
+    // auto medium = nw::kernel::objects().load("nw_maarcl040", nw::ObjectType::item);
+    // REQUIRE(medium.is_alive());
+    // auto heavy1 = nw::kernel::objects().load("x2_mdrowar030", nw::ObjectType::item);
+    // REQUIRE(heavy1.is_alive());
+    // auto heavy2 = nw::kernel::objects().load("x2_it_adaplate", nw::ObjectType::item);
+    // REQUIRE(heavy2.is_alive());
 
     auto item = ent.get<nw::Item>();
     auto common = ent.get<nw::Common>();
@@ -23,6 +35,14 @@ TEST_CASE("item: load armor item", "[objects]")
     REQUIRE(item->properties.size() > 0);
     REQUIRE(item->model_type == nw::ItemModelType::armor);
     REQUIRE(common->locals.size() > 0);
+
+    REQUIRE(nwn1::calculate_ac(ent) == 0);
+    // REQUIRE(nwn1::calculate_ac(light) == 1);
+    // REQUIRE(nwn1::calculate_ac(medium) == 5);
+    // REQUIRE(nwn1::calculate_ac(heavy1) == 7);
+    // REQUIRE(nwn1::calculate_ac(heavy2) == 8);
+
+    nw::kernel::unload_module();
 }
 
 TEST_CASE("item: load layered item", "[objects]")
@@ -82,7 +102,7 @@ TEST_CASE("item: json to and from", "[objects]")
     REQUIRE(j == j2);
 }
 
-TEST_CASE("item: gff round trip", "[ojbects]")
+TEST_CASE("item: gff round trip", "[objects]")
 {
     auto ent = nw::kernel::objects().load(fs::path("test_data/user/development/cloth028.uti"));
     REQUIRE(ent.is_alive());

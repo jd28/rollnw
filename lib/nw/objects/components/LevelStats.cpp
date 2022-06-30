@@ -12,7 +12,10 @@ bool LevelStats::from_gff(const GffInputArchiveStruct& archive)
     entries.reserve(sz);
     for (size_t i = 0; i < sz; ++i) {
         ClassEntry c;
-        archive["ClassList"][i].get_to("Class", c.id);
+        int32_t temp;
+        if (archive["ClassList"][i].get_to("Class", temp)) {
+            c.id = make_class(temp);
+        }
         archive["ClassList"][i].get_to("ClassLevel", c.level);
         c.spells.from_gff(archive["ClassList"][i]);
         entries.push_back(std::move(c));
@@ -43,8 +46,9 @@ bool LevelStats::to_gff(GffOutputArchiveStruct& archive) const
 {
     auto& list = archive.add_list("ClassList");
     for (const auto& cls : entries) {
+        int32_t cls_id = static_cast<int32_t>(cls.id);
         cls.spells.to_gff(list.push_back(3)
-                              .add_field("Class", cls.id)
+                              .add_field("Class", cls_id)
                               .add_field("ClassLevel", cls.level));
     }
 
@@ -74,10 +78,10 @@ int LevelStats::level() const noexcept
     return result;
 }
 
-int LevelStats::level_by_class(Index id) const noexcept
+int LevelStats::level_by_class(Class id) const noexcept
 {
     for (const auto& cl : entries) {
-        if (*id == static_cast<size_t>(cl.id)) {
+        if (id == cl.id) {
             return cl.level;
         }
     }

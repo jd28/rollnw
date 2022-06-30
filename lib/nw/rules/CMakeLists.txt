@@ -1,10 +1,13 @@
 add_library(nw-rules STATIC
+    Ability.cpp
     Alignment.cpp
+    ArmorClass.cpp
     BaseItem.cpp
     Class.cpp
     Effect.cpp
     Feat.cpp
-    Index.cpp
+    MasterFeat.cpp
+    Poison.cpp
     Race.cpp
     Skill.cpp
     Spell.cpp

@@ -3,36 +3,36 @@
 #include "../kernel/Strings.hpp"
 #include "../util/Variant.hpp"
 #include "Alignment.hpp"
-#include "Index.hpp"
 
 #include <absl/container/inlined_vector.h>
 #include <flecs/flecs.h>
 
+#include <limits>
 #include <optional>
 #include <string>
 #include <variant>
 
 namespace nw {
 
-using RuleValue = Variant<int32_t, float, std::string, Index>;
+using RuleValue = Variant<int32_t, float, std::string>;
 
 // == Selector ================================================================
 
 /// Selector types
 enum struct SelectorType : uint32_t {
-    ability,       ///< Subtype: ABILITY_* constant
-    ac,            ///< Subtype: AC_* constant
+    ability,       ///< Subtype: ability_* constant
+    ac,            ///< Subtype: ac_* constant
     alignment,     ///< Subtype: AlignmentAxis
     arcane_level,  ///< Subtype: none
     bab,           ///< Subtype: none
     caster_level,  ///< Subtype:
-    class_level,   ///< Subtype: CLASS_* constant
-    feat,          ///< Subtype: FEAT_* constant
+    class_level,   ///< Subtype: class_* constant
+    feat,          ///< Subtype: feat_* constant
     level,         ///< Subtype: none
     local_var_int, ///< Subtype: local var name, eg. "X1_AllowArcher"
     local_var_str, ///< Subtype: local var name, eg. "some_var"
     race,          ///< Subtype: none
-    skill,         ///< Subtype: SKILL_* constant
+    skill,         ///< Subtype: skill_* constant
     spell_level,   ///< Subtype:
 };
 
@@ -84,26 +84,18 @@ enum struct ModifierSource {
     skill,
 };
 
-enum struct ModifierType {
-    attack_bonus,
-    ac_dodge,
-    ac_natural,
-    hitpoints,
-    crit_threat,
-    crit_multiplier,
-};
-
 using ModifierResult = Variant<int, float>;
 using ModifierFunction = std::function<ModifierResult(flecs::entity)>;
 using ModifierVariant = Variant<int, float, ModifierFunction>;
 
 struct Modifier {
-    ModifierType type;
+    int type = -1;
     ModifierVariant value;
     Requirement requirement;
     Versus versus;
     InternedString tagged;
     ModifierSource source = ModifierSource::unknown;
+    int subtype = -1;
 };
 
 inline bool operator<(const Modifier& lhs, const Modifier& rhs)

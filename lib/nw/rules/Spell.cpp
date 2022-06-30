@@ -5,7 +5,7 @@
 
 namespace nw {
 
-Spell::Spell(const TwoDARowView& tda)
+SpellInfo::SpellInfo(const TwoDARowView& tda)
 {
     std::string temp_string;
 

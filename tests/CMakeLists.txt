@@ -76,10 +76,14 @@ add_executable(rollnw_test
     util_tokenizer.cpp
 )
 
-target_include_directories(rollnw_test PRIVATE ../lib)
+target_include_directories(rollnw_test PRIVATE
+    ../lib
+    ../profiles
+)
 
 target_link_libraries(rollnw_test PRIVATE
     nw
+    nw-profiles
     flecs
     Threads::Threads
     Catch2::Catch2)

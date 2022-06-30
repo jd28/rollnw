@@ -2,13 +2,14 @@
 #include <nw/i18n/Tlk.hpp>
 #include <nw/kernel/Kernel.hpp>
 #include <nw/objects/Creature.hpp>
-#include <nw/profiles/nwn1/Profile.hpp>
 #include <nw/serialization/GffInputArchive.hpp>
-#include <toml++/toml.hpp>
+#include <nwn1/Profile.hpp>
+#include <nwn1/functions.hpp>
 
 #include <benchmark/benchmark.h>
 #include <nlohmann/json.hpp>
 #include <nowide/cstdlib.hpp>
+#include <toml++/toml.hpp>
 
 #include <fstream>
 
@@ -71,10 +72,10 @@ static void BM_creature_to_gff(benchmark::State& state)
 static void BM_creature_select(benchmark::State& state)
 {
     auto ent = nw::kernel::objects().load(fs::path("../tests/test_data/user/development/pl_agent_001.utc"));
-    auto sel = nwn1::sel::ability(nwn1::ability_strength);
+    // auto sel = nwn1::sel::ability(nwn1::ability_strength);
 
     for (auto _ : state) {
-        auto out = nw::kernel::rules().select(sel, ent);
+        auto out = ent.get<nw::CreatureStats>(); // nw::kernel::rules().select(sel, ent);
         benchmark::DoNotOptimize(out);
     }
 }
@@ -94,22 +95,26 @@ static void BM_creature_modifier(benchmark::State& state)
 {
     auto ent = nw::kernel::objects().load(fs::path("../tests/test_data/user/development/pl_agent_001.utc"));
     auto stats = ent.get_mut<nw::LevelStats>();
-    stats->entries[0].id = int(*nwn1::class_type_pale_master);
+    stats->entries[0].id = nwn1::class_type_pale_master;
+    stats->entries[1].id = nwn1::class_type_dragon_disciple;
 
-    auto is_pm = nw::Requirement{{nwn1::qual::class_level(nwn1::class_type_pale_master, 1)}};
-
-    auto pm_ac = [](flecs::entity ent) -> nw::ModifierResult {
-        auto stat = ent.get<nw::LevelStats>();
-        if (!stat) { return 0; }
-        auto pm_level = stat->level_by_class(nwn1::class_type_pale_master);
-        return ((pm_level / 4) + 1) * 2;
-    };
-
-    auto mod = nwn1::mod::ac_natural(pm_ac, is_pm);
     auto& rules = nw::kernel::rules();
 
     for (auto _ : state) {
-        auto out = rules.calculate<int>(mod, ent);
+        auto out = rules.calculate<int>(ent, nwn1::mod_type_armor_class, nwn1::ac_armor);
+        auto res = rules.calculate<int>(ent, nwn1::mod_type_hitpoints);
+        benchmark::DoNotOptimize(out);
+        benchmark::DoNotOptimize(res);
+    }
+}
+
+static void BM_creature_get_skill_rank(benchmark::State& state)
+{
+    auto ent = nw::kernel::objects().load(fs::path("../tests/test_data/user/development/pl_agent_001.utc"));
+    ent.get_mut<nw::CreatureStats>()->add_feat(nwn1::feat_skill_focus_discipline);
+    ent.get_mut<nw::CreatureStats>()->add_feat(nwn1::feat_epic_skill_focus_discipline);
+    for (auto _ : state) {
+        auto out = nwn1::get_skill_rank(ent, nwn1::skill_discipline, false);
         benchmark::DoNotOptimize(out);
     }
 }
@@ -123,6 +128,7 @@ BENCHMARK(BM_creature_to_json);
 BENCHMARK(BM_creature_select);
 BENCHMARK(BM_creature_select2);
 BENCHMARK(BM_creature_modifier);
+BENCHMARK(BM_creature_get_skill_rank);
 
 int main(int argc, char** argv)
 {

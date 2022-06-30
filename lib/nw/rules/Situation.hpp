@@ -1,7 +1,6 @@
 #pragma once
 
 #include "../util/enum_flags.hpp"
-#include "Index.hpp"
 
 namespace nw {
 
@@ -15,7 +14,7 @@ enum struct SituationFlag {
     sneak_attack = 0x20,
 };
 
-ENUM_FLAGS(SituationFlag)
+DEFINE_ENUM_FLAGS(SituationFlag)
 
 enum struct SituationType {
     none = 0,
@@ -27,8 +26,7 @@ enum struct SituationType {
     sneak_attack = 6,
 };
 
-struct Situation {
-    Index index;
+struct SituationInfo {
 };
 
 } // namespace nw

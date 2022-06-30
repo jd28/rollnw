@@ -2,8 +2,7 @@
 
 #include "../log.hpp"
 #include "../objects/Module.hpp"
-#include "../profiles/GameProfile.hpp"
-#include "components/IndexRegistry.hpp"
+#include "GameProfile.hpp"
 #include "components/TwoDACache.hpp"
 
 namespace nw::kernel {
@@ -64,8 +63,6 @@ void Services::provide(Strings* strings)
 bool Services::set_profile(const GameProfile* profile)
 {
     profile_.reset(profile);
-    if (!profile->load_constants()) return false;
-    profile->load_components();
     profile->load_rules();
     return true;
 }
@@ -78,7 +75,6 @@ void Services::shutdown()
     resources_.reset();
     strings_.reset();
 
-    world().get_mut<IndexRegistry>()->clear();
     world().get_mut<TwoDACache>()->clear();
 
     started_ = false;
@@ -93,7 +89,6 @@ void Services::start(bool fail_hard)
         return;
     }
 
-    world().add<IndexRegistry>();
     world().add<TwoDACache>();
 
     if (!objects_) {

@@ -11,75 +11,75 @@ based approach. The main advantage is that entities can be treated maps
 the keys to which are types and the values are instantiations of those
 types. The performance implications have not been considered.
 
-Object Componenents
--------------------
+Object Components
+-----------------
 
 All entities representing an object has a component that both stores
 state and serves as a tag to determine type. Some objects also have
 other components specific to their type.
 
--  ``Area``
+-  :cpp:struct:`Area`
 
-   -  ``Common``
-   -  ``AreaScripts``
-   -  ``AreaWeather``
+   -  :cpp:struct:`nw::Common`
+   -  :cpp:struct:`AreaScripts`
+   -  :cpp:struct:`AreaWeather`
 
--  ``Creature``
+-  :cpp:struct:`Creature`
 
-   -  ``Common``
-   -  ``Appearance``
-   -  ``CombatInfo``
-   -  ``CreatureScripts``
-   -  ``CreatureStats``
-   -  ``Equips``
-   -  ``Inventory``
-   -  ``LevelStats``
+   -  :cpp:struct:`nw::Common`
+   -  :cpp:struct:`Appearance`
+   -  :cpp:struct:`CombatInfo`
+   -  :cpp:struct:`CreatureScripts`
+   -  :cpp:struct:`CreatureStats`
+   -  :cpp:struct:`Equips`
+   -  :cpp:struct:`Inventory`
+   -  :cpp:struct:`LevelStats`
 
--  ``Door``
+-  :cpp:struct:`Door`
 
-   -  ``Common``
-   -  ``Lock``
-   -  ``DoorScripts``
-   -  ``Trap``
+   -  :cpp:struct:`nw::Common`
+   -  :cpp:struct:`Lock`
+   -  :cpp:struct:`DoorScripts`
+   -  :cpp:struct:`Trap`
 
--  ``Encounter``
+-  :cpp:struct:`Encounter`
 
-   -  ``Common``
-   -  ``EncounterScripts``
+   -  :cpp:struct:`nw::Common`
+   -  :cpp:struct:`EncounterScripts`
 
--  ``Item``
+-  :cpp:struct:`Item`
 
-   -  ``Common``
-   -  ``Inventory``
+   -  :cpp:struct:`nw::Common`
+   -  :cpp:struct:`Inventory`
 
--  ``Module``
+-  :cpp:struct:`Module`
 
-   -  ``Common``
-   -  ``ModuleScripts``
+   -  :cpp:struct:`nw::Common`
+   -  :cpp:struct:`ModuleScripts`
 
--  ``Placeable``
+-  :cpp:struct:`Placeable`
 
-   -  ``Common``
-   -  ``Inventory``
-   -  ``Lock``
-   -  ``PlaceableScripts``
-   -  ``Trap``
+   -  :cpp:struct:`nw::Common`
+   -  :cpp:struct:`Inventory`
+   -  :cpp:struct:`Lock`
+   -  :cpp:struct:`PlaceableScripts`
+   -  :cpp:struct:`Trap`
 
--  ``Sound``
+-  :cpp:struct:`Sound`
 
-   -  ``Common``
+   -  :cpp:struct:`nw::Common`
 
--  ``Store``
+-  :cpp:struct:`Store`
 
-   -  ``Common``
-   -  ``StoreInventory``
-   -  ``StoreScripts``
+   -  :cpp:struct:`nw::Common`
+   -  :cpp:struct:`StoreInventory`
+   -  :cpp:struct:`StoreScripts`
 
--  ``Trigger``
+-  :cpp:struct:`Trigger`
 
-   -  ``Common``
-   -  ``Trap``
-   -  ``TriggerScripts``
+   -  :cpp:struct:`nw::Common`
+   -  :cpp:struct:`Trap`
+   -  :cpp:struct:`TriggerScripts`
 
 In some cases an entity could have multiple object components, e.g. both
 a ``Player`` and a ``Creature``.

@@ -4,6 +4,7 @@
 #include "../util/Variant.hpp"
 #include "Dice.hpp"
 #include "system.hpp"
+#include "type_traits.hpp"
 
 #include <absl/container/inlined_vector.h>
 
@@ -14,6 +15,15 @@
 namespace nw {
 
 struct TwoDARowView;
+
+enum struct BaseItem : int32_t {
+    invalid = -1,
+};
+constexpr BaseItem make_baseitem(int32_t id) { return static_cast<BaseItem>(id); }
+
+template <>
+struct is_rule_type_base<BaseItem> : std::true_type {
+};
 
 enum struct ItemModelType : uint8_t {
     simple,
@@ -61,7 +71,7 @@ struct ItemModelParts {
     };
 };
 
-enum struct WeaponModiferType {
+enum struct WeaponModifierType {
     attack_bonus,
     crit_damage,
     crit_mult,
@@ -70,7 +80,7 @@ enum struct WeaponModiferType {
 };
 
 struct WeaponModifier {
-    WeaponModiferType type;
+    WeaponModifierType type;
     int feat = -1;
     Variant<int, float, DiceRoll> value;
 };
@@ -78,9 +88,9 @@ struct WeaponModifier {
 bool operator==(const WeaponModifier& lhs, const WeaponModifier& rhs);
 bool operator<(const WeaponModifier& lhs, const WeaponModifier& rhs);
 
-struct BaseItem {
-    BaseItem() = default;
-    BaseItem(const TwoDARowView& tda);
+struct BaseItemInfo {
+    BaseItemInfo() = default;
+    BaseItemInfo(const TwoDARowView& tda);
 
     uint32_t name = 0xFFFFFFFF;
     std::pair<int, int> inventory_slot_size;
@@ -139,11 +149,24 @@ struct BaseItem {
 
     bool is_monk_weapon = false;
     // WeaponFinesseMinimumCreatureSize
+
+    bool valid() const noexcept { return name != 0xFFFFFFFF; }
 };
 
 /// BaseItem singleton component
 struct BaseItemArray {
-    std::vector<BaseItem> entries;
+    using map_type = absl::flat_hash_map<
+        InternedString,
+        BaseItem,
+        InternedStringHash,
+        InternedStringEq>;
+
+    const BaseItemInfo* get(BaseItem baseitem) const noexcept;
+    bool is_valid(BaseItem baseitem) const noexcept;
+    BaseItem from_constant(std::string_view constant) const;
+
+    std::vector<BaseItemInfo> entries;
+    map_type constant_to_index;
 };
 
 } // namespace nw

@@ -2,6 +2,13 @@
 
 namespace nw {
 
+uint64_t Effect::next_id = 0;
+
+Effect::Effect()
+    : id_(++next_id)
+{
+}
+
 float Effect::get_float(size_t index) const
 {
     return index < floats_.size() ? floats_[index] : 0.0f;
@@ -19,7 +26,12 @@ std::string_view Effect::get_string(size_t index) const
 
 EffectHandle Effect::handle() const noexcept
 {
-    return {type_, this};
+    return {type, this};
+}
+
+uint64_t Effect::id() const noexcept
+{
+    return id_;
 }
 
 void Effect::set_float(size_t index, float value)

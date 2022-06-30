@@ -2,6 +2,7 @@
 
 #include "ObjectBase.hpp"
 
+#include "../rules/Race.hpp"
 #include "Item.hpp"
 #include "components/Appearance.hpp"
 #include "components/CombatInfo.hpp"
@@ -60,6 +61,7 @@ struct Creature {
     float cr = 0.0;
     int32_t cr_adjust = 0;
     uint32_t decay_time;
+    Race race = Race::invalid;
     int32_t walkrate = 0;
 
     uint16_t faction_id = 0;
@@ -80,7 +82,6 @@ struct Creature {
     uint8_t pc = 0;
     uint8_t perception_range = 0;
     bool plot = false;
-    uint8_t race = 0;
     uint8_t starting_package = 0;
 };
 

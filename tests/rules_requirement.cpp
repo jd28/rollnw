@@ -2,9 +2,9 @@
 
 #include <nw/kernel/Kernel.hpp>
 #include <nw/objects/Creature.hpp>
-#include <nw/profiles/nwn1/Profile.hpp>
 #include <nw/rules/Feat.hpp>
 #include <nw/rules/system.hpp>
+#include <nwn1/Profile.hpp>
 
 namespace fs = std::filesystem;
 namespace nwk = nw::kernel;

@@ -5,7 +5,7 @@
 
 namespace nw {
 
-BaseItem::BaseItem(const TwoDARowView& tda)
+BaseItemInfo::BaseItemInfo(const TwoDARowView& tda)
 {
     std::string temp_string;
     int temp_int;
@@ -104,6 +104,32 @@ BaseItem::BaseItem(const TwoDARowView& tda)
 
     tda.get_to("IsMonkWeapon", is_monk_weapon);
     // WeaponFinesseMinimumCreatureSize
+}
+
+const BaseItemInfo* BaseItemArray::get(BaseItem baseitem) const noexcept
+{
+    size_t idx = static_cast<size_t>(baseitem);
+    if (idx < entries.size() && entries[idx].valid()) {
+        return &entries[idx];
+    }
+    return nullptr;
+}
+
+bool BaseItemArray::is_valid(BaseItem baseitem) const noexcept
+{
+    size_t idx = static_cast<size_t>(baseitem);
+    return idx < entries.size() && entries[idx].valid();
+}
+
+BaseItem BaseItemArray::from_constant(std::string_view constant) const
+{
+    absl::string_view v{constant.data(), constant.size()};
+    auto it = constant_to_index.find(v);
+    if (it == constant_to_index.end()) {
+        return BaseItem::invalid;
+    } else {
+        return it->second;
+    }
 }
 
 } // namespace nw

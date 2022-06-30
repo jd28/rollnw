@@ -1,9 +1,10 @@
 #pragma once
 
 #include "../resources/Resource.hpp"
-#include "../util/InternedString.hpp"
 #include "system.hpp"
+#include "type_traits.hpp"
 
+#include <absl/container/flat_hash_map.h>
 #include <flecs/flecs.h>
 
 #include <cstdint>
@@ -14,10 +15,19 @@ namespace nw {
 
 struct TwoDARowView;
 
+enum struct Feat : int32_t {
+    invalid = -1,
+};
+constexpr Feat make_feat(int32_t index) { return static_cast<Feat>(index); }
+
+template <>
+struct is_rule_type_base<Feat> : std::true_type {
+};
+
 /// Feat definition
-struct Feat {
-    Feat() = default;
-    Feat(const TwoDARowView& tda);
+struct FeatInfo {
+    FeatInfo() = default;
+    FeatInfo(const TwoDARowView& tda);
 
     uint32_t name = 0xFFFFFFFF;
     uint32_t description = 0xFFFFFFFF;
@@ -26,12 +36,12 @@ struct Feat {
     int category = -1;
     int max_cr = 0;
     int spell = -1;
-    size_t successor = std::numeric_limits<size_t>::max();
+    Feat successor = Feat::invalid;
     float cr_value = 0.0f;
     int uses = 0;
     int master = 0;
     bool target_self = false;
-    nw::Index index;
+    InternedString constant;
     int tools_categories = 0;
     bool hostile = false;
     bool epic = false;
@@ -44,7 +54,18 @@ struct Feat {
 
 /// Feat Singleton Component
 struct FeatArray {
-    std::vector<Feat> entries;
+    using map_type = absl::flat_hash_map<
+        InternedString,
+        Feat,
+        InternedStringHash,
+        InternedStringEq>;
+
+    const FeatInfo* get(Feat feat) const noexcept;
+    bool is_valid(Feat feat) const noexcept;
+    Feat from_constant(std::string_view constant) const;
+
+    std::vector<FeatInfo> entries;
+    map_type constant_to_index;
 };
 
 // Not Implemented Yet

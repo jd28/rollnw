@@ -1,5 +1,4 @@
 add_library(nw-kernel STATIC
-    components/IndexRegistry.cpp
     components/TwoDACache.cpp
 
     Kernel.cpp

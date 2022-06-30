@@ -2,11 +2,10 @@
 
 #include "../formats/TwoDA.hpp"
 #include "../kernel/Kernel.hpp"
-#include "../kernel/components/IndexRegistry.hpp"
 
 namespace nw {
 
-Race::Race(const TwoDARowView& tda)
+RaceInfo::RaceInfo(const TwoDARowView& tda)
 {
     std::string temp_string;
     if (tda.get_to("label", temp_string)) {
@@ -32,8 +31,7 @@ Race::Race(const TwoDARowView& tda)
         tda.get_to("Biography", biography);
         tda.get_to("PlayerRace", player_race);
         if (tda.get_to("Constant", temp_string)) {
-            auto* idxs = nw::kernel::world().get_mut<nw::IndexRegistry>();
-            index = idxs->add(temp_string, tda.row_number);
+            constant = nw::kernel::strings().intern(temp_string);
         }
         tda.get_to("age", age);
         tda.get_to("CRModifier", cr_modifier);
@@ -44,6 +42,33 @@ Race::Race(const TwoDARowView& tda)
         tda.get_to("NormalFeatEveryNthLevel", feats_normal_level);
         tda.get_to("NumberNormalFeatsEveryNthLevel", feats_normal_amount);
         tda.get_to("SkillPointModifierAbility", skillpoints_ability);
+    }
+}
+
+const RaceInfo* RaceArray::get(Race race) const noexcept
+{
+    size_t idx = static_cast<size_t>(race);
+    if (idx < entries.size() && entries[idx].valid()) {
+        return &entries[idx];
+    } else {
+        return nullptr;
+    }
+}
+
+bool RaceArray::is_valid(Race race) const noexcept
+{
+    size_t idx = static_cast<size_t>(race);
+    return idx < entries.size() && entries[idx].valid();
+}
+
+Race RaceArray::from_constant(std::string_view constant) const
+{
+    absl::string_view v{constant.data(), constant.size()};
+    auto it = constant_to_index.find(v);
+    if (it == constant_to_index.end()) {
+        return Race::invalid;
+    } else {
+        return it->second;
     }
 }
 

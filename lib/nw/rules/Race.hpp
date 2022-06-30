@@ -1,18 +1,31 @@
 #pragma once
 
 #include "../resources/Resource.hpp"
-#include "../rules/Index.hpp"
+#include "../util/InternedString.hpp"
+#include "type_traits.hpp"
+
+#include <absl/container/flat_hash_map.h>
 
 #include <cstdint>
+#include <limits>
 
 namespace nw {
 
 struct TwoDARowView;
 
+enum struct Race : int32_t {
+    invalid = -1,
+};
+constexpr Race make_race(int32_t id) { return static_cast<Race>(id); }
+
+template <>
+struct is_rule_type_base<Race> : std::true_type {
+};
+
 /// Race definition
-struct Race {
-    Race() = default;
-    Race(const TwoDARowView& tda);
+struct RaceInfo {
+    RaceInfo() = default;
+    RaceInfo(const TwoDARowView& tda);
 
     uint32_t name = 0xFFFFFFFF;
     uint32_t name_conversation = 0xFFFFFFFF;
@@ -26,7 +39,7 @@ struct Race {
     Resource feats_table;
     uint32_t biography = 0xFFFFFFFF;
     bool player_race = false;
-    Index index;
+    InternedString constant;
     int age = 1;
     int toolset_class = 0;
     float cr_modifier = 1.0f;
@@ -38,12 +51,23 @@ struct Race {
     int feats_normal_amount = 0;
     int skillpoints_ability = 0;
 
-    operator bool() const noexcept { return name != 0xFFFFFFFF; }
+    bool valid() const noexcept { return name != 0xFFFFFFFF; }
 };
 
 /// Race singleton component
 struct RaceArray {
-    std::vector<Race> entries;
+    using map_type = absl::flat_hash_map<
+        InternedString,
+        Race,
+        InternedStringHash,
+        InternedStringEq>;
+
+    const RaceInfo* get(Race race) const noexcept;
+    bool is_valid(Race race) const noexcept;
+    Race from_constant(std::string_view constant) const;
+
+    std::vector<RaceInfo> entries;
+    map_type constant_to_index;
 };
 
 // Not Implemented Yet

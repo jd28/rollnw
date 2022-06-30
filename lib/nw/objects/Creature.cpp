@@ -137,7 +137,12 @@ bool Creature::deserialize(flecs::entity ent, const GffInputArchiveStruct& archi
     archive.get_to("IsPC", cre->pc);
     archive.get_to("PerceptionRange", cre->perception_range);
     archive.get_to("Plot", cre->plot);
-    archive.get_to("Race", cre->race);
+
+    uint8_t temp;
+    if (archive.get_to("Race", temp)) {
+        cre->race = make_race(temp);
+    }
+
     archive.get_to("StartingPackage", cre->starting_package);
 
     return true;
@@ -272,7 +277,7 @@ bool Creature::serialize(const flecs::entity ent, GffOutputArchiveStruct& archiv
         .add_field("NoPermDeath", cre->chunk_death)
         .add_field("PerceptionRange", cre->perception_range)
         .add_field("Plot", cre->plot)
-        .add_field("Race", cre->race)
+        .add_field("Race", uint8_t(cre->race))
         .add_field("StartingPackage", cre->starting_package);
 
     return true;

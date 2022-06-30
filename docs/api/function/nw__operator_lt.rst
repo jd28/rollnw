@@ -3,8 +3,6 @@ nw::operator<
 
 .. doxygenfunction:: operator<(const DiceRoll &lhs, const DiceRoll &rhs)
 
-.. doxygenfunction:: operator<(const Index &lhs, const Index &rhs)
-
 .. doxygenfunction:: operator<(const Null&, const Null&)
 
 .. doxygenfunction:: operator<(const Resource &lhs, const Resource &rhs)

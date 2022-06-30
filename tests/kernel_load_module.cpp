@@ -4,7 +4,7 @@
 #include <nw/log.hpp>
 #include <nw/objects/Area.hpp>
 #include <nw/objects/Module.hpp>
-#include <nw/profiles/nwn1/Profile.hpp>
+#include <nwn1/Profile.hpp>
 
 #include <nowide/cstdlib.hpp>
 
