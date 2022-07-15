@@ -28,6 +28,12 @@ int main(int argc, char* argv[])
             info.install,
             info.user,
         });
+    } else if (nowide::getenv("CI_GITHUB_ACTIONS")) {
+        nw::kernel::config().initialize({
+            nw::GameVersion::vEE,
+            nowide::getenv("NWN_ROOT"),
+            "test_data/user/",
+        });
     } else {
         nw::kernel::config().initialize({
             nw::GameVersion::vEE,

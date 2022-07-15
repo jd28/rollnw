@@ -17,6 +17,8 @@ jobs:
       VCPKG_ROOT: "${{ github.workspace }}/vcpkg/"
       VCPKG_DEFAULT_BINARY_CACHE: "${{ github.workspace }}/vcpkg/.cache"
       ASAN_OPTIONS: "detect_leaks=0" # Not read for this yet..
+      NWN_ROOT: "${{ github.workspace }}/nwn/"
+      CI_GITHUB_ACTIONS: "1"
 
     name: build on linux
     runs-on: ubuntu-latest
@@ -65,6 +67,12 @@ jobs:
       - name: Make cache dir
         if: steps.cache-vcpkg.outputs.cache-hit != 'true'
         run: mkdir -p "${{ github.workspace }}/vcpkg/.cache"
+
+      - name: Download NWN dedicated server
+        run: |
+          curl https://nwn.beamdog.net/downloads/nwnee-dedicated-8193.34.zip -O
+          unzip nwnee-dedicated-8193.34.zip -d ${{ github.workspace }}/nwn/
+          ls -l ${{ github.workspace }}/nwn/
 
       - name: Configure
         run: |
