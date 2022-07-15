@@ -1,6 +1,4 @@
 add_library(nw-kernel STATIC
-    components/TwoDACache.cpp
-
     Kernel.cpp
     Config.cpp
     Objects.cpp
@@ -12,7 +10,7 @@ add_library(nw-kernel STATIC
 target_link_libraries(nw-kernel PRIVATE
     nw-base
     nw-libraries
-    nw-objects
+    nw-components
     nw-formats
     nw-i18n
 )

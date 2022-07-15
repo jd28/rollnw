@@ -1,6 +1,6 @@
 #include "TwoDACache.hpp"
 
-#include "../Kernel.hpp"
+#include "../kernel/Kernel.hpp"
 
 namespace nw {
 
@@ -33,7 +33,9 @@ const TwoDA* TwoDACache::get(std::string_view tda)
 
 const TwoDA* TwoDACache::get(const Resource& tda)
 {
-    if (tda.type != ResourceType::twoda) { return nullptr; }
+    if (tda.type != ResourceType::twoda) {
+        return nullptr;
+    }
     auto it = cached_2das_.find(tda);
     if (it != std::end(cached_2das_)) {
         return &it->second;

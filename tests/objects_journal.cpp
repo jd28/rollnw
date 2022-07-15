@@ -1,6 +1,6 @@
 #include <catch2/catch.hpp>
 
-#include <nw/objects/Journal.hpp>
+#include <nw/components/Journal.hpp>
 #include <nw/serialization/Serialization.hpp>
 
 TEST_CASE("Loading journal", "[objects]")

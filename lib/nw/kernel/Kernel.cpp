@@ -1,9 +1,9 @@
 #include "Kernel.hpp"
 
+#include "../components/Module.hpp"
+#include "../components/TwoDACache.hpp"
 #include "../log.hpp"
-#include "../objects/Module.hpp"
 #include "GameProfile.hpp"
-#include "components/TwoDACache.hpp"
 
 namespace nw::kernel {
 

@@ -1,6 +1,6 @@
 #include <catch2/catch.hpp>
 
-#include <nw/objects/Dialog.hpp>
+#include <nw/components/Dialog.hpp>
 #include <nw/serialization/Archives.hpp>
 
 #include <nlohmann/json.hpp>

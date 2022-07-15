@@ -1,7 +1,7 @@
 #include "funcs_armor_class.hpp"
 
+#include <nw/components/TwoDACache.hpp>
 #include <nw/kernel/Kernel.hpp>
-#include <nw/kernel/components/TwoDACache.hpp>
 
 namespace nwn1 {
 

@@ -1,9 +1,9 @@
 #pragma once
 
+#include "Common.hpp"
+#include "Inventory.hpp"
 #include "Item.hpp"
 #include "ObjectBase.hpp"
-#include "components/Common.hpp"
-#include "components/Inventory.hpp"
 
 #include <vector>
 

@@ -1,8 +1,8 @@
 #pragma once
 
 #include "../serialization/Archives.hpp"
+#include "Common.hpp"
 #include "ObjectBase.hpp"
-#include "components/Common.hpp"
 
 #include <flecs/flecs.h>
 

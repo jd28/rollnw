@@ -1,9 +1,9 @@
 #include <catch2/catch.hpp>
 
+#include <nw/components/Area.hpp>
+#include <nw/components/Module.hpp>
 #include <nw/kernel/Kernel.hpp>
 #include <nw/log.hpp>
-#include <nw/objects/Area.hpp>
-#include <nw/objects/Module.hpp>
 #include <nwn1/Profile.hpp>
 
 #include <nowide/cstdlib.hpp>

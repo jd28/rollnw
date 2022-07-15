@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../../serialization/Archives.hpp"
-#include "../ObjectBase.hpp"
+#include "../serialization/Archives.hpp"
+#include "ObjectBase.hpp"
 
 #include <flecs/flecs.h>
 

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../ObjectBase.hpp"
+#include "ObjectBase.hpp"
 
 #include <glm/glm.hpp>
 

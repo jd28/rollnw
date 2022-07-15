@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../../rules/Spell.hpp"
-#include "../../serialization/Archives.hpp"
+#include "../rules/Spell.hpp"
+#include "../serialization/Archives.hpp"
 
 #include <array>
 #include <cstdint>

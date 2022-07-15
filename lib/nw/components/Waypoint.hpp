@@ -1,7 +1,7 @@
 #pragma once
 
+#include "Common.hpp"
 #include "ObjectBase.hpp"
-#include "components/Common.hpp"
 
 #include <flecs/flecs.h>
 

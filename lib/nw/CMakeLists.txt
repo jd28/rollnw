@@ -48,7 +48,7 @@ add_library(nw STATIC
 add_subdirectory(formats)
 add_subdirectory(i18n)
 add_subdirectory(kernel)
-add_subdirectory(objects)
+add_subdirectory(components)
 add_subdirectory(resources)
 add_subdirectory(rules)
 add_subdirectory(serialization)
@@ -60,7 +60,7 @@ target_link_libraries(nw PUBLIC
     nw-formats
     nw-i18n
     nw-kernel
-    nw-objects
+    nw-components
     nw-resources
     nw-rules
     nw-serialization

@@ -3,9 +3,9 @@
 #include "modifiers.hpp"
 #include "rules.hpp"
 
+#include <nw/components/Creature.hpp>
 #include <nw/formats/TwoDA.hpp>
 #include <nw/kernel/Kernel.hpp>
-#include <nw/objects/Creature.hpp>
 #include <nw/rules/Ability.hpp>
 #include <nw/rules/BaseItem.hpp>
 #include <nw/rules/Class.hpp>

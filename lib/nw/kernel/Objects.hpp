@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../objects/ObjectBase.hpp"
+#include "../components/ObjectBase.hpp"
 #include "../serialization/Archives.hpp"
 
 #include <flecs/flecs.h>

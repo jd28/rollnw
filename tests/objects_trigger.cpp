@@ -1,7 +1,7 @@
 #include <catch2/catch.hpp>
 
+#include <nw/components/Trigger.hpp>
 #include <nw/kernel/Kernel.hpp>
-#include <nw/objects/Trigger.hpp>
 #include <nw/serialization/Archives.hpp>
 
 #include <nlohmann/json.hpp>

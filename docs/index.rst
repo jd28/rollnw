@@ -138,10 +138,10 @@ Credits
   :caption: structure
   :maxdepth: 1
 
+  structure/components
   structure/formats
   structure/i18n
   structure/kernel
-  structure/objects
   structure/profiles
   structure/resources
   structure/rules

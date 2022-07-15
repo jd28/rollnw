@@ -1,7 +1,7 @@
 #include <catch2/catch.hpp>
 
+#include <nw/components/Sound.hpp>
 #include <nw/kernel/Kernel.hpp>
-#include <nw/objects/Sound.hpp>
 #include <nw/serialization/Serialization.hpp>
 
 #include <nlohmann/json.hpp>

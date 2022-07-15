@@ -1,7 +1,7 @@
 #include "SpellBook.hpp"
 
-#include "../../log.hpp"
-#include "../../util/templates.hpp"
+#include "../log.hpp"
+#include "../util/templates.hpp"
 
 #include <nlohmann/json.hpp>
 
@@ -76,7 +76,9 @@ bool SpellBook::to_gff(GffOutputArchiveStruct& archive) const
     uint8_t flags, meta;
 
     for (size_t i = 0; i < 10; ++i) {
-        if (known[i].empty()) { continue; }
+        if (known[i].empty()) {
+            continue;
+        }
         auto k = fmt::format("KnownList{}", i);
         auto& klist = archive.add_list(k);
         for (const auto& sp : known[i]) {
@@ -88,7 +90,9 @@ bool SpellBook::to_gff(GffOutputArchiveStruct& archive) const
     }
 
     for (size_t i = 0; i < 10; ++i) {
-        if (memorized[i].empty()) { continue; }
+        if (memorized[i].empty()) {
+            continue;
+        }
         auto m = fmt::format("MemorizedList{}", i);
         auto& mlist = archive.add_list(m);
         for (const auto& sp : memorized[i]) {

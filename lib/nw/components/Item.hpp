@@ -1,11 +1,11 @@
 #pragma once
 
 #include "../rules/BaseItem.hpp"
+#include "Common.hpp"
+#include "Inventory.hpp"
+#include "LocalData.hpp"
+#include "Location.hpp"
 #include "ObjectBase.hpp"
-#include "components/Common.hpp"
-#include "components/Inventory.hpp"
-#include "components/LocalData.hpp"
-#include "components/Location.hpp"
 
 #include <array>
 #include <vector>

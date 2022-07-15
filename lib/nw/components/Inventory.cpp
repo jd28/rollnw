@@ -1,7 +1,7 @@
 #include "Inventory.hpp"
 
-#include "../../kernel/Kernel.hpp"
-#include "../Item.hpp"
+#include "../kernel/Kernel.hpp"
+#include "Item.hpp"
 
 #include <nlohmann/json.hpp>
 
@@ -45,9 +45,13 @@ bool Inventory::from_gff(const GffInputArchiveStruct& archive, SerializationProf
         } else if (SerializationProfile::instance == profile) {
             auto temp = nw::kernel::objects().deserialize(ObjectType::item, st, profile);
             ii.item = temp;
-            if (!temp) { valid_entry = false; }
+            if (!temp) {
+                valid_entry = false;
+            }
         }
-        if (valid_entry) { items.push_back(std::move(ii)); }
+        if (valid_entry) {
+            items.push_back(std::move(ii));
+        }
     }
 
     return true;
@@ -55,7 +59,9 @@ bool Inventory::from_gff(const GffInputArchiveStruct& archive, SerializationProf
 
 bool Inventory::from_json(const nlohmann::json& archive, SerializationProfile profile)
 {
-    if (!archive.is_array()) { return false; }
+    if (!archive.is_array()) {
+        return false;
+    }
 
     try {
         items.reserve(archive.size());
@@ -72,9 +78,13 @@ bool Inventory::from_json(const nlohmann::json& archive, SerializationProfile pr
             } else {
                 auto temp = nw::kernel::objects().deserialize(ObjectType::item, archive[i].at("item"), profile);
                 ii.item = temp;
-                if (!temp) { valid_entry = false; }
+                if (!temp) {
+                    valid_entry = false;
+                }
             }
-            if (valid_entry) { items.push_back(std::move(ii)); }
+            if (valid_entry) {
+                items.push_back(std::move(ii));
+            }
         }
     } catch (const nlohmann::json::exception& e) {
         LOG_F(ERROR, "Inventory::from_json exception: {}", e.what());
@@ -86,7 +96,9 @@ bool Inventory::from_json(const nlohmann::json& archive, SerializationProfile pr
 
 bool Inventory::to_gff(GffOutputArchiveStruct& archive, SerializationProfile profile) const
 {
-    if (items.empty()) { return true; }
+    if (items.empty()) {
+        return true;
+    }
     auto& list = archive.add_list("ItemList");
     for (const auto& it : items) {
         auto& str = list.push_back(static_cast<uint32_t>(list.size()))

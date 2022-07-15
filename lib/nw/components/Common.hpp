@@ -1,10 +1,10 @@
 #pragma once
 
-#include "../../resources/Resref.hpp"
-#include "../../serialization/Archives.hpp"
-#include "../ObjectBase.hpp"
+#include "../resources/Resref.hpp"
+#include "../serialization/Archives.hpp"
 #include "LocalData.hpp"
 #include "Location.hpp"
+#include "ObjectBase.hpp"
 
 #include <string>
 

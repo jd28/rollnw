@@ -1,7 +1,7 @@
 #include "Equips.hpp"
 
-#include "../../kernel/Kernel.hpp"
-#include "../Item.hpp"
+#include "../kernel/Kernel.hpp"
+#include "Item.hpp"
 
 #include <nlohmann/json.hpp>
 
@@ -100,7 +100,9 @@ nlohmann::json Equips::to_json(SerializationProfile profile) const
         if (profile == SerializationProfile::blueprint) {
             if (std::holds_alternative<Resref>(equips[i])) {
                 const auto& r = std::get<Resref>(equips[i]);
-                if (r.length()) { j[lookup] = r; }
+                if (r.length()) {
+                    j[lookup] = r;
+                }
             } else if (std::get<flecs::entity>(equips[i])) {
                 j[lookup] = std::get<flecs::entity>(equips[i]).get<Common>()->resref;
             }

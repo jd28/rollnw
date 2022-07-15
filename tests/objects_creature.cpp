@@ -1,7 +1,7 @@
 #include <catch2/catch.hpp>
 
+#include <nw/components/Creature.hpp>
 #include <nw/kernel/Kernel.hpp>
-#include <nw/objects/Creature.hpp>
 #include <nw/rules/Feat.hpp>
 #include <nw/serialization/Archives.hpp>
 #include <nwn1/Profile.hpp>

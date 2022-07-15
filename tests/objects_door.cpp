@@ -1,8 +1,8 @@
 #include <catch2/catch.hpp>
 
 #include <nlohmann/json.hpp>
+#include <nw/components/Door.hpp>
 #include <nw/kernel/Kernel.hpp>
-#include <nw/objects/Door.hpp>
 #include <nw/serialization/Archives.hpp>
 
 #include <filesystem>

@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../../rules/Class.hpp"
-#include "../../serialization/Archives.hpp"
+#include "../rules/Class.hpp"
+#include "../serialization/Archives.hpp"
 #include "SpellBook.hpp"
 
 #include <vector>

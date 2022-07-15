@@ -1,6 +1,6 @@
 #pragma once
 
-#include <nw/objects/Creature.hpp>
+#include <nw/components/Creature.hpp>
 #include <nw/rules/Class.hpp>
 #include <nw/util/EntityView.hpp>
 

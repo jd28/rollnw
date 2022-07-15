@@ -1,8 +1,8 @@
 #include <catch2/catch.hpp>
 
+#include <nw/components/Creature.hpp>
 #include <nw/kernel/Kernel.hpp>
 #include <nw/log.hpp>
-#include <nw/objects/Creature.hpp>
 
 TEST_CASE("objects manager", "[kernel]")
 {

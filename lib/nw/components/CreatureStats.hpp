@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../../rules/Feat.hpp"
-#include "../../serialization/Archives.hpp"
+#include "../rules/Feat.hpp"
+#include "../serialization/Archives.hpp"
 #include "Saves.hpp"
 
 #include <array>

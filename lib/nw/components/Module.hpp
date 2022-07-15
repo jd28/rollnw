@@ -1,8 +1,8 @@
 #pragma once
 
 #include "../serialization/Serialization.hpp"
+#include "LocalData.hpp"
 #include "ObjectBase.hpp"
-#include "components/LocalData.hpp"
 
 #include <flecs/flecs.h>
 #include <glm/glm.hpp>

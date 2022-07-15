@@ -1,7 +1,7 @@
 #include <nw/formats/TwoDA.hpp>
 #include <nw/i18n/Tlk.hpp>
 #include <nw/kernel/Kernel.hpp>
-#include <nw/objects/Creature.hpp>
+#include <nw/components/Creature.hpp>
 #include <nw/serialization/GffInputArchive.hpp>
 #include <nwn1/Profile.hpp>
 #include <nwn1/functions.hpp>

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <nw/objects/Item.hpp>
+#include <nw/components/Item.hpp>
 #include <nw/util/EntityView.hpp>
 
 namespace nwn1 {

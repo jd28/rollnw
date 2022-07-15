@@ -1,10 +1,10 @@
 #pragma once
 
+#include "Common.hpp"
+#include "Lock.hpp"
 #include "ObjectBase.hpp"
-#include "components/Common.hpp"
-#include "components/Lock.hpp"
-#include "components/Saves.hpp"
-#include "components/Trap.hpp"
+#include "Saves.hpp"
+#include "Trap.hpp"
 
 #include <flecs/flecs.h>
 

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../../serialization/Archives.hpp"
+#include "../serialization/Archives.hpp"
 
 namespace nw {
 

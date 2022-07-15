@@ -1,9 +1,9 @@
 #pragma once
 
 #include "../serialization/Archives.hpp"
+#include "Common.hpp"
 #include "ObjectBase.hpp"
-#include "components/Common.hpp"
-#include "components/Trap.hpp"
+#include "Trap.hpp"
 
 #include <flecs/flecs.h>
 #include <glm/glm.hpp>

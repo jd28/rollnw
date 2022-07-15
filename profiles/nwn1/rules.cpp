@@ -3,13 +3,13 @@
 #include "constants.hpp"
 #include "functions.hpp"
 
+#include <nw/components/Common.hpp>
+#include <nw/components/Creature.hpp>
+#include <nw/components/CreatureStats.hpp>
+#include <nw/components/LevelStats.hpp>
+#include <nw/components/TwoDACache.hpp>
 #include <nw/kernel/Kernel.hpp>
-#include <nw/kernel/components/TwoDACache.hpp>
 #include <nw/log.hpp>
-#include <nw/objects/Creature.hpp>
-#include <nw/objects/components/Common.hpp>
-#include <nw/objects/components/CreatureStats.hpp>
-#include <nw/objects/components/LevelStats.hpp>
 #include <nw/rules/Class.hpp>
 #include <nw/rules/Feat.hpp>
 

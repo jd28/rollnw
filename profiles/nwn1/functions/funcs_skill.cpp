@@ -4,8 +4,8 @@
 #include "funcs_ability.hpp"
 #include "funcs_feat.hpp"
 
+#include <nw/components/Creature.hpp>
 #include <nw/kernel/Kernel.hpp>
-#include <nw/objects/Creature.hpp>
 #include <nw/rules/MasterFeat.hpp>
 #include <nw/util/EntityView.hpp>
 

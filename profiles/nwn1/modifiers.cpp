@@ -3,8 +3,8 @@
 #include "constants.hpp"
 #include "rules.hpp"
 
+#include <nw/components/CreatureStats.hpp>
 #include <nw/kernel/Kernel.hpp>
-#include <nw/objects/components/CreatureStats.hpp>
 
 namespace nwn1 {
 

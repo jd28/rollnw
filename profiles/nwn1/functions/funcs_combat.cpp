@@ -1,8 +1,8 @@
 #include "funcs_combat.hpp"
 
+#include <nw/components/Creature.hpp>
+#include <nw/components/Item.hpp>
 #include <nw/kernel/Kernel.hpp>
-#include <nw/objects/Creature.hpp>
-#include <nw/objects/Item.hpp>
 #include <nw/rules/Class.hpp>
 #include <nw/util/macros.hpp>
 

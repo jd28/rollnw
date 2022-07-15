@@ -1,6 +1,6 @@
 #include "LevelStats.hpp"
 
-#include "../../log.hpp"
+#include "../log.hpp"
 
 #include <nlohmann/json.hpp>
 

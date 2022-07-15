@@ -3,15 +3,15 @@
 #include "ObjectBase.hpp"
 
 #include "../rules/Race.hpp"
+#include "Appearance.hpp"
+#include "CombatInfo.hpp"
+#include "Common.hpp"
+#include "CreatureStats.hpp"
+#include "Equips.hpp"
+#include "Inventory.hpp"
 #include "Item.hpp"
-#include "components/Appearance.hpp"
-#include "components/CombatInfo.hpp"
-#include "components/Common.hpp"
-#include "components/CreatureStats.hpp"
-#include "components/Equips.hpp"
-#include "components/Inventory.hpp"
-#include "components/LevelStats.hpp"
-#include "components/Location.hpp"
+#include "LevelStats.hpp"
+#include "Location.hpp"
 
 #include <flecs/flecs.h>
 
