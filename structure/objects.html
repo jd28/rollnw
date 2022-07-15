@@ -50,7 +50,7 @@
 <li class="toctree-l1"><a class="reference internal" href="kernel.html">kernel</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">objects</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#the-system">The System</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#object-componenents">Object Componenents</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#object-components">Object Components</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="profiles.html">profiles</a></li>
@@ -124,83 +124,83 @@ based approach. The main advantage is that entities can be treated maps
 the keys to which are types and the values are instantiations of those
 types. The performance implications have not been considered.</p>
 </section>
-<section id="object-componenents">
-<h2>Object Componenents<a class="headerlink" href="#object-componenents" title="Permalink to this heading"></a></h2>
+<section id="object-components">
+<h2>Object Components<a class="headerlink" href="#object-components" title="Permalink to this heading"></a></h2>
 <p>All entities representing an object has a component that both stores
 state and serves as a tag to determine type. Some objects also have
 other components specific to their type.</p>
 <ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">Area</span></code></p>
+<li><p><code class="xref cpp cpp-struct docutils literal notranslate"><span class="pre">Area</span></code></p>
 <ul>
-<li><p><code class="docutils literal notranslate"><span class="pre">Common</span></code></p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">AreaScripts</span></code></p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">AreaWeather</span></code></p></li>
+<li><p><a class="reference internal" href="../api/struct/nw__Common.html#_CPPv4N2nw6CommonE" title="nw::Common"><code class="xref cpp cpp-struct docutils literal notranslate"><span class="pre">nw::Common</span></code></a></p></li>
+<li><p><code class="xref cpp cpp-struct docutils literal notranslate"><span class="pre">AreaScripts</span></code></p></li>
+<li><p><code class="xref cpp cpp-struct docutils literal notranslate"><span class="pre">AreaWeather</span></code></p></li>
 </ul>
 </li>
-<li><p><code class="docutils literal notranslate"><span class="pre">Creature</span></code></p>
+<li><p><code class="xref cpp cpp-struct docutils literal notranslate"><span class="pre">Creature</span></code></p>
 <ul>
-<li><p><code class="docutils literal notranslate"><span class="pre">Common</span></code></p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">Appearance</span></code></p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">CombatInfo</span></code></p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">CreatureScripts</span></code></p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">CreatureStats</span></code></p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">Equips</span></code></p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">Inventory</span></code></p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">LevelStats</span></code></p></li>
+<li><p><a class="reference internal" href="../api/struct/nw__Common.html#_CPPv4N2nw6CommonE" title="nw::Common"><code class="xref cpp cpp-struct docutils literal notranslate"><span class="pre">nw::Common</span></code></a></p></li>
+<li><p><code class="xref cpp cpp-struct docutils literal notranslate"><span class="pre">Appearance</span></code></p></li>
+<li><p><code class="xref cpp cpp-struct docutils literal notranslate"><span class="pre">CombatInfo</span></code></p></li>
+<li><p><code class="xref cpp cpp-struct docutils literal notranslate"><span class="pre">CreatureScripts</span></code></p></li>
+<li><p><code class="xref cpp cpp-struct docutils literal notranslate"><span class="pre">CreatureStats</span></code></p></li>
+<li><p><code class="xref cpp cpp-struct docutils literal notranslate"><span class="pre">Equips</span></code></p></li>
+<li><p><code class="xref cpp cpp-struct docutils literal notranslate"><span class="pre">Inventory</span></code></p></li>
+<li><p><code class="xref cpp cpp-struct docutils literal notranslate"><span class="pre">LevelStats</span></code></p></li>
 </ul>
 </li>
-<li><p><code class="docutils literal notranslate"><span class="pre">Door</span></code></p>
+<li><p><code class="xref cpp cpp-struct docutils literal notranslate"><span class="pre">Door</span></code></p>
 <ul>
-<li><p><code class="docutils literal notranslate"><span class="pre">Common</span></code></p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">Lock</span></code></p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">DoorScripts</span></code></p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">Trap</span></code></p></li>
+<li><p><a class="reference internal" href="../api/struct/nw__Common.html#_CPPv4N2nw6CommonE" title="nw::Common"><code class="xref cpp cpp-struct docutils literal notranslate"><span class="pre">nw::Common</span></code></a></p></li>
+<li><p><code class="xref cpp cpp-struct docutils literal notranslate"><span class="pre">Lock</span></code></p></li>
+<li><p><code class="xref cpp cpp-struct docutils literal notranslate"><span class="pre">DoorScripts</span></code></p></li>
+<li><p><code class="xref cpp cpp-struct docutils literal notranslate"><span class="pre">Trap</span></code></p></li>
 </ul>
 </li>
-<li><p><code class="docutils literal notranslate"><span class="pre">Encounter</span></code></p>
+<li><p><code class="xref cpp cpp-struct docutils literal notranslate"><span class="pre">Encounter</span></code></p>
 <ul>
-<li><p><code class="docutils literal notranslate"><span class="pre">Common</span></code></p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">EncounterScripts</span></code></p></li>
+<li><p><a class="reference internal" href="../api/struct/nw__Common.html#_CPPv4N2nw6CommonE" title="nw::Common"><code class="xref cpp cpp-struct docutils literal notranslate"><span class="pre">nw::Common</span></code></a></p></li>
+<li><p><code class="xref cpp cpp-struct docutils literal notranslate"><span class="pre">EncounterScripts</span></code></p></li>
 </ul>
 </li>
-<li><p><code class="docutils literal notranslate"><span class="pre">Item</span></code></p>
+<li><p><code class="xref cpp cpp-struct docutils literal notranslate"><span class="pre">Item</span></code></p>
 <ul>
-<li><p><code class="docutils literal notranslate"><span class="pre">Common</span></code></p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">Inventory</span></code></p></li>
+<li><p><a class="reference internal" href="../api/struct/nw__Common.html#_CPPv4N2nw6CommonE" title="nw::Common"><code class="xref cpp cpp-struct docutils literal notranslate"><span class="pre">nw::Common</span></code></a></p></li>
+<li><p><code class="xref cpp cpp-struct docutils literal notranslate"><span class="pre">Inventory</span></code></p></li>
 </ul>
 </li>
-<li><p><code class="docutils literal notranslate"><span class="pre">Module</span></code></p>
+<li><p><code class="xref cpp cpp-struct docutils literal notranslate"><span class="pre">Module</span></code></p>
 <ul>
-<li><p><code class="docutils literal notranslate"><span class="pre">Common</span></code></p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">ModuleScripts</span></code></p></li>
+<li><p><a class="reference internal" href="../api/struct/nw__Common.html#_CPPv4N2nw6CommonE" title="nw::Common"><code class="xref cpp cpp-struct docutils literal notranslate"><span class="pre">nw::Common</span></code></a></p></li>
+<li><p><code class="xref cpp cpp-struct docutils literal notranslate"><span class="pre">ModuleScripts</span></code></p></li>
 </ul>
 </li>
-<li><p><code class="docutils literal notranslate"><span class="pre">Placeable</span></code></p>
+<li><p><code class="xref cpp cpp-struct docutils literal notranslate"><span class="pre">Placeable</span></code></p>
 <ul>
-<li><p><code class="docutils literal notranslate"><span class="pre">Common</span></code></p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">Inventory</span></code></p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">Lock</span></code></p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">PlaceableScripts</span></code></p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">Trap</span></code></p></li>
+<li><p><a class="reference internal" href="../api/struct/nw__Common.html#_CPPv4N2nw6CommonE" title="nw::Common"><code class="xref cpp cpp-struct docutils literal notranslate"><span class="pre">nw::Common</span></code></a></p></li>
+<li><p><code class="xref cpp cpp-struct docutils literal notranslate"><span class="pre">Inventory</span></code></p></li>
+<li><p><code class="xref cpp cpp-struct docutils literal notranslate"><span class="pre">Lock</span></code></p></li>
+<li><p><code class="xref cpp cpp-struct docutils literal notranslate"><span class="pre">PlaceableScripts</span></code></p></li>
+<li><p><code class="xref cpp cpp-struct docutils literal notranslate"><span class="pre">Trap</span></code></p></li>
 </ul>
 </li>
-<li><p><code class="docutils literal notranslate"><span class="pre">Sound</span></code></p>
+<li><p><code class="xref cpp cpp-struct docutils literal notranslate"><span class="pre">Sound</span></code></p>
 <ul>
-<li><p><code class="docutils literal notranslate"><span class="pre">Common</span></code></p></li>
+<li><p><a class="reference internal" href="../api/struct/nw__Common.html#_CPPv4N2nw6CommonE" title="nw::Common"><code class="xref cpp cpp-struct docutils literal notranslate"><span class="pre">nw::Common</span></code></a></p></li>
 </ul>
 </li>
-<li><p><code class="docutils literal notranslate"><span class="pre">Store</span></code></p>
+<li><p><code class="xref cpp cpp-struct docutils literal notranslate"><span class="pre">Store</span></code></p>
 <ul>
-<li><p><code class="docutils literal notranslate"><span class="pre">Common</span></code></p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">StoreInventory</span></code></p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">StoreScripts</span></code></p></li>
+<li><p><a class="reference internal" href="../api/struct/nw__Common.html#_CPPv4N2nw6CommonE" title="nw::Common"><code class="xref cpp cpp-struct docutils literal notranslate"><span class="pre">nw::Common</span></code></a></p></li>
+<li><p><code class="xref cpp cpp-struct docutils literal notranslate"><span class="pre">StoreInventory</span></code></p></li>
+<li><p><code class="xref cpp cpp-struct docutils literal notranslate"><span class="pre">StoreScripts</span></code></p></li>
 </ul>
 </li>
-<li><p><code class="docutils literal notranslate"><span class="pre">Trigger</span></code></p>
+<li><p><code class="xref cpp cpp-struct docutils literal notranslate"><span class="pre">Trigger</span></code></p>
 <ul>
-<li><p><code class="docutils literal notranslate"><span class="pre">Common</span></code></p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">Trap</span></code></p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">TriggerScripts</span></code></p></li>
+<li><p><a class="reference internal" href="../api/struct/nw__Common.html#_CPPv4N2nw6CommonE" title="nw::Common"><code class="xref cpp cpp-struct docutils literal notranslate"><span class="pre">nw::Common</span></code></a></p></li>
+<li><p><code class="xref cpp cpp-struct docutils literal notranslate"><span class="pre">Trap</span></code></p></li>
+<li><p><code class="xref cpp cpp-struct docutils literal notranslate"><span class="pre">TriggerScripts</span></code></p></li>
 </ul>
 </li>
 </ul>

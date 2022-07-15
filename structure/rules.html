@@ -54,13 +54,13 @@
 <li class="toctree-l1 current"><a class="current reference internal" href="#">rules</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#the-goals">The Goals</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#the-system">The System</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#index"><strong>Index</strong></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#selector"><strong>Selector</strong></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#qualifier"><strong>Qualifier</strong></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#requirement"><strong>Requirement</strong></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#modifier"><strong>Modifier</strong></a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="#master-feats">Master Feats</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="serialization.html">serialization</a></li>
@@ -130,8 +130,7 @@ like NWN. Enhanced Edition’s approach largely was to unhardcode
 <p>The approach here is inspired by <a class="reference external" href="https://github.com/jd28/Solstice">Solstice</a> and Orth’s NWNX:EE plugins
 <a class="reference external" href="https://github.com/nwnxee/unified/tree/master/Plugins/Race">Race</a>,
 <a class="reference external" href="https://github.com/nwnxee/unified/tree/master/Plugins/SkillRanks">SkillRank</a>,
-and
-<a class="reference external" href="https://github.com/nwnxee/unified/tree/master/Plugins/Feat">Feat</a>.</p>
+and <a class="reference external" href="https://github.com/nwnxee/unified/tree/master/Plugins/Feat">Feat</a>.</p>
 <section id="the-goals">
 <h2>The Goals<a class="headerlink" href="#the-goals" title="Permalink to this heading"></a></h2>
 <ul class="simple">
@@ -141,19 +140,33 @@ should be hardcoded.</p></li>
 <li><p>The rules system must be queryable. Example: Given one creature
 attacking one chair with one handaxe in one bar of Chicago, what are
 all the modifiers that affect this particular situation?</p></li>
+<li><p>Ideally, constants would be disassociated from 2da rows.  Say a UUID &lt;-&gt; integer map, but that’s
+both a configuration and serialization problem.</p></li>
 </ul>
 </section>
 <hr class="docutils" />
 <section id="the-system">
 <h2>The System<a class="headerlink" href="#the-system" title="Permalink to this heading"></a></h2>
-<p>The foundation of system is just four types: <code class="docutils literal notranslate"><span class="pre">int</span></code>, <code class="docutils literal notranslate"><span class="pre">float</span></code>, strings
-and <code class="docutils literal notranslate"><span class="pre">nw::Index</span></code>.</p>
-<section id="index">
-<h3><strong>Index</strong><a class="headerlink" href="#index" title="Permalink to this heading"></a></h3>
-<p>A <a class="reference internal" href="../api/struct/nw__Index.html#_CPPv4N2nw5IndexE" title="nw::Index"><code class="xref cpp cpp-struct docutils literal notranslate"><span class="pre">nw::Index</span></code></a> is an interned string and unsigned integer pair for abstracting over constants
-that are indices into arrays, vectors, etc.  The goal is to facilitate a serialization format that could be
-2da row independent.</p>
-</section>
+<p>The foundation of system is just three types: <code class="docutils literal notranslate"><span class="pre">int32_t</span></code>, <code class="docutils literal notranslate"><span class="pre">float</span></code>, strings.</p>
+<p>rollNW has the elements of NWN’s rule system builtin, which is itself an approximation of the Dungeons
+and Dragons 3rd Edition ruleset.</p>
+<p>The approach to the elements of a rule category has been to use opaque unsigned integer types which are then casted.  This gives
+some benefit of type safety and allows the rules system to define the invalid case and profiles can
+handle defining the valid cases.  So, for example:</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="c1">// Definition of an attribute</span>
+<span class="k">enum</span><span class="w"> </span><span class="k">struct</span><span class="w"> </span><span class="nc">ArmorClass</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="kt">uint32_t</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">    </span><span class="n">invalid</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">numeric_limits</span><span class="o">&lt;</span><span class="kt">uint32_t</span><span class="o">&gt;::</span><span class="n">max</span><span class="p">(),</span><span class="w"></span>
+<span class="p">};</span><span class="w"></span>
+<span class="k">constexpr</span><span class="w"> </span><span class="n">ArmorClass</span><span class="w"> </span><span class="nf">make_armor_class</span><span class="p">(</span><span class="kt">uint32_t</span><span class="w"> </span><span class="n">id</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="k">static_cast</span><span class="o">&lt;</span><span class="n">ArmorClass</span><span class="o">&gt;</span><span class="p">(</span><span class="n">id</span><span class="p">);</span><span class="w"> </span><span class="p">}</span><span class="w"></span>
+
+<span class="c1">// Somewhere else in a game profile that uses the concept of armor class</span>
+<span class="k">constexpr</span><span class="w"> </span><span class="n">nw</span><span class="o">::</span><span class="n">ArmorClass</span><span class="w"> </span><span class="n">ac_dodge</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">nw</span><span class="o">::</span><span class="n">make_armor_class</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span><span class="w"></span>
+<span class="k">constexpr</span><span class="w"> </span><span class="n">nw</span><span class="o">::</span><span class="n">ArmorClass</span><span class="w"> </span><span class="n">ac_natural</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">nw</span><span class="o">::</span><span class="n">make_armor_class</span><span class="p">(</span><span class="mi">1</span><span class="p">);</span><span class="w"></span>
+<span class="k">constexpr</span><span class="w"> </span><span class="n">nw</span><span class="o">::</span><span class="n">ArmorClass</span><span class="w"> </span><span class="n">ac_armor</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">nw</span><span class="o">::</span><span class="n">make_armor_class</span><span class="p">(</span><span class="mi">2</span><span class="p">);</span><span class="w"></span>
+<span class="k">constexpr</span><span class="w"> </span><span class="n">nw</span><span class="o">::</span><span class="n">ArmorClass</span><span class="w"> </span><span class="n">ac_shield</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">nw</span><span class="o">::</span><span class="n">make_armor_class</span><span class="p">(</span><span class="mi">3</span><span class="p">);</span><span class="w"></span>
+<span class="k">constexpr</span><span class="w"> </span><span class="n">nw</span><span class="o">::</span><span class="n">ArmorClass</span><span class="w"> </span><span class="n">ac_deflection</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">nw</span><span class="o">::</span><span class="n">make_armor_class</span><span class="p">(</span><span class="mi">4</span><span class="p">);</span><span class="w"></span>
+</pre></div>
+</div>
 <section id="selector">
 <h3><strong>Selector</strong><a class="headerlink" href="#selector" title="Permalink to this heading"></a></h3>
 <p>A <code class="docutils literal notranslate"><span class="pre">Selector</span></code> gets some piece of information from an entity.</p>
@@ -242,7 +255,6 @@ disjunction pass <code class="docutils literal notranslate"><span class="pre">fa
 <span class="w">   </span><span class="k">return</span><span class="w"> </span><span class="p">((</span><span class="n">pm_level</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mi">4</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">2</span><span class="p">;</span><span class="w"></span>
 <span class="p">};</span><span class="w"></span>
 
-<span class="c1">// Ignoring whether PM ac is natural or not for now</span>
 <span class="k">auto</span><span class="w"> </span><span class="n">mod2</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">nwn1</span><span class="o">::</span><span class="n">mod</span><span class="o">::</span><span class="n">ac_natural</span><span class="p">(</span><span class="n">pm_ac</span><span class="p">,</span><span class="w"> </span><span class="n">is_pm</span><span class="p">,</span><span class="w"> </span><span class="p">{},</span><span class="w"> </span><span class="s">&quot;dnd-3.0-palemaster-ac&quot;</span><span class="p">);</span><span class="w"></span>
 
 <span class="n">nw</span><span class="o">::</span><span class="n">kernel</span><span class="o">::</span><span class="n">rules</span><span class="p">().</span><span class="n">add</span><span class="p">(</span><span class="n">mod2</span><span class="p">);</span><span class="w"></span>
@@ -266,6 +278,33 @@ disjunction pass <code class="docutils literal notranslate"><span class="pre">fa
 <span class="n">nwk</span><span class="o">::</span><span class="n">rules</span><span class="p">().</span><span class="n">remove</span><span class="p">(</span><span class="s">&quot;dnd-3.0-palemaster-ac&quot;</span><span class="p">);</span><span class="w"></span>
 </pre></div>
 </div>
+</section>
+</section>
+<hr class="docutils" />
+<section id="master-feats">
+<h2>Master Feats<a class="headerlink" href="#master-feats" title="Permalink to this heading"></a></h2>
+<p>Master feats and associated bonuses are set in the <a class="reference internal" href="../api/struct/nw__MasterFeatRegistry.html#_CPPv4N2nw18MasterFeatRegistryE" title="nw::MasterFeatRegistry"><code class="xref cpp cpp-struct docutils literal notranslate"><span class="pre">nw::MasterFeatRegistry</span></code></a>.  The master
+feat registry associates a particular rule element, say, a skill with a master feat and a feat corresponding
+to that skill.</p>
+<p><strong>Example - (Epic) Skill Focus: Discipline</strong></p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="k">auto</span><span class="w"> </span><span class="n">mfr</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">nw</span><span class="o">::</span><span class="n">kernel</span><span class="o">::</span><span class="n">world</span><span class="p">().</span><span class="n">get_mut</span><span class="o">&lt;</span><span class="n">nw</span><span class="o">::</span><span class="n">MasterFeatRegistry</span><span class="o">&gt;</span><span class="p">();</span><span class="w"></span>
+<span class="n">mfr</span><span class="o">-&gt;</span><span class="n">set_bonus</span><span class="p">(</span><span class="n">mfeat_skill_focus</span><span class="p">,</span><span class="w"> </span><span class="mi">3</span><span class="p">);</span><span class="w"></span>
+<span class="n">mfr</span><span class="o">-&gt;</span><span class="n">set_bonus</span><span class="p">(</span><span class="n">mfeat_skill_focus_epic</span><span class="p">,</span><span class="w"> </span><span class="mi">10</span><span class="p">);</span><span class="w"></span>
+
+<span class="n">mfr</span><span class="o">-&gt;</span><span class="n">add</span><span class="p">(</span><span class="n">skill_discipline</span><span class="p">,</span><span class="w"> </span><span class="n">mfeat_skill_focus</span><span class="p">,</span><span class="w"> </span><span class="n">feat_skill_focus_discipline</span><span class="p">);</span><span class="w"></span>
+<span class="n">mfr</span><span class="o">-&gt;</span><span class="n">add</span><span class="p">(</span><span class="n">skill_discipline</span><span class="p">,</span><span class="w"> </span><span class="n">mfeat_skill_focus_epic</span><span class="p">,</span><span class="w"> </span><span class="n">feat_epic_skill_focus_discipline</span><span class="p">)</span><span class="w"></span>
+</pre></div>
+</div>
+<p>Multiple feats are able to be associated with a rule element and masterfeat.  Imagine in some universe,
+there is a class that has access to a generic Weapon Focus: Martial feat which provides Weapon Focus
+for all martial weapons.</p>
+<p><strong>Example - Multiple Associated Feats</strong></p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="k">auto</span><span class="w"> </span><span class="n">mfr</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">nw</span><span class="o">::</span><span class="n">kernel</span><span class="o">::</span><span class="n">world</span><span class="p">().</span><span class="n">get_mut</span><span class="o">&lt;</span><span class="n">nw</span><span class="o">::</span><span class="n">MasterFeatRegistry</span><span class="o">&gt;</span><span class="p">();</span><span class="w"></span>
+<span class="c1">// Set up bonuses...</span>
+<span class="n">mfr</span><span class="o">-&gt;</span><span class="n">add</span><span class="p">(</span><span class="n">baseitem_longsword</span><span class="p">,</span><span class="w"> </span><span class="n">mfeat_weapon_focus</span><span class="p">,</span><span class="w"> </span><span class="n">feat_weapon_focus_longsword</span><span class="p">);</span><span class="w"></span>
+<span class="n">mfr</span><span class="o">-&gt;</span><span class="n">add</span><span class="p">(</span><span class="n">baseitem_longsword</span><span class="p">,</span><span class="w"> </span><span class="n">mfeat_weapon_focus</span><span class="p">,</span><span class="w"> </span><span class="n">feat_weapon_focus_martial</span><span class="p">);</span><span class="w"></span>
+</pre></div>
+</div>
 <dl class="footnote brackets">
 <dt class="label" id="id3"><span class="brackets"><a class="fn-backref" href="#id1">1</a></span></dt>
 <dd><p>There are some exceptions, parts of the custom spellcaster system.</p>
@@ -275,7 +314,6 @@ disjunction pass <code class="docutils literal notranslate"><span class="pre">fa
 nwnx_dotnet/lua/etc or a string for use with <code class="docutils literal notranslate"><span class="pre">ExecuteScriptChunk</span></code>.</p>
 </dd>
 </dl>
-</section>
 </section>
 </section>
 

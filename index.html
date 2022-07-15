@@ -124,7 +124,7 @@ some Enhanced Edition) file formats and objects, that</p>
 <ul class="simple">
 <li><p>aims to implement an RPG engine inspired by NWN, excluding graphics
 and networking.</p></li>
-<li><p>focuses on usage, instead doing things the Aurora Engine Way.</p></li>
+<li><p>focuses on usage, instead of doing things the Aurora Engine Way.</p></li>
 <li><p>follows <a class="reference external" href="https://utf8everywhere.org/">utf8 everywhere</a>.</p></li>
 <li><p>hews as close to <a class="reference external" href="https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines">C++ Core
 Guidelines</a>
@@ -143,40 +143,6 @@ in flux.</strong></p>
 available to those in the beta.</p>
 </section>
 <hr class="docutils" />
-<section id="using">
-<h2>Using<a class="headerlink" href="#using" title="Permalink to this heading"></a></h2>
-<p>While the library is far from done, basic usage would be as follows.</p>
-<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;nw/kernel/Kernel.hpp&gt;</span><span class="cp"></span>
-<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;nw/log.hpp&gt;</span><span class="cp"></span>
-<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;nw/profiles/nwn1/Profile.hpp&gt;</span><span class="cp"></span>
-
-<span class="kt">int</span><span class="w"> </span><span class="nf">main</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">argc</span><span class="p">,</span><span class="w"> </span><span class="kt">char</span><span class="o">*</span><span class="w"> </span><span class="n">argv</span><span class="p">[])</span><span class="w"></span>
-<span class="p">{</span><span class="w"></span>
-<span class="w">   </span><span class="c1">// Initialize logger</span>
-<span class="w">   </span><span class="n">nw</span><span class="o">::</span><span class="n">init_logger</span><span class="p">(</span><span class="n">argc</span><span class="p">,</span><span class="w"> </span><span class="n">argv</span><span class="p">);</span><span class="w"></span>
-
-<span class="w">   </span><span class="c1">// Sets config for the system, paths, version, etc.</span>
-<span class="w">   </span><span class="k">auto</span><span class="w"> </span><span class="n">info</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">nw</span><span class="o">::</span><span class="n">probe_nwn_install</span><span class="p">();</span><span class="w"></span>
-<span class="w">   </span><span class="n">nw</span><span class="o">::</span><span class="n">kernel</span><span class="o">::</span><span class="n">config</span><span class="p">().</span><span class="n">initialize</span><span class="p">({</span><span class="w"></span>
-<span class="w">       </span><span class="n">info</span><span class="p">.</span><span class="n">version</span><span class="p">,</span><span class="w"></span>
-<span class="w">       </span><span class="n">info</span><span class="p">.</span><span class="n">install</span><span class="p">,</span><span class="w"></span>
-<span class="w">       </span><span class="n">info</span><span class="p">.</span><span class="n">user</span><span class="p">,</span><span class="w"></span>
-<span class="w">   </span><span class="p">});</span><span class="w"></span>
-
-<span class="w">   </span><span class="c1">// Initializes all systems</span>
-<span class="w">   </span><span class="n">nw</span><span class="o">::</span><span class="n">kernel</span><span class="o">::</span><span class="n">services</span><span class="p">().</span><span class="n">start</span><span class="p">();</span><span class="w"></span>
-
-<span class="w">   </span><span class="c1">// Loads a game profile, in this case something vaguely like NWN1</span>
-<span class="w">   </span><span class="n">nw</span><span class="o">::</span><span class="n">kernel</span><span class="o">::</span><span class="n">load_profile</span><span class="p">(</span><span class="k">new</span><span class="w"> </span><span class="n">nwn1</span><span class="o">::</span><span class="n">Profile</span><span class="p">);</span><span class="w"></span>
-
-<span class="w">   </span><span class="c1">// Do neat stuff</span>
-
-<span class="w">   </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"></span>
-<span class="p">}</span><span class="w"></span>
-</pre></div>
-</div>
-</section>
-<hr class="docutils" />
 <section id="history">
 <h2>History<a class="headerlink" href="#history" title="Permalink to this heading"></a></h2>
 <p>A lot of what’s here was written in the 2011-2015 range as part of
@@ -185,7 +151,7 @@ some sense, it’s a work of historical fiction - it’s what I’d have
 suggested at the start of NWN:EE: get the game and the community on the
 same set of libraries. Similarly to an older project that asked <a class="reference external" href="https://solstice.readthedocs.io/en/latest/">“what
 if Bioware had stuck with
-Lua?”</a>. The awnser to
+Lua?”</a>. The answer to
 that was pretty positive: a decade ahead, at least, of nwscript.</p>
 </section>
 <hr class="docutils" />

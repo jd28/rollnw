@@ -73,7 +73,6 @@
 <li class="toctree-l2"><a class="reference internal" href="nw__from_utf8.html">nw::from_utf8</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__from_utf8_by_global_lang.html">nw::from_utf8_by_global_lang</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__from_utf8_by_langid.html">nw::from_utf8_by_langid</a></li>
-<li class="toctree-l2"><a class="reference internal" href="nw__get_all_available_feats.html">nw::get_all_available_feats</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__gff_to_gffjson.html">nw::gff_to_gffjson</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__home_path.html">nw::home_path</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__init_logger.html">nw::init_logger</a></li>
@@ -89,6 +88,7 @@
 <li class="toctree-l2"><a class="reference internal" href="nw__kernel__strings.html">nw::kernel::strings</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__kernel__unload_module.html">nw::kernel::unload_module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__kernel__world.html">nw::kernel::world</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__make_master_feat.html">nw::make_master_feat</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__move_file_safely.html">nw::move_file_safely</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__needs_quote.html">nw::needs_quote</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__operator_eq.html">nw::operator==</a></li>
@@ -118,6 +118,8 @@
 <li class="toctree-l2"><a class="reference internal" href="nw__to_utf8.html">nw::to_utf8</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__to_utf8_by_global_lang.html">nw::to_utf8_by_global_lang</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__to_utf8_by_langid.html">nw::to_utf8_by_langid</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nwn1__get_all_available_feats.html">nwn1::get_all_available_feats</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nwn1__get_skill_rank.html">nwn1::get_skill_rank</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nwn1__knows_feat.html">nwn1::knows_feat</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nwn1__meets_requirements.html">nwn1::meets_requirements</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">nwn1::qual::ability</a></li>
@@ -127,6 +129,7 @@
 <li class="toctree-l2"><a class="reference internal" href="nwn1__qual__level.html">nwn1::qual::level</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nwn1__qual__race.html">nwn1::qual::race</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nwn1__qual__skill.html">nwn1::qual::skill</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nwn1__resolve_master_feats.html">nwn1::resolve_master_feats</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nwn1__sel__ability.html">nwn1::sel::ability</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nwn1__sel__alignment.html">nwn1::sel::alignment</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nwn1__sel__class_level.html">nwn1::sel::class_level</a></li>
@@ -188,11 +191,10 @@
              
   <section id="nwn1-qual-ability">
 <h1>nwn1::qual::ability<a class="headerlink" href="#nwn1-qual-ability" title="Permalink to this heading"></a></h1>
-<dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N4nwn14qual7abilityEN2nw5IndexEii">
-<span id="_CPPv3N4nwn14qual7abilityEN2nw5IndexEii"></span><span id="_CPPv2N4nwn14qual7abilityEN2nw5IndexEii"></span><span id="nwn1::qual::ability__nw::Index.i.i"></span><span class="target" id="rule__helper__funcs_8cpp_1afe7f2b88e3e7245f05a381818ca23d41"></span><span class="n"><span class="pre">nw</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../struct/nw__Qualifier.html#_CPPv4N2nw9QualifierE" title="nw::Qualifier"><span class="n"><span class="pre">Qualifier</span></span></a><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">nwn1</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">qual</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">ability</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">nw</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../struct/nw__Index.html#_CPPv4N2nw5IndexE" title="nw::Index"><span class="n"><span class="pre">Index</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">id</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">min</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">max</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4nwn14qual7abilityEN2nw5IndexEii" title="Permalink to this definition"></a><br /></dt>
-<dd></dd></dl>
-
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>doxygenfunction: Cannot find function “nwn1::qual::ability” in doxygen xml output for project “rollNW” from directory: /home/runner/work/rollnw/rollnw/build/docs/doxygen/xml</p>
+</div>
 </section>
 
 

@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>nw::ClassInfo &mdash; rollNW  documentation</title>
+      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="../../_static/doctools.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="nw::CombatInfo" href="nw__CombatInfo.html" />
+    <link rel="prev" title="nw::ClassEntry" href="nw__ClassEntry.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../index.html" class="icon icon-home"> rollNW
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">getting started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../gs/building.html">building</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gs/using.html">using</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">structure</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../structure/formats.html">formats</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../structure/i18n.html">i18n</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../structure/kernel.html">kernel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../structure/objects.html">objects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../structure/profiles.html">profiles</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../structure/resources.html">resources</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../structure/rules.html">rules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../structure/serialization.html">serialization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../structure/util.html">util</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">c++ api</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="../classlist.html">classes</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="nw__AbilityArray.html">nw::AbilityArray</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__AbilityInfo.html">nw::AbilityInfo</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Appearance.html">nw::Appearance</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Area.html">nw::Area</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__AreaScripts.html">nw::AreaScripts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__AreaWeather.html">nw::AreaWeather</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__BaseItem.html">nw::BaseItem</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__BaseItemArray.html">nw::BaseItemArray</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__BeamdogInstall.html">nw::BeamdogInstall</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Bif.html">nw::Bif</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__BifElement.html">nw::BifElement</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__BifHeader.html">nw::BifHeader</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__BodyParts.html">nw::BodyParts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ByteArray.html">nw::ByteArray</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ClassArray.html">nw::ClassArray</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ClassEntry.html">nw::ClassEntry</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">nw::ClassInfo</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__CombatInfo.html">nw::CombatInfo</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Common.html">nw::Common</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__CompressionHeader.html">nw::CompressionHeader</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ConfigOptions.html">nw::ConfigOptions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Container.html">nw::Container</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Creature.html">nw::Creature</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__CreatureScripts.html">nw::CreatureScripts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__CreatureStats.html">nw::CreatureStats</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__DamageRoll.html">nw::DamageRoll</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Dialog.html">nw::Dialog</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__DialogNode.html">nw::DialogNode</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__DialogPtr.html">nw::DialogPtr</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__DiceRoll.html">nw::DiceRoll</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Directory.html">nw::Directory</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Door.html">nw::Door</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__DoorScripts.html">nw::DoorScripts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Effect.html">nw::Effect</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__EffectHandle.html">nw::EffectHandle</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Encounter.html">nw::Encounter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__EncounterScripts.html">nw::EncounterScripts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Equips.html">nw::Equips</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Erf.html">nw::Erf</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ErfElementInfo.html">nw::ErfElementInfo</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ErfHeader.html">nw::ErfHeader</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ErfKey.html">nw::ErfKey</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Faction.html">nw::Faction</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__FactionInfo.html">nw::FactionInfo</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__FeatArray.html">nw::FeatArray</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__FeatInfo.html">nw::FeatInfo</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__GameProfile.html">nw::GameProfile</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__GffFieldEntry.html">nw::GffFieldEntry</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__GffHeader.html">nw::GffHeader</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__GffInputArchive.html">nw::GffInputArchive</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__GffInputArchiveField.html">nw::GffInputArchiveField</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__GffInputArchiveStruct.html">nw::GffInputArchiveStruct</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__GffLabel.html">nw::GffLabel</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__GffOutputArchive.html">nw::GffOutputArchive</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__GffOutputArchiveField.html">nw::GffOutputArchiveField</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__GffOutputArchiveList.html">nw::GffOutputArchiveList</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__GffOutputArchiveStruct.html">nw::GffOutputArchiveStruct</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__GffStructEntry.html">nw::GffStructEntry</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Image.html">nw::Image</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Ini.html">nw::Ini</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__InstallInfo.html">nw::InstallInfo</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__InternedString.html">nw::InternedString</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Inventory.html">nw::Inventory</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__InventoryItem.html">nw::InventoryItem</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Item.html">nw::Item</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ItemColors.html">nw::ItemColors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ItemModelParts.html">nw::ItemModelParts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ItemProperty.html">nw::ItemProperty</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Journal.html">nw::Journal</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__JournalCategory.html">nw::JournalCategory</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__JournalEntry.html">nw::JournalEntry</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Key.html">nw::Key</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__KeyTableElement.html">nw::KeyTableElement</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Language.html">nw::Language</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Language__Properties.html">nw::Language::Properties</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__LevelHistory.html">nw::LevelHistory</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__LevelHistoryEntry.html">nw::LevelHistoryEntry</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__LevelStats.html">nw::LevelStats</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__LocString.html">nw::LocString</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__LocalData.html">nw::LocalData</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__LocalVar.html">nw::LocalVar</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__LocalVarType.html">nw::LocalVarType</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Location.html">nw::Location</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Lock.html">nw::Lock</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__MasterFeatRegistry.html">nw::MasterFeatRegistry</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Module.html">nw::Module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ModuleScripts.html">nw::ModuleScripts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__NWSync.html">nw::NWSync</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__NWSyncManifest.html">nw::NWSyncManifest</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Null.html">nw::Null</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Palette.html">nw::Palette</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__PaletteTreeNode.html">nw::PaletteTreeNode</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Placeable.html">nw::Placeable</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__PlaceableScripts.html">nw::PlaceableScripts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Qualifier.html">nw::Qualifier</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__RaceArray.html">nw::RaceArray</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__RaceInfo.html">nw::RaceInfo</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Reputation.html">nw::Reputation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Requirement.html">nw::Requirement</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Resource.html">nw::Resource</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ResourceDescriptor.html">nw::ResourceDescriptor</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ResourceType.html">nw::ResourceType</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Resref.html">nw::Resref</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Save.html">nw::Save</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Saves.html">nw::Saves</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Selector.html">nw::Selector</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__SerializationType.html">nw::SerializationType</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Situation.html">nw::Situation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__SkillArray.html">nw::SkillArray</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__SkillInfo.html">nw::SkillInfo</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Sound.html">nw::Sound</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__SpawnCreature.html">nw::SpawnCreature</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__SpawnPoint.html">nw::SpawnPoint</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__SpecialAbility.html">nw::SpecialAbility</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__SpellArray.html">nw::SpellArray</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__SpellBook.html">nw::SpellBook</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__SpellEntry.html">nw::SpellEntry</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__SpellInfo.html">nw::SpellInfo</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Store.html">nw::Store</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__StoreInventory.html">nw::StoreInventory</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__StoreScripts.html">nw::StoreScripts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Tile.html">nw::Tile</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Tlk.html">nw::Tlk</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__TlkElement.html">nw::TlkElement</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__TlkFlags.html">nw::TlkFlags</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__TlkHeader.html">nw::TlkHeader</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Tokenizer.html">nw::Tokenizer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Trap.html">nw::Trap</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Trigger.html">nw::Trigger</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__TriggerScripts.html">nw::TriggerScripts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__TwoDA.html">nw::TwoDA</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__TwoDACache.html">nw::TwoDACache</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Variant.html">nw::Variant</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Versus.html">nw::Versus</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Waypoint.html">nw::Waypoint</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Zip.html">nw::Zip</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ZipElement.html">nw::ZipElement</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ZlibHeader.html">nw::ZlibHeader</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ZstdHeader.html">nw::ZstdHeader</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__kernel__Config.html">nw::kernel::Config</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__kernel__ObjectSystem.html">nw::kernel::ObjectSystem</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__kernel__Resources.html">nw::kernel::Resources</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__kernel__Rules.html">nw::kernel::Rules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__kernel__Services.html">nw::kernel::Services</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__kernel__Strings.html">nw::kernel::Strings</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__AssignExpression.html">nw::script::AssignExpression</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__AstNode.html">nw::script::AstNode</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__BaseVisitor.html">nw::script::BaseVisitor</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__BinaryExpression.html">nw::script::BinaryExpression</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__BlockStatement.html">nw::script::BlockStatement</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__CallExpression.html">nw::script::CallExpression</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__ConditionalExpression.html">nw::script::ConditionalExpression</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__Declaration.html">nw::script::Declaration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__DoStatement.html">nw::script::DoStatement</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__DotExpression.html">nw::script::DotExpression</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__ExprStatement.html">nw::script::ExprStatement</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__Expression.html">nw::script::Expression</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__ForStatement.html">nw::script::ForStatement</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__FunctionDecl.html">nw::script::FunctionDecl</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__FunctionDefinition.html">nw::script::FunctionDefinition</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__GroupingExpression.html">nw::script::GroupingExpression</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__IfStatement.html">nw::script::IfStatement</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__JumpStatement.html">nw::script::JumpStatement</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__LabelStatement.html">nw::script::LabelStatement</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__LiteralExpression.html">nw::script::LiteralExpression</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__LogicalExpression.html">nw::script::LogicalExpression</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__Nss.html">nw::script::Nss</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__NssAstPrinter.html">nw::script::NssAstPrinter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__NssLexer.html">nw::script::NssLexer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__NssParser.html">nw::script::NssParser</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__NssToken.html">nw::script::NssToken</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__PostfixExpression.html">nw::script::PostfixExpression</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__Script.html">nw::script::Script</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__Statement.html">nw::script::Statement</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__StructDecl.html">nw::script::StructDecl</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__SwitchStatement.html">nw::script::SwitchStatement</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__Type.html">nw::script::Type</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__UnaryExpression.html">nw::script::UnaryExpression</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__VarDecl.html">nw::script::VarDecl</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__VariableExpression.html">nw::script::VariableExpression</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__WhileStatement.html">nw::script::WhileStatement</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nwn1__Profile.html">nwn1::Profile</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../definelist.html">defines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../enumlist.html">enums</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../functionlist.html">functions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../typedeflist.html">typedefs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">gff schemas</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/are.html">are</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/dlg.html">dlg</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/fac.html">fac</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/gic.html">gic</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/git.html">git</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/ifo.html">ifo</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/itp.html">itp</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/jrl.html">jrl</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/utc.html">utc</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/utd.html">utd</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/ute.html">ute</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/uti.html">uti</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/utm.html">utm</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/utp.html">utp</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/uts.html">uts</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/utt.html">utt</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/utw.html">utw</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/vartable.html">vartable</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">rollNW</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="../classlist.html">classes</a> &raquo;</li>
+      <li>nw::ClassInfo</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/api/struct/nw__ClassInfo.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="nw-classinfo">
+<h1>nw::ClassInfo<a class="headerlink" href="#nw-classinfo" title="Permalink to this heading"></a></h1>
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw9ClassInfoE">
+<span id="_CPPv3N2nw9ClassInfoE"></span><span id="_CPPv2N2nw9ClassInfoE"></span><span id="nw::ClassInfo"></span><span class="target" id="structnw_1_1_class_info"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ClassInfo</span></span></span><a class="headerlink" href="#_CPPv4N2nw9ClassInfoE" title="Permalink to this definition"></a><br /></dt>
+<dd><div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw9ClassInfo9ClassInfoEv">
+<span id="_CPPv3N2nw9ClassInfo9ClassInfoEv"></span><span id="_CPPv2N2nw9ClassInfo9ClassInfoEv"></span><span id="nw::ClassInfo::ClassInfo"></span><span class="target" id="structnw_1_1_class_info_1a4230527732cf382970cc3bf28705397b"></span><span class="sig-name descname"><span class="n"><span class="pre">ClassInfo</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">default</span></span><a class="headerlink" href="#_CPPv4N2nw9ClassInfo9ClassInfoEv" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw9ClassInfo9ClassInfoERK12TwoDARowView">
+<span id="_CPPv3N2nw9ClassInfo9ClassInfoERK12TwoDARowView"></span><span id="_CPPv2N2nw9ClassInfo9ClassInfoERK12TwoDARowView"></span><span id="nw::ClassInfo::ClassInfo__TwoDARowViewCR"></span><span class="target" id="structnw_1_1_class_info_1a1977cc4fcfca1aaaba68867a18de4916"></span><span class="sig-name descname"><span class="n"><span class="pre">ClassInfo</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">TwoDARowView</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">tda</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw9ClassInfo9ClassInfoERK12TwoDARowView" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK2nw9ClassInfo5validEv">
+<span id="_CPPv3NK2nw9ClassInfo5validEv"></span><span id="_CPPv2NK2nw9ClassInfo5validEv"></span><span id="nw::ClassInfo::validC"></span><span class="target" id="structnw_1_1_class_info_1a399b0e3293970fb3aabcc04b225cbc10"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">valid</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="k"><span class="pre">noexcept</span></span><a class="headerlink" href="#_CPPv4NK2nw9ClassInfo5validEv" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw9ClassInfo12requirementsE">
+<span id="_CPPv3N2nw9ClassInfo12requirementsE"></span><span id="_CPPv2N2nw9ClassInfo12requirementsE"></span><span id="nw::ClassInfo::requirements__Requirement"></span><span class="target" id="structnw_1_1_class_info_1af61945189dffa07a5061b9b508e22f43"></span><a class="reference internal" href="nw__Requirement.html#_CPPv4N2nw11RequirementE" title="nw::Requirement"><span class="n"><span class="pre">Requirement</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">requirements</span></span></span><a class="headerlink" href="#_CPPv4N2nw9ClassInfo12requirementsE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw9ClassInfo4nameE">
+<span id="_CPPv3N2nw9ClassInfo4nameE"></span><span id="_CPPv2N2nw9ClassInfo4nameE"></span><span id="nw::ClassInfo::name__uint32_t"></span><span class="target" id="structnw_1_1_class_info_1a9fbfd3ed5bf393a73d3074ae9304646e"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">name</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0xFFFFFFFF</span></span><a class="headerlink" href="#_CPPv4N2nw9ClassInfo4nameE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw9ClassInfo6pluralE">
+<span id="_CPPv3N2nw9ClassInfo6pluralE"></span><span id="_CPPv2N2nw9ClassInfo6pluralE"></span><span id="nw::ClassInfo::plural__uint32_t"></span><span class="target" id="structnw_1_1_class_info_1a26c43f62f678edf6ff5ee55e0f742b6f"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">plural</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0xFFFFFFFF</span></span><a class="headerlink" href="#_CPPv4N2nw9ClassInfo6pluralE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw9ClassInfo5lowerE">
+<span id="_CPPv3N2nw9ClassInfo5lowerE"></span><span id="_CPPv2N2nw9ClassInfo5lowerE"></span><span id="nw::ClassInfo::lower__uint32_t"></span><span class="target" id="structnw_1_1_class_info_1a2461d80e9d8c94b684bc68ee4d23f64c"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">lower</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0xFFFFFFFF</span></span><a class="headerlink" href="#_CPPv4N2nw9ClassInfo5lowerE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw9ClassInfo11descriptionE">
+<span id="_CPPv3N2nw9ClassInfo11descriptionE"></span><span id="_CPPv2N2nw9ClassInfo11descriptionE"></span><span id="nw::ClassInfo::description__uint32_t"></span><span class="target" id="structnw_1_1_class_info_1af8ab6e8e72702333b77ea659486a4523"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">description</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0xFFFFFFFF</span></span><a class="headerlink" href="#_CPPv4N2nw9ClassInfo11descriptionE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw9ClassInfo4iconE">
+<span id="_CPPv3N2nw9ClassInfo4iconE"></span><span id="_CPPv2N2nw9ClassInfo4iconE"></span><span id="nw::ClassInfo::icon__Resource"></span><span class="target" id="structnw_1_1_class_info_1aa0794f3b70cf4686e46dc3c32ee3a6dc"></span><a class="reference internal" href="nw__Resource.html#_CPPv4N2nw8ResourceE" title="nw::Resource"><span class="n"><span class="pre">Resource</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">icon</span></span></span><a class="headerlink" href="#_CPPv4N2nw9ClassInfo4iconE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw9ClassInfo6hitdieE">
+<span id="_CPPv3N2nw9ClassInfo6hitdieE"></span><span id="_CPPv2N2nw9ClassInfo6hitdieE"></span><span id="nw::ClassInfo::hitdie__i"></span><span class="target" id="structnw_1_1_class_info_1a6a6a971db8cbc66153547654ad19684c"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">hitdie</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N2nw9ClassInfo6hitdieE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw9ClassInfo18attack_bonus_tableE">
+<span id="_CPPv3N2nw9ClassInfo18attack_bonus_tableE"></span><span id="_CPPv2N2nw9ClassInfo18attack_bonus_tableE"></span><span id="nw::ClassInfo::attack_bonus_table__std::vector:i:CP"></span><span class="target" id="structnw_1_1_class_info_1a4e0395fba2fd3b487790bc44df2ea9c2"></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">int</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">attack_bonus_table</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">nullptr</span></span><a class="headerlink" href="#_CPPv4N2nw9ClassInfo18attack_bonus_tableE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw9ClassInfo11feats_tableE">
+<span id="_CPPv3N2nw9ClassInfo11feats_tableE"></span><span id="_CPPv2N2nw9ClassInfo11feats_tableE"></span><span id="nw::ClassInfo::feats_table__Resource"></span><span class="target" id="structnw_1_1_class_info_1a41386c8bc8156439f6d1dfdb36ed77c2"></span><a class="reference internal" href="nw__Resource.html#_CPPv4N2nw8ResourceE" title="nw::Resource"><span class="n"><span class="pre">Resource</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">feats_table</span></span></span><a class="headerlink" href="#_CPPv4N2nw9ClassInfo11feats_tableE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw9ClassInfo18saving_throw_tableE">
+<span id="_CPPv3N2nw9ClassInfo18saving_throw_tableE"></span><span id="_CPPv2N2nw9ClassInfo18saving_throw_tableE"></span><span id="nw::ClassInfo::saving_throw_table__Resource"></span><span class="target" id="structnw_1_1_class_info_1ab525b88c6c41408007743d336def18bb"></span><a class="reference internal" href="nw__Resource.html#_CPPv4N2nw8ResourceE" title="nw::Resource"><span class="n"><span class="pre">Resource</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">saving_throw_table</span></span></span><a class="headerlink" href="#_CPPv4N2nw9ClassInfo18saving_throw_tableE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw9ClassInfo12skills_tableE">
+<span id="_CPPv3N2nw9ClassInfo12skills_tableE"></span><span id="_CPPv2N2nw9ClassInfo12skills_tableE"></span><span id="nw::ClassInfo::skills_table__Resource"></span><span class="target" id="structnw_1_1_class_info_1a76162326de2584c841d3be72e5af61da"></span><a class="reference internal" href="nw__Resource.html#_CPPv4N2nw8ResourceE" title="nw::Resource"><span class="n"><span class="pre">Resource</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">skills_table</span></span></span><a class="headerlink" href="#_CPPv4N2nw9ClassInfo12skills_tableE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw9ClassInfo17bonus_feats_tableE">
+<span id="_CPPv3N2nw9ClassInfo17bonus_feats_tableE"></span><span id="_CPPv2N2nw9ClassInfo17bonus_feats_tableE"></span><span id="nw::ClassInfo::bonus_feats_table__Resource"></span><span class="target" id="structnw_1_1_class_info_1a0368aa3dd75af6138c6db5d7ae1aa1ec"></span><a class="reference internal" href="nw__Resource.html#_CPPv4N2nw8ResourceE" title="nw::Resource"><span class="n"><span class="pre">Resource</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">bonus_feats_table</span></span></span><a class="headerlink" href="#_CPPv4N2nw9ClassInfo17bonus_feats_tableE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw9ClassInfo16skill_point_baseE">
+<span id="_CPPv3N2nw9ClassInfo16skill_point_baseE"></span><span id="_CPPv2N2nw9ClassInfo16skill_point_baseE"></span><span id="nw::ClassInfo::skill_point_base__i"></span><span class="target" id="structnw_1_1_class_info_1a0a4bdce835b77c970ac43c940311f874"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">skill_point_base</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N2nw9ClassInfo16skill_point_baseE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw9ClassInfo16spell_gain_tableE">
+<span id="_CPPv3N2nw9ClassInfo16spell_gain_tableE"></span><span id="_CPPv2N2nw9ClassInfo16spell_gain_tableE"></span><span id="nw::ClassInfo::spell_gain_table__Resource"></span><span class="target" id="structnw_1_1_class_info_1a706ad9658997d85ef25cf9045d7ad21a"></span><a class="reference internal" href="nw__Resource.html#_CPPv4N2nw8ResourceE" title="nw::Resource"><span class="n"><span class="pre">Resource</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">spell_gain_table</span></span></span><a class="headerlink" href="#_CPPv4N2nw9ClassInfo16spell_gain_tableE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw9ClassInfo17spell_known_tableE">
+<span id="_CPPv3N2nw9ClassInfo17spell_known_tableE"></span><span id="_CPPv2N2nw9ClassInfo17spell_known_tableE"></span><span id="nw::ClassInfo::spell_known_table__Resource"></span><span class="target" id="structnw_1_1_class_info_1a279f0249e9b69d70e61b95dc43be7dd0"></span><a class="reference internal" href="nw__Resource.html#_CPPv4N2nw8ResourceE" title="nw::Resource"><span class="n"><span class="pre">Resource</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">spell_known_table</span></span></span><a class="headerlink" href="#_CPPv4N2nw9ClassInfo17spell_known_tableE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw9ClassInfo12player_classE">
+<span id="_CPPv3N2nw9ClassInfo12player_classE"></span><span id="_CPPv2N2nw9ClassInfo12player_classE"></span><span id="nw::ClassInfo::player_class__b"></span><span class="target" id="structnw_1_1_class_info_1aab068c39c539e443f5dfe82e6c5d6de3"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">player_class</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">false</span></span><a class="headerlink" href="#_CPPv4N2nw9ClassInfo12player_classE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw9ClassInfo11spellcasterE">
+<span id="_CPPv3N2nw9ClassInfo11spellcasterE"></span><span id="_CPPv2N2nw9ClassInfo11spellcasterE"></span><span id="nw::ClassInfo::spellcaster__b"></span><span class="target" id="structnw_1_1_class_info_1a0445f10ffa3b4e2ce242e2356a40fae4"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">spellcaster</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">false</span></span><a class="headerlink" href="#_CPPv4N2nw9ClassInfo11spellcasterE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw9ClassInfo15primary_abilityE">
+<span id="_CPPv3N2nw9ClassInfo15primary_abilityE"></span><span id="_CPPv2N2nw9ClassInfo15primary_abilityE"></span><span id="nw::ClassInfo::primary_ability__i"></span><span class="target" id="structnw_1_1_class_info_1adbc53737f74ef87acd26bb13cc89ce57"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">primary_ability</span></span></span><a class="headerlink" href="#_CPPv4N2nw9ClassInfo15primary_abilityE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw9ClassInfo21alignment_restrictionE">
+<span id="_CPPv3N2nw9ClassInfo21alignment_restrictionE"></span><span id="_CPPv2N2nw9ClassInfo21alignment_restrictionE"></span><span id="nw::ClassInfo::alignment_restriction__uint32_t"></span><span class="target" id="structnw_1_1_class_info_1af9b878f8e51b4c8e5e66e591c3f472f7"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">alignment_restriction</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N2nw9ClassInfo21alignment_restrictionE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw9ClassInfo26alignment_restriction_typeE">
+<span id="_CPPv3N2nw9ClassInfo26alignment_restriction_typeE"></span><span id="_CPPv2N2nw9ClassInfo26alignment_restriction_typeE"></span><span id="nw::ClassInfo::alignment_restriction_type__uint32_t"></span><span class="target" id="structnw_1_1_class_info_1a802be4a2853c136fa169a979b235554f"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">alignment_restriction_type</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N2nw9ClassInfo26alignment_restriction_typeE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw9ClassInfo18invert_restrictionE">
+<span id="_CPPv3N2nw9ClassInfo18invert_restrictionE"></span><span id="_CPPv2N2nw9ClassInfo18invert_restrictionE"></span><span id="nw::ClassInfo::invert_restriction__b"></span><span class="target" id="structnw_1_1_class_info_1ad82ec5632d552ae3a6b7fd1eca7a8511"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">invert_restriction</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">false</span></span><a class="headerlink" href="#_CPPv4N2nw9ClassInfo18invert_restrictionE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw9ClassInfo8constantE">
+<span id="_CPPv3N2nw9ClassInfo8constantE"></span><span id="_CPPv2N2nw9ClassInfo8constantE"></span><span id="nw::ClassInfo::constant__InternedString"></span><span class="target" id="structnw_1_1_class_info_1a8ac81deacabd97160020d99b2c5ed985"></span><a class="reference internal" href="nw__InternedString.html#_CPPv4N2nw14InternedStringE" title="nw::InternedString"><span class="n"><span class="pre">InternedString</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">constant</span></span></span><a class="headerlink" href="#_CPPv4N2nw9ClassInfo8constantE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw9ClassInfo12prereq_tableE">
+<span id="_CPPv3N2nw9ClassInfo12prereq_tableE"></span><span id="_CPPv2N2nw9ClassInfo12prereq_tableE"></span><span id="nw::ClassInfo::prereq_table__Resource"></span><span class="target" id="structnw_1_1_class_info_1a0c750153e36166eed44f1e35f3fa6286"></span><a class="reference internal" href="nw__Resource.html#_CPPv4N2nw8ResourceE" title="nw::Resource"><span class="n"><span class="pre">Resource</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">prereq_table</span></span></span><a class="headerlink" href="#_CPPv4N2nw9ClassInfo12prereq_tableE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw9ClassInfo9max_levelE">
+<span id="_CPPv3N2nw9ClassInfo9max_levelE"></span><span id="_CPPv2N2nw9ClassInfo9max_levelE"></span><span id="nw::ClassInfo::max_level__i"></span><span class="target" id="structnw_1_1_class_info_1a7ecd9e49de007d84fa196f8802daa42c"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">max_level</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N2nw9ClassInfo9max_levelE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw9ClassInfo10xp_penaltyE">
+<span id="_CPPv3N2nw9ClassInfo10xp_penaltyE"></span><span id="_CPPv2N2nw9ClassInfo10xp_penaltyE"></span><span id="nw::ClassInfo::xp_penalty__i"></span><span class="target" id="structnw_1_1_class_info_1aa120fefc0ff1161a5278118469c1761d"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">xp_penalty</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N2nw9ClassInfo10xp_penaltyE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw9ClassInfo20arcane_spellgain_modE">
+<span id="_CPPv3N2nw9ClassInfo20arcane_spellgain_modE"></span><span id="_CPPv2N2nw9ClassInfo20arcane_spellgain_modE"></span><span id="nw::ClassInfo::arcane_spellgain_mod__i"></span><span class="target" id="structnw_1_1_class_info_1a2df62116a4dc8bba41ae8441e8c13abc"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">arcane_spellgain_mod</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N2nw9ClassInfo20arcane_spellgain_modE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw9ClassInfo20divine_spellgain_modE">
+<span id="_CPPv3N2nw9ClassInfo20divine_spellgain_modE"></span><span id="_CPPv2N2nw9ClassInfo20divine_spellgain_modE"></span><span id="nw::ClassInfo::divine_spellgain_mod__i"></span><span class="target" id="structnw_1_1_class_info_1ad580f1b6c8e969b38505c58ab810f2d7"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">divine_spellgain_mod</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N2nw9ClassInfo20divine_spellgain_modE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw9ClassInfo16epic_level_limitE">
+<span id="_CPPv3N2nw9ClassInfo16epic_level_limitE"></span><span id="_CPPv2N2nw9ClassInfo16epic_level_limitE"></span><span id="nw::ClassInfo::epic_level_limit__i"></span><span class="target" id="structnw_1_1_class_info_1add9f24605f51bc232fa7b50bf872db81"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">epic_level_limit</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="o"><span class="pre">-</span></span><span class="m"><span class="pre">1</span></span><a class="headerlink" href="#_CPPv4N2nw9ClassInfo16epic_level_limitE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw9ClassInfo7packageE">
+<span id="_CPPv3N2nw9ClassInfo7packageE"></span><span id="_CPPv2N2nw9ClassInfo7packageE"></span><span id="nw::ClassInfo::package__i"></span><span class="target" id="structnw_1_1_class_info_1a9b6ffc80935c0b3ef2431f13b7ffeb21"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">package</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N2nw9ClassInfo7packageE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw9ClassInfo15stat_gain_tableE">
+<span id="_CPPv3N2nw9ClassInfo15stat_gain_tableE"></span><span id="_CPPv2N2nw9ClassInfo15stat_gain_tableE"></span><span id="nw::ClassInfo::stat_gain_table__Resource"></span><span class="target" id="structnw_1_1_class_info_1a3f87f06bdaf809536eef62eef662b65e"></span><a class="reference internal" href="nw__Resource.html#_CPPv4N2nw8ResourceE" title="nw::Resource"><span class="n"><span class="pre">Resource</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">stat_gain_table</span></span></span><a class="headerlink" href="#_CPPv4N2nw9ClassInfo15stat_gain_tableE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw9ClassInfo16memorizes_spellsE">
+<span id="_CPPv3N2nw9ClassInfo16memorizes_spellsE"></span><span id="_CPPv2N2nw9ClassInfo16memorizes_spellsE"></span><span id="nw::ClassInfo::memorizes_spells__b"></span><span class="target" id="structnw_1_1_class_info_1ad380a38b8458dcd36065e69bb3c3a523"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">memorizes_spells</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">false</span></span><a class="headerlink" href="#_CPPv4N2nw9ClassInfo16memorizes_spellsE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw9ClassInfo20spellbook_restrictedE">
+<span id="_CPPv3N2nw9ClassInfo20spellbook_restrictedE"></span><span id="_CPPv2N2nw9ClassInfo20spellbook_restrictedE"></span><span id="nw::ClassInfo::spellbook_restricted__b"></span><span class="target" id="structnw_1_1_class_info_1a43d4e8317612ffb73132ff73d2e8aec6"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">spellbook_restricted</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">false</span></span><a class="headerlink" href="#_CPPv4N2nw9ClassInfo20spellbook_restrictedE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw9ClassInfo12pick_domainsE">
+<span id="_CPPv3N2nw9ClassInfo12pick_domainsE"></span><span id="_CPPv2N2nw9ClassInfo12pick_domainsE"></span><span id="nw::ClassInfo::pick_domains__b"></span><span class="target" id="structnw_1_1_class_info_1ab001001faeb7d31b26c9b2f0230f4941"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">pick_domains</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">false</span></span><a class="headerlink" href="#_CPPv4N2nw9ClassInfo12pick_domainsE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw9ClassInfo11pick_schoolE">
+<span id="_CPPv3N2nw9ClassInfo11pick_schoolE"></span><span id="_CPPv2N2nw9ClassInfo11pick_schoolE"></span><span id="nw::ClassInfo::pick_school__b"></span><span class="target" id="structnw_1_1_class_info_1a8bbadb850ac416c9365d3f84b367811f"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">pick_school</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">false</span></span><a class="headerlink" href="#_CPPv4N2nw9ClassInfo11pick_schoolE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw9ClassInfo12learn_scrollE">
+<span id="_CPPv3N2nw9ClassInfo12learn_scrollE"></span><span id="_CPPv2N2nw9ClassInfo12learn_scrollE"></span><span id="nw::ClassInfo::learn_scroll__b"></span><span class="target" id="structnw_1_1_class_info_1a223cd79327ae86be16e0490598ea5fba"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">learn_scroll</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">false</span></span><a class="headerlink" href="#_CPPv4N2nw9ClassInfo12learn_scrollE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw9ClassInfo6arcaneE">
+<span id="_CPPv3N2nw9ClassInfo6arcaneE"></span><span id="_CPPv2N2nw9ClassInfo6arcaneE"></span><span id="nw::ClassInfo::arcane__b"></span><span class="target" id="structnw_1_1_class_info_1a167317700ba43530e645985c047afc2a"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">arcane</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">false</span></span><a class="headerlink" href="#_CPPv4N2nw9ClassInfo6arcaneE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw9ClassInfo20arcane_spell_failureE">
+<span id="_CPPv3N2nw9ClassInfo20arcane_spell_failureE"></span><span id="_CPPv2N2nw9ClassInfo20arcane_spell_failureE"></span><span id="nw::ClassInfo::arcane_spell_failure__b"></span><span class="target" id="structnw_1_1_class_info_1a60408c6ab59324d5e67fc46e2efeae27"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">arcane_spell_failure</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">false</span></span><a class="headerlink" href="#_CPPv4N2nw9ClassInfo20arcane_spell_failureE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw9ClassInfo14caster_abilityE">
+<span id="_CPPv3N2nw9ClassInfo14caster_abilityE"></span><span id="_CPPv2N2nw9ClassInfo14caster_abilityE"></span><span id="nw::ClassInfo::caster_ability__i"></span><span class="target" id="structnw_1_1_class_info_1ae5f8048e16044a66fc4b92ea5a9fdc0c"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">caster_ability</span></span></span><a class="headerlink" href="#_CPPv4N2nw9ClassInfo14caster_abilityE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw9ClassInfo18spell_table_columnE">
+<span id="_CPPv3N2nw9ClassInfo18spell_table_columnE"></span><span id="_CPPv2N2nw9ClassInfo18spell_table_columnE"></span><span id="nw::ClassInfo::spell_table_column__ss"></span><span class="target" id="structnw_1_1_class_info_1a55922a9c3d89dba06c73e73d4b851fde"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">spell_table_column</span></span></span><a class="headerlink" href="#_CPPv4N2nw9ClassInfo18spell_table_columnE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw9ClassInfo23caster_level_multiplierE">
+<span id="_CPPv3N2nw9ClassInfo23caster_level_multiplierE"></span><span id="_CPPv2N2nw9ClassInfo23caster_level_multiplierE"></span><span id="nw::ClassInfo::caster_level_multiplier__float"></span><span class="target" id="structnw_1_1_class_info_1afec5fc454c3d3984c2885eb79b57fa3e"></span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">caster_level_multiplier</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">1.0f</span></span><a class="headerlink" href="#_CPPv4N2nw9ClassInfo23caster_level_multiplierE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw9ClassInfo16level_min_casterE">
+<span id="_CPPv3N2nw9ClassInfo16level_min_casterE"></span><span id="_CPPv2N2nw9ClassInfo16level_min_casterE"></span><span id="nw::ClassInfo::level_min_caster__i"></span><span class="target" id="structnw_1_1_class_info_1a296af0a29c023a9922fd1f6744135c62"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">level_min_caster</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N2nw9ClassInfo16level_min_casterE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw9ClassInfo19level_min_associateE">
+<span id="_CPPv3N2nw9ClassInfo19level_min_associateE"></span><span id="_CPPv2N2nw9ClassInfo19level_min_associateE"></span><span id="nw::ClassInfo::level_min_associate__i"></span><span class="target" id="structnw_1_1_class_info_1adb57ec6843c6053d0e3f6e7c2ff79f21"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">level_min_associate</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N2nw9ClassInfo19level_min_associateE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw9ClassInfo22can_cast_spontaneouslyE">
+<span id="_CPPv3N2nw9ClassInfo22can_cast_spontaneouslyE"></span><span id="_CPPv2N2nw9ClassInfo22can_cast_spontaneouslyE"></span><span id="nw::ClassInfo::can_cast_spontaneously__b"></span><span class="target" id="structnw_1_1_class_info_1aa6087c40122b6c23861a6e475fc33b75"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">can_cast_spontaneously</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">false</span></span><a class="headerlink" href="#_CPPv4N2nw9ClassInfo22can_cast_spontaneouslyE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+</div>
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="nw__ClassEntry.html" class="btn btn-neutral float-left" title="nw::ClassEntry" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="nw__CombatInfo.html" class="btn btn-neutral float-right" title="nw::CombatInfo" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright .</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

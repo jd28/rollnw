@@ -10,8 +10,7 @@ like NWN. Enhanced Edition's approach largely was to unhardcode
 The approach here is inspired by `Solstice <https://github.com/jd28/Solstice>`__ and Orth's NWNX:EE plugins
 `Race <https://github.com/nwnxee/unified/tree/master/Plugins/Race>`__,
 `SkillRank <https://github.com/nwnxee/unified/tree/master/Plugins/SkillRanks>`__,
-and
-`Feat <https://github.com/nwnxee/unified/tree/master/Plugins/Feat>`__.
+and `Feat <https://github.com/nwnxee/unified/tree/master/Plugins/Feat>`__.
 
 The Goals
 ---------
@@ -22,21 +21,38 @@ The Goals
 -  The rules system must be queryable. Example: Given one creature
    attacking one chair with one handaxe in one bar of Chicago, what are
    all the modifiers that affect this particular situation?
+-  Ideally, constants would be disassociated from 2da rows.  Say a UUID <-> integer map, but that's
+   both a configuration and serialization problem.
 
---------------
+-------------------------------------------------------------------------------
 
 The System
 ----------
 
-The foundation of system is just four types: ``int``, ``float``, strings
-and ``nw::Index``.
+The foundation of system is just three types: ``int32_t``, ``float``, strings.
 
-**Index**
-~~~~~~~~~
+rollNW has the elements of NWN's rule system builtin, which is itself an approximation of the Dungeons
+and Dragons 3rd Edition ruleset.
 
-A :cpp:struct:`nw::Index` is an interned string and unsigned integer pair for abstracting over constants
-that are indices into arrays, vectors, etc.  The goal is to facilitate a serialization format that could be
-2da row independent.
+The approach to the elements of a rule category has been to use opaque unsigned integer types which are then casted.  This gives
+some benefit of type safety and allows the rules system to define the invalid case and profiles can
+handle defining the valid cases.  So, for example:
+
+.. code:: cpp
+
+   // Definition of an attribute
+   enum struct ArmorClass : uint32_t {
+       invalid = std::numeric_limits<uint32_t>::max(),
+   };
+   constexpr ArmorClass make_armor_class(uint32_t id) { return static_cast<ArmorClass>(id); }
+
+   // Somewhere else in a game profile that uses the concept of armor class
+   constexpr nw::ArmorClass ac_dodge = nw::make_armor_class(0);
+   constexpr nw::ArmorClass ac_natural = nw::make_armor_class(1);
+   constexpr nw::ArmorClass ac_armor = nw::make_armor_class(2);
+   constexpr nw::ArmorClass ac_shield = nw::make_armor_class(3);
+   constexpr nw::ArmorClass ac_deflection = nw::make_armor_class(4);
+
 
 **Selector**
 ~~~~~~~~~~~~
@@ -144,7 +160,6 @@ Modifiers are stored in a global table in :cpp:struct:`nw::kernel::Rules`.
       return ((pm_level / 4) + 1) * 2;
    };
 
-   // Ignoring whether PM ac is natural or not for now
    auto mod2 = nwn1::mod::ac_natural(pm_ac, is_pm, {}, "dnd-3.0-palemaster-ac");
 
    nw::kernel::rules().add(mod2);
@@ -166,6 +181,39 @@ Modifiers are stored in a global table in :cpp:struct:`nw::kernel::Rules`.
 
    // Nerf wasn't enough, delete the whole thing
    nwk::rules().remove("dnd-3.0-palemaster-ac");
+
+-------------------------------------------------------------------------------
+
+Master Feats
+------------
+
+Master feats and associated bonuses are set in the :cpp:struct:`nw::MasterFeatRegistry`.  The master
+feat registry associates a particular rule element, say, a skill with a master feat and a feat corresponding
+to that skill.
+
+**Example - (Epic) Skill Focus: Discipline**
+
+.. code:: cpp
+
+    auto mfr = nw::kernel::world().get_mut<nw::MasterFeatRegistry>();
+    mfr->set_bonus(mfeat_skill_focus, 3);
+    mfr->set_bonus(mfeat_skill_focus_epic, 10);
+
+    mfr->add(skill_discipline, mfeat_skill_focus, feat_skill_focus_discipline);
+    mfr->add(skill_discipline, mfeat_skill_focus_epic, feat_epic_skill_focus_discipline)
+
+Multiple feats are able to be associated with a rule element and masterfeat.  Imagine in some universe,
+there is a class that has access to a generic Weapon Focus: Martial feat which provides Weapon Focus
+for all martial weapons.
+
+**Example - Multiple Associated Feats**
+
+.. code:: cpp
+
+    auto mfr = nw::kernel::world().get_mut<nw::MasterFeatRegistry>();
+    // Set up bonuses...
+    mfr->add(baseitem_longsword, mfeat_weapon_focus, feat_weapon_focus_longsword);
+    mfr->add(baseitem_longsword, mfeat_weapon_focus, feat_weapon_focus_martial);
 
 .. [1]
    There are some exceptions, parts of the custom spellcaster system.

@@ -7,7 +7,7 @@ While the library is far from done, basic usage would be as follows.
 
     #include <nw/kernel/Kernel.hpp>
     #include <nw/log.hpp>
-    #include <nw/profiles/nwn1/Profile.hpp>
+    #include <nwn1/Profile.hpp>
 
     int main(int argc, char* argv[])
     {

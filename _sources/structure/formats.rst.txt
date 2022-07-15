@@ -6,11 +6,11 @@ power and simplicity. It's file formats are no different many of them -
 at the reader level - can be implemented as a thin wrapper over a
 handful of casts.
 
-Where necessary the reading will be implemented seperatly from the
+Where necessary the reading will be implemented separately from the
 writing and likewise from the 'rithmatic, unless it doesn't affect the
 usage or performance characteristics of one or the other. E,g. tlk can
 easily be made read/write/modifiable with the exact same performance
-characteristics, Gff cannot. It's better to seperate them than convolute
+characteristics, Gff cannot. It's better to separate them than convolute
 the implementations of all of them.
 
 +------+------+-------+---------------------------------------------------------------+
