@@ -1,6 +1,7 @@
 #include "Resource.hpp"
 
 #include "../log.hpp"
+#include "../util/platform.hpp"
 #include "../util/string.hpp"
 
 #include <nlohmann/json.hpp>
@@ -38,8 +39,8 @@ Resource Resource::from_filename(const std::string& filename)
 
 Resource Resource::from_path(const std::filesystem::path& path)
 {
-    std::string ext = path.extension().u8string();
-    std::string stem = path.stem().u8string();
+    std::string ext = path_to_string(path.extension());
+    std::string stem = path_to_string(path.stem());
     return {stem, ResourceType::from_extension(ext)};
 }
 

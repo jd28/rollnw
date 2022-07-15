@@ -1,5 +1,5 @@
-#include "platform.hpp"
 #include "../log.hpp"
+#include "platform.hpp"
 
 #include <nowide/convert.hpp>
 #include <nowide/cstdlib.hpp>
@@ -82,6 +82,15 @@ bool move_file_safely(const fs::path& from, const fs::path& to)
     }
     fs::remove(from);
     return true;
+}
+
+std::string path_to_string(const std::filesystem::path& path)
+{
+#ifdef _MSC_VER
+    return nowide::narrow(path.c_str());
+#else
+    return path.string();
+#endif
 }
 
 } // namespace nw

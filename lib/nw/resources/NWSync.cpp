@@ -1,6 +1,7 @@
 #include "NWSync.hpp"
 
 #include "../log.hpp"
+#include "../util/platform.hpp"
 #include "../util/scope_exit.hpp"
 #include "../util/templates.hpp"
 
@@ -143,7 +144,7 @@ int NWSyncManifest::extract(const std::regex& pattern, const std::filesystem::pa
             auto ba = demand(r);
             if (ba.size()) {
                 ++count;
-                std::ofstream out{output / fs::u8path(fname), std::ios_base::binary};
+                std::ofstream out{output / fs::path(fname), std::ios_base::binary};
                 ostream_write(out, ba.data(), ba.size());
             }
         }
@@ -223,7 +224,9 @@ std::vector<std::string> NWSync::manifests()
 
     while (sqlite3_step(stmt) == SQLITE_ROW) {
         const char* m = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 0));
-        if (!m) { break; }
+        if (!m) {
+            break;
+        }
         result.push_back(m);
     }
 
@@ -243,7 +246,7 @@ bool NWSync::load()
         LOG_F(ERROR, "'{}' does not exist", db_path);
         return false;
     }
-    if (SQLITE_OK != sqlite3_open(db_path.u8string().c_str(), &db)) {
+    if (SQLITE_OK != sqlite3_open(path_to_string(db_path).c_str(), &db)) {
         LOG_F(ERROR, "sqlite3 error: {}", sqlite3_errmsg(db));
         return false;
     }
@@ -255,8 +258,10 @@ bool NWSync::load()
         auto db_name = fmt::format("nwsyncdata_{}.sqlite3", i);
         db_path = path_ / db_name;
 
-        if (!fs::exists(db_path)) { break; }
-        if (SQLITE_OK != sqlite3_open(db_path.u8string().c_str(), &db)) {
+        if (!fs::exists(db_path)) {
+            break;
+        }
+        if (SQLITE_OK != sqlite3_open(path_to_string(db_path).c_str(), &db)) {
             LOG_F(ERROR, "sqlite3 error: {}", sqlite3_errmsg(db));
             return false;
         }

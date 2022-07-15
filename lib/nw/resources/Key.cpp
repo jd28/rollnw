@@ -74,7 +74,9 @@ bool Key::contains(Resource res) const
 ByteArray Key::demand(Resource res) const
 {
     ByteArray ba;
-    if (!is_loaded_) { return ba; }
+    if (!is_loaded_) {
+        return ba;
+    }
 
     auto it = elements_.find(res);
 
@@ -103,7 +105,7 @@ int Key::extract(const std::regex& pattern, const std::filesystem::path& output)
         if (std::regex_match(fname, pattern)) {
             ++count;
             ba = bifs_[v.bif].demand(v.index);
-            std::ofstream out{output / fs::u8path(fname), std::ios_base::binary};
+            std::ofstream out{output / fs::path(fname), std::ios_base::binary};
             ostream_write(out, ba.data(), ba.size());
         }
     }

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <filesystem>
+#include <string>
 
 namespace nw {
 
@@ -15,5 +16,8 @@ std::filesystem::path create_unique_tmp_path();
 
 /// Copies and deletes a file to a new location, overwrites existing
 bool move_file_safely(const std::filesystem::path& from, const std::filesystem::path& to);
+
+/// Converts path to utf8 string
+std::string path_to_string(const std::filesystem::path& path);
 
 } // namespace nw

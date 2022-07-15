@@ -68,7 +68,7 @@ Erf::Erf(const std::filesystem::path& path)
 
 bool Erf::add(Resource res, const ByteArray& bytes)
 {
-    auto p = working_directory() / fs::u8path(res.filename());
+    auto p = working_directory() / fs::path(res.filename());
     bytes.write_to(p);
     elements_[res] = p;
     return true;
@@ -81,8 +81,8 @@ bool Erf::add(const std::filesystem::path& path)
         LOG_F(ERROR, "erf: attempting to add resource with invalid name '{}'.", path);
         return false;
     }
-    auto p = working_directory() / fs::u8path(res.filename());
-    fs::copy_file(path, working_directory() / fs::u8path(res.filename()), fs::copy_options::overwrite_existing);
+    auto p = working_directory() / fs::path(res.filename());
+    fs::copy_file(path, working_directory() / fs::path(res.filename()), fs::copy_options::overwrite_existing);
     elements_[res] = p;
     return true;
 }
@@ -94,7 +94,9 @@ size_t Erf::erase(const Resource& res)
 
 bool Erf::merge(const Container* container)
 {
-    if (!container) { return false; }
+    if (!container) {
+        return false;
+    }
     auto all = container->all();
     bool result = true;
     for (const auto& a : all) {
@@ -112,7 +114,7 @@ bool Erf::reload()
 
 bool Erf::save() const
 {
-    return save_as(fs::u8path(path_));
+    return save_as(fs::path(path_));
 }
 
 bool Erf::save_as(const std::filesystem::path& path) const
@@ -230,9 +232,13 @@ bool Erf::contains(Resource res) const
 
 ByteArray Erf::demand(Resource res) const
 {
-    if (!is_loaded_) { return {}; }
+    if (!is_loaded_) {
+        return {};
+    }
     auto it = elements_.find(res);
-    if (it == elements_.end()) { return {}; }
+    if (it == elements_.end()) {
+        return {};
+    }
     return read(it->second);
 }
 
@@ -253,7 +259,7 @@ int Erf::extract(const std::regex& re, const std::filesystem::path& output) cons
             ba = read(v);
             if (ba.size()) {
                 ++count;
-                std::ofstream out{output / fs::u8path(fname), std::ios_base::binary};
+                std::ofstream out{output / fs::path(fname), std::ios_base::binary};
                 ostream_write(out, ba.data(), ba.size());
             }
         }

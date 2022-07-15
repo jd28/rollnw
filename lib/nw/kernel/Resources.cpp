@@ -2,6 +2,7 @@
 
 #include "../objects/Module.hpp"
 #include "../util/game_install.hpp"
+#include "../util/platform.hpp"
 #include "../util/templates.hpp"
 #include "Kernel.hpp"
 
@@ -108,9 +109,9 @@ bool Resources::load_module(std::filesystem::path path, std::string_view manifes
 
     if (fs::is_directory(path) && fs::exists(path / "module.ifo")) {
         module_ = std::make_unique<Directory>(path);
-    } else if (fs::exists(path) && string::icmp(path.extension().u8string(), ".mod")) {
+    } else if (fs::exists(path) && string::icmp(path_to_string(path.extension()), ".mod")) {
         module_ = std::make_unique<Erf>(path);
-    } else if (fs::exists(path) && string::icmp(path.extension().u8string(), ".zip")) {
+    } else if (fs::exists(path) && string::icmp(path_to_string(path.extension()), ".zip")) {
         module_ = std::make_unique<Zip>(path);
     }
 
@@ -145,7 +146,9 @@ void Resources::unload_module()
 
 bool Resources::add_container(Container* container, bool take_ownership)
 {
-    if (!container || !container->valid()) { return false; }
+    if (!container || !container->valid()) {
+        return false;
+    }
     for (auto& [cont, type, user] : search_) {
         if (cont->path() == container->path()) {
             return false;
@@ -172,7 +175,9 @@ void Resources::clear_containers()
 bool Resources::contains(Resource res) const
 {
     for (auto [cont, type, user] : search_) {
-        if (type != ResourceType::invalid && !ResourceType::check_category(type, res.type)) { continue; }
+        if (type != ResourceType::invalid && !ResourceType::check_category(type, res.type)) {
+            continue;
+        }
         if (cont->contains(res)) {
             return true;
         }
@@ -184,9 +189,16 @@ ByteArray Resources::demand(Resource res) const
 {
     ByteArray result;
     for (auto [cont, type, user] : search_) {
-        if (type != ResourceType::invalid && !ResourceType::check_category(type, res.type)) { continue; }
+        if (type != ResourceType::invalid && !ResourceType::check_category(type, res.type)) {
+            continue;
+        }
         result = cont->demand(res);
-        if (result.size()) { break; }
+        if (result.size()) {
+            break;
+        }
+    }
+    if (result.size() == 0) {
+        LOG_F(WARNING, "Failed to find '{}'", res.filename());
     }
     return result;
 }
@@ -214,17 +226,23 @@ ResourceDescriptor Resources::stat(const Resource& res) const
     ResourceDescriptor rd;
     for (auto [cont, type, user] : search_) {
         rd = cont->stat(res);
-        if (rd) { break; }
+        if (rd) {
+            break;
+        }
     }
     return rd;
 }
 
 void Resources::update_container_search()
 {
-    if (search_.size()) { search_.clear(); }
+    if (search_.size()) {
+        search_.clear();
+    }
 
     auto push_container = [this](const Container* c, ResourceType::type cat, bool user) {
-        if (c && c->valid()) { search_.emplace_back(c, cat, user); }
+        if (c && c->valid()) {
+            search_.emplace_back(c, cat, user);
+        }
     };
 
     for (auto& c : custom_) {

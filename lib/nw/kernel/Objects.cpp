@@ -8,6 +8,7 @@
 #include "../objects/Item.hpp"
 #include "../objects/Module.hpp"
 #include "../objects/Trigger.hpp"
+#include "../util/platform.hpp"
 #include "../util/templates.hpp"
 #include "Kernel.hpp"
 
@@ -143,12 +144,38 @@ ObjectType serial_id_to_obj_type(std::string_view id)
     return ObjectType::invalid;
 }
 
+ResourceType::type objtype_to_restype(nw::ObjectType type)
+{
+    switch (type) {
+    default:
+        return ResourceType::invalid;
+    case ObjectType::creature:
+        return ResourceType::utc;
+    case ObjectType::door:
+        return ResourceType::utd;
+    case ObjectType::encounter:
+        return ResourceType::ute;
+    case ObjectType::item:
+        return ResourceType::uti;
+    case ObjectType::store:
+        return ResourceType::utm;
+    case ObjectType::placeable:
+        return ResourceType::utp;
+    case ObjectType::sound:
+        return ResourceType::uts;
+    case ObjectType::trigger:
+        return ResourceType::utt;
+    case ObjectType::waypoint:
+        return ResourceType::utw;
+    }
+}
+
 flecs::entity ObjectSystem::load(const std::filesystem::path& archive,
     SerializationProfile profile) const
 {
     flecs::entity ent;
     ObjectType type;
-    ResourceType::type restype = ResourceType::from_extension(archive.extension().u8string());
+    ResourceType::type restype = ResourceType::from_extension(path_to_string(archive.extension()));
 
     if (restype == ResourceType::json) {
         try {
@@ -175,15 +202,11 @@ flecs::entity ObjectSystem::load(const std::filesystem::path& archive,
 flecs::entity ObjectSystem::load(std::string_view resref, ObjectType type) const
 {
     flecs::entity ent;
-    ByteArray ba;
-
-    if (type == ObjectType::creature) {
-        ba = nw::kernel::resman().demand({resref, ResourceType::utc});
-        if (ba.size()) {
-            GffInputArchive in{ba};
-            if (in.valid()) {
-                return deserialize(type, in.toplevel(), SerializationProfile::blueprint);
-            }
+    ByteArray ba = nw::kernel::resman().demand({resref, objtype_to_restype(type)});
+    if (ba.size()) {
+        GffInputArchive in{ba};
+        if (in.valid()) {
+            return deserialize(type, in.toplevel(), SerializationProfile::blueprint);
         }
     }
 

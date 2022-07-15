@@ -91,7 +91,7 @@ TEST_CASE("Erf::save_as", "[containers]")
 
     Resource r{"cloth028"sv, nw::ResourceType::uti};
     e.add("test_data/user/development/cloth028.uti");
-    REQUIRE(e.save_as(fs::u8path("tmp/hak_with_description.hak")));
+    REQUIRE(e.save_as(fs::path("tmp/hak_with_description.hak")));
     Erf e2{"tmp/hak_with_description.hak"};
     auto ba2 = e2.demand(r2);
 
