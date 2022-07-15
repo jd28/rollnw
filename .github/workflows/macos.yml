@@ -16,6 +16,8 @@ jobs:
       vcpkg-tag: "2022.03.10"
       VCPKG_ROOT: "${{ github.workspace }}/vcpkg/"
       VCPKG_DEFAULT_BINARY_CACHE: "${{ github.workspace }}/vcpkg/.cache"
+      NWN_ROOT: "${{ github.workspace }}/nwn/"
+      CI_GITHUB_ACTIONS: "1"
 
     name: build on macOS
     runs-on: macos-latest
@@ -66,6 +68,23 @@ jobs:
       - name: Make cache dir
         if: steps.cache-vcpkg.outputs.cache-hit != 'true'
         run: mkdir "${{ github.workspace }}/vcpkg/.cache"
+
+      - name: cache nwn
+        id: cache-nwn
+        uses: actions/cache@v2
+        env:
+          cache-name: cache-nwn
+        with:
+          path: |
+            ${{ github.workspace }}/nwn/
+          key: ${{ runner.os }}-build-${{ env.cache-name }}-3e02cddcea5d0ae82111a3038f14aef6c14d05d9
+
+      - name: Download NWN dedicated server
+        if: steps.cache-nwn.outputs.cache-hit != 'true'
+        run: |
+          curl https://nwn.beamdog.net/downloads/nwnee-dedicated-8193.34.zip -O
+          unzip nwnee-dedicated-8193.34.zip -d ${{ github.workspace }}/nwn/
+          ls -l ${{ github.workspace }}/nwn/
 
       - name: Configure
         run: |
