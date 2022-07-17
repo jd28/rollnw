@@ -134,10 +134,9 @@ Modifiers are stored in a global table in :cpp:struct:`nw::kernel::Rules`.
    // This is just an example, one would most likely do all epic toughness modifiers together.
    auto mod2 = nwn1::mod::hitpoints(
       20, // Modifier value, if the below requirement is met
-      { nwn1::qual::feat(nwn1::feat_epic_toughness_1) },
-      {}, // No Versus component to this
       "dnd-3.0-epic-toughness-01",
       nw::ModifierSource::feat
+      { nwn1::qual::feat(nwn1::feat_epic_toughness_1) },
    );
 
    // Add it to the global modifier table
@@ -151,8 +150,6 @@ Modifiers are stored in a global table in :cpp:struct:`nw::kernel::Rules`.
 
    auto ent = // ...
 
-   auto is_pm = nw::Requirement{{nwn1::qual::class_level(nwn1::class_type_pale_master, 1)}};
-
    auto pm_ac = [](flecs::entity ent) -> nw::ModifierResult {
       auto stat = ent.get<nw::LevelStats>();
       if (!stat) { return 0; }
@@ -160,7 +157,11 @@ Modifiers are stored in a global table in :cpp:struct:`nw::kernel::Rules`.
       return ((pm_level / 4) + 1) * 2;
    };
 
-   auto mod2 = nwn1::mod::ac_natural(pm_ac, is_pm, {}, "dnd-3.0-palemaster-ac");
+   auto mod2 = mod::armor_class(
+        ac_natural,
+        pm_ac,
+        "dnd-3.0-palemaster-ac",
+        nw::ModifierSource::class_));
 
    nw::kernel::rules().add(mod2);
    // RDD AC bonus ... etc, etc, etc

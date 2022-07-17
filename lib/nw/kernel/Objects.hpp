@@ -34,7 +34,7 @@ struct ObjectSystem {
     virtual flecs::entity load(const std::filesystem::path& archive,
         SerializationProfile profile = SerializationProfile::blueprint) const;
 
-    /// Loads an entity from resourece system
+    /// Loads an entity from resource system
     virtual flecs::entity load(std::string_view resref, ObjectType type) const;
 
     /// Creates a new entity of an object type

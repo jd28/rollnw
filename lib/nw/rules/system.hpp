@@ -91,16 +91,16 @@ using ModifierVariant = Variant<int, float, ModifierFunction>;
 struct Modifier {
     int type = -1;
     ModifierVariant value;
-    Requirement requirement;
-    Versus versus;
     InternedString tagged;
     ModifierSource source = ModifierSource::unknown;
+    Requirement requirement = Requirement{};
+    Versus versus = {};
     int subtype = -1;
 };
 
 inline bool operator<(const Modifier& lhs, const Modifier& rhs)
 {
-    return std::tie(lhs.type, lhs.source) < std::tie(rhs.type, rhs.source);
+    return std::tie(lhs.type, lhs.type, lhs.source) < std::tie(rhs.type, rhs.type, rhs.source);
 }
 
 } // namespace nw

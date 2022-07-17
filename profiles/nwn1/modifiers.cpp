@@ -15,23 +15,22 @@ void load_modifiers()
     nw::kernel::rules().add(mod::armor_class(
         ac_natural,
         dragon_disciple_ac,
-        nw::Requirement{}, //{qual::class_level(class_type_dragon_disciple, 1)},
-        {},
         "dnd-3.0-dragon-disciple-ac",
         nw::ModifierSource::class_));
 
     nw::kernel::rules().add(mod::armor_class(
         ac_natural,
         pale_master_ac,
-        nw::Requirement{}, // nw::Requirement{qual::class_level(class_type_pale_master, 1)},
-        {},
         "dnd-3.0-palemaster-ac",
         nw::ModifierSource::class_));
 
     nw::kernel::rules().add(mod::hitpoints(
+        toughness,
+        "dnd-3.0-epic-toughness",
+        nw::ModifierSource::feat));
+
+    nw::kernel::rules().add(mod::hitpoints(
         epic_toughness,
-        nw::Requirement{},
-        {},
         "dnd-3.0-epic-toughness",
         nw::ModifierSource::feat));
 }

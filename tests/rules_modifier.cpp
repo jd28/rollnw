@@ -28,7 +28,7 @@ TEST_CASE("modifier", "[rules]")
         return pm_level > 0 ? ((pm_level / 4) + 1) * 2 : 0;
     };
 
-    auto mod2 = nwn1::mod::armor_class(nwn1::ac_natural, pm_ac, is_pm, {},
+    auto mod2 = nwn1::mod::armor_class(nwn1::ac_natural, pm_ac,
         "dnd-3.0-palemaster-ac", nw::ModifierSource::class_);
 
     auto res = nwk::rules().calculate<int>(ent, mod2);

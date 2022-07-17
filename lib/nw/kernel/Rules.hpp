@@ -117,12 +117,13 @@ T Rules::calculate(flecs::entity ent, int type, U subtype) const
     static_assert(std::is_same_v<T, int> || std::is_same_v<T, float>,
         "only int and float are allowed");
 
-    Modifier temp{type, {}, Requirement{}, {}, {}, ModifierSource::unknown, static_cast<int>(subtype)};
+    Modifier temp{type, {}, {}, ModifierSource::unknown, Requirement{}, {}, static_cast<int>(subtype)};
     auto it = std::lower_bound(std::begin(entries_), std::end(entries_), temp);
 
     T result{};
-    for (; it != std::end(entries_) && it->type == type; ++it) {
+    while (it != std::end(entries_) && it->type == type && it->subtype == static_cast<int>(subtype)) {
         result += calculate<T>(ent, *it);
+        ++it;
     }
 
     return result;

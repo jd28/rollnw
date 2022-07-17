@@ -13,15 +13,15 @@ namespace nwn1 {
 
 namespace mod {
 
-#define DECLARE_MOD(name)                                                                 \
-    nw::Modifier name(nw::ModifierVariant value, nw::Requirement req = nw::Requirement{}, \
-        nw::Versus versus = {}, std::string_view tag = {},                                \
-        nw::ModifierSource source = nw::ModifierSource::unknown)
+#define DECLARE_MOD(name)                                              \
+    nw::Modifier name(nw::ModifierVariant value, std::string_view tag, \
+        nw::ModifierSource source = nw::ModifierSource::unknown,       \
+        nw::Requirement req = nw::Requirement{}, nw::Versus versus = {})
 
-#define DECLARE_MOD_WITH_SUBTYPE(name, type)                                                            \
-    nw::Modifier name(type subtype, nw::ModifierVariant value, nw::Requirement req = nw::Requirement{}, \
-        nw::Versus versus = {}, std::string_view tag = {},                                              \
-        nw::ModifierSource source = nw::ModifierSource::unknown)
+#define DECLARE_MOD_WITH_SUBTYPE(name, type)                                         \
+    nw::Modifier name(type subtype, nw::ModifierVariant value, std::string_view tag, \
+        nw::ModifierSource source = nw::ModifierSource::unknown,                     \
+        nw::Requirement req = nw::Requirement{}, nw::Versus versus = {})
 
 DECLARE_MOD_WITH_SUBTYPE(armor_class, nw::ArmorClass);
 DECLARE_MOD(hitpoints);
