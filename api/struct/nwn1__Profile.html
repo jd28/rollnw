@@ -45,10 +45,10 @@
 </ul>
 <p class="caption" role="heading"><span class="caption-text">structure</span></p>
 <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../structure/components.html">objects</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../structure/formats.html">formats</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../structure/i18n.html">i18n</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../structure/kernel.html">kernel</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../structure/objects.html">objects</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../structure/profiles.html">profiles</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../structure/resources.html">resources</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../structure/rules.html">rules</a></li>
@@ -296,10 +296,49 @@
              
   <section id="nwn1-profile">
 <h1>nwn1::Profile<a class="headerlink" href="#nwn1-profile" title="Permalink to this heading"></a></h1>
-<div class="admonition warning">
-<p class="admonition-title">Warning</p>
-<p>doxygenstruct: Cannot find class “nwn1::Profile” in doxygen xml output for project “rollNW” from directory: /home/runner/work/rollnw/rollnw/build/docs/doxygen/xml</p>
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N4nwn17ProfileE">
+<span id="_CPPv3N4nwn17ProfileE"></span><span id="_CPPv2N4nwn17ProfileE"></span><span id="nwn1::Profile"></span><span class="target" id="structnwn1_1_1_profile"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Profile</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><span class="n"><span class="pre">nw</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="nw__GameProfile.html#_CPPv4N2nw11GameProfileE" title="nw::GameProfile"><span class="n"><span class="pre">GameProfile</span></span></a><a class="headerlink" href="#_CPPv4N4nwn17ProfileE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>NWN1 Game <a class="reference internal" href="#structnwn1_1_1_profile"><span class="std std-ref">Profile</span></a>. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4nwn17ProfileD0Ev">
+<span id="_CPPv3N4nwn17ProfileD0Ev"></span><span id="_CPPv2N4nwn17ProfileD0Ev"></span><span id="nwn1::Profile::~Profile"></span><span class="target" id="structnwn1_1_1_profile_1ae5bcb72c7e2a5dcd376189321151ecac"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">~Profile</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">default</span></span><a class="headerlink" href="#_CPPv4N4nwn17ProfileD0Ev" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4nwn17Profile10load_rulesEv">
+<span id="_CPPv3NK4nwn17Profile10load_rulesEv"></span><span id="_CPPv2NK4nwn17Profile10load_rulesEv"></span><span id="nwn1::Profile::load_rulesC"></span><span class="target" id="structnwn1_1_1_profile_1a36af6fe3600778f6df1a108a00e07e93"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">load_rules</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="k"><span class="pre">override</span></span><a class="headerlink" href="#_CPPv4NK4nwn17Profile10load_rulesEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Loads rules. </p>
+<p><ul class="simple">
+<li><p>Load Selector and Matcher</p></li>
+<li><p>Load Components</p></li>
+<li><p>Load 2DAs</p></li>
+<li><p>Load Constants</p></li>
+<li><p>Post Process 2DAs </p></li>
+</ul>
+</p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4nwn17Profile14load_constantsEv">
+<span id="_CPPv3NK4nwn17Profile14load_constantsEv"></span><span id="_CPPv2NK4nwn17Profile14load_constantsEv"></span><span id="nwn1::Profile::load_constantsC"></span><span class="target" id="structnwn1_1_1_profile_1a5bbaf2d41a53283bdfba1132682fa81e"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">load_constants</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4nwn17Profile14load_constantsEv" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4nwn17Profile15load_componentsEv">
+<span id="_CPPv3NK4nwn17Profile15load_componentsEv"></span><span id="_CPPv2NK4nwn17Profile15load_componentsEv"></span><span id="nwn1::Profile::load_componentsC"></span><span class="target" id="structnwn1_1_1_profile_1a42cbcbe9d3462bb62de99bd254731c70"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">load_components</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4nwn17Profile15load_componentsEv" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4nwn17Profile17load_master_featsEv">
+<span id="_CPPv3NK4nwn17Profile17load_master_featsEv"></span><span id="_CPPv2NK4nwn17Profile17load_master_featsEv"></span><span id="nwn1::Profile::load_master_featsC"></span><span class="target" id="structnwn1_1_1_profile_1a0548ae4fb8e4810c101f4c931878d12d"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">load_master_feats</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4nwn17Profile17load_master_featsEv" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
 </div>
+</dd></dl>
+
 </section>
 
 
