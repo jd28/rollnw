@@ -139,6 +139,13 @@ constexpr nw::Situation situation_type_flanked = nw::make_situation(3);
 constexpr nw::Situation situation_type_flat_footed = nw::make_situation(4);
 constexpr nw::Situation situation_type_sneak_attack = nw::make_situation(5);
 
+extern const nw::SituationFlag situation_flag_blind;
+extern const nw::SituationFlag situation_flag_coup_de_grace;
+extern const nw::SituationFlag situation_flag_death_attack;
+extern const nw::SituationFlag situation_flag_flanked;
+extern const nw::SituationFlag situation_flag_flat_footed;
+extern const nw::SituationFlag situation_flag_sneak_attack;
+
 extern nw::Skill skill_animal_empathy;
 extern nw::Skill skill_concentration;
 extern nw::Skill skill_disable_trap;

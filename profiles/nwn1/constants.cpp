@@ -98,6 +98,13 @@ nw::Race racial_type_all;
 nw::Race racial_type_invalid;
 nw::Race racial_type_ooze;
 
+const nw::SituationFlag situation_flag_blind{situation_type_blind};
+const nw::SituationFlag situation_flag_coup_de_grace{situation_type_coup_de_grace};
+const nw::SituationFlag situation_flag_death_attack{situation_type_death_attack};
+const nw::SituationFlag situation_flag_flanked{situation_type_flanked};
+const nw::SituationFlag situation_flag_flat_footed{situation_type_flat_footed};
+const nw::SituationFlag situation_flag_sneak_attack{situation_type_sneak_attack};
+
 nw::Skill skill_animal_empathy;
 nw::Skill skill_concentration;
 nw::Skill skill_disable_trap;
