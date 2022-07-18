@@ -302,6 +302,20 @@ nw::ModifierResult pale_master_ac(flecs::entity ent)
     return ((pm_level / 4) + 1) * 2;
 }
 
+nw::ModifierResult toughness(flecs::entity ent)
+{
+    nw::EntityView<nw::CreatureStats, nw::LevelStats> cre(ent);
+    if (!cre) {
+        return 0;
+    }
+
+    if (cre.get<nw::CreatureStats>()->has_feat(feat_toughness)) {
+        return cre.get<nw::LevelStats>()->level();
+    }
+
+    return 0;
+}
+
 nw::ModifierResult epic_toughness(flecs::entity ent)
 {
     auto nth = highest_feat_in_range(ent, feat_epic_toughness_1, feat_epic_toughness_10);

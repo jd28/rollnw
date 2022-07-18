@@ -26,7 +26,7 @@ void load_modifiers()
 
     nw::kernel::rules().add(mod::hitpoints(
         toughness,
-        "dnd-3.0-epic-toughness",
+        "dnd-3.0-toughness",
         nw::ModifierSource::feat));
 
     nw::kernel::rules().add(mod::hitpoints(

@@ -14,6 +14,7 @@ nw::ModifierResult dragon_disciple_ac(flecs::entity ent);
 nw::ModifierResult pale_master_ac(flecs::entity ent);
 
 // Hitpoints
+nw::ModifierResult toughness(flecs::entity ent);
 nw::ModifierResult epic_toughness(flecs::entity ent);
 
 } // namespace nwn1
