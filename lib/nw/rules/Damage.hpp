@@ -2,6 +2,7 @@
 
 #include "../util/enum_flags.hpp"
 #include "Dice.hpp"
+#include "RuleFlag.hpp"
 #include "type_traits.hpp"
 
 namespace nw {
@@ -16,19 +17,21 @@ template <>
 struct is_rule_type_base<Damage> : std::true_type {
 };
 
-enum struct DamageFlags : uint64_t {
+using DamageFlag = RuleFlag<Damage, 64>;
+
+enum struct DamageCategory : uint64_t {
     none = 0,
     penalty = 1 << 0,
     critical = 1 << 1,
     unblockable = 1 << 2,
 };
 
-DEFINE_ENUM_FLAGS(DamageFlags);
+DEFINE_ENUM_FLAGS(DamageCategory);
 
 struct DamageRoll {
-    Damage type = Damage::invalid;
+    DamageFlag type;
     DiceRoll roll;
-    DamageFlags flags = DamageFlags::none;
+    DamageCategory flags = DamageCategory::none;
 };
 
 } // namespace nw

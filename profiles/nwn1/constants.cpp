@@ -56,6 +56,20 @@ nw::Class class_type_eye_of_gruumsh;
 nw::Class class_type_shou_disciple;
 nw::Class class_type_purple_dragon_knight;
 
+const nw::DamageFlag damage_flag_bludgeoning{damage_type_bludgeoning};
+const nw::DamageFlag damage_flag_piercing{damage_type_piercing};
+const nw::DamageFlag damage_flag_slashing{damage_type_slashing};
+const nw::DamageFlag damage_flag_magical{damage_type_magical};
+const nw::DamageFlag damage_flag_acid{damage_type_acid};
+const nw::DamageFlag damage_flag_cold{damage_type_cold};
+const nw::DamageFlag damage_flag_divine{damage_type_divine};
+const nw::DamageFlag damage_flag_electrical{damage_type_electrical};
+const nw::DamageFlag damage_flag_fire{damage_type_fire};
+const nw::DamageFlag damage_flag_negative{damage_type_negative};
+const nw::DamageFlag damage_flag_positive{damage_type_positive};
+const nw::DamageFlag damage_flag_sonic{damage_type_sonic};
+const nw::DamageFlag damage_flag_base_weapon{damage_type_base_weapon};
+
 nw::Race racial_type_dwarf;
 nw::Race racial_type_elf;
 nw::Race racial_type_gnome;
