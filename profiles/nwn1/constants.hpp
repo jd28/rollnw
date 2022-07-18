@@ -9,6 +9,7 @@
 #include <nw/rules/Ability.hpp>
 #include <nw/rules/ArmorClass.hpp>
 #include <nw/rules/Class.hpp>
+#include <nw/rules/Damage.hpp>
 #include <nw/rules/Race.hpp>
 #include <nw/rules/Skill.hpp>
 
@@ -73,6 +74,20 @@ extern nw::Class class_type_ooze;
 extern nw::Class class_type_eye_of_gruumsh;
 extern nw::Class class_type_shou_disciple;
 extern nw::Class class_type_purple_dragon_knight;
+
+constexpr nw::Damage damage_type_bludgeoning = nw::make_damage(1);
+constexpr nw::Damage damage_type_piercing = nw::make_damage(2);
+constexpr nw::Damage damage_type_slashing = nw::make_damage(4);
+constexpr nw::Damage damage_type_magical = nw::make_damage(8);
+constexpr nw::Damage damage_type_acid = nw::make_damage(16);
+constexpr nw::Damage damage_type_cold = nw::make_damage(32);
+constexpr nw::Damage damage_type_divine = nw::make_damage(64);
+constexpr nw::Damage damage_type_electrical = nw::make_damage(128);
+constexpr nw::Damage damage_type_fire = nw::make_damage(256);
+constexpr nw::Damage damage_type_negative = nw::make_damage(512);
+constexpr nw::Damage damage_type_positive = nw::make_damage(1024);
+constexpr nw::Damage damage_type_sonic = nw::make_damage(2048);
+constexpr nw::Damage damage_type_base_weapon = nw::make_damage(4096);
 
 extern nw::Race racial_type_dwarf;
 extern nw::Race racial_type_elf;
