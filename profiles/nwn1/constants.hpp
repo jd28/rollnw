@@ -11,6 +11,7 @@
 #include <nw/rules/Class.hpp>
 #include <nw/rules/Damage.hpp>
 #include <nw/rules/Race.hpp>
+#include <nw/rules/Situation.hpp>
 #include <nw/rules/Skill.hpp>
 
 namespace nwn1 {
@@ -116,6 +117,13 @@ extern nw::Race racial_type_vermin;
 extern nw::Race racial_type_all;
 extern nw::Race racial_type_invalid;
 extern nw::Race racial_type_ooze;
+
+constexpr nw::Situation situation_type_blind = nw::make_situation(0);
+constexpr nw::Situation situation_type_coup_de_grace = nw::make_situation(1);
+constexpr nw::Situation situation_type_death_attack = nw::make_situation(2);
+constexpr nw::Situation situation_type_flanked = nw::make_situation(3);
+constexpr nw::Situation situation_type_flat_footed = nw::make_situation(4);
+constexpr nw::Situation situation_type_sneak_attack = nw::make_situation(5);
 
 extern nw::Skill skill_animal_empathy;
 extern nw::Skill skill_concentration;

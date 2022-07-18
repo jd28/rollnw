@@ -1,29 +1,20 @@
 #pragma once
 
 #include "../util/enum_flags.hpp"
+#include "type_traits.hpp"
+
+#include <limits>
 
 namespace nw {
 
-enum struct SituationFlag {
-    none = 0,
-    blind = 0x1,
-    coup_de_grace = 0x2,
-    death_attack = 0x4,
-    flanked = 0x8,
-    flat_footed = 0x10,
-    sneak_attack = 0x20,
+enum struct Situation : int32_t {
+    invalid = -1,
 };
 
-DEFINE_ENUM_FLAGS(SituationFlag)
+constexpr Situation make_situation(int id) { return static_cast<Situation>(id); }
 
-enum struct SituationType {
-    none = 0,
-    blind = 1,
-    coup_de_grace = 2,
-    death_attack = 3,
-    flanked = 4,
-    flat_footed = 5,
-    sneak_attack = 6,
+template <>
+struct is_rule_type_base<Situation> : std::true_type {
 };
 
 struct SituationInfo {
