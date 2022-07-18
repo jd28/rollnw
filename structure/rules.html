@@ -49,17 +49,11 @@
 <li class="toctree-l1"><a class="reference internal" href="formats.html">formats</a></li>
 <li class="toctree-l1"><a class="reference internal" href="i18n.html">i18n</a></li>
 <li class="toctree-l1"><a class="reference internal" href="kernel.html">kernel</a></li>
-<li class="toctree-l1"><a class="reference internal" href="profiles.html">profiles</a></li>
 <li class="toctree-l1"><a class="reference internal" href="resources.html">resources</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">rules</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#the-goals">The Goals</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#the-system">The System</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#selector"><strong>Selector</strong></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#qualifier"><strong>Qualifier</strong></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#requirement"><strong>Requirement</strong></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#modifier"><strong>Modifier</strong></a></li>
-</ul>
-</li>
+<li class="toctree-l2"><a class="reference internal" href="#definitions">Definitions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#modifiers">Modifiers</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#master-feats">Master Feats</a></li>
 </ul>
 </li>
@@ -131,6 +125,8 @@ like NWN. Enhanced Edition’s approach largely was to unhardcode
 <a class="reference external" href="https://github.com/nwnxee/unified/tree/master/Plugins/Race">Race</a>,
 <a class="reference external" href="https://github.com/nwnxee/unified/tree/master/Plugins/SkillRanks">SkillRank</a>,
 and <a class="reference external" href="https://github.com/nwnxee/unified/tree/master/Plugins/Feat">Feat</a>.</p>
+<p>rollNW has the elements of NWN’s rule system builtin, which is itself an approximation of the Dungeons
+and Dragons 3rd Edition ruleset.</p>
 <section id="the-goals">
 <h2>The Goals<a class="headerlink" href="#the-goals" title="Permalink to this heading"></a></h2>
 <ul class="simple">
@@ -145,21 +141,21 @@ both a configuration and serialization problem.</p></li>
 </ul>
 </section>
 <hr class="docutils" />
-<section id="the-system">
-<h2>The System<a class="headerlink" href="#the-system" title="Permalink to this heading"></a></h2>
-<p>The foundation of system is just three types: <code class="docutils literal notranslate"><span class="pre">int32_t</span></code>, <code class="docutils literal notranslate"><span class="pre">float</span></code>, strings.</p>
-<p>rollNW has the elements of NWN’s rule system builtin, which is itself an approximation of the Dungeons
-and Dragons 3rd Edition ruleset.</p>
-<p>The approach to the elements of a rule category has been to use opaque unsigned integer types which are then casted.  This gives
-some benefit of type safety and allows the rules system to define the invalid case and profiles can
-handle defining the valid cases.  So, for example:</p>
-<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="c1">// Definition of an attribute</span>
-<span class="k">enum</span><span class="w"> </span><span class="k">struct</span><span class="w"> </span><span class="nc">ArmorClass</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="kt">uint32_t</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
-<span class="w">    </span><span class="n">invalid</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">numeric_limits</span><span class="o">&lt;</span><span class="kt">uint32_t</span><span class="o">&gt;::</span><span class="n">max</span><span class="p">(),</span><span class="w"></span>
+<section id="definitions">
+<h2>Definitions<a class="headerlink" href="#definitions" title="Permalink to this heading"></a></h2>
+<dl>
+<dt><strong>Profile</strong></dt><dd><p>Profiles are a way of decoupling different rulesets from the rule system itself.</p>
+</dd>
+<dt><strong>Type</strong></dt><dd><p>A rule type is an attribute of the rule system, say a skill or an ability or a damage.  The rule system
+defines the type and its invalid case, but leaves valid cases up to the rule profile.  An example,
+armor class:</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="c1">// Definition of an attribute in nw/rules/ArmorClass.hpp</span>
+<span class="k">enum</span><span class="w"> </span><span class="k">struct</span><span class="w"> </span><span class="nc">ArmorClass</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="kt">int32_t</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">   </span><span class="n">invalid</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">-1</span><span class="w"></span>
 <span class="p">};</span><span class="w"></span>
-<span class="k">constexpr</span><span class="w"> </span><span class="n">ArmorClass</span><span class="w"> </span><span class="nf">make_armor_class</span><span class="p">(</span><span class="kt">uint32_t</span><span class="w"> </span><span class="n">id</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="k">static_cast</span><span class="o">&lt;</span><span class="n">ArmorClass</span><span class="o">&gt;</span><span class="p">(</span><span class="n">id</span><span class="p">);</span><span class="w"> </span><span class="p">}</span><span class="w"></span>
+<span class="k">constexpr</span><span class="w"> </span><span class="n">ArmorClass</span><span class="w"> </span><span class="nf">make_armor_class</span><span class="p">(</span><span class="kt">int32_t</span><span class="w"> </span><span class="n">id</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="k">static_cast</span><span class="o">&lt;</span><span class="n">ArmorClass</span><span class="o">&gt;</span><span class="p">(</span><span class="n">id</span><span class="p">);</span><span class="w"> </span><span class="p">}</span><span class="w"></span>
 
-<span class="c1">// Somewhere else in a game profile that uses the concept of armor class</span>
+<span class="c1">// Somewhere else in a rule profile that uses the concept of armor class</span>
 <span class="k">constexpr</span><span class="w"> </span><span class="n">nw</span><span class="o">::</span><span class="n">ArmorClass</span><span class="w"> </span><span class="n">ac_dodge</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">nw</span><span class="o">::</span><span class="n">make_armor_class</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span><span class="w"></span>
 <span class="k">constexpr</span><span class="w"> </span><span class="n">nw</span><span class="o">::</span><span class="n">ArmorClass</span><span class="w"> </span><span class="n">ac_natural</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">nw</span><span class="o">::</span><span class="n">make_armor_class</span><span class="p">(</span><span class="mi">1</span><span class="p">);</span><span class="w"></span>
 <span class="k">constexpr</span><span class="w"> </span><span class="n">nw</span><span class="o">::</span><span class="n">ArmorClass</span><span class="w"> </span><span class="n">ac_armor</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">nw</span><span class="o">::</span><span class="n">make_armor_class</span><span class="p">(</span><span class="mi">2</span><span class="p">);</span><span class="w"></span>
@@ -167,9 +163,19 @@ handle defining the valid cases.  So, for example:</p>
 <span class="k">constexpr</span><span class="w"> </span><span class="n">nw</span><span class="o">::</span><span class="n">ArmorClass</span><span class="w"> </span><span class="n">ac_deflection</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">nw</span><span class="o">::</span><span class="n">make_armor_class</span><span class="p">(</span><span class="mi">4</span><span class="p">);</span><span class="w"></span>
 </pre></div>
 </div>
-<section id="selector">
-<h3><strong>Selector</strong><a class="headerlink" href="#selector" title="Permalink to this heading"></a></h3>
-<p>A <code class="docutils literal notranslate"><span class="pre">Selector</span></code> gets some piece of information from an entity.</p>
+</dd>
+<dt><strong>Flag</strong></dt><dd><p><a class="reference internal" href="../api/struct/nw__RuleFlag.html#_CPPv4I0_6size_tEN2nw8RuleFlagE" title="nw::RuleFlag"><code class="xref cpp cpp-struct docutils literal notranslate"><span class="pre">nw::RuleFlag</span></code></a> provides a mechanism for making flags out of rule types.</p>
+</dd>
+</dl>
+</section>
+<hr class="docutils" />
+<section id="modifiers">
+<h2>Modifiers<a class="headerlink" href="#modifiers" title="Permalink to this heading"></a></h2>
+<p>The foundation of the modifier system is just three types: <code class="docutils literal notranslate"><span class="pre">int32_t</span></code>, <code class="docutils literal notranslate"><span class="pre">float</span></code>, strings.  It builds
+on the following abstractions to provide a dynamic, modifiable, queryable system.  Note that Master Feat
+modifiers are special cased below.</p>
+<dl>
+<dt><strong>Selector</strong></dt><dd><p>A selector gets some piece of information from an entity.</p>
 <p><strong>Example</strong>:</p>
 <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="k">auto</span><span class="w"> </span><span class="n">s</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">nwn1</span><span class="o">::</span><span class="n">sel</span><span class="o">::</span><span class="n">ability</span><span class="p">(</span><span class="n">ability_strength</span><span class="p">);</span><span class="w"></span>
 <span class="c1">// ...</span>
@@ -177,48 +183,41 @@ handle defining the valid cases.  So, for example:</p>
 <span class="c1">// ...</span>
 </pre></div>
 </div>
-</section>
-<section id="qualifier">
-<h3><strong>Qualifier</strong><a class="headerlink" href="#qualifier" title="Permalink to this heading"></a></h3>
-<p>A <code class="docutils literal notranslate"><span class="pre">Qualifier</span></code> is a <code class="docutils literal notranslate"><span class="pre">Selector</span></code> with some constraints thereupon. In
+</dd>
+<dt><strong>Qualifier</strong></dt><dd><p>A qualifier is a selector with some constraints thereupon. In
 the example below any creature with an unmodified strength between [20,
 40] inclusive would match.</p>
 <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="k">auto</span><span class="w"> </span><span class="n">q</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">nwn1</span><span class="o">::</span><span class="n">qual</span><span class="o">::</span><span class="n">ability</span><span class="p">(</span><span class="n">ability_strength</span><span class="p">,</span><span class="w"> </span><span class="mi">20</span><span class="p">,</span><span class="w"> </span><span class="mi">40</span><span class="p">);</span><span class="w"></span>
 <span class="c1">// ...</span>
 <span class="k">if</span><span class="p">(</span><span class="n">nw</span><span class="o">::</span><span class="n">kernel</span><span class="o">::</span><span class="n">rules</span><span class="p">().</span><span class="n">match</span><span class="p">(</span><span class="n">q</span><span class="p">,</span><span class="w"> </span><span class="n">creature</span><span class="p">))</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
-<span class="w">    </span><span class="c1">// ...</span>
+<span class="w">   </span><span class="c1">// ...</span>
 <span class="p">}</span><span class="w"></span>
 </pre></div>
 </div>
-</section>
-<section id="requirement">
-<h3><strong>Requirement</strong><a class="headerlink" href="#requirement" title="Permalink to this heading"></a></h3>
-<p>A <code class="docutils literal notranslate"><span class="pre">Requirement</span></code> is just a set of one or more <code class="docutils literal notranslate"><span class="pre">Qualifier</span></code>s.</p>
+</dd>
+<dt><strong>Requirement</strong></dt><dd><p>A requirement is just a set of one or more Qualifiers.</p>
 <p><strong>Example</strong>:</p>
 <p>Some thing a has requirement of level 4, wisdom between [12, 20], and a
 minimum appraise skill of 6.</p>
 <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="k">auto</span><span class="w"> </span><span class="n">req</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">nw</span><span class="o">::</span><span class="n">Requirement</span><span class="p">{{</span><span class="w"></span>
-<span class="w">    </span><span class="n">nwn1</span><span class="o">::</span><span class="n">qual</span><span class="o">::</span><span class="n">level</span><span class="p">(</span><span class="mi">4</span><span class="p">),</span><span class="w"></span>
-<span class="w">    </span><span class="n">nwn1</span><span class="o">::</span><span class="n">qual</span><span class="o">::</span><span class="n">ability</span><span class="p">(</span><span class="n">ability_wisdom</span><span class="p">,</span><span class="w"> </span><span class="mi">12</span><span class="p">,</span><span class="w"> </span><span class="mi">20</span><span class="p">),</span><span class="w"> </span><span class="c1">// Min, Max</span>
-<span class="w">    </span><span class="n">nwn1</span><span class="o">::</span><span class="n">qual</span><span class="o">::</span><span class="n">skill</span><span class="p">(</span><span class="n">skill_appraise</span><span class="p">,</span><span class="w"> </span><span class="mi">6</span><span class="p">),</span><span class="w"></span>
+<span class="w">   </span><span class="n">nwn1</span><span class="o">::</span><span class="n">qual</span><span class="o">::</span><span class="n">level</span><span class="p">(</span><span class="mi">4</span><span class="p">),</span><span class="w"></span>
+<span class="w">   </span><span class="n">nwn1</span><span class="o">::</span><span class="n">qual</span><span class="o">::</span><span class="n">ability</span><span class="p">(</span><span class="n">ability_wisdom</span><span class="p">,</span><span class="w"> </span><span class="mi">12</span><span class="p">,</span><span class="w"> </span><span class="mi">20</span><span class="p">),</span><span class="w"> </span><span class="c1">// Min, Max</span>
+<span class="w">   </span><span class="n">nwn1</span><span class="o">::</span><span class="n">qual</span><span class="o">::</span><span class="n">skill</span><span class="p">(</span><span class="n">skill_appraise</span><span class="p">,</span><span class="w"> </span><span class="mi">6</span><span class="p">),</span><span class="w"></span>
 <span class="p">}};</span><span class="w"></span>
 <span class="c1">// ...</span>
 <span class="k">if</span><span class="p">(</span><span class="n">nw</span><span class="o">::</span><span class="n">kernel</span><span class="o">::</span><span class="n">rules</span><span class="p">().</span><span class="n">meets_requirement</span><span class="p">(</span><span class="n">req</span><span class="p">,</span><span class="w"> </span><span class="n">creature</span><span class="p">))</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
-<span class="w">    </span><span class="c1">// ...</span>
+<span class="w">   </span><span class="c1">// ...</span>
 <span class="p">}</span><span class="w"></span>
 </pre></div>
 </div>
-<p>By default a <code class="docutils literal notranslate"><span class="pre">Requirement</span></code> uses logical conjunction, to use
-disjunction pass <code class="docutils literal notranslate"><span class="pre">false</span></code> at construction.</p>
+<p>By default a requirement uses logical conjunction, to use disjunction pass <code class="docutils literal notranslate"><span class="pre">false</span></code> at construction.</p>
 <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="k">auto</span><span class="w"> </span><span class="n">req</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">nw</span><span class="o">::</span><span class="n">Requirement</span><span class="p">{{</span><span class="w"></span>
-<span class="w">    </span><span class="c1">// Qualifiers ...</span>
+<span class="w">   </span><span class="c1">// Qualifiers ...</span>
 <span class="p">},</span><span class="w"> </span><span class="nb">false</span><span class="p">};</span><span class="w"></span>
 </pre></div>
 </div>
-</section>
-<section id="modifier">
-<h3><strong>Modifier</strong><a class="headerlink" href="#modifier" title="Permalink to this heading"></a></h3>
-<p>A <code class="xref cpp cpp-struct docutils literal notranslate"><span class="pre">nw::Modifier</span></code> is</p>
+</dd>
+<dt><strong>Modifier</strong></dt><dd><p>A <code class="xref cpp cpp-struct docutils literal notranslate"><span class="pre">nw::Modifier</span></code> is</p>
 <ul class="simple">
 <li><p>an <code class="docutils literal notranslate"><span class="pre">int</span></code>, a <code class="docutils literal notranslate"><span class="pre">float</span></code>, or a function returning an <code class="docutils literal notranslate"><span class="pre">int</span></code> or <code class="docutils literal notranslate"><span class="pre">float</span></code>. <a class="footnote-reference brackets" href="#id4" id="id2">2</a></p></li>
 <li><p>an optional interned string tag to facilitate searching, modifying, removing modifiers.</p></li>
@@ -231,10 +230,9 @@ disjunction pass <code class="docutils literal notranslate"><span class="pre">fa
 <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="c1">// This is just an example, one would most likely do all epic toughness modifiers together.</span>
 <span class="k">auto</span><span class="w"> </span><span class="n">mod2</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">nwn1</span><span class="o">::</span><span class="n">mod</span><span class="o">::</span><span class="n">hitpoints</span><span class="p">(</span><span class="w"></span>
 <span class="w">   </span><span class="mi">20</span><span class="p">,</span><span class="w"> </span><span class="c1">// Modifier value, if the below requirement is met</span>
-<span class="w">   </span><span class="p">{</span><span class="w"> </span><span class="n">nwn1</span><span class="o">::</span><span class="n">qual</span><span class="o">::</span><span class="n">feat</span><span class="p">(</span><span class="n">nwn1</span><span class="o">::</span><span class="n">feat_epic_toughness_1</span><span class="p">)</span><span class="w"> </span><span class="p">},</span><span class="w"></span>
-<span class="w">   </span><span class="p">{},</span><span class="w"> </span><span class="c1">// No Versus component to this</span>
 <span class="w">   </span><span class="s">&quot;dnd-3.0-epic-toughness-01&quot;</span><span class="p">,</span><span class="w"></span>
 <span class="w">   </span><span class="n">nw</span><span class="o">::</span><span class="n">ModifierSource</span><span class="o">::</span><span class="n">feat</span><span class="w"></span>
+<span class="w">   </span><span class="p">{</span><span class="w"> </span><span class="n">nwn1</span><span class="o">::</span><span class="n">qual</span><span class="o">::</span><span class="n">feat</span><span class="p">(</span><span class="n">nwn1</span><span class="o">::</span><span class="n">feat_epic_toughness_1</span><span class="p">)</span><span class="w"> </span><span class="p">},</span><span class="w"></span>
 <span class="p">);</span><span class="w"></span>
 
 <span class="c1">// Add it to the global modifier table</span>
@@ -246,8 +244,6 @@ disjunction pass <code class="docutils literal notranslate"><span class="pre">fa
 
 <span class="k">auto</span><span class="w"> </span><span class="n">ent</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="c1">// ...</span>
 
-<span class="k">auto</span><span class="w"> </span><span class="n">is_pm</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">nw</span><span class="o">::</span><span class="n">Requirement</span><span class="p">{{</span><span class="n">nwn1</span><span class="o">::</span><span class="n">qual</span><span class="o">::</span><span class="n">class_level</span><span class="p">(</span><span class="n">nwn1</span><span class="o">::</span><span class="n">class_type_pale_master</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">)}};</span><span class="w"></span>
-
 <span class="k">auto</span><span class="w"> </span><span class="n">pm_ac</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[](</span><span class="n">flecs</span><span class="o">::</span><span class="n">entity</span><span class="w"> </span><span class="n">ent</span><span class="p">)</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="n">nw</span><span class="o">::</span><span class="n">ModifierResult</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
 <span class="w">   </span><span class="k">auto</span><span class="w"> </span><span class="n">stat</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ent</span><span class="p">.</span><span class="n">get</span><span class="o">&lt;</span><span class="n">nw</span><span class="o">::</span><span class="n">LevelStats</span><span class="o">&gt;</span><span class="p">();</span><span class="w"></span>
 <span class="w">   </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">stat</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="p">}</span><span class="w"></span>
@@ -255,30 +251,35 @@ disjunction pass <code class="docutils literal notranslate"><span class="pre">fa
 <span class="w">   </span><span class="k">return</span><span class="w"> </span><span class="p">((</span><span class="n">pm_level</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mi">4</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">2</span><span class="p">;</span><span class="w"></span>
 <span class="p">};</span><span class="w"></span>
 
-<span class="k">auto</span><span class="w"> </span><span class="n">mod2</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">nwn1</span><span class="o">::</span><span class="n">mod</span><span class="o">::</span><span class="n">ac_natural</span><span class="p">(</span><span class="n">pm_ac</span><span class="p">,</span><span class="w"> </span><span class="n">is_pm</span><span class="p">,</span><span class="w"> </span><span class="p">{},</span><span class="w"> </span><span class="s">&quot;dnd-3.0-palemaster-ac&quot;</span><span class="p">);</span><span class="w"></span>
+<span class="k">auto</span><span class="w"> </span><span class="n">mod2</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">mod</span><span class="o">::</span><span class="n">armor_class</span><span class="p">(</span><span class="w"></span>
+<span class="w">   </span><span class="n">ac_natural</span><span class="p">,</span><span class="w"></span>
+<span class="w">   </span><span class="n">pm_ac</span><span class="p">,</span><span class="w"></span>
+<span class="w">   </span><span class="s">&quot;dnd-3.0-palemaster-ac&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">   </span><span class="n">nw</span><span class="o">::</span><span class="n">ModifierSource</span><span class="o">::</span><span class="n">class_</span><span class="p">);</span><span class="w"></span>
 
 <span class="n">nw</span><span class="o">::</span><span class="n">kernel</span><span class="o">::</span><span class="n">rules</span><span class="p">().</span><span class="n">add</span><span class="p">(</span><span class="n">mod2</span><span class="p">);</span><span class="w"></span>
 <span class="c1">// RDD AC bonus ... etc, etc, etc</span>
 
 <span class="c1">// Calculate all bonuses in the Natural AC modifier category</span>
-<span class="k">auto</span><span class="w"> </span><span class="n">ac_natural_mod</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">nw</span><span class="o">::</span><span class="n">kernel</span><span class="o">::</span><span class="n">rules</span><span class="p">().</span><span class="n">calculate</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="p">(</span><span class="n">nw</span><span class="o">::</span><span class="n">ModifierType</span><span class="o">::</span><span class="n">ac_natural</span><span class="p">,</span><span class="w"> </span><span class="n">ent</span><span class="p">);</span><span class="w"></span>
+<span class="k">auto</span><span class="w"> </span><span class="n">ac_natural_mod</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">nwk</span><span class="o">::</span><span class="n">rules</span><span class="p">().</span><span class="n">calculate</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="p">(</span><span class="n">ent</span><span class="p">,</span><span class="w"> </span><span class="n">nwn1</span><span class="o">::</span><span class="n">mod_type_armor_class</span><span class="p">,</span><span class="w"> </span><span class="n">nwn1</span><span class="o">::</span><span class="n">ac_natural</span><span class="p">);</span><span class="w"></span>
 
 <span class="k">auto</span><span class="w"> </span><span class="n">pm_ac_nerf</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[](</span><span class="n">flecs</span><span class="o">::</span><span class="n">entity</span><span class="w"> </span><span class="n">ent</span><span class="p">)</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="n">nw</span><span class="o">::</span><span class="n">ModifierResult</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
-<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">stat</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ent</span><span class="p">.</span><span class="n">get</span><span class="o">&lt;</span><span class="n">nw</span><span class="o">::</span><span class="n">LevelStats</span><span class="o">&gt;</span><span class="p">();</span><span class="w"></span>
-<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">stat</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="p">}</span><span class="w"></span>
-<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">pm_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">stat</span><span class="o">-&gt;</span><span class="n">level_by_class</span><span class="p">(</span><span class="n">nwn1</span><span class="o">::</span><span class="n">class_type_pale_master</span><span class="p">);</span><span class="w"></span>
-<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="p">((</span><span class="n">pm_level</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mi">4</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="p">);</span><span class="w"></span>
+<span class="w">   </span><span class="k">auto</span><span class="w"> </span><span class="n">stat</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ent</span><span class="p">.</span><span class="n">get</span><span class="o">&lt;</span><span class="n">nw</span><span class="o">::</span><span class="n">LevelStats</span><span class="o">&gt;</span><span class="p">();</span><span class="w"></span>
+<span class="w">   </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">stat</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="p">}</span><span class="w"></span>
+<span class="w">   </span><span class="k">auto</span><span class="w"> </span><span class="n">pm_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">stat</span><span class="o">-&gt;</span><span class="n">level_by_class</span><span class="p">(</span><span class="n">nwn1</span><span class="o">::</span><span class="n">class_type_pale_master</span><span class="p">);</span><span class="w"></span>
+<span class="w">   </span><span class="k">return</span><span class="w"> </span><span class="p">((</span><span class="n">pm_level</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mi">4</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="p">);</span><span class="w"></span>
 <span class="p">};</span><span class="w"></span>
 
 <span class="c1">// Set a nerf</span>
 <span class="n">nwk</span><span class="o">::</span><span class="n">rules</span><span class="p">().</span><span class="n">replace</span><span class="p">(</span><span class="s">&quot;dnd-3.0-palemaster-ac&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">pm_ac_nerf</span><span class="p">);</span><span class="w"></span>
-<span class="n">ac_natural_mod</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">nwk</span><span class="o">::</span><span class="n">rules</span><span class="p">().</span><span class="n">calculate</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="p">(</span><span class="n">nw</span><span class="o">::</span><span class="n">ModifierType</span><span class="o">::</span><span class="n">ac_natural</span><span class="p">,</span><span class="w"> </span><span class="n">ent</span><span class="p">);</span><span class="w"></span>
+<span class="n">ac_natural_mod</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">nwk</span><span class="o">::</span><span class="n">rules</span><span class="p">().</span><span class="n">calculate</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="p">(</span><span class="n">ent</span><span class="p">,</span><span class="w"> </span><span class="n">nwn1</span><span class="o">::</span><span class="n">mod_type_armor_class</span><span class="p">,</span><span class="w"> </span><span class="n">nwn1</span><span class="o">::</span><span class="n">ac_natural</span><span class="p">);</span><span class="w"></span>
 
 <span class="c1">// Nerf wasn&#39;t enough, delete the whole thing</span>
 <span class="n">nwk</span><span class="o">::</span><span class="n">rules</span><span class="p">().</span><span class="n">remove</span><span class="p">(</span><span class="s">&quot;dnd-3.0-palemaster-ac&quot;</span><span class="p">);</span><span class="w"></span>
 </pre></div>
 </div>
-</section>
+</dd>
+</dl>
 </section>
 <hr class="docutils" />
 <section id="master-feats">

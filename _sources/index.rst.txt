@@ -142,7 +142,6 @@ Credits
   structure/formats
   structure/i18n
   structure/kernel
-  structure/profiles
   structure/resources
   structure/rules
   structure/serialization
