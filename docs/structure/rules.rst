@@ -158,7 +158,7 @@ modifiers are special cased below.
          auto stat = ent.get<nw::LevelStats>();
          if (!stat) { return 0; }
          auto pm_level = stat->level_by_class(nwn1::class_type_pale_master);
-         return ((pm_level / 4) + 1) * 2;
+         return pm_level > 0 ? ((pm_level / 4) + 1) * 2 : 0;
       };
 
       auto mod2 = mod::armor_class(
@@ -177,7 +177,7 @@ modifiers are special cased below.
          auto stat = ent.get<nw::LevelStats>();
          if (!stat) { return 0; }
          auto pm_level = stat->level_by_class(nwn1::class_type_pale_master);
-         return ((pm_level / 4) + 1);
+         return pm_level > 0 ? ((pm_level / 4) + 1) : 0;
       };
 
       // Set a nerf

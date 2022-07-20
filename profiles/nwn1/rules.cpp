@@ -299,7 +299,7 @@ nw::ModifierResult pale_master_ac(flecs::entity ent)
     //     }
     // }
 
-    return ((pm_level / 4) + 1) * 2;
+    return pm_level > 0 ? ((pm_level / 4) + 1) * 2 : 0;
 }
 
 nw::ModifierResult toughness(flecs::entity ent)
