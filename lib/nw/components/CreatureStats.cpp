@@ -51,7 +51,10 @@ bool CreatureStats::from_json(const nlohmann::json& archive)
         LOG_F(ERROR, "from_json exception: {}", e.what());
         return false;
     }
-    return false;
+
+    std::sort(std::begin(feats_), std::end(feats_));
+
+    return true;
 }
 
 bool CreatureStats::to_gff(GffOutputArchiveStruct& archive) const
