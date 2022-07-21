@@ -43,8 +43,8 @@ int get_skill_rank(flecs::entity ent, nw::Skill skill, bool base)
     }
 
     // Feats
-    auto mf_bonus = resolve_master_feats<int>(cre, skill,
-        mfeat_skill_focus, mfeat_skill_focus_epic);
+    auto mfr = nw::kernel::world().get<nw::MasterFeatRegistry>();
+    auto mf_bonus = mfr->resolve<int>(cre, skill, mfeat_skill_focus, mfeat_skill_focus_epic);
 
     for (auto b : mf_bonus) {
         result += b;

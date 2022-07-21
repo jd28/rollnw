@@ -220,6 +220,9 @@ for all martial weapons.
     mfr->add(baseitem_longsword, mfeat_weapon_focus, feat_weapon_focus_longsword);
     mfr->add(baseitem_longsword, mfeat_weapon_focus, feat_weapon_focus_martial);
 
+    // Will return an array of length 2 containing the respective bonuses
+    auto mf_bonus = mfr->resolve<int>(cre, baseitem, mfeat_weapon_focus, mfeat_weapon_focus_epic);
+
 .. [1]
    There are some exceptions, parts of the custom spellcaster system.
 .. [2]

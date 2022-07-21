@@ -1,5 +1,7 @@
 #pragma once
 
+#include "../components/CreatureStats.hpp"
+#include "../util/EntityView.hpp"
 #include "Feat.hpp"
 #include "system.hpp"
 
@@ -50,6 +52,10 @@ struct MasterFeatRegistry {
     template <typename T>
     void remove(T type, MasterFeat mfeat);
 
+    template <typename T, typename U, typename... Args>
+    std::array<T, sizeof...(Args)> resolve(const nw::EntityView<nw::CreatureStats> ent,
+        U type, Args... mfeats) const;
+
     void set_bonus(MasterFeat mfeat, ModifierVariant bonus);
 
 private:
@@ -82,6 +88,55 @@ void MasterFeatRegistry::remove(T type, MasterFeat mfeat)
                            return entry.mfeat == mfeat && entry.type == static_cast<int32_t>(type);
                        }),
         std::end(entries_));
+}
+
+/// Resolves master feat bonuses
+template <typename T, typename U, typename... Args>
+std::array<T, sizeof...(Args)> MasterFeatRegistry::resolve(const EntityView<CreatureStats> ent,
+    U type, Args... mfeats) const
+{
+    static_assert(is_rule_type<U>::value, "only rule types allowed");
+    static_assert(std::is_same_v<T, int> || std::is_same_v<T, float>,
+        "result type can only be int or float");
+
+    std::array<T, sizeof...(Args)> result{};
+    std::array<MasterFeat, sizeof...(Args)> mfs{mfeats...};
+    std::sort(std::begin(mfs), std::end(mfs));
+
+    auto stats = ent.get<CreatureStats>();
+    if (!stats) {
+        return result;
+    }
+
+    auto it = std::begin(entries());
+    size_t i = 0;
+    for (auto mf : mfs) {
+        MasterFeatEntry mfe{mf, static_cast<int32_t>(type), Feat::invalid};
+        const auto& mf_bonus = get_bonus(mf);
+        if (mf_bonus.empty()) continue;
+
+        it = std::lower_bound(it, std::end(entries()), mfe);
+        if (it == std::end(entries())) {
+            break;
+        }
+
+        while (it != std::end(entries()) && it->type == static_cast<int32_t>(type)) {
+            if (stats->has_feat(it->feat)) {
+                if (mf_bonus.template is<T>()) {
+                    result[i] = mf_bonus.template as<T>();
+                } else if (mf_bonus.template is<ModifierFunction>()) {
+                    auto res = mf_bonus.template as<ModifierFunction>()(ent.ent);
+                    if (res.template is<T>()) {
+                        result[i] = res.template as<T>();
+                    }
+                }
+                break;
+            }
+            ++it;
+        }
+        ++i;
+    }
+    return result;
 }
 
 } // namespace nw
