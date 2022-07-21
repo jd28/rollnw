@@ -158,7 +158,7 @@ modifiers are special cased below.
          auto stat = ent.get<nw::LevelStats>();
          if (!stat) { return 0; }
          auto pm_level = stat->level_by_class(nwn1::class_type_pale_master);
-         return ((pm_level / 4) + 1) * 2;
+         return pm_level > 0 ? ((pm_level / 4) + 1) * 2 : 0;
       };
 
       auto mod2 = mod::armor_class(
@@ -177,7 +177,7 @@ modifiers are special cased below.
          auto stat = ent.get<nw::LevelStats>();
          if (!stat) { return 0; }
          auto pm_level = stat->level_by_class(nwn1::class_type_pale_master);
-         return ((pm_level / 4) + 1);
+         return pm_level > 0 ? ((pm_level / 4) + 1) : 0;
       };
 
       // Set a nerf
@@ -219,6 +219,9 @@ for all martial weapons.
     // Set up bonuses...
     mfr->add(baseitem_longsword, mfeat_weapon_focus, feat_weapon_focus_longsword);
     mfr->add(baseitem_longsword, mfeat_weapon_focus, feat_weapon_focus_martial);
+
+    // Will return an array of length 2 containing the respective bonuses
+    auto mf_bonus = mfr->resolve<int>(cre, baseitem, mfeat_weapon_focus, mfeat_weapon_focus_epic);
 
 .. [1]
    There are some exceptions, parts of the custom spellcaster system.
