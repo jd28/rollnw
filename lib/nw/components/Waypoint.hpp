@@ -41,7 +41,7 @@ struct Waypoint {
     /// Map not for player minimap
     LocString map_note;
 
-    /// Apearance
+    /// Appearance
     uint8_t appearance;
 
     /// If true waypoint has map note.
