@@ -71,36 +71,4 @@ struct Versus {
     bool trap = false;
 };
 
-// == Modifier ================================================================
-
-enum struct ModifierSource {
-    unknown,
-    ability,
-    class_,
-    environment,
-    feat,
-    race,
-    situation,
-    skill,
-};
-
-using ModifierResult = Variant<int, float>;
-using ModifierFunction = std::function<ModifierResult(flecs::entity)>;
-using ModifierVariant = Variant<int, float, ModifierFunction>;
-
-struct Modifier {
-    int type = -1;
-    ModifierVariant value;
-    InternedString tagged;
-    ModifierSource source = ModifierSource::unknown;
-    Requirement requirement = Requirement{};
-    Versus versus = {};
-    int subtype = -1;
-};
-
-inline bool operator<(const Modifier& lhs, const Modifier& rhs)
-{
-    return std::tie(lhs.type, lhs.type, lhs.source) < std::tie(rhs.type, rhs.type, rhs.source);
-}
-
 } // namespace nw

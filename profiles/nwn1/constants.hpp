@@ -10,6 +10,7 @@
 #include <nw/rules/ArmorClass.hpp>
 #include <nw/rules/Class.hpp>
 #include <nw/rules/Damage.hpp>
+#include <nw/rules/Modifier.hpp>
 #include <nw/rules/Race.hpp>
 #include <nw/rules/Situation.hpp>
 #include <nw/rules/Skill.hpp>
@@ -175,31 +176,23 @@ extern nw::Skill skill_craft_armor;
 extern nw::Skill skill_craft_weapon;
 extern nw::Skill skill_ride;
 
-enum MasterFeat {
-    mfeat_type_baseitem = 0,
-    mfeat_type_skill = 1,
-};
-
-enum ModType {
-    mod_type_ability = 0,
-    mod_type_armor_class = 1,
-    mod_type_attack_bonus = 2,
-    mod_type_concealment = 3,
-    mod_type_crit_multiplier = 4,
-    mod_type_crit_threat = 5,
-    mod_type_dmg_immunity = 6,
-    mod_type_dmg_reduction = 7,
-    mod_type_dmg_resistance = 8,
-    mod_type_hitpoints = 9,
-    mod_type_immunity = 10,
-    mod_type_initiative = 11,
-    mod_type_movement_speed = 12,
-    mod_type_regeneration = 13,
-    mod_type_save = 14,
-    mod_type_skill = 15,
-    mod_type_spell_immunity = 16,
-    mod_type_spell_resistance = 17,
-
-};
+constexpr nw::ModifierType mod_type_ability = nw::make_modifier_type(0);
+constexpr nw::ModifierType mod_type_armor_class = nw::make_modifier_type(1);
+constexpr nw::ModifierType mod_type_attack_bonus = nw::make_modifier_type(2);
+constexpr nw::ModifierType mod_type_concealment = nw::make_modifier_type(3);
+constexpr nw::ModifierType mod_type_crit_multiplier = nw::make_modifier_type(4);
+constexpr nw::ModifierType mod_type_crit_threat = nw::make_modifier_type(5);
+constexpr nw::ModifierType mod_type_dmg_immunity = nw::make_modifier_type(6);
+constexpr nw::ModifierType mod_type_dmg_reduction = nw::make_modifier_type(7);
+constexpr nw::ModifierType mod_type_dmg_resistance = nw::make_modifier_type(8);
+constexpr nw::ModifierType mod_type_hitpoints = nw::make_modifier_type(9);
+constexpr nw::ModifierType mod_type_immunity = nw::make_modifier_type(10);
+constexpr nw::ModifierType mod_type_initiative = nw::make_modifier_type(11);
+constexpr nw::ModifierType mod_type_movement_speed = nw::make_modifier_type(12);
+constexpr nw::ModifierType mod_type_regeneration = nw::make_modifier_type(13);
+constexpr nw::ModifierType mod_type_save = nw::make_modifier_type(14);
+constexpr nw::ModifierType mod_type_skill = nw::make_modifier_type(15);
+constexpr nw::ModifierType mod_type_spell_immunity = nw::make_modifier_type(16);
+constexpr nw::ModifierType mod_type_spell_resistance = nw::make_modifier_type(17);
 
 } // namespace nwn1

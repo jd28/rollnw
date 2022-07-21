@@ -3,6 +3,7 @@
 #include <nw/components/Creature.hpp>
 #include <nw/kernel/Kernel.hpp>
 #include <nw/rules/Feat.hpp>
+#include <nw/rules/Modifier.hpp>
 #include <nw/rules/system.hpp>
 #include <nwn1/Profile.hpp>
 #include <nwn1/rules.hpp>

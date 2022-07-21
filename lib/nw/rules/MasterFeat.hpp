@@ -3,6 +3,7 @@
 #include "../components/CreatureStats.hpp"
 #include "../util/EntityView.hpp"
 #include "Feat.hpp"
+#include "Modifier.hpp"
 #include "system.hpp"
 
 #include <cstdint>

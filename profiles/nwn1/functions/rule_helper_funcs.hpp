@@ -4,6 +4,7 @@
 #include <nw/rules/ArmorClass.hpp>
 #include <nw/rules/Class.hpp>
 #include <nw/rules/Feat.hpp>
+#include <nw/rules/Modifier.hpp>
 #include <nw/rules/Race.hpp>
 #include <nw/rules/Skill.hpp>
 #include <nw/rules/Spell.hpp>

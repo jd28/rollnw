@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../log.hpp"
+#include "../rules/Modifier.hpp"
 #include "../rules/system.hpp"
 
 #include <flecs/flecs.h>
@@ -31,7 +32,7 @@ struct Rules {
      * @tparam U is some subtype that **must** be convertible to int
      */
     template <typename T, typename U = int>
-    T calculate(flecs::entity ent, int type, U subtype = -1) const;
+    T calculate(flecs::entity ent, const ModifierType type, U subtype = -1) const;
 
     /**
      * @brief Calculates a modifier
@@ -112,7 +113,7 @@ T Rules::calculate(const flecs::entity ent, const Modifier& mod) const
 }
 
 template <typename T, typename U>
-T Rules::calculate(flecs::entity ent, int type, U subtype) const
+T Rules::calculate(flecs::entity ent, const ModifierType type, U subtype) const
 {
     static_assert(std::is_same_v<T, int> || std::is_same_v<T, float>,
         "only int and float are allowed");
