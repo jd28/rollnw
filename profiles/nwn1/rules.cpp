@@ -225,6 +225,60 @@ nw::RuleValue selector(const nw::Selector& selector, const flecs::entity ent)
     return {};
 }
 
+nw::ModifierResult epic_great_strength(flecs::entity ent)
+{
+    auto nth = highest_feat_in_range(ent, feat_epic_great_strength_1, feat_epic_great_strength_10);
+    if (nth == nw::Feat::invalid) {
+        return 0;
+    }
+    return int(nth) - int(feat_epic_great_strength_1) + 1;
+}
+
+nw::ModifierResult epic_great_dexterity(flecs::entity ent)
+{
+    auto nth = highest_feat_in_range(ent, feat_epic_great_dexterity_1, feat_epic_great_dexterity_10);
+    if (nth == nw::Feat::invalid) {
+        return 0;
+    }
+    return int(nth) - int(feat_epic_great_dexterity_1) + 1;
+}
+
+nw::ModifierResult epic_great_constitution(flecs::entity ent)
+{
+    auto nth = highest_feat_in_range(ent, feat_epic_great_constitution_1, feat_epic_great_constitution_10);
+    if (nth == nw::Feat::invalid) {
+        return 0;
+    }
+    return int(nth) - int(feat_epic_great_constitution_1) + 1;
+}
+
+nw::ModifierResult epic_great_intelligence(flecs::entity ent)
+{
+    auto nth = highest_feat_in_range(ent, feat_epic_great_intelligence_1, feat_epic_great_intelligence_10);
+    if (nth == nw::Feat::invalid) {
+        return 0;
+    }
+    return int(nth) - int(feat_epic_great_intelligence_1) + 1;
+}
+
+nw::ModifierResult epic_great_wisdom(flecs::entity ent)
+{
+    auto nth = highest_feat_in_range(ent, feat_epic_great_wisdom_1, feat_epic_great_wisdom_10);
+    if (nth == nw::Feat::invalid) {
+        return 0;
+    }
+    return int(nth) - int(feat_epic_great_wisdom_1) + 1;
+}
+
+nw::ModifierResult epic_great_charisma(flecs::entity ent)
+{
+    auto nth = highest_feat_in_range(ent, feat_epic_great_charisma_1, feat_epic_great_charisma_10);
+    if (nth == nw::Feat::invalid) {
+        return 0;
+    }
+    return int(nth) - int(feat_epic_great_charisma_1) + 1;
+}
+
 nw::ModifierResult dragon_disciple_ac(flecs::entity ent)
 {
     // auto cls = nw::kernel::world().get<nw::ClassArray>();

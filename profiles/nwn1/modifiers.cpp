@@ -12,6 +12,42 @@ void load_modifiers()
 {
     LOG_F(INFO, "[nwn1] loading modifiers...");
 
+    nw::kernel::rules().add(mod::ability(
+        ability_strength,
+        epic_great_strength,
+        "dnd-3.0-epic-great-strength",
+        nw::ModifierSource::feat));
+
+    nw::kernel::rules().add(mod::ability(
+        ability_dexterity,
+        epic_great_dexterity,
+        "dnd-3.0-epic-great-dexterity",
+        nw::ModifierSource::feat));
+
+    nw::kernel::rules().add(mod::ability(
+        ability_constitution,
+        epic_great_constitution,
+        "dnd-3.0-epic-great-constitution",
+        nw::ModifierSource::feat));
+
+    nw::kernel::rules().add(mod::ability(
+        ability_intelligence,
+        epic_great_intelligence,
+        "dnd-3.0-epic-great-intelligence",
+        nw::ModifierSource::feat));
+
+    nw::kernel::rules().add(mod::ability(
+        ability_wisdom,
+        epic_great_wisdom,
+        "dnd-3.0-epic-great-wisdom",
+        nw::ModifierSource::feat));
+
+    nw::kernel::rules().add(mod::ability(
+        ability_charisma,
+        epic_great_charisma,
+        "dnd-3.0-epic-great-charisma",
+        nw::ModifierSource::feat));
+
     nw::kernel::rules().add(mod::armor_class(
         ac_natural,
         dragon_disciple_ac,

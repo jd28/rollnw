@@ -1,6 +1,9 @@
 #pragma once
 
+#include "../constants.hpp"
+
 #include <nw/components/Creature.hpp>
+#include <nw/kernel/Kernel.hpp>
 #include <nw/rules/Ability.hpp>
 #include <nw/util/EntityView.hpp>
 
@@ -16,12 +19,7 @@ inline int get_ability_score(nw::EntityView<nw::CreatureStats> ent,
 
     // Base
     int result = stats->abilities[static_cast<size_t>(ability)];
-
-    // Class
-
-    // Feat
-
-    // Race
+    result += nw::kernel::rules().calculate<int>(ent.ent, mod_type_ability, ability);
 
     if (base) {
         return result;

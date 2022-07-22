@@ -25,6 +25,7 @@ namespace mod {
         nw::Requirement req = nw::Requirement{}, nw::Versus versus = {})
 
 DECLARE_MOD_WITH_SUBTYPE(armor_class, nw::ArmorClass);
+DECLARE_MOD_WITH_SUBTYPE(ability, nw::Ability);
 DECLARE_MOD(hitpoints);
 
 #undef DECLARE_MOD

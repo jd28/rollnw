@@ -37,9 +37,7 @@ int get_skill_rank(flecs::entity ent, nw::Skill skill, bool base)
 
     if (untrained) {
         auto ability = get_ability_score(cre, ski->ability) - 10;
-        if (ability >= 2) {
-            result += ability / 2;
-        }
+        result += ability / 2;
     }
 
     // Feats

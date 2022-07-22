@@ -39,6 +39,7 @@ namespace mod {
     }
 
 DEFINE_MOD_WITH_SUBTYPE(armor_class, nw::ArmorClass, mod_type_armor_class)
+DEFINE_MOD_WITH_SUBTYPE(ability, nw::Ability, mod_type_ability);
 DEFINE_MOD(hitpoints, mod_type_hitpoints)
 
 } // namespace mod
