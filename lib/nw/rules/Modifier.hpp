@@ -42,6 +42,6 @@ struct Modifier {
 
 inline bool operator<(const Modifier& lhs, const Modifier& rhs)
 {
-    return std::tie(lhs.type, lhs.type, lhs.source) < std::tie(rhs.type, rhs.type, rhs.source);
+    return std::tie(lhs.type, lhs.subtype, lhs.source) < std::tie(rhs.type, rhs.subtype, rhs.source);
 }
 } // namespace nw

@@ -1,7 +1,7 @@
+#include <nw/components/Creature.hpp>
 #include <nw/formats/TwoDA.hpp>
 #include <nw/i18n/Tlk.hpp>
 #include <nw/kernel/Kernel.hpp>
-#include <nw/components/Creature.hpp>
 #include <nw/serialization/GffInputArchive.hpp>
 #include <nwn1/Profile.hpp>
 #include <nwn1/functions.hpp>
@@ -119,6 +119,17 @@ static void BM_creature_get_skill_rank(benchmark::State& state)
     }
 }
 
+static void BM_creature_ability_score(benchmark::State& state)
+{
+    auto ent = nw::kernel::objects().load(fs::path("../tests/test_data/user/development/pl_agent_001.utc"));
+    ent.get_mut<nw::CreatureStats>()->add_feat(nwn1::feat_epic_great_strength_1);
+    ent.get_mut<nw::CreatureStats>()->add_feat(nwn1::feat_epic_great_strength_2);
+    for (auto _ : state) {
+        auto out = nwn1::get_ability_score(ent, nwn1::ability_strength, false);
+        benchmark::DoNotOptimize(out);
+    }
+}
+
 BENCHMARK(BM_parse_feat_2da);
 BENCHMARK(BM_parse_settings_tml);
 BENCHMARK(BM_creature_from_gff);
@@ -129,6 +140,7 @@ BENCHMARK(BM_creature_select);
 BENCHMARK(BM_creature_select2);
 BENCHMARK(BM_creature_modifier);
 BENCHMARK(BM_creature_get_skill_rank);
+BENCHMARK(BM_creature_ability_score);
 
 int main(int argc, char** argv)
 {

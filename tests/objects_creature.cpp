@@ -134,6 +134,23 @@ TEST_CASE("creature: skills ", "[objects]")
     nwk::unload_module();
 }
 
+TEST_CASE("creature: ability ", "[objects]")
+{
+    auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
+    REQUIRE(mod);
+
+    auto ent = nw::kernel::objects().load(fs::path("test_data/user/development/pl_agent_001.utc"));
+    REQUIRE(ent.is_alive());
+
+    REQUIRE(nwn1::get_ability_score(ent, nwn1::ability_strength, false) == 40);
+    ent.get_mut<nw::CreatureStats>()->add_feat(nwn1::feat_epic_great_strength_1);
+    REQUIRE(nwn1::get_ability_score(ent, nwn1::ability_strength, false) == 41);
+    ent.get_mut<nw::CreatureStats>()->add_feat(nwn1::feat_epic_great_strength_2);
+    REQUIRE(nwn1::get_ability_score(ent, nwn1::ability_strength, false) == 42);
+
+    nwk::unload_module();
+}
+
 TEST_CASE("creature: to_json", "[objects]")
 {
     auto ent = nw::kernel::objects().load(fs::path("test_data/user/development/pl_agent_001.utc"));
