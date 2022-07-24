@@ -661,7 +661,8 @@ std::unique_ptr<VarDecl> NssParser::parse_decl_global_var()
     consume(NssTokenType::IDENTIFIER, "Expected 'IDENTIFIER'.");
     ret->identifier = previous();
     if (match({NssTokenType::EQ})) {
-        ret->init = parse_expr_primary();
+        // [TODO] Parse is going to need to error on non constant expressions
+        ret->init = parse_expr();
     }
     consume(NssTokenType::SEMICOLON, "Expected ';'.");
 
