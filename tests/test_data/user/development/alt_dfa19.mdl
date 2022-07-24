@@ -18,7 +18,7 @@ node trimesh rootdummy
   parent alt_dfa19
   position 0.0 0.0356713 1.1914
   orientation 1.0 0.0 0.0 -8.82068e-007
-  wirecolor 1.0 1.0 1.0 
+  wirecolor 1.0 1.0 1.0
   tilefade 0
   scale 1.0
   render 1
@@ -28,12 +28,12 @@ node trimesh rootdummy
   rotatetexture 0
   alpha 1.0
   transparencyhint 0
-  selfillumcolor 0.0 0.0 0.0 
-  ambient 0.0 0.0 0.0 
-  Diffuse 0.0 0.0 0.0 
-  Specular 0.0 0.0 0.0 
+  selfillumcolor 0.0 0.0 0.0
+  ambient 0.0 0.0 0.0
+  Diffuse 0.0 0.0 0.0
+  Specular 0.0 0.0 0.0
   shininess 0
-  center 0.0 5.06639e-006 0.0 
+  center 0.0 5.06639e-006 0.0
   bitmap pfh0_neck001
   verts 8
     -0.0226925 0.0194507 -0.0194507
@@ -62,7 +62,7 @@ node trimesh pelvis_g
   parent rootdummy
   position 0.000694303 0.0106959 -0.000543553
   orientation 1.0 0.0 0.0 -9.0001e-007
-  wirecolor 1.0 1.0 1.0 
+  wirecolor 1.0 1.0 1.0
   tilefade 0
   scale 1.0
   render 1
@@ -72,12 +72,12 @@ node trimesh pelvis_g
   rotatetexture 0
   alpha 1.0
   transparencyhint 0
-  selfillumcolor 0.0 0.0 0.0 
-  ambient 0.0 0.0 0.0 
-  Diffuse 0.0 0.0 0.0 
-  Specular 0.0 0.0 0.0 
+  selfillumcolor 0.0 0.0 0.0
+  ambient 0.0 0.0 0.0
+  Diffuse 0.0 0.0 0.0
+  Specular 0.0 0.0 0.0
   shininess 0
-  center -0.15095 -5.1497 -12.6655 
+  center -0.15095 -5.1497 -12.6655
   bitmap pfh0_pelvis001
   verts 43
     -0.100836 0.0971584 0.0014331
@@ -273,7 +273,7 @@ node trimesh lthigh_g
   parent pelvis_g
   position -0.123393 -0.0451095 -0.19518
   orientation 1.0 0.0 0.0 0.0
-  wirecolor 1.0 1.0 1.0 
+  wirecolor 1.0 1.0 1.0
   tilefade 0
   scale 1.0
   render 1
@@ -283,12 +283,12 @@ node trimesh lthigh_g
   rotatetexture 0
   alpha 1.0
   transparencyhint 0
-  selfillumcolor 0.0 0.0 0.0 
-  ambient 0.0 0.0 0.0 
-  Diffuse 0.0 0.0 0.0 
-  Specular 0.0 0.0 0.0 
+  selfillumcolor 0.0 0.0 0.0
+  ambient 0.0 0.0 0.0
+  Diffuse 0.0 0.0 0.0
+  Specular 0.0 0.0 0.0
   shininess 0
-  center -1.14345 0.2709 -20.0535 
+  center -1.14345 0.2709 -20.0535
   bitmap pfh0_legl001
   verts 16
     -0.000213928 0.0928469 0.0740276
@@ -374,7 +374,7 @@ node trimesh lshin_g
   parent lthigh_g
   position 0.0207886 -0.00882254 -0.469701
   orientation 1.0 0.0 0.0 0.0
-  wirecolor 1.0 1.0 1.0 
+  wirecolor 1.0 1.0 1.0
   tilefade 0
   scale 1.0
   render 1
@@ -384,12 +384,12 @@ node trimesh lshin_g
   rotatetexture 0
   alpha 1.0
   transparencyhint 0
-  selfillumcolor 0.0 0.0 0.0 
-  ambient 0.0 0.0 0.0 
-  Diffuse 0.0 0.0 0.0 
-  Specular 0.0 0.0 0.0 
+  selfillumcolor 0.0 0.0 0.0
+  ambient 0.0 0.0 0.0
+  Diffuse 0.0 0.0 0.0
+  Specular 0.0 0.0 0.0
   shininess 0
-  center -0.0896101 -4.76019 -20.2846 
+  center -0.0896101 -4.76019 -20.2846
   bitmap pfh0_shinl001
   verts 18
     -0.0409029 -0.000583977 0.0015055
@@ -480,7 +480,7 @@ node trimesh lfoot_g
   parent lshin_g
   position 0.0475498 -0.0911977 -0.413147
   orientation 1.0 0.0 0.0 0.0
-  wirecolor 1.0 1.0 1.0 
+  wirecolor 1.0 1.0 1.0
   tilefade 0
   scale 1.0
   render 1
@@ -490,12 +490,12 @@ node trimesh lfoot_g
   rotatetexture 0
   alpha 1.0
   transparencyhint 0
-  selfillumcolor 0.0 0.0 0.0 
-  ambient 0.0 0.0 0.0 
-  Diffuse 0.0 0.0 0.0 
-  Specular 0.0 0.0 0.0 
+  selfillumcolor 0.0 0.0 0.0
+  ambient 0.0 0.0 0.0
+  Diffuse 0.0 0.0 0.0
+  Specular 0.0 0.0 0.0
   shininess 0
-  center -1.9427 10.3459 -6.37345 
+  center -1.9427 10.3459 -6.37345
   bitmap pmh0_footl001
   verts 12
     -0.04026 0.000503219 -0.000713479
@@ -562,7 +562,7 @@ node trimesh rthigh_g
   parent pelvis_g
   position 0.121507 -0.0451095 -0.19518
   orientation 1.0 0.0 0.0 0.0
-  wirecolor 1.0 1.0 1.0 
+  wirecolor 1.0 1.0 1.0
   tilefade 0
   scale 1.0
   render 1
@@ -572,12 +572,12 @@ node trimesh rthigh_g
   rotatetexture 0
   alpha 1.0
   transparencyhint 0
-  selfillumcolor 0.0 0.0 0.0 
-  ambient 0.0 0.0 0.0 
-  Diffuse 0.0 0.0 0.0 
-  Specular 0.0 0.0 0.0 
+  selfillumcolor 0.0 0.0 0.0
+  ambient 0.0 0.0 0.0
+  Diffuse 0.0 0.0 0.0
+  Specular 0.0 0.0 0.0
   shininess 0
-  center 1.14345 0.2709 -20.0535 
+  center 1.14345 0.2709 -20.0535
   bitmap pfh0_legl001
   verts 16
     0.0247519 -0.0624177 0.0670601
@@ -663,7 +663,7 @@ node trimesh rshin_g
   parent rthigh_g
   position -0.0207902 -0.00882252 -0.469701
   orientation 1.0 0.0 0.0 0.0
-  wirecolor 1.0 1.0 1.0 
+  wirecolor 1.0 1.0 1.0
   tilefade 0
   scale 1.0
   render 1
@@ -673,12 +673,12 @@ node trimesh rshin_g
   rotatetexture 0
   alpha 1.0
   transparencyhint 0
-  selfillumcolor 0.0 0.0 0.0 
-  ambient 0.0 0.0 0.0 
-  Diffuse 0.0 0.0 0.0 
-  Specular 0.0 0.0 0.0 
+  selfillumcolor 0.0 0.0 0.0
+  ambient 0.0 0.0 0.0
+  Diffuse 0.0 0.0 0.0
+  Specular 0.0 0.0 0.0
   shininess 0
-  center 0.0896101 -4.76018 -20.2846 
+  center 0.0896101 -4.76018 -20.2846
   bitmap pfh0_shinl001
   verts 18
     -0.00383281 -0.0020419 0.0364248
@@ -769,7 +769,7 @@ node trimesh rfoot_g
   parent rshin_g
   position -0.0475498 -0.0911976 -0.413146
   orientation 1.0 0.0 0.0 -1.26441e-007
-  wirecolor 1.0 1.0 1.0 
+  wirecolor 1.0 1.0 1.0
   tilefade 0
   scale 1.0
   render 1
@@ -779,12 +779,12 @@ node trimesh rfoot_g
   rotatetexture 0
   alpha 1.0
   transparencyhint 0
-  selfillumcolor 0.0 0.0 0.0 
-  ambient 0.0 0.0 0.0 
-  Diffuse 0.0 0.0 0.0 
-  Specular 0.0 0.0 0.0 
+  selfillumcolor 0.0 0.0 0.0
+  ambient 0.0 0.0 0.0
+  Diffuse 0.0 0.0 0.0
+  Specular 0.0 0.0 0.0
   shininess 0
-  center 1.9427 10.3459 -6.37345 
+  center 1.9427 10.3459 -6.37345
   bitmap pmh0_footl001
   verts 12
     0.0918497 0.0017534 -0.136895
@@ -851,7 +851,7 @@ node trimesh belt_g
   parent pelvis_g
   position 0.0 0.0 0.0
   orientation 1.0 0.0 0.0 0.0
-  wirecolor 1.0 1.0 1.0 
+  wirecolor 1.0 1.0 1.0
   tilefade 0
   scale 1.0
   render 1
@@ -861,12 +861,12 @@ node trimesh belt_g
   rotatetexture 0
   alpha 1.0
   transparencyhint 0
-  selfillumcolor 0.0 0.0 0.0 
-  ambient 0.0 0.0 0.0 
-  Diffuse 0.0 0.0 0.0 
-  Specular 0.0 0.0 0.0 
+  selfillumcolor 0.0 0.0 0.0
+  ambient 0.0 0.0 0.0
+  Diffuse 0.0 0.0 0.0
+  Specular 0.0 0.0 0.0
   shininess 0
-  center 4.86374e-005 -5.24695 -5.62469 
+  center 4.86374e-005 -5.24695 -5.62469
   bitmap pfh0_belt001
   verts 21
     0.205342 -0.0185135 -0.0392488
@@ -958,7 +958,7 @@ node trimesh belt_pelvis
   parent pelvis_g
   position 7.60269e-005 -0.0144486 0.000824489
   orientation 1.0 0.0 0.0 -9.52743e-007
-  wirecolor 0.564706 0.109804 0.694118 
+  wirecolor 0.564706 0.109804 0.694118
   tilefade 0
   scale 1.0
   render 1
@@ -968,12 +968,12 @@ node trimesh belt_pelvis
   rotatetexture 0
   alpha 1.0
   transparencyhint 0
-  selfillumcolor 0.0 0.0 0.0 
-  ambient 1.0 1.0 1.0 
-  Diffuse 1.0 1.0 1.0 
-  Specular 0.0 0.0 0.0 
+  selfillumcolor 0.0 0.0 0.0
+  ambient 1.0 1.0 1.0
+  Diffuse 1.0 1.0 1.0
+  Specular 0.0 0.0 0.0
   shininess 0
-  center -0.151 -3.58405 -12.6716 
+  center -0.151 -3.58405 -12.6716
   bitmap pmh0_robe030
   verts 53
     0.0925392 -0.0779094 -0.000145461
@@ -1212,7 +1212,7 @@ node trimesh torso_g
   parent rootdummy
   position -0.000248995 0.0106959 -0.000543477
   orientation 1.0 0.0 0.0 -8.90087e-007
-  wirecolor 1.0 1.0 1.0 
+  wirecolor 1.0 1.0 1.0
   tilefade 0
   scale 1.0
   render 1
@@ -1222,12 +1222,12 @@ node trimesh torso_g
   rotatetexture 0
   alpha 1.0
   transparencyhint 0
-  selfillumcolor 0.0 0.0 0.0 
-  ambient 0.0 0.0 0.0 
-  Diffuse 0.0 0.0 0.0 
-  Specular 0.0 0.0 0.0 
+  selfillumcolor 0.0 0.0 0.0
+  ambient 0.0 0.0 0.0
+  Diffuse 0.0 0.0 0.0
+  Specular 0.0 0.0 0.0
   shininess 0
-  center 0.0 -0.2135 24.7154 
+  center 0.0 -0.2135 24.7154
   bitmap pfh0_chest001
   verts 47
     0.0 0.127656 0.236604
@@ -1431,13 +1431,13 @@ node dummy Impact
   parent torso_g
   position 0.00188624 0.0870239 0.107788
   orientation 1.0 0.0 0.0 0.0
-  wirecolor 0.341176 0.878431 0.776471 
+  wirecolor 0.341176 0.878431 0.776471
 endnode
 node trimesh lbicep_g
   parent torso_g
   position -0.27657 -0.0506329 0.423501
   orientation 1.0 0.0 0.0 0.0
-  wirecolor 1.0 1.0 1.0 
+  wirecolor 1.0 1.0 1.0
   tilefade 0
   scale 1.0
   render 1
@@ -1447,12 +1447,12 @@ node trimesh lbicep_g
   rotatetexture 0
   alpha 1.0
   transparencyhint 0
-  selfillumcolor 0.0 0.0 0.0 
-  ambient 0.0 0.0 0.0 
-  Diffuse 0.0 0.0 0.0 
-  Specular 0.0 0.0 0.0 
+  selfillumcolor 0.0 0.0 0.0
+  ambient 0.0 0.0 0.0
+  Diffuse 0.0 0.0 0.0
+  Specular 0.0 0.0 0.0
   shininess 0
-  center -3.18739 0.682859 -17.0668 
+  center -3.18739 0.682859 -17.0668
   bitmap pfh0_bicepl001
   verts 21
     -0.0157923 0.102876 -0.0298516
@@ -1554,7 +1554,7 @@ node trimesh lforearm_g
   parent lbicep_g
   position -0.05298 -0.0418663 -0.378807
   orientation 1.0 0.0 0.0 0.0
-  wirecolor 1.0 1.0 1.0 
+  wirecolor 1.0 1.0 1.0
   tilefade 0
   scale 1.0
   render 1
@@ -1564,12 +1564,12 @@ node trimesh lforearm_g
   rotatetexture 0
   alpha 1.0
   transparencyhint 0
-  selfillumcolor 0.0 0.0 0.0 
-  ambient 0.0 0.0 0.0 
-  Diffuse 0.0 0.0 0.0 
-  Specular 0.0 0.0 0.0 
+  selfillumcolor 0.0 0.0 0.0
+  ambient 0.0 0.0 0.0
+  Diffuse 0.0 0.0 0.0
+  Specular 0.0 0.0 0.0
   shininess 0
-  center 0.060885 1.52055 -17.3648 
+  center 0.060885 1.52055 -17.3648
   bitmap pmh0_forel001
   verts 16
     -0.0685045 0.0120767 -0.0479033
@@ -1654,7 +1654,7 @@ node trimesh lhand_g
   parent lforearm_g
   position -0.0434362 0.0383915 -0.364858
   orientation 1.0 0.0 0.0 0.0
-  wirecolor 1.0 1.0 1.0 
+  wirecolor 1.0 1.0 1.0
   tilefade 0
   scale 1.0
   render 1
@@ -1664,12 +1664,12 @@ node trimesh lhand_g
   rotatetexture 0
   alpha 1.0
   transparencyhint 0
-  selfillumcolor 0.0 0.0 0.0 
-  ambient 0.0 0.0 0.0 
-  Diffuse 0.0 0.0 0.0 
-  Specular 0.0 0.0 0.0 
+  selfillumcolor 0.0 0.0 0.0
+  ambient 0.0 0.0 0.0
+  Diffuse 0.0 0.0 0.0
+  Specular 0.0 0.0 0.0
   shininess 0
-  center -1.50302 1.44536 -8.28826 
+  center -1.50302 1.44536 -8.28826
   bitmap pfh0_handr099
   verts 10
     0.04908 0.0960505 -0.11777
@@ -1725,13 +1725,13 @@ node dummy lforearm
   parent lforearm_g
   position -0.0301827 -1.65363e-007 -0.187034
   orientation -0.0104647 -0.947742 -0.318867 -0.0736758
-  wirecolor 0.0235294 0.52549 0.227451 
+  wirecolor 0.0235294 0.52549 0.227451
 endnode
 node trimesh lshoulder_g
   parent lbicep_g
   position 0.00999996 -3.64618e-006 1.45023e-007
   orientation 1.0 0.0 0.0 0.0
-  wirecolor 1.0 1.0 1.0 
+  wirecolor 1.0 1.0 1.0
   tilefade 0
   scale 1.0
   render 1
@@ -1741,12 +1741,12 @@ node trimesh lshoulder_g
   rotatetexture 0
   alpha 1.0
   transparencyhint 0
-  selfillumcolor 0.0 0.0 0.0 
-  ambient 0.0 0.0 0.0 
-  Diffuse 0.0 0.0 0.0 
-  Specular 0.0 0.0 0.0 
+  selfillumcolor 0.0 0.0 0.0
+  ambient 0.0 0.0 0.0
+  Diffuse 0.0 0.0 0.0
+  Specular 0.0 0.0 0.0
   shininess 0
-  center -6.3624 0.96805 0.80311 
+  center -6.3624 0.96805 0.80311
   bitmap pmh0_shol001
   verts 17
     -0.0184241 0.128765 -0.030658
@@ -1820,7 +1820,7 @@ node trimesh rbicep_g
   parent torso_g
   position 0.27657 -0.0506366 0.423501
   orientation 1.0 0.0 0.0 0.0
-  wirecolor 1.0 1.0 1.0 
+  wirecolor 1.0 1.0 1.0
   tilefade 0
   scale 1.0
   render 1
@@ -1830,12 +1830,12 @@ node trimesh rbicep_g
   rotatetexture 0
   alpha 1.0
   transparencyhint 0
-  selfillumcolor 0.0 0.0 0.0 
-  ambient 0.0 0.0 0.0 
-  Diffuse 0.0 0.0 0.0 
-  Specular 0.0 0.0 0.0 
+  selfillumcolor 0.0 0.0 0.0
+  ambient 0.0 0.0 0.0
+  Diffuse 0.0 0.0 0.0
+  Specular 0.0 0.0 0.0
   shininess 0
-  center 3.18739 0.682859 -17.0668 
+  center 3.18739 0.682859 -17.0668
   bitmap pfh0_bicepl001
   verts 21
     0.108804 0.0329919 -0.031385
@@ -1937,7 +1937,7 @@ node trimesh rforearm_g
   parent rbicep_g
   position 0.0529803 -0.0418626 -0.378807
   orientation 1.0 0.0 0.0 0.0
-  wirecolor 1.0 1.0 1.0 
+  wirecolor 1.0 1.0 1.0
   tilefade 0
   scale 1.0
   render 1
@@ -1947,12 +1947,12 @@ node trimesh rforearm_g
   rotatetexture 0
   alpha 1.0
   transparencyhint 0
-  selfillumcolor 0.0 0.0 0.0 
-  ambient 0.0 0.0 0.0 
-  Diffuse 0.0 0.0 0.0 
-  Specular 0.0 0.0 0.0 
+  selfillumcolor 0.0 0.0 0.0
+  ambient 0.0 0.0 0.0
+  Diffuse 0.0 0.0 0.0
+  Specular 0.0 0.0 0.0
   shininess 0
-  center -0.0608952 1.52055 -17.3648 
+  center -0.0608952 1.52055 -17.3648
   bitmap pmh0_forel001
   verts 16
     -0.015892 -0.0362153 0.0290175
@@ -2037,7 +2037,7 @@ node trimesh rhand_g
   parent rforearm_g
   position 0.0434398 0.0383915 -0.364857
   orientation 1.0 0.0 0.0 0.0
-  wirecolor 1.0 1.0 1.0 
+  wirecolor 1.0 1.0 1.0
   tilefade 0
   scale 1.0
   render 1
@@ -2047,12 +2047,12 @@ node trimesh rhand_g
   rotatetexture 0
   alpha 1.0
   transparencyhint 0
-  selfillumcolor 0.0 0.0 0.0 
-  ambient 0.0 0.0 0.0 
-  Diffuse 0.0 0.0 0.0 
-  Specular 0.0 0.0 0.0 
+  selfillumcolor 0.0 0.0 0.0
+  ambient 0.0 0.0 0.0
+  Diffuse 0.0 0.0 0.0
+  Specular 0.0 0.0 0.0
   shininess 0
-  center 1.50302 1.44536 -8.28826 
+  center 1.50302 1.44536 -8.28826
   bitmap pfh0_handr099
   verts 10
     -0.0220551 0.0403006 -0.00433082
@@ -2108,7 +2108,7 @@ node trimesh rshoulder_g
   parent rbicep_g
   position -0.00999992 0.0 0.0
   orientation 1.0 0.0 0.0 0.0
-  wirecolor 1.0 1.0 1.0 
+  wirecolor 1.0 1.0 1.0
   tilefade 0
   scale 1.0
   render 1
@@ -2118,12 +2118,12 @@ node trimesh rshoulder_g
   rotatetexture 0
   alpha 1.0
   transparencyhint 0
-  selfillumcolor 0.0 0.0 0.0 
-  ambient 0.0 0.0 0.0 
-  Diffuse 0.0 0.0 0.0 
-  Specular 0.0 0.0 0.0 
+  selfillumcolor 0.0 0.0 0.0
+  ambient 0.0 0.0 0.0
+  Diffuse 0.0 0.0 0.0
+  Specular 0.0 0.0 0.0
   shininess 0
-  center 6.3624 0.96805 0.80311 
+  center 6.3624 0.96805 0.80311
   bitmap pmh0_shol001
   verts 17
     0.136249 0.0342861 -0.00561056
@@ -2197,7 +2197,7 @@ node trimesh neck_g
   parent torso_g
   position -0.00013835 -0.0639849 0.483362
   orientation 1.0 0.0 0.0 0.0
-  wirecolor 1.0 1.0 1.0 
+  wirecolor 1.0 1.0 1.0
   tilefade 0
   scale 1.0
   render 1
@@ -2207,12 +2207,12 @@ node trimesh neck_g
   rotatetexture 0
   alpha 1.0
   transparencyhint 0
-  selfillumcolor 0.0 0.0 0.0 
-  ambient 0.0 0.0 0.0 
-  Diffuse 0.0 0.0 0.0 
-  Specular 0.0 0.0 0.0 
+  selfillumcolor 0.0 0.0 0.0
+  ambient 0.0 0.0 0.0
+  Diffuse 0.0 0.0 0.0
+  Specular 0.0 0.0 0.0
   shininess 0
-  center 0.0 -0.21033 4.31995 
+  center 0.0 -0.21033 4.31995
   bitmap pfh0_neck001
   verts 10
     0.0 0.00511873 -0.0737261
@@ -2258,7 +2258,7 @@ node trimesh head_g
   parent neck_g
   position 0.000337219 0.00962933 0.0781962
   orientation 1.0 0.0 0.0 0.0
-  wirecolor 1.0 1.0 1.0 
+  wirecolor 1.0 1.0 1.0
   tilefade 0
   scale 1.0
   render 1
@@ -2268,12 +2268,12 @@ node trimesh head_g
   rotatetexture 0
   alpha 1.0
   transparencyhint 0
-  selfillumcolor 0.0 0.0 0.0 
-  ambient 0.0 0.0 0.0 
-  Diffuse 0.0 0.0 0.0 
-  Specular 0.0 0.0 0.0 
+  selfillumcolor 0.0 0.0 0.0
+  ambient 0.0 0.0 0.0
+  Diffuse 0.0 0.0 0.0
+  Specular 0.0 0.0 0.0
   shininess 0
-  center 0.0 -6.64515 14.7063 
+  center 0.0 -6.64515 14.7063
   bitmap pfo0_head001
   verts 85
     0.0 0.132625 -0.0352774
@@ -2600,7 +2600,7 @@ node trimesh Cloak_g
   parent torso_g
   position 2.81811e-006 -0.098398 0.5001
   orientation 0.0100166 -0.942737 -0.333386 -4.16273e-006
-  wirecolor 0.894118 0.894118 0.894118 
+  wirecolor 0.894118 0.894118 0.894118
   tilefade 0
   scale 1.0
   render 0
@@ -2610,12 +2610,12 @@ node trimesh Cloak_g
   rotatetexture 0
   alpha 1.0
   transparencyhint 0
-  selfillumcolor 0.0 0.0 0.0 
-  ambient 1.0 1.0 1.0 
-  Diffuse 0.0 0.717647 0.0509804 
-  Specular 0.0 0.0 0.0 
+  selfillumcolor 0.0 0.0 0.0
+  ambient 1.0 1.0 1.0
+  Diffuse 0.0 0.717647 0.0509804
+  Specular 0.0 0.0 0.0
   shininess 3
-  center 0.0 7.88845 -5.35478 
+  center 0.0 7.88845 -5.35478
   bitmap pfo0_cloak_004
   verts 15
     0.0 0.273465 -0.168413
@@ -2654,7 +2654,7 @@ node trimesh CM1_g
   parent Cloak_g
   position 0.0 -0.167657 -0.0604499
   orientation 1.0 0.0 0.0 0.0
-  wirecolor 0.337255 0.337255 0.337255 
+  wirecolor 0.337255 0.337255 0.337255
   tilefade 0
   scale 1.0
   render 0
@@ -2664,12 +2664,12 @@ node trimesh CM1_g
   rotatetexture 0
   alpha 1.0
   transparencyhint 0
-  selfillumcolor 0.0 0.0 0.0 
-  ambient 1.0 1.0 1.0 
-  Diffuse 0.0 0.717647 0.0509804 
-  Specular 0.0 0.0 0.0 
+  selfillumcolor 0.0 0.0 0.0
+  ambient 1.0 1.0 1.0
+  Diffuse 0.0 0.717647 0.0509804
+  Specular 0.0 0.0 0.0
   shininess 3
-  center -0.00025177 11.3545 -20.1975 
+  center -0.00025177 11.3545 -20.1975
   bitmap pfo0_cloak_004
   verts 22
     0.291402 0.245129 -0.031124
@@ -2734,7 +2734,7 @@ node trimesh CM2_g
   parent CM1_g
   position 0.0 -0.00747997 -0.42202
   orientation 1.0 0.0 0.0 0.0
-  wirecolor 0.882353 0.882353 0.882353 
+  wirecolor 0.882353 0.882353 0.882353
   tilefade 0
   scale 1.0
   render 0
@@ -2744,12 +2744,12 @@ node trimesh CM2_g
   rotatetexture 0
   alpha 1.0
   transparencyhint 0
-  selfillumcolor 0.0 0.0 0.0 
-  ambient 1.0 1.0 1.0 
-  Diffuse 0.0 0.717647 0.0509804 
-  Specular 0.0 0.0 0.0 
+  selfillumcolor 0.0 0.0 0.0
+  ambient 1.0 1.0 1.0
+  Diffuse 0.0 0.717647 0.0509804
+  Specular 0.0 0.0 0.0
   shininess 3
-  center -5.14984e-005 4.82076 -16.1716 
+  center -5.14984e-005 4.82076 -16.1716
   bitmap pfo0_cloak_004
   verts 32
     0.395028 0.122342 0.00952259
@@ -2826,7 +2826,7 @@ node trimesh CM3_g
   parent CM2_g
   position 0.0 -0.026089 -0.335054
   orientation 1.0 0.0 0.0 0.0
-  wirecolor 0.87451 0.87451 0.87451 
+  wirecolor 0.87451 0.87451 0.87451
   tilefade 0
   scale 1.0
   render 0
@@ -2836,12 +2836,12 @@ node trimesh CM3_g
   rotatetexture 0
   alpha 1.0
   transparencyhint 0
-  selfillumcolor 0.0 0.0 0.0 
-  ambient 1.0 1.0 1.0 
-  Diffuse 0.0 0.717647 0.0509804 
-  Specular 0.0 0.0 0.0 
+  selfillumcolor 0.0 0.0 0.0
+  ambient 1.0 1.0 1.0
+  Diffuse 0.0 0.717647 0.0509804
+  Specular 0.0 0.0 0.0
   shininess 3
-  center 0.0 6.98329 -23.8768 
+  center 0.0 6.98329 -23.8768
   bitmap pfo0_cloak_004
   verts 32
     0.316743 0.0129604 -0.479786
@@ -2918,7 +2918,7 @@ node trimesh CM4_g
   parent CM3_g
   position 0.0 -0.028406 -0.48285
   orientation 1.0 0.0 0.0 0.0
-  wirecolor 0.721569 0.721569 0.721569 
+  wirecolor 0.721569 0.721569 0.721569
   tilefade 0
   scale 1.0
   render 0
@@ -2928,12 +2928,12 @@ node trimesh CM4_g
   rotatetexture 0
   alpha 1.0
   transparencyhint 0
-  selfillumcolor 0.0 0.0 0.0 
-  ambient 1.0 1.0 1.0 
-  Diffuse 0.0 0.717647 0.0509804 
-  Specular 0.0 0.0 0.0 
+  selfillumcolor 0.0 0.0 0.0
+  ambient 1.0 1.0 1.0
+  Diffuse 0.0 0.717647 0.0509804
+  Specular 0.0 0.0 0.0
   shininess 3
-  center 4.95911e-005 10.3229 -9.13018 
+  center 4.95911e-005 10.3229 -9.13018
   bitmap pfo0_cloak_004
   verts 21
     0.0 -0.0147912 -0.242506
@@ -2989,7 +2989,7 @@ node trimesh CL1_fg
   parent Cloak_g
   position -0.334171 0.0295965 0.0499588
   orientation 1.0 0.0 0.0 0.0
-  wirecolor 0.101961 0.101961 0.101961 
+  wirecolor 0.101961 0.101961 0.101961
   tilefade 0
   scale 1.0
   render 0
@@ -2999,12 +2999,12 @@ node trimesh CL1_fg
   rotatetexture 0
   alpha 1.0
   transparencyhint 0
-  selfillumcolor 0.0 0.0 0.0 
-  ambient 1.0 1.0 1.0 
-  Diffuse 0.0 0.717647 0.0509804 
-  Specular 0.0 0.0 0.0 
+  selfillumcolor 0.0 0.0 0.0
+  ambient 1.0 1.0 1.0
+  Diffuse 0.0 0.717647 0.0509804
+  Specular 0.0 0.0 0.0
   shininess 3
-  center -3.17684 10.3838 -26.6454 
+  center -3.17684 10.3838 -26.6454
   bitmap pfo0_cloak_004
   verts 6
     -0.104958 0.0117666 -0.121718
@@ -3023,7 +3023,7 @@ node trimesh CR1_fg
   parent Cloak_g
   position 0.330449 0.0295966 0.0499514
   orientation 1.0 0.0 0.0 0.0
-  wirecolor 0.101961 0.101961 0.101961 
+  wirecolor 0.101961 0.101961 0.101961
   tilefade 0
   scale 1.0
   render 0
@@ -3033,12 +3033,12 @@ node trimesh CR1_fg
   rotatetexture 0
   alpha 1.0
   transparencyhint 0
-  selfillumcolor 0.0 0.0 0.0 
-  ambient 1.0 1.0 1.0 
-  Diffuse 0.0 0.717647 0.0509804 
-  Specular 0.0 0.0 0.0 
+  selfillumcolor 0.0 0.0 0.0
+  ambient 1.0 1.0 1.0
+  Diffuse 0.0 0.717647 0.0509804
+  Specular 0.0 0.0 0.0
   shininess 3
-  center 3.17684 10.3838 -26.6454 
+  center 3.17684 10.3838 -26.6454
   bitmap pfo0_cloak_004
   verts 6
     0.104958 0.0117667 -0.121718
@@ -3057,7 +3057,7 @@ node trimesh cloak_shL
   parent Cloak_g
   position -0.147979 0.00479019 0.0572495
   orientation 1.0 0.0 0.0 0.0
-  wirecolor 0.521569 0.521569 0.521569 
+  wirecolor 0.521569 0.521569 0.521569
   tilefade 0
   scale 1.0
   render 0
@@ -3067,12 +3067,12 @@ node trimesh cloak_shL
   rotatetexture 0
   alpha 1.0
   transparencyhint 0
-  selfillumcolor 0.0 0.0 0.0 
-  ambient 1.0 1.0 1.0 
-  Diffuse 0.0 0.717647 0.0509804 
-  Specular 0.0 0.0 0.0 
+  selfillumcolor 0.0 0.0 0.0
+  ambient 1.0 1.0 1.0
+  Diffuse 0.0 0.717647 0.0509804
+  Specular 0.0 0.0 0.0
   shininess 3
-  center -6.12638 1.9215 -4.66927 
+  center -6.12638 1.9215 -4.66927
   bitmap pfo0_cloak_004
   verts 6
     -0.164905 0.013906 -0.0337591
@@ -3091,7 +3091,7 @@ node trimesh cloak_shR
   parent Cloak_g
   position 0.140027 0.00478979 0.0572406
   orientation 1.0 0.0 0.0 0.0
-  wirecolor 0.521569 0.521569 0.521569 
+  wirecolor 0.521569 0.521569 0.521569
   tilefade 0
   scale 1.0
   render 0
@@ -3101,12 +3101,12 @@ node trimesh cloak_shR
   rotatetexture 0
   alpha 1.0
   transparencyhint 0
-  selfillumcolor 0.0 0.0 0.0 
-  ambient 1.0 1.0 1.0 
-  Diffuse 0.0 0.717647 0.0509804 
-  Specular 0.0 0.0 0.0 
+  selfillumcolor 0.0 0.0 0.0
+  ambient 1.0 1.0 1.0
+  Diffuse 0.0 0.717647 0.0509804
+  Specular 0.0 0.0 0.0
   shininess 3
-  center 6.12638 1.9215 -4.6689 
+  center 6.12638 1.9215 -4.6689
   bitmap pfo0_cloak_004
   verts 6
     -0.0423773 -0.0260357 0.00949395
@@ -3125,7 +3125,7 @@ node trimesh CL1_g
   parent Cloak_g
   position -0.334171 -0.0132965 0.0350288
   orientation 1.0 -6.93896e-007 1.52713e-007 -1.88486e-007
-  wirecolor 0.54902 0.54902 0.54902 
+  wirecolor 0.54902 0.54902 0.54902
   tilefade 0
   scale 1.0
   render 0
@@ -3135,12 +3135,12 @@ node trimesh CL1_g
   rotatetexture 0
   alpha 1.0
   transparencyhint 0
-  selfillumcolor 0.0 0.0 0.0 
-  ambient 1.0 1.0 1.0 
-  Diffuse 0.0 0.72549 0.631373 
-  Specular 0.0 0.0 0.0 
+  selfillumcolor 0.0 0.0 0.0
+  ambient 1.0 1.0 1.0
+  Diffuse 0.0 0.72549 0.631373
+  Specular 0.0 0.0 0.0
   shininess 3
-  center -1.26729 -5.92017 -23.737 
+  center -1.26729 -5.92017 -23.737
   bitmap pfo0_cloak_004
   verts 5
     -0.105061 0.0116644 -0.0919075
@@ -3157,7 +3157,7 @@ node trimesh CL2_g
   parent CL1_g
   position -0.0255303 -0.128841 -0.46413
   orientation 1.0 0.0 0.0 0.0
-  wirecolor 0.87451 0.87451 0.87451 
+  wirecolor 0.87451 0.87451 0.87451
   tilefade 0
   scale 1.0
   render 0
@@ -3167,12 +3167,12 @@ node trimesh CL2_g
   rotatetexture 0
   alpha 1.0
   transparencyhint 0
-  selfillumcolor 0.0 0.0 0.0 
-  ambient 1.0 1.0 1.0 
-  Diffuse 0.0 0.72549 0.631373 
-  Specular 0.0 0.0 0.0 
+  selfillumcolor 0.0 0.0 0.0
+  ambient 1.0 1.0 1.0
+  Diffuse 0.0 0.72549 0.631373
+  Specular 0.0 0.0 0.0
   shininess 3
-  center -0.717205 6.27738 -16.3876 
+  center -0.717205 6.27738 -16.3876
   bitmap pfo0_cloak_004
   verts 4
     0.0725194 -0.00222571 -0.00488114
@@ -3187,7 +3187,7 @@ node trimesh CL3_g
   parent CL2_g
   position -0.0192537 -0.0195749 -0.344255
   orientation 1.0 0.0 0.0 0.0
-  wirecolor 0.6 0.6 0.6 
+  wirecolor 0.6 0.6 0.6
   tilefade 0
   scale 1.0
   render 0
@@ -3197,12 +3197,12 @@ node trimesh CL3_g
   rotatetexture 0
   alpha 1.0
   transparencyhint 0
-  selfillumcolor 0.0 0.0 0.0 
-  ambient 1.0 1.0 1.0 
-  Diffuse 0.0 0.72549 0.631373 
-  Specular 0.0 0.0 0.0 
+  selfillumcolor 0.0 0.0 0.0
+  ambient 1.0 1.0 1.0
+  Diffuse 0.0 0.72549 0.631373
+  Specular 0.0 0.0 0.0
   shininess 3
-  center -1.58591 7.93164 -24.298 
+  center -1.58591 7.93164 -24.298
   bitmap pfo0_cloak_004
   verts 4
     -0.100984 0.1817 -0.477972
@@ -3217,7 +3217,7 @@ node trimesh CL4_g
   parent CL3_g
   position -0.0321491 -0.00794078 -0.483871
   orientation 1.0 0.0 0.0 0.0
-  wirecolor 0.6 0.6 0.6 
+  wirecolor 0.6 0.6 0.6
   tilefade 0
   scale 1.0
   render 0
@@ -3227,12 +3227,12 @@ node trimesh CL4_g
   rotatetexture 0
   alpha 1.0
   transparencyhint 0
-  selfillumcolor 0.0 0.0 0.0 
-  ambient 1.0 1.0 1.0 
-  Diffuse 0.0 0.72549 0.631373 
-  Specular 0.0 0.0 0.0 
+  selfillumcolor 0.0 0.0 0.0
+  ambient 1.0 1.0 1.0
+  Diffuse 0.0 0.72549 0.631373
+  Specular 0.0 0.0 0.0
   shininess 3
-  center -1.45724 10.1006 -11.8685 
+  center -1.45724 10.1006 -11.8685
   bitmap pfo0_cloak_004
   verts 4
     -0.068846 0.197567 0.0109372
@@ -3247,7 +3247,7 @@ node trimesh CR1_g
   parent Cloak_g
   position 0.330449 -0.0132965 0.0350314
   orientation 1.0 -6.93895e-007 0.0 -1.73776e-007
-  wirecolor 0.894118 0.894118 0.894118 
+  wirecolor 0.894118 0.894118 0.894118
   tilefade 0
   scale 1.0
   render 0
@@ -3257,12 +3257,12 @@ node trimesh CR1_g
   rotatetexture 0
   alpha 1.0
   transparencyhint 0
-  selfillumcolor 0.0 0.0 0.0 
-  ambient 1.0 1.0 1.0 
-  Diffuse 0.0 0.72549 0.631373 
-  Specular 0.0 0.0 0.0 
+  selfillumcolor 0.0 0.0 0.0
+  ambient 1.0 1.0 1.0
+  Diffuse 0.0 0.72549 0.631373
+  Specular 0.0 0.0 0.0
   shininess 3
-  center 1.26729 -5.92011 -23.737 
+  center 1.26729 -5.92011 -23.737
   bitmap pfo0_cloak_004
   verts 5
     -0.0797172 -0.116359 -0.0622958
@@ -3279,7 +3279,7 @@ node trimesh CR2_g
   parent CR1_g
   position 0.0255308 -0.128841 -0.46413
   orientation 1.0 0.0 0.0 0.0
-  wirecolor 0.721569 0.721569 0.721569 
+  wirecolor 0.721569 0.721569 0.721569
   tilefade 0
   scale 1.0
   render 0
@@ -3289,12 +3289,12 @@ node trimesh CR2_g
   rotatetexture 0
   alpha 1.0
   transparencyhint 0
-  selfillumcolor 0.0 0.0 0.0 
-  ambient 1.0 1.0 1.0 
-  Diffuse 0.0 0.72549 0.631373 
-  Specular 0.0 0.0 0.0 
+  selfillumcolor 0.0 0.0 0.0
+  ambient 1.0 1.0 1.0
+  Diffuse 0.0 0.72549 0.631373
+  Specular 0.0 0.0 0.0
   shininess 3
-  center 0.71721 6.27733 -16.3876 
+  center 0.71721 6.27733 -16.3876
   bitmap pfo0_cloak_004
   verts 4
     -0.0725203 -0.0022257 -0.00488114
@@ -3309,7 +3309,7 @@ node trimesh CR3_g
   parent CR2_g
   position 0.0192523 -0.0195749 -0.344257
   orientation 1.0 0.0 0.0 0.0
-  wirecolor 0.0313726 0.0313726 0.0313726 
+  wirecolor 0.0313726 0.0313726 0.0313726
   tilefade 0
   scale 1.0
   render 0
@@ -3319,12 +3319,12 @@ node trimesh CR3_g
   rotatetexture 0
   alpha 1.0
   transparencyhint 0
-  selfillumcolor 0.0 0.0 0.0 
-  ambient 1.0 1.0 1.0 
-  Diffuse 0.0 0.72549 0.631373 
-  Specular 0.0 0.0 0.0 
+  selfillumcolor 0.0 0.0 0.0
+  ambient 1.0 1.0 1.0
+  Diffuse 0.0 0.72549 0.631373
+  Specular 0.0 0.0 0.0
   shininess 3
-  center 1.58596 7.93162 -24.2982 
+  center 1.58596 7.93162 -24.2982
   bitmap pfo0_cloak_004
   verts 4
     0.100987 0.1817 -0.477972
@@ -3339,7 +3339,7 @@ node trimesh CR4_g
   parent CR3_g
   position 0.0321509 -0.00794096 -0.483872
   orientation 1.0 0.0 0.0 0.0
-  wirecolor 0.537255 0.537255 0.537255 
+  wirecolor 0.537255 0.537255 0.537255
   tilefade 0
   scale 1.0
   render 0
@@ -3349,12 +3349,12 @@ node trimesh CR4_g
   rotatetexture 0
   alpha 1.0
   transparencyhint 0
-  selfillumcolor 0.0 0.0 0.0 
-  ambient 1.0 1.0 1.0 
-  Diffuse 0.0 0.72549 0.631373 
-  Specular 0.0 0.0 0.0 
+  selfillumcolor 0.0 0.0 0.0
+  ambient 1.0 1.0 1.0
+  Diffuse 0.0 0.72549 0.631373
+  Specular 0.0 0.0 0.0
   shininess 3
-  center 1.45726 10.1006 -11.8684 
+  center 1.45726 10.1006 -11.8684
   bitmap pfo0_cloak_004
   verts 4
     0.085195 0.212271 -0.239134
@@ -3369,7 +3369,7 @@ node trimesh belt_g1
   parent rootdummy
   position -0.000249152 0.0103412 0.000206492
   orientation 0.152872 -0.573956 0.80449 -0.48531
-  wirecolor 0.87451 0.87451 0.87451 
+  wirecolor 0.87451 0.87451 0.87451
   tilefade 0
   scale 1.0
   render 0
@@ -3379,12 +3379,12 @@ node trimesh belt_g1
   rotatetexture 0
   alpha 1.0
   transparencyhint 0
-  selfillumcolor 0.0 0.0 0.0 
-  ambient 0.0 0.0 0.0 
-  Diffuse 0.0 0.0 0.0 
-  Specular 0.0 0.0 0.0 
+  selfillumcolor 0.0 0.0 0.0
+  ambient 0.0 0.0 0.0
+  Diffuse 0.0 0.0 0.0
+  Specular 0.0 0.0 0.0
   shininess 0
-  center -0.00349998 0.0640502 -8.47278 
+  center -0.00349998 0.0640502 -8.47278
   bitmap pmh0_pelvis001
   verts 14
     0.0 -0.0463417 -0.210113
@@ -3498,7 +3498,7 @@ node trimesh FB1_g01
   parent belt_g1
   position -0.000210364 -0.206088 -0.087514
   orientation -0.673795 0.738915 0.00203866 -0.099856
-  wirecolor 0.776471 0.776471 0.776471 
+  wirecolor 0.776471 0.776471 0.776471
   tilefade 0
   scale 1.0
   render 0
@@ -3508,12 +3508,12 @@ node trimesh FB1_g01
   rotatetexture 0
   alpha 1.0
   transparencyhint 0
-  selfillumcolor 0.0 0.0 0.0 
-  ambient 0.0 0.0 0.0 
-  Diffuse 0.0 0.0 0.0 
-  Specular 0.0 0.0 0.0 
+  selfillumcolor 0.0 0.0 0.0
+  ambient 0.0 0.0 0.0
+  Diffuse 0.0 0.0 0.0
+  Specular 0.0 0.0 0.0
   shininess 0
-  center 0.23705 1.47874 -9.91484 
+  center 0.23705 1.47874 -9.91484
   bitmap FB1_g
   verts 13
     0.00236962 0.000996172 0.000757019
@@ -3572,7 +3572,7 @@ node trimesh FB2_g01
   parent FB1_g01
   position 0.0 -0.0184486 -0.203431
   orientation -0.257695 0.777691 0.573402 -0.150666
-  wirecolor 0.6 0.6 0.6 
+  wirecolor 0.6 0.6 0.6
   tilefade 0
   scale 1.0
   render 0
@@ -3582,12 +3582,12 @@ node trimesh FB2_g01
   rotatetexture 0
   alpha 1.0
   transparencyhint 0
-  selfillumcolor 0.0 0.0 0.0 
-  ambient 0.0 0.0 0.0 
-  Diffuse 0.0 0.0 0.0 
-  Specular 0.0 0.0 0.0 
+  selfillumcolor 0.0 0.0 0.0
+  ambient 0.0 0.0 0.0
+  Diffuse 0.0 0.0 0.0
+  Specular 0.0 0.0 0.0
   shininess 0
-  center 0.237 0.174413 -12.8054 
+  center 0.237 0.174413 -12.8054
   bitmap Material
   verts 12
     0.00236962 0.00816696 -0.000497249
@@ -3632,7 +3632,7 @@ node trimesh FB4_g01
   parent FB2_g01
   position 0.0 -0.00819935 -0.261972
   orientation -0.23933 0.970906 0.00785146 0.0
-  wirecolor 0.603922 0.603922 0.603922 
+  wirecolor 0.603922 0.603922 0.603922
   tilefade 0
   scale 1.0
   render 0
@@ -3642,12 +3642,12 @@ node trimesh FB4_g01
   rotatetexture 0
   alpha 1.0
   transparencyhint 0
-  selfillumcolor 0.0 0.0 0.0 
-  ambient 0.0 0.0 0.0 
-  Diffuse 0.0 0.0 0.0 
-  Specular 0.0 0.0 0.0 
+  selfillumcolor 0.0 0.0 0.0
+  ambient 0.0 0.0 0.0
+  Diffuse 0.0 0.0 0.0
+  Specular 0.0 0.0 0.0
   shininess 0
-  center 0.2369 -0.43674 -13.1885 
+  center 0.2369 -0.43674 -13.1885
   bitmap Material
   verts 12
     0.00236962 -0.00553085 -0.135994
@@ -3867,7 +3867,7 @@ node trimesh TF1_g
   parent belt_g1
   position -0.000210369 0.132212 -0.0870751
   orientation -0.413734 0.899267 -0.141925 -0.306966
-  wirecolor 0.87451 0.87451 0.87451 
+  wirecolor 0.87451 0.87451 0.87451
   tilefade 0
   scale 1.0
   render 0
@@ -3877,12 +3877,12 @@ node trimesh TF1_g
   rotatetexture 0
   alpha 1.0
   transparencyhint 0
-  selfillumcolor 0.0 0.0 0.0 
-  ambient 0.0 0.0 0.0 
-  Diffuse 0.0 0.0 0.0 
-  Specular 0.0 0.0 0.0 
+  selfillumcolor 0.0 0.0 0.0
+  ambient 0.0 0.0 0.0
+  Diffuse 0.0 0.0 0.0
+  Specular 0.0 0.0 0.0
   shininess 0
-  center 0.23865 -2.96434 -15.3278 
+  center 0.23865 -2.96434 -15.3278
   bitmap Material
   verts 22
     0.00236957 0.0183573 -0.0570681
@@ -3958,7 +3958,7 @@ node trimesh TF1L_g
   parent TF1_g
   position 0.0 0.0 0.0
   orientation 0.25878 -0.965926 0.00451652 -0.0872665
-  wirecolor 0.87451 0.87451 0.87451 
+  wirecolor 0.87451 0.87451 0.87451
   tilefade 0
   scale 1.0
   render 0
@@ -3968,12 +3968,12 @@ node trimesh TF1L_g
   rotatetexture 0
   alpha 1.0
   transparencyhint 0
-  selfillumcolor 0.0 0.0 0.0 
-  ambient 0.0 0.0 0.0 
-  Diffuse 0.0 0.0 0.0 
-  Specular 0.0 0.0 0.0 
+  selfillumcolor 0.0 0.0 0.0
+  ambient 0.0 0.0 0.0
+  Diffuse 0.0 0.0 0.0
+  Specular 0.0 0.0 0.0
   shininess 0
-  center 9.89473 -2.96118 -15.33 
+  center 9.89473 -2.96118 -15.33
   bitmap Material
   verts 12
     0.00236957 0.0183573 -0.0570681
@@ -4022,7 +4022,7 @@ node trimesh TF1R_g
   parent TF1_g
   position 0.0 0.0 0.0
   orientation -0.641843 -0.136479 0.754593 -0.123394
-  wirecolor 0.694118 0.694118 0.694118 
+  wirecolor 0.694118 0.694118 0.694118
   tilefade 0
   scale 1.0
   render 0
@@ -4032,12 +4032,12 @@ node trimesh TF1R_g
   rotatetexture 0
   alpha 1.0
   transparencyhint 0
-  selfillumcolor 0.0 0.0 0.0 
-  ambient 0.0 0.0 0.0 
-  Diffuse 0.0 0.0 0.0 
-  Specular 0.0 0.0 0.0 
+  selfillumcolor 0.0 0.0 0.0
+  ambient 0.0 0.0 0.0
+  Diffuse 0.0 0.0 0.0
+  Specular 0.0 0.0 0.0
   shininess 0
-  center -9.41912 -2.96434 -15.3278 
+  center -9.41912 -2.96434 -15.3278
   bitmap Material
   verts 12
     0.00234604 0.018333 -0.0570727
@@ -4085,7 +4085,7 @@ node trimesh TF2_g
   parent TF1_g
   position 0.0 0.0103578 -0.312764
   orientation 0.320085 -0.947385 0.00279251 -0.0705525
-  wirecolor 0.87451 0.87451 0.87451 
+  wirecolor 0.87451 0.87451 0.87451
   tilefade 0
   scale 1.0
   render 0
@@ -4095,12 +4095,12 @@ node trimesh TF2_g
   rotatetexture 0
   alpha 1.0
   transparencyhint 0
-  selfillumcolor 0.0 0.0 0.0 
-  ambient 0.0 0.0 0.0 
-  Diffuse 0.0 0.0 0.0 
-  Specular 0.0 0.0 0.0 
+  selfillumcolor 0.0 0.0 0.0
+  ambient 0.0 0.0 0.0
+  Diffuse 0.0 0.0 0.0
+  Specular 0.0 0.0 0.0
   shininess 0
-  center 0.237 -2.01352 -7.76597 
+  center 0.237 -2.01352 -7.76597
   bitmap TF3_g
   verts 6
     0.00236957 -0.0160507 -0.158379
@@ -4129,7 +4129,7 @@ node trimesh TF3_g01
   parent TF2_g
   position 0.0 -0.0269893 -0.157105
   orientation -0.984452 -0.173679 -0.0262766 0.0
-  wirecolor 0.337255 0.337255 0.337255 
+  wirecolor 0.337255 0.337255 0.337255
   tilefade 0
   scale 1.0
   render 0
@@ -4139,12 +4139,12 @@ node trimesh TF3_g01
   rotatetexture 0
   alpha 1.0
   transparencyhint 0
-  selfillumcolor 0.0 0.0 0.0 
-  ambient 0.0 0.0 0.0 
-  Diffuse 0.0 0.0 0.0 
-  Specular 0.0 0.0 0.0 
+  selfillumcolor 0.0 0.0 0.0
+  ambient 0.0 0.0 0.0
+  Diffuse 0.0 0.0 0.0
+  Specular 0.0 0.0 0.0
   shininess 0
-  center 0.23695 -0.787475 -16.0066 
+  center 0.23695 -0.787475 -16.0066
   bitmap Material
   verts 12
     0.00236957 -0.00710827 -0.160066
@@ -4190,19 +4190,19 @@ node dummy handconjure
   parent alt_dfa19
   position 0.0 0.278383 1.4067
   orientation 1.0 0.0 0.0 0.0
-  wirecolor 0.0235294 0.52549 0.227451 
+  wirecolor 0.0235294 0.52549 0.227451
 endnode
 node dummy headconjure
   parent alt_dfa19
   position 0.0 -0.0278785 2.31815
   orientation 1.0 0.0 0.0 0.0
-  wirecolor 0.443137 0.52549 0.0235294 
+  wirecolor 0.443137 0.52549 0.0235294
 endnode
 node trimesh h_controller
   parent alt_dfa19
   position 0.0 0.0356713 1.1914
   orientation 0.994676 -0.0586254 -0.0847554 -8.3977e-007
-  wirecolor 1.0 1.0 1.0 
+  wirecolor 1.0 1.0 1.0
   tilefade 0
   scale 1.0
   render 1
@@ -4212,10 +4212,10 @@ node trimesh h_controller
   rotatetexture 0
   alpha 1.0
   transparencyhint 0
-  selfillumcolor 0.0 0.0 0.0 
-  ambient 0.0 0.0 0.0 
-  Diffuse 0.0 0.0 0.0 
-  Specular 0.0 0.0 0.0 
+  selfillumcolor 0.0 0.0 0.0
+  ambient 0.0 0.0 0.0
+  Diffuse 0.0 0.0 0.0
+  Specular 0.0 0.0 0.0
   shininess 0
   center undefined
   bitmap pfh0_neck001
@@ -4246,13 +4246,13 @@ node dummy lhand
   parent h_controller
   position -0.374249 -0.0406021 -0.438161
   orientation 0.992564 0.118391 0.0282972 -1.14264e-006
-  wirecolor 0.0235294 0.52549 0.227451 
+  wirecolor 0.0235294 0.52549 0.227451
 endnode
 node dummy rhand
   parent h_controller
   position 0.37425 -0.0406022 -0.43816
   orientation -0.994681 0.0585372 0.0847585 -8.3977e-007
-  wirecolor 0.0313726 0.239216 0.541176 
+  wirecolor 0.0313726 0.239216 0.541176
 endnode
 endmodelgeom alt_dfa19
 

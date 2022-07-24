@@ -110,48 +110,35 @@ Mdl::Mdl(const std::string& filename)
     }
 }
 
-MdlNode* Mdl::add_node(uint32_t type, std::string_view name, bool is_anim)
+std::unique_ptr<MdlNode> Mdl::make_node(uint32_t type, std::string_view name)
 {
-    auto& holder = is_anim ? model.anim_nodes : model.nodes;
     switch (type) {
     default:
         LOG_F(ERROR, "Invalid node type");
-        return nullptr;
+        return {};
     case MdlNodeType::dummy:
-        holder.emplace_back(std::make_unique<MdlDummyNode>(std::string(name)));
-        break;
+        return std::make_unique<MdlDummyNode>(std::string(name));
     case MdlNodeType::patch:
-        holder.emplace_back(std::make_unique<MdlPatchNode>(std::string(name)));
-        break;
+        return std::make_unique<MdlPatchNode>(std::string(name));
     case MdlNodeType::reference:
-        holder.emplace_back(std::make_unique<MdlReferenceNode>(std::string(name)));
-        break;
+        return std::make_unique<MdlReferenceNode>(std::string(name));
     case MdlNodeType::trimesh:
-        holder.emplace_back(std::make_unique<MdlTrimeshNode>(std::string(name)));
-        break;
+        return std::make_unique<MdlTrimeshNode>(std::string(name));
     case MdlNodeType::danglymesh:
-        holder.emplace_back(std::make_unique<MdlDanglymeshNode>(std::string(name)));
-        break;
+        return std::make_unique<MdlDanglymeshNode>(std::string(name));
     case MdlNodeType::skin:
-        holder.emplace_back(std::make_unique<MdlSkinNode>(std::string(name)));
-        break;
+        return std::make_unique<MdlSkinNode>(std::string(name));
     case MdlNodeType::animmesh:
-        holder.emplace_back(std::make_unique<MdlAnimeshNode>(std::string(name)));
-        break;
+        return std::make_unique<MdlAnimeshNode>(std::string(name));
     case MdlNodeType::emitter:
-        holder.emplace_back(std::make_unique<MdlEmitterNode>(std::string(name)));
-        break;
+        return std::make_unique<MdlEmitterNode>(std::string(name));
     case MdlNodeType::light:
-        holder.emplace_back(std::make_unique<MdlLightNode>(std::string(name)));
-        break;
+        return std::make_unique<MdlLightNode>(std::string(name));
     case MdlNodeType::aabb:
-        holder.emplace_back(std::make_unique<MdlAABBNode>(std::string(name)));
-        break;
+        return std::make_unique<MdlAABBNode>(std::string(name));
     case MdlNodeType::camera:
-        holder.emplace_back(std::make_unique<MdlCameraNode>(std::string(name)));
-        break;
+        return std::make_unique<MdlCameraNode>(std::string(name));
     }
-    return holder.back().get();
 }
 
 bool Mdl::parse_binary()

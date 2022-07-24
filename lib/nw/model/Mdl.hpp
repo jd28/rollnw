@@ -370,6 +370,7 @@ struct MdlGeometry {
 
     std::string name;
     MdlGeometryType type;
+    std::vector<std::unique_ptr<MdlNode>> nodes;
 };
 
 struct MdlAnimationEvent {
@@ -394,8 +395,6 @@ struct MdlModel : public MdlGeometry {
     MdlModelClass classification;
     bool ignorefog;
     std::vector<std::unique_ptr<MdlAnimation>> animations;
-    std::vector<std::unique_ptr<MdlNode>> nodes;
-    std::vector<std::unique_ptr<MdlNode>> anim_nodes;
     MdlModel* supermodel{nullptr};
     glm::vec3 bmin;
     glm::vec3 bmax;
@@ -420,7 +419,7 @@ public:
 
     Mdl(const std::string& filename);
 
-    MdlNode* add_node(uint32_t type, std::string_view name, bool is_anim = false);
+    std::unique_ptr<MdlNode> make_node(uint32_t type, std::string_view name);
     bool valid() const;
 };
 

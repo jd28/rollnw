@@ -2,6 +2,7 @@
 
 #include "../log.hpp"
 #include "../util/macros.hpp"
+#include "../util/templates.hpp"
 #include "Mdl.hpp"
 
 #include <string_view>
@@ -314,7 +315,7 @@ bool MdlTextParser::parse_controller(MdlNode* node, std::string_view name, uint3
             continue;                                 \
     }
 
-bool MdlTextParser::parse_node(bool is_anim)
+bool MdlTextParser::parse_node(MdlGeometry* geometry)
 {
     bool result = true;
     std::string_view tktype = tokens_.next();
@@ -330,7 +331,8 @@ bool MdlTextParser::parse_node(bool is_anim)
     }
 
     uint32_t type = MdlNodeType::from_string(tktype);
-    MdlNode* node = mdl_->add_node(type, tkname, is_anim);
+
+    auto node = mdl_->make_node(type, tkname);
     if (!node) return false;
 
     std::string_view tk;
@@ -357,29 +359,25 @@ bool MdlTextParser::parse_node(bool is_anim)
                 LOG_F(ERROR, "Controller set on an incompatible node: {}", tk);
                 return false;
             }
-            if (!parse_controller(node, tk, it->second.first)) return false;
+            if (!parse_controller(node.get(), tk, it->second.first)) return false;
             continue;
         }
 
         if (icmp(tk, "parent")) {
             tk = tokens_.next();
             if (!icmp(tk, "NULL")) {
-                if (!is_anim) {
-                    for (auto& n : mdl_->model.nodes) {
-                        if (n->name == tk) {
-                            node->parent = n.get();
-                            n->children.push_back(node);
-                            break;
-                        }
+                bool parent_set = false;
+                for (auto& n : reverse(geometry->nodes)) {
+                    if (n->name == tk) {
+                        node->parent = n.get();
+                        n->children.push_back(node.get());
+                        parent_set = true;
+                        break;
                     }
-                } else {
-                    for (auto& n : mdl_->model.anim_nodes) {
-                        if (n->name == tk) {
-                            node->parent = n.get();
-                            n->children.push_back(node);
-                            break;
-                        }
-                    }
+                }
+                if (!parent_set) {
+                    LOG_F(ERROR, "Unable to find parent node: '{}'", tk);
+                    return false;
                 }
             }
             continue;
@@ -390,7 +388,7 @@ bool MdlTextParser::parse_node(bool is_anim)
         }
 
         if (node->type & MdlNodeFlags::mesh) {
-            MdlTrimeshNode* n = static_cast<MdlTrimeshNode*>(node);
+            MdlTrimeshNode* n = static_cast<MdlTrimeshNode*>(node.get());
 
             PARSE_DATA(ambient, n)
             PARSE_DATA(beaming, n)
@@ -431,13 +429,13 @@ bool MdlTextParser::parse_node(bool is_anim)
         }
 
         if (node->type & MdlNodeFlags::reference) {
-            MdlReferenceNode* n = static_cast<MdlReferenceNode*>(node);
+            MdlReferenceNode* n = static_cast<MdlReferenceNode*>(node.get());
             PARSE_DATA(reattachable, n)
             PARSE_DATA(refmodel, n)
         }
 
         if (node->type & MdlNodeFlags::dangly) {
-            MdlDanglymeshNode* n = static_cast<MdlDanglymeshNode*>(node);
+            MdlDanglymeshNode* n = static_cast<MdlDanglymeshNode*>(node.get());
             // PARSE_DATA(constraints, n)
             PARSE_DATA(displacement, n)
             PARSE_DATA(period, n)
@@ -445,7 +443,7 @@ bool MdlTextParser::parse_node(bool is_anim)
         }
 
         if (node->type & MdlNodeFlags::emitter) {
-            MdlEmitterNode* n = static_cast<MdlEmitterNode*>(node);
+            MdlEmitterNode* n = static_cast<MdlEmitterNode*>(node.get());
             PARSE_DATA(blastlength, n)
             PARSE_DATA(blastradius, n)
             PARSE_DATA(blend, n)
@@ -510,7 +508,7 @@ bool MdlTextParser::parse_node(bool is_anim)
         }
 
         if (node->type & MdlNodeFlags::light) {
-            MdlLightNode* n = static_cast<MdlLightNode*>(node);
+            MdlLightNode* n = static_cast<MdlLightNode*>(node.get());
             PARSE_DATA(affectdynamic, n)
             PARSE_DATA(ambientonly, n)
             PARSE_DATA(fadinglight, n)
@@ -531,7 +529,7 @@ bool MdlTextParser::parse_node(bool is_anim)
         }
 
         if (node->type & MdlNodeFlags::aabb) {
-            MdlAABBNode* n = static_cast<MdlAABBNode*>(node);
+            MdlAABBNode* n = static_cast<MdlAABBNode*>(node.get());
             if (icmp(tk, "aabb")) {
                 if (!parse_tokens(tokens_, "aabb", n)) {
                     return false;
@@ -542,7 +540,7 @@ bool MdlTextParser::parse_node(bool is_anim)
         }
 
         if (node->type & MdlNodeFlags::skin) {
-            MdlSkinNode* n = static_cast<MdlSkinNode*>(node);
+            MdlSkinNode* n = static_cast<MdlSkinNode*>(node.get());
             PARSE_DATA(boneconstantindices, n)
             PARSE_DATA(qbone_ref_inv, n)
             PARSE_DATA(tbone_ref_inv, n)
@@ -550,7 +548,7 @@ bool MdlTextParser::parse_node(bool is_anim)
         }
 
         if (node->type & MdlNodeFlags::anim) {
-            MdlAnimeshNode* n = static_cast<MdlAnimeshNode*>(node);
+            MdlAnimeshNode* n = static_cast<MdlAnimeshNode*>(node.get());
             PARSE_DATA(animtverts, n)
             PARSE_DATA(animverts, n)
             PARSE_DATA(sampleperiod, n)
@@ -558,6 +556,8 @@ bool MdlTextParser::parse_node(bool is_anim)
 
         LOG_F(ERROR, "Unknown token: '{}'", tk);
     }
+
+    geometry->nodes.push_back(std::move(node));
 
     return tk == "endnode";
 }
@@ -569,7 +569,7 @@ bool MdlTextParser::parse_geometry()
         if (is_newline(tk))
             continue;
         if (tk == "node") {
-            if (!parse_node()) return false;
+            if (!parse_node(&mdl_->model)) return false;
         } else if (tk == "endmodelgeom") {
             break;
         }
@@ -604,7 +604,7 @@ bool MdlTextParser::parse_anim()
             if (!parse_tokens(tokens_, "length", anim->length))
                 return false;
         } else if (icmp(tk, "node")) {
-            if (!parse_node(true)) {
+            if (!parse_node(anim.get())) {
                 LOG_F(INFO, "node parsing failed");
                 return false;
             }

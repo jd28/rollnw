@@ -10,9 +10,7 @@
 namespace nw {
 
 class Mdl;
-struct MdlAABBEntry;
-struct MdlAABBNode;
-struct MdlFace;
+struct MdlGeometry;
 struct MdlNode;
 
 class MdlTextParser {
@@ -23,7 +21,7 @@ class MdlTextParser {
     bool parse_controller(MdlNode* node, std::string_view name, uint32_t type);
     bool parse_geometry();
     bool parse_model();
-    bool parse_node(bool is_anim = false);
+    bool parse_node(MdlGeometry* geometry);
 
 public:
     MdlTextParser(std::string_view buffer, Mdl* mdl);
