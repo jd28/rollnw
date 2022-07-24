@@ -21,7 +21,6 @@ NssToken::NssToken(NssTokenType type_, std::string_view id_, size_t line_, size_
 NssLexer::NssLexer(std::string_view buffer)
     : buffer_{buffer}
 {
-    current_ = next();
 }
 
 const NssToken& NssLexer::current() const
