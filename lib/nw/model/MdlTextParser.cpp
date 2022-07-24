@@ -270,7 +270,7 @@ bool MdlTextParser::parse_controller(MdlNode* node, std::string_view name, uint3
         int colsize = -1;
         int rows = 0;
 
-        while (!tk.empty() && tk != "endlist") {
+        while (!tk.empty()) {
             if (is_newline(tk)) {
                 if (colsize == -1) {
                     colsize = int(data.size());
@@ -283,6 +283,7 @@ bool MdlTextParser::parse_controller(MdlNode* node, std::string_view name, uint3
                 while (is_newline(tk))
                     tk = tokens_.next();
             }
+            if (tk == "endlist") break;
 
             auto opt = string::from<float>(tk);
             if (!opt) {
@@ -313,7 +314,7 @@ bool MdlTextParser::parse_controller(MdlNode* node, std::string_view name, uint3
             continue;                                 \
     }
 
-bool MdlTextParser::parse_node()
+bool MdlTextParser::parse_node(bool is_anim)
 {
     bool result = true;
     std::string_view tktype = tokens_.next();
@@ -329,7 +330,7 @@ bool MdlTextParser::parse_node()
     }
 
     uint32_t type = MdlNodeType::from_string(tktype);
-    MdlNode* node = mdl_->add_node(type, tkname);
+    MdlNode* node = mdl_->add_node(type, tkname, is_anim);
     if (!node) return false;
 
     std::string_view tk;
@@ -363,11 +364,21 @@ bool MdlTextParser::parse_node()
         if (icmp(tk, "parent")) {
             tk = tokens_.next();
             if (!icmp(tk, "NULL")) {
-                for (auto& n : mdl_->model.nodes) {
-                    if (n->name == tk) {
-                        node->parent = n.get();
-                        n->children.push_back(node);
-                        break;
+                if (!is_anim) {
+                    for (auto& n : mdl_->model.nodes) {
+                        if (n->name == tk) {
+                            node->parent = n.get();
+                            n->children.push_back(node);
+                            break;
+                        }
+                    }
+                } else {
+                    for (auto& n : mdl_->model.anim_nodes) {
+                        if (n->name == tk) {
+                            node->parent = n.get();
+                            n->children.push_back(node);
+                            break;
+                        }
                     }
                 }
             }
@@ -568,7 +579,43 @@ bool MdlTextParser::parse_geometry()
 
 bool MdlTextParser::parse_anim()
 {
-    return true;
+    std::string_view tk = tokens_.next();
+    auto anim = std::make_unique<MdlAnimation>(std::string(tk));
+    tokens_.next(); // drop model name
+
+    for (tk = tokens_.next(); !tk.empty(); tk = tokens_.next()) {
+        if (is_newline(tk)) continue;
+
+        if (icmp(tk, "doneanim")) {
+            break;
+        } else if (icmp(tk, "animroot")) {
+            if (!parse_tokens(tokens_, "animroot", anim->anim_root))
+                return false;
+        } else if (icmp(tk, "event")) {
+            MdlAnimationEvent ev;
+            if (parse_tokens(tokens_, "time", ev.time)
+                && parse_tokens(tokens_, "name", ev.name)) {
+                anim->events.push_back(std::move(ev));
+            } else {
+                LOG_F(INFO, "event parsing failed");
+                return false;
+            }
+        } else if (icmp(tk, "length")) {
+            if (!parse_tokens(tokens_, "length", anim->length))
+                return false;
+        } else if (icmp(tk, "node")) {
+            if (!parse_node(true)) {
+                LOG_F(INFO, "node parsing failed");
+                return false;
+            }
+        } else if (icmp(tk, "transtime")) {
+            if (!parse_tokens(tokens_, "transtime", anim->transition_time))
+                return false;
+        }
+    }
+
+    mdl_->model.animations.push_back(std::move(anim));
+    return icmp(tk, "doneanim");
 }
 
 bool MdlTextParser::parse_model()
@@ -608,6 +655,8 @@ bool MdlTextParser::parse_model()
             if (!parse_tokens(tokens_, tk, mdl_->model.animationscale)) return false;
         } else if (tk == "beginmodelgeom") {
             if (!parse_geometry()) return false;
+        } else if (tk == "newanim") {
+            if (!parse_anim()) return false;
         }
     }
 
@@ -623,8 +672,6 @@ bool MdlTextParser::parse()
             tokens_.next();
         } else if (tk == "newmodel") {
             if (!parse_model()) return false;
-        } else if (tk == "newamim") {
-            if (!parse_anim()) return false;
         }
     }
 

@@ -370,22 +370,21 @@ struct MdlGeometry {
 
     std::string name;
     MdlGeometryType type;
-    std::vector<std::unique_ptr<MdlNode>> nodes;
 };
 
 struct MdlAnimationEvent {
-    float afer;
-    char name[32];
+    float time{0.0f};
+    std::string name;
 };
 
 struct MdlAnimation : public MdlGeometry {
-    MdlAnimation(std::string name);
+    MdlAnimation(std::string name_);
     virtual ~MdlAnimation() = default;
 
-    float length_;
-    float transition_time_;
-    char anim_root_[64];
-    std::vector<MdlAnimationEvent> events_;
+    float length{1.0f};
+    float transition_time{0.25f};
+    std::string anim_root;
+    std::vector<MdlAnimationEvent> events;
 };
 
 struct MdlModel : public MdlGeometry {
@@ -394,8 +393,10 @@ struct MdlModel : public MdlGeometry {
 
     MdlModelClass classification;
     bool ignorefog;
-    std::vector<MdlAnimation*> animations;
-    std::unique_ptr<MdlModel> supermodel;
+    std::vector<std::unique_ptr<MdlAnimation>> animations;
+    std::vector<std::unique_ptr<MdlNode>> nodes;
+    std::vector<std::unique_ptr<MdlNode>> anim_nodes;
+    MdlModel* supermodel{nullptr};
     glm::vec3 bmin;
     glm::vec3 bmax;
     float radius;
@@ -419,7 +420,7 @@ public:
 
     Mdl(const std::string& filename);
 
-    MdlNode* add_node(uint32_t type, std::string_view name);
+    MdlNode* add_node(uint32_t type, std::string_view name, bool is_anim = false);
     bool valid() const;
 };
 

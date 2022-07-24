@@ -23,7 +23,7 @@ class MdlTextParser {
     bool parse_controller(MdlNode* node, std::string_view name, uint32_t type);
     bool parse_geometry();
     bool parse_model();
-    bool parse_node();
+    bool parse_node(bool is_anim = false);
 
 public:
     MdlTextParser(std::string_view buffer, Mdl* mdl);
