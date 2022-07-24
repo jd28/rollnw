@@ -17,6 +17,8 @@ enum class NssTokenType {
     RPAREN,    // )
     LBRACE,    // {
     RBRACE,    // }
+    LBRACKET,  // [
+    RBRACKET,  // ]
     COMMA,     // ,
     COLON,     // :
     QUESTION,  // ?
@@ -71,21 +73,26 @@ enum class NssTokenType {
     ACTION,       // action
     BREAK,        // break
     CASE,         // case
+    CASSOWARY,    // cassowary
     CONST,        // const
     CONTINUE,     // continue
     DEFAULT,      // default
     DO,           // do
     EFFECT,       // effect
     ELSE,         // else
+    EVENT,        // event
     FLOAT,        // float
     FOR,          // for
     IF,           // if
     INT,          // int
     ITEMPROPERTY, // itemproperty
+    JSON,         // json
+    LOCATION,     // location
     OBJECT,       // object
     RETURN,       // return
     STRING,       // string
     STRUCT,       // struct
+    SQLQUERY,     // sqlquery
     SWITCH,       // switch
     TALENT,       // talent
     VECTOR,       // vector

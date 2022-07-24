@@ -64,6 +64,8 @@ inline NssTokenType check_keyword(const NssToken& tk)
         if (tk.id == "case") {
             return NssTokenType::CASE;
             // CASE
+        } else if (tk.id == "cassowary") {
+            return NssTokenType::CASSOWARY;
         } else if (tk.id == "const") {
             return NssTokenType::CONST;
         } else if (tk.id == "continue") {
@@ -82,6 +84,8 @@ inline NssTokenType check_keyword(const NssToken& tk)
             return NssTokenType::EFFECT;
         } else if (tk.id == "else") {
             return NssTokenType::ELSE;
+        } else if (tk.id == "event") {
+            return NssTokenType::EVENT;
         }
         break;
     case 'f':
@@ -100,6 +104,14 @@ inline NssTokenType check_keyword(const NssToken& tk)
             return NssTokenType::ITEMPROPERTY;
         }
         break;
+    case 'j':
+        if (tk.id == "json") {
+            return NssTokenType::JSON;
+        }
+    case 'l':
+        if (tk.id == "location") {
+            return NssTokenType::LOCATION;
+        }
     case 'o':
         if (tk.id == "object") {
             return NssTokenType::OBJECT;
@@ -117,6 +129,8 @@ inline NssTokenType check_keyword(const NssToken& tk)
             return NssTokenType::STRUCT;
         } else if (tk.id == "switch") {
             return NssTokenType::SWITCH;
+        } else if (tk.id == "sqlquery") {
+            return NssTokenType::SQLQUERY;
         }
         break;
     case 't':
@@ -237,6 +251,12 @@ NssToken NssLexer::next()
             break;
         case '}':
             NSS_TOKEN(RBRACE, 1);
+            break;
+        case '[':
+            NSS_TOKEN(LBRACKET, 1);
+            break;
+        case ']':
+            NSS_TOKEN(RBRACKET, 1);
             break;
         case ',':
             NSS_TOKEN(COMMA, 1);
