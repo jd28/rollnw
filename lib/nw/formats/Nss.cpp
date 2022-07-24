@@ -10,12 +10,12 @@ Nss::Nss(const std::filesystem::path& filename)
     : bytes_{ByteArray::from_file(filename)}
     , parser_{bytes_.string_view()}
 {
-    is_loaded_ = load();
 }
 
-bool Nss::load()
+Nss::Nss(ByteArray bytes)
+    : bytes_{std::move(bytes)}
+    , parser_{bytes_.string_view()}
 {
-    return true;
 }
 
 Script Nss::parse()

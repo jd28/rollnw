@@ -13,15 +13,13 @@ namespace nw::script {
 
 struct Nss {
     explicit Nss(const std::filesystem::path& filename);
+    explicit Nss(ByteArray bytes);
 
-    bool load();
     Script parse();
 
 private:
     ByteArray bytes_;
     NssParser parser_;
-
-    bool is_loaded_ = false;
 };
 
 } // namespace nw::script
