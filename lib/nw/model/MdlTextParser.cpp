@@ -1,0 +1,634 @@
+#include "MdlTextParser.hpp"
+
+#include "../log.hpp"
+#include "../util/macros.hpp"
+#include "Mdl.hpp"
+
+#include <string_view>
+#include <unordered_map>
+
+using namespace std::literals;
+
+namespace nw {
+
+using string::icmp;
+
+static const std::unordered_map<std::string_view, std::pair<uint32_t, uint32_t>> controller_map = {
+    // Common
+    {"position", {MdlControllerType::Position, MdlNodeFlags::header}},
+    {"orientation", {MdlControllerType::Orientation, MdlNodeFlags::header}},
+    {"scale", {MdlControllerType::Scale, MdlNodeFlags::header}},
+    // Light
+    {"color", {MdlControllerType::Color, MdlNodeFlags::light}},
+    {"radius", {MdlControllerType::Radius, MdlNodeFlags::light}},
+    {"shadowradius", {MdlControllerType::ShadowRadius, MdlNodeFlags::light}},
+    {"verticaldisplacement", {MdlControllerType::VerticalDisplacement, MdlNodeFlags::light}},
+    {"multiplier", {MdlControllerType::Multiplier, MdlNodeFlags::light}},
+    // Emitter
+    {"alphaEnd", {MdlControllerType::AlphaEnd, MdlNodeFlags::emitter}},
+    {"alphaStart", {MdlControllerType::AlphaStart, MdlNodeFlags::emitter}},
+    {"birthrate", {MdlControllerType::BirthRate, MdlNodeFlags::emitter}},
+    {"bounce_co", {MdlControllerType::Bounce_Co, MdlNodeFlags::emitter}},
+    {"colorEnd", {MdlControllerType::ColorEnd, MdlNodeFlags::emitter}},
+    {"colorStart", {MdlControllerType::ColorStart, MdlNodeFlags::emitter}},
+    {"combinetime", {MdlControllerType::CombineTime, MdlNodeFlags::emitter}},
+    {"drag", {MdlControllerType::Drag, MdlNodeFlags::emitter}},
+    {"fps", {MdlControllerType::FPS, MdlNodeFlags::emitter}},
+    {"frameEnd", {MdlControllerType::FrameEnd, MdlNodeFlags::emitter}},
+    {"frameStart", {MdlControllerType::FrameStart, MdlNodeFlags::emitter}},
+    {"grav", {MdlControllerType::Grav, MdlNodeFlags::emitter}},
+    {"lifeExp", {MdlControllerType::LifeExp, MdlNodeFlags::emitter}},
+    {"mass", {MdlControllerType::Mass, MdlNodeFlags::emitter}},
+    {"p2p_bezier2", {MdlControllerType::P2P_Bezier2, MdlNodeFlags::emitter}},
+    {"p2p_bezier3", {MdlControllerType::P2P_Bezier3, MdlNodeFlags::emitter}},
+    {"particleRot", {MdlControllerType::ParticleRot, MdlNodeFlags::emitter}},
+    {"randvel", {MdlControllerType::RandVel, MdlNodeFlags::emitter}},
+    {"sizeStart", {MdlControllerType::SizeStart, MdlNodeFlags::emitter}},
+    {"sizeEnd", {MdlControllerType::SizeEnd, MdlNodeFlags::emitter}},
+    {"sizeStart_y", {MdlControllerType::SizeStart_Y, MdlNodeFlags::emitter}},
+    {"sizeEnd_y", {MdlControllerType::SizeEnd_Y, MdlNodeFlags::emitter}},
+    {"spread", {MdlControllerType::Spread, MdlNodeFlags::emitter}},
+    {"threshold", {MdlControllerType::Threshold, MdlNodeFlags::emitter}},
+    {"velocity", {MdlControllerType::Velocity, MdlNodeFlags::emitter}},
+    {"xsize", {MdlControllerType::XSize, MdlNodeFlags::emitter}},
+    {"ysize", {MdlControllerType::YSize, MdlNodeFlags::emitter}},
+    {"blurlength", {MdlControllerType::BlurLength, MdlNodeFlags::emitter}},
+    {"lightningDelay", {MdlControllerType::LightningDelay, MdlNodeFlags::emitter}},
+    {"lightningRadius", {MdlControllerType::LightningRadius, MdlNodeFlags::emitter}},
+    {"lightningScale", {MdlControllerType::LightningScale, MdlNodeFlags::emitter}},
+    {"detonate", {MdlControllerType::Detonate, MdlNodeFlags::emitter}},
+    {"alphaMid", {MdlControllerType::AlphaMid, MdlNodeFlags::emitter}},
+    {"colorMid", {MdlControllerType::ColorMid, MdlNodeFlags::emitter}},
+    {"percentStart", {MdlControllerType::PercentStart, MdlNodeFlags::emitter}},
+    {"percentMid", {MdlControllerType::PercentMid, MdlNodeFlags::emitter}},
+    {"percentEnd", {MdlControllerType::PercentEnd, MdlNodeFlags::emitter}},
+    {"sizeMid", {MdlControllerType::SizeMid, MdlNodeFlags::emitter}},
+    {"sizeMid_y", {MdlControllerType::SizeMid_Y, MdlNodeFlags::emitter}},
+    // Meshes
+    {"selfillumcolor", {MdlControllerType::SelfIllumColor, MdlNodeFlags::mesh}},
+    {"alpha", {MdlControllerType::Alpha, MdlNodeFlags::mesh}},
+
+};
+
+inline bool is_newline(std::string_view tk)
+{
+    if (tk.empty()) return false;
+    return tk[0] == '\r' || tk[0] == '\n';
+}
+
+MdlTextParser::MdlTextParser(std::string_view buffer, Mdl* mdl)
+    : tokens_(buffer, "#", false)
+    , mdl_{mdl}
+{
+}
+
+constexpr bool validate_tokens(std::initializer_list<std::string_view> tokens)
+{
+    for (auto tk : tokens) {
+        if (tk.empty() || is_newline(tk)) {
+            return false;
+        }
+    }
+    return true;
+}
+
+bool parse_tokens(Tokenizer& tokens, std::string_view name, bool& out)
+{
+    auto tk = tokens.next();
+    if (auto res = string::from<bool>(tk)) {
+        out = *res;
+        return true;
+    }
+    LOG_F(ERROR, "{}: Failed to parse bool, line: {}", name, tokens.line());
+    return false;
+}
+
+bool parse_tokens(Tokenizer& tokens, std::string_view name, std::string& out)
+{
+    auto tk = tokens.next();
+    if (validate_tokens({tk})) {
+        out = std::string(tk);
+        return true;
+    }
+    LOG_F(ERROR, "{}: Failed to parse string, line: {}", name, tokens.line());
+    return false;
+}
+
+bool parse_tokens(Tokenizer& tokens, std::string_view name, uint32_t& out)
+{
+    auto tk = tokens.next();
+    if (auto res = string::from<uint32_t>(tk)) {
+        out = *res;
+        return true;
+    }
+    LOG_F(ERROR, "{}: Failed to parse uint32_t, line: {}", name, tokens.line());
+    return false;
+}
+
+bool parse_tokens(Tokenizer& tokens, std::string_view name, float& out)
+{
+    auto tk = tokens.next();
+    if (auto res = string::from<float>(tk)) {
+        out = *res;
+        return true;
+    }
+
+    LOG_F(ERROR, "{}: Failed to parse float, line: {}", name, tokens.line());
+    return false;
+}
+
+bool parse_tokens(Tokenizer& tokens, std::string_view name, glm::vec2& out)
+{
+    if (!parse_tokens(tokens, name, out.x) || !parse_tokens(tokens, name, out.y)) {
+        LOG_F(ERROR, "{}: Failed to parse Vector2, line: {}", name, tokens.line());
+        return false;
+    }
+
+    return true;
+}
+
+bool parse_tokens(Tokenizer& tokens, std::string_view name, glm::vec3& out)
+{
+    auto x = string::from<float>(tokens.next());
+    auto y = string::from<float>(tokens.next());
+    auto z = string::from<float>(tokens.next());
+
+    if (x && y && z) {
+        out.x = *x;
+        out.y = *y;
+        out.z = *z;
+        return true;
+    }
+    LOG_F(ERROR, "{}: Failed to parse vec3, line: {}", name, tokens.line());
+    return false;
+}
+
+bool parse_tokens(Tokenizer& tokens, std::string_view name, glm::vec4& out)
+{
+    if (!parse_tokens(tokens, name, out.x)
+        || !parse_tokens(tokens, name, out.y)
+        || !parse_tokens(tokens, name, out.z)
+        || !parse_tokens(tokens, name, out.w)) {
+        LOG_F(ERROR, "{}: Failed to parse Vector4, line: {}", name, tokens.line());
+        return false;
+    }
+
+    return true;
+}
+
+bool parse_tokens(Tokenizer& tokens, std::string_view name, glm::quat& out)
+{
+    if (!parse_tokens(tokens, name, out.x)
+        || !parse_tokens(tokens, name, out.y)
+        || !parse_tokens(tokens, name, out.z)
+        || !parse_tokens(tokens, name, out.w)) {
+        LOG_F(ERROR, "{}: Failed to parse quaternion, line: {}", name, tokens.line());
+        return false;
+    }
+    return true;
+}
+
+bool parse_tokens(Tokenizer& tokens, std::string_view name, MdlFace& out)
+{
+    if (!parse_tokens(tokens, name, out.vert_idx[0])
+        || !parse_tokens(tokens, name, out.vert_idx[1])
+        || !parse_tokens(tokens, name, out.vert_idx[2])
+        || !parse_tokens(tokens, name, out.shader_group_idx)
+        || !parse_tokens(tokens, name, out.tvert_idx[0])
+        || !parse_tokens(tokens, name, out.tvert_idx[1])
+        || !parse_tokens(tokens, name, out.tvert_idx[2])
+        || !parse_tokens(tokens, name, out.material_idx)) {
+        LOG_F(ERROR, "Failed to parse Face, line: {}", tokens.line());
+        return false;
+    }
+    return true;
+}
+
+bool parse_tokens(Tokenizer& tokens, std::string_view name, MdlAABBNode* node)
+{
+    // Will have to create the tree structure later.
+    while (true) {
+        MdlAABBEntry out;
+        if (!parse_tokens(tokens, name, out.bmin)
+            || !parse_tokens(tokens, name, out.bmax)
+            || !parse_tokens(tokens, name, out.leaf_face)) {
+            LOG_F(ERROR, "Failed to parse Face, line: {}", tokens.line());
+            return false;
+        }
+        node->entries.push_back(out);
+        tokens.next(); // Drop new line.
+        auto tk = tokens.next();
+        // If the next token is a new line or empty the AABB is done.
+        if (tokens.is_newline(tk) || tk.empty()) {
+            break;
+        } else {
+            tokens.put_back(tk);
+        }
+    }
+    return true;
+}
+
+template <typename T>
+bool parse_tokens(Tokenizer& tokens, std::string_view name, std::vector<T>& out)
+{
+    uint32_t size;
+    if (!parse_tokens(tokens, name, size)) return false;
+    out.reserve(size);
+    tokens.next(); // drop new line.
+    for (uint32_t i = 0; i < size; ++i) {
+        T v;
+        if (!parse_tokens(tokens, name, v)) return false;
+        out.push_back(std::move(v));
+        tokens.next(); // drop new line.
+    }
+    return true;
+}
+
+bool MdlTextParser::parse_controller(MdlNode* node, std::string_view name, uint32_t type)
+{
+    size_t start_line = tokens_.line();
+    std::string_view tk = tokens_.next();
+    while (is_newline(tk))
+        tk = tokens_.next();
+
+    std::vector<float> data;
+    data.reserve(128);
+
+    if (start_line == tokens_.line()) { // All the data is going to be on one line.
+        while (!tk.empty() && !is_newline(tk)) {
+            auto opt = string::from<float>(tk);
+            if (!opt) {
+                LOG_F(ERROR, "Failed to parse float: {}, {}", name, tokens_.line());
+                return false;
+            }
+            data.push_back(*opt);
+            tk = tokens_.next();
+        }
+        node->add_controller_data(type, data, 1, int(data.size()));
+        return true;
+    } else {
+        int colsize = -1;
+        int rows = 0;
+
+        while (!tk.empty() && tk != "endlist") {
+            if (is_newline(tk)) {
+                if (colsize == -1) {
+                    colsize = int(data.size());
+                }
+                if (data.size() % colsize) {
+                    LOG_F(ERROR, "{}: Mismatched column size, line: {}", name, tokens_.line());
+                    return false;
+                }
+                ++rows;
+                while (is_newline(tk))
+                    tk = tokens_.next();
+            }
+
+            auto opt = string::from<float>(tk);
+            if (!opt) {
+                LOG_F(ERROR, "Failed to parse float: {}", tk);
+                return false;
+            }
+            data.push_back(*opt);
+            tk = tokens_.next();
+        }
+        node->add_controller_data(type, data, rows, int(data.size() / colsize));
+        return tk == "endlist";
+    }
+}
+
+#define PARSE_DATA(name, node)                      \
+    if (icmp(tk, ROLLNW_STRINGIFY(name))) {         \
+        if (!parse_tokens(tokens_, tk, node->name)) \
+            return false;                           \
+        else                                        \
+            continue;                               \
+    }
+
+#define PARSE_DATA_TO(name, node, target)             \
+    if (icmp(tk, ROLLNW_STRINGIFY(name))) {           \
+        if (!parse_tokens(tokens_, tk, node->target)) \
+            return false;                             \
+        else                                          \
+            continue;                                 \
+    }
+
+bool MdlTextParser::parse_node()
+{
+    bool result = true;
+    std::string_view tktype = tokens_.next();
+    if (tktype.empty()) {
+        LOG_F(ERROR, "Missing node type, line: {}", tokens_.line());
+        return false;
+    }
+
+    std::string_view tkname = tokens_.next();
+    if (tkname.empty()) {
+        LOG_F(ERROR, "Missing node name, line: {}", tokens_.line());
+        return false;
+    }
+
+    uint32_t type = MdlNodeType::from_string(tktype);
+    MdlNode* node = mdl_->add_node(type, tkname);
+    if (!node) return false;
+
+    std::string_view tk;
+    for (tk = tokens_.next(); !tk.empty() && result; tk = tokens_.next()) {
+        if (is_newline(tk)) {
+            continue;
+        } else if (icmp(tk, "endnode")) {
+            break;
+        }
+
+        std::string_view controller_tk = tk;
+        if (string::endswith(tk, "key")) {
+            controller_tk = std::string_view(tk.data(), tk.size() - 3);
+        } else if (string::endswith(tk, "bezierkey")) {
+            controller_tk = std::string_view(tk.data(), tk.size() - 9);
+        } else if (icmp(tk, "setfillumcolor")) {
+            controller_tk = "selfillumcolor";
+        }
+
+        // Check if it's a controller.
+        auto it = controller_map.find(controller_tk);
+        if (it != std::end(controller_map)) {
+            if (!(node->type & it->second.second)) {
+                LOG_F(ERROR, "Controller set on an incompatible node: {}", tk);
+                return false;
+            }
+            if (!parse_controller(node, tk, it->second.first)) return false;
+            continue;
+        }
+
+        if (icmp(tk, "parent")) {
+            tk = tokens_.next();
+            if (!icmp(tk, "NULL")) {
+                for (auto& n : mdl_->model.nodes) {
+                    if (n->name == tk) {
+                        node->parent = n.get();
+                        n->children.push_back(node);
+                        break;
+                    }
+                }
+            }
+            continue;
+        } else if (icmp(tk, "wirecolor")) { // Unused parse and validate but don't store it.
+            glm::vec3 v;
+            if (!parse_tokens(tokens_, tk, v)) return false;
+            continue;
+        }
+
+        if (node->type & MdlNodeFlags::mesh) {
+            MdlTrimeshNode* n = static_cast<MdlTrimeshNode*>(node);
+
+            PARSE_DATA(ambient, n)
+            PARSE_DATA(beaming, n)
+            PARSE_DATA(bitmap, n)
+            PARSE_DATA(bmax, n)
+            PARSE_DATA(bmin, n)
+
+            if (icmp(tk, "center")) { // Unused
+                tk = tokens_.next();  // undefined or <float>
+                if (tk != "undefined") {
+                    tokens_.next(); // drop next two <float>
+                    tokens_.next();
+                }
+                continue;
+            }
+
+            PARSE_DATA(colors, n)
+            PARSE_DATA(diffuse, n)
+            PARSE_DATA(faces, n)
+            PARSE_DATA(inheritcolor, n)
+            PARSE_DATA(materialname, n)
+            PARSE_DATA(render, n)
+            PARSE_DATA(renderhint, n)
+            PARSE_DATA(rotatetexture, n)
+            PARSE_DATA(shadow, n)
+            PARSE_DATA(shininess, n)
+            PARSE_DATA(specular, n)
+            PARSE_DATA_TO(texture0, n, textures[0])
+            PARSE_DATA_TO(texture1, n, textures[1])
+            PARSE_DATA_TO(texture2, n, textures[2])
+            PARSE_DATA(tilefade, n)
+            PARSE_DATA(transparencyhint, n)
+            PARSE_DATA_TO(tverts, n, tverts[0])
+            PARSE_DATA_TO(tverts1, n, tverts[1])
+            PARSE_DATA_TO(tverts2, n, tverts[2])
+            PARSE_DATA_TO(tverts3, n, tverts[3])
+            PARSE_DATA(verts, n)
+        }
+
+        if (node->type & MdlNodeFlags::reference) {
+            MdlReferenceNode* n = static_cast<MdlReferenceNode*>(node);
+            PARSE_DATA(reattachable, n)
+            PARSE_DATA(refmodel, n)
+        }
+
+        if (node->type & MdlNodeFlags::dangly) {
+            MdlDanglymeshNode* n = static_cast<MdlDanglymeshNode*>(node);
+            // PARSE_DATA(constraints, n)
+            PARSE_DATA(displacement, n)
+            PARSE_DATA(period, n)
+            PARSE_DATA(tightness, n)
+        }
+
+        if (node->type & MdlNodeFlags::emitter) {
+            MdlEmitterNode* n = static_cast<MdlEmitterNode*>(node);
+            PARSE_DATA(blastlength, n)
+            PARSE_DATA(blastradius, n)
+            PARSE_DATA(blend, n)
+            PARSE_DATA(chunkname, n)
+            PARSE_DATA(deadspace, n)
+            PARSE_DATA(loop, n)
+            PARSE_DATA(render, n)
+            PARSE_DATA(renderorder, n)
+            PARSE_DATA(spawntype, n)
+            PARSE_DATA(texture, n)
+            PARSE_DATA(twosidedtex, n)
+            PARSE_DATA(update, n)
+            PARSE_DATA(xgrid, n)
+            PARSE_DATA(ygrid, n)
+
+            bool value;
+            if (icmp(tk, "affectedByWind")) {
+                if (!parse_tokens(tokens_, tk, value)) return false;
+                if (value) n->flags |= MdlEmitterFlag::AffectedByWind;
+                continue;
+            } else if (icmp(tk, "bounce")) {
+                if (!parse_tokens(tokens_, tk, value)) return false;
+                if (value) n->flags |= MdlEmitterFlag::Bounce;
+                continue;
+            } else if (icmp(tk, "inherit")) {
+                if (!parse_tokens(tokens_, tk, value)) return false;
+                if (value) n->flags |= MdlEmitterFlag::Inherit;
+                continue;
+            } else if (icmp(tk, "inherit_local")) {
+                if (!parse_tokens(tokens_, tk, value)) return false;
+                if (value) n->flags |= MdlEmitterFlag::InheritLocal;
+                continue;
+            } else if (icmp(tk, "inherit_part")) {
+                if (!parse_tokens(tokens_, tk, value)) return false;
+                if (value) n->flags |= MdlEmitterFlag::InheritPart;
+                continue;
+            } else if (icmp(tk, "inheritvel")) {
+                if (!parse_tokens(tokens_, tk, value)) return false;
+                if (value) n->flags |= MdlEmitterFlag::InheritVel;
+                continue;
+            } else if (icmp(tk, "m_isTinted")) {
+                if (!parse_tokens(tokens_, tk, value)) return false;
+                if (value) n->flags |= MdlEmitterFlag::IsTinted;
+                continue;
+            } else if (icmp(tk, "p2p")) {
+                if (!parse_tokens(tokens_, tk, value)) return false;
+                if (value) n->flags |= MdlEmitterFlag::P2P;
+                continue;
+            } else if (icmp(tk, "p2p_sel")) {
+                if (!parse_tokens(tokens_, tk, value)) return false;
+                if (value) n->flags |= MdlEmitterFlag::P2PSel;
+                continue;
+            } else if (icmp(tk, "random")) {
+                if (!parse_tokens(tokens_, tk, value)) return false;
+                if (value) n->flags |= MdlEmitterFlag::Random;
+                continue;
+            } else if (icmp(tk, "splat")) {
+                if (!parse_tokens(tokens_, tk, value)) return false;
+                if (value) n->flags |= MdlEmitterFlag::Splat;
+                continue;
+            }
+        }
+
+        if (node->type & MdlNodeFlags::light) {
+            MdlLightNode* n = static_cast<MdlLightNode*>(node);
+            PARSE_DATA(affectdynamic, n)
+            PARSE_DATA(ambientonly, n)
+            PARSE_DATA(fadinglight, n)
+            PARSE_DATA(flarecolorshifts, n)
+            PARSE_DATA(flarepositions, n)
+            PARSE_DATA(flareradius, n)
+            PARSE_DATA(flaresizes, n)
+            PARSE_DATA(generateflare, n)
+            if (icmp(tk, "isdynamic")) {
+                LOG_F(WARNING, "'isdynamic' is obsolete, use 'nDynamicType'");
+                if (!parse_tokens(tokens_, tk, n->dynamic)) return false;
+                continue;
+            }
+            PARSE_DATA(lightpriority, n)
+            PARSE_DATA_TO(nDynamicType, n, dynamic)
+            PARSE_DATA(shadow, n)
+            // PARSE_DATA(texturenames, n)
+        }
+
+        if (node->type & MdlNodeFlags::aabb) {
+            MdlAABBNode* n = static_cast<MdlAABBNode*>(node);
+            if (icmp(tk, "aabb")) {
+                if (!parse_tokens(tokens_, "aabb", n)) {
+                    return false;
+                } else {
+                    continue;
+                }
+            }
+        }
+
+        if (node->type & MdlNodeFlags::skin) {
+            MdlSkinNode* n = static_cast<MdlSkinNode*>(node);
+            PARSE_DATA(boneconstantindices, n)
+            PARSE_DATA(qbone_ref_inv, n)
+            PARSE_DATA(tbone_ref_inv, n)
+            // PARSE_DATA(weights, n)
+        }
+
+        if (node->type & MdlNodeFlags::anim) {
+            MdlAnimeshNode* n = static_cast<MdlAnimeshNode*>(node);
+            PARSE_DATA(animtverts, n)
+            PARSE_DATA(animverts, n)
+            PARSE_DATA(sampleperiod, n)
+        }
+
+        LOG_F(ERROR, "Unknown token: '{}'", tk);
+    }
+
+    return tk == "endnode";
+}
+
+bool MdlTextParser::parse_geometry()
+{
+    std::string_view tk;
+    for (tk = tokens_.next(); !tk.empty(); tk = tokens_.next()) {
+        if (is_newline(tk))
+            continue;
+        if (tk == "node") {
+            if (!parse_node()) return false;
+        } else if (tk == "endmodelgeom") {
+            break;
+        }
+    }
+    return tk == "endmodelgeom";
+}
+
+bool MdlTextParser::parse_anim()
+{
+    return true;
+}
+
+bool MdlTextParser::parse_model()
+{
+    std::string_view tk;
+    for (tk = tokens_.next(); !tk.empty(); tk = tokens_.next()) {
+        if (is_newline(tk))
+            continue;
+        else if (tk == "donemodel")
+            break;
+        else if (tk == "setsupermodel") {
+            if (!validate_tokens({tokens_.next()})) { // Don't care about the file name.
+                LOG_F(ERROR, "Missing super model file name, line: {}.", tokens_.line());
+                return false;
+            }
+            if (!parse_tokens(tokens_, tk, mdl_->model.supermodel_name)) return false;
+        } else if (tk == "classification") {
+            std::string name;
+            if (!parse_tokens(tokens_, tk, name)) return false;
+            if (icmp(name, "character"))
+                mdl_->model.classification = MdlModelClass::character;
+            else if (icmp(name, "door"))
+                mdl_->model.classification = MdlModelClass::door;
+            else if (icmp(name, "effect") || icmp(name, "effects"))
+                mdl_->model.classification = MdlModelClass::effect;
+            else if (icmp(name, "tile"))
+                mdl_->model.classification = MdlModelClass::tile;
+            else if (icmp(name, "unknown"))
+                mdl_->model.classification = MdlModelClass::invalid;
+            else {
+                LOG_F(ERROR, "Unknown Model Classification {}, line: {}", name, tokens_.line());
+                return false;
+            }
+        } else if (tk == "ignorefog") {
+            if (!parse_tokens(tokens_, tk, mdl_->model.ignorefog)) return false;
+        } else if (tk == "setanimationscale") {
+            if (!parse_tokens(tokens_, tk, mdl_->model.animationscale)) return false;
+        } else if (tk == "beginmodelgeom") {
+            if (!parse_geometry()) return false;
+        }
+    }
+
+    return tk == "donemodel";
+}
+
+bool MdlTextParser::parse()
+{
+    bool result = true;
+    for (std::string_view tk = tokens_.next(); !tk.empty() && result; tk = tokens_.next()) {
+        if (is_newline(tk)) continue;
+        if (tk == "filedependancy") { // Don't care about this so skip the next token.
+            tokens_.next();
+        } else if (tk == "newmodel") {
+            if (!parse_model()) return false;
+        } else if (tk == "newamim") {
+            if (!parse_anim()) return false;
+        }
+    }
+
+    return result;
+}
+
+} // namespace nw

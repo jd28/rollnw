@@ -45,10 +45,11 @@ add_library(nw STATIC
     log.cpp
 )
 
+add_subdirectory(components)
 add_subdirectory(formats)
 add_subdirectory(i18n)
 add_subdirectory(kernel)
-add_subdirectory(components)
+add_subdirectory(model)
 add_subdirectory(resources)
 add_subdirectory(rules)
 add_subdirectory(serialization)
@@ -61,6 +62,7 @@ target_link_libraries(nw PUBLIC
     nw-i18n
     nw-kernel
     nw-components
+    nw-model
     nw-resources
     nw-rules
     nw-serialization

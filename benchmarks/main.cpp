@@ -3,6 +3,7 @@
 #include <nw/formats/TwoDA.hpp>
 #include <nw/i18n/Tlk.hpp>
 #include <nw/kernel/Kernel.hpp>
+#include <nw/model/Mdl.hpp>
 #include <nw/serialization/GffInputArchive.hpp>
 #include <nwn1/Profile.hpp>
 #include <nwn1/functions.hpp>
@@ -140,6 +141,14 @@ static void BM_formats_nss(benchmark::State& state)
     }
 }
 
+static void BM_model_parse(benchmark::State& state)
+{
+    for (auto _ : state) {
+        nw::Mdl mdl{"../tests/test_data/user/development/alt_dfa19.mdl"};
+        benchmark::DoNotOptimize(mdl);
+    }
+}
+
 BENCHMARK(BM_parse_feat_2da);
 BENCHMARK(BM_parse_settings_tml);
 BENCHMARK(BM_creature_from_gff);
@@ -153,6 +162,7 @@ BENCHMARK(BM_creature_get_skill_rank);
 BENCHMARK(BM_creature_ability_score);
 
 BENCHMARK(BM_formats_nss);
+BENCHMARK(BM_model_parse);
 
 int main(int argc, char** argv)
 {

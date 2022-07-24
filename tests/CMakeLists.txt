@@ -41,6 +41,8 @@ add_executable(rollnw_test
     kernel_rules.cpp
     kernel_strings.cpp
 
+    model_parse.cpp
+
     objects_area.cpp
     objects_creature.cpp
     objects_dialog.cpp
