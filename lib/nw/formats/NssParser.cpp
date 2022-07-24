@@ -568,7 +568,18 @@ Script NssParser::parse_program()
 {
     Script p;
     while (!is_end()) {
-        p.decls.emplace_back(parse_decl_external());
+        if (match({NssTokenType::POUND})) {
+            if (peek().id == "include") {
+                advance(); // include
+                advance(); // script name
+            } else if (peek().id == "define") {
+                advance(); // define
+                advance(); // varname
+                advance(); // value
+            }
+        } else {
+            p.decls.emplace_back(parse_decl_external());
+        }
     }
     return p;
 }
