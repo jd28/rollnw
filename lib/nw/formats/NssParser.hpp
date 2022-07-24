@@ -25,6 +25,7 @@ struct ConditionalExpression;
 struct DotExpression;
 struct GroupingExpression;
 struct LiteralExpression;
+struct LiteralVectorExpression;
 struct LogicalExpression;
 struct PostfixExpression;
 struct UnaryExpression;
@@ -59,6 +60,7 @@ struct BaseVisitor {
     virtual void visit(DotExpression* expr) = 0;
     virtual void visit(GroupingExpression* expr) = 0;
     virtual void visit(LiteralExpression* expr) = 0;
+    virtual void visit(LiteralVectorExpression* expr) = 0;
     virtual void visit(LogicalExpression* expr) = 0;
     virtual void visit(PostfixExpression* expr) = 0;
     virtual void visit(UnaryExpression* expr) = 0;
@@ -186,6 +188,19 @@ struct LiteralExpression : Expression {
     }
 
     NssToken literal;
+
+    DEFINE_ACCEPT_VISITOR
+};
+
+struct LiteralVectorExpression : Expression {
+    explicit LiteralVectorExpression(NssToken x_, NssToken y_, NssToken z_)
+        : x{x_}
+        , y{y_}
+        , z{z_}
+    {
+    }
+
+    NssToken x, y, z;
 
     DEFINE_ACCEPT_VISITOR
 };

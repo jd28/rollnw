@@ -273,6 +273,17 @@ std::unique_ptr<Expression> NssParser::parse_expr_primary()
         return std::make_unique<VariableExpression>(previous());
     }
 
+    if (match({NssTokenType::LBRACKET})) {
+        NssToken x, y, z;
+        consume(NssTokenType::FLOAT_CONST, "Expected floating point literal");
+        consume(NssTokenType::COMMA, "Expected comma");
+        consume(NssTokenType::FLOAT_CONST, "Expected floating point literal");
+        consume(NssTokenType::COMMA, "Expected floating point literal");
+        consume(NssTokenType::FLOAT_CONST, "Expected comma");
+        consume(NssTokenType::RBRACKET, "Expected comma");
+        return std::make_unique<LiteralVectorExpression>(x, y, z);
+    }
+
     if (match({NssTokenType::LPAREN})) {
         auto expr = parse_expr();
         consume(NssTokenType::RPAREN, "Expected ')' after expression.");
