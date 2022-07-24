@@ -1,4 +1,5 @@
 #include <nw/components/Creature.hpp>
+#include <nw/formats/Nss.hpp>
 #include <nw/formats/TwoDA.hpp>
 #include <nw/i18n/Tlk.hpp>
 #include <nw/kernel/Kernel.hpp>
@@ -130,6 +131,15 @@ static void BM_creature_ability_score(benchmark::State& state)
     }
 }
 
+static void BM_formats_nss(benchmark::State& state)
+{
+    for (auto _ : state) {
+        nw::script::Nss nss("../tests/test_data/user/scratch/nwscript.nss");
+        auto prog = nss.parse();
+        benchmark::DoNotOptimize(prog);
+    }
+}
+
 BENCHMARK(BM_parse_feat_2da);
 BENCHMARK(BM_parse_settings_tml);
 BENCHMARK(BM_creature_from_gff);
@@ -141,6 +151,8 @@ BENCHMARK(BM_creature_select2);
 BENCHMARK(BM_creature_modifier);
 BENCHMARK(BM_creature_get_skill_rank);
 BENCHMARK(BM_creature_ability_score);
+
+BENCHMARK(BM_formats_nss);
 
 int main(int argc, char** argv)
 {

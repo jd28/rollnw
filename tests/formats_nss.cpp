@@ -17,3 +17,15 @@ TEST_CASE("NWScript Parser", "[formats]")
     prog.accept(&p);
     LOG_F(INFO, "{}", p.ss.str());
 }
+
+TEST_CASE("NWScript Parser - preprocessor", "[formats]")
+{
+    script::Nss nss("test_data/user/development/script_preprocessor.nss");
+    REQUIRE_NOTHROW(nss.parse());
+}
+
+TEST_CASE("NWScript Parser - nwscript", "[formats]")
+{
+    script::Nss nss("test_data/user/scratch/nwscript.nss");
+    REQUIRE_NOTHROW(nss.parse());
+}
