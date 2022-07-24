@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>nw::MdlControllerType &mdash; rollNW  documentation</title>
+      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="../../_static/doctools.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="nw::MdlControllerKey" href="nw__MdlDanglymeshNode.html" />
+    <link rel="prev" title="nw::MdlControllerKey" href="nw__MdlControllerKey.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../index.html" class="icon icon-home"> rollNW
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">getting started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../gs/building.html">building</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gs/using.html">using</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">structure</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../structure/components.html">objects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../structure/formats.html">formats</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../structure/i18n.html">i18n</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../structure/kernel.html">kernel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../structure/resources.html">resources</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../structure/rules.html">rules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../structure/serialization.html">serialization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../structure/util.html">util</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">c++ api</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="../classlist.html">classes</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="nw__AbilityArray.html">nw::AbilityArray</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__AbilityInfo.html">nw::AbilityInfo</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Appearance.html">nw::Appearance</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Area.html">nw::Area</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__AreaScripts.html">nw::AreaScripts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__AreaWeather.html">nw::AreaWeather</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__BaseItem.html">nw::BaseItem</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__BaseItemArray.html">nw::BaseItemArray</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__BeamdogInstall.html">nw::BeamdogInstall</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Bif.html">nw::Bif</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__BifElement.html">nw::BifElement</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__BifHeader.html">nw::BifHeader</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__BodyParts.html">nw::BodyParts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ByteArray.html">nw::ByteArray</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ClassArray.html">nw::ClassArray</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ClassEntry.html">nw::ClassEntry</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ClassInfo.html">nw::ClassInfo</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__CombatInfo.html">nw::CombatInfo</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Common.html">nw::Common</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__CompressionHeader.html">nw::CompressionHeader</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ConfigOptions.html">nw::ConfigOptions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Container.html">nw::Container</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Creature.html">nw::Creature</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__CreatureScripts.html">nw::CreatureScripts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__CreatureStats.html">nw::CreatureStats</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__DamageRoll.html">nw::DamageRoll</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Dialog.html">nw::Dialog</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__DialogNode.html">nw::DialogNode</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__DialogPtr.html">nw::DialogPtr</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__DiceRoll.html">nw::DiceRoll</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Directory.html">nw::Directory</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Door.html">nw::Door</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__DoorScripts.html">nw::DoorScripts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Effect.html">nw::Effect</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__EffectHandle.html">nw::EffectHandle</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Encounter.html">nw::Encounter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__EncounterScripts.html">nw::EncounterScripts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Equips.html">nw::Equips</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Erf.html">nw::Erf</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ErfElementInfo.html">nw::ErfElementInfo</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ErfHeader.html">nw::ErfHeader</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ErfKey.html">nw::ErfKey</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Faction.html">nw::Faction</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__FactionInfo.html">nw::FactionInfo</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__FeatArray.html">nw::FeatArray</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__FeatInfo.html">nw::FeatInfo</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__GameProfile.html">nw::GameProfile</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__GffFieldEntry.html">nw::GffFieldEntry</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__GffHeader.html">nw::GffHeader</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__GffInputArchive.html">nw::GffInputArchive</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__GffInputArchiveField.html">nw::GffInputArchiveField</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__GffInputArchiveStruct.html">nw::GffInputArchiveStruct</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__GffLabel.html">nw::GffLabel</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__GffOutputArchive.html">nw::GffOutputArchive</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__GffOutputArchiveField.html">nw::GffOutputArchiveField</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__GffOutputArchiveList.html">nw::GffOutputArchiveList</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__GffOutputArchiveStruct.html">nw::GffOutputArchiveStruct</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__GffStructEntry.html">nw::GffStructEntry</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Image.html">nw::Image</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Ini.html">nw::Ini</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__InstallInfo.html">nw::InstallInfo</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__InternedString.html">nw::InternedString</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Inventory.html">nw::Inventory</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__InventoryItem.html">nw::InventoryItem</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Item.html">nw::Item</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ItemColors.html">nw::ItemColors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ItemModelParts.html">nw::ItemModelParts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ItemProperty.html">nw::ItemProperty</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Journal.html">nw::Journal</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__JournalCategory.html">nw::JournalCategory</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__JournalEntry.html">nw::JournalEntry</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Key.html">nw::Key</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__KeyTableElement.html">nw::KeyTableElement</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Language.html">nw::Language</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Language__Properties.html">nw::Language::Properties</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__LevelHistory.html">nw::LevelHistory</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__LevelHistoryEntry.html">nw::LevelHistoryEntry</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__LevelStats.html">nw::LevelStats</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__LocString.html">nw::LocString</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__LocalData.html">nw::LocalData</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__LocalVar.html">nw::LocalVar</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__LocalVarType.html">nw::LocalVarType</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Location.html">nw::Location</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Lock.html">nw::Lock</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__MasterFeatRegistry.html">nw::MasterFeatRegistry</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Mdl.html">nw::Mdl</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__MdlAABBEntry.html">nw::MdlAABBEntry</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__MdlAABBNode.html">nw::MdlAABBNode</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__MdlAnimation.html">nw::MdlAnimation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__MdlAnimationEvent.html">nw::MdlAnimationEvent</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__MdlAnimeshNode.html">nw::MdlAnimeshNode</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__MdlCameraNode.html">nw::MdlCameraNode</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__MdlControllerKey.html">nw::MdlControllerKey</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">nw::MdlControllerType</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__MdlDanglymeshNode.html">nw::MdlControllerKey</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__MdlDummyNode.html">nw::MdlDummyNode</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__MdlEmitterFlag.html">nw::MdlEmitterFlag</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__MdlEmitterNode.html">nw::MdlEmitterNode</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__MdlFace.html">nw::MdlFace</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__MdlGeometry.html">nw::MdlGeometry</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__MdlGeometryFlag.html">nw::MdlGeometryFlag</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__MdlGeometryType.html">nw::MdlGeometryType</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__MdlLightNode.html">nw::MdlLightNode</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__MdlModel.html">nw::MdlModel</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__MdlModelClass.html">nw::MdlModelClass</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__MdlNode.html">nw::MdlNode</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__MdlNodeFlags.html">nw::MdlNodeFlags</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__MdlNodeTypes.html">nw::MdlNodeType</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__MdlPatchNode.html">nw::MdlPatchNode</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__MdlReferenceNode.html">nw::MdlReferenceNode</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__MdlSkinNode.html">nw::MdlSkinNode</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__MdlSkinWeight.html">nw::MdlSkinWeight</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__MdlTextParser.html">nw::MdlTextParser</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__MdlTriangleMode.html">nw::MdlTriangleMode</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__MdlTrimeshNode.html">nw::MdlTrimeshNode</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Modifier.html">nw::Modifier</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Module.html">nw::Module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ModuleScripts.html">nw::ModuleScripts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__NWSync.html">nw::NWSync</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__NWSyncManifest.html">nw::NWSyncManifest</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Null.html">nw::Null</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Palette.html">nw::Palette</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__PaletteTreeNode.html">nw::PaletteTreeNode</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Placeable.html">nw::Placeable</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__PlaceableScripts.html">nw::PlaceableScripts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Qualifier.html">nw::Qualifier</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__RaceArray.html">nw::RaceArray</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__RaceInfo.html">nw::RaceInfo</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Reputation.html">nw::Reputation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Requirement.html">nw::Requirement</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Resource.html">nw::Resource</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ResourceDescriptor.html">nw::ResourceDescriptor</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ResourceType.html">nw::ResourceType</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Resref.html">nw::Resref</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__RuleFlag.html">nw::RuleFlag</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Save.html">nw::Save</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Saves.html">nw::Saves</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Selector.html">nw::Selector</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__SerializationType.html">nw::SerializationType</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Situation.html">nw::Situation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__SkillArray.html">nw::SkillArray</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__SkillInfo.html">nw::SkillInfo</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Sound.html">nw::Sound</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__SpawnCreature.html">nw::SpawnCreature</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__SpawnPoint.html">nw::SpawnPoint</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__SpecialAbility.html">nw::SpecialAbility</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__SpellArray.html">nw::SpellArray</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__SpellBook.html">nw::SpellBook</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__SpellEntry.html">nw::SpellEntry</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__SpellInfo.html">nw::SpellInfo</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Store.html">nw::Store</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__StoreInventory.html">nw::StoreInventory</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__StoreScripts.html">nw::StoreScripts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Tile.html">nw::Tile</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Tlk.html">nw::Tlk</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__TlkElement.html">nw::TlkElement</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__TlkFlags.html">nw::TlkFlags</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__TlkHeader.html">nw::TlkHeader</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Tokenizer.html">nw::Tokenizer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Trap.html">nw::Trap</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Trigger.html">nw::Trigger</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__TriggerScripts.html">nw::TriggerScripts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__TwoDA.html">nw::TwoDA</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__TwoDACache.html">nw::TwoDACache</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Variant.html">nw::Variant</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Versus.html">nw::Versus</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Waypoint.html">nw::Waypoint</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Zip.html">nw::Zip</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ZipElement.html">nw::ZipElement</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ZlibHeader.html">nw::ZlibHeader</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ZstdHeader.html">nw::ZstdHeader</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__kernel__Config.html">nw::kernel::Config</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__kernel__ObjectSystem.html">nw::kernel::ObjectSystem</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__kernel__Resources.html">nw::kernel::Resources</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__kernel__Rules.html">nw::kernel::Rules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__kernel__Services.html">nw::kernel::Services</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__kernel__Strings.html">nw::kernel::Strings</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__AssignExpression.html">nw::script::AssignExpression</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__AstNode.html">nw::script::AstNode</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__BaseVisitor.html">nw::script::BaseVisitor</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__BinaryExpression.html">nw::script::BinaryExpression</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__BlockStatement.html">nw::script::BlockStatement</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__CallExpression.html">nw::script::CallExpression</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__ConditionalExpression.html">nw::script::ConditionalExpression</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__Declaration.html">nw::script::Declaration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__DoStatement.html">nw::script::DoStatement</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__DotExpression.html">nw::script::DotExpression</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__ExprStatement.html">nw::script::ExprStatement</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__Expression.html">nw::script::Expression</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__ForStatement.html">nw::script::ForStatement</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__FunctionDecl.html">nw::script::FunctionDecl</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__FunctionDefinition.html">nw::script::FunctionDefinition</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__GroupingExpression.html">nw::script::GroupingExpression</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__IfStatement.html">nw::script::IfStatement</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__JumpStatement.html">nw::script::JumpStatement</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__LabelStatement.html">nw::script::LabelStatement</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__LiteralExpression.html">nw::script::LiteralExpression</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__LiteralVectorExpression.html">nw::script::LiteralVectorExpression</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__LogicalExpression.html">nw::script::LogicalExpression</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__Nss.html">nw::script::Nss</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__NssAstPrinter.html">nw::script::NssAstPrinter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__NssLexer.html">nw::script::NssLexer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__NssParser.html">nw::script::NssParser</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__NssToken.html">nw::script::NssToken</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__PostfixExpression.html">nw::script::PostfixExpression</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__Script.html">nw::script::Script</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__Statement.html">nw::script::Statement</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__StructDecl.html">nw::script::StructDecl</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__SwitchStatement.html">nw::script::SwitchStatement</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__Type.html">nw::script::Type</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__UnaryExpression.html">nw::script::UnaryExpression</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__VarDecl.html">nw::script::VarDecl</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__VariableExpression.html">nw::script::VariableExpression</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__WhileStatement.html">nw::script::WhileStatement</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nwn1__Profile.html">nwn1::Profile</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../definelist.html">defines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../enumlist.html">enums</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../functionlist.html">functions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../typedeflist.html">typedefs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">gff schemas</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/are.html">are</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/dlg.html">dlg</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/fac.html">fac</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/gic.html">gic</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/git.html">git</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/ifo.html">ifo</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/itp.html">itp</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/jrl.html">jrl</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/utc.html">utc</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/utd.html">utd</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/ute.html">ute</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/uti.html">uti</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/utm.html">utm</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/utp.html">utp</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/uts.html">uts</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/utt.html">utt</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/utw.html">utw</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/vartable.html">vartable</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">rollNW</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="../classlist.html">classes</a> &raquo;</li>
+      <li>nw::MdlControllerType</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/api/struct/nw__MdlControllerType.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="nw-mdlcontrollertype">
+<h1>nw::MdlControllerType<a class="headerlink" href="#nw-mdlcontrollertype" title="Permalink to this heading"></a></h1>
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw17MdlControllerTypeE">
+<span id="_CPPv3N2nw17MdlControllerTypeE"></span><span id="_CPPv2N2nw17MdlControllerTypeE"></span><span id="nw::MdlControllerType"></span><span class="target" id="structnw_1_1_mdl_controller_type"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">MdlControllerType</span></span></span><a class="headerlink" href="#_CPPv4N2nw17MdlControllerTypeE" title="Permalink to this definition"></a><br /></dt>
+<dd><div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-static-attributes">Public Static Attributes</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw17MdlControllerType8PositionE">
+<span id="_CPPv3N2nw17MdlControllerType8PositionE"></span><span id="_CPPv2N2nw17MdlControllerType8PositionE"></span><span id="nw::MdlControllerType::Position__uint32_t"></span><span class="target" id="structnw_1_1_mdl_controller_type_1a6a4c514f85d1fb7d59557c7b357c2da9"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Position</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">8</span></span><a class="headerlink" href="#_CPPv4N2nw17MdlControllerType8PositionE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw17MdlControllerType11OrientationE">
+<span id="_CPPv3N2nw17MdlControllerType11OrientationE"></span><span id="_CPPv2N2nw17MdlControllerType11OrientationE"></span><span id="nw::MdlControllerType::Orientation__uint32_t"></span><span class="target" id="structnw_1_1_mdl_controller_type_1a85d65b78a368745d828891d1a8827c05"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Orientation</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">20</span></span><a class="headerlink" href="#_CPPv4N2nw17MdlControllerType11OrientationE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw17MdlControllerType5ScaleE">
+<span id="_CPPv3N2nw17MdlControllerType5ScaleE"></span><span id="_CPPv2N2nw17MdlControllerType5ScaleE"></span><span id="nw::MdlControllerType::Scale__uint32_t"></span><span class="target" id="structnw_1_1_mdl_controller_type_1a0a55150f0b57503cfdbcc0475fcde309"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Scale</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">36</span></span><a class="headerlink" href="#_CPPv4N2nw17MdlControllerType5ScaleE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw17MdlControllerType9WirecolorE">
+<span id="_CPPv3N2nw17MdlControllerType9WirecolorE"></span><span id="_CPPv2N2nw17MdlControllerType9WirecolorE"></span><span id="nw::MdlControllerType::Wirecolor__uint32_t"></span><span class="target" id="structnw_1_1_mdl_controller_type_1a1305cfb2f9db27f21c297ad28beae0d1"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Wirecolor</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">20004</span></span><a class="headerlink" href="#_CPPv4N2nw17MdlControllerType9WirecolorE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw17MdlControllerType5ColorE">
+<span id="_CPPv3N2nw17MdlControllerType5ColorE"></span><span id="_CPPv2N2nw17MdlControllerType5ColorE"></span><span id="nw::MdlControllerType::Color__uint32_t"></span><span class="target" id="structnw_1_1_mdl_controller_type_1ac663bc8a0ab8a05117aabc302f95640f"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Color</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">76</span></span><a class="headerlink" href="#_CPPv4N2nw17MdlControllerType5ColorE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw17MdlControllerType6RadiusE">
+<span id="_CPPv3N2nw17MdlControllerType6RadiusE"></span><span id="_CPPv2N2nw17MdlControllerType6RadiusE"></span><span id="nw::MdlControllerType::Radius__uint32_t"></span><span class="target" id="structnw_1_1_mdl_controller_type_1ab309f68dcaada2495fb37dff9a2a525e"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Radius</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">88</span></span><a class="headerlink" href="#_CPPv4N2nw17MdlControllerType6RadiusE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw17MdlControllerType12ShadowRadiusE">
+<span id="_CPPv3N2nw17MdlControllerType12ShadowRadiusE"></span><span id="_CPPv2N2nw17MdlControllerType12ShadowRadiusE"></span><span id="nw::MdlControllerType::ShadowRadius__uint32_t"></span><span class="target" id="structnw_1_1_mdl_controller_type_1a9b616e65390cc84655e10d6f42e53e54"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ShadowRadius</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">96</span></span><a class="headerlink" href="#_CPPv4N2nw17MdlControllerType12ShadowRadiusE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw17MdlControllerType20VerticalDisplacementE">
+<span id="_CPPv3N2nw17MdlControllerType20VerticalDisplacementE"></span><span id="_CPPv2N2nw17MdlControllerType20VerticalDisplacementE"></span><span id="nw::MdlControllerType::VerticalDisplacement__uint32_t"></span><span class="target" id="structnw_1_1_mdl_controller_type_1a87b67d642ea92af3c7ff8139f4db0c22"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">VerticalDisplacement</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">100</span></span><a class="headerlink" href="#_CPPv4N2nw17MdlControllerType20VerticalDisplacementE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw17MdlControllerType10MultiplierE">
+<span id="_CPPv3N2nw17MdlControllerType10MultiplierE"></span><span id="_CPPv2N2nw17MdlControllerType10MultiplierE"></span><span id="nw::MdlControllerType::Multiplier__uint32_t"></span><span class="target" id="structnw_1_1_mdl_controller_type_1af44860882bc20f1c96ec98e5b1bc8953"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Multiplier</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">140</span></span><a class="headerlink" href="#_CPPv4N2nw17MdlControllerType10MultiplierE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw17MdlControllerType8AlphaEndE">
+<span id="_CPPv3N2nw17MdlControllerType8AlphaEndE"></span><span id="_CPPv2N2nw17MdlControllerType8AlphaEndE"></span><span id="nw::MdlControllerType::AlphaEnd__uint32_t"></span><span class="target" id="structnw_1_1_mdl_controller_type_1a968228fa2fec6d13213142f9cdc3fc0f"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">AlphaEnd</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">80</span></span><a class="headerlink" href="#_CPPv4N2nw17MdlControllerType8AlphaEndE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw17MdlControllerType10AlphaStartE">
+<span id="_CPPv3N2nw17MdlControllerType10AlphaStartE"></span><span id="_CPPv2N2nw17MdlControllerType10AlphaStartE"></span><span id="nw::MdlControllerType::AlphaStart__uint32_t"></span><span class="target" id="structnw_1_1_mdl_controller_type_1a4fdf279399abf3a1d60c20c2ca9ec40b"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">AlphaStart</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">84</span></span><a class="headerlink" href="#_CPPv4N2nw17MdlControllerType10AlphaStartE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw17MdlControllerType9BirthRateE">
+<span id="_CPPv3N2nw17MdlControllerType9BirthRateE"></span><span id="_CPPv2N2nw17MdlControllerType9BirthRateE"></span><span id="nw::MdlControllerType::BirthRate__uint32_t"></span><span class="target" id="structnw_1_1_mdl_controller_type_1a7d266d092f3f0d77be54ac715d3aeea1"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">BirthRate</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">88</span></span><a class="headerlink" href="#_CPPv4N2nw17MdlControllerType9BirthRateE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw17MdlControllerType9Bounce_CoE">
+<span id="_CPPv3N2nw17MdlControllerType9Bounce_CoE"></span><span id="_CPPv2N2nw17MdlControllerType9Bounce_CoE"></span><span id="nw::MdlControllerType::Bounce_Co__uint32_t"></span><span class="target" id="structnw_1_1_mdl_controller_type_1aeec3e87da1634c9f9a0d35ec4692219a"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Bounce_Co</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">92</span></span><a class="headerlink" href="#_CPPv4N2nw17MdlControllerType9Bounce_CoE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw17MdlControllerType8ColorEndE">
+<span id="_CPPv3N2nw17MdlControllerType8ColorEndE"></span><span id="_CPPv2N2nw17MdlControllerType8ColorEndE"></span><span id="nw::MdlControllerType::ColorEnd__uint32_t"></span><span class="target" id="structnw_1_1_mdl_controller_type_1a60aca32897f0d4dfef6b2fd09b57ebdb"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ColorEnd</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">96</span></span><a class="headerlink" href="#_CPPv4N2nw17MdlControllerType8ColorEndE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw17MdlControllerType10ColorStartE">
+<span id="_CPPv3N2nw17MdlControllerType10ColorStartE"></span><span id="_CPPv2N2nw17MdlControllerType10ColorStartE"></span><span id="nw::MdlControllerType::ColorStart__uint32_t"></span><span class="target" id="structnw_1_1_mdl_controller_type_1a6bf883ef92cf8e6af6b7bb5d97e54a57"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ColorStart</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">108</span></span><a class="headerlink" href="#_CPPv4N2nw17MdlControllerType10ColorStartE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw17MdlControllerType11CombineTimeE">
+<span id="_CPPv3N2nw17MdlControllerType11CombineTimeE"></span><span id="_CPPv2N2nw17MdlControllerType11CombineTimeE"></span><span id="nw::MdlControllerType::CombineTime__uint32_t"></span><span class="target" id="structnw_1_1_mdl_controller_type_1a8b33ea57639a47e571d509bb3539e263"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">CombineTime</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">120</span></span><a class="headerlink" href="#_CPPv4N2nw17MdlControllerType11CombineTimeE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw17MdlControllerType4DragE">
+<span id="_CPPv3N2nw17MdlControllerType4DragE"></span><span id="_CPPv2N2nw17MdlControllerType4DragE"></span><span id="nw::MdlControllerType::Drag__uint32_t"></span><span class="target" id="structnw_1_1_mdl_controller_type_1aee8a558e87b9cd73d0ee631b2f6a7371"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Drag</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">124</span></span><a class="headerlink" href="#_CPPv4N2nw17MdlControllerType4DragE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw17MdlControllerType3FPSE">
+<span id="_CPPv3N2nw17MdlControllerType3FPSE"></span><span id="_CPPv2N2nw17MdlControllerType3FPSE"></span><span id="nw::MdlControllerType::FPS__uint32_t"></span><span class="target" id="structnw_1_1_mdl_controller_type_1a78aac6a622de69e58765abbf563ec7bd"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">FPS</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">128</span></span><a class="headerlink" href="#_CPPv4N2nw17MdlControllerType3FPSE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw17MdlControllerType8FrameEndE">
+<span id="_CPPv3N2nw17MdlControllerType8FrameEndE"></span><span id="_CPPv2N2nw17MdlControllerType8FrameEndE"></span><span id="nw::MdlControllerType::FrameEnd__uint32_t"></span><span class="target" id="structnw_1_1_mdl_controller_type_1a19e78dd87d10e17b87a8987afd101f62"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">FrameEnd</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">132</span></span><a class="headerlink" href="#_CPPv4N2nw17MdlControllerType8FrameEndE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw17MdlControllerType10FrameStartE">
+<span id="_CPPv3N2nw17MdlControllerType10FrameStartE"></span><span id="_CPPv2N2nw17MdlControllerType10FrameStartE"></span><span id="nw::MdlControllerType::FrameStart__uint32_t"></span><span class="target" id="structnw_1_1_mdl_controller_type_1ab0924152d1c139d918e1ee5642c7f237"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">FrameStart</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">136</span></span><a class="headerlink" href="#_CPPv4N2nw17MdlControllerType10FrameStartE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw17MdlControllerType4GravE">
+<span id="_CPPv3N2nw17MdlControllerType4GravE"></span><span id="_CPPv2N2nw17MdlControllerType4GravE"></span><span id="nw::MdlControllerType::Grav__uint32_t"></span><span class="target" id="structnw_1_1_mdl_controller_type_1a5b9ae0d6ed890e27bc53c7b7a5c9cb01"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Grav</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">140</span></span><a class="headerlink" href="#_CPPv4N2nw17MdlControllerType4GravE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw17MdlControllerType7LifeExpE">
+<span id="_CPPv3N2nw17MdlControllerType7LifeExpE"></span><span id="_CPPv2N2nw17MdlControllerType7LifeExpE"></span><span id="nw::MdlControllerType::LifeExp__uint32_t"></span><span class="target" id="structnw_1_1_mdl_controller_type_1a64340306cae86d2bec7d0d53a2aea15b"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">LifeExp</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">144</span></span><a class="headerlink" href="#_CPPv4N2nw17MdlControllerType7LifeExpE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw17MdlControllerType4MassE">
+<span id="_CPPv3N2nw17MdlControllerType4MassE"></span><span id="_CPPv2N2nw17MdlControllerType4MassE"></span><span id="nw::MdlControllerType::Mass__uint32_t"></span><span class="target" id="structnw_1_1_mdl_controller_type_1ad151819ce398b69e38eb91912ce829d4"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Mass</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">148</span></span><a class="headerlink" href="#_CPPv4N2nw17MdlControllerType4MassE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw17MdlControllerType11P2P_Bezier2E">
+<span id="_CPPv3N2nw17MdlControllerType11P2P_Bezier2E"></span><span id="_CPPv2N2nw17MdlControllerType11P2P_Bezier2E"></span><span id="nw::MdlControllerType::P2P_Bezier2__uint32_t"></span><span class="target" id="structnw_1_1_mdl_controller_type_1acf1b4843474f41844e6a90bc71c31cb4"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">P2P_Bezier2</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">152</span></span><a class="headerlink" href="#_CPPv4N2nw17MdlControllerType11P2P_Bezier2E" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw17MdlControllerType11P2P_Bezier3E">
+<span id="_CPPv3N2nw17MdlControllerType11P2P_Bezier3E"></span><span id="_CPPv2N2nw17MdlControllerType11P2P_Bezier3E"></span><span id="nw::MdlControllerType::P2P_Bezier3__uint32_t"></span><span class="target" id="structnw_1_1_mdl_controller_type_1a03bd1b450c6a2b1b5e70a0f065b3082b"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">P2P_Bezier3</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">156</span></span><a class="headerlink" href="#_CPPv4N2nw17MdlControllerType11P2P_Bezier3E" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw17MdlControllerType11ParticleRotE">
+<span id="_CPPv3N2nw17MdlControllerType11ParticleRotE"></span><span id="_CPPv2N2nw17MdlControllerType11ParticleRotE"></span><span id="nw::MdlControllerType::ParticleRot__uint32_t"></span><span class="target" id="structnw_1_1_mdl_controller_type_1a573d9be43e4f608d7fc4d9dfef3ed8b4"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ParticleRot</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">160</span></span><a class="headerlink" href="#_CPPv4N2nw17MdlControllerType11ParticleRotE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw17MdlControllerType7RandVelE">
+<span id="_CPPv3N2nw17MdlControllerType7RandVelE"></span><span id="_CPPv2N2nw17MdlControllerType7RandVelE"></span><span id="nw::MdlControllerType::RandVel__uint32_t"></span><span class="target" id="structnw_1_1_mdl_controller_type_1a14fa3144045bd58f62436c5e8b9d40da"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">RandVel</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">164</span></span><a class="headerlink" href="#_CPPv4N2nw17MdlControllerType7RandVelE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw17MdlControllerType9SizeStartE">
+<span id="_CPPv3N2nw17MdlControllerType9SizeStartE"></span><span id="_CPPv2N2nw17MdlControllerType9SizeStartE"></span><span id="nw::MdlControllerType::SizeStart__uint32_t"></span><span class="target" id="structnw_1_1_mdl_controller_type_1acd76b8810a198463dc23c2a9fdf5a5c9"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SizeStart</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">168</span></span><a class="headerlink" href="#_CPPv4N2nw17MdlControllerType9SizeStartE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw17MdlControllerType7SizeEndE">
+<span id="_CPPv3N2nw17MdlControllerType7SizeEndE"></span><span id="_CPPv2N2nw17MdlControllerType7SizeEndE"></span><span id="nw::MdlControllerType::SizeEnd__uint32_t"></span><span class="target" id="structnw_1_1_mdl_controller_type_1a24835d026b51cb9bbfe6165fd167825a"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SizeEnd</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">172</span></span><a class="headerlink" href="#_CPPv4N2nw17MdlControllerType7SizeEndE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw17MdlControllerType11SizeStart_YE">
+<span id="_CPPv3N2nw17MdlControllerType11SizeStart_YE"></span><span id="_CPPv2N2nw17MdlControllerType11SizeStart_YE"></span><span id="nw::MdlControllerType::SizeStart_Y__uint32_t"></span><span class="target" id="structnw_1_1_mdl_controller_type_1a308f2ccea6b1fb018ce5f92b530216e6"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SizeStart_Y</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">176</span></span><a class="headerlink" href="#_CPPv4N2nw17MdlControllerType11SizeStart_YE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw17MdlControllerType9SizeEnd_YE">
+<span id="_CPPv3N2nw17MdlControllerType9SizeEnd_YE"></span><span id="_CPPv2N2nw17MdlControllerType9SizeEnd_YE"></span><span id="nw::MdlControllerType::SizeEnd_Y__uint32_t"></span><span class="target" id="structnw_1_1_mdl_controller_type_1a8701a0950a6fdeacec4c5c4fdda83778"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SizeEnd_Y</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">180</span></span><a class="headerlink" href="#_CPPv4N2nw17MdlControllerType9SizeEnd_YE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw17MdlControllerType6SpreadE">
+<span id="_CPPv3N2nw17MdlControllerType6SpreadE"></span><span id="_CPPv2N2nw17MdlControllerType6SpreadE"></span><span id="nw::MdlControllerType::Spread__uint32_t"></span><span class="target" id="structnw_1_1_mdl_controller_type_1a324111c257576e5537f5534a0aba9012"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Spread</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">184</span></span><a class="headerlink" href="#_CPPv4N2nw17MdlControllerType6SpreadE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw17MdlControllerType9ThresholdE">
+<span id="_CPPv3N2nw17MdlControllerType9ThresholdE"></span><span id="_CPPv2N2nw17MdlControllerType9ThresholdE"></span><span id="nw::MdlControllerType::Threshold__uint32_t"></span><span class="target" id="structnw_1_1_mdl_controller_type_1a619dbd0ccf2d86d5fe4cfb52a88ed216"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Threshold</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">188</span></span><a class="headerlink" href="#_CPPv4N2nw17MdlControllerType9ThresholdE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw17MdlControllerType8VelocityE">
+<span id="_CPPv3N2nw17MdlControllerType8VelocityE"></span><span id="_CPPv2N2nw17MdlControllerType8VelocityE"></span><span id="nw::MdlControllerType::Velocity__uint32_t"></span><span class="target" id="structnw_1_1_mdl_controller_type_1a89838812572d15c0564cd56f88a967df"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Velocity</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">192</span></span><a class="headerlink" href="#_CPPv4N2nw17MdlControllerType8VelocityE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw17MdlControllerType5XSizeE">
+<span id="_CPPv3N2nw17MdlControllerType5XSizeE"></span><span id="_CPPv2N2nw17MdlControllerType5XSizeE"></span><span id="nw::MdlControllerType::XSize__uint32_t"></span><span class="target" id="structnw_1_1_mdl_controller_type_1a889e9b3ba923f44094838f990c43515a"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">XSize</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">196</span></span><a class="headerlink" href="#_CPPv4N2nw17MdlControllerType5XSizeE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw17MdlControllerType5YSizeE">
+<span id="_CPPv3N2nw17MdlControllerType5YSizeE"></span><span id="_CPPv2N2nw17MdlControllerType5YSizeE"></span><span id="nw::MdlControllerType::YSize__uint32_t"></span><span class="target" id="structnw_1_1_mdl_controller_type_1a506a1aa2ed69b933c16f63c07669a91a"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">YSize</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">200</span></span><a class="headerlink" href="#_CPPv4N2nw17MdlControllerType5YSizeE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw17MdlControllerType10BlurLengthE">
+<span id="_CPPv3N2nw17MdlControllerType10BlurLengthE"></span><span id="_CPPv2N2nw17MdlControllerType10BlurLengthE"></span><span id="nw::MdlControllerType::BlurLength__uint32_t"></span><span class="target" id="structnw_1_1_mdl_controller_type_1a313d5099af904377b4a66cdd1d505e76"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">BlurLength</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">204</span></span><a class="headerlink" href="#_CPPv4N2nw17MdlControllerType10BlurLengthE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw17MdlControllerType14LightningDelayE">
+<span id="_CPPv3N2nw17MdlControllerType14LightningDelayE"></span><span id="_CPPv2N2nw17MdlControllerType14LightningDelayE"></span><span id="nw::MdlControllerType::LightningDelay__uint32_t"></span><span class="target" id="structnw_1_1_mdl_controller_type_1a32f91469261c18baa529801ef584273f"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">LightningDelay</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">208</span></span><a class="headerlink" href="#_CPPv4N2nw17MdlControllerType14LightningDelayE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw17MdlControllerType15LightningRadiusE">
+<span id="_CPPv3N2nw17MdlControllerType15LightningRadiusE"></span><span id="_CPPv2N2nw17MdlControllerType15LightningRadiusE"></span><span id="nw::MdlControllerType::LightningRadius__uint32_t"></span><span class="target" id="structnw_1_1_mdl_controller_type_1ada3441d4c64756f43eebbcba445533ec"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">LightningRadius</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">212</span></span><a class="headerlink" href="#_CPPv4N2nw17MdlControllerType15LightningRadiusE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw17MdlControllerType14LightningScaleE">
+<span id="_CPPv3N2nw17MdlControllerType14LightningScaleE"></span><span id="_CPPv2N2nw17MdlControllerType14LightningScaleE"></span><span id="nw::MdlControllerType::LightningScale__uint32_t"></span><span class="target" id="structnw_1_1_mdl_controller_type_1a29a6df49fffee32ee59df1ecd73d52d6"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">LightningScale</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">216</span></span><a class="headerlink" href="#_CPPv4N2nw17MdlControllerType14LightningScaleE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw17MdlControllerType8DetonateE">
+<span id="_CPPv3N2nw17MdlControllerType8DetonateE"></span><span id="_CPPv2N2nw17MdlControllerType8DetonateE"></span><span id="nw::MdlControllerType::Detonate__uint32_t"></span><span class="target" id="structnw_1_1_mdl_controller_type_1a6dfeb38350532a02a541f3a7eab70ec5"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Detonate</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">228</span></span><a class="headerlink" href="#_CPPv4N2nw17MdlControllerType8DetonateE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw17MdlControllerType8AlphaMidE">
+<span id="_CPPv3N2nw17MdlControllerType8AlphaMidE"></span><span id="_CPPv2N2nw17MdlControllerType8AlphaMidE"></span><span id="nw::MdlControllerType::AlphaMid__uint32_t"></span><span class="target" id="structnw_1_1_mdl_controller_type_1a5d25fbe02ea16d2feb2b6d99a1a78c35"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">AlphaMid</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">464</span></span><a class="headerlink" href="#_CPPv4N2nw17MdlControllerType8AlphaMidE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw17MdlControllerType8ColorMidE">
+<span id="_CPPv3N2nw17MdlControllerType8ColorMidE"></span><span id="_CPPv2N2nw17MdlControllerType8ColorMidE"></span><span id="nw::MdlControllerType::ColorMid__uint32_t"></span><span class="target" id="structnw_1_1_mdl_controller_type_1a85a3a6d7bc28c133d3c11e50107757b2"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ColorMid</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">468</span></span><a class="headerlink" href="#_CPPv4N2nw17MdlControllerType8ColorMidE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw17MdlControllerType12PercentStartE">
+<span id="_CPPv3N2nw17MdlControllerType12PercentStartE"></span><span id="_CPPv2N2nw17MdlControllerType12PercentStartE"></span><span id="nw::MdlControllerType::PercentStart__uint32_t"></span><span class="target" id="structnw_1_1_mdl_controller_type_1ad40bb62a31bb7d1f754367e5aeac5993"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">PercentStart</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">480</span></span><a class="headerlink" href="#_CPPv4N2nw17MdlControllerType12PercentStartE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw17MdlControllerType10PercentMidE">
+<span id="_CPPv3N2nw17MdlControllerType10PercentMidE"></span><span id="_CPPv2N2nw17MdlControllerType10PercentMidE"></span><span id="nw::MdlControllerType::PercentMid__uint32_t"></span><span class="target" id="structnw_1_1_mdl_controller_type_1aee91ab63a47c9d398becf676780084aa"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">PercentMid</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">481</span></span><a class="headerlink" href="#_CPPv4N2nw17MdlControllerType10PercentMidE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw17MdlControllerType10PercentEndE">
+<span id="_CPPv3N2nw17MdlControllerType10PercentEndE"></span><span id="_CPPv2N2nw17MdlControllerType10PercentEndE"></span><span id="nw::MdlControllerType::PercentEnd__uint32_t"></span><span class="target" id="structnw_1_1_mdl_controller_type_1ae413cbdf8adc4d9d8bed4d1b67281d81"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">PercentEnd</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">482</span></span><a class="headerlink" href="#_CPPv4N2nw17MdlControllerType10PercentEndE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw17MdlControllerType7SizeMidE">
+<span id="_CPPv3N2nw17MdlControllerType7SizeMidE"></span><span id="_CPPv2N2nw17MdlControllerType7SizeMidE"></span><span id="nw::MdlControllerType::SizeMid__uint32_t"></span><span class="target" id="structnw_1_1_mdl_controller_type_1a6dafa2449ebdcd49631369c687876173"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SizeMid</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">484</span></span><a class="headerlink" href="#_CPPv4N2nw17MdlControllerType7SizeMidE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw17MdlControllerType9SizeMid_YE">
+<span id="_CPPv3N2nw17MdlControllerType9SizeMid_YE"></span><span id="_CPPv2N2nw17MdlControllerType9SizeMid_YE"></span><span id="nw::MdlControllerType::SizeMid_Y__uint32_t"></span><span class="target" id="structnw_1_1_mdl_controller_type_1a696edf97e74cdb782ca545a79a82cb9c"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SizeMid_Y</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">488</span></span><a class="headerlink" href="#_CPPv4N2nw17MdlControllerType9SizeMid_YE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw17MdlControllerType14SelfIllumColorE">
+<span id="_CPPv3N2nw17MdlControllerType14SelfIllumColorE"></span><span id="_CPPv2N2nw17MdlControllerType14SelfIllumColorE"></span><span id="nw::MdlControllerType::SelfIllumColor__uint32_t"></span><span class="target" id="structnw_1_1_mdl_controller_type_1a506e28d46d6d71bc1aa26f54d84b9032"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SelfIllumColor</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">100</span></span><a class="headerlink" href="#_CPPv4N2nw17MdlControllerType14SelfIllumColorE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw17MdlControllerType5AlphaE">
+<span id="_CPPv3N2nw17MdlControllerType5AlphaE"></span><span id="_CPPv2N2nw17MdlControllerType5AlphaE"></span><span id="nw::MdlControllerType::Alpha__uint32_t"></span><span class="target" id="structnw_1_1_mdl_controller_type_1a3c6226c4ae6aba1e5b447fcf6d31c139"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Alpha</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">128</span></span><a class="headerlink" href="#_CPPv4N2nw17MdlControllerType5AlphaE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+</div>
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="nw__MdlControllerKey.html" class="btn btn-neutral float-left" title="nw::MdlControllerKey" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="nw__MdlDanglymeshNode.html" class="btn btn-neutral float-right" title="nw::MdlControllerKey" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright .</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
