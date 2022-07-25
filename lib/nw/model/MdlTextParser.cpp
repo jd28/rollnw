@@ -14,63 +14,6 @@ namespace nw {
 
 using string::icmp;
 
-static const std::unordered_map<std::string_view, std::pair<uint32_t, uint32_t>> controller_map = {
-    // Common
-    {"position", {MdlControllerType::Position, MdlNodeFlags::header}},
-    {"orientation", {MdlControllerType::Orientation, MdlNodeFlags::header}},
-    {"scale", {MdlControllerType::Scale, MdlNodeFlags::header}},
-    // Light
-    {"color", {MdlControllerType::Color, MdlNodeFlags::light}},
-    {"radius", {MdlControllerType::Radius, MdlNodeFlags::light}},
-    {"shadowradius", {MdlControllerType::ShadowRadius, MdlNodeFlags::light}},
-    {"verticaldisplacement", {MdlControllerType::VerticalDisplacement, MdlNodeFlags::light}},
-    {"multiplier", {MdlControllerType::Multiplier, MdlNodeFlags::light}},
-    // Emitter
-    {"alphaEnd", {MdlControllerType::AlphaEnd, MdlNodeFlags::emitter}},
-    {"alphaStart", {MdlControllerType::AlphaStart, MdlNodeFlags::emitter}},
-    {"birthrate", {MdlControllerType::BirthRate, MdlNodeFlags::emitter}},
-    {"bounce_co", {MdlControllerType::Bounce_Co, MdlNodeFlags::emitter}},
-    {"colorEnd", {MdlControllerType::ColorEnd, MdlNodeFlags::emitter}},
-    {"colorStart", {MdlControllerType::ColorStart, MdlNodeFlags::emitter}},
-    {"combinetime", {MdlControllerType::CombineTime, MdlNodeFlags::emitter}},
-    {"drag", {MdlControllerType::Drag, MdlNodeFlags::emitter}},
-    {"fps", {MdlControllerType::FPS, MdlNodeFlags::emitter}},
-    {"frameEnd", {MdlControllerType::FrameEnd, MdlNodeFlags::emitter}},
-    {"frameStart", {MdlControllerType::FrameStart, MdlNodeFlags::emitter}},
-    {"grav", {MdlControllerType::Grav, MdlNodeFlags::emitter}},
-    {"lifeExp", {MdlControllerType::LifeExp, MdlNodeFlags::emitter}},
-    {"mass", {MdlControllerType::Mass, MdlNodeFlags::emitter}},
-    {"p2p_bezier2", {MdlControllerType::P2P_Bezier2, MdlNodeFlags::emitter}},
-    {"p2p_bezier3", {MdlControllerType::P2P_Bezier3, MdlNodeFlags::emitter}},
-    {"particleRot", {MdlControllerType::ParticleRot, MdlNodeFlags::emitter}},
-    {"randvel", {MdlControllerType::RandVel, MdlNodeFlags::emitter}},
-    {"sizeStart", {MdlControllerType::SizeStart, MdlNodeFlags::emitter}},
-    {"sizeEnd", {MdlControllerType::SizeEnd, MdlNodeFlags::emitter}},
-    {"sizeStart_y", {MdlControllerType::SizeStart_Y, MdlNodeFlags::emitter}},
-    {"sizeEnd_y", {MdlControllerType::SizeEnd_Y, MdlNodeFlags::emitter}},
-    {"spread", {MdlControllerType::Spread, MdlNodeFlags::emitter}},
-    {"threshold", {MdlControllerType::Threshold, MdlNodeFlags::emitter}},
-    {"velocity", {MdlControllerType::Velocity, MdlNodeFlags::emitter}},
-    {"xsize", {MdlControllerType::XSize, MdlNodeFlags::emitter}},
-    {"ysize", {MdlControllerType::YSize, MdlNodeFlags::emitter}},
-    {"blurlength", {MdlControllerType::BlurLength, MdlNodeFlags::emitter}},
-    {"lightningDelay", {MdlControllerType::LightningDelay, MdlNodeFlags::emitter}},
-    {"lightningRadius", {MdlControllerType::LightningRadius, MdlNodeFlags::emitter}},
-    {"lightningScale", {MdlControllerType::LightningScale, MdlNodeFlags::emitter}},
-    {"detonate", {MdlControllerType::Detonate, MdlNodeFlags::emitter}},
-    {"alphaMid", {MdlControllerType::AlphaMid, MdlNodeFlags::emitter}},
-    {"colorMid", {MdlControllerType::ColorMid, MdlNodeFlags::emitter}},
-    {"percentStart", {MdlControllerType::PercentStart, MdlNodeFlags::emitter}},
-    {"percentMid", {MdlControllerType::PercentMid, MdlNodeFlags::emitter}},
-    {"percentEnd", {MdlControllerType::PercentEnd, MdlNodeFlags::emitter}},
-    {"sizeMid", {MdlControllerType::SizeMid, MdlNodeFlags::emitter}},
-    {"sizeMid_y", {MdlControllerType::SizeMid_Y, MdlNodeFlags::emitter}},
-    // Meshes
-    {"selfillumcolor", {MdlControllerType::SelfIllumColor, MdlNodeFlags::mesh}},
-    {"alpha", {MdlControllerType::Alpha, MdlNodeFlags::mesh}},
-
-};
-
 inline bool is_newline(std::string_view tk)
 {
     if (tk.empty()) return false;
@@ -205,6 +148,29 @@ bool parse_tokens(Tokenizer& tokens, std::string_view name, MdlFace& out)
     return true;
 }
 
+bool parse_tokens(Tokenizer& tokens, std::string_view name, MdlSkinWeight& out)
+{
+    std::string bone;
+    float value = 0.0f;
+    for (size_t i = 0; i < 4; ++i) {
+        auto tk = tokens.next();
+        if (is_newline(tk)) {
+            tokens.put_back(tk);
+            break;
+        }
+        if (!parse_tokens(tokens, "weight: bone", bone)
+            || !parse_tokens(tokens, "weight: value", value)) {
+            LOG_F(ERROR, "Failed to parse skin weight {}, line: {}", name, tokens.line());
+            return false;
+        } else {
+            out.bones[i] = std::move(bone);
+            out.weights[i] = value;
+        }
+    }
+
+    return true;
+}
+
 bool parse_tokens(Tokenizer& tokens, std::string_view name, MdlAABBNode* node)
 {
     // Will have to create the tree structure later.
@@ -265,7 +231,7 @@ bool MdlTextParser::parse_controller(MdlNode* node, std::string_view name, uint3
             data.push_back(*opt);
             tk = tokens_.next();
         }
-        node->add_controller_data(type, data, 1, int(data.size()));
+        node->add_controller_data(name, type, data, 1, int(data.size()));
         return true;
     } else {
         int colsize = -1;
@@ -294,7 +260,7 @@ bool MdlTextParser::parse_controller(MdlNode* node, std::string_view name, uint3
             data.push_back(*opt);
             tk = tokens_.next();
         }
-        node->add_controller_data(type, data, rows, int(data.size() / colsize));
+        node->add_controller_data(name, type, data, rows, colsize);
         return tk == "endlist";
     }
 }
@@ -353,8 +319,8 @@ bool MdlTextParser::parse_node(MdlGeometry* geometry)
         }
 
         // Check if it's a controller.
-        auto it = controller_map.find(controller_tk);
-        if (it != std::end(controller_map)) {
+        auto it = MdlControllerType::map.find(controller_tk);
+        if (it != std::end(MdlControllerType::map)) {
             if (!(node->type & it->second.second)) {
                 LOG_F(ERROR, "Controller set on an incompatible node: {}", tk);
                 return false;
@@ -380,10 +346,6 @@ bool MdlTextParser::parse_node(MdlGeometry* geometry)
                     return false;
                 }
             }
-            continue;
-        } else if (icmp(tk, "wirecolor")) { // Unused parse and validate but don't store it.
-            glm::vec3 v;
-            if (!parse_tokens(tokens_, tk, v)) return false;
             continue;
         }
 
@@ -426,6 +388,8 @@ bool MdlTextParser::parse_node(MdlGeometry* geometry)
             PARSE_DATA_TO(tverts2, n, tverts[2])
             PARSE_DATA_TO(tverts3, n, tverts[3])
             PARSE_DATA(verts, n)
+            PARSE_DATA(normals, n)
+            PARSE_DATA(tangents, n)
         }
 
         if (node->type & MdlNodeFlags::reference) {
@@ -525,7 +489,7 @@ bool MdlTextParser::parse_node(MdlGeometry* geometry)
             PARSE_DATA(lightpriority, n)
             PARSE_DATA_TO(nDynamicType, n, dynamic)
             PARSE_DATA(shadow, n)
-            // PARSE_DATA(texturenames, n)
+            PARSE_DATA_TO(texturenames, n, textures);
         }
 
         if (node->type & MdlNodeFlags::aabb) {
@@ -541,20 +505,14 @@ bool MdlTextParser::parse_node(MdlGeometry* geometry)
 
         if (node->type & MdlNodeFlags::skin) {
             MdlSkinNode* n = static_cast<MdlSkinNode*>(node.get());
-            PARSE_DATA(boneconstantindices, n)
-            PARSE_DATA(qbone_ref_inv, n)
-            PARSE_DATA(tbone_ref_inv, n)
-            // PARSE_DATA(weights, n)
+            PARSE_DATA(weights, n)
         }
 
-        if (node->type & MdlNodeFlags::anim) {
-            MdlAnimeshNode* n = static_cast<MdlAnimeshNode*>(node.get());
-            PARSE_DATA(animtverts, n)
-            PARSE_DATA(animverts, n)
-            PARSE_DATA(sampleperiod, n)
-        }
+        // if (node->type & MdlNodeFlags::anim) {
+        //     MdlAnimeshNode* n = static_cast<MdlAnimeshNode*>(node.get());
+        // }
 
-        LOG_F(ERROR, "Unknown token: '{}'", tk);
+        LOG_F(ERROR, "Unknown token: '{}', line: {}", tk, tokens_.line());
     }
 
     geometry->nodes.push_back(std::move(node));
@@ -678,7 +636,7 @@ bool MdlTextParser::parse()
     for (std::string_view tk = tokens_.next(); !tk.empty() && result; tk = tokens_.next()) {
         if (is_newline(tk)) continue;
         if (tk == "filedependancy") { // Don't care about this so skip the next token.
-            tokens_.next();
+            if (!parse_tokens(tokens_, tk, mdl_->model.file_dependency)) return false;
         } else if (tk == "newmodel") {
             if (!parse_model()) return false;
         } else {

@@ -1,11 +1,69 @@
 #include "Mdl.hpp"
 
+#include "../kernel/Kernel.hpp"
 #include "../log.hpp"
 #include "../util/macros.hpp"
 #include "../util/string.hpp"
 #include "MdlTextParser.hpp"
 
 namespace nw {
+
+const std::unordered_map<std::string_view, std::pair<uint32_t, uint32_t>> MdlControllerType::map = {
+    // Common
+    {"position", {MdlControllerType::Position, MdlNodeFlags::header}},
+    {"orientation", {MdlControllerType::Orientation, MdlNodeFlags::header}},
+    {"scale", {MdlControllerType::Scale, MdlNodeFlags::header}},
+    {"wirecolor", {MdlControllerType::Wirecolor, MdlNodeFlags::header}},
+    // Light
+    {"color", {MdlControllerType::Color, MdlNodeFlags::light}},
+    {"radius", {MdlControllerType::Radius, MdlNodeFlags::light}},
+    {"shadowradius", {MdlControllerType::ShadowRadius, MdlNodeFlags::light}},
+    {"verticaldisplacement", {MdlControllerType::VerticalDisplacement, MdlNodeFlags::light}},
+    {"multiplier", {MdlControllerType::Multiplier, MdlNodeFlags::light}},
+    // Emitter
+    {"alphaEnd", {MdlControllerType::AlphaEnd, MdlNodeFlags::emitter}},
+    {"alphaStart", {MdlControllerType::AlphaStart, MdlNodeFlags::emitter}},
+    {"birthrate", {MdlControllerType::BirthRate, MdlNodeFlags::emitter}},
+    {"bounce_co", {MdlControllerType::Bounce_Co, MdlNodeFlags::emitter}},
+    {"colorEnd", {MdlControllerType::ColorEnd, MdlNodeFlags::emitter}},
+    {"colorStart", {MdlControllerType::ColorStart, MdlNodeFlags::emitter}},
+    {"combinetime", {MdlControllerType::CombineTime, MdlNodeFlags::emitter}},
+    {"drag", {MdlControllerType::Drag, MdlNodeFlags::emitter}},
+    {"fps", {MdlControllerType::FPS, MdlNodeFlags::emitter}},
+    {"frameEnd", {MdlControllerType::FrameEnd, MdlNodeFlags::emitter}},
+    {"frameStart", {MdlControllerType::FrameStart, MdlNodeFlags::emitter}},
+    {"grav", {MdlControllerType::Grav, MdlNodeFlags::emitter}},
+    {"lifeExp", {MdlControllerType::LifeExp, MdlNodeFlags::emitter}},
+    {"mass", {MdlControllerType::Mass, MdlNodeFlags::emitter}},
+    {"p2p_bezier2", {MdlControllerType::P2P_Bezier2, MdlNodeFlags::emitter}},
+    {"p2p_bezier3", {MdlControllerType::P2P_Bezier3, MdlNodeFlags::emitter}},
+    {"particleRot", {MdlControllerType::ParticleRot, MdlNodeFlags::emitter}},
+    {"randvel", {MdlControllerType::RandVel, MdlNodeFlags::emitter}},
+    {"sizeStart", {MdlControllerType::SizeStart, MdlNodeFlags::emitter}},
+    {"sizeEnd", {MdlControllerType::SizeEnd, MdlNodeFlags::emitter}},
+    {"sizeStart_y", {MdlControllerType::SizeStart_Y, MdlNodeFlags::emitter}},
+    {"sizeEnd_y", {MdlControllerType::SizeEnd_Y, MdlNodeFlags::emitter}},
+    {"spread", {MdlControllerType::Spread, MdlNodeFlags::emitter}},
+    {"threshold", {MdlControllerType::Threshold, MdlNodeFlags::emitter}},
+    {"velocity", {MdlControllerType::Velocity, MdlNodeFlags::emitter}},
+    {"xsize", {MdlControllerType::XSize, MdlNodeFlags::emitter}},
+    {"ysize", {MdlControllerType::YSize, MdlNodeFlags::emitter}},
+    {"blurlength", {MdlControllerType::BlurLength, MdlNodeFlags::emitter}},
+    {"lightningDelay", {MdlControllerType::LightningDelay, MdlNodeFlags::emitter}},
+    {"lightningRadius", {MdlControllerType::LightningRadius, MdlNodeFlags::emitter}},
+    {"lightningScale", {MdlControllerType::LightningScale, MdlNodeFlags::emitter}},
+    {"detonate", {MdlControllerType::Detonate, MdlNodeFlags::emitter}},
+    {"alphaMid", {MdlControllerType::AlphaMid, MdlNodeFlags::emitter}},
+    {"colorMid", {MdlControllerType::ColorMid, MdlNodeFlags::emitter}},
+    {"percentStart", {MdlControllerType::PercentStart, MdlNodeFlags::emitter}},
+    {"percentMid", {MdlControllerType::PercentMid, MdlNodeFlags::emitter}},
+    {"percentEnd", {MdlControllerType::PercentEnd, MdlNodeFlags::emitter}},
+    {"sizeMid", {MdlControllerType::SizeMid, MdlNodeFlags::emitter}},
+    {"sizeMid_y", {MdlControllerType::SizeMid_Y, MdlNodeFlags::emitter}},
+    // Meshes
+    {"selfillumcolor", {MdlControllerType::SelfIllumColor, MdlNodeFlags::mesh}},
+    {"alpha", {MdlControllerType::Alpha, MdlNodeFlags::mesh}},
+};
 
 // -- Nodes -------------------------------------------------------------------
 
@@ -15,10 +73,17 @@ MdlNode::MdlNode(std::string name, uint32_t type)
 {
 }
 
-void MdlNode::add_controller_data(uint32_t type_, std::vector<float> data_, int rows_, int columns_)
+void MdlNode::add_controller_data(std::string_view name_, uint32_t type_, std::vector<float> data_,
+    int rows_, int columns_)
 {
-    MdlControllerKey k(type_, rows_, static_cast<int>(controller_keys.size()),
-        static_cast<int>(controller_data.size()), columns_);
+    MdlControllerKey k{
+        nw::kernel::strings().intern(name_),
+        type_,
+        rows_,
+        static_cast<int>(controller_keys.size()),
+        static_cast<int>(controller_data.size()),
+        columns_,
+    };
 
     controller_keys.push_back(k);
 
@@ -33,7 +98,7 @@ std::pair<const MdlControllerKey*, std::span<const float>> MdlNode::get_controll
     for (const auto& c : controller_keys) {
         if (c.type == type_) {
             if (c.columns != -1) {
-                result = {controller_data.data() + c.data_offset, static_cast<size_t>(c.rows * c.columns)};
+                result = {&controller_data[c.data_offset], static_cast<size_t>(c.rows * c.columns)};
             }
             return std::make_pair(&c, result);
         }

@@ -3,6 +3,7 @@
 // Huge credit here to Torlack
 
 #include "../util/ByteArray.hpp"
+#include "../util/InternedString.hpp"
 #include "../util/string.hpp"
 
 #include <glm/gtc/quaternion.hpp>
@@ -13,6 +14,7 @@
 #include <span>
 #include <string>
 #include <tuple>
+#include <unordered_map>
 #include <vector>
 
 namespace nw {
@@ -61,6 +63,36 @@ struct MdlNodeType {
         if (string::icmp(str, "Camera")) return camera;
         return 0;
     }
+
+    static constexpr std::string_view to_string(uint32_t value)
+    {
+        switch (value) {
+        default:
+            return "";
+        case dummy:
+            return "dummy";
+        case reference:
+            return "reference";
+        case patch:
+            return "patch";
+        case trimesh:
+            return "trimesh";
+        case danglymesh:
+            return "danglymesh";
+        case skin:
+            return "skin";
+        case animmesh:
+            return "animmesh";
+        case emitter:
+            return "emitter";
+        case light:
+            return "light";
+        case aabb:
+            return "aabb";
+        case camera:
+            return "camera";
+        }
+    }
 };
 
 struct MdlEmitterFlag {
@@ -102,6 +134,22 @@ enum struct MdlModelClass : uint32_t {
     character = 4,
     door = 8,
 };
+
+inline std::string model_class_to_string(MdlModelClass cls)
+{
+    switch (cls) {
+    case MdlModelClass::invalid:
+        return "Unknown";
+    case MdlModelClass::effect:
+        return "Effect";
+    case MdlModelClass::tile:
+        return "Tile";
+    case MdlModelClass::character:
+        return "Character";
+    case MdlModelClass::door:
+        return "Door";
+    }
+}
 
 struct MdlControllerType {
 
@@ -166,13 +214,17 @@ struct MdlControllerType {
 
     static constexpr uint32_t SelfIllumColor = 100;
     static constexpr uint32_t Alpha = 128;
+
+    static const std::unordered_map<std::string_view, std::pair<uint32_t, uint32_t>> map;
 };
 
 // -- Controller --------------------------------------------------------------
 
 struct MdlControllerKey {
-    MdlControllerKey(uint32_t type_, int rows_, int key_offset_, int data_offset_, int columns_)
-        : type{type_}
+    MdlControllerKey(InternedString name_, uint32_t type_, int rows_, int key_offset_,
+        int data_offset_, int columns_)
+        : name{name_}
+        , type{type_}
         , rows{rows_}
         , key_offset{key_offset_}
         , data_offset{data_offset_}
@@ -180,6 +232,7 @@ struct MdlControllerKey {
     {
     }
 
+    InternedString name;
     uint32_t type;
     int rows;
     int key_offset;
@@ -211,14 +264,14 @@ struct MdlNode {
     std::string name;
     const uint32_t type;
     bool inheritcolor = false;
-    glm::vec3 position;
     MdlNode* parent = nullptr;
     std::vector<MdlNode*> children;
     std::vector<MdlControllerKey> controller_keys;
     std::vector<float> controller_data;
 
     /// Adds a controller to a model node
-    void add_controller_data(uint32_t type_, std::vector<float> data_, int rows_, int columns_ = 1);
+    void add_controller_data(std::string_view name_, uint32_t type_, std::vector<float> data_,
+        int rows_, int columns_ = 1);
 
     /// Gets a controller to a model node
     std::pair<const MdlControllerKey*, std::span<const float>> get_controller(uint32_t type_) const;
@@ -257,6 +310,8 @@ struct MdlLightNode : public MdlNode {
     virtual ~MdlLightNode() = default;
 
     float flareradius{0.0f};
+    float multiplier{0.0f};
+    glm::vec3 color;
     std::vector<float> flaresizes;
     std::vector<float> flarepositions;
     std::vector<glm::vec3> flarecolorshifts;
@@ -290,26 +345,28 @@ struct MdlTrimeshNode : public MdlNode {
     glm::vec3 bmin;
     glm::vec3 bmax;
     std::string bitmap;
-    std::vector<uint32_t> colors;
     glm::vec3 center;
     glm::vec3 diffuse;
     std::vector<MdlFace> faces;
     std::string materialname;
     bool render;
     uint32_t renderhint;
-    bool rotatetexture;
-    bool shadow;
+    bool rotatetexture{false};
+    bool shadow{false};
     float shininess;
     glm::vec3 specular;
     std::string textures[3];
-    uint32_t tilefade;
-    bool transparencyhint;
+    uint32_t tilefade{0};
+    bool transparencyhint{false};
+    std::vector<glm::vec3> colors;
     std::vector<glm::vec3> verts;
     std::vector<glm::vec3> tverts[4];
+    std::vector<glm::vec3> normals;
+    std::vector<glm::vec4> tangents;
 };
 
 struct MdlSkinWeight {
-    char bones[4][32];
+    std::string bones[4];
     float weights[4];
 };
 
@@ -317,9 +374,6 @@ struct MdlSkinNode : public MdlTrimeshNode {
     MdlSkinNode(std::string name);
 
     std::vector<MdlSkinWeight> weights;
-    std::vector<glm::quat> qbone_ref_inv;
-    std::vector<glm::vec3> tbone_ref_inv;
-    std::vector<uint32_t> boneconstantindices;
 };
 
 struct MdlAnimeshNode : public MdlTrimeshNode {
@@ -399,6 +453,7 @@ struct MdlModel : public MdlGeometry {
     float radius;
     float animationscale;
     std::string supermodel_name;
+    std::string file_dependency;
 };
 
 class Mdl {
