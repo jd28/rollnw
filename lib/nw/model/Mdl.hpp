@@ -10,7 +10,9 @@
 #include <glm/vec3.hpp>
 #include <glm/vec4.hpp>
 #include <memory>
+#include <span>
 #include <string>
+#include <tuple>
 #include <vector>
 
 namespace nw {
@@ -215,15 +217,11 @@ struct MdlNode {
     std::vector<MdlControllerKey> controller_keys;
     std::vector<float> controller_data;
 
-    void add_controller_data(uint32_t type_, std::vector<float> data_, int rows_, int columns_ = 1)
-    {
-        MdlControllerKey k(type_, rows_, static_cast<int>(controller_keys.size()),
-            static_cast<int>(controller_data.size()), columns_);
-        controller_keys.push_back(k);
-        for (float f : data_) {
-            controller_data.push_back(f);
-        }
-    }
+    /// Adds a controller to a model node
+    void add_controller_data(uint32_t type_, std::vector<float> data_, int rows_, int columns_ = 1);
+
+    /// Gets a controller to a model node
+    std::pair<const MdlControllerKey*, std::span<const float>> get_controller(uint32_t type_) const;
 };
 
 struct MdlDummyNode : public MdlNode {
@@ -411,11 +409,6 @@ class Mdl {
 
 public:
     MdlModel model;
-
-    enum EnumFlags {
-        EnumFlag_Geometry = 0x00000001,
-        EnumFlag_Animation = 0x00000002,
-    };
 
     Mdl(const std::string& filename);
 

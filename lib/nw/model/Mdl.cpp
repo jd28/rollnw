@@ -15,6 +15,32 @@ MdlNode::MdlNode(std::string name, uint32_t type)
 {
 }
 
+void MdlNode::add_controller_data(uint32_t type_, std::vector<float> data_, int rows_, int columns_)
+{
+    MdlControllerKey k(type_, rows_, static_cast<int>(controller_keys.size()),
+        static_cast<int>(controller_data.size()), columns_);
+
+    controller_keys.push_back(k);
+
+    for (float f : data_) {
+        controller_data.push_back(f);
+    }
+}
+
+std::pair<const MdlControllerKey*, std::span<const float>> MdlNode::get_controller(uint32_t type_) const
+{
+    std::span<const float> result;
+    for (const auto& c : controller_keys) {
+        if (c.type == type_) {
+            if (c.columns != -1) {
+                result = {controller_data.data() + c.data_offset, static_cast<size_t>(c.rows * c.columns)};
+            }
+            return std::make_pair(&c, result);
+        }
+    }
+    return std::make_pair(nullptr, result);
+}
+
 MdlAABBNode::MdlAABBNode(std::string name)
     : MdlTrimeshNode(std::move(name), MdlNodeType::aabb)
 {

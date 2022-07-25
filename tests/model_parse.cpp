@@ -12,6 +12,15 @@ TEST_CASE("model: parse ascii", "[model]")
     REQUIRE(mdl.model.nodes[0]->name == "alt_dfa19");
     REQUIRE(mdl.model.nodes[0]->children.size() == 4);
     REQUIRE(mdl.model.nodes[0]->children[0]->name == "rootdummy");
+
+    auto [key, data] = mdl.model.nodes[0]->children[0]->get_controller(nw::MdlControllerType::Position);
+    REQUIRE(key);
+    REQUIRE(data.size() == 3);
+
+    auto [key2, data2] = mdl.model.nodes[0]->children[0]->get_controller(nw::MdlControllerType::Orientation);
+    REQUIRE(key2);
+    REQUIRE(data2.size() == 4);
+
     REQUIRE(mdl.model.animations.size() == 12);
     REQUIRE(mdl.model.animations[0]->name == "kdbck");
     REQUIRE(mdl.model.animations[0]->events.size() == 16);
