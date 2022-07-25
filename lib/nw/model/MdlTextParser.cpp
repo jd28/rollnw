@@ -571,6 +571,7 @@ bool MdlTextParser::parse_geometry()
         if (tk == "node") {
             if (!parse_node(&mdl_->model)) return false;
         } else if (tk == "endmodelgeom") {
+            tokens_.next(); // drop name
             break;
         }
     }
@@ -587,6 +588,8 @@ bool MdlTextParser::parse_anim()
         if (is_newline(tk)) continue;
 
         if (icmp(tk, "doneanim")) {
+            tokens_.next(); // drop name
+            tokens_.next(); // drop model name
             break;
         } else if (icmp(tk, "animroot")) {
             if (!parse_tokens(tokens_, "animroot", anim->anim_root))
@@ -620,13 +623,16 @@ bool MdlTextParser::parse_anim()
 
 bool MdlTextParser::parse_model()
 {
-    std::string_view tk;
+    std::string_view tk = tokens_.next();
+    mdl_->model.name = std::string(tk);
+
     for (tk = tokens_.next(); !tk.empty(); tk = tokens_.next()) {
         if (is_newline(tk))
             continue;
-        else if (tk == "donemodel")
+        else if (tk == "donemodel") {
+            tokens_.next(); // drop model name
             break;
-        else if (tk == "setsupermodel") {
+        } else if (tk == "setsupermodel") {
             if (!validate_tokens({tokens_.next()})) { // Don't care about the file name.
                 LOG_F(ERROR, "Missing super model file name, line: {}.", tokens_.line());
                 return false;
@@ -657,6 +663,9 @@ bool MdlTextParser::parse_model()
             if (!parse_geometry()) return false;
         } else if (tk == "newanim") {
             if (!parse_anim()) return false;
+        } else {
+            LOG_F(ERROR, "unknown token '{}', line: {}", tk, tokens_.line());
+            return false;
         }
     }
 
@@ -672,6 +681,9 @@ bool MdlTextParser::parse()
             tokens_.next();
         } else if (tk == "newmodel") {
             if (!parse_model()) return false;
+        } else {
+            LOG_F(ERROR, "unknown token '{}', line: {}", tk, tokens_.line());
+            return false;
         }
     }
 
