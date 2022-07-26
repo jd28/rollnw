@@ -242,4 +242,314 @@ bool Mdl::valid() const
     return loaded_;
 }
 
+void write_out(std::ostream& out, const MdlDanglymeshNode* node, bool is_anim)
+{
+    if (!is_anim) {
+        out << fmt::format("  displacement {}\n", node->displacement);
+        out << fmt::format("  period {}\n", node->period);
+        out << fmt::format("  tightness {}\n", node->tightness);
+        out << fmt::format("  tightness {}\n", node->tightness);
+        out << fmt::format("  constraints {}\n", node->constraints.size());
+        for (auto c : node->constraints) {
+            out << fmt::format("    {: 5.1f}\n", c);
+        }
+    }
+}
+
+void write_out(std::ostream& out, const MdlEmitterNode* node, bool is_anim)
+{
+    if (is_anim) {
+        // [TODO] everything
+    }
+    for (const auto& [k, v] : MdlControllerType::map) {
+        if (v.second == MdlNodeFlags::emitter) {
+            auto [ckey, cdata] = node->get_controller(v.first);
+            if (!ckey || cdata.empty()) continue;
+            out << fmt::format("         {} ", ckey->name);
+            if (ckey->columns > 0) {
+                for (size_t i = 0; i < size_t(ckey->rows); ++i) {
+                    out << "          ";
+                    size_t start = i * ckey->columns, stop = (i + 1) * ckey->columns;
+                    for (size_t j = start; j < stop; ++j) {
+                        out << fmt::format(" {: >8.5f}", cdata[j]);
+                    }
+                    out << '\n';
+                }
+            }
+            out << "         endlist";
+        }
+    }
+}
+
+void write_out(std::ostream& out, const MdlLightNode* node, bool is_anim)
+{
+    if (!is_anim) {
+        out << fmt::format("  ambientonly {}\n", node->ambientonly);
+        out << fmt::format("  ndynamictype {}\n", int(node->dynamic));
+        out << fmt::format("  affectdynamic {}\n", node->affectdynamic);
+        out << fmt::format("  shadow {}\n", node->shadow);
+        out << fmt::format("  lightpriority {}\n", node->lightpriority);
+        out << fmt::format("  fadingLight {}\n", node->fadinglight);
+        out << fmt::format("  radius {}\n", node->flareradius);
+        out << fmt::format("  multiplier {}\n", node->multiplier);
+        out << fmt::format("  color {:3.2f} {:3.2f} {:3.2f}\n", node->color.x, node->color.y, node->color.z);
+    }
+    for (const auto& [k, v] : MdlControllerType::map) {
+        if (v.second == MdlNodeFlags::light) {
+            auto [ckey, cdata] = node->get_controller(v.first);
+            if (!ckey || cdata.empty()) continue;
+            out << fmt::format("        {}\n", ckey->name);
+            if (ckey->columns > 0) {
+                for (size_t i = 0; i < size_t(ckey->rows); ++i) {
+                    out << "          ";
+                    size_t start = i * ckey->columns, stop = (i + 1) * ckey->columns;
+                    for (size_t j = start; j < stop; ++j) {
+                        out << fmt::format(" {: >8.5f}", cdata[j]);
+                    }
+                    out << '\n';
+                }
+            }
+            out << "        endlist\n";
+        }
+    }
+}
+
+void write_out(std::ostream& out, const MdlSkinNode* node, bool is_anim)
+{
+    if (!is_anim) {
+        out << fmt::format("  weights {}\n", node->weights.size());
+        for (const auto& w : node->weights) {
+            for (size_t i = 0; i < 4; ++i) {
+                if (w.bones[i].empty()) break;
+                out << fmt::format("    {} {}", w.bones[i], w.weights[i]);
+            }
+        }
+    }
+}
+
+void write_out(std::ostream& out, const MdlTrimeshNode* node, MdlModelClass class_, bool is_anim)
+{
+    if (!is_anim) {
+        auto [alpha_key, alpha_data] = node->get_controller(MdlControllerType::Alpha);
+        auto [selfilum_key, selfilum_data] = node->get_controller(MdlControllerType::SelfIllumColor);
+
+        if (alpha_key) {
+            out << fmt::format("  alpha {}\n", alpha_data[0]);
+        }
+
+        if (selfilum_key) {
+            out << fmt::format("  selfillumcolor {:.2f} {:.2f} {:.2f}\n", selfilum_data[0], selfilum_data[1], selfilum_data[2]);
+        }
+
+        out << fmt::format("  ambient {:.2f} {:.2f} {:.2f}\n", node->ambient.x, node->ambient.y, node->ambient.z);
+        out << fmt::format("  diffuse {:.2f} {:.2f} {:.2f}\n", node->diffuse.x, node->diffuse.y, node->diffuse.z);
+        out << fmt::format("  specular {:.2f} {:.2f} {:.2f}\n", node->specular.x, node->specular.y, node->specular.z);
+
+        out << fmt::format("  bitmap {}\n", node->bitmap);
+        out << fmt::format("  shininess {}\n", node->shininess);
+
+        out << fmt::format("  render {}\n", int(node->render));
+        out << fmt::format("  shadow {}\n", int(node->shadow));
+        out << fmt::format("  beaming {}\n", int(node->beaming));
+        out << fmt::format("  transparencyhint {}\n", int(node->transparencyhint));
+
+        if (class_ == MdlModelClass::tile
+            || class_ == MdlModelClass::invalid
+            || class_ == MdlModelClass::character) {
+            out << fmt::format("  tilefade {}\n", node->tilefade);
+        }
+
+        if (class_ == MdlModelClass::tile) {
+            out << fmt::format("  rotatetexture {}\n", int(node->rotatetexture));
+        }
+
+        if (node->verts.size()) {
+            out << fmt::format("  verts {}\n", node->verts.size());
+            for (const auto v : node->verts) {
+                out << fmt::format("    {: >8.5f} {: >8.5f} {: >8.5f}\n", v.x, v.y, v.z);
+            }
+        }
+
+        if (node->colors.size()) {
+            out << fmt::format("  colors {}\n", node->colors.size());
+            for (const auto& c : node->colors) {
+                out << fmt::format("    {:.4f} {:.4f} {:.4f}\n", c.x, c.y, c.z);
+            }
+        }
+
+        if (node->faces.size()) {
+            out << fmt::format("  faces {}\n", node->faces.size());
+            for (const auto& f : node->faces) {
+                out << fmt::format("    {: >3} {: >3} {: >3} {: >2}  {: >3} {: >3} {: >3} {}\n",
+                    f.vert_idx[0], f.vert_idx[1], f.vert_idx[2], f.shader_group_idx,
+                    f.tvert_idx[0], f.tvert_idx[1], f.tvert_idx[2], f.material_idx);
+            }
+        }
+
+        if (node->tverts[0].size()) {
+            out << fmt::format("  tverts {}\n", node->tverts[0].size());
+            for (const auto v : node->tverts[0]) {
+                out << fmt::format("    {: >8.5f} {: >8.5f} 0\n", v.x, v.y, v.z);
+            }
+        }
+    } else {
+        for (const auto& [k, v] : MdlControllerType::map) {
+            if (v.second == MdlNodeFlags::mesh) {
+                auto [ckey, cdata] = node->get_controller(v.first);
+                if (!ckey || cdata.empty()) continue;
+                out << fmt::format("        {}\n", ckey->name);
+                if (ckey->columns > 0) {
+                    for (size_t i = 0; i < size_t(ckey->rows); ++i) {
+                        out << "          ";
+                        size_t start = i * ckey->columns, stop = (i + 1) * ckey->columns;
+                        for (size_t j = start; j < stop; ++j) {
+                            out << fmt::format(" {: >8.5f}", cdata[j]);
+                        }
+                        out << '\n';
+                    }
+                }
+                out << "        endlist\n";
+            }
+        }
+    }
+}
+
+std::ostream& operator<<(std::ostream& out, const Mdl& mdl)
+{
+    out << "# Exported from rollnw\n"
+        << fmt::format("filedependancy {}\n",
+               mdl.model.file_dependency.size() ? mdl.model.file_dependency : "Unknown")
+        << fmt::format("newmodel {}\n", mdl.model.name)
+        << fmt::format("setsupermodel {} {}\n", mdl.model.name, mdl.model.supermodel_name)
+        << fmt::format("classification {}\n", model_class_to_string(mdl.model.classification))
+        << fmt::format("setanimationscale {:.2f}\n", mdl.model.animationscale)
+        << fmt::format("beginmodelgeom {}\n", mdl.model.name);
+
+    for (const auto& node : mdl.model.nodes) {
+        out << fmt::format("node {} {}\n", MdlNodeType::to_string(node->type), node->name);
+
+        auto [pos_key, pos_data] = node->get_controller(MdlControllerType::Position);
+        auto [ori_key, ori_data] = node->get_controller(MdlControllerType::Orientation);
+        auto [scale_key, scale_data] = node->get_controller(MdlControllerType::Scale);
+        auto [wire_key, wire_data] = node->get_controller(MdlControllerType::Wirecolor);
+
+        out << fmt::format("  parent {}\n", node->parent ? node->parent->name : "null");
+        if (!node->parent) {
+            out << "endnode\n";
+            continue;
+        }
+
+        out << fmt::format("  position {: >8.5f} {: >8.5f} {: >8.5f}\n", pos_data[0], pos_data[1], pos_data[2]);
+        out << fmt::format("  orientation {: >8.5f} {: >8.5f} {: >8.5f} {: >8.5f}\n", ori_data[0], ori_data[1], ori_data[2], ori_data[3]);
+        out << fmt::format("  wirecolor {:.2f} {:.2f} {:.2f}\n", wire_data[0], wire_data[1], wire_data[2]);
+
+        if (scale_key) {
+            out << fmt::format("  scale {:.2f}\n", scale_data[0]);
+        }
+
+        if (dynamic_cast<MdlAABBNode*>(node.get())) {
+            auto n = static_cast<MdlAABBNode*>(node.get());
+            write_out(out, static_cast<const MdlTrimeshNode*>(n), mdl.model.classification, false);
+        } else if (dynamic_cast<MdlAnimeshNode*>(node.get())) {
+            auto n = static_cast<MdlAnimeshNode*>(node.get());
+            write_out(out, static_cast<const MdlTrimeshNode*>(n), mdl.model.classification, false);
+        } else if (dynamic_cast<MdlDanglymeshNode*>(node.get())) {
+            write_out(out, static_cast<const MdlTrimeshNode*>(node.get()), mdl.model.classification, false);
+            write_out(out, static_cast<MdlDanglymeshNode*>(node.get()), false);
+        } else if (dynamic_cast<MdlEmitterNode*>(node.get())) {
+            write_out(out, static_cast<MdlEmitterNode*>(node.get()), false);
+        } else if (dynamic_cast<MdlLightNode*>(node.get())) {
+            write_out(out, static_cast<MdlLightNode*>(node.get()), false);
+        } else if (dynamic_cast<MdlReferenceNode*>(node.get())) {
+            auto n = static_cast<MdlReferenceNode*>(node.get());
+            out << fmt::format("  refmodel {}\n", n->refmodel);
+            out << fmt::format("  reattachable {}\n", int(n->reattachable));
+        } else if (dynamic_cast<MdlSkinNode*>(node.get())) {
+            auto n = static_cast<MdlSkinNode*>(node.get());
+            write_out(out, static_cast<const MdlTrimeshNode*>(n), mdl.model.classification, false);
+            write_out(out, static_cast<const MdlSkinNode*>(n), false);
+        } else if (dynamic_cast<MdlTrimeshNode*>(node.get())) {
+            auto n = static_cast<MdlTrimeshNode*>(node.get());
+            write_out(out, n, mdl.model.classification, false);
+        }
+
+        out << "endnode\n";
+    }
+
+    out << fmt::format("endmodelgeom {}\n\n", mdl.model.name);
+
+    if (mdl.model.animations.size()) {
+        for (const auto& anim : mdl.model.animations) {
+            out << "#ANIM ASCII\n";
+            out << fmt::format("newanim {} {}\n", anim->name, mdl.model.name);
+            out << fmt::format("  length {}\n", anim->length);
+            out << fmt::format("  transtime {}\n", anim->transition_time);
+            out << fmt::format("  animroot {}\n", anim->anim_root);
+
+            for (const auto& ev : anim->events) {
+                out << fmt::format("  event {:8.5f} {}\n", ev.time, ev.name);
+            }
+
+            for (const auto& node : anim->nodes) {
+                out << fmt::format("node {} {}\n", MdlNodeType::to_string(node->type), node->name);
+
+                out << fmt::format("  parent {}\n", node->parent ? node->parent->name : "null");
+                if (!node->parent) {
+                    out << "endnode\n";
+                    continue;
+                }
+
+                for (const auto& [k, v] : MdlControllerType::map) {
+                    if (v.second == MdlNodeFlags::header) {
+                        auto [ckey, cdata] = node->get_controller(v.first);
+                        if (!ckey || cdata.empty()) continue;
+                        out << fmt::format("        {}\n", ckey->name);
+                        if (ckey->columns > 0) {
+                            for (size_t i = 0; i < size_t(ckey->rows); ++i) {
+                                out << "          ";
+                                size_t start = i * ckey->columns, stop = (i + 1) * ckey->columns;
+                                for (size_t j = start; j < stop; ++j) {
+                                    out << fmt::format(" {: >8.5f}", cdata[j]);
+                                }
+                                out << '\n';
+                            }
+                        }
+                        out << "        endlist\n";
+                    }
+                }
+
+                if (dynamic_cast<MdlAABBNode*>(node.get())) {
+                    auto n = static_cast<MdlAABBNode*>(node.get());
+                    write_out(out, static_cast<const MdlTrimeshNode*>(n), mdl.model.classification, true);
+                } else if (dynamic_cast<MdlAnimeshNode*>(node.get())) {
+                    auto n = static_cast<MdlAnimeshNode*>(node.get());
+                    write_out(out, static_cast<const MdlTrimeshNode*>(n), mdl.model.classification, true);
+                } else if (dynamic_cast<MdlDanglymeshNode*>(node.get())) {
+                    write_out(out, static_cast<const MdlTrimeshNode*>(node.get()), mdl.model.classification, true);
+                    write_out(out, static_cast<MdlDanglymeshNode*>(node.get()), true);
+                } else if (dynamic_cast<MdlEmitterNode*>(node.get())) {
+                    write_out(out, static_cast<MdlEmitterNode*>(node.get()), true);
+                } else if (dynamic_cast<MdlLightNode*>(node.get())) {
+                    write_out(out, static_cast<MdlLightNode*>(node.get()), true);
+                } else if (dynamic_cast<MdlReferenceNode*>(node.get())) {
+                    // auto n = static_cast<MdlReferenceNode*>(node.get());
+                } else if (dynamic_cast<MdlSkinNode*>(node.get())) {
+                    auto n = static_cast<MdlSkinNode*>(node.get());
+                    write_out(out, static_cast<const MdlTrimeshNode*>(n), mdl.model.classification, true);
+                    write_out(out, static_cast<const MdlSkinNode*>(n), true);
+                } else if (dynamic_cast<MdlTrimeshNode*>(node.get())) {
+                    auto n = static_cast<MdlTrimeshNode*>(node.get());
+                    write_out(out, n, mdl.model.classification, true);
+                }
+                out << "endnode\n";
+            }
+            out << fmt::format("doneanim {} {}\n\n", anim->name, mdl.model.name);
+        }
+    }
+
+    out << fmt::format("donemodel {}\n", mdl.model.name);
+
+    return out;
+}
+
 } // namespace nw

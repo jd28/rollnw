@@ -3,6 +3,8 @@
 #include <nw/log.hpp>
 #include <nw/model/Mdl.hpp>
 
+#include <fstream>
+
 TEST_CASE("model: parse ascii", "[model]")
 {
     nw::Mdl mdl{"test_data/user/development/alt_dfa19.mdl"};
@@ -32,4 +34,13 @@ TEST_CASE("model: parse ascii ee", "[model]")
     nw::Mdl mdl{"test_data/user/development/wplss_t_044.mdl"};
     REQUIRE(mdl.valid());
     REQUIRE(mdl.model.supermodel_name == "null");
+}
+
+TEST_CASE("model: write to file", "[model]")
+{
+    nw::Mdl mdl{"test_data/user/development/alt_dfa19.mdl"};
+    REQUIRE(mdl.valid());
+    std::ofstream f{"tmp/alt_dfa19.mdl"};
+    f << mdl;
+    f.close();
 }

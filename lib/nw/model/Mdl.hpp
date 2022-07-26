@@ -456,6 +456,9 @@ struct MdlModel : public MdlGeometry {
     std::string file_dependency;
 };
 
+/// Implements mdl file format
+/// @warning This is highly untested.
+/// @note This only supports reading ASCII models (and probably not even all of those).. for now.
 class Mdl {
     ByteArray bytes_;
     bool loaded_ = false;
@@ -470,5 +473,7 @@ public:
     std::unique_ptr<MdlNode> make_node(uint32_t type, std::string_view name);
     bool valid() const;
 };
+
+std::ostream& operator<<(std::ostream& out, const Mdl& mdl);
 
 } // namespace nw
