@@ -20,8 +20,8 @@ TEST_CASE("modifier", "[rules]")
 
     auto is_pm = nw::Requirement{{nwn1::qual::class_level(nwn1::class_type_pale_master, 1)}};
 
-    auto pm_ac = [](flecs::entity ent) -> nw::ModifierResult {
-        auto stat = ent.get<nw::LevelStats>();
+    auto pm_ac = [](flecs::entity entity) -> nw::ModifierResult {
+        auto stat = entity.get<nw::LevelStats>();
         if (!stat) {
             return 0;
         }
@@ -49,8 +49,8 @@ TEST_CASE("modifier kernel", "[rules]")
     auto res = nwk::rules().calculate<int>(ent, nwn1::mod_type_armor_class, nwn1::ac_natural);
     REQUIRE(res == 6);
 
-    auto pm_ac_nerf = [](flecs::entity ent) -> nw::ModifierResult {
-        auto stat = ent.get<nw::LevelStats>();
+    auto pm_ac_nerf = [](flecs::entity entity) -> nw::ModifierResult {
+        auto stat = entity.get<nw::LevelStats>();
         if (!stat) {
             return 0;
         }

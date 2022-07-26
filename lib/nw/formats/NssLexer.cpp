@@ -108,10 +108,12 @@ inline NssTokenType check_keyword(const NssToken& tk)
         if (tk.id == "json") {
             return NssTokenType::JSON;
         }
+        break;
     case 'l':
         if (tk.id == "location") {
             return NssTokenType::LOCATION;
         }
+        break;
     case 'o':
         if (tk.id == "object") {
             return NssTokenType::OBJECT;

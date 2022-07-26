@@ -56,7 +56,7 @@ bool knows_feat(flecs::entity ent, nw::Feat feat)
 
 std::pair<nw::Feat, int> has_feat_successor(flecs::entity ent, nw::Feat feat)
 {
-    nw::Feat highest;
+    nw::Feat highest = nw::Feat::invalid;
     int count = 0;
 
     auto featarray = nw::kernel::world().get<nw::FeatArray>();

@@ -54,7 +54,7 @@ std::optional<bool> from(std::string_view str) ///< @private
     std::optional<type> from(std::string_view str)                                     \
     {                                                                                  \
         int b = detail::base(str);                                                     \
-        type v;                                                                        \
+        type v = 0;                                                                    \
         const char* start = str.data() + (b == 16 ? 2 : 0);                            \
         auto res = std::from_chars(start, str.data() + str.size(), v, b);              \
         return res.ptr != str.data() ? std::optional<type>(v) : std::optional<type>(); \
@@ -64,7 +64,7 @@ std::optional<bool> from(std::string_view str) ///< @private
     template <>                                                                        \
     std::optional<type> from(std::string_view str)                                     \
     {                                                                                  \
-        type v;                                                                        \
+        type v = 0.0;                                                                  \
         auto res = absl::from_chars(str.data(), str.data() + str.size(), v);           \
         return res.ptr != str.data() ? std::optional<type>(v) : std::optional<type>(); \
     }
@@ -189,7 +189,9 @@ std::string desanitize_colors(std::string str)
 {
     size_t len = str.length();
     for (size_t i = 1; i < len; ++i) {
-        if (str[i - 1] != '<' || str[i] != 'c') { continue; }
+        if (str[i - 1] != '<' || str[i] != 'c') {
+            continue;
+        }
         if (i + 7 >= len || str[i + 7] != '>') {
             LOG_F(ERROR, "invalid color code: '{}'", str);
             continue;
