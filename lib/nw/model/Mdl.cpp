@@ -221,59 +221,59 @@ std::pair<const MdlControllerKey*, std::span<const float>> MdlNode::get_controll
     return std::make_pair(nullptr, result);
 }
 
-MdlAABBNode::MdlAABBNode(std::string name)
-    : MdlTrimeshNode(std::move(name), MdlNodeType::aabb)
+MdlAABBNode::MdlAABBNode(std::string name_)
+    : MdlTrimeshNode(std::move(name_), MdlNodeType::aabb)
 {
 }
 
-MdlAnimeshNode::MdlAnimeshNode(std::string name)
-    : MdlTrimeshNode(std::move(name), MdlNodeType::animmesh)
+MdlAnimeshNode::MdlAnimeshNode(std::string name_)
+    : MdlTrimeshNode(std::move(name_), MdlNodeType::animmesh)
 {
 }
 
-MdlCameraNode::MdlCameraNode(std::string name)
-    : MdlNode(name, MdlNodeType::camera)
+MdlCameraNode::MdlCameraNode(std::string name_)
+    : MdlNode(std::move(name_), MdlNodeType::camera)
 {
 }
 
-MdlDanglymeshNode::MdlDanglymeshNode(std::string name)
-    : MdlTrimeshNode(std::move(name), MdlNodeType::danglymesh)
+MdlDanglymeshNode::MdlDanglymeshNode(std::string name_)
+    : MdlTrimeshNode(std::move(name_), MdlNodeType::danglymesh)
 {
 }
 
-MdlDummyNode::MdlDummyNode(std::string name)
-    : MdlNode(name, MdlNodeType::dummy)
+MdlDummyNode::MdlDummyNode(std::string name_)
+    : MdlNode(std::move(name_), MdlNodeType::dummy)
 {
 }
 
-MdlEmitterNode::MdlEmitterNode(std::string name)
-    : MdlNode(name, MdlNodeType::emitter)
+MdlEmitterNode::MdlEmitterNode(std::string name_)
+    : MdlNode(std::move(name_), MdlNodeType::emitter)
 {
 }
 
-MdlLightNode::MdlLightNode(std::string name)
-    : MdlNode(name, MdlNodeType::light)
+MdlLightNode::MdlLightNode(std::string name_)
+    : MdlNode(std::move(name_), MdlNodeType::light)
 {
 }
 
-MdlPatchNode::MdlPatchNode(std::string name)
-    : MdlNode(name, MdlNodeType::patch)
+MdlPatchNode::MdlPatchNode(std::string name_)
+    : MdlNode(std::move(name_), MdlNodeType::patch)
 {
 }
 
-MdlReferenceNode::MdlReferenceNode(std::string name)
-    : MdlNode(name, MdlNodeType::reference)
+MdlReferenceNode::MdlReferenceNode(std::string name_)
+    : MdlNode(std::move(name_), MdlNodeType::reference)
     , reattachable{false}
 {
 }
 
-MdlSkinNode::MdlSkinNode(std::string name)
-    : MdlTrimeshNode(std::move(name), MdlNodeType::skin)
+MdlSkinNode::MdlSkinNode(std::string name_)
+    : MdlTrimeshNode(std::move(name_), MdlNodeType::skin)
 {
 }
 
-MdlTrimeshNode::MdlTrimeshNode(std::string name_, uint32_t type)
-    : MdlNode(std::move(name), type)
+MdlTrimeshNode::MdlTrimeshNode(std::string name_, uint32_t type_)
+    : MdlNode(std::move(name_), type_)
     , diffuse{0.8, 0.8, 0.8}
 {
 }

@@ -354,7 +354,7 @@ struct MdlReferenceNode : public MdlNode {
 };
 
 struct MdlTrimeshNode : public MdlNode {
-    MdlTrimeshNode(std::string name_, uint32_t type = MdlNodeType::trimesh);
+    MdlTrimeshNode(std::string name_, uint32_t type_ = MdlNodeType::trimesh);
     virtual ~MdlTrimeshNode() = default;
 
     glm::vec3 ambient;
