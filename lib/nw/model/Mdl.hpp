@@ -50,17 +50,17 @@ struct MdlNodeType {
 
     static uint32_t from_string(std::string_view str)
     {
-        if (string::icmp(str, "Dummy")) return dummy;
-        if (string::icmp(str, "Reference")) return reference;
-        if (string::icmp(str, "Patch")) return patch;
-        if (string::icmp(str, "Trimesh")) return trimesh;
-        if (string::icmp(str, "Danglymesh")) return danglymesh;
-        if (string::icmp(str, "Skin")) return skin;
-        if (string::icmp(str, "Animmesh")) return animmesh;
-        if (string::icmp(str, "Emitter")) return emitter;
-        if (string::icmp(str, "Light")) return light;
-        if (string::icmp(str, "AABB")) return aabb;
-        if (string::icmp(str, "Camera")) return camera;
+        if (string::icmp(str, "dummy")) return dummy;
+        if (string::icmp(str, "reference")) return reference;
+        if (string::icmp(str, "patch")) return patch;
+        if (string::icmp(str, "trimesh")) return trimesh;
+        if (string::icmp(str, "danglymesh")) return danglymesh;
+        if (string::icmp(str, "skin")) return skin;
+        if (string::icmp(str, "animmesh")) return animmesh;
+        if (string::icmp(str, "emitter")) return emitter;
+        if (string::icmp(str, "light")) return light;
+        if (string::icmp(str, "aabb")) return aabb;
+        if (string::icmp(str, "camera")) return camera;
         return 0;
     }
 
@@ -133,21 +133,27 @@ enum struct MdlModelClass : uint32_t {
     tile = 2,
     character = 4,
     door = 8,
+    item = 16, // i dunno if these values have significance
+    gui = 32,
 };
 
 inline std::string model_class_to_string(MdlModelClass cls)
 {
     switch (cls) {
     case MdlModelClass::invalid:
-        return "Unknown";
+        return "UNKNOWN";
     case MdlModelClass::effect:
-        return "Effect";
+        return "EFFECT";
     case MdlModelClass::tile:
-        return "Tile";
+        return "TILE";
     case MdlModelClass::character:
-        return "Character";
+        return "CHARACTER";
     case MdlModelClass::door:
-        return "Door";
+        return "DOOR";
+    case MdlModelClass::item:
+        return "ITEM";
+    case MdlModelClass::gui:
+        return "GUI";
     }
 }
 
@@ -201,6 +207,7 @@ struct MdlControllerType {
     static constexpr uint32_t LightningDelay = 208;
     static constexpr uint32_t LightningRadius = 212;
     static constexpr uint32_t LightningScale = 216;
+    static constexpr uint32_t LightningSubDiv = 220; // dunno
     static constexpr uint32_t Detonate = 228;
     static constexpr uint32_t AlphaMid = 464;
     static constexpr uint32_t ColorMid = 468;
@@ -216,6 +223,7 @@ struct MdlControllerType {
     static constexpr uint32_t Alpha = 128;
 
     static const std::unordered_map<std::string_view, std::pair<uint32_t, uint32_t>> map;
+    static std::pair<uint32_t, uint32_t> lookup(std::string_view cont);
 };
 
 // -- Controller --------------------------------------------------------------
@@ -296,13 +304,20 @@ struct MdlEmitterNode : public MdlNode {
     uint32_t loop{0};
     std::string render;
     uint32_t renderorder{0};
-    uint32_t spawntype{0};
+    int32_t spawntype{0};
     std::string texture;
     uint32_t twosidedtex{0};
     std::string update;
     uint32_t xgrid{0};
     uint32_t ygrid{0};
     uint32_t flags{0};
+
+    uint32_t render_sel{0};
+    uint32_t blend_sel{0};
+    uint32_t update_sel{0};
+    uint32_t spawntype_sel{0};
+    float opacity{0.0f};
+    std::string p2p_type;
 };
 
 struct MdlLightNode : public MdlNode {
@@ -358,6 +373,10 @@ struct MdlTrimeshNode : public MdlNode {
     std::string textures[3];
     uint32_t tilefade{0};
     bool transparencyhint{false};
+    bool showdispl{false}; // dunno
+    uint32_t displtype{1}; // dunno
+    uint32_t lightmapped{0};
+    std::vector<std::string> multimaterial;
     std::vector<glm::vec3> colors;
     std::vector<glm::vec3> verts;
     std::vector<glm::vec3> tverts[4];
@@ -387,7 +406,7 @@ struct MdlAnimeshNode : public MdlTrimeshNode {
 struct MdlDanglymeshNode : public MdlTrimeshNode {
     MdlDanglymeshNode(std::string name);
 
-    std::vector<float> constraints;
+    std::vector<uint32_t> constraints;
     float displacement;
     float period;
     float tightness;
@@ -396,7 +415,7 @@ struct MdlDanglymeshNode : public MdlTrimeshNode {
 struct MdlAABBEntry {
     glm::vec3 bmin;
     glm::vec3 bmax;
-    uint32_t leaf_face;
+    int32_t leaf_face;
     uint32_t plane; // 0x01 = Positive X
     // 0x02 = Positive Y
     // 0x04 = Positive Z

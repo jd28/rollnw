@@ -65,6 +65,121 @@ const std::unordered_map<std::string_view, std::pair<uint32_t, uint32_t>> MdlCon
     {"alpha", {MdlControllerType::Alpha, MdlNodeFlags::mesh}},
 };
 
+std::pair<uint32_t, uint32_t> MdlControllerType::lookup(std::string_view cont)
+{
+    // Common
+    if (string::icmp(cont, "position")) {
+        return {MdlControllerType::Position, MdlNodeFlags::header};
+    } else if (string::icmp(cont, "orientation")) {
+        return {MdlControllerType::Orientation, MdlNodeFlags::header};
+    } else if (string::icmp(cont, "scale")) {
+        return {MdlControllerType::Scale, MdlNodeFlags::header};
+    } else if (string::icmp(cont, "wirecolor")) {
+        return {MdlControllerType::Wirecolor, MdlNodeFlags::header};
+    }
+    // Light
+    else if (string::icmp(cont, "color")) {
+        return {MdlControllerType::Color, MdlNodeFlags::light};
+    } else if (string::icmp(cont, "radius")) {
+        return {MdlControllerType::Radius, MdlNodeFlags::light};
+    } else if (string::icmp(cont, "shadowradius")) {
+        return {MdlControllerType::ShadowRadius, MdlNodeFlags::light};
+    } else if (string::icmp(cont, "verticaldisplacement")) {
+        return {MdlControllerType::VerticalDisplacement, MdlNodeFlags::light};
+    } else if (string::icmp(cont, "multiplier")) {
+        return {MdlControllerType::Multiplier, MdlNodeFlags::light};
+    }
+    // Emitter
+    else if (string::icmp(cont, "alphaEnd")) {
+        return {MdlControllerType::AlphaEnd, MdlNodeFlags::emitter};
+    } else if (string::icmp(cont, "alphaStart")) {
+        return {MdlControllerType::AlphaStart, MdlNodeFlags::emitter};
+    } else if (string::icmp(cont, "birthrate")) {
+        return {MdlControllerType::BirthRate, MdlNodeFlags::emitter};
+    } else if (string::icmp(cont, "bounce_co")) {
+        return {MdlControllerType::Bounce_Co, MdlNodeFlags::emitter};
+    } else if (string::icmp(cont, "colorEnd")) {
+        return {MdlControllerType::ColorEnd, MdlNodeFlags::emitter};
+    } else if (string::icmp(cont, "colorStart")) {
+        return {MdlControllerType::ColorStart, MdlNodeFlags::emitter};
+    } else if (string::icmp(cont, "combinetime")) {
+        return {MdlControllerType::CombineTime, MdlNodeFlags::emitter};
+    } else if (string::icmp(cont, "drag")) {
+        return {MdlControllerType::Drag, MdlNodeFlags::emitter};
+    } else if (string::icmp(cont, "fps")) {
+        return {MdlControllerType::FPS, MdlNodeFlags::emitter};
+    } else if (string::icmp(cont, "frameEnd")) {
+        return {MdlControllerType::FrameEnd, MdlNodeFlags::emitter};
+    } else if (string::icmp(cont, "frameStart")) {
+        return {MdlControllerType::FrameStart, MdlNodeFlags::emitter};
+    } else if (string::icmp(cont, "grav")) {
+        return {MdlControllerType::Grav, MdlNodeFlags::emitter};
+    } else if (string::icmp(cont, "lifeExp")) {
+        return {MdlControllerType::LifeExp, MdlNodeFlags::emitter};
+    } else if (string::icmp(cont, "mass")) {
+        return {MdlControllerType::Mass, MdlNodeFlags::emitter};
+    } else if (string::icmp(cont, "p2p_bezier2")) {
+        return {MdlControllerType::P2P_Bezier2, MdlNodeFlags::emitter};
+    } else if (string::icmp(cont, "p2p_bezier3")) {
+        return {MdlControllerType::P2P_Bezier3, MdlNodeFlags::emitter};
+    } else if (string::icmp(cont, "particleRot")) {
+        return {MdlControllerType::ParticleRot, MdlNodeFlags::emitter};
+    } else if (string::icmp(cont, "randvel")) {
+        return {MdlControllerType::RandVel, MdlNodeFlags::emitter};
+    } else if (string::icmp(cont, "sizeStart")) {
+        return {MdlControllerType::SizeStart, MdlNodeFlags::emitter};
+    } else if (string::icmp(cont, "sizeEnd")) {
+        return {MdlControllerType::SizeEnd, MdlNodeFlags::emitter};
+    } else if (string::icmp(cont, "sizeStart_y")) {
+        return {MdlControllerType::SizeStart_Y, MdlNodeFlags::emitter};
+    } else if (string::icmp(cont, "sizeEnd_y")) {
+        return {MdlControllerType::SizeEnd_Y, MdlNodeFlags::emitter};
+    } else if (string::icmp(cont, "spread")) {
+        return {MdlControllerType::Spread, MdlNodeFlags::emitter};
+    } else if (string::icmp(cont, "threshold")) {
+        return {MdlControllerType::Threshold, MdlNodeFlags::emitter};
+    } else if (string::icmp(cont, "velocity")) {
+        return {MdlControllerType::Velocity, MdlNodeFlags::emitter};
+    } else if (string::icmp(cont, "xsize")) {
+        return {MdlControllerType::XSize, MdlNodeFlags::emitter};
+    } else if (string::icmp(cont, "ysize")) {
+        return {MdlControllerType::YSize, MdlNodeFlags::emitter};
+    } else if (string::icmp(cont, "blurlength")) {
+        return {MdlControllerType::BlurLength, MdlNodeFlags::emitter};
+    } else if (string::icmp(cont, "lightningDelay")) {
+        return {MdlControllerType::LightningDelay, MdlNodeFlags::emitter};
+    } else if (string::icmp(cont, "lightningRadius")) {
+        return {MdlControllerType::LightningRadius, MdlNodeFlags::emitter};
+    } else if (string::icmp(cont, "lightningScale")) {
+        return {MdlControllerType::LightningScale, MdlNodeFlags::emitter};
+    } else if (string::icmp(cont, "lightningSubDiv")) {
+        return {MdlControllerType::LightningSubDiv, MdlNodeFlags::emitter};
+    } else if (string::icmp(cont, "detonate")) {
+        return {MdlControllerType::Detonate, MdlNodeFlags::emitter};
+    } else if (string::icmp(cont, "alphaMid")) {
+        return {MdlControllerType::AlphaMid, MdlNodeFlags::emitter};
+    } else if (string::icmp(cont, "colorMid")) {
+        return {MdlControllerType::ColorMid, MdlNodeFlags::emitter};
+    } else if (string::icmp(cont, "percentStart")) {
+        return {MdlControllerType::PercentStart, MdlNodeFlags::emitter};
+    } else if (string::icmp(cont, "percentMid")) {
+        return {MdlControllerType::PercentMid, MdlNodeFlags::emitter};
+    } else if (string::icmp(cont, "percentEnd")) {
+        return {MdlControllerType::PercentEnd, MdlNodeFlags::emitter};
+    } else if (string::icmp(cont, "sizeMid")) {
+        return {MdlControllerType::SizeMid, MdlNodeFlags::emitter};
+    } else if (string::icmp(cont, "sizeMid_y")) {
+        return {MdlControllerType::SizeMid_Y, MdlNodeFlags::emitter};
+    }
+    // Meshes
+    else if (string::icmp(cont, "selfillumcolor")) {
+        return {MdlControllerType::SelfIllumColor, MdlNodeFlags::mesh};
+    } else if (string::icmp(cont, "alpha")) {
+        return {MdlControllerType::Alpha, MdlNodeFlags::mesh};
+    }
+    return {0, 0};
+}
+
 // -- Nodes -------------------------------------------------------------------
 
 MdlNode::MdlNode(std::string name, uint32_t type)

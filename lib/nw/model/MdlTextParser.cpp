@@ -58,6 +58,17 @@ bool parse_tokens(Tokenizer& tokens, std::string_view name, std::string& out)
     return false;
 }
 
+bool parse_tokens(Tokenizer& tokens, std::string_view name, int32_t& out)
+{
+    auto tk = tokens.next();
+    if (auto res = string::from<int32_t>(tk)) {
+        out = *res;
+        return true;
+    }
+    LOG_F(ERROR, "{}: Failed to parse int32_t, line: {}", name, tokens.line());
+    return false;
+}
+
 bool parse_tokens(Tokenizer& tokens, std::string_view name, uint32_t& out)
 {
     auto tk = tokens.next();
@@ -77,7 +88,7 @@ bool parse_tokens(Tokenizer& tokens, std::string_view name, float& out)
         return true;
     }
 
-    LOG_F(ERROR, "{}: Failed to parse float, line: {}", name, tokens.line());
+    LOG_F(ERROR, "{}: Failed to parse float - got '{}', line: {}", name, tk, tokens.line());
     return false;
 }
 
@@ -153,19 +164,20 @@ bool parse_tokens(Tokenizer& tokens, std::string_view name, MdlSkinWeight& out)
     std::string bone;
     float value = 0.0f;
     for (size_t i = 0; i < 4; ++i) {
+        if (parse_tokens(tokens, "weight: bone", bone)
+            && parse_tokens(tokens, "weight: value", value)) {
+            out.bones[i] = std::move(bone);
+            out.weights[i] = value;
+        } else {
+            LOG_F(ERROR, "Failed to parse skin weight {}, line: {}", name, tokens.line());
+            return false;
+        }
         auto tk = tokens.next();
         if (is_newline(tk)) {
             tokens.put_back(tk);
             break;
         }
-        if (!parse_tokens(tokens, "weight: bone", bone)
-            || !parse_tokens(tokens, "weight: value", value)) {
-            LOG_F(ERROR, "Failed to parse skin weight {}, line: {}", name, tokens.line());
-            return false;
-        } else {
-            out.bones[i] = std::move(bone);
-            out.weights[i] = value;
-        }
+        tokens.put_back(tk);
     }
 
     return true;
@@ -186,7 +198,8 @@ bool parse_tokens(Tokenizer& tokens, std::string_view name, MdlAABBNode* node)
         tokens.next(); // Drop new line.
         auto tk = tokens.next();
         // If the next token is a new line or empty the AABB is done.
-        if (tokens.is_newline(tk) || tk.empty()) {
+        if (tokens.is_newline(tk) || tk.empty() || !string::from<float>(tk)) {
+            tokens.put_back(tk);
             break;
         } else {
             tokens.put_back(tk);
@@ -319,13 +332,13 @@ bool MdlTextParser::parse_node(MdlGeometry* geometry)
         }
 
         // Check if it's a controller.
-        auto it = MdlControllerType::map.find(controller_tk);
-        if (it != std::end(MdlControllerType::map)) {
-            if (!(node->type & it->second.second)) {
+        auto [ctype, ntype] = MdlControllerType::lookup(controller_tk);
+        if (ctype != 0) {
+            if (!(node->type & ntype)) {
                 LOG_F(ERROR, "Controller set on an incompatible node: {}", tk);
                 return false;
             }
-            if (!parse_controller(node.get(), tk, it->second.first)) return false;
+            if (!parse_controller(node.get(), tk, ctype)) return false;
             continue;
         }
 
@@ -383,6 +396,10 @@ bool MdlTextParser::parse_node(MdlGeometry* geometry)
             PARSE_DATA_TO(texture2, n, textures[2])
             PARSE_DATA(tilefade, n)
             PARSE_DATA(transparencyhint, n)
+            PARSE_DATA(showdispl, n)
+            PARSE_DATA(displtype, n)
+            PARSE_DATA(lightmapped, n)
+            PARSE_DATA(multimaterial, n)
             PARSE_DATA_TO(tverts, n, tverts[0])
             PARSE_DATA_TO(tverts1, n, tverts[1])
             PARSE_DATA_TO(tverts2, n, tverts[2])
@@ -400,7 +417,7 @@ bool MdlTextParser::parse_node(MdlGeometry* geometry)
 
         if (node->type & MdlNodeFlags::dangly) {
             MdlDanglymeshNode* n = static_cast<MdlDanglymeshNode*>(node.get());
-            // PARSE_DATA(constraints, n)
+            PARSE_DATA(constraints, n)
             PARSE_DATA(displacement, n)
             PARSE_DATA(period, n)
             PARSE_DATA(tightness, n)
@@ -422,6 +439,12 @@ bool MdlTextParser::parse_node(MdlGeometry* geometry)
             PARSE_DATA(update, n)
             PARSE_DATA(xgrid, n)
             PARSE_DATA(ygrid, n)
+            PARSE_DATA(render_sel, n)
+            PARSE_DATA(blend_sel, n)
+            PARSE_DATA(update_sel, n)
+            PARSE_DATA(spawntype_sel, n)
+            PARSE_DATA(opacity, n)
+            PARSE_DATA(p2p_type, n)
 
             bool value;
             if (icmp(tk, "affectedByWind")) {
@@ -457,8 +480,9 @@ bool MdlTextParser::parse_node(MdlGeometry* geometry)
                 if (value) n->flags |= MdlEmitterFlag::P2P;
                 continue;
             } else if (icmp(tk, "p2p_sel")) {
-                if (!parse_tokens(tokens_, tk, value)) return false;
-                if (value) n->flags |= MdlEmitterFlag::P2PSel;
+                uint32_t v;
+                if (!parse_tokens(tokens_, tk, v)) return false;
+                if (v) n->flags |= MdlEmitterFlag::P2PSel;
                 continue;
             } else if (icmp(tk, "random")) {
                 if (!parse_tokens(tokens_, tk, value)) return false;
@@ -508,11 +532,15 @@ bool MdlTextParser::parse_node(MdlGeometry* geometry)
             PARSE_DATA(weights, n)
         }
 
-        // if (node->type & MdlNodeFlags::anim) {
-        //     MdlAnimeshNode* n = static_cast<MdlAnimeshNode*>(node.get());
-        // }
+        if (node->type & MdlNodeFlags::anim) {
+            MdlAnimeshNode* n = static_cast<MdlAnimeshNode*>(node.get());
+            PARSE_DATA(animtverts, n);
+            PARSE_DATA(animverts, n);
+            PARSE_DATA(sampleperiod, n);
+        }
 
         LOG_F(ERROR, "Unknown token: '{}', line: {}", tk, tokens_.line());
+        return false;
     }
 
     geometry->nodes.push_back(std::move(node));
@@ -607,6 +635,10 @@ bool MdlTextParser::parse_model()
                 mdl_->model.classification = MdlModelClass::effect;
             else if (icmp(name, "tile"))
                 mdl_->model.classification = MdlModelClass::tile;
+            else if (icmp(name, "item"))
+                mdl_->model.classification = MdlModelClass::item;
+            else if (icmp(name, "gui"))
+                mdl_->model.classification = MdlModelClass::gui;
             else if (icmp(name, "unknown"))
                 mdl_->model.classification = MdlModelClass::invalid;
             else {
@@ -635,7 +667,8 @@ bool MdlTextParser::parse()
     bool result = true;
     for (std::string_view tk = tokens_.next(); !tk.empty() && result; tk = tokens_.next()) {
         if (is_newline(tk)) continue;
-        if (tk == "filedependancy") { // Don't care about this so skip the next token.
+        // both spellings of this appear to be present in vanilla models and community tools
+        if (tk == "filedependancy" || tk == "filedependency") {
             if (!parse_tokens(tokens_, tk, mdl_->model.file_dependency)) return false;
         } else if (tk == "newmodel") {
             if (!parse_model()) return false;

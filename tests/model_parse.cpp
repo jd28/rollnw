@@ -34,6 +34,45 @@ TEST_CASE("model: parse ascii ee", "[model]")
     nw::Mdl mdl{"test_data/user/development/wplss_t_044.mdl"};
     REQUIRE(mdl.valid());
     REQUIRE(mdl.model.supermodel_name == "null");
+
+    nw::Mdl mdl1{"test_data/user/development/c_mindflayer.mdl"};
+    REQUIRE(mdl1.valid());
+
+    nw::Mdl mdl2{"test_data/user/development/dag_grifflag03.mdl"};
+    REQUIRE(mdl2.valid());
+
+    nw::Mdl mdl3{"test_data/user/development/fx_caltrop.mdl"};
+    REQUIRE(mdl3.valid());
+
+    nw::Mdl mdl4{"test_data/user/development/gui_icon_7x5r.mdl"};
+    REQUIRE(mdl4.valid());
+
+    nw::Mdl mdl5{"test_data/user/development/it_torch_000.mdl"};
+    REQUIRE(mdl5.valid());
+
+    nw::Mdl mdl6{"test_data/user/development/pb_but_opts.mdl"};
+    REQUIRE(mdl6.valid());
+
+    nw::Mdl mdl7{"test_data/user/development/pfh0_robe020.mdl"};
+    REQUIRE(mdl7.valid());
+
+    nw::Mdl mdl8{"test_data/user/development/plc_fish01.mdl"};
+    REQUIRE(mdl8.valid());
+
+    nw::Mdl mdl9{"test_data/user/development/plc_palm02.mdl"};
+    REQUIRE(mdl9.valid());
+
+    nw::Mdl mdl10{"test_data/user/development/tcm02_p02_02.mdl"};
+    REQUIRE(mdl10.valid());
+
+    nw::Mdl mdl11{"test_data/user/development/tds_udoor_04.mdl"};
+    REQUIRE(mdl11.valid());
+
+    nw::Mdl mdl12{"test_data/user/development/tno01_v80_04.mdl"};
+    REQUIRE(mdl12.valid());
+
+    nw::Mdl mdl13{"test_data/user/development/tsw01_h12_01.mdl"};
+    REQUIRE(mdl13.valid());
 }
 
 TEST_CASE("model: write to file", "[model]")

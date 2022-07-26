@@ -1,0 +1,446 @@
+# Rewritten by CleanModels 3 Version 3.7.0 [990e9a0] Mon Jul 25 20:49:51 2022
+#MAXMODEL ASCII
+newmodel pb_but_opts
+        setsupermodel pb_but_opts NULL
+        setanimationscale 1
+#MAXGEOM ASCII
+beginmodelgeom pb_but_opts
+    node dummy pb_but_opts
+        parent NULL
+        #part-number 0
+    endnode
+    node animmesh plane196
+        parent pb_but_opts
+        #part-number 1
+        diffuse 1 1 1
+        ambient 0.1 0.1 0.1
+        specular 0.045 0.045 0.045
+        shininess 26
+        shadow 1
+        beaming 0
+        render 1
+        transparencyhint 0
+        bitmap pnl_party_bar
+        texture0 pnl_party_bar
+        rotatetexture 0
+        position 0.175 0.085 0
+        orientation 0 0 0 0
+        verts 4
+            -0.175 0.085 0
+            -0.175 -0.085 0
+            0.175 0.085 0
+            0.175 -0.085 0
+        faces 2
+            0 1 2 1 0 1 2 1
+            3 2 1 1 3 2 1 1
+        tverts 4
+            0.648438 0.722656 0
+            0.648438 0.65625 0
+            0.921875 0.722656 0
+            0.921875 0.65625 0
+        normals 4
+            0 0 1
+            0 0 1
+            0 0 1
+            0 0 1
+    endnode
+    node animmesh plane197
+        parent pb_but_opts
+        #part-number 2
+        diffuse 1 1 1
+        ambient 0.1 0.1 0.1
+        specular 0.045 0.045 0.045
+        shininess 26
+        shadow 0
+        beaming 0
+        render 1
+        transparencyhint 1
+        bitmap pnl_party_bar
+        texture0 pnl_party_bar
+        rotatetexture 0
+        position 0.175 0.085 0.005
+        orientation 0 0 0 0
+        alpha 0
+        scale 1
+        selfillumcolor 0 0 0
+        verts 4
+            -0.175 0.085 0
+            -0.175 -0.085 0
+            0.175 0.085 0
+            0.175 -0.085 0
+        faces 2
+            0 1 2 1 0 1 2 1
+            3 2 1 1 3 2 1 1
+        tverts 4
+            0.648438 0.722656 0
+            0.648438 0.65625 0
+            0.921875 0.722656 0
+            0.921875 0.65625 0
+        normals 4
+            0 0 1
+            0 0 1
+            0 0 1
+            0 0 1
+    endnode
+endmodelgeom pb_but_opts
+
+#MAXANIM ASCII
+newanim disabled pb_but_opts
+        length 1
+        transtime 0
+        animroot pb_but_opts
+        node dummy pb_but_opts
+            parent NULL
+            #part-number 0
+        endnode
+        node animmesh plane196
+            parent pb_but_opts
+            #part-number 1
+            sampleperiod 1
+            positionkey
+      1 0.175 0.085 0
+            endlist
+            verts 4
+            -0.175 0.085 0
+            -0.175 -0.085 0
+            0.175 0.085 0
+            0.175 -0.085 0
+            faces 2
+            0 1 2 1 0 1 2 1
+            3 2 1 1 3 2 1 1
+            tverts 4
+            0.648438 0.722656 0
+            0.648438 0.65625 0
+            0.921875 0.722656 0
+            0.921875 0.65625 0
+            animverts 4
+      -0.175 0.085 0
+      -0.175 -0.085 0
+      0.175 0.085 0
+      0.175 -0.085 0
+            animtverts 4
+      0.648438 0.582031 0
+      0.648438 0.515625 0
+      0.921875 0.582031 0
+      0.921875 0.515625 0
+        endnode
+        node animmesh plane197
+            parent pb_but_opts
+            #part-number 2
+            sampleperiod 0
+            verts 4
+            -0.175 0.085 0
+            -0.175 -0.085 0
+            0.175 0.085 0
+            0.175 -0.085 0
+            faces 2
+            0 1 2 1 0 1 2 1
+            3 2 1 1 3 2 1 1
+            tverts 4
+            0.648438 0.722656 0
+            0.648438 0.65625 0
+            0.921875 0.722656 0
+            0.921875 0.65625 0
+            animverts 0
+            animtverts 0
+        endnode
+doneanim disabled pb_but_opts
+
+#MAXANIM ASCII
+newanim down pb_but_opts
+        length 1
+        transtime 0
+        animroot pb_but_opts
+        node dummy pb_but_opts
+            parent NULL
+            #part-number 0
+        endnode
+        node animmesh plane196
+            parent pb_but_opts
+            #part-number 1
+            sampleperiod 1
+            positionkey
+      1 0.175 0.085 0
+            endlist
+            verts 4
+            -0.175 0.085 0
+            -0.175 -0.085 0
+            0.175 0.085 0
+            0.175 -0.085 0
+            faces 2
+            0 1 2 1 0 1 2 1
+            3 2 1 1 3 2 1 1
+            tverts 4
+            0.648438 0.722656 0
+            0.648438 0.65625 0
+            0.921875 0.722656 0
+            0.921875 0.65625 0
+            animverts 4
+      -0.175 0.085 0
+      -0.175 -0.085 0
+      0.175 0.085 0
+      0.175 -0.085 0
+            animtverts 4
+      0.648438 0.726563 0
+      0.648438 0.660156 0
+      0.921875 0.726562 0
+      0.921875 0.660156 0
+        endnode
+        node animmesh plane197
+            parent pb_but_opts
+            #part-number 2
+            sampleperiod 1
+            verts 4
+            -0.175 0.085 0
+            -0.175 -0.085 0
+            0.175 0.085 0
+            0.175 -0.085 0
+            faces 2
+            0 1 2 1 0 1 2 1
+            3 2 1 1 3 2 1 1
+            tverts 4
+            0.648438 0.722656 0
+            0.648438 0.65625 0
+            0.921875 0.722656 0
+            0.921875 0.65625 0
+            animverts 4
+      -0.175 0.085 0
+      -0.175 -0.085 0
+      0.175 0.085 0
+      0.175 -0.085 0
+            animtverts 4
+      0.648438 0.722656 0
+      0.648438 0.65625 0
+      0.921875 0.722656 0
+      0.921875 0.65625 0
+        endnode
+doneanim down pb_but_opts
+
+#MAXANIM ASCII
+newanim encouraged pb_but_opts
+        length 1
+        transtime 0
+        animroot pb_but_opts
+        node dummy pb_but_opts
+            parent NULL
+            #part-number 0
+        endnode
+        node animmesh plane196
+            parent pb_but_opts
+            #part-number 1
+            sampleperiod 1
+            positionkey
+      0 0.175 0.085 0
+      1 0.175 0.085 0
+            endlist
+            verts 4
+            -0.175 0.085 0
+            -0.175 -0.085 0
+            0.175 0.085 0
+            0.175 -0.085 0
+            faces 2
+            0 1 2 1 0 1 2 1
+            3 2 1 1 3 2 1 1
+            tverts 4
+            0.648438 0.722656 0
+            0.648438 0.65625 0
+            0.921875 0.722656 0
+            0.921875 0.65625 0
+            animverts 4
+      -0.175 0.085 0
+      -0.175 -0.085 0
+      0.175 0.085 0
+      0.175 -0.085 0
+            animtverts 4
+      0.648438 0.652344 0
+      0.648438 0.585938 0
+      0.921875 0.652344 0
+      0.921875 0.585937 0
+        endnode
+        node animmesh plane197
+            parent pb_but_opts
+            #part-number 2
+            sampleperiod 1
+            positionkey
+      0 0.175 0.085 0.005
+      1 0.175 0.085 0.005
+            endlist
+            alphakey
+      0 1
+      0.5 0
+      1 1
+            endlist
+            verts 4
+            -0.175 0.085 0
+            -0.175 -0.085 0
+            0.175 0.085 0
+            0.175 -0.085 0
+            faces 2
+            0 1 2 1 0 1 2 1
+            3 2 1 1 3 2 1 1
+            tverts 4
+            0.648438 0.722656 0
+            0.648438 0.65625 0
+            0.921875 0.722656 0
+            0.921875 0.65625 0
+            animverts 4
+      -0.175 0.085 0
+      -0.175 -0.085 0
+      0.175 0.085 0
+      0.175 -0.085 0
+            animtverts 4
+      0.648438 0.722656 0
+      0.648438 0.65625 0
+      0.921875 0.722656 0
+      0.921875 0.65625 0
+        endnode
+doneanim encouraged pb_but_opts
+
+#MAXANIM ASCII
+newanim hilite pb_but_opts
+        length 1
+        transtime 0
+        animroot pb_but_opts
+        node dummy pb_but_opts
+            parent NULL
+            #part-number 0
+        endnode
+        node animmesh plane196
+            parent pb_but_opts
+            #part-number 1
+            sampleperiod 1
+            positionkey
+      0 0.175 0.085 0
+      1 0.175 0.085 0
+            endlist
+            verts 4
+            -0.175 0.085 0
+            -0.175 -0.085 0
+            0.175 0.085 0
+            0.175 -0.085 0
+            faces 2
+            0 1 2 1 0 1 2 1
+            3 2 1 1 3 2 1 1
+            tverts 4
+            0.648438 0.722656 0
+            0.648438 0.65625 0
+            0.921875 0.722656 0
+            0.921875 0.65625 0
+            animverts 4
+      -0.175 0.085 0
+      -0.175 -0.085 0
+      0.175 0.085 0
+      0.175 -0.085 0
+            animtverts 4
+      0.648438 0.652344 0
+      0.648438 0.585938 0
+      0.921875 0.652344 0
+      0.921875 0.585937 0
+        endnode
+        node animmesh plane197
+            parent pb_but_opts
+            #part-number 2
+            sampleperiod 1
+            positionkey
+      1 0.175 0.085 0.005
+            endlist
+            alphakey
+      1 0
+            endlist
+            verts 4
+            -0.175 0.085 0
+            -0.175 -0.085 0
+            0.175 0.085 0
+            0.175 -0.085 0
+            faces 2
+            0 1 2 1 0 1 2 1
+            3 2 1 1 3 2 1 1
+            tverts 4
+            0.648438 0.722656 0
+            0.648438 0.65625 0
+            0.921875 0.722656 0
+            0.921875 0.65625 0
+            animverts 4
+      -0.175 0.085 0
+      -0.175 -0.085 0
+      0.175 0.085 0
+      0.175 -0.085 0
+            animtverts 4
+      0.648438 0.722656 0
+      0.648438 0.65625 0
+      0.921875 0.722656 0
+      0.921875 0.65625 0
+        endnode
+doneanim hilite pb_but_opts
+
+#MAXANIM ASCII
+newanim up pb_but_opts
+        length 1
+        transtime 0
+        animroot pb_but_opts
+        node dummy pb_but_opts
+            parent NULL
+            #part-number 0
+        endnode
+        node animmesh plane196
+            parent pb_but_opts
+            #part-number 1
+            sampleperiod 1
+            positionkey
+      0 0.175 0.085 0
+      1 0.175 0.085 0
+            endlist
+            verts 4
+            -0.175 0.085 0
+            -0.175 -0.085 0
+            0.175 0.085 0
+            0.175 -0.085 0
+            faces 2
+            0 1 2 1 0 1 2 1
+            3 2 1 1 3 2 1 1
+            tverts 4
+            0.648438 0.722656 0
+            0.648438 0.65625 0
+            0.921875 0.722656 0
+            0.921875 0.65625 0
+            animverts 4
+      -0.175 0.085 0
+      -0.175 -0.085 0
+      0.175 0.085 0
+      0.175 -0.085 0
+            animtverts 4
+      0.648438 0.722656 0
+      0.648438 0.65625 0
+      0.921875 0.722656 0
+      0.921875 0.65625 0
+        endnode
+        node animmesh plane197
+            parent pb_but_opts
+            #part-number 2
+            sampleperiod 1
+            verts 4
+            -0.175 0.085 0
+            -0.175 -0.085 0
+            0.175 0.085 0
+            0.175 -0.085 0
+            faces 2
+            0 1 2 1 0 1 2 1
+            3 2 1 1 3 2 1 1
+            tverts 4
+            0.648438 0.722656 0
+            0.648438 0.65625 0
+            0.921875 0.722656 0
+            0.921875 0.65625 0
+            animverts 4
+      -0.175 0.085 0
+      -0.175 -0.085 0
+      0.175 0.085 0
+      0.175 -0.085 0
+            animtverts 4
+      0.648438 0.722656 0
+      0.648438 0.65625 0
+      0.921875 0.722656 0
+      0.921875 0.65625 0
+        endnode
+doneanim up pb_but_opts
+donemodel pb_but_opts
