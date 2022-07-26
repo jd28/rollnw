@@ -182,9 +182,9 @@ std::pair<uint32_t, uint32_t> MdlControllerType::lookup(std::string_view cont)
 
 // -- Nodes -------------------------------------------------------------------
 
-MdlNode::MdlNode(std::string name, uint32_t type)
-    : name{name}
-    , type{type}
+MdlNode::MdlNode(std::string name_, uint32_t type_)
+    : name{name_}
+    , type{type_}
 {
 }
 
@@ -272,7 +272,7 @@ MdlSkinNode::MdlSkinNode(std::string name)
 {
 }
 
-MdlTrimeshNode::MdlTrimeshNode(std::string name, uint32_t type)
+MdlTrimeshNode::MdlTrimeshNode(std::string name_, uint32_t type)
     : MdlNode(std::move(name), type)
     , diffuse{0.8, 0.8, 0.8}
 {
@@ -280,8 +280,8 @@ MdlTrimeshNode::MdlTrimeshNode(std::string name, uint32_t type)
 
 // -- Geometry ----------------------------------------------------------------
 
-MdlGeometry::MdlGeometry(MdlGeometryType type)
-    : type{type}
+MdlGeometry::MdlGeometry(MdlGeometryType type_)
+    : type{type_}
 {
 }
 
@@ -366,7 +366,7 @@ void write_out(std::ostream& out, const MdlDanglymeshNode* node, bool is_anim)
         out << fmt::format("  tightness {}\n", node->tightness);
         out << fmt::format("  constraints {}\n", node->constraints.size());
         for (auto c : node->constraints) {
-            out << fmt::format("    {: 5.1f}\n", c);
+            out << fmt::format("    {}\n", c);
         }
     }
 }

@@ -137,9 +137,11 @@ enum struct MdlModelClass : uint32_t {
     gui = 32,
 };
 
-inline std::string model_class_to_string(MdlModelClass cls)
+inline std::string_view model_class_to_string(MdlModelClass cls)
 {
     switch (cls) {
+    default:
+        return "";
     case MdlModelClass::invalid:
         return "UNKNOWN";
     case MdlModelClass::effect:
@@ -266,7 +268,7 @@ struct MdlFace {
 };
 
 struct MdlNode {
-    MdlNode(std::string name, uint32_t type);
+    MdlNode(std::string name_, uint32_t type_);
     virtual ~MdlNode() = default;
 
     std::string name;
@@ -286,15 +288,15 @@ struct MdlNode {
 };
 
 struct MdlDummyNode : public MdlNode {
-    MdlDummyNode(std::string name);
+    MdlDummyNode(std::string name_);
 };
 
 struct MdlCameraNode : public MdlNode {
-    MdlCameraNode(std::string name);
+    MdlCameraNode(std::string name_);
 };
 
 struct MdlEmitterNode : public MdlNode {
-    MdlEmitterNode(std::string name);
+    MdlEmitterNode(std::string name_);
 
     float blastlength{0.0f};
     float blastradius{0.0f};
@@ -321,7 +323,7 @@ struct MdlEmitterNode : public MdlNode {
 };
 
 struct MdlLightNode : public MdlNode {
-    MdlLightNode(std::string name);
+    MdlLightNode(std::string name_);
     virtual ~MdlLightNode() = default;
 
     float flareradius{0.0f};
@@ -341,18 +343,18 @@ struct MdlLightNode : public MdlNode {
 };
 
 struct MdlPatchNode : public MdlNode {
-    MdlPatchNode(std::string name);
+    MdlPatchNode(std::string name_);
 };
 
 struct MdlReferenceNode : public MdlNode {
-    MdlReferenceNode(std::string name);
+    MdlReferenceNode(std::string name_);
 
     std::string refmodel;
     bool reattachable;
 };
 
 struct MdlTrimeshNode : public MdlNode {
-    MdlTrimeshNode(std::string name, uint32_t type = MdlNodeType::trimesh);
+    MdlTrimeshNode(std::string name_, uint32_t type = MdlNodeType::trimesh);
     virtual ~MdlTrimeshNode() = default;
 
     glm::vec3 ambient;
@@ -390,13 +392,13 @@ struct MdlSkinWeight {
 };
 
 struct MdlSkinNode : public MdlTrimeshNode {
-    MdlSkinNode(std::string name);
+    MdlSkinNode(std::string name_);
 
     std::vector<MdlSkinWeight> weights;
 };
 
 struct MdlAnimeshNode : public MdlTrimeshNode {
-    MdlAnimeshNode(std::string name);
+    MdlAnimeshNode(std::string name_);
 
     std::vector<glm::vec3> animtverts;
     std::vector<glm::vec3> animverts;
@@ -404,7 +406,7 @@ struct MdlAnimeshNode : public MdlTrimeshNode {
 };
 
 struct MdlDanglymeshNode : public MdlTrimeshNode {
-    MdlDanglymeshNode(std::string name);
+    MdlDanglymeshNode(std::string name_);
 
     std::vector<uint32_t> constraints;
     float displacement;
@@ -428,7 +430,7 @@ struct MdlAABBEntry {
 };
 
 struct MdlAABBNode : public MdlTrimeshNode {
-    MdlAABBNode(std::string name);
+    MdlAABBNode(std::string name_);
 
     std::vector<MdlAABBEntry> entries;
 };
@@ -436,7 +438,7 @@ struct MdlAABBNode : public MdlTrimeshNode {
 // -- Geometry ----------------------------------------------------------------
 
 struct MdlGeometry {
-    MdlGeometry(MdlGeometryType type = MdlGeometryType::geometry);
+    MdlGeometry(MdlGeometryType type_ = MdlGeometryType::geometry);
     virtual ~MdlGeometry() = default;
 
     std::string name;
@@ -450,7 +452,7 @@ struct MdlAnimationEvent {
 };
 
 struct MdlAnimation : public MdlGeometry {
-    MdlAnimation(std::string name_);
+    MdlAnimation(std::string name__);
     virtual ~MdlAnimation() = default;
 
     float length{1.0f};
