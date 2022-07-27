@@ -475,6 +475,102 @@ bool Profile::load_master_feats() const
 
 #undef ADD_SKILL
 
+#define ADD_WEAPON_FEATS(name)                                                                       \
+    do {                                                                                             \
+        mfr->add(base_item_##name, mfeat_weapon_focus, feat_weapon_focus_##name);                    \
+        mfr->add(base_item_##name, mfeat_weapon_focus_epic, feat_epic_weapon_focus_##name);          \
+        mfr->add(base_item_##name, mfeat_weapon_spec, feat_weapon_specialization_##name);            \
+        mfr->add(base_item_##name, mfeat_weapon_spec_epic, feat_epic_weapon_specialization_##name);  \
+        mfr->add(base_item_##name, mfeat_weapon_of_choice, feat_weapon_of_choice_##name);            \
+        mfr->add(base_item_##name, mfeat_improved_crit, feat_improved_critical_##name);              \
+        mfr->add(base_item_##name, mfeat_overwhelming_crit, feat_epic_overwhelming_critical_##name); \
+        mfr->add(base_item_##name, mfeat_devastating_crit, feat_epic_devastating_critical_##name);   \
+    } while (0)
+
+// NOTE: No weapon of choice here
+#define ADD_WEAPON_FEATS_RANGED(name)                                                                \
+    do {                                                                                             \
+        mfr->add(base_item_##name, mfeat_weapon_focus, feat_weapon_focus_##name);                    \
+        mfr->add(base_item_##name, mfeat_weapon_focus_epic, feat_epic_weapon_focus_##name);          \
+        mfr->add(base_item_##name, mfeat_weapon_spec, feat_weapon_specialization_##name);            \
+        mfr->add(base_item_##name, mfeat_weapon_spec_epic, feat_epic_weapon_specialization_##name);  \
+        mfr->add(base_item_##name, mfeat_improved_crit, feat_improved_critical_##name);              \
+        mfr->add(base_item_##name, mfeat_overwhelming_crit, feat_epic_overwhelming_critical_##name); \
+        mfr->add(base_item_##name, mfeat_devastating_crit, feat_epic_devastating_critical_##name);   \
+    } while (0)
+
+// NOTE: No weapon of choice here
+#define ADD_WEAPON_FEATS_OTHER(name, base)                                                           \
+    do {                                                                                             \
+        mfr->add(base_item_##name, mfeat_weapon_focus, feat_weapon_focus_##base);                    \
+        mfr->add(base_item_##name, mfeat_weapon_focus_epic, feat_epic_weapon_focus_##base);          \
+        mfr->add(base_item_##name, mfeat_weapon_spec, feat_weapon_specialization_##base);            \
+        mfr->add(base_item_##name, mfeat_weapon_spec_epic, feat_epic_weapon_specialization_##base);  \
+        mfr->add(base_item_##name, mfeat_improved_crit, feat_improved_critical_##base);              \
+        mfr->add(base_item_##name, mfeat_overwhelming_crit, feat_epic_overwhelming_critical_##base); \
+        mfr->add(base_item_##name, mfeat_devastating_crit, feat_epic_devastating_critical_##base);   \
+    } while (0)
+
+    ADD_WEAPON_FEATS(shortsword);
+    ADD_WEAPON_FEATS(longsword);
+    ADD_WEAPON_FEATS(battleaxe);
+    ADD_WEAPON_FEATS(bastardsword);
+    ADD_WEAPON_FEATS(lightflail);
+    ADD_WEAPON_FEATS(warhammer);
+    ADD_WEAPON_FEATS_RANGED(heavycrossbow);
+    ADD_WEAPON_FEATS_RANGED(lightcrossbow);
+    ADD_WEAPON_FEATS_RANGED(longbow);
+    ADD_WEAPON_FEATS(lightmace);
+    ADD_WEAPON_FEATS(halberd);
+    ADD_WEAPON_FEATS_RANGED(shortbow);
+    ADD_WEAPON_FEATS(twobladedsword);
+    ADD_WEAPON_FEATS(greatsword);
+    ADD_WEAPON_FEATS(greataxe);
+    ADD_WEAPON_FEATS(dagger);
+    ADD_WEAPON_FEATS(club);
+    ADD_WEAPON_FEATS_RANGED(dart);
+    ADD_WEAPON_FEATS(diremace);
+    ADD_WEAPON_FEATS(doubleaxe);
+    ADD_WEAPON_FEATS(heavyflail);
+    ADD_WEAPON_FEATS_OTHER(gloves, unarmed);
+    ADD_WEAPON_FEATS(lighthammer);
+    ADD_WEAPON_FEATS(handaxe);
+    ADD_WEAPON_FEATS(kama);
+    ADD_WEAPON_FEATS(katana);
+    ADD_WEAPON_FEATS(kukri);
+    ADD_WEAPON_FEATS(morningstar);
+    ADD_WEAPON_FEATS(quarterstaff);
+    ADD_WEAPON_FEATS(rapier);
+    ADD_WEAPON_FEATS(scimitar);
+    ADD_WEAPON_FEATS(scythe);
+    ADD_WEAPON_FEATS_RANGED(shuriken);
+    ADD_WEAPON_FEATS(sickle);
+    ADD_WEAPON_FEATS_RANGED(sling);
+    ADD_WEAPON_FEATS_RANGED(throwingaxe);
+    ADD_WEAPON_FEATS_OTHER(cslashweapon, creature);
+    ADD_WEAPON_FEATS_OTHER(cpiercweapon, creature);
+    ADD_WEAPON_FEATS_OTHER(cbludgweapon, creature);
+    ADD_WEAPON_FEATS_OTHER(cslshprcweap, creature);
+    ADD_WEAPON_FEATS_OTHER(creatureitem, creature);
+    ADD_WEAPON_FEATS_OTHER(bracer, unarmed);
+    ADD_WEAPON_FEATS(trident);
+    ADD_WEAPON_FEATS(dwarvenwaraxe);
+    ADD_WEAPON_FEATS(whip);
+
+    mfr->set_bonus(mfeat_weapon_focus, 1);
+    mfr->set_bonus(mfeat_weapon_focus_epic, 2);
+    mfr->set_bonus(mfeat_weapon_spec, 2);
+    mfr->set_bonus(mfeat_weapon_spec_epic, 4);
+    // [TODO] One here is just an indicator that char has feat.. for now.  Ultimately, dice rolls
+    // and damage rolls will need to be included in ModifierResult
+    mfr->set_bonus(mfeat_devastating_crit, 1);
+    mfr->set_bonus(mfeat_improved_crit, 1);
+    mfr->set_bonus(mfeat_overwhelming_crit, 1);
+
+#undef ADD_WEAPON_FEATS
+#undef ADD_WEAPON_FEATS_RANGED
+#undef ADD_WEAPON_FEATS_OTHER
+
     return true;
 }
 
