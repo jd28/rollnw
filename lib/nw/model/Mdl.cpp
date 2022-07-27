@@ -373,13 +373,47 @@ void write_out(std::ostream& out, const MdlDanglymeshNode* node, bool is_anim)
 
 void write_out(std::ostream& out, const MdlEmitterNode* node, bool is_anim)
 {
-    if (is_anim) {
-        // [TODO] everything
+    if (!is_anim) {
+        out << fmt::format("  blastlength {}\n", node->blastlength);
+        out << fmt::format("  blastradius {}\n", node->blastradius);
+        out << fmt::format("  blend {}\n", node->blend);
+        out << fmt::format("  chunkname {}\n", node->chunkname);
+        out << fmt::format("  deadspace {}\n", node->deadspace);
+        out << fmt::format("  loop {}\n", node->loop);
+        out << fmt::format("  render {}\n", node->render);
+        out << fmt::format("  renderorder {}\n", node->renderorder);
+        out << fmt::format("  spawntype {}\n", node->spawntype);
+        out << fmt::format("  texture {}\n", node->texture);
+        out << fmt::format("  twosidedtex {}\n", node->twosidedtex);
+        out << fmt::format("  update {}\n", node->update);
+        out << fmt::format("  xgrid {}\n", node->xgrid);
+        out << fmt::format("  ygrid {}\n", node->ygrid);
+        out << fmt::format("  render_sel {}\n", node->render_sel);
+        out << fmt::format("  blend_sel {}\n", node->blend_sel);
+        out << fmt::format("  update_sel {}\n", node->update_sel);
+        out << fmt::format("  spawntype_sel {}\n", node->spawntype_sel);
+        out << fmt::format("  opacity {}\n", node->opacity);
+        out << fmt::format("  p2p_type {}\n", node->p2p_type);
+
+        out << fmt::format("  affectedByWind {}\n", node->flags & MdlEmitterFlag::AffectedByWind ? 1 : 0);
+        out << fmt::format("  bounce {}\n", node->flags & MdlEmitterFlag::Bounce ? 1 : 0);
+        out << fmt::format("  inherit {}\n", node->flags & MdlEmitterFlag::Inherit ? 1 : 0);
+        out << fmt::format("  inherit_local {}\n", node->flags & MdlEmitterFlag::InheritLocal ? 1 : 0);
+        out << fmt::format("  inherit_part {}\n", node->flags & MdlEmitterFlag::InheritPart ? 1 : 0);
+        out << fmt::format("  inheritvel {}\n", node->flags & MdlEmitterFlag::InheritVel ? 1 : 0);
+        out << fmt::format("  m_isTinted {}\n", node->flags & MdlEmitterFlag::IsTinted ? 1 : 0);
+        out << fmt::format("  p2p {}\n", node->flags & MdlEmitterFlag::P2P ? 1 : 0);
+        out << fmt::format("  p2p_sel {}\n", node->flags & MdlEmitterFlag::P2PSel ? 1 : 0);
+        out << fmt::format("  random {}\n", node->flags & MdlEmitterFlag::Random ? 1 : 0);
+        out << fmt::format("  splat {}\n", node->flags & MdlEmitterFlag::Splat ? 1 : 0);
     }
     for (const auto& [k, v] : MdlControllerType::map) {
         if (v.second == MdlNodeFlags::emitter) {
             auto [ckey, cdata] = node->get_controller(v.first);
             if (!ckey || cdata.empty()) continue;
+            if (!is_anim && string::endswith(ckey->name.view(), "key")) {
+                continue;
+            }
             out << fmt::format("         {} ", ckey->name);
             if (ckey->columns > 0) {
                 for (size_t i = 0; i < size_t(ckey->rows); ++i) {
