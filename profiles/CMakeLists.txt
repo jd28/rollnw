@@ -9,7 +9,6 @@ add_library(nw-profiles STATIC
     nwn1/functions/funcs_skill.cpp
     nwn1/functions/rule_helper_funcs.cpp
 
-    nwn1/modifiers.cpp
     nwn1/Profile.cpp
     nwn1/rules.cpp
 )
