@@ -1,6 +1,5 @@
 add_library(nw-profiles STATIC
     nwn1/constants.cpp
-    nwn1/constants/const_baseitem.cpp
 
     nwn1/functions/funcs_armor_class.cpp
     nwn1/functions/funcs_class.cpp

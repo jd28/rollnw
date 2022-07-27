@@ -1,5 +1,5 @@
 nw::MdlControllerType
-====================
+=====================
 
 .. doxygenstruct:: nw::MdlControllerType
    :members:

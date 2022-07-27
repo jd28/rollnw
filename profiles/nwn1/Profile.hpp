@@ -23,7 +23,6 @@ struct Profile : nw::GameProfile {
      */
     bool load_rules() const override;
 
-    bool load_constants() const;
     bool load_components() const;
     bool load_master_feats() const;
 };
