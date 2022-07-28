@@ -26,8 +26,11 @@ void ObjectSystem::destroy(ObjectHandle obj)
         size_t idx = static_cast<size_t>(obj.id);
         auto& o = std::get<std::unique_ptr<ObjectBase>>(objects_[idx]);
         auto new_handle = o->handle();
-        ++new_handle.version;
-        free_list_.push(new_handle.id);
+        // If version is at max don't add to free list.  Still clobber object.
+        if (new_handle.version < std::numeric_limits<uint16_t>::max()) {
+            ++new_handle.version;
+            free_list_.push(new_handle.id);
+        }
         objects_[idx] = new_handle;
     }
 }
