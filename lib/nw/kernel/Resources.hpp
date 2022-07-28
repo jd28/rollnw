@@ -40,6 +40,14 @@ struct Resources : public Container {
     /// Unloads module
     virtual void unload_module();
 
+    /// Attempts to locate first matching resource type by container priority
+    std::pair<ByteArray, ResourceType::type>
+    demand_any(Resref resref, std::initializer_list<ResourceType::type> restypes) const;
+
+    /// Attempts to locate first matching resource by resource type priority
+    std::pair<ByteArray, ResourceType::type>
+    demand_in_order(Resref resref, std::initializer_list<ResourceType::type> restypes) const;
+
     virtual std::vector<ResourceDescriptor> all() const override { return {}; }
     virtual bool contains(Resource res) const override;
     virtual ByteArray demand(Resource res) const override;

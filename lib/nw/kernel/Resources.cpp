@@ -203,6 +203,44 @@ ByteArray Resources::demand(Resource res) const
     return result;
 }
 
+std::pair<ByteArray, ResourceType::type>
+Resources::demand_any(Resref resref, std::initializer_list<ResourceType::type> restypes) const
+{
+    ByteArray result;
+    for (auto [cont, type, user] : search_) {
+        for (auto rt : restypes) {
+            Resource res{resref, rt};
+            if (type != ResourceType::invalid && !ResourceType::check_category(type, res.type)) {
+                continue;
+            }
+            result = cont->demand(res);
+            if (result.size()) {
+                return {result, rt};
+            }
+        }
+    }
+    return {result, nw::ResourceType::invalid};
+}
+
+std::pair<ByteArray, ResourceType::type>
+Resources::demand_in_order(Resref resref, std::initializer_list<ResourceType::type> restypes) const
+{
+    ByteArray result;
+    for (auto rt : restypes) {
+        Resource res{resref, rt};
+        for (auto [cont, type, user] : search_) {
+            if (type != ResourceType::invalid && !ResourceType::check_category(type, res.type)) {
+                continue;
+            }
+            result = cont->demand(res);
+            if (result.size()) {
+                return {result, rt};
+            }
+        }
+    }
+    return {result, nw::ResourceType::invalid};
+}
+
 int Resources::extract(const std::regex& pattern, const std::filesystem::path& output) const
 {
     int result = 0;
