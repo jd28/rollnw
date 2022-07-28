@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>objects &mdash; rollNW  documentation</title>
+  <title>objects &amp; components &mdash; rollNW  documentation</title>
       <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -45,9 +45,8 @@
 </ul>
 <p class="caption" role="heading"><span class="caption-text">structure</span></p>
 <ul class="current">
-<li class="toctree-l1 current"><a class="current reference internal" href="#">objects</a><ul>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">objects &amp; components</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#the-system">The System</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#object-components">Object Components</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="formats.html">formats</a></li>
@@ -102,7 +101,7 @@
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
       <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
-      <li>objects</li>
+      <li>objects &amp; components</li>
       <li class="wy-breadcrumbs-aside">
             <a href="../_sources/structure/components.rst.txt" rel="nofollow"> View page source</a>
       </li>
@@ -112,113 +111,21 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="objects">
-<h1>objects<a class="headerlink" href="#objects" title="Permalink to this heading"></a></h1>
+  <section id="objects-components">
+<h1>objects &amp; components<a class="headerlink" href="#objects-components" title="Permalink to this heading"></a></h1>
 <section id="the-system">
 <h2>The System<a class="headerlink" href="#the-system" title="Permalink to this heading"></a></h2>
-<p>The object system is largely handled by the Entity-Component-System
-<a class="reference external" href="https://github.com/SanderMertens/flecs">flecs</a>. This is a departure
-from the architecture of NWN which use a more traditional inheritance
-based approach. The main advantage is that entities can be treated maps
-the keys to which are types and the values are instantiations of those
-types. The performance implications have not been considered.</p>
-</section>
-<section id="object-components">
-<h2>Object Components<a class="headerlink" href="#object-components" title="Permalink to this heading"></a></h2>
-<p>All entities representing an object has a component that both stores
-state and serves as a tag to determine type. Some objects also have
-other components specific to their type.</p>
-<ul class="simple">
-<li><p><code class="xref cpp cpp-struct docutils literal notranslate"><span class="pre">Area</span></code></p>
-<ul>
-<li><p><a class="reference internal" href="../api/struct/nw__Common.html#_CPPv4N2nw6CommonE" title="nw::Common"><code class="xref cpp cpp-struct docutils literal notranslate"><span class="pre">nw::Common</span></code></a></p></li>
-<li><p><code class="xref cpp cpp-struct docutils literal notranslate"><span class="pre">AreaScripts</span></code></p></li>
-<li><p><code class="xref cpp cpp-struct docutils literal notranslate"><span class="pre">AreaWeather</span></code></p></li>
-</ul>
-</li>
-<li><p><code class="xref cpp cpp-struct docutils literal notranslate"><span class="pre">Creature</span></code></p>
-<ul>
-<li><p><a class="reference internal" href="../api/struct/nw__Common.html#_CPPv4N2nw6CommonE" title="nw::Common"><code class="xref cpp cpp-struct docutils literal notranslate"><span class="pre">nw::Common</span></code></a></p></li>
-<li><p><code class="xref cpp cpp-struct docutils literal notranslate"><span class="pre">Appearance</span></code></p></li>
-<li><p><code class="xref cpp cpp-struct docutils literal notranslate"><span class="pre">CombatInfo</span></code></p></li>
-<li><p><code class="xref cpp cpp-struct docutils literal notranslate"><span class="pre">CreatureScripts</span></code></p></li>
-<li><p><code class="xref cpp cpp-struct docutils literal notranslate"><span class="pre">CreatureStats</span></code></p></li>
-<li><p><code class="xref cpp cpp-struct docutils literal notranslate"><span class="pre">Equips</span></code></p></li>
-<li><p><code class="xref cpp cpp-struct docutils literal notranslate"><span class="pre">Inventory</span></code></p></li>
-<li><p><code class="xref cpp cpp-struct docutils literal notranslate"><span class="pre">LevelStats</span></code></p></li>
-</ul>
-</li>
-<li><p><code class="xref cpp cpp-struct docutils literal notranslate"><span class="pre">Door</span></code></p>
-<ul>
-<li><p><a class="reference internal" href="../api/struct/nw__Common.html#_CPPv4N2nw6CommonE" title="nw::Common"><code class="xref cpp cpp-struct docutils literal notranslate"><span class="pre">nw::Common</span></code></a></p></li>
-<li><p><code class="xref cpp cpp-struct docutils literal notranslate"><span class="pre">Lock</span></code></p></li>
-<li><p><code class="xref cpp cpp-struct docutils literal notranslate"><span class="pre">DoorScripts</span></code></p></li>
-<li><p><code class="xref cpp cpp-struct docutils literal notranslate"><span class="pre">Trap</span></code></p></li>
-</ul>
-</li>
-<li><p><code class="xref cpp cpp-struct docutils literal notranslate"><span class="pre">Encounter</span></code></p>
-<ul>
-<li><p><a class="reference internal" href="../api/struct/nw__Common.html#_CPPv4N2nw6CommonE" title="nw::Common"><code class="xref cpp cpp-struct docutils literal notranslate"><span class="pre">nw::Common</span></code></a></p></li>
-<li><p><code class="xref cpp cpp-struct docutils literal notranslate"><span class="pre">EncounterScripts</span></code></p></li>
-</ul>
-</li>
-<li><p><code class="xref cpp cpp-struct docutils literal notranslate"><span class="pre">Item</span></code></p>
-<ul>
-<li><p><a class="reference internal" href="../api/struct/nw__Common.html#_CPPv4N2nw6CommonE" title="nw::Common"><code class="xref cpp cpp-struct docutils literal notranslate"><span class="pre">nw::Common</span></code></a></p></li>
-<li><p><code class="xref cpp cpp-struct docutils literal notranslate"><span class="pre">Inventory</span></code></p></li>
-</ul>
-</li>
-<li><p><code class="xref cpp cpp-struct docutils literal notranslate"><span class="pre">Module</span></code></p>
-<ul>
-<li><p><a class="reference internal" href="../api/struct/nw__Common.html#_CPPv4N2nw6CommonE" title="nw::Common"><code class="xref cpp cpp-struct docutils literal notranslate"><span class="pre">nw::Common</span></code></a></p></li>
-<li><p><code class="xref cpp cpp-struct docutils literal notranslate"><span class="pre">ModuleScripts</span></code></p></li>
-</ul>
-</li>
-<li><p><code class="xref cpp cpp-struct docutils literal notranslate"><span class="pre">Placeable</span></code></p>
-<ul>
-<li><p><a class="reference internal" href="../api/struct/nw__Common.html#_CPPv4N2nw6CommonE" title="nw::Common"><code class="xref cpp cpp-struct docutils literal notranslate"><span class="pre">nw::Common</span></code></a></p></li>
-<li><p><code class="xref cpp cpp-struct docutils literal notranslate"><span class="pre">Inventory</span></code></p></li>
-<li><p><code class="xref cpp cpp-struct docutils literal notranslate"><span class="pre">Lock</span></code></p></li>
-<li><p><code class="xref cpp cpp-struct docutils literal notranslate"><span class="pre">PlaceableScripts</span></code></p></li>
-<li><p><code class="xref cpp cpp-struct docutils literal notranslate"><span class="pre">Trap</span></code></p></li>
-</ul>
-</li>
-<li><p><code class="xref cpp cpp-struct docutils literal notranslate"><span class="pre">Sound</span></code></p>
-<ul>
-<li><p><a class="reference internal" href="../api/struct/nw__Common.html#_CPPv4N2nw6CommonE" title="nw::Common"><code class="xref cpp cpp-struct docutils literal notranslate"><span class="pre">nw::Common</span></code></a></p></li>
-</ul>
-</li>
-<li><p><code class="xref cpp cpp-struct docutils literal notranslate"><span class="pre">Store</span></code></p>
-<ul>
-<li><p><a class="reference internal" href="../api/struct/nw__Common.html#_CPPv4N2nw6CommonE" title="nw::Common"><code class="xref cpp cpp-struct docutils literal notranslate"><span class="pre">nw::Common</span></code></a></p></li>
-<li><p><code class="xref cpp cpp-struct docutils literal notranslate"><span class="pre">StoreInventory</span></code></p></li>
-<li><p><code class="xref cpp cpp-struct docutils literal notranslate"><span class="pre">StoreScripts</span></code></p></li>
-</ul>
-</li>
-<li><p><code class="xref cpp cpp-struct docutils literal notranslate"><span class="pre">Trigger</span></code></p>
-<ul>
-<li><p><a class="reference internal" href="../api/struct/nw__Common.html#_CPPv4N2nw6CommonE" title="nw::Common"><code class="xref cpp cpp-struct docutils literal notranslate"><span class="pre">nw::Common</span></code></a></p></li>
-<li><p><code class="xref cpp cpp-struct docutils literal notranslate"><span class="pre">Trap</span></code></p></li>
-<li><p><code class="xref cpp cpp-struct docutils literal notranslate"><span class="pre">TriggerScripts</span></code></p></li>
-</ul>
-</li>
-</ul>
-<p>In some cases an entity could have multiple object components, e.g. both
-a <code class="docutils literal notranslate"><span class="pre">Player</span></code> and a <code class="docutils literal notranslate"><span class="pre">Creature</span></code>.</p>
-<p><strong>Example</strong>:</p>
-<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="k">if</span><span class="p">(</span><span class="n">entity</span><span class="p">.</span><span class="n">has</span><span class="o">&lt;</span><span class="n">Store</span><span class="o">&gt;</span><span class="p">())</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
-<span class="w">    </span><span class="c1">// This entity is a store.</span>
-<span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="k">if</span><span class="p">(</span><span class="k">auto</span><span class="w"> </span><span class="n">it</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">entity</span><span class="p">.</span><span class="n">get</span><span class="o">&lt;</span><span class="n">Item</span><span class="o">&gt;</span><span class="p">())</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
-<span class="w">    </span><span class="c1">// This entity is an item.</span>
-<span class="p">}</span><span class="w"></span>
-</pre></div>
-</div>
-<p><strong>Example</strong>:</p>
-<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="k">if</span><span class="p">(</span><span class="k">auto</span><span class="w"> </span><span class="n">common</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">entity</span><span class="p">.</span><span class="n">get</span><span class="o">&lt;</span><span class="n">Common</span><span class="o">&gt;</span><span class="p">())</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
-<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">cout</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="s">&quot;This is my resref: &quot;</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="n">common</span><span class="o">-&gt;</span><span class="n">resref</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span><span class="w"></span>
-<span class="p">}</span><span class="w"></span>
-</pre></div>
-</div>
+<dl class="simple">
+<dt>ObjectID</dt><dd><p>Unlike NWN an ObjectID does not provide a one-to-one mapping to an object.  Rather,
+it’s an index into a structure containing objects.</p>
+</dd>
+<dt>ObjectHandle</dt><dd><p>An object handle maps to a specific object it consists of an ObjectID, the objects type,
+and an unsigned 16 bit integer indicating the object’s version.  To be valid, an object
+handle must match what is in the object array.</p>
+</dd>
+<dt>ObjectBase</dt><dd><p>The base class of all objects</p>
+</dd>
+</dl>
 </section>
 </section>
 
