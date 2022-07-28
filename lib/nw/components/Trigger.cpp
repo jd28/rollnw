@@ -35,84 +35,83 @@ bool TriggerScripts::from_json(const nlohmann::json& archive)
     return true;
 }
 
-bool Trigger::deserialize(flecs::entity ent, const GffInputArchiveStruct& archive, SerializationProfile profile)
+Trigger::Trigger()
+    : common{Trigger::object_type}
 {
-    auto trigger = ent.get_mut<Trigger>();
-    auto scripts = ent.get_mut<TriggerScripts>();
-    auto common = ent.get_mut<Common>();
-    auto trap = ent.get_mut<Trap>();
+}
 
-    common->from_gff(archive, profile);
+bool Trigger::deserialize(Trigger* obj, const GffInputArchiveStruct& archive, SerializationProfile profile)
+{
+    if (!obj) return false;
 
-    archive.get_to("OnClick", scripts->on_click);
-    archive.get_to("OnDisarm", scripts->on_disarm);
-    archive.get_to("ScriptOnEnter", scripts->on_enter);
-    archive.get_to("ScriptOnExit", scripts->on_exit);
-    archive.get_to("ScriptHeartbeat", scripts->on_heartbeat);
-    archive.get_to("OnTrapTriggered", scripts->on_trap_triggered);
-    archive.get_to("ScriptUserDefine", scripts->on_user_defined);
+    obj->common.from_gff(archive, profile);
 
-    trap->from_gff(archive);
+    archive.get_to("OnClick", obj->scripts.on_click);
+    archive.get_to("OnDisarm", obj->scripts.on_disarm);
+    archive.get_to("ScriptOnEnter", obj->scripts.on_enter);
+    archive.get_to("ScriptOnExit", obj->scripts.on_exit);
+    archive.get_to("ScriptHeartbeat", obj->scripts.on_heartbeat);
+    archive.get_to("OnTrapTriggered", obj->scripts.on_trap_triggered);
+    archive.get_to("ScriptUserDefine", obj->scripts.on_user_defined);
+
+    obj->trap.from_gff(archive);
 
     if (profile != SerializationProfile::blueprint) {
         size_t sz = archive["Geometry"].size();
-        trigger->geometry.reserve(sz);
+        obj->geometry.reserve(sz);
         for (size_t i = 0; i < sz; ++i) {
             glm::vec3 v;
             archive["Geometry"][i].get_to("PointX", v[0]);
             archive["Geometry"][i].get_to("PointY", v[1]);
             archive["Geometry"][i].get_to("PointZ", v[2]);
-            trigger->geometry.push_back(v);
+            obj->geometry.push_back(v);
         }
     }
 
-    archive.get_to("LinkedTo", trigger->linked_to);
+    archive.get_to("LinkedTo", obj->linked_to);
 
-    archive.get_to("Faction", trigger->faction);
-    archive.get_to("HighlightHeight", trigger->highlight_height);
-    archive.get_to("Type", trigger->type);
+    archive.get_to("Faction", obj->faction);
+    archive.get_to("HighlightHeight", obj->highlight_height);
+    archive.get_to("Type", obj->type);
 
-    archive.get_to("LoadScreenID", trigger->loadscreen);
-    archive.get_to("PortraitId", trigger->portrait);
+    archive.get_to("LoadScreenID", obj->loadscreen);
+    archive.get_to("PortraitId", obj->portrait);
 
-    archive.get_to("Cursor", trigger->cursor);
-    archive.get_to("LinkedToFlags", trigger->linked_to_flags);
+    archive.get_to("Cursor", obj->cursor);
+    archive.get_to("LinkedToFlags", obj->linked_to_flags);
 
     return true;
 }
 
-bool Trigger::deserialize(flecs::entity ent, const nlohmann::json& archive, SerializationProfile profile)
+bool Trigger::deserialize(Trigger* obj, const nlohmann::json& archive, SerializationProfile profile)
 {
-    auto trigger = ent.get_mut<Trigger>();
-    auto scripts = ent.get_mut<TriggerScripts>();
-    auto common = ent.get_mut<Common>();
-    auto trap = ent.get_mut<Trap>();
+    if (!obj) return false;
 
     try {
-        if (!common->from_json(archive.at("common"), profile)
-            || !scripts->from_json(archive.at("scripts"))
-            || !trap->from_json(archive.at("trap"))) {
+        if (!obj->common.from_json(archive.at("common"), profile)
+            || !obj->scripts.from_json(archive.at("scripts"))
+            || !obj->trap.from_json(archive.at("trap"))) {
             return false;
         }
 
         if (profile != SerializationProfile::blueprint) {
             auto& ref = archive.at("geometry");
             for (size_t i = 0; i < ref.size(); ++i) {
-                trigger->geometry.emplace_back(ref[i][0].get<float>(), ref[i][1].get<float>(), ref[i][2].get<float>());
+                obj->geometry.emplace_back(ref[i][0].get<float>(), ref[i][1].get<float>(), ref[i][2].get<float>());
             }
         }
 
-        archive.at("linked_to").get_to(trigger->linked_to);
+        archive.at("linked_to").get_to(obj->linked_to);
 
-        archive.at("faction").get_to(trigger->faction);
-        archive.at("highlight_height").get_to(trigger->highlight_height);
-        archive.at("type").get_to(trigger->type);
+        archive.at("faction").get_to(obj->faction);
+        archive.at("highlight_height").get_to(obj->highlight_height);
+        archive.at("type").get_to(obj->type);
 
-        archive.at("loadscreen").get_to(trigger->loadscreen);
-        archive.at("portrait").get_to(trigger->portrait);
+        archive.at("loadscreen").get_to(obj->loadscreen);
+        archive.at("portrait").get_to(obj->portrait);
 
-        archive.at("cursor").get_to(trigger->cursor);
-        archive.at("linked_to_flags").get_to(trigger->linked_to_flags);
+        archive.at("cursor").get_to(obj->cursor);
+        archive.at("linked_to_flags").get_to(obj->linked_to_flags);
 
     } catch (const nlohmann::json::exception& e) {
         LOG_F(ERROR, "Trigger::from_json exception: {}", e.what());
@@ -121,29 +120,26 @@ bool Trigger::deserialize(flecs::entity ent, const nlohmann::json& archive, Seri
     return true;
 }
 
-bool Trigger::serialize(const flecs::entity ent, GffOutputArchiveStruct& archive, SerializationProfile profile)
+bool Trigger::serialize(const Trigger* obj, GffOutputArchiveStruct& archive, SerializationProfile profile)
 {
-    auto trigger = ent.get<Trigger>();
-    auto scripts = ent.get<TriggerScripts>();
-    auto common = ent.get<Common>();
-    auto trap = ent.get<Trap>();
+    if (!obj) return false;
 
-    archive.add_field("TemplateResRef", common->resref); // Store does it's own thing, not typo.
-    archive.add_field("LocalizedName", common->name);
-    archive.add_field("Tag", common->tag);
+    archive.add_field("TemplateResRef", obj->common.resref); // Store does it's own thing, not typo.
+    archive.add_field("LocalizedName", obj->common.name);
+    archive.add_field("Tag", obj->common.tag);
 
     if (profile == SerializationProfile::blueprint) {
-        archive.add_field("Comment", common->comment);
-        archive.add_field("PaletteID", common->palette_id);
+        archive.add_field("Comment", obj->common.comment);
+        archive.add_field("PaletteID", obj->common.palette_id);
     } else {
-        archive.add_field("PositionX", common->location.position.x)
-            .add_field("PositionY", common->location.position.y)
-            .add_field("PositionZ", common->location.position.z)
-            .add_field("OrientationX", common->location.orientation.x)
-            .add_field("OrientationY", common->location.orientation.y);
+        archive.add_field("PositionX", obj->common.location.position.x)
+            .add_field("PositionY", obj->common.location.position.y)
+            .add_field("PositionZ", obj->common.location.position.z)
+            .add_field("OrientationX", obj->common.location.orientation.x)
+            .add_field("OrientationY", obj->common.location.orientation.y);
 
         auto& list = archive.add_list("Geometry");
-        for (const auto& point : trigger->geometry) {
+        for (const auto& point : obj->geometry) {
             list.push_back(3)
                 .add_field("PointX", point[0])
                 .add_field("PointY", point[1])
@@ -151,75 +147,78 @@ bool Trigger::serialize(const flecs::entity ent, GffOutputArchiveStruct& archive
         }
     }
 
-    archive.add_field("LinkedTo", trigger->linked_to)
-        .add_field("OnClick", scripts->on_click)
-        .add_field("OnDisarm", scripts->on_disarm)
-        .add_field("ScriptOnEnter", scripts->on_enter)
-        .add_field("ScriptOnExit", scripts->on_exit)
-        .add_field("ScriptHeartbeat", scripts->on_heartbeat)
-        .add_field("OnTrapTriggered", scripts->on_trap_triggered)
-        .add_field("ScriptUserDefine", scripts->on_user_defined);
+    archive.add_field("LinkedTo", obj->linked_to)
+        .add_field("OnClick", obj->scripts.on_click)
+        .add_field("OnDisarm", obj->scripts.on_disarm)
+        .add_field("ScriptOnEnter", obj->scripts.on_enter)
+        .add_field("ScriptOnExit", obj->scripts.on_exit)
+        .add_field("ScriptHeartbeat", obj->scripts.on_heartbeat)
+        .add_field("OnTrapTriggered", obj->scripts.on_trap_triggered)
+        .add_field("ScriptUserDefine", obj->scripts.on_user_defined);
 
-    trap->to_gff(archive);
+    obj->trap.to_gff(archive);
 
     uint8_t zero = 0;
     std::string empty;
 
-    archive.add_field("Faction", trigger->faction)
-        .add_field("HighlightHeight", trigger->highlight_height)
-        .add_field("Type", trigger->type);
+    archive.add_field("Faction", obj->faction)
+        .add_field("HighlightHeight", obj->highlight_height)
+        .add_field("Type", obj->type);
 
-    archive.add_field("LoadScreenID", trigger->loadscreen)
-        .add_field("PortraitId", trigger->portrait);
+    archive.add_field("LoadScreenID", obj->loadscreen)
+        .add_field("PortraitId", obj->portrait);
 
-    archive.add_field("Cursor", trigger->cursor)
-        .add_field("LinkedToFlags", trigger->linked_to_flags)
+    archive.add_field("Cursor", obj->cursor)
+        .add_field("LinkedToFlags", obj->linked_to_flags)
         .add_field("AutoRemoveKey", zero) // obsolete
         .add_field("KeyName", empty);     // obsolete
 
     return true;
 }
 
-GffOutputArchive Trigger::serialize(const flecs::entity ent, SerializationProfile profile)
+GffOutputArchive Trigger::serialize(const Trigger* obj, SerializationProfile profile)
 {
     GffOutputArchive out{"UTT"};
-    Trigger::serialize(ent, out.top, profile);
+    if (!obj) {
+        throw std::runtime_error("unable to serialize null object");
+    }
+
+    Trigger::serialize(obj, out.top, profile);
     out.build();
     return out;
 }
 
-bool Trigger::serialize(const flecs::entity ent, nlohmann::json& archive, SerializationProfile profile)
+bool Trigger::serialize(const Trigger* obj, nlohmann::json& archive, SerializationProfile profile)
 {
-    auto trigger = ent.get<Trigger>();
-    auto scripts = ent.get<TriggerScripts>();
-    auto common = ent.get<Common>();
-    auto trap = ent.get<Trap>();
+    if (!obj) {
+        throw std::runtime_error("unable to serialize null object");
+    }
 
     archive["$type"] = "UTT";
     archive["$version"] = json_archive_version;
 
-    archive["common"] = common->to_json(profile);
-    archive["scripts"] = scripts->to_json();
-    archive["trap"] = trap->to_json();
+    archive["common"] = obj->common.to_json(profile);
+    archive["scripts"] = obj->scripts.to_json();
+    archive["trap"] = obj->trap.to_json();
 
     if (profile != SerializationProfile::blueprint) {
         auto& ref = archive["geometry"] = nlohmann::json::array();
-        for (const auto& g : trigger->geometry) {
+        for (const auto& g : obj->geometry) {
             ref.push_back({g.x, g.y, g.z});
         }
     }
 
-    archive["linked_to"] = trigger->linked_to;
+    archive["linked_to"] = obj->linked_to;
 
-    archive["faction"] = trigger->faction;
-    archive["highlight_height"] = trigger->highlight_height;
-    archive["type"] = trigger->type;
+    archive["faction"] = obj->faction;
+    archive["highlight_height"] = obj->highlight_height;
+    archive["type"] = obj->type;
 
-    archive["loadscreen"] = trigger->loadscreen;
-    archive["portrait"] = trigger->portrait;
+    archive["loadscreen"] = obj->loadscreen;
+    archive["portrait"] = obj->portrait;
 
-    archive["cursor"] = trigger->cursor;
-    archive["linked_to_flags"] = trigger->linked_to_flags;
+    archive["cursor"] = obj->cursor;
+    archive["linked_to_flags"] = obj->linked_to_flags;
 
     return true;
 }

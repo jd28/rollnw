@@ -13,28 +13,25 @@ namespace fs = std::filesystem;
 
 TEST_CASE("sound: from_gff", "[objects]")
 {
-    auto ent = nw::kernel::objects().load(fs::path("test_data/user/development/blue_bell.uts"));
-    REQUIRE(ent.is_alive());
+    auto ent = nw::kernel::objects().load<nw::Sound>(fs::path("test_data/user/development/blue_bell.uts"));
+    REQUIRE(ent);
 
-    auto common = ent.get<nw::Common>();
-    REQUIRE(common->resref == "blue_bell");
+    REQUIRE(ent->common.resref == "blue_bell");
 }
 
 TEST_CASE("sound: json round trip", "[objects]")
 {
-    auto ent = nw::kernel::objects().load(fs::path("test_data/user/development/blue_bell.uts"));
-    REQUIRE(ent.is_alive());
+    auto ent = nw::kernel::objects().load<nw::Sound>(fs::path("test_data/user/development/blue_bell.uts"));
+    REQUIRE(ent);
 
     nlohmann::json j;
-    nw::kernel::objects().serialize(ent, j, nw::SerializationProfile::blueprint);
+    nw::Sound::serialize(ent, j, nw::SerializationProfile::blueprint);
 
-    auto ent2 = nw::kernel::objects().deserialize(nw::ObjectType::sound,
-        j,
-        nw::SerializationProfile::blueprint);
-    REQUIRE(ent2.is_alive());
+    nw::Sound ent2;
+    REQUIRE(nw::Sound::deserialize(&ent2, j, nw::SerializationProfile::blueprint));
 
     nlohmann::json j2;
-    nw::kernel::objects().serialize(ent2, j2, nw::SerializationProfile::blueprint);
+    nw::Sound::serialize(&ent2, j2, nw::SerializationProfile::blueprint);
 
     REQUIRE(j == j2);
 
@@ -47,12 +44,10 @@ TEST_CASE("sound: gff round trip", "[ojbects]")
     nw::GffInputArchive g("test_data/user/development/blue_bell.uts");
     REQUIRE(g.valid());
 
-    auto ent = nw::kernel::objects().deserialize(nw::ObjectType::sound,
-        g.toplevel(),
-        nw::SerializationProfile::blueprint);
-    REQUIRE(ent.is_alive());
+    nw::Sound ent;
+    nw::Sound::deserialize(&ent, g.toplevel(), nw::SerializationProfile::blueprint);
 
-    nw::GffOutputArchive oa = nw::kernel::objects().serialize(ent, nw::SerializationProfile::blueprint);
+    nw::GffOutputArchive oa = nw::Sound::serialize(&ent, nw::SerializationProfile::blueprint);
     oa.write_to("tmp/blue_bell.uts");
 
     nw::GffInputArchive g2("tmp/blue_bell.uts");

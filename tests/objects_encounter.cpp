@@ -13,31 +13,23 @@ namespace fs = std::filesystem;
 
 TEST_CASE("encounter: from_gff", "[objects]")
 {
-    auto enc = nw::kernel::objects().load(fs::path("test_data/user/development/boundelementallo.ute"));
-    REQUIRE(enc.is_alive());
+    auto enc = nw::kernel::objects().load<nw::Encounter>(fs::path("test_data/user/development/boundelementallo.ute"));
+    REQUIRE(enc);
 
-    auto e = enc.get<nw::Encounter>();
-    auto common = enc.get<nw::Common>();
-    auto scripts = enc.get<nw::EncounterScripts>();
-
-    REQUIRE(e);
-    REQUIRE(common);
-    REQUIRE(scripts);
-
-    REQUIRE(common->resref == "boundelementallo");
-    REQUIRE(!!e->player_only);
-    REQUIRE(scripts->on_entered == "");
-    REQUIRE(e->creatures.size() > 0);
-    REQUIRE(e->creatures[0].resref == "tyn_bound_acid_l");
+    REQUIRE(enc->common.resref == "boundelementallo");
+    REQUIRE(!!enc->player_only);
+    REQUIRE(enc->scripts.on_entered == "");
+    REQUIRE(enc->creatures.size() > 0);
+    REQUIRE(enc->creatures[0].resref == "tyn_bound_acid_l");
 }
 
 TEST_CASE("encounter: to_json", "[objects]")
 {
-    auto enc = nw::kernel::objects().load(fs::path("test_data/user/development/boundelementallo.ute"));
-    REQUIRE(enc.is_alive());
+    auto enc = nw::kernel::objects().load<nw::Encounter>(fs::path("test_data/user/development/boundelementallo.ute"));
+    REQUIRE(enc);
 
     nlohmann::json j;
-    nw::kernel::objects().serialize(enc, j, nw::SerializationProfile::blueprint);
+    nw::Encounter::serialize(enc, j, nw::SerializationProfile::blueprint);
 
     std::ofstream f{"tmp/boundelementallo.ute.json"};
     f << std::setw(4) << j;
@@ -45,21 +37,17 @@ TEST_CASE("encounter: to_json", "[objects]")
 
 TEST_CASE("encounter: json back and forth", "[objects]")
 {
-    auto enc = nw::kernel::objects().load(fs::path("test_data/user/development/boundelementallo.ute"));
-    REQUIRE(enc.is_alive());
-
-    REQUIRE(enc.is_alive());
+    auto enc = nw::kernel::objects().load<nw::Encounter>(fs::path("test_data/user/development/boundelementallo.ute"));
+    REQUIRE(enc);
 
     nlohmann::json j;
-    nw::kernel::objects().serialize(enc, j, nw::SerializationProfile::blueprint);
+    nw::Encounter::serialize(enc, j, nw::SerializationProfile::blueprint);
 
-    auto enc2 = nw::kernel::objects().deserialize(nw::ObjectType::encounter,
-        j,
-        nw::SerializationProfile::blueprint);
-    REQUIRE(enc2.is_alive());
+    nw::Encounter enc2;
+    REQUIRE(nw::Encounter::deserialize(&enc2, j, nw::SerializationProfile::blueprint));
 
     nlohmann::json j2;
-    nw::kernel::objects().serialize(enc, j2, nw::SerializationProfile::blueprint);
+    nw::Encounter::serialize(enc, j2, nw::SerializationProfile::blueprint);
     REQUIRE(j == j2);
 }
 
@@ -68,12 +56,11 @@ TEST_CASE("encount: gff round trip", "[ojbects]")
     nw::GffInputArchive g("test_data/user/development/boundelementallo.ute");
     REQUIRE(g.valid());
 
-    auto enc = nw::kernel::objects().deserialize(nw::ObjectType::encounter,
-        g.toplevel(),
-        nw::SerializationProfile::blueprint);
-    REQUIRE(enc.is_alive());
+    nw::Encounter enc;
+    REQUIRE(nw::Encounter::deserialize(&enc, g.toplevel(),
+        nw::SerializationProfile::blueprint));
 
-    nw::GffOutputArchive oa = nw::kernel::objects().serialize(enc, nw::SerializationProfile::blueprint);
+    nw::GffOutputArchive oa = nw::Encounter::serialize(&enc, nw::SerializationProfile::blueprint);
     oa.write_to("tmp/boundelementallo_2.ute");
     nw::GffInputArchive g2{"tmp/boundelementallo_2.ute"};
 

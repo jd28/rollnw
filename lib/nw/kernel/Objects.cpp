@@ -12,417 +12,81 @@
 #include "../util/templates.hpp"
 #include "Kernel.hpp"
 
-#include <nlohmann/json.hpp>
-
 namespace nw::kernel {
 
-void ObjectSystem::clear() const
+void ObjectSystem::clear()
 {
+    free_list_ = std::stack<ObjectID>();
+    objects_.clear();
 }
 
-flecs::entity ObjectSystem::deserialize(ObjectType type, const GffInputArchiveStruct& archive,
-    SerializationProfile profile) const
+void ObjectSystem::destroy(ObjectHandle obj)
 {
-    flecs::entity ent = make(type);
-    switch (type) {
-    default:
-        break;
-    case ObjectType::creature:
-        Creature::deserialize(ent, archive, profile);
-        break;
-    case ObjectType::door:
-        Door::deserialize(ent, archive, profile);
-        break;
-    case ObjectType::encounter:
-        Encounter::deserialize(ent, archive, profile);
-        break;
-    case ObjectType::gui:
-        break;
-    case ObjectType::item:
-        Item::deserialize(ent, archive, profile);
-        break;
-    case ObjectType::placeable:
-        Placeable::deserialize(ent, archive, profile);
-        break;
-    case ObjectType::portal:
-        break;
-    case ObjectType::projectile:
-        break;
-    case ObjectType::sound:
-        Sound::deserialize(ent, archive, profile);
-        break;
-    case ObjectType::store:
-        Store::deserialize(ent, archive, profile);
-        break;
-    case ObjectType::tile:
-        break;
-    case ObjectType::trigger:
-        Trigger::deserialize(ent, archive, profile);
-        break;
-    case ObjectType::waypoint:
-        Waypoint::deserialize(ent, archive, profile);
-        break;
-    }
-
-    return ent;
-}
-
-flecs::entity ObjectSystem::deserialize(ObjectType type, const nlohmann::json& archive,
-    SerializationProfile profile) const
-{
-    flecs::entity ent = make(type);
-    switch (type) {
-    default:
-        break;
-    case ObjectType::creature:
-        Creature::deserialize(ent, archive, profile);
-        break;
-    case ObjectType::door:
-        Door::deserialize(ent, archive, profile);
-        break;
-    case ObjectType::encounter:
-        Encounter::deserialize(ent, archive, profile);
-        break;
-    case ObjectType::gui:
-        break;
-    case ObjectType::item:
-        Item::deserialize(ent, archive, profile);
-        break;
-    case ObjectType::placeable:
-        Placeable::deserialize(ent, archive, profile);
-        break;
-    case ObjectType::portal:
-        break;
-    case ObjectType::projectile:
-        break;
-    case ObjectType::sound:
-        Sound::deserialize(ent, archive, profile);
-        break;
-    case ObjectType::store:
-        Store::deserialize(ent, archive, profile);
-        break;
-    case ObjectType::tile:
-        break;
-    case ObjectType::trigger:
-        Trigger::deserialize(ent, archive, profile);
-        break;
-    case ObjectType::waypoint:
-        Waypoint::deserialize(ent, archive, profile);
-        break;
-    }
-
-    return ent;
-}
-
-void ObjectSystem::destroy(flecs::entity ent) const
-{
-    ent.destruct();
-}
-
-ObjectType serial_id_to_obj_type(std::string_view id)
-{
-    if (string::icmp("UTC", id)) {
-        return ObjectType::creature;
-    } else if (string::icmp("UTD", id)) {
-        return ObjectType::door;
-    } else if (string::icmp("UTE", id)) {
-        return ObjectType::encounter;
-    } else if (string::icmp("UTI", id)) {
-        return ObjectType::item;
-    } else if (string::icmp("UTM", id)) {
-        return ObjectType::store;
-    } else if (string::icmp("UTP", id)) {
-        return ObjectType::placeable;
-    } else if (string::icmp("UTS", id)) {
-        return ObjectType::sound;
-    } else if (string::icmp("UTT", id)) {
-        return ObjectType::trigger;
-    } else if (string::icmp("UTW", id)) {
-        return ObjectType::waypoint;
-    }
-
-    return ObjectType::invalid;
-}
-
-ResourceType::type objtype_to_restype(nw::ObjectType type)
-{
-    switch (type) {
-    default:
-        return ResourceType::invalid;
-    case ObjectType::creature:
-        return ResourceType::utc;
-    case ObjectType::door:
-        return ResourceType::utd;
-    case ObjectType::encounter:
-        return ResourceType::ute;
-    case ObjectType::item:
-        return ResourceType::uti;
-    case ObjectType::store:
-        return ResourceType::utm;
-    case ObjectType::placeable:
-        return ResourceType::utp;
-    case ObjectType::sound:
-        return ResourceType::uts;
-    case ObjectType::trigger:
-        return ResourceType::utt;
-    case ObjectType::waypoint:
-        return ResourceType::utw;
+    if (valid(obj)) {
+        size_t idx = static_cast<size_t>(obj.id);
+        auto& o = std::get<std::unique_ptr<ObjectBase>>(objects_[idx]);
+        auto new_handle = o->handle();
+        ++new_handle.version;
+        free_list_.push(new_handle.id);
+        objects_[idx] = new_handle;
     }
 }
 
-flecs::entity ObjectSystem::load(const std::filesystem::path& archive,
-    SerializationProfile profile) const
-{
-    flecs::entity ent;
-    ObjectType type;
-    ResourceType::type restype = ResourceType::from_extension(path_to_string(archive.extension()));
-
-    if (restype == ResourceType::json) {
-        try {
-            std::ifstream f{archive, std::ifstream::binary};
-            nlohmann::json j = nlohmann::json::parse(f);
-            std::string serial_id = j.at("$type").get<std::string>();
-            type = serial_id_to_obj_type(serial_id);
-            ent = deserialize(type, j, profile);
-        } catch (std::exception& e) {
-            LOG_F(ERROR, "Failed to parse json file '{}' because {}", archive, e.what());
-        }
-    } else if (ResourceType::check_category(ResourceType::gff_archive, restype)) {
-        GffInputArchive in{ByteArray::from_file(archive)};
-        if (in.valid()) {
-            type = serial_id_to_obj_type(in.type());
-            ent = deserialize(type, in.toplevel(), profile);
-        }
-    } else {
-        LOG_F(ERROR, "Unable to load unknown file type: '{}'", archive);
-    }
-    return ent;
-}
-
-flecs::entity ObjectSystem::load(std::string_view resref, ObjectType type) const
-{
-    flecs::entity ent;
-    ByteArray ba = nw::kernel::resman().demand({resref, objtype_to_restype(type)});
-    if (ba.size()) {
-        GffInputArchive in{ba};
-        if (in.valid()) {
-            return deserialize(type, in.toplevel(), SerializationProfile::blueprint);
-        }
-    }
-
-    return ent;
-}
-
-flecs::entity ObjectSystem::make(ObjectType type) const
-{
-    flecs::entity ent = world().entity();
-    switch (type) {
-    default:
-        break;
-    case ObjectType::area:
-        ent.emplace<Common>(ObjectType::area);
-        ent.add<Area>();
-        ent.add<AreaScripts>();
-        ent.add<AreaWeather>();
-        break;
-    case ObjectType::areaofeffect:
-        break;
-    case ObjectType::creature:
-        ent.add<Creature>();
-        ent.emplace<Common>(ObjectType::creature);
-        ent.add<Appearance>();
-        ent.add<CombatInfo>();
-        ent.add<Equips>();
-        ent.emplace<Inventory>(ent);
-        ent.add<LevelStats>();
-        ent.add<CreatureScripts>();
-        ent.add<CreatureStats>();
-        break;
-    case ObjectType::door:
-        ent.add<Door>();
-        ent.add<DoorScripts>();
-        ent.emplace<Common>(ObjectType::door);
-        ent.add<Lock>();
-        ent.add<Trap>();
-        break;
-    case ObjectType::encounter:
-        ent.add<Encounter>();
-        ent.add<EncounterScripts>();
-        ent.emplace<Common>(ObjectType::encounter);
-        break;
-    case ObjectType::gui:
-        break;
-    case ObjectType::item:
-        ent.add<Item>();
-        ent.emplace<Common>(ObjectType::item);
-        ent.emplace<Inventory>(ent);
-        break;
-    case ObjectType::module:
-        ent.add<Module>();
-        ent.add<ModuleScripts>();
-        ent.add<LocalData>();
-        break;
-    case ObjectType::placeable:
-        ent.add<Placeable>();
-        ent.add<PlaceableScripts>();
-        ent.emplace<Common>(ObjectType::placeable);
-        ent.emplace<Inventory>(ent);
-        ent.add<Lock>();
-        ent.add<Trap>();
-        break;
-    case ObjectType::portal:
-        break;
-    case ObjectType::projectile:
-        break;
-    case ObjectType::sound:
-        ent.add<Sound>();
-        ent.emplace<Common>(ObjectType::sound);
-        break;
-    case ObjectType::store:
-        ent.add<Store>();
-        ent.emplace<StoreInventory>(ent);
-        ent.add<StoreScripts>();
-        ent.emplace<Common>(ObjectType::store);
-        break;
-    case ObjectType::tile:
-        break;
-    case ObjectType::trigger:
-        ent.add<Trigger>();
-        ent.add<TriggerScripts>();
-        ent.emplace<Common>(ObjectType::trigger);
-        ent.add<Trap>();
-        break;
-    case ObjectType::waypoint:
-        ent.emplace<Common>(ObjectType::waypoint);
-        ent.add<Waypoint>();
-        break;
-    }
-
-    return ent;
-}
-
-flecs::entity ObjectSystem::make_area(Resref area) const
+Area* ObjectSystem::make_area(Resref area)
 {
     GffInputArchive are{resman().demand({area, ResourceType::are})};
     GffInputArchive git{resman().demand({area, ResourceType::git})};
-    GffInputArchive gic;
-    flecs::entity ent = make(ObjectType::area);
-    Area::deserialize(ent, are.toplevel(), git.toplevel(), gic.toplevel());
-    return ent;
+    GffInputArchive gic{resman().demand({area, ResourceType::gic})};
+    Area* obj = make<Area>();
+    Area::deserialize(obj, are.toplevel(), git.toplevel(), gic.toplevel());
+    return obj;
 }
 
-flecs::entity ObjectSystem::make_module() const
+Module* ObjectSystem::make_module()
 {
-    flecs::entity ent = make(ObjectType::module);
+    Module* obj = make<Module>();
     auto ba = nw::kernel::resman().demand({"module"sv, ResourceType::ifo});
 
     if (!ba.size()) {
         LOG_F(ERROR, "Unable to load module.ifo from resman");
-        ent.destruct();
-        return ent;
+        delete obj;
+        return nullptr;
     }
 
     if (ba.size() > 8 && memcmp(ba.data(), "IFO V3.2", 8) == 0) {
         GffInputArchive in{std::move(ba)};
         if (in.valid()) {
-            Module::deserialize(ent, in.toplevel());
+            Module::deserialize(obj, in.toplevel());
+        } else {
+            delete obj;
+            return nullptr;
         }
     } else {
         auto sv = ba.string_view();
         try {
             nlohmann::json j = nlohmann::json::parse(sv.begin(), sv.end());
-            Module::deserialize(ent, j);
+            Module::deserialize(obj, j);
         } catch (std::exception& e) {
-            ent.destruct();
-            return ent;
+            delete obj;
+            return nullptr;
         }
     }
 
-    return ent;
+    return obj;
 }
 
-GffOutputArchive ObjectSystem::serialize(const flecs::entity ent,
-    SerializationProfile profile) const
+bool ObjectSystem::valid(ObjectHandle handle) const
 {
-    if (ent.has<Area>()) {
-        // Area::serialize(ent, archive, profile);
-    } else if (ent.has<Creature>()) {
-        return Creature::serialize(ent, profile);
-    } else if (ent.has<Door>()) {
-        return Door::serialize(ent, profile);
-    } else if (ent.has<Encounter>()) {
-        return Encounter::serialize(ent, profile);
-    } else if (ent.has<Item>()) {
-        return Item::serialize(ent, profile);
-    } else if (ent.has<Placeable>()) {
-        return Placeable::serialize(ent, profile);
-    } else if (ent.has<Sound>()) {
-        return Sound::serialize(ent, profile);
-    } else if (ent.has<Store>()) {
-        return Store::serialize(ent, profile);
-    } else if (ent.has<Trigger>()) {
-        return Trigger::serialize(ent, profile);
-    } else if (ent.has<Waypoint>()) {
-        return Waypoint::serialize(ent, profile);
+    auto idx = static_cast<size_t>(handle.id);
+    if (idx >= objects_.size() || std::holds_alternative<ObjectHandle>(objects_[idx])) {
+        return false;
     }
-    return GffOutputArchive{"XXX"};
-}
 
-void ObjectSystem::serialize(const flecs::entity ent, GffOutputArchiveStruct& archive,
-    SerializationProfile profile) const
-{
-    if (ent.has<Area>()) {
-        // Area::serialize(ent, archive, profile);
-    } else if (ent.has<Creature>()) {
-        Creature::serialize(ent, archive, profile);
-    } else if (ent.has<Door>()) {
-        Door::serialize(ent, archive, profile);
-    } else if (ent.has<Encounter>()) {
-        Encounter::serialize(ent, archive, profile);
-    } else if (ent.has<Item>()) {
-        Item::serialize(ent, archive, profile);
-    } else if (ent.has<Placeable>()) {
-        Placeable::serialize(ent, archive, profile);
-    } else if (ent.has<Sound>()) {
-        Sound::serialize(ent, archive, profile);
-    } else if (ent.has<Store>()) {
-        Store::serialize(ent, archive, profile);
-    } else if (ent.has<Trigger>()) {
-        Trigger::serialize(ent, archive, profile);
-    } else if (ent.has<Waypoint>()) {
-        Waypoint::serialize(ent, archive, profile);
+    if (auto& obj = std::get<std::unique_ptr<ObjectBase>>(objects_[idx])) {
+        return obj->handle() == handle;
     }
-}
 
-void ObjectSystem::serialize(const flecs::entity ent, nlohmann::json& archive,
-    SerializationProfile profile) const
-{
-    if (ent.has<Area>()) {
-        Area::serialize(ent, archive);
-    } else if (ent.has<Creature>()) {
-        Creature::serialize(ent, archive, profile);
-    } else if (ent.has<Door>()) {
-        Door::serialize(ent, archive, profile);
-    } else if (ent.has<Encounter>()) {
-        Encounter::serialize(ent, archive, profile);
-    } else if (ent.has<Item>()) {
-        Item::serialize(ent, archive, profile);
-    } else if (ent.has<Placeable>()) {
-        Placeable::serialize(ent, archive, profile);
-    } else if (ent.has<Sound>()) {
-        Sound::serialize(ent, archive, profile);
-    } else if (ent.has<Store>()) {
-        Store::serialize(ent, archive, profile);
-    } else if (ent.has<Trigger>()) {
-        Trigger::serialize(ent, archive, profile);
-    } else if (ent.has<Waypoint>()) {
-        Waypoint::serialize(ent, archive, profile);
-    }
-}
-
-bool ObjectSystem::valid(flecs::entity ent) const
-{
-    return ent.is_alive();
+    return false;
 }
 
 } // namespace nw::kernel

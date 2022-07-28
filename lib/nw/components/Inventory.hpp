@@ -3,8 +3,6 @@
 #include "../serialization/Archives.hpp"
 #include "ObjectBase.hpp"
 
-#include <flecs/flecs.h>
-
 #include <cstdint>
 #include <memory>
 #include <variant>
@@ -18,12 +16,12 @@ struct InventoryItem {
     bool infinite = false;
     uint16_t pos_x;
     uint16_t pos_y;
-    std::variant<Resref, flecs::entity> item;
+    std::variant<Resref, Item*> item;
 };
 
 struct Inventory {
     Inventory() = default;
-    explicit Inventory(flecs::entity owner_)
+    explicit Inventory(ObjectBase* owner_)
         : owner{owner_}
     {
     }
@@ -40,7 +38,7 @@ struct Inventory {
     bool to_gff(GffOutputArchiveStruct& archive, SerializationProfile profile) const;
     nlohmann::json to_json(SerializationProfile profile) const;
 
-    flecs::entity owner;
+    ObjectBase* owner;
     std::vector<InventoryItem> items;
 };
 

@@ -6,8 +6,6 @@
 #include "Saves.hpp"
 #include "Trap.hpp"
 
-#include <flecs/flecs.h>
-
 namespace nw {
 
 enum struct DoorAnimationState : uint8_t {
@@ -38,17 +36,28 @@ struct DoorScripts {
     Resref on_user_defined;
 };
 
-struct Door {
+struct Door : public ObjectBase {
+    Door();
+
     static constexpr int json_archive_version = 1;
     static constexpr ObjectType object_type = ObjectType::door;
 
-    // Serialization
-    static bool deserialize(flecs::entity ent, const GffInputArchiveStruct& archive, SerializationProfile profile);
-    static bool deserialize(flecs::entity ent, const nlohmann::json& archive, SerializationProfile profile);
-    static bool serialize(const flecs::entity ent, GffOutputArchiveStruct& archive, SerializationProfile profile);
-    static GffOutputArchive serialize(const flecs::entity ent, SerializationProfile profile);
-    static bool serialize(const flecs::entity ent, nlohmann::json& archive, SerializationProfile profile);
+    virtual Common* as_common() override { return &common; }
+    virtual const Common* as_common() const override { return &common; }
+    virtual Door* as_door() override { return this; }
+    virtual const Door* as_door() const override { return this; }
 
+    // Serialization
+    static bool deserialize(Door* obj, const GffInputArchiveStruct& archive, SerializationProfile profile);
+    static bool deserialize(Door* obj, const nlohmann::json& archive, SerializationProfile profile);
+    static bool serialize(const Door* obj, GffOutputArchiveStruct& archive, SerializationProfile profile);
+    static GffOutputArchive serialize(const Door* obj, SerializationProfile profile);
+    static bool serialize(const Door* obj, nlohmann::json& archive, SerializationProfile profile);
+
+    Common common;
+    DoorScripts scripts;
+    Lock lock;
+    Trap trap;
     Resref conversation;
     LocString description;
     std::string linked_to;

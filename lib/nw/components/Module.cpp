@@ -108,56 +108,57 @@ nlohmann::json ModuleScripts::to_json() const
 
 size_t Module::area_count() const noexcept
 {
-    if (std::holds_alternative<std::vector<flecs::entity>>(areas)) {
-        return std::get<std::vector<flecs::entity>>(areas).size();
+    if (std::holds_alternative<std::vector<Area*>>(areas)) {
+        return std::get<std::vector<Area*>>(areas).size();
     }
     return 0;
 }
 
-flecs::entity Module::get_area(size_t index) const
+const Area* Module::get_area(size_t index) const
 {
-    flecs::entity ent;
-    if (std::holds_alternative<std::vector<flecs::entity>>(areas) && index < area_count()) {
-        ent = std::get<std::vector<flecs::entity>>(areas)[index];
+    if (std::holds_alternative<std::vector<Area*>>(areas) && index < area_count()) {
+        return std::get<std::vector<Area*>>(areas)[index];
     }
 
-    return ent;
+    return nullptr;
 }
 
-bool Module::instantiate(flecs::entity ent)
+bool Module::instantiate(Module* obj)
 {
     LOG_F(INFO, "instantiating module");
-    auto mod = ent.get_mut<Module>();
-
-    if (mod->haks.size()) {
-        nw::kernel::resman().load_module_haks(mod->haks);
+    if (!obj) {
+        throw std::runtime_error("unable to serialize null object");
     }
 
-    if (mod->tlk.size()) {
+    if (obj->haks.size()) {
+        nw::kernel::resman().load_module_haks(obj->haks);
+    }
+
+    if (obj->tlk.size()) {
         auto path = nw::kernel::config().alias_path(PathAlias::tlk);
-        nw::kernel::strings().load_custom_tlk(path / (mod->tlk + ".tlk"));
+        nw::kernel::strings().load_custom_tlk(path / (obj->tlk + ".tlk"));
     }
 
-    auto& area_list = std::get<std::vector<Resref>>(mod->areas);
-    std::vector<flecs::entity> area_objects;
+    auto& area_list = std::get<std::vector<Resref>>(obj->areas);
+    std::vector<Area*> area_objects;
     area_objects.reserve(area_list.size());
     for (auto& area : area_list) {
         LOG_F(INFO, "  loading area: {}", area);
         area_objects.push_back(nw::kernel::objects().make_area(area));
     }
-    mod->areas = std::move(area_objects);
+    obj->areas = std::move(area_objects);
 
     return true;
 }
 
-bool Module::deserialize(flecs::entity ent, const GffInputArchiveStruct& archive)
+bool Module::deserialize(Module* obj, const GffInputArchiveStruct& archive)
 {
-    auto mod = ent.get_mut<Module>();
-    auto scripts = ent.get_mut<ModuleScripts>();
-    auto locals = ent.get_mut<LocalData>();
+    if (!obj) {
+        throw std::runtime_error("unable to serialize null object");
+    }
 
-    locals->from_gff(archive);
-    scripts->from_gff(archive);
+    obj->locals.from_gff(archive);
+    obj->scripts.from_gff(archive);
 
     size_t sz = archive["Mod_Area_list"].size();
     auto st = archive["Mod_Area_list"];
@@ -172,98 +173,98 @@ bool Module::deserialize(flecs::entity ent, const GffInputArchiveStruct& archive
             break;
         }
     }
-    mod->areas = std::move(area_list);
+    obj->areas = std::move(area_list);
 
-    archive.get_to("Mod_Description", mod->description);
-    archive.get_to("Mod_Entry_Area", mod->entry_area);
-    archive.get_to("Mod_Entry_Dir_X", mod->entry_orientation.x);
-    archive.get_to("Mod_Entry_Dir_Y", mod->entry_orientation.y);
-    archive.get_to("Mod_Entry_X", mod->entry_position.x);
-    archive.get_to("Mod_Entry_Y", mod->entry_position.y);
-    archive.get_to("Mod_Entry_Z", mod->entry_position.z);
+    archive.get_to("Mod_Description", obj->description);
+    archive.get_to("Mod_Entry_Area", obj->entry_area);
+    archive.get_to("Mod_Entry_Dir_X", obj->entry_orientation.x);
+    archive.get_to("Mod_Entry_Dir_Y", obj->entry_orientation.y);
+    archive.get_to("Mod_Entry_X", obj->entry_position.x);
+    archive.get_to("Mod_Entry_Y", obj->entry_position.y);
+    archive.get_to("Mod_Entry_Z", obj->entry_position.z);
 
     sz = archive["Mod_HakList"].size();
     st = archive["Mod_HakList"];
-    mod->haks.reserve(sz);
+    obj->haks.reserve(sz);
     for (size_t i = 0; i < sz; ++i) {
         std::string r;
         if (st[i].get_to("Mod_Hak", r)) {
-            mod->haks.push_back(r);
+            obj->haks.push_back(r);
         } else {
             break;
         }
     }
 
-    archive.get_to("Mod_ID", mod->id);
-    archive.get_to("Mod_MinGameVer", mod->min_game_version);
-    archive.get_to("Mod_Name", mod->name);
-    archive.get_to("Mod_StartMovie", mod->start_movie);
-    archive.get_to("Mod_Tag", mod->tag);
-    archive.get_to("Mod_CustomTlk", mod->tlk);
+    archive.get_to("Mod_ID", obj->id);
+    archive.get_to("Mod_MinGameVer", obj->min_game_version);
+    archive.get_to("Mod_Name", obj->name);
+    archive.get_to("Mod_StartMovie", obj->start_movie);
+    archive.get_to("Mod_Tag", obj->tag);
+    archive.get_to("Mod_CustomTlk", obj->tlk);
 
-    archive.get_to("Mod_Creator_ID", mod->creator);
-    archive.get_to("Mod_StartYear", mod->start_year);
-    archive.get_to("Mod_Version", mod->version);
+    archive.get_to("Mod_Creator_ID", obj->creator);
+    archive.get_to("Mod_StartYear", obj->start_year);
+    archive.get_to("Mod_Version", obj->version);
 
-    archive.get_to("Expansion_Pack", mod->expansion_pack);
+    archive.get_to("Expansion_Pack", obj->expansion_pack);
 
-    archive.get_to("Mod_DawnHour", mod->dawn_hour);
-    archive.get_to("Mod_DuskHour", mod->dusk_hour);
-    archive.get_to("Mod_IsSaveGame", mod->is_save_game);
-    archive.get_to("Mod_MinPerHour", mod->minutes_per_hour);
-    archive.get_to("Mod_StartDay", mod->start_day);
-    archive.get_to("Mod_StartHour", mod->start_hour);
-    archive.get_to("Mod_StartMonth", mod->start_month);
-    archive.get_to("Mod_XPScale", mod->xpscale);
+    archive.get_to("Mod_DawnHour", obj->dawn_hour);
+    archive.get_to("Mod_DuskHour", obj->dusk_hour);
+    archive.get_to("Mod_IsSaveGame", obj->is_save_game);
+    archive.get_to("Mod_MinPerHour", obj->minutes_per_hour);
+    archive.get_to("Mod_StartDay", obj->start_day);
+    archive.get_to("Mod_StartHour", obj->start_hour);
+    archive.get_to("Mod_StartMonth", obj->start_month);
+    archive.get_to("Mod_XPScale", obj->xpscale);
 
     return true;
 }
 
-bool Module::deserialize(flecs::entity ent, const nlohmann::json& archive)
+bool Module::deserialize(Module* obj, const nlohmann::json& archive)
 {
-    auto mod = ent.get_mut<Module>();
-    auto scripts = ent.get_mut<ModuleScripts>();
-    auto locals = ent.get_mut<LocalData>();
+    if (!obj) {
+        throw std::runtime_error("unable to serialize null object");
+    }
 
     try {
-        locals->from_json(archive.at("locals"));
-        scripts->from_json(archive.at("scripts"));
+        obj->locals.from_json(archive.at("locals"));
+        obj->scripts.from_json(archive.at("scripts"));
 
         std::vector<Resref> area_list;
         archive.at("areas").get_to(area_list);
-        mod->areas = std::move(area_list);
+        obj->areas = std::move(area_list);
 
-        archive.at("description").get_to(mod->description);
-        mod->entry_orientation.x = archive.at("entry_orientation")[0].get<float>();
-        mod->entry_orientation.y = archive.at("entry_orientation")[1].get<float>();
+        archive.at("description").get_to(obj->description);
+        obj->entry_orientation.x = archive.at("entry_orientation")[0].get<float>();
+        obj->entry_orientation.y = archive.at("entry_orientation")[1].get<float>();
         // entry_orientation.z = archive.at("entry_orientation")[2].get<float>();
-        mod->entry_position.x = archive.at("entry_position")[0].get<float>();
-        mod->entry_position.y = archive.at("entry_position")[1].get<float>();
-        mod->entry_position.z = archive.at("entry_position")[2].get<float>();
+        obj->entry_position.x = archive.at("entry_position")[0].get<float>();
+        obj->entry_position.y = archive.at("entry_position")[1].get<float>();
+        obj->entry_position.z = archive.at("entry_position")[2].get<float>();
 
-        archive.at("haks").get_to(mod->haks);
-        archive.at("id").get_to(mod->id);
-        archive.at("min_game_version").get_to(mod->min_game_version);
-        archive.at("name").get_to(mod->name);
-        archive.at("start_movie").get_to(mod->start_movie);
-        archive.at("tag").get_to(mod->tag);
-        archive.at("tlk").get_to(mod->tlk);
+        archive.at("haks").get_to(obj->haks);
+        archive.at("id").get_to(obj->id);
+        archive.at("min_game_version").get_to(obj->min_game_version);
+        archive.at("name").get_to(obj->name);
+        archive.at("start_movie").get_to(obj->start_movie);
+        archive.at("tag").get_to(obj->tag);
+        archive.at("tlk").get_to(obj->tlk);
 
-        archive.at("creator").get_to(mod->creator);
-        archive.at("start_year").get_to(mod->start_year);
-        archive.at("version").get_to(mod->version);
+        archive.at("creator").get_to(obj->creator);
+        archive.at("start_year").get_to(obj->start_year);
+        archive.at("version").get_to(obj->version);
 
-        archive.at("expansion_pack").get_to(mod->expansion_pack);
+        archive.at("expansion_pack").get_to(obj->expansion_pack);
 
-        archive.at("dawn_hour").get_to(mod->dawn_hour);
-        archive.at("dusk_hour").get_to(mod->dusk_hour);
-        archive.at("entry_area").get_to(mod->entry_area);
-        archive.at("is_save_game").get_to(mod->is_save_game);
-        archive.at("minutes_per_hour").get_to(mod->minutes_per_hour);
-        archive.at("start_day").get_to(mod->start_day);
-        archive.at("start_hour").get_to(mod->start_hour);
-        archive.at("start_month").get_to(mod->start_month);
-        archive.at("xpscale").get_to(mod->xpscale);
+        archive.at("dawn_hour").get_to(obj->dawn_hour);
+        archive.at("dusk_hour").get_to(obj->dusk_hour);
+        archive.at("entry_area").get_to(obj->entry_area);
+        archive.at("is_save_game").get_to(obj->is_save_game);
+        archive.at("minutes_per_hour").get_to(obj->minutes_per_hour);
+        archive.at("start_day").get_to(obj->start_day);
+        archive.at("start_hour").get_to(obj->start_hour);
+        archive.at("start_month").get_to(obj->start_month);
+        archive.at("xpscale").get_to(obj->xpscale);
 
     } catch (const nlohmann::json::exception& e) {
         LOG_F(ERROR, "Module::from_json exception: {}", e.what());
@@ -273,133 +274,135 @@ bool Module::deserialize(flecs::entity ent, const nlohmann::json& archive)
     return true;
 }
 
-bool Module::serialize(const flecs::entity ent, GffOutputArchiveStruct& archive)
+bool Module::serialize(const Module* obj, GffOutputArchiveStruct& archive)
 {
-    auto mod = ent.get<Module>();
-    auto scripts = ent.get<ModuleScripts>();
-    auto locals = ent.get<LocalData>();
+    if (!obj) {
+        throw std::runtime_error("unable to serialize null object");
+    }
 
-    locals->to_gff(archive);
-    scripts->to_gff(archive);
+    obj->locals.to_gff(archive);
+    obj->scripts.to_gff(archive);
 
     auto& area_list = archive.add_list("Mod_Area_list");
-    if (std::holds_alternative<std::vector<Resref>>(mod->areas)) {
-        for (const auto& area : std::get<std::vector<Resref>>(mod->areas)) {
+    if (std::holds_alternative<std::vector<Resref>>(obj->areas)) {
+        for (const auto& area : std::get<std::vector<Resref>>(obj->areas)) {
             area_list.push_back(6).add_field("Area_Name", area);
         }
     } else {
-        for (const auto& area : std::get<std::vector<flecs::entity>>(mod->areas)) {
-            area_list.push_back(6).add_field("Area_Name", area.get<Common>()->resref);
+        for (const auto& area : std::get<std::vector<Area*>>(obj->areas)) {
+            area_list.push_back(6).add_field("Area_Name", area->common.resref);
         }
     }
 
-    archive.add_field("Mod_Description", mod->description);
+    archive.add_field("Mod_Description", obj->description);
 
-    archive.add_field("Mod_Entry_Area", mod->entry_area)
-        .add_field("Mod_Entry_Dir_X", mod->entry_orientation.x)
-        .add_field("Mod_Entry_Dir_Y", mod->entry_orientation.y)
-        .add_field("Mod_Entry_X", mod->entry_position.x)
-        .add_field("Mod_Entry_Y", mod->entry_position.y)
-        .add_field("Mod_Entry_Z", mod->entry_position.z);
+    archive.add_field("Mod_Entry_Area", obj->entry_area)
+        .add_field("Mod_Entry_Dir_X", obj->entry_orientation.x)
+        .add_field("Mod_Entry_Dir_Y", obj->entry_orientation.y)
+        .add_field("Mod_Entry_X", obj->entry_position.x)
+        .add_field("Mod_Entry_Y", obj->entry_position.y)
+        .add_field("Mod_Entry_Z", obj->entry_position.z);
 
     auto& hak_list = archive.add_list("Mod_HakList");
-    for (const auto& hak : mod->haks) {
+    for (const auto& hak : obj->haks) {
         hak_list.push_back(8).add_field("Mod_Hak", hak);
     }
 
-    archive.add_field("Mod_ID", mod->id);
-    archive.add_field("Mod_MinGameVer", mod->min_game_version);
-    archive.add_field("Mod_Name", mod->name);
-    archive.add_field("Mod_StartMovie", mod->start_movie);
-    archive.add_field("Mod_Tag", mod->tag);
-    archive.add_field("Mod_CustomTlk", mod->tlk);
+    archive.add_field("Mod_ID", obj->id);
+    archive.add_field("Mod_MinGameVer", obj->min_game_version);
+    archive.add_field("Mod_Name", obj->name);
+    archive.add_field("Mod_StartMovie", obj->start_movie);
+    archive.add_field("Mod_Tag", obj->tag);
+    archive.add_field("Mod_CustomTlk", obj->tlk);
 
     // Always empty, obsolete, but NWN as of 1.69, at least, kept them in the GFF.
     archive.add_list("Mod_CutSceneList");
     archive.add_list("Mod_Expan_List");
     archive.add_list("Mod_GVar_List");
 
-    archive.add_field("Mod_Creator_ID", mod->creator)
-        .add_field("Mod_StartYear", mod->start_year)
-        .add_field("Mod_Version", mod->version);
+    archive.add_field("Mod_Creator_ID", obj->creator)
+        .add_field("Mod_StartYear", obj->start_year)
+        .add_field("Mod_Version", obj->version);
 
-    archive.add_field("Expansion_Pack", mod->expansion_pack);
+    archive.add_field("Expansion_Pack", obj->expansion_pack);
 
-    archive.add_field("Mod_DawnHour", mod->dawn_hour)
-        .add_field("Mod_DuskHour", mod->dusk_hour)
-        .add_field("Mod_IsSaveGame", mod->is_save_game)
-        .add_field("Mod_MinPerHour", mod->minutes_per_hour)
-        .add_field("Mod_StartDay", mod->start_day)
-        .add_field("Mod_StartHour", mod->start_hour)
-        .add_field("Mod_StartMonth", mod->start_month)
-        .add_field("Mod_XPScale", mod->xpscale);
+    archive.add_field("Mod_DawnHour", obj->dawn_hour)
+        .add_field("Mod_DuskHour", obj->dusk_hour)
+        .add_field("Mod_IsSaveGame", obj->is_save_game)
+        .add_field("Mod_MinPerHour", obj->minutes_per_hour)
+        .add_field("Mod_StartDay", obj->start_day)
+        .add_field("Mod_StartHour", obj->start_hour)
+        .add_field("Mod_StartMonth", obj->start_month)
+        .add_field("Mod_XPScale", obj->xpscale);
 
     return true;
 }
 
-GffOutputArchive Module::serialize(const flecs::entity ent)
+GffOutputArchive Module::serialize(const Module* obj)
 {
     GffOutputArchive out{"IFO"};
-    Module::serialize(ent, out.top);
+    if (!obj) return out;
+
+    Module::serialize(obj, out.top);
     out.build();
     return out;
 }
 
-bool Module::serialize(const flecs::entity ent, nlohmann::json& archive)
+bool Module::serialize(const Module* obj, nlohmann::json& archive)
 {
-    auto mod = ent.get<Module>();
-    auto scripts = ent.get<ModuleScripts>();
-    auto locals = ent.get<LocalData>();
+    if (!obj) {
+        throw std::runtime_error("unable to serialize null object");
+    }
 
     archive["$type"] = "IFO";
     archive["$version"] = json_archive_version;
 
-    archive["locals"] = locals->to_json(SerializationProfile::any);
-    archive["scripts"] = scripts->to_json();
+    archive["locals"] = obj->locals.to_json(SerializationProfile::any);
+    archive["scripts"] = obj->scripts.to_json();
 
-    if (std::holds_alternative<std::vector<Resref>>(mod->areas)) {
-        archive["areas"] = std::get<std::vector<Resref>>(mod->areas);
+    if (std::holds_alternative<std::vector<Resref>>(obj->areas)) {
+        archive["areas"] = std::get<std::vector<Resref>>(obj->areas);
     } else {
         auto& area_list = archive["areas"] = nlohmann::json::array();
-        for (const auto area : std::get<std::vector<flecs::entity>>(mod->areas)) {
-            area_list.push_back(area.get<Common>()->resref);
+        for (const auto area : std::get<std::vector<Area*>>(obj->areas)) {
+            area_list.push_back(area->common.resref);
         }
     }
 
-    archive["description"] = mod->description;
-    archive["entry_area"] = mod->entry_area;
+    archive["description"] = obj->description;
+    archive["entry_area"] = obj->entry_area;
 
     archive["entry_orientation"] = nlohmann::json{
-        mod->entry_orientation.x,
-        mod->entry_orientation.y};
+        obj->entry_orientation.x,
+        obj->entry_orientation.y};
 
     archive["entry_position"] = nlohmann::json{
-        mod->entry_position.x,
-        mod->entry_position.y,
-        mod->entry_position.z};
+        obj->entry_position.x,
+        obj->entry_position.y,
+        obj->entry_position.z};
 
-    archive["haks"] = mod->haks;
-    archive["id"] = mod->id;
-    archive["min_game_version"] = mod->min_game_version;
-    archive["name"] = mod->name;
-    archive["start_movie"] = mod->start_movie;
-    archive["start_year"] = mod->start_year;
-    archive["tag"] = mod->tag;
-    archive["tlk"] = mod->tlk;
+    archive["haks"] = obj->haks;
+    archive["id"] = obj->id;
+    archive["min_game_version"] = obj->min_game_version;
+    archive["name"] = obj->name;
+    archive["start_movie"] = obj->start_movie;
+    archive["start_year"] = obj->start_year;
+    archive["tag"] = obj->tag;
+    archive["tlk"] = obj->tlk;
 
-    archive["version"] = mod->version;
-    archive["creator"] = mod->creator;
+    archive["version"] = obj->version;
+    archive["creator"] = obj->creator;
 
-    archive["expansion_pack"] = mod->expansion_pack;
+    archive["expansion_pack"] = obj->expansion_pack;
 
-    archive["dawn_hour"] = mod->dawn_hour;
-    archive["dusk_hour"] = mod->dusk_hour;
-    archive["is_save_game"] = mod->is_save_game;
-    archive["minutes_per_hour"] = mod->minutes_per_hour;
-    archive["start_day"] = mod->start_day;
-    archive["start_hour"] = mod->start_hour;
-    archive["start_month"] = mod->start_month;
-    archive["xpscale"] = mod->xpscale;
+    archive["dawn_hour"] = obj->dawn_hour;
+    archive["dusk_hour"] = obj->dusk_hour;
+    archive["is_save_game"] = obj->is_save_game;
+    archive["minutes_per_hour"] = obj->minutes_per_hour;
+    archive["start_day"] = obj->start_day;
+    archive["start_hour"] = obj->start_hour;
+    archive["start_month"] = obj->start_month;
+    archive["xpscale"] = obj->xpscale;
 
     return true;
 }

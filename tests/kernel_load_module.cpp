@@ -18,8 +18,8 @@ TEST_CASE("load real module", "[kernel]")
     }
     if (!mod_path.empty()) {
         auto mod = nw::kernel::load_module(mod_path);
-        REQUIRE(mod.is_alive());
-        REQUIRE(mod.get<nw::Module>()->area_count());
+        REQUIRE(mod);
+        REQUIRE(mod->area_count());
         nw::kernel::unload_module();
     }
 }
@@ -27,25 +27,25 @@ TEST_CASE("load real module", "[kernel]")
 TEST_CASE("load module from .mod", "[kernel]")
 {
     auto mod = nw::kernel::load_module("test_data/user/modules/DockerDemo.mod");
-    REQUIRE(mod.is_alive());
-    REQUIRE(mod.get<nw::Module>()->area_count() == 1);
-    auto area = mod.get<nw::Module>()->get_area(0);
-    REQUIRE(area.is_alive());
-    REQUIRE(area.get<nw::Common>()->resref == "start");
+    REQUIRE(mod);
+    REQUIRE(mod->area_count() == 1);
+    auto area = mod->get_area(0);
+    REQUIRE(area);
+    REQUIRE(area->common.resref == "start");
     nw::kernel::unload_module();
 }
 
 TEST_CASE("load module from directory", "[kernel]")
 {
     auto mod = nw::kernel::load_module("test_data/user/modules/module_as_dir/");
-    REQUIRE(mod.is_alive());
-    REQUIRE(mod.get<nw::Module>()->area_count() == 1);
-    auto area = mod.get<nw::Module>()->get_area(0);
-    REQUIRE(area.get<nw::Common>()->resref == "test_area");
-    REQUIRE(area.get<nw::Area>()->creatures.size() > 0);
-    REQUIRE(area.get<nw::Area>()->creatures[0].get<nw::Creature>()->hp_max == 110);
-    auto cre = nw::kernel::objects().load("test_creature", nw::ObjectType::creature);
-    REQUIRE(cre.is_alive());
+    REQUIRE(mod);
+    REQUIRE(mod->area_count() == 1);
+    auto area = mod->get_area(0);
+    REQUIRE(area->common.resref == "test_area");
+    REQUIRE(area->creatures.size() > 0);
+    REQUIRE(area->creatures[0]->hp_max == 110);
+    auto cre = nw::kernel::objects().load<nw::Creature>("test_creature"sv);
+    REQUIRE(cre);
 
     nw::kernel::unload_module();
 }
@@ -53,14 +53,14 @@ TEST_CASE("load module from directory", "[kernel]")
 TEST_CASE("load module from .zip", "[kernel]")
 {
     auto mod = nw::kernel::load_module("test_data/user/modules/module_as_zip.zip");
-    REQUIRE(mod.is_alive());
-    REQUIRE(mod.get<nw::Module>()->area_count() == 1);
-    auto area = mod.get<nw::Module>()->get_area(0);
-    REQUIRE(area.get<nw::Common>()->resref == "test_area");
-    REQUIRE(area.get<nw::Area>()->creatures.size() > 0);
-    REQUIRE(area.get<nw::Area>()->creatures[0].get<nw::Creature>()->hp_max == 110);
-    auto cre = nw::kernel::objects().load("test_creature", nw::ObjectType::creature);
-    REQUIRE(cre.is_alive());
+    REQUIRE(mod);
+    REQUIRE(mod->area_count() == 1);
+    auto area = mod->get_area(0);
+    REQUIRE(area->common.resref == "test_area");
+    REQUIRE(area->creatures.size() > 0);
+    REQUIRE(area->creatures[0]->hp_max == 110);
+    auto cre = nw::kernel::objects().load<nw::Creature>("test_creature"sv);
+    REQUIRE(cre);
 
     nw::kernel::unload_module();
 }

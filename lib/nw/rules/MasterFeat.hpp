@@ -1,7 +1,6 @@
 #pragma once
 
-#include "../components/CreatureStats.hpp"
-#include "../util/EntityView.hpp"
+#include "../components/Creature.hpp"
 #include "Feat.hpp"
 #include "Modifier.hpp"
 #include "system.hpp"
@@ -54,7 +53,7 @@ struct MasterFeatRegistry {
     void remove(T type, MasterFeat mfeat);
 
     template <typename T, typename U, typename... Args>
-    std::array<T, sizeof...(Args)> resolve(const nw::EntityView<nw::CreatureStats> ent,
+    std::array<T, sizeof...(Args)> resolve(const Creature* ent,
         U type, Args... mfeats) const;
 
     void set_bonus(MasterFeat mfeat, ModifierVariant bonus);
@@ -93,7 +92,7 @@ void MasterFeatRegistry::remove(T type, MasterFeat mfeat)
 
 /// Resolves master feat bonuses
 template <typename T, typename U, typename... Args>
-std::array<T, sizeof...(Args)> MasterFeatRegistry::resolve(const EntityView<CreatureStats> ent,
+std::array<T, sizeof...(Args)> MasterFeatRegistry::resolve(const Creature* obj,
     U type, Args... mfeats) const
 {
     static_assert(is_rule_type<U>::value, "only rule types allowed");
@@ -104,9 +103,8 @@ std::array<T, sizeof...(Args)> MasterFeatRegistry::resolve(const EntityView<Crea
     std::array<MasterFeat, sizeof...(Args)> mfs{mfeats...};
     std::sort(std::begin(mfs), std::end(mfs));
 
-    auto stats = ent.get<CreatureStats>();
-    if (!stats) {
-        return result;
+    if (!obj) {
+        return {};
     }
 
     auto it = std::begin(entries());
@@ -122,11 +120,11 @@ std::array<T, sizeof...(Args)> MasterFeatRegistry::resolve(const EntityView<Crea
         }
 
         while (it != std::end(entries()) && it->type == static_cast<int32_t>(type)) {
-            if (stats->has_feat(it->feat)) {
+            if (obj->stats.has_feat(it->feat)) {
                 if (mf_bonus.template is<T>()) {
                     result[i] = mf_bonus.template as<T>();
                 } else if (mf_bonus.template is<ModifierFunction>()) {
-                    auto res = mf_bonus.template as<ModifierFunction>()(ent.ent);
+                    auto res = mf_bonus.template as<ModifierFunction>()(obj);
                     if (res.template is<T>()) {
                         result[i] = res.template as<T>();
                     }

@@ -15,9 +15,9 @@
 
 namespace nwn1 {
 
-bool match(const nw::Qualifier& qual, const flecs::entity cre)
+bool match(const nw::Qualifier& qual, const nw::ObjectBase* obj)
 {
-    auto value = selector(qual.selector, cre);
+    auto value = selector(qual.selector, obj);
     if (!value.empty()) {
         switch (qual.selector.type) {
         default:
@@ -28,12 +28,12 @@ bool match(const nw::Qualifier& qual, const flecs::entity cre)
             auto ge = 50;
             auto lc = 50;
 
-            auto ge_sel = selector(sel::alignment(nw::AlignmentAxis::good_evil), cre);
+            auto ge_sel = selector(sel::alignment(nw::AlignmentAxis::good_evil), obj);
             if (ge_sel.is<int32_t>()) {
                 ge = ge_sel.as<int32_t>();
             }
 
-            auto lc_sel = selector(sel::alignment(nw::AlignmentAxis::law_chaos), cre);
+            auto lc_sel = selector(sel::alignment(nw::AlignmentAxis::law_chaos), obj);
             if (lc_sel.is<int32_t>()) {
                 lc = lc_sel.as<int32_t>();
             }
@@ -109,7 +109,7 @@ bool match(const nw::Qualifier& qual, const flecs::entity cre)
     return false;
 }
 
-nw::RuleValue selector(const nw::Selector& selector, const flecs::entity ent)
+nw::RuleValue selector(const nw::Selector& selector, const nw::ObjectBase* obj)
 {
     switch (selector.type) {
     default:
@@ -119,14 +119,14 @@ nw::RuleValue selector(const nw::Selector& selector, const flecs::entity ent)
             LOG_F(ERROR, "selector - ability: invalid subtype");
             return {};
         }
-        return get_ability_score(ent, nw::make_ability(selector.subtype.as<int32_t>()));
+        return get_ability_score(obj->as_creature(), nw::make_ability(selector.subtype.as<int32_t>()));
     }
     case nw::SelectorType::alignment: {
         if (!selector.subtype.is<int32_t>()) {
             LOG_F(ERROR, "selector - alignment: invalid subtype");
             return {};
         }
-        auto cre = ent.get<nw::Creature>();
+        auto cre = obj->as_creature();
         if (!cre) {
             return {};
         }
@@ -144,11 +144,12 @@ nw::RuleValue selector(const nw::Selector& selector, const flecs::entity ent)
             return {};
         }
 
-        auto stats = ent.get<nw::LevelStats>();
-        if (!stats) {
-            return 0;
+        auto cre = obj->as_creature();
+        if (!cre) {
+            return {};
         }
-        for (const auto& ce : stats->entries) {
+
+        for (const auto& ce : cre->levels.entries) {
             if (ce.id == nw::make_class(selector.subtype.as<int32_t>())) {
                 return ce.level;
             }
@@ -161,26 +162,27 @@ nw::RuleValue selector(const nw::Selector& selector, const flecs::entity ent)
             return {};
         }
 
-        auto stats = ent.get<nw::CreatureStats>();
-        if (!stats) {
-            return 0;
+        auto cre = obj->as_creature();
+        if (!cre) {
+            return {};
         }
-        return stats->has_feat(nw::make_feat(selector.subtype.as<int32_t>()));
+
+        return cre->stats.has_feat(nw::make_feat(selector.subtype.as<int32_t>()));
     }
     case nw::SelectorType::level: {
-        auto levels = ent.get<nw::LevelStats>();
-        if (!levels) {
-            return 0;
+        auto cre = obj->as_creature();
+        if (!cre) {
+            return {};
         }
 
         int level = 0;
-        for (const auto& ce : levels->entries) {
+        for (const auto& ce : cre->levels.entries) {
             level += ce.level;
         }
         return level;
     }
     case nw::SelectorType::local_var_int: {
-        auto common = ent.get<nw::Common>();
+        auto common = obj->as_common();
         if (!selector.subtype.is<std::string>()) {
             LOG_F(ERROR, "selector - local_var_int: invalid subtype");
             return {};
@@ -191,7 +193,7 @@ nw::RuleValue selector(const nw::Selector& selector, const flecs::entity ent)
         return common->locals.get_int(selector.subtype.as<std::string>());
     }
     case nw::SelectorType::local_var_str: {
-        auto common = ent.get<nw::Common>();
+        auto common = obj->as_common();
         if (!selector.subtype.is<std::string>()) {
             LOG_F(ERROR, "selector - local_var_str: invalid subtype");
             return {};
@@ -202,7 +204,7 @@ nw::RuleValue selector(const nw::Selector& selector, const flecs::entity ent)
         return common->locals.get_string(selector.subtype.as<std::string>());
     }
     case nw::SelectorType::race: {
-        auto c = ent.get<nw::Creature>();
+        auto c = obj->as_creature();
         if (!c) {
             return {};
         }
@@ -213,73 +215,68 @@ nw::RuleValue selector(const nw::Selector& selector, const flecs::entity ent)
             LOG_F(ERROR, "selector - skill: invalid subtype");
             return {};
         }
-
-        auto stats = ent.get<nw::CreatureStats>();
-        if (!stats) {
-            return {};
-        }
-        return static_cast<int>(stats->skills[selector.subtype.as<int32_t>()]);
+        return get_skill_rank(obj->as_creature(), nw::make_skill(selector.subtype.as<int32_t>()));
     }
     }
 
     return {};
 }
 
-nw::ModifierResult epic_great_strength(flecs::entity ent)
+nw::ModifierResult epic_great_strength(const nw::ObjectBase* obj)
 {
-    auto nth = highest_feat_in_range(ent, feat_epic_great_strength_1, feat_epic_great_strength_10);
+    auto nth = highest_feat_in_range(obj->as_creature(), feat_epic_great_strength_1, feat_epic_great_strength_10);
     if (nth == nw::Feat::invalid) {
         return 0;
     }
     return int(nth) - int(feat_epic_great_strength_1) + 1;
 }
 
-nw::ModifierResult epic_great_dexterity(flecs::entity ent)
+nw::ModifierResult epic_great_dexterity(const nw::ObjectBase* obj)
 {
-    auto nth = highest_feat_in_range(ent, feat_epic_great_dexterity_1, feat_epic_great_dexterity_10);
+    auto nth = highest_feat_in_range(obj->as_creature(), feat_epic_great_dexterity_1, feat_epic_great_dexterity_10);
     if (nth == nw::Feat::invalid) {
         return 0;
     }
     return int(nth) - int(feat_epic_great_dexterity_1) + 1;
 }
 
-nw::ModifierResult epic_great_constitution(flecs::entity ent)
+nw::ModifierResult epic_great_constitution(const nw::ObjectBase* obj)
 {
-    auto nth = highest_feat_in_range(ent, feat_epic_great_constitution_1, feat_epic_great_constitution_10);
+    auto nth = highest_feat_in_range(obj->as_creature(), feat_epic_great_constitution_1, feat_epic_great_constitution_10);
     if (nth == nw::Feat::invalid) {
         return 0;
     }
     return int(nth) - int(feat_epic_great_constitution_1) + 1;
 }
 
-nw::ModifierResult epic_great_intelligence(flecs::entity ent)
+nw::ModifierResult epic_great_intelligence(const nw::ObjectBase* obj)
 {
-    auto nth = highest_feat_in_range(ent, feat_epic_great_intelligence_1, feat_epic_great_intelligence_10);
+    auto nth = highest_feat_in_range(obj->as_creature(), feat_epic_great_intelligence_1, feat_epic_great_intelligence_10);
     if (nth == nw::Feat::invalid) {
         return 0;
     }
     return int(nth) - int(feat_epic_great_intelligence_1) + 1;
 }
 
-nw::ModifierResult epic_great_wisdom(flecs::entity ent)
+nw::ModifierResult epic_great_wisdom(const nw::ObjectBase* obj)
 {
-    auto nth = highest_feat_in_range(ent, feat_epic_great_wisdom_1, feat_epic_great_wisdom_10);
+    auto nth = highest_feat_in_range(obj->as_creature(), feat_epic_great_wisdom_1, feat_epic_great_wisdom_10);
     if (nth == nw::Feat::invalid) {
         return 0;
     }
     return int(nth) - int(feat_epic_great_wisdom_1) + 1;
 }
 
-nw::ModifierResult epic_great_charisma(flecs::entity ent)
+nw::ModifierResult epic_great_charisma(const nw::ObjectBase* obj)
 {
-    auto nth = highest_feat_in_range(ent, feat_epic_great_charisma_1, feat_epic_great_charisma_10);
+    auto nth = highest_feat_in_range(obj->as_creature(), feat_epic_great_charisma_1, feat_epic_great_charisma_10);
     if (nth == nw::Feat::invalid) {
         return 0;
     }
     return int(nth) - int(feat_epic_great_charisma_1) + 1;
 }
 
-nw::ModifierResult dragon_disciple_ac(flecs::entity ent)
+nw::ModifierResult dragon_disciple_ac(const nw::ObjectBase* obj)
 {
     // auto cls = nw::kernel::world().get<nw::ClassArray>();
     //  if (!cls) { return 0; }
@@ -290,11 +287,13 @@ nw::ModifierResult dragon_disciple_ac(flecs::entity ent)
     //      return 0;
     //  }
 
-    auto stat = ent.get<nw::LevelStats>();
-    if (!stat) {
+    auto cre = obj->as_creature();
+
+    if (!obj) {
         return 0;
     }
-    auto level = stat->level_by_class(nwn1::class_type_dragon_disciple);
+
+    auto level = cre->levels.level_by_class(nwn1::class_type_dragon_disciple);
 
     // auto tdas = nw::kernel::world().get_mut<nw::TwoDACache>();
     // if (tdas) {
@@ -322,13 +321,13 @@ nw::ModifierResult dragon_disciple_ac(flecs::entity ent)
     return 0;
 }
 
-nw::ModifierResult pale_master_ac(flecs::entity ent)
+nw::ModifierResult pale_master_ac(const nw::ObjectBase* obj)
 {
-    auto stat = ent.get<nw::LevelStats>();
-    if (!stat) {
+    auto cre = obj->as_creature();
+    if (!cre) {
         return 0;
     }
-    auto pm_level = stat->level_by_class(nwn1::class_type_pale_master);
+    auto pm_level = cre->levels.level_by_class(nwn1::class_type_pale_master);
 
     // auto cls = nw::kernel::world().get<nw::ClassArray>();
     // if (!cls) { return 0; }
@@ -356,23 +355,23 @@ nw::ModifierResult pale_master_ac(flecs::entity ent)
     return pm_level > 0 ? ((pm_level / 4) + 1) * 2 : 0;
 }
 
-nw::ModifierResult toughness(flecs::entity ent)
+nw::ModifierResult toughness(const nw::ObjectBase* obj)
 {
-    nw::EntityView<nw::CreatureStats, nw::LevelStats> cre(ent);
+    auto cre = obj->as_creature();
     if (!cre) {
         return 0;
     }
 
-    if (cre.get<nw::CreatureStats>()->has_feat(feat_toughness)) {
-        return cre.get<nw::LevelStats>()->level();
+    if (cre->stats.has_feat(feat_toughness)) {
+        return cre->levels.level();
     }
 
     return 0;
 }
 
-nw::ModifierResult epic_toughness(flecs::entity ent)
+nw::ModifierResult epic_toughness(const nw::ObjectBase* obj)
 {
-    auto nth = highest_feat_in_range(ent, feat_epic_toughness_1, feat_epic_toughness_10);
+    auto nth = highest_feat_in_range(obj->as_creature(), feat_epic_toughness_1, feat_epic_toughness_10);
     if (nth == nw::Feat::invalid) {
         return 0;
     }

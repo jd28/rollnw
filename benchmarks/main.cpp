@@ -20,7 +20,7 @@ namespace nwk = nw::kernel;
 
 static void BM_parse_feat_2da(benchmark::State& state)
 {
-    nw::ByteArray ba = nw::ByteArray::from_file("../tests/test_data/user/development/placeables.2da");
+    nw::ByteArray ba = nw::ByteArray::from_file("../tests/test_data/user/development/feat.2da");
     for (auto _ : state) {
         nw::TwoDA tda{ba};
         benchmark::DoNotOptimize(tda);
@@ -39,7 +39,7 @@ static void BM_parse_settings_tml(benchmark::State& state)
 static void BM_creature_from_gff(benchmark::State& state)
 {
     for (auto _ : state) {
-        auto ent = nw::kernel::objects().load(fs::path("../tests/test_data/user/development/pl_agent_001.utc"));
+        auto ent = nw::kernel::objects().load<nw::Creature>(fs::path("../tests/test_data/user/development/pl_agent_001.utc"));
         benchmark::DoNotOptimize(ent);
     }
 }
@@ -48,14 +48,14 @@ static void BM_creature_from_json(benchmark::State& state)
 {
     nlohmann::json j;
     for (auto _ : state) {
-        auto ent = nw::kernel::objects().load(fs::path("../tests/test_data/user/development/pl_agent_001.utc.json"));
+        auto ent = nw::kernel::objects().load<nw::Creature>(fs::path("../tests/test_data/user/development/pl_agent_001.utc.json"));
         benchmark::DoNotOptimize(ent);
     }
 }
 
 static void BM_creature_to_json(benchmark::State& state)
 {
-    auto ent = nw::kernel::objects().load(fs::path("../tests/test_data/user/development/pl_agent_001.utc"));
+    auto ent = nw::kernel::objects().load<nw::Creature>(fs::path("../tests/test_data/user/development/pl_agent_001.utc"));
     for (auto _ : state) {
         nlohmann::json j;
         benchmark::DoNotOptimize(nw::Creature::serialize(ent, j, nw::SerializationProfile::instance));
@@ -64,7 +64,7 @@ static void BM_creature_to_json(benchmark::State& state)
 
 static void BM_creature_to_gff(benchmark::State& state)
 {
-    auto ent = nw::kernel::objects().load(fs::path("../tests/test_data/user/development/pl_agent_001.utc"));
+    auto ent = nw::kernel::objects().load<nw::Creature>(fs::path("../tests/test_data/user/development/pl_agent_001.utc"));
     for (auto _ : state) {
         auto out = nw::Creature::serialize(ent, nw::SerializationProfile::instance);
         benchmark::DoNotOptimize(out);
@@ -73,18 +73,18 @@ static void BM_creature_to_gff(benchmark::State& state)
 
 static void BM_creature_select(benchmark::State& state)
 {
-    auto ent = nw::kernel::objects().load(fs::path("../tests/test_data/user/development/pl_agent_001.utc"));
-    // auto sel = nwn1::sel::ability(nwn1::ability_strength);
+    auto ent = nw::kernel::objects().load<nw::Creature>(fs::path("../tests/test_data/user/development/pl_agent_001.utc"));
+    auto sel = nwn1::sel::ability(nwn1::ability_strength);
 
     for (auto _ : state) {
-        auto out = ent.get<nw::CreatureStats>(); // nw::kernel::rules().select(sel, ent);
+        auto out = nw::kernel::rules().select(sel, ent);
         benchmark::DoNotOptimize(out);
     }
 }
 
 static void BM_creature_select2(benchmark::State& state)
 {
-    auto ent = nw::kernel::objects().load(fs::path("../tests/test_data/user/development/pl_agent_001.utc"));
+    auto ent = nw::kernel::objects().load<nw::Creature>(fs::path("../tests/test_data/user/development/pl_agent_001.utc"));
     auto sel = nwn1::sel::ability(nwn1::ability_strength);
 
     for (auto _ : state) {
@@ -95,10 +95,9 @@ static void BM_creature_select2(benchmark::State& state)
 
 static void BM_creature_modifier(benchmark::State& state)
 {
-    auto ent = nw::kernel::objects().load(fs::path("../tests/test_data/user/development/pl_agent_001.utc"));
-    auto stats = ent.get_mut<nw::LevelStats>();
-    stats->entries[0].id = nwn1::class_type_pale_master;
-    stats->entries[1].id = nwn1::class_type_dragon_disciple;
+    auto ent = nw::kernel::objects().load<nw::Creature>(fs::path("../tests/test_data/user/development/pl_agent_001.utc"));
+    ent->levels.entries[0].id = nwn1::class_type_pale_master;
+    ent->levels.entries[1].id = nwn1::class_type_dragon_disciple;
 
     auto& rules = nw::kernel::rules();
 
@@ -112,9 +111,9 @@ static void BM_creature_modifier(benchmark::State& state)
 
 static void BM_creature_get_skill_rank(benchmark::State& state)
 {
-    auto ent = nw::kernel::objects().load(fs::path("../tests/test_data/user/development/pl_agent_001.utc"));
-    ent.get_mut<nw::CreatureStats>()->add_feat(nwn1::feat_skill_focus_discipline);
-    ent.get_mut<nw::CreatureStats>()->add_feat(nwn1::feat_epic_skill_focus_discipline);
+    auto ent = nw::kernel::objects().load<nw::Creature>(fs::path("../tests/test_data/user/development/pl_agent_001.utc"));
+    ent->stats.add_feat(nwn1::feat_skill_focus_discipline);
+    ent->stats.add_feat(nwn1::feat_epic_skill_focus_discipline);
     for (auto _ : state) {
         auto out = nwn1::get_skill_rank(ent, nwn1::skill_discipline, false);
         benchmark::DoNotOptimize(out);
@@ -123,9 +122,9 @@ static void BM_creature_get_skill_rank(benchmark::State& state)
 
 static void BM_creature_ability_score(benchmark::State& state)
 {
-    auto ent = nw::kernel::objects().load(fs::path("../tests/test_data/user/development/pl_agent_001.utc"));
-    ent.get_mut<nw::CreatureStats>()->add_feat(nwn1::feat_epic_great_strength_1);
-    ent.get_mut<nw::CreatureStats>()->add_feat(nwn1::feat_epic_great_strength_2);
+    auto ent = nw::kernel::objects().load<nw::Creature>(fs::path("../tests/test_data/user/development/pl_agent_001.utc"));
+    ent->stats.add_feat(nwn1::feat_epic_great_strength_1);
+    ent->stats.add_feat(nwn1::feat_epic_great_strength_2);
     for (auto _ : state) {
         auto out = nwn1::get_ability_score(ent, nwn1::ability_strength, false);
         benchmark::DoNotOptimize(out);

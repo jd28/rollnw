@@ -21,16 +21,25 @@ struct ItemProperty {
     uint8_t param_value = std::numeric_limits<uint8_t>::max();
 };
 
-struct Item {
+struct Item : public ObjectBase {
+    Item();
     static constexpr int json_archive_version = 1;
     static constexpr ObjectType object_type = ObjectType::item;
 
+    virtual Common* as_common() override { return &common; }
+    virtual const Common* as_common() const override { return &common; }
+    virtual Item* as_item() override { return this; }
+    virtual const Item* as_item() const override { return this; }
+
     // Serialization
-    static bool deserialize(flecs::entity ent, const GffInputArchiveStruct& archive, SerializationProfile profile);
-    static bool deserialize(flecs::entity ent, const nlohmann::json& archive, SerializationProfile profile);
-    static GffOutputArchive serialize(const flecs::entity ent, SerializationProfile profile);
-    static bool serialize(const flecs::entity ent, GffOutputArchiveStruct& archive, SerializationProfile profile);
-    static bool serialize(const flecs::entity ent, nlohmann::json& archive, SerializationProfile profile);
+    static bool deserialize(Item* obj, const GffInputArchiveStruct& archive, SerializationProfile profile);
+    static bool deserialize(Item* obj, const nlohmann::json& archive, SerializationProfile profile);
+    static GffOutputArchive serialize(const Item* obj, SerializationProfile profile);
+    static bool serialize(const Item* obj, GffOutputArchiveStruct& archive, SerializationProfile profile);
+    static bool serialize(const Item* obj, nlohmann::json& archive, SerializationProfile profile);
+
+    Common common;
+    Inventory inventory;
 
     LocString description;
     LocString description_id;

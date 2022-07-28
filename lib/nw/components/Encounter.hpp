@@ -4,7 +4,6 @@
 #include "Common.hpp"
 #include "ObjectBase.hpp"
 
-#include <flecs/flecs.h>
 #include <glm/glm.hpp>
 
 #include <vector>
@@ -44,16 +43,25 @@ struct SpawnPoint {
     glm::vec3 position;
 };
 
-struct Encounter {
+struct Encounter : public ObjectBase {
+    Encounter();
+
     static constexpr int json_archive_version = 1;
     static constexpr ObjectType object_type = ObjectType::encounter;
 
-    static bool deserialize(flecs::entity ent, const GffInputArchiveStruct& archive, SerializationProfile profile);
-    static bool deserialize(flecs::entity ent, const nlohmann::json& archive, SerializationProfile profile);
-    static GffOutputArchive serialize(const flecs::entity ent, SerializationProfile profile);
-    static bool serialize(const flecs::entity ent, GffOutputArchiveStruct& archive, SerializationProfile profile);
-    static bool serialize(const flecs::entity ent, nlohmann::json& archive, SerializationProfile profile);
+    virtual Common* as_common() override { return &common; }
+    virtual const Common* as_common() const override { return &common; }
+    virtual Encounter* as_encounter() override { return this; }
+    virtual const Encounter* as_encounter() const override { return this; }
 
+    static bool deserialize(Encounter* obj, const GffInputArchiveStruct& archive, SerializationProfile profile);
+    static bool deserialize(Encounter* obj, const nlohmann::json& archive, SerializationProfile profile);
+    static GffOutputArchive serialize(const Encounter* obj, SerializationProfile profile);
+    static bool serialize(const Encounter* obj, GffOutputArchiveStruct& archive, SerializationProfile profile);
+    static bool serialize(const Encounter* obj, nlohmann::json& archive, SerializationProfile profile);
+
+    Common common;
+    EncounterScripts scripts;
     std::vector<SpawnCreature> creatures;
     std::vector<glm::vec3> geometry;
     std::vector<SpawnPoint> spawn_points;

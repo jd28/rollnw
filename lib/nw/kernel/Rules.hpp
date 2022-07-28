@@ -1,10 +1,16 @@
 #pragma once
 
+#include "../components/ObjectBase.hpp"
 #include "../log.hpp"
+#include "../rules/BaseItem.hpp"
+#include "../rules/Class.hpp"
+#include "../rules/Feat.hpp"
+#include "../rules/MasterFeat.hpp"
 #include "../rules/Modifier.hpp"
+#include "../rules/Race.hpp"
+#include "../rules/Skill.hpp"
+#include "../rules/Spell.hpp"
 #include "../rules/system.hpp"
-
-#include <flecs/flecs.h>
 
 #include <cstdint>
 #include <limits>
@@ -14,8 +20,8 @@
 namespace nw::kernel {
 
 struct Rules {
-    using qualifier_type = std::function<bool(const Qualifier&, const flecs::entity)>;
-    using selector_type = std::function<RuleValue(const Selector&, const flecs::entity)>;
+    using qualifier_type = std::function<bool(const Qualifier&, const ObjectBase*)>;
+    using selector_type = std::function<RuleValue(const Selector&, const ObjectBase*)>;
 
     virtual ~Rules();
 
@@ -32,7 +38,7 @@ struct Rules {
      * @tparam U is some subtype that **must** be convertible to int
      */
     template <typename T, typename U = int>
-    T calculate(flecs::entity ent, const ModifierType type, U subtype = -1) const;
+    T calculate(const ObjectBase* obj, const ModifierType type, U subtype = -1) const;
 
     /**
      * @brief Calculates a modifier
@@ -40,16 +46,16 @@ struct Rules {
      * @tparam T is ``int`` or ``float``
      */
     template <typename T>
-    T calculate(const flecs::entity ent, const Modifier& mod) const;
+    T calculate(const ObjectBase* obj, const Modifier& mod) const;
 
     /// Clears rules system of all rules and cached 2da files
     virtual void clear();
 
     /// Match
-    bool match(const Qualifier& qual, const flecs::entity ent) const;
+    bool match(const Qualifier& qual, const ObjectBase* obj) const;
 
     /// Meets requirements
-    bool meets_requirement(const Requirement& req, const flecs::entity ent) const;
+    bool meets_requirement(const Requirement& req, const ObjectBase* obj) const;
 
     /**
      * @brief Removes modifiers by tag
@@ -78,13 +84,21 @@ struct Rules {
     int replace(std::string_view tag, const Requirement& req);
 
     /// Select
-    RuleValue select(const Selector&, const flecs::entity) const;
+    RuleValue select(const Selector&, const ObjectBase*) const;
 
     /// Set rules qualifier
     void set_qualifier(qualifier_type match);
 
     /// Set rules selector
     void set_selector(selector_type selector);
+
+    BaseItemArray baseitems;
+    ClassArray classes;
+    FeatArray feats;
+    RaceArray races;
+    SpellArray spells;
+    SkillArray skills;
+    MasterFeatRegistry master_feats;
 
 private:
     qualifier_type qualifier_;
@@ -93,18 +107,18 @@ private:
 };
 
 template <typename T>
-T Rules::calculate(const flecs::entity ent, const Modifier& mod) const
+T Rules::calculate(const ObjectBase* obj, const Modifier& mod) const
 {
     static_assert(std::is_same_v<T, int> || std::is_same_v<T, float>,
         "only int and float are allowed");
 
-    if (!meets_requirement(mod.requirement, ent)) {
+    if (!meets_requirement(mod.requirement, obj)) {
         return {};
     }
     if (mod.value.is<T>()) {
         return mod.value.as<T>();
     } else if (mod.value.is<ModifierFunction>()) {
-        auto res = mod.value.as<ModifierFunction>()(ent);
+        auto res = mod.value.as<ModifierFunction>()(obj);
         return res.is<T>() ? res.as<T>() : T{};
     } else {
         LOG_F(ERROR, "invalid modifier or type mismatch");
@@ -113,7 +127,7 @@ T Rules::calculate(const flecs::entity ent, const Modifier& mod) const
 }
 
 template <typename T, typename U>
-T Rules::calculate(flecs::entity ent, const ModifierType type, U subtype) const
+T Rules::calculate(const ObjectBase* obj, const ModifierType type, U subtype) const
 {
     static_assert(std::is_same_v<T, int> || std::is_same_v<T, float>,
         "only int and float are allowed");
@@ -123,7 +137,7 @@ T Rules::calculate(flecs::entity ent, const ModifierType type, U subtype) const
 
     T result{};
     while (it != std::end(entries_) && it->type == type && it->subtype == static_cast<int>(subtype)) {
-        result += calculate<T>(ent, *it);
+        result += calculate<T>(obj, *it);
         ++it;
     }
 

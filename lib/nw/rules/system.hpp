@@ -5,7 +5,6 @@
 #include "Alignment.hpp"
 
 #include <absl/container/inlined_vector.h>
-#include <flecs/flecs.h>
 
 #include <limits>
 #include <optional>

@@ -4,7 +4,6 @@
 #include "type_traits.hpp"
 
 #include <absl/container/inlined_vector.h>
-#include <flecs/flecs.h>
 
 #include <string>
 
@@ -51,7 +50,7 @@ struct Effect {
     int type = -1;
     EffectCategory category = EffectCategory::magical;
     int subtype = -1;
-    flecs::entity creator;
+    // flecs::entity creator;
     float duration = 0.0f;
     uint32_t expire_day = 0;
     uint32_t expire_time = 0;

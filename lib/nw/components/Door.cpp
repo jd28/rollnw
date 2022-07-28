@@ -93,88 +93,89 @@ nlohmann::json DoorScripts::to_json() const
     return j;
 }
 
-bool Door::deserialize(flecs::entity ent, const GffInputArchiveStruct& archive, SerializationProfile profile)
+Door::Door()
+    : common(Door::object_type)
 {
-    auto door = ent.get_mut<Door>();
-    auto common = ent.get_mut<Common>();
-    auto lock = ent.get_mut<Lock>();
-    auto scripts = ent.get_mut<DoorScripts>();
-    auto trap = ent.get_mut<Trap>();
+}
 
-    common->from_gff(archive, profile);
-    lock->from_gff(archive);
-    scripts->from_gff(archive);
-    trap->from_gff(archive);
+bool Door::deserialize(Door* obj, const GffInputArchiveStruct& archive, SerializationProfile profile)
+{
+    if (!obj) {
+        throw std::runtime_error("unable to serialize null object");
+    }
+
+    obj->common.from_gff(archive, profile);
+    obj->lock.from_gff(archive);
+    obj->scripts.from_gff(archive);
+    obj->trap.from_gff(archive);
 
     bool result = true;
     uint8_t save;
 
-    archive.get_to("Conversation", door->conversation);
-    archive.get_to("Description", door->description);
-    archive.get_to("LinkedTo", door->linked_to);
+    archive.get_to("Conversation", obj->conversation);
+    archive.get_to("Description", obj->description);
+    archive.get_to("LinkedTo", obj->linked_to);
 
     archive.get_to("Fort", save);
-    door->saves.fort = save;
+    obj->saves.fort = save;
     archive.get_to("Ref", save);
-    door->saves.reflex = save;
+    obj->saves.reflex = save;
     archive.get_to("Will", save);
-    door->saves.will = save;
+    obj->saves.will = save;
 
-    archive.get_to("Appearance", door->appearance);
-    archive.get_to("Faction", door->faction);
-    if (!archive.get_to("GenericType_New", door->generic_type, false)) {
+    archive.get_to("Appearance", obj->appearance);
+    archive.get_to("Faction", obj->faction);
+    if (!archive.get_to("GenericType_New", obj->generic_type, false)) {
         uint8_t temp = 0;
         archive.get_to("GenericType", temp);
-        door->generic_type = temp;
+        obj->generic_type = temp;
     }
 
-    archive.get_to("HP", door->hp);
-    archive.get_to("CurrentHP", door->hp_current);
-    archive.get_to("LoadScreenID", door->loadscreen);
-    archive.get_to("PortraitId", door->portrait_id);
+    archive.get_to("HP", obj->hp);
+    archive.get_to("CurrentHP", obj->hp_current);
+    archive.get_to("LoadScreenID", obj->loadscreen);
+    archive.get_to("PortraitId", obj->portrait_id);
 
-    archive.get_to("AnimationState", door->animation_state);
-    archive.get_to("Hardness", door->hardness);
-    archive.get_to("Interruptable", door->interruptable);
-    archive.get_to("LinkedToFlags", door->linked_to_flags);
-    archive.get_to("Plot", door->plot);
+    archive.get_to("AnimationState", obj->animation_state);
+    archive.get_to("Hardness", obj->hardness);
+    archive.get_to("Interruptable", obj->interruptable);
+    archive.get_to("LinkedToFlags", obj->linked_to_flags);
+    archive.get_to("Plot", obj->plot);
 
     return result;
 }
 
-bool Door::deserialize(flecs::entity ent, const nlohmann::json& archive, SerializationProfile profile)
+bool Door::deserialize(Door* obj, const nlohmann::json& archive, SerializationProfile profile)
 {
-    auto door = ent.get_mut<Door>();
-    auto common = ent.get_mut<Common>();
-    auto lock = ent.get_mut<Lock>();
-    auto scripts = ent.get_mut<DoorScripts>();
-    auto trap = ent.get_mut<Trap>();
+    if (!obj) {
+        throw std::runtime_error("unable to serialize null object");
+    }
 
     try {
-        common->from_json(archive.at("common"), profile);
-        lock->from_json(archive.at("lock"));
-        scripts->from_json(archive.at("scripts"));
-        trap->from_json(archive.at("trap"));
+        obj->common.from_json(archive.at("common"), profile);
+        obj->lock.from_json(archive.at("lock"));
+        obj->scripts.from_json(archive.at("scripts"));
+        obj->trap.from_json(archive.at("trap"));
 
-        archive.at("conversation").get_to(door->conversation);
-        archive.at("description").get_to(door->description);
-        archive.at("saves").get_to(door->saves);
+        archive.at("conversation").get_to(obj->conversation);
+        archive.at("description").get_to(obj->description);
+        archive.at("saves").get_to(obj->saves);
 
-        archive.at("appearance").get_to(door->appearance);
-        archive.at("faction").get_to(door->faction);
-        archive.at("generic_type").get_to(door->generic_type);
+        archive.at("appearance").get_to(obj->appearance);
+        archive.at("faction").get_to(obj->faction);
+        archive.at("generic_type").get_to(obj->generic_type);
 
-        archive.at("hp").get_to(door->hp);
-        archive.at("hp_current").get_to(door->hp_current);
-        archive.at("loadscreen").get_to(door->loadscreen);
-        archive.at("portrait_id").get_to(door->portrait_id);
+        archive.at("hp").get_to(obj->hp);
+        archive.at("hp_current").get_to(obj->hp_current);
+        archive.at("loadscreen").get_to(obj->loadscreen);
+        archive.at("portrait_id").get_to(obj->portrait_id);
 
-        archive.at("animation_state").get_to(door->animation_state);
-        archive.at("hardness").get_to(door->hardness);
-        archive.at("interruptable").get_to(door->interruptable);
-        archive.at("linked_to_flags").get_to(door->linked_to_flags);
-        archive.at("linked_to").get_to(door->linked_to);
-        archive.at("plot").get_to(door->plot);
+        archive.at("animation_state").get_to(obj->animation_state);
+        archive.at("hardness").get_to(obj->hardness);
+        archive.at("interruptable").get_to(obj->interruptable);
+        archive.at("linked_to_flags").get_to(obj->linked_to_flags);
+        archive.at("linked_to").get_to(obj->linked_to);
+        archive.at("plot").get_to(obj->plot);
     } catch (const nlohmann::json::exception& e) {
         LOG_F(ERROR, "Door::to_json exception: {}", e.what());
         return false;
@@ -183,106 +184,105 @@ bool Door::deserialize(flecs::entity ent, const nlohmann::json& archive, Seriali
     return true;
 }
 
-bool Door::serialize(const flecs::entity ent, GffOutputArchiveStruct& archive, SerializationProfile profile)
+bool Door::serialize(const Door* obj, GffOutputArchiveStruct& archive, SerializationProfile profile)
 {
-    auto door = ent.get<Door>();
-    auto common = ent.get<Common>();
-    auto lock = ent.get<Lock>();
-    auto scripts = ent.get<DoorScripts>();
-    auto trap = ent.get<Trap>();
+    if (!obj) {
+        throw std::runtime_error("unable to serialize null object");
+    }
 
-    archive.add_field("TemplateResRef", common->resref)
-        .add_field("LocName", common->name)
-        .add_field("Tag", common->tag);
+    archive.add_field("TemplateResRef", obj->common.resref)
+        .add_field("LocName", obj->common.name)
+        .add_field("Tag", obj->common.tag);
 
     if (profile == SerializationProfile::blueprint) {
-        archive.add_field("Comment", common->comment);
-        archive.add_field("PaletteID", common->palette_id);
+        archive.add_field("Comment", obj->common.comment);
+        archive.add_field("PaletteID", obj->common.palette_id);
     } else {
-        archive.add_field("PositionX", common->location.position.x)
-            .add_field("PositionY", common->location.position.y)
-            .add_field("PositionZ", common->location.position.z)
-            .add_field("OrientationX", common->location.orientation.x)
-            .add_field("OrientationY", common->location.orientation.y);
+        archive.add_field("PositionX", obj->common.location.position.x)
+            .add_field("PositionY", obj->common.location.position.y)
+            .add_field("PositionZ", obj->common.location.position.z)
+            .add_field("OrientationX", obj->common.location.orientation.x)
+            .add_field("OrientationY", obj->common.location.orientation.y);
     }
 
-    if (common->locals.size()) {
-        common->locals.to_gff(archive);
+    if (obj->common.locals.size()) {
+        obj->common.locals.to_gff(archive);
     }
 
-    lock->to_gff(archive);
-    scripts->to_gff(archive);
-    trap->to_gff(archive);
+    obj->lock.to_gff(archive);
+    obj->scripts.to_gff(archive);
+    obj->trap.to_gff(archive);
 
-    archive.add_field("Conversation", door->conversation)
-        .add_field("Description", door->description)
-        .add_field("LinkedTo", door->linked_to);
+    archive.add_field("Conversation", obj->conversation)
+        .add_field("Description", obj->description)
+        .add_field("LinkedTo", obj->linked_to);
 
-    archive.add_field("Fort", static_cast<uint8_t>(door->saves.fort))
-        .add_field("Ref", static_cast<uint8_t>(door->saves.reflex))
-        .add_field("Will", static_cast<uint8_t>(door->saves.will));
+    archive.add_field("Fort", static_cast<uint8_t>(obj->saves.fort))
+        .add_field("Ref", static_cast<uint8_t>(obj->saves.reflex))
+        .add_field("Will", static_cast<uint8_t>(obj->saves.will));
 
-    archive.add_field("Appearance", door->appearance)
-        .add_field("Faction", door->faction)
-        .add_field("GenericType_New", door->generic_type);
+    archive.add_field("Appearance", obj->appearance)
+        .add_field("Faction", obj->faction)
+        .add_field("GenericType_New", obj->generic_type);
 
-    archive.add_field("HP", door->hp)
-        .add_field("CurrentHP", door->hp_current)
-        .add_field("LoadScreenID", door->loadscreen)
-        .add_field("PortraitId", door->portrait_id);
+    archive.add_field("HP", obj->hp)
+        .add_field("CurrentHP", obj->hp_current)
+        .add_field("LoadScreenID", obj->loadscreen)
+        .add_field("PortraitId", obj->portrait_id);
 
-    archive.add_field("AnimationState", door->animation_state)
-        .add_field("Hardness", door->hardness)
-        .add_field("Interruptable", door->interruptable)
-        .add_field("LinkedToFlags", door->linked_to_flags)
-        .add_field("Plot", door->plot);
+    archive.add_field("AnimationState", obj->animation_state)
+        .add_field("Hardness", obj->hardness)
+        .add_field("Interruptable", obj->interruptable)
+        .add_field("LinkedToFlags", obj->linked_to_flags)
+        .add_field("Plot", obj->plot);
 
     return true;
 }
 
-GffOutputArchive Door::serialize(const flecs::entity ent, SerializationProfile profile)
+GffOutputArchive Door::serialize(const Door* obj, SerializationProfile profile)
 {
     GffOutputArchive out{"UTD"};
-    Door::serialize(ent, out.top, profile);
+    if (!obj) {
+        throw std::runtime_error("unable to serialize null object");
+    }
+    Door::serialize(obj, out.top, profile);
     out.build();
     return out;
 }
 
-bool Door::serialize(const flecs::entity ent, nlohmann::json& archive, SerializationProfile profile)
+bool Door::serialize(const Door* obj, nlohmann::json& archive, SerializationProfile profile)
 {
-    auto door = ent.get<Door>();
-    auto common = ent.get<Common>();
-    auto lock = ent.get<Lock>();
-    auto scripts = ent.get<DoorScripts>();
-    auto trap = ent.get<Trap>();
+    if (!obj) {
+        throw std::runtime_error("unable to serialize null object");
+    }
 
     archive["$type"] = "UTD";
     archive["$version"] = Door::json_archive_version;
 
-    archive["common"] = common->to_json(profile);
-    archive["lock"] = lock->to_json();
-    archive["scripts"] = scripts->to_json();
-    archive["trap"] = trap->to_json();
+    archive["common"] = obj->common.to_json(profile);
+    archive["lock"] = obj->lock.to_json();
+    archive["scripts"] = obj->scripts.to_json();
+    archive["trap"] = obj->trap.to_json();
 
-    archive["conversation"] = door->conversation;
-    archive["description"] = door->description;
-    archive["linked_to"] = door->linked_to;
-    archive["saves"] = door->saves;
+    archive["conversation"] = obj->conversation;
+    archive["description"] = obj->description;
+    archive["linked_to"] = obj->linked_to;
+    archive["saves"] = obj->saves;
 
-    archive["appearance"] = door->appearance;
-    archive["faction"] = door->faction;
-    archive["generic_type"] = door->generic_type;
+    archive["appearance"] = obj->appearance;
+    archive["faction"] = obj->faction;
+    archive["generic_type"] = obj->generic_type;
 
-    archive["hp"] = door->hp;
-    archive["hp_current"] = door->hp_current;
-    archive["loadscreen"] = door->loadscreen;
-    archive["portrait_id"] = door->portrait_id;
+    archive["hp"] = obj->hp;
+    archive["hp_current"] = obj->hp_current;
+    archive["loadscreen"] = obj->loadscreen;
+    archive["portrait_id"] = obj->portrait_id;
 
-    archive["animation_state"] = door->animation_state;
-    archive["hardness"] = door->hardness;
-    archive["interruptable"] = door->interruptable;
-    archive["linked_to_flags"] = door->linked_to_flags;
-    archive["plot"] = door->plot;
+    archive["animation_state"] = obj->animation_state;
+    archive["hardness"] = obj->hardness;
+    archive["interruptable"] = obj->interruptable;
+    archive["linked_to_flags"] = obj->linked_to_flags;
+    archive["plot"] = obj->plot;
 
     return true;
 }

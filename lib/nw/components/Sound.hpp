@@ -4,20 +4,26 @@
 #include "Common.hpp"
 #include "ObjectBase.hpp"
 
-#include <flecs/flecs.h>
-
 namespace nw {
 
-struct Sound {
+struct Sound : public ObjectBase {
+    Sound();
+
     static constexpr int json_archive_version = 1;
     static constexpr ObjectType object_type = ObjectType::sound;
 
-    static bool deserialize(flecs::entity ent, const GffInputArchiveStruct& archive, SerializationProfile profile);
-    static bool deserialize(flecs::entity ent, const nlohmann::json& archive, SerializationProfile profile);
-    static bool serialize(const flecs::entity ent, GffOutputArchiveStruct& archive, SerializationProfile profile);
-    static GffOutputArchive serialize(const flecs::entity ent, SerializationProfile profile);
-    static void serialize(const flecs::entity ent, nlohmann::json& archive, SerializationProfile profile);
+    virtual Common* as_common() override { return &common; }
+    virtual const Common* as_common() const override { return &common; }
+    virtual Sound* as_sound() override { return this; }
+    virtual const Sound* as_sound() const override { return this; }
 
+    static bool deserialize(Sound* obj, const GffInputArchiveStruct& archive, SerializationProfile profile);
+    static bool deserialize(Sound* obj, const nlohmann::json& archive, SerializationProfile profile);
+    static bool serialize(const Sound* obj, GffOutputArchiveStruct& archive, SerializationProfile profile);
+    static GffOutputArchive serialize(const Sound* obj, SerializationProfile profile);
+    static void serialize(const Sound* obj, nlohmann::json& archive, SerializationProfile profile);
+
+    Common common;
     std::vector<Resref> sounds;
 
     float distance_min = 0.0f;

@@ -17,67 +17,58 @@ TEST_CASE("item: load armor item", "[objects]")
     auto mod = nw::kernel::load_module("test_data/user/modules/DockerDemo.mod");
     REQUIRE(mod);
 
-    auto ent = nw::kernel::objects().load(fs::path("test_data/user/development/cloth028.uti"));
-    REQUIRE(ent.is_alive());
+    auto ent = nw::kernel::objects().load<nw::Item>(fs::path("test_data/user/development/cloth028.uti"));
+    REQUIRE(ent);
     // auto light = nw::kernel::objects().load("nw_maarcl004", nw::ObjectType::item);
-    // REQUIRE(light.is_alive());
+    // REQUIRE(light);
     // auto medium = nw::kernel::objects().load("nw_maarcl040", nw::ObjectType::item);
-    // REQUIRE(medium.is_alive());
+    // REQUIRE(medium);
     // auto heavy1 = nw::kernel::objects().load("x2_mdrowar030", nw::ObjectType::item);
-    // REQUIRE(heavy1.is_alive());
+    // REQUIRE(heavy1);
     // auto heavy2 = nw::kernel::objects().load("x2_it_adaplate", nw::ObjectType::item);
-    // REQUIRE(heavy2.is_alive());
+    // REQUIRE(heavy2);
 
-    auto item = ent.get<nw::Item>();
-    auto common = ent.get<nw::Common>();
+    REQUIRE(ent->common.resref == "cloth028");
+    REQUIRE(ent->properties.size() > 0);
+    REQUIRE(ent->model_type == nw::ItemModelType::armor);
+    REQUIRE(ent->common.locals.size() > 0);
 
-    REQUIRE(common->resref == "cloth028");
-    REQUIRE(item->properties.size() > 0);
-    REQUIRE(item->model_type == nw::ItemModelType::armor);
-    REQUIRE(common->locals.size() > 0);
-
-    REQUIRE(nwn1::calculate_ac(ent) == 0);
-    // REQUIRE(nwn1::calculate_ac(light) == 1);
-    // REQUIRE(nwn1::calculate_ac(medium) == 5);
-    // REQUIRE(nwn1::calculate_ac(heavy1) == 7);
-    // REQUIRE(nwn1::calculate_ac(heavy2) == 8);
+    // REQUIRE(nwn1::calculate_ac(ent) == 0);
+    //  REQUIRE(nwn1::calculate_ac(light) == 1);
+    //  REQUIRE(nwn1::calculate_ac(medium) == 5);
+    //  REQUIRE(nwn1::calculate_ac(heavy1) == 7);
+    //  REQUIRE(nwn1::calculate_ac(heavy2) == 8);
 
     nw::kernel::unload_module();
 }
 
 TEST_CASE("item: load layered item", "[objects]")
 {
-    auto ent = nw::kernel::objects().load(fs::path("test_data/user/development/wduersc004.uti"));
-    REQUIRE(ent.is_alive());
+    auto ent = nw::kernel::objects().load<nw::Item>(fs::path("test_data/user/development/wduersc004.uti"));
+    REQUIRE(ent);
 
-    auto item = ent.get<nw::Item>();
-    auto common = ent.get<nw::Common>();
-
-    REQUIRE(common->resref == "wduersc004");
-    REQUIRE(item->properties.size() > 0);
-    REQUIRE(item->model_type == nw::ItemModelType::composite);
+    REQUIRE(ent->common.resref == "wduersc004");
+    REQUIRE(ent->properties.size() > 0);
+    REQUIRE(ent->model_type == nw::ItemModelType::composite);
 }
 
 TEST_CASE("item: load simple item", "[objects]")
 {
-    auto ent = nw::kernel::objects().load(fs::path("test_data/user/development/pl_aleu_shuriken.uti"));
-    REQUIRE(ent.is_alive());
+    auto ent = nw::kernel::objects().load<nw::Item>(fs::path("test_data/user/development/pl_aleu_shuriken.uti"));
+    REQUIRE(ent);
 
-    auto item = ent.get<nw::Item>();
-    auto common = ent.get<nw::Common>();
-
-    REQUIRE(common->resref == "pl_aleu_shuriken");
-    REQUIRE(item->properties.size() > 0);
-    REQUIRE(item->model_type == nw::ItemModelType::simple);
+    REQUIRE(ent->common.resref == "pl_aleu_shuriken");
+    REQUIRE(ent->properties.size() > 0);
+    REQUIRE(ent->model_type == nw::ItemModelType::simple);
 }
 
 TEST_CASE("item: to_json", "[objects]")
 {
-    auto ent = nw::kernel::objects().load(fs::path("test_data/user/development/cloth028.uti"));
-    REQUIRE(ent.is_alive());
+    auto ent = nw::kernel::objects().load<nw::Item>(fs::path("test_data/user/development/cloth028.uti"));
+    REQUIRE(ent);
 
     nlohmann::json j;
-    nw::kernel::objects().serialize(ent, j, nw::SerializationProfile::blueprint);
+    nw::Item::serialize(ent, j, nw::SerializationProfile::blueprint);
 
     std::ofstream f{"tmp/cloth028.uti.json"};
     f << std::setw(4) << j;
@@ -85,32 +76,30 @@ TEST_CASE("item: to_json", "[objects]")
 
 TEST_CASE("item: json to and from", "[objects]")
 {
-    auto ent = nw::kernel::objects().load(fs::path("test_data/user/development/cloth028.uti"));
-    REQUIRE(ent.is_alive());
+    auto ent = nw::kernel::objects().load<nw::Item>(fs::path("test_data/user/development/cloth028.uti"));
+    REQUIRE(ent);
 
     nlohmann::json j;
-    nw::kernel::objects().serialize(ent, j, nw::SerializationProfile::blueprint);
+    nw::Item::serialize(ent, j, nw::SerializationProfile::blueprint);
 
-    auto ent2 = nw::kernel::objects().deserialize(nw::ObjectType::item,
-        j,
-        nw::SerializationProfile::blueprint);
-    REQUIRE(ent2.is_alive());
+    nw::Item ent2;
+    REQUIRE(nw::Item::deserialize(&ent2, j, nw::SerializationProfile::blueprint));
 
     nlohmann::json j2;
-    nw::kernel::objects().serialize(ent2, j2, nw::SerializationProfile::blueprint);
+    nw::Item::serialize(&ent2, j2, nw::SerializationProfile::blueprint);
 
     REQUIRE(j == j2);
 }
 
 TEST_CASE("item: gff round trip", "[objects]")
 {
-    auto ent = nw::kernel::objects().load(fs::path("test_data/user/development/cloth028.uti"));
-    REQUIRE(ent.is_alive());
+    auto ent = nw::kernel::objects().load<nw::Item>(fs::path("test_data/user/development/cloth028.uti"));
+    REQUIRE(ent);
 
     nw::GffInputArchive g("test_data/user/development/cloth028.uti");
     REQUIRE(g.valid());
 
-    nw::GffOutputArchive oa = nw::kernel::objects().serialize(ent, nw::SerializationProfile::blueprint);
+    nw::GffOutputArchive oa = nw::Item::serialize(ent, nw::SerializationProfile::blueprint);
     oa.write_to("tmp/cloth028.uti");
 
     nw::GffInputArchive g2{"tmp/cloth028.uti"};

@@ -4,10 +4,11 @@
 #include "LocalData.hpp"
 #include "ObjectBase.hpp"
 
-#include <flecs/flecs.h>
 #include <glm/glm.hpp>
 
 namespace nw {
+
+struct Area;
 
 // For our purpose..  Module is going to be synonym to module.ifo.  NOT the Erf Container.
 
@@ -39,24 +40,29 @@ struct ModuleScripts {
     Resref on_user_defined;
 };
 
-struct Module {
-    using AreaVariant = std::variant<std::vector<Resref>, std::vector<flecs::entity>>;
+struct Module : public ObjectBase {
+    using AreaVariant = std::variant<std::vector<Resref>, std::vector<Area*>>;
 
     static constexpr int json_archive_version = 1;
     static constexpr ObjectType object_type = ObjectType::module;
 
-    size_t area_count() const noexcept;
-    flecs::entity get_area(size_t index) const;
+    virtual Module* as_module() override { return this; }
+    virtual const Module* as_module() const override { return this; }
 
-    static bool instantiate(flecs::entity ent);
+    size_t area_count() const noexcept;
+    const Area* get_area(size_t index) const;
+
+    static bool instantiate(Module* ent);
 
     // Serialization
-    static bool deserialize(flecs::entity ent, const GffInputArchiveStruct& archive);
-    static bool deserialize(flecs::entity ent, const nlohmann::json& archive);
-    static GffOutputArchive serialize(const flecs::entity ent);
-    static bool serialize(const flecs::entity ent, GffOutputArchiveStruct& archive);
-    static bool serialize(const flecs::entity ent, nlohmann::json& archive);
+    static bool deserialize(Module* ent, const GffInputArchiveStruct& archive);
+    static bool deserialize(Module* ent, const nlohmann::json& archive);
+    static GffOutputArchive serialize(const Module* ent);
+    static bool serialize(const Module* ent, GffOutputArchiveStruct& archive);
+    static bool serialize(const Module* ent, nlohmann::json& archive);
 
+    LocalData locals;
+    ModuleScripts scripts;
     AreaVariant areas;
     LocString description;
     Resref entry_area;

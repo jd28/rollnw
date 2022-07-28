@@ -15,6 +15,13 @@ void Rules::clear()
     qualifier_ = qualifier_type{};
     selector_ = selector_type{};
     entries_.clear();
+    baseitems.entries.clear();
+    classes.entries.clear();
+    feats.entries.clear();
+    races.entries.clear();
+    spells.entries.clear();
+    skills.entries.clear();
+    master_feats.clear();
 }
 
 bool Rules::initialize()
@@ -34,18 +41,22 @@ void Rules::add(Modifier mod)
     }
 }
 
-bool Rules::match(const Qualifier& qual, const flecs::entity ent) const
+bool Rules::match(const Qualifier& qual, const ObjectBase* obj) const
 {
-    if (!qualifier_) { return true; }
-    return qualifier_(qual, ent);
+    if (!qualifier_) {
+        return true;
+    }
+    return qualifier_(qual, obj);
 }
 
-bool Rules::meets_requirement(const Requirement& req, const flecs::entity ent) const
+bool Rules::meets_requirement(const Requirement& req, const ObjectBase* obj) const
 {
     for (const auto& q : req.qualifiers) {
         if (req.conjunction) {
-            if (!match(q, ent)) { return false; }
-        } else if (match(q, ent)) {
+            if (!match(q, obj)) {
+                return false;
+            }
+        } else if (match(q, obj)) {
             return true;
         }
     }
@@ -58,10 +69,14 @@ int Rules::remove(std::string_view tag)
     bool starts = false;
     int result = 0;
 
-    if (prefix.empty()) { return result; }
+    if (prefix.empty()) {
+        return result;
+    }
     if (prefix.back() == '*') {
         prefix = std::string_view{prefix.data(), prefix.size() - 1};
-        if (prefix.empty()) { return result; }
+        if (prefix.empty()) {
+            return result;
+        }
         starts = true;
     }
 
@@ -90,11 +105,15 @@ int Rules::replace(std::string_view tag, ModifierVariant value)
     bool starts = false;
     int result = 0;
 
-    if (prefix.empty()) { return result; }
+    if (prefix.empty()) {
+        return result;
+    }
 
     if (prefix.back() == '*') {
         prefix = std::string_view{prefix.data(), prefix.size() - 1};
-        if (prefix.empty()) { return result; }
+        if (prefix.empty()) {
+            return result;
+        }
         starts = true;
     }
 
@@ -118,11 +137,15 @@ int Rules::replace(std::string_view tag, const Requirement& req)
     bool starts = false;
     int result = 0;
 
-    if (prefix.empty()) { return result; }
+    if (prefix.empty()) {
+        return result;
+    }
 
     if (prefix.back() == '*') {
         prefix = std::string_view{prefix.data(), prefix.size() - 1};
-        if (prefix.empty()) { return result; }
+        if (prefix.empty()) {
+            return result;
+        }
         starts = true;
     }
 
@@ -140,14 +163,14 @@ int Rules::replace(std::string_view tag, const Requirement& req)
     return result;
 }
 
-RuleValue Rules::select(const Selector& selector, const flecs::entity ent) const
+RuleValue Rules::select(const Selector& selector, const ObjectBase* obj) const
 {
     if (!selector_) {
         LOG_F(ERROR, "rules: no selector set");
         return {};
     }
 
-    return selector_(selector, ent);
+    return selector_(selector, obj);
 }
 
 void Rules::set_qualifier(qualifier_type match)

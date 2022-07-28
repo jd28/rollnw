@@ -20,14 +20,14 @@ namespace nwn1 {
 bool Profile::load_components() const
 {
     LOG_F(INFO, "[nwn1] loading components...");
-    nw::kernel::world().add<nw::AbilityArray>();
-    nw::kernel::world().add<nw::BaseItemArray>();
-    nw::kernel::world().add<nw::ClassArray>();
-    nw::kernel::world().add<nw::FeatArray>();
-    nw::kernel::world().add<nw::MasterFeatRegistry>();
-    nw::kernel::world().add<nw::RaceArray>();
-    nw::kernel::world().add<nw::SkillArray>();
-    nw::kernel::world().add<nw::SpellArray>();
+    // nw::kernel::world().add<nw::AbilityArray>();
+    // nw::kernel::world().add<nw::BaseItemArray>();
+    // nw::kernel::world().add<nw::ClassArray>();
+    // nw::kernel::world().add<nw::FeatArray>();
+    // nw::kernel::world().add<nw::MasterFeatRegistry>();
+    // nw::kernel::world().add<nw::RaceArray>();
+    // nw::kernel::world().add<nw::SkillArray>();
+    // nw::kernel::world().add<nw::SpellArray>();
     return true;
 }
 
@@ -117,28 +117,28 @@ bool Profile::load_rules() const
     int temp_int = 0;
 
     // Abilities - Temporary, no 2da..
-    auto* ability_array = nw::kernel::world().get_mut<nw::AbilityArray>();
-    ability_array->entries.reserve(6);
-    auto cnst = nw::kernel::strings().intern("ABILITY_STRENGTH");
-    ability_array->entries.push_back({135, cnst});
-    cnst = nw::kernel::strings().intern("ABILITY_DEXTERITY");
-    ability_array->entries.push_back({133, cnst});
-    cnst = nw::kernel::strings().intern("ABILITY_CONSTITUTION");
-    ability_array->entries.push_back({132, cnst});
-    cnst = nw::kernel::strings().intern("ABILITY_INTELLIGENCE");
-    ability_array->entries.push_back({134, cnst});
-    cnst = nw::kernel::strings().intern("ABILITY_WISDOM");
-    ability_array->entries.push_back({136, cnst});
-    cnst = nw::kernel::strings().intern("ABILITY_CHARISMA");
-    ability_array->entries.push_back({131, cnst});
-    for (uint32_t i = 0; i < 6; ++i) {
-        ability_array->constant_to_index.emplace(ability_array->entries[i].constant, nw::make_ability(i));
-    }
+    // auto* ability_array = nw::kernel::world().get_mut<nw::AbilityArray>();
+    // ability_array->entries.reserve(6);
+    // auto cnst = nw::kernel::strings().intern("ABILITY_STRENGTH");
+    // ability_array->entries.push_back({135, cnst});
+    // cnst = nw::kernel::strings().intern("ABILITY_DEXTERITY");
+    // ability_array->entries.push_back({133, cnst});
+    // cnst = nw::kernel::strings().intern("ABILITY_CONSTITUTION");
+    // ability_array->entries.push_back({132, cnst});
+    // cnst = nw::kernel::strings().intern("ABILITY_INTELLIGENCE");
+    // ability_array->entries.push_back({134, cnst});
+    // cnst = nw::kernel::strings().intern("ABILITY_WISDOM");
+    // ability_array->entries.push_back({136, cnst});
+    // cnst = nw::kernel::strings().intern("ABILITY_CHARISMA");
+    // ability_array->entries.push_back({131, cnst});
+    // for (uint32_t i = 0; i < 6; ++i) {
+    //     ability_array->constant_to_index.emplace(ability_array->entries[i].constant, nw::make_ability(i));
+    // }
 
     // BaseItems
-    auto* baseitem_array = nw::kernel::world().get_mut<nw::BaseItemArray>();
-    auto* mfr = nw::kernel::world().get_mut<nw::MasterFeatRegistry>();
-    if (mfr && baseitem_array && baseitems.is_valid()) {
+    auto* baseitem_array = &nw::kernel::rules().baseitems;
+    auto* mfr = &nw::kernel::rules().master_feats;
+    if (baseitems.is_valid()) {
         for (size_t i = 0; i < baseitems.rows(); ++i) {
             auto& info = baseitem_array->entries.emplace_back(baseitems.row(i));
             if (info.valid()) {
@@ -181,7 +181,7 @@ bool Profile::load_rules() const
     }
 
     // Classes
-    auto* class_array = nw::kernel::world().get_mut<nw::ClassArray>();
+    auto* class_array = &nw::kernel::rules().classes;
     if (class_array && classes.is_valid()) {
         class_array->entries.reserve(classes.rows());
         for (size_t i = 0; i < classes.rows(); ++i) {
@@ -197,7 +197,7 @@ bool Profile::load_rules() const
     }
 
     // Feats
-    auto* feat_array = nw::kernel::world().get_mut<nw::FeatArray>();
+    auto* feat_array = &nw::kernel::rules().feats;
     if (feat_array && feat.is_valid()) {
         feat_array->entries.reserve(feat.rows());
         for (size_t i = 0; i < feat.rows(); ++i) {
@@ -213,7 +213,7 @@ bool Profile::load_rules() const
     }
 
     // Races
-    auto* race_array = nw::kernel::world().get_mut<nw::RaceArray>();
+    auto* race_array = &nw::kernel::rules().races;
     if (race_array && racialtypes.is_valid()) {
         race_array->entries.reserve(racialtypes.rows());
         for (size_t i = 0; i < racialtypes.rows(); ++i) {
@@ -229,7 +229,7 @@ bool Profile::load_rules() const
     }
 
     // Skills
-    auto* skill_array = nw::kernel::world().get_mut<nw::SkillArray>();
+    auto* skill_array = &nw::kernel::rules().skills;
     if (skill_array && skills.is_valid()) {
         skill_array->entries.reserve(skills.rows());
         for (size_t i = 0; i < skills.rows(); ++i) {
@@ -245,7 +245,7 @@ bool Profile::load_rules() const
     }
 
     // Spells
-    auto* spell_array = nw::kernel::world().get_mut<nw::SpellArray>();
+    auto* spell_array = &nw::kernel::rules().spells;
     if (spell_array && spells.is_valid()) {
         spell_array->entries.reserve(spells.rows());
         for (size_t i = 0; i < spells.rows(); ++i) {
@@ -363,13 +363,13 @@ bool Profile::load_master_feats() const
 {
     LOG_F(INFO, "[nwn1] Loading Master Feats");
 
-    auto mfr = nw::kernel::world().get_mut<nw::MasterFeatRegistry>();
-    mfr->set_bonus(mfeat_skill_focus, 3);
-    mfr->set_bonus(mfeat_skill_focus_epic, 10);
+    auto& mfr = nw::kernel::rules().master_feats;
+    mfr.set_bonus(mfeat_skill_focus, 3);
+    mfr.set_bonus(mfeat_skill_focus_epic, 10);
 
-#define ADD_SKILL(name)                                                 \
-    mfr->add(skill_##name, mfeat_skill_focus, feat_skill_focus_##name); \
-    mfr->add(skill_##name, mfeat_skill_focus_epic, feat_epic_skill_focus_##name)
+#define ADD_SKILL(name)                                                \
+    mfr.add(skill_##name, mfeat_skill_focus, feat_skill_focus_##name); \
+    mfr.add(skill_##name, mfeat_skill_focus_epic, feat_epic_skill_focus_##name)
 
     ADD_SKILL(animal_empathy);
     ADD_SKILL(concentration);
@@ -402,40 +402,40 @@ bool Profile::load_master_feats() const
 
 #undef ADD_SKILL
 
-#define ADD_WEAPON_FEATS(name)                                                                       \
-    do {                                                                                             \
-        mfr->add(base_item_##name, mfeat_weapon_focus, feat_weapon_focus_##name);                    \
-        mfr->add(base_item_##name, mfeat_weapon_focus_epic, feat_epic_weapon_focus_##name);          \
-        mfr->add(base_item_##name, mfeat_weapon_spec, feat_weapon_specialization_##name);            \
-        mfr->add(base_item_##name, mfeat_weapon_spec_epic, feat_epic_weapon_specialization_##name);  \
-        mfr->add(base_item_##name, mfeat_weapon_of_choice, feat_weapon_of_choice_##name);            \
-        mfr->add(base_item_##name, mfeat_improved_crit, feat_improved_critical_##name);              \
-        mfr->add(base_item_##name, mfeat_overwhelming_crit, feat_epic_overwhelming_critical_##name); \
-        mfr->add(base_item_##name, mfeat_devastating_crit, feat_epic_devastating_critical_##name);   \
+#define ADD_WEAPON_FEATS(name)                                                                      \
+    do {                                                                                            \
+        mfr.add(base_item_##name, mfeat_weapon_focus, feat_weapon_focus_##name);                    \
+        mfr.add(base_item_##name, mfeat_weapon_focus_epic, feat_epic_weapon_focus_##name);          \
+        mfr.add(base_item_##name, mfeat_weapon_spec, feat_weapon_specialization_##name);            \
+        mfr.add(base_item_##name, mfeat_weapon_spec_epic, feat_epic_weapon_specialization_##name);  \
+        mfr.add(base_item_##name, mfeat_weapon_of_choice, feat_weapon_of_choice_##name);            \
+        mfr.add(base_item_##name, mfeat_improved_crit, feat_improved_critical_##name);              \
+        mfr.add(base_item_##name, mfeat_overwhelming_crit, feat_epic_overwhelming_critical_##name); \
+        mfr.add(base_item_##name, mfeat_devastating_crit, feat_epic_devastating_critical_##name);   \
     } while (0)
 
 // NOTE: No weapon of choice here
-#define ADD_WEAPON_FEATS_RANGED(name)                                                                \
-    do {                                                                                             \
-        mfr->add(base_item_##name, mfeat_weapon_focus, feat_weapon_focus_##name);                    \
-        mfr->add(base_item_##name, mfeat_weapon_focus_epic, feat_epic_weapon_focus_##name);          \
-        mfr->add(base_item_##name, mfeat_weapon_spec, feat_weapon_specialization_##name);            \
-        mfr->add(base_item_##name, mfeat_weapon_spec_epic, feat_epic_weapon_specialization_##name);  \
-        mfr->add(base_item_##name, mfeat_improved_crit, feat_improved_critical_##name);              \
-        mfr->add(base_item_##name, mfeat_overwhelming_crit, feat_epic_overwhelming_critical_##name); \
-        mfr->add(base_item_##name, mfeat_devastating_crit, feat_epic_devastating_critical_##name);   \
+#define ADD_WEAPON_FEATS_RANGED(name)                                                               \
+    do {                                                                                            \
+        mfr.add(base_item_##name, mfeat_weapon_focus, feat_weapon_focus_##name);                    \
+        mfr.add(base_item_##name, mfeat_weapon_focus_epic, feat_epic_weapon_focus_##name);          \
+        mfr.add(base_item_##name, mfeat_weapon_spec, feat_weapon_specialization_##name);            \
+        mfr.add(base_item_##name, mfeat_weapon_spec_epic, feat_epic_weapon_specialization_##name);  \
+        mfr.add(base_item_##name, mfeat_improved_crit, feat_improved_critical_##name);              \
+        mfr.add(base_item_##name, mfeat_overwhelming_crit, feat_epic_overwhelming_critical_##name); \
+        mfr.add(base_item_##name, mfeat_devastating_crit, feat_epic_devastating_critical_##name);   \
     } while (0)
 
 // NOTE: No weapon of choice here
-#define ADD_WEAPON_FEATS_OTHER(name, base)                                                           \
-    do {                                                                                             \
-        mfr->add(base_item_##name, mfeat_weapon_focus, feat_weapon_focus_##base);                    \
-        mfr->add(base_item_##name, mfeat_weapon_focus_epic, feat_epic_weapon_focus_##base);          \
-        mfr->add(base_item_##name, mfeat_weapon_spec, feat_weapon_specialization_##base);            \
-        mfr->add(base_item_##name, mfeat_weapon_spec_epic, feat_epic_weapon_specialization_##base);  \
-        mfr->add(base_item_##name, mfeat_improved_crit, feat_improved_critical_##base);              \
-        mfr->add(base_item_##name, mfeat_overwhelming_crit, feat_epic_overwhelming_critical_##base); \
-        mfr->add(base_item_##name, mfeat_devastating_crit, feat_epic_devastating_critical_##base);   \
+#define ADD_WEAPON_FEATS_OTHER(name, base)                                                          \
+    do {                                                                                            \
+        mfr.add(base_item_##name, mfeat_weapon_focus, feat_weapon_focus_##base);                    \
+        mfr.add(base_item_##name, mfeat_weapon_focus_epic, feat_epic_weapon_focus_##base);          \
+        mfr.add(base_item_##name, mfeat_weapon_spec, feat_weapon_specialization_##base);            \
+        mfr.add(base_item_##name, mfeat_weapon_spec_epic, feat_epic_weapon_specialization_##base);  \
+        mfr.add(base_item_##name, mfeat_improved_crit, feat_improved_critical_##base);              \
+        mfr.add(base_item_##name, mfeat_overwhelming_crit, feat_epic_overwhelming_critical_##base); \
+        mfr.add(base_item_##name, mfeat_devastating_crit, feat_epic_devastating_critical_##base);   \
     } while (0)
 
     ADD_WEAPON_FEATS(shortsword);
@@ -484,15 +484,15 @@ bool Profile::load_master_feats() const
     ADD_WEAPON_FEATS(dwarvenwaraxe);
     ADD_WEAPON_FEATS(whip);
 
-    mfr->set_bonus(mfeat_weapon_focus, 1);
-    mfr->set_bonus(mfeat_weapon_focus_epic, 2);
-    mfr->set_bonus(mfeat_weapon_spec, 2);
-    mfr->set_bonus(mfeat_weapon_spec_epic, 4);
+    mfr.set_bonus(mfeat_weapon_focus, 1);
+    mfr.set_bonus(mfeat_weapon_focus_epic, 2);
+    mfr.set_bonus(mfeat_weapon_spec, 2);
+    mfr.set_bonus(mfeat_weapon_spec_epic, 4);
     // [TODO] One here is just an indicator that char has feat.. for now.  Ultimately, dice rolls
     // and damage rolls will need to be included in ModifierResult
-    mfr->set_bonus(mfeat_devastating_crit, 1);
-    mfr->set_bonus(mfeat_improved_crit, 1);
-    mfr->set_bonus(mfeat_overwhelming_crit, 1);
+    mfr.set_bonus(mfeat_devastating_crit, 1);
+    mfr.set_bonus(mfeat_improved_crit, 1);
+    mfr.set_bonus(mfeat_overwhelming_crit, 1);
 
 #undef ADD_WEAPON_FEATS
 #undef ADD_WEAPON_FEATS_RANGED

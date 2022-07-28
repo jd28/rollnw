@@ -11,8 +11,8 @@ bool Inventory::instantiate()
 {
     for (auto& ii : items) {
         if (std::holds_alternative<Resref>(ii.item)) {
-            auto temp = nw::kernel::objects().load(std::get<Resref>(ii.item).view(), ObjectType::item);
-            if (temp.is_alive()) {
+            auto temp = kernel::objects().load<Item>(std::get<Resref>(ii.item).view());
+            if (temp) {
                 ii.item = temp;
             } else {
                 LOG_F(WARNING, "failed to instantiate item, perhaps you're missing '{}.uti'?",
@@ -31,8 +31,8 @@ bool Inventory::from_gff(const GffInputArchiveStruct& archive, SerializationProf
         bool valid_entry = true;
         auto st = archive["ItemList"][i];
         InventoryItem ii;
-
-        if (owner.get<Common>()->object_type == ObjectType::store) {
+        auto common = owner->as_common();
+        if (common && common->object_type == ObjectType::store) {
             st.get_to("Infinite", ii.infinite, false);
         }
         st.get_to("Repos_PosX", ii.pos_x);
@@ -43,7 +43,8 @@ bool Inventory::from_gff(const GffInputArchiveStruct& archive, SerializationProf
                 ii.item = *r;
             }
         } else if (SerializationProfile::instance == profile) {
-            auto temp = nw::kernel::objects().deserialize(ObjectType::item, st, profile);
+            auto temp = kernel::objects().make<Item>();
+            Item::deserialize(temp, st, profile);
             ii.item = temp;
             if (!temp) {
                 valid_entry = false;
@@ -68,7 +69,8 @@ bool Inventory::from_json(const nlohmann::json& archive, SerializationProfile pr
         for (size_t i = 0; i < archive.size(); ++i) {
             bool valid_entry = true;
             InventoryItem ii;
-            if (owner.get<Common>()->object_type == ObjectType::store) {
+            auto common = owner->as_common();
+            if (common && common->object_type == ObjectType::store) {
                 archive[i].at("infinite").get_to(ii.infinite);
             }
             archive[i].at("position")[0].get_to(ii.pos_x);
@@ -76,7 +78,8 @@ bool Inventory::from_json(const nlohmann::json& archive, SerializationProfile pr
             if (profile == SerializationProfile::blueprint) {
                 ii.item = archive[i].at("item").get<Resref>();
             } else {
-                auto temp = nw::kernel::objects().deserialize(ObjectType::item, archive[i].at("item"), profile);
+                auto temp = kernel::objects().make<Item>();
+                Item::deserialize(temp, archive[i].at("item"), profile);
                 ii.item = temp;
                 if (!temp) {
                     valid_entry = false;
@@ -105,7 +108,8 @@ bool Inventory::to_gff(GffOutputArchiveStruct& archive, SerializationProfile pro
                         .add_field("Repos_PosX", it.pos_x)
                         .add_field("Repos_Posy", it.pos_y);
 
-        if (owner.get<Common>()->object_type == ObjectType::store && it.infinite) {
+        auto common = owner->as_common();
+        if (common && common->object_type == ObjectType::store && it.infinite) {
             str.add_field("Infinite", it.infinite);
         }
 
@@ -113,10 +117,10 @@ bool Inventory::to_gff(GffOutputArchiveStruct& archive, SerializationProfile pro
             if (std::holds_alternative<Resref>(it.item)) {
                 str.add_field("InventoryRes", std::get<Resref>(it.item));
             } else {
-                str.add_field("InventoryRes", std::get<flecs::entity>(it.item).get<Common>()->resref);
+                str.add_field("InventoryRes", std::get<Item*>(it.item)->common.resref);
             }
         } else {
-            kernel::objects().serialize(std::get<flecs::entity>(it.item), str, profile);
+            Item::serialize(std::get<Item*>(it.item), str, profile);
         }
     }
     return true;
@@ -130,13 +134,14 @@ nlohmann::json Inventory::to_json(SerializationProfile profile) const
         for (const auto& it : items) {
             j.push_back({});
             auto& payload = j.back();
-            if (owner.get<Common>()->object_type == ObjectType::store) {
+            auto common = owner->as_common();
+            if (common && common->object_type == ObjectType::store) {
                 payload["infinite"] = it.infinite;
             }
 
             payload["position"] = {it.pos_x, it.pos_y};
-            if (std::holds_alternative<flecs::entity>(it.item)) {
-                kernel::objects().serialize(std::get<flecs::entity>(it.item), payload["item"], profile);
+            if (std::holds_alternative<Item*>(it.item)) {
+                Item::serialize(std::get<Item*>(it.item), payload["item"], profile);
             } else {
                 if (SerializationProfile::blueprint == profile) {
                     payload["item"] = std::get<Resref>(it.item);

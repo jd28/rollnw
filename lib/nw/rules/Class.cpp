@@ -7,7 +7,7 @@ namespace nw {
 
 ClassInfo::ClassInfo(const TwoDARowView& tda)
 {
-    auto class_array = nw::kernel::world().get_mut<ClassArray>();
+    auto class_array = &nw::kernel::rules().classes;
     std::string temp_string;
     if (tda.get_to("label", temp_string)) {
         tda.get_to("Name", name);

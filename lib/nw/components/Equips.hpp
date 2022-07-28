@@ -2,8 +2,6 @@
 
 #include "../serialization/Archives.hpp"
 
-#include <flecs/flecs.h>
-
 #include <memory>
 #include <variant>
 
@@ -143,7 +141,7 @@ constexpr EquipIndex equip_slot_to_index(EquipSlot slot)
     }
 }
 
-using EquipItem = std::variant<Resref, flecs::entity>;
+using EquipItem = std::variant<Resref, Item*>;
 
 struct Equips {
     Equips() = default;

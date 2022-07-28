@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../components/ObjectBase.hpp"
 #include "system.hpp"
 #include "type_traits.hpp"
 
@@ -27,7 +28,7 @@ enum struct ModifierSource {
 };
 
 using ModifierResult = Variant<int, float>;
-using ModifierFunction = std::function<ModifierResult(flecs::entity)>;
+using ModifierFunction = std::function<ModifierResult(const ObjectBase*)>;
 using ModifierVariant = Variant<int, float, ModifierFunction>;
 
 struct Modifier {

@@ -8,7 +8,6 @@
 namespace nw::kernel {
 
 Services::Services()
-    : world_{}
 {
 }
 Services::~Services() { }
@@ -74,9 +73,6 @@ void Services::shutdown()
     objects_.reset();
     resources_.reset();
     strings_.reset();
-
-    world().get_mut<TwoDACache>()->clear();
-
     started_ = false;
 }
 
@@ -88,8 +84,6 @@ void Services::start(bool fail_hard)
         LOG_F(WARNING, "Services have already been started...");
         return;
     }
-
-    world().add<TwoDACache>();
 
     if (!objects_) {
         objects_ = std::make_unique<ObjectSystem>();
@@ -126,20 +120,18 @@ ObjectSystem& objects() { return *detail::s_services.objects_.get(); }
 Resources& resman() { return *detail::s_services.resources_.get(); }
 Rules& rules() { return *detail::s_services.rules_.get(); }
 Strings& strings() { return *detail::s_services.strings_.get(); }
-flecs::world& world() { return detail::s_services.world_; }
 
 bool load_profile(const GameProfile* profile)
 {
     return services().set_profile(profile);
 }
 
-flecs::entity load_module(const std::filesystem::path& path, std::string_view manifest)
+Module* load_module(const std::filesystem::path& path, std::string_view manifest)
 {
-    flecs::entity mod;
-
     resman().load_module(path, manifest);
-    mod = objects().make_module();
-    if (objects().valid(mod)) {
+
+    Module* mod = objects().make_module();
+    if (mod) {
         Module::instantiate(mod);
     }
 
@@ -152,8 +144,6 @@ void unload_module()
     objects().clear();
     resman().unload_module();
     strings().unload_custom_tlk();
-
-    world() = flecs::world();
 }
 
 } // namespace nw::kernel

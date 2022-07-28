@@ -12,25 +12,24 @@ namespace fs = std::filesystem;
 
 TEST_CASE("waypoint: from_gff", "[objects]")
 {
-    flecs::entity ent = nw::kernel::objects().load(fs::path("test_data/user/development/wp_behexit001.utw"));
-    REQUIRE(ent.is_alive());
+    auto obj = nw::kernel::objects().load<nw::Waypoint>(fs::path("test_data/user/development/wp_behexit001.utw"));
+    REQUIRE(obj);
 }
 
 TEST_CASE("waypoint: json round trip", "[objects]")
 {
-    flecs::entity ent = nw::kernel::objects().load(fs::path("test_data/user/development/wp_behexit001.utw"));
-    REQUIRE(ent.is_alive());
+    auto ent = nw::kernel::objects().load<nw::Waypoint>(fs::path("test_data/user/development/wp_behexit001.utw"));
+    REQUIRE(ent);
 
     nlohmann::json j;
-    nw::kernel::objects().serialize(ent, j, nw::SerializationProfile::blueprint);
+    nw::Waypoint::serialize(ent, j, nw::SerializationProfile::blueprint);
 
-    auto ent2 = nw::kernel::objects().deserialize(nw::ObjectType::waypoint,
-        j,
-        nw::SerializationProfile::blueprint);
-    REQUIRE(ent2.is_alive());
+    auto ent2 = nw::kernel::objects().make<nw::Waypoint>();
+    REQUIRE(ent2);
+    REQUIRE(nw::Waypoint::deserialize(ent2, j, nw::SerializationProfile::blueprint));
 
     nlohmann::json j2;
-    nw::kernel::objects().serialize(ent2, j2, nw::SerializationProfile::blueprint);
+    nw::Waypoint::serialize(ent2, j2, nw::SerializationProfile::blueprint);
 
     REQUIRE(j == j2);
 
@@ -43,11 +42,12 @@ TEST_CASE("waypoint: gff round trip", "[ojbects]")
     nw::GffInputArchive g("test_data/user/development/wp_behexit001.utw");
     REQUIRE(g.valid());
 
-    flecs::entity ent = nw::kernel::objects().deserialize(nw::ObjectType::waypoint,
-        g.toplevel(),
-        nw::SerializationProfile::blueprint);
+    auto ent = nw::kernel::objects().make<nw::Waypoint>();
+    REQUIRE(ent);
 
-    nw::GffOutputArchive oa = nw::kernel::objects().serialize(ent, nw::SerializationProfile::blueprint);
+    REQUIRE(nw::Waypoint::deserialize(ent, g.toplevel(), nw::SerializationProfile::blueprint));
+
+    nw::GffOutputArchive oa = nw::Waypoint::serialize(ent, nw::SerializationProfile::blueprint);
     oa.write_to("tmp/wp_behexit001.utw");
 
     nw::GffInputArchive g2{"tmp/wp_behexit001.utw"};

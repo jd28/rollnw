@@ -17,10 +17,10 @@ struct StoreScripts {
 /// Store Inventory component
 struct StoreInventory {
     StoreInventory() = default;
-    StoreInventory(flecs::entity owner);
+    StoreInventory(ObjectBase* owner);
 
     /// Sets inventory owner
-    void set_owner(flecs::entity owner);
+    void set_owner(ObjectBase* owner);
 
     Inventory armor;
     Inventory miscellaneous;
@@ -31,15 +31,26 @@ struct StoreInventory {
     std::vector<int32_t> will_only_buy;
 };
 
-struct Store {
+struct Store : public ObjectBase {
+    Store();
+
+    virtual Common* as_common() override { return &common; }
+    virtual const Common* as_common() const override { return &common; }
+    Store* as_store() override { return this; }
+    const Store* as_store() const override { return this; }
+
     static constexpr int json_archive_version = 1;
     static constexpr ObjectType object_type = ObjectType::store;
 
-    static bool deserialize(flecs::entity ent, const GffInputArchiveStruct& archive, SerializationProfile profile);
-    static bool deserialize(flecs::entity ent, const nlohmann::json& archive, SerializationProfile profile);
-    static GffOutputArchive serialize(const flecs::entity ent, SerializationProfile profile);
-    static bool serialize(const flecs::entity ent, GffOutputArchiveStruct& archive, SerializationProfile profile);
-    static bool serialize(const flecs::entity ent, nlohmann::json& archive, SerializationProfile profile);
+    static bool deserialize(Store* obj, const GffInputArchiveStruct& archive, SerializationProfile profile);
+    static bool deserialize(Store* obj, const nlohmann::json& archive, SerializationProfile profile);
+    static GffOutputArchive serialize(const Store* obj, SerializationProfile profile);
+    static bool serialize(const Store* obj, GffOutputArchiveStruct& archive, SerializationProfile profile);
+    static bool serialize(const Store* obj, nlohmann::json& archive, SerializationProfile profile);
+
+    Common common;
+    StoreScripts scripts;
+    StoreInventory inventory;
 
     int32_t blackmarket_markdown = 0;
     int32_t identify_price = 100;

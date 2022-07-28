@@ -13,8 +13,6 @@
 #include "LevelStats.hpp"
 #include "Location.hpp"
 
-#include <flecs/flecs.h>
-
 namespace nw {
 
 struct CreatureScripts {
@@ -40,16 +38,31 @@ struct CreatureScripts {
     Resref on_user_defined;
 };
 
-struct Creature {
+struct Creature : public ObjectBase {
+    Creature();
     static constexpr int json_archive_version = 1;
     static constexpr ObjectType object_type = ObjectType::creature;
 
-    static bool deserialize(flecs::entity ent, const GffInputArchiveStruct& archive, SerializationProfile profile);
-    static bool deserialize(flecs::entity ent, const nlohmann::json& archive, SerializationProfile profile);
+    virtual Common* as_common() override { return &common; }
+    virtual const Common* as_common() const override { return &common; }
+    virtual Creature* as_creature() override { return this; }
+    virtual const Creature* as_creature() const override { return this; }
 
-    static GffOutputArchive serialize(const flecs::entity ent, SerializationProfile profile);
-    static bool serialize(const flecs::entity ent, GffOutputArchiveStruct& archive, SerializationProfile profile);
-    static bool serialize(const flecs::entity ent, nlohmann::json& archive, SerializationProfile profile);
+    static bool deserialize(Creature* obj, const GffInputArchiveStruct& archive, SerializationProfile profile);
+    static bool deserialize(Creature* obj, const nlohmann::json& archive, SerializationProfile profile);
+
+    static GffOutputArchive serialize(const Creature* obj, SerializationProfile profile);
+    static bool serialize(const Creature* obj, GffOutputArchiveStruct& archive, SerializationProfile profile);
+    static bool serialize(const Creature* obj, nlohmann::json& archive, SerializationProfile profile);
+
+    Common common;
+    Appearance appearance;
+    CombatInfo combat_info;
+    Equips equipment;
+    Inventory inventory;
+    LevelStats levels;
+    CreatureScripts scripts;
+    CreatureStats stats;
 
     Resref conversation;
     std::string deity;

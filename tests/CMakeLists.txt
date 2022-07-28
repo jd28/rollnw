@@ -86,7 +86,6 @@ target_include_directories(rollnw_test PRIVATE
 target_link_libraries(rollnw_test PRIVATE
     nw
     nw-profiles
-    flecs
     Threads::Threads
     Catch2::Catch2)
 

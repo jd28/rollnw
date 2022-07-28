@@ -13,34 +13,29 @@ namespace fs = std::filesystem;
 
 TEST_CASE("trigger: from_gff", "[objects]")
 {
-    auto ent = nw::kernel::objects().load(fs::path("test_data/user/development/pl_spray_sewage.utt"));
-    REQUIRE(ent.is_alive());
+    auto ent = nw::kernel::objects().load<nw::Trigger>(fs::path("test_data/user/development/pl_spray_sewage.utt"));
+    REQUIRE(ent);
 
-    auto t = ent.get<nw::Trigger>();
-    auto common = ent.get<nw::Common>();
-    auto scripts = ent.get<nw::TriggerScripts>();
-
-    REQUIRE(common->resref == "pl_spray_sewage");
-    REQUIRE(t->portrait == 0);
-    REQUIRE(t->loadscreen == 0);
-    REQUIRE(scripts->on_enter == "pl_trig_sewage");
+    REQUIRE(ent->common.resref == "pl_spray_sewage");
+    REQUIRE(ent->portrait == 0);
+    REQUIRE(ent->loadscreen == 0);
+    REQUIRE(ent->scripts.on_enter == "pl_trig_sewage");
 }
 
 TEST_CASE("trigger: json round trip", "[objects]")
 {
-    auto ent = nw::kernel::objects().load(fs::path("test_data/user/development/pl_spray_sewage.utt"));
-    REQUIRE(ent.is_alive());
+    auto ent = nw::kernel::objects().load<nw::Trigger>(fs::path("test_data/user/development/pl_spray_sewage.utt"));
+    REQUIRE(ent);
 
     nlohmann::json j;
-    nw::kernel::objects().serialize(ent, j, nw::SerializationProfile::blueprint);
+    nw::Trigger::serialize(ent, j, nw::SerializationProfile::blueprint);
 
-    auto ent2 = nw::kernel::objects().deserialize(nw::ObjectType::trigger,
-        j,
-        nw::SerializationProfile::blueprint);
-    REQUIRE(ent2.is_alive());
+    auto ent2 = nw::kernel::objects().make<nw::Trigger>();
+    REQUIRE(ent2);
+    REQUIRE(nw::Trigger::deserialize(ent2, j, nw::SerializationProfile::blueprint));
 
     nlohmann::json j2;
-    nw::kernel::objects().serialize(ent2, j2, nw::SerializationProfile::blueprint);
+    REQUIRE(nw::Trigger::serialize(ent2, j2, nw::SerializationProfile::blueprint));
 
     REQUIRE(j == j2);
 
@@ -48,17 +43,16 @@ TEST_CASE("trigger: json round trip", "[objects]")
     f << std::setw(4) << j;
 }
 
-TEST_CASE("trigger: gff round trip", "[ojbects]")
+TEST_CASE("trigger: gff round trip", "[objects]")
 {
     nw::GffInputArchive g("test_data/user/development/pl_spray_sewage.utt");
     REQUIRE(g.valid());
 
-    auto ent = nw::kernel::objects().deserialize(nw::ObjectType::trigger,
-        g.toplevel(),
-        nw::SerializationProfile::blueprint);
-    REQUIRE(ent.is_alive());
+    auto ent = nw::kernel::objects().make<nw::Trigger>();
+    REQUIRE(ent);
+    REQUIRE(nw::Trigger::deserialize(ent, g.toplevel(), nw::SerializationProfile::blueprint));
 
-    nw::GffOutputArchive oa = nw::kernel::objects().serialize(ent, nw::SerializationProfile::blueprint);
+    nw::GffOutputArchive oa = nw::Trigger::serialize(ent, nw::SerializationProfile::blueprint);
     oa.write_to("tmp/pl_spray_sewage_2.utt");
 
     nw::GffInputArchive g2{"tmp/pl_spray_sewage_2.utt"};

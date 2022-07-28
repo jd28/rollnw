@@ -1,18 +1,9 @@
 #pragma once
 
+#include "../components/Common.hpp"
+#include "../components/ObjectBase.hpp"
 #include "../serialization/Archives.hpp"
 #include "../util/enum_flags.hpp"
-#include "Creature.hpp"
-#include "Door.hpp"
-#include "Encounter.hpp"
-#include "Item.hpp"
-#include "Placeable.hpp"
-#include "Sound.hpp"
-#include "Store.hpp"
-#include "Trigger.hpp"
-#include "Waypoint.hpp"
-
-#include <flecs/flecs.h>
 
 #include <bitset>
 
@@ -88,33 +79,45 @@ struct Tile {
     uint8_t srclight2 = 0;
 };
 
-struct Area {
+struct Area : public ObjectBase {
+    Area();
+
     static constexpr int json_archive_version = 1;
     static constexpr ObjectType object_type = ObjectType::area;
 
+    virtual Common* as_common() override { return &common; }
+    virtual const Common* as_common() const override { return &common; }
+    virtual Area* as_area() override { return this; }
+    virtual const Area* as_area() const override { return this; }
+
     /// Deserialize from GFF
-    static bool deserialize(flecs::entity ent, const GffInputArchiveStruct& are,
+    static bool deserialize(Area* obj, const GffInputArchiveStruct& are,
         const GffInputArchiveStruct& git, const GffInputArchiveStruct& gic);
 
     /// Deserialize from JSON
     /// @note Note only supports does 'caf' style input/output, i.e. ARE + GIT + GIC.
-    static bool deserialize(flecs::entity ent, const nlohmann::json& caf);
+    static bool deserialize(Area* obj, const nlohmann::json& caf);
 
-    static bool deserialize(flecs::entity ent, const nlohmann::json& are,
+    static bool deserialize(Area* obj, const nlohmann::json& are,
         const nlohmann::json& git, const nlohmann::json& gic);
 
     /// Serialize to JSON
-    static void serialize(const flecs::entity ent, nlohmann::json& archive);
+    static void serialize(const Area* obj, nlohmann::json& archive);
 
-    std::vector<flecs::entity> creatures;
-    std::vector<flecs::entity> doors;
-    std::vector<flecs::entity> encounters;
-    std::vector<flecs::entity> items;
-    std::vector<flecs::entity> placeables;
-    std::vector<flecs::entity> sounds;
-    std::vector<flecs::entity> stores;
-    std::vector<flecs::entity> triggers;
-    std::vector<flecs::entity> waypoints;
+    Common common;
+    AreaScripts scripts;
+    AreaWeather weather;
+
+    // [TODO] will maybe need to merge later on.
+    std::vector<Creature*> creatures;
+    std::vector<Door*> doors;
+    std::vector<Encounter*> encounters;
+    std::vector<Item*> items;
+    std::vector<Placeable*> placeables;
+    std::vector<Sound*> sounds;
+    std::vector<Store*> stores;
+    std::vector<Trigger*> triggers;
+    std::vector<Waypoint*> waypoints;
     std::string comments;
     LocString name;
     Resref tileset;

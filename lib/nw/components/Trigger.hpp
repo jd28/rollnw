@@ -5,7 +5,6 @@
 #include "ObjectBase.hpp"
 #include "Trap.hpp"
 
-#include <flecs/flecs.h>
 #include <glm/glm.hpp>
 
 #include <vector>
@@ -25,17 +24,27 @@ struct TriggerScripts {
     Resref on_user_defined;
 };
 
-struct Trigger {
+struct Trigger : public ObjectBase {
+    Trigger();
+
     static constexpr int json_archive_version = 1;
     static constexpr ObjectType object_type = ObjectType::trigger;
 
-    // Serialization
-    static bool deserialize(flecs::entity ent, const GffInputArchiveStruct& archive, SerializationProfile profile);
-    static bool deserialize(flecs::entity ent, const nlohmann::json& archive, SerializationProfile profile);
-    static GffOutputArchive serialize(const flecs::entity ent, SerializationProfile profile);
-    static bool serialize(const flecs::entity ent, GffOutputArchiveStruct& archive, SerializationProfile profile);
-    static bool serialize(const flecs::entity ent, nlohmann::json& archive, SerializationProfile profile);
+    virtual Common* as_common() override { return &common; }
+    virtual const Common* as_common() const override { return &common; }
+    virtual Trigger* as_trigger() override { return this; }
+    virtual const Trigger* as_trigger() const override { return this; }
 
+    // Serialization
+    static bool deserialize(Trigger* obj, const GffInputArchiveStruct& archive, SerializationProfile profile);
+    static bool deserialize(Trigger* obj, const nlohmann::json& archive, SerializationProfile profile);
+    static GffOutputArchive serialize(const Trigger* obj, SerializationProfile profile);
+    static bool serialize(const Trigger* obj, GffOutputArchiveStruct& archive, SerializationProfile profile);
+    static bool serialize(const Trigger* obj, nlohmann::json& archive, SerializationProfile profile);
+
+    Common common;
+    Trap trap;
+    TriggerScripts scripts;
     std::vector<glm::vec3> geometry;
     std::string linked_to;
 

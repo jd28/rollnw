@@ -13,19 +13,18 @@ namespace nwk = nw::kernel;
 
 TEST_CASE("modifier", "[rules]")
 {
-    auto ent = nw::kernel::objects().load(fs::path("../tests/test_data/user/development/pl_agent_001.utc"));
-    REQUIRE(ent.is_alive());
-    auto stats = ent.get_mut<nw::LevelStats>();
-    stats->entries[0].id = nwn1::class_type_pale_master;
+    auto ent = nw::kernel::objects().load<nw::Creature>(fs::path("../tests/test_data/user/development/pl_agent_001.utc"));
+    REQUIRE(ent);
+    ent->levels.entries[0].id = nwn1::class_type_pale_master;
 
     auto is_pm = nw::Requirement{{nwn1::qual::class_level(nwn1::class_type_pale_master, 1)}};
 
-    auto pm_ac = [](flecs::entity entity) -> nw::ModifierResult {
-        auto stat = entity.get<nw::LevelStats>();
-        if (!stat) {
+    auto pm_ac = [](const nw::ObjectBase* obj) -> nw::ModifierResult {
+        auto cre = obj->as_creature();
+        if (!cre) {
             return 0;
         }
-        auto pm_level = stat->level_by_class(nwn1::class_type_pale_master);
+        auto pm_level = cre->levels.level_by_class(nwn1::class_type_pale_master);
         return pm_level > 0 ? ((pm_level / 4) + 1) * 2 : 0;
     };
 
@@ -41,20 +40,19 @@ TEST_CASE("modifier kernel", "[rules]")
     auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
     REQUIRE(mod);
 
-    auto ent = nwk::objects().load(fs::path("test_data/user/development/pl_agent_001.utc"));
-    REQUIRE(ent.is_alive());
-    auto stats = ent.get_mut<nw::LevelStats>();
-    stats->entries[0].id = nwn1::class_type_pale_master;
+    auto ent = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/pl_agent_001.utc"));
+    REQUIRE(ent);
+    ent->levels.entries[0].id = nwn1::class_type_pale_master;
 
     auto res = nwk::rules().calculate<int>(ent, nwn1::mod_type_armor_class, nwn1::ac_natural);
     REQUIRE(res == 6);
 
-    auto pm_ac_nerf = [](flecs::entity entity) -> nw::ModifierResult {
-        auto stat = entity.get<nw::LevelStats>();
-        if (!stat) {
+    auto pm_ac_nerf = [](const nw::ObjectBase* obj) -> nw::ModifierResult {
+        auto cre = obj->as_creature();
+        if (!cre) {
             return 0;
         }
-        auto pm_level = stat->level_by_class(nwn1::class_type_pale_master);
+        auto pm_level = cre->levels.level_by_class(nwn1::class_type_pale_master);
         return ((pm_level / 4) + 1);
     };
 
@@ -74,12 +72,11 @@ TEST_CASE("modifier kernel 2", "[rules]")
     auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
     REQUIRE(mod);
 
-    auto ent = nwk::objects().load(fs::path("test_data/user/development/pl_agent_001.utc"));
-    REQUIRE(ent.is_alive());
-    auto stats = ent.get_mut<nw::CreatureStats>();
-    stats->add_feat(nwn1::feat_epic_toughness_1);
-    stats->add_feat(nwn1::feat_epic_toughness_2);
-    stats->add_feat(nwn1::feat_epic_toughness_3);
+    auto ent = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/pl_agent_001.utc"));
+    REQUIRE(ent);
+    ent->stats.add_feat(nwn1::feat_epic_toughness_1);
+    ent->stats.add_feat(nwn1::feat_epic_toughness_2);
+    ent->stats.add_feat(nwn1::feat_epic_toughness_3);
 
     auto [highest, nth] = nwn1::has_feat_successor(ent, nwn1::feat_epic_toughness_1);
     REQUIRE(highest == nwn1::feat_epic_toughness_4);

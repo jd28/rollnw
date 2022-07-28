@@ -13,37 +13,34 @@ namespace fs = std::filesystem;
 
 TEST_CASE("module: from_gff", "[objects]")
 {
-    auto ent = nw::kernel::objects().make(nw::ObjectType::module);
+    auto mod = new nw::Module;
     nw::GffInputArchive g{"test_data/user/scratch/module.ifo"};
     REQUIRE(g.valid());
-    nw::Module::deserialize(ent, g.toplevel());
-
-    auto mod = ent.get<nw::Module>();
-    auto scripts = ent.get<nw::ModuleScripts>();
+    nw::Module::deserialize(mod, g.toplevel());
 
     REQUIRE(mod->haks.size() == 0);
     REQUIRE(!mod->is_save_game);
     REQUIRE(mod->name.get(nw::LanguageID::english) == "test_module");
-    REQUIRE(scripts->on_load == "x2_mod_def_load");
+    REQUIRE(mod->scripts.on_load == "x2_mod_def_load");
 }
 
 TEST_CASE("module: json round trip", "[objects]")
 {
-    auto ent = nw::kernel::objects().make(nw::ObjectType::module);
+    auto ent = new nw::Module;
     nw::GffInputArchive g{"test_data/user/scratch/module.ifo"};
     REQUIRE(g.valid());
     nw::Module::deserialize(ent, g.toplevel());
-    REQUIRE(ent.is_alive());
+    REQUIRE(ent);
 
     nlohmann::json j;
-    nw::kernel::objects().serialize(ent, j, nw::SerializationProfile::blueprint);
+    nw::Module::serialize(ent, j);
 
-    auto ent2 = nw::kernel::objects().make(nw::ObjectType::module);
+    auto ent2 = new nw::Module;
     nw::Module::deserialize(ent2, j);
-    REQUIRE(ent2.is_alive());
+    REQUIRE(ent2);
 
     nlohmann::json j2;
-    nw::kernel::objects().serialize(ent2, j2, nw::SerializationProfile::blueprint);
+    nw::Module::serialize(ent2, j2);
 
     REQUIRE(j == j2);
 
@@ -53,11 +50,11 @@ TEST_CASE("module: json round trip", "[objects]")
 
 TEST_CASE("module: gff round trip", "[ojbects]")
 {
-    auto ent = nw::kernel::objects().make(nw::ObjectType::module);
+    auto ent = new nw::Module;
+    REQUIRE(ent);
     nw::GffInputArchive g{"test_data/user/scratch/module.ifo"};
     REQUIRE(g.valid());
     nw::Module::deserialize(ent, g.toplevel());
-    REQUIRE(ent.is_alive());
 
     nw::GffOutputArchive oa = nw::Module::serialize(ent);
     oa.write_to("tmp/module_2.ifo");

@@ -12,33 +12,26 @@ namespace fs = std::filesystem;
 
 TEST_CASE("door: from_gff", "[objects]")
 {
-    auto door = nw::kernel::objects().load(fs::path("test_data/user/development/door_ttr_002.utd"));
+    auto door = nw::kernel::objects().load<nw::Door>(fs::path("test_data/user/development/door_ttr_002.utd"));
 
-    auto d = door.get<nw::Door>();
-    auto common = door.get<nw::Common>();
-    auto lock = door.get<nw::Lock>();
-
-    REQUIRE(common->resref == "door_ttr_002");
-    REQUIRE(d->appearance == 0);
-    REQUIRE(!d->plot);
-    REQUIRE(!lock->locked);
-
-    door.destruct();
+    REQUIRE(door->common.resref == "door_ttr_002");
+    REQUIRE(door->appearance == 0);
+    REQUIRE(!door->plot);
+    REQUIRE(!door->lock.locked);
 }
 
 TEST_CASE("door: to_json", "[objects]")
 {
-    auto door = nw::kernel::objects().load(fs::path("test_data/user/development/door_ttr_002.utd"));
+    auto door = nw::kernel::objects().load<nw::Door>(fs::path("test_data/user/development/door_ttr_002.utd"));
 
     nlohmann::json j;
-    nw::kernel::objects().serialize(door, j, nw::SerializationProfile::blueprint);
+    REQUIRE(nw::Door::serialize(door, j, nw::SerializationProfile::blueprint));
 
-    auto door2 = nw::kernel::objects().deserialize(nw::ObjectType::door, j,
-        nw::SerializationProfile::blueprint);
-    REQUIRE(door2.is_alive());
+    nw::Door door2;
+    REQUIRE(nw::Door::deserialize(&door2, j, nw::SerializationProfile::blueprint));
 
     nlohmann::json j2;
-    nw::kernel::objects().serialize(door, j2, nw::SerializationProfile::blueprint);
+    REQUIRE(nw::Door::serialize(&door2, j2, nw::SerializationProfile::blueprint));
     REQUIRE(j == j2);
 
     std::ofstream f{"tmp/door_ttr_002.utd.json"};
@@ -50,9 +43,9 @@ TEST_CASE("door: gff round trip", "[ojbects]")
     nw::GffInputArchive g("test_data/user/development/door_ttr_002.utd");
     REQUIRE(g.valid());
 
-    auto door = nw::kernel::objects().load(fs::path("test_data/user/development/door_ttr_002.utd"));
+    auto door = nw::kernel::objects().load<nw::Door>(fs::path("test_data/user/development/door_ttr_002.utd"));
 
-    nw::GffOutputArchive oa = nw::kernel::objects().serialize(door, nw::SerializationProfile::blueprint);
+    nw::GffOutputArchive oa = nw::Door::serialize(door, nw::SerializationProfile::blueprint);
     oa.write_to("tmp/door_ttr_002.utd");
 
     nw::GffInputArchive g2("tmp/door_ttr_002.utd");

@@ -8,8 +8,6 @@
 #include "Saves.hpp"
 #include "Trap.hpp"
 
-#include <flecs/flecs.h>
-
 namespace nw {
 
 enum struct PlaceableAnimationState : uint8_t {
@@ -45,16 +43,28 @@ struct PlaceableScripts {
     Resref on_user_defined;
 };
 
-struct Placeable {
+struct Placeable : public ObjectBase {
+    Placeable();
     static constexpr int json_archive_version = 1;
     static constexpr ObjectType object_type = ObjectType::placeable;
 
+    virtual Common* as_common() override { return &common; }
+    virtual const Common* as_common() const override { return &common; }
+    virtual Placeable* as_placeable() override { return this; }
+    virtual const Placeable* as_placeable() const override { return this; }
+
     // Serialization
-    static bool deserialize(flecs::entity ent, const GffInputArchiveStruct& archive, SerializationProfile profile);
-    static bool deserialize(flecs::entity ent, const nlohmann::json& archive, SerializationProfile profile);
-    static GffOutputArchive serialize(const flecs::entity ent, SerializationProfile profile);
-    static bool serialize(const flecs::entity ent, GffOutputArchiveStruct& archive, SerializationProfile profile);
-    static bool serialize(const flecs::entity ent, nlohmann::json& archive, SerializationProfile profile);
+    static bool deserialize(Placeable* obj, const GffInputArchiveStruct& archive, SerializationProfile profile);
+    static bool deserialize(Placeable* obj, const nlohmann::json& archive, SerializationProfile profile);
+    static GffOutputArchive serialize(const Placeable* obj, SerializationProfile profile);
+    static bool serialize(const Placeable* obj, GffOutputArchiveStruct& archive, SerializationProfile profile);
+    static bool serialize(const Placeable* obj, nlohmann::json& archive, SerializationProfile profile);
+
+    Common common;
+    PlaceableScripts scripts;
+    Inventory inventory;
+    Lock lock;
+    Trap trap;
 
     Resref conversation;
     LocString description;

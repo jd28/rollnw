@@ -3,34 +3,41 @@
 #include "Common.hpp"
 #include "ObjectBase.hpp"
 
-#include <flecs/flecs.h>
-
 #include <string>
 
 namespace nw {
 
-struct Waypoint {
+struct Waypoint : public ObjectBase {
+    Waypoint();
+
     static constexpr int json_archive_version = 1;
     static constexpr ObjectType object_type = ObjectType::waypoint;
 
+    virtual Common* as_common() override { return &common; }
+    virtual const Common* as_common() const override { return &common; }
+    virtual Waypoint* as_waypoint() override { return this; }
+    virtual const Waypoint* as_waypoint() const override { return this; }
+
     /// Deserializes entity from GFF
-    static bool deserialize(flecs::entity entity, const GffInputArchiveStruct& archive,
+    static bool deserialize(Waypoint* obj, const GffInputArchiveStruct& archive,
         SerializationProfile profile);
 
     /// Deserializes entity from JSON
-    static bool deserialize(flecs::entity entity, const nlohmann::json& archive,
+    static bool deserialize(Waypoint* obj, const nlohmann::json& archive,
         SerializationProfile profile);
 
     /// Deserializes entity to GFF
-    static GffOutputArchive serialize(const flecs::entity entity, SerializationProfile profile);
+    static GffOutputArchive serialize(const Waypoint* obj, SerializationProfile profile);
 
     /// Deserializes entity to GFF
-    static bool serialize(const flecs::entity entity, GffOutputArchiveStruct& archive,
+    static bool serialize(const Waypoint* obj, GffOutputArchiveStruct& archive,
         SerializationProfile profile);
 
     /// Deserializes entity to JSON
-    static void serialize(const flecs::entity entity, nlohmann::json& archive,
+    static void serialize(const Waypoint* obj, nlohmann::json& archive,
         SerializationProfile profile);
+
+    Common common;
 
     /// Description of waypoint
     LocString description;

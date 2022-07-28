@@ -5,7 +5,6 @@
 #include "type_traits.hpp"
 
 #include <absl/container/flat_hash_map.h>
-#include <flecs/flecs.h>
 
 #include <cstdint>
 #include <limits>

@@ -14,8 +14,8 @@ TEST_CASE("requirement", "[rules]")
     auto mod = nw::kernel::load_module("test_data/user/modules/DockerDemo.mod");
     REQUIRE(mod);
 
-    auto ent = nw::kernel::objects().load(fs::path("test_data/user/development/pl_agent_001.utc"));
-    REQUIRE(ent.is_alive());
+    auto ent = nw::kernel::objects().load<nw::Creature>(fs::path("test_data/user/development/pl_agent_001.utc"));
+    REQUIRE(ent);
 
     nw::Requirement req{{
         nwn1::qual::ability(nwn1::ability_strength, 0, 20),
@@ -46,8 +46,8 @@ TEST_CASE("requirement: feats", "[rules]")
     auto mod = nw::kernel::load_module("test_data/user/modules/DockerDemo.mod");
     REQUIRE(mod);
 
-    auto ent = nw::kernel::objects().load(fs::path("test_data/user/development/pl_agent_001.utc"));
-    REQUIRE(ent.is_alive());
+    auto ent = nw::kernel::objects().load<nw::Creature>(fs::path("test_data/user/development/pl_agent_001.utc"));
+    REQUIRE(ent);
 
     auto feats = nwn1::get_all_available_feats(ent);
     REQUIRE(feats.size() > 0);

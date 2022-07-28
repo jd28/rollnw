@@ -7,28 +7,25 @@
 #include <nw/components/Creature.hpp>
 #include <nw/kernel/Kernel.hpp>
 #include <nw/rules/MasterFeat.hpp>
-#include <nw/util/EntityView.hpp>
 
 namespace nwn1 {
 
-int get_skill_rank(flecs::entity ent, nw::Skill skill, bool base)
+int get_skill_rank(const nw::Creature* obj, nw::Skill skill, bool base)
 {
+    if (!obj) return 0;
+
     int result = 0;
     bool untrained = true;
 
-    auto skill_array = nw::kernel::world().get<nw::SkillArray>();
-    auto ski = skill_array->get(skill);
+    auto& skill_array = nw::kernel::rules().skills;
+    auto ski = skill_array.get(skill);
     if (!ski) {
         LOG_F(WARNING, "attempting to get skill rank of invalid skill: {}", int(skill));
         return 0;
     }
 
-    nw::EntityView<nw::CreatureStats> cre{ent};
-    if (!cre) return 0;
-    auto stats = cre.get<nw::CreatureStats>();
-
     // Base
-    result = stats->skills[static_cast<size_t>(skill)];
+    result = obj->stats.skills[static_cast<size_t>(skill)];
     if (base) return result;
 
     if (result == 0) {
@@ -36,13 +33,13 @@ int get_skill_rank(flecs::entity ent, nw::Skill skill, bool base)
     }
 
     if (untrained) {
-        auto ability = get_ability_score(cre, ski->ability) - 10;
+        auto ability = get_ability_score(obj, ski->ability) - 10;
         result += ability / 2;
     }
 
     // Feats
-    auto mfr = nw::kernel::world().get<nw::MasterFeatRegistry>();
-    auto mf_bonus = mfr->resolve<int>(cre, skill, mfeat_skill_focus, mfeat_skill_focus_epic);
+    auto& mfr = nw::kernel::rules().master_feats;
+    auto mf_bonus = mfr.resolve<int>(obj, skill, mfeat_skill_focus, mfeat_skill_focus_epic);
 
     for (auto b : mf_bonus) {
         result += b;

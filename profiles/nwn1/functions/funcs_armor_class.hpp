@@ -1,12 +1,15 @@
 #pragma once
 
-#include <nw/components/Item.hpp>
-#include <nw/util/EntityView.hpp>
+namespace nw {
+struct Creature;
+struct Item;
+struct ObjectBase;
+} // namespace nw
 
 namespace nwn1 {
 
-int calculate_ac_versus(flecs::entity ent, flecs::entity versus, bool is_touch_attack);
+int calculate_ac_versus(const nw::Creature* obj, const nw::ObjectBase* versus, bool is_touch_attack);
 
-int calculate_ac(nw::EntityView<nw::Item> ent);
+// int calculate_ac(const nw::Item* obj);
 
 } // namespace nwn1

@@ -86,122 +86,116 @@ nlohmann::json CreatureScripts::to_json() const
     return j;
 }
 
-bool Creature::deserialize(flecs::entity ent, const GffInputArchiveStruct& archive, SerializationProfile profile)
+Creature::Creature()
+    : common(ObjectType::creature)
 {
-    auto cre = ent.get_mut<Creature>();
-    auto common = ent.get_mut<Common>();
-    auto appearance = ent.get_mut<Appearance>();
-    auto combat_info = ent.get_mut<CombatInfo>();
-    auto equipment = ent.get_mut<Equips>();
-    auto inventory = ent.get_mut<Inventory>();
-    auto levels = ent.get_mut<LevelStats>();
-    auto scripts = ent.get_mut<CreatureScripts>();
-    auto stats = ent.get_mut<CreatureStats>();
+    inventory.owner = this;
+}
 
-    common->from_gff(archive, profile);
-    appearance->from_gff(archive);
-    combat_info->from_gff(archive);
-    equipment->from_gff(archive, profile);
-    inventory->from_gff(archive, profile);
-    levels->from_gff(archive);
-    scripts->from_gff(archive);
-    stats->from_gff(archive);
+bool Creature::deserialize(Creature* obj, const GffInputArchiveStruct& archive, SerializationProfile profile)
+{
+    if (!obj) {
+        throw std::runtime_error("unable to serialize null object");
+    }
 
-    archive.get_to("Conversation", cre->conversation);
-    archive.get_to("Deity", cre->deity);
-    archive.get_to("Description", cre->description);
-    archive.get_to("FirstName", cre->name_first);
-    archive.get_to("LastName", cre->name_last);
-    archive.get_to("Subrace", cre->subrace);
+    obj->common.from_gff(archive, profile);
+    obj->appearance.from_gff(archive);
+    obj->combat_info.from_gff(archive);
+    obj->equipment.from_gff(archive, profile);
+    obj->inventory.from_gff(archive, profile);
+    obj->levels.from_gff(archive);
+    obj->scripts.from_gff(archive);
+    obj->stats.from_gff(archive);
 
-    archive.get_to("ChallengeRating", cre->cr);
-    archive.get_to("CRAdjust", cre->cr_adjust);
-    archive.get_to("DecayTime", cre->decay_time);
-    archive.get_to("WalkRate", cre->walkrate);
+    archive.get_to("Conversation", obj->conversation);
+    archive.get_to("Deity", obj->deity);
+    archive.get_to("Description", obj->description);
+    archive.get_to("FirstName", obj->name_first);
+    archive.get_to("LastName", obj->name_last);
+    archive.get_to("Subrace", obj->subrace);
 
-    archive.get_to("FactionID", cre->faction_id);
-    archive.get_to("CurrentHitPoints", cre->hp_current);
-    archive.get_to("HitPoints", cre->hp);
-    archive.get_to("MaxHitPoints", cre->hp_max);
-    archive.get_to("SoundSetFile", cre->soundset);
+    archive.get_to("ChallengeRating", obj->cr);
+    archive.get_to("CRAdjust", obj->cr_adjust);
+    archive.get_to("DecayTime", obj->decay_time);
+    archive.get_to("WalkRate", obj->walkrate);
 
-    archive.get_to("BodyBag", cre->bodybag);
-    archive.get_to("NoPermDeath", cre->chunk_death);
-    archive.get_to("Disarmable", cre->disarmable);
-    archive.get_to("Gender", cre->gender);
-    archive.get_to("GoodEvil", cre->good_evil);
-    archive.get_to("IsImmortal", cre->immortal);
-    archive.get_to("Interruptable", cre->interruptable);
-    archive.get_to("LawfulChaotic", cre->lawful_chaotic);
-    archive.get_to("Lootable", cre->lootable);
-    archive.get_to("IsPC", cre->pc);
-    archive.get_to("PerceptionRange", cre->perception_range);
-    archive.get_to("Plot", cre->plot);
+    archive.get_to("FactionID", obj->faction_id);
+    archive.get_to("CurrentHitPoints", obj->hp_current);
+    archive.get_to("HitPoints", obj->hp);
+    archive.get_to("MaxHitPoints", obj->hp_max);
+    archive.get_to("SoundSetFile", obj->soundset);
+
+    archive.get_to("BodyBag", obj->bodybag);
+    archive.get_to("NoPermDeath", obj->chunk_death);
+    archive.get_to("Disarmable", obj->disarmable);
+    archive.get_to("Gender", obj->gender);
+    archive.get_to("GoodEvil", obj->good_evil);
+    archive.get_to("IsImmortal", obj->immortal);
+    archive.get_to("Interruptable", obj->interruptable);
+    archive.get_to("LawfulChaotic", obj->lawful_chaotic);
+    archive.get_to("Lootable", obj->lootable);
+    archive.get_to("IsPC", obj->pc);
+    archive.get_to("PerceptionRange", obj->perception_range);
+    archive.get_to("Plot", obj->plot);
 
     uint8_t temp;
     if (archive.get_to("Race", temp)) {
-        cre->race = make_race(temp);
+        obj->race = make_race(temp);
     }
 
-    archive.get_to("StartingPackage", cre->starting_package);
+    archive.get_to("StartingPackage", obj->starting_package);
 
     return true;
 }
 
-bool Creature::deserialize(flecs::entity ent, const nlohmann::json& archive, SerializationProfile profile)
+bool Creature::deserialize(Creature* obj, const nlohmann::json& archive, SerializationProfile profile)
 {
-    auto cre = ent.get_mut<Creature>();
-    auto common = ent.get_mut<Common>();
-    auto appearance = ent.get_mut<Appearance>();
-    auto combat_info = ent.get_mut<CombatInfo>();
-    auto equipment = ent.get_mut<Equips>();
-    auto inventory = ent.get_mut<Inventory>();
-    auto levels = ent.get_mut<LevelStats>();
-    auto scripts = ent.get_mut<CreatureScripts>();
-    auto stats = ent.get_mut<CreatureStats>();
+    if (!obj) {
+        throw std::runtime_error("unable to serialize null object");
+    }
 
     try {
-        common->from_json(archive.at("common"), profile);
-        appearance->from_json(archive.at("appearance"));
-        combat_info->from_json(archive.at("combat_info"));
-        equipment->from_json(archive.at("equipment"), profile);
-        inventory->from_json(archive.at("inventory"), profile);
-        levels->from_json(archive.at("levels"));
-        scripts->from_json(archive.at("scripts"));
-        stats->from_json(archive.at("stats"));
+        obj->common.from_json(archive.at("common"), profile);
+        obj->appearance.from_json(archive.at("appearance"));
+        obj->combat_info.from_json(archive.at("combat_info"));
+        obj->equipment.from_json(archive.at("equipment"), profile);
+        obj->inventory.from_json(archive.at("inventory"), profile);
+        obj->levels.from_json(archive.at("levels"));
+        obj->scripts.from_json(archive.at("scripts"));
+        obj->stats.from_json(archive.at("stats"));
 
-        archive.at("conversation").get_to(cre->conversation);
-        archive.at("description").get_to(cre->description);
-        archive.at("name_first").get_to(cre->name_first);
-        archive.at("name_last").get_to(cre->name_last);
-        archive.at("subrace").get_to(cre->subrace);
+        archive.at("conversation").get_to(obj->conversation);
+        archive.at("description").get_to(obj->description);
+        archive.at("name_first").get_to(obj->name_first);
+        archive.at("name_last").get_to(obj->name_last);
+        archive.at("subrace").get_to(obj->subrace);
 
-        archive.at("cr").get_to(cre->cr);
-        archive.at("cr_adjust").get_to(cre->cr_adjust);
-        archive.at("decay_time").get_to(cre->decay_time);
-        archive.at("walkrate").get_to(cre->walkrate);
+        archive.at("cr").get_to(obj->cr);
+        archive.at("cr_adjust").get_to(obj->cr_adjust);
+        archive.at("decay_time").get_to(obj->decay_time);
+        archive.at("walkrate").get_to(obj->walkrate);
 
-        archive.at("faction_id").get_to(cre->faction_id);
-        archive.at("hp").get_to(cre->hp);
-        archive.at("hp_current").get_to(cre->hp_current);
-        archive.at("hp_max").get_to(cre->hp_max);
+        archive.at("faction_id").get_to(obj->faction_id);
+        archive.at("hp").get_to(obj->hp);
+        archive.at("hp_current").get_to(obj->hp_current);
+        archive.at("hp_max").get_to(obj->hp_max);
 
-        archive.at("bodybag").get_to(cre->bodybag);
-        archive.at("chunk_death").get_to(cre->chunk_death);
-        archive.at("deity").get_to(cre->deity);
-        archive.at("disarmable").get_to(cre->disarmable);
-        archive.at("gender").get_to(cre->gender);
-        archive.at("good_evil").get_to(cre->good_evil);
-        archive.at("immortal").get_to(cre->immortal);
-        archive.at("interruptable").get_to(cre->interruptable);
-        archive.at("lawful_chaotic").get_to(cre->lawful_chaotic);
-        archive.at("lootable").get_to(cre->lootable);
-        archive.at("pc").get_to(cre->pc);
-        archive.at("perception_range").get_to(cre->perception_range);
-        archive.at("plot").get_to(cre->plot);
-        archive.at("race").get_to(cre->race);
-        archive.at("soundset").get_to(cre->soundset);
-        archive.at("starting_package").get_to(cre->starting_package);
+        archive.at("bodybag").get_to(obj->bodybag);
+        archive.at("chunk_death").get_to(obj->chunk_death);
+        archive.at("deity").get_to(obj->deity);
+        archive.at("disarmable").get_to(obj->disarmable);
+        archive.at("gender").get_to(obj->gender);
+        archive.at("good_evil").get_to(obj->good_evil);
+        archive.at("immortal").get_to(obj->immortal);
+        archive.at("interruptable").get_to(obj->interruptable);
+        archive.at("lawful_chaotic").get_to(obj->lawful_chaotic);
+        archive.at("lootable").get_to(obj->lootable);
+        archive.at("pc").get_to(obj->pc);
+        archive.at("perception_range").get_to(obj->perception_range);
+        archive.at("plot").get_to(obj->plot);
+        archive.at("race").get_to(obj->race);
+        archive.at("soundset").get_to(obj->soundset);
+        archive.at("starting_package").get_to(obj->starting_package);
     } catch (const nlohmann::json::exception& e) {
         LOG_F(ERROR, "from_json exception: {}", e.what());
         return false;
@@ -210,141 +204,132 @@ bool Creature::deserialize(flecs::entity ent, const nlohmann::json& archive, Ser
     return true;
 }
 
-bool Creature::serialize(const flecs::entity ent, GffOutputArchiveStruct& archive, SerializationProfile profile)
+bool Creature::serialize(const Creature* obj, GffOutputArchiveStruct& archive, SerializationProfile profile)
 {
-    auto cre = ent.get<Creature>();
-    auto common = ent.get<Common>();
-    auto appearance = ent.get<Appearance>();
-    auto combat_info = ent.get<CombatInfo>();
-    auto equipment = ent.get<Equips>();
-    auto inventory = ent.get<Inventory>();
-    auto levels = ent.get<LevelStats>();
-    auto scripts = ent.get<CreatureScripts>();
-    auto stats = ent.get<CreatureStats>();
-
-    archive.add_field("TemplateResRef", common->resref)
-        .add_field("Tag", common->tag);
-
-    if (profile == SerializationProfile::blueprint) {
-        archive.add_field("Comment", common->comment);
-        archive.add_field("PaletteID", common->palette_id);
-    } else {
-        archive.add_field("PositionX", common->location.position.x)
-            .add_field("PositionY", common->location.position.y)
-            .add_field("PositionZ", common->location.position.z)
-            .add_field("OrientationX", common->location.orientation.x)
-            .add_field("OrientationY", common->location.orientation.y);
+    if (!obj) {
+        throw std::runtime_error("unable to serialize null object");
     }
 
-    common->locals.to_gff(archive);
-    appearance->to_gff(archive);
-    combat_info->to_gff(archive);
-    equipment->to_gff(archive, profile);
-    inventory->to_gff(archive, profile);
-    levels->to_gff(archive);
-    scripts->to_gff(archive);
-    stats->to_gff(archive);
+    archive.add_field("TemplateResRef", obj->common.resref)
+        .add_field("Tag", obj->common.tag);
 
-    archive.add_field("Conversation", cre->conversation);
-    archive.add_field("Deity", cre->deity);
-    archive.add_field("Description", cre->description);
-    archive.add_field("FirstName", cre->name_first);
-    archive.add_field("LastName", cre->name_last);
-    archive.add_field("Subrace", cre->subrace);
+    if (profile == SerializationProfile::blueprint) {
+        archive.add_field("Comment", obj->common.comment);
+        archive.add_field("PaletteID", obj->common.palette_id);
+    } else {
+        archive.add_field("PositionX", obj->common.location.position.x)
+            .add_field("PositionY", obj->common.location.position.y)
+            .add_field("PositionZ", obj->common.location.position.z)
+            .add_field("OrientationX", obj->common.location.orientation.x)
+            .add_field("OrientationY", obj->common.location.orientation.y);
+    }
+
+    obj->common.locals.to_gff(archive);
+    obj->appearance.to_gff(archive);
+    obj->combat_info.to_gff(archive);
+    obj->equipment.to_gff(archive, profile);
+    obj->inventory.to_gff(archive, profile);
+    obj->levels.to_gff(archive);
+    obj->scripts.to_gff(archive);
+    obj->stats.to_gff(archive);
+
+    archive.add_field("Conversation", obj->conversation);
+    archive.add_field("Deity", obj->deity);
+    archive.add_field("Description", obj->description);
+    archive.add_field("FirstName", obj->name_first);
+    archive.add_field("LastName", obj->name_last);
+    archive.add_field("Subrace", obj->subrace);
 
     archive.add_list("TemplateList"); // Not sure if this is obsolete?
 
-    archive.add_field("ChallengeRating", cre->cr)
-        .add_field("CRAdjust", cre->cr_adjust)
-        .add_field("DecayTime", cre->decay_time)
-        .add_field("WalkRate", cre->walkrate);
+    archive.add_field("ChallengeRating", obj->cr)
+        .add_field("CRAdjust", obj->cr_adjust)
+        .add_field("DecayTime", obj->decay_time)
+        .add_field("WalkRate", obj->walkrate);
 
-    archive.add_field("HitPoints", cre->hp)
-        .add_field("CurrentHitPoints", cre->hp_current)
-        .add_field("MaxHitPoints", cre->hp_max)
-        .add_field("FactionID", cre->faction_id)
-        .add_field("SoundSetFile", cre->soundset);
+    archive.add_field("HitPoints", obj->hp)
+        .add_field("CurrentHitPoints", obj->hp_current)
+        .add_field("MaxHitPoints", obj->hp_max)
+        .add_field("FactionID", obj->faction_id)
+        .add_field("SoundSetFile", obj->soundset);
 
-    archive.add_field("BodyBag", cre->bodybag)
-        .add_field("Disarmable", cre->disarmable)
-        .add_field("Gender", cre->gender)
-        .add_field("GoodEvil", cre->good_evil)
-        .add_field("IsImmortal", cre->immortal)
-        .add_field("Interruptable", cre->interruptable)
-        .add_field("LawfulChaotic", cre->lawful_chaotic)
-        .add_field("Lootable", cre->lootable)
-        .add_field("IsPC", cre->pc)
-        .add_field("NoPermDeath", cre->chunk_death)
-        .add_field("PerceptionRange", cre->perception_range)
-        .add_field("Plot", cre->plot)
-        .add_field("Race", uint8_t(cre->race))
-        .add_field("StartingPackage", cre->starting_package);
+    archive.add_field("BodyBag", obj->bodybag)
+        .add_field("Disarmable", obj->disarmable)
+        .add_field("Gender", obj->gender)
+        .add_field("GoodEvil", obj->good_evil)
+        .add_field("IsImmortal", obj->immortal)
+        .add_field("Interruptable", obj->interruptable)
+        .add_field("LawfulChaotic", obj->lawful_chaotic)
+        .add_field("Lootable", obj->lootable)
+        .add_field("IsPC", obj->pc)
+        .add_field("NoPermDeath", obj->chunk_death)
+        .add_field("PerceptionRange", obj->perception_range)
+        .add_field("Plot", obj->plot)
+        .add_field("Race", uint8_t(obj->race))
+        .add_field("StartingPackage", obj->starting_package);
 
     return true;
 }
 
-GffOutputArchive Creature::serialize(const flecs::entity ent, SerializationProfile profile)
+GffOutputArchive Creature::serialize(const Creature* obj, SerializationProfile profile)
 {
     GffOutputArchive out{"UTC"};
-    Creature::serialize(ent, out.top, profile);
+    if (!obj) {
+        throw std::runtime_error("unable to serialize null object");
+    }
+    Creature::serialize(obj, out.top, profile);
     out.build();
     return out;
 }
 
-bool Creature::serialize(const flecs::entity ent, nlohmann::json& archive,
+bool Creature::serialize(const Creature* obj, nlohmann::json& archive,
     SerializationProfile profile)
 {
-    auto cre = ent.get<Creature>();
-    auto common = ent.get<Common>();
-    auto appearance = ent.get<Appearance>();
-    auto combat_info = ent.get<CombatInfo>();
-    auto equipment = ent.get<Equips>();
-    auto inventory = ent.get<Inventory>();
-    auto levels = ent.get<LevelStats>();
-    auto scripts = ent.get<CreatureScripts>();
-    auto stats = ent.get<CreatureStats>();
+    if (!obj) {
+        throw std::runtime_error("unable to serialize null object");
+    }
 
     archive["$type"] = "UTC";
     archive["$version"] = json_archive_version;
 
-    archive["appearance"] = appearance->to_json();
-    archive["combat_info"] = combat_info->to_json();
-    archive["common"] = common->to_json(profile);
-    archive["equipment"] = equipment->to_json(profile);
-    archive["inventory"] = inventory->to_json(profile);
-    archive["levels"] = levels->to_json();
-    archive["scripts"] = scripts->to_json();
-    archive["stats"] = stats->to_json();
+    archive["appearance"] = obj->appearance.to_json();
+    archive["combat_info"] = obj->combat_info.to_json();
+    archive["common"] = obj->common.to_json(profile);
+    archive["equipment"] = obj->equipment.to_json(profile);
+    archive["inventory"] = obj->inventory.to_json(profile);
+    archive["levels"] = obj->levels.to_json();
+    archive["scripts"] = obj->scripts.to_json();
+    archive["stats"] = obj->stats.to_json();
 
-    archive["bodybag"] = cre->bodybag;
-    archive["chunk_death"] = cre->chunk_death;
-    archive["conversation"] = cre->conversation;
-    archive["cr_adjust"] = cre->cr_adjust;
-    archive["cr"] = cre->cr;
-    archive["decay_time"] = cre->decay_time;
-    archive["deity"] = cre->deity;
-    archive["description"] = cre->description;
-    archive["disarmable"] = cre->disarmable;
-    archive["faction_id"] = cre->faction_id;
-    archive["gender"] = cre->gender;
-    archive["good_evil"] = cre->good_evil;
-    archive["hp_current"] = cre->hp_current;
-    archive["hp_max"] = cre->hp_max;
-    archive["hp"] = cre->hp;
-    archive["immortal"] = cre->immortal;
-    archive["interruptable"] = cre->interruptable;
-    archive["lawful_chaotic"] = cre->lawful_chaotic;
-    archive["lootable"] = cre->lootable;
-    archive["name_first"] = cre->name_first;
-    archive["name_last"] = cre->name_last;
-    archive["pc"] = cre->pc;
-    archive["perception_range"] = cre->perception_range;
-    archive["plot"] = cre->plot;
-    archive["race"] = cre->race;
-    archive["soundset"] = cre->soundset;
-    archive["starting_package"] = cre->starting_package;
-    archive["subrace"] = cre->subrace;
-    archive["walkrate"] = cre->walkrate;
+    archive["bodybag"] = obj->bodybag;
+    archive["chunk_death"] = obj->chunk_death;
+    archive["conversation"] = obj->conversation;
+    archive["cr_adjust"] = obj->cr_adjust;
+    archive["cr"] = obj->cr;
+    archive["decay_time"] = obj->decay_time;
+    archive["deity"] = obj->deity;
+    archive["description"] = obj->description;
+    archive["disarmable"] = obj->disarmable;
+    archive["faction_id"] = obj->faction_id;
+    archive["gender"] = obj->gender;
+    archive["good_evil"] = obj->good_evil;
+    archive["hp_current"] = obj->hp_current;
+    archive["hp_max"] = obj->hp_max;
+    archive["hp"] = obj->hp;
+    archive["immortal"] = obj->immortal;
+    archive["interruptable"] = obj->interruptable;
+    archive["lawful_chaotic"] = obj->lawful_chaotic;
+    archive["lootable"] = obj->lootable;
+    archive["name_first"] = obj->name_first;
+    archive["name_last"] = obj->name_last;
+    archive["pc"] = obj->pc;
+    archive["perception_range"] = obj->perception_range;
+    archive["plot"] = obj->plot;
+    archive["race"] = obj->race;
+    archive["soundset"] = obj->soundset;
+    archive["starting_package"] = obj->starting_package;
+    archive["subrace"] = obj->subrace;
+    archive["walkrate"] = obj->walkrate;
 
     return true;
 }
