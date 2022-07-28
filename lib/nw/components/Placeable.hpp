@@ -47,6 +47,7 @@ struct Placeable : public ObjectBase {
     Placeable();
     static constexpr int json_archive_version = 1;
     static constexpr ObjectType object_type = ObjectType::placeable;
+    static constexpr ResourceType::type restype = ResourceType::utp;
 
     virtual Common* as_common() override { return &common; }
     virtual const Common* as_common() const override { return &common; }

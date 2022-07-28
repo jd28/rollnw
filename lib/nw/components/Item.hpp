@@ -25,6 +25,7 @@ struct Item : public ObjectBase {
     Item();
     static constexpr int json_archive_version = 1;
     static constexpr ObjectType object_type = ObjectType::item;
+    static constexpr ResourceType::type restype = ResourceType::uti;
 
     virtual Common* as_common() override { return &common; }
     virtual const Common* as_common() const override { return &common; }

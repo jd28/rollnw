@@ -25,10 +25,11 @@ struct TriggerScripts {
 };
 
 struct Trigger : public ObjectBase {
-    Trigger();
-
     static constexpr int json_archive_version = 1;
     static constexpr ObjectType object_type = ObjectType::trigger;
+    static constexpr ResourceType::type restype = ResourceType::utt;
+
+    Trigger();
 
     virtual Common* as_common() override { return &common; }
     virtual const Common* as_common() const override { return &common; }

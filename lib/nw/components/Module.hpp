@@ -45,6 +45,7 @@ struct Module : public ObjectBase {
 
     static constexpr int json_archive_version = 1;
     static constexpr ObjectType object_type = ObjectType::module;
+    static constexpr ResourceType::type restype = ResourceType::ifo;
 
     virtual Module* as_module() override { return this; }
     virtual const Module* as_module() const override { return this; }

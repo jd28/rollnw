@@ -62,6 +62,7 @@ public:
     explicit Dialog(const nlohmann::json& archive);
 
     static constexpr int json_archive_version = 1;
+    static constexpr ResourceType::type restype = ResourceType::dlg;
 
     /// Checks id dialog was successfully parsed
     bool valid() const noexcept { return is_valid_; }

@@ -32,15 +32,16 @@ struct StoreInventory {
 };
 
 struct Store : public ObjectBase {
+    static constexpr int json_archive_version = 1;
+    static constexpr ObjectType object_type = ObjectType::store;
+    static constexpr ResourceType::type restype = ResourceType::utm;
+
     Store();
 
     virtual Common* as_common() override { return &common; }
     virtual const Common* as_common() const override { return &common; }
     Store* as_store() override { return this; }
     const Store* as_store() const override { return this; }
-
-    static constexpr int json_archive_version = 1;
-    static constexpr ObjectType object_type = ObjectType::store;
 
     static bool deserialize(Store* obj, const GffInputArchiveStruct& archive, SerializationProfile profile);
     static bool deserialize(Store* obj, const nlohmann::json& archive, SerializationProfile profile);

@@ -23,6 +23,7 @@ struct Faction {
     explicit Faction(const nlohmann::json& archive);
 
     static constexpr int json_archive_version = 1;
+    static constexpr ResourceType::type restype = ResourceType::fac;
 
     GffOutputArchive to_gff() const;
     nlohmann::json to_json() const;

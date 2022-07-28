@@ -47,10 +47,10 @@ struct ObjectSystem {
     template <typename T>
     T* make();
 
-    /// Makes an area object
+    /// Creates an area object
     Area* make_area(Resref area);
 
-    /// Makes a module object
+    /// Creates a module object
     /// @warning: `nw::kernel::resman().load_module(...)` **must** be called before this.
     Module* make_module();
 
@@ -87,32 +87,6 @@ inline ObjectType serial_id_to_obj_type(std::string_view id)
     return ObjectType::invalid;
 }
 
-inline ResourceType::type objtype_to_restype(nw::ObjectType type)
-{
-    switch (type) {
-    default:
-        return ResourceType::invalid;
-    case ObjectType::creature:
-        return ResourceType::utc;
-    case ObjectType::door:
-        return ResourceType::utd;
-    case ObjectType::encounter:
-        return ResourceType::ute;
-    case ObjectType::item:
-        return ResourceType::uti;
-    case ObjectType::store:
-        return ResourceType::utm;
-    case ObjectType::placeable:
-        return ResourceType::utp;
-    case ObjectType::sound:
-        return ResourceType::uts;
-    case ObjectType::trigger:
-        return ResourceType::utt;
-    case ObjectType::waypoint:
-        return ResourceType::utw;
-    }
-}
-
 template <typename T>
 T* ObjectSystem::get(ObjectHandle obj)
 {
@@ -144,8 +118,7 @@ T* ObjectSystem::make()
 }
 
 template <typename T>
-T* ObjectSystem::load(const std::filesystem::path& archive,
-    SerializationProfile profile)
+T* ObjectSystem::load(const std::filesystem::path& archive, SerializationProfile profile)
 {
     T* obj = make<T>();
     ObjectType type;
@@ -182,7 +155,7 @@ template <typename T>
 T* ObjectSystem::load(std::string_view resref)
 {
     T* obj = make<T>();
-    ByteArray ba = nw::kernel::resman().demand({resref, objtype_to_restype(T::object_type)});
+    ByteArray ba = resman().demand({resref, T::restype});
     if (ba.size()) {
         GffInputArchive in{ba};
         if (in.valid()) {

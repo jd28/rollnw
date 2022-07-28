@@ -26,6 +26,7 @@ struct Journal {
     explicit Journal(const GffInputArchiveStruct gff);
 
     static constexpr int json_archive_version = 1;
+    static constexpr ResourceType::type restype = ResourceType::jrl;
 
     std::vector<JournalCategory> categories;
 };

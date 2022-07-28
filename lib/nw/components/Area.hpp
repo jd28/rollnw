@@ -84,6 +84,7 @@ struct Area : public ObjectBase {
 
     static constexpr int json_archive_version = 1;
     static constexpr ObjectType object_type = ObjectType::area;
+    static constexpr ResourceType::type restype = ResourceType::caf;
 
     virtual Common* as_common() override { return &common; }
     virtual const Common* as_common() const override { return &common; }
