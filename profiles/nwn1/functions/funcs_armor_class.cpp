@@ -3,7 +3,7 @@
 #include <nw/components/Creature.hpp>
 #include <nw/components/Item.hpp>
 #include <nw/components/TwoDACache.hpp>
-#include <nw/kernel/Kernel.hpp>
+#include <nw/kernel/Rules.hpp>
 
 namespace nwn1 {
 

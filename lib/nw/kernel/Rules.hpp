@@ -19,14 +19,17 @@
 
 namespace nw::kernel {
 
-struct Rules {
+struct Rules : public Service {
     using qualifier_type = std::function<bool(const Qualifier&, const ObjectBase*)>;
     using selector_type = std::function<RuleValue(const Selector&, const ObjectBase*)>;
 
     virtual ~Rules();
 
     /// Initializes rules system
-    virtual bool initialize();
+    virtual void initialize() override;
+
+    /// Clears rules system of all rules and cached 2da files
+    virtual void clear() override;
 
     /// Adds a modifier to the system
     void add(Modifier mod);
@@ -47,9 +50,6 @@ struct Rules {
      */
     template <typename T>
     T calculate(const ObjectBase* obj, const Modifier& mod) const;
-
-    /// Clears rules system of all rules and cached 2da files
-    virtual void clear();
 
     /// Match
     bool match(const Qualifier& qual, const ObjectBase* obj) const;
@@ -142,6 +142,12 @@ T Rules::calculate(const ObjectBase* obj, const ModifierType type, U subtype) co
     }
 
     return result;
+}
+
+inline Rules& rules()
+{
+    auto res = detail::s_services.get_mut<Rules>();
+    return res ? *res : *detail::s_services.add<Rules>();
 }
 
 } // namespace nw::kernel

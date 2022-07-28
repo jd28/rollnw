@@ -1,7 +1,6 @@
 #include "Rules.hpp"
 
 #include "../util/string.hpp"
-#include "Kernel.hpp"
 
 namespace nw::kernel {
 
@@ -24,11 +23,9 @@ void Rules::clear()
     master_feats.clear();
 }
 
-bool Rules::initialize()
+void Rules::initialize()
 {
     LOG_F(INFO, "kernel: initializing rules system");
-    // Stub
-    return true;
 }
 
 void Rules::add(Modifier mod)

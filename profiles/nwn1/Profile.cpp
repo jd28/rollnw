@@ -3,8 +3,9 @@
 #include "rules.hpp"
 
 #include <nw/components/Creature.hpp>
+#include <nw/components/TwoDACache.hpp>
 #include <nw/formats/TwoDA.hpp>
-#include <nw/kernel/Kernel.hpp>
+#include <nw/kernel/Resources.hpp>
 #include <nw/rules/Ability.hpp>
 #include <nw/rules/BaseItem.hpp>
 #include <nw/rules/Class.hpp>
@@ -20,14 +21,7 @@ namespace nwn1 {
 bool Profile::load_components() const
 {
     LOG_F(INFO, "[nwn1] loading components...");
-    // nw::kernel::world().add<nw::AbilityArray>();
-    // nw::kernel::world().add<nw::BaseItemArray>();
-    // nw::kernel::world().add<nw::ClassArray>();
-    // nw::kernel::world().add<nw::FeatArray>();
-    // nw::kernel::world().add<nw::MasterFeatRegistry>();
-    // nw::kernel::world().add<nw::RaceArray>();
-    // nw::kernel::world().add<nw::SkillArray>();
-    // nw::kernel::world().add<nw::SpellArray>();
+    // nw::kernel::services().add<nw::TwoDACache>();
     return true;
 }
 

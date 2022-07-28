@@ -1,7 +1,7 @@
 #include "Race.hpp"
 
 #include "../formats/TwoDA.hpp"
-#include "../kernel/Kernel.hpp"
+#include "../kernel/Strings.hpp"
 
 namespace nw {
 

@@ -1,6 +1,7 @@
 #include "Module.hpp"
 
-#include "../kernel/Kernel.hpp"
+#include "../kernel/Objects.hpp"
+#include "../kernel/Strings.hpp"
 #include "Area.hpp"
 
 #include <nlohmann/json.hpp>

@@ -1,6 +1,6 @@
 #include "conversion.hpp"
 
-#include "../kernel/Kernel.hpp"
+#include "../kernel/Strings.hpp"
 #include "../log.hpp"
 #include "../util/scope_exit.hpp"
 

@@ -3,7 +3,7 @@
 #include "../constants.hpp"
 
 #include <nw/components/Creature.hpp>
-#include <nw/kernel/Kernel.hpp>
+#include <nw/kernel/Rules.hpp>
 #include <nw/rules/Ability.hpp>
 
 namespace nwn1 {

@@ -1,6 +1,6 @@
 #include "Mdl.hpp"
 
-#include "../kernel/Kernel.hpp"
+#include "../kernel/Strings.hpp"
 #include "../log.hpp"
 #include "../util/macros.hpp"
 #include "../util/string.hpp"

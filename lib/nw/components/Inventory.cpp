@@ -1,6 +1,6 @@
 #include "Inventory.hpp"
 
-#include "../kernel/Kernel.hpp"
+#include "../kernel/Objects.hpp"
 #include "Item.hpp"
 
 #include <nlohmann/json.hpp>

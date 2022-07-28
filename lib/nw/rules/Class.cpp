@@ -1,7 +1,8 @@
 #include "Class.hpp"
 
 #include "../formats/TwoDA.hpp"
-#include "../kernel/Kernel.hpp"
+#include "../kernel/Resources.hpp"
+#include "../kernel/Rules.hpp"
 
 namespace nw {
 

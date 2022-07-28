@@ -1,6 +1,6 @@
 #include <catch2/catch.hpp>
 
-#include <nw/kernel/Kernel.hpp>
+#include <nw/kernel/Resources.hpp>
 #include <nw/log.hpp>
 #include <nw/resources/Erf.hpp>
 #include <nw/resources/NWSync.hpp>

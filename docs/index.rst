@@ -138,14 +138,12 @@ Credits
   :caption: structure
   :maxdepth: 1
 
-  structure/components
   structure/formats
   structure/i18n
   structure/kernel
-  structure/resources
+  structure/model
   structure/rules
   structure/serialization
-  structure/util
 
 .. toctree::
   :caption: c++ api

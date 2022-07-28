@@ -2,7 +2,7 @@
 
 #include <nw/components/Area.hpp>
 #include <nw/components/Module.hpp>
-#include <nw/kernel/Kernel.hpp>
+#include <nw/kernel/Objects.hpp>
 #include <nw/log.hpp>
 #include <nwn1/Profile.hpp>
 

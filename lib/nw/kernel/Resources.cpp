@@ -4,7 +4,7 @@
 #include "../util/game_install.hpp"
 #include "../util/platform.hpp"
 #include "../util/templates.hpp"
-#include "Kernel.hpp"
+#include "Strings.hpp"
 
 #include <memory>
 
@@ -35,6 +35,7 @@ inline Container* resolve_container(const std::filesystem::path& p, const std::s
 
 void Resources::initialize()
 {
+    LOG_F(INFO, "kernel: initializing resource system");
     ambient_user_ = Directory{config().alias_path(PathAlias::ambient)};
     dmvault_user_ = Directory{config().alias_path(PathAlias::dmvault)};
     localvault_user_ = Directory{config().alias_path(PathAlias::localvault)};

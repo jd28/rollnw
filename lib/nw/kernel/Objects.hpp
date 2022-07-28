@@ -5,8 +5,8 @@
 #include "../components/ObjectBase.hpp"
 #include "../serialization/Archives.hpp"
 #include "../util/platform.hpp"
+#include "Kernel.hpp"
 #include "Resources.hpp"
-#include "fwd.hpp"
 
 #include <nlohmann/json.hpp>
 
@@ -21,11 +21,12 @@ using ObjectPayload = std::variant<ObjectHandle, std::unique_ptr<ObjectBase>>;
  * @brief The object system creates, serializes, and deserializes entities
  *
  */
-struct ObjectSystem {
-    ~ObjectSystem() { }
+struct ObjectSystem : public Service {
+    virtual ~ObjectSystem() { }
 
     /// Destroys all objects
-    void clear();
+    virtual void clear() override;
+    virtual void initialize() override { }
 
     /// Destroys a single object
     void destroy(ObjectHandle obj);
@@ -164,6 +165,12 @@ T* ObjectSystem::load(std::string_view resref)
     }
 
     return obj;
+}
+
+inline ObjectSystem& objects()
+{
+    auto res = detail::s_services.get_mut<ObjectSystem>();
+    return res ? *res : *detail::s_services.add<ObjectSystem>();
 }
 
 } // namespace nw::kernel

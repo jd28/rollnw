@@ -2,7 +2,7 @@
 
 #include <nw/components/Creature.hpp>
 #include <nw/components/Item.hpp>
-#include <nw/kernel/Kernel.hpp>
+#include <nw/kernel/Rules.hpp>
 #include <nw/rules/Class.hpp>
 #include <nw/util/macros.hpp>
 

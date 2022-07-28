@@ -1,6 +1,6 @@
 #include "Area.hpp"
 
-#include "../kernel/Kernel.hpp"
+#include "../kernel/Objects.hpp"
 #include "Creature.hpp"
 #include "Door.hpp"
 #include "Encounter.hpp"

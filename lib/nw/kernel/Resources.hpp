@@ -5,6 +5,7 @@
 #include "../resources/Key.hpp"
 #include "../resources/NWSync.hpp"
 #include "../resources/Zip.hpp"
+#include "Kernel.hpp"
 
 #include <variant>
 
@@ -16,29 +17,30 @@ namespace kernel {
 
 using LocatorVariant = std::variant<Container*, unique_container>;
 
-struct Resources : public Container {
+struct Resources : public Container, public Service {
     Resources() = default;
     virtual ~Resources() = default;
 
     using SearchVector = std::vector<std::tuple<const Container*, ResourceType::type, bool>>;
 
+    /// Initializes resources management system
+    virtual void initialize() override;
+    virtual void clear() override { }
+
     /// Add already created container
-    virtual bool add_container(Container* container, bool take_ownership = true);
+    bool add_container(Container* container, bool take_ownership = true);
 
     /// Clears any custom loaded containers
-    virtual void clear_containers();
-
-    /// Initializes resources management system
-    virtual void initialize();
+    void clear_containers();
 
     /// Loads container resources for a module
-    virtual bool load_module(std::filesystem::path path, std::string_view manifest = {});
+    bool load_module(std::filesystem::path path, std::string_view manifest = {});
 
     /// Loads module haks
-    virtual void load_module_haks(const std::vector<std::string>& haks);
+    void load_module_haks(const std::vector<std::string>& haks);
 
     /// Unloads module
-    virtual void unload_module();
+    void unload_module();
 
     /// Attempts to locate first matching resource type by container priority
     std::pair<ByteArray, ResourceType::type>
@@ -91,6 +93,12 @@ private:
     std::vector<Erf> texture_packs_;
     std::vector<Key> keys_;
 };
+
+inline Resources& resman()
+{
+    auto res = detail::s_services.get_mut<Resources>();
+    return *res;
+}
 
 } // namespace kernel
 } // namespace nw

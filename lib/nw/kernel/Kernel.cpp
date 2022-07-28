@@ -3,127 +3,33 @@
 #include "../components/Module.hpp"
 #include "../components/TwoDACache.hpp"
 #include "../log.hpp"
-#include "GameProfile.hpp"
+#include "Objects.hpp"
+#include "Resources.hpp"
+#include "Rules.hpp"
+#include "Strings.hpp"
 
 namespace nw::kernel {
 
+namespace detail {
+Config s_config;
+Services s_services;
+} // namespace detail
+
 Services::Services()
 {
-}
-Services::~Services() { }
-
-void Services::provide(ObjectSystem* objects)
-{
-    if (started_) {
-        LOG_F(ERROR, "Services are unable to be provided after start");
-        return;
-    } else if (objects_) {
-        LOG_F(WARNING, "Objects service already loaded, overriding...");
-    }
-    objects_ = std::unique_ptr<ObjectSystem>(objects);
+    LOG_F(INFO, "kernel: initializing default services");
+    services().add<Strings>();
+    services().add<Resources>();
+    services().add<ObjectSystem>();
+    services().add<Rules>();
 }
 
-void Services::provide(Resources* resources)
-{
-    if (started_) {
-        LOG_F(ERROR, "Services are unable to be provided after start");
-        return;
-    } else if (resources_) {
-        LOG_F(WARNING, "Objects service already loaded, overriding...");
-    }
-    resources_ = std::unique_ptr<Resources>(resources);
-}
-
-void Services::provide(Rules* rules)
-{
-    if (started_) {
-        LOG_F(ERROR, "Services are unable to be provided after start");
-        return;
-    } else if (rules_) {
-        LOG_F(WARNING, "Rules service already loaded, overriding...");
-    }
-
-    rules_ = std::unique_ptr<Rules>(rules);
-}
-
-void Services::provide(Strings* strings)
-{
-    if (started_) {
-        LOG_F(ERROR, "Services are unable to be provided after start");
-        return;
-    }
-
-    if (strings_) {
-        LOG_F(WARNING, "Strings service already loaded, overriding...");
-    }
-    strings_ = std::unique_ptr<Strings>(strings);
-}
-
-bool Services::set_profile(const GameProfile* profile)
-{
-    profile_.reset(profile);
-    profile_->load_rules();
-    return true;
-}
-
-void Services::shutdown()
-{
-    // Opposite start order
-    rules_.reset();
-    objects_.reset();
-    resources_.reset();
-    strings_.reset();
-    started_ = false;
-}
-
-void Services::start(bool fail_hard)
-{
-    ROLLNW_UNUSED(fail_hard);
-
-    if (started_) {
-        LOG_F(WARNING, "Services have already been started...");
-        return;
-    }
-
-    if (!objects_) {
-        objects_ = std::make_unique<ObjectSystem>();
-    }
-
-    if (!resources_) {
-        resources_ = std::make_unique<Resources>();
-    }
-
-    if (!rules_) {
-        rules_ = std::make_unique<Rules>();
-    }
-
-    if (!strings_) {
-        strings_ = std::make_unique<Strings>();
-    }
-
-    strings_->initialize();
-    resources_->initialize();
-    // objects_->initialize();
-    rules_->initialize();
-
-    started_ = true;
-}
-
-bool Services::started()
-{
-    return started_;
-}
-
-Services& services() { return detail::s_services; }
 Config& config() { return detail::s_config; }
-ObjectSystem& objects() { return *detail::s_services.objects_.get(); }
-Resources& resman() { return *detail::s_services.resources_.get(); }
-Rules& rules() { return *detail::s_services.rules_.get(); }
-Strings& strings() { return *detail::s_services.strings_.get(); }
+Services& services() { return detail::s_services; }
 
-bool load_profile(const GameProfile* profile)
+void load_profile(const GameProfile* profile)
 {
-    return services().set_profile(profile);
+    detail::s_services.set_profile(profile);
 }
 
 Module* load_module(const std::filesystem::path& path, std::string_view manifest)

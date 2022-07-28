@@ -1,6 +1,6 @@
 #include "funcs_feat.hpp"
 
-#include <nw/kernel/Kernel.hpp>
+#include <nw/kernel/Rules.hpp>
 
 namespace nwn1 {
 

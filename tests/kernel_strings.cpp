@@ -1,6 +1,7 @@
 #include <catch2/catch.hpp>
 
 #include <nw/kernel/Kernel.hpp>
+#include <nw/kernel/Strings.hpp>
 #include <nw/log.hpp>
 
 TEST_CASE("strings manager", "[kernel]")

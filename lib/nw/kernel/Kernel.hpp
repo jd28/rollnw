@@ -1,69 +1,128 @@
 #pragma once
 
-#include "../util/game_install.hpp"
+#include "../util/templates.hpp"
 #include "Config.hpp"
-#include "Objects.hpp"
-#include "Resources.hpp"
-#include "Rules.hpp"
-#include "Strings.hpp"
-#include "fwd.hpp"
+#include "GameProfile.hpp"
 
 #include <functional>
 #include <memory>
+#include <typeindex>
 
 namespace nw {
 
-struct GameProfile;
+// Forward decls
+struct Module;
 
 namespace kernel {
 
-struct Services {
-    Services();
-    Services(const Services&) = delete;
-    Services(Services&&) = delete;
-    Services& operator=(const Services&) = delete;
-    Services& operator=(Services&&) = delete;
-    ~Services();
+struct Service {
+    virtual ~Service() { }
 
-    /// Provide global service
-    void provide(ObjectSystem* objects);
-    void provide(Resources* resources);
-    void provide(Rules* rules);
-    void provide(Strings* strings);
-
-    // Sets game profile
-    bool set_profile(const GameProfile* profile);
-
-    /// Shutdown all services
-    void shutdown();
-
-    /// Start all services, if no services are provided, default services will be used.
-    void start(bool fail_hard = true);
-    bool started();
-
-    friend Config& config();
-    friend ObjectSystem& objects();
-    friend Resources& resman();
-    friend Rules& rules();
-    friend Strings& strings();
-
-private:
-    std::unique_ptr<ObjectSystem> objects_;
-    std::unique_ptr<Resources> resources_;
-    std::unique_ptr<Rules> rules_;
-    std::unique_ptr<Strings> strings_;
-    std::unique_ptr<const GameProfile> profile_;
-
-    bool started_ = false;
+    virtual void initialize() = 0;
+    virtual void clear() = 0;
 };
 
+struct ServiceEntry {
+    std::type_index index;
+    std::unique_ptr<Service> service;
+};
+
+struct Services {
+    Services();
+
+    void start()
+    {
+        for (auto& s : services_) {
+            s.service->initialize();
+        }
+    }
+
+    void shutdown()
+    {
+        for (auto& s : reverse(services_)) {
+            s.service->clear();
+        }
+    }
+
+    /// Sets game profile
+    void set_profile(const GameProfile* profile)
+    {
+        profile_.reset(profile);
+        profile_->load_rules();
+    }
+
+    /// Clears all services
+    void clear()
+    {
+        profile_.reset();
+        services_.clear();
+    }
+
+    /// Adds a service
+    template <typename T>
+    T* add();
+
+    /// Gets a service
+    template <typename T>
+    const T* get() const;
+
+    /// Gets a service as non-const
+    template <typename T>
+    T* get_mut();
+
+private:
+    std::vector<ServiceEntry> services_;
+    std::unique_ptr<const GameProfile> profile_;
+};
+
+template <typename T>
+T* Services::add()
+{
+    T* service = get_mut<T>();
+    if (!service) {
+        service = new T;
+        services_.push_back({std::type_index(typeid(T)), std::unique_ptr<Service>(service)});
+    }
+    return service;
+}
+
+template <typename T>
+const T* Services::get() const
+{
+    auto ti = std::type_index(typeid(T));
+    for (auto& s : services_) {
+        if (s.index == ti) {
+            return static_cast<const T*>(s.service.get());
+        }
+    }
+    return nullptr;
+}
+
+template <typename T>
+T* Services::get_mut()
+{
+    auto ti = std::type_index(typeid(T));
+    for (auto& s : services_) {
+        if (s.index == ti) {
+            return static_cast<T*>(s.service.get());
+        }
+    }
+    return nullptr;
+}
+
 namespace detail {
-static Config s_config;
-static Services s_services;
+extern Config s_config;
+extern Services s_services;
 } // namespace detail
 
+/// Gets configuration options
+Config& config();
+
+/// Gets services
+Services& services();
+
 /// Loads game profile
-bool load_profile(const GameProfile* profile);
+void load_profile(const GameProfile* profile);
 
 /// Loads a module
 Module* load_module(const std::filesystem::path& path, std::string_view manifest = {});

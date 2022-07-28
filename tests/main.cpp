@@ -2,6 +2,10 @@
 #include <catch2/catch.hpp>
 
 #include <nw/kernel/Kernel.hpp>
+#include <nw/kernel/Objects.hpp>
+#include <nw/kernel/Resources.hpp>
+#include <nw/kernel/Rules.hpp>
+#include <nw/kernel/Strings.hpp>
 #include <nw/log.hpp>
 #include <nw/util/string.hpp>
 #include <nwn1/Profile.hpp>

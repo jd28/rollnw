@@ -2,7 +2,7 @@
 
 #include <nlohmann/json.hpp>
 #include <nw/components/Door.hpp>
-#include <nw/kernel/Kernel.hpp>
+#include <nw/kernel/Objects.hpp>
 #include <nw/serialization/Archives.hpp>
 
 #include <filesystem>

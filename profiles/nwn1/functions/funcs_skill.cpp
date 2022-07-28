@@ -5,7 +5,7 @@
 #include "funcs_feat.hpp"
 
 #include <nw/components/Creature.hpp>
-#include <nw/kernel/Kernel.hpp>
+#include <nw/kernel/Rules.hpp>
 #include <nw/rules/MasterFeat.hpp>
 
 namespace nwn1 {
