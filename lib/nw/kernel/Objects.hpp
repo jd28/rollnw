@@ -11,6 +11,7 @@
 #include <nlohmann/json.hpp>
 
 #include <filesystem>
+#include <stack>
 
 namespace nw::kernel {
 

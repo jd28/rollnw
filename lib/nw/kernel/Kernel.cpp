@@ -62,7 +62,7 @@ void Services::provide(Strings* strings)
 bool Services::set_profile(const GameProfile* profile)
 {
     profile_.reset(profile);
-    profile->load_rules();
+    profile_->load_rules();
     return true;
 }
 
