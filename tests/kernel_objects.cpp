@@ -15,6 +15,10 @@ TEST_CASE("objects manager", "[kernel]")
     REQUIRE(ent->appearance.id == 31);
     REQUIRE(ent->gender == 1);
 
-    // nw::kernel::objects().destroy(ent);
-    // REQUIRE_FALSE(ent.is_alive());
+    auto ent2 = nw::kernel::objects().get<nw::Creature>(ent->handle());
+    REQUIRE(ent == ent2);
+
+    auto handle = ent->handle();
+    nw::kernel::objects().destroy(handle);
+    REQUIRE_FALSE(nw::kernel::objects().valid(handle));
 }

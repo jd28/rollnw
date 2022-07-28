@@ -30,6 +30,10 @@ struct ObjectSystem {
     /// Destroys a single object
     void destroy(ObjectHandle obj);
 
+    /// Gets an object
+    template <typename T>
+    T* get(ObjectHandle obj);
+
     /// Loads an object from file system
     template <typename T>
     T* load(const std::filesystem::path& archive,
@@ -107,6 +111,14 @@ inline ResourceType::type objtype_to_restype(nw::ObjectType type)
     case ObjectType::waypoint:
         return ResourceType::utw;
     }
+}
+
+template <typename T>
+T* ObjectSystem::get(ObjectHandle obj)
+{
+    if (!valid(obj) || T::object_type != obj.type) return nullptr;
+    auto idx = static_cast<size_t>(obj.id);
+    return static_cast<T*>(std::get<std::unique_ptr<ObjectBase>>(objects_[idx]).get());
 }
 
 template <typename T>
