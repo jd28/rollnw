@@ -19,7 +19,7 @@
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
-    <link rel="next" title="nw::kernel::Services" href="nw__kernel__Services.html" />
+    <link rel="next" title="nw::kernel::Service" href="nw__kernel__Service.html" />
     <link rel="prev" title="nw::kernel::Resources" href="nw__kernel__Resources.html" /> 
 </head>
 
@@ -45,14 +45,12 @@
 </ul>
 <p class="caption" role="heading"><span class="caption-text">structure</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../../structure/components.html">objects &amp; components</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../structure/formats.html">formats</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../structure/i18n.html">i18n</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../structure/kernel.html">kernel</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../structure/resources.html">resources</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../structure/model.html">Model</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../structure/rules.html">rules</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../structure/serialization.html">serialization</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../structure/util.html">util</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">c++ api</span></p>
 <ul class="current">
@@ -231,6 +229,7 @@
 <li class="toctree-l2"><a class="reference internal" href="nw__kernel__ObjectSystem.html">nw::kernel::ObjectSystem</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__kernel__Resources.html">nw::kernel::Resources</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">nw::kernel::Rules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__kernel__Service.html">nw::kernel::Service</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__kernel__Services.html">nw::kernel::Services</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__kernel__Strings.html">nw::kernel::Strings</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__AssignExpression.html">nw::script::AssignExpression</a></li>
@@ -329,7 +328,7 @@
 <h1>nw::kernel::Rules<a class="headerlink" href="#nw-kernel-rules" title="Permalink to this heading"></a></h1>
 <dl class="cpp struct">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw6kernel5RulesE">
-<span id="_CPPv3N2nw6kernel5RulesE"></span><span id="_CPPv2N2nw6kernel5RulesE"></span><span id="nw::kernel::Rules"></span><span class="target" id="structnw_1_1kernel_1_1_rules"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Rules</span></span></span><a class="headerlink" href="#_CPPv4N2nw6kernel5RulesE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw6kernel5RulesE"></span><span id="_CPPv2N2nw6kernel5RulesE"></span><span id="nw::kernel::Rules"></span><span class="target" id="structnw_1_1kernel_1_1_rules"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Rules</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><span class="n"><span class="pre">nw</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">kernel</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="nw__kernel__Service.html#_CPPv4N2nw6kernel7ServiceE" title="nw::kernel::Service"><span class="n"><span class="pre">Service</span></span></a><a class="headerlink" href="#_CPPv4N2nw6kernel5RulesE" title="Permalink to this definition"></a><br /></dt>
 <dd><div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-types">Public Types</p>
 <dl class="cpp type">
@@ -352,8 +351,14 @@
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw6kernel5Rules10initializeEv">
-<span id="_CPPv3N2nw6kernel5Rules10initializeEv"></span><span id="_CPPv2N2nw6kernel5Rules10initializeEv"></span><span id="nw::kernel::Rules::initialize"></span><span class="target" id="structnw_1_1kernel_1_1_rules_1aa57c61917e838f35c9a2e09dfb34f59f"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">initialize</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6kernel5Rules10initializeEv" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw6kernel5Rules10initializeEv"></span><span id="_CPPv2N2nw6kernel5Rules10initializeEv"></span><span id="nw::kernel::Rules::initialize"></span><span class="target" id="structnw_1_1kernel_1_1_rules_1aed9e0af8067d2415d1853ed94fb3e1af"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">initialize</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">override</span></span><a class="headerlink" href="#_CPPv4N2nw6kernel5Rules10initializeEv" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Initializes rules system. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6kernel5Rules5clearEv">
+<span id="_CPPv3N2nw6kernel5Rules5clearEv"></span><span id="_CPPv2N2nw6kernel5Rules5clearEv"></span><span id="nw::kernel::Rules::clear"></span><span class="target" id="structnw_1_1kernel_1_1_rules_1ac34cdd62acb7ab7b0f9fca0bf6700968"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">clear</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">override</span></span><a class="headerlink" href="#_CPPv4N2nw6kernel5Rules5clearEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Clears rules system of all rules and cached 2da files. </p>
 </dd></dl>
 
 <dl class="cpp function">
@@ -385,12 +390,6 @@
 <dd class="field-odd"><p><strong>T</strong> – is <code class="docutils literal notranslate"><span class="pre">int</span></code> or <code class="docutils literal notranslate"><span class="pre">float</span></code> </p>
 </dd>
 </dl>
-</dd></dl>
-
-<dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N2nw6kernel5Rules5clearEv">
-<span id="_CPPv3N2nw6kernel5Rules5clearEv"></span><span id="_CPPv2N2nw6kernel5Rules5clearEv"></span><span id="nw::kernel::Rules::clear"></span><span class="target" id="structnw_1_1kernel_1_1_rules_1a97ac36cf24c4ea3b71f12ace25ed0a1a"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">clear</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6kernel5Rules5clearEv" title="Permalink to this definition"></a><br /></dt>
-<dd><p>Clears rules system of all rules and cached 2da files. </p>
 </dd></dl>
 
 <dl class="cpp function">
@@ -519,7 +518,7 @@
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="nw__kernel__Resources.html" class="btn btn-neutral float-left" title="nw::kernel::Resources" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="nw__kernel__Services.html" class="btn btn-neutral float-right" title="nw::kernel::Services" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="nw__kernel__Service.html" class="btn btn-neutral float-right" title="nw::kernel::Service" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

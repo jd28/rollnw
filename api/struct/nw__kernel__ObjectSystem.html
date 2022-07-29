@@ -45,14 +45,12 @@
 </ul>
 <p class="caption" role="heading"><span class="caption-text">structure</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../../structure/components.html">objects &amp; components</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../structure/formats.html">formats</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../structure/i18n.html">i18n</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../structure/kernel.html">kernel</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../structure/resources.html">resources</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../structure/model.html">Model</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../structure/rules.html">rules</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../structure/serialization.html">serialization</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../structure/util.html">util</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">c++ api</span></p>
 <ul class="current">
@@ -231,6 +229,7 @@
 <li class="toctree-l2 current"><a class="current reference internal" href="#">nw::kernel::ObjectSystem</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__kernel__Resources.html">nw::kernel::Resources</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__kernel__Rules.html">nw::kernel::Rules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__kernel__Service.html">nw::kernel::Service</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__kernel__Services.html">nw::kernel::Services</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__kernel__Strings.html">nw::kernel::Strings</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__AssignExpression.html">nw::script::AssignExpression</a></li>
@@ -329,25 +328,36 @@
 <h1>nw::kernel::ObjectSystem<a class="headerlink" href="#nw-kernel-objectsystem" title="Permalink to this heading"></a></h1>
 <dl class="cpp struct">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw6kernel12ObjectSystemE">
-<span id="_CPPv3N2nw6kernel12ObjectSystemE"></span><span id="_CPPv2N2nw6kernel12ObjectSystemE"></span><span id="nw::kernel::ObjectSystem"></span><span class="target" id="structnw_1_1kernel_1_1_object_system"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ObjectSystem</span></span></span><a class="headerlink" href="#_CPPv4N2nw6kernel12ObjectSystemE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw6kernel12ObjectSystemE"></span><span id="_CPPv2N2nw6kernel12ObjectSystemE"></span><span id="nw::kernel::ObjectSystem"></span><span class="target" id="structnw_1_1kernel_1_1_object_system"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ObjectSystem</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><span class="n"><span class="pre">nw</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">kernel</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="nw__kernel__Service.html#_CPPv4N2nw6kernel7ServiceE" title="nw::kernel::Service"><span class="n"><span class="pre">Service</span></span></a><a class="headerlink" href="#_CPPv4N2nw6kernel12ObjectSystemE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>The object system creates, serializes, and deserializes entities. </p>
 <div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw6kernel12ObjectSystemD0Ev">
-<span id="_CPPv3N2nw6kernel12ObjectSystemD0Ev"></span><span id="_CPPv2N2nw6kernel12ObjectSystemD0Ev"></span><span id="nw::kernel::ObjectSystem::~ObjectSystem"></span><span class="target" id="structnw_1_1kernel_1_1_object_system_1ad841c6575b1eddb7523d36c1316eff03"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">~ObjectSystem</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6kernel12ObjectSystemD0Ev" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw6kernel12ObjectSystemD0Ev"></span><span id="_CPPv2N2nw6kernel12ObjectSystemD0Ev"></span><span id="nw::kernel::ObjectSystem::~ObjectSystem"></span><span class="target" id="structnw_1_1kernel_1_1_object_system_1aae7f024eb804a8e64c3e32bf8609cc7f"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">~ObjectSystem</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6kernel12ObjectSystemD0Ev" title="Permalink to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw6kernel12ObjectSystem5clearEv">
-<span id="_CPPv3N2nw6kernel12ObjectSystem5clearEv"></span><span id="_CPPv2N2nw6kernel12ObjectSystem5clearEv"></span><span id="nw::kernel::ObjectSystem::clear"></span><span class="target" id="structnw_1_1kernel_1_1_object_system_1af50780128a29d687a7a8d9cdff755898"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">clear</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6kernel12ObjectSystem5clearEv" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw6kernel12ObjectSystem5clearEv"></span><span id="_CPPv2N2nw6kernel12ObjectSystem5clearEv"></span><span id="nw::kernel::ObjectSystem::clear"></span><span class="target" id="structnw_1_1kernel_1_1_object_system_1a3d771194b0a9600f0daa422d7afba9fd"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">clear</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">override</span></span><a class="headerlink" href="#_CPPv4N2nw6kernel12ObjectSystem5clearEv" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Destroys all objects. </p>
 </dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6kernel12ObjectSystem10initializeEv">
+<span id="_CPPv3N2nw6kernel12ObjectSystem10initializeEv"></span><span id="_CPPv2N2nw6kernel12ObjectSystem10initializeEv"></span><span id="nw::kernel::ObjectSystem::initialize"></span><span class="target" id="structnw_1_1kernel_1_1_object_system_1adae006d06e50c555ebafcf56714f6491"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">initialize</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">override</span></span><a class="headerlink" href="#_CPPv4N2nw6kernel12ObjectSystem10initializeEv" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw6kernel12ObjectSystem7destroyE12ObjectHandle">
 <span id="_CPPv3N2nw6kernel12ObjectSystem7destroyE12ObjectHandle"></span><span id="_CPPv2N2nw6kernel12ObjectSystem7destroyE12ObjectHandle"></span><span id="nw::kernel::ObjectSystem::destroy__ObjectHandle"></span><span class="target" id="structnw_1_1kernel_1_1_object_system_1add609578206094760ed183f8ba19a1cc"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">destroy</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">ObjectHandle</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">obj</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6kernel12ObjectSystem7destroyE12ObjectHandle" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Destroys a single object. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4I0EN2nw6kernel12ObjectSystem3getEP1T12ObjectHandle">
+<span id="_CPPv3I0EN2nw6kernel12ObjectSystem3getE12ObjectHandle"></span><span id="_CPPv2I0EN2nw6kernel12ObjectSystem3getE12ObjectHandle"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">T</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="structnw_1_1kernel_1_1_object_system_1a2bbb41347929097994c5a710803be679"></span><a class="reference internal" href="#_CPPv4I0EN2nw6kernel12ObjectSystem3getEP1T12ObjectHandle" title="nw::kernel::ObjectSystem::get::T"><span class="n"><span class="pre">T</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">get</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">ObjectHandle</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">obj</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4I0EN2nw6kernel12ObjectSystem3getEP1T12ObjectHandle" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Gets an object. </p>
 </dd></dl>
 
 <dl class="cpp function">
@@ -371,13 +381,13 @@
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw6kernel12ObjectSystem9make_areaE6Resref">
 <span id="_CPPv3N2nw6kernel12ObjectSystem9make_areaE6Resref"></span><span id="_CPPv2N2nw6kernel12ObjectSystem9make_areaE6Resref"></span><span id="nw::kernel::ObjectSystem::make_area__Resref"></span><span class="target" id="structnw_1_1kernel_1_1_object_system_1a0f27cb43c11c81a9141dac6967196149"></span><a class="reference internal" href="nw__Area.html#_CPPv4N2nw4AreaE" title="nw::Area"><span class="n"><span class="pre">Area</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">make_area</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="nw__Resref.html#_CPPv4N2nw6ResrefE" title="nw::Resref"><span class="n"><span class="pre">Resref</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">area</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6kernel12ObjectSystem9make_areaE6Resref" title="Permalink to this definition"></a><br /></dt>
-<dd><p>Makes an area object. </p>
+<dd><p>Creates an area object. </p>
 </dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw6kernel12ObjectSystem11make_moduleEv">
 <span id="_CPPv3N2nw6kernel12ObjectSystem11make_moduleEv"></span><span id="_CPPv2N2nw6kernel12ObjectSystem11make_moduleEv"></span><span id="nw::kernel::ObjectSystem::make_module"></span><span class="target" id="structnw_1_1kernel_1_1_object_system_1abe0cd7e2dd3a66228ad9612ed631552f"></span><a class="reference internal" href="nw__Module.html#_CPPv4N2nw6ModuleE" title="nw::Module"><span class="n"><span class="pre">Module</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">make_module</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6kernel12ObjectSystem11make_moduleEv" title="Permalink to this definition"></a><br /></dt>
-<dd><p>Makes a module object </p>
+<dd><p>Creates a module object </p>
 <div class="admonition warning">
 <p class="admonition-title">Warning</p>
 <p>: <code class="docutils literal notranslate"><span class="pre">nw::kernel::resman().load_module(...)</span></code> <strong>must</strong> be called before this. </p>

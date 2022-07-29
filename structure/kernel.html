@@ -19,7 +19,7 @@
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="resources" href="resources.html" />
+    <link rel="next" title="Model" href="model.html" />
     <link rel="prev" title="i18n" href="i18n.html" /> 
 </head>
 
@@ -45,35 +45,22 @@
 </ul>
 <p class="caption" role="heading"><span class="caption-text">structure</span></p>
 <ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="components.html">objects &amp; components</a></li>
 <li class="toctree-l1"><a class="reference internal" href="formats.html">formats</a></li>
 <li class="toctree-l1"><a class="reference internal" href="i18n.html">i18n</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">kernel</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#basics">Basics</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#services">Services</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#config">Config</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="#systems">Systems</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#objects">Objects</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#resources">Resources</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#rules">Rules</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="#not-yet-implemented">Not Yet Implemented</a></li>
-</ul>
-</li>
+<li class="toctree-l3"><a class="reference internal" href="#rules">Rules</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#strings">Strings</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#components">Components</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#constantregistry">ConstantRegistry</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#twodacache">TwoDACache</a></li>
 </ul>
 </li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="resources.html">resources</a></li>
+<li class="toctree-l1"><a class="reference internal" href="model.html">Model</a></li>
 <li class="toctree-l1"><a class="reference internal" href="rules.html">rules</a></li>
 <li class="toctree-l1"><a class="reference internal" href="serialization.html">serialization</a></li>
-<li class="toctree-l1"><a class="reference internal" href="util.html">util</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">c++ api</span></p>
 <ul>
@@ -136,51 +123,126 @@ and services. It’s designed around some explicit goals:</p>
 <ul class="simple">
 <li><p>Every service should be easily overrideable to allow for <a class="reference external" href="http://sevangelatos.com/john-carmack-on-parallel-implementations/">parallel
 implementation</a>.</p></li>
+<li><p>Every service should be decoupled from the kernel itself.</p></li>
 <li><p>Any function or object that can modify global state must be contained
 in this module for easy search/grepability.</p></li>
 </ul>
-<section id="basics">
-<h2>Basics<a class="headerlink" href="#basics" title="Permalink to this heading"></a></h2>
+<section id="services">
+<h2>Services<a class="headerlink" href="#services" title="Permalink to this heading"></a></h2>
 <section id="config">
 <h3>Config<a class="headerlink" href="#config" title="Permalink to this heading"></a></h3>
-<p>The <code class="docutils literal notranslate"><span class="pre">Config</span></code> module provides access to installation info, path
+<p>The <code class="docutils literal notranslate"><span class="pre">Config</span></code> service provides access to installation info, path
 aliases, Ini and Toml settings.</p>
+<p><strong>Example</strong></p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">config</span><span class="p">.</span><span class="n">options</span><span class="p">().</span><span class="n">version</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">nw</span><span class="o">::</span><span class="n">GameVersion</span><span class="o">::</span><span class="n">vEE</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">    </span><span class="n">REQUIRE_FALSE</span><span class="p">(</span><span class="n">config</span><span class="p">.</span><span class="n">settings_tml</span><span class="p">().</span><span class="n">empty</span><span class="p">());</span><span class="w"></span>
+<span class="w">    </span><span class="n">REQUIRE</span><span class="p">(</span><span class="o">*</span><span class="n">config</span><span class="p">.</span><span class="n">settings_tml</span><span class="p">()[</span><span class="s">&quot;game&quot;</span><span class="p">][</span><span class="s">&quot;gore&quot;</span><span class="p">].</span><span class="n">as</span><span class="o">&lt;</span><span class="kt">int64_t</span><span class="o">&gt;</span><span class="p">()</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">1</span><span class="p">);</span><span class="w"></span>
+<span class="p">}</span><span class="w"></span>
+</pre></div>
+</div>
 </section>
-</section>
-<section id="systems">
-<h2>Systems<a class="headerlink" href="#systems" title="Permalink to this heading"></a></h2>
+<hr class="docutils" />
 <section id="objects">
 <h3>Objects<a class="headerlink" href="#objects" title="Permalink to this heading"></a></h3>
+<p>rollNW is all about live objects and <em>not</em> serialized file formats.</p>
+<p><strong>Definitions</strong></p>
+<dl class="simple">
+<dt><code class="xref cpp cpp-enum docutils literal notranslate"><span class="pre">ObjectID</span></code></dt><dd><p>Unlike NWN an ObjectID does not provide a one-to-one mapping to an object.  Rather,
+it’s an index into a structure containing objects.</p>
+</dd>
+<dt><code class="xref cpp cpp-struct docutils literal notranslate"><span class="pre">ObjectHandle</span></code></dt><dd><p>An object handle maps to a specific object it consists of an ObjectID, the objects type,
+and an unsigned 16 bit integer indicating the object’s version.  To be valid, an object
+handle must match what is in the object array.</p>
+</dd>
+<dt><code class="xref cpp cpp-struct docutils literal notranslate"><span class="pre">ObjectBase</span></code></dt><dd><p>The base class of all objects</p>
+</dd>
+</dl>
+<p><strong>Example</strong></p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="c1">// Loading an object into the system directly from the file system.</span>
+<span class="k">auto</span><span class="w"> </span><span class="n">obj</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">nw</span><span class="o">::</span><span class="n">kernel</span><span class="o">::</span><span class="n">objects</span><span class="p">().</span><span class="n">load</span><span class="o">&lt;</span><span class="n">nw</span><span class="o">::</span><span class="n">Creature</span><span class="o">&gt;</span><span class="p">(</span><span class="n">fs</span><span class="o">::</span><span class="n">path</span><span class="p">(</span><span class="s">&quot;a/path/to/nw_chicken.utc&quot;</span><span class="p">));</span><span class="w"></span>
+<span class="k">if</span><span class="p">(</span><span class="n">ent</span><span class="o">-&gt;</span><span class="n">scripts</span><span class="p">.</span><span class="n">on_attacked</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="s">&quot;nw_c2_default5&quot;</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">    </span><span class="n">ent</span><span class="o">-&gt;</span><span class="n">scripts</span><span class="p">.</span><span class="n">on_attacked</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;nw_shakenbake&quot;</span><span class="p">;</span><span class="w"></span>
+<span class="p">}</span><span class="w"></span>
+</pre></div>
+</div>
 </section>
+<hr class="docutils" />
 <section id="resources">
 <h3>Resources<a class="headerlink" href="#resources" title="Permalink to this heading"></a></h3>
+<p>The resource services provides access the file system and resources stored in NWN container files.
+The main goals mostly satisfied: the ability to read all NWN(:EE) containers. The ability to
+add new container types is limited in utility due to <a class="reference external" href="https://github.com/nwnxee/unified">NWNX:EE</a>’s
+lack of a ResMan plugin, even so the ability to load files from a Zip file is included.</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 29%" />
+<col style="width: 14%" />
+<col style="width: 29%" />
+<col style="width: 29%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Type</p></th>
+<th class="head"><p>Read</p></th>
+<th class="head"><p>Write</p></th>
+<th class="head"><p>In Situ
+Modifications</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Key/Bif</p></td>
+<td><p>Yes</p></td>
+<td><p>Never</p></td>
+<td><p>Never</p></td>
+</tr>
+<tr class="row-odd"><td><p>ERF</p></td>
+<td><p>Yes</p></td>
+<td><p>Maybe</p></td>
+<td><p>Maybe</p></td>
+</tr>
+<tr class="row-even"><td><p>NWSync</p></td>
+<td><p>Yes</p></td>
+<td><p>Never</p></td>
+<td><p>Never</p></td>
+</tr>
+<tr class="row-odd"><td><p>NWSync Server
+Directory</p></td>
+<td><p>Not Yet</p></td>
+<td><p>Never</p></td>
+<td><p>Never</p></td>
+</tr>
+<tr class="row-even"><td><p>Directories</p></td>
+<td><p>Yes</p></td>
+<td><p>Yes (file format
+dependant)</p></td>
+<td><p>N/A</p></td>
+</tr>
+<tr class="row-odd"><td><p>Zip</p></td>
+<td><p>Yes</p></td>
+<td><p>Maybe</p></td>
+<td><p>Maybe</p></td>
+</tr>
+</tbody>
+</table>
 </section>
 <section id="rules">
 <h3>Rules<a class="headerlink" href="#rules" title="Permalink to this heading"></a></h3>
-<section id="not-yet-implemented">
-<h4>Not Yet Implemented<a class="headerlink" href="#not-yet-implemented" title="Permalink to this heading"></a></h4>
-<ul class="simple">
-<li><p>The vast bulk of it..</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">ruleset.2da</span></code></p></li>
-</ul>
-</section>
+<p>See <a class="reference external" href="https://jd28.github.io/rollnw/structure/rules.html">rules</a> sfor the module
+supporting this service.</p>
 </section>
 <hr class="docutils" />
 <section id="strings">
 <h3>Strings<a class="headerlink" href="#strings" title="Permalink to this heading"></a></h3>
-<blockquote>
-<div><p>Provides access to dialog/custom TLKs and localized strings. It also
-provides a mechanism for interning commonly used strings.</p>
-</div></blockquote>
-</section>
-</section>
-<section id="components">
-<h2>Components<a class="headerlink" href="#components" title="Permalink to this heading"></a></h2>
-<section id="constantregistry">
-<h3>ConstantRegistry<a class="headerlink" href="#constantregistry" title="Permalink to this heading"></a></h3>
-</section>
-<section id="twodacache">
-<h3>TwoDACache<a class="headerlink" href="#twodacache" title="Permalink to this heading"></a></h3>
+<p>Provides access to dialog/custom TLKs and localized strings. It also provides a
+mechanism for interning commonly used strings.</p>
+<p>See <a class="reference external" href="https://jd28.github.io/rollnw/structure/i18n.html">i18n</a> for the module
+supporting this service.</p>
+<p><strong>Example</strong></p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="k">auto</span><span class="w"> </span><span class="n">str</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">nw</span><span class="o">::</span><span class="n">kernel</span><span class="o">::</span><span class="n">strings</span><span class="p">().</span><span class="n">intern</span><span class="p">(</span><span class="s">&quot;This is a Test&quot;</span><span class="p">);</span><span class="w"></span>
+<span class="k">if</span><span class="p">(</span><span class="n">str</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="s">&quot;This is a Test&quot;</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">   </span><span class="c1">// This will occur</span>
+<span class="p">}</span><span class="w"></span>
+</pre></div>
+</div>
 </section>
 </section>
 </section>
@@ -190,7 +252,7 @@ provides a mechanism for interning commonly used strings.</p>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="i18n.html" class="btn btn-neutral float-left" title="i18n" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="resources.html" class="btn btn-neutral float-right" title="resources" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="model.html" class="btn btn-neutral float-right" title="Model" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
