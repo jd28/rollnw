@@ -27,4 +27,9 @@ int get_ability_score(const nw::Creature* obj, nw::Ability ability, bool base = 
     return result;
 }
 
+int get_ability_modifier(const nw::Creature* obj, nw::Ability ability, bool base = false)
+{
+    return (get_ability_score(obj, ability, base) - 10) / 2;
+}
+
 } // namespace nwn1
