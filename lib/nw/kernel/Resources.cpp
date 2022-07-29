@@ -36,6 +36,9 @@ inline Container* resolve_container(const std::filesystem::path& p, const std::s
 void Resources::initialize()
 {
     LOG_F(INFO, "kernel: initializing resource system");
+    LOG_F(INFO, "kernel: root directory: {}", config().options().install);
+    LOG_F(INFO, "kernel: user directory: {}", config().options().user);
+
     ambient_user_ = Directory{config().alias_path(PathAlias::ambient)};
     dmvault_user_ = Directory{config().alias_path(PathAlias::dmvault)};
     localvault_user_ = Directory{config().alias_path(PathAlias::localvault)};
