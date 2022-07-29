@@ -106,6 +106,7 @@ T* ObjectSystem::make()
         free_list_.pop();
         ObjectHandle oh = std::get<ObjectHandle>(objects_[idx]);
         oh.type = T::object_type;
+        obj->set_handle(oh);
         objects_[idx] = std::unique_ptr<ObjectBase>(obj);
     } else {
         ObjectHandle oh;
