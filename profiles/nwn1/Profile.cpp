@@ -3,10 +3,10 @@
 #include "rules.hpp"
 
 #include <nw/components/Creature.hpp>
-#include <nw/components/TwoDACache.hpp>
 #include <nw/formats/TwoDA.hpp>
 #include <nw/kernel/Resources.hpp>
 #include <nw/kernel/Rules.hpp>
+#include <nw/kernel/TwoDACache.hpp>
 #include <nw/rules/Ability.hpp>
 #include <nw/rules/BaseItem.hpp>
 #include <nw/rules/Class.hpp>

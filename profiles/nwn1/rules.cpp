@@ -7,8 +7,8 @@
 #include <nw/components/Creature.hpp>
 #include <nw/components/CreatureStats.hpp>
 #include <nw/components/LevelStats.hpp>
-#include <nw/components/TwoDACache.hpp>
 #include <nw/kernel/Kernel.hpp>
+#include <nw/kernel/TwoDACache.hpp>
 #include <nw/log.hpp>
 #include <nw/rules/Class.hpp>
 #include <nw/rules/Feat.hpp>

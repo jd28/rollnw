@@ -1,12 +1,12 @@
 #include "Kernel.hpp"
 
 #include "../components/Module.hpp"
-#include "../components/TwoDACache.hpp"
 #include "../log.hpp"
 #include "Objects.hpp"
 #include "Resources.hpp"
 #include "Rules.hpp"
 #include "Strings.hpp"
+#include "TwoDACache.hpp"
 
 namespace nw::kernel {
 
@@ -22,6 +22,7 @@ Services::Services()
     services().add<Resources>();
     services().add<ObjectSystem>();
     services().add<Rules>();
+    services().add<TwoDACache>();
 }
 
 Config& config() { return detail::s_config; }

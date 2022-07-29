@@ -29,8 +29,6 @@ add_library(nw-components STATIC
     Saves.cpp
     SpellBook.cpp
     Trap.cpp
-
-    TwoDACache.cpp
 )
 
 target_include_directories(nw-components SYSTEM PUBLIC ${CMAKE_CURRENT_BINARY_DIR})

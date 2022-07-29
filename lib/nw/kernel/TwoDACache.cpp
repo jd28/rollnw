@@ -1,8 +1,8 @@
 #include "TwoDACache.hpp"
 
-#include "../kernel/Resources.hpp"
+#include "Resources.hpp"
 
-namespace nw {
+namespace nw::kernel {
 
 bool TwoDACache::cache(std::string_view tda)
 {
@@ -50,4 +50,4 @@ const TwoDA* TwoDACache::get(const Resource& tda)
     return nullptr;
 }
 
-} // namespace nw
+} // namespace nw::kernel

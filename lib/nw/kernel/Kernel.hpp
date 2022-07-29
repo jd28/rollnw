@@ -18,8 +18,11 @@ namespace kernel {
 struct Service {
     virtual ~Service() { }
 
-    virtual void initialize() = 0;
-    virtual void clear() = 0;
+    /// Initializes a service
+    virtual void initialize(){};
+
+    /// Clears a service
+    virtual void clear(){};
 };
 
 struct ServiceEntry {

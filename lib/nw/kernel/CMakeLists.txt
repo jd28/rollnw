@@ -5,6 +5,7 @@ add_library(nw-kernel STATIC
     Resources.cpp
     Rules.cpp
     Strings.cpp
+    TwoDACache.cpp
 )
 
 target_link_libraries(nw-kernel PRIVATE
