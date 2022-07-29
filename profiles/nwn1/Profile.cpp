@@ -19,10 +19,60 @@
 
 namespace nwn1 {
 
-bool Profile::load_components() const
+static inline bool load_master_feats()
 {
-    LOG_F(INFO, "[nwn1] loading components...");
-    // nw::kernel::services().add<nw::TwoDACache>();
+    LOG_F(INFO, "[nwn1] Loading master feats");
+
+    auto& mfr = nw::kernel::rules().master_feats;
+    mfr.set_bonus(mfeat_skill_focus, 3);
+    mfr.set_bonus(mfeat_skill_focus_epic, 10);
+
+#define ADD_SKILL(name)                                                \
+    mfr.add(skill_##name, mfeat_skill_focus, feat_skill_focus_##name); \
+    mfr.add(skill_##name, mfeat_skill_focus_epic, feat_epic_skill_focus_##name)
+
+    ADD_SKILL(animal_empathy);
+    ADD_SKILL(concentration);
+    ADD_SKILL(disable_trap);
+    ADD_SKILL(discipline);
+    ADD_SKILL(heal);
+    ADD_SKILL(hide);
+    ADD_SKILL(listen);
+    ADD_SKILL(lore);
+    ADD_SKILL(move_silently);
+    ADD_SKILL(open_lock);
+    ADD_SKILL(parry);
+    ADD_SKILL(perform);
+    ADD_SKILL(persuade);
+    ADD_SKILL(pick_pocket);
+    ADD_SKILL(search);
+    ADD_SKILL(set_trap);
+    ADD_SKILL(spellcraft);
+    ADD_SKILL(spot);
+    ADD_SKILL(taunt);
+    ADD_SKILL(use_magic_device);
+    // ADD_SKILL(appraise);
+    ADD_SKILL(tumble);
+    ADD_SKILL(craft_trap);
+    ADD_SKILL(bluff);
+    ADD_SKILL(intimidate);
+    ADD_SKILL(craft_armor);
+    ADD_SKILL(craft_weapon);
+    // ADD_SKILL(ride);
+
+#undef ADD_SKILL
+
+    // Weapons
+    mfr.set_bonus(mfeat_weapon_focus, 1);
+    mfr.set_bonus(mfeat_weapon_focus_epic, 2);
+    mfr.set_bonus(mfeat_weapon_spec, 2);
+    mfr.set_bonus(mfeat_weapon_spec_epic, 4);
+    // [TODO] One here is just an indicator that char has feat.. for now.  Ultimately, dice rolls
+    // and damage rolls will need to be included in ModifierResult
+    mfr.set_bonus(mfeat_devastating_crit, 1);
+    mfr.set_bonus(mfeat_improved_crit, 1);
+    mfr.set_bonus(mfeat_overwhelming_crit, 1);
+
     return true;
 }
 
@@ -96,9 +146,6 @@ bool Profile::load_rules() const
     // == Set global rule functions ===========================================
     nw::kernel::rules().set_selector(selector);
     nw::kernel::rules().set_qualifier(match);
-
-    // == Load Compontents ====================================================
-    load_components();
 
     // == Load 2das ===========================================================
 
@@ -331,63 +378,6 @@ bool Profile::load_rules() const
 
     // == Load Master Feats ===================================================
     load_master_feats();
-
-    return true;
-}
-
-bool Profile::load_master_feats() const
-{
-    LOG_F(INFO, "[nwn1] Loading master feats");
-
-    auto& mfr = nw::kernel::rules().master_feats;
-    mfr.set_bonus(mfeat_skill_focus, 3);
-    mfr.set_bonus(mfeat_skill_focus_epic, 10);
-
-#define ADD_SKILL(name)                                                \
-    mfr.add(skill_##name, mfeat_skill_focus, feat_skill_focus_##name); \
-    mfr.add(skill_##name, mfeat_skill_focus_epic, feat_epic_skill_focus_##name)
-
-    ADD_SKILL(animal_empathy);
-    ADD_SKILL(concentration);
-    ADD_SKILL(disable_trap);
-    ADD_SKILL(discipline);
-    ADD_SKILL(heal);
-    ADD_SKILL(hide);
-    ADD_SKILL(listen);
-    ADD_SKILL(lore);
-    ADD_SKILL(move_silently);
-    ADD_SKILL(open_lock);
-    ADD_SKILL(parry);
-    ADD_SKILL(perform);
-    ADD_SKILL(persuade);
-    ADD_SKILL(pick_pocket);
-    ADD_SKILL(search);
-    ADD_SKILL(set_trap);
-    ADD_SKILL(spellcraft);
-    ADD_SKILL(spot);
-    ADD_SKILL(taunt);
-    ADD_SKILL(use_magic_device);
-    // ADD_SKILL(appraise);
-    ADD_SKILL(tumble);
-    ADD_SKILL(craft_trap);
-    ADD_SKILL(bluff);
-    ADD_SKILL(intimidate);
-    ADD_SKILL(craft_armor);
-    ADD_SKILL(craft_weapon);
-    // ADD_SKILL(ride);
-
-#undef ADD_SKILL
-
-    // Weapons
-    mfr.set_bonus(mfeat_weapon_focus, 1);
-    mfr.set_bonus(mfeat_weapon_focus_epic, 2);
-    mfr.set_bonus(mfeat_weapon_spec, 2);
-    mfr.set_bonus(mfeat_weapon_spec_epic, 4);
-    // [TODO] One here is just an indicator that char has feat.. for now.  Ultimately, dice rolls
-    // and damage rolls will need to be included in ModifierResult
-    mfr.set_bonus(mfeat_devastating_crit, 1);
-    mfr.set_bonus(mfeat_improved_crit, 1);
-    mfr.set_bonus(mfeat_overwhelming_crit, 1);
 
     return true;
 }
