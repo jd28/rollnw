@@ -19,25 +19,25 @@ TEST_CASE("item: load armor item", "[objects]")
 
     auto ent = nw::kernel::objects().load<nw::Item>(fs::path("test_data/user/development/cloth028.uti"));
     REQUIRE(ent);
-    // auto light = nw::kernel::objects().load("nw_maarcl004", nw::ObjectType::item);
-    // REQUIRE(light);
-    // auto medium = nw::kernel::objects().load("nw_maarcl040", nw::ObjectType::item);
-    // REQUIRE(medium);
-    // auto heavy1 = nw::kernel::objects().load("x2_mdrowar030", nw::ObjectType::item);
-    // REQUIRE(heavy1);
-    // auto heavy2 = nw::kernel::objects().load("x2_it_adaplate", nw::ObjectType::item);
-    // REQUIRE(heavy2);
+    auto light = nw::kernel::objects().load<nw::Item>("nw_maarcl004"sv);
+    REQUIRE(light);
+    auto medium = nw::kernel::objects().load<nw::Item>("nw_maarcl040"sv);
+    REQUIRE(medium);
+    auto heavy1 = nw::kernel::objects().load<nw::Item>("x2_mdrowar030"sv);
+    REQUIRE(heavy1);
+    auto heavy2 = nw::kernel::objects().load<nw::Item>("x2_it_adaplate"sv);
+    REQUIRE(heavy2);
 
     REQUIRE(ent->common.resref == "cloth028");
     REQUIRE(ent->properties.size() > 0);
     REQUIRE(ent->model_type == nw::ItemModelType::armor);
     REQUIRE(ent->common.locals.size() > 0);
 
-    // REQUIRE(nwn1::calculate_ac(ent) == 0);
-    //  REQUIRE(nwn1::calculate_ac(light) == 1);
-    //  REQUIRE(nwn1::calculate_ac(medium) == 5);
-    //  REQUIRE(nwn1::calculate_ac(heavy1) == 7);
-    //  REQUIRE(nwn1::calculate_ac(heavy2) == 8);
+    REQUIRE(nwn1::calculate_ac(ent) == 0);
+    REQUIRE(nwn1::calculate_ac(light) == 1);
+    REQUIRE(nwn1::calculate_ac(medium) == 5);
+    REQUIRE(nwn1::calculate_ac(heavy1) == 7);
+    REQUIRE(nwn1::calculate_ac(heavy2) == 8);
 
     nw::kernel::unload_module();
 }
