@@ -157,7 +157,7 @@ Definitions
    };
 
    // Set a nerf
-   nwk::rules().replace("dnd-3.0-palemaster-ac", {pm_ac_nerf});
+   nwk::rules().replace("dnd-3.0-palemaster-ac", nw::ModifierInputs{pm_ac_nerf});
    ac_natural_mod = nwk::rules().calculate<int>(ent, nwn1::mod_type_armor_class, nwn1::ac_natural);
 
    // Nerf wasn't enough, delete the whole thing

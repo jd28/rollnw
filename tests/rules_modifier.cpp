@@ -65,7 +65,7 @@ TEST_CASE("modifier kernel", "[rules]")
         return ((pm_level / 4) + 1);
     };
 
-    REQUIRE(nwk::rules().replace("dnd-3.0-palemaster-ac", {pm_ac_nerf}));
+    REQUIRE(nwk::rules().replace("dnd-3.0-palemaster-ac", nw::ModifierInputs{pm_ac_nerf}));
     res = 0;
     nwk::rules().calculate<int>(ent, nwn1::mod_type_armor_class, nwn1::ac_natural,
         [&res](auto& params) {
