@@ -122,6 +122,10 @@ T* ObjectSystem::make()
 template <typename T>
 T* ObjectSystem::load(const std::filesystem::path& archive, SerializationProfile profile)
 {
+    if (!std::filesystem::exists(archive)) {
+        LOG_F(ERROR, "file '{}' does not exist", archive);
+        return nullptr;
+    }
     T* obj = make<T>();
     ObjectType type;
     ResourceType::type restype = ResourceType::from_extension(path_to_string(archive.extension()));
