@@ -61,7 +61,7 @@ jobs:
         id: cache-nwn
         uses: actions/cache@v2
         env:
-          cache-name: cache-nwn2
+          cache-name: cache-nwn3
         with:
           path: |
             ${{ github.workspace }}/nwn/
@@ -71,7 +71,7 @@ jobs:
         if: steps.cache-nwn.outputs.cache-hit != 'true'
         run: |
           curl https://nwn.beamdog.net/downloads/nwnee-dedicated-8193.34.zip -O
-          7z e nwnee-dedicated-8193.34.zip -o${{ github.workspace }}/nwn/ -r
+          7z x nwnee-dedicated-8193.34.zip -onwn
 
       - name: Check NWN install
         run: |
