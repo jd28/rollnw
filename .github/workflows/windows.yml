@@ -71,7 +71,10 @@ jobs:
         if: steps.cache-nwn.outputs.cache-hit != 'true'
         run: |
           curl https://nwn.beamdog.net/downloads/nwnee-dedicated-8193.34.zip -O
-          7z e nwnee-dedicated-8193.34.zip -o${{ github.workspace }}/nwn/
+          7z e nwnee-dedicated-8193.34.zip -o${{ github.workspace }}/nwn/ -r
+
+      - name: Check NWN install
+        run: |
           dir ${{ github.workspace }}/nwn/
 
       - name: Configure
