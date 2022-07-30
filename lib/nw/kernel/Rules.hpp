@@ -38,18 +38,26 @@ struct Rules : public Service {
      * @brief Calculates all modifiers of `type`
      *
      * @tparam T is ``int`` or ``float``
-     * @tparam U is some subtype that **must** be convertible to int
      */
-    template <typename T, typename U = int>
-    T calculate(const ObjectBase* obj, const ModifierType type, U subtype = -1) const;
+    template <typename T, typename Callback>
+    void calculate(const ObjectBase* obj, const ModifierType type, Callback cb) const;
+
+    /**
+     * @brief Calculates all modifiers of `type`
+     *
+     * @tparam T is ``int`` or ``float``
+     * @tparam U is some rule subtype
+     */
+    template <typename T, typename U, typename Callback>
+    void calculate(const ObjectBase* obj, const ModifierType type, U subtype, Callback cb) const;
 
     /**
      * @brief Calculates a modifier
      *
      * @tparam T is ``int`` or ``float``
      */
-    template <typename T>
-    T calculate(const ObjectBase* obj, const Modifier& mod) const;
+    template <typename T, typename Callback>
+    void calculate(const ObjectBase* obj, const Modifier& mod, Callback cb) const;
 
     /// Match
     bool match(const Qualifier& qual, const ObjectBase* obj) const;
@@ -72,7 +80,7 @@ struct Rules : public Service {
      * @param value new value
      * @return int number of modifiers affected
      */
-    int replace(std::string_view tag, ModifierVariant value);
+    int replace(std::string_view tag, ModifierInputs value);
 
     /**
      * @brief Replace modifier requirement
@@ -106,28 +114,53 @@ private:
     std::vector<Modifier> entries_;
 };
 
-template <typename T>
-T Rules::calculate(const ObjectBase* obj, const Modifier& mod) const
+template <typename T, typename Callback>
+void Rules::calculate(const ObjectBase* obj, const Modifier& mod, Callback cb) const
 {
     static_assert(std::is_same_v<T, int> || std::is_same_v<T, float>,
         "only int and float are allowed");
 
     if (!meets_requirement(mod.requirement, obj)) {
-        return {};
+        return;
     }
-    if (mod.value.is<T>()) {
-        return mod.value.as<T>();
-    } else if (mod.value.is<ModifierFunction>()) {
-        auto res = mod.value.as<ModifierFunction>()(obj);
-        return res.is<T>() ? res.as<T>() : T{};
-    } else {
-        LOG_F(ERROR, "invalid modifier or type mismatch");
-        return T{};
+
+    ModifierOutputs<T> params;
+    for (auto& val : mod.value) {
+        if (val.is<T>()) {
+            params.push_back(val.as<T>());
+        } else if (val.is<ModifierFunction>()) {
+            auto res = val.as<ModifierFunction>()(obj);
+            if (res.is<T>()) {
+                params.push_back(res.as<T>());
+            } else {
+                LOG_F(ERROR, "invalid modifier or type mismatch");
+                return;
+            }
+        } else {
+            LOG_F(ERROR, "invalid modifier or type mismatch");
+            return;
+        }
+    }
+    cb(params);
+}
+
+template <typename T, typename Callback>
+void Rules::calculate(const ObjectBase* obj, const ModifierType type, Callback cb) const
+{
+    static_assert(std::is_same_v<T, int> || std::is_same_v<T, float>,
+        "only int and float are allowed");
+
+    Modifier temp{type, {}, {}, ModifierSource::unknown, Requirement{}, {}, -1};
+    auto it = std::lower_bound(std::begin(entries_), std::end(entries_), temp);
+
+    while (it != std::end(entries_) && it->type == type) {
+        calculate<T>(obj, *it, cb);
+        ++it;
     }
 }
 
-template <typename T, typename U>
-T Rules::calculate(const ObjectBase* obj, const ModifierType type, U subtype) const
+template <typename T, typename U, typename Callback>
+void Rules::calculate(const ObjectBase* obj, const ModifierType type, U subtype, Callback cb) const
 {
     static_assert(std::is_same_v<T, int> || std::is_same_v<T, float>,
         "only int and float are allowed");
@@ -135,13 +168,10 @@ T Rules::calculate(const ObjectBase* obj, const ModifierType type, U subtype) co
     Modifier temp{type, {}, {}, ModifierSource::unknown, Requirement{}, {}, static_cast<int>(subtype)};
     auto it = std::lower_bound(std::begin(entries_), std::end(entries_), temp);
 
-    T result{};
     while (it != std::end(entries_) && it->type == type && it->subtype == static_cast<int>(subtype)) {
-        result += calculate<T>(obj, *it);
+        calculate<T>(obj, *it, cb);
         ++it;
     }
-
-    return result;
 }
 
 inline Rules& rules()

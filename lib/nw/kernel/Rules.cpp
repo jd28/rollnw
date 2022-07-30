@@ -96,7 +96,7 @@ int Rules::remove(std::string_view tag)
     return result;
 }
 
-int Rules::replace(std::string_view tag, ModifierVariant value)
+int Rules::replace(std::string_view tag, ModifierInputs value)
 {
     std::string_view prefix = tag;
     bool starts = false;
@@ -117,11 +117,11 @@ int Rules::replace(std::string_view tag, ModifierVariant value)
     for (auto& mod : entries_) {
         if (starts) {
             if (string::startswith(mod.tagged, prefix)) {
-                mod.value = value;
+                mod.value = std::move(value);
                 ++result;
             }
         } else if (mod.tagged == prefix) {
-            mod.value = value;
+            mod.value = std::move(value);
             ++result;
         }
     }

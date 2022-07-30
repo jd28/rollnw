@@ -4,6 +4,8 @@
 #include "system.hpp"
 #include "type_traits.hpp"
 
+#include <absl/container/inlined_vector.h>
+
 namespace nw {
 
 enum struct ModifierType : int32_t {
@@ -30,10 +32,13 @@ enum struct ModifierSource {
 using ModifierResult = Variant<int, float>;
 using ModifierFunction = std::function<ModifierResult(const ObjectBase*)>;
 using ModifierVariant = Variant<int, float, ModifierFunction>;
+using ModifierInputs = absl::InlinedVector<ModifierVariant, 4>;
+template <typename T>
+using ModifierOutputs = absl::InlinedVector<T, 4>;
 
 struct Modifier {
     ModifierType type = ModifierType::invalid;
-    ModifierVariant value;
+    ModifierInputs value;
     InternedString tagged;
     ModifierSource source = ModifierSource::unknown;
     Requirement requirement = Requirement{};

@@ -17,9 +17,9 @@ namespace nwk = nw::kernel;
 
 TEST_CASE("creature: load nw_chicken", "[objects]")
 {
-    auto ent = nw::kernel::objects().load<nw::Creature>(fs::path("test_data/user/development/nw_chicken.utc"));
+    auto ent = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/nw_chicken.utc"));
     REQUIRE(ent);
-    REQUIRE(nw::kernel::objects().valid(ent->handle()));
+    REQUIRE(nwk::objects().valid(ent->handle()));
 
     REQUIRE(ent->common.resref == "nw_chicken");
     REQUIRE(ent->stats.abilities[2] == 8);
@@ -30,7 +30,7 @@ TEST_CASE("creature: load nw_chicken", "[objects]")
 
 TEST_CASE("creature: load pl_agent_001", "[objects]")
 {
-    auto ent = nw::kernel::objects().load<nw::Creature>(fs::path("test_data/user/development/pl_agent_001.utc"));
+    auto ent = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/pl_agent_001.utc"));
     REQUIRE(ent);
 
     REQUIRE(ent->common.resref == "pl_agent_001");
@@ -82,18 +82,18 @@ TEST_CASE("creature: feat search", "[objects]")
     nwk::unload_module();
 }
 
-// TEST_CASE("creature: base attack bonus", "[objects]")
-// {
-//     auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
-//     REQUIRE(mod);
+TEST_CASE("creature: base attack bonus", "[objects]")
+{
+    auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
+    REQUIRE(mod);
 
-//     auto ent = nw::kernel::objects().load(fs::path("test_data/user/development/pl_agent_001.utc"));
-//     REQUIRE(ent);
+    auto ent = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/pl_agent_001.utc"));
+    REQUIRE(ent);
 
-//     REQUIRE(32 == nwn1::attack_bonus(ent, true));
+    REQUIRE(32 == nwn1::attack_bonus(ent, true));
 
-//     nwk::unload_module();
-// }
+    nwk::unload_module();
+}
 
 TEST_CASE("creature: skills ", "[objects]")
 {

@@ -7,11 +7,6 @@ arbitrary sets of rules and modifiers, it probably would not look much
 like NWN. Enhanced Edition's approach largely was to unhardcode
 *values*, but not systems [1]_.
 
-The approach here is inspired by `Solstice <https://github.com/jd28/Solstice>`__ and Orth's NWNX:EE plugins
-`Race <https://github.com/nwnxee/unified/tree/master/Plugins/Race>`__,
-`SkillRank <https://github.com/nwnxee/unified/tree/master/Plugins/SkillRanks>`__,
-and `Feat <https://github.com/nwnxee/unified/tree/master/Plugins/Feat>`__.
-
 rollNW has the elements of NWN's rule system builtin, which is itself an approximation of the Dungeons
 and Dragons 3rd Edition ruleset.
 
@@ -64,8 +59,150 @@ Modifiers
 ---------
 
 The foundation of the modifier system is just three types: ``int32_t``, ``float``, strings.  It builds
-on the following abstractions to provide a dynamic, modifiable, queryable system.  Note that Master Feat
-modifiers are special cased below.
+on the following abstractions to provide a dynamic, modifiable, queryable system.  Modifiers are stored
+in a global table in :cpp:struct:`nw::kernel::Rules`. Note that Master Feat modifiers are special cased
+below.
+
+The approach here is inspired by `Solstice <https://github.com/jd28/Solstice>`__ and Orth's NWNX:EE plugins
+`Race <https://github.com/nwnxee/unified/tree/master/Plugins/Race>`__,
+`SkillRank <https://github.com/nwnxee/unified/tree/master/Plugins/SkillRanks>`__,
+and `Feat <https://github.com/nwnxee/unified/tree/master/Plugins/Feat>`__.
+
+Note that the examples below are designed for simplicity, not things that should necessarily be done.
+
+Definitions
+~~~~~~~~~~~
+
+**Modifier Type**
+   A modifier type is a rule type that is used to determine how to process the outputs of a modifier.
+
+**Modifier Source**
+   A modifier source indicates the attribute of an object that modifier is associated with.
+
+**Modifier Inputs**
+   Inputs are a vector of ``int``, ``float``, or ``ModifierFunction``.  In the basic cases, the inputs
+   are passed directly without modification.  When a function is an input that function is called on
+   the object and its result passed as an output.
+
+   .. code:: cpp
+
+      mod::ability(ability_strength, 2, { qual::race(racial_type_halforc) }, nw::ModifierSource::race);
+
+**Modifier Outputs**
+   Outputs are processed inputs that are passed to the callback provided to ``nw::Rules::calculate``.
+   The meaning of these outputs are determined by the modifier type.  In the example below, the ability
+   modifier type takes in to account only the first output which is the amount the ability is being
+   modified.
+
+   .. code:: cpp
+
+      int result = 0;
+      nw::kernel::rules().calculate<int>(obj, mod_type_ability, ability_strength,
+          [&result](const nw::ModifierOutputs<int>& outputs) {
+              if (outputs.size()) {
+                  result += outputs[0];
+              } else {
+                  LOG_F(ERROR, "[nwn1] invalid modifier outputs");
+              }
+           });
+
+
+**Example - Adding a Modifier**:
+
+.. code:: cpp
+
+   // This is just an example, one would most likely do all epic toughness modifiers together.
+   auto mod2 = nwn1::mod::hitpoints(
+      20, // Modifier value, if the below requirement is met
+      "dnd-3.0-epic-toughness-01",
+      nw::ModifierSource::feat
+      { nwn1::qual::feat(nwn1::feat_epic_toughness_1) },
+   );
+
+   // Add it to the global modifier table
+   nw::kernel::rules().add(mod2);
+
+**Example - Pale Master Armor Class Bonus**:
+
+.. code:: cpp
+
+   namespace nwk = nw::kernel;
+
+   auto ent = // ...
+
+   auto pm_ac = [](const ObjectBase* obj) -> nw::ModifierResult {
+      auto stat = ent.get<nw::LevelStats>();
+      if (!stat) { return 0; }
+      auto pm_level = stat->level_by_class(nwn1::class_type_pale_master);
+      return pm_level > 0 ? ((pm_level / 4) + 1) * 2 : 0;
+   };
+
+   auto mod2 = mod::armor_class(
+      ac_natural,
+      pm_ac,
+      "dnd-3.0-palemaster-ac",
+      nw::ModifierSource::class_);
+
+   nw::kernel::rules().add(mod2);
+   // RDD AC bonus ... etc, etc, etc
+
+   // Calculate all bonuses in the Natural AC modifier category
+   auto ac_natural_mod = nwk::rules().calculate<int>(ent, nwn1::mod_type_armor_class, nwn1::ac_natural);
+
+   auto pm_ac_nerf = [](const ObjectBase* obj) -> nw::ModifierResult {
+      auto stat = ent.get<nw::LevelStats>();
+      if (!stat) { return 0; }
+      auto pm_level = stat->level_by_class(nwn1::class_type_pale_master);
+      return pm_level > 0 ? ((pm_level / 4) + 1) : 0;
+   };
+
+   // Set a nerf
+   nwk::rules().replace("dnd-3.0-palemaster-ac", {pm_ac_nerf});
+   ac_natural_mod = nwk::rules().calculate<int>(ent, nwn1::mod_type_armor_class, nwn1::ac_natural);
+
+   // Nerf wasn't enough, delete the whole thing
+   nwk::rules().remove("dnd-3.0-palemaster-ac");
+
+-------------------------------------------------------------------------------
+
+Master Feats
+------------
+
+Master feats and associated bonuses are set in the :cpp:struct:`nw::MasterFeatRegistry`.  The master
+feat registry associates a particular rule element, say, a skill with a master feat and a feat corresponding
+to that skill.
+
+**Example - (Epic) Skill Focus: Discipline**
+
+.. code:: cpp
+
+    auto mfr = nw::kernel::world().get_mut<nw::MasterFeatRegistry>();
+    mfr->set_bonus(mfeat_skill_focus, 3);
+    mfr->set_bonus(mfeat_skill_focus_epic, 10);
+
+    mfr->add(skill_discipline, mfeat_skill_focus, feat_skill_focus_discipline);
+    mfr->add(skill_discipline, mfeat_skill_focus_epic, feat_epic_skill_focus_discipline)
+
+Multiple feats are able to be associated with a rule element and masterfeat.  Imagine in some universe,
+there is a class that has access to a generic Weapon Focus: Martial feat which provides Weapon Focus
+for all martial weapons.
+
+**Example - Multiple Associated Feats**
+
+.. code:: cpp
+
+    auto mfr = nw::kernel::world().get_mut<nw::MasterFeatRegistry>();
+    // Set up bonuses...
+    mfr->add(baseitem_longsword, mfeat_weapon_focus, feat_weapon_focus_longsword);
+    mfr->add(baseitem_longsword, mfeat_weapon_focus, feat_weapon_focus_martial);
+
+    // Will return an array of length 2 containing the respective bonuses
+    auto mf_bonus = mfr->resolve<int>(cre, baseitem, mfeat_weapon_focus, mfeat_weapon_focus_epic);
+
+-------------------------------------------------------------------------------
+
+Requirements
+------------
 
 **Selector**
    A selector gets some piece of information from an entity.
@@ -119,109 +256,6 @@ modifiers are special cased below.
       auto req = nw::Requirement{{
          // Qualifiers ...
       }, false};
-
-**Modifier**
-   A :cpp:struct:`nw::Modifier` is
-
-   -  an ``int``, a ``float``, or a function returning an ``int`` or ``float``. [2]_
-   -  an optional interned string tag to facilitate searching, modifying, removing modifiers.
-   -  an optional :cpp:struct:`nw::Requirement`
-   -  an optional :cpp:struct:`nw::Versus`
-   -  an optional source, e.g. whether this modifier from a feat, an ability, a skill, etc.
-
-   Modifiers are stored in a global table in :cpp:struct:`nw::kernel::Rules`.
-
-   **Example - Adding a Modifier**:
-
-   .. code:: cpp
-
-      // This is just an example, one would most likely do all epic toughness modifiers together.
-      auto mod2 = nwn1::mod::hitpoints(
-         20, // Modifier value, if the below requirement is met
-         "dnd-3.0-epic-toughness-01",
-         nw::ModifierSource::feat
-         { nwn1::qual::feat(nwn1::feat_epic_toughness_1) },
-      );
-
-      // Add it to the global modifier table
-      nw::kernel::rules().add(mod2);
-
-   **Example - Pale Master Armor Class Bonus**:
-
-   .. code:: cpp
-
-      namespace nwk = nw::kernel;
-
-      auto ent = // ...
-
-      auto pm_ac = [](flecs::entity ent) -> nw::ModifierResult {
-         auto stat = ent.get<nw::LevelStats>();
-         if (!stat) { return 0; }
-         auto pm_level = stat->level_by_class(nwn1::class_type_pale_master);
-         return pm_level > 0 ? ((pm_level / 4) + 1) * 2 : 0;
-      };
-
-      auto mod2 = mod::armor_class(
-         ac_natural,
-         pm_ac,
-         "dnd-3.0-palemaster-ac",
-         nw::ModifierSource::class_);
-
-      nw::kernel::rules().add(mod2);
-      // RDD AC bonus ... etc, etc, etc
-
-      // Calculate all bonuses in the Natural AC modifier category
-      auto ac_natural_mod = nwk::rules().calculate<int>(ent, nwn1::mod_type_armor_class, nwn1::ac_natural);
-
-      auto pm_ac_nerf = [](flecs::entity ent) -> nw::ModifierResult {
-         auto stat = ent.get<nw::LevelStats>();
-         if (!stat) { return 0; }
-         auto pm_level = stat->level_by_class(nwn1::class_type_pale_master);
-         return pm_level > 0 ? ((pm_level / 4) + 1) : 0;
-      };
-
-      // Set a nerf
-      nwk::rules().replace("dnd-3.0-palemaster-ac", pm_ac_nerf);
-      ac_natural_mod = nwk::rules().calculate<int>(ent, nwn1::mod_type_armor_class, nwn1::ac_natural);
-
-      // Nerf wasn't enough, delete the whole thing
-      nwk::rules().remove("dnd-3.0-palemaster-ac");
-
--------------------------------------------------------------------------------
-
-Master Feats
-------------
-
-Master feats and associated bonuses are set in the :cpp:struct:`nw::MasterFeatRegistry`.  The master
-feat registry associates a particular rule element, say, a skill with a master feat and a feat corresponding
-to that skill.
-
-**Example - (Epic) Skill Focus: Discipline**
-
-.. code:: cpp
-
-    auto mfr = nw::kernel::world().get_mut<nw::MasterFeatRegistry>();
-    mfr->set_bonus(mfeat_skill_focus, 3);
-    mfr->set_bonus(mfeat_skill_focus_epic, 10);
-
-    mfr->add(skill_discipline, mfeat_skill_focus, feat_skill_focus_discipline);
-    mfr->add(skill_discipline, mfeat_skill_focus_epic, feat_epic_skill_focus_discipline)
-
-Multiple feats are able to be associated with a rule element and masterfeat.  Imagine in some universe,
-there is a class that has access to a generic Weapon Focus: Martial feat which provides Weapon Focus
-for all martial weapons.
-
-**Example - Multiple Associated Feats**
-
-.. code:: cpp
-
-    auto mfr = nw::kernel::world().get_mut<nw::MasterFeatRegistry>();
-    // Set up bonuses...
-    mfr->add(baseitem_longsword, mfeat_weapon_focus, feat_weapon_focus_longsword);
-    mfr->add(baseitem_longsword, mfeat_weapon_focus, feat_weapon_focus_martial);
-
-    // Will return an array of length 2 containing the respective bonuses
-    auto mf_bonus = mfr->resolve<int>(cre, baseitem, mfeat_weapon_focus, mfeat_weapon_focus_epic);
 
 .. [1]
    There are some exceptions, parts of the custom spellcaster system.

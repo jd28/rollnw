@@ -1,5 +1,3 @@
-#pragma once
-
 #include "../constants.hpp"
 
 #include <nw/components/Creature.hpp>
@@ -16,7 +14,14 @@ int get_ability_score(const nw::Creature* obj, nw::Ability ability, bool base = 
 
     // Base
     int result = obj->stats.abilities[static_cast<size_t>(ability)];
-    result += nw::kernel::rules().calculate<int>(obj, mod_type_ability, ability);
+    nw::kernel::rules().calculate<int>(obj, mod_type_ability, ability,
+        [&result](const nw::ModifierOutputs<int>& params) {
+            if (params.size()) {
+                result += params[0];
+            } else {
+                LOG_F(ERROR, "[nwn1] invalid modifier params in get_ability_score");
+            }
+        });
 
     if (base) {
         return result;

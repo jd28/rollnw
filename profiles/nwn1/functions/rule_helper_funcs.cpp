@@ -14,7 +14,7 @@ namespace mod {
     {                                                                              \
         return nw::Modifier{                                                       \
             type,                                                                  \
-            value,                                                                 \
+            {value},                                                               \
             tag.size() ? nw::kernel::strings().intern(tag) : nw::InternedString{}, \
             source,                                                                \
             std::move(req),                                                        \
@@ -29,7 +29,7 @@ namespace mod {
     {                                                                                        \
         return nw::Modifier{                                                                 \
             type,                                                                            \
-            value,                                                                           \
+            {value},                                                                         \
             tag.size() ? nw::kernel::strings().intern(tag) : nw::InternedString{},           \
             source,                                                                          \
             std::move(req),                                                                  \

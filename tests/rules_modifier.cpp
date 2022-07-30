@@ -32,7 +32,11 @@ TEST_CASE("modifier", "[rules]")
     auto mod2 = nwn1::mod::armor_class(nwn1::ac_natural, pm_ac,
         "dnd-3.0-palemaster-ac", nw::ModifierSource::class_);
 
-    auto res = nwk::rules().calculate<int>(ent, mod2);
+    int res = 0;
+    nwk::rules().calculate<int>(ent, mod2,
+        [&res](auto& params) {
+            if (params.size()) res += params[0];
+        });
     REQUIRE(res == 6);
 }
 
@@ -45,7 +49,11 @@ TEST_CASE("modifier kernel", "[rules]")
     REQUIRE(ent);
     ent->levels.entries[0].id = nwn1::class_type_pale_master;
 
-    auto res = nwk::rules().calculate<int>(ent, nwn1::mod_type_armor_class, nwn1::ac_natural);
+    int res = 0;
+    nwk::rules().calculate<int>(ent, nwn1::mod_type_armor_class, nwn1::ac_natural,
+        [&res](auto& params) {
+            if (params.size()) res += params[0];
+        });
     REQUIRE(res == 6);
 
     auto pm_ac_nerf = [](const nw::ObjectBase* obj) -> nw::ModifierResult {
@@ -57,12 +65,20 @@ TEST_CASE("modifier kernel", "[rules]")
         return ((pm_level / 4) + 1);
     };
 
-    REQUIRE(nwk::rules().replace("dnd-3.0-palemaster-ac", pm_ac_nerf));
-    res = nwk::rules().calculate<int>(ent, nwn1::mod_type_armor_class, nwn1::ac_natural);
+    REQUIRE(nwk::rules().replace("dnd-3.0-palemaster-ac", {pm_ac_nerf}));
+    res = 0;
+    nwk::rules().calculate<int>(ent, nwn1::mod_type_armor_class, nwn1::ac_natural,
+        [&res](auto& params) {
+            if (params.size()) res += params[0];
+        });
     REQUIRE(res == 3);
 
     REQUIRE(nwk::rules().remove("dnd-3.0-palemaster-*"));
-    res = nwk::rules().calculate<int>(ent, nwn1::mod_type_armor_class, nwn1::ac_natural);
+    res = 0;
+    nwk::rules().calculate<int>(ent, nwn1::mod_type_armor_class, nwn1::ac_natural,
+        [&res](auto& params) {
+            if (params.size()) res += params[0];
+        });
     REQUIRE(res == 0);
 
     nwk::unload_module();
@@ -83,7 +99,11 @@ TEST_CASE("modifier kernel 2", "[rules]")
     REQUIRE(highest == nwn1::feat_epic_toughness_4);
     REQUIRE(nth == 4);
 
-    auto res = nwk::rules().calculate<int>(ent, nwn1::mod_type_hitpoints);
+    int res = 0;
+    nwk::rules().calculate<int>(ent, nwn1::mod_type_hitpoints,
+        [&res](auto& params) {
+            if (params.size()) res += params[0];
+        });
     REQUIRE(res == 80);
 
     nwk::unload_module();

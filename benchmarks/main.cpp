@@ -96,7 +96,7 @@ static void BM_creature_select2(benchmark::State& state)
     }
 }
 
-static void BM_creature_modifier(benchmark::State& state)
+static void BM_creature_modifier_simple(benchmark::State& state)
 {
     auto ent = nw::kernel::objects().load<nw::Creature>(fs::path("../tests/test_data/user/development/pl_agent_001.utc"));
     ent->levels.entries[0].id = nwn1::class_type_pale_master;
@@ -105,10 +105,32 @@ static void BM_creature_modifier(benchmark::State& state)
     auto& rules = nw::kernel::rules();
 
     for (auto _ : state) {
-        auto out = rules.calculate<int>(ent, nwn1::mod_type_armor_class, nwn1::ac_armor);
-        auto res = rules.calculate<int>(ent, nwn1::mod_type_hitpoints);
+        int out = 0;
+        rules.calculate<int>(ent, nwn1::mod_type_armor_class, nwn1::ac_armor,
+            [&out](const auto& params) {
+                if (params.size()) {
+                    out += params[0];
+                }
+            });
         benchmark::DoNotOptimize(out);
-        benchmark::DoNotOptimize(res);
+    }
+}
+
+static void BM_creature_modifier_complex(benchmark::State& state)
+{
+    auto ent = nw::kernel::objects().load<nw::Creature>(fs::path("../tests/test_data/user/development/pl_agent_001.utc"));
+    ent->levels.entries[0].id = nwn1::class_type_pale_master;
+    ent->levels.entries[1].id = nwn1::class_type_dragon_disciple;
+
+    auto& rules = nw::kernel::rules();
+
+    for (auto _ : state) {
+        int out = 0;
+        rules.calculate<int>(ent, nwn1::mod_type_hitpoints,
+            [&out](const auto& params) {
+                if (params.size()) out += params[0];
+            });
+        benchmark::DoNotOptimize(out);
     }
 }
 
@@ -159,7 +181,8 @@ BENCHMARK(BM_creature_to_gff);
 BENCHMARK(BM_creature_to_json);
 BENCHMARK(BM_creature_select);
 BENCHMARK(BM_creature_select2);
-BENCHMARK(BM_creature_modifier);
+BENCHMARK(BM_creature_modifier_simple);
+BENCHMARK(BM_creature_modifier_complex);
 BENCHMARK(BM_creature_get_skill_rank);
 BENCHMARK(BM_creature_ability_score);
 
