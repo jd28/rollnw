@@ -61,7 +61,7 @@ jobs:
         id: cache-nwn
         uses: actions/cache@v2
         env:
-          cache-name: cache-nwn
+          cache-name: cache-nwn2
         with:
           path: |
             ${{ github.workspace }}/nwn/
