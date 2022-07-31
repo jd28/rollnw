@@ -570,7 +570,7 @@ Script NssParser::parse_program()
     while (!is_end()) {
         if (match({NssTokenType::POUND})) {
             if (peek().id == "include") {
-                advance(); // include
+                consume(NssTokenType::IDENTIFIER, "Expected 'IDENTIFIER'."); // include
                 if (match({NssTokenType::STRING_CONST})) {
                     p.includes.push_back(std::string(previous().id));
                 } else {
@@ -578,7 +578,7 @@ Script NssParser::parse_program()
                     throw std::runtime_error("Expected string literal");
                 }
             } else if (peek().id == "define") {
-                advance(); // define
+                consume(NssTokenType::IDENTIFIER, "Expected 'IDENTIFIER'."); // define
                 std::string name, value;
                 if (match({NssTokenType::IDENTIFIER})) {
                     name = std::string(previous().id);
