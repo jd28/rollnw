@@ -47,7 +47,7 @@ jobs:
         id: cache-vcpkg
         uses: actions/cache@v2
         env:
-          cache-name: cache-vcpgk2
+          cache-name: cache-vcpgk4
         with:
           path: |
             ${{ github.workspace }}/vcpkg/.cache
