@@ -8,6 +8,7 @@
 
 #include <nw/rules/Ability.hpp>
 #include <nw/rules/ArmorClass.hpp>
+#include <nw/rules/Attack.hpp>
 #include <nw/rules/Class.hpp>
 #include <nw/rules/Damage.hpp>
 #include <nw/rules/Modifier.hpp>
@@ -29,6 +30,13 @@ constexpr nw::ArmorClass ac_natural = nw::make_armor_class(1);
 constexpr nw::ArmorClass ac_armor = nw::make_armor_class(2);
 constexpr nw::ArmorClass ac_shield = nw::make_armor_class(3);
 constexpr nw::ArmorClass ac_deflection = nw::make_armor_class(4);
+
+constexpr nw::AttackType attack_type_onhand = nw::make_attack_type(0);
+constexpr nw::AttackType attack_type_offhand = nw::make_attack_type(1);
+constexpr nw::AttackType attack_type_unarmed = nw::make_attack_type(2);
+constexpr nw::AttackType attack_type_cweapon1 = nw::make_attack_type(3);
+constexpr nw::AttackType attack_type_cweapon2 = nw::make_attack_type(4);
+constexpr nw::AttackType attack_type_cweapon3 = nw::make_attack_type(5);
 
 constexpr nw::Class class_type_barbarian = nw::make_class(0);
 constexpr nw::Class class_type_bard = nw::make_class(1);
@@ -90,6 +98,10 @@ constexpr nw::Damage damage_type_negative = nw::make_damage(9);
 constexpr nw::Damage damage_type_positive = nw::make_damage(10);
 constexpr nw::Damage damage_type_sonic = nw::make_damage(11);
 constexpr nw::Damage damage_type_base_weapon = nw::make_damage(12);
+
+constexpr nw::DamageModType damage_mod_immunity = nw::make_damage_mod(0);
+constexpr nw::DamageModType damage_mod_resistance = nw::make_damage_mod(1);
+constexpr nw::DamageModType damage_mod_reduction = nw::make_damage_mod(2);
 
 extern const nw::DamageFlag damage_flag_bludgeoning;
 extern const nw::DamageFlag damage_flag_piercing;

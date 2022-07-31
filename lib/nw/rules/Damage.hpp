@@ -19,6 +19,16 @@ struct is_rule_type_base<Damage> : std::true_type {
 
 using DamageFlag = RuleFlag<Damage, 64>;
 
+enum struct DamageModType : int32_t {
+    invalid = -1,
+};
+
+constexpr DamageModType make_damage_mod(int id) { return static_cast<DamageModType>(id); }
+
+template <>
+struct is_rule_type_base<DamageModType> : std::true_type {
+};
+
 enum struct DamageCategory : uint64_t {
     none = 0,
     penalty = 1 << 0,
@@ -32,6 +42,13 @@ struct DamageRoll {
     DamageFlag type;
     DiceRoll roll;
     DamageCategory flags = DamageCategory::none;
+};
+
+struct DamageModifier {
+    DamageModType type = DamageModType::invalid;
+    DamageFlag damage_type;
+    int32_t amount = 0;
+    int32_t remaining = -1;
 };
 
 } // namespace nw
