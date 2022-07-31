@@ -14,6 +14,7 @@ TEST_CASE("Directory", "[containers]")
     REQUIRE(d.name() == "development");
     REQUIRE(d.path() == std::filesystem::canonical(p));
 
+    REQUIRE(d.contains(Resource{"test"sv, ResourceType::nss}));
     auto ba = d.demand(Resource{"test"sv, ResourceType::nss});
     REQUIRE(ba.size());
     REQUIRE(ba.size() == std::filesystem::file_size("./test_data/user/development/test.nss"));
@@ -21,4 +22,7 @@ TEST_CASE("Directory", "[containers]")
 
     REQUIRE_FALSE(Directory{"./test_data/user/development/test.nss"}.valid());
     REQUIRE_FALSE(Directory{"./doesnotexist"}.valid());
+
+    auto rd = d.stat(Resource{"test"sv, ResourceType::nss});
+    REQUIRE(ba.size() == rd.size);
 }
