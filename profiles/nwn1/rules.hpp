@@ -22,6 +22,9 @@ nw::ModifierResult epic_great_charisma(const nw::ObjectBase* obj);
 nw::ModifierResult dragon_disciple_ac(const nw::ObjectBase* obj);
 nw::ModifierResult pale_master_ac(const nw::ObjectBase* obj);
 
+// Damage Resist
+nw::ModifierResult energy_resistance(const nw::ObjectBase* obj, int32_t subtype);
+
 // Hitpoints
 nw::ModifierResult toughness(const nw::ObjectBase* obj);
 nw::ModifierResult epic_toughness(const nw::ObjectBase* obj);

@@ -108,3 +108,33 @@ TEST_CASE("modifier kernel 2", "[rules]")
 
     nwk::unload_module();
 }
+
+TEST_CASE("modifier kernel 3", "[rules]")
+{
+    auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
+    REQUIRE(mod);
+
+    auto ent = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/pl_agent_001.utc"));
+    REQUIRE(ent);
+    ent->stats.add_feat(nwn1::feat_resist_energy_acid);
+
+    int res = 0;
+    nwk::rules().calculate<int>(ent, nwn1::mod_type_dmg_resistance,
+        [&res](auto& params) {
+            if (params.size()) res += params[0];
+        });
+
+    REQUIRE(res == 5);
+
+    ent->stats.add_feat(nwn1::feat_epic_energy_resistance_acid_1);
+    ent->stats.add_feat(nwn1::feat_epic_energy_resistance_acid_2);
+    res = 0;
+    nwk::rules().calculate<int>(ent, nwn1::mod_type_dmg_resistance,
+        [&res](auto& params) {
+            if (params.size()) res += params[0];
+        });
+
+    REQUIRE(res == 20);
+
+    nwk::unload_module();
+}

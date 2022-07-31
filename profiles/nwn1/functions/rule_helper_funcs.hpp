@@ -3,6 +3,7 @@
 #include <nw/rules/Ability.hpp>
 #include <nw/rules/ArmorClass.hpp>
 #include <nw/rules/Class.hpp>
+#include <nw/rules/Damage.hpp>
 #include <nw/rules/Feat.hpp>
 #include <nw/rules/Modifier.hpp>
 #include <nw/rules/Race.hpp>
@@ -24,8 +25,9 @@ namespace mod {
         nw::ModifierSource source = nw::ModifierSource::unknown,                     \
         nw::Requirement req = nw::Requirement{}, nw::Versus versus = {})
 
-DECLARE_MOD_WITH_SUBTYPE(armor_class, nw::ArmorClass);
 DECLARE_MOD_WITH_SUBTYPE(ability, nw::Ability);
+DECLARE_MOD_WITH_SUBTYPE(armor_class, nw::ArmorClass);
+DECLARE_MOD_WITH_SUBTYPE(damage_resist, nw::Damage);
 DECLARE_MOD(hitpoints);
 
 #undef DECLARE_MOD

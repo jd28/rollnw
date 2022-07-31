@@ -355,6 +355,51 @@ nw::ModifierResult pale_master_ac(const nw::ObjectBase* obj)
     return pm_level > 0 ? ((pm_level / 4) + 1) * 2 : 0;
 }
 
+// Damage Resist
+nw::ModifierResult energy_resistance(const nw::ObjectBase* obj, int32_t subtype)
+{
+    if (!obj || !obj->as_creature()) {
+        return {};
+    }
+    auto cre = obj->as_creature();
+    auto dmg_type = nw::make_damage(subtype);
+    nw::Feat feat_start, feat_end, resist;
+    if (dmg_type == damage_type_acid) {
+        resist = feat_resist_energy_acid;
+        feat_start = feat_epic_energy_resistance_acid_1;
+        feat_end = feat_epic_energy_resistance_acid_10;
+    } else if (dmg_type == damage_type_cold) {
+        resist = feat_resist_energy_cold;
+        feat_start = feat_epic_energy_resistance_cold_1;
+        feat_end = feat_epic_energy_resistance_cold_10;
+    } else if (dmg_type == damage_type_electrical) {
+        resist = feat_resist_energy_electrical;
+        feat_start = feat_epic_energy_resistance_electrical_1;
+        feat_end = feat_epic_energy_resistance_electrical_10;
+    } else if (dmg_type == damage_type_fire) {
+        resist = feat_resist_energy_fire;
+        feat_start = feat_epic_energy_resistance_fire_1;
+        feat_end = feat_epic_energy_resistance_fire_10;
+    } else if (dmg_type == damage_type_sonic) {
+        resist = feat_resist_energy_sonic;
+        feat_start = feat_epic_energy_resistance_sonic_1;
+        feat_end = feat_epic_energy_resistance_sonic_10;
+    } else {
+        return {};
+    }
+
+    auto nth = highest_feat_in_range(cre, feat_start, feat_end);
+    if (nth == nw::Feat::invalid) {
+        if (cre->stats.has_feat(resist)) {
+            return 5;
+        } else {
+            return {};
+        }
+    }
+
+    return (int(nth) - int(feat_start) + 1) * 10;
+}
+
 nw::ModifierResult toughness(const nw::ObjectBase* obj)
 {
     auto cre = obj->as_creature();

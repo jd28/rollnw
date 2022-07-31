@@ -128,6 +128,37 @@ static inline void load_modifiers()
         "dnd-3.0-palemaster-ac",
         nw::ModifierSource::class_));
 
+    // Damage Resist
+    nw::kernel::rules().add(mod::damage_resist(
+        damage_type_acid,
+        energy_resistance,
+        "dnd-3.0-energy-resist-acid",
+        nw::ModifierSource::feat));
+
+    nw::kernel::rules().add(mod::damage_resist(
+        damage_type_cold,
+        energy_resistance,
+        "dnd-3.0-energy-resist-cold",
+        nw::ModifierSource::feat));
+
+    nw::kernel::rules().add(mod::damage_resist(
+        damage_type_electrical,
+        energy_resistance,
+        "dnd-3.0-energy-resist-electrical",
+        nw::ModifierSource::feat));
+
+    nw::kernel::rules().add(mod::damage_resist(
+        damage_type_fire,
+        energy_resistance,
+        "dnd-3.0-energy-resist-fire",
+        nw::ModifierSource::feat));
+
+    nw::kernel::rules().add(mod::damage_resist(
+        damage_type_sonic,
+        energy_resistance,
+        "dnd-3.0-energy-resist-sonic",
+        nw::ModifierSource::feat));
+
     nw::kernel::rules().add(mod::hitpoints(
         toughness,
         "dnd-3.0-toughness",
