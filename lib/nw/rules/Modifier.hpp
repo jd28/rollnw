@@ -31,7 +31,18 @@ enum struct ModifierSource {
 
 using ModifierResult = Variant<int, float>;
 using ModifierFunction = std::function<ModifierResult(const ObjectBase*)>;
-using ModifierVariant = Variant<int, float, ModifierFunction>;
+using ModifierSubFunction = std::function<ModifierResult(const ObjectBase*, int32_t)>;
+using ModifierVsFunction = std::function<ModifierResult(const ObjectBase*, const ObjectBase*)>;
+using ModifierSubVsFunction = std::function<ModifierResult(const ObjectBase*, const ObjectBase*, int32_t)>;
+
+using ModifierVariant = Variant<
+    int,
+    float,
+    ModifierFunction,
+    ModifierSubFunction,
+    ModifierVsFunction,
+    ModifierSubVsFunction>;
+
 using ModifierInputs = absl::InlinedVector<ModifierVariant, 4>;
 template <typename T>
 using ModifierOutputs = absl::InlinedVector<T, 4>;

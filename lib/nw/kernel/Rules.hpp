@@ -40,7 +40,8 @@ struct Rules : public Service {
      * @tparam T is ``int`` or ``float``
      */
     template <typename T, typename Callback>
-    void calculate(const ObjectBase* obj, const ModifierType type, Callback cb) const;
+    void calculate(const ObjectBase* obj, const ModifierType type, Callback cb,
+        const ObjectBase* versus = nullptr) const;
 
     /**
      * @brief Calculates all modifiers of `type`
@@ -49,7 +50,8 @@ struct Rules : public Service {
      * @tparam U is some rule subtype
      */
     template <typename T, typename U, typename Callback>
-    void calculate(const ObjectBase* obj, const ModifierType type, U subtype, Callback cb) const;
+    void calculate(const ObjectBase* obj, const ModifierType type, U subtype, Callback cb,
+        const ObjectBase* versus = nullptr) const;
 
     /**
      * @brief Calculates a modifier
@@ -57,7 +59,8 @@ struct Rules : public Service {
      * @tparam T is ``int`` or ``float``
      */
     template <typename T, typename Callback>
-    void calculate(const ObjectBase* obj, const Modifier& mod, Callback cb) const;
+    void calculate(const ObjectBase* obj, const Modifier& mod, Callback cb,
+        const ObjectBase* versus = nullptr) const;
 
     /// Match
     bool match(const Qualifier& qual, const ObjectBase* obj) const;
@@ -115,7 +118,8 @@ private:
 };
 
 template <typename T, typename Callback>
-void Rules::calculate(const ObjectBase* obj, const Modifier& mod, Callback cb) const
+void Rules::calculate(const ObjectBase* obj, const Modifier& mod, Callback cb,
+    const ObjectBase* versus) const
 {
     static_assert(std::is_same_v<T, int> || std::is_same_v<T, float>,
         "only int and float are allowed");
@@ -136,6 +140,30 @@ void Rules::calculate(const ObjectBase* obj, const Modifier& mod, Callback cb) c
                 LOG_F(ERROR, "invalid modifier or type mismatch");
                 return;
             }
+        } else if (val.is<ModifierSubFunction>()) {
+            auto res = val.as<ModifierSubFunction>()(obj, mod.subtype);
+            if (res.is<T>()) {
+                params.push_back(res.as<T>());
+            } else {
+                LOG_F(ERROR, "invalid modifier or type mismatch");
+                return;
+            }
+        } else if (val.is<ModifierVsFunction>()) {
+            auto res = val.as<ModifierVsFunction>()(obj, versus);
+            if (res.is<T>()) {
+                params.push_back(res.as<T>());
+            } else {
+                LOG_F(ERROR, "invalid modifier or type mismatch");
+                return;
+            }
+        } else if (val.is<ModifierSubVsFunction>()) {
+            auto res = val.as<ModifierSubVsFunction>()(obj, versus, mod.subtype);
+            if (res.is<T>()) {
+                params.push_back(res.as<T>());
+            } else {
+                LOG_F(ERROR, "invalid modifier or type mismatch");
+                return;
+            }
         } else {
             LOG_F(ERROR, "invalid modifier or type mismatch");
             return;
@@ -145,7 +173,8 @@ void Rules::calculate(const ObjectBase* obj, const Modifier& mod, Callback cb) c
 }
 
 template <typename T, typename Callback>
-void Rules::calculate(const ObjectBase* obj, const ModifierType type, Callback cb) const
+void Rules::calculate(const ObjectBase* obj, const ModifierType type, Callback cb,
+    const ObjectBase* versus) const
 {
     static_assert(std::is_same_v<T, int> || std::is_same_v<T, float>,
         "only int and float are allowed");
@@ -154,13 +183,14 @@ void Rules::calculate(const ObjectBase* obj, const ModifierType type, Callback c
     auto it = std::lower_bound(std::begin(entries_), std::end(entries_), temp);
 
     while (it != std::end(entries_) && it->type == type) {
-        calculate<T>(obj, *it, cb);
+        calculate<T>(obj, *it, cb, versus);
         ++it;
     }
 }
 
 template <typename T, typename U, typename Callback>
-void Rules::calculate(const ObjectBase* obj, const ModifierType type, U subtype, Callback cb) const
+void Rules::calculate(const ObjectBase* obj, const ModifierType type, U subtype, Callback cb,
+    const ObjectBase* versus) const
 {
     static_assert(std::is_same_v<T, int> || std::is_same_v<T, float>,
         "only int and float are allowed");
@@ -169,7 +199,7 @@ void Rules::calculate(const ObjectBase* obj, const ModifierType type, U subtype,
     auto it = std::lower_bound(std::begin(entries_), std::end(entries_), temp);
 
     while (it != std::end(entries_) && it->type == type && it->subtype == static_cast<int>(subtype)) {
-        calculate<T>(obj, *it, cb);
+        calculate<T>(obj, *it, cb, versus);
         ++it;
     }
 }
