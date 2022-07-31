@@ -369,6 +369,8 @@ struct VarDecl : public Declaration {
 
 struct Script {
     std::vector<std::unique_ptr<Declaration>> decls;
+    std::vector<std::string> includes;
+    std::vector<std::pair<std::string, std::string>> defines;
 
     void accept(BaseVisitor* visitor)
     {

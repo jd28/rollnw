@@ -571,11 +571,23 @@ Script NssParser::parse_program()
         if (match({NssTokenType::POUND})) {
             if (peek().id == "include") {
                 advance(); // include
-                advance(); // script name
+                if (match({NssTokenType::STRING_CONST})) {
+                    p.includes.push_back(std::string(previous().id));
+                } else {
+                    error("Expected string literal");
+                    throw std::runtime_error("Expected string literal");
+                }
             } else if (peek().id == "define") {
                 advance(); // define
-                advance(); // varname
-                advance(); // value
+                std::string name, value;
+                if (match({NssTokenType::IDENTIFIER})) {
+                    name = std::string(previous().id);
+                } else {
+                    error("Expected identifier");
+                    throw std::runtime_error("Expected identifier");
+                }
+                value = std::string(advance().id);
+                p.defines.push_back({name, value});
             }
         } else {
             p.decls.emplace_back(parse_decl_external());

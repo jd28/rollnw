@@ -21,7 +21,14 @@ TEST_CASE("NWScript Parser", "[formats]")
 TEST_CASE("NWScript Parser - preprocessor", "[formats]")
 {
     script::Nss nss("test_data/user/development/script_preprocessor.nss");
-    REQUIRE_NOTHROW(nss.parse());
+    script::Script script;
+    REQUIRE_NOTHROW(script = nss.parse());
+    REQUIRE(script.defines.size() == 6);
+    REQUIRE(script.defines[0].first == "ENGINE_NUM_STRUCTURES");
+    REQUIRE(script.defines[0].second == "5");
+
+    REQUIRE(script.includes.size() == 1);
+    REQUIRE(script.includes[0] == "constants");
 }
 
 TEST_CASE("NWScript Parser - nwscript", "[formats]")
