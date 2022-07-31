@@ -31,7 +31,6 @@ TEST_CASE("item: load armor item", "[objects]")
     REQUIRE(ent->common.resref == "cloth028");
     REQUIRE(ent->properties.size() > 0);
     REQUIRE(ent->model_type == nw::ItemModelType::armor);
-    REQUIRE(ent->common.locals.size() > 0);
 
     REQUIRE(nwn1::calculate_ac(ent) == 0);
     REQUIRE(nwn1::calculate_ac(light) == 1);
@@ -40,6 +39,28 @@ TEST_CASE("item: load armor item", "[objects]")
     REQUIRE(nwn1::calculate_ac(heavy2) == 8);
 
     nw::kernel::unload_module();
+}
+
+TEST_CASE("item: local vars", "[objects]")
+{
+    auto mod = nw::kernel::load_module("test_data/user/modules/DockerDemo.mod");
+    REQUIRE(mod);
+
+    auto ent = nw::kernel::objects().load<nw::Item>(fs::path("test_data/user/development/cloth028.uti"));
+    REQUIRE(ent);
+    REQUIRE(ent->common.locals.size() > 0);
+    REQUIRE(ent->common.locals.get_float("test1") == 1.5f);
+    REQUIRE(ent->common.locals.get_float("doesn't have") == 0.0f);
+    REQUIRE(ent->common.locals.get_string("stringtest") == "0");
+    ent->common.locals.delete_string("stringtest");
+    REQUIRE(ent->common.locals.get_string("stringtest") == "");
+
+    ent->common.locals.set_string("test", "1");
+    REQUIRE(ent->common.locals.get_string("test") == "1");
+    ent->common.locals.set_int("test", 1);
+    REQUIRE(ent->common.locals.get_int("test") == 1);
+    ent->common.locals.set_float("test", 1.0);
+    REQUIRE(ent->common.locals.get_float("test") == 1.0f);
 }
 
 TEST_CASE("item: load layered item", "[objects]")

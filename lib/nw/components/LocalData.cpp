@@ -7,7 +7,9 @@ namespace nw {
 bool LocalData::from_gff(const GffInputArchiveStruct& archive)
 {
     auto st = archive["VarTable"];
-    if (!st.valid()) { return false; }
+    if (!st.valid()) {
+        return false;
+    }
     size_t sz = st.size();
     std::string name;
     uint32_t type, obj;
@@ -63,7 +65,10 @@ void LocalData::delete_float(std::string_view var)
 {
     absl::string_view v{var.data(), var.size()};
     auto it = vars_.find(v);
-    if (it == std::end(vars_)) { return; }
+    if (it == std::end(vars_)) {
+        return;
+    }
+    it->second.float_ = 0.0;
     it->second.flags.reset(LocalVarType::float_);
 }
 
@@ -71,7 +76,10 @@ void LocalData::delete_int(std::string_view var)
 {
     absl::string_view v{var.data(), var.size()};
     auto it = vars_.find(v);
-    if (it == std::end(vars_)) { return; }
+    if (it == std::end(vars_)) {
+        return;
+    }
+    it->second.integer = 0;
     it->second.flags.reset(LocalVarType::integer);
 }
 
@@ -79,7 +87,10 @@ void LocalData::delete_object(std::string_view var)
 {
     absl::string_view v{var.data(), var.size()};
     auto it = vars_.find(v);
-    if (it == std::end(vars_)) { return; }
+    if (it == std::end(vars_)) {
+        return;
+    }
+    it->second.object = object_invalid;
     it->second.flags.reset(LocalVarType::object);
 }
 
@@ -87,7 +98,10 @@ void LocalData::delete_string(std::string_view var)
 {
     absl::string_view v{var.data(), var.size()};
     auto it = vars_.find(v);
-    if (it == std::end(vars_)) { return; }
+    if (it == std::end(vars_)) {
+        return;
+    }
+    it->second.string = {};
     it->second.flags.reset(LocalVarType::string);
 }
 
@@ -95,7 +109,10 @@ void LocalData::delete_location(std::string_view var)
 {
     absl::string_view v{var.data(), var.size()};
     auto it = vars_.find(v);
-    if (it == std::end(vars_)) { return; }
+    if (it == std::end(vars_)) {
+        return;
+    }
+    it->second.loc = nw::Location();
     it->second.flags.reset(LocalVarType::location);
 }
 
@@ -216,12 +233,16 @@ bool LocalData::from_json(const nlohmann::json& archive)
 
 bool LocalData::to_gff(GffOutputArchiveStruct& archive) const
 {
-    if (vars_.empty()) { return true; }
+    if (vars_.empty()) {
+        return true;
+    }
 
     auto& list = archive.add_list("VarTable");
 
     for (const auto& [key, value] : vars_) {
-        if (!value.flags.any()) { continue; }
+        if (!value.flags.any()) {
+            continue;
+        }
         auto& payload = list.push_back(0).add_field("Name", key);
 
         if (value.flags.test(LocalVarType::float_)) {
@@ -260,7 +281,9 @@ nlohmann::json LocalData::to_json(SerializationProfile profile) const
 {
     nlohmann::json j = nlohmann::json::object();
     for (const auto& [key, value] : vars_) {
-        if (!value.flags.any()) { continue; }
+        if (!value.flags.any()) {
+            continue;
+        }
         auto& payload = j[key] = nlohmann::json::object();
 
         if (value.flags.test(LocalVarType::float_)) {
