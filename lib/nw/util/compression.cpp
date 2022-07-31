@@ -38,7 +38,7 @@ struct ZstdHeader {
 };
 
 // Untested since zlib is deprecated and not worth spinning to test it.. for now.
-inline ByteArray zlib_decompress(absl::Span<const uint8_t> span, uint32_t uncompressed_size)
+inline ByteArray zlib_decompress(std::span<const uint8_t> span, uint32_t uncompressed_size)
 {
     ByteArray result;
     std::size_t hdr_sz = sizeof(ZlibHeader);
@@ -71,7 +71,7 @@ inline ByteArray zlib_decompress(absl::Span<const uint8_t> span, uint32_t uncomp
     return result;
 }
 
-inline ByteArray zstd_decompress(absl::Span<const uint8_t> span, uint32_t uncompressed_size)
+inline ByteArray zstd_decompress(std::span<const uint8_t> span, uint32_t uncompressed_size)
 {
     // Probably never will be multithreaded, but..
     static thread_local std::unique_ptr<ZSTD_DCtx, void (*)(ZSTD_DCtx*)> dctx{ZSTD_createDCtx(), detail::zstd_dctx_deleter};
@@ -102,7 +102,7 @@ inline ByteArray zstd_decompress(absl::Span<const uint8_t> span, uint32_t uncomp
     return result;
 }
 
-ByteArray decompress(absl::Span<const uint8_t> span, const char* magic)
+ByteArray decompress(std::span<const uint8_t> span, const char* magic)
 {
     auto hdr_sz = sizeof(CompressionHeader);
     ByteArray result;
@@ -117,7 +117,7 @@ ByteArray decompress(absl::Span<const uint8_t> span, const char* magic)
 
     CompressionHeader hdr;
     memcpy(&hdr, span.data(), hdr_sz);
-    span = absl::Span<const uint8_t>{span.data() + hdr_sz, span.size() - hdr_sz};
+    span = std::span<const uint8_t>{span.data() + hdr_sz, span.size() - hdr_sz};
 
     if (memcmp(hdr.magic.data(), magic, 4)) {
         LOG_F(ERROR, "mismatched magic bytes");

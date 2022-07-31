@@ -4,7 +4,7 @@
 #include "../util/ByteArray.hpp"
 #include "../util/string.hpp"
 
-#include <absl/types/span.h>
+#include <span>
 
 #include <filesystem>
 #include <iostream>
@@ -203,7 +203,7 @@ std::ostream& operator<<(std::ostream& out, const TwoDA& tda);
  * @note This behaves as ``std::string_view``, i.e. constant view only
  */
 struct TwoDARowView {
-    absl::Span<const detail::StringVariant> data;
+    std::span<const detail::StringVariant> data;
     const TwoDA* parent = nullptr;
     size_t row_number = TwoDA::npos;
 
@@ -230,28 +230,36 @@ struct TwoDARowView {
 template <typename T>
 std::optional<T> TwoDARowView::get(size_t col) const
 {
-    if (!parent || col >= data.size()) { return {}; }
+    if (!parent || col >= data.size()) {
+        return {};
+    }
     return parent->get<T>(row_number, col);
 }
 
 template <typename T>
 std::optional<T> TwoDARowView::get(std::string_view col) const
 {
-    if (!parent) { return {}; }
+    if (!parent) {
+        return {};
+    }
     return parent->get<T>(row_number, col);
 }
 
 template <typename T>
 bool TwoDARowView::get_to(size_t col, T& out) const
 {
-    if (!parent || col >= data.size()) { return false; }
+    if (!parent || col >= data.size()) {
+        return false;
+    }
     return parent->get_to(row_number, col, out);
 }
 
 template <typename T>
 bool TwoDARowView::get_to(std::string_view col, T& out) const
 {
-    if (!parent) { return false; }
+    if (!parent) {
+        return false;
+    }
     return parent->get_to(row_number, col, out);
 }
 

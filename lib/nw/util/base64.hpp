@@ -2,7 +2,7 @@
 
 #include "ByteArray.hpp"
 
-#include <absl/types/span.h>
+#include <span>
 
 namespace nw {
 
@@ -10,6 +10,6 @@ namespace nw {
 ByteArray from_base64(const std::string& string);
 
 /// Converts span of bytes to a base64 string
-std::string to_base64(absl::Span<const uint8_t> bytes);
+std::string to_base64(std::span<const uint8_t> bytes);
 
 } // namespace nw

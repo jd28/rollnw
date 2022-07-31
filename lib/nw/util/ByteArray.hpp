@@ -1,11 +1,11 @@
 #pragma once
 
-#include <absl/types/span.h>
 #include <nlohmann/json_fwd.hpp>
 
 #include <cstdint>
 #include <filesystem>
 #include <ios>
+#include <span>
 #include <string>
 #include <vector>
 
@@ -55,11 +55,11 @@ struct ByteArray {
     /// Returns the number of bytes
     size_type size() const noexcept { return array_.size(); }
 
-    /// Construct absl::Span
-    absl::Span<uint8_t> span() { return {data(), size()}; }
+    /// Construct std::span
+    std::span<uint8_t> span() { return {data(), size()}; }
 
-    /// Construct absl::Span
-    absl::Span<const uint8_t> span() const { return {data(), size()}; }
+    /// Construct std::span
+    std::span<const uint8_t> span() const { return {data(), size()}; }
 
     /// Constructs string view of the array
     std::string_view string_view() const;
