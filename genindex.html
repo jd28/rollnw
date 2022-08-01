@@ -45,7 +45,7 @@
 <li class="toctree-l1"><a class="reference internal" href="structure/formats.html">formats</a></li>
 <li class="toctree-l1"><a class="reference internal" href="structure/i18n.html">i18n</a></li>
 <li class="toctree-l1"><a class="reference internal" href="structure/kernel.html">kernel</a></li>
-<li class="toctree-l1"><a class="reference internal" href="structure/model.html">Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="structure/model.html">model</a></li>
 <li class="toctree-l1"><a class="reference internal" href="structure/rules.html">rules</a></li>
 <li class="toctree-l1"><a class="reference internal" href="structure/serialization.html">serialization</a></li>
 </ul>
@@ -282,6 +282,8 @@
       <li><a href="api/struct/nw__Area.html#_CPPv4N2nw4Area6heightE">nw::Area::height (C++ member)</a>
 </li>
       <li><a href="api/struct/nw__Area.html#_CPPv4N2nw4Area2idE">nw::Area::id (C++ member)</a>
+</li>
+      <li><a href="api/struct/nw__Area.html#_CPPv4N2nw4Area11instantiateEv">nw::Area::instantiate (C++ function)</a>
 </li>
       <li><a href="api/struct/nw__Area.html#_CPPv4N2nw4Area5itemsE">nw::Area::items (C++ member)</a>
 </li>
@@ -689,13 +691,9 @@
 </li>
       <li><a href="api/struct/nw__Common.html#_CPPv4N2nw6Common7commentE">nw::Common::comment (C++ member)</a>
 </li>
-      <li><a href="api/struct/nw__Common.html#_CPPv4N2nw6Common6CommonE10ObjectType">nw::Common::Common (C++ function)</a>, <a href="api/struct/nw__Common.html#_CPPv4N2nw6Common6CommonE10ObjectTypeRK21GffInputArchiveStruct20SerializationProfile">[1]</a>, <a href="api/struct/nw__Common.html#_CPPv4N2nw6Common6CommonEv">[2]</a>
+      <li><a href="api/struct/nw__Common.html#_CPPv4N2nw6Common8from_gffERK21GffInputArchiveStruct20SerializationProfile10ObjectType">nw::Common::from_gff (C++ function)</a>
 </li>
-      <li><a href="api/struct/nw__Common.html#_CPPv4N2nw6Common8from_gffERK21GffInputArchiveStruct20SerializationProfile">nw::Common::from_gff (C++ function)</a>
-</li>
-      <li><a href="api/struct/nw__Common.html#_CPPv4N2nw6Common9from_jsonERKN8nlohmann4jsonE20SerializationProfile">nw::Common::from_json (C++ function)</a>
-</li>
-      <li><a href="api/struct/nw__Common.html#_CPPv4N2nw6Common2idE">nw::Common::id (C++ member)</a>
+      <li><a href="api/struct/nw__Common.html#_CPPv4N2nw6Common9from_jsonERKN8nlohmann4jsonE20SerializationProfile10ObjectType">nw::Common::from_json (C++ function)</a>
 </li>
       <li><a href="api/struct/nw__Common.html#_CPPv4N2nw6Common6localsE">nw::Common::locals (C++ member)</a>
 </li>
@@ -703,19 +701,15 @@
 </li>
       <li><a href="api/struct/nw__Common.html#_CPPv4N2nw6Common4nameE">nw::Common::name (C++ member)</a>
 </li>
-      <li><a href="api/struct/nw__Common.html#_CPPv4N2nw6Common11object_typeE">nw::Common::object_type (C++ member)</a>
-</li>
       <li><a href="api/struct/nw__Common.html#_CPPv4N2nw6Common10palette_idE">nw::Common::palette_id (C++ member)</a>
 </li>
       <li><a href="api/struct/nw__Common.html#_CPPv4N2nw6Common6resrefE">nw::Common::resref (C++ member)</a>
 </li>
       <li><a href="api/struct/nw__Common.html#_CPPv4N2nw6Common3tagE">nw::Common::tag (C++ member)</a>
 </li>
-      <li><a href="api/struct/nw__Common.html#_CPPv4NK2nw6Common7to_jsonE20SerializationProfile">nw::Common::to_json (C++ function)</a>
+      <li><a href="api/struct/nw__Common.html#_CPPv4NK2nw6Common7to_jsonE20SerializationProfile10ObjectType">nw::Common::to_json (C++ function)</a>
 </li>
       <li><a href="api/struct/nw__Common.html#_CPPv4N2nw6Common5validEv">nw::Common::valid (C++ function)</a>
-</li>
-      <li><a href="api/struct/nw__Common.html#_CPPv4N2nw6CommonD0Ev">nw::Common::~Common (C++ function)</a>
 </li>
       <li><a href="api/struct/nw__CompressionHeader.html#_CPPv4N2nw17CompressionHeaderE">nw::CompressionHeader (C++ struct)</a>
 </li>
@@ -840,6 +834,10 @@
       <li><a href="api/struct/nw__Creature.html#_CPPv4N2nw8Creature6hp_maxE">nw::Creature::hp_max (C++ member)</a>
 </li>
       <li><a href="api/struct/nw__Creature.html#_CPPv4N2nw8Creature8immortalE">nw::Creature::immortal (C++ member)</a>
+</li>
+      <li><a href="api/struct/nw__Creature.html#_CPPv4N2nw8Creature11instantiateEv">nw::Creature::instantiate (C++ function)</a>
+</li>
+      <li><a href="api/struct/nw__Creature.html#_CPPv4N2nw8Creature13instantiated_E">nw::Creature::instantiated_ (C++ member)</a>
 </li>
       <li><a href="api/struct/nw__Creature.html#_CPPv4N2nw8Creature13interruptableE">nw::Creature::interruptable (C++ member)</a>
 </li>
@@ -1127,6 +1125,10 @@
 </li>
       <li><a href="api/struct/nw__Door.html#_CPPv4N2nw4Door10hp_currentE">nw::Door::hp_current (C++ member)</a>
 </li>
+      <li><a href="api/struct/nw__Door.html#_CPPv4N2nw4Door11instantiateEv">nw::Door::instantiate (C++ function)</a>
+</li>
+      <li><a href="api/struct/nw__Door.html#_CPPv4N2nw4Door13instantiated_E">nw::Door::instantiated_ (C++ member)</a>
+</li>
       <li><a href="api/struct/nw__Door.html#_CPPv4N2nw4Door13interruptableE">nw::Door::interruptable (C++ member)</a>
 </li>
       <li><a href="api/struct/nw__Door.html#_CPPv4N2nw4Door20json_archive_versionE">nw::Door::json_archive_version (C++ member)</a>
@@ -1296,6 +1298,10 @@
       <li><a href="api/struct/nw__Encounter.html#_CPPv4N2nw9Encounter8geometryE">nw::Encounter::geometry (C++ member)</a>
 </li>
       <li><a href="api/struct/nw__Encounter.html#_CPPv4N2nw9Encounter6handleEv">nw::Encounter::handle (C++ function)</a>
+</li>
+      <li><a href="api/struct/nw__Encounter.html#_CPPv4N2nw9Encounter11instantiateEv">nw::Encounter::instantiate (C++ function)</a>
+</li>
+      <li><a href="api/struct/nw__Encounter.html#_CPPv4N2nw9Encounter13instantiated_E">nw::Encounter::instantiated_ (C++ member)</a>
 </li>
       <li><a href="api/struct/nw__Encounter.html#_CPPv4N2nw9Encounter20json_archive_versionE">nw::Encounter::json_archive_version (C++ member)</a>
 </li>
@@ -2000,6 +2006,10 @@
       <li><a href="api/struct/nw__Item.html#_CPPv4N2nw4Item6handleEv">nw::Item::handle (C++ function)</a>
 </li>
       <li><a href="api/struct/nw__Item.html#_CPPv4N2nw4Item10identifiedE">nw::Item::identified (C++ member)</a>
+</li>
+      <li><a href="api/struct/nw__Item.html#_CPPv4N2nw4Item11instantiateEv">nw::Item::instantiate (C++ function)</a>
+</li>
+      <li><a href="api/struct/nw__Item.html#_CPPv4N2nw4Item13instantiated_E">nw::Item::instantiated_ (C++ member)</a>
 </li>
       <li><a href="api/struct/nw__Item.html#_CPPv4N2nw4Item9inventoryE">nw::Item::inventory (C++ member)</a>
 </li>
@@ -2999,14 +3009,14 @@
 </li>
       <li><a href="api/struct/nw__MdlDummyNode.html#_CPPv4N2nw12MdlDummyNode4nameE">nw::MdlDummyNode::name (C++ member)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/struct/nw__MdlDummyNode.html#_CPPv4N2nw12MdlDummyNode6parentE">nw::MdlDummyNode::parent (C++ member)</a>
 </li>
       <li><a href="api/struct/nw__MdlDummyNode.html#_CPPv4N2nw12MdlDummyNode4typeE">nw::MdlDummyNode::type (C++ member)</a>
 </li>
       <li><a href="api/struct/nw__MdlEmitterFlag.html#_CPPv4N2nw14MdlEmitterFlagE">nw::MdlEmitterFlag (C++ struct)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/struct/nw__MdlEmitterFlag.html#_CPPv4N2nw14MdlEmitterFlag14AffectedByWindE">nw::MdlEmitterFlag::AffectedByWind (C++ member)</a>
 </li>
       <li><a href="api/struct/nw__MdlEmitterFlag.html#_CPPv4N2nw14MdlEmitterFlag6BounceE">nw::MdlEmitterFlag::Bounce (C++ member)</a>
@@ -3579,7 +3589,9 @@
 </li>
       <li><a href="api/struct/nw__Module.html#_CPPv4N2nw6Module2idE">nw::Module::id (C++ member)</a>
 </li>
-      <li><a href="api/struct/nw__Module.html#_CPPv4N2nw6Module11instantiateEP6Module">nw::Module::instantiate (C++ function)</a>
+      <li><a href="api/struct/nw__Module.html#_CPPv4N2nw6Module11instantiateEv">nw::Module::instantiate (C++ function)</a>
+</li>
+      <li><a href="api/struct/nw__Module.html#_CPPv4N2nw6Module13instantiated_E">nw::Module::instantiated_ (C++ member)</a>
 </li>
       <li><a href="api/struct/nw__Module.html#_CPPv4N2nw6Module12is_save_gameE">nw::Module::is_save_game (C++ member)</a>
 </li>
@@ -3926,6 +3938,10 @@
       <li><a href="api/struct/nw__Placeable.html#_CPPv4N2nw9Placeable2hpE">nw::Placeable::hp (C++ member)</a>
 </li>
       <li><a href="api/struct/nw__Placeable.html#_CPPv4N2nw9Placeable10hp_currentE">nw::Placeable::hp_current (C++ member)</a>
+</li>
+      <li><a href="api/struct/nw__Placeable.html#_CPPv4N2nw9Placeable11instantiateEv">nw::Placeable::instantiate (C++ function)</a>
+</li>
+      <li><a href="api/struct/nw__Placeable.html#_CPPv4N2nw9Placeable13instantiated_E">nw::Placeable::instantiated_ (C++ member)</a>
 </li>
       <li><a href="api/struct/nw__Placeable.html#_CPPv4N2nw9Placeable13interruptableE">nw::Placeable::interruptable (C++ member)</a>
 </li>
@@ -5173,6 +5189,10 @@
 </li>
       <li><a href="api/struct/nw__Sound.html#_CPPv4N2nw5Sound5hoursE">nw::Sound::hours (C++ member)</a>
 </li>
+      <li><a href="api/struct/nw__Sound.html#_CPPv4N2nw5Sound11instantiateEv">nw::Sound::instantiate (C++ function)</a>
+</li>
+      <li><a href="api/struct/nw__Sound.html#_CPPv4N2nw5Sound13instantiated_E">nw::Sound::instantiated_ (C++ member)</a>
+</li>
       <li><a href="api/struct/nw__Sound.html#_CPPv4N2nw5Sound8intervalE">nw::Sound::interval (C++ member)</a>
 </li>
       <li><a href="api/struct/nw__Sound.html#_CPPv4N2nw5Sound18interval_variationE">nw::Sound::interval_variation (C++ member)</a>
@@ -5358,6 +5378,10 @@
       <li><a href="api/struct/nw__Store.html#_CPPv4N2nw5Store6handleEv">nw::Store::handle (C++ function)</a>
 </li>
       <li><a href="api/struct/nw__Store.html#_CPPv4N2nw5Store14identify_priceE">nw::Store::identify_price (C++ member)</a>
+</li>
+      <li><a href="api/struct/nw__Store.html#_CPPv4N2nw5Store11instantiateEv">nw::Store::instantiate (C++ function)</a>
+</li>
+      <li><a href="api/struct/nw__Store.html#_CPPv4N2nw5Store13instantiated_E">nw::Store::instantiated_ (C++ member)</a>
 </li>
       <li><a href="api/struct/nw__Store.html#_CPPv4N2nw5Store9inventoryE">nw::Store::inventory (C++ member)</a>
 </li>
@@ -5621,6 +5645,10 @@
 </li>
       <li><a href="api/struct/nw__Trigger.html#_CPPv4N2nw7Trigger16highlight_heightE">nw::Trigger::highlight_height (C++ member)</a>
 </li>
+      <li><a href="api/struct/nw__Trigger.html#_CPPv4N2nw7Trigger11instantiateEv">nw::Trigger::instantiate (C++ function)</a>
+</li>
+      <li><a href="api/struct/nw__Trigger.html#_CPPv4N2nw7Trigger13instantiated_E">nw::Trigger::instantiated_ (C++ member)</a>
+</li>
       <li><a href="api/struct/nw__Trigger.html#_CPPv4N2nw7Trigger20json_archive_versionE">nw::Trigger::json_archive_version (C++ member)</a>
 </li>
       <li><a href="api/struct/nw__Trigger.html#_CPPv4N2nw7Trigger9linked_toE">nw::Trigger::linked_to (C++ member)</a>
@@ -5758,6 +5786,10 @@
       <li><a href="api/struct/nw__Waypoint.html#_CPPv4N2nw8Waypoint6handleEv">nw::Waypoint::handle (C++ function)</a>
 </li>
       <li><a href="api/struct/nw__Waypoint.html#_CPPv4N2nw8Waypoint12has_map_noteE">nw::Waypoint::has_map_note (C++ member)</a>
+</li>
+      <li><a href="api/struct/nw__Waypoint.html#_CPPv4N2nw8Waypoint11instantiateEv">nw::Waypoint::instantiate (C++ function)</a>
+</li>
+      <li><a href="api/struct/nw__Waypoint.html#_CPPv4N2nw8Waypoint13instantiated_E">nw::Waypoint::instantiated_ (C++ member)</a>
 </li>
       <li><a href="api/struct/nw__Waypoint.html#_CPPv4N2nw8Waypoint20json_archive_versionE">nw::Waypoint::json_archive_version (C++ member)</a>
 </li>
