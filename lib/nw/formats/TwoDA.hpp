@@ -20,14 +20,45 @@ namespace detail {
 
 // Not a variant, not for public consumption
 struct StringVariant {
+    StringVariant(const char* string)
+        : str{string}
+        , view{str}
+    {
+    }
+
     StringVariant(std::string string)
         : str{std::move(string)}
         , view{str}
     {
     }
+
     StringVariant(std::string_view string)
         : view{string}
     {
+    }
+
+    StringVariant(const StringVariant&) = delete;
+    StringVariant(StringVariant&& other)
+    {
+        if (other.str.size()) {
+            str = std::move(other.str);
+            view = str;
+        } else {
+            view = other.view;
+        }
+    }
+    StringVariant& operator=(const StringVariant&) = delete;
+    StringVariant& operator=(StringVariant&& other)
+    {
+        if (this != &other) {
+            if (other.str.size()) {
+                str = std::move(other.str);
+                view = str;
+            } else {
+                view = other.view;
+            }
+        }
+        return *this;
     }
 
     std::string str;
@@ -100,7 +131,7 @@ private:
     bool is_loaded_ = false;
 
     std::string default_;
-    std::vector<int> widths_;
+    std::vector<size_t> widths_;
     std::vector<std::string> columns_;
     std::vector<detail::StringVariant> rows_;
 
@@ -176,7 +207,7 @@ void TwoDA::set(size_t row, size_t col, const T& value)
     if (idx >= rows_.size()) return;
 
     int quote = 0;
-    if constexpr (std::is_same_v<T, float> || std::is_convertible_v<T, int>) {
+    if constexpr (std::is_floating_point_v<T> || std::is_integral_v<T>) {
         rows_[idx] = std::to_string(value);
     } else {
         rows_[idx] = value;
@@ -184,7 +215,7 @@ void TwoDA::set(size_t row, size_t col, const T& value)
             quote = 2;
         }
     }
-    widths_[col] = std::max(widths_[col], value.size() + quote);
+    widths_[col] = std::max(widths_[col], rows_[idx].view.size() + quote);
 }
 
 template <typename T>

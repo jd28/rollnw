@@ -69,7 +69,9 @@ struct TwoDATokenizer {
                 ++pos;
                 break;
             }
-            if (result.size()) { break; }
+            if (result.size()) {
+                break;
+            }
         }
         return result;
     }
@@ -125,7 +127,9 @@ inline bool needs_quote(std::string_view str)
 
 bool TwoDA::parse()
 {
-    if (bytes_.size() == 0) { return false; }
+    if (bytes_.size() == 0) {
+        return false;
+    }
     detail::TwoDATokenizer tknz{bytes_.string_view()};
     std::string_view tk;
 
@@ -150,7 +154,7 @@ bool TwoDA::parse()
     // Columns
     for (; !is_newline(tk) && !tk.empty(); tk = tknz.next()) {
         columns_.emplace_back(tk);
-        widths_.push_back(int(tk.size()));
+        widths_.push_back(tk.size());
     }
 
     while (is_newline(tknz.next()))
@@ -163,8 +167,8 @@ bool TwoDA::parse()
         if (!is_newline(tk)) {
             rows_.push_back(tk);
             bool quote = needs_quote(tk);
-            int& width = widths_[cur % columns_.size()];
-            width = std::max(width, int(tk.size()) + (quote ? 2 : 0));
+            size_t& width = widths_[cur % columns_.size()];
+            width = std::max(width, tk.size() + (quote ? 2 : 0));
             ++cur;
         } else {
             ++row;
@@ -202,7 +206,9 @@ bool TwoDA::parse()
 
 TwoDARowView TwoDA::row(size_t row) const noexcept
 {
-    if (row >= rows()) { return {}; }
+    if (row >= rows()) {
+        return {};
+    }
     auto start = row * columns_.size();
     return {{&rows_[start], columns_.size()}, this, row};
 }
