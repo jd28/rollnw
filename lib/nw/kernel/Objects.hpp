@@ -154,6 +154,12 @@ T* ObjectSystem::load(const std::filesystem::path& archive, SerializationProfile
         LOG_F(ERROR, "Unable to load unknown file type: '{}'", archive);
     }
 
+    if (!obj->instantiate()) {
+        LOG_F(ERROR, "Failed to instantiate object");
+        destroy(obj->handle());
+        obj = nullptr;
+    }
+
     return obj;
 }
 
@@ -167,6 +173,12 @@ T* ObjectSystem::load(std::string_view resref)
         if (in.valid()) {
             T::deserialize(obj, in.toplevel(), SerializationProfile::blueprint);
         }
+    }
+
+    if (!obj->instantiate()) {
+        LOG_F(ERROR, "Failed to instantiate object");
+        destroy(obj->handle());
+        obj = nullptr;
     }
 
     return obj;

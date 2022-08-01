@@ -49,11 +49,10 @@ struct Module : public ObjectBase {
 
     virtual Module* as_module() override { return this; }
     virtual const Module* as_module() const override { return this; }
+    virtual bool instantiate() override;
 
     size_t area_count() const noexcept;
     const Area* get_area(size_t index) const;
-
-    static bool instantiate(Module* ent);
 
     // Serialization
     static bool deserialize(Module* ent, const GffInputArchiveStruct& archive);
@@ -91,6 +90,8 @@ struct Module : public ObjectBase {
     uint8_t start_hour = 0;
     uint8_t start_month = 0;
     uint8_t xpscale = 0;
+
+    bool instantiated_ = false;
 };
 
 } // namespace nw

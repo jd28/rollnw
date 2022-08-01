@@ -22,14 +22,14 @@ void StoreInventory::set_owner(ObjectBase* owner)
     weapons.owner = owner;
 }
 
-// bool Store::instantiate()
-// {
-//     return armor.instantiate()
-//         && miscellaneous.instantiate()
-//         && potions.instantiate()
-//         && rings.instantiate()
-//         && weapons.instantiate();
-// }
+bool Store::instantiate()
+{
+    return instantiated_ = (inventory.armor.instantiate()
+               && inventory.miscellaneous.instantiate()
+               && inventory.potions.instantiate()
+               && inventory.rings.instantiate()
+               && inventory.weapons.instantiate());
+}
 
 Store::Store()
 {

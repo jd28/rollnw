@@ -42,6 +42,7 @@ struct Store : public ObjectBase {
     virtual const Common* as_common() const override { return &common; }
     Store* as_store() override { return this; }
     const Store* as_store() const override { return this; }
+    virtual bool instantiate() override;
 
     static bool deserialize(Store* obj, const GffInputArchiveStruct& archive, SerializationProfile profile);
     static bool deserialize(Store* obj, const nlohmann::json& archive, SerializationProfile profile);
@@ -61,6 +62,8 @@ struct Store : public ObjectBase {
     int32_t gold = -1;
 
     bool blackmarket;
+
+    bool instantiated_ = false;
 };
 
 } // namespace nw

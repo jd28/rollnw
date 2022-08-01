@@ -18,6 +18,7 @@ struct Waypoint : public ObjectBase {
     virtual const Common* as_common() const override { return &common; }
     virtual Waypoint* as_waypoint() override { return this; }
     virtual const Waypoint* as_waypoint() const override { return this; }
+    virtual bool instantiate() override { return true; }
 
     /// Deserializes entity from GFF
     static bool deserialize(Waypoint* obj, const GffInputArchiveStruct& archive,
@@ -57,6 +58,8 @@ struct Waypoint : public ObjectBase {
 
     /// If true show map note
     bool map_note_enabled = false;
+
+    bool instantiated_ = false;
 };
 
 } // namespace nw

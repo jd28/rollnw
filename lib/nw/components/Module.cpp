@@ -124,31 +124,30 @@ const Area* Module::get_area(size_t index) const
     return nullptr;
 }
 
-bool Module::instantiate(Module* obj)
+bool Module::instantiate()
 {
+    if (instantiated_) return true;
     LOG_F(INFO, "instantiating module");
-    if (!obj) {
-        throw std::runtime_error("unable to serialize null object");
+
+    if (haks.size()) {
+        nw::kernel::resman().load_module_haks(haks);
     }
 
-    if (obj->haks.size()) {
-        nw::kernel::resman().load_module_haks(obj->haks);
-    }
-
-    if (obj->tlk.size()) {
+    if (tlk.size()) {
         auto path = nw::kernel::config().alias_path(PathAlias::tlk);
-        nw::kernel::strings().load_custom_tlk(path / (obj->tlk + ".tlk"));
+        nw::kernel::strings().load_custom_tlk(path / (tlk + ".tlk"));
     }
 
-    auto& area_list = std::get<std::vector<Resref>>(obj->areas);
+    auto& area_list = std::get<std::vector<Resref>>(areas);
     std::vector<Area*> area_objects;
     area_objects.reserve(area_list.size());
     for (auto& area : area_list) {
         LOG_F(INFO, "  loading area: {}", area);
         area_objects.push_back(nw::kernel::objects().make_area(area));
     }
-    obj->areas = std::move(area_objects);
+    areas = std::move(area_objects);
 
+    instantiated_ = true;
     return true;
 }
 

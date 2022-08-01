@@ -189,6 +189,8 @@ Area::Area()
     set_handle({object_invalid, ObjectType::area, 0});
 }
 
+bool Area::instantiate() { return true; }
+
 bool Area::deserialize(Area* obj, const GffInputArchiveStruct& are, const GffInputArchiveStruct& git, const GffInputArchiveStruct& gic)
 {
     if (!obj) {

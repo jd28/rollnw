@@ -10,6 +10,12 @@ Item::Item()
     inventory.owner = this;
 }
 
+bool Item::instantiate()
+{
+    if (instantiated_) return true;
+    return instantiated_ = inventory.instantiate();
+}
+
 bool Item::deserialize(Item* obj, const GffInputArchiveStruct& archive, SerializationProfile profile)
 {
     if (!obj) {
@@ -97,6 +103,10 @@ bool Item::deserialize(Item* obj, const GffInputArchiveStruct& archive, Serializ
         archive.get_to("Metal2Color", obj->model_colors[ItemColors::metal2]);
     }
 
+    if (profile == nw::SerializationProfile::instance) {
+        obj->instantiated_ = true;
+    }
+
     return true;
 }
 
@@ -143,6 +153,10 @@ bool Item::deserialize(Item* obj, const nlohmann::json& archive, SerializationPr
     } catch (const nlohmann::json::exception& e) {
         LOG_F(ERROR, "Item::from_json exception: {}", e.what());
         return false;
+    }
+
+    if (profile == nw::SerializationProfile::instance) {
+        obj->instantiated_ = true;
     }
 
     return true;

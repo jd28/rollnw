@@ -31,6 +31,7 @@ struct Item : public ObjectBase {
     virtual const Common* as_common() const override { return &common; }
     virtual Item* as_item() override { return this; }
     virtual const Item* as_item() const override { return this; }
+    virtual bool instantiate() override;
 
     // Serialization
     static bool deserialize(Item* obj, const GffInputArchiveStruct& archive, SerializationProfile profile);
@@ -61,6 +62,8 @@ struct Item : public ObjectBase {
     ItemModelType model_type = ItemModelType::simple;
     std::array<uint8_t, 6> model_colors;
     std::array<uint8_t, 19> model_parts;
+
+    bool instantiated_ = false;
 };
 
 } // namespace nw

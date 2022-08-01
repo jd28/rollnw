@@ -96,6 +96,12 @@ Placeable::Placeable()
     inventory.owner = this;
 }
 
+bool Placeable::instantiate()
+{
+    if (instantiated_) return true;
+    return instantiated_ = inventory.instantiate();
+}
+
 bool Placeable::deserialize(Placeable* obj, const GffInputArchiveStruct& archive, SerializationProfile profile)
 {
     if (!obj) {
@@ -138,6 +144,10 @@ bool Placeable::deserialize(Placeable* obj, const GffInputArchiveStruct& archive
     archive.get_to("Static", obj->static_);
     archive.get_to("Useable", obj->useable);
 
+    if (profile == nw::SerializationProfile::instance) {
+        obj->instantiated_ = true;
+    }
+
     return true;
 }
 
@@ -177,6 +187,11 @@ bool Placeable::deserialize(Placeable* obj, const nlohmann::json& archive, Seria
         LOG_F(ERROR, "Placeable::from_json exception {}", e.what());
         return false;
     }
+
+    if (profile == nw::SerializationProfile::instance) {
+        obj->instantiated_ = true;
+    }
+
     return true;
 }
 

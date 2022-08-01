@@ -80,6 +80,10 @@ bool Trigger::deserialize(Trigger* obj, const GffInputArchiveStruct& archive, Se
     archive.get_to("Cursor", obj->cursor);
     archive.get_to("LinkedToFlags", obj->linked_to_flags);
 
+    if (profile == nw::SerializationProfile::instance) {
+        obj->instantiated_ = true;
+    }
+
     return true;
 }
 
@@ -117,6 +121,11 @@ bool Trigger::deserialize(Trigger* obj, const nlohmann::json& archive, Serializa
         LOG_F(ERROR, "Trigger::from_json exception: {}", e.what());
         return false;
     }
+
+    if (profile == nw::SerializationProfile::instance) {
+        obj->instantiated_ = true;
+    }
+
     return true;
 }
 

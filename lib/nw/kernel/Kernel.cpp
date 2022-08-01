@@ -39,7 +39,7 @@ Module* load_module(const std::filesystem::path& path, std::string_view manifest
 
     Module* mod = objects().make_module();
     if (mod) {
-        Module::instantiate(mod);
+        mod->instantiate();
     }
 
     return mod;

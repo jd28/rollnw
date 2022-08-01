@@ -53,6 +53,7 @@ struct Placeable : public ObjectBase {
     virtual const Common* as_common() const override { return &common; }
     virtual Placeable* as_placeable() override { return this; }
     virtual const Placeable* as_placeable() const override { return this; }
+    virtual bool instantiate() override;
 
     // Serialization
     static bool deserialize(Placeable* obj, const GffInputArchiveStruct& archive, SerializationProfile profile);
@@ -86,6 +87,8 @@ struct Placeable : public ObjectBase {
     bool plot = 0;
     bool static_ = false;
     bool useable = false;
+
+    bool instantiated_ = false;
 };
 
 } // namespace nw

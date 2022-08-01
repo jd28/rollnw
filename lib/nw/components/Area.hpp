@@ -90,6 +90,7 @@ struct Area : public ObjectBase {
     virtual const Common* as_common() const override { return &common; }
     virtual Area* as_area() override { return this; }
     virtual const Area* as_area() const override { return this; }
+    virtual bool instantiate() override;
 
     /// Deserialize from GFF
     static bool deserialize(Area* obj, const GffInputArchiveStruct& are,

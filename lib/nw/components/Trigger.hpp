@@ -35,6 +35,7 @@ struct Trigger : public ObjectBase {
     virtual const Common* as_common() const override { return &common; }
     virtual Trigger* as_trigger() override { return this; }
     virtual const Trigger* as_trigger() const override { return this; }
+    virtual bool instantiate() override { return true; }
 
     // Serialization
     static bool deserialize(Trigger* obj, const GffInputArchiveStruct& archive, SerializationProfile profile);
@@ -58,6 +59,8 @@ struct Trigger : public ObjectBase {
 
     uint8_t cursor = 0;
     uint8_t linked_to_flags = 0;
+
+    bool instantiated_ = false;
 };
 
 } // namespace nw

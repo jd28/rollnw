@@ -2,6 +2,7 @@
 
 #include "../serialization/Archives.hpp"
 
+#include <compare>
 #include <cstdint>
 
 namespace nw {
@@ -107,6 +108,7 @@ struct ObjectBase {
     virtual const Trigger* as_trigger() const { return nullptr; }
     virtual Waypoint* as_waypoint() { return nullptr; }
     virtual const Waypoint* as_waypoint() const { return nullptr; }
+    virtual bool instantiate() = 0;
 
 private:
     ObjectHandle handle_;

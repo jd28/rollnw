@@ -49,6 +49,10 @@ bool Sound::deserialize(Sound* obj, const GffInputArchiveStruct& archive, Serial
     archive.get_to("Volume", obj->volume);
     archive.get_to("VolumeVrtn", obj->volume_variation);
 
+    if (profile == nw::SerializationProfile::instance) {
+        obj->instantiated_ = true;
+    }
+
     return true;
 }
 
@@ -91,6 +95,10 @@ bool Sound::deserialize(Sound* obj, const nlohmann::json& archive, Serialization
     } catch (const nlohmann::json::exception& e) {
         LOG_F(ERROR, "Sound::from_json exception: {}", e.what());
         return false;
+    }
+
+    if (profile == nw::SerializationProfile::instance) {
+        obj->instantiated_ = true;
     }
 
     return true;

@@ -48,6 +48,7 @@ struct Creature : public ObjectBase {
     virtual const Common* as_common() const override { return &common; }
     virtual Creature* as_creature() override { return this; }
     virtual const Creature* as_creature() const override { return this; }
+    virtual bool instantiate() override;
 
     static bool deserialize(Creature* obj, const GffInputArchiveStruct& archive, SerializationProfile profile);
     static bool deserialize(Creature* obj, const nlohmann::json& archive, SerializationProfile profile);
@@ -97,6 +98,8 @@ struct Creature : public ObjectBase {
     uint8_t perception_range = 0;
     bool plot = false;
     uint8_t starting_package = 0;
+
+    bool instantiated_ = true;
 };
 
 } // namespace nw

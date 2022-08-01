@@ -54,6 +54,7 @@ struct Encounter : public ObjectBase {
     virtual const Common* as_common() const override { return &common; }
     virtual Encounter* as_encounter() override { return this; }
     virtual const Encounter* as_encounter() const override { return this; }
+    virtual bool instantiate() override { return true; }
 
     static bool deserialize(Encounter* obj, const GffInputArchiveStruct& archive, SerializationProfile profile);
     static bool deserialize(Encounter* obj, const nlohmann::json& archive, SerializationProfile profile);
@@ -79,6 +80,8 @@ struct Encounter : public ObjectBase {
     bool active = true;
     bool player_only = false;
     bool reset = true;
+
+    bool instantiated_ = false;
 };
 
 } // namespace nw

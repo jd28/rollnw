@@ -141,7 +141,11 @@ nlohmann::json Inventory::to_json(SerializationProfile profile) const
 
             payload["position"] = {it.pos_x, it.pos_y};
             if (std::holds_alternative<Item*>(it.item)) {
-                Item::serialize(std::get<Item*>(it.item), payload["item"], profile);
+                if (SerializationProfile::blueprint == profile) {
+                    payload["item"] = std::get<Item*>(it.item)->common.resref;
+                } else {
+                    Item::serialize(std::get<Item*>(it.item), payload["item"], profile);
+                }
             } else {
                 if (SerializationProfile::blueprint == profile) {
                     payload["item"] = std::get<Resref>(it.item);

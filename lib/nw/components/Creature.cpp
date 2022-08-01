@@ -92,6 +92,12 @@ Creature::Creature()
     inventory.owner = this;
 }
 
+bool Creature::instantiate()
+{
+    if (instantiated_) return true;
+    return instantiated_ = (inventory.instantiate() && equipment.instantiate());
+}
+
 bool Creature::deserialize(Creature* obj, const GffInputArchiveStruct& archive, SerializationProfile profile)
 {
     if (!obj) {
@@ -145,6 +151,9 @@ bool Creature::deserialize(Creature* obj, const GffInputArchiveStruct& archive, 
 
     archive.get_to("StartingPackage", obj->starting_package);
 
+    if (profile == nw::SerializationProfile::instance) {
+        obj->instantiated_ = true;
+    }
     return true;
 }
 
@@ -199,6 +208,10 @@ bool Creature::deserialize(Creature* obj, const nlohmann::json& archive, Seriali
     } catch (const nlohmann::json::exception& e) {
         LOG_F(ERROR, "from_json exception: {}", e.what());
         return false;
+    }
+
+    if (profile == nw::SerializationProfile::instance) {
+        obj->instantiated_ = true;
     }
 
     return true;

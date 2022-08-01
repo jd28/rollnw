@@ -47,6 +47,7 @@ struct Door : public ObjectBase {
     virtual const Common* as_common() const override { return &common; }
     virtual Door* as_door() override { return this; }
     virtual const Door* as_door() const override { return this; }
+    virtual bool instantiate() override { return true; }
 
     // Serialization
     static bool deserialize(Door* obj, const GffInputArchiveStruct& archive, SerializationProfile profile);
@@ -78,6 +79,8 @@ struct Door : public ObjectBase {
     bool interruptable = 0;
     uint8_t linked_to_flags = 0;
     bool plot = false;
+
+    bool instantiated_ = true;
 };
 
 } // namespace nw

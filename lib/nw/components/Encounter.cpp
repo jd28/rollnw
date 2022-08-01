@@ -167,6 +167,9 @@ bool Encounter::deserialize(Encounter* obj, const GffInputArchiveStruct& archive
     archive.get_to("PlayerOnly", obj->player_only);
     archive.get_to("Reset", obj->reset);
 
+    if (profile == nw::SerializationProfile::instance) {
+        obj->instantiated_ = true;
+    }
     return true;
 }
 
@@ -211,6 +214,9 @@ bool Encounter::deserialize(Encounter* obj, const nlohmann::json& archive, Seria
     archive.at("player_only").get_to(obj->player_only);
     archive.at("reset").get_to(obj->reset);
 
+    if (profile == nw::SerializationProfile::instance) {
+        obj->instantiated_ = true;
+    }
     return true;
 }
 

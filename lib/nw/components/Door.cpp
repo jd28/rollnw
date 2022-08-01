@@ -142,6 +142,9 @@ bool Door::deserialize(Door* obj, const GffInputArchiveStruct& archive, Serializ
     archive.get_to("LinkedToFlags", obj->linked_to_flags);
     archive.get_to("Plot", obj->plot);
 
+    if (profile == nw::SerializationProfile::instance) {
+        obj->instantiated_ = true;
+    }
     return result;
 }
 
@@ -181,6 +184,9 @@ bool Door::deserialize(Door* obj, const nlohmann::json& archive, SerializationPr
         return false;
     }
 
+    if (profile == nw::SerializationProfile::instance) {
+        obj->instantiated_ = true;
+    }
     return true;
 }
 

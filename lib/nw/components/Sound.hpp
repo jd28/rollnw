@@ -17,6 +17,7 @@ struct Sound : public ObjectBase {
     virtual const Common* as_common() const override { return &common; }
     virtual Sound* as_sound() override { return this; }
     virtual const Sound* as_sound() const override { return this; }
+    virtual bool instantiate() override { return true; }
 
     static bool deserialize(Sound* obj, const GffInputArchiveStruct& archive, SerializationProfile profile);
     static bool deserialize(Sound* obj, const nlohmann::json& archive, SerializationProfile profile);
@@ -48,6 +49,8 @@ struct Sound : public ObjectBase {
     uint8_t times = 3; // Always
     uint8_t volume = 100;
     uint8_t volume_variation = 0;
+
+    bool instantiated_ = false;
 };
 
 } // namespace nw

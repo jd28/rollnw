@@ -20,7 +20,7 @@ TEST_CASE("Loading store blueprint", "[objects]")
     REQUIRE(ent->blackmarket);
     REQUIRE(ent->blackmarket_markdown == 25);
     REQUIRE(ent->inventory.weapons.items.size() > 0);
-    REQUIRE(std::get<nw::Resref>(ent->inventory.weapons.items[0].item) == "nw_wswdg001");
+    REQUIRE(std::get<nw::Item*>(ent->inventory.weapons.items[0].item)->common.resref == "nw_wswdg001");
 }
 
 TEST_CASE("store: to_json", "[objects]")
