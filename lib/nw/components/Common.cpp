@@ -4,18 +4,7 @@
 
 namespace nw {
 
-Common::Common(ObjectType obj_type)
-    : object_type{obj_type}
-{
-}
-
-Common::Common(ObjectType obj_type, const GffInputArchiveStruct& archive, SerializationProfile profile)
-    : object_type{obj_type}
-{
-    valid_ = this->from_gff(archive, profile);
-}
-
-bool Common::from_gff(const GffInputArchiveStruct& archive, SerializationProfile profile)
+bool Common::from_gff(const GffInputArchiveStruct& archive, SerializationProfile profile, ObjectType object_type)
 {
     location.from_gff(archive, profile);
     locals.from_gff(archive);
@@ -43,7 +32,7 @@ bool Common::from_gff(const GffInputArchiveStruct& archive, SerializationProfile
     return true;
 }
 
-bool Common::from_json(const nlohmann::json& archive, SerializationProfile profile)
+bool Common::from_json(const nlohmann::json& archive, SerializationProfile profile, ObjectType object_type)
 {
 
     archive.at("object_type").get_to(object_type);
@@ -68,13 +57,10 @@ bool Common::from_json(const nlohmann::json& archive, SerializationProfile profi
     return true;
 }
 
-nlohmann::json Common::to_json(SerializationProfile profile) const
+nlohmann::json Common::to_json(SerializationProfile profile, ObjectType object_type) const
 {
     nlohmann::json j;
 
-    if (id != object_invalid) {
-        j["object_id"] = id;
-    }
     j["object_type"] = object_type;
     j["resref"] = resref;
     j["tag"] = tag;

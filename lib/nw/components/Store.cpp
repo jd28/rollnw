@@ -32,8 +32,8 @@ void StoreInventory::set_owner(ObjectBase* owner)
 // }
 
 Store::Store()
-    : common(Store::object_type)
 {
+    set_handle({object_invalid, ObjectType::store, 0});
     inventory.set_owner(this);
 }
 
@@ -42,7 +42,7 @@ bool Store::deserialize(Store* obj, const GffInputArchiveStruct& archive, Serial
     if (!obj) {
         return false;
     }
-    if (!obj->common.from_gff(archive, profile)) {
+    if (!obj->common.from_gff(archive, profile, ObjectType::store)) {
         return false;
     }
 
@@ -125,7 +125,7 @@ bool Store::deserialize(Store* obj, const nlohmann::json& archive, Serialization
         throw std::runtime_error("unable to serialize null object");
     }
 
-    obj->common.from_json(archive.at("common"), profile);
+    obj->common.from_json(archive.at("common"), profile, ObjectType::store);
 
     obj->inventory.armor.from_json(archive.at("armor"), profile);
     obj->inventory.miscellaneous.from_json(archive.at("miscellaneous"), profile);
@@ -228,7 +228,7 @@ bool Store::serialize(const Store* obj, nlohmann::json& archive, SerializationPr
     archive["$type"] = "UTM";
     archive["$version"] = json_archive_version;
 
-    archive["common"] = obj->common.to_json(profile);
+    archive["common"] = obj->common.to_json(profile, ObjectType::store);
     archive["scripts"] = {
         {"on_closed", obj->scripts.on_closed},
         {"on_opened", obj->scripts.on_opened},

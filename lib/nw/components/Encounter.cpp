@@ -115,8 +115,8 @@ nlohmann::json SpawnPoint::to_json() const
 // -- Encounter ---------------------------------------------------------------
 
 Encounter::Encounter()
-    : common(Encounter::object_type)
 {
+    set_handle({object_invalid, ObjectType::encounter, 0});
 }
 
 bool Encounter::deserialize(Encounter* obj, const GffInputArchiveStruct& archive, SerializationProfile profile)
@@ -125,7 +125,7 @@ bool Encounter::deserialize(Encounter* obj, const GffInputArchiveStruct& archive
         throw std::runtime_error("unable to serialize null object");
     }
 
-    if (!obj->common.from_gff(archive, profile)) {
+    if (!obj->common.from_gff(archive, profile, ObjectType::encounter)) {
         return false;
     }
     obj->scripts.from_gff(archive);
@@ -176,7 +176,7 @@ bool Encounter::deserialize(Encounter* obj, const nlohmann::json& archive, Seria
         throw std::runtime_error("unable to serialize null object");
     }
 
-    obj->common.from_json(archive.at("common"), profile);
+    obj->common.from_json(archive.at("common"), profile, ObjectType::encounter);
     obj->scripts.from_json(archive.at("scripts"));
 
     auto& arr = archive.at("creatures");
@@ -306,7 +306,7 @@ bool Encounter::serialize(const Encounter* obj, nlohmann::json& archive, Seriali
     archive["$type"] = "UTE";
     archive["$version"] = json_archive_version;
 
-    archive["common"] = obj->common.to_json(profile);
+    archive["common"] = obj->common.to_json(profile, ObjectType::encounter);
     archive["scripts"] = obj->scripts.to_json();
 
     auto& arr = archive["creatures"] = nlohmann::json::array();

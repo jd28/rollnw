@@ -91,8 +91,8 @@ nlohmann::json PlaceableScripts::to_json() const
 }
 
 Placeable::Placeable()
-    : common{Placeable::object_type}
 {
+    set_handle({object_invalid, ObjectType::placeable, 0});
     inventory.owner = this;
 }
 
@@ -102,7 +102,7 @@ bool Placeable::deserialize(Placeable* obj, const GffInputArchiveStruct& archive
         throw std::runtime_error("unable to serialize null object");
     }
 
-    obj->common.from_gff(archive, profile);
+    obj->common.from_gff(archive, profile, ObjectType::placeable);
 
     archive.get_to("HasInventory", obj->has_inventory);
     if (obj->has_inventory) {
@@ -148,7 +148,7 @@ bool Placeable::deserialize(Placeable* obj, const nlohmann::json& archive, Seria
     }
 
     try {
-        obj->common.from_json(archive.at("common"), profile);
+        obj->common.from_json(archive.at("common"), profile, ObjectType::placeable);
         obj->inventory.from_json(archive.at("inventory"), profile);
         obj->lock.from_json(archive.at("lock"));
         obj->scripts.from_json(archive.at("scripts"));
@@ -259,7 +259,7 @@ bool Placeable::serialize(const Placeable* obj, nlohmann::json& archive, Seriali
     archive["$type"] = "UTP";
     archive["$version"] = json_archive_version;
 
-    archive["common"] = obj->common.to_json(profile);
+    archive["common"] = obj->common.to_json(profile, ObjectType::placeable);
     archive["inventory"] = obj->inventory.to_json(profile);
     archive["lock"] = obj->lock.to_json();
     archive["scripts"] = obj->scripts.to_json();

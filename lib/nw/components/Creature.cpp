@@ -87,8 +87,8 @@ nlohmann::json CreatureScripts::to_json() const
 }
 
 Creature::Creature()
-    : common(ObjectType::creature)
 {
+    set_handle({object_invalid, ObjectType::creature, 0});
     inventory.owner = this;
 }
 
@@ -98,7 +98,7 @@ bool Creature::deserialize(Creature* obj, const GffInputArchiveStruct& archive, 
         throw std::runtime_error("unable to serialize null object");
     }
 
-    obj->common.from_gff(archive, profile);
+    obj->common.from_gff(archive, profile, ObjectType::creature);
     obj->appearance.from_gff(archive);
     obj->combat_info.from_gff(archive);
     obj->equipment.from_gff(archive, profile);
@@ -155,7 +155,7 @@ bool Creature::deserialize(Creature* obj, const nlohmann::json& archive, Seriali
     }
 
     try {
-        obj->common.from_json(archive.at("common"), profile);
+        obj->common.from_json(archive.at("common"), profile, ObjectType::creature);
         obj->appearance.from_json(archive.at("appearance"));
         obj->combat_info.from_json(archive.at("combat_info"));
         obj->equipment.from_json(archive.at("equipment"), profile);
@@ -294,7 +294,7 @@ bool Creature::serialize(const Creature* obj, nlohmann::json& archive,
 
     archive["appearance"] = obj->appearance.to_json();
     archive["combat_info"] = obj->combat_info.to_json();
-    archive["common"] = obj->common.to_json(profile);
+    archive["common"] = obj->common.to_json(profile, ObjectType::creature);
     archive["equipment"] = obj->equipment.to_json(profile);
     archive["inventory"] = obj->inventory.to_json(profile);
     archive["levels"] = obj->levels.to_json();

@@ -36,15 +36,15 @@ bool TriggerScripts::from_json(const nlohmann::json& archive)
 }
 
 Trigger::Trigger()
-    : common{Trigger::object_type}
 {
+    set_handle({object_invalid, ObjectType::trigger, 0});
 }
 
 bool Trigger::deserialize(Trigger* obj, const GffInputArchiveStruct& archive, SerializationProfile profile)
 {
     if (!obj) return false;
 
-    obj->common.from_gff(archive, profile);
+    obj->common.from_gff(archive, profile, ObjectType::trigger);
 
     archive.get_to("OnClick", obj->scripts.on_click);
     archive.get_to("OnDisarm", obj->scripts.on_disarm);
@@ -88,7 +88,7 @@ bool Trigger::deserialize(Trigger* obj, const nlohmann::json& archive, Serializa
     if (!obj) return false;
 
     try {
-        if (!obj->common.from_json(archive.at("common"), profile)
+        if (!obj->common.from_json(archive.at("common"), profile, ObjectType::trigger)
             || !obj->scripts.from_json(archive.at("scripts"))
             || !obj->trap.from_json(archive.at("trap"))) {
             return false;
@@ -197,7 +197,7 @@ bool Trigger::serialize(const Trigger* obj, nlohmann::json& archive, Serializati
     archive["$type"] = "UTT";
     archive["$version"] = json_archive_version;
 
-    archive["common"] = obj->common.to_json(profile);
+    archive["common"] = obj->common.to_json(profile, ObjectType::trigger);
     archive["scripts"] = obj->scripts.to_json();
     archive["trap"] = obj->trap.to_json();
 

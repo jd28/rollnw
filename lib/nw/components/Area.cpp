@@ -185,8 +185,8 @@ nlohmann::json Tile::to_json() const
 // -- Area --------------------------------------------------------------------
 
 Area::Area()
-    : common{Area::object_type}
 {
+    set_handle({object_invalid, ObjectType::area, 0});
 }
 
 bool Area::deserialize(Area* obj, const GffInputArchiveStruct& are, const GffInputArchiveStruct& git, const GffInputArchiveStruct& gic)
@@ -197,7 +197,7 @@ bool Area::deserialize(Area* obj, const GffInputArchiveStruct& are, const GffInp
     // [TODO] Load this..
     ROLLNW_UNUSED(gic);
 
-    obj->common.from_gff(are, SerializationProfile::any);
+    obj->common.from_gff(are, SerializationProfile::any, ObjectType::area);
     obj->scripts.from_gff(are);
     obj->weather.from_gff(are);
 
@@ -274,7 +274,7 @@ bool Area::deserialize(Area* obj, const nlohmann::json& are,
     // [TODO] Load this..
     ROLLNW_UNUSED(gic);
 
-    obj->common.from_json(are.at("common"), SerializationProfile::any);
+    obj->common.from_json(are.at("common"), SerializationProfile::any, ObjectType::area);
     obj->scripts.from_json(are.at("scripts"));
     obj->weather.from_json(are.at("weather"));
 
@@ -356,7 +356,7 @@ void Area::serialize(const Area* obj, nlohmann::json& archive)
     archive["$type"] = "CAF";
     archive["$version"] = Area::json_archive_version;
 
-    archive["common"] = obj->common.to_json(SerializationProfile::any);
+    archive["common"] = obj->common.to_json(SerializationProfile::any, ObjectType::area);
     archive["weather"] = obj->weather.to_json();
     archive["scripts"] = obj->scripts.to_json();
 

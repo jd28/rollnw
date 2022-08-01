@@ -5,8 +5,8 @@
 namespace nw {
 
 Waypoint::Waypoint()
-    : common{Waypoint::object_type}
 {
+    set_handle({object_invalid, ObjectType::waypoint, 0});
 }
 
 bool Waypoint::deserialize(Waypoint* obj, const GffInputArchiveStruct& archive, SerializationProfile profile)
@@ -15,7 +15,7 @@ bool Waypoint::deserialize(Waypoint* obj, const GffInputArchiveStruct& archive, 
         throw std::runtime_error("unable to serialize null object");
     }
 
-    obj->common.from_gff(archive, profile);
+    obj->common.from_gff(archive, profile, ObjectType::waypoint);
 
     archive.get_to("Description", obj->description);
     archive.get_to("LinkedTo", obj->linked_to);
@@ -40,7 +40,7 @@ bool Waypoint::deserialize(Waypoint* obj, const nlohmann::json& archive,
         return false;
     }
 
-    obj->common.from_json(archive.at("common"), profile);
+    obj->common.from_json(archive.at("common"), profile, ObjectType::waypoint);
 
     archive.at("appearance").get_to(obj->appearance);
     archive.at("description").get_to(obj->description);
@@ -110,7 +110,7 @@ void Waypoint::serialize(const Waypoint* obj, nlohmann::json& archive,
     archive["$type"] = "UTW";
     archive["$version"] = Waypoint::json_archive_version;
 
-    archive["common"] = obj->common.to_json(profile);
+    archive["common"] = obj->common.to_json(profile, ObjectType::waypoint);
     archive["description"] = obj->description;
     archive["linked_to"] = obj->linked_to;
     archive["map_note"] = obj->map_note;

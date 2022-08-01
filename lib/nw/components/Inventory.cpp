@@ -31,8 +31,8 @@ bool Inventory::from_gff(const GffInputArchiveStruct& archive, SerializationProf
         bool valid_entry = true;
         auto st = archive["ItemList"][i];
         InventoryItem ii;
-        auto common = owner->as_common();
-        if (common && common->object_type == ObjectType::store) {
+        auto handle = owner->handle();
+        if (handle.type == ObjectType::store) {
             st.get_to("Infinite", ii.infinite, false);
         }
         st.get_to("Repos_PosX", ii.pos_x);
@@ -69,8 +69,8 @@ bool Inventory::from_json(const nlohmann::json& archive, SerializationProfile pr
         for (size_t i = 0; i < archive.size(); ++i) {
             bool valid_entry = true;
             InventoryItem ii;
-            auto common = owner->as_common();
-            if (common && common->object_type == ObjectType::store) {
+            auto handle = owner->handle();
+            if (handle.type == ObjectType::store) {
                 archive[i].at("infinite").get_to(ii.infinite);
             }
             archive[i].at("position")[0].get_to(ii.pos_x);
@@ -108,8 +108,8 @@ bool Inventory::to_gff(GffOutputArchiveStruct& archive, SerializationProfile pro
                         .add_field("Repos_PosX", it.pos_x)
                         .add_field("Repos_Posy", it.pos_y);
 
-        auto common = owner->as_common();
-        if (common && common->object_type == ObjectType::store && it.infinite) {
+        auto handle = owner->handle();
+        if (handle.type == ObjectType::store && it.infinite) {
             str.add_field("Infinite", it.infinite);
         }
 
@@ -134,8 +134,8 @@ nlohmann::json Inventory::to_json(SerializationProfile profile) const
         for (const auto& it : items) {
             j.push_back({});
             auto& payload = j.back();
-            auto common = owner->as_common();
-            if (common && common->object_type == ObjectType::store) {
+            auto handle = owner->handle();
+            if (handle.type == ObjectType::store) {
                 payload["infinite"] = it.infinite;
             }
 

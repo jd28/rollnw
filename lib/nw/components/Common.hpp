@@ -11,19 +11,12 @@
 namespace nw {
 
 struct Common {
-    Common() = default;
-    Common(ObjectType obj_type);
-    Common(ObjectType obj_type, const GffInputArchiveStruct& archive, SerializationProfile profile);
-    virtual ~Common() = default;
+    bool from_gff(const GffInputArchiveStruct& archive, SerializationProfile profile, ObjectType object_type);
+    bool from_json(const nlohmann::json& archive, SerializationProfile profile, ObjectType object_type);
+    nlohmann::json to_json(SerializationProfile profile, ObjectType object_type) const;
 
-    bool from_gff(const GffInputArchiveStruct& archive, SerializationProfile profile);
-    bool from_json(const nlohmann::json& archive, SerializationProfile profile);
-    nlohmann::json to_json(SerializationProfile profile) const;
+    bool valid() { return valid_; }
 
-    virtual bool valid() { return valid_; }
-
-    ObjectID id = object_invalid;
-    ObjectType object_type = ObjectType::invalid;
     Resref resref;
     std::string tag;
     LocString name;

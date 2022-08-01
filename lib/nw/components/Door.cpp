@@ -94,8 +94,8 @@ nlohmann::json DoorScripts::to_json() const
 }
 
 Door::Door()
-    : common(Door::object_type)
 {
+    set_handle({object_invalid, ObjectType::door, 0});
 }
 
 bool Door::deserialize(Door* obj, const GffInputArchiveStruct& archive, SerializationProfile profile)
@@ -104,7 +104,7 @@ bool Door::deserialize(Door* obj, const GffInputArchiveStruct& archive, Serializ
         throw std::runtime_error("unable to serialize null object");
     }
 
-    obj->common.from_gff(archive, profile);
+    obj->common.from_gff(archive, profile, ObjectType::door);
     obj->lock.from_gff(archive);
     obj->scripts.from_gff(archive);
     obj->trap.from_gff(archive);
@@ -152,7 +152,7 @@ bool Door::deserialize(Door* obj, const nlohmann::json& archive, SerializationPr
     }
 
     try {
-        obj->common.from_json(archive.at("common"), profile);
+        obj->common.from_json(archive.at("common"), profile, ObjectType::door);
         obj->lock.from_json(archive.at("lock"));
         obj->scripts.from_json(archive.at("scripts"));
         obj->trap.from_json(archive.at("trap"));
@@ -259,7 +259,7 @@ bool Door::serialize(const Door* obj, nlohmann::json& archive, SerializationProf
     archive["$type"] = "UTD";
     archive["$version"] = Door::json_archive_version;
 
-    archive["common"] = obj->common.to_json(profile);
+    archive["common"] = obj->common.to_json(profile, ObjectType::door);
     archive["lock"] = obj->lock.to_json();
     archive["scripts"] = obj->scripts.to_json();
     archive["trap"] = obj->trap.to_json();

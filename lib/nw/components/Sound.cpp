@@ -5,8 +5,8 @@
 namespace nw {
 
 Sound::Sound()
-    : common{Sound::object_type}
 {
+    set_handle({object_invalid, ObjectType::sound, 0});
 }
 
 bool Sound::deserialize(Sound* obj, const GffInputArchiveStruct& archive, SerializationProfile profile)
@@ -15,7 +15,7 @@ bool Sound::deserialize(Sound* obj, const GffInputArchiveStruct& archive, Serial
         throw std::runtime_error("unable to serialize null object");
     }
 
-    obj->common.from_gff(archive, profile);
+    obj->common.from_gff(archive, profile, ObjectType::sound);
 
     size_t sz = archive["Sounds"].size();
     obj->sounds.resize(sz);
@@ -59,7 +59,7 @@ bool Sound::deserialize(Sound* obj, const nlohmann::json& archive, Serialization
     }
 
     try {
-        obj->common.from_json(archive.at("common"), profile);
+        obj->common.from_json(archive.at("common"), profile, ObjectType::sound);
         archive.at("sounds").get_to(obj->sounds);
 
         archive.at("distance_min").get_to(obj->distance_min);
@@ -174,7 +174,7 @@ void Sound::serialize(const Sound* obj, nlohmann::json& archive, SerializationPr
     archive["$type"] = "UTS";
     archive["$version"] = json_archive_version;
 
-    archive["common"] = obj->common.to_json(profile);
+    archive["common"] = obj->common.to_json(profile, ObjectType::sound);
     archive["sounds"] = obj->sounds;
 
     archive["distance_min"] = obj->distance_min;

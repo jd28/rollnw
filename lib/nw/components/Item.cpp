@@ -5,8 +5,8 @@
 namespace nw {
 
 Item::Item()
-    : common{Item::object_type}
 {
+    set_handle({object_invalid, ObjectType::item, 0});
     inventory.owner = this;
 }
 
@@ -16,7 +16,7 @@ bool Item::deserialize(Item* obj, const GffInputArchiveStruct& archive, Serializ
         throw std::runtime_error("unable to serialize null object");
     }
 
-    obj->common.from_gff(archive, profile);
+    obj->common.from_gff(archive, profile, ObjectType::item);
     obj->inventory.from_gff(archive, profile);
 
     archive.get_to("Description", obj->description);
@@ -107,7 +107,7 @@ bool Item::deserialize(Item* obj, const nlohmann::json& archive, SerializationPr
     }
 
     try {
-        obj->common.from_json(archive.at("common"), profile);
+        obj->common.from_json(archive.at("common"), profile, ObjectType::item);
         obj->inventory.from_json(archive.at("inventory"), profile);
 
         archive.at("description").get_to(obj->description);
@@ -260,7 +260,7 @@ bool Item::serialize(const Item* obj, nlohmann::json& archive, SerializationProf
     archive["$type"] = "UTI";
     archive["$version"] = json_archive_version;
 
-    archive["common"] = obj->common.to_json(profile);
+    archive["common"] = obj->common.to_json(profile, ObjectType::item);
     archive["inventory"] = obj->inventory.to_json(profile);
 
     archive["description"] = obj->description;
