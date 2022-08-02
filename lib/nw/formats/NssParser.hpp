@@ -368,6 +368,12 @@ struct VarDecl : public Declaration {
 };
 
 struct Script {
+    Script() = default;
+    Script(const Script&) = delete;
+    Script(Script&&) = default;
+    Script& operator=(const Script&) = delete;
+    Script& operator=(Script&&) = default;
+
     std::vector<std::unique_ptr<Declaration>> decls;
     std::vector<std::string> includes;
     std::vector<std::pair<std::string, std::string>> defines;
