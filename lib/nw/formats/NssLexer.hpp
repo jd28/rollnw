@@ -105,7 +105,7 @@ struct NssToken {
     NssToken(NssTokenType type_, std::string_view id_, size_t line_, size_t start_, size_t end_);
     NssTokenType type = NssTokenType::INVALID;
     std::string_view id;
-    size_t line, start, end;
+    size_t line = 0, start = 0, end = 0;
 };
 
 struct NssLexer {
