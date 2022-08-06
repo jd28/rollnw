@@ -192,18 +192,14 @@ the object and its result passed as an output.</p>
 </pre></div>
 </div>
 </dd>
-<dt><strong>Modifier Outputs</strong></dt><dd><p>Outputs are processed inputs that are passed to the callback provided to <code class="docutils literal notranslate"><span class="pre">nw::Rules::calculate</span></code>.
-The meaning of these outputs are determined by the modifier type.  In the example below, the ability
-modifier type takes in to account only the first output which is the amount the ability is being
-modified.</p>
+<dt><strong>Modifier Outputs</strong></dt><dd><p>Outputs are to a callback provided to <code class="docutils literal notranslate"><span class="pre">nw::Rules::calculate</span></code>.  The meaning of these outputs are
+determined by the modifier type.  The number of output parameters is the same as the input size,
+so if there had been three <code class="docutils literal notranslate"><span class="pre">int</span></code> inputs there would have to be 3 <code class="docutils literal notranslate"><span class="pre">int</span></code> parameters in the callback.
+They currently have to be integer or floating point types.</p>
 <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="kt">int</span><span class="w"> </span><span class="n">result</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"></span>
 <span class="n">nw</span><span class="o">::</span><span class="n">kernel</span><span class="o">::</span><span class="n">rules</span><span class="p">().</span><span class="n">calculate</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span><span class="w"> </span><span class="n">mod_type_ability</span><span class="p">,</span><span class="w"> </span><span class="n">ability_strength</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="p">[</span><span class="o">&amp;</span><span class="n">result</span><span class="p">](</span><span class="k">const</span><span class="w"> </span><span class="n">nw</span><span class="o">::</span><span class="n">ModifierOutputs</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;&amp;</span><span class="w"> </span><span class="n">outputs</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
-<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">outputs</span><span class="p">.</span><span class="n">size</span><span class="p">())</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
-<span class="w">            </span><span class="n">result</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="n">outputs</span><span class="p">[</span><span class="mi">0</span><span class="p">];</span><span class="w"></span>
-<span class="w">        </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
-<span class="w">            </span><span class="n">LOG_F</span><span class="p">(</span><span class="n">ERROR</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;[nwn1] invalid modifier outputs&quot;</span><span class="p">);</span><span class="w"></span>
-<span class="w">        </span><span class="p">}</span><span class="w"></span>
+<span class="w">    </span><span class="p">[</span><span class="o">&amp;</span><span class="n">result</span><span class="p">](</span><span class="kt">int</span><span class="w"> </span><span class="n">value</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">            </span><span class="n">result</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="n">value</span><span class="p">;</span><span class="w"></span>
 <span class="w">     </span><span class="p">});</span><span class="w"></span>
 </pre></div>
 </div>
