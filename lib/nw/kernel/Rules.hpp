@@ -40,7 +40,7 @@ struct Rules : public Service {
      * @tparam T is ``int`` or ``float``
      */
     template <typename T, typename Callback>
-    void calculate(const ObjectBase* obj, const ModifierType type, Callback cb,
+    bool calculate(const ObjectBase* obj, const ModifierType type, Callback cb,
         const ObjectBase* versus = nullptr) const;
 
     /**
@@ -50,7 +50,7 @@ struct Rules : public Service {
      * @tparam U is some rule subtype
      */
     template <typename T, typename U, typename Callback>
-    void calculate(const ObjectBase* obj, const ModifierType type, U subtype, Callback cb,
+    bool calculate(const ObjectBase* obj, const ModifierType type, U subtype, Callback cb,
         const ObjectBase* versus = nullptr) const;
 
     /**
@@ -59,7 +59,7 @@ struct Rules : public Service {
      * @tparam T is ``int`` or ``float``
      */
     template <typename T, typename Callback>
-    void calculate(const ObjectBase* obj, const Modifier& mod, Callback cb,
+    bool calculate(const ObjectBase* obj, const Modifier& mod, Callback cb,
         const ObjectBase* versus = nullptr) const;
 
     /// Match
@@ -205,7 +205,7 @@ void calc_mod_inputs(TupleT& tp, const ObjectBase* obj, const ObjectBase* versus
 } // namespace detail
 
 template <typename T, typename Callback>
-void Rules::calculate(const ObjectBase* obj, const Modifier& mod, Callback cb,
+bool Rules::calculate(const ObjectBase* obj, const Modifier& mod, Callback cb,
     const ObjectBase* versus) const
 {
     static_assert(std::is_same_v<T, int> || std::is_same_v<T, float>,
@@ -215,11 +215,11 @@ void Rules::calculate(const ObjectBase* obj, const Modifier& mod, Callback cb,
 
     if (detail::function_traits<Callback>::arity != mod.value.size()) {
         LOG_F(ERROR, "Input/output size mismatch");
-        return;
+        return false;
     }
 
     if (!meets_requirement(mod.requirement, obj)) {
-        return;
+        return false;
     }
 
     typename detail::function_traits<Callback>::tuple_type output;
@@ -227,10 +227,11 @@ void Rules::calculate(const ObjectBase* obj, const Modifier& mod, Callback cb,
         std::make_integer_sequence<size_t, detail::function_traits<Callback>::arity>{});
 
     std::apply(cb, output);
+    return true;
 }
 
 template <typename T, typename Callback>
-void Rules::calculate(const ObjectBase* obj, const ModifierType type, Callback cb,
+bool Rules::calculate(const ObjectBase* obj, const ModifierType type, Callback cb,
     const ObjectBase* versus) const
 {
     static_assert(std::is_same_v<T, int> || std::is_same_v<T, float>,
@@ -240,13 +241,14 @@ void Rules::calculate(const ObjectBase* obj, const ModifierType type, Callback c
     auto it = std::lower_bound(std::begin(entries_), std::end(entries_), temp);
 
     while (it != std::end(entries_) && it->type == type) {
-        calculate<T>(obj, *it, cb, versus);
+        if (!calculate<T>(obj, *it, cb, versus)) return false;
         ++it;
     }
+    return true;
 }
 
 template <typename T, typename U, typename Callback>
-void Rules::calculate(const ObjectBase* obj, const ModifierType type, U subtype, Callback cb,
+bool Rules::calculate(const ObjectBase* obj, const ModifierType type, U subtype, Callback cb,
     const ObjectBase* versus) const
 {
     static_assert(std::is_same_v<T, int> || std::is_same_v<T, float>,
@@ -256,9 +258,10 @@ void Rules::calculate(const ObjectBase* obj, const ModifierType type, U subtype,
     auto it = std::lower_bound(std::begin(entries_), std::end(entries_), temp);
 
     while (it != std::end(entries_) && it->type == type && it->subtype == static_cast<int>(subtype)) {
-        calculate<T>(obj, *it, cb, versus);
+        if (!calculate<T>(obj, *it, cb, versus)) return false;
         ++it;
     }
+    return true;
 }
 
 inline Rules& rules()

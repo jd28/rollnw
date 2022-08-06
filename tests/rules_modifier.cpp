@@ -33,11 +33,16 @@ TEST_CASE("modifier", "[rules]")
         "dnd-3.0-palemaster-ac", nw::ModifierSource::class_);
 
     int res = 0;
-    nwk::rules().calculate<int>(ent, mod2,
+    REQUIRE(nwk::rules().calculate<int>(ent, mod2,
         [&res](int value) {
             res += value;
-        });
+        }));
     REQUIRE(res == 6);
+
+    REQUIRE_FALSE(nwk::rules().calculate<int>(ent, mod2,
+        [&res](int value, float bad) {
+            res += value;
+        }));
 }
 
 TEST_CASE("modifier kernel", "[rules]")
@@ -67,18 +72,18 @@ TEST_CASE("modifier kernel", "[rules]")
 
     REQUIRE(nwk::rules().replace("dnd-3.0-palemaster-ac", nw::ModifierInputs{pm_ac_nerf}));
     res = 0;
-    nwk::rules().calculate<int>(ent, nwn1::mod_type_armor_class, nwn1::ac_natural,
+    REQUIRE(nwk::rules().calculate<int>(ent, nwn1::mod_type_armor_class, nwn1::ac_natural,
         [&res](int value) {
             res += value;
-        });
+        }));
     REQUIRE(res == 3);
 
     REQUIRE(nwk::rules().remove("dnd-3.0-palemaster-*"));
     res = 0;
-    nwk::rules().calculate<int>(ent, nwn1::mod_type_armor_class, nwn1::ac_natural,
+    REQUIRE(nwk::rules().calculate<int>(ent, nwn1::mod_type_armor_class, nwn1::ac_natural,
         [&res](int value) {
             res += value;
-        });
+        }));
     REQUIRE(res == 0);
 
     nwk::unload_module();
@@ -100,10 +105,10 @@ TEST_CASE("modifier kernel 2", "[rules]")
     REQUIRE(nth == 4);
 
     int res = 0;
-    nwk::rules().calculate<int>(ent, nwn1::mod_type_hitpoints,
+    REQUIRE(nwk::rules().calculate<int>(ent, nwn1::mod_type_hitpoints,
         [&res](int value) {
             res += value;
-        });
+        }));
     REQUIRE(res == 80);
 
     nwk::unload_module();
@@ -119,20 +124,20 @@ TEST_CASE("modifier kernel 3", "[rules]")
     ent->stats.add_feat(nwn1::feat_resist_energy_acid);
 
     int res = 0;
-    nwk::rules().calculate<int>(ent, nwn1::mod_type_dmg_resistance,
+    REQUIRE(nwk::rules().calculate<int>(ent, nwn1::mod_type_dmg_resistance,
         [&res](int value) {
             res += value;
-        });
+        }));
 
     REQUIRE(res == 5);
 
     ent->stats.add_feat(nwn1::feat_epic_energy_resistance_acid_1);
     ent->stats.add_feat(nwn1::feat_epic_energy_resistance_acid_2);
     res = 0;
-    nwk::rules().calculate<int>(ent, nwn1::mod_type_dmg_resistance,
+    REQUIRE(nwk::rules().calculate<int>(ent, nwn1::mod_type_dmg_resistance,
         [&res](int value) {
             res += value;
-        });
+        }));
 
     REQUIRE(res == 20);
 
