@@ -117,6 +117,93 @@ private:
     std::vector<Modifier> entries_;
 };
 
+namespace detail {
+
+template <typename T>
+constexpr bool is_valid()
+{
+    return std::is_integral_v<T> || std::is_floating_point_v<T>;
+}
+
+template <typename T>
+struct function_traits : public function_traits<decltype(&T::operator())> {
+};
+
+template <typename ClassType, typename ReturnType, typename... Args>
+struct function_traits<ReturnType (ClassType::*)(Args...) const> {
+    using result_type = ReturnType;
+    using tuple_type = std::tuple<Args...>;
+    static constexpr auto arity = sizeof...(Args);
+    static constexpr bool validate_args()
+    {
+        return (is_valid<Args>() && ...);
+    }
+};
+
+template <typename R, typename... Args>
+struct function_traits<R (&)(Args...)> {
+    using result_type = R;
+    using tuple_type = std::tuple<Args...>;
+    static constexpr auto arity = sizeof...(Args);
+    static constexpr bool validate_args()
+    {
+        return (is_valid<Args>() && ...);
+    }
+};
+
+template <typename T>
+void calc_mod_input(T& out, const ObjectBase* obj, const ObjectBase* versus,
+    const Modifier& mod, const ModifierVariant& in)
+{
+    if (in.is<T>()) {
+        out = in.as<T>();
+    } else if (in.is<ModifierFunction>()) {
+        auto res = in.as<ModifierFunction>()(obj);
+        if (res.is<T>()) {
+            out = res.as<T>();
+        } else {
+            LOG_F(ERROR, "invalid modifier or type mismatch");
+            return;
+        }
+    } else if (in.is<ModifierSubFunction>()) {
+        auto res = in.as<ModifierSubFunction>()(obj, mod.subtype);
+        if (res.is<T>()) {
+            out = res.as<T>();
+        } else {
+            LOG_F(ERROR, "invalid modifier or type mismatch");
+            return;
+        }
+    } else if (in.is<ModifierVsFunction>()) {
+        auto res = in.as<ModifierVsFunction>()(obj, versus);
+        if (res.is<T>()) {
+            out = res.as<T>();
+        } else {
+            LOG_F(ERROR, "invalid modifier or type mismatch");
+            return;
+        }
+    } else if (in.is<ModifierSubVsFunction>()) {
+        auto res = in.as<ModifierSubVsFunction>()(obj, versus, mod.subtype);
+        if (res.is<T>()) {
+            out = res.as<T>();
+        } else {
+            LOG_F(ERROR, "invalid modifier or type mismatch");
+            return;
+        }
+    } else {
+        LOG_F(ERROR, "invalid modifier or type mismatch");
+        return;
+    }
+}
+
+template <typename TupleT, std::size_t... Is>
+void calc_mod_inputs(TupleT& tp, const ObjectBase* obj, const ObjectBase* versus,
+    const Modifier& mod, std::index_sequence<Is...>)
+{
+    (calc_mod_input(std::get<Is>(tp), obj, versus, mod, mod.value[Is]), ...);
+}
+
+} // namespace detail
+
 template <typename T, typename Callback>
 void Rules::calculate(const ObjectBase* obj, const Modifier& mod, Callback cb,
     const ObjectBase* versus) const
@@ -124,52 +211,22 @@ void Rules::calculate(const ObjectBase* obj, const Modifier& mod, Callback cb,
     static_assert(std::is_same_v<T, int> || std::is_same_v<T, float>,
         "only int and float are allowed");
 
+    static_assert(detail::function_traits<Callback>::validate_args(), "invalid argument types");
+
+    if (detail::function_traits<Callback>::arity != mod.value.size()) {
+        LOG_F(ERROR, "Input/output size mismatch");
+        return;
+    }
+
     if (!meets_requirement(mod.requirement, obj)) {
         return;
     }
 
-    ModifierOutputs<T> params;
-    for (auto& val : mod.value) {
-        if (val.is<T>()) {
-            params.push_back(val.as<T>());
-        } else if (val.is<ModifierFunction>()) {
-            auto res = val.as<ModifierFunction>()(obj);
-            if (res.is<T>()) {
-                params.push_back(res.as<T>());
-            } else {
-                LOG_F(ERROR, "invalid modifier or type mismatch");
-                return;
-            }
-        } else if (val.is<ModifierSubFunction>()) {
-            auto res = val.as<ModifierSubFunction>()(obj, mod.subtype);
-            if (res.is<T>()) {
-                params.push_back(res.as<T>());
-            } else {
-                LOG_F(ERROR, "invalid modifier or type mismatch");
-                return;
-            }
-        } else if (val.is<ModifierVsFunction>()) {
-            auto res = val.as<ModifierVsFunction>()(obj, versus);
-            if (res.is<T>()) {
-                params.push_back(res.as<T>());
-            } else {
-                LOG_F(ERROR, "invalid modifier or type mismatch");
-                return;
-            }
-        } else if (val.is<ModifierSubVsFunction>()) {
-            auto res = val.as<ModifierSubVsFunction>()(obj, versus, mod.subtype);
-            if (res.is<T>()) {
-                params.push_back(res.as<T>());
-            } else {
-                LOG_F(ERROR, "invalid modifier or type mismatch");
-                return;
-            }
-        } else {
-            LOG_F(ERROR, "invalid modifier or type mismatch");
-            return;
-        }
-    }
-    cb(params);
+    typename detail::function_traits<Callback>::tuple_type output;
+    detail::calc_mod_inputs(output, obj, versus, mod,
+        std::make_integer_sequence<size_t, detail::function_traits<Callback>::arity>{});
+
+    std::apply(cb, output);
 }
 
 template <typename T, typename Callback>

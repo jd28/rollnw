@@ -107,10 +107,8 @@ static void BM_creature_modifier_simple(benchmark::State& state)
     for (auto _ : state) {
         int out = 0;
         rules.calculate<int>(ent, nwn1::mod_type_armor_class, nwn1::ac_armor,
-            [&out](const auto& params) {
-                if (params.size()) {
-                    out += params[0];
-                }
+            [&out](int value) {
+                out += value;
             });
         benchmark::DoNotOptimize(out);
     }
@@ -127,8 +125,8 @@ static void BM_creature_modifier_complex(benchmark::State& state)
     for (auto _ : state) {
         int out = 0;
         rules.calculate<int>(ent, nwn1::mod_type_hitpoints,
-            [&out](const auto& params) {
-                if (params.size()) out += params[0];
+            [&out](int value) {
+                out += value;
             });
         benchmark::DoNotOptimize(out);
     }

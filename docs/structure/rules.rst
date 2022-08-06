@@ -89,21 +89,17 @@ Definitions
       mod::ability(ability_strength, 2, { qual::race(racial_type_halforc) }, nw::ModifierSource::race);
 
 **Modifier Outputs**
-   Outputs are processed inputs that are passed to the callback provided to ``nw::Rules::calculate``.
-   The meaning of these outputs are determined by the modifier type.  In the example below, the ability
-   modifier type takes in to account only the first output which is the amount the ability is being
-   modified.
+   Outputs are to a callback provided to ``nw::Rules::calculate``.  The meaning of these outputs are
+   determined by the modifier type.  The number of output parameters is the same as the input size,
+   so if there had been three ``int`` inputs there would have to be 3 ``int`` parameters in the callback.
+   They currently have to be integer or floating point types.
 
    .. code:: cpp
 
       int result = 0;
       nw::kernel::rules().calculate<int>(obj, mod_type_ability, ability_strength,
-          [&result](const nw::ModifierOutputs<int>& outputs) {
-              if (outputs.size()) {
-                  result += outputs[0];
-              } else {
-                  LOG_F(ERROR, "[nwn1] invalid modifier outputs");
-              }
+          [&result](int value) {
+                  result += value;
            });
 
 
