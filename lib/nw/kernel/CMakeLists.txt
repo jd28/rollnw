@@ -4,6 +4,7 @@ add_library(nw-kernel STATIC
     Objects.cpp
     Resources.cpp
     Rules.cpp
+    ScriptCache.cpp
     Strings.cpp
     TwoDACache.cpp
 )
