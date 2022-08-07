@@ -7,7 +7,7 @@
 
 namespace nwn1 {
 
-std::pair<bool, int> can_use_monk_abilities(nw::Creature* obj)
+std::pair<bool, int> can_use_monk_abilities(const nw::Creature* obj)
 {
     if (class_type_monk == nw::Class::invalid) {
         return {false, 0};

@@ -1,5 +1,7 @@
 #include "funcs_combat.hpp"
 
+#include "funcs_class.hpp"
+
 #include <nw/components/Creature.hpp>
 #include <nw/components/Item.hpp>
 #include <nw/kernel/Rules.hpp>
@@ -45,14 +47,15 @@ int weapon_iteration(const nw::Creature* obj, nw::Item* weapon)
 
     auto& bia = nw::kernel::rules().baseitems;
 
-    // auto baseitem = bia.get(nw::make_baseitem(weapon->baseitem));
-    // if (!baseitem) {
-    //     return 0;
-    // }
+    auto baseitem = bia.get(nw::make_baseitem(weapon->baseitem));
+    if (!baseitem) {
+        return 0;
+    }
 
-    // if (baseitem->is_monk_weapon && can_use_monk_abilities(obj)) {
-    //     return 3;
-    // }
+    auto [yes, level] = can_use_monk_abilities(obj);
+    if (baseitem->is_monk_weapon && yes) {
+        return 3;
+    }
 
     return 5;
 }

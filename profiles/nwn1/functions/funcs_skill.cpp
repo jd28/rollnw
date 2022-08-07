@@ -33,8 +33,7 @@ int get_skill_rank(const nw::Creature* obj, nw::Skill skill, bool base)
     }
 
     if (untrained) {
-        auto ability = get_ability_score(obj, ski->ability) - 10;
-        result += ability / 2;
+        result += get_ability_modifier(obj, ski->ability);
     }
 
     // Feats
