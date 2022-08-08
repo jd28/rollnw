@@ -12,6 +12,11 @@ TEST_CASE("strings manager", "[kernel]")
     REQUIRE(nw::kernel::strings().get(1000) == "Silence");
     REQUIRE(nw::kernel::strings().get(0x01001000) == "Stay here and don't move until I return.");
     REQUIRE(nw::kernel::strings().get(0xFFFFFFFF) == "");
+
+    nw::LocString test{1000};
+    REQUIRE(nw::kernel::strings().get(test) == "Silence");
+    test.add(nw::LanguageID::english, "Silencio");
+    REQUIRE(nw::kernel::strings().get(test) == "Silencio");
 }
 
 TEST_CASE("strings intern", "[kernel]")

@@ -70,6 +70,9 @@ TEST_CASE("modifier kernel", "[rules]")
         return ((pm_level / 4) + 1);
     };
 
+    // Get rid of any requirement
+    REQUIRE(nwk::rules().replace("dnd-3.0-palemaster-ac", nw::Requirement{}));
+    // Set nerf
     REQUIRE(nwk::rules().replace("dnd-3.0-palemaster-ac", nw::ModifierInputs{pm_ac_nerf}));
     res = 0;
     REQUIRE(nwk::rules().calculate<int>(ent, nwn1::mod_type_armor_class, nwn1::ac_natural,
