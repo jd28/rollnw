@@ -16,11 +16,14 @@ struct Nss {
     explicit Nss(std::string_view script);
     explicit Nss(ByteArray bytes);
 
-    Script parse();
+    void parse();
+    Script& script();
+    const Script& script() const;
 
 private:
     ByteArray bytes_;
     NssParser parser_;
+    Script script_;
 };
 
 } // namespace nw::script

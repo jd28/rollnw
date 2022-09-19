@@ -17,17 +17,17 @@ using namespace nw;
 TEST_CASE("NWScript Parser", "[formats]")
 {
     script::Nss nss(fs::path("test_data/user/development/test.nss"));
-    auto prog = nss.parse();
+    REQUIRE_NOTHROW(nss.parse());
     script::NssAstPrinter p;
-    prog.accept(&p);
+    nss.script().accept(&p);
     LOG_F(INFO, "{}", p.ss.str());
 }
 
 TEST_CASE("NWScript Parser - preprocessor", "[formats]")
 {
     script::Nss nss(fs::path("test_data/user/development/script_preprocessor.nss"));
-    script::Script script;
-    REQUIRE_NOTHROW(script = nss.parse());
+    REQUIRE_NOTHROW(nss.parse());
+    const script::Script& script = nss.script();
     REQUIRE(script.defines.size() == 6);
     REQUIRE(script.defines[0].first == "ENGINE_NUM_STRUCTURES");
     REQUIRE(script.defines[0].second == "5");
@@ -47,8 +47,8 @@ TEST_CASE("NWScript Parser - function decl", "[formats]")
     // This is kind of messed up.. and should be fixed.  Right now a function decl is parsed as a definition
     // with an empty block.
     script::Nss nss("void test_function(string s, int b);"sv);
-    script::Script s;
-    REQUIRE_NOTHROW((s = nss.parse()));
+    REQUIRE_NOTHROW(nss.parse());
+    const script::Script& s = nss.script();
     REQUIRE(s.decls.size() > 0);
     auto fd = dynamic_cast<script::FunctionDefinition*>(s.decls[0].get());
     REQUIRE(fd);

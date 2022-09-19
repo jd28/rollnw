@@ -10,7 +10,7 @@ script::Script* ScriptCache::get(Resref resref)
     auto res = Resource{resref, ResourceType::nss};
     auto it = cache_.find(res);
     if (it != std::end(cache_)) {
-        return it->second.get();
+        return &it->second.get()->script();
     }
 
     script::Script* result = nullptr;
@@ -19,12 +19,11 @@ script::Script* ScriptCache::get(Resref resref)
         return result;
     }
 
-    script::Nss nss{std::move(ba)};
-    result = new script::Script;
-    *result = nss.parse();
-    cache_.emplace(res, result);
+    auto nss = new script::Nss{std::move(ba)};
+    nss->parse();
+    cache_.emplace(res, nss);
 
-    return result;
+    return &nss->script();
 }
 
 void ScriptCache::clear()

@@ -23,9 +23,12 @@ Nss::Nss(ByteArray bytes)
 {
 }
 
-Script Nss::parse()
+void Nss::parse()
 {
-    return parser_.parse_program();
+    script_ = parser_.parse_program();
 }
+
+Script& Nss::script() { return script_; }
+const Script& Nss::script() const { return script_; }
 
 } // namespace nw::script

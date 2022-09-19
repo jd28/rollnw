@@ -9,10 +9,6 @@
 #include <memory>
 
 namespace nw {
-namespace script {
-struct Script;
-} // namespace script
-
 namespace kernel {
 
 struct ScriptCache : public kernel::Service {
@@ -22,7 +18,7 @@ struct ScriptCache : public kernel::Service {
     virtual void initialize() override;
 
 private:
-    absl::flat_hash_map<Resource, std::unique_ptr<script::Script>> cache_;
+    absl::flat_hash_map<Resource, std::unique_ptr<script::Nss>> cache_;
 };
 
 } // namespace kernel
