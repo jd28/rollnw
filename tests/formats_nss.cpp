@@ -42,6 +42,22 @@ TEST_CASE("NWScript Parser - nwscript", "[formats]")
     REQUIRE_NOTHROW(nss.parse());
 }
 
+TEST_CASE("NWScript Parser - function decl", "[formats]")
+{
+    // This is kind of messed up.. and should be fixed.  Right now a function decl is parsed as a definition
+    // with an empty block.
+    script::Nss nss("void test_function(string s, int b);"sv);
+    script::Script s;
+    REQUIRE_NOTHROW((s = nss.parse()));
+    REQUIRE(s.decls.size() > 0);
+    auto fd = dynamic_cast<script::FunctionDefinition*>(s.decls[0].get());
+    REQUIRE(fd);
+    REQUIRE(!fd->block);
+    REQUIRE(fd->decl->type.type_specifier.id == "void");
+    REQUIRE(fd->decl->params.size() == 2);
+    REQUIRE(fd->decl->params[0]->type.type_specifier.id == "string");
+}
+
 TEST_CASE("NWScript lexer", "[formats]")
 {
     script::NssLexer lexer{"x /= y"};
