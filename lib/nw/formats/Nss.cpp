@@ -12,6 +12,11 @@ Nss::Nss(const std::filesystem::path& filename)
 {
 }
 
+Nss::Nss(std::string_view script)
+    : parser_{script}
+{
+}
+
 Nss::Nss(ByteArray bytes)
     : bytes_{std::move(bytes)}
     , parser_{bytes_.string_view()}

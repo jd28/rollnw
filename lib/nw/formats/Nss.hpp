@@ -13,6 +13,7 @@ namespace nw::script {
 
 struct Nss {
     explicit Nss(const std::filesystem::path& filename);
+    explicit Nss(std::string_view script);
     explicit Nss(ByteArray bytes);
 
     Script parse();

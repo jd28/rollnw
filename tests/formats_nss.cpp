@@ -5,13 +5,18 @@
 #include <nw/formats/NssLexer.hpp>
 #include <nw/log.hpp>
 
+#include <filesystem>
 #include <iostream>
+#include <string_view>
+
+using namespace std::literals;
+namespace fs = std::filesystem;
 
 using namespace nw;
 
 TEST_CASE("NWScript Parser", "[formats]")
 {
-    script::Nss nss("test_data/user/development/test.nss");
+    script::Nss nss(fs::path("test_data/user/development/test.nss"));
     auto prog = nss.parse();
     script::NssAstPrinter p;
     prog.accept(&p);
@@ -20,7 +25,7 @@ TEST_CASE("NWScript Parser", "[formats]")
 
 TEST_CASE("NWScript Parser - preprocessor", "[formats]")
 {
-    script::Nss nss("test_data/user/development/script_preprocessor.nss");
+    script::Nss nss(fs::path("test_data/user/development/script_preprocessor.nss"));
     script::Script script;
     REQUIRE_NOTHROW(script = nss.parse());
     REQUIRE(script.defines.size() == 6);
@@ -33,7 +38,7 @@ TEST_CASE("NWScript Parser - preprocessor", "[formats]")
 
 TEST_CASE("NWScript Parser - nwscript", "[formats]")
 {
-    script::Nss nss("test_data/user/scratch/nwscript.nss");
+    script::Nss nss(fs::path("test_data/user/scratch/nwscript.nss"));
     REQUIRE_NOTHROW(nss.parse());
 }
 
