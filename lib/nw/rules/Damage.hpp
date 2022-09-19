@@ -17,7 +17,7 @@ template <>
 struct is_rule_type_base<Damage> : std::true_type {
 };
 
-using DamageFlag = RuleFlag<Damage, 64>;
+using DamageFlag = RuleFlag<Damage, 32>;
 
 enum struct DamageModType : int32_t {
     invalid = -1,
