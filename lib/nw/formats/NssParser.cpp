@@ -619,7 +619,11 @@ std::unique_ptr<Declaration> NssParser::parse_decl_external()
 
     if (lookahead(0).type == NssTokenType::LPAREN) {
         auto fd = parse_decl_function_def();
-        fd->decl->type = t;
+        if (auto decl = dynamic_cast<FunctionDecl*>(fd.get())) {
+            decl->type = t;
+        } else if (auto def = dynamic_cast<FunctionDefinition*>(fd.get())) {
+            def->decl->type = t;
+        }
         return fd;
     }
 
@@ -655,13 +659,14 @@ std::unique_ptr<FunctionDecl> NssParser::parse_decl_function()
     return fd;
 }
 
-std::unique_ptr<FunctionDefinition> NssParser::parse_decl_function_def()
+std::unique_ptr<Declaration> NssParser::parse_decl_function_def()
 {
-    auto def = std::make_unique<FunctionDefinition>();
-    def->decl = parse_decl_function();
+    auto decl = parse_decl_function();
     if (match({NssTokenType::SEMICOLON})) {
-        return def;
+        return decl;
     }
+    auto def = std::make_unique<FunctionDefinition>();
+    def->decl = std::move(decl);
     consume(NssTokenType::LBRACE, "Expected '{'.");
     def->block = parse_stmt_block();
     return def;

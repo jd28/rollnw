@@ -439,7 +439,7 @@ struct NssParser {
     std::unique_ptr<StructDecl> parse_decl_struct();
     std::unique_ptr<Declaration> parse_decl_struct_member();
     std::unique_ptr<FunctionDecl> parse_decl_function();
-    std::unique_ptr<FunctionDefinition> parse_decl_function_def();
+    std::unique_ptr<Declaration> parse_decl_function_def();
     std::unique_ptr<VarDecl> parse_decl_global_var();
 
     Script parse_program();
