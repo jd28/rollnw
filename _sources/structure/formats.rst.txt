@@ -26,9 +26,7 @@ the implementations of all of them.
 +------+------+-------+---------------------------------------------------------------+
 | gif  | Yes  | Yes   | `stbi_image <https://github.com/nothings/stb>`__              |
 +------+------+-------+---------------------------------------------------------------+
-| gff  | Yes  | No    | The current implementation is non-allocating,                 |
-|      |      |       | unless strings are read, and read-only.                       |
-|      |      |       | Conversions: gff -> JSON.                                     |
+| gff  | Yes  | Yes   | See `serialization docs <https://jd28.github.io/rollnw/structure/serialization.html>`__ |
 +------+------+-------+---------------------------------------------------------------+
 | ini  | Yes  | No    | `inih <https://github.com/benhoyt/inih>`__                    |
 +------+------+-------+---------------------------------------------------------------+
@@ -36,7 +34,7 @@ the implementations of all of them.
 +------+------+-------+---------------------------------------------------------------+
 | json | Yes  | Yes   | `nholmann_json <https://github.com/nlohmann/json>`__          |
 +------+------+-------+---------------------------------------------------------------+
-| mdl  | No   | No    | Parsing easy, do anything with it hard                        |
+| mdl  | ASCII | ASCII | See `model docs <https://jd28.github.io/rollnw/structure/model.html>`__ |
 +------+------+-------+---------------------------------------------------------------+
 | mtr  | No   | No    | Parsing easy, do anything with it hard                        |
 +------+------+-------+---------------------------------------------------------------+
