@@ -1,8 +1,5 @@
 add_library(nw-formats STATIC
     Ini.cpp
-    Nss.cpp
-    NssLexer.cpp
-    NssParser.cpp
     TwoDA.cpp
     Image.cpp
 )

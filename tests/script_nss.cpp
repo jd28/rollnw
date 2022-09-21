@@ -1,9 +1,9 @@
 #include <catch2/catch.hpp>
 
-#include <nw/formats/Nss.hpp>
-#include <nw/formats/NssAstPrinter.hpp>
-#include <nw/formats/NssLexer.hpp>
 #include <nw/log.hpp>
+#include <nw/script/Nss.hpp>
+#include <nw/script/NssAstPrinter.hpp>
+#include <nw/script/NssLexer.hpp>
 
 #include <filesystem>
 #include <iostream>
@@ -14,7 +14,7 @@ namespace fs = std::filesystem;
 
 using namespace nw;
 
-TEST_CASE("NWScript Parser", "[formats]")
+TEST_CASE("NWScript Parser", "[script]")
 {
     script::Nss nss(fs::path("test_data/user/development/test.nss"));
     REQUIRE_NOTHROW(nss.parse());

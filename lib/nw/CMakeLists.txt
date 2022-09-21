@@ -51,6 +51,7 @@ add_subdirectory(kernel)
 add_subdirectory(model)
 add_subdirectory(resources)
 add_subdirectory(rules)
+add_subdirectory(script)
 add_subdirectory(serialization)
 add_subdirectory(util)
 
@@ -64,6 +65,7 @@ target_link_libraries(nw PUBLIC
     nw-model
     nw-resources
     nw-rules
+    nw-script
     nw-serialization
     nw-util
 )

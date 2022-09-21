@@ -1,6 +1,5 @@
 #include "ScriptCache.hpp"
 
-#include "../formats/Nss.hpp"
 #include "Resources.hpp"
 
 namespace nw::kernel {

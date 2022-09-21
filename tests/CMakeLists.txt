@@ -28,7 +28,6 @@ add_executable(rollnw_test
 
     formats_image.cpp
     formats_ini.cpp
-    formats_nss.cpp
     formats_twoda.cpp
 
     i18n_locstring.cpp
@@ -71,6 +70,8 @@ add_executable(rollnw_test
     rules_requirement.cpp
     rules_modifier.cpp
     rules_selector.cpp
+
+    script_nss.cpp
 
     serial_gff.cpp
 

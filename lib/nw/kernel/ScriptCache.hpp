@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../formats/Nss.hpp"
 #include "../resources/Resource.hpp"
+#include "../script/Nss.hpp"
 #include "Kernel.hpp"
 
 #include <absl/container/flat_hash_map.h>
