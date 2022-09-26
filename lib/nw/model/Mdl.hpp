@@ -10,6 +10,8 @@
 #include <glm/vec2.hpp>
 #include <glm/vec3.hpp>
 #include <glm/vec4.hpp>
+
+#include <array>
 #include <memory>
 #include <span>
 #include <string>
@@ -261,9 +263,9 @@ struct MdlControllerKey {
 // -- Nodes -------------------------------------------------------------------
 
 struct MdlFace {
-    uint32_t vert_idx[3];
+    std::array<uint32_t, 3> vert_idx;
     uint32_t shader_group_idx;
-    uint32_t tvert_idx[3];
+    std::array<uint32_t, 3> tvert_idx;
     uint32_t material_idx;
 };
 
@@ -372,7 +374,7 @@ struct MdlTrimeshNode : public MdlNode {
     bool shadow{false};
     float shininess;
     glm::vec3 specular;
-    std::string textures[3];
+    std::array<std::string, 3> textures;
     uint32_t tilefade{0};
     bool transparencyhint{false};
     bool showdispl{false}; // dunno
@@ -381,14 +383,14 @@ struct MdlTrimeshNode : public MdlNode {
     std::vector<std::string> multimaterial;
     std::vector<glm::vec3> colors;
     std::vector<glm::vec3> verts;
-    std::vector<glm::vec3> tverts[4];
+    std::array<std::vector<glm::vec3>, 4> tverts;
     std::vector<glm::vec3> normals;
     std::vector<glm::vec4> tangents;
 };
 
 struct MdlSkinWeight {
-    std::string bones[4];
-    float weights[4];
+    std::array<std::string, 4> bones;
+    std::array<float, 4> weights;
 };
 
 struct MdlSkinNode : public MdlTrimeshNode {
