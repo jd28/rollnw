@@ -441,7 +441,10 @@ struct MdlAABBNode : public MdlTrimeshNode {
 
 struct MdlGeometry {
     MdlGeometry(MdlGeometryType type_ = MdlGeometryType::geometry);
+    MdlGeometry(MdlGeometry&) = delete;
     virtual ~MdlGeometry() = default;
+
+    MdlGeometry& operator=(MdlGeometry&) = delete;
 
     std::string name;
     MdlGeometryType type;
@@ -465,7 +468,10 @@ struct MdlAnimation : public MdlGeometry {
 
 struct MdlModel : public MdlGeometry {
     MdlModel();
+    MdlModel(MdlModel&) = delete;
     virtual ~MdlModel() = default;
+
+    MdlModel& operator=(MdlModel&) = delete;
 
     MdlModelClass classification;
     bool ignorefog;
