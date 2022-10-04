@@ -33,7 +33,7 @@ bool NssParser::check(std::initializer_list<NssTokenType> types) const
 
 void NssParser::error(const std::string& msg) const
 {
-    LOG_F(FATAL, "{}, Token:{}, {}:{}", msg, peek().id, peek().line, peek().start);
+    throw std::runtime_error(fmt::format("{}, Token: '{}', {}:{}", msg, peek().id, peek().line, peek().start));
 }
 
 bool NssParser::is_end() const
