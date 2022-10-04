@@ -33,7 +33,7 @@ bool NssParser::check(std::initializer_list<NssTokenType> types) const
 
 void NssParser::error(const std::string& msg) const
 {
-    throw std::runtime_error(fmt::format("{}, Token: '{}', {}:{}", msg, peek().id, peek().line, peek().start));
+    throw parser_error(fmt::format("{}, Token: '{}', {}:{}", msg, peek().id, peek().line, peek().start));
 }
 
 bool NssParser::is_end() const
@@ -46,14 +46,14 @@ NssToken NssParser::consume(NssTokenType type, const std::string& message)
     if (check({type})) return advance();
 
     error(message);
-    throw std::runtime_error(message);
+    throw parser_error(message);
 }
 
 NssToken NssParser::lookahead(size_t index) const
 {
     if (index + 1 + current_ >= tokens.size()) {
         error("Out of bounds");
-        throw std::runtime_error("Out of bounds");
+        throw parser_error("Out of bounds");
     }
     return tokens[current_ + index + 1];
 }
@@ -77,6 +77,44 @@ NssToken NssParser::peek() const
 NssToken NssParser::previous()
 {
     return tokens[current_ - 1];
+}
+
+void NssParser::synchronize()
+{
+    advance();
+
+    while (!is_end()) {
+        if (previous().type == NssTokenType::SEMICOLON) return;
+
+        switch (peek().type) {
+        default:
+            break;
+        case NssTokenType::CONST:
+        case NssTokenType::ACTION:
+        case NssTokenType::CASSOWARY:
+        case NssTokenType::EFFECT:
+        case NssTokenType::EVENT:
+        case NssTokenType::FLOAT:
+        case NssTokenType::INT:
+        case NssTokenType::ITEMPROPERTY:
+        case NssTokenType::JSON:
+        case NssTokenType::LOCATION:
+        case NssTokenType::OBJECT:
+        case NssTokenType::SQLQUERY:
+        case NssTokenType::STRING:
+        case NssTokenType::STRUCT:
+        case NssTokenType::TALENT:
+        case NssTokenType::VECTOR:
+        case NssTokenType::VOID:
+        case NssTokenType::FOR:
+        case NssTokenType::IF:
+        case NssTokenType::WHILE:
+        case NssTokenType::RETURN:
+            return;
+        }
+
+        advance();
+    }
 }
 
 // ---- Expressions -----------------------------------------------------------
@@ -334,7 +372,7 @@ Type NssParser::parse_type()
         }
     } else {
         error("Expected type specifier");
-        throw std::runtime_error("Expected type specifier");
+        throw parser_error("Expected type specifier");
     }
 
     return t;
@@ -514,37 +552,44 @@ std::unique_ptr<WhileStatement> NssParser::parse_stmt_while()
 //             | statement ";"
 std::unique_ptr<Statement> NssParser::parse_decl()
 {
-    if (check({NssTokenType::CONST,
-            NssTokenType::ACTION,
-            NssTokenType::CASSOWARY,
-            NssTokenType::EFFECT,
-            NssTokenType::EVENT,
-            NssTokenType::FLOAT,
-            NssTokenType::INT,
-            NssTokenType::ITEMPROPERTY,
-            NssTokenType::JSON,
-            NssTokenType::LOCATION,
-            NssTokenType::OBJECT,
-            NssTokenType::SQLQUERY,
-            NssTokenType::STRING,
-            NssTokenType::STRUCT,
-            NssTokenType::TALENT,
-            NssTokenType::VECTOR,
-            NssTokenType::VOID})) {
-        Type t = parse_type();
-        auto vd = std::make_unique<VarDecl>();
-        vd->type = t;
-        consume(NssTokenType::IDENTIFIER, "Expected 'IDENTIFIER'.");
-        vd->identifier = previous();
-        if (match({NssTokenType::EQ})) {
-            vd->init = parse_expr();
+    try {
+        if (check({NssTokenType::CONST,
+                NssTokenType::ACTION,
+                NssTokenType::CASSOWARY,
+                NssTokenType::EFFECT,
+                NssTokenType::EVENT,
+                NssTokenType::FLOAT,
+                NssTokenType::INT,
+                NssTokenType::ITEMPROPERTY,
+                NssTokenType::JSON,
+                NssTokenType::LOCATION,
+                NssTokenType::OBJECT,
+                NssTokenType::SQLQUERY,
+                NssTokenType::STRING,
+                NssTokenType::STRUCT,
+                NssTokenType::TALENT,
+                NssTokenType::VECTOR,
+                NssTokenType::VOID})) {
+            Type t = parse_type();
+            auto vd = std::make_unique<VarDecl>();
+            vd->type = t;
+            consume(NssTokenType::IDENTIFIER, "Expected 'IDENTIFIER'.");
+            vd->identifier = previous();
+            if (match({NssTokenType::EQ})) {
+                vd->init = parse_expr();
+            }
+            consume(NssTokenType::SEMICOLON, "Expected ';'.");
+            return vd;
         }
-        consume(NssTokenType::SEMICOLON, "Expected ';'.");
-        return vd;
+        auto s = parse_stmt();
+        // consume(NssTokenType::SEMICOLON, "Expected ';'.");
+        return s;
+    } catch (const parser_error& err) {
+        ++errors_;
+        LOG_F(ERROR, "{}", err.what());
+        synchronize();
+        return {};
     }
-    auto s = parse_stmt();
-    // consume(NssTokenType::SEMICOLON, "Expected ';'.");
-    return s;
 }
 
 std::unique_ptr<Declaration> NssParser::parse_decl_struct_member()
@@ -581,7 +626,7 @@ Script NssParser::parse_program()
                     p.includes.push_back(std::string(previous().id));
                 } else {
                     error("Expected string literal");
-                    throw std::runtime_error("Expected string literal");
+                    throw parser_error("Expected string literal");
                 }
             } else if (peek().id == "define") {
                 consume(NssTokenType::IDENTIFIER, "Expected 'IDENTIFIER'."); // define
@@ -590,7 +635,7 @@ Script NssParser::parse_program()
                     name = std::string(previous().id);
                 } else {
                     error("Expected identifier");
-                    throw std::runtime_error("Expected identifier");
+                    throw parser_error("Expected identifier");
                 }
                 value = std::string(advance().id);
                 p.defines.push_back({name, value});
@@ -634,7 +679,7 @@ std::unique_ptr<Declaration> NssParser::parse_decl_external()
     }
 
     error("Expected function definition/declaration, struct declaration, or global variable declaration");
-    throw std::runtime_error("Expected function definition/declaration, struct declaration, or variable declaration");
+    throw parser_error("Expected function definition/declaration, struct declaration, or variable declaration");
 }
 
 std::unique_ptr<Declaration> NssParser::parse_decl_param()

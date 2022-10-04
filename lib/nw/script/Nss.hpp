@@ -16,6 +16,7 @@ struct Nss {
     explicit Nss(std::string_view script);
     explicit Nss(ByteArray bytes);
 
+    size_t errors() const noexcept;
     void parse();
     Script& script();
     const Script& script() const;

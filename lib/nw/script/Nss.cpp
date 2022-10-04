@@ -23,6 +23,11 @@ Nss::Nss(ByteArray bytes)
 {
 }
 
+size_t Nss::errors() const noexcept
+{
+    return parser_.errors_;
+}
+
 void Nss::parse()
 {
     script_ = parser_.parse_program();

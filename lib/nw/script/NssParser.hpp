@@ -2,6 +2,7 @@
 
 #include "NssLexer.hpp"
 
+#include <exception>
 #include <functional>
 #include <memory>
 #include <string>
@@ -10,6 +11,13 @@
 #include <vector>
 
 namespace nw::script {
+
+struct parser_error : public std::runtime_error {
+    parser_error(const std::string& msg)
+        : std::runtime_error(msg)
+    {
+    }
+};
 
 struct Script;
 
@@ -83,8 +91,11 @@ struct AstNode {
     virtual void accept(BaseVisitor* visitor) = 0;
 };
 
-#define DEFINE_ACCEPT_VISITOR \
-    virtual void accept(BaseVisitor* visitor) override { visitor->visit(this); }
+#define DEFINE_ACCEPT_VISITOR                          \
+    virtual void accept(BaseVisitor* visitor) override \
+    {                                                  \
+        visitor->visit(this);                          \
+    }
 
 // ---- Expression ------------------------------------------------------------
 
@@ -392,6 +403,7 @@ struct NssParser {
 
     std::vector<NssToken> tokens;
     size_t current_ = 0;
+    size_t errors_ = 0;
 
     NssToken advance();
     bool check(std::initializer_list<NssTokenType> types) const;
@@ -402,6 +414,7 @@ struct NssParser {
     NssToken lookahead(size_t index) const;
     NssToken peek() const;
     NssToken previous();
+    void synchronize();
 
     // Expression functions are basically listed from lowest precedence
     // to highest
