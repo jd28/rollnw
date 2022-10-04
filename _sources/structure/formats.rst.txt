@@ -26,8 +26,6 @@ the implementations of all of them.
 +------+-------+-------+-----------------------------------------------------------------------------------------+
 | gif  | Yes   | Yes   | `stbi_image <https://github.com/nothings/stb>`__                                        |
 +------+-------+-------+-----------------------------------------------------------------------------------------+
-| gff  | Yes   | Yes   | See `serialization docs <https://jd28.github.io/rollnw/structure/serialization.html>`__ |
-+------+-------+-------+-----------------------------------------------------------------------------------------+
 | ini  | Yes   | No    | `inih <https://github.com/benhoyt/inih>`__                                              |
 +------+-------+-------+-----------------------------------------------------------------------------------------+
 | jpg  | Yes   | Yes   | `stbi_image <https://github.com/nothings/stb>`__                                        |
@@ -37,13 +35,6 @@ the implementations of all of them.
 | mdl  | ASCII | ASCII | See `model docs <https://jd28.github.io/rollnw/structure/model.html>`__                 |
 +------+-------+-------+-----------------------------------------------------------------------------------------+
 | mtr  | No    | No    | Parsing easy, do anything with it hard                                                  |
-+------+-------+-------+-----------------------------------------------------------------------------------------+
-| nss  | Yes   | No    | A lexer and recursive decent parser, as is. It                                          |
-|      |       |       | can create a parse tree, no type checking, no                                           |
-|      |       |       | real AST. Handles errors very poorly. Maybe                                           |
-|      |       |       | someday. Robert Nystrom's wonderful book                                                |
-|      |       |       | `Crafting Interpreters <https://craftinginterpreters.com/>`__                           |
-|      |       |       | was huge source of inspiration.                                                         |
 +------+-------+-------+-----------------------------------------------------------------------------------------+
 | plt  | No    | No    | Parsing easy, do anything with it hard                                                  |
 +------+-------+-------+-----------------------------------------------------------------------------------------+

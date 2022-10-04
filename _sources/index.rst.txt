@@ -143,6 +143,7 @@ Credits
   structure/kernel
   structure/model
   structure/rules
+  structure/script
   structure/serialization
 
 .. toctree::
