@@ -201,8 +201,14 @@ std::unique_ptr<Expression> NssParser::parse_expr_additive()
     auto expr = parse_expr_multiplicative();
 
     while (match({NssTokenType::MINUS, NssTokenType::PLUS})) {
+        if (!expr) {
+            error("left expresion expected");
+        }
         auto op = previous();
         auto right = parse_expr_multiplicative();
+        if (!right) {
+            error("right expresion expected");
+        }
         expr = std::make_unique<BinaryExpression>(std::move(expr), op, std::move(right));
     }
 
