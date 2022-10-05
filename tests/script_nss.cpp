@@ -18,6 +18,7 @@ TEST_CASE("NWScript Parser", "[script]")
 {
     script::Nss nss(fs::path("test_data/user/development/test.nss"));
     REQUIRE_NOTHROW(nss.parse());
+    REQUIRE(nss.errors() == 0);
     script::NssAstPrinter p;
     nss.script().accept(&p);
     LOG_F(INFO, "{}", p.ss.str());
@@ -27,6 +28,7 @@ TEST_CASE("NWScript Parser - preprocessor", "[formats]")
 {
     script::Nss nss(fs::path("test_data/user/development/script_preprocessor.nss"));
     REQUIRE_NOTHROW(nss.parse());
+    REQUIRE(nss.errors() == 0);
     const script::Script& script = nss.script();
     REQUIRE(script.defines.size() == 6);
     REQUIRE(script.defines[0].first == "ENGINE_NUM_STRUCTURES");
@@ -40,12 +42,14 @@ TEST_CASE("NWScript Parser - nwscript", "[formats]")
 {
     script::Nss nss(fs::path("test_data/user/scratch/nwscript.nss"));
     REQUIRE_NOTHROW(nss.parse());
+    REQUIRE(nss.errors() == 0);
 }
 
 TEST_CASE("NWScript Parser - function decl / definition", "[formats]")
 {
     script::Nss nss("void test_function(string s, int b);"sv);
     REQUIRE_NOTHROW(nss.parse());
+    REQUIRE(nss.errors() == 0);
     const script::Script& s = nss.script();
     REQUIRE(s.decls.size() > 0);
     auto fd = dynamic_cast<script::FunctionDecl*>(s.decls[0].get());
@@ -56,6 +60,7 @@ TEST_CASE("NWScript Parser - function decl / definition", "[formats]")
 
     script::Nss nss2("void test_function(string s, int b) { s + IntToString(b); }"sv);
     REQUIRE_NOTHROW(nss2.parse());
+    REQUIRE(nss2.errors() == 0);
     const script::Script& s2 = nss2.script();
     REQUIRE(s2.decls.size() > 0);
     auto fd2 = dynamic_cast<script::FunctionDefinition*>(s2.decls[0].get());
