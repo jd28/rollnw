@@ -36,4 +36,6 @@ void Nss::parse()
 Script& Nss::script() { return script_; }
 const Script& Nss::script() const { return script_; }
 
+std::string_view Nss::text() const noexcept { return bytes_.string_view(); }
+
 } // namespace nw::script
