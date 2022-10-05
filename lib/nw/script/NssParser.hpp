@@ -405,15 +405,45 @@ struct NssParser {
     size_t current_ = 0;
     size_t errors_ = 0;
 
+    /// Advances the token stream
     NssToken advance();
+
+    /// @brief Checks if next token matches a particular type
+    /// @param types An initializer list of token types
+    /// @return True if there is a match
+    /// @note **Does not** advance the token stream
     bool check(std::initializer_list<NssTokenType> types) const;
+
+    /// @brief Consumes a token
+    /// @param type Type of token to consume
+    /// @param error Error message if token type is not matched
+    /// @return Matched token
     NssToken consume(NssTokenType type, std::string_view error);
+
+    /// Log / Throw error
+    /// @param msg Error message to report
     void error(std::string_view msg) const;
+
+    /// Checks if at end of token stream
     bool is_end() const;
+
+    /// @brief Checks if next token matches a particular type
+    /// @param types An initializer list of token types
+    /// @return True if there is a match
+    /// @note Advances the token stream
     bool match(std::initializer_list<NssTokenType> types);
+
+    /// Looks ahead in the token stream
+    /// @param index Index to look ahead to, from current token
     NssToken lookahead(size_t index) const;
+
+    /// Next token in the token stream
     NssToken peek() const;
+
+    /// Previous token in the token stream
     NssToken previous();
+
+    /// Advances token stream after an error
     void synchronize();
 
     // Expression functions are basically listed from lowest precedence
