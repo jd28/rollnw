@@ -341,52 +341,107 @@
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw6script9NssParser7advanceEv">
 <span id="_CPPv3N2nw6script9NssParser7advanceEv"></span><span id="_CPPv2N2nw6script9NssParser7advanceEv"></span><span id="nw::script::NssParser::advance"></span><span class="target" id="structnw_1_1script_1_1_nss_parser_1a0bc79ede02f7e06327bcdeeac11bb798"></span><a class="reference internal" href="nw__script__NssToken.html#_CPPv4N2nw6script8NssTokenE" title="nw::script::NssToken"><span class="n"><span class="pre">NssToken</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">advance</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6script9NssParser7advanceEv" title="Permalink to this definition"></a><br /></dt>
-<dd></dd></dl>
+<dd><p>Advances the token stream. </p>
+</dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4NK2nw6script9NssParser5checkENSt16initializer_listI12NssTokenTypeEE">
 <span id="_CPPv3NK2nw6script9NssParser5checkENSt16initializer_listI12NssTokenTypeEE"></span><span id="_CPPv2NK2nw6script9NssParser5checkENSt16initializer_listI12NssTokenTypeEE"></span><span id="nw::script::NssParser::check__std::initializer_list:NssTokenType:C"></span><span class="target" id="structnw_1_1script_1_1_nss_parser_1acb2602a3c1a5b912bc6fb0c3e5daa8ba"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">check</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">initializer_list</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="../enum/nw__script__NssTokenType.html#_CPPv4N2nw6script12NssTokenTypeE" title="nw::script::NssTokenType"><span class="n"><span class="pre">NssTokenType</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">types</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK2nw6script9NssParser5checkENSt16initializer_listI12NssTokenTypeEE" title="Permalink to this definition"></a><br /></dt>
-<dd></dd></dl>
+<dd><p>Checks if next token matches a particular type. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p><strong>Does not</strong> advance the token stream </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>types</strong> – An initializer list of token types </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>True if there is a match </p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N2nw6script9NssParser7consumeE12NssTokenTypeRKNSt6stringE">
-<span id="_CPPv3N2nw6script9NssParser7consumeE12NssTokenTypeRKNSt6stringE"></span><span id="_CPPv2N2nw6script9NssParser7consumeE12NssTokenTypeRKNSt6stringE"></span><span id="nw::script::NssParser::consume__NssTokenType.ssCR"></span><span class="target" id="structnw_1_1script_1_1_nss_parser_1a431034940744c88dd4d8db8460770897"></span><a class="reference internal" href="nw__script__NssToken.html#_CPPv4N2nw6script8NssTokenE" title="nw::script::NssToken"><span class="n"><span class="pre">NssToken</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">consume</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="../enum/nw__script__NssTokenType.html#_CPPv4N2nw6script12NssTokenTypeE" title="nw::script::NssTokenType"><span class="n"><span class="pre">NssTokenType</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">type</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">error</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6script9NssParser7consumeE12NssTokenTypeRKNSt6stringE" title="Permalink to this definition"></a><br /></dt>
-<dd></dd></dl>
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script9NssParser7consumeE12NssTokenTypeNSt11string_viewE">
+<span id="_CPPv3N2nw6script9NssParser7consumeE12NssTokenTypeNSt11string_viewE"></span><span id="_CPPv2N2nw6script9NssParser7consumeE12NssTokenTypeNSt11string_viewE"></span><span id="nw::script::NssParser::consume__NssTokenType.std::string_view"></span><span class="target" id="structnw_1_1script_1_1_nss_parser_1ac8ffb375ac25ee16ded4ef367dc7ff18"></span><a class="reference internal" href="nw__script__NssToken.html#_CPPv4N2nw6script8NssTokenE" title="nw::script::NssToken"><span class="n"><span class="pre">NssToken</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">consume</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="../enum/nw__script__NssTokenType.html#_CPPv4N2nw6script12NssTokenTypeE" title="nw::script::NssTokenType"><span class="n"><span class="pre">NssTokenType</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">type</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">error</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6script9NssParser7consumeE12NssTokenTypeNSt11string_viewE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Consumes a token. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>type</strong> – <a class="reference internal" href="nw__script__Type.html#structnw_1_1script_1_1_type"><span class="std std-ref">Type</span></a> of token to consume </p></li>
+<li><p><strong>error</strong> – Error message if token type is not matched </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Matched token </p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4NK2nw6script9NssParser5errorERKNSt6stringE">
-<span id="_CPPv3NK2nw6script9NssParser5errorERKNSt6stringE"></span><span id="_CPPv2NK2nw6script9NssParser5errorERKNSt6stringE"></span><span id="nw::script::NssParser::error__ssCRC"></span><span class="target" id="structnw_1_1script_1_1_nss_parser_1af4da95588e9af049b27d38029281cc4d"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">error</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">msg</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK2nw6script9NssParser5errorERKNSt6stringE" title="Permalink to this definition"></a><br /></dt>
-<dd></dd></dl>
+<dt class="sig sig-object cpp" id="_CPPv4NK2nw6script9NssParser5errorENSt11string_viewE">
+<span id="_CPPv3NK2nw6script9NssParser5errorENSt11string_viewE"></span><span id="_CPPv2NK2nw6script9NssParser5errorENSt11string_viewE"></span><span id="nw::script::NssParser::error__std::string_viewC"></span><span class="target" id="structnw_1_1script_1_1_nss_parser_1a38ad8a241bf2cd79a966438f03be933a"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">error</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">msg</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK2nw6script9NssParser5errorENSt11string_viewE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Log / Throw error </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>msg</strong> – Error message to report </p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4NK2nw6script9NssParser6is_endEv">
 <span id="_CPPv3NK2nw6script9NssParser6is_endEv"></span><span id="_CPPv2NK2nw6script9NssParser6is_endEv"></span><span id="nw::script::NssParser::is_endC"></span><span class="target" id="structnw_1_1script_1_1_nss_parser_1a197d97547338f376d3cec8985c7b9a9d"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">is_end</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK2nw6script9NssParser6is_endEv" title="Permalink to this definition"></a><br /></dt>
-<dd></dd></dl>
+<dd><p>Checks if at end of token stream. </p>
+</dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw6script9NssParser5matchENSt16initializer_listI12NssTokenTypeEE">
 <span id="_CPPv3N2nw6script9NssParser5matchENSt16initializer_listI12NssTokenTypeEE"></span><span id="_CPPv2N2nw6script9NssParser5matchENSt16initializer_listI12NssTokenTypeEE"></span><span id="nw::script::NssParser::match__std::initializer_list:NssTokenType:"></span><span class="target" id="structnw_1_1script_1_1_nss_parser_1adebe692bcfbd5786d7584d0c0fcf9b5e"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">match</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">initializer_list</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="../enum/nw__script__NssTokenType.html#_CPPv4N2nw6script12NssTokenTypeE" title="nw::script::NssTokenType"><span class="n"><span class="pre">NssTokenType</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">types</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6script9NssParser5matchENSt16initializer_listI12NssTokenTypeEE" title="Permalink to this definition"></a><br /></dt>
-<dd></dd></dl>
+<dd><p>Checks if next token matches a particular type. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Advances the token stream </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>types</strong> – An initializer list of token types </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>True if there is a match </p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4NK2nw6script9NssParser9lookaheadE6size_t">
 <span id="_CPPv3NK2nw6script9NssParser9lookaheadE6size_t"></span><span id="_CPPv2NK2nw6script9NssParser9lookaheadE6size_t"></span><span id="nw::script::NssParser::lookahead__sC"></span><span class="target" id="structnw_1_1script_1_1_nss_parser_1af2edd02506246875948350497ab883cb"></span><a class="reference internal" href="nw__script__NssToken.html#_CPPv4N2nw6script8NssTokenE" title="nw::script::NssToken"><span class="n"><span class="pre">NssToken</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">lookahead</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">index</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK2nw6script9NssParser9lookaheadE6size_t" title="Permalink to this definition"></a><br /></dt>
-<dd></dd></dl>
+<dd><p>Looks ahead in the token stream </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>index</strong> – Index to look ahead to, from current token </p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4NK2nw6script9NssParser4peekEv">
 <span id="_CPPv3NK2nw6script9NssParser4peekEv"></span><span id="_CPPv2NK2nw6script9NssParser4peekEv"></span><span id="nw::script::NssParser::peekC"></span><span class="target" id="structnw_1_1script_1_1_nss_parser_1a6e452df23f395995a29b2da3af358dfb"></span><a class="reference internal" href="nw__script__NssToken.html#_CPPv4N2nw6script8NssTokenE" title="nw::script::NssToken"><span class="n"><span class="pre">NssToken</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">peek</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK2nw6script9NssParser4peekEv" title="Permalink to this definition"></a><br /></dt>
-<dd></dd></dl>
+<dd><p>Next token in the token stream. </p>
+</dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw6script9NssParser8previousEv">
 <span id="_CPPv3N2nw6script9NssParser8previousEv"></span><span id="_CPPv2N2nw6script9NssParser8previousEv"></span><span id="nw::script::NssParser::previous"></span><span class="target" id="structnw_1_1script_1_1_nss_parser_1afc074da576939d209396dd52ebe6d344"></span><a class="reference internal" href="nw__script__NssToken.html#_CPPv4N2nw6script8NssTokenE" title="nw::script::NssToken"><span class="n"><span class="pre">NssToken</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">previous</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6script9NssParser8previousEv" title="Permalink to this definition"></a><br /></dt>
-<dd></dd></dl>
+<dd><p>Previous token in the token stream. </p>
+</dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw6script9NssParser11synchronizeEv">
 <span id="_CPPv3N2nw6script9NssParser11synchronizeEv"></span><span id="_CPPv2N2nw6script9NssParser11synchronizeEv"></span><span id="nw::script::NssParser::synchronize"></span><span class="target" id="structnw_1_1script_1_1_nss_parser_1aa46d171891fbdb9d861321eee3b73763"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">synchronize</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6script9NssParser11synchronizeEv" title="Permalink to this definition"></a><br /></dt>
-<dd></dd></dl>
+<dd><p>Advances token stream after an error. </p>
+</dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw6script9NssParser10parse_exprEv">
@@ -561,7 +616,8 @@
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw6script9NssParser13parse_programEv">
 <span id="_CPPv3N2nw6script9NssParser13parse_programEv"></span><span id="_CPPv2N2nw6script9NssParser13parse_programEv"></span><span id="nw::script::NssParser::parse_program"></span><span class="target" id="structnw_1_1script_1_1_nss_parser_1aa93f94d5133c30bc038954e65f66f20b"></span><a class="reference internal" href="nw__script__Script.html#_CPPv4N2nw6script6ScriptE" title="nw::script::Script"><span class="n"><span class="pre">Script</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">parse_program</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6script9NssParser13parse_programEv" title="Permalink to this definition"></a><br /></dt>
-<dd></dd></dl>
+<dd><p>Parses script. </p>
+</dd></dl>
 
 </div>
 <div class="breathe-sectiondef docutils container">
