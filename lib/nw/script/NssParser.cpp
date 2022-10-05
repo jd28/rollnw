@@ -320,11 +320,14 @@ std::unique_ptr<Expression> NssParser::parse_expr_primary()
     if (match({NssTokenType::LBRACKET})) {
         NssToken x, y, z;
         consume(NssTokenType::FLOAT_CONST, "Expected floating point literal");
-        consume(NssTokenType::COMMA, "Expected comma");
+        x = previous();
+        consume(NssTokenType::COMMA, "Expected ','");
         consume(NssTokenType::FLOAT_CONST, "Expected floating point literal");
-        consume(NssTokenType::COMMA, "Expected floating point literal");
-        consume(NssTokenType::FLOAT_CONST, "Expected comma");
-        consume(NssTokenType::RBRACKET, "Expected comma");
+        y = previous();
+        consume(NssTokenType::COMMA, "Expected ','");
+        consume(NssTokenType::FLOAT_CONST, "Expected floating point literal");
+        z = previous();
+        consume(NssTokenType::RBRACKET, "Expected ']'");
         return std::make_unique<LiteralVectorExpression>(x, y, z);
     }
 
