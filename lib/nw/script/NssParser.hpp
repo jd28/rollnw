@@ -13,8 +13,8 @@
 namespace nw::script {
 
 struct parser_error : public std::runtime_error {
-    parser_error(const std::string& msg)
-        : std::runtime_error(msg)
+    parser_error(std::string_view msg)
+        : std::runtime_error(std::string(msg))
     {
     }
 };
@@ -407,8 +407,8 @@ struct NssParser {
 
     NssToken advance();
     bool check(std::initializer_list<NssTokenType> types) const;
-    NssToken consume(NssTokenType type, const std::string& error);
-    void error(const std::string& msg) const;
+    NssToken consume(NssTokenType type, std::string_view error);
+    void error(std::string_view msg) const;
     bool is_end() const;
     bool match(std::initializer_list<NssTokenType> types);
     NssToken lookahead(size_t index) const;

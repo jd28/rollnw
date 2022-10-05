@@ -31,7 +31,7 @@ bool NssParser::check(std::initializer_list<NssTokenType> types) const
     return false;
 }
 
-void NssParser::error(const std::string& msg) const
+void NssParser::error(std::string_view msg) const
 {
     throw parser_error(fmt::format("{}, Token: '{}', {}:{}", msg, peek().id, peek().line, peek().start));
 }
@@ -41,7 +41,7 @@ bool NssParser::is_end() const
     return current_ >= tokens.size();
 }
 
-NssToken NssParser::consume(NssTokenType type, const std::string& message)
+NssToken NssParser::consume(NssTokenType type, std::string_view message)
 {
     if (check({type})) return advance();
 
