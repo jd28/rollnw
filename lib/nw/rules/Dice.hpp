@@ -13,6 +13,14 @@ struct DiceRoll {
 bool operator==(const DiceRoll& lhs, const DiceRoll& rhs);
 bool operator<(const DiceRoll& lhs, const DiceRoll& rhs);
 
+/// Rolls a set of dice
+/// @param dice Dice to roll
 int roll_dice(DiceRoll roll);
+
+/// Rolls a set exploding of dice
+/// @param dice Dice to roll
+/// @param on Value to explode on, default is the sides of the dice
+/// @param limit Limit of the number of explosions, default limit is 20
+int roll_dice_explode(DiceRoll dice, int on = 0, int limit = 0);
 
 } // namespace nw

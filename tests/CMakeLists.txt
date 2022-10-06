@@ -67,6 +67,7 @@ add_executable(rollnw_test
     resources_zip.cpp
 
     rules_qualifier.cpp
+    rules_random.cpp
     rules_requirement.cpp
     rules_modifier.cpp
     rules_selector.cpp

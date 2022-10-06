@@ -4,6 +4,7 @@ add_library(nw-rules STATIC
     ArmorClass.cpp
     BaseItem.cpp
     Class.cpp
+    Dice.cpp
     Effect.cpp
     Feat.cpp
     MasterFeat.cpp
