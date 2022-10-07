@@ -1,6 +1,6 @@
-nw::GffHeader
+nw::GffStruct
 =============
 
-.. doxygenstruct:: nw::GffHeader
+.. doxygenstruct:: nw::GffStruct
    :members:
    :undoc-members:
