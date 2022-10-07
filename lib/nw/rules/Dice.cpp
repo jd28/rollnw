@@ -1,6 +1,7 @@
 #include "Dice.hpp"
 
 #include <random>
+#include <tuple>
 
 namespace nw {
 
@@ -41,7 +42,7 @@ int roll_dice_explode(DiceRoll dice, int on, int limit)
                 roll = dX(prng);
                 result += roll;
                 ++j;
-            } while (roll >= explode_on && j <= limit); // <= cause first run is 1
+            } while (roll >= explode_on && j <= stop_at); // <= cause first run is 1
         }
     }
 
