@@ -53,16 +53,16 @@ TEST_CASE("encounter: json back and forth", "[objects]")
 
 TEST_CASE("encount: gff round trip", "[ojbects]")
 {
-    nw::GffInputArchive g("test_data/user/development/boundelementallo.ute");
+    nw::Gff g("test_data/user/development/boundelementallo.ute");
     REQUIRE(g.valid());
 
     nw::Encounter enc;
     REQUIRE(nw::Encounter::deserialize(&enc, g.toplevel(),
         nw::SerializationProfile::blueprint));
 
-    nw::GffOutputArchive oa = nw::Encounter::serialize(&enc, nw::SerializationProfile::blueprint);
+    nw::GffBuilder oa = nw::Encounter::serialize(&enc, nw::SerializationProfile::blueprint);
     oa.write_to("tmp/boundelementallo_2.ute");
-    nw::GffInputArchive g2{"tmp/boundelementallo_2.ute"};
+    nw::Gff g2{"tmp/boundelementallo_2.ute"};
 
     REQUIRE(nw::gff_to_gffjson(g) == nw::gff_to_gffjson(g2));
 

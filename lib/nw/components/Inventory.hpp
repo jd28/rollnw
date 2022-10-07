@@ -33,9 +33,9 @@ struct Inventory {
 
     bool instantiate();
 
-    bool from_gff(const GffInputArchiveStruct& archive, SerializationProfile profile);
+    bool from_gff(const GffStruct& archive, SerializationProfile profile);
     bool from_json(const nlohmann::json& archive, SerializationProfile profile);
-    bool to_gff(GffOutputArchiveStruct& archive, SerializationProfile profile) const;
+    bool to_gff(GffBuilderStruct& archive, SerializationProfile profile) const;
     nlohmann::json to_json(SerializationProfile profile) const;
 
     ObjectBase* owner;

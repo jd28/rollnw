@@ -38,9 +38,9 @@ void to_json(nlohmann::json& j, const SpellEntry& spell);
 struct SpellBook {
     SpellBook();
 
-    bool from_gff(const GffInputArchiveStruct& archive);
+    bool from_gff(const GffStruct& archive);
     bool from_json(const nlohmann::json& archive);
-    bool to_gff(GffOutputArchiveStruct& archive) const;
+    bool to_gff(GffBuilderStruct& archive) const;
     nlohmann::json to_json() const;
 
     std::vector<std::vector<SpellEntry>> known;

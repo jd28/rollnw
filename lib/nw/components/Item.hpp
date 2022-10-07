@@ -34,10 +34,10 @@ struct Item : public ObjectBase {
     virtual bool instantiate() override;
 
     // Serialization
-    static bool deserialize(Item* obj, const GffInputArchiveStruct& archive, SerializationProfile profile);
+    static bool deserialize(Item* obj, const GffStruct& archive, SerializationProfile profile);
     static bool deserialize(Item* obj, const nlohmann::json& archive, SerializationProfile profile);
-    static GffOutputArchive serialize(const Item* obj, SerializationProfile profile);
-    static bool serialize(const Item* obj, GffOutputArchiveStruct& archive, SerializationProfile profile);
+    static GffBuilder serialize(const Item* obj, SerializationProfile profile);
+    static bool serialize(const Item* obj, GffBuilderStruct& archive, SerializationProfile profile);
     static bool serialize(const Item* obj, nlohmann::json& archive, SerializationProfile profile);
 
     Common common;

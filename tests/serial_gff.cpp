@@ -9,9 +9,9 @@
 
 using namespace std::literals;
 
-TEST_CASE("GffInputArchive Validation", "[serialization]")
+TEST_CASE("Gff Validation", "[serialization]")
 {
-    nw::GffInputArchive g("test_data/user/development/nw_chicken.utc");
+    nw::Gff g("test_data/user/development/nw_chicken.utc");
     REQUIRE(g.valid());
     auto top = g.toplevel();
     REQUIRE(top.size() > 0);
@@ -31,9 +31,9 @@ TEST_CASE("GffInputArchive Validation", "[serialization]")
     REQUIRE(top[0].name() == "Deity");
 }
 
-TEST_CASE("GffInputArchive Lists", "[serialization]")
+TEST_CASE("Gff Lists", "[serialization]")
 {
-    nw::GffInputArchive g("test_data/user/development/nw_chicken.utc");
+    nw::Gff g("test_data/user/development/nw_chicken.utc");
     REQUIRE(g.valid());
     auto top = g.toplevel();
     auto skills = top["SkillList"];
@@ -58,34 +58,34 @@ TEST_CASE("GffInputArchive Lists", "[serialization]")
     REQUIRE(*top["ClassList"][0]["Class"].get<int32_t>() == 12);
 }
 
-TEST_CASE("GffInputArchive Conversion", "[serialization]")
+TEST_CASE("Gff Conversion", "[serialization]")
 {
-    nw::GffInputArchive g("test_data/user/development/nw_chicken.utc");
+    nw::Gff g("test_data/user/development/nw_chicken.utc");
     REQUIRE(g.valid());
     auto j = nw::gff_to_gffjson(g);
     std::ofstream f{"tmp/nw_chicken.utc.json", std::ios_base::binary};
     f << std::setw(4) << j;
 }
 
-TEST_CASE("GffInputArchive Object Poisoning", "[serialization]")
+TEST_CASE("Gff Object Poisoning", "[serialization]")
 {
-    nw::GffInputArchive g("test_data/user/development/nw_chicken.utc");
+    nw::Gff g("test_data/user/development/nw_chicken.utc");
     REQUIRE(g.valid());
     auto top = g.toplevel();
     int32_t nonextant;
     REQUIRE_FALSE(top["thisdoesn't exist"][2000]["Or this"][1000000000]["Maybe this?"].get_to(nonextant));
 }
 
-TEST_CASE("GffOutputArchive construction", "[serialization]")
+TEST_CASE("GffBuilder construction", "[serialization]")
 {
-    nw::GffOutputArchive oa("UTC");
+    nw::GffBuilder oa("UTC");
     REQUIRE(std::memcmp(oa.header.type, "UTC ", 4) == 0);
     REQUIRE(std::memcmp(oa.header.version, "V3.2", 4) == 0);
 }
 
-TEST_CASE("GffOutputArchive add_labels", "[serialization]")
+TEST_CASE("GffBuilder add_labels", "[serialization]")
 {
-    nw::GffOutputArchive oa("UTC");
+    nw::GffBuilder oa("UTC");
     auto idx1 = oa.add_label("ThisIsTest1");
     oa.add_label("ThisIsTest2");
     oa.add_label("ThisIsTest3");
@@ -111,7 +111,7 @@ TEST_CASE("GffOutputArchive add_labels", "[serialization]")
 TEST_CASE("gff: nested lists")
 {
     uint32_t temp = 0;
-    nw::GffOutputArchive out{"GFF"};
+    nw::GffBuilder out{"GFF"};
     auto& list1 = out.top.add_list("list1");
     auto& str1 = list1.push_back(1).add_field("test1", temp);
     str1.add_field("hellow", 1);
@@ -128,7 +128,7 @@ TEST_CASE("gff: nested lists")
 
     out.write_to("tmp/test.gff");
 
-    nw::GffInputArchive in{"tmp/test.gff"};
+    nw::Gff in{"tmp/test.gff"};
     auto j = nw::gff_to_gffjson(in);
     std::ofstream f{"tmp/test.gffjson"};
     f << std::setw(4) << j;

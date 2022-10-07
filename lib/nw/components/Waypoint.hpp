@@ -21,7 +21,7 @@ struct Waypoint : public ObjectBase {
     virtual bool instantiate() override { return true; }
 
     /// Deserializes entity from GFF
-    static bool deserialize(Waypoint* obj, const GffInputArchiveStruct& archive,
+    static bool deserialize(Waypoint* obj, const GffStruct& archive,
         SerializationProfile profile);
 
     /// Deserializes entity from JSON
@@ -29,10 +29,10 @@ struct Waypoint : public ObjectBase {
         SerializationProfile profile);
 
     /// Deserializes entity to GFF
-    static GffOutputArchive serialize(const Waypoint* obj, SerializationProfile profile);
+    static GffBuilder serialize(const Waypoint* obj, SerializationProfile profile);
 
     /// Deserializes entity to GFF
-    static bool serialize(const Waypoint* obj, GffOutputArchiveStruct& archive,
+    static bool serialize(const Waypoint* obj, GffBuilderStruct& archive,
         SerializationProfile profile);
 
     /// Deserializes entity to JSON

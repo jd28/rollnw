@@ -2,7 +2,7 @@
 
 namespace nw {
 
-Journal::Journal(const GffInputArchiveStruct gff)
+Journal::Journal(const GffStruct gff)
 {
     size_t sz = gff["Categories"].size();
     for (size_t i = 0; i < sz; ++i) {

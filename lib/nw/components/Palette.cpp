@@ -4,12 +4,12 @@
 
 namespace nw {
 
-Palette::Palette(const GffInputArchive& archive)
+Palette::Palette(const Gff& archive)
 {
     is_valid_ = load(archive.toplevel());
 }
 
-bool Palette::load(const GffInputArchiveStruct gff)
+bool Palette::load(const GffStruct gff)
 {
     size_t list_size = gff["MAIN"].size();
     if (list_size == 0) {
@@ -38,7 +38,7 @@ bool Palette::load(const GffInputArchiveStruct gff)
     return true;
 }
 
-PaletteTreeNode Palette::read_child(Palette* parent, const GffInputArchiveStruct st)
+PaletteTreeNode Palette::read_child(Palette* parent, const GffStruct st)
 {
     PaletteTreeNode node;
 
@@ -55,7 +55,9 @@ PaletteTreeNode Palette::read_child(Palette* parent, const GffInputArchiveStruct
     }
 
     st.get_to("ID", node.id, false);
-    if (node.id != 0xFF) { parent->max_id_ = std::max(node.id, parent->max_id_); }
+    if (node.id != 0xFF) {
+        parent->max_id_ = std::max(node.id, parent->max_id_);
+    }
 
     st.get_to("TYPE", node.display, false);
 

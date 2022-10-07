@@ -6,7 +6,7 @@ namespace nw {
 
 // -- EncounterScripts --------------------------------------------------------
 
-bool EncounterScripts::from_gff(const GffInputArchiveStruct& archive)
+bool EncounterScripts::from_gff(const GffStruct& archive)
 {
     return archive.get_to("OnEntered", on_entered)
         && archive.get_to("OnExhausted", on_exhausted)
@@ -31,7 +31,7 @@ bool EncounterScripts::from_json(const nlohmann::json& archive)
     return true;
 }
 
-bool EncounterScripts::to_gff(GffOutputArchiveStruct& archive) const
+bool EncounterScripts::to_gff(GffBuilderStruct& archive) const
 {
     archive.add_field("OnEntered", on_entered)
         .add_field("OnExhausted", on_exhausted)
@@ -54,7 +54,7 @@ nlohmann::json EncounterScripts::to_json() const
 
 // -- SpawnCreature -----------------------------------------------------------
 
-bool SpawnCreature::from_gff(const GffInputArchiveStruct& archive)
+bool SpawnCreature::from_gff(const GffStruct& archive)
 {
     return archive.get_to("Appearance", appearance)
         && archive.get_to("CR", cr)
@@ -87,7 +87,7 @@ nlohmann::json SpawnCreature::to_json() const
 
 // -- SpawnPoint ---------------------------------------------------------------
 
-bool SpawnPoint::from_gff(const GffInputArchiveStruct& archive)
+bool SpawnPoint::from_gff(const GffStruct& archive)
 {
     archive.get_to("Orientation", orientation);
     archive.get_to("X", position.x);
@@ -119,7 +119,7 @@ Encounter::Encounter()
     set_handle({object_invalid, ObjectType::encounter, 0});
 }
 
-bool Encounter::deserialize(Encounter* obj, const GffInputArchiveStruct& archive, SerializationProfile profile)
+bool Encounter::deserialize(Encounter* obj, const GffStruct& archive, SerializationProfile profile)
 {
     if (!obj) {
         throw std::runtime_error("unable to serialize null object");
@@ -220,7 +220,7 @@ bool Encounter::deserialize(Encounter* obj, const nlohmann::json& archive, Seria
     return true;
 }
 
-bool Encounter::serialize(const Encounter* obj, GffOutputArchiveStruct& archive, SerializationProfile profile)
+bool Encounter::serialize(const Encounter* obj, GffBuilderStruct& archive, SerializationProfile profile)
 {
     if (!obj) {
         throw std::runtime_error("unable to serialize null object");
@@ -291,9 +291,9 @@ bool Encounter::serialize(const Encounter* obj, GffOutputArchiveStruct& archive,
     return true;
 }
 
-GffOutputArchive Encounter::serialize(const Encounter* obj, SerializationProfile profile)
+GffBuilder Encounter::serialize(const Encounter* obj, SerializationProfile profile)
 {
-    GffOutputArchive out{"UTE"};
+    GffBuilder out{"UTE"};
     if (!obj) {
         throw std::runtime_error("unable to serialize null object");
     }

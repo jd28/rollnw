@@ -37,7 +37,7 @@ Store::Store()
     inventory.set_owner(this);
 }
 
-bool Store::deserialize(Store* obj, const GffInputArchiveStruct& archive, SerializationProfile profile)
+bool Store::deserialize(Store* obj, const GffStruct& archive, SerializationProfile profile)
 {
     if (!obj) {
         return false;
@@ -150,7 +150,7 @@ bool Store::deserialize(Store* obj, const nlohmann::json& archive, Serialization
     return true;
 }
 
-bool Store::serialize(const Store* obj, GffOutputArchiveStruct& archive, SerializationProfile profile)
+bool Store::serialize(const Store* obj, GffBuilderStruct& archive, SerializationProfile profile)
 {
     if (!obj) {
         throw std::runtime_error("unable to serialize null object");
@@ -207,9 +207,9 @@ bool Store::serialize(const Store* obj, GffOutputArchiveStruct& archive, Seriali
     return true;
 }
 
-GffOutputArchive Store::serialize(const Store* obj, SerializationProfile profile)
+GffBuilder Store::serialize(const Store* obj, SerializationProfile profile)
 {
-    GffOutputArchive out{"UTS"};
+    GffBuilder out{"UTS"};
     if (!obj) {
         throw std::runtime_error("unable to serialize null object");
     }

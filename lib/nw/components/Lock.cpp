@@ -4,7 +4,7 @@
 
 namespace nw {
 
-bool Lock::from_gff(const GffInputArchiveStruct& gff)
+bool Lock::from_gff(const GffStruct& gff)
 {
     gff.get_to("Lockable", lockable);
     gff.get_to("KeyName", key_name);
@@ -34,7 +34,7 @@ bool Lock::from_json(const nlohmann::json& archive)
     return true;
 }
 
-bool Lock::to_gff(GffOutputArchiveStruct& archive) const
+bool Lock::to_gff(GffBuilderStruct& archive) const
 {
     archive.add_field("KeyName", key_name)
         .add_field("KeyRequired", key_required)

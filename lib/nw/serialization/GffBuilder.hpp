@@ -12,50 +12,50 @@ namespace nw {
 // Not super concerned about the efficiency of this, only the correctness.  Ideally, the way it's written,
 // will be exactly the way an object reads it.
 
-struct GffOutputArchive;
-struct GffOutputArchiveField;
-struct GffOutputArchiveList;
-struct GffOutputArchiveStruct;
+struct GffBuilder;
+struct GffBuilderField;
+struct GffBuilderList;
+struct GffBuilderStruct;
 
-struct GffOutputArchiveStruct {
-    GffOutputArchiveStruct() = default;
-    explicit GffOutputArchiveStruct(GffOutputArchive* parent_);
+struct GffBuilderStruct {
+    GffBuilderStruct() = default;
+    explicit GffBuilderStruct(GffBuilder* parent_);
 
     template <typename T>
-    GffOutputArchiveStruct& add_field(std::string_view name, const T& value);
-    GffOutputArchiveList& add_list(std::string_view name);
-    GffOutputArchiveStruct& add_struct(std::string_view name, uint32_t id_);
+    GffBuilderStruct& add_field(std::string_view name, const T& value);
+    GffBuilderList& add_list(std::string_view name);
+    GffBuilderStruct& add_struct(std::string_view name, uint32_t id_);
 
-    GffOutputArchive* parent = nullptr;
+    GffBuilder* parent = nullptr;
     uint32_t index = 0;
     uint32_t id = 0;
-    std::vector<GffOutputArchiveField> field_entries;
+    std::vector<GffBuilderField> field_entries;
 };
 
-struct GffOutputArchiveList {
-    GffOutputArchiveList() = default;
-    explicit GffOutputArchiveList(GffOutputArchive* parent_);
+struct GffBuilderList {
+    GffBuilderList() = default;
+    explicit GffBuilderList(GffBuilder* parent_);
 
-    GffOutputArchiveStruct& push_back(uint32_t id);
+    GffBuilderStruct& push_back(uint32_t id);
     size_t size() const noexcept { return structs.size(); }
 
-    GffOutputArchive* parent = nullptr;
-    std::vector<GffOutputArchiveStruct> structs;
+    GffBuilder* parent = nullptr;
+    std::vector<GffBuilderStruct> structs;
 };
 
-struct GffOutputArchiveField {
-    explicit GffOutputArchiveField(GffOutputArchive* parent_);
+struct GffBuilderField {
+    explicit GffBuilderField(GffBuilder* parent_);
 
-    GffOutputArchive* parent = nullptr;
+    GffBuilder* parent = nullptr;
     SerializationType::type type;
     uint32_t index = 0;
     uint32_t label_index = 0;
     uint32_t data_or_offset = 0;
-    std::variant<GffOutputArchiveStruct, GffOutputArchiveList> structures;
+    std::variant<GffBuilderStruct, GffBuilderList> structures;
 };
 
-struct GffOutputArchive {
-    explicit GffOutputArchive(std::string_view type, std::string_view version = "V3.2");
+struct GffBuilder {
+    explicit GffBuilder(std::string_view type, std::string_view version = "V3.2");
 
     size_t add_label(std::string_view name);
     // Note, this must be called before `write_to` or `to_byte_array`
@@ -63,7 +63,7 @@ struct GffOutputArchive {
     ByteArray to_byte_array() const;
     bool write_to(const std::filesystem::path& path) const;
 
-    GffOutputArchiveStruct top;
+    GffBuilderStruct top;
 
     GffHeader header;
     ByteArray data;
@@ -75,9 +75,9 @@ struct GffOutputArchive {
 };
 
 template <typename T>
-GffOutputArchiveStruct& GffOutputArchiveStruct::add_field(std::string_view name, const T& value)
+GffBuilderStruct& GffBuilderStruct::add_field(std::string_view name, const T& value)
 {
-    GffOutputArchiveField f{parent};
+    GffBuilderField f{parent};
     f.label_index = static_cast<uint32_t>(parent->add_label(name));
 
     if constexpr (std::is_enum_v<T>) {

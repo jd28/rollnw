@@ -1,4 +1,4 @@
-#include "GffOutputArchive.hpp"
+#include "GffBuilder.hpp"
 
 #include "../log.hpp"
 #include "../util/templates.hpp"
@@ -8,61 +8,61 @@
 
 namespace nw {
 
-// -- GffOutputArchiveStruct --------------------------------------------------
+// -- GffBuilderStruct --------------------------------------------------
 
-GffOutputArchiveStruct::GffOutputArchiveStruct(GffOutputArchive* parent_)
+GffBuilderStruct::GffBuilderStruct(GffBuilder* parent_)
     : parent{parent_}
 {
 }
 
-GffOutputArchiveList& GffOutputArchiveStruct::add_list(std::string_view name)
+GffBuilderList& GffBuilderStruct::add_list(std::string_view name)
 {
-    GffOutputArchiveField f{parent};
+    GffBuilderField f{parent};
     f.label_index = static_cast<uint32_t>(parent->add_label(name));
     f.type = SerializationType::list;
-    f.structures = GffOutputArchiveList{parent};
+    f.structures = GffBuilderList{parent};
     field_entries.push_back(f);
-    return std::get<GffOutputArchiveList>(field_entries.back().structures);
+    return std::get<GffBuilderList>(field_entries.back().structures);
 }
 
-GffOutputArchiveStruct& GffOutputArchiveStruct::add_struct(std::string_view name, uint32_t id_)
+GffBuilderStruct& GffBuilderStruct::add_struct(std::string_view name, uint32_t id_)
 {
 
     field_entries.emplace_back(parent);
-    GffOutputArchiveField& f = field_entries.back();
+    GffBuilderField& f = field_entries.back();
     f.label_index = static_cast<uint32_t>(parent->add_label(name));
     f.type = SerializationType::struct_;
-    f.structures = GffOutputArchiveStruct{parent};
-    auto& result = std::get<GffOutputArchiveStruct>(field_entries.back().structures);
+    f.structures = GffBuilderStruct{parent};
+    auto& result = std::get<GffBuilderStruct>(field_entries.back().structures);
     result.id = id_;
     return result;
 }
 
-// -- GffOutputArchiveList ----------------------------------------------------
+// -- GffBuilderList ----------------------------------------------------
 
-GffOutputArchiveList::GffOutputArchiveList(GffOutputArchive* parent_)
+GffBuilderList::GffBuilderList(GffBuilder* parent_)
     : parent{parent_}
 {
 }
 
-GffOutputArchiveStruct& GffOutputArchiveList::push_back(uint32_t id)
+GffBuilderStruct& GffBuilderList::push_back(uint32_t id)
 {
     structs.emplace_back(parent);
-    GffOutputArchiveStruct& result = structs.back();
+    GffBuilderStruct& result = structs.back();
     result.id = id;
     return result;
 }
 
-// -- GffOutputArchiveField ---------------------------------------------------
+// -- GffBuilderField ---------------------------------------------------
 
-GffOutputArchiveField::GffOutputArchiveField(GffOutputArchive* parent_)
+GffBuilderField::GffBuilderField(GffBuilder* parent_)
     : parent{parent_}
 {
 }
 
-// -- GffOutputArchive --------------------------------------------------------
+// -- GffBuilder --------------------------------------------------------
 
-GffOutputArchive::GffOutputArchive(std::string_view type, std::string_view version)
+GffBuilder::GffBuilder(std::string_view type, std::string_view version)
     : top{this}
 {
     std::memcpy(header.type, type.data(), 3);
@@ -72,7 +72,7 @@ GffOutputArchive::GffOutputArchive(std::string_view type, std::string_view versi
     top.id = 0xffffffff;
 }
 
-size_t GffOutputArchive::add_label(std::string_view name)
+size_t GffBuilder::add_label(std::string_view name)
 {
     auto it = std::find_if(std::begin(labels), std::end(labels),
         [&name](const GffLabel& label) -> bool {
@@ -86,26 +86,26 @@ size_t GffOutputArchive::add_label(std::string_view name)
     }
 }
 
-void build_arrays(GffOutputArchive& archive, GffOutputArchiveField& field);
-void build_arrays(GffOutputArchive& archive, GffOutputArchiveStruct& str);
-void build_indicies(GffOutputArchive& archive, const GffOutputArchiveField& field);
-void build_indicies(GffOutputArchive& archive, const GffOutputArchiveStruct& str);
+void build_arrays(GffBuilder& archive, GffBuilderField& field);
+void build_arrays(GffBuilder& archive, GffBuilderStruct& str);
+void build_indicies(GffBuilder& archive, const GffBuilderField& field);
+void build_indicies(GffBuilder& archive, const GffBuilderStruct& str);
 
-void build_arrays(GffOutputArchive& archive, GffOutputArchiveField& field)
+void build_arrays(GffBuilder& archive, GffBuilderField& field)
 {
     field.index = static_cast<uint32_t>(archive.field_entries.size());
     archive.field_entries.push_back({field.type, field.label_index, field.data_or_offset});
     if (field.type == SerializationType::struct_) {
-        build_arrays(archive, std::get<GffOutputArchiveStruct>(field.structures));
+        build_arrays(archive, std::get<GffBuilderStruct>(field.structures));
     } else if (field.type == SerializationType::list) {
-        auto& list = std::get<GffOutputArchiveList>(field.structures);
+        auto& list = std::get<GffBuilderList>(field.structures);
         for (auto& s : list.structs) {
             build_arrays(archive, s);
         }
     }
 }
 
-void build_arrays(GffOutputArchive& archive, GffOutputArchiveStruct& str)
+void build_arrays(GffBuilder& archive, GffBuilderStruct& str)
 {
     str.index = static_cast<uint32_t>(archive.struct_entries.size());
     archive.struct_entries.push_back({str.id, 0, static_cast<uint32_t>(str.field_entries.size())});
@@ -114,14 +114,14 @@ void build_arrays(GffOutputArchive& archive, GffOutputArchiveStruct& str)
     }
 }
 
-void build_indicies(GffOutputArchive& archive, const GffOutputArchiveField& field)
+void build_indicies(GffBuilder& archive, const GffBuilderField& field)
 {
     if (field.type == SerializationType::struct_) {
-        const auto& data = std::get<GffOutputArchiveStruct>(field.structures);
+        const auto& data = std::get<GffBuilderStruct>(field.structures);
         archive.field_entries[field.index].data_or_offset = data.index;
         build_indicies(archive, data);
     } else if (field.type == SerializationType::list) {
-        const auto& data = std::get<GffOutputArchiveList>(field.structures);
+        const auto& data = std::get<GffBuilderList>(field.structures);
         archive.field_entries[field.index].data_or_offset = static_cast<uint32_t>(archive.list_indices.size() * 4); // byte offset
         archive.list_indices.push_back(static_cast<uint32_t>(data.structs.size()));
         for (auto& s : data.structs) {
@@ -133,7 +133,7 @@ void build_indicies(GffOutputArchive& archive, const GffOutputArchiveField& fiel
     }
 }
 
-void build_indicies(GffOutputArchive& archive, const GffOutputArchiveStruct& str)
+void build_indicies(GffBuilder& archive, const GffBuilderStruct& str)
 {
     if (str.field_entries.size() == 1) {
         archive.struct_entries[str.index].field_index = str.field_entries[0].index;
@@ -149,7 +149,7 @@ void build_indicies(GffOutputArchive& archive, const GffOutputArchiveStruct& str
     }
 }
 
-void GffOutputArchive::build()
+void GffBuilder::build()
 {
     build_arrays(*this, top);
     build_indicies(*this, top);
@@ -168,7 +168,7 @@ void GffOutputArchive::build()
     header.list_idx_count = static_cast<uint32_t>(list_indices.size() * 4);
 }
 
-ByteArray GffOutputArchive::to_byte_array() const
+ByteArray GffBuilder::to_byte_array() const
 {
     ByteArray result;
     result.append(&header, sizeof(header));
@@ -183,7 +183,7 @@ ByteArray GffOutputArchive::to_byte_array() const
 
 namespace fs = std::filesystem;
 
-bool GffOutputArchive::write_to(const fs::path& filename) const
+bool GffBuilder::write_to(const fs::path& filename) const
 {
     fs::path temp = fs::temp_directory_path() / filename.filename();
 

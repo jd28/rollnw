@@ -17,7 +17,7 @@ namespace nw {
 
 // -- AreaScripts -------------------------------------------------------------
 
-bool AreaScripts::from_gff(const GffInputArchiveStruct& archive)
+bool AreaScripts::from_gff(const GffStruct& archive)
 {
     return archive.get_to("OnEnter", on_enter)
         && archive.get_to("OnExit", on_exit)
@@ -51,7 +51,7 @@ nlohmann::json AreaScripts::to_json() const
 
 // -- AreaWeather -------------------------------------------------------------
 
-bool AreaWeather::from_gff(const GffInputArchiveStruct& archive)
+bool AreaWeather::from_gff(const GffStruct& archive)
 {
     archive.get_to("ChanceLightning", chance_lightning);
     archive.get_to("ChanceRain", chance_rain);
@@ -132,7 +132,7 @@ nlohmann::json AreaWeather::to_json() const
 
 // -- Tile --------------------------------------------------------------------
 
-bool Tile::from_gff(const GffInputArchiveStruct& archive)
+bool Tile::from_gff(const GffStruct& archive)
 {
     return archive.get_to("Tile_ID", id)
         && archive.get_to("Tile_Height", height)
@@ -191,7 +191,7 @@ Area::Area()
 
 bool Area::instantiate() { return true; }
 
-bool Area::deserialize(Area* obj, const GffInputArchiveStruct& are, const GffInputArchiveStruct& git, const GffInputArchiveStruct& gic)
+bool Area::deserialize(Area* obj, const GffStruct& are, const GffStruct& git, const GffStruct& gic)
 {
     if (!obj) {
         throw std::runtime_error("unable to serialize null object");

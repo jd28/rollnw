@@ -14,7 +14,7 @@ Location::Location()
 {
 }
 
-bool Location::from_gff(const GffInputArchiveStruct gff, SerializationProfile profile)
+bool Location::from_gff(const GffStruct gff, SerializationProfile profile)
 {
     if (profile != SerializationProfile::any
         && profile != SerializationProfile::instance) {
@@ -53,7 +53,9 @@ bool Location::from_gff(const GffInputArchiveStruct gff, SerializationProfile pr
         gff.get_to("OrientationZ", orientation[2], false);
     }
 
-    if (!valid) { area = object_invalid; }
+    if (!valid) {
+        area = object_invalid;
+    }
 
     return area != object_invalid;
 }

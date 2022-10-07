@@ -4,7 +4,7 @@
 
 namespace nw {
 
-bool Common::from_gff(const GffInputArchiveStruct& archive, SerializationProfile profile, ObjectType object_type)
+bool Common::from_gff(const GffStruct& archive, SerializationProfile profile, ObjectType object_type)
 {
     location.from_gff(archive, profile);
     locals.from_gff(archive);

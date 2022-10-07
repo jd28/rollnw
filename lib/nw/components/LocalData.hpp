@@ -32,9 +32,9 @@ using LocalVarTable = absl::flat_hash_map<std::string, LocalVar>;
 struct LocalData {
     LocalData() = default;
 
-    bool from_gff(const GffInputArchiveStruct& archive);
+    bool from_gff(const GffStruct& archive);
     bool from_json(const nlohmann::json& archive);
-    bool to_gff(GffOutputArchiveStruct& archive) const;
+    bool to_gff(GffBuilderStruct& archive) const;
     nlohmann::json to_json(SerializationProfile profile) const;
 
     void delete_float(std::string_view var);

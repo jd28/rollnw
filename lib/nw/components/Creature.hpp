@@ -18,9 +18,9 @@ namespace nw {
 struct CreatureScripts {
     CreatureScripts() = default;
 
-    bool from_gff(const GffInputArchiveStruct& archive);
+    bool from_gff(const GffStruct& archive);
     bool from_json(const nlohmann::json& archive);
-    bool to_gff(GffOutputArchiveStruct& archive) const;
+    bool to_gff(GffBuilderStruct& archive) const;
     nlohmann::json to_json() const;
 
     Resref on_attacked;
@@ -50,11 +50,11 @@ struct Creature : public ObjectBase {
     virtual const Creature* as_creature() const override { return this; }
     virtual bool instantiate() override;
 
-    static bool deserialize(Creature* obj, const GffInputArchiveStruct& archive, SerializationProfile profile);
+    static bool deserialize(Creature* obj, const GffStruct& archive, SerializationProfile profile);
     static bool deserialize(Creature* obj, const nlohmann::json& archive, SerializationProfile profile);
 
-    static GffOutputArchive serialize(const Creature* obj, SerializationProfile profile);
-    static bool serialize(const Creature* obj, GffOutputArchiveStruct& archive, SerializationProfile profile);
+    static GffBuilder serialize(const Creature* obj, SerializationProfile profile);
+    static bool serialize(const Creature* obj, GffBuilderStruct& archive, SerializationProfile profile);
     static bool serialize(const Creature* obj, nlohmann::json& archive, SerializationProfile profile);
 
     Common common;

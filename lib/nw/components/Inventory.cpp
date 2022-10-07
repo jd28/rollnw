@@ -23,7 +23,7 @@ bool Inventory::instantiate()
     return true;
 }
 
-bool Inventory::from_gff(const GffInputArchiveStruct& archive, SerializationProfile profile)
+bool Inventory::from_gff(const GffStruct& archive, SerializationProfile profile)
 {
     size_t sz = archive["ItemList"].size();
     items.reserve(sz);
@@ -97,7 +97,7 @@ bool Inventory::from_json(const nlohmann::json& archive, SerializationProfile pr
     return true;
 }
 
-bool Inventory::to_gff(GffOutputArchiveStruct& archive, SerializationProfile profile) const
+bool Inventory::to_gff(GffBuilderStruct& archive, SerializationProfile profile) const
 {
     if (items.empty()) {
         return true;

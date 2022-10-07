@@ -9,7 +9,7 @@
 
 TEST_CASE("dialog: from gff", "[objects]")
 {
-    nw::GffInputArchive g{"test_data/user/development/alue_ranger.dlg"};
+    nw::Gff g{"test_data/user/development/alue_ranger.dlg"};
     nw::Dialog dlg{g.toplevel()};
 
     REQUIRE(dlg.valid());
@@ -20,7 +20,7 @@ TEST_CASE("dialog: from gff", "[objects]")
 
 TEST_CASE("dialog: to json", "[objects]")
 {
-    nw::GffInputArchive g{"test_data/user/development/alue_ranger.dlg"};
+    nw::Gff g{"test_data/user/development/alue_ranger.dlg"};
     nw::Dialog dlg{g.toplevel()};
     nlohmann::json j = dlg;
 

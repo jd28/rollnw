@@ -1,8 +1,8 @@
 add_library(nw-serialization STATIC
     Archives.cpp
     gff_common.cpp
-    GffInputArchive.cpp
-    GffOutputArchive.cpp
+    Gff.cpp
+    GffBuilder.cpp
     Serialization.cpp
 )
 

@@ -6,7 +6,7 @@
 
 namespace nw {
 
-bool CreatureStats::from_gff(const GffInputArchiveStruct& archive)
+bool CreatureStats::from_gff(const GffStruct& archive)
 {
     archive.get_to("Str", abilities[0]);
     archive.get_to("Dex", abilities[1]);
@@ -57,7 +57,7 @@ bool CreatureStats::from_json(const nlohmann::json& archive)
     return true;
 }
 
-bool CreatureStats::to_gff(GffOutputArchiveStruct& archive) const
+bool CreatureStats::to_gff(GffBuilderStruct& archive) const
 {
     archive.add_field("Str", abilities[0])
         .add_field("Dex", abilities[1])

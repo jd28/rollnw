@@ -12,11 +12,11 @@
 TEST_CASE("area: from_gff", "[objects]")
 {
     auto ent = nw::kernel::objects().make<nw::Area>();
-    nw::GffInputArchive are{"test_data/user/development/test_area.are"};
+    nw::Gff are{"test_data/user/development/test_area.are"};
     REQUIRE(are.valid());
-    nw::GffInputArchive git{"test_data/user/development/test_area.git"};
+    nw::Gff git{"test_data/user/development/test_area.git"};
     REQUIRE(git.valid());
-    nw::GffInputArchive gic{"test_data/user/development/test_area.gic"};
+    nw::Gff gic{"test_data/user/development/test_area.gic"};
     REQUIRE(gic.valid());
 
     nw::Area::deserialize(ent, are.toplevel(), git.toplevel(), gic.toplevel());
@@ -37,11 +37,11 @@ TEST_CASE("area: from_gff", "[objects]")
 TEST_CASE("area: json roundtrip", "[objects]")
 {
     auto ent = new nw::Area;
-    nw::GffInputArchive are{"test_data/user/development/test_area.are"};
+    nw::Gff are{"test_data/user/development/test_area.are"};
     REQUIRE(are.valid());
-    nw::GffInputArchive git{"test_data/user/development/test_area.git"};
+    nw::Gff git{"test_data/user/development/test_area.git"};
     REQUIRE(git.valid());
-    nw::GffInputArchive gic{"test_data/user/development/test_area.gic"};
+    nw::Gff gic{"test_data/user/development/test_area.gic"};
     REQUIRE(gic.valid());
 
     nw::Area::deserialize(ent, are.toplevel(), git.toplevel(), gic.toplevel());

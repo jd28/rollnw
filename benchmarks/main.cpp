@@ -7,7 +7,7 @@
 #include <nw/kernel/Rules.hpp>
 #include <nw/kernel/Strings.hpp>
 #include <nw/model/Mdl.hpp>
-#include <nw/serialization/GffInputArchive.hpp>
+#include <nw/serialization/Gff.hpp>
 #include <nwn1/Profile.hpp>
 #include <nwn1/functions.hpp>
 

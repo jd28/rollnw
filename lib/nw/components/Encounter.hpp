@@ -11,9 +11,9 @@
 namespace nw {
 
 struct EncounterScripts {
-    bool from_gff(const GffInputArchiveStruct& archive);
+    bool from_gff(const GffStruct& archive);
     bool from_json(const nlohmann::json& archive);
-    bool to_gff(GffOutputArchiveStruct& archive) const;
+    bool to_gff(GffBuilderStruct& archive) const;
     nlohmann::json to_json() const;
 
     Resref on_entered;
@@ -24,7 +24,7 @@ struct EncounterScripts {
 };
 
 struct SpawnCreature {
-    bool from_gff(const GffInputArchiveStruct& archive);
+    bool from_gff(const GffStruct& archive);
     bool from_json(const nlohmann::json& archive);
     nlohmann::json to_json() const;
 
@@ -35,7 +35,7 @@ struct SpawnCreature {
 };
 
 struct SpawnPoint {
-    bool from_gff(const GffInputArchiveStruct& archive);
+    bool from_gff(const GffStruct& archive);
     bool from_json(const nlohmann::json& archive);
     nlohmann::json to_json() const;
 
@@ -56,10 +56,10 @@ struct Encounter : public ObjectBase {
     virtual const Encounter* as_encounter() const override { return this; }
     virtual bool instantiate() override { return true; }
 
-    static bool deserialize(Encounter* obj, const GffInputArchiveStruct& archive, SerializationProfile profile);
+    static bool deserialize(Encounter* obj, const GffStruct& archive, SerializationProfile profile);
     static bool deserialize(Encounter* obj, const nlohmann::json& archive, SerializationProfile profile);
-    static GffOutputArchive serialize(const Encounter* obj, SerializationProfile profile);
-    static bool serialize(const Encounter* obj, GffOutputArchiveStruct& archive, SerializationProfile profile);
+    static GffBuilder serialize(const Encounter* obj, SerializationProfile profile);
+    static bool serialize(const Encounter* obj, GffBuilderStruct& archive, SerializationProfile profile);
     static bool serialize(const Encounter* obj, nlohmann::json& archive, SerializationProfile profile);
 
     Common common;

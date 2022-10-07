@@ -71,17 +71,17 @@ TEST_CASE("store: json to and from", "[objects]")
 
 TEST_CASE("store: gff round trip", "[ojbects]")
 {
-    nw::GffInputArchive g("test_data/user/development/storethief002.utm");
+    nw::Gff g("test_data/user/development/storethief002.utm");
     REQUIRE(g.valid());
 
     auto ent = nw::kernel::objects().make<nw::Store>();
     REQUIRE(ent);
     nw::Store::deserialize(ent, g.toplevel(), nw::SerializationProfile::blueprint);
 
-    nw::GffOutputArchive oa = nw::Store::serialize(ent, nw::SerializationProfile::blueprint);
+    nw::GffBuilder oa = nw::Store::serialize(ent, nw::SerializationProfile::blueprint);
     oa.write_to("tmp/storethief002_2.utm");
 
-    nw::GffInputArchive g2("tmp/storethief002_2.utm");
+    nw::Gff g2("tmp/storethief002_2.utm");
     REQUIRE(g2.valid());
 
     // Problem: store pages aren't saved in the same order as toolset

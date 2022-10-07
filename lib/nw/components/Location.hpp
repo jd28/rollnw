@@ -14,7 +14,7 @@ namespace nw {
 struct Location {
     Location();
 
-    bool from_gff(const GffInputArchiveStruct gff, SerializationProfile profile);
+    bool from_gff(const GffStruct gff, SerializationProfile profile);
     operator bool() { return area != object_invalid; }
 
     ObjectID area;

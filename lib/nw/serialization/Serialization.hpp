@@ -13,7 +13,7 @@ using namespace std::literals;
 
 namespace nw {
 
-struct GffInputArchiveStruct; // Have to get rid of this.
+struct GffStruct; // Have to get rid of this.
 
 // -- SerializationProfile ----------------------------------------------------
 
@@ -87,7 +87,7 @@ constexpr SerializationType::type SerializationType::id()
         return SerializationType::locstring;
     } else if constexpr (std::is_same_v<T, ByteArray>) {
         return SerializationType::void_;
-    } else if constexpr (std::is_same_v<T, GffInputArchiveStruct>) { // Have to get rid of this somehow
+    } else if constexpr (std::is_same_v<T, GffStruct>) { // Have to get rid of this somehow
         return SerializationType::struct_;
     } else {
         static_assert(always_false<T>(), "Unknown GFF type.");

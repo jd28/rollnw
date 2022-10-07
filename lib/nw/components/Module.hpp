@@ -15,9 +15,9 @@ struct Area;
 struct ModuleScripts {
     ModuleScripts() = default;
 
-    bool from_gff(const GffInputArchiveStruct& archive);
+    bool from_gff(const GffStruct& archive);
     bool from_json(const nlohmann::json& archive);
-    bool to_gff(GffOutputArchiveStruct& archive) const;
+    bool to_gff(GffBuilderStruct& archive) const;
     nlohmann::json to_json() const;
 
     Resref on_client_enter;
@@ -55,10 +55,10 @@ struct Module : public ObjectBase {
     const Area* get_area(size_t index) const;
 
     // Serialization
-    static bool deserialize(Module* ent, const GffInputArchiveStruct& archive);
+    static bool deserialize(Module* ent, const GffStruct& archive);
     static bool deserialize(Module* ent, const nlohmann::json& archive);
-    static GffOutputArchive serialize(const Module* ent);
-    static bool serialize(const Module* ent, GffOutputArchiveStruct& archive);
+    static GffBuilder serialize(const Module* ent);
+    static bool serialize(const Module* ent, GffBuilderStruct& archive);
     static bool serialize(const Module* ent, nlohmann::json& archive);
 
     LocalData locals;

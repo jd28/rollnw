@@ -4,7 +4,7 @@
 
 namespace nw {
 
-bool CreatureScripts::from_gff(const GffInputArchiveStruct& archive)
+bool CreatureScripts::from_gff(const GffStruct& archive)
 {
     archive.get_to("ScriptAttacked", on_attacked);
     archive.get_to("ScriptDamaged", on_damaged);
@@ -46,7 +46,7 @@ bool CreatureScripts::from_json(const nlohmann::json& archive)
     return true;
 }
 
-bool CreatureScripts::to_gff(GffOutputArchiveStruct& archive) const
+bool CreatureScripts::to_gff(GffBuilderStruct& archive) const
 {
     archive.add_field("ScriptAttacked", on_attacked)
         .add_field("ScriptDamaged", on_damaged)
@@ -98,7 +98,7 @@ bool Creature::instantiate()
     return instantiated_ = (inventory.instantiate() && equipment.instantiate());
 }
 
-bool Creature::deserialize(Creature* obj, const GffInputArchiveStruct& archive, SerializationProfile profile)
+bool Creature::deserialize(Creature* obj, const GffStruct& archive, SerializationProfile profile)
 {
     if (!obj) {
         throw std::runtime_error("unable to serialize null object");
@@ -217,7 +217,7 @@ bool Creature::deserialize(Creature* obj, const nlohmann::json& archive, Seriali
     return true;
 }
 
-bool Creature::serialize(const Creature* obj, GffOutputArchiveStruct& archive, SerializationProfile profile)
+bool Creature::serialize(const Creature* obj, GffBuilderStruct& archive, SerializationProfile profile)
 {
     if (!obj) {
         throw std::runtime_error("unable to serialize null object");
@@ -284,9 +284,9 @@ bool Creature::serialize(const Creature* obj, GffOutputArchiveStruct& archive, S
     return true;
 }
 
-GffOutputArchive Creature::serialize(const Creature* obj, SerializationProfile profile)
+GffBuilder Creature::serialize(const Creature* obj, SerializationProfile profile)
 {
-    GffOutputArchive out{"UTC"};
+    GffBuilder out{"UTC"};
     if (!obj) {
         throw std::runtime_error("unable to serialize null object");
     }

@@ -4,7 +4,7 @@
 
 namespace nw {
 
-bool Appearance::from_gff(const GffInputArchiveStruct& archive)
+bool Appearance::from_gff(const GffStruct& archive)
 {
     if (!archive.get_to("Tail_New", tail, false)) {
         uint8_t old = 0;
@@ -89,7 +89,7 @@ bool Appearance::from_json(const nlohmann::json& archive)
     return true;
 }
 
-bool Appearance::to_gff(GffOutputArchiveStruct& archive) const
+bool Appearance::to_gff(GffBuilderStruct& archive) const
 {
     archive.add_field("Tail_New", tail)
         .add_field("Wings_New", wings)

@@ -9,7 +9,7 @@
 
 namespace nw {
 
-struct GffInputArchiveStruct;
+struct GffStruct;
 
 struct GffHeader {
     char type[4];

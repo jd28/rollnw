@@ -14,7 +14,7 @@ namespace fs = std::filesystem;
 TEST_CASE("module: from_gff", "[objects]")
 {
     auto mod = new nw::Module;
-    nw::GffInputArchive g{"test_data/user/scratch/module.ifo"};
+    nw::Gff g{"test_data/user/scratch/module.ifo"};
     REQUIRE(g.valid());
     nw::Module::deserialize(mod, g.toplevel());
 
@@ -27,7 +27,7 @@ TEST_CASE("module: from_gff", "[objects]")
 TEST_CASE("module: json round trip", "[objects]")
 {
     auto ent = new nw::Module;
-    nw::GffInputArchive g{"test_data/user/scratch/module.ifo"};
+    nw::Gff g{"test_data/user/scratch/module.ifo"};
     REQUIRE(g.valid());
     nw::Module::deserialize(ent, g.toplevel());
     REQUIRE(ent);
@@ -52,14 +52,14 @@ TEST_CASE("module: gff round trip", "[ojbects]")
 {
     auto ent = new nw::Module;
     REQUIRE(ent);
-    nw::GffInputArchive g{"test_data/user/scratch/module.ifo"};
+    nw::Gff g{"test_data/user/scratch/module.ifo"};
     REQUIRE(g.valid());
     nw::Module::deserialize(ent, g.toplevel());
 
-    nw::GffOutputArchive oa = nw::Module::serialize(ent);
+    nw::GffBuilder oa = nw::Module::serialize(ent);
     oa.write_to("tmp/module_2.ifo");
 
-    nw::GffInputArchive g2("tmp/module_2.ifo");
+    nw::Gff g2("tmp/module_2.ifo");
     REQUIRE(g2.valid());
     REQUIRE(nw::gff_to_gffjson(g) == nw::gff_to_gffjson(g2));
 

@@ -6,7 +6,7 @@
 
 namespace nw {
 
-bool LevelStats::from_gff(const GffInputArchiveStruct& archive)
+bool LevelStats::from_gff(const GffStruct& archive)
 {
     size_t sz = archive["ClassList"].size();
     entries.reserve(sz);
@@ -42,7 +42,7 @@ bool LevelStats::from_json(const nlohmann::json& archive)
     return true;
 }
 
-bool LevelStats::to_gff(GffOutputArchiveStruct& archive) const
+bool LevelStats::to_gff(GffBuilderStruct& archive) const
 {
     auto& list = archive.add_list("ClassList");
     for (const auto& cls : entries) {

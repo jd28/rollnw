@@ -17,9 +17,9 @@ struct ClassEntry {
 struct LevelStats {
     LevelStats() = default;
 
-    bool from_gff(const GffInputArchiveStruct& archive);
+    bool from_gff(const GffStruct& archive);
     bool from_json(const nlohmann::json& archive);
-    bool to_gff(GffOutputArchiveStruct& archive) const;
+    bool to_gff(GffBuilderStruct& archive) const;
     nlohmann::json to_json() const;
 
     int level() const noexcept;

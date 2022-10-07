@@ -4,7 +4,7 @@
 
 namespace nw {
 
-bool LocalData::from_gff(const GffInputArchiveStruct& archive)
+bool LocalData::from_gff(const GffStruct& archive)
 {
     auto st = archive["VarTable"];
     if (!st.valid()) {
@@ -46,7 +46,7 @@ bool LocalData::from_gff(const GffInputArchiveStruct& archive)
             payload.flags.set(LocalVarType::object);
             break;
         case 5: { // location
-            if (auto s = st[i].get<GffInputArchiveStruct>("Value")) {
+            if (auto s = st[i].get<GffStruct>("Value")) {
                 payload.loc.from_gff(*s, SerializationProfile::any);
                 payload.flags.set(LocalVarType::location);
             } else {
@@ -231,7 +231,7 @@ bool LocalData::from_json(const nlohmann::json& archive)
     return true;
 }
 
-bool LocalData::to_gff(GffOutputArchiveStruct& archive) const
+bool LocalData::to_gff(GffBuilderStruct& archive) const
 {
     if (vars_.empty()) {
         return true;

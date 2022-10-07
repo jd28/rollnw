@@ -45,16 +45,16 @@ TEST_CASE("placeable: json roundtrip", "[objects]")
 
 TEST_CASE("placeable: gff round trip", "[ojbects]")
 {
-    nw::GffInputArchive g("test_data/user/development/arrowcorpse001.utp");
+    nw::Gff g("test_data/user/development/arrowcorpse001.utp");
     REQUIRE(g.valid());
 
     nw::Placeable ent;
     REQUIRE(nw::Placeable::deserialize(&ent, g.toplevel(), nw::SerializationProfile::blueprint));
 
-    nw::GffOutputArchive oa = nw::Placeable::serialize(&ent, nw::SerializationProfile::blueprint);
+    nw::GffBuilder oa = nw::Placeable::serialize(&ent, nw::SerializationProfile::blueprint);
     oa.write_to("tmp/arrowcorpse001.utp");
 
-    nw::GffInputArchive g2{"tmp/arrowcorpse001.utp"};
+    nw::Gff g2{"tmp/arrowcorpse001.utp"};
     REQUIRE(g2.valid());
     REQUIRE(nw::gff_to_gffjson(g) == nw::gff_to_gffjson(g2));
 

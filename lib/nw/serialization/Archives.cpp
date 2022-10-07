@@ -19,9 +19,9 @@ inline void add_field_kv(json& j, const std::string& name, const T& value)
     o["type"] = SerializationType::to_string(SerializationType::id<T>());
 }
 
-bool gff_to_gffjson(const GffInputArchiveStruct str, nlohmann::json& cursor);
+bool gff_to_gffjson(const GffStruct str, nlohmann::json& cursor);
 
-inline bool gff_to_gffjson(const GffInputArchiveField field, nlohmann::json& cursor)
+inline bool gff_to_gffjson(const GffField field, nlohmann::json& cursor)
 {
     bool check = true;
     if (!field.valid()) {
@@ -95,21 +95,23 @@ inline bool gff_to_gffjson(const GffInputArchiveField field, nlohmann::json& cur
         auto& o = cursor[field_name] = json::object();
         o["type"] = SerializationType::to_string(SerializationType::struct_);
         auto& v = o["value"] = json::object();
-        check = check && gff_to_gffjson(*field.get<GffInputArchiveStruct>(), v);
+        check = check && gff_to_gffjson(*field.get<GffStruct>(), v);
     } break;
     case SerializationType::list: {
         auto& v = cursor[field_name] = json::array();
         for (size_t i = 0; i < field.size(); ++i) {
             v.push_back(json::object());
             check = check && gff_to_gffjson(field[i], v[i]);
-            if (!check) { break; }
+            if (!check) {
+                break;
+            }
         }
     } break;
     }
     return check;
 }
 
-bool gff_to_gffjson(const GffInputArchiveStruct str, nlohmann::json& cursor)
+bool gff_to_gffjson(const GffStruct str, nlohmann::json& cursor)
 {
     bool check = true;
     if (!str.valid()) {
@@ -127,7 +129,7 @@ bool gff_to_gffjson(const GffInputArchiveStruct str, nlohmann::json& cursor)
     return check;
 }
 
-nlohmann::json gff_to_gffjson(const GffInputArchive& gff)
+nlohmann::json gff_to_gffjson(const Gff& gff)
 {
     nlohmann::json j;
     if (!gff.valid()) {

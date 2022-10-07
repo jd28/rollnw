@@ -6,7 +6,7 @@
 
 namespace nw {
 
-bool DoorScripts::from_gff(const GffInputArchiveStruct& archive)
+bool DoorScripts::from_gff(const GffStruct& archive)
 {
     archive.get_to("OnClick", on_click);
     archive.get_to("OnClosed", on_closed);
@@ -51,7 +51,7 @@ bool DoorScripts::from_json(const nlohmann::json& archive)
     return true;
 }
 
-bool DoorScripts::to_gff(GffOutputArchiveStruct& archive) const
+bool DoorScripts::to_gff(GffBuilderStruct& archive) const
 {
     archive.add_field("OnClick", on_click)
         .add_field("OnClosed", on_closed)
@@ -98,7 +98,7 @@ Door::Door()
     set_handle({object_invalid, ObjectType::door, 0});
 }
 
-bool Door::deserialize(Door* obj, const GffInputArchiveStruct& archive, SerializationProfile profile)
+bool Door::deserialize(Door* obj, const GffStruct& archive, SerializationProfile profile)
 {
     if (!obj) {
         throw std::runtime_error("unable to serialize null object");
@@ -190,7 +190,7 @@ bool Door::deserialize(Door* obj, const nlohmann::json& archive, SerializationPr
     return true;
 }
 
-bool Door::serialize(const Door* obj, GffOutputArchiveStruct& archive, SerializationProfile profile)
+bool Door::serialize(const Door* obj, GffBuilderStruct& archive, SerializationProfile profile)
 {
     if (!obj) {
         throw std::runtime_error("unable to serialize null object");
@@ -245,9 +245,9 @@ bool Door::serialize(const Door* obj, GffOutputArchiveStruct& archive, Serializa
     return true;
 }
 
-GffOutputArchive Door::serialize(const Door* obj, SerializationProfile profile)
+GffBuilder Door::serialize(const Door* obj, SerializationProfile profile)
 {
-    GffOutputArchive out{"UTD"};
+    GffBuilder out{"UTD"};
     if (!obj) {
         throw std::runtime_error("unable to serialize null object");
     }

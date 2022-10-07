@@ -143,7 +143,7 @@ T* ObjectSystem::load(const std::filesystem::path& archive, SerializationProfile
             LOG_F(ERROR, "Failed to parse json file '{}' because {}", archive, e.what());
         }
     } else if (ResourceType::check_category(ResourceType::gff_archive, restype)) {
-        GffInputArchive in{ByteArray::from_file(archive)};
+        Gff in{ByteArray::from_file(archive)};
         if (in.valid()) {
             type = serial_id_to_obj_type(in.type());
             if (type == T::object_type) {
@@ -169,7 +169,7 @@ T* ObjectSystem::load(std::string_view resref)
     T* obj = make<T>();
     ByteArray ba = resman().demand({resref, T::restype});
     if (ba.size()) {
-        GffInputArchive in{ba};
+        Gff in{ba};
         if (in.valid()) {
             T::deserialize(obj, in.toplevel(), SerializationProfile::blueprint);
         }

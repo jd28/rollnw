@@ -45,17 +45,17 @@ TEST_CASE("trigger: json round trip", "[objects]")
 
 TEST_CASE("trigger: gff round trip", "[objects]")
 {
-    nw::GffInputArchive g("test_data/user/development/pl_spray_sewage.utt");
+    nw::Gff g("test_data/user/development/pl_spray_sewage.utt");
     REQUIRE(g.valid());
 
     auto ent = nw::kernel::objects().make<nw::Trigger>();
     REQUIRE(ent);
     REQUIRE(nw::Trigger::deserialize(ent, g.toplevel(), nw::SerializationProfile::blueprint));
 
-    nw::GffOutputArchive oa = nw::Trigger::serialize(ent, nw::SerializationProfile::blueprint);
+    nw::GffBuilder oa = nw::Trigger::serialize(ent, nw::SerializationProfile::blueprint);
     oa.write_to("tmp/pl_spray_sewage_2.utt");
 
-    nw::GffInputArchive g2{"tmp/pl_spray_sewage_2.utt"};
+    nw::Gff g2{"tmp/pl_spray_sewage_2.utt"};
     REQUIRE(g2.valid());
     REQUIRE(nw::gff_to_gffjson(g) == nw::gff_to_gffjson(g2));
 

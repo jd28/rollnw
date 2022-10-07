@@ -21,9 +21,9 @@ enum struct PlaceableAnimationState : uint8_t {
 
 struct PlaceableScripts {
 
-    bool from_gff(const GffInputArchiveStruct& archive);
+    bool from_gff(const GffStruct& archive);
     bool from_json(const nlohmann::json& archive);
-    bool to_gff(GffOutputArchiveStruct& archive) const;
+    bool to_gff(GffBuilderStruct& archive) const;
     nlohmann::json to_json() const;
 
     Resref on_click;
@@ -56,10 +56,10 @@ struct Placeable : public ObjectBase {
     virtual bool instantiate() override;
 
     // Serialization
-    static bool deserialize(Placeable* obj, const GffInputArchiveStruct& archive, SerializationProfile profile);
+    static bool deserialize(Placeable* obj, const GffStruct& archive, SerializationProfile profile);
     static bool deserialize(Placeable* obj, const nlohmann::json& archive, SerializationProfile profile);
-    static GffOutputArchive serialize(const Placeable* obj, SerializationProfile profile);
-    static bool serialize(const Placeable* obj, GffOutputArchiveStruct& archive, SerializationProfile profile);
+    static GffBuilder serialize(const Placeable* obj, SerializationProfile profile);
+    static bool serialize(const Placeable* obj, GffBuilderStruct& archive, SerializationProfile profile);
     static bool serialize(const Placeable* obj, nlohmann::json& archive, SerializationProfile profile);
 
     Common common;

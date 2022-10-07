@@ -4,7 +4,7 @@
 
 namespace nw {
 
-bool Trap::from_gff(const GffInputArchiveStruct& archive)
+bool Trap::from_gff(const GffStruct& archive)
 {
     archive.get_to("TrapFlag", is_trapped);
     archive.get_to("TrapType", type);
@@ -35,7 +35,7 @@ bool Trap::from_json(const nlohmann::json& archive)
     return true;
 }
 
-bool Trap::to_gff(GffOutputArchiveStruct& archive) const
+bool Trap::to_gff(GffBuilderStruct& archive) const
 {
     archive.add_field("TrapFlag", is_trapped)
         .add_field("TrapType", type)

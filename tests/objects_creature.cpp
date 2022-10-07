@@ -164,13 +164,13 @@ TEST_CASE("creature: gff round trip", "[ojbects]")
     auto ent = nw::kernel::objects().load<nw::Creature>(fs::path("test_data/user/development/pl_agent_001.utc"));
     REQUIRE(ent);
 
-    nw::GffInputArchive g("test_data/user/development/pl_agent_001.utc");
-    nw::GffOutputArchive oa = nw::Creature::serialize(ent, nw::SerializationProfile::blueprint);
+    nw::Gff g("test_data/user/development/pl_agent_001.utc");
+    nw::GffBuilder oa = nw::Creature::serialize(ent, nw::SerializationProfile::blueprint);
     oa.write_to("tmp/pl_agent_001_2.utc");
 
     // Note: the below will typically always fail because the toolset,
     // doesn't sort feats when it writes out the gff.
-    // nw::GffInputArchive g2("tmp/pl_agent_001_2.utc");
+    // nw::Gff g2("tmp/pl_agent_001_2.utc");
     // REQUIRE(g2.valid());
     // REQUIRE(nw::gff_to_gffjson(g) == nw::gff_to_gffjson(g2));
 

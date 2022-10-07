@@ -9,7 +9,7 @@ Sound::Sound()
     set_handle({object_invalid, ObjectType::sound, 0});
 }
 
-bool Sound::deserialize(Sound* obj, const GffInputArchiveStruct& archive, SerializationProfile profile)
+bool Sound::deserialize(Sound* obj, const GffStruct& archive, SerializationProfile profile)
 {
     if (!obj) {
         throw std::runtime_error("unable to serialize null object");
@@ -104,7 +104,7 @@ bool Sound::deserialize(Sound* obj, const nlohmann::json& archive, Serialization
     return true;
 }
 
-bool Sound::serialize(const Sound* obj, GffOutputArchiveStruct& archive, SerializationProfile profile)
+bool Sound::serialize(const Sound* obj, GffBuilderStruct& archive, SerializationProfile profile)
 {
     if (!obj) {
         throw std::runtime_error("unable to serialize null object");
@@ -161,9 +161,9 @@ bool Sound::serialize(const Sound* obj, GffOutputArchiveStruct& archive, Seriali
     return true;
 }
 
-GffOutputArchive Sound::serialize(const Sound* obj, SerializationProfile profile)
+GffBuilder Sound::serialize(const Sound* obj, SerializationProfile profile)
 {
-    GffOutputArchive result{"UTS"};
+    GffBuilder result{"UTS"};
     if (!obj) {
         throw std::runtime_error("unable to serialize null object");
     }

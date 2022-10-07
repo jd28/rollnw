@@ -4,7 +4,7 @@
 
 namespace nw {
 
-bool CombatInfo::from_gff(const GffInputArchiveStruct& archive)
+bool CombatInfo::from_gff(const GffStruct& archive)
 {
     archive.get_to("NaturalAC", ac_natural);
 
@@ -39,7 +39,7 @@ bool CombatInfo::from_json(const nlohmann::json& archive)
     return true;
 }
 
-bool CombatInfo::to_gff(GffOutputArchiveStruct& archive) const
+bool CombatInfo::to_gff(GffBuilderStruct& archive) const
 {
     archive.add_field("NaturalAC", ac_natural);
     auto& list = archive.add_list("SpecAbilityList");

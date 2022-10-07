@@ -40,15 +40,15 @@ TEST_CASE("door: to_json", "[objects]")
 
 TEST_CASE("door: gff round trip", "[ojbects]")
 {
-    nw::GffInputArchive g("test_data/user/development/door_ttr_002.utd");
+    nw::Gff g("test_data/user/development/door_ttr_002.utd");
     REQUIRE(g.valid());
 
     auto door = nw::kernel::objects().load<nw::Door>(fs::path("test_data/user/development/door_ttr_002.utd"));
 
-    nw::GffOutputArchive oa = nw::Door::serialize(door, nw::SerializationProfile::blueprint);
+    nw::GffBuilder oa = nw::Door::serialize(door, nw::SerializationProfile::blueprint);
     oa.write_to("tmp/door_ttr_002.utd");
 
-    nw::GffInputArchive g2("tmp/door_ttr_002.utd");
+    nw::Gff g2("tmp/door_ttr_002.utd");
     REQUIRE(g2.valid());
     REQUIRE(nw::gff_to_gffjson(g) == nw::gff_to_gffjson(g2));
 

@@ -23,7 +23,7 @@ bool Equips::instantiate()
     return true;
 }
 
-bool Equips::from_gff(const GffInputArchiveStruct& archive, SerializationProfile profile)
+bool Equips::from_gff(const GffStruct& archive, SerializationProfile profile)
 {
     size_t sz = archive["Equip_ItemList"].size();
     for (size_t i = 0; i < sz; ++i) {
@@ -70,7 +70,7 @@ bool Equips::from_json(const nlohmann::json& archive, SerializationProfile profi
     return true;
 }
 
-bool Equips::to_gff(GffOutputArchiveStruct& archive, SerializationProfile profile) const
+bool Equips::to_gff(GffBuilderStruct& archive, SerializationProfile profile) const
 {
     auto& list = archive.add_list("Equip_ItemList");
     size_t i = 0;

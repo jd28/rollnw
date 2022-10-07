@@ -41,16 +41,16 @@ TEST_CASE("sound: json round trip", "[objects]")
 
 TEST_CASE("sound: gff round trip", "[ojbects]")
 {
-    nw::GffInputArchive g("test_data/user/development/blue_bell.uts");
+    nw::Gff g("test_data/user/development/blue_bell.uts");
     REQUIRE(g.valid());
 
     nw::Sound ent;
     nw::Sound::deserialize(&ent, g.toplevel(), nw::SerializationProfile::blueprint);
 
-    nw::GffOutputArchive oa = nw::Sound::serialize(&ent, nw::SerializationProfile::blueprint);
+    nw::GffBuilder oa = nw::Sound::serialize(&ent, nw::SerializationProfile::blueprint);
     oa.write_to("tmp/blue_bell.uts");
 
-    nw::GffInputArchive g2("tmp/blue_bell.uts");
+    nw::Gff g2("tmp/blue_bell.uts");
     REQUIRE(g2.valid());
 
     REQUIRE(nw::gff_to_gffjson(g) == nw::gff_to_gffjson(g2));

@@ -37,9 +37,9 @@ void ObjectSystem::destroy(ObjectHandle obj)
 
 Area* ObjectSystem::make_area(Resref area)
 {
-    GffInputArchive are{resman().demand({area, ResourceType::are})};
-    GffInputArchive git{resman().demand({area, ResourceType::git})};
-    GffInputArchive gic{resman().demand({area, ResourceType::gic})};
+    Gff are{resman().demand({area, ResourceType::are})};
+    Gff git{resman().demand({area, ResourceType::git})};
+    Gff gic{resman().demand({area, ResourceType::gic})};
     Area* obj = make<Area>();
     Area::deserialize(obj, are.toplevel(), git.toplevel(), gic.toplevel());
     return obj;
@@ -57,7 +57,7 @@ Module* ObjectSystem::make_module()
     }
 
     if (ba.size() > 8 && memcmp(ba.data(), "IFO V3.2", 8) == 0) {
-        GffInputArchive in{std::move(ba)};
+        Gff in{std::move(ba)};
         if (in.valid()) {
             Module::deserialize(obj, in.toplevel());
         } else {

@@ -9,7 +9,7 @@ Waypoint::Waypoint()
     set_handle({object_invalid, ObjectType::waypoint, 0});
 }
 
-bool Waypoint::deserialize(Waypoint* obj, const GffInputArchiveStruct& archive, SerializationProfile profile)
+bool Waypoint::deserialize(Waypoint* obj, const GffStruct& archive, SerializationProfile profile)
 {
     if (!obj) {
         throw std::runtime_error("unable to serialize null object");
@@ -52,7 +52,7 @@ bool Waypoint::deserialize(Waypoint* obj, const nlohmann::json& archive,
     return true;
 }
 
-bool Waypoint::serialize(const Waypoint* obj, GffOutputArchiveStruct& archive,
+bool Waypoint::serialize(const Waypoint* obj, GffBuilderStruct& archive,
     SerializationProfile profile)
 {
     if (!obj) {
@@ -88,9 +88,9 @@ bool Waypoint::serialize(const Waypoint* obj, GffOutputArchiveStruct& archive,
     return true;
 }
 
-GffOutputArchive Waypoint::serialize(const Waypoint* obj, SerializationProfile profile)
+GffBuilder Waypoint::serialize(const Waypoint* obj, SerializationProfile profile)
 {
-    GffOutputArchive out{"UTW"};
+    GffBuilder out{"UTW"};
     if (!obj) {
         throw std::runtime_error("unable to serialize null object");
     }

@@ -19,10 +19,10 @@ struct Sound : public ObjectBase {
     virtual const Sound* as_sound() const override { return this; }
     virtual bool instantiate() override { return true; }
 
-    static bool deserialize(Sound* obj, const GffInputArchiveStruct& archive, SerializationProfile profile);
+    static bool deserialize(Sound* obj, const GffStruct& archive, SerializationProfile profile);
     static bool deserialize(Sound* obj, const nlohmann::json& archive, SerializationProfile profile);
-    static bool serialize(const Sound* obj, GffOutputArchiveStruct& archive, SerializationProfile profile);
-    static GffOutputArchive serialize(const Sound* obj, SerializationProfile profile);
+    static bool serialize(const Sound* obj, GffBuilderStruct& archive, SerializationProfile profile);
+    static GffBuilder serialize(const Sound* obj, SerializationProfile profile);
     static void serialize(const Sound* obj, nlohmann::json& archive, SerializationProfile profile);
 
     Common common;

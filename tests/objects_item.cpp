@@ -117,13 +117,13 @@ TEST_CASE("item: gff round trip", "[objects]")
     auto ent = nw::kernel::objects().load<nw::Item>(fs::path("test_data/user/development/cloth028.uti"));
     REQUIRE(ent);
 
-    nw::GffInputArchive g("test_data/user/development/cloth028.uti");
+    nw::Gff g("test_data/user/development/cloth028.uti");
     REQUIRE(g.valid());
 
-    nw::GffOutputArchive oa = nw::Item::serialize(ent, nw::SerializationProfile::blueprint);
+    nw::GffBuilder oa = nw::Item::serialize(ent, nw::SerializationProfile::blueprint);
     oa.write_to("tmp/cloth028.uti");
 
-    nw::GffInputArchive g2{"tmp/cloth028.uti"};
+    nw::Gff g2{"tmp/cloth028.uti"};
     REQUIRE(g2.valid());
 
     // Problem: local vars arent always saved in same order

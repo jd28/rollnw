@@ -11,7 +11,7 @@
 namespace nw {
 
 struct Common {
-    bool from_gff(const GffInputArchiveStruct& archive, SerializationProfile profile, ObjectType object_type);
+    bool from_gff(const GffStruct& archive, SerializationProfile profile, ObjectType object_type);
     bool from_json(const nlohmann::json& archive, SerializationProfile profile, ObjectType object_type);
     nlohmann::json to_json(SerializationProfile profile, ObjectType object_type) const;
 

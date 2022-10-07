@@ -8,7 +8,7 @@
 
 namespace nw {
 
-bool ModuleScripts::from_gff(const GffInputArchiveStruct& archive)
+bool ModuleScripts::from_gff(const GffStruct& archive)
 {
     archive.get_to("Mod_OnClientEntr", on_client_enter);
     archive.get_to("Mod_OnClientLeav", on_client_leave);
@@ -59,7 +59,7 @@ bool ModuleScripts::from_json(const nlohmann::json& archive)
     return true;
 }
 
-bool ModuleScripts::to_gff(GffOutputArchiveStruct& archive) const
+bool ModuleScripts::to_gff(GffBuilderStruct& archive) const
 {
     archive.add_field("Mod_OnClientEntr", on_client_enter)
         .add_field("Mod_OnClientLeav", on_client_leave)
@@ -151,7 +151,7 @@ bool Module::instantiate()
     return true;
 }
 
-bool Module::deserialize(Module* obj, const GffInputArchiveStruct& archive)
+bool Module::deserialize(Module* obj, const GffStruct& archive)
 {
     if (!obj) {
         throw std::runtime_error("unable to serialize null object");
@@ -274,7 +274,7 @@ bool Module::deserialize(Module* obj, const nlohmann::json& archive)
     return true;
 }
 
-bool Module::serialize(const Module* obj, GffOutputArchiveStruct& archive)
+bool Module::serialize(const Module* obj, GffBuilderStruct& archive)
 {
     if (!obj) {
         throw std::runtime_error("unable to serialize null object");
@@ -338,9 +338,9 @@ bool Module::serialize(const Module* obj, GffOutputArchiveStruct& archive)
     return true;
 }
 
-GffOutputArchive Module::serialize(const Module* obj)
+GffBuilder Module::serialize(const Module* obj)
 {
-    GffOutputArchive out{"IFO"};
+    GffBuilder out{"IFO"};
     if (!obj) return out;
 
     Module::serialize(obj, out.top);

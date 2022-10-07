@@ -40,7 +40,7 @@ Trigger::Trigger()
     set_handle({object_invalid, ObjectType::trigger, 0});
 }
 
-bool Trigger::deserialize(Trigger* obj, const GffInputArchiveStruct& archive, SerializationProfile profile)
+bool Trigger::deserialize(Trigger* obj, const GffStruct& archive, SerializationProfile profile)
 {
     if (!obj) return false;
 
@@ -129,7 +129,7 @@ bool Trigger::deserialize(Trigger* obj, const nlohmann::json& archive, Serializa
     return true;
 }
 
-bool Trigger::serialize(const Trigger* obj, GffOutputArchiveStruct& archive, SerializationProfile profile)
+bool Trigger::serialize(const Trigger* obj, GffBuilderStruct& archive, SerializationProfile profile)
 {
     if (!obj) return false;
 
@@ -185,9 +185,9 @@ bool Trigger::serialize(const Trigger* obj, GffOutputArchiveStruct& archive, Ser
     return true;
 }
 
-GffOutputArchive Trigger::serialize(const Trigger* obj, SerializationProfile profile)
+GffBuilder Trigger::serialize(const Trigger* obj, SerializationProfile profile)
 {
-    GffOutputArchive out{"UTT"};
+    GffBuilder out{"UTT"};
     if (!obj) {
         throw std::runtime_error("unable to serialize null object");
     }

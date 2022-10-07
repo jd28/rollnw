@@ -27,7 +27,7 @@ SpellBook::SpellBook()
     memorized.resize(10);
 }
 
-bool SpellBook::from_gff(const GffInputArchiveStruct& gff)
+bool SpellBook::from_gff(const GffStruct& gff)
 {
     for (size_t i = 0; i < 10; ++i) {
         auto k = fmt::format("KnownList{}", i);
@@ -71,7 +71,7 @@ bool SpellBook::from_json(const nlohmann::json& archive)
     return true;
 }
 
-bool SpellBook::to_gff(GffOutputArchiveStruct& archive) const
+bool SpellBook::to_gff(GffBuilderStruct& archive) const
 {
     uint8_t flags, meta;
 

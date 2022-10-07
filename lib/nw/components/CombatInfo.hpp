@@ -19,9 +19,9 @@ struct CombatInfo {
     CombatInfo& operator=(CombatInfo&) = delete;
     CombatInfo& operator=(CombatInfo&&) = default;
 
-    bool from_gff(const GffInputArchiveStruct& archive);
+    bool from_gff(const GffStruct& archive);
     bool from_json(const nlohmann::json& archive);
-    bool to_gff(GffOutputArchiveStruct& archive) const;
+    bool to_gff(GffBuilderStruct& archive) const;
     nlohmann::json to_json() const;
 
     uint8_t ac_natural = 0;

@@ -4,7 +4,7 @@
 
 namespace nw {
 
-Faction::Faction(const GffInputArchive& archive)
+Faction::Faction(const Gff& archive)
 {
     auto gff = archive.toplevel();
     auto field = gff["FactionList"];
@@ -55,9 +55,9 @@ Faction::Faction(const nlohmann::json& archive)
     }
 }
 
-GffOutputArchive Faction::to_gff() const
+GffBuilder Faction::to_gff() const
 {
-    GffOutputArchive out{"FAC"};
+    GffBuilder out{"FAC"};
     auto& top = out.top;
 
     uint32_t i = 0;

@@ -21,7 +21,7 @@ DEFINE_ENUM_FLAGS(AreaFlags)
 struct AreaScripts {
     AreaScripts() = default;
 
-    bool from_gff(const GffInputArchiveStruct& archive);
+    bool from_gff(const GffStruct& archive);
     bool from_json(const nlohmann::json& archive);
     nlohmann::json to_json() const;
 
@@ -34,7 +34,7 @@ struct AreaScripts {
 struct AreaWeather {
     AreaWeather() = default;
 
-    bool from_gff(const GffInputArchiveStruct& archive);
+    bool from_gff(const GffStruct& archive);
     bool from_json(const nlohmann::json& archive);
     nlohmann::json to_json() const;
 
@@ -62,7 +62,7 @@ struct AreaWeather {
 struct Tile {
     Tile() = default;
 
-    bool from_gff(const GffInputArchiveStruct& archive);
+    bool from_gff(const GffStruct& archive);
     bool from_json(const nlohmann::json& archive);
     nlohmann::json to_json() const;
 
@@ -93,8 +93,8 @@ struct Area : public ObjectBase {
     virtual bool instantiate() override;
 
     /// Deserialize from GFF
-    static bool deserialize(Area* obj, const GffInputArchiveStruct& are,
-        const GffInputArchiveStruct& git, const GffInputArchiveStruct& gic);
+    static bool deserialize(Area* obj, const GffStruct& are,
+        const GffStruct& git, const GffStruct& gic);
 
     /// Deserialize from JSON
     /// @note Note only supports does 'caf' style input/output, i.e. ARE + GIT + GIC.

@@ -23,7 +23,7 @@ struct JournalCategory {
 };
 
 struct Journal {
-    explicit Journal(const GffInputArchiveStruct gff);
+    explicit Journal(const GffStruct gff);
 
     static constexpr int json_archive_version = 1;
     static constexpr ResourceType::type restype = ResourceType::jrl;

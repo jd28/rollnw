@@ -4,7 +4,7 @@
 
 namespace nw {
 
-bool PlaceableScripts::from_gff(const GffInputArchiveStruct& archive)
+bool PlaceableScripts::from_gff(const GffStruct& archive)
 {
     archive.get_to("OnClick", on_click);
     archive.get_to("OnClosed", on_closed);
@@ -46,7 +46,7 @@ bool PlaceableScripts::from_json(const nlohmann::json& archive)
     return true;
 }
 
-bool PlaceableScripts::to_gff(GffOutputArchiveStruct& archive) const
+bool PlaceableScripts::to_gff(GffBuilderStruct& archive) const
 {
     archive.add_field("OnClick", on_click)
         .add_field("OnClosed", on_closed)
@@ -102,7 +102,7 @@ bool Placeable::instantiate()
     return instantiated_ = inventory.instantiate();
 }
 
-bool Placeable::deserialize(Placeable* obj, const GffInputArchiveStruct& archive, SerializationProfile profile)
+bool Placeable::deserialize(Placeable* obj, const GffStruct& archive, SerializationProfile profile)
 {
     if (!obj) {
         throw std::runtime_error("unable to serialize null object");
@@ -195,7 +195,7 @@ bool Placeable::deserialize(Placeable* obj, const nlohmann::json& archive, Seria
     return true;
 }
 
-bool Placeable::serialize(const Placeable* obj, GffOutputArchiveStruct& archive, SerializationProfile profile)
+bool Placeable::serialize(const Placeable* obj, GffBuilderStruct& archive, SerializationProfile profile)
 {
     if (!obj) {
         throw std::runtime_error("unable to serialize null object");
@@ -253,9 +253,9 @@ bool Placeable::serialize(const Placeable* obj, GffOutputArchiveStruct& archive,
     return true;
 }
 
-GffOutputArchive Placeable::serialize(const Placeable* obj, SerializationProfile profile)
+GffBuilder Placeable::serialize(const Placeable* obj, SerializationProfile profile)
 {
-    GffOutputArchive out{"UTP"};
+    GffBuilder out{"UTP"};
     if (!obj) {
         throw std::runtime_error("unable to serialize null object");
     }

@@ -15,9 +15,9 @@ enum struct DoorAnimationState : uint8_t {
 };
 
 struct DoorScripts {
-    bool from_gff(const GffInputArchiveStruct& archive);
+    bool from_gff(const GffStruct& archive);
     bool from_json(const nlohmann::json& archive);
-    bool to_gff(GffOutputArchiveStruct& archive) const;
+    bool to_gff(GffBuilderStruct& archive) const;
     nlohmann::json to_json() const;
 
     Resref on_click;
@@ -50,10 +50,10 @@ struct Door : public ObjectBase {
     virtual bool instantiate() override { return true; }
 
     // Serialization
-    static bool deserialize(Door* obj, const GffInputArchiveStruct& archive, SerializationProfile profile);
+    static bool deserialize(Door* obj, const GffStruct& archive, SerializationProfile profile);
     static bool deserialize(Door* obj, const nlohmann::json& archive, SerializationProfile profile);
-    static bool serialize(const Door* obj, GffOutputArchiveStruct& archive, SerializationProfile profile);
-    static GffOutputArchive serialize(const Door* obj, SerializationProfile profile);
+    static bool serialize(const Door* obj, GffBuilderStruct& archive, SerializationProfile profile);
+    static GffBuilder serialize(const Door* obj, SerializationProfile profile);
     static bool serialize(const Door* obj, nlohmann::json& archive, SerializationProfile profile);
 
     Common common;

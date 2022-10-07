@@ -58,7 +58,7 @@ void to_json(nlohmann::json& archive, const DialogNode& node);
 struct Dialog {
 public:
     Dialog();
-    explicit Dialog(const GffInputArchiveStruct archive);
+    explicit Dialog(const GffStruct archive);
     explicit Dialog(const nlohmann::json& archive);
 
     static constexpr int json_archive_version = 1;
@@ -82,8 +82,8 @@ public:
 private:
     bool is_valid_ = false;
 
-    bool load(const GffInputArchiveStruct gff);
-    bool read_nodes(const GffInputArchiveStruct gff, DialogNodeType node_type);
+    bool load(const GffStruct gff);
+    bool read_nodes(const GffStruct gff, DialogNodeType node_type);
 };
 
 void from_json(const nlohmann::json& archive, Dialog& node);

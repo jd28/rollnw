@@ -16,7 +16,7 @@ bool Item::instantiate()
     return instantiated_ = inventory.instantiate();
 }
 
-bool Item::deserialize(Item* obj, const GffInputArchiveStruct& archive, SerializationProfile profile)
+bool Item::deserialize(Item* obj, const GffStruct& archive, SerializationProfile profile)
 {
     if (!obj) {
         throw std::runtime_error("unable to serialize null object");
@@ -162,7 +162,7 @@ bool Item::deserialize(Item* obj, const nlohmann::json& archive, SerializationPr
     return true;
 }
 
-bool Item::serialize(const Item* obj, GffOutputArchiveStruct& archive, SerializationProfile profile)
+bool Item::serialize(const Item* obj, GffBuilderStruct& archive, SerializationProfile profile)
 {
     if (!obj) {
         throw std::runtime_error("unable to serialize null object");
@@ -255,9 +255,9 @@ bool Item::serialize(const Item* obj, GffOutputArchiveStruct& archive, Serializa
     return true;
 }
 
-GffOutputArchive Item::serialize(const Item* obj, SerializationProfile profile)
+GffBuilder Item::serialize(const Item* obj, SerializationProfile profile)
 {
-    GffOutputArchive out{"UTI"};
+    GffBuilder out{"UTI"};
     if (!obj) return out;
 
     Item::serialize(obj, out.top, profile);

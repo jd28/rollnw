@@ -46,7 +46,7 @@ struct PaletteTreeNode {
 };
 
 struct Palette {
-    explicit Palette(const GffInputArchive& gff);
+    explicit Palette(const Gff& gff);
     ~Palette() = default;
 
     static constexpr int json_archive_version = 1;
@@ -63,8 +63,8 @@ struct Palette {
     bool is_skeleton = false;
 
 private:
-    bool load(const GffInputArchiveStruct gff);
-    PaletteTreeNode read_child(Palette* parent, const GffInputArchiveStruct st);
+    bool load(const GffStruct gff);
+    PaletteTreeNode read_child(Palette* parent, const GffStruct st);
 
     uint8_t max_id_ = 0;
     uint8_t next_id_ = 0;

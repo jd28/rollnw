@@ -39,7 +39,7 @@ TEST_CASE("waypoint: json round trip", "[objects]")
 
 TEST_CASE("waypoint: gff round trip", "[ojbects]")
 {
-    nw::GffInputArchive g("test_data/user/development/wp_behexit001.utw");
+    nw::Gff g("test_data/user/development/wp_behexit001.utw");
     REQUIRE(g.valid());
 
     auto ent = nw::kernel::objects().make<nw::Waypoint>();
@@ -47,10 +47,10 @@ TEST_CASE("waypoint: gff round trip", "[ojbects]")
 
     REQUIRE(nw::Waypoint::deserialize(ent, g.toplevel(), nw::SerializationProfile::blueprint));
 
-    nw::GffOutputArchive oa = nw::Waypoint::serialize(ent, nw::SerializationProfile::blueprint);
+    nw::GffBuilder oa = nw::Waypoint::serialize(ent, nw::SerializationProfile::blueprint);
     oa.write_to("tmp/wp_behexit001.utw");
 
-    nw::GffInputArchive g2{"tmp/wp_behexit001.utw"};
+    nw::Gff g2{"tmp/wp_behexit001.utw"};
     REQUIRE(g2.valid());
     REQUIRE(nw::gff_to_gffjson(g) == nw::gff_to_gffjson(g2));
 
