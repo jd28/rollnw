@@ -29,6 +29,7 @@ DECLARE_MOD_WITH_SUBTYPE(ability, nw::Ability);
 DECLARE_MOD_WITH_SUBTYPE(armor_class, nw::ArmorClass);
 DECLARE_MOD_WITH_SUBTYPE(damage_resist, nw::Damage);
 DECLARE_MOD(hitpoints);
+DECLARE_MOD_WITH_SUBTYPE(skill, nw::Skill);
 
 #undef DECLARE_MOD
 #undef DECLARE_MOD_WITH_SUBTYPE
