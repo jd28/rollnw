@@ -39,7 +39,7 @@ struct Rules : public Service {
      *
      * @tparam T is ``int`` or ``float``
      */
-    template <typename T, typename Callback>
+    template <typename Callback>
     bool calculate(const ObjectBase* obj, const ModifierType type, Callback cb,
         const ObjectBase* versus = nullptr) const;
 
@@ -49,7 +49,7 @@ struct Rules : public Service {
      * @tparam T is ``int`` or ``float``
      * @tparam U is some rule subtype
      */
-    template <typename T, typename U, typename Callback>
+    template <typename U, typename Callback>
     bool calculate(const ObjectBase* obj, const ModifierType type, U subtype, Callback cb,
         const ObjectBase* versus = nullptr) const;
 
@@ -58,7 +58,7 @@ struct Rules : public Service {
      *
      * @tparam T is ``int`` or ``float``
      */
-    template <typename T, typename Callback>
+    template <typename Callback>
     bool calculate(const ObjectBase* obj, const Modifier& mod, Callback cb,
         const ObjectBase* versus = nullptr) const;
 
@@ -204,13 +204,10 @@ void calc_mod_inputs(TupleT& tp, const ObjectBase* obj, const ObjectBase* versus
 
 } // namespace detail
 
-template <typename T, typename Callback>
+template <typename Callback>
 bool Rules::calculate(const ObjectBase* obj, const Modifier& mod, Callback cb,
     const ObjectBase* versus) const
 {
-    static_assert(std::is_same_v<T, int> || std::is_same_v<T, float>,
-        "only int and float are allowed");
-
     static_assert(detail::function_traits<Callback>::validate_args(), "invalid argument types");
 
     if (detail::function_traits<Callback>::arity != mod.value.size()) {
@@ -230,35 +227,29 @@ bool Rules::calculate(const ObjectBase* obj, const Modifier& mod, Callback cb,
     return true;
 }
 
-template <typename T, typename Callback>
+template <typename Callback>
 bool Rules::calculate(const ObjectBase* obj, const ModifierType type, Callback cb,
     const ObjectBase* versus) const
 {
-    static_assert(std::is_same_v<T, int> || std::is_same_v<T, float>,
-        "only int and float are allowed");
-
     Modifier temp{type, {}, {}, ModifierSource::unknown, Requirement{}, {}, -1};
     auto it = std::lower_bound(std::begin(entries_), std::end(entries_), temp);
 
     while (it != std::end(entries_) && it->type == type) {
-        if (!calculate<T>(obj, *it, cb, versus)) return false;
+        if (!calculate(obj, *it, cb, versus)) return false;
         ++it;
     }
     return true;
 }
 
-template <typename T, typename U, typename Callback>
+template <typename U, typename Callback>
 bool Rules::calculate(const ObjectBase* obj, const ModifierType type, U subtype, Callback cb,
     const ObjectBase* versus) const
 {
-    static_assert(std::is_same_v<T, int> || std::is_same_v<T, float>,
-        "only int and float are allowed");
-
     Modifier temp{type, {}, {}, ModifierSource::unknown, Requirement{}, {}, static_cast<int>(subtype)};
     auto it = std::lower_bound(std::begin(entries_), std::end(entries_), temp);
 
     while (it != std::end(entries_) && it->type == type && it->subtype == static_cast<int>(subtype)) {
-        if (!calculate<T>(obj, *it, cb, versus)) return false;
+        if (!calculate(obj, *it, cb, versus)) return false;
         ++it;
     }
     return true;
