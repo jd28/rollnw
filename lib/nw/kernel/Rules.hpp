@@ -36,8 +36,7 @@ struct Rules : public Service {
 
     /**
      * @brief Calculates all modifiers of `type`
-     *
-     * @tparam T is ``int`` or ``float``
+     * @tparam Callback Modifier callback function
      */
     template <typename Callback>
     bool calculate(const ObjectBase* obj, const ModifierType type, Callback cb,
@@ -45,9 +44,8 @@ struct Rules : public Service {
 
     /**
      * @brief Calculates all modifiers of `type`
-     *
-     * @tparam T is ``int`` or ``float``
      * @tparam U is some rule subtype
+     * @tparam Callback Modifier callback function
      */
     template <typename U, typename Callback>
     bool calculate(const ObjectBase* obj, const ModifierType type, U subtype, Callback cb,
@@ -55,8 +53,7 @@ struct Rules : public Service {
 
     /**
      * @brief Calculates a modifier
-     *
-     * @tparam T is ``int`` or ``float``
+     * @tparam Callback Modifier callback function
      */
     template <typename Callback>
     bool calculate(const ObjectBase* obj, const Modifier& mod, Callback cb,
@@ -152,7 +149,7 @@ struct function_traits<R (&)(Args...)> {
 };
 
 template <typename T>
-void calc_mod_input(T& out, const ObjectBase* obj, const ObjectBase* versus,
+bool calc_mod_input(T& out, const ObjectBase* obj, const ObjectBase* versus,
     const Modifier& mod, const ModifierVariant& in)
 {
     if (in.is<T>()) {
@@ -163,7 +160,7 @@ void calc_mod_input(T& out, const ObjectBase* obj, const ObjectBase* versus,
             out = res.as<T>();
         } else {
             LOG_F(ERROR, "invalid modifier or type mismatch");
-            return;
+            return false;
         }
     } else if (in.is<ModifierSubFunction>()) {
         auto res = in.as<ModifierSubFunction>()(obj, mod.subtype);
@@ -171,7 +168,7 @@ void calc_mod_input(T& out, const ObjectBase* obj, const ObjectBase* versus,
             out = res.as<T>();
         } else {
             LOG_F(ERROR, "invalid modifier or type mismatch");
-            return;
+            return false;
         }
     } else if (in.is<ModifierVsFunction>()) {
         auto res = in.as<ModifierVsFunction>()(obj, versus);
@@ -179,7 +176,7 @@ void calc_mod_input(T& out, const ObjectBase* obj, const ObjectBase* versus,
             out = res.as<T>();
         } else {
             LOG_F(ERROR, "invalid modifier or type mismatch");
-            return;
+            return false;
         }
     } else if (in.is<ModifierSubVsFunction>()) {
         auto res = in.as<ModifierSubVsFunction>()(obj, versus, mod.subtype);
@@ -187,19 +184,20 @@ void calc_mod_input(T& out, const ObjectBase* obj, const ObjectBase* versus,
             out = res.as<T>();
         } else {
             LOG_F(ERROR, "invalid modifier or type mismatch");
-            return;
+            return false;
         }
     } else {
         LOG_F(ERROR, "invalid modifier or type mismatch");
-        return;
+        return false;
     }
+    return true;
 }
 
 template <typename TupleT, std::size_t... Is>
-void calc_mod_inputs(TupleT& tp, const ObjectBase* obj, const ObjectBase* versus,
+bool calc_mod_inputs(TupleT& tp, const ObjectBase* obj, const ObjectBase* versus,
     const Modifier& mod, std::index_sequence<Is...>)
 {
-    (calc_mod_input(std::get<Is>(tp), obj, versus, mod, mod.value[Is]), ...);
+    return (calc_mod_input(std::get<Is>(tp), obj, versus, mod, mod.value[Is]) && ...);
 }
 
 } // namespace detail
@@ -220,8 +218,13 @@ bool Rules::calculate(const ObjectBase* obj, const Modifier& mod, Callback cb,
     }
 
     typename detail::function_traits<Callback>::tuple_type output;
-    detail::calc_mod_inputs(output, obj, versus, mod,
+    bool res = detail::calc_mod_inputs(output, obj, versus, mod,
         std::make_integer_sequence<size_t, detail::function_traits<Callback>::arity>{});
+
+    if (!res) {
+        LOG_F(ERROR, "Input/output size mismatch");
+        return false;
+    }
 
     std::apply(cb, output);
     return true;

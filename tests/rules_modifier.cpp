@@ -39,10 +39,17 @@ TEST_CASE("modifier", "[rules]")
         }));
     REQUIRE(res == 6);
 
-    // False because output mismatch
+    // False because output size mismatch
     REQUIRE_FALSE(nwk::rules().calculate(ent, mod2,
         [&res](int value, float) {
             res += value;
+        }));
+
+    // False because output mismatch
+    float res2 = 0.0f;
+    REQUIRE_FALSE(nwk::rules().calculate(ent, mod2,
+        [&res2](float value) {
+            res2 += value;
         }));
 }
 
@@ -128,7 +135,9 @@ TEST_CASE("modifier kernel 3", "[rules]")
     ent->stats.add_feat(nwn1::feat_resist_energy_acid);
 
     int res = 0;
-    REQUIRE(nwk::rules().calculate(ent, nwn1::mod_type_dmg_resistance,
+    REQUIRE(nwk::rules().calculate(
+        ent, nwn1::mod_type_dmg_resistance,
+        nwn1::damage_type_acid,
         [&res](int value) {
             res += value;
         }));
@@ -139,6 +148,7 @@ TEST_CASE("modifier kernel 3", "[rules]")
     ent->stats.add_feat(nwn1::feat_epic_energy_resistance_acid_2);
     res = 0;
     REQUIRE(nwk::rules().calculate(ent, nwn1::mod_type_dmg_resistance,
+        nwn1::damage_type_acid,
         [&res](int value) {
             res += value;
         }));
