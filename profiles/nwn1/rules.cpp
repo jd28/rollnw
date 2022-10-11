@@ -222,58 +222,45 @@ nw::RuleValue selector(const nw::Selector& selector, const nw::ObjectBase* obj)
     return {};
 }
 
-nw::ModifierResult epic_great_strength(const nw::ObjectBase* obj)
+nw::ModifierResult epic_great_ability(const nw::ObjectBase* obj, int32_t subtype)
 {
-    auto nth = highest_feat_in_range(obj->as_creature(), feat_epic_great_strength_1, feat_epic_great_strength_10);
-    if (nth == nw::Feat::invalid) {
+    if (subtype < 0 || subtype >= 5) return 0;
+    nw::Ability abil = nw::make_ability(subtype);
+    nw::Feat start, stop;
+    switch (abil) {
+    default:
         return 0;
+    case ability_strength:
+        start = feat_epic_great_strength_1;
+        stop = feat_epic_great_strength_10;
+        break;
+    case ability_dexterity:
+        start = feat_epic_great_dexterity_1;
+        stop = feat_epic_great_dexterity_10;
+        break;
+    case ability_constitution:
+        start = feat_epic_great_constitution_1;
+        stop = feat_epic_great_constitution_10;
+        break;
+    case ability_intelligence:
+        start = feat_epic_great_intelligence_1;
+        stop = feat_epic_great_intelligence_10;
+        break;
+    case ability_wisdom:
+        start = feat_epic_great_wisdom_1;
+        stop = feat_epic_great_wisdom_10;
+        break;
+    case ability_charisma:
+        start = feat_epic_great_charisma_1;
+        stop = feat_epic_great_charisma_10;
+        break;
     }
-    return int(nth) - int(feat_epic_great_strength_1) + 1;
-}
 
-nw::ModifierResult epic_great_dexterity(const nw::ObjectBase* obj)
-{
-    auto nth = highest_feat_in_range(obj->as_creature(), feat_epic_great_dexterity_1, feat_epic_great_dexterity_10);
+    auto nth = highest_feat_in_range(obj->as_creature(), start, stop);
     if (nth == nw::Feat::invalid) {
         return 0;
     }
-    return int(nth) - int(feat_epic_great_dexterity_1) + 1;
-}
-
-nw::ModifierResult epic_great_constitution(const nw::ObjectBase* obj)
-{
-    auto nth = highest_feat_in_range(obj->as_creature(), feat_epic_great_constitution_1, feat_epic_great_constitution_10);
-    if (nth == nw::Feat::invalid) {
-        return 0;
-    }
-    return int(nth) - int(feat_epic_great_constitution_1) + 1;
-}
-
-nw::ModifierResult epic_great_intelligence(const nw::ObjectBase* obj)
-{
-    auto nth = highest_feat_in_range(obj->as_creature(), feat_epic_great_intelligence_1, feat_epic_great_intelligence_10);
-    if (nth == nw::Feat::invalid) {
-        return 0;
-    }
-    return int(nth) - int(feat_epic_great_intelligence_1) + 1;
-}
-
-nw::ModifierResult epic_great_wisdom(const nw::ObjectBase* obj)
-{
-    auto nth = highest_feat_in_range(obj->as_creature(), feat_epic_great_wisdom_1, feat_epic_great_wisdom_10);
-    if (nth == nw::Feat::invalid) {
-        return 0;
-    }
-    return int(nth) - int(feat_epic_great_wisdom_1) + 1;
-}
-
-nw::ModifierResult epic_great_charisma(const nw::ObjectBase* obj)
-{
-    auto nth = highest_feat_in_range(obj->as_creature(), feat_epic_great_charisma_1, feat_epic_great_charisma_10);
-    if (nth == nw::Feat::invalid) {
-        return 0;
-    }
-    return int(nth) - int(feat_epic_great_charisma_1) + 1;
+    return int(nth) - int(start) + 1;
 }
 
 nw::ModifierResult dragon_disciple_ac(const nw::ObjectBase* obj)
