@@ -1,6 +1,7 @@
 BasedOnStyle: WebKit
 AlignTrailingComments: 'true'
 AllowShortIfStatementsOnASingleLine: WithoutElse
+AllowShortBlocksOnASingleLine: 'true'
 Cpp11BracedListStyle: 'true'
 NamespaceIndentation: None
 SortIncludes: 'true'
