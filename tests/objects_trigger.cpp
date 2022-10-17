@@ -1,4 +1,4 @@
-#include <catch2/catch.hpp>
+#include <catch2/catch_all.hpp>
 
 #include <nw/components/Trigger.hpp>
 #include <nw/kernel/Objects.hpp>

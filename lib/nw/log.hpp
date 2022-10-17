@@ -7,6 +7,8 @@
 // Needed to format std::filesystem::path
 #include <fmt/ostream.h>
 
+#include <filesystem>
+
 /// rollNW namespace
 namespace nw {
 
@@ -14,3 +16,12 @@ namespace nw {
 void init_logger(int argc, char* argv[]);
 
 } // namespace nw
+
+template <>
+struct fmt::formatter<std::filesystem::path> : formatter<string_view> {
+    template <typename FormatContext>
+    auto format(const std::filesystem::path& p, FormatContext& ctx) const
+    {
+        return formatter<string_view>::format(p.string(), ctx);
+    }
+};

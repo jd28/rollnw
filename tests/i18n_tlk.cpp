@@ -1,4 +1,4 @@
-#include <catch2/catch.hpp>
+#include <catch2/catch_all.hpp>
 
 #include <nw/i18n/Tlk.hpp>
 #include <nw/kernel/Kernel.hpp>

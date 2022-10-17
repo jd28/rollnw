@@ -1,5 +1,6 @@
 #pragma once
 
+#include <fmt/format.h>
 #include <nlohmann/json_fwd.hpp>
 
 #include <array>
@@ -71,3 +72,13 @@ void from_json(const nlohmann::json& j, Resref& r);
 void to_json(nlohmann::json& j, const Resref& r);
 
 } // namespace nw
+
+template <>
+struct fmt::formatter<nw::Resref> : fmt::formatter<std::string_view> {
+    // parse is inherited from formatter<string_view>.
+    template <typename FormatContext>
+    auto format(const nw::Resref& r, FormatContext& ctx) const
+    {
+        return formatter<string_view>::format(r.view(), ctx);
+    }
+};
