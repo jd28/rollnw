@@ -24,7 +24,7 @@ jobs:
   analyze:
     env:
       buildDir: "${{ github.workspace }}/build/"
-      vcpkg-tag: "2022.03.10"
+      vcpkg-tag: "2022.09.27"
       VCPKG_ROOT: "${{ github.workspace }}/vcpkg/"
       VCPKG_DEFAULT_BINARY_CACHE: "${{ github.workspace }}/vcpkg/.cache"
 
