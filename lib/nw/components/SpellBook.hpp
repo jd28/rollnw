@@ -27,7 +27,7 @@ enum struct SpellMetaMagic : uint8_t {
 };
 
 struct SpellEntry {
-    Spell spell = Spell::invalid;
+    Spell spell = Spell::invalid();
     SpellMetaMagic meta = SpellMetaMagic::none;
     SpellFlags flags = SpellFlags::none;
 };

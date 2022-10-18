@@ -14,7 +14,7 @@ int count_feats_in_range(const nw::Creature* obj, nw::Feat start, nw::Feat end)
     }
 
     while (e >= s) {
-        if (obj->stats.has_feat(nw::make_feat(e))) {
+        if (obj->stats.has_feat(nw::Feat::make(e))) {
             ++result;
         }
         --e;
@@ -35,9 +35,9 @@ std::vector<nw::Feat> get_all_available_feats(const nw::Creature* obj)
 
     for (size_t i = 0; i < feats.entries.size(); ++i) {
         if (feats.entries[i].valid()
-            && !obj->stats.has_feat(nw::make_feat(uint32_t(i))) // [TODO] Not efficient
+            && !obj->stats.has_feat(nw::Feat::make(uint32_t(i))) // [TODO] Not efficient
             && nw::kernel::rules().meets_requirement(feats.entries[i].requirements, obj)) {
-            result.push_back(nw::make_feat(uint32_t(i)));
+            result.push_back(nw::Feat::make(uint32_t(i)));
         }
     }
 
@@ -56,7 +56,7 @@ bool knows_feat(const nw::Creature* obj, nw::Feat feat)
 
 std::pair<nw::Feat, int> has_feat_successor(const nw::Creature* obj, nw::Feat feat)
 {
-    nw::Feat highest = nw::Feat::invalid;
+    nw::Feat highest = nw::Feat::invalid();
     int count = 0;
 
     auto featarray = &nw::kernel::rules().feats;
@@ -76,7 +76,7 @@ std::pair<nw::Feat, int> has_feat_successor(const nw::Creature* obj, nw::Feat fe
         highest = feat;
         ++count;
         const auto next_entry = featarray->get(feat);
-        if (!next_entry || next_entry->successor == nw::Feat::invalid) {
+        if (!next_entry || next_entry->successor == nw::Feat::invalid()) {
             break;
         }
         feat = next_entry->successor;
@@ -89,16 +89,16 @@ std::pair<nw::Feat, int> has_feat_successor(const nw::Creature* obj, nw::Feat fe
 nw::Feat highest_feat_in_range(const nw::Creature* obj, nw::Feat start, nw::Feat end)
 {
     if (!obj) {
-        return nw::Feat::invalid;
+        return nw::Feat::invalid();
     }
     uint32_t s = static_cast<uint32_t>(start), e = static_cast<uint32_t>(end);
     while (e >= s) {
-        if (obj->stats.has_feat(nw::make_feat(e))) {
-            return nw::make_feat(e);
+        if (obj->stats.has_feat(nw::Feat::make(e))) {
+            return nw::Feat::make(e);
         }
         --e;
     }
-    return nw::Feat::invalid;
+    return nw::Feat::invalid();
 }
 
 } // namespace nwn1

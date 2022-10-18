@@ -9,7 +9,7 @@ namespace nwn1 {
 
 std::pair<bool, int> can_use_monk_abilities(const nw::Creature* obj)
 {
-    if (class_type_monk == nw::Class::invalid) {
+    if (class_type_monk == nw::Class::invalid()) {
         return {false, 0};
     }
     auto level = obj->levels.level_by_class(class_type_monk);

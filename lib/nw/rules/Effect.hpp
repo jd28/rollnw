@@ -1,7 +1,7 @@
 #pragma once
 
+#include "rule_type.hpp"
 #include "system.hpp"
-#include "type_traits.hpp"
 
 #include <absl/container/inlined_vector.h>
 
@@ -9,14 +9,7 @@
 
 namespace nw {
 
-enum struct EffectType : int32_t {
-    invalid = -1,
-};
-constexpr EffectType make_effect_type(int32_t index) { return static_cast<EffectType>(index); }
-
-template <>
-struct is_rule_type_base<EffectType> : std::true_type {
-};
+DECLARE_RULE_TYPE(EffectType)
 
 struct EffectHandle;
 

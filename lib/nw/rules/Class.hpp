@@ -2,8 +2,8 @@
 
 #include "../resources/Resource.hpp"
 #include "../util/InternedString.hpp"
+#include "rule_type.hpp"
 #include "system.hpp"
-#include "type_traits.hpp"
 
 #include <absl/container/flat_hash_map.h>
 
@@ -16,14 +16,7 @@ namespace nw {
 struct Creature;
 struct TwoDARowView;
 
-enum struct Class : int32_t {
-    invalid = -1,
-};
-constexpr Class make_class(int32_t id) { return static_cast<Class>(id); }
-
-template <>
-struct is_rule_type_base<Class> : std::true_type {
-};
+DECLARE_RULE_TYPE(Class)
 
 struct ClassInfo {
     ClassInfo() = default;

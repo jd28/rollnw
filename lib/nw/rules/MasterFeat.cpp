@@ -15,7 +15,7 @@ void MasterFeatRegistry::clear() noexcept
 
 void MasterFeatRegistry::set_bonus(MasterFeat mfeat, ModifierVariant bonus)
 {
-    if (mfeat == MasterFeat::invalid) return;
+    if (mfeat == MasterFeat::invalid()) return;
 
     auto mf = static_cast<size_t>(mfeat);
 

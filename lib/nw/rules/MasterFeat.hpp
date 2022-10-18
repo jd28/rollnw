@@ -11,25 +11,13 @@
 
 namespace nw {
 
-/// Opaque type for Master Feats
-enum struct MasterFeat : int32_t {
-    invalid = -1,
-};
-
-/// Converts integer to ``MasterFeat``
-constexpr MasterFeat make_master_feat(int32_t id) { return static_cast<MasterFeat>(id); }
-
-/// @cond NEVER
-template <>
-struct is_rule_type_base<MasterFeat> {
-};
-/// @endcond
+DECLARE_RULE_TYPE(MasterFeat)
 
 /// Entry in Master Feat registry
 struct MasterFeatEntry {
-    MasterFeat mfeat = MasterFeat::invalid;
+    MasterFeat mfeat = MasterFeat::invalid();
     int32_t type = -1;
-    Feat feat = Feat::invalid;
+    Feat feat = Feat::invalid();
 };
 
 inline bool operator<(const MasterFeatEntry& lhs, const MasterFeatEntry& rhs)
@@ -110,7 +98,7 @@ std::array<T, sizeof...(Args)> MasterFeatRegistry::resolve(const Creature* obj,
     auto it = std::begin(entries());
     size_t i = 0;
     for (auto mf : mfs) {
-        MasterFeatEntry mfe{mf, static_cast<int32_t>(type), Feat::invalid};
+        MasterFeatEntry mfe{mf, static_cast<int32_t>(type), Feat::invalid()};
         const auto& mf_bonus = get_bonus(mf);
         if (mf_bonus.empty()) continue;
 

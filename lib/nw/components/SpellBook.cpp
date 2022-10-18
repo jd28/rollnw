@@ -36,7 +36,7 @@ bool SpellBook::from_gff(const GffStruct& gff)
             SpellEntry s;
             uint16_t temp;
             if (gff[k][j].get_to("Spell", temp)) {
-                s.spell = make_spell(temp);
+                s.spell = Spell::make(temp);
             }
             gff[k][j].get_to("SpellFlags", s.flags);
             gff[k][j].get_to("SpellMetaMagic", s.meta);
@@ -49,7 +49,7 @@ bool SpellBook::from_gff(const GffStruct& gff)
             SpellEntry s;
             uint16_t temp;
             if (gff[k][j].get_to("Spell", temp)) {
-                s.spell = make_spell(temp);
+                s.spell = Spell::make(temp);
             }
             gff[m][j].get_to("SpellFlags", s.flags);
             gff[m][j].get_to("SpellMetaMagic", s.meta);

@@ -27,7 +27,7 @@ bool CreatureStats::from_gff(const GffStruct& archive)
     for (size_t i = 0; i < sz; ++i) {
         uint16_t temp;
         if (feat_list[i].get_to("Feat", temp)) {
-            feats_[i] = make_feat(temp);
+            feats_[i] = Feat::make(temp);
         }
     }
 

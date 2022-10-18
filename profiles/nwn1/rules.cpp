@@ -119,7 +119,7 @@ nw::RuleValue selector(const nw::Selector& selector, const nw::ObjectBase* obj)
             LOG_F(ERROR, "selector - ability: invalid subtype");
             return {};
         }
-        return get_ability_score(obj->as_creature(), nw::make_ability(selector.subtype.as<int32_t>()));
+        return get_ability_score(obj->as_creature(), nw::Ability::make(selector.subtype.as<int32_t>()));
     }
     case nw::SelectorType::alignment: {
         if (!selector.subtype.is<int32_t>()) {
@@ -150,7 +150,7 @@ nw::RuleValue selector(const nw::Selector& selector, const nw::ObjectBase* obj)
         }
 
         for (const auto& ce : cre->levels.entries) {
-            if (ce.id == nw::make_class(selector.subtype.as<int32_t>())) {
+            if (ce.id == nw::Class::make(selector.subtype.as<int32_t>())) {
                 return ce.level;
             }
         }
@@ -167,7 +167,7 @@ nw::RuleValue selector(const nw::Selector& selector, const nw::ObjectBase* obj)
             return {};
         }
 
-        return cre->stats.has_feat(nw::make_feat(selector.subtype.as<int32_t>()));
+        return cre->stats.has_feat(nw::Feat::make(selector.subtype.as<int32_t>()));
     }
     case nw::SelectorType::level: {
         auto cre = obj->as_creature();
@@ -215,17 +215,28 @@ nw::RuleValue selector(const nw::Selector& selector, const nw::ObjectBase* obj)
             LOG_F(ERROR, "selector - skill: invalid subtype");
             return {};
         }
-        return get_skill_rank(obj->as_creature(), nw::make_skill(selector.subtype.as<int32_t>()));
+        return get_skill_rank(obj->as_creature(), nw::Skill::make(selector.subtype.as<int32_t>()));
     }
     }
 
     return {};
 }
 
+nw::ModifierFunction simple_feat_mod(nw::Feat feat, int value)
+{
+    return [feat, value](const nw::ObjectBase* obj) {
+        auto cre = obj->as_creature();
+        if (cre && cre->stats.has_feat(feat)) {
+            return value;
+        }
+        return 0;
+    };
+}
+
 nw::ModifierResult epic_great_ability(const nw::ObjectBase* obj, int32_t subtype)
 {
     if (subtype < 0 || subtype >= 5) return 0;
-    nw::Ability abil = nw::make_ability(subtype);
+    nw::Ability abil = nw::Ability::make(subtype);
     nw::Feat start, stop;
     switch (abil) {
     default:
@@ -257,7 +268,7 @@ nw::ModifierResult epic_great_ability(const nw::ObjectBase* obj, int32_t subtype
     }
 
     auto nth = highest_feat_in_range(obj->as_creature(), start, stop);
-    if (nth == nw::Feat::invalid) {
+    if (nth == nw::Feat::invalid()) {
         return 0;
     }
     return int(nth) - int(start) + 1;
@@ -265,15 +276,6 @@ nw::ModifierResult epic_great_ability(const nw::ObjectBase* obj, int32_t subtype
 
 nw::ModifierResult dragon_disciple_ac(const nw::ObjectBase* obj)
 {
-    // auto cls = nw::kernel::world().get<nw::ClassArray>();
-    //  if (!cls) { return 0; }
-    //  if (cls->entries.size() < nwn1::class_type_dragon_disciple) {
-    //      return 0;
-    //  }
-    //  if (cls->entries[nwn1::class_type_dragon_disciple].index != nwn1::class_type_dragon_disciple) {
-    //      return 0;
-    //  }
-
     auto cre = obj->as_creature();
 
     if (!obj) {
@@ -281,20 +283,6 @@ nw::ModifierResult dragon_disciple_ac(const nw::ObjectBase* obj)
     }
 
     auto level = cre->levels.level_by_class(nwn1::class_type_dragon_disciple);
-
-    // auto tdas = nw::kernel::world().get_mut<nw::TwoDACache>();
-    // if (tdas) {
-    //     auto cls_stat_2da = tdas->get(cls->entries[nwn1::class_type_dragon_disciple].stat_gain_table);
-    //     if (cls_stat_2da) {
-    //         int res = 0, tmp;
-    //         for (int i = 0; i < level; ++i) {
-    //             if (cls_stat_2da->get_to(i, "NaturalAC", tmp)) {
-    //                 res += tmp;
-    //             }
-    //         }
-    //         return res;
-    //     }
-    // }
 
     if (level >= 10) {
         return (level / 5) + 2;
@@ -316,29 +304,6 @@ nw::ModifierResult pale_master_ac(const nw::ObjectBase* obj)
     }
     auto pm_level = cre->levels.level_by_class(nwn1::class_type_pale_master);
 
-    // auto cls = nw::kernel::world().get<nw::ClassArray>();
-    // if (!cls) { return 0; }
-    // if (cls->entries.size() < nwn1::class_type_pale_master) {
-    //     return 0;
-    // }
-    // if (cls->entries[nwn1::class_type_pale_master].index != nwn1::class_type_pale_master) {
-    //     return 0;
-    // }
-
-    // auto tdas = nw::kernel::world().get_mut<nw::TwoDACache>();
-    // if (tdas) {
-    //     auto cls_stat_2da = tdas->get(cls->entries[nwn1::class_type_pale_master].stat_gain_table);
-    //     if (cls_stat_2da) {
-    //         int res = 0, tmp;
-    //         for (int i = 0; i < pm_level; ++i) {
-    //             if (cls_stat_2da->get_to(i, "NaturalAC", tmp)) {
-    //                 res += tmp;
-    //             }
-    //         }
-    //         return res;
-    //     }
-    // }
-
     return pm_level > 0 ? ((pm_level / 4) + 1) * 2 : 0;
 }
 
@@ -349,7 +314,7 @@ nw::ModifierResult energy_resistance(const nw::ObjectBase* obj, int32_t subtype)
         return {};
     }
     auto cre = obj->as_creature();
-    auto dmg_type = nw::make_damage(subtype);
+    auto dmg_type = nw::Damage::make(subtype);
     nw::Feat feat_start, feat_end, resist;
     if (dmg_type == damage_type_acid) {
         resist = feat_resist_energy_acid;
@@ -376,7 +341,7 @@ nw::ModifierResult energy_resistance(const nw::ObjectBase* obj, int32_t subtype)
     }
 
     auto nth = highest_feat_in_range(cre, feat_start, feat_end);
-    if (nth == nw::Feat::invalid) {
+    if (nth == nw::Feat::invalid()) {
         if (cre->stats.has_feat(resist)) {
             return 5;
         } else {
@@ -404,7 +369,7 @@ nw::ModifierResult toughness(const nw::ObjectBase* obj)
 nw::ModifierResult epic_toughness(const nw::ObjectBase* obj)
 {
     auto nth = highest_feat_in_range(obj->as_creature(), feat_epic_toughness_1, feat_epic_toughness_10);
-    if (nth == nw::Feat::invalid) {
+    if (nth == nw::Feat::invalid()) {
         return 0;
     }
     return (int(nth) - int(feat_epic_toughness_1) + 1) * 20;

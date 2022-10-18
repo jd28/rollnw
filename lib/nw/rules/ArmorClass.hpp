@@ -1,19 +1,12 @@
 #pragma once
 
-#include "type_traits.hpp"
+#include "rule_type.hpp"
 
 #include <cstdint>
 #include <limits>
 
 namespace nw {
 
-enum struct ArmorClass : int32_t {
-    invalid = -1,
-};
-constexpr ArmorClass make_armor_class(int32_t id) { return static_cast<ArmorClass>(id); }
-
-template <>
-struct is_rule_type_base<ArmorClass> : std::true_type {
-};
+DECLARE_RULE_TYPE(ArmorClass)
 
 } // namespace nw

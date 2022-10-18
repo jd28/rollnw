@@ -1,22 +1,14 @@
 #pragma once
 
 #include "../components/ObjectBase.hpp"
+#include "rule_type.hpp"
 #include "system.hpp"
-#include "type_traits.hpp"
 
 #include <absl/container/inlined_vector.h>
 
 namespace nw {
 
-enum struct ModifierType : int32_t {
-    invalid = -1,
-};
-
-constexpr ModifierType make_modifier_type(int32_t id) { return static_cast<ModifierType>(id); }
-
-template <>
-struct is_rule_type_base<ModifierType> : std::true_type {
-};
+DECLARE_RULE_TYPE(ModifierType)
 
 enum struct ModifierSource {
     unknown,
@@ -48,7 +40,7 @@ template <typename T>
 using ModifierOutputs = absl::InlinedVector<T, 4>;
 
 struct Modifier {
-    ModifierType type = ModifierType::invalid;
+    ModifierType type = ModifierType::invalid();
     ModifierInputs value;
     InternedString tagged;
     ModifierSource source = ModifierSource::unknown;

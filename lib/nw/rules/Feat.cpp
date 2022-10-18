@@ -24,7 +24,7 @@ FeatInfo::FeatInfo(const TwoDARowView& tda)
     tda.get_to("MAXCR", max_cr);
     tda.get_to("SPELLID", spell);
     if (tda.get_to("SUCCESSOR", temp_int)) {
-        successor = make_feat(temp_int);
+        successor = Feat::make(temp_int);
     }
     tda.get_to("CRValue", cr_value);
     tda.get_to("USESPERDAY", uses);
@@ -62,7 +62,7 @@ Feat FeatArray::from_constant(std::string_view constant) const
     absl::string_view v{constant.data(), constant.size()};
     auto it = constant_to_index.find(v);
     if (it == constant_to_index.end()) {
-        return Feat::invalid;
+        return Feat::invalid();
     } else {
         return it->second;
     }

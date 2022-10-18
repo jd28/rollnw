@@ -8,12 +8,12 @@ namespace nwn1 {
 
 int get_ability_score(const nw::Creature* obj, nw::Ability ability, bool base = false)
 {
-    if (!obj || ability == nw::Ability::invalid) {
+    if (!obj || ability == nw::Ability::invalid()) {
         return 0;
     }
 
     // Base
-    int result = obj->stats.abilities[static_cast<size_t>(ability)];
+    int result = obj->stats.abilities[ability];
     nw::kernel::rules().calculate(obj, mod_type_ability, ability,
         [&result](int value) { result += value; });
 

@@ -1,22 +1,16 @@
 #pragma once
 
 #include "../util/InternedString.hpp"
-#include "type_traits.hpp"
+#include "rule_type.hpp"
 
 #include <absl/container/flat_hash_map.h>
 
+#include <limits>
 #include <vector>
 
 namespace nw {
 
-enum struct Ability : int32_t {
-    invalid = -1,
-};
-constexpr Ability make_ability(int32_t id) { return static_cast<Ability>(id); }
-
-template <>
-struct is_rule_type_base<Ability> : std::true_type {
-};
+DECLARE_RULE_TYPE(Ability)
 
 // Since there is no 2da for abilities, this is a placeholder.
 

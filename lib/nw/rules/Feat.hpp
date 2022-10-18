@@ -1,8 +1,8 @@
 #pragma once
 
 #include "../resources/Resource.hpp"
+#include "rule_type.hpp"
 #include "system.hpp"
-#include "type_traits.hpp"
 
 #include <absl/container/flat_hash_map.h>
 
@@ -14,14 +14,7 @@ namespace nw {
 
 struct TwoDARowView;
 
-enum struct Feat : int32_t {
-    invalid = -1,
-};
-constexpr Feat make_feat(int32_t index) { return static_cast<Feat>(index); }
-
-template <>
-struct is_rule_type_base<Feat> : std::true_type {
-};
+DECLARE_RULE_TYPE(Feat)
 
 /// Feat definition
 struct FeatInfo {
@@ -35,7 +28,7 @@ struct FeatInfo {
     int category = -1;
     int max_cr = 0;
     int spell = -1;
-    Feat successor = Feat::invalid;
+    Feat successor = Feat::invalid();
     float cr_value = 0.0f;
     int uses = 0;
     int master = 0;

@@ -38,17 +38,14 @@ Definitions
    .. code:: cpp
 
       // Definition of an attribute in nw/rules/ArmorClass.hpp
-      enum struct ArmorClass : int32_t {
-         invalid = -1
-      };
-      constexpr ArmorClass make_armor_class(int32_t id) { return static_cast<ArmorClass>(id); }
+      DECLARE_RULE_TYPE(ArmorClass)
 
       // Somewhere else in a rule profile that uses the concept of armor class
-      constexpr nw::ArmorClass ac_dodge = nw::make_armor_class(0);
-      constexpr nw::ArmorClass ac_natural = nw::make_armor_class(1);
-      constexpr nw::ArmorClass ac_armor = nw::make_armor_class(2);
-      constexpr nw::ArmorClass ac_shield = nw::make_armor_class(3);
-      constexpr nw::ArmorClass ac_deflection = nw::make_armor_class(4);
+      constexpr nw::ArmorClass ac_dodge = nw::ArmorClass::make(0);
+      constexpr nw::ArmorClass ac_natural = nw::ArmorClass::make(1);
+      constexpr nw::ArmorClass ac_armor = nw::ArmorClass::make(2);
+      constexpr nw::ArmorClass ac_shield = nw::ArmorClass::make(3);
+      constexpr nw::ArmorClass ac_deflection = nw::ArmorClass::make(4);
 
 **Flag**
    :cpp:struct:`nw::RuleFlag` provides a mechanism for making flags out of rule types.

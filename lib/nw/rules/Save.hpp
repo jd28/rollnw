@@ -7,14 +7,7 @@
 
 namespace nw {
 
-enum struct Save : int32_t {
-    invalid = -1,
-};
-constexpr Save make_save(int32_t id) { return static_cast<Save>(id); }
-
-template <>
-struct is_rule_type_base<Save> : std::true_type {
-};
+DECLARE_RULE_TYPE(Save)
 
 struct SaveInfo {
 };

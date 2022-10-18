@@ -3,8 +3,8 @@
 #include "../resources/Resource.hpp"
 #include "../util/Variant.hpp"
 #include "Dice.hpp"
+#include "rule_type.hpp"
 #include "system.hpp"
-#include "type_traits.hpp"
 
 #include <absl/container/inlined_vector.h>
 
@@ -16,14 +16,7 @@ namespace nw {
 
 struct TwoDARowView;
 
-enum struct BaseItem : int32_t {
-    invalid = -1,
-};
-constexpr BaseItem make_baseitem(int32_t id) { return static_cast<BaseItem>(id); }
-
-template <>
-struct is_rule_type_base<BaseItem> : std::true_type {
-};
+DECLARE_RULE_TYPE(BaseItem)
 
 enum struct ItemModelType : uint8_t {
     simple,

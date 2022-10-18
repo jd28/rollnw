@@ -47,7 +47,7 @@ int weapon_iteration(const nw::Creature* obj, nw::Item* weapon)
 
     auto& bia = nw::kernel::rules().baseitems;
 
-    auto baseitem = bia.get(nw::make_baseitem(weapon->baseitem));
+    auto baseitem = bia.get(nw::BaseItem::make(weapon->baseitem));
     if (!baseitem) {
         return 0;
     }

@@ -76,7 +76,7 @@ struct Creature : public ObjectBase {
     float cr = 0.0;
     int32_t cr_adjust = 0;
     uint32_t decay_time;
-    Race race = Race::invalid;
+    Race race = Race::invalid();
     int32_t walkrate = 0;
 
     uint16_t faction_id = 0;

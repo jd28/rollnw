@@ -2,8 +2,8 @@
 
 #include "../resources/Resource.hpp"
 #include "Ability.hpp"
+#include "rule_type.hpp"
 #include "system.hpp"
-#include "type_traits.hpp"
 
 #include <absl/container/flat_hash_map.h>
 
@@ -14,15 +14,7 @@ namespace nw {
 
 struct TwoDARowView;
 
-enum struct Skill : int32_t {
-    invalid = -1,
-};
-
-constexpr Skill make_skill(int32_t id) { return static_cast<Skill>(id); }
-
-template <>
-struct is_rule_type_base<Skill> : std::true_type {
-};
+DECLARE_RULE_TYPE(Skill)
 
 // Ignored 2da columns: Category, MaxCR
 
@@ -35,7 +27,7 @@ struct SkillInfo {
     uint32_t description = 0xFFFFFFFF;
     Resource icon;
     bool untrained = false;
-    Ability ability = Ability::invalid;
+    Ability ability{};
     bool armor_check_penalty = false;
     bool all_can_use = false;
     InternedString constant;

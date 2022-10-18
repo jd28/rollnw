@@ -1,22 +1,13 @@
 #pragma once
 
 #include "../util/enum_flags.hpp"
-#include "RuleFlag.hpp"
-#include "type_traits.hpp"
+#include "rule_type.hpp"
 
 #include <limits>
 
 namespace nw {
 
-enum struct Situation : int32_t {
-    invalid = -1,
-};
-
-constexpr Situation make_situation(int id) { return static_cast<Situation>(id); }
-
-template <>
-struct is_rule_type_base<Situation> : std::true_type {
-};
+DECLARE_RULE_TYPE(Situation)
 
 using SituationFlag = RuleFlag<Situation, 64>;
 

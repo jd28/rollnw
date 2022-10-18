@@ -171,6 +171,12 @@ static inline void load_modifiers()
         epic_toughness,
         "dnd-3.0-epic-toughness",
         nw::ModifierSource::feat));
+
+    rules.add(mod::skill(
+        skill_search,
+        simple_feat_mod(feat_stonecunning, 2),
+        "dnd-3.0-stone-cunning",
+        nw::ModifierSource::feat));
 }
 
 bool Profile::load_rules() const
@@ -200,36 +206,36 @@ bool Profile::load_rules() const
             auto& info = baseitem_array.entries.emplace_back(baseitems.row(i));
             if (info.valid()) {
                 if (baseitems.get_to(i, "WeaponFocusFeat", temp_int)) {
-                    mfr.add(nw::make_baseitem(static_cast<int32_t>(i)),
-                        mfeat_weapon_focus, nw::make_feat(temp_int));
+                    mfr.add(nw::BaseItem::make(static_cast<uint32_t>(i)),
+                        mfeat_weapon_focus, nw::Feat::make(temp_int));
                 }
                 if (baseitems.get_to(i, "EpicWeaponFocusFeat", temp_int)) {
-                    mfr.add(nw::make_baseitem(static_cast<int32_t>(i)),
-                        mfeat_weapon_focus_epic, nw::make_feat(temp_int));
+                    mfr.add(nw::BaseItem::make(static_cast<uint32_t>(i)),
+                        mfeat_weapon_focus_epic, nw::Feat::make(temp_int));
                 }
                 if (baseitems.get_to(i, "WeaponSpecializationFeat", temp_int)) {
-                    mfr.add(nw::make_baseitem(static_cast<int32_t>(i)),
-                        mfeat_weapon_spec, nw::make_feat(temp_int));
+                    mfr.add(nw::BaseItem::make(static_cast<uint32_t>(i)),
+                        mfeat_weapon_spec, nw::Feat::make(temp_int));
                 }
                 if (baseitems.get_to(i, "EpicWeaponSpecializationFeat", temp_int)) {
-                    mfr.add(nw::make_baseitem(static_cast<int32_t>(i)),
-                        mfeat_weapon_spec_epic, nw::make_feat(temp_int));
+                    mfr.add(nw::BaseItem::make(static_cast<uint32_t>(i)),
+                        mfeat_weapon_spec_epic, nw::Feat::make(temp_int));
                 }
                 if (baseitems.get_to(i, "WeaponImprovedCriticalFeat", temp_int)) {
-                    mfr.add(nw::make_baseitem(static_cast<int32_t>(i)),
-                        mfeat_improved_crit, nw::make_feat(temp_int));
+                    mfr.add(nw::BaseItem::make(static_cast<uint32_t>(i)),
+                        mfeat_improved_crit, nw::Feat::make(temp_int));
                 }
                 if (baseitems.get_to(i, "EpicWeaponOverwhelmingCriticalFeat", temp_int)) {
-                    mfr.add(nw::make_baseitem(static_cast<int32_t>(i)),
-                        mfeat_overwhelming_crit, nw::make_feat(temp_int));
+                    mfr.add(nw::BaseItem::make(static_cast<uint32_t>(i)),
+                        mfeat_overwhelming_crit, nw::Feat::make(temp_int));
                 }
                 if (baseitems.get_to(i, "EpicWeaponDevastatingCriticalFeat", temp_int)) {
-                    mfr.add(nw::make_baseitem(static_cast<int32_t>(i)),
-                        mfeat_devastating_crit, nw::make_feat(temp_int));
+                    mfr.add(nw::BaseItem::make(static_cast<uint32_t>(i)),
+                        mfeat_devastating_crit, nw::Feat::make(temp_int));
                 }
                 if (baseitems.get_to(i, "WeaponOfChoiceFeat", temp_int)) {
-                    mfr.add(nw::make_baseitem(static_cast<int32_t>(i)),
-                        mfeat_weapon_of_choice, nw::make_feat(temp_int));
+                    mfr.add(nw::BaseItem::make(static_cast<uint32_t>(i)),
+                        mfeat_weapon_of_choice, nw::Feat::make(temp_int));
                 }
             }
         }
@@ -244,7 +250,7 @@ bool Profile::load_rules() const
         for (size_t i = 0; i < classes.rows(); ++i) {
             const auto& info = class_array.entries.emplace_back(classes.row(i));
             if (info.constant) {
-                class_array.constant_to_index.emplace(info.constant, nw::make_class(int32_t(i)));
+                class_array.constant_to_index.emplace(info.constant, nw::Class::make(uint32_t(i)));
             } else if (info.valid()) {
                 LOG_F(WARNING, "[nwn1] valid class ({}) with invalid constant", i);
             }
@@ -260,7 +266,7 @@ bool Profile::load_rules() const
         for (size_t i = 0; i < feat.rows(); ++i) {
             const auto& info = feat_array.entries.emplace_back(feat.row(i));
             if (info.constant) {
-                feat_array.constant_to_index.emplace(info.constant, nw::make_feat(int32_t(i)));
+                feat_array.constant_to_index.emplace(info.constant, nw::Feat::make(uint32_t(i)));
             } else if (info.valid()) {
                 LOG_F(WARNING, "[nwn1] valid feat ({}) with invalid constant", i);
             }
@@ -276,7 +282,7 @@ bool Profile::load_rules() const
         for (size_t i = 0; i < racialtypes.rows(); ++i) {
             const auto& info = race_array.entries.emplace_back(racialtypes.row(i));
             if (info.constant) {
-                race_array.constant_to_index.emplace(info.constant, nw::make_race(int32_t(i)));
+                race_array.constant_to_index.emplace(info.constant, nw::Race::make(uint32_t(i)));
             } else if (info.valid()) {
                 LOG_F(WARNING, "[nwn1] valid race ({}) with invalid constant", i);
             }
@@ -292,7 +298,7 @@ bool Profile::load_rules() const
         for (size_t i = 0; i < skills.rows(); ++i) {
             const auto& info = skill_array.entries.emplace_back(skills.row(i));
             if (info.constant) {
-                skill_array.constant_to_index.emplace(info.constant, nw::make_skill(int32_t(i)));
+                skill_array.constant_to_index.emplace(info.constant, nw::Skill::make(uint32_t(i)));
             } else if (info.valid()) {
                 LOG_F(WARNING, "[nwn1] valid skill ({}) with invalid constant", i);
             }
@@ -318,23 +324,23 @@ bool Profile::load_rules() const
     for (size_t i = 0; i < baseitem_array.entries.size(); ++i) {
         nw::BaseItemInfo& info = baseitem_array.entries[i];
         if (baseitems.get_to(i, "ReqFeat0", temp_int)) {
-            info.feat_requirement.add(qual::feat(nw::make_feat(temp_int)));
+            info.feat_requirement.add(qual::feat(nw::Feat::make(temp_int)));
         }
 
         if (baseitems.get_to(i, "ReqFeat1", temp_int)) {
-            info.feat_requirement.add(qual::feat(nw::make_feat(temp_int)));
+            info.feat_requirement.add(qual::feat(nw::Feat::make(temp_int)));
         }
 
         if (baseitems.get_to(i, "ReqFeat2", temp_int)) {
-            info.feat_requirement.add(qual::feat(nw::make_feat(temp_int)));
+            info.feat_requirement.add(qual::feat(nw::Feat::make(temp_int)));
         }
 
         if (baseitems.get_to(i, "ReqFeat3", temp_int)) {
-            info.feat_requirement.add(qual::feat(nw::make_feat(temp_int)));
+            info.feat_requirement.add(qual::feat(nw::Feat::make(temp_int)));
         }
 
         if (baseitems.get_to(i, "ReqFeat4", temp_int)) {
-            info.feat_requirement.add(qual::feat(nw::make_feat(temp_int)));
+            info.feat_requirement.add(qual::feat(nw::Feat::make(temp_int)));
         }
     }
 
@@ -377,11 +383,11 @@ bool Profile::load_rules() const
         }
 
         if (feat.get_to(i, "PREREQFEAT1", temp_int)) {
-            info.requirements.add(qual::feat(nw::make_feat(temp_int)));
+            info.requirements.add(qual::feat(nw::Feat::make(temp_int)));
         }
 
         if (feat.get_to(i, "PREREQFEAT2", temp_int)) {
-            info.requirements.add(qual::feat(nw::make_feat(temp_int)));
+            info.requirements.add(qual::feat(nw::Feat::make(temp_int)));
         }
     }
 

@@ -126,7 +126,7 @@ BaseItem BaseItemArray::from_constant(std::string_view constant) const
     absl::string_view v{constant.data(), constant.size()};
     auto it = constant_to_index.find(v);
     if (it == constant_to_index.end()) {
-        return BaseItem::invalid;
+        return BaseItem::invalid();
     } else {
         return it->second;
     }

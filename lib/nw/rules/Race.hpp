@@ -2,7 +2,7 @@
 
 #include "../resources/Resource.hpp"
 #include "../util/InternedString.hpp"
-#include "type_traits.hpp"
+#include "rule_type.hpp"
 
 #include <absl/container/flat_hash_map.h>
 
@@ -13,14 +13,7 @@ namespace nw {
 
 struct TwoDARowView;
 
-enum struct Race : int32_t {
-    invalid = -1,
-};
-constexpr Race make_race(int32_t id) { return static_cast<Race>(id); }
-
-template <>
-struct is_rule_type_base<Race> : std::true_type {
-};
+DECLARE_RULE_TYPE(Race)
 
 /// Race definition
 struct RaceInfo {

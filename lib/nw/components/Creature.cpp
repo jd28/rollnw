@@ -146,7 +146,7 @@ bool Creature::deserialize(Creature* obj, const GffStruct& archive, Serializatio
 
     uint8_t temp;
     if (archive.get_to("Race", temp)) {
-        obj->race = make_race(temp);
+        obj->race = Race::make(temp);
     }
 
     archive.get_to("StartingPackage", obj->starting_package);

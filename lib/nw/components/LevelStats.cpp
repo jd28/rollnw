@@ -14,7 +14,7 @@ bool LevelStats::from_gff(const GffStruct& archive)
         ClassEntry c;
         int32_t temp;
         if (archive["ClassList"][i].get_to("Class", temp)) {
-            c.id = make_class(temp);
+            c.id = Class::make(temp);
         }
         archive["ClassList"][i].get_to("ClassLevel", c.level);
         c.spells.from_gff(archive["ClassList"][i]);

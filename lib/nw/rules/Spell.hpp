@@ -1,23 +1,13 @@
 #pragma once
 
 #include "../resources/Resource.hpp"
-#include "type_traits.hpp"
+#include "rule_type.hpp"
 
 namespace nw {
 
 struct TwoDARowView;
 
-enum struct Spell : int32_t {
-    invalid = -1,
-};
-
-/// Converts integer into a Spell
-constexpr Spell make_spell(int32_t id) { return static_cast<Spell>(id); }
-
-/// Converts integer into a Spell
-template <>
-struct is_rule_type_base<Spell> : std::true_type {
-};
+DECLARE_RULE_TYPE(Spell)
 
 struct SpellInfo {
     SpellInfo() = default;
