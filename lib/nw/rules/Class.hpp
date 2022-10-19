@@ -16,7 +16,7 @@ namespace nw {
 struct Creature;
 struct TwoDARowView;
 
-DECLARE_RULE_TYPE(Class)
+DECLARE_RULE_TYPE(Class);
 
 struct ClassInfo {
     ClassInfo() = default;

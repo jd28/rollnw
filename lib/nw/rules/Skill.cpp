@@ -27,15 +27,15 @@ SkillInfo::SkillInfo(const TwoDARowView& tda)
 
 const SkillInfo* SkillArray::get(Skill skill) const noexcept
 {
-    if (*skill < entries.size() && entries[*skill].valid()) {
-        return &entries[*skill];
+    if (skill.idx() < entries.size() && entries[skill.idx()].valid()) {
+        return &entries[skill.idx()];
     }
     return nullptr;
 }
 
 bool SkillArray::is_valid(Skill skill) const noexcept
 {
-    return *skill < entries.size() && entries[*skill].valid();
+    return skill.idx() < entries.size() && entries[skill.idx()].valid();
 }
 
 Skill SkillArray::from_constant(std::string_view constant) const

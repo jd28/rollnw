@@ -7,6 +7,6 @@
 
 namespace nw {
 
-DECLARE_RULE_TYPE(Disease)
+DECLARE_RULE_TYPE(Disease);
 
 } // namespace nw

@@ -7,7 +7,7 @@
 
 namespace nw {
 
-DECLARE_RULE_TYPE(Save)
+DECLARE_RULE_TYPE(Save);
 
 struct SaveInfo {
 };

@@ -7,7 +7,7 @@ namespace nw {
 
 struct TwoDARowView;
 
-DECLARE_RULE_TYPE(Spell)
+DECLARE_RULE_TYPE(Spell);
 
 struct SpellInfo {
     SpellInfo() = default;

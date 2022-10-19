@@ -10,7 +10,7 @@
 
 namespace nw {
 
-DECLARE_RULE_TYPE(Ability)
+DECLARE_RULE_TYPE(Ability);
 
 // Since there is no 2da for abilities, this is a placeholder.
 

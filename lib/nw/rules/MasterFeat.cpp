@@ -16,11 +16,11 @@ void MasterFeatRegistry::set_bonus(MasterFeat mfeat, ModifierVariant bonus)
 {
     if (mfeat == MasterFeat::invalid()) return;
 
-    if (bonuses_.size() <= *mfeat) {
-        bonuses_.resize(*mfeat + 1);
+    if (bonuses_.size() <= mfeat.idx()) {
+        bonuses_.resize(mfeat.idx() + 1);
     }
 
-    bonuses_[*mfeat] = std::move(bonus);
+    bonuses_[mfeat.idx()] = std::move(bonus);
 }
 
 } // namespace nw

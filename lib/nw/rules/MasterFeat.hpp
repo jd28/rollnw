@@ -11,7 +11,7 @@
 
 namespace nw {
 
-DECLARE_RULE_TYPE(MasterFeat)
+DECLARE_RULE_TYPE(MasterFeat);
 
 /// Entry in Master Feat registry
 struct MasterFeatEntry {

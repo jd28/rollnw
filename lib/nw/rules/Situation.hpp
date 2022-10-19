@@ -7,7 +7,7 @@
 
 namespace nw {
 
-DECLARE_RULE_TYPE(Situation)
+DECLARE_RULE_TYPE(Situation);
 
 using SituationFlag = RuleFlag<Situation, 64>;
 

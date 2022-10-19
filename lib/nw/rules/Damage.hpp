@@ -6,11 +6,11 @@
 
 namespace nw {
 
-DECLARE_RULE_TYPE(Damage)
+DECLARE_RULE_TYPE(Damage);
 
 using DamageFlag = RuleFlag<Damage, 32>;
 
-DECLARE_RULE_TYPE(DamageModType)
+DECLARE_RULE_TYPE(DamageModType);
 
 enum struct DamageCategory : uint64_t {
     none = 0,

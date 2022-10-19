@@ -108,15 +108,15 @@ BaseItemInfo::BaseItemInfo(const TwoDARowView& tda)
 
 const BaseItemInfo* BaseItemArray::get(BaseItem baseitem) const noexcept
 {
-    if (*baseitem < entries.size() && entries[*baseitem].valid()) {
-        return &entries[*baseitem];
+    if (baseitem.idx() < entries.size() && entries[baseitem.idx()].valid()) {
+        return &entries[baseitem.idx()];
     }
     return nullptr;
 }
 
 bool BaseItemArray::is_valid(BaseItem baseitem) const noexcept
 {
-    return *baseitem < entries.size() && entries[*baseitem].valid();
+    return baseitem.idx() < entries.size() && entries[baseitem.idx()].valid();
 }
 
 BaseItem BaseItemArray::from_constant(std::string_view constant) const

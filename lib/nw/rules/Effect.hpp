@@ -9,7 +9,7 @@
 
 namespace nw {
 
-DECLARE_RULE_TYPE(EffectType)
+DECLARE_RULE_TYPE(EffectType);
 
 struct EffectHandle;
 

@@ -13,7 +13,7 @@ namespace nw {
 
 struct TwoDARowView;
 
-DECLARE_RULE_TYPE(Race)
+DECLARE_RULE_TYPE(Race);
 
 /// Race definition
 struct RaceInfo {

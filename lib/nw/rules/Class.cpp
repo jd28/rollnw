@@ -99,15 +99,15 @@ ClassInfo::ClassInfo(const TwoDARowView& tda)
 
 const ClassInfo* ClassArray::get(Class class_) const noexcept
 {
-    if (*class_ < entries.size() && entries[*class_].valid()) {
-        return &entries[*class_];
+    if (class_.idx() < entries.size() && entries[class_.idx()].valid()) {
+        return &entries[class_.idx()];
     }
     return nullptr;
 }
 
 bool ClassArray::is_valid(Class class_) const noexcept
 {
-    return *class_ < entries.size() && entries[*class_].valid();
+    return class_.idx() < entries.size() && entries[class_.idx()].valid();
 }
 
 Class ClassArray::from_constant(std::string_view constant) const

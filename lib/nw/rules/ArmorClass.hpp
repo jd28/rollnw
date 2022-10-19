@@ -7,6 +7,6 @@
 
 namespace nw {
 
-DECLARE_RULE_TYPE(ArmorClass)
+DECLARE_RULE_TYPE(ArmorClass);
 
 } // namespace nw

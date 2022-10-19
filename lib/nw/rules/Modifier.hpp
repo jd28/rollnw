@@ -8,7 +8,7 @@
 
 namespace nw {
 
-DECLARE_RULE_TYPE(ModifierType)
+DECLARE_RULE_TYPE(ModifierType);
 
 enum struct ModifierSource {
     unknown,

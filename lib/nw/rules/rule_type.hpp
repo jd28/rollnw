@@ -18,29 +18,32 @@ struct is_rule_type : is_rule_type_base<std::remove_cv_t<T>> {
 
 #define DECLARE_RULE_TYPE(name)                                \
     struct name {                                              \
+        /** Defaulted equality operator */                     \
         bool operator==(const name& rhs) const = default;      \
+        /** Defaulted spaceship operator */                    \
         auto operator<=>(const name& rhs) const = default;     \
+        /** Returns rule type as value */                      \
         constexpr int32_t operator*() const noexcept           \
         {                                                      \
             return int32_t(val);                               \
         }                                                      \
+        /** Returns rule type as index */                      \
         constexpr size_t idx() const noexcept                  \
         {                                                      \
             return size_t(val);                                \
         }                                                      \
+        /** Makes a rule type */                               \
         static constexpr name make(int32_t id)                 \
         {                                                      \
             return name{id};                                   \
         }                                                      \
+        /** Returns an invalid rule type */                    \
         static constexpr name invalid()                        \
         {                                                      \
             return name{};                                     \
         };                                                     \
                                                                \
         int32_t val = -1;                                      \
-    };                                                         \
-    template <>                                                \
-    struct is_rule_type_base<name> : std::true_type {          \
     };                                                         \
     inline void from_json(const nlohmann::json& j, name& type) \
     {                                                          \
@@ -49,6 +52,9 @@ struct is_rule_type : is_rule_type_base<std::remove_cv_t<T>> {
     inline void to_json(nlohmann::json& j, const name& type)   \
     {                                                          \
         j = *type;                                             \
+    }                                                          \
+    template <>                                                \
+    struct is_rule_type_base<name> : std::true_type {          \
     }
 
 template <typename T, size_t N = 64>

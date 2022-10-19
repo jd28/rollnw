@@ -16,7 +16,7 @@ namespace nw {
 
 struct TwoDARowView;
 
-DECLARE_RULE_TYPE(BaseItem)
+DECLARE_RULE_TYPE(BaseItem);
 
 enum struct ItemModelType : uint8_t {
     simple,

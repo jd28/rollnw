@@ -6,6 +6,6 @@
 
 namespace nw {
 
-DECLARE_RULE_TYPE(AttackType)
+DECLARE_RULE_TYPE(AttackType);
 
 } // namespace nw

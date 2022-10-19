@@ -14,7 +14,7 @@ namespace nw {
 
 struct TwoDARowView;
 
-DECLARE_RULE_TYPE(Skill)
+DECLARE_RULE_TYPE(Skill);
 
 // Ignored 2da columns: Category, MaxCR
 

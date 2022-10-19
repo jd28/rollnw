@@ -14,7 +14,7 @@ namespace nw {
 
 struct TwoDARowView;
 
-DECLARE_RULE_TYPE(Feat)
+DECLARE_RULE_TYPE(Feat);
 
 /// Feat definition
 struct FeatInfo {

@@ -7,6 +7,6 @@
 
 namespace nw {
 
-DECLARE_RULE_TYPE(Poison)
+DECLARE_RULE_TYPE(Poison);
 
 } // namespace nw
