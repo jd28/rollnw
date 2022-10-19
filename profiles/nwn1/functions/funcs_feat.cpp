@@ -7,7 +7,7 @@ namespace nwn1 {
 int count_feats_in_range(const nw::Creature* obj, nw::Feat start, nw::Feat end)
 {
     auto result = 0;
-    uint32_t s = static_cast<uint32_t>(start), e = static_cast<uint32_t>(end);
+    int32_t s = *start, e = *end;
 
     if (!obj) {
         return result;
@@ -91,7 +91,7 @@ nw::Feat highest_feat_in_range(const nw::Creature* obj, nw::Feat start, nw::Feat
     if (!obj) {
         return nw::Feat::invalid();
     }
-    uint32_t s = static_cast<uint32_t>(start), e = static_cast<uint32_t>(end);
+    int32_t s = *start, e = *end;
     while (e >= s) {
         if (obj->stats.has_feat(nw::Feat::make(e))) {
             return nw::Feat::make(e);

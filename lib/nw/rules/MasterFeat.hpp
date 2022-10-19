@@ -55,7 +55,7 @@ template <typename T>
 void MasterFeatRegistry::add(T type, MasterFeat mfeat, Feat feat)
 {
     static_assert(is_rule_type<T>::value, "only rule types allowed");
-    MasterFeatEntry mfe{mfeat, static_cast<int32_t>(type), feat};
+    MasterFeatEntry mfe{mfeat, static_cast<int32_t>(*type), feat};
 
     auto it = std::lower_bound(std::begin(entries_), std::end(entries_), mfe);
     if (it == std::end(entries_)) {
@@ -73,7 +73,7 @@ void MasterFeatRegistry::remove(T type, MasterFeat mfeat)
     static_assert(is_rule_type<T>::value, "only rule types allowed");
     entries_.erase(std::remove_if(std::begin(entries_), std::end(entries_),
                        [type, mfeat](const auto& entry) {
-                           return entry.mfeat == mfeat && entry.type == static_cast<int32_t>(type);
+                           return entry.mfeat == mfeat && entry.type == static_cast<int32_t>(*type);
                        }),
         std::end(entries_));
 }
@@ -98,7 +98,7 @@ std::array<T, sizeof...(Args)> MasterFeatRegistry::resolve(const Creature* obj,
     auto it = std::begin(entries());
     size_t i = 0;
     for (auto mf : mfs) {
-        MasterFeatEntry mfe{mf, static_cast<int32_t>(type), Feat::invalid()};
+        MasterFeatEntry mfe{mf, static_cast<int32_t>(*type), Feat::invalid()};
         const auto& mf_bonus = get_bonus(mf);
         if (mf_bonus.empty()) continue;
 
@@ -107,7 +107,7 @@ std::array<T, sizeof...(Args)> MasterFeatRegistry::resolve(const Creature* obj,
             break;
         }
 
-        while (it != std::end(entries()) && it->type == static_cast<int32_t>(type)) {
+        while (it != std::end(entries()) && it->type == static_cast<int32_t>(*type)) {
             if (obj->stats.has_feat(it->feat)) {
                 if (mf_bonus.template is<T>()) {
                     result[i] = mf_bonus.template as<T>();

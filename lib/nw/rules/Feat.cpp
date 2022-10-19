@@ -43,9 +43,8 @@ FeatInfo::FeatInfo(const TwoDARowView& tda)
 
 const FeatInfo* FeatArray::get(Feat feat) const noexcept
 {
-    auto ft = static_cast<uint32_t>(feat);
-    if (ft < entries.size() && entries[ft].valid()) {
-        return &entries[ft];
+    if (feat.idx() < entries.size() && entries[feat.idx()].valid()) {
+        return &entries[feat.idx()];
     } else {
         return nullptr;
     }
@@ -53,8 +52,7 @@ const FeatInfo* FeatArray::get(Feat feat) const noexcept
 
 bool FeatArray::is_valid(Feat feat) const noexcept
 {
-    auto ft = static_cast<uint32_t>(feat);
-    return ft < entries.size() && entries[ft].valid();
+    return feat.idx() < entries.size() && entries[feat.idx()].valid();
 }
 
 Feat FeatArray::from_constant(std::string_view constant) const

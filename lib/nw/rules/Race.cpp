@@ -47,9 +47,8 @@ RaceInfo::RaceInfo(const TwoDARowView& tda)
 
 const RaceInfo* RaceArray::get(Race race) const noexcept
 {
-    size_t idx = static_cast<size_t>(race);
-    if (idx < entries.size() && entries[idx].valid()) {
-        return &entries[idx];
+    if (*race < entries.size() && entries[*race].valid()) {
+        return &entries[*race];
     } else {
         return nullptr;
     }
@@ -57,8 +56,7 @@ const RaceInfo* RaceArray::get(Race race) const noexcept
 
 bool RaceArray::is_valid(Race race) const noexcept
 {
-    size_t idx = static_cast<size_t>(race);
-    return idx < entries.size() && entries[idx].valid();
+    return *race < entries.size() && entries[*race].valid();
 }
 
 Race RaceArray::from_constant(std::string_view constant) const

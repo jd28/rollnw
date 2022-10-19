@@ -208,7 +208,7 @@ nw::RuleValue selector(const nw::Selector& selector, const nw::ObjectBase* obj)
         if (!c) {
             return {};
         }
-        return static_cast<int>(c->race);
+        return *c->race;
     }
     case nw::SelectorType::skill: {
         if (!selector.subtype.is<int32_t>()) {
@@ -238,30 +238,30 @@ nw::ModifierResult epic_great_ability(const nw::ObjectBase* obj, int32_t subtype
     if (subtype < 0 || subtype >= 5) return 0;
     nw::Ability abil = nw::Ability::make(subtype);
     nw::Feat start, stop;
-    switch (abil) {
+    switch (*abil) {
     default:
         return 0;
-    case ability_strength:
+    case *ability_strength:
         start = feat_epic_great_strength_1;
         stop = feat_epic_great_strength_10;
         break;
-    case ability_dexterity:
+    case *ability_dexterity:
         start = feat_epic_great_dexterity_1;
         stop = feat_epic_great_dexterity_10;
         break;
-    case ability_constitution:
+    case *ability_constitution:
         start = feat_epic_great_constitution_1;
         stop = feat_epic_great_constitution_10;
         break;
-    case ability_intelligence:
+    case *ability_intelligence:
         start = feat_epic_great_intelligence_1;
         stop = feat_epic_great_intelligence_10;
         break;
-    case ability_wisdom:
+    case *ability_wisdom:
         start = feat_epic_great_wisdom_1;
         stop = feat_epic_great_wisdom_10;
         break;
-    case ability_charisma:
+    case *ability_charisma:
         start = feat_epic_great_charisma_1;
         stop = feat_epic_great_charisma_10;
         break;
@@ -271,7 +271,7 @@ nw::ModifierResult epic_great_ability(const nw::ObjectBase* obj, int32_t subtype
     if (nth == nw::Feat::invalid()) {
         return 0;
     }
-    return int(nth) - int(start) + 1;
+    return *nth - *start + 1;
 }
 
 nw::ModifierResult dragon_disciple_ac(const nw::ObjectBase* obj)
@@ -349,7 +349,7 @@ nw::ModifierResult energy_resistance(const nw::ObjectBase* obj, int32_t subtype)
         }
     }
 
-    return (int(nth) - int(feat_start) + 1) * 10;
+    return (*nth - *feat_start + 1) * 10;
 }
 
 nw::ModifierResult toughness(const nw::ObjectBase* obj)
@@ -372,7 +372,7 @@ nw::ModifierResult epic_toughness(const nw::ObjectBase* obj)
     if (nth == nw::Feat::invalid()) {
         return 0;
     }
-    return (int(nth) - int(feat_epic_toughness_1) + 1) * 20;
+    return (*nth - *feat_epic_toughness_1 + 1) * 20;
 }
 
 } // namespace nwn1

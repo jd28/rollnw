@@ -83,7 +83,7 @@ bool SpellBook::to_gff(GffBuilderStruct& archive) const
         auto& klist = archive.add_list(k);
         for (const auto& sp : known[i]) {
             klist.push_back(3)
-                .add_field("Spell", uint16_t(sp.spell))
+                .add_field("Spell", uint16_t(*sp.spell))
                 .add_field("SpellFlags", static_cast<uint8_t>(sp.flags))
                 .add_field("SpellMetaMagic", static_cast<uint8_t>(sp.meta));
         }
@@ -97,7 +97,7 @@ bool SpellBook::to_gff(GffBuilderStruct& archive) const
         auto& mlist = archive.add_list(m);
         for (const auto& sp : memorized[i]) {
             mlist.push_back(3)
-                .add_field("Spell", uint16_t(sp.spell))
+                .add_field("Spell", uint16_t(*sp.spell))
                 .add_field("SpellFlags", static_cast<uint8_t>(sp.flags))
                 .add_field("SpellMetaMagic", static_cast<uint8_t>(sp.meta));
         }

@@ -34,7 +34,7 @@ namespace mod {
             source,                                                                          \
             std::move(req),                                                                  \
             versus,                                                                          \
-            static_cast<int>(subtype),                                                       \
+            *subtype,                                                                        \
         };                                                                                   \
     }
 
@@ -85,7 +85,7 @@ nw::Qualifier race(nw::Race id)
 {
     nw::Qualifier q;
     q.selector = sel::race();
-    q.params.push_back(static_cast<int32_t>(id));
+    q.params.push_back(*id);
     return q;
 }
 
@@ -113,22 +113,22 @@ namespace sel {
 
 nw::Selector ability(nw::Ability id)
 {
-    return {nw::SelectorType::ability, static_cast<int32_t>(id)};
+    return {nw::SelectorType::ability, *id};
 }
 
 nw::Selector alignment(nw::AlignmentAxis id)
 {
-    return {nw::SelectorType::alignment, static_cast<int32_t>(id)};
+    return {nw::SelectorType::alignment, int32_t(id)};
 }
 
 nw::Selector class_level(nw::Class id)
 {
-    return {nw::SelectorType::class_level, static_cast<int32_t>(id)};
+    return {nw::SelectorType::class_level, *id};
 }
 
 nw::Selector feat(nw::Feat id)
 {
-    return {nw::SelectorType::feat, static_cast<int32_t>(id)};
+    return {nw::SelectorType::feat, *id};
 }
 
 nw::Selector level()
@@ -148,7 +148,7 @@ nw::Selector local_var_str(std::string_view var)
 
 nw::Selector skill(nw::Skill id)
 {
-    return {nw::SelectorType::skill, static_cast<int32_t>(id)};
+    return {nw::SelectorType::skill, *id};
 }
 
 nw::Selector race()

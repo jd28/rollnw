@@ -278,7 +278,7 @@ bool Creature::serialize(const Creature* obj, GffBuilderStruct& archive, Seriali
         .add_field("NoPermDeath", obj->chunk_death)
         .add_field("PerceptionRange", obj->perception_range)
         .add_field("Plot", obj->plot)
-        .add_field("Race", uint8_t(obj->race))
+        .add_field("Race", uint8_t(*obj->race))
         .add_field("StartingPackage", obj->starting_package);
 
     return true;

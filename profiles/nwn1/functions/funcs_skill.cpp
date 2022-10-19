@@ -20,12 +20,12 @@ int get_skill_rank(const nw::Creature* obj, nw::Skill skill, bool base)
     auto& skill_array = nw::kernel::rules().skills;
     auto ski = skill_array.get(skill);
     if (!ski) {
-        LOG_F(WARNING, "attempting to get skill rank of invalid skill: {}", int(skill));
+        LOG_F(WARNING, "attempting to get skill rank of invalid skill: {}", *skill);
         return 0;
     }
 
     // Base
-    result = obj->stats.skills[static_cast<size_t>(skill)];
+    result = obj->stats.skills[skill.idx()];
     if (base) return result;
 
     if (result == 0) {

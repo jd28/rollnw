@@ -4,8 +4,7 @@ namespace nw {
 
 const ModifierVariant& MasterFeatRegistry::get_bonus(MasterFeat mfeat) const
 {
-    auto mf = static_cast<size_t>(mfeat);
-    return bonuses_[mf];
+    return bonuses_[*mfeat];
 }
 
 void MasterFeatRegistry::clear() noexcept
@@ -17,13 +16,11 @@ void MasterFeatRegistry::set_bonus(MasterFeat mfeat, ModifierVariant bonus)
 {
     if (mfeat == MasterFeat::invalid()) return;
 
-    auto mf = static_cast<size_t>(mfeat);
-
-    if (bonuses_.size() <= mf) {
-        bonuses_.resize(mf + 1);
+    if (bonuses_.size() <= *mfeat) {
+        bonuses_.resize(*mfeat + 1);
     }
 
-    bonuses_[mf] = std::move(bonus);
+    bonuses_[*mfeat] = std::move(bonus);
 }
 
 } // namespace nw

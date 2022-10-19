@@ -22,11 +22,10 @@ int attack_bonus(const nw::Creature* obj, bool base)
 
     // [TODO] This is obviously pretty wrong.
     for (const auto& cl : obj->levels.entries) {
-        size_t cl_id = static_cast<size_t>(cl.id);
-        if (!classes.entries[cl_id].attack_bonus_table) {
+        if (!classes.entries[cl.id.idx()].attack_bonus_table) {
             continue;
         }
-        result += (*classes.entries[cl_id].attack_bonus_table)[cl.level];
+        result += (*classes.entries[cl.id.idx()].attack_bonus_table)[cl.level];
     }
 
     return result;

@@ -248,10 +248,10 @@ template <typename U, typename Callback>
 bool Rules::calculate(const ObjectBase* obj, const ModifierType type, U subtype, Callback cb,
     const ObjectBase* versus) const
 {
-    Modifier temp{type, {}, {}, ModifierSource::unknown, Requirement{}, {}, static_cast<int>(subtype)};
+    Modifier temp{type, {}, {}, ModifierSource::unknown, Requirement{}, {}, *subtype};
     auto it = std::lower_bound(std::begin(entries_), std::end(entries_), temp);
 
-    while (it != std::end(entries_) && it->type == type && it->subtype == static_cast<int>(subtype)) {
+    while (it != std::end(entries_) && it->type == type && it->subtype == *subtype) {
         if (!calculate(obj, *it, cb, versus)) return false;
         ++it;
     }

@@ -71,7 +71,7 @@ bool CreatureStats::to_gff(GffBuilderStruct& archive) const
 
     auto& ft_list = archive.add_list("FeatList");
     for (auto ft : feats_) {
-        ft_list.push_back(1).add_field("Feat", static_cast<uint16_t>(ft));
+        ft_list.push_back(1).add_field("Feat", static_cast<uint16_t>(*ft));
     }
 
     auto& sk_list = archive.add_list("SkillList");

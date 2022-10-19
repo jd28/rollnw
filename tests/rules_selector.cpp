@@ -58,7 +58,7 @@ TEST_CASE("selector: race", "[rules]")
     REQUIRE(ent);
 
     auto sel1 = nwn1::sel::race();
-    REQUIRE(nwk::rules().select(sel1, ent).as<int32_t>() == static_cast<int32_t>(nwn1::racial_type_human));
+    REQUIRE(nwk::rules().select(sel1, ent).as<int32_t>() == *nwn1::racial_type_human);
 
     nw::kernel::unload_module();
 }

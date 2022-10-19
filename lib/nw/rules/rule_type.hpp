@@ -20,11 +20,14 @@ struct is_rule_type : is_rule_type_base<std::remove_cv_t<T>> {
     struct name {                                              \
         bool operator==(const name& rhs) const = default;      \
         auto operator<=>(const name& rhs) const = default;     \
-        constexpr operator size_t() const noexcept             \
+        constexpr int32_t operator*() const noexcept           \
+        {                                                      \
+            return int32_t(val);                               \
+        }                                                      \
+        constexpr size_t idx() const noexcept                  \
         {                                                      \
             return size_t(val);                                \
         }                                                      \
-                                                               \
         static constexpr name make(int32_t id)                 \
         {                                                      \
             return name{id};                                   \
@@ -45,7 +48,7 @@ struct is_rule_type : is_rule_type_base<std::remove_cv_t<T>> {
     }                                                          \
     inline void to_json(nlohmann::json& j, const name& type)   \
     {                                                          \
-        j = int32_t(type);                                     \
+        j = *type;                                             \
     }
 
 template <typename T, size_t N = 64>
@@ -115,7 +118,7 @@ struct RuleFlag : private std::bitset<N> {
     {
         static_assert(is_rule_type<T>::value, "only rule types allowed");
         if (pos != T::invalid()) {
-            Base::set(static_cast<size_t>(pos), value);
+            Base::set(pos.idx(), value);
         }
         return *this;
     }
@@ -123,7 +126,7 @@ struct RuleFlag : private std::bitset<N> {
     bool test(T pos)
     {
         static_assert(is_rule_type<T>::value, "only rule types allowed");
-        return T::invalid() != pos ? Base::test(static_cast<size_t>(pos)) : false;
+        return T::invalid() != pos ? Base::test(pos.idx()) : false;
     }
 };
 

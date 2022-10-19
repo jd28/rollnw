@@ -4,15 +4,15 @@ namespace nw {
 
 const AbilityInfo* AbilityArray::get(Ability ability) const noexcept
 {
-    if (ability < entries.size() && entries[ability].valid()) {
-        return &entries[ability];
+    if (ability.idx() < entries.size() && entries[ability.idx()].valid()) {
+        return &entries[ability.idx()];
     }
     return nullptr;
 }
 
 bool AbilityArray::is_valid(Ability ability) const noexcept
 {
-    return ability < entries.size() && entries[ability].valid();
+    return ability.idx() < entries.size() && entries[ability.idx()].valid();
 }
 
 Ability AbilityArray::from_constant(std::string_view constant) const
