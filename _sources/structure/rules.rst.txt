@@ -47,6 +47,21 @@ Definitions
       constexpr nw::ArmorClass ac_shield = nw::ArmorClass::make(3);
       constexpr nw::ArmorClass ac_deflection = nw::ArmorClass::make(4);
 
+      // Then it's possible to refer to them as some opaque value for type safety:
+      auto res = get_armor_class(object, ac_shield);
+
+      // Or as their underlying value:
+      switch(ac_type) {
+      case *ac_dodge: //
+      case *ac_natural: //
+      case *ac_armor: //
+      case *ac_shield: //
+      case *ac_deflection: //
+      }
+
+      // Or if it makes logical since to think of a particular type as an index:
+      obj->ac_bonuses[ac_dodge.idx()]
+
 **Flag**
    :cpp:struct:`nw::RuleFlag` provides a mechanism for making flags out of rule types.
 
