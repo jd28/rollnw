@@ -51,12 +51,12 @@ Definitions
       auto res = get_armor_class(object, ac_shield);
 
       // Or as their underlying value:
-      switch(ac_type) {
-      case *ac_dodge: //
-      case *ac_natural: //
-      case *ac_armor: //
-      case *ac_shield: //
-      case *ac_deflection: //
+      switch(*ac_type) {
+      case *ac_dodge: // ..
+      case *ac_natural: // ..
+      case *ac_armor: // ..
+      case *ac_shield: // ..
+      case *ac_deflection: // ..
       }
 
       // Or if it makes logical since to think of a particular type as an index:

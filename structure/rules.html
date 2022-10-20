@@ -163,12 +163,12 @@ armor class:</p>
 <span class="k">auto</span><span class="w"> </span><span class="n">res</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">get_armor_class</span><span class="p">(</span><span class="n">object</span><span class="p">,</span><span class="w"> </span><span class="n">ac_shield</span><span class="p">);</span><span class="w"></span>
 
 <span class="c1">// Or as their underlying value:</span>
-<span class="k">switch</span><span class="p">(</span><span class="n">ac_type</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
-<span class="k">case</span><span class="w"> </span><span class="o">*</span><span class="no">ac_dodge</span><span class="p">:</span><span class="w"> </span><span class="c1">//</span>
-<span class="k">case</span><span class="w"> </span><span class="o">*</span><span class="no">ac_natural</span><span class="p">:</span><span class="w"> </span><span class="c1">//</span>
-<span class="k">case</span><span class="w"> </span><span class="o">*</span><span class="no">ac_armor</span><span class="p">:</span><span class="w"> </span><span class="c1">//</span>
-<span class="k">case</span><span class="w"> </span><span class="o">*</span><span class="no">ac_shield</span><span class="p">:</span><span class="w"> </span><span class="c1">//</span>
-<span class="k">case</span><span class="w"> </span><span class="o">*</span><span class="no">ac_deflection</span><span class="p">:</span><span class="w"> </span><span class="c1">//</span>
+<span class="k">switch</span><span class="p">(</span><span class="o">*</span><span class="n">ac_type</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="k">case</span><span class="w"> </span><span class="o">*</span><span class="no">ac_dodge</span><span class="p">:</span><span class="w"> </span><span class="c1">// ..</span>
+<span class="k">case</span><span class="w"> </span><span class="o">*</span><span class="no">ac_natural</span><span class="p">:</span><span class="w"> </span><span class="c1">// ..</span>
+<span class="k">case</span><span class="w"> </span><span class="o">*</span><span class="no">ac_armor</span><span class="p">:</span><span class="w"> </span><span class="c1">// ..</span>
+<span class="k">case</span><span class="w"> </span><span class="o">*</span><span class="no">ac_shield</span><span class="p">:</span><span class="w"> </span><span class="c1">// ..</span>
+<span class="k">case</span><span class="w"> </span><span class="o">*</span><span class="no">ac_deflection</span><span class="p">:</span><span class="w"> </span><span class="c1">// ..</span>
 <span class="p">}</span><span class="w"></span>
 
 <span class="c1">// Or if it makes logical since to think of a particular type as an index:</span>
