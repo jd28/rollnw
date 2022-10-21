@@ -16,6 +16,7 @@
             "platform": "windows"
         },
         "glm",
-        "benchmark"
+        "benchmark",
+        "stduuid"
     ]
 }

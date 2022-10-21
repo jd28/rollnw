@@ -6,6 +6,8 @@
 #include "Location.hpp"
 #include "ObjectBase.hpp"
 
+#include <stduuid/uuid.h>
+
 #include <string>
 
 namespace nw {
@@ -17,6 +19,7 @@ struct Common {
 
     bool valid() { return valid_; }
 
+    uuids::uuid uuid;
     Resref resref;
     std::string tag;
     LocString name;
