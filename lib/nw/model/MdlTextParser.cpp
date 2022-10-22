@@ -221,6 +221,8 @@ bool parse_tokens(Tokenizer& tokens, std::string_view name, std::vector<T>& out)
         out.push_back(std::move(v));
         tokens.next(); // drop new line.
     }
+    auto tk = tokens.next();
+    if (!icmp(tk, "endlist")) { tokens.put_back(tk); }
     return true;
 }
 
@@ -234,7 +236,8 @@ bool MdlTextParser::parse_controller(MdlNode* node, std::string_view name, uint3
     std::vector<float> data;
     data.reserve(128);
 
-    if (start_line == tokens_.line()) { // All the data is going to be on one line.
+    if (!string::endswith(name, "key")) {
+        // All the data is going to be on one line.
         while (!tk.empty() && !is_newline(tk)) {
             auto opt = string::from<float>(tk);
             if (!opt) {
@@ -246,52 +249,68 @@ bool MdlTextParser::parse_controller(MdlNode* node, std::string_view name, uint3
         }
         node->add_controller_data(name, type, data, 1, int(data.size()));
         return true;
-    } else {
-        int colsize = -1;
-        int rows = 0;
+    }
 
-        while (!tk.empty()) {
-            if (is_newline(tk)) {
-                if (colsize == -1) {
-                    colsize = int(data.size());
-                }
-                if (data.size() % colsize) {
-                    LOG_F(ERROR, "{}: Mismatched column size, line: {}", name, tokens_.line());
-                    return false;
-                }
-                ++rows;
-                while (is_newline(tk))
-                    tk = tokens_.next();
+    int max_rows = -1;
+    if (start_line == tokens_.line()) {
+        tokens_.put_back(tk);
+        if (!parse_tokens(tokens_, "key row count", max_rows)) {
+            return false;
+        }
+        tk = tokens_.next();
+        while (is_newline(tk))
+            tk = tokens_.next();
+    }
+
+    int colsize = -1;
+    int rows = 0;
+
+    while (!tk.empty()) {
+        if (is_newline(tk)) {
+            if (colsize == -1) {
+                colsize = int(data.size());
             }
-            if (tk == "endlist") break;
-
-            auto opt = string::from<float>(tk);
-            if (!opt) {
-                LOG_F(ERROR, "Failed to parse float: {}", tk);
+            if (data.size() % colsize) {
+                LOG_F(ERROR, "{}: Mismatched column size, expected: {}, got: {}, on line: {}",
+                    name, colsize, data.size() % colsize, tokens_.line());
                 return false;
             }
-            data.push_back(*opt);
-            tk = tokens_.next();
+            ++rows;
+            if (max_rows > 0) { --max_rows; }
+            while (is_newline(tk))
+                tk = tokens_.next();
         }
-        node->add_controller_data(name, type, data, rows, colsize);
-        return tk == "endlist";
+        if (tk == "endlist" || max_rows == 0) break;
+
+        auto opt = string::from<float>(tk);
+        if (!opt) {
+            LOG_F(ERROR, "Failed to parse float: {}", tk);
+            return false;
+        }
+        data.push_back(*opt);
+        tk = tokens_.next();
     }
+    node->add_controller_data(name, type, data, rows, colsize);
+    if (max_rows == 0) { tokens_.put_back(tk); }
+    return tk == "endlist" || max_rows == 0;
 }
 
-#define PARSE_DATA(name, node)                      \
-    if (icmp(tk, ROLLNW_STRINGIFY(name))) {         \
-        if (!parse_tokens(tokens_, tk, node->name)) \
-            return false;                           \
-        else                                        \
-            continue;                               \
+#define PARSE_DATA(name, node)                        \
+    if (icmp(tk, ROLLNW_STRINGIFY(name))) {           \
+        if (!parse_tokens(tokens_, tk, node->name)) { \
+            return false;                             \
+        } else {                                      \
+            continue;                                 \
+        }                                             \
     }
 
-#define PARSE_DATA_TO(name, node, target)             \
-    if (icmp(tk, ROLLNW_STRINGIFY(name))) {           \
-        if (!parse_tokens(tokens_, tk, node->target)) \
-            return false;                             \
-        else                                          \
-            continue;                                 \
+#define PARSE_DATA_TO(name, node, target)               \
+    if (icmp(tk, ROLLNW_STRINGIFY(name))) {             \
+        if (!parse_tokens(tokens_, tk, node->target)) { \
+            return false;                               \
+        } else {                                        \
+            continue;                                   \
+        }                                               \
     }
 
 bool MdlTextParser::parse_node(MdlGeometry* geometry)

@@ -73,6 +73,12 @@ TEST_CASE("model: parse ascii ee", "[model]")
 
     nw::Mdl mdl13{"test_data/user/development/tsw01_h12_01.mdl"};
     REQUIRE(mdl13.valid());
+
+    nw::Mdl mdl14{"test_data/user/development/tss13_a35_01.mdl"};
+    REQUIRE(mdl14.valid());
+
+    nw::Mdl mdl15{"test_data/user/development/ctl_treebtn_spel.mdl"};
+    REQUIRE(mdl15.valid());
 }
 
 TEST_CASE("model: write to file", "[model]")

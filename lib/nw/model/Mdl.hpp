@@ -376,7 +376,7 @@ struct MdlTrimeshNode : public MdlNode {
     glm::vec3 specular;
     std::array<std::string, 3> textures;
     uint32_t tilefade{0};
-    bool transparencyhint{false};
+    int transparencyhint{0};
     bool showdispl{false}; // dunno
     uint32_t displtype{1}; // dunno
     uint32_t lightmapped{0};
