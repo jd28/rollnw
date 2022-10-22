@@ -668,8 +668,13 @@ bool MdlTextParser::parse()
     for (std::string_view tk = tokens_.next(); !tk.empty() && result; tk = tokens_.next()) {
         if (is_newline(tk)) continue;
         // both spellings of this appear to be present in vanilla models and community tools
+        // consume whatever is there till end of line.
         if (tk == "filedependancy" || tk == "filedependency") {
-            if (!parse_tokens(tokens_, tk, mdl_->model.file_dependency)) return false;
+            mdl_->model.file_dependency = std::string(tokens_.next());
+            for (tk = tokens_.next(); !tk.empty(); tk = tokens_.next()) {
+                if (is_newline(tk)) { break; }
+                mdl_->model.file_dependency += " " + std::string(tk);
+            }
         } else if (tk == "newmodel") {
             if (!parse_model()) return false;
         } else {
