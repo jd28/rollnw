@@ -1,5 +1,5 @@
 TwoDA
 =====
 
-.. autoclass:: pynwn.TwoDA
+.. autoclass:: rollnw.TwoDA
     :members:

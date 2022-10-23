@@ -1,5 +1,5 @@
 Item
 ====
 
-.. autoclass:: pynwn.Item
+.. autoclass:: rollnw.Item
    :members:

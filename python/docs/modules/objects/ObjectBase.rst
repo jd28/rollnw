@@ -1,5 +1,5 @@
 ObjectBase
 ==========
 
-.. autoclass:: pynwn.ObjectBase
+.. autoclass:: rollnw.ObjectBase
    :members:

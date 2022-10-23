@@ -19,7 +19,7 @@ sys.path.insert(0, os.path.abspath("fake/"))
 
 # -- Project information -----------------------------------------------------
 
-project = "pynwn"
+project = "rollnw"
 copyright = "2022, jmd"
 author = "jmd"
 

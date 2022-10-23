@@ -1,5 +1,5 @@
 Door
 ====
 
-.. autoclass:: pynwn.Door
+.. autoclass:: rollnw.Door
    :members:

@@ -1,7 +1,7 @@
 Waypoint
 ========
 
-.. autoclass:: pynwn.Waypoint
+.. autoclass:: rollnw.Waypoint
    :members:
    :special-members:
    :inherited-members:

@@ -1,6 +1,6 @@
 MdlGeometry
 ===========
 
-.. autoclass:: pynwn.MdlGeometry
+.. autoclass:: rollnw.MdlGeometry
    :members:
    :special-members:

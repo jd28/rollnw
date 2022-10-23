@@ -1,4 +1,4 @@
 Appearance
 ==========
 
-.. autoclass:: pynwn.Appearance
+.. autoclass:: rollnw.Appearance

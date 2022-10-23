@@ -1,7 +1,7 @@
 MdlAnimation
 ============
 
-.. autoclass:: pynwn.MdlAnimation
+.. autoclass:: rollnw.MdlAnimation
    :members:
    :special-members:
    :inherited-members:

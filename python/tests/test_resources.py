@@ -1,6 +1,6 @@
-import pynwn
+import rollnw
 
 
 def test_resource_construction():
-    r = pynwn.Resource("hello", pynwn.ResourceType.twoda)
+    r = rollnw.Resource("hello", rollnw.ResourceType.twoda)
     assert r.filename() == "hello.2da"

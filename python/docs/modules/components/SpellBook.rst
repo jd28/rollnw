@@ -1,6 +1,6 @@
 SpellBook
 =========
 
-.. autoclass:: pynwn.SpellBook
+.. autoclass:: rollnw.SpellBook
    :members:
    :special-members:

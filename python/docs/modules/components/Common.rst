@@ -1,6 +1,6 @@
 Common
 ======
 
-.. autoclass:: pynwn.Common
+.. autoclass:: rollnw.Common
    :members:
    :special-members:

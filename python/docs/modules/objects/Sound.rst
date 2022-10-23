@@ -1,7 +1,7 @@
 Sound
 =====
 
-.. autoclass:: pynwn.Sound
+.. autoclass:: rollnw.Sound
    :members:
    :special-members:
    :inherited-members:

@@ -1,4 +1,4 @@
 Location
 ========
 
-.. autoclass:: pynwn.Location
+.. autoclass:: rollnw.Location

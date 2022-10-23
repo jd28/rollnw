@@ -1,5 +1,5 @@
 from itertools import count
-import pynwn
+import rollnww
 import json
 import pytest
 
@@ -11,12 +11,12 @@ def json_file():
 
 
 def test_creature_default_construct():
-    w = pynwn.Creature()
-    assert w.handle().id == pynwn.OBJECT_INVALID
+    w = rollnww.Creature()
+    assert w.handle().id == rollnww.OBJECT_INVALID
 
 
 def test_creature_json(json_file):
-    w = pynwn.Creature(json_file, pynwn.SerializationProfile.blueprint)
-    assert w.handle().id == pynwn.OBJECT_INVALID
+    w = rollnww.Creature(json_file,rollnwnw.SerializationProfile.blueprint)
+    assert w.handle().id == rollnww.OBJECT_INVALID
     assert w.stats.abilities[0] == 40
     assert sum(w.stats.abilities) == 104

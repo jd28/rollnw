@@ -1,6 +1,6 @@
 MdlNode
 =======
 
-.. autoclass:: pynwn.MdlNode
+.. autoclass:: rollnw.MdlNode
    :members:
    :special-members:

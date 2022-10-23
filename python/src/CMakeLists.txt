@@ -1,6 +1,6 @@
 find_package(Threads)
 
-pybind11_add_module(pynwn NO_EXTRAS
+pybind11_add_module(rollnw NO_EXTRAS
     wrapper.cpp
     opaque_types.cpp
 
@@ -19,13 +19,13 @@ pybind11_add_module(pynwn NO_EXTRAS
     wrapper_util.cpp
 )
 
-target_link_libraries(pynwn PRIVATE
+target_link_libraries(rollnw PRIVATE
     nw
     nw-profiles
     pybind11::module
 )
 
-target_include_directories(pynwn PRIVATE
+target_include_directories(rollnw PRIVATE
     ../../lib
     ../../external
     ../../profiles

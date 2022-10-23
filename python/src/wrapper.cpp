@@ -20,9 +20,9 @@ void init_kernel(py::module& nw, py::module& kernel);
 void init_model(py::module& nw, py::module& model);
 void init_script(py::module& nw, py::module& script);
 
-PYBIND11_MODULE(pynwn, nw)
+PYBIND11_MODULE(rollnw, nw)
 {
-    nw.doc() = "libnw python wrapper";
+    nw.doc() = "rollnw python wrapper";
 
     // pybind11 doesn't have native type for this.
     py::class_<std::filesystem::path>(nw, "Path")

@@ -1,4 +1,4 @@
 Lock
 ====
 
-.. autoclass:: pynwn.Lock
+.. autoclass:: rollnw.Lock

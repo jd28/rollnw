@@ -1,5 +1,5 @@
 Script
 ======
 
-.. autoclass:: pynwn.script.Script
+.. autoclass:: rollnw.script.Script
    :members:

@@ -1,4 +1,4 @@
 BodyParts
 =========
 
-.. autoclass:: pynwn.BodyParts
+.. autoclass:: rollnw.BodyParts

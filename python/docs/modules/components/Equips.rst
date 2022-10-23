@@ -1,6 +1,6 @@
 Equips
 ======
 
-.. autoclass:: pynwn.Equips
+.. autoclass:: rollnw.Equips
    :members:
    :special-members:

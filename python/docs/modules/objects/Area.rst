@@ -1,6 +1,6 @@
 Area
 ====
 
-.. autoclass:: pynwn.Area
+.. autoclass:: rollnw.Area
    :members:
    :special-members:

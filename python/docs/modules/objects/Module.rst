@@ -1,11 +1,11 @@
 Module
 ======
 
-.. autoclass:: pynwn.Module
+.. autoclass:: rollnw.Module
    :members:
    :special-members:
 
 -------------------------------------------------------------------------------
 
-.. autoclass:: pynwn.ModuleScripts
+.. autoclass:: rollnw.ModuleScripts
    :members:

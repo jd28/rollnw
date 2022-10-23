@@ -1,4 +1,4 @@
 CombatInfo
 ==========
 
-.. autoclass:: pynwn.CombatInfo
+.. autoclass:: rollnw.CombatInfo

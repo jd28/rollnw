@@ -1,6 +1,6 @@
 Mdl
 ===
 
-.. autoclass:: pynwn.Mdl
+.. autoclass:: rollnw.Mdl
    :members:
    :special-members:

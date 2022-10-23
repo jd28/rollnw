@@ -1,6 +1,6 @@
 Store
 =====
 
-.. autoclass:: pynwn.Store
+.. autoclass:: rollnw.Store
    :members:
    :special-members:

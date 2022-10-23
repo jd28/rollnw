@@ -1,4 +1,4 @@
 Trap
 ====
 
-.. autoclass:: pynwn.Trap
+.. autoclass:: rollnw.Trap

@@ -1,10 +1,10 @@
 resources
 =========
 
-.. autoclass:: pynwn.Resource
+.. autoclass:: rollnw.Resource
    :members:
 
-.. autoclass:: pynwn.ResourceType
+.. autoclass:: rollnw.ResourceType
 
    .. autoattribute:: ResourceType.ifo
 

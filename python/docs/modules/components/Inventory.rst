@@ -1,6 +1,6 @@
 Inventory
 =========
 
-.. autoclass:: pynwn.Inventory
+.. autoclass:: rollnw.Inventory
    :members:
    :special-members:

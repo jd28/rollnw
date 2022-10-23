@@ -6,7 +6,7 @@ class Appearance:
     """Class containing creature's appearance
 
     Attributes:
-        body_parts (pynwn.BodyParts): body_parts
+        body_parts (rollnw.BodyParts): body_parts
         hair (int): hair
         id (int): Index into ``appearance.2da``
         phenotype (int): phenotype
@@ -56,11 +56,11 @@ class Common:
     """Class containing attributes common to all objects
 
     Attributes:
-        resref (pynwn.Resref): resref
+        resref (rollnw.Resref): resref
         tag (str): tag
-        name (pynwn.LocString): name
-        locals (pynwn.LocalData): locals
-        location (pynwn.Location): location
+        name (rollnw.LocString): name
+        locals (rollnw.LocalData): locals
+        location (rollnw.Location): location
         comment (str): comment
         palette_id (int): palette_id
     """
@@ -241,8 +241,8 @@ class MdlNode:
        name (str): name
        type: type
        inheritcolor (bool): inheritcolor
-       parent (pynwn.MdlNode): Parent node
-       children ([pynwn.MdlNode]): Children nodes
+       parent (rollnw.MdlNode): Parent node
+       children ([rollnw.MdlNode]): Children nodes
        controller_keys: controller_keys
        controller_data: controller_data
     """
@@ -256,7 +256,7 @@ class MdlGeometry:
     Attributes:
        name (str): name
        type: type
-       nodes ([pynwn.MdlNode]): Model nodes
+       nodes ([rollnw.MdlNode]): Model nodes
     """
 
     pass
@@ -291,7 +291,7 @@ class Mdl:
     """Implementation of ASCII Mdl file format
 
     Attributes:
-        model (pynwn.MdlModel): The parsed model
+        model (rollnw.MdlModel): The parsed model
     """
 
     def valid():
@@ -330,7 +330,7 @@ class Creature(ObjectBase):
         bodybag
         chunk_death
         combat_info
-        conversation (pynwn.Resref): Dialog resref
+        conversation (rollnw.Resref): Dialog resref
         cr
         cr_adjust
         decay_time
@@ -357,7 +357,7 @@ class Creature(ObjectBase):
         scripts
         soundset
         starting_package
-        stats (pynwn.CreatureStats): Offensive and defensive stats.
+        stats (rollnw.CreatureStats): Offensive and defensive stats.
         subrace (str): Subrace
         walkrate
     """
@@ -370,19 +370,19 @@ class CreatureScripts:
     """A class containing a creature's script set.
 
     Attributes:
-        on_attacked (pynwn.Resref): A script
-        on_blocked (pynwn.Resref): A script
-        on_conversation (pynwn.Resref): A script
-        on_damaged (pynwn.Resref): A script
-        on_death (pynwn.Resref): A script
-        on_disturbed (pynwn.Resref): A script
-        on_endround (pynwn.Resref): A script
-        on_heartbeat (pynwn.Resref): A script
-        on_perceived (pynwn.Resref): A script
-        on_rested (pynwn.Resref): A script
-        on_spawn (pynwn.Resref): A script
-        on_spell_cast_at (pynwn.Resref): A script
-        on_user_defined (pynwn.Resref): A script
+        on_attacked (rollnw.Resref): A script
+        on_blocked (rollnw.Resref): A script
+        on_conversation (rollnw.Resref): A script
+        on_damaged (rollnw.Resref): A script
+        on_death (rollnw.Resref): A script
+        on_disturbed (rollnw.Resref): A script
+        on_endround (rollnw.Resref): A script
+        on_heartbeat (rollnw.Resref): A script
+        on_perceived (rollnw.Resref): A script
+        on_rested (rollnw.Resref): A script
+        on_spawn (rollnw.Resref): A script
+        on_spell_cast_at (rollnw.Resref): A script
+        on_user_defined (rollnw.Resref): A script
     """
 
     pass
@@ -394,7 +394,7 @@ class Door:
     Attributes:
         animation_state
         appearance
-        conversation (pynwn.Resref): Door's conversation resref
+        conversation (rollnw.Resref): Door's conversation resref
         description
         faction
         generic_type
@@ -449,8 +449,8 @@ class Item:
         charges
         cost
         cursed
-        description (pynwn.LocString): Description
-        description_id (pynwn.LocString): Description after being identified.
+        description (rollnw.LocString): Description
+        description_id (rollnw.LocString): Description after being identified.
         identified
         inventory
         model_colors
@@ -555,7 +555,7 @@ class Placeable:
         plot
         portrait_id
         saves
-        scripts (pynwn.PlaceableScripts):
+        scripts (rollnw.PlaceableScripts):
         static
         trap
         useable
@@ -569,7 +569,7 @@ class Sound(ObjectBase):
 
     Attributes:
         active
-        common (pynwn.Common): Common object component
+        common (rollnw.Common): Common object component
         continuous
         distance_max
         distance_min
@@ -586,7 +586,7 @@ class Sound(ObjectBase):
         random_position
         random_x
         random_y
-        sounds ([pynwn.Resref]): Sounds
+        sounds ([rollnw.Resref]): Sounds
         times
         volume
         volume_variation
@@ -636,7 +636,7 @@ class Trigger(ObjectBase):
         loadscreen
         portrait
         scripts
-        trap (pynwn.Trap): A trap component
+        trap (rollnw.Trap): A trap component
         type
     """
 
@@ -648,10 +648,10 @@ class Waypoint:
 
     Attributes:
         appearance
-        description (pynwn.LocString)
+        description (rollnw.LocString)
         has_map_note (bool): Has a map note
         linked_to (str): Tag of linked object
-        map_note (pynwn.LocString)
+        map_note (rollnw.LocString)
         map_note_enabled
     """
 

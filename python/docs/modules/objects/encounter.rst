@@ -1,5 +1,5 @@
 Encounter
 =========
 
-.. autoclass:: pynwn.Encounter
+.. autoclass:: rollnw.Encounter
    :members:

@@ -1,5 +1,5 @@
 LocalData
 =========
 
-.. autoclass:: pynwn.LocalData
+.. autoclass:: rollnw.LocalData
    :members:

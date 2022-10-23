@@ -1,4 +1,4 @@
-import pynwn
+import rollnw
 import json
 import pytest
 
@@ -10,11 +10,11 @@ def json_file():
 
 
 def test_waypoint_default_construct():
-    w = pynwn.Waypoint()
-    assert w.handle().id == pynwn.OBJECT_INVALID
+    w = rollnw.Waypoint()
+    assert w.handle().id == rollnw.OBJECT_INVALID
 
 
 def test_waypoint_json_construct(json_file):
-    w = pynwn.Waypoint(json_file, pynwn.SerializationProfile.blueprint)
+    w = rollnw.Waypoint(json_file, rollnw.SerializationProfile.blueprint)
     assert not w.has_map_note
     assert w.common().resref.string() == 'wp_behexit001'

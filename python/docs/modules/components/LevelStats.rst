@@ -1,4 +1,4 @@
 LevelStats
 ==========
 
-.. autoclass:: pynwn.LevelStats
+.. autoclass:: rollnw.LevelStats

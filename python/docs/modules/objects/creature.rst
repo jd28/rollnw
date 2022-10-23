@@ -1,16 +1,16 @@
 Creature
 ========
 
-.. autoclass:: pynwn.Creature
+.. autoclass:: rollnw.Creature
    :members:
    :inherited-members:
 
 -------------------------------------------------------------------------------
 
-.. autoclass:: pynwn.CreatureScripts
+.. autoclass:: rollnw.CreatureScripts
 
 -------------------------------------------------------------------------------
 
-.. autoclass:: pynwn.CreatureStats
+.. autoclass:: rollnw.CreatureStats
    :members:
    :special-members:

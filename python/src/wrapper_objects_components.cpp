@@ -46,7 +46,7 @@ void init_component_appearance(py::module& m)
         R"(Class containing creature's appearance
 
         Attributes:
-            body_parts (pynwn.BodyParts): body_parts
+            body_parts (rollnw.BodyParts): body_parts
             hair (int): hair
             id (int): Index into ``appearance.2da``
             phenotype (int): phenotype
@@ -81,11 +81,11 @@ void init_component_common(py::module& m)
         R"(Class containing attributes common to all objects
 
         Attributes:
-            resref (pynwn.Resref): resref
+            resref (rollnw.Resref): resref
             tag (str): tag
-            name (pynwn.LocString): name
-            locals (pynwn.LocalData): locals
-            location (pynwn.Location): location
+            name (rollnw.LocString): name
+            locals (rollnw.LocalData): locals
+            location (rollnw.Location): location
             comment (str): comment
             palette_id (int): palette_id
         )")
