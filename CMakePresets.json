@@ -7,7 +7,7 @@
     },
     "configurePresets": [
         {
-            "name": "default",
+            "name": "linux",
             "displayName": "Default Config",
             "description": "Default build using Ninja",
             "binaryDir": "${sourceDir}/build",
@@ -24,8 +24,19 @@
             }
         },
         {
+            "name": "linux-python",
+            "displayName": "Default Config",
+            "description": "Default build using Ninja",
+            "cacheVariables": {
+                "ENABLE_PYTHON": {
+                    "type": "BOOL",
+                    "value": "ON"
+                }
+            }
+        },
+        {
             "name": "ci-linux",
-            "inherits": "default",
+            "inherits": "linux",
             "displayName": "ci-linux",
             "description": "Default build with tests and code coverage",
             "condition": {
@@ -54,7 +65,7 @@
         },
         {
             "name": "windows",
-            "inherits": "default",
+            "inherits": "linux",
             "generator": "Visual Studio 16 2019",
             "displayName": "Windows-only configuration",
             "description": "This build is only available on Windows",
@@ -73,7 +84,19 @@
             }
         },
         {
-            "name": "ci-windows",
+            "name": "windows-python",
+            "inherits": "windows",
+            "displayName": "windows ci build",
+            "description": "windows ci build",
+            "cacheVariables": {
+                "ENABLE_PYTHON": {
+                    "type": "BOOL",
+                    "value": "ON"
+                }
+            }
+        },
+        {
+            "name": "ci-windows-python",
             "inherits": "windows",
             "generator": "NMake Makefiles",
             "displayName": "windows ci build",
@@ -81,7 +104,7 @@
         },
         {
             "name": "macos",
-            "inherits": "default",
+            "inherits": "linux",
             "displayName": "macOS-only configuration",
             "condition": {
                 "type": "equals",
@@ -91,18 +114,34 @@
             "cacheVariables": {
                 "CMAKE_OSX_DEPLOYMENT_TARGET": "10.15"
             }
+        },
+        {
+            "name": "macos-python",
+            "inherits": "macos",
+            "displayName": "macOS with python",
+            "cacheVariables": {
+                "ENABLE_PYTHON": {
+                    "type": "BOOL",
+                    "value": "ON"
+                }
+            }
+        },
+        {
+            "name": "ci-macos-python",
+            "inherits": "macos-python",
+            "displayName": "CI macOS with python"
         }
     ],
     "buildPresets": [
         {
             "name": "default",
-            "configurePreset": "default"
+            "configurePreset": "linux"
         }
     ],
     "testPresets": [
         {
             "name": "default",
-            "configurePreset": "default",
+            "configurePreset": "linux",
             "output": {
                 "outputOnFailure": true
             },

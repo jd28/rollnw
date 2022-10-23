@@ -1,0 +1,4 @@
+Location
+========
+
+.. autoclass:: pynwn.Location

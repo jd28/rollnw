@@ -1,0 +1,34 @@
+find_package(Threads)
+
+pybind11_add_module(pynwn NO_EXTRAS
+    wrapper.cpp
+    opaque_types.cpp
+
+    glm/glm_util.cpp
+    glm/wrap_vmath.cpp
+
+    wrapper_formats.cpp
+    wrapper_i18n.cpp
+    wrapper_kernel.cpp
+    wrapper_model.cpp
+    wrapper_objects_components.cpp
+    wrapper_objects.cpp
+    wrapper_resources.cpp
+    wrapper_script.cpp
+    wrapper_serialization.cpp
+    wrapper_util.cpp
+)
+
+target_link_libraries(pynwn PRIVATE
+    nw
+    nw-profiles
+    pybind11::module
+)
+
+target_include_directories(pynwn PRIVATE
+    ../../lib
+    ../../external
+    ../../profiles
+    ../external/pybind11_json/include
+    ../../external/pybind11/include
+)

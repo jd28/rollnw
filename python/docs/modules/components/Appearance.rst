@@ -1,0 +1,4 @@
+Appearance
+==========
+
+.. autoclass:: pynwn.Appearance

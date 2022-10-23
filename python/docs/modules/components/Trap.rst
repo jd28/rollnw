@@ -1,0 +1,4 @@
+Trap
+====
+
+.. autoclass:: pynwn.Trap

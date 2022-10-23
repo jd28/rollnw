@@ -1,0 +1,4 @@
+Lock
+====
+
+.. autoclass:: pynwn.Lock
