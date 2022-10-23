@@ -1,0 +1,4 @@
+BodyParts
+=========
+
+.. autoclass:: pynwn.BodyParts

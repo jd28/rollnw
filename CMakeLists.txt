@@ -9,6 +9,14 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 include(cmake/PreventInSourceBuilds.cmake)
 
+if(ENABLE_PYTHON)
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+# AppleClang changes visibility to hidden
+if(CMAKE_CXX_COMPILER_ID MATCHES ".*Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+  add_compile_options(-fvisibility=hidden)
+endif()
+endif()
+
 if(MSVC)
     set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
@@ -54,6 +62,11 @@ add_subdirectory(external/inih)
 add_subdirectory(external/stb)
 add_subdirectory(lib/nw)
 add_subdirectory(profiles)
+
+if(ENABLE_PYTHON)
+add_subdirectory(external/pybind11)
+add_subdirectory(python)
+endif()
 
 if (ENABLE_TESTING)
 include(CTest)

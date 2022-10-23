@@ -16,12 +16,47 @@ bin/*
 !bin/.gitkeep
 
 # docs
-docs/_build/
+**/docs/_build/
+docs/build/
 __pycache__
 venv
 
+# C extensions
+*.so
+
+# Packages
+wheelhouse
+*.whl
+*.egg
+*.egg-info
+dist
+build
+eggs
+parts
+bin
+var
+sdist
+develop-eggs
+.installed.cfg
+lib
+lib64
+
+# Jupyter
+.ipynb_checkpoints
+
+# Installer logs
+pip-log.txt
+
+# Unit test / coverage reports
+.coverage
+.tox
+nosetests.xml
+.pytest_cache
+__pycache__
+coverage.info
+
+# Translations
+*.mo
+
 # macOS
 .DS_Store
-
-# Coverage
-coverage.info
