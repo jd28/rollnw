@@ -29,6 +29,6 @@ target_include_directories(pynwn PRIVATE
     ../../lib
     ../../external
     ../../profiles
-    ../external/pybind11_json/include
+    ../../external/pybind11_json/include
     ../../external/pybind11/include
 )
