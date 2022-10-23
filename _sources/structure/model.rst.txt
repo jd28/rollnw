@@ -1,9 +1,39 @@
 model
 =====
 
-As mentioned elsewhere, the goal of this library is not to render graphics.  Loading NWN models would
-be for the sole purpose of conversion or in some other asset pipeline.  But who knows, anything is
-possible.
+As mentioned elsewhere, the goal of this library is not to render graphics, but maybe?  Loading NWN models is
+for the purpose of conversion or in some other asset pipeline.
 
-There is a lot to do to ensure the completeness and correctness of the ASCII parser.  Binary parsing
-will likely never be a feature.
+ASCII Models
+------------
+
+The ASCII Model parser can parse at about 100mb/s and can read pretty much `all ascii models <https://neverwintervault.org/project/nwn1/model/neverwinter-nights-ee-ascii-source-models>`__
+in ~20s on 2015 MacBook Pro.
+
+Binary Models
+-------------
+
+Binary parsing will likely never be a feature.
+
+Examples
+--------
+
+.. tabs::
+
+    .. code-tab:: python
+
+        #! /usr/bin/env python
+
+        from rollnw.model import Mdl
+        import os
+
+
+        for f in os.listdir():
+            if os.path.isfile(f):
+                mdl = Mdl.from_file(f)
+                if not mdl.valid():
+                    print(f"failed parsing: {f}")
+
+    .. code-tab:: c++
+
+        // TODO

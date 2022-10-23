@@ -20,41 +20,40 @@ In order to run all of the tests, you can help the library locate Neverwinter Ni
    $ export NWN_ROOT=path/to/game
    $ export NWN_USER=path/to/nwn-user-dir
 
-linux
------
+.. tabs::
 
-.. code:: bash
+   .. tab:: linux
 
-   $ cd path/to/rollnw
-   $ cmake --preset default-test
-   $ cmake --build --preset default
-   $ ctest --preset default
+      .. code:: bash
 
-macOS
------
+         $ cd path/to/rollnw
+         $ cmake --preset default-test
+         $ cmake --build --preset default
+         $ ctest --preset default
 
-.. note::
+   .. tab:: macOS
 
-    The deployment target is currently set to 10.15.  Only x86_64 builds are supported
-    due to vcpkg.
+      .. note::
 
-.. code:: bash
+         The deployment target is currently set to 10.15.  Only x86_64 builds are supported
+         due to vcpkg.
 
-   $ cd path/to/rollnw
-   $ cmake --preset macos
-   $ cmake --build --preset default
-   $ ctest --preset default
+      .. code:: bash
 
-windows
--------
+         $ cd path/to/rollnw
+         $ cmake --preset macos
+         $ cmake --build --preset default
+         $ ctest --preset default
 
-The windows build currently only has a preset for Visual Studio 2019 (Community Edition), but mingw-64,
-later versions of Visual Studio will added.  For now it's probably easiest to open the Visual Studio
-Developer Command Prompt.
+   .. tab:: windows
 
-.. code:: bash
+      The windows build currently only has a preset for Visual Studio 2019 (Community Edition), but mingw-64,
+      later versions of Visual Studio will added.  For now it's probably easiest to open the Visual Studio
+      Developer Command Prompt.
 
-   $ cd path/to/rollnw
-   $ cmake --preset windows
-   $ cmake --build --preset default
-   $ ctest --preset default
+      .. code:: bash
+
+         $ cd path/to/rollnw
+         $ cmake --preset windows
+         $ cmake --build --preset default
+         $ ctest --preset default

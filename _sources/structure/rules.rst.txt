@@ -92,7 +92,7 @@ Definitions
    A modifier source indicates the attribute of an object that modifier is associated with.
 
 **Modifier Inputs**
-   Inputs are a vector of ``int``, ``float``, or ``ModifierFunction``.  In the basic cases, the inputs
+   Inputs are a vector of ``int``, ``float``, or ``ModifierFunction`` [2]_.  In the basic cases, the inputs
    are passed directly without modification.  When a function is an input that function is called on
    the object and its result passed as an output.
 
@@ -134,42 +134,34 @@ Definitions
 
 .. code:: cpp
 
-   namespace nwk = nw::kernel;
+   auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
+   auto ent = nwk::objects().load<nw::Creature>(fs::path("some/palemaster.utc"));
 
-   auto ent = // ...
+   int res = 0;
+   nwk::rules().calculate(ent, nwn1::mod_type_armor_class, nwn1::ac_natural,
+      [&res](int value) { res += value; });
+   // res == 6
 
-   auto pm_ac = [](const ObjectBase* obj) -> nw::ModifierResult {
-      auto stat = ent.get<nw::LevelStats>();
-      if (!stat) { return 0; }
-      auto pm_level = stat->level_by_class(nwn1::class_type_pale_master);
-      return pm_level > 0 ? ((pm_level / 4) + 1) * 2 : 0;
+   auto pm_ac_nerf = [](const nw::ObjectBase* obj) -> nw::ModifierResult {
+      auto cre = obj->as_creature();
+      if (!cre) { return 0; }
+      auto pm_level = cre->levels.level_by_class(nwn1::class_type_pale_master);
+      return ((pm_level / 4) + 1);
    };
 
-   auto mod2 = mod::armor_class(
-      ac_natural,
-      pm_ac,
-      "dnd-3.0-palemaster-ac",
-      nw::ModifierSource::class_);
+   // Get rid of any requirement
+   nwk::rules().replace("dnd-3.0-palemaster-ac", nw::Requirement{});
+   // Set nerf
+   nwk::rules().replace("dnd-3.0-palemaster-ac", nw::ModifierInputs{pm_ac_nerf}));
+   res = 0;
+   REQUIRE(nwk::rules().calculate(ent, nwn1::mod_type_armor_class, nwn1::ac_natural,
+      [&res](int value) { res += value; }));
+   // res == 3
 
-   nw::kernel::rules().add(mod2);
-   // RDD AC bonus ... etc, etc, etc
-
-   // Calculate all bonuses in the Natural AC modifier category
-   auto ac_natural_mod = nwk::rules().calculate<int>(ent, nwn1::mod_type_armor_class, nwn1::ac_natural);
-
-   auto pm_ac_nerf = [](const ObjectBase* obj) -> nw::ModifierResult {
-      auto stat = ent.get<nw::LevelStats>();
-      if (!stat) { return 0; }
-      auto pm_level = stat->level_by_class(nwn1::class_type_pale_master);
-      return pm_level > 0 ? ((pm_level / 4) + 1) : 0;
-   };
-
-   // Set a nerf
-   nwk::rules().replace("dnd-3.0-palemaster-ac", nw::ModifierInputs{pm_ac_nerf});
-   ac_natural_mod = nwk::rules().calculate<int>(ent, nwn1::mod_type_armor_class, nwn1::ac_natural);
-
-   // Nerf wasn't enough, delete the whole thing
-   nwk::rules().remove("dnd-3.0-palemaster-ac");
+   res = 0;
+   nwk::rules().calculate(ent, nwn1::mod_type_armor_class, nwn1::ac_natural,
+      [&res](int value) { res += value; }));
+   // res == 0
 
 -------------------------------------------------------------------------------
 

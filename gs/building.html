@@ -7,6 +7,7 @@
   <title>building &mdash; rollNW  documentation</title>
       <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/tabs.css" type="text/css" />
   <!--[if lt IE 9]>
     <script src="../_static/js/html5shiv.min.js"></script>
   <![endif]-->
@@ -17,6 +18,7 @@
         <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="../_static/doctools.js"></script>
         <script src="../_static/sphinx_highlight.js"></script>
+        <script src="../_static/tabs.js"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
@@ -41,12 +43,7 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption" role="heading"><span class="caption-text">getting started</span></p>
 <ul class="current">
-<li class="toctree-l1 current"><a class="current reference internal" href="#">building</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#linux">linux</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#macos">macOS</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#windows">windows</a></li>
-</ul>
-</li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">building</a></li>
 <li class="toctree-l1"><a class="reference internal" href="using.html">using</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">structure</span></p>
@@ -130,18 +127,14 @@ automatically.  Just export the vcpkg root path in an ENV var:</p>
 $ <span class="nb">export</span> <span class="nv">NWN_USER</span><span class="o">=</span>path/to/nwn-user-dir
 </pre></div>
 </div>
-<section id="linux">
-<h2>linux<a class="headerlink" href="#linux" title="Permalink to this heading"></a></h2>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ <span class="nb">cd</span> path/to/rollnw
+<div class="sphinx-tabs docutils container">
+<div aria-label="Tabbed content" class="closeable" role="tablist"><button aria-controls="panel-0-0-0" aria-selected="true" class="sphinx-tabs-tab" id="tab-0-0-0" name="0-0" role="tab" tabindex="0">linux</button><button aria-controls="panel-0-0-1" aria-selected="false" class="sphinx-tabs-tab" id="tab-0-0-1" name="0-1" role="tab" tabindex="-1">macOS</button><button aria-controls="panel-0-0-2" aria-selected="false" class="sphinx-tabs-tab" id="tab-0-0-2" name="0-2" role="tab" tabindex="-1">windows</button></div><div aria-labelledby="tab-0-0-0" class="sphinx-tabs-panel" id="panel-0-0-0" name="0-0" role="tabpanel" tabindex="0"><div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ <span class="nb">cd</span> path/to/rollnw
 $ cmake --preset default-test
 $ cmake --build --preset default
 $ ctest --preset default
 </pre></div>
 </div>
-</section>
-<section id="macos">
-<h2>macOS<a class="headerlink" href="#macos" title="Permalink to this heading"></a></h2>
-<div class="admonition note">
+</div><div aria-labelledby="tab-0-0-1" class="sphinx-tabs-panel" hidden="true" id="panel-0-0-1" name="0-1" role="tabpanel" tabindex="0"><div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>The deployment target is currently set to 10.15.  Only x86_64 builds are supported
 due to vcpkg.</p>
@@ -152,10 +145,7 @@ $ cmake --build --preset default
 $ ctest --preset default
 </pre></div>
 </div>
-</section>
-<section id="windows">
-<h2>windows<a class="headerlink" href="#windows" title="Permalink to this heading"></a></h2>
-<p>The windows build currently only has a preset for Visual Studio 2019 (Community Edition), but mingw-64,
+</div><div aria-labelledby="tab-0-0-2" class="sphinx-tabs-panel" hidden="true" id="panel-0-0-2" name="0-2" role="tabpanel" tabindex="0"><p>The windows build currently only has a preset for Visual Studio 2019 (Community Edition), but mingw-64,
 later versions of Visual Studio will added.  For now it’s probably easiest to open the Visual Studio
 Developer Command Prompt.</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ <span class="nb">cd</span> path/to/rollnw
@@ -164,7 +154,7 @@ $ cmake --build --preset default
 $ ctest --preset default
 </pre></div>
 </div>
-</section>
+</div></div>
 </section>
 
 
