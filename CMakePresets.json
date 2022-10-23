@@ -38,7 +38,7 @@
             "name": "ci-linux",
             "inherits": "linux",
             "displayName": "ci-linux",
-            "description": "Default build with tests and code coverage",
+            "description": "Default build with tests and code coverage, no python",
             "condition": {
                 "type": "equals",
                 "lhs": "${hostSystemName}",
@@ -64,6 +64,12 @@
             }
         },
         {
+            "name": "ci-linux-python",
+            "inherits": "linux-python",
+            "displayName": "Default Config",
+            "description": "Default build using Ninja"
+        },
+        {
             "name": "windows",
             "inherits": "linux",
             "generator": "Visual Studio 16 2019",
@@ -86,8 +92,8 @@
         {
             "name": "windows-python",
             "inherits": "windows",
-            "displayName": "windows ci build",
-            "description": "windows ci build",
+            "displayName": "windows python build",
+            "description": "windows python build",
             "cacheVariables": {
                 "ENABLE_PYTHON": {
                     "type": "BOOL",
@@ -96,8 +102,15 @@
             }
         },
         {
-            "name": "ci-windows-python",
+            "name": "ci-windows",
             "inherits": "windows",
+            "generator": "NMake Makefiles",
+            "displayName": "windows ci build",
+            "description": "windows ci build"
+        },
+        {
+            "name": "ci-windows-python",
+            "inherits": "windows-python",
             "generator": "NMake Makefiles",
             "displayName": "windows ci build",
             "description": "windows ci build"

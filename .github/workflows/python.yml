@@ -13,7 +13,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     env:
       VCPKG_ROOT: vcpkg/
-      vcpkg-tag: "2022.03.10"
+      vcpkg-tag: "2022.09.27"
     strategy:
       fail-fast: false
       matrix:
