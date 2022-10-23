@@ -67,8 +67,9 @@
         {
             "name": "ci-linux-python",
             "inherits": "linux-python",
+            "generator": "Unix Makefiles",
             "displayName": "Default Config",
-            "description": "Default build using Ninja"
+            "description": "CI Linux with python, makefies"
         },
         {
             "name": "windows",
