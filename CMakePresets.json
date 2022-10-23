@@ -25,6 +25,7 @@
         },
         {
             "name": "linux-python",
+            "inherits": "linux",
             "displayName": "Default Config",
             "description": "Default build using Ninja",
             "cacheVariables": {

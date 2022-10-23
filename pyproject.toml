@@ -16,7 +16,7 @@ skip = "*-win32 *-manylinux_i686 pp* cp36-* cp37-* *-musllinux_*"
 [tool.cibuildwheel.linux]
 before-all = [
   "yum install -y curl zip unzip tar",
-  "git clone -b 2022.03.10 https://github.com/microsoft/vcpkg.git {project}/vcpkg",
+  "git clone -b 2022.09.27 https://github.com/microsoft/vcpkg.git {project}/vcpkg",
   "{project}/vcpkg/bootstrap-vcpkg.sh",
 ]
 
