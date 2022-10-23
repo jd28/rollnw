@@ -13,46 +13,130 @@ easily be made read/write/modifiable with the exact same performance
 characteristics, Gff cannot. It's better to separate them than convolute
 the implementations of all of them.
 
-+------+-------+-------+-----------------------------------------------------------------------------------------+
-| Type | Read  | Write |                                          Notes                                          |
-+======+=======+=======+=========================================================================================+
-| 2da  | Yes   | Yes   |                                                                                         |
-+------+-------+-------+-----------------------------------------------------------------------------------------+
-| bmp  | Yes   | Yes   | `stbi_image <https://github.com/nothings/stb>`__                                        |
-+------+-------+-------+-----------------------------------------------------------------------------------------+
-| dds  | Yes   | Yes   | Both standard and Bioware (thanks to Torlack)                                           |
-|      |       |       | DDS files can be read, onlyes standard written.                                         |
-|      |       |       | Conversions: png, tga                                                                   |
-+------+-------+-------+-----------------------------------------------------------------------------------------+
-| gif  | Yes   | Yes   | `stbi_image <https://github.com/nothings/stb>`__                                        |
-+------+-------+-------+-----------------------------------------------------------------------------------------+
-| ini  | Yes   | No    | `inih <https://github.com/benhoyt/inih>`__                                              |
-+------+-------+-------+-----------------------------------------------------------------------------------------+
-| jpg  | Yes   | Yes   | `stbi_image <https://github.com/nothings/stb>`__                                        |
-+------+-------+-------+-----------------------------------------------------------------------------------------+
-| json | Yes   | Yes   | `nholmann_json <https://github.com/nlohmann/json>`__                                    |
-+------+-------+-------+-----------------------------------------------------------------------------------------+
-| mdl  | ASCII | ASCII | See `model docs <https://jd28.github.io/rollnw/structure/model.html>`__                 |
-+------+-------+-------+-----------------------------------------------------------------------------------------+
-| mtr  | No    | No    | Parsing easy, do anything with it hard                                                  |
-+------+-------+-------+-----------------------------------------------------------------------------------------+
-| plt  | No    | No    | Parsing easy, do anything with it hard                                                  |
-+------+-------+-------+-----------------------------------------------------------------------------------------+
-| png  | Yes   | Yes   | `stbi_image <https://github.com/nothings/stb>`__                                        |
-|      |       |       |                                                                                         |
-+------+-------+-------+-----------------------------------------------------------------------------------------+
-| set  | Yes   | No    | `inih <https://github.com/benhoyt/inih>`__ -                                            |
-|      |       |       | it's just an ini file.                                                                  |
-+------+-------+-------+-----------------------------------------------------------------------------------------+
-| tga  | Yes   | Yes   | `stbi_image <https://github.com/nothings/stb>`__                                        |
-|      |       |       | Conversions: png, dds                                                                   |
-+------+-------+-------+-----------------------------------------------------------------------------------------+
-| tml  | Yes   | Yes   | `toml++ <https://github.com/marzer/tomlplusplus/>`__                                    |
-+------+-------+-------+-----------------------------------------------------------------------------------------+
-| txi  | No    | No    | Parsing easy, do anything with it hard                                                  |
-+------+-------+-------+-----------------------------------------------------------------------------------------+
+-------------------------------------------------------------------------------
 
-Note in the case of image formats, everything
-`stbi_image <https://github.com/nothings/stb>`__ supports, this library
-could support. This has no goal of being any kind of useful conversion
-library.
+2da
+---
+
+**Status**: read/write
+
+The 2da parser is one of the more optimized parts of the library.  It can parse ~300MBps and all
+default 2das in under half of a second.
+
+**Usage Example**:
+
+.. tabs::
+
+    .. code-tab:: python
+
+        #! /usr/bin/env python
+
+        from rollnw import TwoDA
+        import os
+
+
+        for f in os.listdir():
+            if os.path.isfile(f) and os.path.splitext(f)[1].lower() == '.2da':
+                tda = TwoDA(f)
+                print(tda[0][0])
+                if not tda.valid():
+                    print(f"failed parsing: {f}")
+
+    .. code-tab:: c++
+
+        // TODO
+
+-------------------------------------------------------------------------------
+
+images formats
+--------------
+
+**Status**:
+
+- bmp: read/write
+- dds (standard): read/write
+- dds (bioware): read/write
+- jpg: read/write
+- gif: read/write
+- plt: unsupported
+- png: read/write
+- tga: read/write
+
+The library can do conversions between image formats and can do anything that stbi_image can, however,
+this has no goal of being any kind of useful conversion library.
+
+bmp, gif, jpg, png, tga are supported thanks to `stbi_image <https://github.com/nothings/stb>`__.
+dds (standard) is supported thanks to `SOIL2 <https://github.com/SpartanJ/SOIL2/>`__.
+dds (bioware) is supported by work based on Torlack's NWNExplorer.
+
+.. tabs::
+
+    .. code-tab:: python
+
+        # TODO
+
+    .. code-tab:: c++
+
+        // TODO
+
+-------------------------------------------------------------------------------
+
+ini
+---
+
+**Status**: read
+
+Supported thanks to `inih <https://github.com/benhoyt/inih>`__
+
+-------------------------------------------------------------------------------
+
+json
+----
+
+**Status**: read/write
+
+Supported thanks to `nholmann_json <https://github.com/nlohmann/json>`__
+
+-------------------------------------------------------------------------------
+
+mdl
+---
+
+See `model docs <https://jd28.github.io/rollnw/structure/model.html>`__
+
+-------------------------------------------------------------------------------
+
+mtr
+---
+
+**Status**: unsupported
+
+-------------------------------------------------------------------------------
+
+set
+---
+
+**Status**: read
+
+Supported thanks to `inih <https://github.com/benhoyt/inih>`__
+
+-------------------------------------------------------------------------------
+
+ssf
+---
+
+**Status**: unsupported
+
+-------------------------------------------------------------------------------
+
+tml
+---
+
+**Status**: read/write
+
+Supported thanks to `toml++ <https://github.com/marzer/tomlplusplus/>`__.
+
+txi
+---
+
+**Status**: unsupported
