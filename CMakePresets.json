@@ -111,7 +111,6 @@
         {
             "name": "ci-windows-python",
             "inherits": "windows-python",
-            "generator": "NMake Makefiles",
             "displayName": "windows ci build",
             "description": "windows ci build"
         },

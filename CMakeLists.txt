@@ -7,8 +7,6 @@ option(BUILD_DOCS "Build documentation" OFF)
 # Generate compile_commands.json to make it easier to work with clang based tools
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-include(cmake/PreventInSourceBuilds.cmake)
-
 if(ENABLE_PYTHON)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 # AppleClang changes visibility to hidden

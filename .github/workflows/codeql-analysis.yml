@@ -90,7 +90,7 @@ jobs:
 
       - name: Configure
         run: |
-          cmake --preset default
+          cmake --preset linux
 
       - name: Build
         run: |
