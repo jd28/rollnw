@@ -31,7 +31,22 @@ in flux.**
 
 -----------------------------------------
 
-Quickstart - Open VS Code in your Browser
+features
+--------
+
+- An `ASCII Model Parser <https://jd28.github.io/rollnw/structure/model.html>`__
+- A recursive decent `NWScript Parser <https://jd28.github.io/rollnw/structure/script.html>`__
+- Implementations of pretty much every `NWN File Format <https://jd28.github.io/rollnw/structure/formats.html>`__
+- A Resource Manager that can load all NWN containers (e.g. erf, key, nwsync) and also Zip files.
+- A `NWN Localization System <https://jd28.github.io/rollnw/structure/i18n.html>`__ focused on utf8 everywhere.
+- A `Serialization System <https://jd28.github.io/rollnw/structure/serialization.html>`__ that can transparently
+  handle GFF or JSON.
+- The beginnings of a novel `Rules System <https://jd28.github.io/rollnw/structure/rules.html>`__ designed for
+  easily adding, overriding, expanding, or removing any rule and reasonable performance
+
+-----------------------------------------
+
+quickstart - Open VS Code in your Browser
 -----------------------------------------
 
 |Open in Gitpod|

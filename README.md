@@ -16,7 +16,7 @@ And know the place for the first time.
    --T.S. Eliot, Little Gidding, The Four Quartets.
 ```
 
-rollNW is a simple modern static C++ library for Neverwinter Nights (and some Enhanced Edition) file formats and objects, that
+rollNW is a simple modern static C++/Python library for Neverwinter Nights (and some Enhanced Edition) file formats and objects, that
 
 - aims to implement an RPG engine inspired by NWN, excluding graphics and networking.
 - focuses on usage, instead of doing things the Aurora Engine Way.
@@ -27,6 +27,18 @@ rollNW is a simple modern static C++ library for Neverwinter Nights (and some En
 See the [docs](https://jd28.github.io/rollnw/) for more info.
 
 **This library is a work-in-progress.  There will be serious refactoring and until there is a real release, it should be assumed the library is a work-in-progress.**
+
+## Features
+
+- An [ASCII Model Parser](https://jd28.github.io/rollnw/structure/model.html)
+- A recursive decent [NWScript Parser](https://jd28.github.io/rollnw/structure/script.html)
+- Implementations of pretty much every [NWN File Format](https://jd28.github.io/rollnw/structure/formats.html)
+- A Resource Manager that can load all NWN containers (e.g. erf, key, nwsync) and also Zip files.
+- A [NWN Localization System](https://jd28.github.io/rollnw/structure/i18n.html) focused on utf8 everywhere.
+- A [Serialization System](https://jd28.github.io/rollnw/structure/serialization.html) that can transparently
+  handle GFF or JSON.
+- The beginnings of a novel [Rules System](https://jd28.github.io/rollnw/structure/rules.html) designed for
+  easily adding, overriding, expanding, or removing any rule and reasonable performance
 
 ## Quickstart - Open VS Code in your Browser
 
