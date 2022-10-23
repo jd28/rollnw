@@ -1,5 +1,4 @@
 #include <nw/components/Creature.hpp>
-#include <nw/formats/Nss.hpp>
 #include <nw/formats/TwoDA.hpp>
 #include <nw/i18n/Tlk.hpp>
 #include <nw/kernel/Objects.hpp>
@@ -7,6 +6,7 @@
 #include <nw/kernel/Rules.hpp>
 #include <nw/kernel/Strings.hpp>
 #include <nw/model/Mdl.hpp>
+#include <nw/script/Nss.hpp>
 #include <nw/serialization/Gff.hpp>
 #include <nwn1/Profile.hpp>
 #include <nwn1/functions.hpp>
@@ -106,10 +106,8 @@ static void BM_creature_modifier_simple(benchmark::State& state)
 
     for (auto _ : state) {
         int out = 0;
-        rules.calculate<int>(ent, nwn1::mod_type_armor_class, nwn1::ac_armor,
-            [&out](int value) {
-                out += value;
-            });
+        rules.calculate(ent, nwn1::mod_type_armor_class, nwn1::ac_armor,
+            [&out](int value) { out += value; });
         benchmark::DoNotOptimize(out);
     }
 }
@@ -124,7 +122,7 @@ static void BM_creature_modifier_complex(benchmark::State& state)
 
     for (auto _ : state) {
         int out = 0;
-        rules.calculate<int>(ent, nwn1::mod_type_hitpoints,
+        rules.calculate(ent, nwn1::mod_type_hitpoints,
             [&out](int value) {
                 out += value;
             });
@@ -157,9 +155,9 @@ static void BM_creature_ability_score(benchmark::State& state)
 static void BM_formats_nss(benchmark::State& state)
 {
     for (auto _ : state) {
-        nw::script::Nss nss("../tests/test_data/user/scratch/nwscript.nss");
-        auto prog = nss.parse();
-        benchmark::DoNotOptimize(prog);
+        nw::script::Nss nss(fs::path("../tests/test_data/user/scratch/nwscript.nss"));
+        nss.parse();
+        benchmark::DoNotOptimize(nss);
     }
 }
 
