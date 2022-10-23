@@ -119,6 +119,17 @@ TEST_CASE("model: parse ascii ee", "[model]")
 
     nw::Mdl mdl28{"test_data/user/development/ttf02_j09_02.mdl"};
     REQUIRE(mdl28.valid());
+
+    nw::Mdl mdl29{"test_data/user/development/tts01_h02_03.mdl"};
+    REQUIRE(mdl29.valid());
+
+    // [TODO] Investigate whether all the controllers in here are obsolete
+    // or really needed.  Only 3 models use them.
+    nw::Mdl mdl30{"test_data/user/development/fx_step_stbrdg.mdl"};
+    REQUIRE_FALSE(mdl30.valid());
+
+    nw::Mdl mdl31{"test_data/user/development/vwp_flash_whiblu.mdl"};
+    REQUIRE(mdl31.valid());
 }
 
 TEST_CASE("model: write to file", "[model]")

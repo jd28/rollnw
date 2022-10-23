@@ -60,6 +60,11 @@ const std::unordered_map<std::string_view, std::pair<uint32_t, uint32_t>> MdlCon
     {"percentEnd", {MdlControllerType::PercentEnd, MdlNodeFlags::emitter}},
     {"sizeMid", {MdlControllerType::SizeMid, MdlNodeFlags::emitter}},
     {"sizeMid_y", {MdlControllerType::SizeMid_Y, MdlNodeFlags::emitter}},
+    {"lockAxes", {MdlControllerType::lock_axes, MdlNodeFlags::emitter}},
+    {"spawnType", {MdlControllerType::spawn_type, MdlNodeFlags::emitter}},
+    {"random", {MdlControllerType::random, MdlNodeFlags::emitter}},
+    {"inherit", {MdlControllerType::inherit, MdlNodeFlags::emitter}},
+    {"inherit_local", {MdlControllerType::inherit_local, MdlNodeFlags::emitter}},
     // Meshes
     {"selfillumcolor", {MdlControllerType::SelfIllumColor, MdlNodeFlags::mesh}},
     {"alpha", {MdlControllerType::Alpha, MdlNodeFlags::mesh | MdlNodeFlags::emitter}},
@@ -170,6 +175,16 @@ std::pair<uint32_t, uint32_t> MdlControllerType::lookup(std::string_view cont)
         return {MdlControllerType::SizeMid, MdlNodeFlags::emitter};
     } else if (string::icmp(cont, "sizeMid_y")) {
         return {MdlControllerType::SizeMid_Y, MdlNodeFlags::emitter};
+    } else if (string::icmp(cont, "lockAxes")) {
+        return {MdlControllerType::lock_axes, MdlNodeFlags::emitter};
+    } else if (string::icmp(cont, "spawnType")) {
+        return {MdlControllerType::spawn_type, MdlNodeFlags::emitter};
+    } else if (string::icmp(cont, "random")) {
+        return {MdlControllerType::random, MdlNodeFlags::emitter};
+    } else if (string::icmp(cont, "inherit")) {
+        return {MdlControllerType::inherit, MdlNodeFlags::emitter};
+    } else if (string::icmp(cont, "inherit_local")) {
+        return {MdlControllerType::inherit_local, MdlNodeFlags::emitter};
     }
     // Meshes
     else if (string::icmp(cont, "selfillumcolor")) {

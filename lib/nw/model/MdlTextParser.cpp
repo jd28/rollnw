@@ -240,8 +240,31 @@ bool MdlTextParser::parse_controller(MdlNode* node, std::string_view name, uint3
     std::vector<float> data;
     data.reserve(128);
 
+    // Special case detonate
+    if (name == "detonate") {
+        // This is stupid, but oh well.  If there is something there just drop it.
+        // if there isn't put crap back the way it was.
+        auto opt = string::from<float>(tk);
+        if (!opt) {
+            tokens_.put_back(tk);
+            tokens_.put_back("\n");
+        }
+        node->add_controller_data(name, type, data, 1, -1);
+        return true;
+    } else if (name == "detonatekey") {
+        auto opt = string::from<float>(tk);
+        if (!opt) {
+            LOG_F(ERROR, "Failed to parse float: {}, {}", name, tokens_.line());
+            return false;
+        }
+        data.push_back(*opt);
+
+        node->add_controller_data(name, type, data, 1, 1);
+        return true;
+    }
+
     if (!string::endswith(name, "key")) {
-        // All the data is going to be on one line.
+        // All the data is going to be on one line or there may be no data
         while (!tk.empty() && !is_newline(tk)) {
             auto opt = string::from<float>(tk);
             if (!opt) {
@@ -288,7 +311,7 @@ bool MdlTextParser::parse_controller(MdlNode* node, std::string_view name, uint3
 
         auto opt = string::from<float>(tk);
         if (!opt) {
-            LOG_F(ERROR, "Failed to parse float: {}", tk);
+            LOG_F(ERROR, "{}: Failed to parse float: {}", name, tk);
             return false;
         }
         data.push_back(*opt);
@@ -347,7 +370,9 @@ bool MdlTextParser::parse_node(MdlGeometry* geometry)
         }
 
         std::string_view controller_tk = tk;
-        if (string::endswith(tk, "key")) {
+        if (string::endswith(tk, "bezierkey")) {
+            controller_tk = std::string_view(tk.data(), tk.size() - 9);
+        } else if (string::endswith(tk, "key")) {
             // Guess all this is obsolete?
             if (tk == "centerkey" || tk == "gizmokey") {
                 tk = tokens_.next();
@@ -360,10 +385,10 @@ bool MdlTextParser::parse_node(MdlGeometry* geometry)
                 } else {
                     continue;
                 }
+            } else if (tk == "birthratekeykey") { // yes..
+                tk = "birthratekey";
             }
             controller_tk = std::string_view(tk.data(), tk.size() - 3);
-        } else if (string::endswith(tk, "bezierkey")) {
-            controller_tk = std::string_view(tk.data(), tk.size() - 9);
         } else if (icmp(tk, "setfillumcolor")) {
             controller_tk = "selfillumcolor";
         }
@@ -512,6 +537,7 @@ bool MdlTextParser::parse_node(MdlGeometry* geometry)
             PARSE_DATA(spawntype_sel, n)
             PARSE_DATA(opacity, n)
             PARSE_DATA(p2p_type, n)
+            PARSE_DATA(tilefade, n)
 
             bool value;
             if (icmp(tk, "affectedByWind")) {
@@ -566,9 +592,11 @@ bool MdlTextParser::parse_node(MdlGeometry* geometry)
             MdlLightNode* n = static_cast<MdlLightNode*>(node.get());
             PARSE_DATA(lensflares, n)
             PARSE_DATA(affectdynamic, n)
+            PARSE_DATA_TO(affect_dynamic, n, affectdynamic) // yes..
             PARSE_DATA(ambientonly, n)
             PARSE_DATA_TO(ambient_only, n, ambientonly) // yes..
             PARSE_DATA(fadinglight, n)
+            PARSE_DATA_TO(fading_light, n, fadinglight)
             PARSE_DATA(flarecolorshifts, n)
             PARSE_DATA(flarepositions, n)
             PARSE_DATA(flareradius, n)
@@ -611,6 +639,10 @@ bool MdlTextParser::parse_node(MdlGeometry* geometry)
             PARSE_DATA(clipw, n);
             PARSE_DATA(clipv, n);
             PARSE_DATA(clipu, n);
+        }
+
+        if (tk == "endlist") { // yes.. random ass 'endlist's in some models
+            continue;
         }
 
         LOG_F(ERROR, "Unknown token: '{}', line: {}", tk, tokens_.line());
@@ -747,7 +779,9 @@ bool MdlTextParser::parse()
         // both spellings of this appear to be present in vanilla models and community tools
         // consume whatever is there till end of line.
         if (tk == "filedependancy" || tk == "filedependency") {
-            mdl_->model.file_dependency = std::string(tokens_.next());
+            auto t = tokens_.next();
+            if (is_newline(t)) { continue; } // one model it's empty..
+            mdl_->model.file_dependency = std::string(t);
             for (tk = tokens_.next(); !tk.empty(); tk = tokens_.next()) {
                 if (is_newline(tk)) { break; }
                 mdl_->model.file_dependency += " " + std::string(tk);

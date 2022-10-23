@@ -1,0 +1,93 @@
+#MAXMODEL ASCII
+# model: VWP_flash_whiblu
+filedependancy VWP_flash_whiblu.max
+newmodel VWP_flash_whiblu
+setsupermodel VWP_flash_whiblu NULL
+classification effect
+setanimationscale 1
+#MAXGEOM  ASCII
+beginmodelgeom VWP_flash_whiblu
+node dummy VWP_flash_whiblu
+  parent NULL
+  #part-number 0
+endnode
+node emitter spark
+  parent VWP_flash_whiblu
+  #part-number 1
+  p2p 0
+  p2p_sel 1
+  affectedByWind 0
+  m_isTinted 0
+  bounce 1
+  random 0
+  inherit 0
+  inheritvel 0
+  inherit_local 0
+  splat 0
+  inherit_part 0
+  renderorder 0
+  spawntype 0
+  update Explosion
+  render Motion_Blur
+  blend Lighten
+  texture spark
+  xgrid 0
+  ygrid 0
+  loop 0
+  deadspace 0
+  twosidedtex 0
+  blastRadius 0
+  blastLength 0
+  position 0 0 0
+  orientation 0 0 0 0
+  colorStart 1 1 0.882353008
+  colorEnd 0.780391991 0.203922004 0
+  alphaStart 1
+  alphaEnd 0.0199999996
+  sizeStart 0.0199999996
+  sizeEnd 0.00999999978
+  frameStart 0
+  frameEnd 0
+  birthrate 10
+  lifeExp 3
+  mass 1.5
+  spread 6.28318977
+  particleRot 0
+  velocity 3
+  randvel 1
+  fps 0
+  xsize 0
+  ysize 0
+  bounce_co 0.300000012
+  blurlength 0.0700007007
+  lightningDelay 0
+  lightningRadius 0
+  lightningScale 0
+  detonate
+  p2p_bezier2 0
+  p2p_bezier3 0
+  combinetime 0
+  drag 0
+  grav 0
+  threshold 0
+endnode
+endmodelgeom VWP_flash_whiblu
+
+#MAXANIM ASCII
+newanim impact VWP_flash_whiblu
+  length 0.966666996
+  transtime 0
+  animroot VWP_flash_whiblu
+node dummy VWP_flash_whiblu
+  parent NULL
+  #part-number 0
+endnode
+node emitter spark
+  parent VWP_flash_whiblu
+  #part-number 1
+  detonatekey 1
+
+endnode
+doneanim impact VWP_flash_whiblu
+
+donemodel VWP_flash_whiblu

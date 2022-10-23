@@ -222,6 +222,11 @@ struct MdlControllerType {
     static constexpr uint32_t PercentEnd = 482;
     static constexpr uint32_t SizeMid = 484;
     static constexpr uint32_t SizeMid_Y = 488;
+    static constexpr uint32_t lock_axes = 500;     // dunno, value is random
+    static constexpr uint32_t spawn_type = 501;    // dunno, value is random
+    static constexpr uint32_t random = 502;        // dunno, value is random
+    static constexpr uint32_t inherit = 503;       // dunno, value is random
+    static constexpr uint32_t inherit_local = 503; // dunno, value is random
 
     // Meshes
 
@@ -324,6 +329,7 @@ struct MdlEmitterNode : public MdlNode {
     uint32_t spawntype_sel{0};
     float opacity{0.0f};
     std::string p2p_type;
+    uint32_t tilefade{0};
 };
 
 struct MdlLightNode : public MdlNode {
