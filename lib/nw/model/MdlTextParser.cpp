@@ -50,7 +50,11 @@ bool parse_tokens(Tokenizer& tokens, std::string_view name, bool& out)
 bool parse_tokens(Tokenizer& tokens, std::string_view name, std::string& out)
 {
     auto tk = tokens.next();
-    if (validate_tokens({tk})) {
+    if (is_newline(tk)) { // Some things are there but don't have value
+        out = "";
+        tokens.put_back(tk);
+        return true;
+    } else if (!tk.empty()) {
         out = std::string(tk);
         return true;
     }
@@ -291,7 +295,8 @@ bool MdlTextParser::parse_controller(MdlNode* node, std::string_view name, uint3
         tk = tokens_.next();
     }
     node->add_controller_data(name, type, data, rows, colsize);
-    if (max_rows == 0) { tokens_.put_back(tk); }
+    // Some controller lists have both row count and 'endlist'..
+    if (max_rows == 0 && tk != "endlist") { tokens_.put_back(tk); }
     return tk == "endlist" || max_rows == 0;
 }
 
@@ -343,6 +348,19 @@ bool MdlTextParser::parse_node(MdlGeometry* geometry)
 
         std::string_view controller_tk = tk;
         if (string::endswith(tk, "key")) {
+            // Guess all this is obsolete?
+            if (tk == "centerkey" || tk == "gizmokey") {
+                tk = tokens_.next();
+                while (is_newline(tk))
+                    tk = tokens_.next();
+
+                if (tk != "endlist") {
+                    LOG_F(ERROR, "invalid controller, {}, line: {}", tk, tokens_.line());
+                    return false;
+                } else {
+                    continue;
+                }
+            }
             controller_tk = std::string_view(tk.data(), tk.size() - 3);
         } else if (string::endswith(tk, "bezierkey")) {
             controller_tk = std::string_view(tk.data(), tk.size() - 9);
@@ -354,7 +372,7 @@ bool MdlTextParser::parse_node(MdlGeometry* geometry)
         auto [ctype, ntype] = MdlControllerType::lookup(controller_tk);
         if (ctype != 0) {
             if (!(node->type & ntype)) {
-                LOG_F(ERROR, "Controller set on an incompatible node: {}", tk);
+                LOG_F(ERROR, "Controller set on an incompatible node: {}, line: {}", tk, tokens_.line());
                 return false;
             }
             if (!parse_controller(node.get(), tk, ctype)) return false;
@@ -404,6 +422,11 @@ bool MdlTextParser::parse_node(MdlGeometry* geometry)
             PARSE_DATA(faces, n)
             PARSE_DATA(inheritcolor, n)
             PARSE_DATA(materialname, n)
+            PARSE_DATA(gizmo, n)
+            PARSE_DATA(danglymesh, n)
+            PARSE_DATA(period, n)
+            PARSE_DATA(tightness, n)
+            PARSE_DATA(displacement, n)
             PARSE_DATA(render, n)
             PARSE_DATA(renderhint, n)
             PARSE_DATA(rotatetexture, n)
@@ -418,7 +441,6 @@ bool MdlTextParser::parse_node(MdlGeometry* geometry)
             PARSE_DATA(showdispl, n)
             PARSE_DATA(displtype, n)
             PARSE_DATA(lightmapped, n)
-            PARSE_DATA(multimaterial, n)
             PARSE_DATA_TO(tverts, n, tverts[0])
             PARSE_DATA_TO(tverts1, n, tverts[1])
             PARSE_DATA_TO(tverts2, n, tverts[2])
@@ -426,12 +448,38 @@ bool MdlTextParser::parse_node(MdlGeometry* geometry)
             PARSE_DATA(verts, n)
             PARSE_DATA(normals, n)
             PARSE_DATA(tangents, n)
+
+            if (tk == "multimaterial") {
+                tk = tokens_.next();
+                auto rows = string::from<uint32_t>(tk);
+                if (!rows) {
+                    LOG_F(ERROR, "expected row count, got {}, line: {}", tk, tokens_.line());
+                    return false;
+                }
+
+                for (uint32_t i = 0; i < *rows; ++i) {
+                    while (is_newline(tk))
+                        tk = tokens_.next();
+
+                    std::string current{tk};
+                    for (tk = tokens_.next(); !tk.empty(); tk = tokens_.next()) {
+                        if (is_newline(tk)) { break; }
+                        current += " " + std::string(tk);
+                    }
+                    n->multimaterial.push_back(current);
+                }
+            }
+            continue;
         }
 
         if (node->type & MdlNodeFlags::reference) {
             MdlReferenceNode* n = static_cast<MdlReferenceNode*>(node.get());
             PARSE_DATA(reattachable, n)
             PARSE_DATA(refmodel, n)
+            if (tk == "Dummy") { // There is a weird "Dummy Dummy" entry in some reference nodes.  Dunno.
+                tokens_.next();
+                continue;
+            }
         }
 
         if (node->type & MdlNodeFlags::dangly) {
@@ -490,7 +538,7 @@ bool MdlTextParser::parse_node(MdlGeometry* geometry)
                 if (!parse_tokens(tokens_, tk, value)) return false;
                 if (value) n->flags |= MdlEmitterFlag::InheritVel;
                 continue;
-            } else if (icmp(tk, "m_isTinted")) {
+            } else if (icmp(tk, "m_isTinted") || icmp(tk, "m_istnited")) {
                 if (!parse_tokens(tokens_, tk, value)) return false;
                 if (value) n->flags |= MdlEmitterFlag::IsTinted;
                 continue;
@@ -516,16 +564,19 @@ bool MdlTextParser::parse_node(MdlGeometry* geometry)
 
         if (node->type & MdlNodeFlags::light) {
             MdlLightNode* n = static_cast<MdlLightNode*>(node.get());
+            PARSE_DATA(lensflares, n)
             PARSE_DATA(affectdynamic, n)
             PARSE_DATA(ambientonly, n)
+            PARSE_DATA_TO(ambient_only, n, ambientonly) // yes..
             PARSE_DATA(fadinglight, n)
             PARSE_DATA(flarecolorshifts, n)
             PARSE_DATA(flarepositions, n)
             PARSE_DATA(flareradius, n)
             PARSE_DATA(flaresizes, n)
             PARSE_DATA(generateflare, n)
-            if (icmp(tk, "isdynamic")) {
-                LOG_F(WARNING, "'isdynamic' is obsolete, use 'nDynamicType'");
+            if (icmp(tk, "isdynamic") || icmp(tk, "n_dynamic_type")) {
+                // Comment out below, a lot of base game models use this.
+                // LOG_F(WARNING, "'isdynamic' is obsolete, use 'nDynamicType'");
                 if (!parse_tokens(tokens_, tk, n->dynamic)) return false;
                 continue;
             }
@@ -556,6 +607,10 @@ bool MdlTextParser::parse_node(MdlGeometry* geometry)
             PARSE_DATA(animtverts, n);
             PARSE_DATA(animverts, n);
             PARSE_DATA(sampleperiod, n);
+            PARSE_DATA(cliph, n);
+            PARSE_DATA(clipw, n);
+            PARSE_DATA(clipv, n);
+            PARSE_DATA(clipu, n);
         }
 
         LOG_F(ERROR, "Unknown token: '{}', line: {}", tk, tokens_.line());
@@ -658,7 +713,7 @@ bool MdlTextParser::parse_model()
                 mdl_->model.classification = MdlModelClass::item;
             else if (icmp(name, "gui"))
                 mdl_->model.classification = MdlModelClass::gui;
-            else if (icmp(name, "unknown"))
+            else if (icmp(name, "unknown") || icmp(name, "other")) // not sure what other is about
                 mdl_->model.classification = MdlModelClass::invalid;
             else {
                 LOG_F(ERROR, "Unknown Model Classification {}, line: {}", name, tokens_.line());
@@ -671,7 +726,10 @@ bool MdlTextParser::parse_model()
         } else if (tk == "beginmodelgeom") {
             if (!parse_geometry()) return false;
         } else if (tk == "newanim") {
-            if (!parse_anim()) return false;
+            if (!parse_anim()) { return false; }
+        } else if (icmp(mdl_->model.name, tk)) {
+            // I dunno... just random bug in nwmax exporter??
+            continue;
         } else {
             LOG_F(ERROR, "unknown token '{}', line: {}", tk, tokens_.line());
             return false;

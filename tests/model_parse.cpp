@@ -79,6 +79,46 @@ TEST_CASE("model: parse ascii ee", "[model]")
 
     nw::Mdl mdl15{"test_data/user/development/ctl_treebtn_spel.mdl"};
     REQUIRE(mdl15.valid());
+
+    nw::Mdl mdl16{"test_data/user/development/tnp_tree_t11.mdl"};
+    REQUIRE(mdl16.valid());
+
+    nw::Mdl mdl17{"test_data/user/development/tcm02_f05_06.mdl"};
+    REQUIRE(mdl17.valid());
+
+    nw::Mdl mdl18{"test_data/user/development/tno01_v67_01.mdl"};
+    REQUIRE(mdl18.valid());
+
+    nw::Mdl mdl19{"test_data/user/development/ttf02_c01_15.mdl"};
+    REQUIRE(mdl19.valid());
+
+    nw::Mdl mdl20{"test_data/user/development/tni01_k02_01.mdl"};
+    REQUIRE(mdl20.valid());
+
+    nw::Mdl mdl21{"test_data/user/development/tbw01_c09_01.mdl"};
+    REQUIRE(mdl21.valid());
+
+    nw::Mdl mdl22{"test_data/user/development/fx_lanshard3.mdl"};
+    REQUIRE(mdl22.valid());
+
+    nw::Mdl mdl23{"test_data/user/development/c_orcus.mdl"};
+    REQUIRE(mdl23.valid());
+
+    nw::Mdl mdl24{"test_data/user/development/tno01_b90_03.mdl"};
+    REQUIRE(mdl24.valid());
+
+    nw::Mdl mdl25{"test_data/user/development/plc_cndl02.mdl"};
+    REQUIRE(mdl25.valid());
+
+    // [TODO] Fix failing test, not sure what "node pwk" is, if it's new or what.
+    nw::Mdl mdl26{"test_data/user/development/ptm_candle07n.mdl"};
+    REQUIRE_FALSE(mdl26.valid());
+
+    nw::Mdl mdl27{"test_data/user/development/T_Door21.mdl"};
+    REQUIRE(mdl27.valid());
+
+    nw::Mdl mdl28{"test_data/user/development/ttf02_j09_02.mdl"};
+    REQUIRE(mdl28.valid());
 }
 
 TEST_CASE("model: write to file", "[model]")

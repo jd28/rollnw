@@ -62,7 +62,7 @@ const std::unordered_map<std::string_view, std::pair<uint32_t, uint32_t>> MdlCon
     {"sizeMid_y", {MdlControllerType::SizeMid_Y, MdlNodeFlags::emitter}},
     // Meshes
     {"selfillumcolor", {MdlControllerType::SelfIllumColor, MdlNodeFlags::mesh}},
-    {"alpha", {MdlControllerType::Alpha, MdlNodeFlags::mesh}},
+    {"alpha", {MdlControllerType::Alpha, MdlNodeFlags::mesh | MdlNodeFlags::emitter}},
 };
 
 std::pair<uint32_t, uint32_t> MdlControllerType::lookup(std::string_view cont)
@@ -175,7 +175,7 @@ std::pair<uint32_t, uint32_t> MdlControllerType::lookup(std::string_view cont)
     else if (string::icmp(cont, "selfillumcolor")) {
         return {MdlControllerType::SelfIllumColor, MdlNodeFlags::mesh};
     } else if (string::icmp(cont, "alpha")) {
-        return {MdlControllerType::Alpha, MdlNodeFlags::mesh};
+        return {MdlControllerType::Alpha, MdlNodeFlags::mesh | MdlNodeFlags::emitter};
     }
     return {0, 0};
 }
@@ -320,7 +320,7 @@ std::unique_ptr<MdlNode> Mdl::make_node(uint32_t type, std::string_view name)
 {
     switch (type) {
     default:
-        LOG_F(ERROR, "Invalid node type");
+        LOG_F(ERROR, "Invalid node type: {}, name: {}", type, name);
         return {};
     case MdlNodeType::dummy:
         return std::make_unique<MdlDummyNode>(std::string(name));

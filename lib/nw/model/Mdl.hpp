@@ -2,6 +2,7 @@
 
 // Huge credit here to Torlack
 
+#include "../log.hpp"
 #include "../util/ByteArray.hpp"
 #include "../util/InternedString.hpp"
 #include "../util/string.hpp"
@@ -63,6 +64,7 @@ struct MdlNodeType {
         if (string::icmp(str, "light")) return light;
         if (string::icmp(str, "aabb")) return aabb;
         if (string::icmp(str, "camera")) return camera;
+        LOG_F(ERROR, "unkown node type: {}", str);
         return 0;
     }
 
@@ -264,7 +266,7 @@ struct MdlControllerKey {
 
 struct MdlFace {
     std::array<uint32_t, 3> vert_idx;
-    uint32_t shader_group_idx;
+    int32_t shader_group_idx;
     std::array<uint32_t, 3> tvert_idx;
     uint32_t material_idx;
 };
@@ -328,6 +330,7 @@ struct MdlLightNode : public MdlNode {
     MdlLightNode(std::string name_);
     virtual ~MdlLightNode() = default;
 
+    int32_t lensflares{0}; // dunno, maybe obsolete?
     float flareradius{0.0f};
     float multiplier{0.0f};
     glm::vec3 color;
@@ -336,7 +339,7 @@ struct MdlLightNode : public MdlNode {
     std::vector<glm::vec3> flarecolorshifts;
     std::vector<std::string> textures;
     uint32_t lightpriority{5};
-    uint32_t ambientonly{0};
+    int32_t ambientonly{0};
     bool dynamic{true};
     uint32_t affectdynamic{1};
     uint32_t shadow{1};
@@ -368,8 +371,13 @@ struct MdlTrimeshNode : public MdlNode {
     glm::vec3 diffuse;
     std::vector<MdlFace> faces;
     std::string materialname;
+    std::string gizmo;
+    int danglymesh{0};
+    float period{0.0};
+    float tightness{0.0};
+    float displacement{0.0};
     bool render;
-    uint32_t renderhint;
+    std::string renderhint;
     bool rotatetexture{false};
     bool shadow{false};
     float shininess;
@@ -405,6 +413,10 @@ struct MdlAnimeshNode : public MdlTrimeshNode {
     std::vector<glm::vec3> animtverts;
     std::vector<glm::vec3> animverts;
     float sampleperiod;
+    float cliph{0.0f}; // Dunno
+    float clipw{0.0f}; // Dunno
+    float clipv{0.0f}; // Dunno
+    float clipu{0.0f}; // Dunno
 };
 
 struct MdlDanglymeshNode : public MdlTrimeshNode {
