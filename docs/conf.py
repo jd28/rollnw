@@ -14,7 +14,10 @@ def configureDoxyfile(input_dir, output_dir):
 
 
 project = "rollNW"
-extensions = ["breathe"]
+extensions = [
+    "breathe",
+    'sphinx_tabs.tabs'
+]
 breathe_default_project = "rollNW"
 
 # Check if we're running on Read the Docs' servers
