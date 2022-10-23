@@ -2,6 +2,8 @@
 [![linux](https://github.com/jd28/rollnw/actions/workflows/linux.yml/badge.svg)](https://github.com/jd28/rollnw/actions?query=workflow%3Alinux)
 [![macos](https://github.com/jd28/rollnw/actions/workflows/macos.yml/badge.svg)](https://github.com/jd28/rollnw/actions?query=workflow%3Amacos)
 [![windows](https://github.com/jd28/rollnw/actions/workflows/windows.yml/badge.svg)](https://github.com/jd28/rollnw/actions?query=workflow%3Awindows)
+[![python](https://github.com/jd28/rollnw/actions/workflows/python.yml/badge.svg)](https://github.com/jd28/rollnw/actions?query=workflow%3Apython)
+[![PyPI version](https://badge.fury.io/py/rollnw.svg)](https://badge.fury.io/py/rollnw)
 [![Language grade: C/C++](https://img.shields.io/lgtm/grade/cpp/g/jd28/rollnw.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/jd28/rollnw/context:cpp)
 [![CodeQL](https://github.com/jd28/rollnw/actions/workflows/codeql-analysis.yml/badge.svg)](https://github.com/jd28/rollnw/actions/workflows/codeql-analysis.yml)
 [![codecov](https://codecov.io/gh/jd28/rollnw/branch/main/graph/badge.svg?token=79PNROEEUU)](https://codecov.io/gh/jd28/rollnw)

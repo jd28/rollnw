@@ -1,4 +1,4 @@
-|License: MIT| |linux| |macos| |windows| |Language grade: C/C++|
+|License: MIT| |linux| |macos| |windows| |python| |pypi| |Language grade: C/C++|
 |CodeQL| |codecov|
 
 rollNW
@@ -133,6 +133,10 @@ Credits
    :target: https://github.com/jd28/rollnw/actions?query=workflow%3Amacos
 .. |windows| image:: https://github.com/jd28/rollnw/actions/workflows/windows.yml/badge.svg
    :target: https://github.com/jd28/rollnw/actions?query=workflow%3Awindows
+.. |python| image:: https://github.com/jd28/rollnw/actions/workflows/python.yml/badge.svg
+   :target: https://github.com/jd28/rollnw/actions?query=workflow%3Apython
+.. |pypi| image:: https://badge.fury.io/py/rollnw.svg
+    :target: https://badge.fury.io/py/rollnw
 .. |Language grade: C/C++| image:: https://img.shields.io/lgtm/grade/cpp/g/jd28/rollnw.svg?logo=lgtm&logoWidth=18
    :target: https://lgtm.com/projects/g/jd28/rollnw/context:cpp
 .. |CodeQL| image:: https://github.com/jd28/rollnw/actions/workflows/codeql-analysis.yml/badge.svg
