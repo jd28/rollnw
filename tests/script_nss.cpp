@@ -86,6 +86,17 @@ TEST_CASE("NWScript Parser - function decl / definition", "[formats]")
     script::Nss nss3("void test_function(string s, int b) { s; IntToString(b) +; int x = 2+2;}"sv);
     nss3.parse();
     REQUIRE(nss3.errors() == 1);
+
+    script::Nss nss4("void test_function(int b) { s + IntToString(b); }"sv);
+    REQUIRE_NOTHROW(nss4.parse());
+    REQUIRE(nss4.errors() == 0);
+    const script::Script& s4 = nss4.script();
+    REQUIRE(s4.decls.size() > 0);
+    auto fd4 = dynamic_cast<script::FunctionDefinition*>(s4.decls[0].get());
+    REQUIRE(fd4);
+    REQUIRE(fd4->decl);
+    REQUIRE(fd4->block);
+    REQUIRE(fd4->block->nodes.size() == 1);
 }
 
 TEST_CASE("NWScript lexer", "[formats]")
@@ -109,4 +120,7 @@ TEST_CASE("NWScript lexer", "[formats]")
 
     script::NssLexer lexer6{"0x123456789abCdEf"};
     REQUIRE(lexer6.next().type == script::NssTokenType::INTEGER_CONST);
+
+    script::NssLexer lexer7{"~value"};
+    REQUIRE(lexer7.next().type == script::NssTokenType::TILDE);
 }

@@ -407,6 +407,9 @@ NssToken NssLexer::next()
                 break;
             }
             break;
+        case '~': // TILDE
+            NSS_TOKEN(TILDE, 1);
+            break;
         case '&': // AND
             switch (get(pos_ + 1)) {
             case '&':

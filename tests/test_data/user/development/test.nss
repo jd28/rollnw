@@ -32,6 +32,8 @@ void main()
     ++thisisatest("hello", "world");
     --t++++;
 
+    int a = ~b;
+
     if(this || that) {
         dosometing();
     }
