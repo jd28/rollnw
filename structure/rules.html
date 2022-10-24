@@ -1,8 +1,7 @@
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
-
+  <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>rules &mdash; rollNW  documentation</title>
       <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
@@ -15,9 +14,7 @@
         <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
         <script src="../_static/jquery.js"></script>
         <script src="../_static/underscore.js"></script>
-        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="../_static/doctools.js"></script>
-        <script src="../_static/sphinx_highlight.js"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
@@ -73,6 +70,10 @@
 <li class="toctree-l1"><a class="reference internal" href="../api/functionlist.html">functions</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api/typedeflist.html">typedefs</a></li>
 </ul>
+<p class="caption" role="heading"><span class="caption-text">python api</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../api_python/classlist.html">classes</a></li>
+</ul>
 <p class="caption" role="heading"><span class="caption-text">gff schemas</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../gff_schema/are.html">are</a></li>
@@ -119,8 +120,8 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="rules">
-<h1>rules<a class="headerlink" href="#rules" title="Permalink to this heading"></a></h1>
+  <div class="section" id="rules">
+<h1>rules<a class="headerlink" href="#rules" title="Permalink to this headline"></a></h1>
 <p>The <code class="docutils literal notranslate"><span class="pre">Rules</span></code> module presents some difficulties in the sense that if one
 was to sit down and design a system capable of expressing relatively
 arbitrary sets of rules and modifiers, it probably would not look much
@@ -128,8 +129,8 @@ like NWN. Enhanced Edition’s approach largely was to unhardcode
 <em>values</em>, but not systems <a class="footnote-reference brackets" href="#id4" id="id1">1</a>.</p>
 <p>rollNW has the elements of NWN’s rule system builtin, which is itself an approximation of the Dungeons
 and Dragons 3rd Edition ruleset.</p>
-<section id="the-goals">
-<h2>The Goals<a class="headerlink" href="#the-goals" title="Permalink to this heading"></a></h2>
+<div class="section" id="the-goals">
+<h2>The Goals<a class="headerlink" href="#the-goals" title="Permalink to this headline"></a></h2>
 <ul class="simple">
 <li><p>Rules must be overridable, expandable, removable either through
 configuration (2da) or at the very least programmatically. Nothing
@@ -140,10 +141,10 @@ all the modifiers that affect this particular situation?</p></li>
 <li><p>Ideally, constants would be disassociated from 2da rows.  Say a UUID &lt;-&gt; integer map, but that’s
 both a configuration and serialization problem.</p></li>
 </ul>
-</section>
+</div>
 <hr class="docutils" />
-<section id="definitions">
-<h2>Definitions<a class="headerlink" href="#definitions" title="Permalink to this heading"></a></h2>
+<div class="section" id="definitions">
+<h2>Definitions<a class="headerlink" href="#definitions" title="Permalink to this headline"></a></h2>
 <dl>
 <dt><strong>Profile</strong></dt><dd><p>Profiles are a way of decoupling different rulesets from the rule system itself.</p>
 </dd>
@@ -180,10 +181,10 @@ armor class:</p>
 <dt><strong>Flag</strong></dt><dd><p><a class="reference internal" href="../api/struct/nw__RuleFlag.html#_CPPv4I0_6size_tEN2nw8RuleFlagE" title="nw::RuleFlag"><code class="xref cpp cpp-struct docutils literal notranslate"><span class="pre">nw::RuleFlag</span></code></a> provides a mechanism for making flags out of rule types.</p>
 </dd>
 </dl>
-</section>
+</div>
 <hr class="docutils" />
-<section id="modifiers">
-<h2>Modifiers<a class="headerlink" href="#modifiers" title="Permalink to this heading"></a></h2>
+<div class="section" id="modifiers">
+<h2>Modifiers<a class="headerlink" href="#modifiers" title="Permalink to this headline"></a></h2>
 <p>The foundation of the modifier system is just three types: <code class="docutils literal notranslate"><span class="pre">int32_t</span></code>, <code class="docutils literal notranslate"><span class="pre">float</span></code>, strings.  It builds
 on the following abstractions to provide a dynamic, modifiable, queryable system.  Modifiers are stored
 in a global table in <a class="reference internal" href="../api/struct/nw__kernel__Rules.html#_CPPv4N2nw6kernel5RulesE" title="nw::kernel::Rules"><code class="xref cpp cpp-struct docutils literal notranslate"><span class="pre">nw::kernel::Rules</span></code></a>. Note that Master Feat modifiers are special cased
@@ -193,8 +194,8 @@ below.</p>
 <a class="reference external" href="https://github.com/nwnxee/unified/tree/master/Plugins/SkillRanks">SkillRank</a>,
 and <a class="reference external" href="https://github.com/nwnxee/unified/tree/master/Plugins/Feat">Feat</a>.</p>
 <p>Note that the examples below are designed for simplicity, not things that should necessarily be done.</p>
-<section id="id2">
-<h3>Definitions<a class="headerlink" href="#id2" title="Permalink to this heading"></a></h3>
+<div class="section" id="id2">
+<h3>Definitions<a class="headerlink" href="#id2" title="Permalink to this headline"></a></h3>
 <dl>
 <dt><strong>Modifier Type</strong></dt><dd><p>A modifier type is a rule type that is used to determine how to process the outputs of a modifier.</p>
 </dd>
@@ -264,11 +265,11 @@ They currently have to be integer or floating point types.</p>
 <span class="c1">// res == 0</span>
 </pre></div>
 </div>
-</section>
-</section>
+</div>
+</div>
 <hr class="docutils" />
-<section id="master-feats">
-<h2>Master Feats<a class="headerlink" href="#master-feats" title="Permalink to this heading"></a></h2>
+<div class="section" id="master-feats">
+<h2>Master Feats<a class="headerlink" href="#master-feats" title="Permalink to this headline"></a></h2>
 <p>Master feats and associated bonuses are set in the <a class="reference internal" href="../api/struct/nw__MasterFeatRegistry.html#_CPPv4N2nw18MasterFeatRegistryE" title="nw::MasterFeatRegistry"><code class="xref cpp cpp-struct docutils literal notranslate"><span class="pre">nw::MasterFeatRegistry</span></code></a>.  The master
 feat registry associates a particular rule element, say, a skill with a master feat and a feat corresponding
 to that skill.</p>
@@ -294,10 +295,10 @@ for all martial weapons.</p>
 <span class="k">auto</span><span class="w"> </span><span class="n">mf_bonus</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">mfr</span><span class="o">-&gt;</span><span class="n">resolve</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="p">(</span><span class="n">cre</span><span class="p">,</span><span class="w"> </span><span class="n">baseitem</span><span class="p">,</span><span class="w"> </span><span class="n">mfeat_weapon_focus</span><span class="p">,</span><span class="w"> </span><span class="n">mfeat_weapon_focus_epic</span><span class="p">);</span><span class="w"></span>
 </pre></div>
 </div>
-</section>
+</div>
 <hr class="docutils" />
-<section id="requirements">
-<h2>Requirements<a class="headerlink" href="#requirements" title="Permalink to this heading"></a></h2>
+<div class="section" id="requirements">
+<h2>Requirements<a class="headerlink" href="#requirements" title="Permalink to this headline"></a></h2>
 <dl>
 <dt><strong>Selector</strong></dt><dd><p>A selector gets some piece of information from an entity.</p>
 <p><strong>Example</strong>:</p>
@@ -351,8 +352,8 @@ minimum appraise skill of 6.</p>
 nwnx_dotnet/lua/etc or a string for use with <code class="docutils literal notranslate"><span class="pre">ExecuteScriptChunk</span></code>.</p>
 </dd>
 </dl>
-</section>
-</section>
+</div>
+</div>
 
 
            </div>

@@ -1,0 +1,4 @@
+Location
+========
+
+.. autoclass:: rollnw.Location

@@ -1,8 +1,7 @@
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
-
+  <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>kernel &mdash; rollNW  documentation</title>
       <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
@@ -15,9 +14,7 @@
         <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
         <script src="../_static/jquery.js"></script>
         <script src="../_static/underscore.js"></script>
-        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="../_static/doctools.js"></script>
-        <script src="../_static/sphinx_highlight.js"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
@@ -73,6 +70,10 @@
 <li class="toctree-l1"><a class="reference internal" href="../api/functionlist.html">functions</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api/typedeflist.html">typedefs</a></li>
 </ul>
+<p class="caption" role="heading"><span class="caption-text">python api</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../api_python/classlist.html">classes</a></li>
+</ul>
 <p class="caption" role="heading"><span class="caption-text">gff schemas</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../gff_schema/are.html">are</a></li>
@@ -119,8 +120,8 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="kernel">
-<h1>kernel<a class="headerlink" href="#kernel" title="Permalink to this heading"></a></h1>
+  <div class="section" id="kernel">
+<h1>kernel<a class="headerlink" href="#kernel" title="Permalink to this headline"></a></h1>
 <p>The <code class="docutils literal notranslate"><span class="pre">kernel</span></code> module provides submodules for handling global resources
 and services. It’s designed around some explicit goals:</p>
 <ul class="simple">
@@ -130,10 +131,10 @@ implementation</a>.</p></li>
 <li><p>Any function or object that can modify global state must be contained
 in this module for easy search/grepability.</p></li>
 </ul>
-<section id="services">
-<h2>Services<a class="headerlink" href="#services" title="Permalink to this heading"></a></h2>
-<section id="config">
-<h3>Config<a class="headerlink" href="#config" title="Permalink to this heading"></a></h3>
+<div class="section" id="services">
+<h2>Services<a class="headerlink" href="#services" title="Permalink to this headline"></a></h2>
+<div class="section" id="config">
+<h3>Config<a class="headerlink" href="#config" title="Permalink to this headline"></a></h3>
 <p>The <code class="docutils literal notranslate"><span class="pre">Config</span></code> service provides access to installation info, path
 aliases, Ini and Toml settings.</p>
 <p><strong>Example</strong></p>
@@ -143,10 +144,10 @@ aliases, Ini and Toml settings.</p>
 <span class="p">}</span><span class="w"></span>
 </pre></div>
 </div>
-</section>
+</div>
 <hr class="docutils" />
-<section id="objects">
-<h3>Objects<a class="headerlink" href="#objects" title="Permalink to this heading"></a></h3>
+<div class="section" id="objects">
+<h3>Objects<a class="headerlink" href="#objects" title="Permalink to this headline"></a></h3>
 <p>rollNW is all about live objects and <em>not</em> serialized file formats.</p>
 <p><strong>Definitions</strong></p>
 <dl class="simple">
@@ -168,10 +169,10 @@ handle must match what is in the object array.</p>
 <span class="p">}</span><span class="w"></span>
 </pre></div>
 </div>
-</section>
+</div>
 <hr class="docutils" />
-<section id="resources">
-<h3>Resources<a class="headerlink" href="#resources" title="Permalink to this heading"></a></h3>
+<div class="section" id="resources">
+<h3>Resources<a class="headerlink" href="#resources" title="Permalink to this headline"></a></h3>
 <p>The resource services provides access the file system and resources stored in NWN container files.
 The main goals mostly satisfied: the ability to read all NWN(:EE) containers. The ability to
 add new container types is limited in utility due to <a class="reference external" href="https://github.com/nwnxee/unified">NWNX:EE</a>’s
@@ -226,15 +227,15 @@ dependant)</p></td>
 </tr>
 </tbody>
 </table>
-</section>
-<section id="rules">
-<h3>Rules<a class="headerlink" href="#rules" title="Permalink to this heading"></a></h3>
+</div>
+<div class="section" id="rules">
+<h3>Rules<a class="headerlink" href="#rules" title="Permalink to this headline"></a></h3>
 <p>See <a class="reference external" href="https://jd28.github.io/rollnw/structure/rules.html">rules</a> sfor the module
 supporting this service.</p>
-</section>
+</div>
 <hr class="docutils" />
-<section id="strings">
-<h3>Strings<a class="headerlink" href="#strings" title="Permalink to this heading"></a></h3>
+<div class="section" id="strings">
+<h3>Strings<a class="headerlink" href="#strings" title="Permalink to this headline"></a></h3>
 <p>Provides access to dialog/custom TLKs and localized strings. It also provides a
 mechanism for interning commonly used strings.</p>
 <p>See <a class="reference external" href="https://jd28.github.io/rollnw/structure/i18n.html">i18n</a> for the module
@@ -246,9 +247,9 @@ supporting this service.</p>
 <span class="p">}</span><span class="w"></span>
 </pre></div>
 </div>
-</section>
-</section>
-</section>
+</div>
+</div>
+</div>
 
 
            </div>

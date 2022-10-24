@@ -1,0 +1,4 @@
+Lock
+====
+
+.. autoclass:: rollnw.Lock

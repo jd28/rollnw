@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Encounter &mdash; rollNW  documentation</title>
+      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/tabs.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/doctools.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Equips" href="Equips.html" />
+    <link rel="prev" title="Door" href="Door.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../index.html" class="icon icon-home"> rollNW
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">getting started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../gs/building.html">building</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gs/using.html">using</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">structure</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../structure/formats.html">formats</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../structure/i18n.html">i18n</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../structure/kernel.html">kernel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../structure/model.html">model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../structure/rules.html">rules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../structure/script.html">script</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../structure/serialization.html">serialization</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">c++ api</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../api/classlist.html">classes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api/definelist.html">defines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api/enumlist.html">enums</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api/functionlist.html">functions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api/typedeflist.html">typedefs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">python api</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="../classlist.html">classes</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="Appearance.html">Appearance</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Area.html">Area</a></li>
+<li class="toctree-l2"><a class="reference internal" href="BodyParts.html">BodyParts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="CombatInfo.html">CombatInfo</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Common.html">Common</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Creature.html">Creature</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Door.html">Door</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Encounter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Equips.html">Equips</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Inventory.html">Inventory</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Item.html">Item</a></li>
+<li class="toctree-l2"><a class="reference internal" href="LevelStats.html">LevelStats</a></li>
+<li class="toctree-l2"><a class="reference internal" href="LocalData.html">LocalData</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Location.html">Location</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Lock.html">Lock</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Mdl.html">Mdl</a></li>
+<li class="toctree-l2"><a class="reference internal" href="MdlAnimation.html">MdlAnimation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="MdlGeometry.html">MdlGeometry</a></li>
+<li class="toctree-l2"><a class="reference internal" href="MdlModel.html">MdlModel</a></li>
+<li class="toctree-l2"><a class="reference internal" href="MdlNode.html">MdlNode</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Module.html">Module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Nss.html">Nss</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ObjectBase.html">ObjectBase</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Placeable.html">Placeable</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Resref.html">Resref</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Script.html">Script</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Sound.html">Sound</a></li>
+<li class="toctree-l2"><a class="reference internal" href="SpellBook.html">SpellBook</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Store.html">Store</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Trap.html">Trap</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Trigger.html">Trigger</a></li>
+<li class="toctree-l2"><a class="reference internal" href="TwoDA.html">TwoDA</a></li>
+<li class="toctree-l2"><a class="reference internal" href="waypoint.html">Waypoint</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">gff schemas</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/are.html">are</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/dlg.html">dlg</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/fac.html">fac</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/gic.html">gic</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/git.html">git</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/ifo.html">ifo</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/itp.html">itp</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/jrl.html">jrl</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/utc.html">utc</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/utd.html">utd</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/ute.html">ute</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/uti.html">uti</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/utm.html">utm</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/utp.html">utp</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/uts.html">uts</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/utt.html">utt</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/utw.html">utw</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/vartable.html">vartable</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">rollNW</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="../classlist.html">classes</a> &raquo;</li>
+      <li>Encounter</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/api_python/classes/Encounter.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <div class="section" id="encounter">
+<h1>Encounter<a class="headerlink" href="#encounter" title="Permalink to this headline"></a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="rollnw.Encounter">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">rollnw.</span></span><span class="sig-name descname"><span class="pre">Encounter</span></span><a class="headerlink" href="#rollnw.Encounter" title="Permalink to this definition"></a></dt>
+<dd><p>Class that represents an Encounter object</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="rollnw.Encounter.active">
+<span class="sig-name descname"><span class="pre">active</span></span><a class="headerlink" href="#rollnw.Encounter.active" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="rollnw.Encounter.creatures">
+<span class="sig-name descname"><span class="pre">creatures</span></span><a class="headerlink" href="#rollnw.Encounter.creatures" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="rollnw.Encounter.creatures_max">
+<span class="sig-name descname"><span class="pre">creatures_max</span></span><a class="headerlink" href="#rollnw.Encounter.creatures_max" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p>int</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="rollnw.Encounter.creatures_recommended">
+<span class="sig-name descname"><span class="pre">creatures_recommended</span></span><a class="headerlink" href="#rollnw.Encounter.creatures_recommended" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="rollnw.Encounter.difficulty">
+<span class="sig-name descname"><span class="pre">difficulty</span></span><a class="headerlink" href="#rollnw.Encounter.difficulty" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="rollnw.Encounter.difficulty_index">
+<span class="sig-name descname"><span class="pre">difficulty_index</span></span><a class="headerlink" href="#rollnw.Encounter.difficulty_index" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="rollnw.Encounter.faction">
+<span class="sig-name descname"><span class="pre">faction</span></span><a class="headerlink" href="#rollnw.Encounter.faction" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="rollnw.Encounter.geometry">
+<span class="sig-name descname"><span class="pre">geometry</span></span><a class="headerlink" href="#rollnw.Encounter.geometry" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="rollnw.Encounter.player_only">
+<span class="sig-name descname"><span class="pre">player_only</span></span><a class="headerlink" href="#rollnw.Encounter.player_only" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="rollnw.Encounter.reset">
+<span class="sig-name descname"><span class="pre">reset</span></span><a class="headerlink" href="#rollnw.Encounter.reset" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="rollnw.Encounter.reset_time">
+<span class="sig-name descname"><span class="pre">reset_time</span></span><a class="headerlink" href="#rollnw.Encounter.reset_time" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="rollnw.Encounter.respawns">
+<span class="sig-name descname"><span class="pre">respawns</span></span><a class="headerlink" href="#rollnw.Encounter.respawns" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="rollnw.Encounter.scripts">
+<span class="sig-name descname"><span class="pre">scripts</span></span><a class="headerlink" href="#rollnw.Encounter.scripts" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="rollnw.Encounter.spawn_option">
+<span class="sig-name descname"><span class="pre">spawn_option</span></span><a class="headerlink" href="#rollnw.Encounter.spawn_option" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="rollnw.Encounter.spawn_points">
+<span class="sig-name descname"><span class="pre">spawn_points</span></span><a class="headerlink" href="#rollnw.Encounter.spawn_points" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="Door.html" class="btn btn-neutral float-left" title="Door" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="Equips.html" class="btn btn-neutral float-right" title="Equips" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright .</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

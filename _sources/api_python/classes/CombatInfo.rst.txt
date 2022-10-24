@@ -1,0 +1,4 @@
+CombatInfo
+==========
+
+.. autoclass:: rollnw.CombatInfo

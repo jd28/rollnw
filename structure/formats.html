@@ -1,8 +1,7 @@
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
-
+  <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>formats &mdash; rollNW  documentation</title>
       <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
@@ -15,9 +14,8 @@
         <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
         <script src="../_static/jquery.js"></script>
         <script src="../_static/underscore.js"></script>
-        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="../_static/doctools.js"></script>
-        <script src="../_static/sphinx_highlight.js"></script>
+        <script src="../_static/tabs.js"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
@@ -47,7 +45,19 @@
 </ul>
 <p class="caption" role="heading"><span class="caption-text">structure</span></p>
 <ul class="current">
-<li class="toctree-l1 current"><a class="current reference internal" href="#">formats</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">formats</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#da">2da</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#images-formats">images formats</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#ini">ini</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#json">json</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#mdl">mdl</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#mtr">mtr</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#set">set</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#ssf">ssf</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#tml">tml</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#txi">txi</a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="i18n.html">i18n</a></li>
 <li class="toctree-l1"><a class="reference internal" href="kernel.html">kernel</a></li>
 <li class="toctree-l1"><a class="reference internal" href="model.html">model</a></li>
@@ -62,6 +72,10 @@
 <li class="toctree-l1"><a class="reference internal" href="../api/enumlist.html">enums</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api/functionlist.html">functions</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api/typedeflist.html">typedefs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">python api</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../api_python/classlist.html">classes</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">gff schemas</span></p>
 <ul>
@@ -109,8 +123,8 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="formats">
-<h1>formats<a class="headerlink" href="#formats" title="Permalink to this heading"></a></h1>
+  <div class="section" id="formats">
+<h1>formats<a class="headerlink" href="#formats" title="Permalink to this headline"></a></h1>
 <p>One thing that makes NWN(:EE) so great is that it’s a local optima of
 power and simplicity. It’s file formats are no different many of them -
 at the reader level - can be implemented as a thin wrapper over a
@@ -121,107 +135,105 @@ usage or performance characteristics of one or the other. E,g. tlk can
 easily be made read/write/modifiable with the exact same performance
 characteristics, Gff cannot. It’s better to separate them than convolute
 the implementations of all of them.</p>
-<table class="docutils align-default">
-<colgroup>
-<col style="width: 6%" />
-<col style="width: 6%" />
-<col style="width: 6%" />
-<col style="width: 82%" />
-</colgroup>
-<thead>
-<tr class="row-odd"><th class="head"><p>Type</p></th>
-<th class="head"><p>Read</p></th>
-<th class="head"><p>Write</p></th>
-<th class="head"><p>Notes</p></th>
-</tr>
-</thead>
-<tbody>
-<tr class="row-even"><td><p>2da</p></td>
-<td><p>Yes</p></td>
-<td><p>Yes</p></td>
-<td></td>
-</tr>
-<tr class="row-odd"><td><p>bmp</p></td>
-<td><p>Yes</p></td>
-<td><p>Yes</p></td>
-<td><p><a class="reference external" href="https://github.com/nothings/stb">stbi_image</a></p></td>
-</tr>
-<tr class="row-even"><td><p>dds</p></td>
-<td><p>Yes</p></td>
-<td><p>Yes</p></td>
-<td><p>Both standard and Bioware (thanks to Torlack)
-DDS files can be read, onlyes standard written.
-Conversions: png, tga</p></td>
-</tr>
-<tr class="row-odd"><td><p>gif</p></td>
-<td><p>Yes</p></td>
-<td><p>Yes</p></td>
-<td><p><a class="reference external" href="https://github.com/nothings/stb">stbi_image</a></p></td>
-</tr>
-<tr class="row-even"><td><p>ini</p></td>
-<td><p>Yes</p></td>
-<td><p>No</p></td>
-<td><p><a class="reference external" href="https://github.com/benhoyt/inih">inih</a></p></td>
-</tr>
-<tr class="row-odd"><td><p>jpg</p></td>
-<td><p>Yes</p></td>
-<td><p>Yes</p></td>
-<td><p><a class="reference external" href="https://github.com/nothings/stb">stbi_image</a></p></td>
-</tr>
-<tr class="row-even"><td><p>json</p></td>
-<td><p>Yes</p></td>
-<td><p>Yes</p></td>
-<td><p><a class="reference external" href="https://github.com/nlohmann/json">nholmann_json</a></p></td>
-</tr>
-<tr class="row-odd"><td><p>mdl</p></td>
-<td><p>ASCII</p></td>
-<td><p>ASCII</p></td>
-<td><p>See <a class="reference external" href="https://jd28.github.io/rollnw/structure/model.html">model docs</a></p></td>
-</tr>
-<tr class="row-even"><td><p>mtr</p></td>
-<td><p>No</p></td>
-<td><p>No</p></td>
-<td><p>Parsing easy, do anything with it hard</p></td>
-</tr>
-<tr class="row-odd"><td><p>plt</p></td>
-<td><p>No</p></td>
-<td><p>No</p></td>
-<td><p>Parsing easy, do anything with it hard</p></td>
-</tr>
-<tr class="row-even"><td><p>png</p></td>
-<td><p>Yes</p></td>
-<td><p>Yes</p></td>
-<td><p><a class="reference external" href="https://github.com/nothings/stb">stbi_image</a></p></td>
-</tr>
-<tr class="row-odd"><td><p>set</p></td>
-<td><p>Yes</p></td>
-<td><p>No</p></td>
-<td><p><a class="reference external" href="https://github.com/benhoyt/inih">inih</a> -
-it’s just an ini file.</p></td>
-</tr>
-<tr class="row-even"><td><p>tga</p></td>
-<td><p>Yes</p></td>
-<td><p>Yes</p></td>
-<td><p><a class="reference external" href="https://github.com/nothings/stb">stbi_image</a>
-Conversions: png, dds</p></td>
-</tr>
-<tr class="row-odd"><td><p>tml</p></td>
-<td><p>Yes</p></td>
-<td><p>Yes</p></td>
-<td><p><a class="reference external" href="https://github.com/marzer/tomlplusplus/">toml++</a></p></td>
-</tr>
-<tr class="row-even"><td><p>txi</p></td>
-<td><p>No</p></td>
-<td><p>No</p></td>
-<td><p>Parsing easy, do anything with it hard</p></td>
-</tr>
-</tbody>
-</table>
-<p>Note in the case of image formats, everything
-<a class="reference external" href="https://github.com/nothings/stb">stbi_image</a> supports, this library
-could support. This has no goal of being any kind of useful conversion
-library.</p>
-</section>
+<hr class="docutils" />
+<div class="section" id="da">
+<h2>2da<a class="headerlink" href="#da" title="Permalink to this headline"></a></h2>
+<p><strong>Status</strong>: read/write</p>
+<p>The 2da parser is one of the more optimized parts of the library.  It can parse ~300MBps and all
+default 2das in under half of a second.</p>
+<p><strong>Usage Example</strong>:</p>
+<div class="sphinx-tabs docutils container">
+<div aria-label="Tabbed content" class="closeable" role="tablist"><button aria-controls="panel-0-UHl0aG9u" aria-selected="true" class="sphinx-tabs-tab code-tab group-tab" id="tab-0-UHl0aG9u" name="UHl0aG9u" role="tab" tabindex="0">Python</button><button aria-controls="panel-0-Qysr" aria-selected="false" class="sphinx-tabs-tab code-tab group-tab" id="tab-0-Qysr" name="Qysr" role="tab" tabindex="-1">C++</button></div><div aria-labelledby="tab-0-UHl0aG9u" class="sphinx-tabs-panel code-tab group-tab" id="panel-0-UHl0aG9u" name="UHl0aG9u" role="tabpanel" tabindex="0"><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="ch">#! /usr/bin/env python</span>
+
+<span class="kn">from</span> <span class="nn">rollnw</span> <span class="kn">import</span> <span class="n">TwoDA</span>
+<span class="kn">import</span> <span class="nn">os</span>
+
+
+<span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">():</span>
+    <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">f</span><span class="p">)</span> <span class="ow">and</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">splitext</span><span class="p">(</span><span class="n">f</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s1">&#39;.2da&#39;</span><span class="p">:</span>
+        <span class="n">tda</span> <span class="o">=</span> <span class="n">TwoDA</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">tda</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">tda</span><span class="o">.</span><span class="n">valid</span><span class="p">():</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;failed parsing: </span><span class="si">{</span><span class="n">f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div><div aria-labelledby="tab-0-Qysr" class="sphinx-tabs-panel code-tab group-tab" hidden="true" id="panel-0-Qysr" name="Qysr" role="tabpanel" tabindex="0"><div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="c1">// TODO</span>
+</pre></div>
+</div>
+</div></div>
+</div>
+<hr class="docutils" />
+<div class="section" id="images-formats">
+<h2>images formats<a class="headerlink" href="#images-formats" title="Permalink to this headline"></a></h2>
+<p><strong>Status</strong>:</p>
+<ul class="simple">
+<li><p>bmp: read/write</p></li>
+<li><p>dds (standard): read/write</p></li>
+<li><p>dds (bioware): read/write</p></li>
+<li><p>jpg: read/write</p></li>
+<li><p>gif: read/write</p></li>
+<li><p>plt: unsupported</p></li>
+<li><p>png: read/write</p></li>
+<li><p>tga: read/write</p></li>
+</ul>
+<p>The library can do conversions between image formats and can do anything that stbi_image can, however,
+this has no goal of being any kind of useful conversion library.</p>
+<p>bmp, gif, jpg, png, tga are supported thanks to <a class="reference external" href="https://github.com/nothings/stb">stbi_image</a>.
+dds (standard) is supported thanks to <a class="reference external" href="https://github.com/SpartanJ/SOIL2/">SOIL2</a>.
+dds (bioware) is supported by work based on Torlack’s NWNExplorer.</p>
+<div class="sphinx-tabs docutils container">
+<div aria-label="Tabbed content" class="closeable" role="tablist"><button aria-controls="panel-1-UHl0aG9u" aria-selected="true" class="sphinx-tabs-tab code-tab group-tab" id="tab-1-UHl0aG9u" name="UHl0aG9u" role="tab" tabindex="0">Python</button><button aria-controls="panel-1-Qysr" aria-selected="false" class="sphinx-tabs-tab code-tab group-tab" id="tab-1-Qysr" name="Qysr" role="tab" tabindex="-1">C++</button></div><div aria-labelledby="tab-1-UHl0aG9u" class="sphinx-tabs-panel code-tab group-tab" id="panel-1-UHl0aG9u" name="UHl0aG9u" role="tabpanel" tabindex="0"><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># TODO</span>
+</pre></div>
+</div>
+</div><div aria-labelledby="tab-1-Qysr" class="sphinx-tabs-panel code-tab group-tab" hidden="true" id="panel-1-Qysr" name="Qysr" role="tabpanel" tabindex="0"><div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="c1">// TODO</span>
+</pre></div>
+</div>
+</div></div>
+</div>
+<hr class="docutils" />
+<div class="section" id="ini">
+<h2>ini<a class="headerlink" href="#ini" title="Permalink to this headline"></a></h2>
+<p><strong>Status</strong>: read</p>
+<p>Supported thanks to <a class="reference external" href="https://github.com/benhoyt/inih">inih</a></p>
+</div>
+<hr class="docutils" />
+<div class="section" id="json">
+<h2>json<a class="headerlink" href="#json" title="Permalink to this headline"></a></h2>
+<p><strong>Status</strong>: read/write</p>
+<p>Supported thanks to <a class="reference external" href="https://github.com/nlohmann/json">nholmann_json</a></p>
+</div>
+<hr class="docutils" />
+<div class="section" id="mdl">
+<h2>mdl<a class="headerlink" href="#mdl" title="Permalink to this headline"></a></h2>
+<p>See <a class="reference external" href="https://jd28.github.io/rollnw/structure/model.html">model docs</a></p>
+</div>
+<hr class="docutils" />
+<div class="section" id="mtr">
+<h2>mtr<a class="headerlink" href="#mtr" title="Permalink to this headline"></a></h2>
+<p><strong>Status</strong>: unsupported</p>
+</div>
+<hr class="docutils" />
+<div class="section" id="set">
+<h2>set<a class="headerlink" href="#set" title="Permalink to this headline"></a></h2>
+<p><strong>Status</strong>: read</p>
+<p>Supported thanks to <a class="reference external" href="https://github.com/benhoyt/inih">inih</a></p>
+</div>
+<hr class="docutils" />
+<div class="section" id="ssf">
+<h2>ssf<a class="headerlink" href="#ssf" title="Permalink to this headline"></a></h2>
+<p><strong>Status</strong>: unsupported</p>
+</div>
+<hr class="docutils" />
+<div class="section" id="tml">
+<h2>tml<a class="headerlink" href="#tml" title="Permalink to this headline"></a></h2>
+<p><strong>Status</strong>: read/write</p>
+<p>Supported thanks to <a class="reference external" href="https://github.com/marzer/tomlplusplus/">toml++</a>.</p>
+</div>
+<div class="section" id="txi">
+<h2>txi<a class="headerlink" href="#txi" title="Permalink to this headline"></a></h2>
+<p><strong>Status</strong>: unsupported</p>
+</div>
+</div>
 
 
            </div>

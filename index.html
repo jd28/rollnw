@@ -1,8 +1,7 @@
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
-
+  <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>rollNW &mdash; rollNW  documentation</title>
       <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
@@ -15,9 +14,7 @@
         <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
         <script src="_static/jquery.js"></script>
         <script src="_static/underscore.js"></script>
-        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="_static/doctools.js"></script>
-        <script src="_static/sphinx_highlight.js"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
@@ -61,6 +58,10 @@
 <li class="toctree-l1"><a class="reference internal" href="api/enumlist.html">enums</a></li>
 <li class="toctree-l1"><a class="reference internal" href="api/functionlist.html">functions</a></li>
 <li class="toctree-l1"><a class="reference internal" href="api/typedeflist.html">typedefs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">python api</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="api_python/classlist.html">classes</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">gff schemas</span></p>
 <ul>
@@ -110,8 +111,8 @@
              
   <p><a class="reference external" href="https://opensource.org/licenses/MIT"><img alt="License: MIT" src="https://img.shields.io/badge/License-MIT-yellow.svg" /></a> <a class="reference external" href="https://github.com/jd28/rollnw/actions?query=workflow%3Alinux"><img alt="linux" src="https://github.com/jd28/rollnw/actions/workflows/linux.yml/badge.svg" /></a> <a class="reference external" href="https://github.com/jd28/rollnw/actions?query=workflow%3Amacos"><img alt="macos" src="https://github.com/jd28/rollnw/actions/workflows/macos.yml/badge.svg" /></a> <a class="reference external" href="https://github.com/jd28/rollnw/actions?query=workflow%3Awindows"><img alt="windows" src="https://github.com/jd28/rollnw/actions/workflows/windows.yml/badge.svg" /></a> <a class="reference external" href="https://github.com/jd28/rollnw/actions?query=workflow%3Apython"><img alt="python" src="https://github.com/jd28/rollnw/actions/workflows/python.yml/badge.svg" /></a> <a class="reference external" href="https://badge.fury.io/py/rollnw"><img alt="pypi" src="https://badge.fury.io/py/rollnw.svg" /></a> <a class="reference external" href="https://lgtm.com/projects/g/jd28/rollnw/context:cpp"><img alt="Language grade: C/C++" src="https://img.shields.io/lgtm/grade/cpp/g/jd28/rollnw.svg?logo=lgtm&amp;logoWidth=18" /></a>
 <a class="reference external" href="https://github.com/jd28/rollnw/actions/workflows/codeql-analysis.yml"><img alt="CodeQL" src="https://github.com/jd28/rollnw/actions/workflows/codeql-analysis.yml/badge.svg" /></a> <a class="reference external" href="https://codecov.io/gh/jd28/rollnw"><img alt="codecov" src="https://codecov.io/gh/jd28/rollnw/branch/main/graph/badge.svg?token=79PNROEEUU" /></a></p>
-<section id="rollnw">
-<h1>rollNW<a class="headerlink" href="#rollnw" title="Permalink to this heading"></a></h1>
+<div class="section" id="rollnw">
+<h1>rollNW<a class="headerlink" href="#rollnw" title="Permalink to this headline"></a></h1>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">We</span> <span class="n">shall</span> <span class="ow">not</span> <span class="n">cease</span> <span class="kn">from</span> <span class="nn">exploration</span>
 <span class="n">And</span> <span class="n">the</span> <span class="n">end</span> <span class="n">of</span> <span class="nb">all</span> <span class="n">our</span> <span class="n">exploring</span>
 <span class="n">Will</span> <span class="n">be</span> <span class="n">to</span> <span class="n">arrive</span> <span class="n">where</span> <span class="n">we</span> <span class="n">started</span>
@@ -136,8 +137,8 @@ only library specific or STL types at API boundaries.</p></li>
 and until there is a real release, it should be assumed the library is
 in flux.</strong></p>
 <hr class="docutils" />
-<section id="features">
-<h2>features<a class="headerlink" href="#features" title="Permalink to this heading"></a></h2>
+<div class="section" id="features">
+<h2>features<a class="headerlink" href="#features" title="Permalink to this headline"></a></h2>
 <ul class="simple">
 <li><p>An <a class="reference external" href="https://jd28.github.io/rollnw/structure/model.html">ASCII Model Parser</a></p></li>
 <li><p>A recursive decent <a class="reference external" href="https://jd28.github.io/rollnw/structure/script.html">NWScript Parser</a></p></li>
@@ -149,17 +150,17 @@ handle GFF or JSON.</p></li>
 <li><p>The beginnings of a novel <a class="reference external" href="https://jd28.github.io/rollnw/structure/rules.html">Rules System</a> designed for
 easily adding, overriding, expanding, or removing any rule and reasonable performance</p></li>
 </ul>
-</section>
+</div>
 <hr class="docutils" />
-<section id="quickstart-open-vs-code-in-your-browser">
-<h2>quickstart - Open VS Code in your Browser<a class="headerlink" href="#quickstart-open-vs-code-in-your-browser" title="Permalink to this heading"></a></h2>
+<div class="section" id="quickstart-open-vs-code-in-your-browser">
+<h2>quickstart - Open VS Code in your Browser<a class="headerlink" href="#quickstart-open-vs-code-in-your-browser" title="Permalink to this headline"></a></h2>
 <p><a class="reference external" href="https://gitpod.io/#https://github.com/jd28/rollnw"><img alt="Open in Gitpod" src="https://gitpod.io/button/open-in-gitpod.svg" /></a></p>
 <p><a class="reference external" href="https://github.com/features/codespaces">Github Codespaces</a> is
 available to those in the beta.</p>
-</section>
+</div>
 <hr class="docutils" />
-<section id="history">
-<h2>History<a class="headerlink" href="#history" title="Permalink to this heading"></a></h2>
+<div class="section" id="history">
+<h2>History<a class="headerlink" href="#history" title="Permalink to this headline"></a></h2>
 <p>A lot of what’s here was written in the 2011-2015 range as part of
 personal minimalist toolset, modernized and with new EE stuff added. In
 some sense, it’s a work of historical fiction - it’s what I’d have
@@ -168,18 +169,18 @@ same set of libraries. Similarly to an older project that asked <a class="refere
 if Bioware had stuck with
 Lua?”</a>. The answer to
 that was pretty positive: a decade ahead, at least, of nwscript.</p>
-</section>
+</div>
 <hr class="docutils" />
-<section id="general-warning">
-<h2>General Warning<a class="headerlink" href="#general-warning" title="Permalink to this heading"></a></h2>
+<div class="section" id="general-warning">
+<h2>General Warning<a class="headerlink" href="#general-warning" title="Permalink to this headline"></a></h2>
 <p>If you’ve somehow found your way here by accident, you should head to
 <a class="reference external" href="https://github.com/niv/neverwinter.nim">neverwinter.nim</a>, those are
 the official tools of NWN:EE and can handle basic workflows out of the
 box.</p>
-</section>
+</div>
 <hr class="docutils" />
-<section id="moonshots">
-<h2>Moonshots<a class="headerlink" href="#moonshots" title="Permalink to this heading"></a></h2>
+<div class="section" id="moonshots">
+<h2>Moonshots<a class="headerlink" href="#moonshots" title="Permalink to this headline"></a></h2>
 <p>You make ask yourself, why? But, to paraphrase Tennyson, ours isn’t to
 question why, it’s but to do and die and learn and maybe make neat
 things. In that spirit, here is a list of crazy projects that this
@@ -191,10 +192,10 @@ Server</a></p></li>
 <li><p>And, of course, the ever elusive open source NWN Toolset, with
 plugins, scripting, and a built-in console.</p></li>
 </ul>
-</section>
+</div>
 <hr class="docutils" />
-<section id="credits">
-<h2>Credits<a class="headerlink" href="#credits" title="Permalink to this heading"></a></h2>
+<div class="section" id="credits">
+<h2>Credits<a class="headerlink" href="#credits" title="Permalink to this headline"></a></h2>
 <ul class="simple">
 <li><p><a class="reference external" href="https://bioware.com">Bioware</a>, <a class="reference external" href="https://beamdog.com">Beamdog</a>
 - The game itself</p></li>
@@ -250,6 +251,12 @@ conversion</p></li>
 </ul>
 </div>
 <div class="toctree-wrapper compound">
+<p class="caption" role="heading"><span class="caption-text">python api</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="api_python/classlist.html">classes</a></li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
 <p class="caption" role="heading"><span class="caption-text">gff schemas</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="gff_schema/are.html">are</a></li>
@@ -272,8 +279,8 @@ conversion</p></li>
 <li class="toctree-l1"><a class="reference internal" href="gff_schema/vartable.html">vartable</a></li>
 </ul>
 </div>
-</section>
-</section>
+</div>
+</div>
 
 
            </div>
