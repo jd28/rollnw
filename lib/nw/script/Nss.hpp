@@ -31,6 +31,9 @@ struct Nss {
     /// Gets text of script
     std::string_view text() const noexcept;
 
+    /// Returns how many warnings were found during parsing
+    size_t warnings() const noexcept;
+
 private:
     ByteArray bytes_;
     NssParser parser_;

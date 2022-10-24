@@ -42,6 +42,7 @@ struct VariableExpression;
 struct BlockStatement;
 struct DeclStatement;
 struct DoStatement;
+struct EmptyStatement;
 struct ExprStatement;
 struct IfStatement;
 struct ForStatement;
@@ -79,6 +80,7 @@ struct BaseVisitor {
     virtual void visit(BlockStatement* stmt) = 0;
     virtual void visit(DeclStatement* stmt) = 0;
     virtual void visit(DoStatement* stmt) = 0;
+    virtual void visit(EmptyStatement* stmt) = 0;
     virtual void visit(ExprStatement* stmt) = 0;
     virtual void visit(IfStatement* stmt) = 0;
     virtual void visit(ForStatement* stmt) = 0;
@@ -299,6 +301,10 @@ struct DoStatement : public Statement {
     DEFINE_ACCEPT_VISITOR
 };
 
+struct EmptyStatement : public Statement {
+    DEFINE_ACCEPT_VISITOR
+};
+
 struct ExprStatement : public Statement {
     std::unique_ptr<Expression> expr;
 
@@ -413,6 +419,7 @@ struct NssParser {
     std::vector<NssToken> tokens;
     size_t current_ = 0;
     size_t errors_ = 0;
+    size_t warnings_ = 0;
 
     /// Advances the token stream
     NssToken advance();
@@ -431,7 +438,11 @@ struct NssParser {
 
     /// Log / Throw error
     /// @param msg Error message to report
-    void error(std::string_view msg) const;
+    void error(std::string_view msg);
+
+    /// Log warning
+    /// @param msg Warning message to report
+    void warn(std::string_view msg);
 
     /// Checks if at end of token stream
     bool is_end() const;

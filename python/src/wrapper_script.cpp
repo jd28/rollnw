@@ -129,6 +129,8 @@ void init_script(py::module& nw)
 
     py::class_<nws::Nss>(nw, "Nss")
         .def(py::init<std::filesystem::path>())
+        .def("errors", &nws::Nss::errors)
+        .def("warnings", &nws::Nss::warnings)
         .def(
             "parse", [](nws::Nss& self) {
                 self.parse();

@@ -285,6 +285,12 @@ struct NssAstPrinter : BaseVisitor {
         ss << ")";
     }
 
+    virtual void visit(EmptyStatement*) override
+    {
+        ss << '\n'
+           << std::string(static_cast<size_t>(depth * 2), ' ') << "(EmptySatement)";
+    }
+
     virtual void visit(ExprStatement* stmt) override
     {
         stmt->expr->accept(this);

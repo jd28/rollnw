@@ -31,9 +31,17 @@ bool NssParser::check(std::initializer_list<NssTokenType> types) const
     return false;
 }
 
-void NssParser::error(std::string_view msg) const
+void NssParser::error(std::string_view msg)
 {
+    LOG_F(ERROR, "{}, Token: '{}', {}:{}", msg, peek().id, peek().line, peek().start);
+    ++errors_;
     throw parser_error(fmt::format("{}, Token: '{}', {}:{}", msg, peek().id, peek().line, peek().start));
+}
+
+void NssParser::warn(std::string_view msg)
+{
+    LOG_F(WARNING, "{}, Token: '{}', {}:{}", msg, peek().id, peek().line, peek().start);
+    ++warnings_;
 }
 
 bool NssParser::is_end() const
@@ -52,7 +60,6 @@ NssToken NssParser::consume(NssTokenType type, std::string_view message)
 NssToken NssParser::lookahead(size_t index) const
 {
     if (index + 1 + current_ >= tokens.size()) {
-        error("Out of bounds");
         throw parser_error("Out of bounds");
     }
     return tokens[current_ + index + 1];
@@ -419,6 +426,10 @@ std::unique_ptr<Statement> NssParser::parse_stmt()
         return parse_stmt_block();
     }
 
+    if (match({NssTokenType::SEMICOLON})) {
+        return std::make_unique<EmptyStatement>();
+    }
+
     auto s = std::make_unique<ExprStatement>();
     s->expr = parse_expr();
     consume(NssTokenType::SEMICOLON, "Expected ';'.");
@@ -594,8 +605,6 @@ std::unique_ptr<Statement> NssParser::parse_decl()
         // consume(NssTokenType::SEMICOLON, "Expected ';'.");
         return s;
     } catch (const parser_error& err) {
-        ++errors_;
-        LOG_F(ERROR, "{}", err.what());
         synchronize();
         return {};
     }
@@ -662,6 +671,11 @@ Script NssParser::parse_program()
 // struct IDENTIFIER { declaration+ }
 std::unique_ptr<Statement> NssParser::parse_decl_external()
 {
+    if (match({NssTokenType::SEMICOLON})) {
+        warn("spurious ';'");
+        return std::make_unique<EmptyStatement>();
+    }
+
     Type t = parse_type();
 
     // If after the type is parsed there is an '{' then it's a struct declaration

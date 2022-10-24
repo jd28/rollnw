@@ -28,6 +28,11 @@ size_t Nss::errors() const noexcept
     return parser_.errors_;
 }
 
+size_t Nss::warnings() const noexcept
+{
+    return parser_.warnings_;
+}
+
 void Nss::parse()
 {
     script_ = parser_.parse_program();

@@ -57,6 +57,16 @@ TEST_CASE("NWScript Parser - var decl", "[formats]")
     auto decl1 = dynamic_cast<script::DeclStatement*>(s1.decls[0].get());
     REQUIRE(decl1);
     REQUIRE(decl1->decls.size() == 3);
+
+    // Empty statement..
+    script::Nss nss2("void test_function(string s, int b) { int a;; }"sv);
+    nss2.parse();
+    REQUIRE(nss2.errors() == 0);
+
+    // Empty statement..
+    script::Nss nss3("int a;;"sv);
+    nss3.parse();
+    REQUIRE(nss3.warnings() == 1);
 }
 
 TEST_CASE("NWScript Parser - function decl / definition", "[formats]")
