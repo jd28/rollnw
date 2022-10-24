@@ -57,6 +57,7 @@ enum class NssTokenType {
     SLEQ,       // <<=
     SR,         // >>
     SREQ,       // >>=
+    TILDE,      // ~
     USR,        // >>>
     USREQ,      // >>>=
     XOR,        // ^

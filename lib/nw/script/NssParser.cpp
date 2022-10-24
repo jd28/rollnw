@@ -262,7 +262,8 @@ std::unique_ptr<Expression> NssParser::parse_expr_multiplicative()
 
 std::unique_ptr<Expression> NssParser::parse_expr_unary()
 {
-    if (match({NssTokenType::NOT, NssTokenType::MINUS, NssTokenType::MINUSMINUS, NssTokenType::PLUSPLUS})) {
+    if (match({NssTokenType::NOT, NssTokenType::MINUS,
+            NssTokenType::MINUSMINUS, NssTokenType::PLUSPLUS, NssTokenType::TILDE})) {
         auto op = previous();
         auto right = parse_expr_unary();
         return std::make_unique<UnaryExpression>(op, std::move(right));

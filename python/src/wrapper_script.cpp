@@ -63,6 +63,7 @@ void init_script(py::module& nw)
         .value("SLEQ", nws::NssTokenType::SLEQ)             // <<=
         .value("SR", nws::NssTokenType::SR)                 // >>
         .value("SREQ", nws::NssTokenType::SREQ)             // >>=
+        .value("TILDE", nws::NssTokenType::TILDE)           // ~
         .value("USR", nws::NssTokenType::USR)               // >>>
         .value("USREQ", nws::NssTokenType::USREQ)           // >>>=
         .value("XOR", nws::NssTokenType::XOR)               // ^
