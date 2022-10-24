@@ -33,15 +33,24 @@ bool NssParser::check(std::initializer_list<NssTokenType> types) const
 
 void NssParser::error(std::string_view msg)
 {
-    LOG_F(ERROR, "{}, Token: '{}', {}:{}", msg, peek().id, peek().line, peek().start);
     ++errors_;
-    throw parser_error(fmt::format("{}, Token: '{}', {}:{}", msg, peek().id, peek().line, peek().start));
+    if (is_end()) {
+        LOG_F(ERROR, "{}, END", msg);
+        throw parser_error(fmt::format("{}, Token: '{}', {}:{}", msg, peek().id, peek().line, peek().start));
+    } else {
+        LOG_F(ERROR, "{}, Token: '{}', {}:{}", msg, peek().id, peek().line, peek().start);
+        throw parser_error(fmt::format("{}, Token: '{}', {}:{}", msg, peek().id, peek().line, peek().start));
+    }
 }
 
 void NssParser::warn(std::string_view msg)
 {
-    LOG_F(WARNING, "{}, Token: '{}', {}:{}", msg, peek().id, peek().line, peek().start);
     ++warnings_;
+    if (is_end()) {
+        LOG_F(WARNING, "{}, END", msg);
+    } else {
+        LOG_F(WARNING, "{}, Token: '{}', {}:{}", msg, peek().id, peek().line, peek().start);
+    }
 }
 
 bool NssParser::is_end() const
@@ -78,11 +87,19 @@ bool NssParser::match(std::initializer_list<NssTokenType> types)
 
 NssToken NssParser::peek() const
 {
+    if (current_ >= tokens.size()) {
+        LOG_F(ERROR, "token out of bounds");
+        return {};
+    }
     return tokens[current_];
 }
 
 NssToken NssParser::previous()
 {
+    if (current_ == 0 || current_ - 1 >= tokens.size()) {
+        LOG_F(ERROR, "token out of bounds");
+        return {};
+    }
     return tokens[current_ - 1];
 }
 
