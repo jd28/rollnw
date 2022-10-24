@@ -1,5 +1,8 @@
-import subprocess
 import os
+import subprocess
+import sys
+
+sys.path.insert(0, os.path.abspath("fake/"))
 
 
 def configureDoxyfile(input_dir, output_dir):
@@ -16,7 +19,10 @@ def configureDoxyfile(input_dir, output_dir):
 project = "rollNW"
 extensions = [
     "breathe",
-    'sphinx_tabs.tabs'
+    'sphinx_tabs.tabs',
+    "sphinx.ext.autodoc",
+    "sphinx.ext.napoleon",
+    "enum_tools.autoenum",
 ]
 breathe_default_project = "rollNW"
 

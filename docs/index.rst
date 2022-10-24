@@ -176,6 +176,12 @@ Credits
   api/typedeflist
 
 .. toctree::
+  :caption: python api
+  :maxdepth: 1
+
+  api_python/classlist
+
+.. toctree::
   :caption: gff schemas
   :maxdepth: 1
 

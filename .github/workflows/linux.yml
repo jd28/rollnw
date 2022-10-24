@@ -30,7 +30,7 @@ jobs:
           architecture: 'x64' # optional x64 or x86. Defaults to x64 if not specified
 
       - name: Install breathe
-        run: python -m pip install breathe sphinx_rtd_theme sphinx-tabs
+        run: python -m pip install -r "${{ github.workspace }}/docs/requirements.txt"
 
       - name: Install gcc-11
         run: |

@@ -1,2 +1,4 @@
 breathe
 sphinx-tabs
+enum-tools==0.9.0.post1
+sphinx-toolbox==2.18.1
