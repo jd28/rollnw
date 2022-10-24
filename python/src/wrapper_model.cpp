@@ -11,9 +11,9 @@
 
 namespace py = pybind11;
 
-void init_model(py::module& nw, py::module& model)
+void init_model(py::module& nw)
 {
-    py::class_<nw::MdlNodeFlags>(model, "MdlNodeFlags")
+    py::class_<nw::MdlNodeFlags>(nw, "MdlNodeFlags")
         .def_readonly_static("header", &nw::MdlNodeFlags::header)
         .def_readonly_static("light", &nw::MdlNodeFlags::light)
         .def_readonly_static("emitter", &nw::MdlNodeFlags::emitter)
@@ -26,7 +26,7 @@ void init_model(py::module& nw, py::module& model)
         .def_readonly_static("aabb", &nw::MdlNodeFlags::aabb)
         .def_readonly_static("patch", &nw::MdlNodeFlags::patch);
 
-    py::class_<nw::MdlNodeType>(model, "MdlNodeType")
+    py::class_<nw::MdlNodeType>(nw, "MdlNodeType")
         .def_readonly_static("camera", &nw::MdlNodeType::camera)
         .def_readonly_static("dummy", &nw::MdlNodeType::dummy)
         .def_readonly_static("emitter", &nw::MdlNodeType::emitter)
@@ -39,7 +39,7 @@ void init_model(py::module& nw, py::module& model)
         .def_readonly_static("animmesh", &nw::MdlNodeType::animmesh)
         .def_readonly_static("aabb", &nw::MdlNodeType::aabb);
 
-    py::class_<nw::MdlEmitterFlag>(model, "MdlEmitterFlag")
+    py::class_<nw::MdlEmitterFlag>(nw, "MdlEmitterFlag")
         .def_readonly_static("P2P", &nw::MdlEmitterFlag::P2P)
         .def_readonly_static("P2PSel", &nw::MdlEmitterFlag::P2PSel)
         .def_readonly_static("AffectedByWind", &nw::MdlEmitterFlag::AffectedByWind)
@@ -52,22 +52,22 @@ void init_model(py::module& nw, py::module& model)
         .def_readonly_static("Splat", &nw::MdlEmitterFlag::Splat)
         .def_readonly_static("InheritPart", &nw::MdlEmitterFlag::InheritPart);
 
-    py::enum_<nw::MdlTriangleMode>(model, "MdlTriangleMode")
+    py::enum_<nw::MdlTriangleMode>(nw, "MdlTriangleMode")
         .value("triangle", nw::MdlTriangleMode::triangle)
         .value("triangle_strip", nw::MdlTriangleMode::triangle_strip);
 
-    py::enum_<nw::MdlGeometryFlag>(model, "MdlGeometryFlag")
+    py::enum_<nw::MdlGeometryFlag>(nw, "MdlGeometryFlag")
         .value("HasGeometry", nw::MdlGeometryFlag::HasGeometry)
         .value("HasModel", nw::MdlGeometryFlag::HasModel)
         .value("animation", nw::MdlGeometryFlag::animation)
         .value("LoadedBinary", nw::MdlGeometryFlag::LoadedBinary);
 
-    py::enum_<nw::MdlGeometryType>(model, "MdlGeometryType")
+    py::enum_<nw::MdlGeometryType>(nw, "MdlGeometryType")
         .value("geometry", nw::MdlGeometryType::geometry)
         .value("model", nw::MdlGeometryType::model)
         .value("animation", nw::MdlGeometryType::animation);
 
-    py::enum_<nw::MdlModelClass>(model, "MdlModelClass")
+    py::enum_<nw::MdlModelClass>(nw, "MdlModelClass")
         .value("invalid", nw::MdlModelClass::invalid)
         .value("effect", nw::MdlModelClass::effect)
         .value("tile", nw::MdlModelClass::tile)
@@ -76,7 +76,7 @@ void init_model(py::module& nw, py::module& model)
         .value("item", nw::MdlModelClass::item)
         .value("gui", nw::MdlModelClass::gui);
 
-    py::class_<nw::MdlControllerType>(model, "MdlControllerType")
+    py::class_<nw::MdlControllerType>(nw, "MdlControllerType")
         .def_readonly_static("Position", &nw::MdlControllerType::Position)
 
         .def_readonly_static("Orientation", &nw::MdlControllerType::Orientation)
@@ -139,7 +139,7 @@ void init_model(py::module& nw, py::module& model)
         .def_readonly_static("SelfIllumColor", &nw::MdlControllerType::SelfIllumColor)
         .def_readonly_static("Alpha", &nw::MdlControllerType::Alpha);
 
-    py::class_<nw::MdlControllerKey>(model, "MdlControllerKey>")
+    py::class_<nw::MdlControllerKey>(nw, "MdlControllerKey>")
         .def_readwrite("name", &nw::MdlControllerKey::name)
         .def_readwrite("type", &nw::MdlControllerKey::type)
         .def_readwrite("rows", &nw::MdlControllerKey::rows)
@@ -147,13 +147,13 @@ void init_model(py::module& nw, py::module& model)
         .def_readwrite("data_offset", &nw::MdlControllerKey::data_offset)
         .def_readwrite("columns", &nw::MdlControllerKey::columns);
 
-    py::class_<nw::MdlFace>(model, "MdlFace")
+    py::class_<nw::MdlFace>(nw, "MdlFace")
         .def_readwrite("vert_idx", &nw::MdlFace::vert_idx)
         .def_readwrite("shader_group_idx", &nw::MdlFace::shader_group_idx)
         .def_readwrite("tvert_idx", &nw::MdlFace::tvert_idx)
         .def_readwrite("material_idx", &nw::MdlFace::material_idx);
 
-    py::class_<nw::MdlNode>(model, "MdlNode")
+    py::class_<nw::MdlNode>(nw, "MdlNode")
         .def_readonly("name", &nw::MdlNode::name)
         .def_readonly("type", &nw::MdlNode::type)
         .def_readonly("inheritcolor", &nw::MdlNode::inheritcolor)
@@ -163,11 +163,11 @@ void init_model(py::module& nw, py::module& model)
         .def_readonly("controller_data", &nw::MdlNode::controller_data);
     // std::pair<const nw::MdlControllerKey*, std::span<const float>> get_controller(uint32_t type_) const;
 
-    py::class_<nw::MdlDummyNode, nw::MdlNode>(model, "MdlDummyNode");
+    py::class_<nw::MdlDummyNode, nw::MdlNode>(nw, "MdlDummyNode");
 
-    py::class_<nw::MdlCameraNode, nw::MdlNode>(model, "MdlCameraNode");
+    py::class_<nw::MdlCameraNode, nw::MdlNode>(nw, "MdlCameraNode");
 
-    py::class_<nw::MdlEmitterNode, nw::MdlNode>(model, "MdlEmitterNode")
+    py::class_<nw::MdlEmitterNode, nw::MdlNode>(nw, "MdlEmitterNode")
         .def_readwrite("blastlength", &nw::MdlEmitterNode::blastlength)
         .def_readwrite("blastradius", &nw::MdlEmitterNode::blastradius)
         .def_readwrite("blend", &nw::MdlEmitterNode::blend)
@@ -190,7 +190,7 @@ void init_model(py::module& nw, py::module& model)
         .def_readwrite("opacity", &nw::MdlEmitterNode::opacity)
         .def_readwrite("p2p_type", &nw::MdlEmitterNode::p2p_type);
 
-    py::class_<nw::MdlLightNode, nw::MdlNode>(model, "MdlLightNode")
+    py::class_<nw::MdlLightNode, nw::MdlNode>(nw, "MdlLightNode")
         .def_readwrite("flareradius", &nw::MdlLightNode::flareradius)
         .def_readwrite("multiplier", &nw::MdlLightNode::multiplier)
         .def_readwrite("color", &nw::MdlLightNode::color)
@@ -206,13 +206,13 @@ void init_model(py::module& nw, py::module& model)
         .def_readwrite("generateflare", &nw::MdlLightNode::generateflare)
         .def_readwrite("fadinglight", &nw::MdlLightNode::fadinglight);
 
-    py::class_<nw::MdlPatchNode, nw::MdlNode>(model, "MdlPatchNode");
+    py::class_<nw::MdlPatchNode, nw::MdlNode>(nw, "MdlPatchNode");
 
-    py::class_<nw::MdlReferenceNode, nw::MdlNode>(model, "MdlReferenceNode")
+    py::class_<nw::MdlReferenceNode, nw::MdlNode>(nw, "MdlReferenceNode")
         .def_readwrite("refmodel", &nw::MdlReferenceNode::refmodel)
         .def_readwrite("reattachable", &nw::MdlReferenceNode::reattachable);
 
-    py::class_<nw::MdlTrimeshNode, nw::MdlNode>(model, "MdlTrimeshNode")
+    py::class_<nw::MdlTrimeshNode, nw::MdlNode>(nw, "MdlTrimeshNode")
         .def_readwrite("ambient", &nw::MdlTrimeshNode::ambient)
         .def_readwrite("beaming", &nw::MdlTrimeshNode::beaming)
         .def_readwrite("bmin", &nw::MdlTrimeshNode::bmin)
@@ -241,25 +241,25 @@ void init_model(py::module& nw, py::module& model)
         .def_readwrite("normals", &nw::MdlTrimeshNode::normals)
         .def_readwrite("tangents", &nw::MdlTrimeshNode::tangents);
 
-    py::class_<nw::MdlSkinWeight>(model, "MdlSkinWeight")
+    py::class_<nw::MdlSkinWeight>(nw, "MdlSkinWeight")
         .def_readwrite("bones", &nw::MdlSkinWeight::bones)
         .def_readwrite("weights", &nw::MdlSkinWeight::weights);
 
-    py::class_<nw::MdlSkinNode, nw::MdlTrimeshNode>(model, "MdlSkinNode")
+    py::class_<nw::MdlSkinNode, nw::MdlTrimeshNode>(nw, "MdlSkinNode")
         .def_readwrite("weights", &nw::MdlSkinNode::weights);
 
-    py::class_<nw::MdlAnimeshNode, nw::MdlTrimeshNode>(model, "MdlAnimeshNode")
+    py::class_<nw::MdlAnimeshNode, nw::MdlTrimeshNode>(nw, "MdlAnimeshNode")
         .def_readwrite("animtverts", &nw::MdlAnimeshNode::animtverts)
         .def_readwrite("animverts", &nw::MdlAnimeshNode::animverts)
         .def_readwrite("sampleperiod", &nw::MdlAnimeshNode::sampleperiod);
 
-    py::class_<nw::MdlDanglymeshNode, nw::MdlTrimeshNode>(model, "MdlDanglymeshNode")
+    py::class_<nw::MdlDanglymeshNode, nw::MdlTrimeshNode>(nw, "MdlDanglymeshNode")
         .def_readwrite("constraints", &nw::MdlDanglymeshNode::constraints)
         .def_readwrite("displacement", &nw::MdlDanglymeshNode::displacement)
         .def_readwrite("period", &nw::MdlDanglymeshNode::period)
         .def_readwrite("tightness", &nw::MdlDanglymeshNode::tightness);
 
-    py::class_<nw::MdlAABBEntry>(model, "MdlAABBEntry")
+    py::class_<nw::MdlAABBEntry>(nw, "MdlAABBEntry")
         .def_readwrite("bmin", &nw::MdlAABBEntry::bmin)
         .def_readwrite("bmax", &nw::MdlAABBEntry::bmax)
         .def_readwrite("leaf_face", &nw::MdlAABBEntry::leaf_face)
@@ -267,12 +267,12 @@ void init_model(py::module& nw, py::module& model)
     // std::unique_ptr<MdlAABBEntry> left;
     // std::unique_ptr<MdlAABBEntry> right;
 
-    py::class_<nw::MdlAABBNode, nw::MdlTrimeshNode>(model, "MdlAABBNode")
+    py::class_<nw::MdlAABBNode, nw::MdlTrimeshNode>(nw, "MdlAABBNode")
         .def_readwrite("entries", &nw::MdlAABBNode::entries);
 
     // -- Geometry ----------------------------------------------------------------
 
-    py::class_<nw::MdlGeometry>(model, "MdlGeometry")
+    py::class_<nw::MdlGeometry>(nw, "MdlGeometry")
         .def_readwrite("name", &nw::MdlGeometry::name)
         .def_readwrite("type", &nw::MdlGeometry::type)
         .def_property_readonly("nodes", [](const nw::MdlGeometry& self) {
@@ -284,17 +284,17 @@ void init_model(py::module& nw, py::module& model)
             return pylist;
         });
 
-    py::class_<nw::MdlAnimationEvent>(model, "MdlAnimationEvent")
+    py::class_<nw::MdlAnimationEvent>(nw, "MdlAnimationEvent")
         .def_readwrite("time", &nw::MdlAnimationEvent::time)
         .def_readwrite("name", &nw::MdlAnimationEvent::name);
 
-    py::class_<nw::MdlAnimation, nw::MdlGeometry>(model, "MdlAnimation")
+    py::class_<nw::MdlAnimation, nw::MdlGeometry>(nw, "MdlAnimation")
         .def_readwrite("length", &nw::MdlAnimation::length)
         .def_readwrite("transition_time", &nw::MdlAnimation::transition_time)
         .def_readwrite("anim_root", &nw::MdlAnimation::anim_root)
         .def_readonly("events", &nw::MdlAnimation::events);
 
-    py::class_<nw::MdlModel, nw::MdlGeometry>(model, "MdlModel")
+    py::class_<nw::MdlModel, nw::MdlGeometry>(nw, "MdlModel")
         .def_readwrite("classification", &nw::MdlModel::classification)
         .def_readwrite("ignorefog", &nw::MdlModel::ignorefog)
         .def_property_readonly("animations", [](const nw::MdlModel& self) {
@@ -313,7 +313,7 @@ void init_model(py::module& nw, py::module& model)
         .def_readwrite("supermodel_name", &nw::MdlModel::supermodel_name)
         .def_readwrite("file_dependency", &nw::MdlModel::file_dependency);
 
-    py::class_<nw::Mdl>(model, "Mdl")
+    py::class_<nw::Mdl>(nw, "Mdl")
         .def_static("from_file", [](const char* path) {
             auto mdl = new nw::Mdl{path};
             return mdl;

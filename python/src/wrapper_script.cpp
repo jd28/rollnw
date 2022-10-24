@@ -12,9 +12,9 @@
 namespace py = pybind11;
 namespace nws = nw::script;
 
-void init_script(py::module& nw, py::module& script)
+void init_script(py::module& nw)
 {
-    py::enum_<nws::NssTokenType>(script, "NssTokenType")
+    py::enum_<nws::NssTokenType>(nw, "NssTokenType")
         .value("INVALID", nws::NssTokenType::INVALID)
         .value("END", nws::NssTokenType::END)
         // Identifier
@@ -103,7 +103,7 @@ void init_script(py::module& nw, py::module& script)
         .value("VOID", nws::NssTokenType::VOID)                 // void
         .value("WHILE", nws::NssTokenType::WHILE);              // while
 
-    py::class_<nws::NssToken>(script, "NssToken")
+    py::class_<nws::NssToken>(nw, "NssToken")
         .def("__repr__", [](const nws::NssToken& tk) {
             std::stringstream ss;
             ss << tk;
@@ -115,18 +115,18 @@ void init_script(py::module& nw, py::module& script)
         .def_readonly("start", &nws::NssToken::start)
         .def_readonly("end", &nws::NssToken::end);
 
-    py::class_<nws::NssLexer>(script, "NssLexer")
+    py::class_<nws::NssLexer>(nw, "NssLexer")
         .def(py::init<std::string_view>())
         .def("match", &nws::NssLexer::match)
         .def("next", &nws::NssLexer::next)
         .def("current", &nws::NssLexer::current);
 
-    py::class_<nws::Type>(script, "Type")
+    py::class_<nws::Type>(nw, "Type")
         .def_readonly("type_qualifier", &nws::Type::type_qualifier)
         .def_readonly("type_specifier", &nws::Type::type_specifier)
         .def_readonly("struct_id", &nws::Type::struct_id); // Only set if type_specifier if of type NssTokenType::STRUCT
 
-    py::class_<nws::Nss>(script, "Nss")
+    py::class_<nws::Nss>(nw, "Nss")
         .def(py::init<std::filesystem::path>())
         .def(
             "parse", [](nws::Nss& self) {
@@ -140,7 +140,7 @@ void init_script(py::module& nw, py::module& script)
             },
             py::return_value_policy::reference_internal);
 
-    py::class_<nws::Script>(script, "Script")
+    py::class_<nws::Script>(nw, "Script")
         .def(
             "__getitem__", [](const nws::Script& self, size_t index) {
                 return self.decls[index].get();
@@ -151,38 +151,38 @@ void init_script(py::module& nw, py::module& script)
         .def_readonly("includes", &nws::Script::includes)
         .def("accept", &nws::Script::accept);
 
-    py::class_<nws::AstNode>(script, "AstNode")
+    py::class_<nws::AstNode>(nw, "AstNode")
         .def("accept", &nws::AstNode::accept);
 
-    py::class_<nws::Expression>(script, "Expression");
-    py::class_<nws::AssignExpression, nws::Expression>(script, "AssignExpression");
-    py::class_<nws::BinaryExpression, nws::Expression>(script, "BinaryExpression");
-    py::class_<nws::CallExpression, nws::Expression>(script, "CallExpression");
-    py::class_<nws::ConditionalExpression, nws::Expression>(script, "ConditionalExpression");
-    py::class_<nws::DotExpression, nws::Expression>(script, "DotExpression");
-    py::class_<nws::GroupingExpression, nws::Expression>(script, "GroupingExpression");
-    py::class_<nws::LiteralExpression, nws::Expression>(script, "LiteralExpression");
-    py::class_<nws::LiteralVectorExpression, nws::Expression>(script, "LiteralVectorExpression");
-    py::class_<nws::LogicalExpression, nws::Expression>(script, "LogicalExpression");
-    py::class_<nws::PostfixExpression, nws::Expression>(script, "PostfixExpression");
-    py::class_<nws::UnaryExpression, nws::Expression>(script, "UnaryExpression");
-    py::class_<nws::VariableExpression, nws::Expression>(script, "VariableExpression");
+    py::class_<nws::Expression>(nw, "Expression");
+    py::class_<nws::AssignExpression, nws::Expression>(nw, "AssignExpression");
+    py::class_<nws::BinaryExpression, nws::Expression>(nw, "BinaryExpression");
+    py::class_<nws::CallExpression, nws::Expression>(nw, "CallExpression");
+    py::class_<nws::ConditionalExpression, nws::Expression>(nw, "ConditionalExpression");
+    py::class_<nws::DotExpression, nws::Expression>(nw, "DotExpression");
+    py::class_<nws::GroupingExpression, nws::Expression>(nw, "GroupingExpression");
+    py::class_<nws::LiteralExpression, nws::Expression>(nw, "LiteralExpression");
+    py::class_<nws::LiteralVectorExpression, nws::Expression>(nw, "LiteralVectorExpression");
+    py::class_<nws::LogicalExpression, nws::Expression>(nw, "LogicalExpression");
+    py::class_<nws::PostfixExpression, nws::Expression>(nw, "PostfixExpression");
+    py::class_<nws::UnaryExpression, nws::Expression>(nw, "UnaryExpression");
+    py::class_<nws::VariableExpression, nws::Expression>(nw, "VariableExpression");
 
-    py::class_<nws::Statement>(script, "Statement");
-    py::class_<nws::BlockStatement, nws::Statement>(script, "BlockStatement");
-    py::class_<nws::DoStatement, nws::Statement>(script, "DoStatement");
-    py::class_<nws::ExprStatement, nws::Statement>(script, "ExprStatement");
-    py::class_<nws::IfStatement, nws::Statement>(script, "IfStatement");
-    py::class_<nws::ForStatement, nws::Statement>(script, "ForStatement");
-    py::class_<nws::JumpStatement, nws::Statement>(script, "JumpStatement");
-    py::class_<nws::LabelStatement, nws::Statement>(script, "LabelStatement");
-    py::class_<nws::SwitchStatement, nws::Statement>(script, "SwitchStatement");
-    py::class_<nws::WhileStatement, nws::Statement>(script, "WhileStatement");
+    py::class_<nws::Statement>(nw, "Statement");
+    py::class_<nws::BlockStatement, nws::Statement>(nw, "BlockStatement");
+    py::class_<nws::DoStatement, nws::Statement>(nw, "DoStatement");
+    py::class_<nws::ExprStatement, nws::Statement>(nw, "ExprStatement");
+    py::class_<nws::IfStatement, nws::Statement>(nw, "IfStatement");
+    py::class_<nws::ForStatement, nws::Statement>(nw, "ForStatement");
+    py::class_<nws::JumpStatement, nws::Statement>(nw, "JumpStatement");
+    py::class_<nws::LabelStatement, nws::Statement>(nw, "LabelStatement");
+    py::class_<nws::SwitchStatement, nws::Statement>(nw, "SwitchStatement");
+    py::class_<nws::WhileStatement, nws::Statement>(nw, "WhileStatement");
 
-    py::class_<nws::Declaration, nws::Statement>(script, "Declaration")
+    py::class_<nws::Declaration, nws::Statement>(nw, "Declaration")
         .def_readonly("type", &nws::Declaration::type);
 
-    py::class_<nws::FunctionDecl, nws::Declaration>(script, "FunctionDecl")
+    py::class_<nws::FunctionDecl, nws::Declaration>(nw, "FunctionDecl")
         .def_readonly("identifier", &nws::FunctionDecl::identifier,
             "Gets the declarations identifier")
         .def("__len__", [](nws::FunctionDecl& self) { return self.params.size(); })
@@ -190,9 +190,9 @@ void init_script(py::module& nw, py::module& script)
             "__getitem__", [](nws::FunctionDecl& self, size_t idx) { return self.params[idx].get(); },
             py::return_value_policy::reference_internal);
 
-    py::class_<nws::FunctionDefinition, nws::Declaration>(script, "FunctionDefinition");
-    py::class_<nws::StructDecl, nws::Declaration>(script, "StructDecl");
-    py::class_<nws::VarDecl, nws::Declaration>(script, "VarDecl")
+    py::class_<nws::FunctionDefinition, nws::Declaration>(nw, "FunctionDefinition");
+    py::class_<nws::StructDecl, nws::Declaration>(nw, "StructDecl");
+    py::class_<nws::VarDecl, nws::Declaration>(nw, "VarDecl")
         .def_readonly("identifier", &nws::VarDecl::identifier,
             "Gets the declarations identifier");
 }
