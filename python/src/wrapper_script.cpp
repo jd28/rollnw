@@ -147,9 +147,16 @@ void init_script(py::module& nw)
             },
             py::return_value_policy::reference_internal)
         .def("__len__", [](const nws::Script& self) { return self.decls.size(); })
+        .def("__iter__", [](const nws::Script& self) {
+            auto pylist = py::list();
+            for (auto& ptr : self.decls) {
+                auto pyobj = py::cast(*ptr, py::return_value_policy::reference);
+                pylist.append(pyobj);
+            }
+            return pylist;
+        })
         .def_readonly("defines", &nws::Script::defines)
-        .def_readonly("includes", &nws::Script::includes)
-        .def("accept", &nws::Script::accept);
+        .def_readonly("includes", &nws::Script::includes);
 
     py::class_<nws::AstNode>(nw, "AstNode")
         .def("accept", &nws::AstNode::accept);
