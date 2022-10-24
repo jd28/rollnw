@@ -258,7 +258,7 @@ std::unique_ptr<Expression> NssParser::parse_expr_multiplicative()
 {
     auto expr = parse_expr_unary();
 
-    while (match({NssTokenType::DIV, NssTokenType::TIMES})) {
+    while (match({NssTokenType::DIV, NssTokenType::TIMES, NssTokenType::MOD})) {
         auto op = previous();
         auto right = parse_expr_unary();
         expr = std::make_unique<BinaryExpression>(std::move(expr), op, std::move(right));

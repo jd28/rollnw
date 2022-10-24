@@ -107,6 +107,10 @@ TEST_CASE("NWScript Parser - function decl / definition", "[formats]")
     REQUIRE(fd4->decl);
     REQUIRE(fd4->block);
     REQUIRE(fd4->block->nodes.size() == 1);
+
+    script::Nss nss5("int test_function(int a, int b) { return a % b; }"sv);
+    REQUIRE_NOTHROW(nss5.parse());
+    REQUIRE(nss5.errors() == 0);
 }
 
 TEST_CASE("NWScript lexer", "[formats]")
