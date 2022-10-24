@@ -96,4 +96,7 @@ TEST_CASE("NWScript lexer", "[formats]")
 
     script::NssLexer lexer5{"\"Hello World\""};
     REQUIRE(lexer5.next().id == "Hello World");
+
+    script::NssLexer lexer6{"0x123456789abCdEf"};
+    REQUIRE(lexer6.next().type == script::NssTokenType::INTEGER_CONST);
 }

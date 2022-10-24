@@ -178,17 +178,30 @@ NssToken NssLexer::handle_number()
 {
     size_t start = pos_;
     bool is_float = false;
+    bool is_hex = get(pos_) == '0' && (get(pos_ + 1) == 'x' || get(pos_ + 1) == 'X');
+    if (is_hex) { pos_ += 2; }
+
     while (pos_ < buffer_.size()) {
-        if (get(pos_) == '.') {
-            ++pos_;
-            is_float = true;
-        } else if (!std::isdigit(get(pos_))) {
-            break;
+        if (is_hex) {
+            if (std::isdigit(get(pos_))
+                || (get(pos_) >= 'a' && get(pos_) <= 'f')
+                || (get(pos_) >= 'A' && get(pos_) <= 'F')) {
+                pos_++;
+            } else {
+                break;
+            }
         } else {
-            ++pos_;
+            if (get(pos_) == '.') {
+                ++pos_;
+                is_float = true;
+            } else if (!std::isdigit(get(pos_))) {
+                break;
+            } else {
+                ++pos_;
+            }
         }
     }
-    if (get(pos_) == 'f') {
+    if (is_float && get(pos_) == 'f') {
         ++pos_;
     }
 
