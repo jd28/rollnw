@@ -22,6 +22,10 @@ TEST_CASE("NWScript Parser", "[script]")
     script::NssAstPrinter p;
     nss.script().accept(&p);
     LOG_F(INFO, "{}", p.ss.str());
+
+    script::Nss n2(fs::path("test_data/user/development/nw_s0_raisdead.nss"));
+    REQUIRE_NOTHROW(n2.parse());
+    REQUIRE(n2.errors() == 0);
 }
 
 TEST_CASE("NWScript Parser - preprocessor", "[formats]")

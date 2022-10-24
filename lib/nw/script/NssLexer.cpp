@@ -457,6 +457,7 @@ NssToken NssLexer::next()
             case '*': // Block Comment
                 pos_ += 4;
                 while (pos_ < buffer_.size()) {
+                    if (get(pos_) == '\n') { ++line_; }
                     if (get(pos_ - 1) == '*' && get(pos_) == '/')
                         break;
                     ++pos_;
@@ -466,7 +467,7 @@ NssToken NssLexer::next()
                 } else {
                     ++pos_;
                 }
-                break;
+                continue;
             case '=':
                 NSS_TOKEN(DIVEQ, 2);
                 break;
