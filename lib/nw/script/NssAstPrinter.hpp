@@ -250,6 +250,19 @@ struct NssAstPrinter : BaseVisitor {
         ss << ")";
     }
 
+    virtual void visit(DeclStatement* stmt) override
+    {
+        ss << '\n'
+           << std::string(static_cast<size_t>(depth * 2), ' ')
+           << "(decls";
+        ++depth;
+        for (const auto& decl : stmt->decls) {
+            decl->accept(this);
+        }
+        --depth;
+        ss << ")";
+    }
+
     virtual void visit(DoStatement* stmt) override
     {
         ss << '\n'

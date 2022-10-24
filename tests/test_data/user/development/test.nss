@@ -23,6 +23,7 @@ struct ComplexType func(struct MyInt value);
 
 void main()
 {
+    int a = 3, b, c = 1;
     struct MyInt test;
     test2.myint.test = 1;
     effect e;

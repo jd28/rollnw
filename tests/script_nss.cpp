@@ -49,6 +49,16 @@ TEST_CASE("NWScript Parser - nwscript", "[formats]")
     REQUIRE(nss.errors() == 0);
 }
 
+TEST_CASE("NWScript Parser - var decl", "[formats]")
+{
+    script::Nss nss1("int a = 3, b, c = 1;"sv);
+    nss1.parse();
+    const script::Script& s1 = nss1.script();
+    auto decl1 = dynamic_cast<script::DeclStatement*>(s1.decls[0].get());
+    REQUIRE(decl1);
+    REQUIRE(decl1->decls.size() == 3);
+}
+
 TEST_CASE("NWScript Parser - function decl / definition", "[formats]")
 {
     script::Nss nss("void test_function(string s, int b);"sv);

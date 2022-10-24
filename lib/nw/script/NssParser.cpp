@@ -571,16 +571,24 @@ std::unique_ptr<Statement> NssParser::parse_decl()
                 NssTokenType::TALENT,
                 NssTokenType::VECTOR,
                 NssTokenType::VOID})) {
+            auto decls = std::make_unique<DeclStatement>();
             Type t = parse_type();
-            auto vd = std::make_unique<VarDecl>();
-            vd->type = t;
-            consume(NssTokenType::IDENTIFIER, "Expected 'IDENTIFIER'.");
-            vd->identifier = previous();
-            if (match({NssTokenType::EQ})) {
-                vd->init = parse_expr();
+
+            while (true) {
+                auto vd = std::make_unique<VarDecl>();
+                vd->type = t;
+
+                consume(NssTokenType::IDENTIFIER, "Expected 'IDENTIFIER'.");
+                vd->identifier = previous();
+                if (match({NssTokenType::EQ})) {
+                    vd->init = parse_expr();
+                }
+                decls->decls.push_back(std::move(vd));
+                if (!match({NssTokenType::COMMA})) { break; }
             }
             consume(NssTokenType::SEMICOLON, "Expected ';'.");
-            return vd;
+
+            return decls;
         }
         auto s = parse_stmt();
         // consume(NssTokenType::SEMICOLON, "Expected ';'.");
@@ -652,7 +660,7 @@ Script NssParser::parse_program()
 // const? TYPE IDENTIFIER(PARAMETER*);
 // const? TYPE IDENTIFIER(PARAMETER*) block
 // struct IDENTIFIER { declaration+ }
-std::unique_ptr<Declaration> NssParser::parse_decl_external()
+std::unique_ptr<Statement> NssParser::parse_decl_external()
 {
     Type t = parse_type();
 
@@ -663,9 +671,13 @@ std::unique_ptr<Declaration> NssParser::parse_decl_external()
         return sd;
     }
 
-    if (lookahead(0).type == NssTokenType::EQ || lookahead(0).type == NssTokenType::SEMICOLON) {
+    if (lookahead(0).type == NssTokenType::EQ
+        || lookahead(0).type == NssTokenType::SEMICOLON
+        || lookahead(0).type == NssTokenType::COMMA) {
         auto gvd = parse_decl_global_var();
-        gvd->type = t;
+        for (auto& d : gvd->decls) {
+            d->type = t;
+        }
         return gvd;
     }
 
@@ -724,18 +736,23 @@ std::unique_ptr<Declaration> NssParser::parse_decl_function_def()
     return def;
 }
 
-std::unique_ptr<VarDecl> NssParser::parse_decl_global_var()
+std::unique_ptr<DeclStatement> NssParser::parse_decl_global_var()
 {
-    auto ret = std::make_unique<VarDecl>();
-    consume(NssTokenType::IDENTIFIER, "Expected 'IDENTIFIER'.");
-    ret->identifier = previous();
-    if (match({NssTokenType::EQ})) {
-        // [TODO] Parse is going to need to error on non constant expressions
-        ret->init = parse_expr();
+    auto decls = std::make_unique<DeclStatement>();
+    while (true) {
+        auto ret = std::make_unique<VarDecl>();
+        consume(NssTokenType::IDENTIFIER, "Expected 'IDENTIFIER'.");
+        ret->identifier = previous();
+        if (match({NssTokenType::EQ})) {
+            // [TODO] Parse is going to need to error on non constant expressions
+            ret->init = parse_expr();
+        }
+        decls->decls.push_back(std::move(ret));
+        if (!match({NssTokenType::COMMA})) { break; }
     }
     consume(NssTokenType::SEMICOLON, "Expected ';'.");
 
-    return ret;
+    return decls;
 }
 
 } // namespace nw::script

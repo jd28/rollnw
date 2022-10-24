@@ -40,6 +40,7 @@ struct UnaryExpression;
 struct VariableExpression;
 
 struct BlockStatement;
+struct DeclStatement;
 struct DoStatement;
 struct ExprStatement;
 struct IfStatement;
@@ -76,6 +77,7 @@ struct BaseVisitor {
 
     // Statements
     virtual void visit(BlockStatement* stmt) = 0;
+    virtual void visit(DeclStatement* stmt) = 0;
     virtual void visit(DoStatement* stmt) = 0;
     virtual void visit(ExprStatement* stmt) = 0;
     virtual void visit(IfStatement* stmt) = 0;
@@ -283,6 +285,13 @@ struct BlockStatement : public Statement {
     DEFINE_ACCEPT_VISITOR
 };
 
+/// @brief
+struct DeclStatement : public Statement {
+    std::vector<std::unique_ptr<VarDecl>> decls;
+
+    DEFINE_ACCEPT_VISITOR
+};
+
 struct DoStatement : public Statement {
     std::unique_ptr<BlockStatement> block;
     std::unique_ptr<Expression> expr;
@@ -385,7 +394,7 @@ struct Script {
     Script& operator=(const Script&) = delete;
     Script& operator=(Script&&) = default;
 
-    std::vector<std::unique_ptr<Declaration>> decls;
+    std::vector<std::unique_ptr<Statement>> decls;
     std::vector<std::string> includes;
     std::vector<std::pair<std::string, std::string>> defines;
 
@@ -477,13 +486,13 @@ struct NssParser {
 
     Type parse_type();
     std::unique_ptr<Statement> parse_decl();
-    std::unique_ptr<Declaration> parse_decl_external();
+    std::unique_ptr<Statement> parse_decl_external();
     std::unique_ptr<Declaration> parse_decl_param();
     std::unique_ptr<StructDecl> parse_decl_struct();
     std::unique_ptr<Declaration> parse_decl_struct_member();
     std::unique_ptr<FunctionDecl> parse_decl_function();
     std::unique_ptr<Declaration> parse_decl_function_def();
-    std::unique_ptr<VarDecl> parse_decl_global_var();
+    std::unique_ptr<DeclStatement> parse_decl_global_var();
 
     /// Parses script
     Script parse_program();
