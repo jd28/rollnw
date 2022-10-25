@@ -180,6 +180,7 @@ void init_script(py::module& nw)
     py::class_<nws::Statement>(nw, "Statement");
     py::class_<nws::BlockStatement, nws::Statement>(nw, "BlockStatement");
     py::class_<nws::DoStatement, nws::Statement>(nw, "DoStatement");
+    py::class_<nws::EmptyStatement, nws::Statement>(nw, "EmptyStatement");
     py::class_<nws::ExprStatement, nws::Statement>(nw, "ExprStatement");
     py::class_<nws::IfStatement, nws::Statement>(nw, "IfStatement");
     py::class_<nws::ForStatement, nws::Statement>(nw, "ForStatement");
