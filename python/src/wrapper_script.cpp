@@ -156,7 +156,7 @@ void init_script(py::module& nw)
                 auto pyobj = py::cast(*ptr, py::return_value_policy::reference);
                 pylist.append(pyobj);
             }
-            return pylist;
+            return py::iter(pylist);
         })
         .def_readonly("defines", &nws::Script::defines)
         .def_readonly("includes", &nws::Script::includes);
