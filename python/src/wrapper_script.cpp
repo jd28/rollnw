@@ -118,7 +118,6 @@ void init_script(py::module& nw)
 
     py::class_<nws::NssLexer>(nw, "NssLexer")
         .def(py::init<std::string_view>())
-        .def("match", &nws::NssLexer::match)
         .def("next", &nws::NssLexer::next)
         .def("current", &nws::NssLexer::current);
 

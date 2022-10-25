@@ -694,12 +694,20 @@ class Nss:
         """Constructs Nss object"""
         pass
 
+    def errors(self):
+        """Gets number of errors encountered while parsing"""
+        pass
+
     def parse(self):
         """Parses the script"""
         pass
 
     def script(self):
         """Gets the parsed script"""
+        pass
+
+    def warnings(self):
+        """Gets number of errors encountered while parsing"""
         pass
 
 
@@ -722,3 +730,16 @@ class Script:
     def __len__(self):
         """Gets number of toplevel declarations"""
         pass
+
+
+class NssLexer:
+    """A nwscript lexer"""
+
+    def __init__(self, script: str):
+        """Constructs lexer from a string"""
+
+    def current(self):
+        """Gets next token"""
+
+    def next(self):
+        """Gets next token"""

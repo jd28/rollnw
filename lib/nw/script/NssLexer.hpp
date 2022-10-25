@@ -112,15 +112,15 @@ struct NssToken {
 struct NssLexer {
     explicit NssLexer(std::string_view buffer);
 
-    char get(size_t pos) const;
-    bool match(std::string_view str) const;
     NssToken next();
-    NssToken handle_identifier();
-    NssToken handle_number();
     const NssToken& current() const;
     const char* data() const;
 
 private:
+    char get(size_t pos) const;
+    NssToken handle_identifier();
+    NssToken handle_number();
+
     std::string_view buffer_;
     size_t pos_ = 0, line_ = 0, last_line_pos_ = 0;
     NssToken current_;

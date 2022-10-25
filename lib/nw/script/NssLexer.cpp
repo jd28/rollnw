@@ -38,12 +38,6 @@ char NssLexer::get(size_t pos) const
     return pos >= buffer_.size() ? 0 : buffer_[pos];
 }
 
-bool NssLexer::match(std::string_view str) const
-{
-    if (pos_ + str.size() >= buffer_.size()) return false;
-    return strncmp(buffer_.data() + pos_, str.data(), str.size()) == 0;
-}
-
 inline NssTokenType check_keyword(const NssToken& tk)
 {
     switch (tk.id[0]) {
