@@ -11,22 +11,18 @@ examples
 
 .. code:: python
 
-    #! /usr/bin/env python
+    from rollnw import Nss, FunctionDecl
 
-    from rollnw import Nss
-    import os
-
-
-    for f in os.listdir():
-        if os.path.isfile(f) and os.path.splitext(f)[1].lower() == '.nss':
-            print(f)
-            nss = Nss(f)
-            try:
-                script = nss.parse()
-            except BaseException as e:
-                print(f"************** failed {f} because {e}")
-                pass
-
+    # Load
+    nss = Nss("nwscript.nss")
+    # Parse
+    script = nss.parse()
+    # Iterate toplevel declarations and look for function declarations
+    # This is all functions WITHOUT bodies.
+    for decl in script:
+    	if isinstance(decl, FunctionDecl):
+    		# the identifier is token for now..
+    		print(f"function '{decl.identifier.id}' has {len(decl)} parameter(s)")
 
 performance
 -----------

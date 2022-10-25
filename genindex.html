@@ -145,6 +145,8 @@
       <li><a href="api_python/classes/Nss.html#rollnw.Nss.__init__">__init__() (rollnw.Nss method)</a>
 
       <ul>
+        <li><a href="api_python/classes/NssLexer.html#rollnw.NssLexer.__init__">(rollnw.NssLexer method)</a>
+</li>
         <li><a href="api_python/classes/Resref.html#rollnw.Resref.__init__">(rollnw.Resref method)</a>
 </li>
         <li><a href="api_python/classes/Sound.html#rollnw.Sound.__init__">(rollnw.Sound method)</a>
@@ -184,6 +186,8 @@
         <li><a href="api_python/classes/Module.html#rollnw.Module.__weakref__">(rollnw.Module attribute)</a>
 </li>
         <li><a href="api_python/classes/Nss.html#rollnw.Nss.__weakref__">(rollnw.Nss attribute)</a>
+</li>
+        <li><a href="api_python/classes/NssLexer.html#rollnw.NssLexer.__weakref__">(rollnw.NssLexer attribute)</a>
 </li>
         <li><a href="api_python/classes/Placeable.html#rollnw.Placeable.__weakref__">(rollnw.Placeable attribute)</a>
 </li>
@@ -340,6 +344,8 @@
 </li>
       <li><a href="api_python/classes/Creature.html#rollnw.CreatureStats">CreatureStats (class in rollnw)</a>
 </li>
+      <li><a href="api_python/classes/NssLexer.html#rollnw.NssLexer.current">current() (rollnw.NssLexer method)</a>
+</li>
       <li><a href="api_python/classes/Item.html#rollnw.Item.cursed">cursed (rollnw.Item attribute)</a>
 </li>
       <li><a href="api_python/classes/Trigger.html#rollnw.Trigger.cursor">cursor (rollnw.Trigger attribute)</a>
@@ -432,13 +438,15 @@
 </li>
       <li><a href="api_python/classes/Module.html#rollnw.Module.entry_area">entry_area (rollnw.Module attribute)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api_python/classes/Module.html#rollnw.Module.entry_orientation">entry_orientation (rollnw.Module attribute)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api_python/classes/Module.html#rollnw.Module.entry_position">entry_position (rollnw.Module attribute)</a>
 </li>
       <li><a href="api_python/classes/Equips.html#rollnw.Equips">Equips (class in rollnw)</a>
+</li>
+      <li><a href="api_python/classes/Nss.html#rollnw.Nss.errors">errors() (rollnw.Nss method)</a>
 </li>
       <li><a href="api_python/classes/Module.html#rollnw.Module.expansion_pack">expansion_pack (rollnw.Module attribute)</a>
 </li>
@@ -766,9 +774,13 @@
 </li>
       <li><a href="api_python/classes/BodyParts.html#rollnw.BodyParts.neck">neck (rollnw.BodyParts attribute)</a>
 </li>
+      <li><a href="api_python/classes/NssLexer.html#rollnw.NssLexer.next">next() (rollnw.NssLexer method)</a>
+</li>
       <li><a href="api_python/classes/MdlGeometry.html#rollnw.MdlGeometry.nodes">nodes (rollnw.MdlGeometry attribute)</a>
 </li>
       <li><a href="api_python/classes/Nss.html#rollnw.Nss">Nss (class in rollnw)</a>
+</li>
+      <li><a href="api_python/classes/NssLexer.html#rollnw.NssLexer">NssLexer (class in rollnw)</a>
 </li>
       <li><a href="api/struct/nw__Ability.html#_CPPv4N2nw7AbilityE">nw::Ability (C++ struct)</a>
 </li>
@@ -3698,14 +3710,14 @@
 </li>
       <li><a href="api/struct/nw__MdlEmitterFlag.html#_CPPv4N2nw14MdlEmitterFlag6RandomE">nw::MdlEmitterFlag::Random (C++ member)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/struct/nw__MdlEmitterFlag.html#_CPPv4N2nw14MdlEmitterFlag5SplatE">nw::MdlEmitterFlag::Splat (C++ member)</a>
 </li>
       <li><a href="api/struct/nw__MdlEmitterNode.html#_CPPv4N2nw14MdlEmitterNodeE">nw::MdlEmitterNode (C++ struct)</a>
 </li>
       <li><a href="api/struct/nw__MdlEmitterNode.html#_CPPv4N2nw14MdlEmitterNode19add_controller_dataENSt11string_viewE8uint32_tNSt6vectorIfEEii">nw::MdlEmitterNode::add_controller_data (C++ function)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/struct/nw__MdlEmitterNode.html#_CPPv4N2nw14MdlEmitterNode11blastlengthE">nw::MdlEmitterNode::blastlength (C++ member)</a>
 </li>
       <li><a href="api/struct/nw__MdlEmitterNode.html#_CPPv4N2nw14MdlEmitterNode11blastradiusE">nw::MdlEmitterNode::blastradius (C++ member)</a>
@@ -5351,14 +5363,6 @@
       <li><a href="api/struct/nw__script__NssLexer.html#_CPPv4NK2nw6script8NssLexer7currentEv">nw::script::NssLexer::current (C++ function)</a>
 </li>
       <li><a href="api/struct/nw__script__NssLexer.html#_CPPv4NK2nw6script8NssLexer4dataEv">nw::script::NssLexer::data (C++ function)</a>
-</li>
-      <li><a href="api/struct/nw__script__NssLexer.html#_CPPv4NK2nw6script8NssLexer3getE6size_t">nw::script::NssLexer::get (C++ function)</a>
-</li>
-      <li><a href="api/struct/nw__script__NssLexer.html#_CPPv4N2nw6script8NssLexer17handle_identifierEv">nw::script::NssLexer::handle_identifier (C++ function)</a>
-</li>
-      <li><a href="api/struct/nw__script__NssLexer.html#_CPPv4N2nw6script8NssLexer13handle_numberEv">nw::script::NssLexer::handle_number (C++ function)</a>
-</li>
-      <li><a href="api/struct/nw__script__NssLexer.html#_CPPv4NK2nw6script8NssLexer5matchENSt11string_viewE">nw::script::NssLexer::match (C++ function)</a>
 </li>
       <li><a href="api/struct/nw__script__NssLexer.html#_CPPv4N2nw6script8NssLexer4nextEv">nw::script::NssLexer::next (C++ function)</a>
 </li>
@@ -7036,10 +7040,12 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api_python/classes/Creature.html#rollnw.Creature.walkrate">walkrate (rollnw.Creature attribute)</a>
 </li>
-      <li><a href="api_python/classes/waypoint.html#rollnw.Waypoint">Waypoint (class in rollnw)</a>
+      <li><a href="api_python/classes/Nss.html#rollnw.Nss.warnings">warnings() (rollnw.Nss method)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api_python/classes/waypoint.html#rollnw.Waypoint">Waypoint (class in rollnw)</a>
+</li>
       <li><a href="api_python/classes/Store.html#rollnw.Store.weapons">weapons (rollnw.Store attribute)</a>
 </li>
       <li><a href="api_python/classes/Appearance.html#rollnw.Appearance.wings">wings (rollnw.Appearance attribute)</a>
