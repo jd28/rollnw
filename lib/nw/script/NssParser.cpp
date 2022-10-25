@@ -616,7 +616,11 @@ std::unique_ptr<Statement> NssParser::parse_decl()
             }
             consume(NssTokenType::SEMICOLON, "Expected ';'.");
 
-            return decls;
+            if (decls->decls.size() == 1) {
+                return std::move(decls->decls[0]);
+            } else {
+                return decls;
+            }
         }
         auto s = parse_stmt();
         // consume(NssTokenType::SEMICOLON, "Expected ';'.");
@@ -706,8 +710,13 @@ std::unique_ptr<Statement> NssParser::parse_decl_external()
         || lookahead(0).type == NssTokenType::SEMICOLON
         || lookahead(0).type == NssTokenType::COMMA) {
         auto gvd = parse_decl_global_var();
-        for (auto& d : gvd->decls) {
-            d->type = t;
+        if (auto ds = dynamic_cast<DeclStatement*>(gvd.get())) {
+            for (auto& d : ds->decls) {
+                d->type = t;
+            }
+        } else {
+            auto vd = static_cast<VarDecl*>(gvd.get());
+            vd->type = t;
         }
         return gvd;
     }
@@ -767,7 +776,7 @@ std::unique_ptr<Declaration> NssParser::parse_decl_function_def()
     return def;
 }
 
-std::unique_ptr<DeclStatement> NssParser::parse_decl_global_var()
+std::unique_ptr<Statement> NssParser::parse_decl_global_var()
 {
     auto decls = std::make_unique<DeclStatement>();
     while (true) {
@@ -783,7 +792,11 @@ std::unique_ptr<DeclStatement> NssParser::parse_decl_global_var()
     }
     consume(NssTokenType::SEMICOLON, "Expected ';'.");
 
-    return decls;
+    if (decls->decls.size() == 1) {
+        return std::move(decls->decls[0]);
+    } else {
+        return decls;
+    }
 }
 
 } // namespace nw::script

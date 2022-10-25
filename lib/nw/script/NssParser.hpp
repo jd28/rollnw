@@ -503,7 +503,7 @@ struct NssParser {
     std::unique_ptr<Declaration> parse_decl_struct_member();
     std::unique_ptr<FunctionDecl> parse_decl_function();
     std::unique_ptr<Declaration> parse_decl_function_def();
-    std::unique_ptr<DeclStatement> parse_decl_global_var();
+    std::unique_ptr<Statement> parse_decl_global_var();
 
     /// Parses script
     Script parse_program();
