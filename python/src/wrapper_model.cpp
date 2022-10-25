@@ -281,7 +281,7 @@ void init_model(py::module& nw)
                 auto pyobj = py::cast(*ptr, py::return_value_policy::reference);
                 pylist.append(pyobj);
             }
-            return pylist;
+            return py::iter(pylist);
         });
 
     py::class_<nw::MdlAnimationEvent>(nw, "MdlAnimationEvent")
@@ -303,7 +303,7 @@ void init_model(py::module& nw)
                 auto pyobj = py::cast(*ptr, py::return_value_policy::reference);
                 pylist.append(pyobj);
             }
-            return pylist;
+            return py::iter(pylist);
         })
         .def_readwrite("supermodel", &nw::MdlModel::supermodel, py::return_value_policy::reference)
         .def_readwrite("bmin", &nw::MdlModel::bmin)
