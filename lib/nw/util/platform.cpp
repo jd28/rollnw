@@ -72,6 +72,32 @@ fs::path create_unique_tmp_path()
     return path;
 }
 
+std::filesystem::path expand_path(const std::filesystem::path& path)
+{
+    std::filesystem::path result;
+    bool first = true;
+    for (auto& p : path) {
+        if (p == "~" && first) {
+            result /= home_path();
+        } else if (p.c_str()[0] == '$') {
+            auto envp = nowide::getenv(p.string().substr(1).c_str());
+            result /= envp ? std::filesystem::path(envp) : p;
+        }
+#ifdef ROLLNW_OS_WINDOWS
+        else if (p.c_str()[0] == '%') {
+            auto string = p.string();
+            auto envp = nowide::getenv(string.substr(1, string.size() - 1).c_str());
+            result /= envp ? std::filesystem::path(envp) : p;
+        }
+#endif
+        else {
+            result /= p;
+        }
+        first = false;
+    }
+    return result;
+}
+
 bool move_file_safely(const fs::path& from, const fs::path& to)
 {
     std::error_code ec;

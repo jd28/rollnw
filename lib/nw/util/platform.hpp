@@ -14,6 +14,9 @@ std::filesystem::path home_path();
 /// Creates randomly named folder in tmp.  Analguous to POSIX ``mkdtemp``.
 std::filesystem::path create_unique_tmp_path();
 
+/// Expands path with ~ and environment variables
+std::filesystem::path expand_path(const std::filesystem::path& path);
+
 /// Copies and deletes a file to a new location, overwrites existing
 bool move_file_safely(const std::filesystem::path& from, const std::filesystem::path& to);
 
