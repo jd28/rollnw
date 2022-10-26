@@ -56,7 +56,7 @@ class Common:
     """Class containing attributes common to all objects
 
     Attributes:
-        resref (rollnw.Resref): resref
+        resref (str): resref
         tag (str): tag
         name (rollnw.LocString): name
         locals (rollnw.LocalData): locals
@@ -330,7 +330,7 @@ class Creature(ObjectBase):
         bodybag
         chunk_death
         combat_info
-        conversation (rollnw.Resref): Dialog resref
+        conversation (str): Dialog resref
         cr
         cr_adjust
         decay_time
@@ -370,19 +370,19 @@ class CreatureScripts:
     """A class containing a creature's script set.
 
     Attributes:
-        on_attacked (rollnw.Resref): A script
-        on_blocked (rollnw.Resref): A script
-        on_conversation (rollnw.Resref): A script
-        on_damaged (rollnw.Resref): A script
-        on_death (rollnw.Resref): A script
-        on_disturbed (rollnw.Resref): A script
-        on_endround (rollnw.Resref): A script
-        on_heartbeat (rollnw.Resref): A script
-        on_perceived (rollnw.Resref): A script
-        on_rested (rollnw.Resref): A script
-        on_spawn (rollnw.Resref): A script
-        on_spell_cast_at (rollnw.Resref): A script
-        on_user_defined (rollnw.Resref): A script
+        on_attacked (str): A script
+        on_blocked (str): A script
+        on_conversation (str): A script
+        on_damaged (str): A script
+        on_death (str): A script
+        on_disturbed (str): A script
+        on_endround (str): A script
+        on_heartbeat (str): A script
+        on_perceived (str): A script
+        on_rested (str): A script
+        on_spawn (str): A script
+        on_spell_cast_at (str): A script
+        on_user_defined (str): A script
     """
 
     pass
@@ -394,7 +394,7 @@ class Door:
     Attributes:
         animation_state
         appearance
-        conversation (rollnw.Resref): Door's conversation resref
+        conversation (str): Door's conversation resref
         description
         faction
         generic_type
@@ -660,17 +660,6 @@ class Waypoint:
 
 # Resources ###################################################################
 ###############################################################################
-
-
-class Resref:
-    def __init__(self, string: str):
-        pass
-
-    def __len__(self):
-        """Gets length ignoring null padding, if any"""
-        pass
-
-    pass
 
 
 class Resource:

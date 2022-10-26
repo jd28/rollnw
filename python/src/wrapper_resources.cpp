@@ -12,6 +12,7 @@
 #include <nw/util/string.hpp>
 
 #include <fmt/format.h>
+#include <pybind11/operators.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 #include <pybind11/stl/filesystem.h>
@@ -19,22 +20,6 @@
 #include <string>
 
 namespace py = pybind11;
-
-void init_resources_resref(py::module& nw)
-{
-    py::class_<nw::Resref>(nw, "Resref")
-        .def(py::init<>())
-        .def(py::init([](std::string_view str) -> nw::Resref {
-            if (str.length() >= 16) {
-                throw std::runtime_error(fmt::format("invalid resref '{}', must be 16 characters or less", str));
-            }
-            return nw::Resref(str);
-        }))
-        .def("empty", &nw::Resref::empty)
-        .def("__len__", &nw::Resref::length)
-        .def("__str__", &nw::Resref::string)
-        .def("__repr__", &nw::Resref::string);
-}
 
 void init_resources_resourcetype(py::module& nw)
 {
@@ -230,7 +215,6 @@ void init_resources_zip(py::module& nw)
 
 void init_resources(py::module& nw)
 {
-    init_resources_resref(nw);
     init_resources_resourcetype(nw);
     init_resources_resource(nw);
     init_resources_descriptor(nw);

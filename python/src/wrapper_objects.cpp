@@ -1,3 +1,4 @@
+#include "casters.hpp"
 #include "opaque_types.hpp"
 
 #include <nw/components/Area.hpp>
