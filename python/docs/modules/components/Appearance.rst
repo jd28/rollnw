@@ -1,4 +1,0 @@
-Appearance
-==========
-
-.. autoclass:: rollnw.Appearance

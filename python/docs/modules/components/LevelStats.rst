@@ -1,4 +1,0 @@
-LevelStats
-==========
-
-.. autoclass:: rollnw.LevelStats

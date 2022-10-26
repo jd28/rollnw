@@ -1,4 +1,0 @@
-BodyParts
-=========
-
-.. autoclass:: rollnw.BodyParts
