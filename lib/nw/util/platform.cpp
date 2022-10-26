@@ -76,7 +76,7 @@ std::filesystem::path expand_path(const std::filesystem::path& path)
 {
     std::filesystem::path result;
     bool first = true;
-    for (auto& p : path) {
+    for (const auto& p : path) {
         if (p == "~" && first) {
             result /= home_path();
         } else if (p.c_str()[0] == '$') {
