@@ -362,7 +362,15 @@ class Creature(ObjectBase):
         walkrate
     """
 
-    def __init__(self, filename: str):
+    @staticmethod
+    def from_dict(value: dict):
+        """Constructs object from python dict.
+        """
+        pass
+
+    def from_file(path: str):
+        """Constructs object from file.  The file can be JSON or Gff.
+        """
         pass
 
 
@@ -412,6 +420,16 @@ class Door:
         scripts
         trap
     """
+    @staticmethod
+    def from_dict(value: dict):
+        """Constructs object from python dict.
+        """
+        pass
+
+    def from_file(path: str):
+        """Constructs object from file.  The file can be JSON or Gff.
+        """
+        pass
 
     pass
 
@@ -436,6 +454,16 @@ class Encounter:
         spawn_option
         spawn_points
     """
+    @staticmethod
+    def from_dict(value: dict):
+        """Constructs object from python dict.
+        """
+        pass
+
+    def from_file(path: str):
+        """Constructs object from file.  The file can be JSON or Gff.
+        """
+        pass
 
     pass
 
@@ -461,6 +489,16 @@ class Item:
         stacksize
         stolen
     """
+    @staticmethod
+    def from_dict(value: dict):
+        """Constructs object from python dict.
+        """
+        pass
+
+    def from_file(path: str):
+        """Constructs object from file.  The file can be JSON or Gff.
+        """
+        pass
 
     pass
 
@@ -560,6 +598,16 @@ class Placeable:
         trap
         useable
     """
+    @staticmethod
+    def from_dict(value: dict):
+        """Constructs object from python dict.
+        """
+        pass
+
+    def from_file(path: str):
+        """Constructs object from file.  The file can be JSON or Gff.
+        """
+        pass
 
     pass
 
@@ -592,7 +640,15 @@ class Sound(ObjectBase):
         volume_variation
     """
 
-    def __init__(self, filename: str):
+    @staticmethod
+    def from_dict(value: dict):
+        """Constructs object from python dict.
+        """
+        pass
+
+    def from_file(path: str):
+        """Constructs object from file.  The file can be JSON or Gff.
+        """
         pass
 
     pass
@@ -619,6 +675,17 @@ class Store(ObjectBase):
     //.def_readonly("will_not_buy", &nw::Store::will_not_buy)
     //.def_readonly("will_only_buy", &nw::Store::will_only_buy)
     """
+
+    @staticmethod
+    def from_dict(value: dict):
+        """Constructs object from python dict.
+        """
+        pass
+
+    def from_file(path: str):
+        """Constructs object from file.  The file can be JSON or Gff.
+        """
+        pass
 
     pass
 
@@ -654,6 +721,16 @@ class Waypoint:
         map_note (rollnw.LocString)
         map_note_enabled
     """
+    @staticmethod
+    def from_dict(value: dict):
+        """Constructs object from python dict.
+        """
+        pass
+
+    def from_file(path: str):
+        """Constructs object from file.  The file can be JSON or Gff.
+        """
+        pass
 
     pass
 

@@ -51,13 +51,23 @@ rollNW is all about live objects and *not* serialized file formats.
 
 **Example**
 
-.. code:: cpp
+.. tabs::
 
-     // Loading an object into the system directly from the file system.
-     auto obj = nw::kernel::objects().load<nw::Creature>(fs::path("a/path/to/nw_chicken.utc"));
-     if(ent->scripts.on_attacked == "nw_c2_default5") {
-         ent->scripts.on_attacked = "nw_shakenbake";
-     }
+   .. code-tab:: python
+      from rollnw import Creature
+
+      # The file can also be rollnw JSON format, it doesn't matter.
+      cre = Creature.from_file("a/path/to/nw_chicken.utc")
+      if cre.scripts.on_attacked == "nw_c2_default5":
+         cre.scripts.on_attacked = "nw_shakenbake"
+
+   .. code-tab:: cpp
+
+      // Loading an object into the system directly from the file system.
+      auto obj = nw::kernel::objects().load<nw::Creature>(fs::path("a/path/to/nw_chicken.utc"));
+      if(obj->scripts.on_attacked == "nw_c2_default5") {
+            obj->scripts.on_attacked = "nw_shakenbake";
+      }
 
 -------------------------------------------------------------------------------
 
@@ -92,7 +102,7 @@ lack of a ResMan plugin, even so the ability to load files from a Zip file is in
 Rules
 ~~~~~
 
-See `rules <https://jd28.github.io/rollnw/structure/rules.html>`__ sfor the module
+See `rules <https://jd28.github.io/rollnw/structure/rules.html>`__ for the module
 supporting this service.
 
 -------------------------------------------------------------------------------

@@ -13,6 +13,9 @@
 #include <nw/components/Store.hpp>
 #include <nw/components/Trigger.hpp>
 #include <nw/components/Waypoint.hpp>
+#include <nw/kernel/Objects.hpp>
+#include <nw/util/platform.hpp>
+#include <nw/util/string.hpp>
 #include <nw/util/templates.hpp>
 
 #include <fmt/format.h>
@@ -22,6 +25,7 @@
 #include <pybind11_json/pybind11_json.hpp>
 
 namespace py = pybind11;
+namespace fs = std::filesystem;
 
 template <typename T>
 nlohmann::json to_json_helper(const T* self, nw::SerializationProfile profile)
@@ -29,6 +33,37 @@ nlohmann::json to_json_helper(const T* self, nw::SerializationProfile profile)
     nlohmann::json result;
     T::serialize(self, result, profile);
     return result;
+}
+
+template <typename T>
+T* create_object_from_json_helper(const nlohmann::json& j)
+{
+    auto obj = new T;
+    T::deserialize(obj, j, nw::SerializationProfile::blueprint);
+    return obj;
+}
+
+template <typename T>
+T* create_object_from_file_helper(const std::filesystem::path& path)
+{
+    auto p = nw::expand_path(path);
+    if (!fs::exists(path)) {
+        throw std::runtime_error(fmt::format("{} does not exist", path));
+    }
+    auto ext = nw::path_to_string(p.extension());
+    if (nw::string::icmp(ext, ".json")) {
+        std::ifstream f(p);
+        nlohmann::json data = nlohmann::json::parse(f);
+        auto obj = new T;
+        T::deserialize(obj, data, nw::SerializationProfile::blueprint);
+        return obj;
+    } else if (nw::ResourceType::from_extension(ext) == T::restype) {
+        nw::Gff data{p};
+        auto obj = new T;
+        T::deserialize(obj, data.toplevel(), nw::SerializationProfile::blueprint);
+        return obj;
+    }
+    throw std::runtime_error(fmt::format("unknown file extension: {}", ext));
 }
 
 void init_object_components(py::module& nw);
@@ -198,6 +233,10 @@ void init_objects_creature(py::module& nw)
 
     py::class_<nw::Creature, nw::ObjectBase>(nw, "Creature")
         .def(py::init<>())
+
+        .def_static("from_dict", &create_object_from_json_helper<nw::Creature>)
+        .def_static("from_file", &create_object_from_file_helper<nw::Creature>)
+
         .def("to_dict", &to_json_helper<nw::Creature>)
         .def("handle", &nw::Creature::handle)
 
@@ -277,6 +316,9 @@ void init_objects_door(py::module& nw)
         .def_readonly_static("json_archive_version", &nw::Door::json_archive_version)
         .def_readonly_static("object_type", &nw::Door::object_type)
 
+        .def_static("from_dict", &create_object_from_json_helper<nw::Door>)
+        .def_static("from_file", &create_object_from_file_helper<nw::Door>)
+
         .def_readwrite("conversation", &nw::Door::conversation)
         .def_readwrite("description", &nw::Door::description)
         .def_readwrite("linked_to", &nw::Door::linked_to)
@@ -326,6 +368,9 @@ void init_objects_encounter(py::module& nw)
 
         .def_readonly_static("json_archive_version", &nw::Encounter::json_archive_version)
         .def_readonly_static("object_type", &nw::Encounter::object_type)
+
+        .def_static("from_dict", &create_object_from_json_helper<nw::Encounter>)
+        .def_static("from_file", &create_object_from_file_helper<nw::Encounter>)
 
         .def_readwrite("creatures", &nw::Encounter::creatures)
         .def_readwrite("geometry", &nw::Encounter::geometry)
@@ -401,6 +446,9 @@ void init_objects_item(py::module& nw)
 
         .def_readonly_static("json_archive_version", &nw::Item::json_archive_version)
         .def_readonly_static("object_type", &nw::Item::object_type)
+
+        .def_static("from_dict", &create_object_from_json_helper<nw::Item>)
+        .def_static("from_file", &create_object_from_file_helper<nw::Item>)
 
         .def_readwrite("description", &nw::Item::description)
         .def_readwrite("description_id", &nw::Item::description_id)
@@ -535,6 +583,9 @@ void init_objects_placeable(py::module& nw)
         .def_readonly_static("json_archive_version", &nw::Placeable::json_archive_version)
         .def_readonly_static("object_type", &nw::Placeable::object_type)
 
+        .def_static("from_dict", &create_object_from_json_helper<nw::Placeable>)
+        .def_static("from_file", &create_object_from_file_helper<nw::Placeable>)
+
         .def_readwrite("common", &nw::Placeable::common)
         .def_readwrite("conversation", &nw::Placeable::conversation)
         .def_readwrite("description", &nw::Placeable::description)
@@ -569,6 +620,9 @@ void init_objects_sound(py::module& nw)
 
         .def_readonly_static("json_archive_version", &nw::Sound::json_archive_version)
         .def_readonly_static("object_type", &nw::Sound::object_type)
+
+        .def_static("from_dict", &create_object_from_json_helper<nw::Sound>)
+        .def_static("from_file", &create_object_from_file_helper<nw::Sound>)
 
         .def_readwrite("common", &nw::Sound::common)
         .def_readwrite("sounds", &nw::Sound::sounds)
@@ -608,6 +662,9 @@ void init_objects_store(py::module& nw)
 
         .def_readonly_static("json_archive_version", &nw::Store::json_archive_version)
         .def_readonly_static("object_type", &nw::Store::object_type)
+
+        .def_static("from_dict", &create_object_from_json_helper<nw::Store>)
+        .def_static("from_file", &create_object_from_file_helper<nw::Store>)
 
         .def_property_readonly(
             "armor", [](const nw::Store& s) { return &s.inventory.armor; }, py::return_value_policy::reference_internal)
@@ -651,6 +708,9 @@ void init_object_trigger(pybind11::module& nw)
         .def_readonly_static("json_archive_version", &nw::Trigger::json_archive_version)
         .def_readonly_static("object_type", &nw::Trigger::object_type)
 
+        .def_static("from_dict", &create_object_from_json_helper<nw::Trigger>)
+        .def_static("from_file", &create_object_from_file_helper<nw::Trigger>)
+
         .def_readwrite("geometry", &nw::Trigger::geometry)
         .def_readwrite("linked_to", &nw::Trigger::linked_to)
         .def_readwrite("scripts", &nw::Trigger::scripts)
@@ -671,11 +731,16 @@ void init_object_waypoint(pybind11::module& nw)
 {
     pybind11::class_<nw::Waypoint, nw::ObjectBase>(nw, "Waypoint")
         .def(py::init<>())
-        .def("to_dict", &to_json_helper<nw::Waypoint>)
 
         .def_readonly_static("json_archive_version", &nw::Waypoint::json_archive_version)
         .def_readonly_static("object_type", &nw::Waypoint::object_type)
 
+        .def_static("from_dict", &create_object_from_json_helper<nw::Waypoint>)
+        .def_static("from_file", &create_object_from_file_helper<nw::Waypoint>)
+
+        .def("to_dict", &to_json_helper<nw::Waypoint>)
+
+        .def_readwrite("common", &nw::Waypoint::common)
         .def_readwrite("description", &nw::Waypoint::description)
         .def_readwrite("linked_to", &nw::Waypoint::linked_to)
         .def_readwrite("map_note", &nw::Waypoint::map_note)
