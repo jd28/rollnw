@@ -56,7 +56,7 @@ public:
     /// masc/fem.
     static std::pair<LanguageID, bool> to_base_id(uint32_t lang);
 
-    // Convert language ID to runtime identifier.
+    /// Convert language ID to runtime identifier.
     static uint32_t to_runtime_id(LanguageID lang, bool feminine = false);
 
     /// Converts language to string form

@@ -31,6 +31,9 @@ struct LocString {
     /// Determines if a localized string is set
     bool contains(LanguageID language, bool feminine = false) const;
 
+    /// Removes a localized string
+    void remove(LanguageID language, bool feminine = false);
+
     /// Gets number of localized strings
     size_type size() const;
 

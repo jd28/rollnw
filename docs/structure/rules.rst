@@ -59,7 +59,7 @@ Definitions
       case *ac_deflection: // ..
       }
 
-      // Or if it makes logical since to think of a particular type as an index:
+      // Or if it makes logical sense to think of a particular type as an index:
       obj->ac_bonuses[ac_dodge.idx()]
 
 **Flag**
@@ -109,10 +109,8 @@ Definitions
    .. code:: cpp
 
       int result = 0;
-      nw::kernel::rules().calculate<int>(obj, mod_type_ability, ability_strength,
-          [&result](int value) {
-                  result += value;
-           });
+      nw::kernel::rules().calculate(obj, mod_type_ability, ability_strength,
+          [&result](int value) { result += value; });
 
 
 **Example - Adding a Modifier**:
