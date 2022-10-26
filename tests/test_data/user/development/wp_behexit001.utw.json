@@ -1,0 +1,28 @@
+{
+    "$type": "UTW",
+    "$version": 1,
+    "appearance": 2,
+    "common": {
+        "comment": "This waypoint can be placed to mark a generic exit and entry spot for the beholder flight ability.\r\n\r\nif you place one or more of these waypoints in the same area as any beholder running the x2_ai_behold.nss mini ai script, the beholder will use these to move in combat.\r\n\r\nSee chapter 2 of the official Hordes of the Underdark campaign for more information",
+        "locals": {},
+        "name": {
+            "strings": [],
+            "strref": 91379
+        },
+        "object_type": 12,
+        "palette_id": 5,
+        "resref": "wp_behexit001",
+        "tag": "X2_WP_BEHOLDER_TUNNEL"
+    },
+    "description": {
+        "strings": [],
+        "strref": 4294967295
+    },
+    "has_map_note": false,
+    "linked_to": "",
+    "map_note": {
+        "strings": [],
+        "strref": 4294967295
+    },
+    "map_note_enabled": true
+}

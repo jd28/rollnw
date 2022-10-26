@@ -319,6 +319,7 @@ void init_objects_door(py::module& nw)
         .def_static("from_dict", &create_object_from_json_helper<nw::Door>)
         .def_static("from_file", &create_object_from_file_helper<nw::Door>)
 
+        .def_readwrite("common", &nw::Door::common)
         .def_readwrite("conversation", &nw::Door::conversation)
         .def_readwrite("description", &nw::Door::description)
         .def_readwrite("linked_to", &nw::Door::linked_to)
@@ -372,6 +373,7 @@ void init_objects_encounter(py::module& nw)
         .def_static("from_dict", &create_object_from_json_helper<nw::Encounter>)
         .def_static("from_file", &create_object_from_file_helper<nw::Encounter>)
 
+        .def_readwrite("common", &nw::Encounter::common)
         .def_readwrite("creatures", &nw::Encounter::creatures)
         .def_readwrite("geometry", &nw::Encounter::geometry)
         .def_readonly("scripts", &nw::Encounter::scripts)
@@ -449,6 +451,8 @@ void init_objects_item(py::module& nw)
 
         .def_static("from_dict", &create_object_from_json_helper<nw::Item>)
         .def_static("from_file", &create_object_from_file_helper<nw::Item>)
+
+        .def_readwrite("common", &nw::Item::common)
 
         .def_readwrite("description", &nw::Item::description)
         .def_readwrite("description_id", &nw::Item::description_id)
@@ -615,7 +619,9 @@ void init_objects_placeable(py::module& nw)
 
 void init_objects_sound(py::module& nw)
 {
-    py::class_<nw::Sound>(nw, "Sound")
+    py::class_<nw::Sound, nw::ObjectBase>(nw, "Sound")
+        .def(py::init<>())
+
         .def("to_dict", &to_json_helper<nw::Sound>)
 
         .def_readonly_static("json_archive_version", &nw::Sound::json_archive_version)
@@ -666,6 +672,8 @@ void init_objects_store(py::module& nw)
         .def_static("from_dict", &create_object_from_json_helper<nw::Store>)
         .def_static("from_file", &create_object_from_file_helper<nw::Store>)
 
+        .def_readwrite("common", &nw::Store::common)
+
         .def_property_readonly(
             "armor", [](const nw::Store& s) { return &s.inventory.armor; }, py::return_value_policy::reference_internal)
         .def_property_readonly(
@@ -711,6 +719,7 @@ void init_object_trigger(pybind11::module& nw)
         .def_static("from_dict", &create_object_from_json_helper<nw::Trigger>)
         .def_static("from_file", &create_object_from_file_helper<nw::Trigger>)
 
+        .def_readwrite("common", &nw::Trigger::common)
         .def_readwrite("geometry", &nw::Trigger::geometry)
         .def_readwrite("linked_to", &nw::Trigger::linked_to)
         .def_readwrite("scripts", &nw::Trigger::scripts)
