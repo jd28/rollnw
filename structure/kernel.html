@@ -15,6 +15,7 @@
         <script src="../_static/jquery.js"></script>
         <script src="../_static/underscore.js"></script>
         <script src="../_static/doctools.js"></script>
+        <script src="../_static/tabs.js"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
@@ -162,13 +163,21 @@ handle must match what is in the object array.</p>
 </dd>
 </dl>
 <p><strong>Example</strong></p>
-<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="c1">// Loading an object into the system directly from the file system.</span>
+<div class="sphinx-tabs docutils container">
+<div aria-label="Tabbed content" class="closeable" role="tablist"><button aria-controls="panel-0-ZnJvbSByb2xsbncgaW1wb3J0IENyZWF0dXJl" aria-selected="true" class="sphinx-tabs-tab code-tab group-tab" id="tab-0-ZnJvbSByb2xsbncgaW1wb3J0IENyZWF0dXJl" name="ZnJvbSByb2xsbncgaW1wb3J0IENyZWF0dXJl" role="tab" tabindex="0">from rollnw import Creature</button><button aria-controls="panel-0-Qysr" aria-selected="false" class="sphinx-tabs-tab code-tab group-tab" id="tab-0-Qysr" name="Qysr" role="tab" tabindex="-1">C++</button></div><div aria-labelledby="tab-0-ZnJvbSByb2xsbncgaW1wb3J0IENyZWF0dXJl" class="sphinx-tabs-panel code-tab group-tab" id="panel-0-ZnJvbSByb2xsbncgaW1wb3J0IENyZWF0dXJl" name="ZnJvbSByb2xsbncgaW1wb3J0IENyZWF0dXJl" role="tabpanel" tabindex="0"><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># The file can also be rollnw JSON format, it doesn&#39;t matter.</span>
+<span class="n">cre</span> <span class="o">=</span> <span class="n">Creature</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="s2">&quot;a/path/to/nw_chicken.utc&quot;</span><span class="p">)</span>
+<span class="k">if</span> <span class="n">cre</span><span class="o">.</span><span class="n">scripts</span><span class="o">.</span><span class="n">on_attacked</span> <span class="o">==</span> <span class="s2">&quot;nw_c2_default5&quot;</span><span class="p">:</span>
+   <span class="n">cre</span><span class="o">.</span><span class="n">scripts</span><span class="o">.</span><span class="n">on_attacked</span> <span class="o">=</span> <span class="s2">&quot;nw_shakenbake&quot;</span>
+</pre></div>
+</div>
+</div><div aria-labelledby="tab-0-Qysr" class="sphinx-tabs-panel code-tab group-tab" hidden="true" id="panel-0-Qysr" name="Qysr" role="tabpanel" tabindex="0"><div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="c1">// Loading an object into the system directly from the file system.</span>
 <span class="k">auto</span><span class="w"> </span><span class="n">obj</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">nw</span><span class="o">::</span><span class="n">kernel</span><span class="o">::</span><span class="n">objects</span><span class="p">().</span><span class="n">load</span><span class="o">&lt;</span><span class="n">nw</span><span class="o">::</span><span class="n">Creature</span><span class="o">&gt;</span><span class="p">(</span><span class="n">fs</span><span class="o">::</span><span class="n">path</span><span class="p">(</span><span class="s">&quot;a/path/to/nw_chicken.utc&quot;</span><span class="p">));</span><span class="w"></span>
-<span class="k">if</span><span class="p">(</span><span class="n">ent</span><span class="o">-&gt;</span><span class="n">scripts</span><span class="p">.</span><span class="n">on_attacked</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="s">&quot;nw_c2_default5&quot;</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
-<span class="w">    </span><span class="n">ent</span><span class="o">-&gt;</span><span class="n">scripts</span><span class="p">.</span><span class="n">on_attacked</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;nw_shakenbake&quot;</span><span class="p">;</span><span class="w"></span>
+<span class="k">if</span><span class="p">(</span><span class="n">obj</span><span class="o">-&gt;</span><span class="n">scripts</span><span class="p">.</span><span class="n">on_attacked</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="s">&quot;nw_c2_default5&quot;</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">      </span><span class="n">obj</span><span class="o">-&gt;</span><span class="n">scripts</span><span class="p">.</span><span class="n">on_attacked</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;nw_shakenbake&quot;</span><span class="p">;</span><span class="w"></span>
 <span class="p">}</span><span class="w"></span>
 </pre></div>
 </div>
+</div></div>
 </div>
 <hr class="docutils" />
 <div class="section" id="resources">
@@ -230,7 +239,7 @@ dependant)</p></td>
 </div>
 <div class="section" id="rules">
 <h3>Rules<a class="headerlink" href="#rules" title="Permalink to this headline"></a></h3>
-<p>See <a class="reference external" href="https://jd28.github.io/rollnw/structure/rules.html">rules</a> sfor the module
+<p>See <a class="reference external" href="https://jd28.github.io/rollnw/structure/rules.html">rules</a> for the module
 supporting this service.</p>
 </div>
 <hr class="docutils" />

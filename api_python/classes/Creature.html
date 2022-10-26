@@ -151,7 +151,7 @@
 <h1>Creature<a class="headerlink" href="#creature" title="Permalink to this headline"></a></h1>
 <dl class="py class">
 <dt class="sig sig-object py" id="rollnw.Creature">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">rollnw.</span></span><span class="sig-name descname"><span class="pre">Creature</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#rollnw.Creature" title="Permalink to this definition"></a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">rollnw.</span></span><span class="sig-name descname"><span class="pre">Creature</span></span><a class="headerlink" href="#rollnw.Creature" title="Permalink to this definition"></a></dt>
 <dd><p>Class that represents a Creature object</p>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="rollnw.Creature.appearance">
@@ -179,7 +179,7 @@
 <dd><p>Dialog resref</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type</dt>
-<dd class="field-odd"><p><a class="reference internal" href="Resref.html#rollnw.Resref" title="rollnw.Resref">rollnw.Resref</a></p>
+<dd class="field-odd"><p>str</p>
 </dd>
 </dl>
 </dd></dl>
@@ -342,6 +342,18 @@
 <dd></dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="rollnw.Creature.from_dict">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_dict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#rollnw.Creature.from_dict" title="Permalink to this definition"></a></dt>
+<dd><p>Constructs object from python dict.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="rollnw.Creature.from_file">
+<span class="sig-name descname"><span class="pre">from_file</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#rollnw.Creature.from_file" title="Permalink to this definition"></a></dt>
+<dd><p>Constructs object from file.  The file can be JSON or Gff.</p>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="rollnw.Creature.handle">
 <span class="sig-name descname"><span class="pre">handle</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#rollnw.Creature.handle" title="Permalink to this definition"></a></dt>
 <dd><p>Gets object handle</p>
@@ -360,7 +372,7 @@
 <dd><p>A script</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type</dt>
-<dd class="field-odd"><p><a class="reference internal" href="Resref.html#rollnw.Resref" title="rollnw.Resref">rollnw.Resref</a></p>
+<dd class="field-odd"><p>str</p>
 </dd>
 </dl>
 </dd></dl>
@@ -371,7 +383,7 @@
 <dd><p>A script</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type</dt>
-<dd class="field-odd"><p><a class="reference internal" href="Resref.html#rollnw.Resref" title="rollnw.Resref">rollnw.Resref</a></p>
+<dd class="field-odd"><p>str</p>
 </dd>
 </dl>
 </dd></dl>
@@ -382,7 +394,7 @@
 <dd><p>A script</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type</dt>
-<dd class="field-odd"><p><a class="reference internal" href="Resref.html#rollnw.Resref" title="rollnw.Resref">rollnw.Resref</a></p>
+<dd class="field-odd"><p>str</p>
 </dd>
 </dl>
 </dd></dl>
@@ -393,7 +405,7 @@
 <dd><p>A script</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type</dt>
-<dd class="field-odd"><p><a class="reference internal" href="Resref.html#rollnw.Resref" title="rollnw.Resref">rollnw.Resref</a></p>
+<dd class="field-odd"><p>str</p>
 </dd>
 </dl>
 </dd></dl>
@@ -404,7 +416,7 @@
 <dd><p>A script</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type</dt>
-<dd class="field-odd"><p><a class="reference internal" href="Resref.html#rollnw.Resref" title="rollnw.Resref">rollnw.Resref</a></p>
+<dd class="field-odd"><p>str</p>
 </dd>
 </dl>
 </dd></dl>
@@ -415,7 +427,7 @@
 <dd><p>A script</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type</dt>
-<dd class="field-odd"><p><a class="reference internal" href="Resref.html#rollnw.Resref" title="rollnw.Resref">rollnw.Resref</a></p>
+<dd class="field-odd"><p>str</p>
 </dd>
 </dl>
 </dd></dl>
@@ -426,7 +438,7 @@
 <dd><p>A script</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type</dt>
-<dd class="field-odd"><p><a class="reference internal" href="Resref.html#rollnw.Resref" title="rollnw.Resref">rollnw.Resref</a></p>
+<dd class="field-odd"><p>str</p>
 </dd>
 </dl>
 </dd></dl>
@@ -437,7 +449,7 @@
 <dd><p>A script</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type</dt>
-<dd class="field-odd"><p><a class="reference internal" href="Resref.html#rollnw.Resref" title="rollnw.Resref">rollnw.Resref</a></p>
+<dd class="field-odd"><p>str</p>
 </dd>
 </dl>
 </dd></dl>
@@ -448,7 +460,7 @@
 <dd><p>A script</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type</dt>
-<dd class="field-odd"><p><a class="reference internal" href="Resref.html#rollnw.Resref" title="rollnw.Resref">rollnw.Resref</a></p>
+<dd class="field-odd"><p>str</p>
 </dd>
 </dl>
 </dd></dl>
@@ -459,7 +471,7 @@
 <dd><p>A script</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type</dt>
-<dd class="field-odd"><p><a class="reference internal" href="Resref.html#rollnw.Resref" title="rollnw.Resref">rollnw.Resref</a></p>
+<dd class="field-odd"><p>str</p>
 </dd>
 </dl>
 </dd></dl>
@@ -470,7 +482,7 @@
 <dd><p>A script</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type</dt>
-<dd class="field-odd"><p><a class="reference internal" href="Resref.html#rollnw.Resref" title="rollnw.Resref">rollnw.Resref</a></p>
+<dd class="field-odd"><p>str</p>
 </dd>
 </dl>
 </dd></dl>
@@ -481,7 +493,7 @@
 <dd><p>A script</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type</dt>
-<dd class="field-odd"><p><a class="reference internal" href="Resref.html#rollnw.Resref" title="rollnw.Resref">rollnw.Resref</a></p>
+<dd class="field-odd"><p>str</p>
 </dd>
 </dl>
 </dd></dl>
@@ -492,7 +504,7 @@
 <dd><p>A script</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type</dt>
-<dd class="field-odd"><p><a class="reference internal" href="Resref.html#rollnw.Resref" title="rollnw.Resref">rollnw.Resref</a></p>
+<dd class="field-odd"><p>str</p>
 </dd>
 </dl>
 </dd></dl>
