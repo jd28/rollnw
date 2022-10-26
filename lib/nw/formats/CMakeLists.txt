@@ -1,5 +1,9 @@
 add_library(nw-formats STATIC
+    Dialog.cpp
+    Faction.cpp
     Ini.cpp
+    Journal.cpp
+    Palette.cpp
     TwoDA.cpp
     Image.cpp
 )

@@ -26,8 +26,12 @@ add_custom_target(
 add_executable(rollnw_test
     main.cpp
 
+    formats_dialog.cpp
+    formats_faction.cpp
     formats_image.cpp
     formats_ini.cpp
+    #formats_journal.cpp
+    formats_palette.cpp
     formats_twoda.cpp
 
     i18n_locstring.cpp
@@ -44,14 +48,10 @@ add_executable(rollnw_test
 
     objects_area.cpp
     objects_creature.cpp
-    objects_dialog.cpp
     objects_door.cpp
     objects_encounter.cpp
-    objects_faction.cpp
     objects_item.cpp
-    #objects_journal.cpp
     objects_module.cpp
-    objects_palette.cpp
     objects_placeable.cpp
     objects_sound.cpp
     objects_store.cpp

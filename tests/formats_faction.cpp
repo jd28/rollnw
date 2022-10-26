@@ -1,6 +1,6 @@
 #include <catch2/catch_all.hpp>
 
-#include <nw/components/Faction.hpp>
+#include <nw/formats/Faction.hpp>
 #include <nw/serialization/Serialization.hpp>
 
 TEST_CASE("faction: from_gff", "[objects]")

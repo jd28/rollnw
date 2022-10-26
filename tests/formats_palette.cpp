@@ -1,6 +1,6 @@
 #include <catch2/catch_all.hpp>
 
-#include <nw/components/Palette.hpp>
+#include <nw/formats/Palette.hpp>
 #include <nw/serialization/Serialization.hpp>
 
 #include <nlohmann/json.hpp>

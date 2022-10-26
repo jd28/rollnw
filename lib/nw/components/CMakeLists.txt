@@ -1,15 +1,11 @@
 add_library(nw-components STATIC
     Area.cpp
     Creature.cpp
-    Dialog.cpp
     Door.cpp
     Encounter.cpp
-    Faction.cpp
     Item.cpp
-    Journal.cpp
     Module.cpp
     ObjectBase.cpp
-    Palette.cpp
     Placeable.cpp
     Sound.cpp
     Store.cpp
