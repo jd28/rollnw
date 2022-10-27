@@ -26,12 +26,12 @@ void init_i18n_language(py::module& m)
         .value("japanese", nw::LanguageID::japanese);
 
     py::class_<nw::Language>(m, "Language")
-        .def("encoding", &nw::Language::encoding)
-        .def("from_string", &nw::Language::from_string)
-        .def("has_feminine", &nw::Language::has_feminine)
-        .def("to_base_id", &nw::Language::to_base_id)
-        .def("to_runtime_id", &nw::Language::to_runtime_id, py::arg("language"), py::arg("feminine") = false)
-        .def("to_string", &nw::Language::to_string, py::arg("language"), py::arg("long_name") = false);
+        .def_static("encoding", &nw::Language::encoding)
+        .def_static("from_string", &nw::Language::from_string)
+        .def_static("has_feminine", &nw::Language::has_feminine)
+        .def_static("to_base_id", &nw::Language::to_base_id)
+        .def_static("to_runtime_id", &nw::Language::to_runtime_id, py::arg("language"), py::arg("feminine") = false)
+        .def_static("to_string", &nw::Language::to_string, py::arg("language"), py::arg("long_name") = false);
 }
 
 void init_i18n_locstring(py::module& m)
