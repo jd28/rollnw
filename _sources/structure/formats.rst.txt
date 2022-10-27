@@ -23,7 +23,7 @@ the implementations of all of them.
 The 2da parser is one of the more optimized parts of the library.  It can parse ~300MBps and all
 default 2das in under half of a second.
 
-**Usage Example**:
+**Example - Load a TwoDA**:
 
 .. tabs::
 
@@ -38,13 +38,19 @@ default 2das in under half of a second.
         for f in os.listdir():
             if os.path.isfile(f) and os.path.splitext(f)[1].lower() == '.2da':
                 tda = TwoDA(f)
-                print(tda[0][0])
                 if not tda.valid():
                     print(f"failed parsing: {f}")
+                    continue
+                print(tda[0][0])
 
     .. code-tab:: c++
 
-        // TODO
+        nw::TwoDA feat("feat.2da");
+        if(feat.is_valid()) {
+            std::cout << fmt::format("feat.2da has {} rows", feat.rows()) << "\n";
+            std::cout << *feat.get<std::string_view>(4, 0) << "\n";
+            std::cout << *feat.get<int32_t>(0, "FEAT") << "\n";
+        }
 
 -------------------------------------------------------------------------------
 
@@ -88,6 +94,16 @@ ini
 
 Supported thanks to `inih <https://github.com/benhoyt/inih>`__
 
+.. tabs::
+
+    .. code-tab:: python
+
+        # TODO
+
+    .. code-tab:: c++
+
+        // TODO
+
 -------------------------------------------------------------------------------
 
 json
@@ -111,6 +127,16 @@ mtr
 
 **Status**: unsupported
 
+.. tabs::
+
+    .. code-tab:: python
+
+        # TODO
+
+    .. code-tab:: c++
+
+        // TODO
+
 -------------------------------------------------------------------------------
 
 set
@@ -120,6 +146,16 @@ set
 
 Supported thanks to `inih <https://github.com/benhoyt/inih>`__
 
+.. tabs::
+
+    .. code-tab:: python
+
+        # TODO
+
+    .. code-tab:: c++
+
+        // TODO
+
 -------------------------------------------------------------------------------
 
 ssf
@@ -127,12 +163,22 @@ ssf
 
 **Status**: unsupported
 
+.. tabs::
+
+    .. code-tab:: python
+
+        # TODO
+
+    .. code-tab:: c++
+
+        // TODO
+
 -------------------------------------------------------------------------------
 
 tml
 ---
 
-**Status**: read/write
+**Status**: read/write (c++), unsupported (python)
 
 Supported thanks to `toml++ <https://github.com/marzer/tomlplusplus/>`__.
 
@@ -140,3 +186,13 @@ txi
 ---
 
 **Status**: unsupported
+
+.. tabs::
+
+    .. code-tab:: python
+
+        # TODO
+
+    .. code-tab:: c++
+
+        // TODO

@@ -68,10 +68,12 @@
 <li class="toctree-l2"><a class="reference internal" href="Appearance.html">Appearance</a></li>
 <li class="toctree-l2"><a class="reference internal" href="Area.html">Area</a></li>
 <li class="toctree-l2"><a class="reference internal" href="BodyParts.html">BodyParts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ClassEntry.html">ClassEntry</a></li>
 <li class="toctree-l2"><a class="reference internal" href="CombatInfo.html">CombatInfo</a></li>
 <li class="toctree-l2"><a class="reference internal" href="Common.html">Common</a></li>
 <li class="toctree-l2"><a class="reference internal" href="Container.html">Container</a></li>
 <li class="toctree-l2"><a class="reference internal" href="Creature.html">Creature</a></li>
+<li class="toctree-l2"><a class="reference internal" href="CreatureStats.html">CreatureStats</a></li>
 <li class="toctree-l2"><a class="reference internal" href="Directory.html">Directory</a></li>
 <li class="toctree-l2"><a class="reference internal" href="Door.html">Door</a></li>
 <li class="toctree-l2"><a class="reference internal" href="Encounter.html">Encounter</a></li>
@@ -80,7 +82,6 @@
 <li class="toctree-l2 current"><a class="current reference internal" href="#">Inventory</a></li>
 <li class="toctree-l2"><a class="reference internal" href="Item.html">Item</a></li>
 <li class="toctree-l2"><a class="reference internal" href="Key.html">Key</a></li>
-<li class="toctree-l2"><a class="reference internal" href="LanguageID.html">LanguageID</a></li>
 <li class="toctree-l2"><a class="reference internal" href="LevelStats.html">LevelStats</a></li>
 <li class="toctree-l2"><a class="reference internal" href="LocString.html">LocString</a></li>
 <li class="toctree-l2"><a class="reference internal" href="LocalData.html">LocalData</a></li>
@@ -102,6 +103,7 @@
 <li class="toctree-l2"><a class="reference internal" href="Script.html">Script</a></li>
 <li class="toctree-l2"><a class="reference internal" href="Sound.html">Sound</a></li>
 <li class="toctree-l2"><a class="reference internal" href="SpellBook.html">SpellBook</a></li>
+<li class="toctree-l2"><a class="reference internal" href="SpellEntry.html">SpellEntry</a></li>
 <li class="toctree-l2"><a class="reference internal" href="Store.html">Store</a></li>
 <li class="toctree-l2"><a class="reference internal" href="Tlk.html">Tlk</a></li>
 <li class="toctree-l2"><a class="reference internal" href="Trap.html">Trap</a></li>
@@ -164,10 +166,27 @@
 <dl class="py class">
 <dt class="sig sig-object py" id="rollnw.Inventory">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">rollnw.</span></span><span class="sig-name descname"><span class="pre">Inventory</span></span><a class="headerlink" href="#rollnw.Inventory" title="Permalink to this definition"></a></dt>
-<dd><dl class="py attribute">
+<dd><p>An Object’s inventory</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="rollnw.Inventory.items">
+<span class="sig-name descname"><span class="pre">items</span></span><a class="headerlink" href="#rollnw.Inventory.items" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="rollnw.Inventory.owner">
+<span class="sig-name descname"><span class="pre">owner</span></span><a class="headerlink" href="#rollnw.Inventory.owner" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
 <dt class="sig sig-object py" id="rollnw.Inventory.__weakref__">
 <span class="sig-name descname"><span class="pre">__weakref__</span></span><a class="headerlink" href="#rollnw.Inventory.__weakref__" title="Permalink to this definition"></a></dt>
 <dd><p>list of weak references to the object (if defined)</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="rollnw.Inventory.instantiate">
+<span class="sig-name descname"><span class="pre">instantiate</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#rollnw.Inventory.instantiate" title="Permalink to this definition"></a></dt>
+<dd><p>Instantiates inventory by loading contained items from the resource manager</p>
 </dd></dl>
 
 </dd></dl>

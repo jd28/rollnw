@@ -131,6 +131,7 @@
  | <a href="#N"><strong>N</strong></a>
  | <a href="#O"><strong>O</strong></a>
  | <a href="#P"><strong>P</strong></a>
+ | <a href="#Q"><strong>Q</strong></a>
  | <a href="#R"><strong>R</strong></a>
  | <a href="#S"><strong>S</strong></a>
  | <a href="#T"><strong>T</strong></a>
@@ -181,7 +182,7 @@
 </li>
         <li><a href="api_python/classes/Container.html#rollnw.Container.__weakref__">(rollnw.Container attribute)</a>
 </li>
-        <li><a href="api_python/classes/Creature.html#rollnw.CreatureStats.__weakref__">(rollnw.CreatureStats attribute)</a>
+        <li><a href="api_python/classes/CreatureStats.html#rollnw.CreatureStats.__weakref__">(rollnw.CreatureStats attribute)</a>
 </li>
         <li><a href="api_python/classes/Directory.html#rollnw.Directory.__weakref__">(rollnw.Directory attribute)</a>
 </li>
@@ -219,6 +220,8 @@
 </li>
         <li><a href="api_python/classes/SpellBook.html#rollnw.SpellBook.__weakref__">(rollnw.SpellBook attribute)</a>
 </li>
+        <li><a href="api_python/classes/SpellEntry.html#rollnw.SpellEntry.__weakref__">(rollnw.SpellEntry attribute)</a>
+</li>
         <li><a href="api_python/classes/Tlk.html#rollnw.Tlk.__weakref__">(rollnw.Tlk attribute)</a>
 </li>
         <li><a href="api_python/classes/Trigger.html#rollnw.Trigger.__weakref__">(rollnw.Trigger attribute)</a>
@@ -246,6 +249,12 @@
         <li><a href="api_python/classes/LocString.html#rollnw.LocString.add">(rollnw.LocString method)</a>
 </li>
       </ul></li>
+      <li><a href="api_python/classes/CreatureStats.html#rollnw.CreatureStats.add_feat">add_feat() (rollnw.CreatureStats method)</a>
+</li>
+      <li><a href="api_python/classes/SpellBook.html#rollnw.SpellBook.add_known_spell">add_known_spell() (rollnw.SpellBook method)</a>
+</li>
+      <li><a href="api_python/classes/SpellBook.html#rollnw.SpellBook.add_memorized_spell">add_memorized_spell() (rollnw.SpellBook method)</a>
+</li>
       <li><a href="api_python/classes/Item.html#rollnw.Item.additional_cost">additional_cost (rollnw.Item attribute)</a>
 </li>
       <li><a href="api_python/classes/Container.html#rollnw.Container.all">all() (rollnw.Container method)</a>
@@ -262,14 +271,14 @@
         <li><a href="api_python/classes/Zip.html#rollnw.Zip.all">(rollnw.Zip method)</a>
 </li>
       </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api_python/classes/Door.html#rollnw.Door.animation_state">animation_state (rollnw.Door attribute)</a>
 
       <ul>
         <li><a href="api_python/classes/Placeable.html#rollnw.Placeable.animation_state">(rollnw.Placeable attribute)</a>
 </li>
       </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api_python/classes/MdlModel.html#rollnw.MdlModel.animations">animations (rollnw.MdlModel attribute)</a>
 </li>
       <li><a href="api_python/classes/MdlModel.html#rollnw.MdlModel.animationscale">animationscale (rollnw.MdlModel attribute)</a>
@@ -288,8 +297,22 @@
       </ul></li>
       <li><a href="api_python/classes/Area.html#rollnw.Area">Area (class in rollnw)</a>
 </li>
+      <li><a href="api_python/classes/Location.html#rollnw.Location.area">area (rollnw.Location attribute)</a>
+</li>
       <li><a href="api_python/classes/Store.html#rollnw.Store.armor">armor (rollnw.Store attribute)</a>
 </li>
+      <li><a href="api_python/enums/EquipIndex.html#rollnw.EquipIndex.arms">arms (rollnw.EquipIndex attribute)</a>
+
+      <ul>
+        <li><a href="api_python/enums/EquipSlot.html#rollnw.EquipSlot.arms">(rollnw.EquipSlot attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="api_python/enums/EquipIndex.html#rollnw.EquipIndex.arrows">arrows (rollnw.EquipIndex attribute)</a>
+
+      <ul>
+        <li><a href="api_python/enums/EquipSlot.html#rollnw.EquipSlot.arrows">(rollnw.EquipSlot attribute)</a>
+</li>
+      </ul></li>
   </ul></td>
 </tr></table>
 
@@ -299,7 +322,13 @@
       <li><a href="api_python/classes/Item.html#rollnw.Item.baseitem">baseitem (rollnw.Item attribute)</a>
 </li>
       <li><a href="api_python/classes/BodyParts.html#rollnw.BodyParts.belt">belt (rollnw.BodyParts attribute)</a>
+
+      <ul>
+        <li><a href="api_python/enums/EquipIndex.html#rollnw.EquipIndex.belt">(rollnw.EquipIndex attribute)</a>
 </li>
+        <li><a href="api_python/enums/EquipSlot.html#rollnw.EquipSlot.belt">(rollnw.EquipSlot attribute)</a>
+</li>
+      </ul></li>
       <li><a href="api_python/classes/BodyParts.html#rollnw.BodyParts.bicep_left">bicep_left (rollnw.BodyParts attribute)</a>
 </li>
       <li><a href="api_python/classes/BodyParts.html#rollnw.BodyParts.bicep_right">bicep_right (rollnw.BodyParts attribute)</a>
@@ -308,12 +337,12 @@
 </li>
       <li><a href="api_python/classes/Store.html#rollnw.Store.blackmarket_markdown">blackmarket_markdown (rollnw.Store attribute)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api_python/classes/MdlModel.html#rollnw.MdlModel.bmax">bmax (rollnw.MdlModel attribute)</a>
 </li>
       <li><a href="api_python/classes/MdlModel.html#rollnw.MdlModel.bmin">bmin (rollnw.MdlModel attribute)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api_python/classes/Appearance.html#rollnw.Appearance.body_parts">body_parts (rollnw.Appearance attribute)</a>
 </li>
       <li><a href="api_python/classes/Creature.html#rollnw.Creature.bodybag">bodybag (rollnw.Creature attribute)</a>
@@ -324,6 +353,24 @@
       </ul></li>
       <li><a href="api_python/classes/BodyParts.html#rollnw.BodyParts">BodyParts (class in rollnw)</a>
 </li>
+      <li><a href="api_python/enums/EquipIndex.html#rollnw.EquipIndex.bolts">bolts (rollnw.EquipIndex attribute)</a>
+
+      <ul>
+        <li><a href="api_python/enums/EquipSlot.html#rollnw.EquipSlot.bolts">(rollnw.EquipSlot attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="api_python/enums/EquipIndex.html#rollnw.EquipIndex.boots">boots (rollnw.EquipIndex attribute)</a>
+
+      <ul>
+        <li><a href="api_python/enums/EquipSlot.html#rollnw.EquipSlot.boots">(rollnw.EquipSlot attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="api_python/enums/EquipIndex.html#rollnw.EquipIndex.bullets">bullets (rollnw.EquipIndex attribute)</a>
+
+      <ul>
+        <li><a href="api_python/enums/EquipSlot.html#rollnw.EquipSlot.bullets">(rollnw.EquipSlot attribute)</a>
+</li>
+      </ul></li>
   </ul></td>
 </tr></table>
 
@@ -332,16 +379,30 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api_python/classes/Item.html#rollnw.Item.charges">charges (rollnw.Item attribute)</a>
 </li>
+      <li><a href="api_python/enums/EquipIndex.html#rollnw.EquipIndex.chest">chest (rollnw.EquipIndex attribute)</a>
+
+      <ul>
+        <li><a href="api_python/enums/EquipSlot.html#rollnw.EquipSlot.chest">(rollnw.EquipSlot attribute)</a>
+</li>
+      </ul></li>
       <li><a href="api_python/classes/MdlNode.html#rollnw.MdlNode.children">children (rollnw.MdlNode attribute)</a>
 </li>
-      <li><a href="api_python/classes/LanguageID.html#rollnw.LanguageID.chinese_simplified">chinese_simplified (rollnw.LanguageID attribute)</a>
+      <li><a href="api_python/enums/LanguageID.html#rollnw.LanguageID.chinese_simplified">chinese_simplified (rollnw.LanguageID attribute)</a>
 </li>
-      <li><a href="api_python/classes/LanguageID.html#rollnw.LanguageID.chinese_traditional">chinese_traditional (rollnw.LanguageID attribute)</a>
+      <li><a href="api_python/enums/LanguageID.html#rollnw.LanguageID.chinese_traditional">chinese_traditional (rollnw.LanguageID attribute)</a>
 </li>
       <li><a href="api_python/classes/Creature.html#rollnw.Creature.chunk_death">chunk_death (rollnw.Creature attribute)</a>
 </li>
+      <li><a href="api_python/classes/ClassEntry.html#rollnw.ClassEntry">ClassEntry (class in rollnw)</a>
+</li>
       <li><a href="api_python/classes/MdlModel.html#rollnw.MdlModel.classification">classification (rollnw.MdlModel attribute)</a>
 </li>
+      <li><a href="api_python/enums/EquipIndex.html#rollnw.EquipIndex.cloak">cloak (rollnw.EquipIndex attribute)</a>
+
+      <ul>
+        <li><a href="api_python/enums/EquipSlot.html#rollnw.EquipSlot.cloak">(rollnw.EquipSlot attribute)</a>
+</li>
+      </ul></li>
       <li><a href="api_python/classes/Creature.html#rollnw.Creature.combat_info">combat_info (rollnw.Creature attribute)</a>
 </li>
       <li><a href="api_python/classes/CombatInfo.html#rollnw.CombatInfo">CombatInfo (class in rollnw)</a>
@@ -350,9 +411,11 @@
 </li>
       <li><a href="api_python/classes/Common.html#rollnw.Common">Common (class in rollnw)</a>
 </li>
-      <li><a href="api_python/classes/Placeable.html#rollnw.Placeable.common">common (rollnw.Placeable attribute)</a>
+      <li><a href="api_python/classes/Creature.html#rollnw.Creature.common">common (rollnw.Creature attribute)</a>
 
       <ul>
+        <li><a href="api_python/classes/Placeable.html#rollnw.Placeable.common">(rollnw.Placeable attribute)</a>
+</li>
         <li><a href="api_python/classes/Sound.html#rollnw.Sound.common">(rollnw.Sound attribute)</a>
 </li>
       </ul></li>
@@ -400,6 +463,30 @@
 </li>
       <li><a href="api_python/classes/Creature.html#rollnw.Creature">Creature (class in rollnw)</a>
 </li>
+      <li><a href="api_python/enums/EquipIndex.html#rollnw.EquipIndex.creature_bite">creature_bite (rollnw.EquipIndex attribute)</a>
+
+      <ul>
+        <li><a href="api_python/enums/EquipSlot.html#rollnw.EquipSlot.creature_bite">(rollnw.EquipSlot attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="api_python/enums/EquipIndex.html#rollnw.EquipIndex.creature_left">creature_left (rollnw.EquipIndex attribute)</a>
+
+      <ul>
+        <li><a href="api_python/enums/EquipSlot.html#rollnw.EquipSlot.creature_left">(rollnw.EquipSlot attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="api_python/enums/EquipIndex.html#rollnw.EquipIndex.creature_right">creature_right (rollnw.EquipIndex attribute)</a>
+
+      <ul>
+        <li><a href="api_python/enums/EquipSlot.html#rollnw.EquipSlot.creature_right">(rollnw.EquipSlot attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="api_python/enums/EquipIndex.html#rollnw.EquipIndex.creature_skin">creature_skin (rollnw.EquipIndex attribute)</a>
+
+      <ul>
+        <li><a href="api_python/enums/EquipSlot.html#rollnw.EquipSlot.creature_skin">(rollnw.EquipSlot attribute)</a>
+</li>
+      </ul></li>
       <li><a href="api_python/classes/Encounter.html#rollnw.Encounter.creatures">creatures (rollnw.Encounter attribute)</a>
 </li>
       <li><a href="api_python/classes/Encounter.html#rollnw.Encounter.creatures_max">creatures_max (rollnw.Encounter attribute)</a>
@@ -408,7 +495,7 @@
 </li>
       <li><a href="api_python/classes/Creature.html#rollnw.CreatureScripts">CreatureScripts (class in rollnw)</a>
 </li>
-      <li><a href="api_python/classes/Creature.html#rollnw.CreatureStats">CreatureStats (class in rollnw)</a>
+      <li><a href="api_python/classes/CreatureStats.html#rollnw.CreatureStats">CreatureStats (class in rollnw)</a>
 </li>
       <li><a href="api_python/classes/NssLexer.html#rollnw.NssLexer.current">current() (rollnw.NssLexer method)</a>
 </li>
@@ -516,9 +603,13 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api_python/classes/Sound.html#rollnw.Sound.elevation">elevation (rollnw.Sound attribute)</a>
 </li>
+      <li><a href="api_python/enums/SpellMetaMagic.html#rollnw.SpellMetaMagic.empower">empower (rollnw.SpellMetaMagic attribute)</a>
+</li>
       <li><a href="api_python/classes/Encounter.html#rollnw.Encounter">Encounter (class in rollnw)</a>
 </li>
-      <li><a href="api_python/classes/LanguageID.html#rollnw.LanguageID.english">english (rollnw.LanguageID attribute)</a>
+      <li><a href="api_python/enums/LanguageID.html#rollnw.LanguageID.english">english (rollnw.LanguageID attribute)</a>
+</li>
+      <li><a href="api_python/classes/LevelStats.html#rollnw.LevelStats.entries">entries (rollnw.LevelStats attribute)</a>
 </li>
       <li><a href="api_python/classes/Module.html#rollnw.Module.entry_area">entry_area (rollnw.Module attribute)</a>
 </li>
@@ -528,16 +619,20 @@
 </li>
       <li><a href="api_python/classes/Equips.html#rollnw.Equips">Equips (class in rollnw)</a>
 </li>
+      <li><a href="api_python/classes/Equips.html#rollnw.Equips.equips">equips (rollnw.Equips attribute)</a>
+</li>
       <li><a href="api_python/classes/Erf.html#rollnw.Erf.erase">erase() (rollnw.Erf method)</a>
 </li>
       <li><a href="api_python/classes/Erf.html#rollnw.Erf">Erf (class in rollnw)</a>
 </li>
       <li><a href="api_python/classes/Nss.html#rollnw.Nss.errors">errors() (rollnw.Nss method)</a>
 </li>
-      <li><a href="api_python/classes/Module.html#rollnw.Module.expansion_pack">expansion_pack (rollnw.Module attribute)</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api_python/classes/Module.html#rollnw.Module.expansion_pack">expansion_pack (rollnw.Module attribute)</a>
+</li>
+      <li><a href="api_python/enums/SpellMetaMagic.html#rollnw.SpellMetaMagic.extend">extend (rollnw.SpellMetaMagic attribute)</a>
+</li>
       <li><a href="api_python/classes/Container.html#rollnw.Container.extract">extract() (rollnw.Container method)</a>
 
       <ul>
@@ -588,6 +683,8 @@
 </li>
       <li><a href="api_python/classes/Resource.html#rollnw.Resource.filename">filename() (rollnw.Resource method)</a>
 </li>
+      <li><a href="api_python/classes/SpellEntry.html#rollnw.SpellEntry.flags">flags (rollnw.SpellEntry attribute)</a>
+</li>
       <li><a href="api_python/classes/BodyParts.html#rollnw.BodyParts.foot_left">foot_left (rollnw.BodyParts attribute)</a>
 </li>
       <li><a href="api_python/classes/BodyParts.html#rollnw.BodyParts.foot_right">foot_right (rollnw.BodyParts attribute)</a>
@@ -596,7 +693,7 @@
 </li>
       <li><a href="api_python/classes/BodyParts.html#rollnw.BodyParts.forearm_right">forearm_right (rollnw.BodyParts attribute)</a>
 </li>
-      <li><a href="api_python/classes/LanguageID.html#rollnw.LanguageID.french">french (rollnw.LanguageID attribute)</a>
+      <li><a href="api_python/enums/LanguageID.html#rollnw.LanguageID.french">french (rollnw.LanguageID attribute)</a>
 </li>
       <li><a href="api_python/classes/Creature.html#rollnw.Creature.from_dict">from_dict() (rollnw.Creature static method)</a>
 
@@ -658,7 +755,7 @@
         <li><a href="api_python/classes/Trigger.html#rollnw.Trigger.geometry">(rollnw.Trigger attribute)</a>
 </li>
       </ul></li>
-      <li><a href="api_python/classes/LanguageID.html#rollnw.LanguageID.german">german (rollnw.LanguageID attribute)</a>
+      <li><a href="api_python/enums/LanguageID.html#rollnw.LanguageID.german">german (rollnw.LanguageID attribute)</a>
 </li>
       <li><a href="api_python/classes/LocString.html#rollnw.LocString.get">get() (rollnw.LocString method)</a>
 
@@ -670,15 +767,27 @@
         <li><a href="api_python/classes/TwoDA.html#rollnw.TwoDA.get">(rollnw.TwoDA method)</a>
 </li>
       </ul></li>
+      <li><a href="api_python/classes/CreatureStats.html#rollnw.CreatureStats.get_ability_score">get_ability_score() (rollnw.CreatureStats method)</a>
+</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api_python/classes/LocalData.html#rollnw.LocalData.get_float">get_float() (rollnw.LocalData method)</a>
 </li>
       <li><a href="api_python/classes/LocalData.html#rollnw.LocalData.get_int">get_int() (rollnw.LocalData method)</a>
 </li>
+      <li><a href="api_python/classes/SpellBook.html#rollnw.SpellBook.get_known_spell">get_known_spell() (rollnw.SpellBook method)</a>
+</li>
+      <li><a href="api_python/classes/SpellBook.html#rollnw.SpellBook.get_known_spell_count">get_known_spell_count() (rollnw.SpellBook method)</a>
+</li>
       <li><a href="api_python/classes/LocalData.html#rollnw.LocalData.get_location">get_location() (rollnw.LocalData method)</a>
 </li>
+      <li><a href="api_python/classes/SpellBook.html#rollnw.SpellBook.get_memorized_spell">get_memorized_spell() (rollnw.SpellBook method)</a>
+</li>
+      <li><a href="api_python/classes/SpellBook.html#rollnw.SpellBook.get_memorized_spell_count">get_memorized_spell_count() (rollnw.SpellBook method)</a>
+</li>
       <li><a href="api_python/classes/LocalData.html#rollnw.LocalData.get_object">get_object() (rollnw.LocalData method)</a>
+</li>
+      <li><a href="api_python/classes/CreatureStats.html#rollnw.CreatureStats.get_skill_rank">get_skill_rank() (rollnw.CreatureStats method)</a>
 </li>
       <li><a href="api_python/classes/LocalData.html#rollnw.LocalData.get_string">get_string() (rollnw.LocalData method)</a>
 </li>
@@ -716,6 +825,8 @@
         <li><a href="api_python/classes/Placeable.html#rollnw.Placeable.hardness">(rollnw.Placeable attribute)</a>
 </li>
       </ul></li>
+      <li><a href="api_python/classes/CreatureStats.html#rollnw.CreatureStats.has_feat">has_feat() (rollnw.CreatureStats method)</a>
+</li>
       <li><a href="api_python/classes/Placeable.html#rollnw.Placeable.has_inventory">has_inventory (rollnw.Placeable attribute)</a>
 </li>
   </ul></td>
@@ -723,7 +834,13 @@
       <li><a href="api_python/classes/waypoint.html#rollnw.Waypoint.has_map_note">has_map_note (rollnw.Waypoint attribute)</a>
 </li>
       <li><a href="api_python/classes/BodyParts.html#rollnw.BodyParts.head">head (rollnw.BodyParts attribute)</a>
+
+      <ul>
+        <li><a href="api_python/enums/EquipIndex.html#rollnw.EquipIndex.head">(rollnw.EquipIndex attribute)</a>
 </li>
+        <li><a href="api_python/enums/EquipSlot.html#rollnw.EquipSlot.head">(rollnw.EquipSlot attribute)</a>
+</li>
+      </ul></li>
       <li><a href="api_python/classes/Trigger.html#rollnw.Trigger.highlight_height">highlight_height (rollnw.Trigger attribute)</a>
 </li>
       <li><a href="api_python/classes/Sound.html#rollnw.Sound.hours">hours (rollnw.Sound attribute)</a>
@@ -770,6 +887,12 @@
 </li>
       <li><a href="api_python/classes/MdlNode.html#rollnw.MdlNode.inheritcolor">inheritcolor (rollnw.MdlNode attribute)</a>
 </li>
+      <li><a href="api_python/classes/Equips.html#rollnw.Equips.instantiate">instantiate() (rollnw.Equips method)</a>
+
+      <ul>
+        <li><a href="api_python/classes/Inventory.html#rollnw.Inventory.instantiate">(rollnw.Inventory method)</a>
+</li>
+      </ul></li>
       <li><a href="api_python/classes/Creature.html#rollnw.Creature.interruptable">interruptable (rollnw.Creature attribute)</a>
 
       <ul>
@@ -784,8 +907,12 @@
 </li>
       <li><a href="api_python/classes/Sound.html#rollnw.Sound.interval_variation">interval_variation (rollnw.Sound attribute)</a>
 </li>
-      <li><a href="api_python/classes/LanguageID.html#rollnw.LanguageID.invalid">invalid (rollnw.LanguageID attribute)</a>
+      <li><a href="api_python/enums/EquipIndex.html#rollnw.EquipIndex.invalid">invalid (rollnw.EquipIndex attribute)</a>
+
+      <ul>
+        <li><a href="api_python/enums/LanguageID.html#rollnw.LanguageID.invalid">(rollnw.LanguageID attribute)</a>
 </li>
+      </ul></li>
       <li><a href="api_python/classes/Inventory.html#rollnw.Inventory">Inventory (class in rollnw)</a>
 </li>
       <li><a href="api_python/classes/Item.html#rollnw.Item.inventory">inventory (rollnw.Item attribute)</a>
@@ -800,9 +927,11 @@
 </li>
       <li><a href="api_python/classes/Trap.html#rollnw.Trap.is_trapped">is_trapped (rollnw.Trap attribute)</a>
 </li>
-      <li><a href="api_python/classes/LanguageID.html#rollnw.LanguageID.italian">italian (rollnw.LanguageID attribute)</a>
+      <li><a href="api_python/enums/LanguageID.html#rollnw.LanguageID.italian">italian (rollnw.LanguageID attribute)</a>
 </li>
       <li><a href="api_python/classes/Item.html#rollnw.Item">Item (class in rollnw)</a>
+</li>
+      <li><a href="api_python/classes/Inventory.html#rollnw.Inventory.items">items (rollnw.Inventory attribute)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -810,7 +939,7 @@
 <h2 id="J">J</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api_python/classes/LanguageID.html#rollnw.LanguageID.japanese">japanese (rollnw.LanguageID attribute)</a>
+      <li><a href="api_python/enums/LanguageID.html#rollnw.LanguageID.japanese">japanese (rollnw.LanguageID attribute)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -826,7 +955,7 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api_python/classes/Lock.html#rollnw.Lock.key_required">key_required (rollnw.Lock attribute)</a>
 </li>
-      <li><a href="api_python/classes/LanguageID.html#rollnw.LanguageID.korean">korean (rollnw.LanguageID attribute)</a>
+      <li><a href="api_python/enums/LanguageID.html#rollnw.LanguageID.korean">korean (rollnw.LanguageID attribute)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -837,6 +966,24 @@
       <li><a href="api_python/classes/Tlk.html#rollnw.Tlk.language_id">language_id() (rollnw.Tlk method)</a>
 </li>
       <li><a href="api_python/classes/Creature.html#rollnw.Creature.lawful_chaotic">lawful_chaotic (rollnw.Creature attribute)</a>
+</li>
+      <li><a href="api_python/enums/EquipIndex.html#rollnw.EquipIndex.lefthand">lefthand (rollnw.EquipIndex attribute)</a>
+
+      <ul>
+        <li><a href="api_python/enums/EquipSlot.html#rollnw.EquipSlot.lefthand">(rollnw.EquipSlot attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="api_python/enums/EquipIndex.html#rollnw.EquipIndex.leftring">leftring (rollnw.EquipIndex attribute)</a>
+
+      <ul>
+        <li><a href="api_python/enums/EquipSlot.html#rollnw.EquipSlot.leftring">(rollnw.EquipSlot attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="api_python/classes/ClassEntry.html#rollnw.ClassEntry.level">level (rollnw.ClassEntry attribute)</a>
+</li>
+      <li><a href="api_python/classes/LevelStats.html#rollnw.LevelStats.level">level() (rollnw.LevelStats method)</a>
+</li>
+      <li><a href="api_python/classes/LevelStats.html#rollnw.LevelStats.level_by_class">level_by_class() (rollnw.LevelStats method)</a>
 </li>
       <li><a href="api_python/classes/Creature.html#rollnw.Creature.levels">levels (rollnw.Creature attribute)</a>
 </li>
@@ -856,6 +1003,8 @@
         <li><a href="api_python/classes/Trigger.html#rollnw.Trigger.linked_to_flags">(rollnw.Trigger attribute)</a>
 </li>
       </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api_python/classes/Door.html#rollnw.Door.loadscreen">loadscreen (rollnw.Door attribute)</a>
 
       <ul>
@@ -864,8 +1013,6 @@
       </ul></li>
       <li><a href="api_python/classes/LocalData.html#rollnw.LocalData">LocalData (class in rollnw)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api_python/classes/Common.html#rollnw.Common.locals">locals (rollnw.Common attribute)</a>
 
       <ul>
@@ -914,6 +1061,8 @@
 </li>
       <li><a href="api_python/classes/Store.html#rollnw.Store.max_price">max_price (rollnw.Store attribute)</a>
 </li>
+      <li><a href="api_python/enums/SpellMetaMagic.html#rollnw.SpellMetaMagic.maximize">maximize (rollnw.SpellMetaMagic attribute)</a>
+</li>
       <li><a href="api_python/classes/Mdl.html#rollnw.Mdl">Mdl (class in rollnw)</a>
 </li>
       <li><a href="api_python/classes/MdlAnimation.html#rollnw.MdlAnimation">MdlAnimation (class in rollnw)</a>
@@ -927,6 +1076,8 @@
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api_python/classes/Erf.html#rollnw.Erf.merge">merge() (rollnw.Erf method)</a>
+</li>
+      <li><a href="api_python/classes/SpellEntry.html#rollnw.SpellEntry.meta">meta (rollnw.SpellEntry attribute)</a>
 </li>
       <li><a href="api_python/classes/Module.html#rollnw.Module.min_game_version">min_game_version (rollnw.Module attribute)</a>
 </li>
@@ -983,11 +1134,23 @@
       <li><a href="api_python/classes/Creature.html#rollnw.Creature.name_last">name_last (rollnw.Creature attribute)</a>
 </li>
       <li><a href="api_python/classes/BodyParts.html#rollnw.BodyParts.neck">neck (rollnw.BodyParts attribute)</a>
+
+      <ul>
+        <li><a href="api_python/enums/EquipIndex.html#rollnw.EquipIndex.neck">(rollnw.EquipIndex attribute)</a>
 </li>
+        <li><a href="api_python/enums/EquipSlot.html#rollnw.EquipSlot.neck">(rollnw.EquipSlot attribute)</a>
+</li>
+      </ul></li>
       <li><a href="api_python/classes/NssLexer.html#rollnw.NssLexer.next">next() (rollnw.NssLexer method)</a>
 </li>
       <li><a href="api_python/classes/MdlGeometry.html#rollnw.MdlGeometry.nodes">nodes (rollnw.MdlGeometry attribute)</a>
 </li>
+      <li><a href="api_python/enums/SpellFlags.html#rollnw.SpellFlags.none">none (rollnw.SpellFlags attribute)</a>
+
+      <ul>
+        <li><a href="api_python/enums/SpellMetaMagic.html#rollnw.SpellMetaMagic.none">(rollnw.SpellMetaMagic attribute)</a>
+</li>
+      </ul></li>
       <li><a href="api_python/classes/Nss.html#rollnw.Nss">Nss (class in rollnw)</a>
 </li>
       <li><a href="api_python/classes/NssLexer.html#rollnw.NssLexer">NssLexer (class in rollnw)</a>
@@ -1794,8 +1957,6 @@
 </li>
       <li><a href="api/struct/nw__CreatureStats.html#_CPPv4N2nw13CreatureStatsE">nw::CreatureStats (C++ struct)</a>
 </li>
-      <li><a href="api/struct/nw__CreatureStats.html#_CPPv4N2nw13CreatureStats9abilitiesE">nw::CreatureStats::abilities (C++ member)</a>
-</li>
       <li><a href="api/struct/nw__CreatureStats.html#_CPPv4N2nw13CreatureStats8add_featE4Feat">nw::CreatureStats::add_feat (C++ function)</a>
 </li>
       <li><a href="api/struct/nw__CreatureStats.html#_CPPv4N2nw13CreatureStats13CreatureStatsEv">nw::CreatureStats::CreatureStats (C++ function)</a>
@@ -1806,11 +1967,17 @@
 </li>
       <li><a href="api/struct/nw__CreatureStats.html#_CPPv4N2nw13CreatureStats9from_jsonERKN8nlohmann4jsonE">nw::CreatureStats::from_json (C++ function)</a>
 </li>
+      <li><a href="api/struct/nw__CreatureStats.html#_CPPv4NK2nw13CreatureStats17get_ability_scoreE7Ability">nw::CreatureStats::get_ability_score (C++ function)</a>
+</li>
+      <li><a href="api/struct/nw__CreatureStats.html#_CPPv4NK2nw13CreatureStats14get_skill_rankE5Skill">nw::CreatureStats::get_skill_rank (C++ function)</a>
+</li>
       <li><a href="api/struct/nw__CreatureStats.html#_CPPv4NK2nw13CreatureStats8has_featE4Feat">nw::CreatureStats::has_feat (C++ function)</a>
 </li>
       <li><a href="api/struct/nw__CreatureStats.html#_CPPv4N2nw13CreatureStats10save_bonusE">nw::CreatureStats::save_bonus (C++ member)</a>
 </li>
-      <li><a href="api/struct/nw__CreatureStats.html#_CPPv4N2nw13CreatureStats6skillsE">nw::CreatureStats::skills (C++ member)</a>
+      <li><a href="api/struct/nw__CreatureStats.html#_CPPv4N2nw13CreatureStats17set_ability_scoreE7Abilityi">nw::CreatureStats::set_ability_score (C++ function)</a>
+</li>
+      <li><a href="api/struct/nw__CreatureStats.html#_CPPv4N2nw13CreatureStats14set_skill_rankE5Skilli">nw::CreatureStats::set_skill_rank (C++ function)</a>
 </li>
       <li><a href="api/struct/nw__CreatureStats.html#_CPPv4NK2nw13CreatureStats6to_gffER16GffBuilderStruct">nw::CreatureStats::to_gff (C++ function)</a>
 </li>
@@ -3918,12 +4085,12 @@
 </li>
       <li><a href="api/struct/nw__MdlEmitterFlag.html#_CPPv4N2nw14MdlEmitterFlag8IsTintedE">nw::MdlEmitterFlag::IsTinted (C++ member)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/struct/nw__MdlEmitterFlag.html#_CPPv4N2nw14MdlEmitterFlag3P2PE">nw::MdlEmitterFlag::P2P (C++ member)</a>
 </li>
       <li><a href="api/struct/nw__MdlEmitterFlag.html#_CPPv4N2nw14MdlEmitterFlag6P2PSelE">nw::MdlEmitterFlag::P2PSel (C++ member)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/struct/nw__MdlEmitterFlag.html#_CPPv4N2nw14MdlEmitterFlag6RandomE">nw::MdlEmitterFlag::Random (C++ member)</a>
 </li>
       <li><a href="api/struct/nw__MdlEmitterFlag.html#_CPPv4N2nw14MdlEmitterFlag5SplatE">nw::MdlEmitterFlag::Splat (C++ member)</a>
@@ -6258,13 +6425,29 @@
 </li>
       <li><a href="api/struct/nw__SpellBook.html#_CPPv4N2nw9SpellBookE">nw::SpellBook (C++ struct)</a>
 </li>
+      <li><a href="api/struct/nw__SpellBook.html#_CPPv4N2nw9SpellBook15add_known_spellE6size_t10SpellEntry">nw::SpellBook::add_known_spell (C++ function)</a>
+</li>
+      <li><a href="api/struct/nw__SpellBook.html#_CPPv4N2nw9SpellBook19add_memorized_spellE6size_t10SpellEntry">nw::SpellBook::add_memorized_spell (C++ function)</a>
+</li>
       <li><a href="api/struct/nw__SpellBook.html#_CPPv4N2nw9SpellBook8from_gffERK9GffStruct">nw::SpellBook::from_gff (C++ function)</a>
 </li>
       <li><a href="api/struct/nw__SpellBook.html#_CPPv4N2nw9SpellBook9from_jsonERKN8nlohmann4jsonE">nw::SpellBook::from_json (C++ function)</a>
 </li>
-      <li><a href="api/struct/nw__SpellBook.html#_CPPv4N2nw9SpellBook5knownE">nw::SpellBook::known (C++ member)</a>
+      <li><a href="api/struct/nw__SpellBook.html#_CPPv4NK2nw9SpellBook15get_known_spellE6size_t6size_t">nw::SpellBook::get_known_spell (C++ function)</a>
 </li>
-      <li><a href="api/struct/nw__SpellBook.html#_CPPv4N2nw9SpellBook9memorizedE">nw::SpellBook::memorized (C++ member)</a>
+      <li><a href="api/struct/nw__SpellBook.html#_CPPv4NK2nw9SpellBook21get_known_spell_countE6size_t">nw::SpellBook::get_known_spell_count (C++ function)</a>
+</li>
+      <li><a href="api/struct/nw__SpellBook.html#_CPPv4NK2nw9SpellBook19get_memorized_spellE6size_t6size_t">nw::SpellBook::get_memorized_spell (C++ function)</a>
+</li>
+      <li><a href="api/struct/nw__SpellBook.html#_CPPv4NK2nw9SpellBook25get_memorized_spell_countE6size_t">nw::SpellBook::get_memorized_spell_count (C++ function)</a>
+</li>
+      <li><a href="api/struct/nw__SpellBook.html#_CPPv4N2nw9SpellBook6known_E">nw::SpellBook::known_ (C++ member)</a>
+</li>
+      <li><a href="api/struct/nw__SpellBook.html#_CPPv4N2nw9SpellBook10memorized_E">nw::SpellBook::memorized_ (C++ member)</a>
+</li>
+      <li><a href="api/struct/nw__SpellBook.html#_CPPv4N2nw9SpellBook18remove_known_spellE6size_t10SpellEntry">nw::SpellBook::remove_known_spell (C++ function)</a>
+</li>
+      <li><a href="api/struct/nw__SpellBook.html#_CPPv4N2nw9SpellBook22remove_memorized_spellE6size_t10SpellEntry">nw::SpellBook::remove_memorized_spell (C++ function)</a>
 </li>
       <li><a href="api/struct/nw__SpellBook.html#_CPPv4N2nw9SpellBook9SpellBookEv">nw::SpellBook::SpellBook (C++ function)</a>
 </li>
@@ -6277,6 +6460,8 @@
       <li><a href="api/struct/nw__SpellEntry.html#_CPPv4N2nw10SpellEntry5flagsE">nw::SpellEntry::flags (C++ member)</a>
 </li>
       <li><a href="api/struct/nw__SpellEntry.html#_CPPv4N2nw10SpellEntry4metaE">nw::SpellEntry::meta (C++ member)</a>
+</li>
+      <li><a href="api/struct/nw__SpellEntry.html#_CPPv4NK2nw10SpellEntryeqERK10SpellEntry">nw::SpellEntry::operator== (C++ function)</a>
 </li>
       <li><a href="api/struct/nw__SpellEntry.html#_CPPv4N2nw10SpellEntry5spellE">nw::SpellEntry::spell (C++ member)</a>
 </li>
@@ -6924,10 +7109,10 @@
 </li>
       <li><a href="api_python/classes/Module.html#rollnw.ModuleScripts.on_load">on_load (rollnw.ModuleScripts attribute)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api_python/classes/Creature.html#rollnw.CreatureScripts.on_perceived">on_perceived (rollnw.CreatureScripts attribute)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api_python/classes/Module.html#rollnw.ModuleScripts.on_player_chat">on_player_chat (rollnw.ModuleScripts attribute)</a>
 </li>
       <li><a href="api_python/classes/Module.html#rollnw.ModuleScripts.on_player_death">on_player_death (rollnw.ModuleScripts attribute)</a>
@@ -6961,6 +7146,10 @@
       <li><a href="api_python/classes/Trap.html#rollnw.Trap.one_shot">one_shot (rollnw.Trap attribute)</a>
 </li>
       <li><a href="api/function/nw__operator_lshift.html#_CPPv4lsRNSt7ostreamERKN2nw6script8NssTokenE">operator&lt;&lt; (C++ function)</a>
+</li>
+      <li><a href="api_python/classes/Location.html#rollnw.Location.orientation">orientation (rollnw.Location attribute)</a>
+</li>
+      <li><a href="api_python/classes/Inventory.html#rollnw.Inventory.owner">owner (rollnw.Inventory attribute)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -6998,10 +7187,10 @@
 </li>
       <li><a href="api_python/classes/Sound.html#rollnw.Sound.pitch_variation">pitch_variation (rollnw.Sound attribute)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api_python/classes/Placeable.html#rollnw.Placeable">Placeable (class in rollnw)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api_python/classes/Encounter.html#rollnw.Encounter.player_only">player_only (rollnw.Encounter attribute)</a>
 </li>
       <li><a href="api_python/classes/Creature.html#rollnw.Creature.plot">plot (rollnw.Creature attribute)</a>
@@ -7014,7 +7203,7 @@
         <li><a href="api_python/classes/Placeable.html#rollnw.Placeable.plot">(rollnw.Placeable attribute)</a>
 </li>
       </ul></li>
-      <li><a href="api_python/classes/LanguageID.html#rollnw.LanguageID.polish">polish (rollnw.LanguageID attribute)</a>
+      <li><a href="api_python/enums/LanguageID.html#rollnw.LanguageID.polish">polish (rollnw.LanguageID attribute)</a>
 </li>
       <li><a href="api_python/classes/Trigger.html#rollnw.Trigger.portrait">portrait (rollnw.Trigger attribute)</a>
 </li>
@@ -7026,6 +7215,8 @@
         <li><a href="api_python/classes/Placeable.html#rollnw.Placeable.portrait_id">(rollnw.Placeable attribute)</a>
 </li>
       </ul></li>
+      <li><a href="api_python/classes/Location.html#rollnw.Location.position">position (rollnw.Location attribute)</a>
+</li>
       <li><a href="api_python/classes/Sound.html#rollnw.Sound.positional">positional (rollnw.Sound attribute)</a>
 </li>
       <li><a href="api_python/classes/Store.html#rollnw.Store.potions">potions (rollnw.Store attribute)</a>
@@ -7033,6 +7224,14 @@
       <li><a href="api_python/classes/Sound.html#rollnw.Sound.priority">priority (rollnw.Sound attribute)</a>
 </li>
       <li><a href="api_python/classes/Item.html#rollnw.Item.properties">properties (rollnw.Item attribute)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="Q">Q</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api_python/enums/SpellMetaMagic.html#rollnw.SpellMetaMagic.quicken">quicken (rollnw.SpellMetaMagic attribute)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -7052,20 +7251,26 @@
 </li>
       <li><a href="api_python/classes/Sound.html#rollnw.Sound.random_y">random_y (rollnw.Sound attribute)</a>
 </li>
+      <li><a href="api_python/enums/SpellFlags.html#rollnw.SpellFlags.readied">readied (rollnw.SpellFlags attribute)</a>
+</li>
       <li><a href="api_python/classes/Erf.html#rollnw.Erf.reload">reload() (rollnw.Erf method)</a>
 </li>
       <li><a href="api_python/classes/LocString.html#rollnw.LocString.remove">remove() (rollnw.LocString method)</a>
 </li>
       <li><a href="api_python/classes/Lock.html#rollnw.Lock.remove_key">remove_key (rollnw.Lock attribute)</a>
 </li>
+      <li><a href="api_python/classes/SpellBook.html#rollnw.SpellBook.remove_known_spell">remove_known_spell() (rollnw.SpellBook method)</a>
+</li>
+      <li><a href="api_python/classes/SpellBook.html#rollnw.SpellBook.remove_memorized_spell">remove_memorized_spell() (rollnw.SpellBook method)</a>
+</li>
       <li><a href="api_python/classes/Encounter.html#rollnw.Encounter.reset">reset (rollnw.Encounter attribute)</a>
 </li>
       <li><a href="api_python/classes/Encounter.html#rollnw.Encounter.reset_time">reset_time (rollnw.Encounter attribute)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api_python/classes/Resource.html#rollnw.Resource">Resource (class in rollnw)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api_python/classes/Encounter.html#rollnw.Encounter.respawns">respawns (rollnw.Encounter attribute)</a>
 </li>
       <li><a href="api_python/classes/Common.html#rollnw.Common.resref">resref (rollnw.Common attribute)</a>
@@ -7082,6 +7287,18 @@
 </li>
       <li><a href="api/define/RGBA_TORGB.html#c.RGBA_TORGB">RGBA_TORGB (C macro)</a>
 </li>
+      <li><a href="api_python/enums/EquipIndex.html#rollnw.EquipIndex.righthand">righthand (rollnw.EquipIndex attribute)</a>
+
+      <ul>
+        <li><a href="api_python/enums/EquipSlot.html#rollnw.EquipSlot.righthand">(rollnw.EquipSlot attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="api_python/enums/EquipIndex.html#rollnw.EquipIndex.rightring">rightring (rollnw.EquipIndex attribute)</a>
+
+      <ul>
+        <li><a href="api_python/enums/EquipSlot.html#rollnw.EquipSlot.rightring">(rollnw.EquipSlot attribute)</a>
+</li>
+      </ul></li>
       <li><a href="api_python/classes/Store.html#rollnw.Store.rings">rings (rollnw.Store attribute)</a>
 </li>
       <li><a href="api/define/ROLLNW_STRINGIFY.html#c.ROLLNW_STRINGIFY">ROLLNW_STRINGIFY (C macro)</a>
@@ -7140,6 +7357,8 @@
         <li><a href="api_python/classes/TwoDA.html#rollnw.TwoDA.set">(rollnw.TwoDA method)</a>
 </li>
       </ul></li>
+      <li><a href="api_python/classes/CreatureStats.html#rollnw.CreatureStats.set_ability_score">set_ability_score() (rollnw.CreatureStats method)</a>
+</li>
       <li><a href="api_python/classes/LocalData.html#rollnw.LocalData.set_float">set_float() (rollnw.LocalData method)</a>
 </li>
       <li><a href="api_python/classes/LocalData.html#rollnw.LocalData.set_int">set_int() (rollnw.LocalData method)</a>
@@ -7147,6 +7366,8 @@
       <li><a href="api_python/classes/LocalData.html#rollnw.LocalData.set_location">set_location() (rollnw.LocalData method)</a>
 </li>
       <li><a href="api_python/classes/LocalData.html#rollnw.LocalData.set_object">set_object() (rollnw.LocalData method)</a>
+</li>
+      <li><a href="api_python/classes/CreatureStats.html#rollnw.CreatureStats.set_skill_rank">set_skill_rank() (rollnw.CreatureStats method)</a>
 </li>
       <li><a href="api_python/classes/LocalData.html#rollnw.LocalData.set_string">set_string() (rollnw.LocalData method)</a>
 </li>
@@ -7159,6 +7380,8 @@
       <li><a href="api_python/classes/BodyParts.html#rollnw.BodyParts.shoulder_left">shoulder_left (rollnw.BodyParts attribute)</a>
 </li>
       <li><a href="api_python/classes/BodyParts.html#rollnw.BodyParts.shoulder_right">shoulder_right (rollnw.BodyParts attribute)</a>
+</li>
+      <li><a href="api_python/enums/SpellMetaMagic.html#rollnw.SpellMetaMagic.silent">silent (rollnw.SpellMetaMagic attribute)</a>
 </li>
       <li><a href="api_python/classes/Container.html#rollnw.Container.size">size() (rollnw.Container method)</a>
 
@@ -7190,13 +7413,21 @@
 </li>
       <li><a href="api_python/classes/Creature.html#rollnw.Creature.soundset">soundset (rollnw.Creature attribute)</a>
 </li>
-      <li><a href="api_python/classes/LanguageID.html#rollnw.LanguageID.spanish">spanish (rollnw.LanguageID attribute)</a>
+      <li><a href="api_python/enums/LanguageID.html#rollnw.LanguageID.spanish">spanish (rollnw.LanguageID attribute)</a>
 </li>
       <li><a href="api_python/classes/Encounter.html#rollnw.Encounter.spawn_option">spawn_option (rollnw.Encounter attribute)</a>
 </li>
       <li><a href="api_python/classes/Encounter.html#rollnw.Encounter.spawn_points">spawn_points (rollnw.Encounter attribute)</a>
 </li>
+      <li><a href="api_python/classes/SpellEntry.html#rollnw.SpellEntry.spell">spell (rollnw.SpellEntry attribute)</a>
+</li>
       <li><a href="api_python/classes/SpellBook.html#rollnw.SpellBook">SpellBook (class in rollnw)</a>
+</li>
+      <li><a href="api_python/classes/SpellEntry.html#rollnw.SpellEntry">SpellEntry (class in rollnw)</a>
+</li>
+      <li><a href="api_python/classes/ClassEntry.html#rollnw.ClassEntry.spells">spells (rollnw.ClassEntry attribute)</a>
+</li>
+      <li><a href="api_python/enums/SpellFlags.html#rollnw.SpellFlags.spontaneous">spontaneous (rollnw.SpellFlags attribute)</a>
 </li>
       <li><a href="api_python/classes/Item.html#rollnw.Item.stacksize">stacksize (rollnw.Item attribute)</a>
 </li>
@@ -7229,6 +7460,8 @@
       <li><a href="api_python/classes/Placeable.html#rollnw.Placeable.static">static (rollnw.Placeable attribute)</a>
 </li>
       <li><a href="api_python/classes/Creature.html#rollnw.Creature.stats">stats (rollnw.Creature attribute)</a>
+</li>
+      <li><a href="api_python/enums/SpellMetaMagic.html#rollnw.SpellMetaMagic.still">still (rollnw.SpellMetaMagic attribute)</a>
 </li>
       <li><a href="api_python/classes/Item.html#rollnw.Item.stolen">stolen (rollnw.Item attribute)</a>
 </li>
@@ -7306,10 +7539,12 @@
 <h2 id="U">U</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api_python/classes/Lock.html#rollnw.Lock.unlock_dc">unlock_dc (rollnw.Lock attribute)</a>
+      <li><a href="api_python/enums/SpellFlags.html#rollnw.SpellFlags.unlimited">unlimited (rollnw.SpellFlags attribute)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api_python/classes/Lock.html#rollnw.Lock.unlock_dc">unlock_dc (rollnw.Lock attribute)</a>
+</li>
       <li><a href="api_python/classes/Placeable.html#rollnw.Placeable.useable">useable (rollnw.Placeable attribute)</a>
 </li>
   </ul></td>

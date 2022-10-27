@@ -68,10 +68,12 @@
 <li class="toctree-l2"><a class="reference internal" href="Appearance.html">Appearance</a></li>
 <li class="toctree-l2"><a class="reference internal" href="Area.html">Area</a></li>
 <li class="toctree-l2"><a class="reference internal" href="BodyParts.html">BodyParts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ClassEntry.html">ClassEntry</a></li>
 <li class="toctree-l2"><a class="reference internal" href="CombatInfo.html">CombatInfo</a></li>
 <li class="toctree-l2"><a class="reference internal" href="Common.html">Common</a></li>
 <li class="toctree-l2"><a class="reference internal" href="Container.html">Container</a></li>
 <li class="toctree-l2"><a class="reference internal" href="Creature.html">Creature</a></li>
+<li class="toctree-l2"><a class="reference internal" href="CreatureStats.html">CreatureStats</a></li>
 <li class="toctree-l2"><a class="reference internal" href="Directory.html">Directory</a></li>
 <li class="toctree-l2"><a class="reference internal" href="Door.html">Door</a></li>
 <li class="toctree-l2"><a class="reference internal" href="Encounter.html">Encounter</a></li>
@@ -80,7 +82,6 @@
 <li class="toctree-l2"><a class="reference internal" href="Inventory.html">Inventory</a></li>
 <li class="toctree-l2"><a class="reference internal" href="Item.html">Item</a></li>
 <li class="toctree-l2"><a class="reference internal" href="Key.html">Key</a></li>
-<li class="toctree-l2"><a class="reference internal" href="LanguageID.html">LanguageID</a></li>
 <li class="toctree-l2"><a class="reference internal" href="LevelStats.html">LevelStats</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">LocString</a></li>
 <li class="toctree-l2"><a class="reference internal" href="LocalData.html">LocalData</a></li>
@@ -102,6 +103,7 @@
 <li class="toctree-l2"><a class="reference internal" href="Script.html">Script</a></li>
 <li class="toctree-l2"><a class="reference internal" href="Sound.html">Sound</a></li>
 <li class="toctree-l2"><a class="reference internal" href="SpellBook.html">SpellBook</a></li>
+<li class="toctree-l2"><a class="reference internal" href="SpellEntry.html">SpellEntry</a></li>
 <li class="toctree-l2"><a class="reference internal" href="Store.html">Store</a></li>
 <li class="toctree-l2"><a class="reference internal" href="Tlk.html">Tlk</a></li>
 <li class="toctree-l2"><a class="reference internal" href="Trap.html">Trap</a></li>
@@ -172,13 +174,13 @@
 </dl>
 <dl class="py method">
 <dt class="sig sig-object py" id="rollnw.LocString.add">
-<span class="sig-name descname"><span class="pre">add</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">language</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="LanguageID.html#rollnw.LanguageID" title="rollnw.LanguageID"><span class="pre">rollnw.LanguageID</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">string</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">feminine</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#rollnw.LocString.add" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">add</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">language</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../enums/LanguageID.html#rollnw.LanguageID" title="rollnw.LanguageID"><span class="pre">rollnw.LanguageID</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">string</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">feminine</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#rollnw.LocString.add" title="Permalink to this definition"></a></dt>
 <dd><p>Adds a localized string</p>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="rollnw.LocString.contains">
-<span class="sig-name descname"><span class="pre">contains</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">language</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="LanguageID.html#rollnw.LanguageID" title="rollnw.LanguageID"><span class="pre">rollnw.LanguageID</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">feminine</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#rollnw.LocString.contains" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">contains</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">language</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../enums/LanguageID.html#rollnw.LanguageID" title="rollnw.LanguageID"><span class="pre">rollnw.LanguageID</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">feminine</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#rollnw.LocString.contains" title="Permalink to this definition"></a></dt>
 <dd><p>Checks if a localized string is contained</p>
 </dd></dl>
 
@@ -190,13 +192,13 @@
 
 <dl class="py method">
 <dt class="sig sig-object py" id="rollnw.LocString.get">
-<span class="sig-name descname"><span class="pre">get</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">language</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="LanguageID.html#rollnw.LanguageID" title="rollnw.LanguageID"><span class="pre">rollnw.LanguageID</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">feminine</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#rollnw.LocString.get" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">get</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">language</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../enums/LanguageID.html#rollnw.LanguageID" title="rollnw.LanguageID"><span class="pre">rollnw.LanguageID</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">feminine</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#rollnw.LocString.get" title="Permalink to this definition"></a></dt>
 <dd><p>Gets a localized string</p>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="rollnw.LocString.remove">
-<span class="sig-name descname"><span class="pre">remove</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">language</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="LanguageID.html#rollnw.LanguageID" title="rollnw.LanguageID"><span class="pre">rollnw.LanguageID</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">feminine</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#rollnw.LocString.remove" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">remove</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">language</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../enums/LanguageID.html#rollnw.LanguageID" title="rollnw.LanguageID"><span class="pre">rollnw.LanguageID</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">feminine</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#rollnw.LocString.remove" title="Permalink to this definition"></a></dt>
 <dd><p>Removes a localized string</p>
 </dd></dl>
 

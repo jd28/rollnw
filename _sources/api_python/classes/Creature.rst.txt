@@ -8,9 +8,3 @@ Creature
 -------------------------------------------------------------------------------
 
 .. autoclass:: rollnw.CreatureScripts
-
--------------------------------------------------------------------------------
-
-.. autoclass:: rollnw.CreatureStats
-   :members:
-   :special-members:
