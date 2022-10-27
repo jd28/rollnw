@@ -353,7 +353,7 @@ class Tlk:
         """Gets a tlk entry."""
         pass
 
-    def __getitem__(self, strref: int, string: str):
+    def __setitem__(self, strref: int, string: str):
         """Sets a tlk entry."""
         pass
 
@@ -362,10 +362,6 @@ class Tlk:
 
     def get(self, strref: int) -> str:
         """Gets a tlk entry."""
-        pass
-
-    def get(self, strref: int):
-        """Gets a localized string"""
         pass
 
     def language_id(self):
