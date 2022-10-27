@@ -75,8 +75,6 @@ bool SpellBook::from_json(const nlohmann::json& archive)
 
 bool SpellBook::to_gff(GffBuilderStruct& archive) const
 {
-    uint8_t flags, meta;
-
     for (size_t i = 0; i < 10; ++i) {
         if (known_[i].empty()) {
             continue;

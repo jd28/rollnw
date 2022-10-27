@@ -22,7 +22,7 @@ TEST_CASE("creature: load nw_chicken", "[objects]")
     REQUIRE(nwk::objects().valid(ent->handle()));
 
     REQUIRE(ent->common.resref == "nw_chicken");
-    REQUIRE(ent->stats.get_ability_score(nwn1::ability_dexterity) == 8);
+    REQUIRE(ent->stats.get_ability_score(nwn1::ability_dexterity) == 7);
     REQUIRE(ent->scripts.on_attacked == "nw_c2_default5");
     REQUIRE(ent->appearance.id == 31);
     REQUIRE(ent->gender == 1);
@@ -34,7 +34,7 @@ TEST_CASE("creature: load pl_agent_001", "[objects]")
     REQUIRE(ent);
 
     REQUIRE(ent->common.resref == "pl_agent_001");
-    REQUIRE(ent->stats.get_ability_score(nwn1::ability_dexterity) == 16);
+    REQUIRE(ent->stats.get_ability_score(nwn1::ability_dexterity) == 13);
     REQUIRE(ent->scripts.on_attacked == "mon_ai_5attacked");
     REQUIRE(ent->appearance.id == 6);
     REQUIRE(ent->appearance.body_parts.shin_left == 1);
