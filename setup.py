@@ -49,11 +49,11 @@ class CMakeBuild(build_ext):
 
 setup(
     name="rollnw",
-    version="0.3.dev",
+    version="0.4.dev0",
     author="jmd",
     author_email="joshua.m.dean@gmail.com",
     include_package_data=True,
-    description="libnw wrapper",
+    description="An homage to Neverwinter Nights",
     long_description=open("README.md").read(),
     long_description_content_type="text/markdown",
     ext_modules=[CMakeExtension("src")],

@@ -180,6 +180,7 @@ class Inventory:
 
 class ClassEntry:
     """Class level data
+
     Attributes:
         id
         level
