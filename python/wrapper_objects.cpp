@@ -243,6 +243,7 @@ void init_objects_creature(py::module& nw)
         .def_readonly_static("json_archive_version", &nw::Creature::json_archive_version)
         .def_readonly_static("object_type", &nw::Creature::object_type)
 
+        .def_readwrite("common", &nw::Creature::common)
         .def_readwrite("appearance", &nw::Creature::appearance)
         //.def_readwrite("combat_info", &nw::Creature::combat_info)
         .def_readwrite("conversation", &nw::Creature::conversation)

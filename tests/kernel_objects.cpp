@@ -3,6 +3,7 @@
 #include <nw/components/Creature.hpp>
 #include <nw/kernel/Objects.hpp>
 #include <nw/log.hpp>
+#include <nwn1/Profile.hpp>
 
 #include <filesystem>
 
@@ -14,7 +15,7 @@ TEST_CASE("objects manager", "[kernel]")
 
     REQUIRE(ent);
     REQUIRE(ent->common.resref == "nw_chicken");
-    REQUIRE(ent->stats.abilities[2] == 8);
+    REQUIRE(ent->stats.get_ability_score(nwn1::ability_dexterity) == 8);
     REQUIRE(ent->scripts.on_attacked == "nw_c2_default5");
     REQUIRE(ent->appearance.id == 31);
     REQUIRE(ent->gender == 1);
@@ -30,7 +31,7 @@ TEST_CASE("objects manager", "[kernel]")
 
     REQUIRE(ent3);
     REQUIRE(ent3->common.resref == "pl_agent_001");
-    REQUIRE(ent3->stats.abilities[2] == 16);
+    REQUIRE(ent3->stats.get_ability_score(nwn1::ability_dexterity) == 16);
     REQUIRE(ent3->scripts.on_attacked == "mon_ai_5attacked");
     REQUIRE(ent3->appearance.id == 6);
     REQUIRE(ent3->appearance.body_parts.shin_left == 1);

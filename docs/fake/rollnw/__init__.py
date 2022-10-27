@@ -7,6 +7,9 @@ import enum
 # Components ##################################################################
 ###############################################################################
 
+class ObjectHandle:
+    pass
+
 
 class Appearance:
     """Class containing creature's appearance
@@ -75,19 +78,128 @@ class Common:
 
 
 class CreatureStats:
-    pass
+    """Implementation of a creature's general attributes and stats"""
+
+    def add_feat(self, feat) -> bool:
+        """Attempts to add a feat to a creature, returning true if successful
+        """
+        pass
+
+    def get_ability_score(id: int):
+        """Gets an ability score"""
+        pass
+
+    def get_skill_rank(id: int):
+        """Gets a skill rank"""
+        pass
+
+    def has_feat(self, feat) -> bool:
+        """Determines if creature has feat
+        """
+        pass
+
+    def set_ability_score(id: int,  value: int) -> bool:
+        """Sets an ability score, returning true if successful"""
+        pass
+
+    def set_skill_rank(id: int,  value: int) -> bool:
+        """Sets a skill rank, returning true if successful"""
+        pass
+
+
+class EquipSlot(enum.Flag):
+    """Equipment slot flags
+    """
+    head = (1 << 0)
+    chest = (1 << 1)
+    boots = (1 << 2)
+    arms = (1 << 3)
+    righthand = (1 << 4)
+    lefthand = (1 << 5)
+    cloak = (1 << 6)
+    leftring = (1 << 7)
+    rightring = (1 << 8)
+    neck = (1 << 9)
+    belt = (1 << 10)
+    arrows = (1 << 11)
+    bullets = (1 << 12)
+    bolts = (1 << 13)
+    creature_left = (1 << 14)
+    creature_right = (1 << 15)
+    creature_bite = (1 << 16)
+    creature_skin = (1 << 17)
+
+
+class EquipIndex(enum.IntEnum):
+    head = 0
+    chest = 1
+    boots = 2
+    arms = 3
+    righthand = 4
+    lefthand = 5
+    cloak = 6
+    leftring = 7
+    rightring = 8
+    neck = 9
+    belt = 10
+    arrows = 11
+    bullets = 12
+    bolts = 13
+    creature_left = 14
+    creature_right = 15
+    creature_bite = 16
+    creature_skin = 17
+
+    invalid = 0xffffffff
 
 
 class Equips:
-    pass
+    """Creature's equipment
+
+    Attributes:
+        equips
+    """
+
+    def instantiate(self):
+        """Instantiates equipment by loading contained items from the resource manager"""
+        pass
 
 
 class Inventory:
-    pass
+    """An Object's inventory
+
+    Attributes:
+        items
+        owner
+    """
+
+    def instantiate(self):
+        """Instantiates inventory by loading contained items from the resource manager"""
+        pass
+
+
+class ClassEntry:
+    """Class level data
+    Attributes:
+        id
+        level
+        spells
+    """
 
 
 class LevelStats:
-    pass
+    """Implements a creatures level related stats
+
+    Attributes:
+        entries ([ClassEntry]): Entries for levels
+    """
+    def level() -> int:
+        """Gets total level"""
+        pass
+
+    def level_by_class(class_: int) -> int:
+        """Gets level by class"""
+        pass
 
 
 class LocalData:
@@ -159,6 +271,13 @@ class LocalData:
 
 
 class Location:
+    """Class representing an objects location
+
+    Attributes:
+        area
+        orientation
+        position
+    """
     pass
 
 
@@ -178,8 +297,68 @@ class Lock:
     pass
 
 
-class SpellBook:
+class SpellFlags(enum.Flag):
+    none = 0x0,
+    readied = 0x01,
+    spontaneous = 0x02,
+    unlimited = 0x04,
+
+
+class SpellMetaMagic(enum.Flag):
+    none = 0x00,
+    empower = 0x01,
+    extend = 0x02,
+    maximize = 0x04,
+    quicken = 0x08,
+    silent = 0x10,
+    still = 0x20,
+
+
+class SpellEntry:
+    """An entry in a spellbook
+
+    Attributes:
+        spell
+        meta
+        flags
+    """
     pass
+
+
+class SpellBook:
+    """Implements a spell casters spellbook"""
+
+    def add_known_spell(level: int,  entry: SpellEntry):
+        """Adds a known spell at level"""
+        pass
+
+    def add_memorized_spell(level: int, entry: SpellEntry):
+        """Adds a memorized spell at level"""
+        pass
+
+    def get_known_spell_count(level: int):
+        """Gets the number of known at a given level"""
+        pass
+
+    def get_memorized_spell_count(level: int):
+        """Gets the number of memorized at a given level"""
+        pass
+
+    def get_known_spell(level: int, index: int):
+        """Gets a known spell entry"""
+        pass
+
+    def get_memorized_spell(level: int, index: int):
+        """Gets a memorized spell entry"""
+        pass
+
+    def remove_known_spell(level: int, entry: SpellEntry):
+        """Removes a known spell entry"""
+        pass
+
+    def remove_memorized_spell(level: int, entry: SpellEntry):
+        """Removes a memorized spell entry"""
+        pass
 
 
 class Trap:
@@ -492,6 +671,7 @@ class Creature(ObjectBase):
         bodybag
         chunk_death
         combat_info
+        common (rollnw.Common)
         conversation (str): Dialog resref
         cr
         cr_adjust

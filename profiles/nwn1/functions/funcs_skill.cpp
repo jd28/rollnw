@@ -25,7 +25,7 @@ int get_skill_rank(const nw::Creature* obj, nw::Skill skill, bool base)
     }
 
     // Base
-    result = obj->stats.skills[skill.idx()];
+    result = obj->stats.get_skill_rank(skill);
     if (base) return result;
 
     if (result == 0) {

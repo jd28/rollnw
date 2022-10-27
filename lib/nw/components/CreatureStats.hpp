@@ -1,6 +1,8 @@
 #pragma once
 
+#include "../rules/Ability.hpp"
 #include "../rules/Feat.hpp"
+#include "../rules/Skill.hpp"
 #include "../serialization/Archives.hpp"
 #include "Saves.hpp"
 
@@ -17,16 +19,33 @@ struct CreatureStats {
     bool to_gff(GffBuilderStruct& archive) const;
     nlohmann::json to_json() const;
 
-    bool add_feat(Feat feat);
-    const std::vector<Feat>& feats() const noexcept;
-    bool has_feat(Feat feat) const noexcept;
+    /// Attempts to add a feat to a creature, returning true if successful
+    bool add_feat(Feat id);
 
-    std::array<uint8_t, 6> abilities;
-    std::vector<uint8_t> skills;
+    /// Gets the feat array
+    const std::vector<Feat>& feats() const noexcept;
+
+    /// Gets an ability score
+    int get_ability_score(Ability id) const;
+
+    /// Gets a skill rank
+    int get_skill_rank(Skill id) const;
+
+    /// Determines if creature has a feat
+    bool has_feat(Feat id) const noexcept;
+
+    /// Sets an ability score, returning true if successful
+    bool set_ability_score(Ability id, int value);
+
+    /// Sets a skill rank, returning true if successful
+    bool set_skill_rank(Skill id, int value);
+
     Saves save_bonus;
 
 private:
+    std::array<uint8_t, 6> abilities_;
     std::vector<Feat> feats_;
+    std::vector<uint8_t> skills_;
 };
 
 } // namespace nw

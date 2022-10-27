@@ -25,6 +25,7 @@
 #include <vector>
 
 PYBIND11_MAKE_OPAQUE(std::vector<glm::vec3>);
+PYBIND11_MAKE_OPAQUE(std::vector<nw::ClassEntry>);
 PYBIND11_MAKE_OPAQUE(std::vector<nw::InventoryItem>);
 PYBIND11_MAKE_OPAQUE(std::vector<nw::Resref>);
 PYBIND11_MAKE_OPAQUE(std::vector<nw::Resource>);

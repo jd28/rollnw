@@ -1,7 +1,12 @@
 #pragma once
 
 #include <nw/resources/Resref.hpp>
+#include <nw/rules/Ability.hpp>
+#include <nw/rules/Class.hpp>
+#include <nw/rules/Feat.hpp>
+#include <nw/rules/Skill.hpp>
 #include <nw/util/ByteArray.hpp>
+#include <nw/util/macros.hpp>
 
 #include <pybind11/pybind11.h>
 
@@ -49,5 +54,29 @@ public:
         return obj.release();
     }
 };
+
+#define DEFINE_RULE_TYPE_CASTER(name)                                                                  \
+    template <>                                                                                        \
+    struct type_caster<nw::name> {                                                                     \
+    public:                                                                                            \
+        PYBIND11_TYPE_CASTER(nw::name, _(ROLLNW_STRINGIFY(name)));                                     \
+        bool load(handle src, bool)                                                                    \
+        {                                                                                              \
+            PyObject* source = src.ptr();                                                              \
+            if (!PyLong_Check(source)) { return false; }                                               \
+            value = nw::name{int32_t(PyLong_AsLong(source))};                                          \
+            return !PyErr_Occurred();                                                                  \
+        }                                                                                              \
+        static handle cast(const nw::name& src, return_value_policy /* policy */, handle /* parent */) \
+        {                                                                                              \
+            object obj = pybind11::int_(*src);                                                         \
+            return obj.release();                                                                      \
+        }                                                                                              \
+    };
+
+DEFINE_RULE_TYPE_CASTER(Ability)
+DEFINE_RULE_TYPE_CASTER(Class)
+DEFINE_RULE_TYPE_CASTER(Feat)
+DEFINE_RULE_TYPE_CASTER(Skill)
 
 }

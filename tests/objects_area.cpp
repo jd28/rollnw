@@ -4,6 +4,7 @@
 #include <nw/components/Creature.hpp>
 #include <nw/kernel/Objects.hpp>
 #include <nw/serialization/Archives.hpp>
+#include <nwn1/Profile.hpp>
 
 #include <nlohmann/json.hpp>
 
@@ -31,7 +32,7 @@ TEST_CASE("area: from_gff", "[objects]")
 
     REQUIRE(ent->creatures.size() > 0);
     REQUIRE(ent->creatures[0]->common.resref == "test_creature");
-    REQUIRE(ent->creatures[0]->stats.abilities[0] == 20);
+    REQUIRE(ent->creatures[0]->stats.get_ability_score(nwn1::ability_strength) == 20);
 }
 
 TEST_CASE("area: json roundtrip", "[objects]")

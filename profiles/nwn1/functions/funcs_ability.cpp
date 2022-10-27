@@ -13,7 +13,7 @@ int get_ability_score(const nw::Creature* obj, nw::Ability ability, bool base = 
     }
 
     // Base
-    int result = obj->stats.abilities[*ability];
+    int result = obj->stats.get_ability_score(ability);
     nw::kernel::rules().calculate(obj, mod_type_ability, ability,
         [&result](int value) { result += value; });
 

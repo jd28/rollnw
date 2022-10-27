@@ -43,21 +43,7 @@ void init_component_appearance(py::module& m)
         .def_readwrite("thigh_left", &nw::BodyParts::thigh_left)
         .def_readwrite("thigh_right", &nw::BodyParts::thigh_right);
 
-    py::class_<nw::Appearance>(m, "Appearance",
-        R"(Class containing creature's appearance
-
-        Attributes:
-            body_parts (rollnw.BodyParts): body_parts
-            hair (int): hair
-            id (int): Index into ``appearance.2da``
-            phenotype (int): phenotype
-            portrait_id (int): Index into ``portraits.2da``
-            skin (int): skin
-            tail (int): tail
-            tattoo1 (int): tattoo1
-            tattoo2 (int): tattoo2
-            wings (int): wings
-        )")
+    py::class_<nw::Appearance>(m, "Appearance")
         .def(py::init<>())
         .def_readwrite("phenotype", &nw::Appearance::phenotype)
         .def_readwrite("tail", &nw::Appearance::tail)
@@ -78,18 +64,7 @@ void init_component_combatinfo(py::module& m)
 
 void init_component_common(py::module& m)
 {
-    py::class_<nw::Common>(m, "Common",
-        R"(Class containing attributes common to all objects
-
-        Attributes:
-            resref (rollnw.Resref): resref
-            tag (str): tag
-            name (rollnw.LocString): name
-            locals (rollnw.LocalData): locals
-            location (rollnw.Location): location
-            comment (str): comment
-            palette_id (int): palette_id
-        )")
+    py::class_<nw::Common>(m, "Common")
         .def_readwrite("resref", &nw::Common::resref)
         .def_readwrite("tag", &nw::Common::tag)
         .def_readwrite("name", &nw::Common::name)
@@ -102,11 +77,12 @@ void init_component_common(py::module& m)
 void init_component_creature_stats(py::module& m)
 {
     py::class_<nw::CreatureStats>(m, "CreatureStats")
-        .def_readonly("abilities", &nw::CreatureStats::abilities)
-        .def("feats", &nw::CreatureStats::feats)
         .def("add_feat", &nw::CreatureStats::add_feat)
+        .def("get_ability_score", &nw::CreatureStats::get_ability_score)
+        .def("get_skill_rank", &nw::CreatureStats::get_skill_rank)
         .def("has_feat", &nw::CreatureStats::has_feat)
-        .def_readonly("skills", &nw::CreatureStats::skills)
+        .def("set_ability_score", &nw::CreatureStats::set_ability_score)
+        .def("set_skill_rank", &nw::CreatureStats::set_skill_rank)
         .def_readonly("save_bonus", &nw::CreatureStats::save_bonus);
 }
 
@@ -154,7 +130,8 @@ void init_component_equips(py::module& m)
         .value("invalid", nw::EquipIndex::invalid);
 
     py::class_<nw::Equips>(m, "Equips")
-        .def_readonly("equips", &nw::Equips::equips);
+        .def_readonly("equips", &nw::Equips::equips)
+        .def("instantiate", &nw::Equips::instantiate);
 }
 
 void init_component_inventory(py::module& m)
@@ -173,7 +150,15 @@ void init_component_inventory(py::module& m)
 
 void init_component_levelstats(py::module& m)
 {
-    py::class_<nw::LevelStats>(m, "LevelStats");
+    py::class_<nw::ClassEntry>(m, "ClassEntry")
+        .def_readwrite("id", &nw::ClassEntry::id)
+        .def_readwrite("level", &nw::ClassEntry::level)
+        .def_readwrite("spells", &nw::ClassEntry::spells);
+
+    py::class_<nw::LevelStats>(m, "LevelStats")
+        .def("level", &nw::LevelStats::level)
+        .def("level_by_class", &nw::LevelStats::level_by_class)
+        .def_readonly("entries", &nw::LevelStats::entries);
 }
 
 void init_component_localdata(py::module& m)
@@ -229,7 +214,35 @@ void init_component_saves(py::module& m)
 
 void init_component_spellbook(py::module& m)
 {
-    py::class_<nw::SpellBook>(m, "SpellBook");
+    py::enum_<nw::SpellFlags>(m, "SpellFlags")
+        .value("none", nw::SpellFlags::none)
+        .value("readied", nw::SpellFlags::readied)
+        .value("spontaneous", nw::SpellFlags::spontaneous)
+        .value("unlimited", nw::SpellFlags::unlimited);
+
+    py::enum_<nw::SpellMetaMagic>(m, "SpellMetaMagic")
+        .value("none", nw::SpellMetaMagic::none)
+        .value("empower", nw::SpellMetaMagic::empower)
+        .value("extend", nw::SpellMetaMagic::extend)
+        .value("maximize", nw::SpellMetaMagic::maximize)
+        .value("quicken", nw::SpellMetaMagic::quicken)
+        .value("silent", nw::SpellMetaMagic::silent)
+        .value("still", nw::SpellMetaMagic::still);
+
+    py::class_<nw::SpellEntry>(m, "SpellEntry")
+        .def_readwrite("spell", &nw::SpellEntry::spell)
+        .def_readwrite("meta", &nw::SpellEntry::meta)
+        .def_readwrite("flags", &nw::SpellEntry::flags);
+
+    py::class_<nw::SpellBook>(m, "SpellBook")
+        .def("add_known_spell", &nw::SpellBook::add_known_spell)
+        .def("add_memorized_spell", &nw::SpellBook::add_memorized_spell)
+        .def("get_known_spell_count", &nw::SpellBook::get_known_spell_count)
+        .def("get_memorized_spell_count", &nw::SpellBook::get_memorized_spell_count)
+        .def("get_known_spell", &nw::SpellBook::get_known_spell)
+        .def("get_memorized_spell", &nw::SpellBook::get_memorized_spell)
+        .def("remove_known_spell", &nw::SpellBook::remove_known_spell)
+        .def("remove_memorized_spell", &nw::SpellBook::remove_memorized_spell);
 }
 
 void init_component_trap(py::module& m)
