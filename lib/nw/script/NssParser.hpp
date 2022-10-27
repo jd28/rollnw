@@ -108,34 +108,34 @@ struct Expression : public AstNode {
 };
 
 struct AssignExpression : Expression {
-    AssignExpression(std::unique_ptr<Expression> lhs, NssToken token, std::unique_ptr<Expression> rhs)
-        : left{std::move(lhs)}
+    AssignExpression(std::unique_ptr<Expression> lhs_, NssToken token, std::unique_ptr<Expression> rhs_)
+        : lhs{std::move(lhs_)}
         , op{token}
-        , right{std::move(rhs)}
+        , rhs{std::move(rhs_)}
     {
     }
 
-    std::unique_ptr<Expression> left;
+    std::unique_ptr<Expression> lhs;
     NssToken op;
-    std::unique_ptr<Expression> right;
+    std::unique_ptr<Expression> rhs;
 
     DEFINE_ACCEPT_VISITOR
 };
 
 struct BinaryExpression : Expression {
     BinaryExpression(
-        std::unique_ptr<Expression> lhs,
+        std::unique_ptr<Expression> lhs_,
         NssToken token,
-        std::unique_ptr<Expression> rhs)
-        : left{std::move(lhs)}
+        std::unique_ptr<Expression> rhs_)
+        : lhs{std::move(lhs_)}
         , op{token}
-        , right{std::move(rhs)}
+        , rhs{std::move(rhs_)}
     {
     }
 
-    std::unique_ptr<Expression> left;
+    std::unique_ptr<Expression> lhs;
     NssToken op;
-    std::unique_ptr<Expression> right;
+    std::unique_ptr<Expression> rhs;
 
     DEFINE_ACCEPT_VISITOR
 };
@@ -157,13 +157,13 @@ struct ConditionalExpression : Expression {
         std::unique_ptr<Expression> expr_,
         std::unique_ptr<Expression> true_branch_,
         std::unique_ptr<Expression> false_branch_)
-        : expr{std::move(expr_)}
+        : test{std::move(expr_)}
         , true_branch{std::move(true_branch_)}
         , false_branch{std::move(false_branch_)}
     {
     }
 
-    std::unique_ptr<Expression> expr;
+    std::unique_ptr<Expression> test;
     std::unique_ptr<Expression> true_branch;
     std::unique_ptr<Expression> false_branch;
 
@@ -172,15 +172,15 @@ struct ConditionalExpression : Expression {
 
 struct DotExpression : Expression {
     DotExpression(
-        std::unique_ptr<Expression> lhs,
-        std::unique_ptr<Expression> rhs)
-        : left{std::move(lhs)}
-        , right{std::move(rhs)}
+        std::unique_ptr<Expression> lhs_,
+        std::unique_ptr<Expression> rhs_)
+        : lhs{std::move(lhs_)}
+        , rhs{std::move(rhs_)}
     {
     }
 
-    std::unique_ptr<Expression> left;
-    std::unique_ptr<Expression> right;
+    std::unique_ptr<Expression> lhs;
+    std::unique_ptr<Expression> rhs;
 
     DEFINE_ACCEPT_VISITOR
 };
@@ -222,44 +222,44 @@ struct LiteralVectorExpression : Expression {
 
 struct LogicalExpression : Expression {
     LogicalExpression(
-        std::unique_ptr<Expression> lhs,
+        std::unique_ptr<Expression> lhs_,
         NssToken token,
-        std::unique_ptr<Expression> rhs)
-        : left{std::move(lhs)}
+        std::unique_ptr<Expression> rhs_)
+        : lhs{std::move(lhs_)}
         , op{token}
-        , right{std::move(rhs)}
+        , rhs{std::move(rhs_)}
     {
     }
 
-    std::unique_ptr<Expression> left;
+    std::unique_ptr<Expression> lhs;
     NssToken op;
-    std::unique_ptr<Expression> right;
+    std::unique_ptr<Expression> rhs;
 
     DEFINE_ACCEPT_VISITOR
 };
 
 struct PostfixExpression : Expression {
-    PostfixExpression(std::unique_ptr<Expression> lhs, NssToken token)
-        : left{std::move(lhs)}
+    PostfixExpression(std::unique_ptr<Expression> lhs_, NssToken token)
+        : lhs{std::move(lhs_)}
         , op{token}
     {
     }
 
-    std::unique_ptr<Expression> left;
+    std::unique_ptr<Expression> lhs;
     NssToken op;
 
     DEFINE_ACCEPT_VISITOR
 };
 
 struct UnaryExpression : Expression {
-    UnaryExpression(NssToken token, std::unique_ptr<Expression> rhs)
+    UnaryExpression(NssToken token, std::unique_ptr<Expression> rhs_)
         : op{token}
-        , right{std::move(rhs)}
+        , rhs{std::move(rhs_)}
     {
     }
 
     NssToken op;
-    std::unique_ptr<Expression> right;
+    std::unique_ptr<Expression> rhs;
 
     DEFINE_ACCEPT_VISITOR
 };
@@ -282,6 +282,10 @@ struct Statement : public AstNode {
 };
 
 struct BlockStatement : public Statement {
+    BlockStatement() = default;
+    BlockStatement(BlockStatement&) = delete;
+    BlockStatement& operator=(const BlockStatement&) = delete;
+
     std::vector<std::unique_ptr<Statement>> nodes;
 
     DEFINE_ACCEPT_VISITOR
@@ -367,6 +371,10 @@ struct Declaration : public Statement {
 };
 
 struct FunctionDecl : public Declaration {
+    FunctionDecl() = default;
+    FunctionDecl(FunctionDecl&) = delete;
+    FunctionDecl& operator=(const FunctionDecl&) = delete;
+
     NssToken identifier;
     std::vector<std::unique_ptr<Declaration>> params;
 

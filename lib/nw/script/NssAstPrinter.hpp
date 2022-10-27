@@ -102,8 +102,8 @@ struct NssAstPrinter : BaseVisitor {
         ss << '\n'
            << std::string(static_cast<size_t>(depth * 2), ' ') << "(assign " << expr->op.id;
         ++depth;
-        expr->left->accept(this);
-        expr->right->accept(this);
+        expr->lhs->accept(this);
+        expr->rhs->accept(this);
         ss << ")";
         --depth;
     }
@@ -113,8 +113,8 @@ struct NssAstPrinter : BaseVisitor {
         ss << '\n'
            << std::string(static_cast<size_t>(depth * 2), ' ') << "(binary " << expr->op.id;
         ++depth;
-        expr->left->accept(this);
-        expr->right->accept(this);
+        expr->lhs->accept(this);
+        expr->rhs->accept(this);
         ss << ")";
         --depth;
     }
@@ -145,7 +145,7 @@ struct NssAstPrinter : BaseVisitor {
         ss << '\n'
            << std::string(static_cast<size_t>(depth * 2), ' ') << "(cond";
         ++depth;
-        expr->expr->accept(this);
+        expr->test->accept(this);
 
         ss << '\n'
            << std::string(static_cast<size_t>(depth * 2), ' ') << "(then";
@@ -170,8 +170,8 @@ struct NssAstPrinter : BaseVisitor {
            << std::string(static_cast<size_t>(depth * 2), ' ') << "(.";
 
         ++depth;
-        expr->left->accept(this);
-        expr->right->accept(this);
+        expr->lhs->accept(this);
+        expr->rhs->accept(this);
         --depth;
         ss << ")";
     }
@@ -199,9 +199,9 @@ struct NssAstPrinter : BaseVisitor {
         ss << '\n'
            << std::string(static_cast<size_t>(depth * 2), ' ') << "(logical " << expr->op.id << " ";
         ++depth;
-        expr->left->accept(this);
+        expr->lhs->accept(this);
         ss << " ";
-        expr->right->accept(this);
+        expr->rhs->accept(this);
         ss << ")";
         --depth;
     }
@@ -211,7 +211,7 @@ struct NssAstPrinter : BaseVisitor {
         ss << '\n'
            << std::string(static_cast<size_t>(depth * 2), ' ') << "(postfix " << expr->op.id;
         ++depth;
-        if (expr->left) expr->left->accept(this);
+        if (expr->lhs) expr->lhs->accept(this);
         --depth;
         ss << ")";
     }
@@ -221,7 +221,7 @@ struct NssAstPrinter : BaseVisitor {
         ss << '\n'
            << std::string(static_cast<size_t>(depth * 2), ' ') << "(unary " << expr->op.id;
         ++depth;
-        expr->right->accept(this);
+        expr->rhs->accept(this);
         --depth;
         ss << ")";
     }
