@@ -1,3 +1,9 @@
+import enum
+
+# Config ######################################################################
+###############################################################################
+
+
 # Components ##################################################################
 ###############################################################################
 
@@ -230,6 +236,166 @@ class TwoDA:
         pass
 
 
+# i18n ########################################################################
+###############################################################################
+
+class LanguageID(enum.IntEnum):
+    invalid = -1
+    english = 0
+    french = 1
+    german = 2
+    italian = 3
+    spanish = 4
+    polish = 5
+    korean = 128
+    chinese_traditional = 129
+    chinese_simplified = 130
+    japanese = 131
+
+
+class Language:
+    @staticmethod
+    def encoding(language: LanguageID) -> str:
+        """Gets the encoding for a particular language
+        """
+        pass
+
+    @staticmethod
+    def from_string(string: str) -> LanguageID:
+        """Converts string (short or long form) to ID
+        """
+        pass
+
+    @staticmethod
+    def has_feminine(language: LanguageID) -> bool:
+        """Determines if language has feminine translations
+        """
+        pass
+
+    @staticmethod
+    def to_base_id(id: int) -> tuple[LanguageID, bool]:
+        """Convert runtime language identifier to base language and bool indicating masc/fem.
+        """
+        pass
+
+    @staticmethod
+    def to_runtime_id(language: LanguageID, feminine: bool = False) -> int:
+        """Convert language ID to runtime identifier.
+        """
+        pass
+
+    @staticmethod
+    def to_string(language: LanguageID, long_name: bool = False) -> str:
+        """Converts language to string form
+        """
+        pass
+
+
+class LocString:
+    """Implements a localized string
+
+    Args:
+        strref (int): String reference.  (default -1)
+    """
+
+    def __init__(self, strref: int = -1):
+        pass
+
+    def __getitem__(self, language: LanguageID) -> str:
+        """Gets an item.  Only useful for languages without gender, so English.
+        """
+
+    def add(self, language: LanguageID, string: str, feminine: bool = False):
+        """Adds a localized string"""
+        pass
+
+    def contains(self, language: LanguageID, feminine: bool = False):
+        """Checks if a localized string is contained"""
+        pass
+
+    def get(self, language: LanguageID, feminine: bool = False):
+        """Gets a localized string"""
+        pass
+
+    def remove(self, language: LanguageID, feminine: bool = False):
+        """Removes a localized string"""
+        pass
+
+    def size(self):
+        """Gets number of localized strings"""
+        pass
+
+    def strref():
+        """Gets string reference"""
+        pass
+
+    def to_dict(self) -> dict:
+        """Converts ``LocString`` to python ``dict``"""
+        pass
+
+    @staticmethod
+    def from_dict(data: dict):
+        """Converts python ``dict`` to ``LocString``"""
+
+
+class Tlk:
+    """Implementation of the TLK file format
+
+    Args:
+        init (str | LanguageID): if passed a string, ``init`` will be treated as a path to a TLK file,
+            if passed a LanguageID, default constructs with the TLKs language set to ``init``.
+    """
+
+    def __init__(self, init: str | LanguageID):
+        pass
+
+    def __getitem__(self, strref: int) -> str:
+        """Gets a tlk entry."""
+        pass
+
+    def __getitem__(self, strref: int, string: str):
+        """Sets a tlk entry."""
+        pass
+
+    def __len__(self):
+        """Gets the highest set TLK entry"""
+
+    def get(self, strref: int) -> str:
+        """Gets a tlk entry."""
+        pass
+
+    def get(self, strref: int):
+        """Gets a localized string"""
+        pass
+
+    def language_id(self):
+        """Gets the language ID"""
+        pass
+
+    def modified(self):
+        """Is Tlk modfied"""
+        pass
+
+    def save(self):
+        """Writes TLK to file"""
+        pass
+
+    def save_as(self, path: str):
+        """Writes TLK to file"""
+        pass
+
+    def set(self, strref: int, string: str):
+        """Sets a localized string"""
+        pass
+
+    def size(self):
+        """Gets the highest set strref"""
+        pass
+
+    def valid(self):
+        """Gets if successfully parsed"""
+        pass
+
 # Model #######################################################################
 ###############################################################################
 
@@ -368,6 +534,7 @@ class Creature(ObjectBase):
         """
         pass
 
+    @staticmethod
     def from_file(path: str):
         """Constructs object from file.  The file can be JSON or Gff.
         """
@@ -426,6 +593,7 @@ class Door:
         """
         pass
 
+    @staticmethod
     def from_file(path: str):
         """Constructs object from file.  The file can be JSON or Gff.
         """
@@ -460,6 +628,7 @@ class Encounter:
         """
         pass
 
+    @staticmethod
     def from_file(path: str):
         """Constructs object from file.  The file can be JSON or Gff.
         """
@@ -495,6 +664,7 @@ class Item:
         """
         pass
 
+    @staticmethod
     def from_file(path: str):
         """Constructs object from file.  The file can be JSON or Gff.
         """
@@ -604,6 +774,7 @@ class Placeable:
         """
         pass
 
+    @staticmethod
     def from_file(path: str):
         """Constructs object from file.  The file can be JSON or Gff.
         """
@@ -646,6 +817,7 @@ class Sound(ObjectBase):
         """
         pass
 
+    @staticmethod
     def from_file(path: str):
         """Constructs object from file.  The file can be JSON or Gff.
         """
@@ -677,11 +849,12 @@ class Store(ObjectBase):
     """
 
     @staticmethod
-    def from_dict(value: dict):
+    def from_dict(value: dict) -> Creature:
         """Constructs object from python dict.
         """
         pass
 
+    @staticmethod
     def from_file(path: str):
         """Constructs object from file.  The file can be JSON or Gff.
         """
@@ -727,6 +900,7 @@ class Waypoint:
         """
         pass
 
+    @staticmethod
     def from_file(path: str):
         """Constructs object from file.  The file can be JSON or Gff.
         """
@@ -747,11 +921,164 @@ class Resource:
     pass
 
 
+class Container:
+    """Base container interface
+    """
+
+    def all(self):
+        """Get all resources"""
+        pass
+
+    def contains(self, res: Resource):
+        """Get if container contains resource"""
+        pass
+
+    def demand(self, res: Resource):
+        """Reads resource data, empty ByteArray if no match."""
+        pass
+
+    def extract_by_glob(glob: str, output: str):
+        """Extract elements from a container by glob pattern"""
+        pass
+
+    def extract(self, pattern, output):
+        """Extract elements from a container by regex"""
+        pass
+
+    def name(self):
+        """Equivalent to `basename path()`"""
+        pass
+
+    def path(self):
+        """Path to container, for basic containers, should be canonical"""
+        pass
+
+    def size(self):
+        """Gets the number of resources, if applicable, of the container"""
+        pass
+
+    def stat(self, res):
+        """Get some general data about a resource"""
+        pass
+
+    def valid(self):
+        """Return true if loaded, false if not."""
+        pass
+
+    def working_directory(self):
+        """Get container working directory"""
+        pass
+
+    pass
+
+
+class Directory(Container):
+    """Implementation of a directory as a rollnw.Container
+
+    Args:
+        filename (str): Erf file to load
+    """
+
+    pass
+
+
+class Erf(Container):
+    """Implementation of Erf file format
+
+    Args:
+        filename (str): Erf file to load
+    """
+
+    def add(self, path):
+        """Adds resources from path"""
+        pass
+
+    def erase(self, resource):
+        """Removes resource"""
+        pass
+
+    def merge(self, container):
+        """Merges the contents of another rollnw.Container"""
+        pass
+
+    def reload(self):
+        """Reloads Erf
+
+        @note Erf:: working_directory() will not change"""
+        pass
+
+    def save(self):
+        """Saves Erf to Erf:: path()
+
+        @note It's probably best to call Erf:: reload after save.
+        """
+        pass
+
+    def save_as(self, path):
+        """Saves Erf to different path
+
+        @note Current Erf unmodified, to load Erf at new path a new Erf must
+        be constructed."""
+        pass
+
+    pass
+
+
+class Key(Container):
+    """Implementation Key/Bif file format as a rollnw.Container
+    """
+
+    pass
+
+
+class NWSync:
+    """Implementation of NWSync file format
+
+    Args:
+        path (str): Path to NWSync repository
+    """
+
+    def get(self, manifest):
+        """Gets a particular manifest as a container"""
+
+    def is_loaded(self):
+        """Gets if NWSync was successfully loaded"""
+        pass
+
+    def manifests(self):
+        """Get list of all manifests"""
+        pass
+
+    def shard_count(self):
+        """Get the number of shards"""
+        pass
+
+
+class NWSyncManifest(Container):
+    """Implementation of NWSync Manifest as a rollnw.Container
+    """
+
+    pass
+
+
+class Zip(Container):
+    """Implementation of Zip file format as a container
+
+    Args:
+        path (str): Path to NWSync repository
+    """
+
+    pass
+
+# Rules #######################################################################
+###############################################################################
+
 # Serialization ###############################################################
 ###############################################################################
 
-# Script ###############################################################
+# Script ######################################################################
 ###############################################################################
+
 
 class Nss:
     """Implementation of nwscript"""

@@ -1,7 +1,5 @@
 import rollnw
 from rollnw import Placeable
-import json
-import pytest
 
 
 def test_Placeable_default_construct():

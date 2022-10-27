@@ -35,3 +35,18 @@ Supported Languages
 -  Chinese Traditional (CP936) - Unsupported by NWN:EE
 -  Chinese Simplified (CP950) - Unsupported by NWN:EE
 -  Japanese (CP932) - Unsupported by NWN:EE
+
+kernel service
+--------------
+
+The `Strings` kernel service provides access to dialog/custom TLKs and localized strings. It also provides a
+mechanism for interning commonly used strings.
+
+**Example - Intern a String**
+
+.. code:: cpp
+
+    auto str = nw::kernel::strings().intern("This is a Test");
+    if(str == "This is a Test") {
+       // This will occur
+    }

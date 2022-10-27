@@ -30,29 +30,30 @@ void init_i18n_language(py::module& m)
         .def("from_string", &nw::Language::from_string)
         .def("has_feminine", &nw::Language::has_feminine)
         .def("to_base_id", &nw::Language::to_base_id)
-        .def("to_runtime_id", &nw::Language::to_runtime_id)
-        .def("to_string", &nw::Language::to_string);
+        .def("to_runtime_id", &nw::Language::to_runtime_id, py::arg("language"), py::arg("feminine") = false)
+        .def("to_string", &nw::Language::to_string, py::arg("language"), py::arg("long_name") = false);
 }
 
 void init_i18n_locstring(py::module& m)
 {
     py::class_<nw::LocString>(m, "LocString")
+        .def(py::init<>())
         .def(py::init<uint32_t>())
         .def(
             "__getitem__",
             [](const nw::LocString& ls, nw::LanguageID lang) {
                 return ls.get(lang);
-            },
-            "Gets a localized string.  Note: doesn't account for gender")
+            })
         .def("add", &nw::LocString::add, py::arg("language"), py::arg("string"), py::arg("feminine") = false)
         .def_static("from_dict", [](const nlohmann::json& j) -> nw::LocString {
             nw::LocString ls;
             nw::from_json(j, ls);
             return ls;
         })
-        .def("get", &nw::LocString::get, "Gets a localized string.")
-        .def("size", &nw::LocString::size, "Gets number of localized strings")
-        .def("strref", &nw::LocString::strref)
+        .def("get", &nw::LocString::get, py::arg("language"), py::arg("feminine") = false)
+        .def("remove", &nw::LocString::remove, py::arg("language"), py::arg("feminine") = false)
+        .def("size", &nw::LocString::size)
+        .def("strref", [](const nw::LocString& self) { return int(self.strref()); })
         .def("to_dict", [](const nw::LocString& self) -> nlohmann::json {
             nlohmann::json j;
             nw::to_json(j, self);
@@ -71,15 +72,15 @@ void init_i18n_tlk(py::module& m)
         .def("__setitem__", [](nw::Tlk& self, uint32_t strref, std::string_view string) {
             self.set(strref, string);
         })
-        .def("__len__", &nw::Tlk::size, "Gets the highest set strref")
-        .def("get", &nw::Tlk::get, "Gets a localized string")
-        .def("language_id", &nw::Tlk::language_id, "Gets the language ID")
-        .def("modified", &nw::Tlk::modified, "Is Tlk modfied")
-        .def("save", &nw::Tlk::save, "Writes TLK to file")
-        .def("save_as", &nw::Tlk::save_as, "Writes TLK to file")
-        .def("set", &nw::Tlk::set, "Sets a localized string")
-        .def("size", &nw::Tlk::size, "Gets the highest set strref")
-        .def("valid", &nw::Tlk::valid, "Gets if successfully parsed");
+        .def("__len__", &nw::Tlk::size)
+        .def("get", &nw::Tlk::get)
+        .def("language_id", &nw::Tlk::language_id)
+        .def("modified", &nw::Tlk::modified)
+        .def("save", &nw::Tlk::save)
+        .def("save_as", &nw::Tlk::save_as)
+        .def("set", &nw::Tlk::set)
+        .def("size", &nw::Tlk::size)
+        .def("valid", &nw::Tlk::valid);
 }
 
 void init_i18n(py::module& m)
