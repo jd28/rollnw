@@ -183,6 +183,7 @@ Credits
   :maxdepth: 1
 
   api_python/classlist
+  api_python/enumlist
 
 .. toctree::
   :caption: gff schemas
