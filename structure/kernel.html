@@ -15,7 +15,6 @@
         <script src="../_static/jquery.js"></script>
         <script src="../_static/underscore.js"></script>
         <script src="../_static/doctools.js"></script>
-        <script src="../_static/tabs.js"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
@@ -50,15 +49,13 @@
 <li class="toctree-l1 current"><a class="current reference internal" href="#">kernel</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#services">Services</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#config">Config</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#objects">Objects</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#resources">Resources</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#rules">Rules</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#strings">Strings</a></li>
 </ul>
 </li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="model.html">model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="objects.html">objects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="resources.html">resources</a></li>
 <li class="toctree-l1"><a class="reference internal" href="rules.html">rules</a></li>
 <li class="toctree-l1"><a class="reference internal" href="script.html">script</a></li>
 <li class="toctree-l1"><a class="reference internal" href="serialization.html">serialization</a></li>
@@ -145,117 +142,7 @@ aliases, Ini and Toml settings.</p>
 <span class="p">}</span><span class="w"></span>
 </pre></div>
 </div>
-</div>
 <hr class="docutils" />
-<div class="section" id="objects">
-<h3>Objects<a class="headerlink" href="#objects" title="Permalink to this headline"></a></h3>
-<p>rollNW is all about live objects and <em>not</em> serialized file formats.</p>
-<p><strong>Definitions</strong></p>
-<dl class="simple">
-<dt><code class="xref cpp cpp-enum docutils literal notranslate"><span class="pre">ObjectID</span></code></dt><dd><p>Unlike NWN an ObjectID does not provide a one-to-one mapping to an object.  Rather,
-it’s an index into a structure containing objects.</p>
-</dd>
-<dt><code class="xref cpp cpp-struct docutils literal notranslate"><span class="pre">ObjectHandle</span></code></dt><dd><p>An object handle maps to a specific object it consists of an ObjectID, the objects type,
-and an unsigned 16 bit integer indicating the object’s version.  To be valid, an object
-handle must match what is in the object array.</p>
-</dd>
-<dt><code class="xref cpp cpp-struct docutils literal notranslate"><span class="pre">ObjectBase</span></code></dt><dd><p>The base class of all objects</p>
-</dd>
-</dl>
-<p><strong>Example</strong></p>
-<div class="sphinx-tabs docutils container">
-<div aria-label="Tabbed content" class="closeable" role="tablist"><button aria-controls="panel-0-ZnJvbSByb2xsbncgaW1wb3J0IENyZWF0dXJl" aria-selected="true" class="sphinx-tabs-tab code-tab group-tab" id="tab-0-ZnJvbSByb2xsbncgaW1wb3J0IENyZWF0dXJl" name="ZnJvbSByb2xsbncgaW1wb3J0IENyZWF0dXJl" role="tab" tabindex="0">from rollnw import Creature</button><button aria-controls="panel-0-Qysr" aria-selected="false" class="sphinx-tabs-tab code-tab group-tab" id="tab-0-Qysr" name="Qysr" role="tab" tabindex="-1">C++</button></div><div aria-labelledby="tab-0-ZnJvbSByb2xsbncgaW1wb3J0IENyZWF0dXJl" class="sphinx-tabs-panel code-tab group-tab" id="panel-0-ZnJvbSByb2xsbncgaW1wb3J0IENyZWF0dXJl" name="ZnJvbSByb2xsbncgaW1wb3J0IENyZWF0dXJl" role="tabpanel" tabindex="0"><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># The file can also be rollnw JSON format, it doesn&#39;t matter.</span>
-<span class="n">cre</span> <span class="o">=</span> <span class="n">Creature</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="s2">&quot;a/path/to/nw_chicken.utc&quot;</span><span class="p">)</span>
-<span class="k">if</span> <span class="n">cre</span><span class="o">.</span><span class="n">scripts</span><span class="o">.</span><span class="n">on_attacked</span> <span class="o">==</span> <span class="s2">&quot;nw_c2_default5&quot;</span><span class="p">:</span>
-   <span class="n">cre</span><span class="o">.</span><span class="n">scripts</span><span class="o">.</span><span class="n">on_attacked</span> <span class="o">=</span> <span class="s2">&quot;nw_shakenbake&quot;</span>
-</pre></div>
-</div>
-</div><div aria-labelledby="tab-0-Qysr" class="sphinx-tabs-panel code-tab group-tab" hidden="true" id="panel-0-Qysr" name="Qysr" role="tabpanel" tabindex="0"><div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="c1">// Loading an object into the system directly from the file system.</span>
-<span class="k">auto</span><span class="w"> </span><span class="n">obj</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">nw</span><span class="o">::</span><span class="n">kernel</span><span class="o">::</span><span class="n">objects</span><span class="p">().</span><span class="n">load</span><span class="o">&lt;</span><span class="n">nw</span><span class="o">::</span><span class="n">Creature</span><span class="o">&gt;</span><span class="p">(</span><span class="n">fs</span><span class="o">::</span><span class="n">path</span><span class="p">(</span><span class="s">&quot;a/path/to/nw_chicken.utc&quot;</span><span class="p">));</span><span class="w"></span>
-<span class="k">if</span><span class="p">(</span><span class="n">obj</span><span class="o">-&gt;</span><span class="n">scripts</span><span class="p">.</span><span class="n">on_attacked</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="s">&quot;nw_c2_default5&quot;</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
-<span class="w">      </span><span class="n">obj</span><span class="o">-&gt;</span><span class="n">scripts</span><span class="p">.</span><span class="n">on_attacked</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;nw_shakenbake&quot;</span><span class="p">;</span><span class="w"></span>
-<span class="p">}</span><span class="w"></span>
-</pre></div>
-</div>
-</div></div>
-</div>
-<hr class="docutils" />
-<div class="section" id="resources">
-<h3>Resources<a class="headerlink" href="#resources" title="Permalink to this headline"></a></h3>
-<p>The resource services provides access the file system and resources stored in NWN container files.
-The main goals mostly satisfied: the ability to read all NWN(:EE) containers. The ability to
-add new container types is limited in utility due to <a class="reference external" href="https://github.com/nwnxee/unified">NWNX:EE</a>’s
-lack of a ResMan plugin, even so the ability to load files from a Zip file is included.</p>
-<table class="docutils align-default">
-<colgroup>
-<col style="width: 29%" />
-<col style="width: 14%" />
-<col style="width: 29%" />
-<col style="width: 29%" />
-</colgroup>
-<thead>
-<tr class="row-odd"><th class="head"><p>Type</p></th>
-<th class="head"><p>Read</p></th>
-<th class="head"><p>Write</p></th>
-<th class="head"><p>In Situ
-Modifications</p></th>
-</tr>
-</thead>
-<tbody>
-<tr class="row-even"><td><p>Key/Bif</p></td>
-<td><p>Yes</p></td>
-<td><p>Never</p></td>
-<td><p>Never</p></td>
-</tr>
-<tr class="row-odd"><td><p>ERF</p></td>
-<td><p>Yes</p></td>
-<td><p>Maybe</p></td>
-<td><p>Maybe</p></td>
-</tr>
-<tr class="row-even"><td><p>NWSync</p></td>
-<td><p>Yes</p></td>
-<td><p>Never</p></td>
-<td><p>Never</p></td>
-</tr>
-<tr class="row-odd"><td><p>NWSync Server
-Directory</p></td>
-<td><p>Not Yet</p></td>
-<td><p>Never</p></td>
-<td><p>Never</p></td>
-</tr>
-<tr class="row-even"><td><p>Directories</p></td>
-<td><p>Yes</p></td>
-<td><p>Yes (file format
-dependant)</p></td>
-<td><p>N/A</p></td>
-</tr>
-<tr class="row-odd"><td><p>Zip</p></td>
-<td><p>Yes</p></td>
-<td><p>Maybe</p></td>
-<td><p>Maybe</p></td>
-</tr>
-</tbody>
-</table>
-</div>
-<div class="section" id="rules">
-<h3>Rules<a class="headerlink" href="#rules" title="Permalink to this headline"></a></h3>
-<p>See <a class="reference external" href="https://jd28.github.io/rollnw/structure/rules.html">rules</a> for the module
-supporting this service.</p>
-</div>
-<hr class="docutils" />
-<div class="section" id="strings">
-<h3>Strings<a class="headerlink" href="#strings" title="Permalink to this headline"></a></h3>
-<p>Provides access to dialog/custom TLKs and localized strings. It also provides a
-mechanism for interning commonly used strings.</p>
-<p>See <a class="reference external" href="https://jd28.github.io/rollnw/structure/i18n.html">i18n</a> for the module
-supporting this service.</p>
-<p><strong>Example</strong></p>
-<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="k">auto</span><span class="w"> </span><span class="n">str</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">nw</span><span class="o">::</span><span class="n">kernel</span><span class="o">::</span><span class="n">strings</span><span class="p">().</span><span class="n">intern</span><span class="p">(</span><span class="s">&quot;This is a Test&quot;</span><span class="p">);</span><span class="w"></span>
-<span class="k">if</span><span class="p">(</span><span class="n">str</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="s">&quot;This is a Test&quot;</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
-<span class="w">   </span><span class="c1">// This will occur</span>
-<span class="p">}</span><span class="w"></span>
-</pre></div>
-</div>
 </div>
 </div>
 </div>

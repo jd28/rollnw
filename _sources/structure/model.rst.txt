@@ -7,7 +7,9 @@ for the purpose of conversion or in some other asset pipeline.
 ASCII Models
 ------------
 
-The ASCII Model parser can parse at about 100mb/s and can read pretty much `all ascii models <https://neverwintervault.org/project/nwn1/model/neverwinter-nights-ee-ascii-source-models>`__
+Most default NWN models can be parsed without errors.
+
+The parser can parse at about 100mb/s and can read pretty much `all ascii models <https://neverwintervault.org/project/nwn1/model/neverwinter-nights-ee-ascii-source-models>`__
 in ~20s on 2015 MacBook Pro.
 
 Binary Models

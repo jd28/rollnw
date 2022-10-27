@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>resources &mdash; rollNW  documentation</title>
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/tabs.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script src="../_static/tabs.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="rules" href="rules.html" />
+    <link rel="prev" title="objects" href="objects.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../index.html" class="icon icon-home"> rollNW
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">getting started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../gs/building.html">building</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../gs/using.html">using</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">structure</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="formats.html">formats</a></li>
+<li class="toctree-l1"><a class="reference internal" href="i18n.html">i18n</a></li>
+<li class="toctree-l1"><a class="reference internal" href="kernel.html">kernel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="model.html">model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="objects.html">objects</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">resources</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#containers">containers</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#directory">Directory</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#erf">Erf</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#key-bif">Key/Bif</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#nwsync">NWSync</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#zip">Zip</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#kernel-service">kernel service</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="rules.html">rules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="script.html">script</a></li>
+<li class="toctree-l1"><a class="reference internal" href="serialization.html">serialization</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">c++ api</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../api/classlist.html">classes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api/definelist.html">defines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api/enumlist.html">enums</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api/functionlist.html">functions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api/typedeflist.html">typedefs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">python api</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../api_python/classlist.html">classes</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">gff schemas</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../gff_schema/are.html">are</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../gff_schema/dlg.html">dlg</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../gff_schema/fac.html">fac</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../gff_schema/gic.html">gic</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../gff_schema/git.html">git</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../gff_schema/ifo.html">ifo</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../gff_schema/itp.html">itp</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../gff_schema/jrl.html">jrl</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../gff_schema/utc.html">utc</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../gff_schema/utd.html">utd</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../gff_schema/ute.html">ute</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../gff_schema/uti.html">uti</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../gff_schema/utm.html">utm</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../gff_schema/utp.html">utp</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../gff_schema/uts.html">uts</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../gff_schema/utt.html">utt</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../gff_schema/utw.html">utw</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../gff_schema/vartable.html">vartable</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">rollNW</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+      <li>resources</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/structure/resources.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <div class="section" id="resources">
+<h1>resources<a class="headerlink" href="#resources" title="Permalink to this headline"></a></h1>
+<div class="section" id="containers">
+<h2>containers<a class="headerlink" href="#containers" title="Permalink to this headline"></a></h2>
+<div class="section" id="directory">
+<h3>Directory<a class="headerlink" href="#directory" title="Permalink to this headline"></a></h3>
+<p><strong>Status</strong>: Read, Write (file format dependant)</p>
+</div>
+<div class="section" id="erf">
+<h3>Erf<a class="headerlink" href="#erf" title="Permalink to this headline"></a></h3>
+<p><strong>Status</strong>: Read</p>
+<p><strong>Example - Load an Erf and Print Contents</strong></p>
+<div class="sphinx-tabs docutils container">
+<div aria-label="Tabbed content" class="closeable" role="tablist"><button aria-controls="panel-0-Qysr" aria-selected="true" class="sphinx-tabs-tab code-tab group-tab" id="tab-0-Qysr" name="Qysr" role="tab" tabindex="0">C++</button><button aria-controls="panel-0-UHl0aG9u" aria-selected="false" class="sphinx-tabs-tab code-tab group-tab" id="tab-0-UHl0aG9u" name="UHl0aG9u" role="tab" tabindex="-1">Python</button></div><div aria-labelledby="tab-0-Qysr" class="sphinx-tabs-panel code-tab group-tab" id="panel-0-Qysr" name="Qysr" role="tabpanel" tabindex="0"><div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;nw/resources/Erf.hpp&gt;</span><span class="cp"></span>
+<span class="c1">// ...</span>
+<span class="n">Erf</span><span class="w"> </span><span class="n">e</span><span class="p">(</span><span class="s">&quot;MyModule.mod&quot;</span><span class="p">);</span><span class="w"></span>
+<span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">e</span><span class="p">.</span><span class="n">valid</span><span class="p">())</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">cout</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="n">fmt</span><span class="o">::</span><span class="n">format</span><span class="p">(</span><span class="s">&quot;{} has {} resources&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">e</span><span class="p">.</span><span class="n">name</span><span class="p">(),</span><span class="w"> </span><span class="n">e</span><span class="p">.</span><span class="n">size</span><span class="p">())</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="s">&quot;</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="k">auto</span><span class="o">&amp;</span><span class="w"> </span><span class="n">rd</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">e</span><span class="p">.</span><span class="n">all</span><span class="p">())</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">        </span><span class="n">std</span><span class="o">::</span><span class="n">cout</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="n">fmt</span><span class="o">::</span><span class="n">format</span><span class="p">(</span><span class="s">&quot;File: {}, Size: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">rd</span><span class="p">.</span><span class="n">name</span><span class="p">.</span><span class="n">filename</span><span class="p">(),</span><span class="w"> </span><span class="n">rd</span><span class="p">.</span><span class="n">size</span><span class="p">)</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="s">&quot;</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="p">}</span><span class="w"></span>
+<span class="p">}</span><span class="w"></span>
+</pre></div>
+</div>
+</div><div aria-labelledby="tab-0-UHl0aG9u" class="sphinx-tabs-panel code-tab group-tab" hidden="true" id="panel-0-UHl0aG9u" name="UHl0aG9u" role="tabpanel" tabindex="0"><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">rollnw</span>
+
+<span class="n">erf</span> <span class="o">=</span> <span class="n">rollnw</span><span class="o">.</span><span class="n">Erf</span><span class="p">(</span><span class="s2">&quot;tests/test_data/user/hak/hak_with_description.hak&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">erf</span><span class="o">.</span><span class="n">name</span><span class="p">(),</span> <span class="n">erf</span><span class="o">.</span><span class="n">size</span><span class="p">())</span>
+<span class="k">for</span> <span class="n">rd</span> <span class="ow">in</span> <span class="n">erf</span><span class="o">.</span><span class="n">all</span><span class="p">():</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">rd</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">filename</span><span class="p">(),</span> <span class="n">rd</span><span class="o">.</span><span class="n">size</span><span class="p">)</span>
+</pre></div>
+</div>
+</div></div>
+</div>
+<div class="section" id="key-bif">
+<h3>Key/Bif<a class="headerlink" href="#key-bif" title="Permalink to this headline"></a></h3>
+<p><strong>Status</strong>: Read</p>
+</div>
+<div class="section" id="nwsync">
+<h3>NWSync<a class="headerlink" href="#nwsync" title="Permalink to this headline"></a></h3>
+<p><strong>Status</strong>: Read</p>
+<p><strong>Example - Loading and Reading From NWSync Manifest</strong></p>
+<div class="sphinx-tabs docutils container">
+<div aria-label="Tabbed content" class="closeable" role="tablist"><button aria-controls="panel-1-Qysr" aria-selected="true" class="sphinx-tabs-tab code-tab group-tab" id="tab-1-Qysr" name="Qysr" role="tab" tabindex="0">C++</button><button aria-controls="panel-1-UHl0aG9u" aria-selected="false" class="sphinx-tabs-tab code-tab group-tab" id="tab-1-UHl0aG9u" name="UHl0aG9u" role="tab" tabindex="-1">Python</button></div><div aria-labelledby="tab-1-Qysr" class="sphinx-tabs-panel code-tab group-tab" id="panel-1-Qysr" name="Qysr" role="tabpanel" tabindex="0"><div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;nw/resources/NWSync.hpp&gt;</span><span class="cp"></span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;nw/kernel/Kernel.hpp&gt;</span><span class="cp"></span>
+
+<span class="k">auto</span><span class="w"> </span><span class="n">path</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">nw</span><span class="o">::</span><span class="n">kernel</span><span class="o">::</span><span class="n">config</span><span class="p">().</span><span class="n">alias_path</span><span class="p">(</span><span class="n">nw</span><span class="o">::</span><span class="n">PathAlias</span><span class="o">::</span><span class="n">nwsync</span><span class="p">);</span><span class="w"></span>
+<span class="k">auto</span><span class="w"> </span><span class="n">n</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">nw</span><span class="o">::</span><span class="n">NWSync</span><span class="p">(</span><span class="n">path</span><span class="p">);</span><span class="w"></span>
+<span class="k">if</span><span class="p">(</span><span class="o">!</span><span class="n">n</span><span class="p">.</span><span class="n">is_loaded</span><span class="p">())</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">    </span><span class="k">throw</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">runtime_error</span><span class="p">(</span><span class="s">&quot;a fit&quot;</span><span class="p">);</span><span class="w"></span>
+<span class="p">}</span><span class="w"></span>
+
+<span class="k">auto</span><span class="w"> </span><span class="n">manifests</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">n</span><span class="p">.</span><span class="n">manifests</span><span class="p">();</span><span class="w"></span>
+<span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">manifests</span><span class="p">.</span><span class="n">size</span><span class="p">()</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">manifest</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">n</span><span class="p">.</span><span class="n">get</span><span class="p">(</span><span class="n">manifests</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span><span class="w"></span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">resource</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">manifest</span><span class="o">-&gt;</span><span class="n">all</span><span class="p">();</span><span class="w"></span>
+<span class="w">    </span><span class="k">if</span><span class="p">(</span><span class="n">resource</span><span class="p">.</span><span class="n">size</span><span class="p">()</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">        </span><span class="c1">// Extract the first resource found</span>
+<span class="w">        </span><span class="n">manifest</span><span class="o">-&gt;</span><span class="n">extract</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">regex</span><span class="p">(</span><span class="n">resource</span><span class="p">[</span><span class="mi">0</span><span class="p">].</span><span class="n">name</span><span class="p">.</span><span class="n">filename</span><span class="p">()),</span><span class="w"> </span><span class="s">&quot;tmp/&quot;</span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="p">}</span><span class="w"></span>
+<span class="p">}</span><span class="w"></span>
+</pre></div>
+</div>
+</div><div aria-labelledby="tab-1-UHl0aG9u" class="sphinx-tabs-panel code-tab group-tab" hidden="true" id="panel-1-UHl0aG9u" name="UHl0aG9u" role="tabpanel" tabindex="0"><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># TODO</span>
+</pre></div>
+</div>
+</div></div>
+</div>
+<div class="section" id="zip">
+<h3>Zip<a class="headerlink" href="#zip" title="Permalink to this headline"></a></h3>
+<p><strong>Status</strong>: Read</p>
+</div>
+</div>
+<div class="section" id="kernel-service">
+<h2>kernel service<a class="headerlink" href="#kernel-service" title="Permalink to this headline"></a></h2>
+<p>The resource services provides access the file system and resources stored in NWN container files.
+The main goals mostly satisfied: the ability to read all NWN(:EE) containers. The ability to
+add new container types is limited in utility due to <a class="reference external" href="https://github.com/nwnxee/unified">NWNX:EE</a>’s
+lack of a ResMan plugin, even so the ability to load files from a Zip file is included.</p>
+</div>
+</div>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="objects.html" class="btn btn-neutral float-left" title="objects" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="rules.html" class="btn btn-neutral float-right" title="rules" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright .</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

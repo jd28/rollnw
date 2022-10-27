@@ -38,7 +38,8 @@ features
 - A recursive decent `NWScript Parser <https://jd28.github.io/rollnw/structure/script.html>`__
 - Implementations of pretty much every `NWN File Format <https://jd28.github.io/rollnw/structure/formats.html>`__
 - A Resource Manager that can load all NWN containers (e.g. erf, key, nwsync) and also Zip files.
-- A `NWN Localization System <https://jd28.github.io/rollnw/structure/i18n.html>`__ focused on utf8 everywhere.
+- An implementation of NWN's `Localization System <https://jd28.github.io/rollnw/structure/i18n.html>`__ focused
+  on utf8 everywhere.
 - A `Serialization System <https://jd28.github.io/rollnw/structure/serialization.html>`__ that can transparently
   handle GFF or JSON.
 - The beginnings of a novel `Rules System <https://jd28.github.io/rollnw/structure/rules.html>`__ designed for
@@ -161,6 +162,8 @@ Credits
   structure/i18n
   structure/kernel
   structure/model
+  structure/objects
+  structure/resources
   structure/rules
   structure/script
   structure/serialization
