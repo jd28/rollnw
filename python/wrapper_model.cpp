@@ -7,6 +7,7 @@
 
 #include <filesystem>
 #include <string>
+#include <utility>
 #include <variant>
 
 namespace py = pybind11;
@@ -40,34 +41,34 @@ void init_model(py::module& nw)
         .def_readonly_static("aabb", &nw::MdlNodeType::aabb);
 
     py::class_<nw::MdlEmitterFlag>(nw, "MdlEmitterFlag")
-        .def_readonly_static("P2P", &nw::MdlEmitterFlag::P2P)
-        .def_readonly_static("P2PSel", &nw::MdlEmitterFlag::P2PSel)
-        .def_readonly_static("AffectedByWind", &nw::MdlEmitterFlag::AffectedByWind)
-        .def_readonly_static("IsTinted", &nw::MdlEmitterFlag::IsTinted)
-        .def_readonly_static("Bounce", &nw::MdlEmitterFlag::Bounce)
-        .def_readonly_static("Random", &nw::MdlEmitterFlag::Random)
-        .def_readonly_static("Inherit", &nw::MdlEmitterFlag::Inherit)
-        .def_readonly_static("InheritVel", &nw::MdlEmitterFlag::InheritVel)
-        .def_readonly_static("InheritLocal", &nw::MdlEmitterFlag::InheritLocal)
-        .def_readonly_static("Splat", &nw::MdlEmitterFlag::Splat)
-        .def_readonly_static("InheritPart", &nw::MdlEmitterFlag::InheritPart);
+        .def_readonly_static("affected_by_wind", &nw::MdlEmitterFlag::AffectedByWind)
+        .def_readonly_static("bounce", &nw::MdlEmitterFlag::Bounce)
+        .def_readonly_static("inherit_local", &nw::MdlEmitterFlag::InheritLocal)
+        .def_readonly_static("inherit_part", &nw::MdlEmitterFlag::InheritPart)
+        .def_readonly_static("inherit_vel", &nw::MdlEmitterFlag::InheritVel)
+        .def_readonly_static("inherit", &nw::MdlEmitterFlag::Inherit)
+        .def_readonly_static("is_tinted", &nw::MdlEmitterFlag::IsTinted)
+        .def_readonly_static("p2p_sel", &nw::MdlEmitterFlag::P2PSel)
+        .def_readonly_static("p2p", &nw::MdlEmitterFlag::P2P)
+        .def_readonly_static("random", &nw::MdlEmitterFlag::Random)
+        .def_readonly_static("splat", &nw::MdlEmitterFlag::Splat);
 
     py::enum_<nw::MdlTriangleMode>(nw, "MdlTriangleMode")
         .value("triangle", nw::MdlTriangleMode::triangle)
         .value("triangle_strip", nw::MdlTriangleMode::triangle_strip);
 
     py::enum_<nw::MdlGeometryFlag>(nw, "MdlGeometryFlag")
-        .value("HasGeometry", nw::MdlGeometryFlag::HasGeometry)
-        .value("HasModel", nw::MdlGeometryFlag::HasModel)
+        .value("geometry", nw::MdlGeometryFlag::geometry)
+        .value("model", nw::MdlGeometryFlag::model)
         .value("animation", nw::MdlGeometryFlag::animation)
-        .value("LoadedBinary", nw::MdlGeometryFlag::LoadedBinary);
+        .value("binary", nw::MdlGeometryFlag::binary);
 
     py::enum_<nw::MdlGeometryType>(nw, "MdlGeometryType")
         .value("geometry", nw::MdlGeometryType::geometry)
         .value("model", nw::MdlGeometryType::model)
         .value("animation", nw::MdlGeometryType::animation);
 
-    py::enum_<nw::MdlModelClass>(nw, "MdlModelClass")
+    py::enum_<nw::MdlModelClass>(nw, "MdlClassification")
         .value("invalid", nw::MdlModelClass::invalid)
         .value("effect", nw::MdlModelClass::effect)
         .value("tile", nw::MdlModelClass::tile)
@@ -77,67 +78,57 @@ void init_model(py::module& nw)
         .value("gui", nw::MdlModelClass::gui);
 
     py::class_<nw::MdlControllerType>(nw, "MdlControllerType")
-        .def_readonly_static("Position", &nw::MdlControllerType::Position)
-
-        .def_readonly_static("Orientation", &nw::MdlControllerType::Orientation)
-        .def_readonly_static("Scale", &nw::MdlControllerType::Scale)
-        .def_readonly_static("Wirecolor", &nw::MdlControllerType::Wirecolor)
-
-        // Light
-
-        .def_readonly_static("Color", &nw::MdlControllerType::Color)
-        .def_readonly_static("Radius", &nw::MdlControllerType::Radius)
-        .def_readonly_static("ShadowRadius", &nw::MdlControllerType::ShadowRadius)
-        .def_readonly_static("VerticalDisplacement", &nw::MdlControllerType::VerticalDisplacement)
-        .def_readonly_static("Multiplier", &nw::MdlControllerType::Multiplier)
-
-        // Emitter
-
-        .def_readonly_static("AlphaEnd", &nw::MdlControllerType::AlphaEnd)
-        .def_readonly_static("AlphaStart", &nw::MdlControllerType::AlphaStart)
-        .def_readonly_static("BirthRate", &nw::MdlControllerType::BirthRate)
-        .def_readonly_static("Bounce_Co", &nw::MdlControllerType::Bounce_Co)
-        .def_readonly_static("ColorEnd", &nw::MdlControllerType::ColorEnd)
-        .def_readonly_static("ColorStart", &nw::MdlControllerType::ColorStart)
-        .def_readonly_static("CombineTime", &nw::MdlControllerType::CombineTime)
-        .def_readonly_static("Drag", &nw::MdlControllerType::Drag)
-        .def_readonly_static("FPS", &nw::MdlControllerType::FPS)
-        .def_readonly_static("FrameEnd", &nw::MdlControllerType::FrameEnd)
-        .def_readonly_static("FrameStart", &nw::MdlControllerType::FrameStart)
-        .def_readonly_static("Grav", &nw::MdlControllerType::Grav)
-        .def_readonly_static("LifeExp", &nw::MdlControllerType::LifeExp)
-        .def_readonly_static("Mass", &nw::MdlControllerType::Mass)
-        .def_readonly_static("P2P_Bezier2", &nw::MdlControllerType::P2P_Bezier2)
-        .def_readonly_static("P2P_Bezier3", &nw::MdlControllerType::P2P_Bezier3)
-        .def_readonly_static("ParticleRot", &nw::MdlControllerType::ParticleRot)
-        .def_readonly_static("RandVel", &nw::MdlControllerType::RandVel)
-        .def_readonly_static("SizeStart", &nw::MdlControllerType::SizeStart)
-        .def_readonly_static("SizeEnd", &nw::MdlControllerType::SizeEnd)
-        .def_readonly_static("SizeStart_Y", &nw::MdlControllerType::SizeStart_Y)
-        .def_readonly_static("SizeEnd_Y", &nw::MdlControllerType::SizeEnd_Y)
-        .def_readonly_static("Spread", &nw::MdlControllerType::Spread)
-        .def_readonly_static("Threshold", &nw::MdlControllerType::Threshold)
-        .def_readonly_static("Velocity", &nw::MdlControllerType::Velocity)
-        .def_readonly_static("XSize", &nw::MdlControllerType::XSize)
-        .def_readonly_static("YSize", &nw::MdlControllerType::YSize)
-        .def_readonly_static("BlurLength", &nw::MdlControllerType::BlurLength)
-        .def_readonly_static("LightningDelay", &nw::MdlControllerType::LightningDelay)
-        .def_readonly_static("LightningRadius", &nw::MdlControllerType::LightningRadius)
-        .def_readonly_static("LightningScale", &nw::MdlControllerType::LightningScale)
-        .def_readonly_static("LightningSubDiv", &nw::MdlControllerType::LightningSubDiv)
-        .def_readonly_static("Detonate", &nw::MdlControllerType::Detonate)
-        .def_readonly_static("AlphaMid", &nw::MdlControllerType::AlphaMid)
-        .def_readonly_static("ColorMid", &nw::MdlControllerType::ColorMid)
-        .def_readonly_static("PercentStart", &nw::MdlControllerType::PercentStart)
-        .def_readonly_static("PercentMid", &nw::MdlControllerType::PercentMid)
-        .def_readonly_static("PercentEnd", &nw::MdlControllerType::PercentEnd)
-        .def_readonly_static("SizeMid", &nw::MdlControllerType::SizeMid)
-        .def_readonly_static("SizeMid_Y", &nw::MdlControllerType::SizeMid_Y)
-
-        // Meshes
-
-        .def_readonly_static("SelfIllumColor", &nw::MdlControllerType::SelfIllumColor)
-        .def_readonly_static("Alpha", &nw::MdlControllerType::Alpha);
+        .def_readonly_static("position", &nw::MdlControllerType::Position)
+        .def_readonly_static("orientation", &nw::MdlControllerType::Orientation)
+        .def_readonly_static("scale", &nw::MdlControllerType::Scale)
+        .def_readonly_static("wirecolor", &nw::MdlControllerType::Wirecolor)
+        .def_readonly_static("color", &nw::MdlControllerType::Color)
+        .def_readonly_static("radius", &nw::MdlControllerType::Radius)
+        .def_readonly_static("shadow_radius", &nw::MdlControllerType::ShadowRadius)
+        .def_readonly_static("vertical_displacement", &nw::MdlControllerType::VerticalDisplacement)
+        .def_readonly_static("multiplier", &nw::MdlControllerType::Multiplier)
+        .def_readonly_static("alpha_end", &nw::MdlControllerType::AlphaEnd)
+        .def_readonly_static("alpha_start", &nw::MdlControllerType::AlphaStart)
+        .def_readonly_static("birthrate", &nw::MdlControllerType::BirthRate)
+        .def_readonly_static("bounce_co", &nw::MdlControllerType::Bounce_Co)
+        .def_readonly_static("color_end", &nw::MdlControllerType::ColorEnd)
+        .def_readonly_static("color_start", &nw::MdlControllerType::ColorStart)
+        .def_readonly_static("combine_time", &nw::MdlControllerType::CombineTime)
+        .def_readonly_static("drag", &nw::MdlControllerType::Drag)
+        .def_readonly_static("fps", &nw::MdlControllerType::FPS)
+        .def_readonly_static("frame_end", &nw::MdlControllerType::FrameEnd)
+        .def_readonly_static("frame_start", &nw::MdlControllerType::FrameStart)
+        .def_readonly_static("grav", &nw::MdlControllerType::Grav)
+        .def_readonly_static("life_exp", &nw::MdlControllerType::LifeExp)
+        .def_readonly_static("mass", &nw::MdlControllerType::Mass)
+        .def_readonly_static("p2p_bezier2", &nw::MdlControllerType::P2P_Bezier2)
+        .def_readonly_static("p2p_bezier3", &nw::MdlControllerType::P2P_Bezier3)
+        .def_readonly_static("particle_rot", &nw::MdlControllerType::ParticleRot)
+        .def_readonly_static("rand_vel", &nw::MdlControllerType::RandVel)
+        .def_readonly_static("size_start", &nw::MdlControllerType::SizeStart)
+        .def_readonly_static("size_end", &nw::MdlControllerType::SizeEnd)
+        .def_readonly_static("size_start_y", &nw::MdlControllerType::SizeStart_Y)
+        .def_readonly_static("size_end_y", &nw::MdlControllerType::SizeEnd_Y)
+        .def_readonly_static("spread", &nw::MdlControllerType::Spread)
+        .def_readonly_static("threshold", &nw::MdlControllerType::Threshold)
+        .def_readonly_static("velocity", &nw::MdlControllerType::Velocity)
+        .def_readonly_static("xsize", &nw::MdlControllerType::XSize)
+        .def_readonly_static("ysize", &nw::MdlControllerType::YSize)
+        .def_readonly_static("blur_length", &nw::MdlControllerType::BlurLength)
+        .def_readonly_static("lightning_delay", &nw::MdlControllerType::LightningDelay)
+        .def_readonly_static("lightning_radius", &nw::MdlControllerType::LightningRadius)
+        .def_readonly_static("lightning_scale", &nw::MdlControllerType::LightningScale)
+        .def_readonly_static("lightning_subdiv", &nw::MdlControllerType::LightningSubDiv)
+        .def_readonly_static("detonate", &nw::MdlControllerType::Detonate)
+        .def_readonly_static("alpha_mid", &nw::MdlControllerType::AlphaMid)
+        .def_readonly_static("color_mid", &nw::MdlControllerType::ColorMid)
+        .def_readonly_static("percent_start", &nw::MdlControllerType::PercentStart)
+        .def_readonly_static("percent_mid", &nw::MdlControllerType::PercentMid)
+        .def_readonly_static("percent_end", &nw::MdlControllerType::PercentEnd)
+        .def_readonly_static("size_mid", &nw::MdlControllerType::SizeMid)
+        .def_readonly_static("size_mid_y", &nw::MdlControllerType::SizeMid_Y)
+        .def_readonly_static("self_illum_color", &nw::MdlControllerType::SelfIllumColor)
+        .def_readonly_static("alpha", &nw::MdlControllerType::Alpha);
 
     py::class_<nw::MdlControllerKey>(nw, "MdlControllerKey>")
         .def_readwrite("name", &nw::MdlControllerKey::name)
@@ -160,8 +151,14 @@ void init_model(py::module& nw)
         .def_readonly("parent", &nw::MdlNode::parent)
         .def_readonly("children", &nw::MdlNode::children)
         .def_readonly("controller_keys", &nw::MdlNode::controller_keys)
-        .def_readonly("controller_data", &nw::MdlNode::controller_data);
-    // std::pair<const nw::MdlControllerKey*, std::span<const float>> get_controller(uint32_t type_) const;
+        .def_readonly("controller_data", &nw::MdlNode::controller_data)
+        .def(
+            "get_controller", [](const nw::MdlNode& self, uint32_t type) {
+                auto [key, data] = self.get_controller(type);
+                // This is terrible..
+                return std::make_tuple(key, std::vector<float>(data.begin(), data.end()));
+            },
+            py::return_value_policy::reference);
 
     py::class_<nw::MdlDummyNode, nw::MdlNode>(nw, "MdlDummyNode");
 
@@ -275,7 +272,13 @@ void init_model(py::module& nw)
     py::class_<nw::MdlGeometry>(nw, "MdlGeometry")
         .def_readwrite("name", &nw::MdlGeometry::name)
         .def_readwrite("type", &nw::MdlGeometry::type)
-        .def_property_readonly("nodes", [](const nw::MdlGeometry& self) {
+        .def("__len__", [](const nw::MdlGeometry& self) { return self.nodes.size(); })
+        .def(
+            "__getitem__", [](const nw::MdlGeometry& self, size_t index) {
+                return self.nodes.at(index).get();
+            },
+            py::return_value_policy::reference)
+        .def("nodes", [](const nw::MdlGeometry& self) {
             auto pylist = py::list();
             for (auto& ptr : self.nodes) {
                 auto pyobj = py::cast(*ptr, py::return_value_policy::reference);
@@ -297,7 +300,13 @@ void init_model(py::module& nw)
     py::class_<nw::MdlModel, nw::MdlGeometry>(nw, "MdlModel")
         .def_readwrite("classification", &nw::MdlModel::classification)
         .def_readwrite("ignorefog", &nw::MdlModel::ignorefog)
-        .def_property_readonly("animations", [](const nw::MdlModel& self) {
+        .def("animation_count", [](const nw::MdlModel& self) { return self.animations.size(); })
+        .def(
+            "get_animation", [](const nw::MdlModel& self, size_t index) {
+                return self.animations.at(index).get();
+            },
+            py::return_value_policy::reference)
+        .def("animations", [](const nw::MdlModel& self) {
             auto pylist = py::list();
             for (auto& ptr : self.animations) {
                 auto pyobj = py::cast(*ptr, py::return_value_policy::reference);

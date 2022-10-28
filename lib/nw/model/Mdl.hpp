@@ -119,10 +119,10 @@ enum struct MdlTriangleMode : uint32_t {
 };
 
 enum struct MdlGeometryFlag : uint32_t {
-    HasGeometry = 0x01,
-    HasModel = 0x02,
+    geometry = 0x01,
+    model = 0x02,
     animation = 0x04,
-    LoadedBinary = 0x80,
+    binary = 0x80,
 };
 
 enum struct MdlGeometryType : uint8_t {
@@ -329,7 +329,7 @@ struct MdlEmitterNode : public MdlNode {
     uint32_t spawntype_sel{0};
     float opacity{0.0f};
     std::string p2p_type;
-    uint32_t tilefade{0};
+    uint32_t tilefade{0}; // This may be an accident on one model..
 };
 
 struct MdlLightNode : public MdlNode {
