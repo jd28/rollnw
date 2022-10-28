@@ -195,6 +195,130 @@
              
   <div class="section" id="erf">
 <h1>Erf<a class="headerlink" href="#erf" title="Permalink to this headline"></a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="rollnw.Erf">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">rollnw.</span></span><span class="sig-name descname"><span class="pre">Erf</span></span><a class="headerlink" href="#rollnw.Erf" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="Container.html#rollnw.Container" title="rollnw.Container"><code class="xref py py-class docutils literal notranslate"><span class="pre">rollnw.Container</span></code></a></p>
+<p>Implementation of Erf file format</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>filename</strong> (<em>str</em>) – Erf file to load</p>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="rollnw.Erf.__weakref__">
+<span class="sig-name descname"><span class="pre">__weakref__</span></span><a class="headerlink" href="#rollnw.Erf.__weakref__" title="Permalink to this definition"></a></dt>
+<dd><p>list of weak references to the object (if defined)</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="rollnw.Erf.add">
+<span class="sig-name descname"><span class="pre">add</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#rollnw.Erf.add" title="Permalink to this definition"></a></dt>
+<dd><p>Adds resources from path</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="rollnw.Erf.all">
+<span class="sig-name descname"><span class="pre">all</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#rollnw.Erf.all" title="Permalink to this definition"></a></dt>
+<dd><p>Get all resources</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="rollnw.Erf.contains">
+<span class="sig-name descname"><span class="pre">contains</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">res</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="Resource.html#rollnw.Resource" title="rollnw.Resource"><span class="pre">rollnw.Resource</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#rollnw.Erf.contains" title="Permalink to this definition"></a></dt>
+<dd><p>Get if container contains resource</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="rollnw.Erf.demand">
+<span class="sig-name descname"><span class="pre">demand</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">res</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="Resource.html#rollnw.Resource" title="rollnw.Resource"><span class="pre">rollnw.Resource</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#rollnw.Erf.demand" title="Permalink to this definition"></a></dt>
+<dd><p>Reads resource data, empty ByteArray if no match.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="rollnw.Erf.erase">
+<span class="sig-name descname"><span class="pre">erase</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">resource</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#rollnw.Erf.erase" title="Permalink to this definition"></a></dt>
+<dd><p>Removes resource</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="rollnw.Erf.extract">
+<span class="sig-name descname"><span class="pre">extract</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pattern</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#rollnw.Erf.extract" title="Permalink to this definition"></a></dt>
+<dd><p>Extract elements from a container by regex</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="rollnw.Erf.extract_by_glob">
+<span class="sig-name descname"><span class="pre">extract_by_glob</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">output</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#rollnw.Erf.extract_by_glob" title="Permalink to this definition"></a></dt>
+<dd><p>Extract elements from a container by glob pattern</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="rollnw.Erf.merge">
+<span class="sig-name descname"><span class="pre">merge</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">container</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#rollnw.Erf.merge" title="Permalink to this definition"></a></dt>
+<dd><p>Merges the contents of another rollnw.Container</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="rollnw.Erf.name">
+<span class="sig-name descname"><span class="pre">name</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#rollnw.Erf.name" title="Permalink to this definition"></a></dt>
+<dd><p>Equivalent to <cite>basename path()</cite></p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="rollnw.Erf.path">
+<span class="sig-name descname"><span class="pre">path</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#rollnw.Erf.path" title="Permalink to this definition"></a></dt>
+<dd><p>Path to container, for basic containers, should be canonical</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="rollnw.Erf.reload">
+<span class="sig-name descname"><span class="pre">reload</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#rollnw.Erf.reload" title="Permalink to this definition"></a></dt>
+<dd><p>Reloads Erf</p>
+<p>&#64;note Erf:: working_directory() will not change</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="rollnw.Erf.save">
+<span class="sig-name descname"><span class="pre">save</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#rollnw.Erf.save" title="Permalink to this definition"></a></dt>
+<dd><p>Saves Erf to Erf:: path()</p>
+<p>&#64;note It’s probably best to call Erf:: reload after save.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="rollnw.Erf.save_as">
+<span class="sig-name descname"><span class="pre">save_as</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#rollnw.Erf.save_as" title="Permalink to this definition"></a></dt>
+<dd><p>Saves Erf to different path</p>
+<p>&#64;note Current Erf unmodified, to load Erf at new path a new Erf must
+be constructed.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="rollnw.Erf.size">
+<span class="sig-name descname"><span class="pre">size</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#rollnw.Erf.size" title="Permalink to this definition"></a></dt>
+<dd><p>Gets the number of resources, if applicable, of the container</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="rollnw.Erf.stat">
+<span class="sig-name descname"><span class="pre">stat</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">res</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#rollnw.Erf.stat" title="Permalink to this definition"></a></dt>
+<dd><p>Get some general data about a resource</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="rollnw.Erf.valid">
+<span class="sig-name descname"><span class="pre">valid</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#rollnw.Erf.valid" title="Permalink to this definition"></a></dt>
+<dd><p>Return true if loaded, false if not.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="rollnw.Erf.working_directory">
+<span class="sig-name descname"><span class="pre">working_directory</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#rollnw.Erf.working_directory" title="Permalink to this definition"></a></dt>
+<dd><p>Get container working directory</p>
+</dd></dl>
+
+</dd></dl>
+
 </div>
 
 

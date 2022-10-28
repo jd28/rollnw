@@ -195,6 +195,66 @@
              
   <div class="section" id="spellbook">
 <h1>SpellBook<a class="headerlink" href="#spellbook" title="Permalink to this headline"></a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="rollnw.SpellBook">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">rollnw.</span></span><span class="sig-name descname"><span class="pre">SpellBook</span></span><a class="headerlink" href="#rollnw.SpellBook" title="Permalink to this definition"></a></dt>
+<dd><p>Implements a spell casters spellbook</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="rollnw.SpellBook.__weakref__">
+<span class="sig-name descname"><span class="pre">__weakref__</span></span><a class="headerlink" href="#rollnw.SpellBook.__weakref__" title="Permalink to this definition"></a></dt>
+<dd><p>list of weak references to the object (if defined)</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="rollnw.SpellBook.add_known_spell">
+<span class="sig-name descname"><span class="pre">add_known_spell</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">entry</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="SpellEntry.html#rollnw.SpellEntry" title="rollnw.SpellEntry"><span class="pre">rollnw.SpellEntry</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#rollnw.SpellBook.add_known_spell" title="Permalink to this definition"></a></dt>
+<dd><p>Adds a known spell at level</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="rollnw.SpellBook.add_memorized_spell">
+<span class="sig-name descname"><span class="pre">add_memorized_spell</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">entry</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="SpellEntry.html#rollnw.SpellEntry" title="rollnw.SpellEntry"><span class="pre">rollnw.SpellEntry</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#rollnw.SpellBook.add_memorized_spell" title="Permalink to this definition"></a></dt>
+<dd><p>Adds a memorized spell at level</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="rollnw.SpellBook.get_known_spell">
+<span class="sig-name descname"><span class="pre">get_known_spell</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">index</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#rollnw.SpellBook.get_known_spell" title="Permalink to this definition"></a></dt>
+<dd><p>Gets a known spell entry</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="rollnw.SpellBook.get_known_spell_count">
+<span class="sig-name descname"><span class="pre">get_known_spell_count</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#rollnw.SpellBook.get_known_spell_count" title="Permalink to this definition"></a></dt>
+<dd><p>Gets the number of known at a given level</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="rollnw.SpellBook.get_memorized_spell">
+<span class="sig-name descname"><span class="pre">get_memorized_spell</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">index</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#rollnw.SpellBook.get_memorized_spell" title="Permalink to this definition"></a></dt>
+<dd><p>Gets a memorized spell entry</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="rollnw.SpellBook.get_memorized_spell_count">
+<span class="sig-name descname"><span class="pre">get_memorized_spell_count</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#rollnw.SpellBook.get_memorized_spell_count" title="Permalink to this definition"></a></dt>
+<dd><p>Gets the number of memorized at a given level</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="rollnw.SpellBook.remove_known_spell">
+<span class="sig-name descname"><span class="pre">remove_known_spell</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">entry</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="SpellEntry.html#rollnw.SpellEntry" title="rollnw.SpellEntry"><span class="pre">rollnw.SpellEntry</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#rollnw.SpellBook.remove_known_spell" title="Permalink to this definition"></a></dt>
+<dd><p>Removes a known spell entry</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="rollnw.SpellBook.remove_memorized_spell">
+<span class="sig-name descname"><span class="pre">remove_memorized_spell</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">entry</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="SpellEntry.html#rollnw.SpellEntry" title="rollnw.SpellEntry"><span class="pre">rollnw.SpellEntry</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#rollnw.SpellBook.remove_memorized_spell" title="Permalink to this definition"></a></dt>
+<dd><p>Removes a memorized spell entry</p>
+</dd></dl>
+
+</dd></dl>
+
 </div>
 
 

@@ -195,6 +195,65 @@
              
   <div class="section" id="locstring">
 <h1>LocString<a class="headerlink" href="#locstring" title="Permalink to this headline"></a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="rollnw.LocString">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">rollnw.</span></span><span class="sig-name descname"><span class="pre">LocString</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">strref</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">-</span> <span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#rollnw.LocString" title="Permalink to this definition"></a></dt>
+<dd><p>Implements a localized string</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>strref</strong> (<em>int</em>) – String reference.  (default -1)</p>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="rollnw.LocString.add">
+<span class="sig-name descname"><span class="pre">add</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">language</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../enums/LanguageID.html#rollnw.LanguageID" title="rollnw.LanguageID"><span class="pre">rollnw.LanguageID</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">string</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">feminine</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#rollnw.LocString.add" title="Permalink to this definition"></a></dt>
+<dd><p>Adds a localized string</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="rollnw.LocString.contains">
+<span class="sig-name descname"><span class="pre">contains</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">language</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../enums/LanguageID.html#rollnw.LanguageID" title="rollnw.LanguageID"><span class="pre">rollnw.LanguageID</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">feminine</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#rollnw.LocString.contains" title="Permalink to this definition"></a></dt>
+<dd><p>Checks if a localized string is contained</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="rollnw.LocString.from_dict">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_dict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#rollnw.LocString.from_dict" title="Permalink to this definition"></a></dt>
+<dd><p>Converts python <code class="docutils literal notranslate"><span class="pre">dict</span></code> to <code class="docutils literal notranslate"><span class="pre">LocString</span></code></p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="rollnw.LocString.get">
+<span class="sig-name descname"><span class="pre">get</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">language</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../enums/LanguageID.html#rollnw.LanguageID" title="rollnw.LanguageID"><span class="pre">rollnw.LanguageID</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">feminine</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#rollnw.LocString.get" title="Permalink to this definition"></a></dt>
+<dd><p>Gets a localized string</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="rollnw.LocString.remove">
+<span class="sig-name descname"><span class="pre">remove</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">language</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../enums/LanguageID.html#rollnw.LanguageID" title="rollnw.LanguageID"><span class="pre">rollnw.LanguageID</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">feminine</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#rollnw.LocString.remove" title="Permalink to this definition"></a></dt>
+<dd><p>Removes a localized string</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="rollnw.LocString.size">
+<span class="sig-name descname"><span class="pre">size</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#rollnw.LocString.size" title="Permalink to this definition"></a></dt>
+<dd><p>Gets number of localized strings</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="rollnw.LocString.strref">
+<span class="sig-name descname"><span class="pre">strref</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#rollnw.LocString.strref" title="Permalink to this definition"></a></dt>
+<dd><p>Gets string reference</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="rollnw.LocString.to_dict">
+<span class="sig-name descname"><span class="pre">to_dict</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span></span></span><a class="headerlink" href="#rollnw.LocString.to_dict" title="Permalink to this definition"></a></dt>
+<dd><p>Converts <code class="docutils literal notranslate"><span class="pre">LocString</span></code> to python <code class="docutils literal notranslate"><span class="pre">dict</span></code></p>
+</dd></dl>
+
+</dd></dl>
+
 </div>
 
 

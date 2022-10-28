@@ -195,6 +195,91 @@
              
   <div class="section" id="store">
 <h1>Store<a class="headerlink" href="#store" title="Permalink to this headline"></a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="rollnw.Store">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">rollnw.</span></span><span class="sig-name descname"><span class="pre">Store</span></span><a class="headerlink" href="#rollnw.Store" title="Permalink to this definition"></a></dt>
+<dd><p>Class that represents a Store object</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="rollnw.Store.armor">
+<span class="sig-name descname"><span class="pre">armor</span></span><a class="headerlink" href="#rollnw.Store.armor" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="rollnw.Store.blackmarket">
+<span class="sig-name descname"><span class="pre">blackmarket</span></span><a class="headerlink" href="#rollnw.Store.blackmarket" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="rollnw.Store.blackmarket_markdown">
+<span class="sig-name descname"><span class="pre">blackmarket_markdown</span></span><a class="headerlink" href="#rollnw.Store.blackmarket_markdown" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="rollnw.Store.gold">
+<span class="sig-name descname"><span class="pre">gold</span></span><a class="headerlink" href="#rollnw.Store.gold" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="rollnw.Store.identify_price">
+<span class="sig-name descname"><span class="pre">identify_price</span></span><a class="headerlink" href="#rollnw.Store.identify_price" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="rollnw.Store.markdown">
+<span class="sig-name descname"><span class="pre">markdown</span></span><a class="headerlink" href="#rollnw.Store.markdown" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="rollnw.Store.markup">
+<span class="sig-name descname"><span class="pre">markup</span></span><a class="headerlink" href="#rollnw.Store.markup" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="rollnw.Store.max_price">
+<span class="sig-name descname"><span class="pre">max_price</span></span><a class="headerlink" href="#rollnw.Store.max_price" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="rollnw.Store.miscellaneous">
+<span class="sig-name descname"><span class="pre">miscellaneous</span></span><a class="headerlink" href="#rollnw.Store.miscellaneous" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="rollnw.Store.potions">
+<span class="sig-name descname"><span class="pre">potions</span></span><a class="headerlink" href="#rollnw.Store.potions" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="rollnw.Store.rings">
+<span class="sig-name descname"><span class="pre">rings</span></span><a class="headerlink" href="#rollnw.Store.rings" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="rollnw.Store.scripts">
+<span class="sig-name descname"><span class="pre">scripts</span></span><a class="headerlink" href="#rollnw.Store.scripts" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="rollnw.Store.weapons">
+<span class="sig-name descname"><span class="pre">weapons</span></span><a class="headerlink" href="#rollnw.Store.weapons" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>//.def_readonly(“will_not_buy”, &amp;nw::Store::will_not_buy)
+//.def_readonly(“will_only_buy”, &amp;nw::Store::will_only_buy)</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="rollnw.Store.from_dict">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_dict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="Creature.html#rollnw.Creature" title="rollnw.Creature"><span class="pre">rollnw.Creature</span></a></span></span><a class="headerlink" href="#rollnw.Store.from_dict" title="Permalink to this definition"></a></dt>
+<dd><p>Constructs object from python dict.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="rollnw.Store.from_file">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#rollnw.Store.from_file" title="Permalink to this definition"></a></dt>
+<dd><p>Constructs object from file.  The file can be JSON or Gff.</p>
+</dd></dl>
+
+</dd></dl>
+
 </div>
 
 

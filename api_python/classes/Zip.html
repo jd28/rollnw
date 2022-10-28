@@ -195,6 +195,90 @@
              
   <div class="section" id="zip">
 <h1>Zip<a class="headerlink" href="#zip" title="Permalink to this headline"></a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="rollnw.Zip">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">rollnw.</span></span><span class="sig-name descname"><span class="pre">Zip</span></span><a class="headerlink" href="#rollnw.Zip" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="Container.html#rollnw.Container" title="rollnw.Container"><code class="xref py py-class docutils literal notranslate"><span class="pre">rollnw.Container</span></code></a></p>
+<p>Implementation of Zip file format as a container</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>path</strong> (<em>str</em>) – Path to NWSync repository</p>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="rollnw.Zip.__weakref__">
+<span class="sig-name descname"><span class="pre">__weakref__</span></span><a class="headerlink" href="#rollnw.Zip.__weakref__" title="Permalink to this definition"></a></dt>
+<dd><p>list of weak references to the object (if defined)</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="rollnw.Zip.all">
+<span class="sig-name descname"><span class="pre">all</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#rollnw.Zip.all" title="Permalink to this definition"></a></dt>
+<dd><p>Get all resources</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="rollnw.Zip.contains">
+<span class="sig-name descname"><span class="pre">contains</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">res</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="Resource.html#rollnw.Resource" title="rollnw.Resource"><span class="pre">rollnw.Resource</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#rollnw.Zip.contains" title="Permalink to this definition"></a></dt>
+<dd><p>Get if container contains resource</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="rollnw.Zip.demand">
+<span class="sig-name descname"><span class="pre">demand</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">res</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="Resource.html#rollnw.Resource" title="rollnw.Resource"><span class="pre">rollnw.Resource</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#rollnw.Zip.demand" title="Permalink to this definition"></a></dt>
+<dd><p>Reads resource data, empty ByteArray if no match.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="rollnw.Zip.extract">
+<span class="sig-name descname"><span class="pre">extract</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pattern</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#rollnw.Zip.extract" title="Permalink to this definition"></a></dt>
+<dd><p>Extract elements from a container by regex</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="rollnw.Zip.extract_by_glob">
+<span class="sig-name descname"><span class="pre">extract_by_glob</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">output</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#rollnw.Zip.extract_by_glob" title="Permalink to this definition"></a></dt>
+<dd><p>Extract elements from a container by glob pattern</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="rollnw.Zip.name">
+<span class="sig-name descname"><span class="pre">name</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#rollnw.Zip.name" title="Permalink to this definition"></a></dt>
+<dd><p>Equivalent to <cite>basename path()</cite></p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="rollnw.Zip.path">
+<span class="sig-name descname"><span class="pre">path</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#rollnw.Zip.path" title="Permalink to this definition"></a></dt>
+<dd><p>Path to container, for basic containers, should be canonical</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="rollnw.Zip.size">
+<span class="sig-name descname"><span class="pre">size</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#rollnw.Zip.size" title="Permalink to this definition"></a></dt>
+<dd><p>Gets the number of resources, if applicable, of the container</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="rollnw.Zip.stat">
+<span class="sig-name descname"><span class="pre">stat</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">res</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#rollnw.Zip.stat" title="Permalink to this definition"></a></dt>
+<dd><p>Get some general data about a resource</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="rollnw.Zip.valid">
+<span class="sig-name descname"><span class="pre">valid</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#rollnw.Zip.valid" title="Permalink to this definition"></a></dt>
+<dd><p>Return true if loaded, false if not.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="rollnw.Zip.working_directory">
+<span class="sig-name descname"><span class="pre">working_directory</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#rollnw.Zip.working_directory" title="Permalink to this definition"></a></dt>
+<dd><p>Get container working directory</p>
+</dd></dl>
+
+</dd></dl>
+
 </div>
 
 

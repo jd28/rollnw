@@ -195,6 +195,83 @@
              
   <div class="section" id="waypoint">
 <h1>Waypoint<a class="headerlink" href="#waypoint" title="Permalink to this headline"></a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="rollnw.Waypoint">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">rollnw.</span></span><span class="sig-name descname"><span class="pre">Waypoint</span></span><a class="headerlink" href="#rollnw.Waypoint" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Class that represents a Waypoint object</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="rollnw.Waypoint.appearance">
+<span class="sig-name descname"><span class="pre">appearance</span></span><a class="headerlink" href="#rollnw.Waypoint.appearance" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="rollnw.Waypoint.description">
+<span class="sig-name descname"><span class="pre">description</span></span><a class="headerlink" href="#rollnw.Waypoint.description" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p><a class="reference internal" href="LocString.html#rollnw.LocString" title="rollnw.LocString">rollnw.LocString</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="rollnw.Waypoint.has_map_note">
+<span class="sig-name descname"><span class="pre">has_map_note</span></span><a class="headerlink" href="#rollnw.Waypoint.has_map_note" title="Permalink to this definition"></a></dt>
+<dd><p>Has a map note</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="rollnw.Waypoint.linked_to">
+<span class="sig-name descname"><span class="pre">linked_to</span></span><a class="headerlink" href="#rollnw.Waypoint.linked_to" title="Permalink to this definition"></a></dt>
+<dd><p>Tag of linked object</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="rollnw.Waypoint.map_note">
+<span class="sig-name descname"><span class="pre">map_note</span></span><a class="headerlink" href="#rollnw.Waypoint.map_note" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p><a class="reference internal" href="LocString.html#rollnw.LocString" title="rollnw.LocString">rollnw.LocString</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="rollnw.Waypoint.map_note_enabled">
+<span class="sig-name descname"><span class="pre">map_note_enabled</span></span><a class="headerlink" href="#rollnw.Waypoint.map_note_enabled" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="rollnw.Waypoint.__weakref__">
+<span class="sig-name descname"><span class="pre">__weakref__</span></span><a class="headerlink" href="#rollnw.Waypoint.__weakref__" title="Permalink to this definition"></a></dt>
+<dd><p>list of weak references to the object (if defined)</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="rollnw.Waypoint.from_dict">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_dict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#rollnw.Waypoint.from_dict" title="Permalink to this definition"></a></dt>
+<dd><p>Constructs object from python dict.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="rollnw.Waypoint.from_file">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#rollnw.Waypoint.from_file" title="Permalink to this definition"></a></dt>
+<dd><p>Constructs object from file.  The file can be JSON or Gff.</p>
+</dd></dl>
+
+</dd></dl>
+
 </div>
 
 
