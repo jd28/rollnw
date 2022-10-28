@@ -1373,7 +1373,7 @@ class Nss:
         pass
 
     @staticmethod
-    def from_string(string: str) -> Nss:
+    def from_string(string: str):
         """Loads Nss from string"""
         pass
 
