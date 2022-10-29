@@ -1,4 +1,4 @@
-name: linux
+name: coverage-docs
 on:
   push:
     branches: [main]
