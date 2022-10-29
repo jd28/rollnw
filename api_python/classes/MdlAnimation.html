@@ -18,8 +18,8 @@
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
-    <link rel="next" title="MdlGeometry" href="MdlGeometry.html" />
-    <link rel="prev" title="Mdl" href="Mdl.html" /> 
+    <link rel="next" title="MdlAnimeshNode" href="MdlAnimeshNode.html" />
+    <link rel="prev" title="MdlAABBNode" href="MdlAABBNode.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -110,10 +110,26 @@
 <li class="toctree-l2"><a class="reference internal" href="Lock.html">Lock</a></li>
 <li class="toctree-l2"><a class="reference internal" href="LogicalExpression.html">LogicalExpression</a></li>
 <li class="toctree-l2"><a class="reference internal" href="Mdl.html">Mdl</a></li>
+<li class="toctree-l2"><a class="reference internal" href="MdlAABBEntry.html">MdlAABBEntry</a></li>
+<li class="toctree-l2"><a class="reference internal" href="MdlAABBNode.html">MdlAABBNode</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">MdlAnimation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="MdlAnimeshNode.html">MdlAnimeshNode</a></li>
+<li class="toctree-l2"><a class="reference internal" href="MdlCameraNode.html">MdlCameraNode</a></li>
+<li class="toctree-l2"><a class="reference internal" href="MdlControllerKey.html">MdlControllerKey</a></li>
+<li class="toctree-l2"><a class="reference internal" href="MdlDanglymeshNode.html">MdlDanglymeshNode</a></li>
+<li class="toctree-l2"><a class="reference internal" href="MdlDummyNode.html">MdlDummyNode</a></li>
+<li class="toctree-l2"><a class="reference internal" href="MdlEmitterFlag.html">MdlEmitterFlag</a></li>
 <li class="toctree-l2"><a class="reference internal" href="MdlGeometry.html">MdlGeometry</a></li>
+<li class="toctree-l2"><a class="reference internal" href="MdlLightNode.html">MdlLightNode</a></li>
 <li class="toctree-l2"><a class="reference internal" href="MdlModel.html">MdlModel</a></li>
 <li class="toctree-l2"><a class="reference internal" href="MdlNode.html">MdlNode</a></li>
+<li class="toctree-l2"><a class="reference internal" href="MdlNodeType.html">MdlNodeType</a></li>
+<li class="toctree-l2"><a class="reference internal" href="MdlPatchNode.html">MdlPatchNode</a></li>
+<li class="toctree-l2"><a class="reference internal" href="MdlReferenceNode.html">MdlReferenceNode</a></li>
+<li class="toctree-l2"><a class="reference internal" href="MdlSkinNode.html">MdlSKinNode</a></li>
+<li class="toctree-l2"><a class="reference internal" href="MdlSkinWeight.html">MdlSkinWeight</a></li>
+<li class="toctree-l2"><a class="reference internal" href="MdlTrimeshNode.html">MdlTrimeshNode</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ModelNodeFlags.html">ModelNodeFlags</a></li>
 <li class="toctree-l2"><a class="reference internal" href="Module.html">Module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="NWSync.html">NWSync</a></li>
 <li class="toctree-l2"><a class="reference internal" href="NWSyncManifest.html">NWSyncManifest</a></li>
@@ -201,6 +217,44 @@
 <dd><p>Bases: <a class="reference internal" href="MdlGeometry.html#rollnw.MdlGeometry" title="rollnw.MdlGeometry"><code class="xref py py-class docutils literal notranslate"><span class="pre">rollnw.MdlGeometry</span></code></a></p>
 <p>Class containing model animation</p>
 <dl class="py attribute">
+<dt class="sig sig-object py" id="rollnw.MdlAnimation.length">
+<span class="sig-name descname"><span class="pre">length</span></span><a class="headerlink" href="#rollnw.MdlAnimation.length" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="rollnw.MdlAnimation.transition_time">
+<span class="sig-name descname"><span class="pre">transition_time</span></span><a class="headerlink" href="#rollnw.MdlAnimation.transition_time" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="rollnw.MdlAnimation.anim_root">
+<span class="sig-name descname"><span class="pre">anim_root</span></span><a class="headerlink" href="#rollnw.MdlAnimation.anim_root" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="rollnw.MdlAnimation.events">
+<span class="sig-name descname"><span class="pre">events</span></span><a class="headerlink" href="#rollnw.MdlAnimation.events" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="rollnw.MdlAnimation.__getitem__">
+<span class="sig-name descname"><span class="pre">__getitem__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">index</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#rollnw.MdlAnimation.__getitem__" title="Permalink to this definition"></a></dt>
+<dd><p>Gets a model node</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="rollnw.MdlAnimation.__iter__">
+<span class="sig-name descname"><span class="pre">__iter__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#rollnw.MdlAnimation.__iter__" title="Permalink to this definition"></a></dt>
+<dd><p>Gets an iterator of model nodes</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="rollnw.MdlAnimation.__len__">
+<span class="sig-name descname"><span class="pre">__len__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#rollnw.MdlAnimation.__len__" title="Permalink to this definition"></a></dt>
+<dd><p>Gets number of model nodes</p>
+</dd></dl>
+
+<dl class="py attribute">
 <dt class="sig sig-object py" id="rollnw.MdlAnimation.__weakref__">
 <span class="sig-name descname"><span class="pre">__weakref__</span></span><a class="headerlink" href="#rollnw.MdlAnimation.__weakref__" title="Permalink to this definition"></a></dt>
 <dd><p>list of weak references to the object (if defined)</p>
@@ -214,8 +268,8 @@
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="Mdl.html" class="btn btn-neutral float-left" title="Mdl" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="MdlGeometry.html" class="btn btn-neutral float-right" title="MdlGeometry" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="MdlAABBNode.html" class="btn btn-neutral float-left" title="MdlAABBNode" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="MdlAnimeshNode.html" class="btn btn-neutral float-right" title="MdlAnimeshNode" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

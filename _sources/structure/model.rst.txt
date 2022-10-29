@@ -29,12 +29,10 @@ Examples
         from rollnw.model import Mdl
         import os
 
-
-        for f in os.listdir():
-            if os.path.isfile(f):
-                mdl = Mdl.from_file(f)
-                if not mdl.valid():
-                    print(f"failed parsing: {f}")
+        mdl = Mdl.from_file("my_ascii_model.mdl")
+        if not mdl.valid():
+            print(f"failed parsing: {f}")
+        print(mdl.supermodel_name)
 
     .. code-tab:: c++
 
