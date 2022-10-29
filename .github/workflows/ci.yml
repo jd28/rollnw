@@ -150,7 +150,7 @@ jobs:
         if: matrix.os == 'windows-2019'
         run: |
           del "${{ env.buildDir }}\CMakeCache.txt"
-          rmdir /s /q "${{ env.buildDir }}\CMakeFiles"
+          Remove-Item "${{ env.buildDir }}\CMakeFiles" -Recurse
 
       # build the wheels
       - name: all - build wheels
