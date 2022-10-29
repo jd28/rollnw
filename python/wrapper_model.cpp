@@ -1,3 +1,6 @@
+#include "casters.hpp"
+#include "opaque_types.hpp"
+
 #include <nw/model/Mdl.hpp>
 #include <nw/model/MdlTextParser.hpp>
 
@@ -136,7 +139,8 @@ void init_model(py::module& nw)
         .def_readwrite("rows", &nw::MdlControllerKey::rows)
         .def_readwrite("key_offset", &nw::MdlControllerKey::key_offset)
         .def_readwrite("data_offset", &nw::MdlControllerKey::data_offset)
-        .def_readwrite("columns", &nw::MdlControllerKey::columns);
+        .def_readwrite("columns", &nw::MdlControllerKey::columns)
+        .def_readwrite("is_key", &nw::MdlControllerKey::is_key);
 
     py::class_<nw::MdlFace>(nw, "MdlFace")
         .def_readwrite("vert_idx", &nw::MdlFace::vert_idx)
@@ -153,8 +157,8 @@ void init_model(py::module& nw)
         .def_readonly("controller_keys", &nw::MdlNode::controller_keys)
         .def_readonly("controller_data", &nw::MdlNode::controller_data)
         .def(
-            "get_controller", [](const nw::MdlNode& self, uint32_t type) {
-                auto [key, data] = self.get_controller(type);
+            "get_controller", [](const nw::MdlNode& self, uint32_t type, bool is_key) {
+                auto [key, data] = self.get_controller(type, is_key);
                 // This is terrible..
                 return std::make_tuple(key, std::vector<float>(data.begin(), data.end()));
             },

@@ -12,6 +12,17 @@ def test_basic_loading():
         i += 1
     assert len(mdl.model) == i
 
+    node = mdl.model[5]
+    assert isinstance(node, rollnw.MdlTrimeshNode)
+
+    assert node.name == "rthigh_g"
+    assert len(node.verts) == 14
+    key, data = node.get_controller(rollnw.MdlControllerType.position, False)
+    assert key
+    assert not key.is_key
+    assert len(data) == 3
+    assert key.name == "position"
+
     i = 0
     for anim in mdl.model.animations():
         i += 1
@@ -19,13 +30,14 @@ def test_basic_loading():
     assert mdl.model.animation_count() == i
 
     anim = mdl.model.get_animation(2)
+    assert isinstance(anim, rollnw.MdlAnimation)
+    assert anim.name == "creadyr"
     assert len(anim) == 55
-
-    node = mdl.model[5]
-    assert isinstance(node, rollnw.MdlTrimeshNode)
-
-    assert node.name == "rthigh_g"
-    assert len(node.verts) == 14
-    key, data = node.get_controller(rollnw.MdlControllerType.position)
+    anim_node = anim[5]
+    assert anim_node.name == "rthigh_g"
+    key, data = anim_node.get_controller(
+        rollnw.MdlControllerType.orientation, True)
     assert key
-    assert len(data) == 3
+    assert key.is_key
+    assert len(data) / key.columns == 4
+    assert key.name == "orientationkey"

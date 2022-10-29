@@ -728,6 +728,20 @@ class MdlControllerType:
     """
 
 
+class MdlControllerKey:
+    """Model controller
+
+    Attributes:
+        name
+        type
+        rows
+        key_offset
+        data_offset
+        columns
+        is_key
+    """
+
+
 class MdlFace:
     """Model face
 
@@ -753,7 +767,7 @@ class MdlNode:
        controller_data: controller_data
     """
 
-    def get_controller(self, type: int):
+    def get_controller(self, type: int, is_key: bool):
         """Gets a controller key and data
         """
         pass

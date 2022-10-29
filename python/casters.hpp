@@ -1,11 +1,13 @@
 #pragma once
 
+#include <nw/kernel/Strings.hpp>
 #include <nw/resources/Resref.hpp>
 #include <nw/rules/Ability.hpp>
 #include <nw/rules/Class.hpp>
 #include <nw/rules/Feat.hpp>
 #include <nw/rules/Skill.hpp>
 #include <nw/util/ByteArray.hpp>
+#include <nw/util/InternedString.hpp>
 #include <nw/util/macros.hpp>
 
 #include <pybind11/pybind11.h>
@@ -31,6 +33,26 @@ public:
     {
         // This may or may not be a good idea...
         object obj = pybind11::bytes(reinterpret_cast<const char*>(src.data()), src.size());
+        return obj.release();
+    }
+};
+
+template <>
+struct type_caster<nw::InternedString> {
+public:
+    PYBIND11_TYPE_CASTER(nw::InternedString, _("InternedString"));
+
+    bool load(handle src, bool)
+    {
+        PyObject* source = src.ptr();
+        if (!PyUnicode_Check(source)) { return false; }
+        value = nw::kernel::strings().intern(PyUnicode_AsUTF8(source));
+        return !PyErr_Occurred();
+    }
+
+    static handle cast(const nw::InternedString& src, return_value_policy /* policy */, handle /* parent */)
+    {
+        object obj = pybind11::str(src.view());
         return obj.release();
     }
 };

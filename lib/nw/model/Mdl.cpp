@@ -213,6 +213,7 @@ void MdlNode::add_controller_data(std::string_view name_, uint32_t type_, std::v
         static_cast<int>(controller_keys.size()),
         static_cast<int>(controller_data.size()),
         columns_,
+        string::endswith(name_, "key"),
     };
 
     controller_keys.push_back(k);
@@ -222,14 +223,14 @@ void MdlNode::add_controller_data(std::string_view name_, uint32_t type_, std::v
     }
 }
 
-std::pair<const MdlControllerKey*, std::span<const float>> MdlNode::get_controller(uint32_t type_) const
+std::pair<const MdlControllerKey*, std::span<const float>>
+MdlNode::get_controller(uint32_t type_, bool key) const
 {
     std::span<const float> result;
     for (const auto& c : controller_keys) {
         if (c.type == type_) {
-            if (c.columns != -1) {
-                result = {&controller_data[c.data_offset], static_cast<size_t>(c.rows * c.columns)};
-            }
+            if ((key && !c.is_key) || c.columns == -1) { continue; }
+            result = {&controller_data[c.data_offset], static_cast<size_t>(c.rows * c.columns)};
             return std::make_pair(&c, result);
         }
     }

@@ -370,7 +370,7 @@ bool MdlTextParser::parse_node(MdlGeometry* geometry)
         }
 
         std::string_view controller_tk = tk;
-        if (string::endswith(tk, "bezierkey")) {
+        if (string::endswith(tk, "bezierkey")) { // No models seem to use this?
             controller_tk = std::string_view(tk.data(), tk.size() - 9);
         } else if (string::endswith(tk, "key")) {
             // Guess all this is obsolete?
