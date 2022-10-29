@@ -149,8 +149,8 @@ jobs:
       - name: windows - remove build directory
         if: matrix.os == 'windows-2019'
         run: |
-          del /F ${{ env. buildDir }}/CMakeCache.txt
-          rmdir /Q /S ${{ env. buildDir }}/CMakeFiles
+          del /f /a ${{ env.buildDir }}\CMakeCache.txt
+          rmdir /s /q ${{ env.buildDir }}\CMakeFiles
 
       # build the wheels
       - name: all - build wheels
