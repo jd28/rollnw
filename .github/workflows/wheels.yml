@@ -1,4 +1,4 @@
-name: ci
+name: wheels
 
 on:
   push:
@@ -24,13 +24,40 @@ env:
   MACOSX_DEPLOYMENT_TARGET: "10.15"
 
 jobs:
-  build:
-    name: Build on ${{ matrix.os }}
+  generate-wheels-matrix:
+    name: Generate wheels matrix
+    runs-on: ubuntu-latest
+    outputs:
+      include: ${{ steps.set-matrix.outputs.include }}
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install cibuildwheel
+        run: pipx install cibuildwheel==2.11.2
+      - id: set-matrix
+        run: |
+          MATRIX=$(
+            {
+              cibuildwheel --print-build-identifiers --platform linux \
+              | jq -Rc '{"only": inputs, "os": "ubuntu-20.04"}' \
+              && cibuildwheel --print-build-identifiers --platform macos \
+              | jq -Rc '{"only": inputs, "os": "macos-11"}' \
+              && cibuildwheel --print-build-identifiers --platform windows \
+              | jq -Rc '{"only": inputs, "os": "windows-2019"}'
+            } | jq -sc
+          )
+          echo "include=$MATRIX" >> $GITHUB_OUTPUT
+    env:
+      CIBW_ARCHS_LINUX: x86_64
+      CIBW_ARCHS_MACOS: x86_64
+      CIBW_ARCHS_WINDOWS: AMD64
+
+  build_wheels:
+    needs: generate-wheels-matrix
     strategy:
-      fail-fast: false
       matrix:
-        os: [macos-11, ubuntu-20.04, windows-2019]
+        include: ${{ fromJson(needs.generate-wheels-matrix.outputs.include) }}
     runs-on: ${{ matrix.os }}
+    name: Build ${{ matrix.only }}
 
     steps:
       - uses: actions/checkout@v3
@@ -103,7 +130,7 @@ jobs:
         with:
           path: |
             ${{ github.workspace }}/nwn/
-          key: ${{ runner.os }}-build-${{ env.cache-name }}-3e02cddcea5d0ae82111a3038f14aef6c14d05d9
+          key: ${{ env.cache-name }}-3e02cddcea5d0ae82111a3038f14aef6c14d05d9
 
       - name: all - download nwn
         if: steps.cache-nwn.outputs.cache-hit != 'true'
@@ -112,29 +139,47 @@ jobs:
           unzip nwnee-dedicated-8193.34.zip -d ${{ github.workspace }}/nwn/
           ls -l ${{ github.workspace }}/nwn/
 
-      # build the normal libraries
-      - name: macOS - configure
-        if: matrix.os == 'macos-11'
-        run: |
-          cmake --preset macos
-
-      - name: linux - configure
-        if: matrix.os == 'ubuntu-20.04'
-        run: |
-          cmake --preset linux
-
-      - name: windows - Visual Studio shell
-        if: matrix.os == 'windows-2019'
-        uses: egor-tensin/vs-shell@v2
+      - uses: pypa/cibuildwheel@v2.11.2
         with:
-          arch: x64
+          only: ${{ matrix.only }}
 
-      - name: windows - configure
-        if: matrix.os == 'windows-2019'
-        run: |
-          cmake --preset ci-windows
+      - uses: actions/upload-artifact@v3
+        if: failure()
+        with:
+          name: vcpkg-logs
+          path: ${{env.VCPKG_ROOT}}/buildtrees/**/*.log
 
-      - name: all - build & test
-        run: |
-          cmake --build --preset default
-          ctest --preset default
+      - uses: actions/upload-artifact@v3
+        with:
+          path: ./wheelhouse/*.whl
+
+  build_sdist:
+    name: Build source distribution
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: true
+
+      - name: Build sdist
+        run: pipx run build --sdist
+
+      - uses: actions/upload-artifact@v3
+        with:
+          path: dist/*.tar.gz
+
+  upload_pypi:
+    needs: [build_wheels, build_sdist]
+    runs-on: ubuntu-20.04
+    if: github.event_name == 'release' && github.event.action == 'published'
+    steps:
+      - uses: actions/download-artifact@v3
+        with:
+          name: artifact
+          path: dist
+
+      - uses: pypa/gh-action-pypi-publish@v1.4.2
+        with:
+          user: __token__
+          password: ${{ secrets.PYPI_API_TOKEN }}
+          # repository_url: https://test.pypi.org/legacy/
