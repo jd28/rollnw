@@ -33,6 +33,7 @@ jobs:
       VCPKG_ROOT: "${{ github.workspace }}/vcpkg/"
       VCPKG_DEFAULT_BINARY_CACHE: "${{ github.workspace }}/vcpkg/.cache"
       VCPKG_CACHE_NAME: "vcpkg-cache"
+      CCACHE_DIR: "${{ github.workspace }}/ccache/"
 
     name: Analyze
     runs-on: ubuntu-latest
@@ -80,15 +81,14 @@ jobs:
 
       - name: cache vcpkg
         id: cache-vcpkg
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         env:
-          cache-name: cache-vcpgk4
+          cache-name: cache-vcpgk
         with:
           path: |
             ${{ github.workspace }}/vcpkg/.cache
-          key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ env.vcpkg-tag }}-${{ hashFiles('vcpkg.json') }}
-          restore-keys: |
-            ${{ runner.os }}-build-${{ env.cache-name }}-${{ env.vcpkg-tag }}
+            ${{ github.workspace }}/ccache
+          key: ${{ runner.os }}-build-${{ env.vcpkg-tag }}-
 
       - name: Make cache dir
         if: steps.cache-vcpkg.outputs.cache-hit != 'true'

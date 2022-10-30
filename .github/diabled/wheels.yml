@@ -22,6 +22,8 @@ env:
   VCPKG_CACHE_NAME: "vcpkg-cache"
   CI_GITHUB_ACTIONS: "1"
   MACOSX_DEPLOYMENT_TARGET: "10.15"
+  CCACHE_DIR: "${{ github.workspace }}/ccache/"
+  SCCACHE_DIR: "${{ github.workspace }}/ccache/"
 
 jobs:
   generate-wheels-matrix:
@@ -76,7 +78,7 @@ jobs:
           HOMEBREW_NO_BOTTLE_SOURCE_FALLBACK: "ON"
           HOMEBREW_NO_INSTALL_CLEANUP: "ON"
         run: |
-          brew install pkg-config automake ninja libtool zlib llvm
+          brew install pkg-config automake ninja libtool zlib llvm ccache
           echo "CC=$(brew --prefix llvm)/bin/clang" >> $GITHUB_ENV
           echo "CXX=$(brew --prefix llvm)/bin/clang++" >> $GITHUB_ENV
 
@@ -90,8 +92,15 @@ jobs:
         run: |
           sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
           sudo apt update
-          sudo apt install gcc-11 g++-11 lcov doxygen
+          sudo apt install gcc-11 g++-11 ccache
           sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-11 110 --slave /usr/bin/g++ g++ /usr/bin/g++-11 --slave /usr/bin/gcov gcov /usr/bin/gcov-11
+
+      # Windows dependencies
+      - name: windows - install dependencies
+        if: matrix.os == 'windows-2019'
+        run: |
+          iex "& {$(irm get.scoop.sh)} -RunAsAdmin"
+          scoop install sccache
 
       # vcpkg
       - name: all - download vcpkg
@@ -103,11 +112,12 @@ jobs:
 
       - name: all - cache vcpkg
         id: cache-vcpkg
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: |
             ${{ github.workspace }}/vcpkg/.cache
-          key: ${{ runner.os }}-build-${{ env.VCPKG_CACHE_NAME }}-${{ env.vcpkg-tag }}-${{ hashFiles('vcpkg.json') }}
+            ${{ github.workspace }}/ccache
+          key: ${{ runner.os }}-build-${{ env.vcpkg-tag }}-
 
       - name: all - make cache dir
         if: steps.cache-vcpkg.outputs.cache-hit != 'true'
@@ -124,7 +134,7 @@ jobs:
       # nwn
       - name: all - cache nwn
         id: cache-nwn
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         env:
           cache-name: cache-nwn
         with:
@@ -138,6 +148,12 @@ jobs:
           curl https://nwn.beamdog.net/downloads/nwnee-dedicated-8193.34.zip -O
           unzip nwnee-dedicated-8193.34.zip -d ${{ github.workspace }}/nwn/
           ls -l ${{ github.workspace }}/nwn/
+
+      - name: windows - Visual Studio shell
+        if: matrix.os == 'windows-2019'
+        uses: egor-tensin/vs-shell@v2
+        with:
+          arch: x64
 
       - uses: pypa/cibuildwheel@v2.11.2
         with:

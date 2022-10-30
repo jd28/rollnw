@@ -20,6 +20,7 @@ jobs:
       NWN_ROOT: "${{ github.workspace }}/nwn/"
       CI_GITHUB_ACTIONS: "1"
       VCPKG_CACHE_NAME: "vcpkg-cache"
+      CCACHE_DIR: "${{ github.workspace }}/ccache/"
 
     name: build on linux
     runs-on: ubuntu-latest
@@ -57,13 +58,14 @@ jobs:
 
       - name: cache vcpkg
         id: cache-vcpkg
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         env:
           cache-name: cache-vcpgk4
         with:
           path: |
             ${{ github.workspace }}/vcpkg/.cache
-          key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ env.vcpkg-tag }}-${{ hashFiles('vcpkg.json') }}
+            ${{ github.workspace }}/ccache
+          key: ${{ runner.os }}-build-${{ env.vcpkg-tag }}-
 
       - name: Make cache dir
         if: steps.cache-vcpkg.outputs.cache-hit != 'true'
@@ -71,13 +73,13 @@ jobs:
 
       - name: cache nwn
         id: cache-nwn
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         env:
           cache-name: cache-nwn
         with:
           path: |
             ${{ github.workspace }}/nwn/
-          key: ${{ runner.os }}-build-${{ env.cache-name }}-3e02cddcea5d0ae82111a3038f14aef6c14d05d9
+          key: ${{ env.cache-name }}-3e02cddcea5d0ae82111a3038f14aef6c14d05d9
 
       - name: Download NWN dedicated server
         if: steps.cache-nwn.outputs.cache-hit != 'true'

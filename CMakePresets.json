@@ -88,7 +88,8 @@
             },
             "cacheVariables": {
                 "VCPKG_TARGET_TRIPLET": "x64-windows-static",
-                "VCPKG_HOST_TRIPLET": "x64-windows-static"
+                "VCPKG_HOST_TRIPLET": "x64-windows-static",
+                "CACHE_OPTION": "sccache"
             }
         },
         {
@@ -113,6 +114,7 @@
         {
             "name": "ci-windows-python",
             "inherits": "windows-python",
+            "generator": "NMake Makefiles",
             "displayName": "windows ci build",
             "description": "windows ci build"
         },

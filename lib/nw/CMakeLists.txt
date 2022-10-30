@@ -74,8 +74,6 @@ include(../../cmake/ProjectSettings.cmake)
 
 target_compile_features(nw-base INTERFACE cxx_std_17)
 
-include(../../cmake/Cache.cmake)
-
 include(../../cmake/CompilerWarnings.cmake)
 set_project_warnings(nw-base)
 

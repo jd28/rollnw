@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.21)
 project(rollNW VERSION 0.1.0 LANGUAGES CXX C)
 set (CMAKE_CXX_STANDARD 20)
+include(cmake/Cache.cmake)
 
 option(BUILD_DOCS "Build documentation" OFF)
 
