@@ -38,6 +38,9 @@ void Nss::parse()
     script_ = parser_.parse_program();
 }
 
+NssParser& Nss::parser() { return parser_; }
+const NssParser& Nss::parser() const { return parser_; }
+
 Script& Nss::script() { return script_; }
 const Script& Nss::script() const { return script_; }
 

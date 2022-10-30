@@ -138,3 +138,22 @@ TEST_CASE("NWScript lexer", "[formats]")
     script::NssLexer lexer7{"~value"};
     REQUIRE(lexer7.next().type == script::NssTokenType::TILDE);
 }
+
+TEST_CASE("NWScript parser error/warning callback", "[formats]")
+{
+    script::Nss nss("int forgot_semicolon"sv);
+    std::vector<std::string> errors;
+    nss.parser().set_error_callback([&errors](std::string_view message, script::NssToken) {
+        errors.emplace_back(message);
+    });
+    REQUIRE_THROWS(nss.parse());
+    REQUIRE(nss.errors() == errors.size());
+
+    script::Nss nss3("int a;;"sv);
+    std::vector<std::string> warnings;
+    nss3.parser().set_warning_callback([&warnings](std::string_view message, script::NssToken) {
+        warnings.emplace_back(message);
+    });
+    nss3.parse();
+    REQUIRE(nss3.warnings() == warnings.size());
+}

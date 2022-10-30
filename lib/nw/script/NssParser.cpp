@@ -35,11 +35,15 @@ void NssParser::error(std::string_view msg)
 {
     ++errors_;
     if (is_end()) {
-        LOG_F(ERROR, "{}, END", msg);
-        throw parser_error(fmt::format("{}, Token: '{}', {}:{}", msg, peek().id, peek().line, peek().start));
+        auto out = fmt::format("{}, EOF", msg);
+        if (error_callback_) { error_callback_(out, peek()); }
+        LOG_F(ERROR, out.c_str());
+        throw parser_error(out);
     } else {
-        LOG_F(ERROR, "{}, Token: '{}', {}:{}", msg, peek().id, peek().line, peek().start);
-        throw parser_error(fmt::format("{}, Token: '{}', {}:{}", msg, peek().id, peek().line, peek().start));
+        auto out = fmt::format("{}, Token: '{}', {}:{}", msg, peek().id, peek().line, peek().start);
+        if (error_callback_) { error_callback_(out, peek()); }
+        LOG_F(ERROR, out.c_str());
+        throw parser_error(out);
     }
 }
 
@@ -47,9 +51,13 @@ void NssParser::warn(std::string_view msg)
 {
     ++warnings_;
     if (is_end()) {
-        LOG_F(WARNING, "{}, END", msg);
+        auto out = fmt::format("{}, EOF", msg);
+        if (warning_callback_) { warning_callback_(out, peek()); }
+        LOG_F(WARNING, out.c_str());
     } else {
-        LOG_F(WARNING, "{}, Token: '{}', {}:{}", msg, peek().id, peek().line, peek().start);
+        auto out = fmt::format("{}, Token: '{}', {}:{}", msg, peek().id, peek().line, peek().start);
+        if (warning_callback_) { warning_callback_(out, peek()); }
+        LOG_F(WARNING, out.c_str());
     }
 }
 
@@ -101,6 +109,16 @@ NssToken NssParser::previous()
         return {};
     }
     return tokens[current_ - 1];
+}
+
+void NssParser::set_error_callback(std::function<void(std::string_view message, NssToken)> cb)
+{
+    error_callback_ = std::move(cb);
+}
+
+void NssParser::set_warning_callback(std::function<void(std::string_view message, NssToken)> cb)
+{
+    warning_callback_ = std::move(cb);
 }
 
 void NssParser::synchronize()

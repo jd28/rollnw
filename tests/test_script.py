@@ -30,3 +30,24 @@ def test_var_decl():
     assert decl.type.type_specifier.id == "int"
     assert decl.type.type_qualifier.id == "const"
     assert isinstance(decl.init, rollnw.LiteralExpression)
+
+
+class ErrorCollector:
+    def __init__(self) -> None:
+        self.data = []
+
+    def __call__(self, msg, token):
+        self.data.append((msg, token))
+
+
+def test_script_callbacks():
+    nss = Nss.from_string("int MY_GLOBAL = 1")
+    ec = ErrorCollector()
+    nss.set_error_callback(ec)
+    try:
+        script = nss.parse()
+    except:
+        pass
+
+    assert len(ec.data) == 1
+    assert ec.data[0][0] == "Expected ';'., EOF"

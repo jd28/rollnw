@@ -6,6 +6,7 @@
 #include "../util/ByteArray.hpp"
 
 #include <filesystem>
+#include <functional>
 #include <iostream>
 #include <string>
 
@@ -21,6 +22,12 @@ struct Nss {
 
     /// Parses script file
     void parse();
+
+    /// Gets parser
+    NssParser& parser();
+
+    /// Gets parser
+    const NssParser& parser() const;
 
     /// Gets parsed script
     Script& script();

@@ -423,6 +423,8 @@ struct NssParser {
 
     std::string_view view_;
     NssLexer lexer_;
+    std::function<void(std::string_view, NssToken)> error_callback_;
+    std::function<void(std::string_view, NssToken)> warning_callback_;
 
     std::vector<NssToken> tokens;
     size_t current_ = 0;
@@ -470,6 +472,12 @@ struct NssParser {
 
     /// Previous token in the token stream
     NssToken previous();
+
+    /// Sets a callback when an error is encounter
+    void set_error_callback(std::function<void(std::string_view message, NssToken)> cb);
+
+    /// Sets a callback when an warning is encounter
+    void set_warning_callback(std::function<void(std::string_view message, NssToken)> cb);
 
     /// Advances token stream after an error
     void synchronize();

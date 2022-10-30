@@ -1,6 +1,7 @@
 #include "opaque_types.hpp"
 
 #include <nw/script/Nss.hpp>
+#include <pybind11/functional.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 #include <pybind11/stl_bind.h>
@@ -130,6 +131,12 @@ void init_script(py::module& nw)
         .def(py::init<std::filesystem::path>())
         .def("errors", &nws::Nss::errors)
         .def("warnings", &nws::Nss::warnings)
+        .def("set_error_callback", [](nws::Nss& self, std::function<void(std::string_view, nws::NssToken)> cb) {
+            self.parser().set_error_callback(std::move(cb));
+        })
+        .def("set_warning_callback", [](nws::Nss& self, std::function<void(std::string_view, nws::NssToken)> cb) {
+            self.parser().set_warning_callback(std::move(cb));
+        })
         .def(
             "parse", [](nws::Nss& self) {
                 self.parse();
