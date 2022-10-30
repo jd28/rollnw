@@ -154,7 +154,7 @@ jobs:
 
       # build the wheels
       - name: all - build wheels
-        uses: pypa/cibuildwheel@v2.3.1
+        uses: pypa/cibuildwheel@v2.11.2
 
       - uses: actions/upload-artifact@v2
         if: failure()
