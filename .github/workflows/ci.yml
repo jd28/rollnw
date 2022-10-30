@@ -156,13 +156,13 @@ jobs:
       - name: all - build wheels
         uses: pypa/cibuildwheel@v2.3.1
 
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v3
         if: failure()
         with:
           name: vcpkg-logs
           path: ${{env.VCPKG_ROOT}}/buildtrees/**/*.log
 
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v3
         with:
           path: ./wheelhouse/*.whl
 
@@ -177,7 +177,7 @@ jobs:
       - name: Build sdist
         run: pipx run build --sdist
 
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v3
         with:
           path: dist/*.tar.gz
 
