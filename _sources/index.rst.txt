@@ -1,16 +1,8 @@
-|License: MIT| |ci| |pypi| |Language grade: C/C++|
+|License: MIT| |ci| |wheels| |pypi| |Language grade: C/C++|
 |CodeQL| |codecov|
 
 rollNW
 ======
-
-::
-
-   We shall not cease from exploration
-   And the end of all our exploring
-   Will be to arrive where we started
-   And know the place for the first time.
-      --T.S. Eliot, Little Gidding, The Four Quartets.
 
 rollNW is a simple modern static C++ library for Neverwinter Nights (and
 some Enhanced Edition) file formats and objects, that
@@ -130,6 +122,8 @@ Credits
    :target: https://opensource.org/licenses/MIT
 .. |ci| image:: https://github.com/jd28/rollnw/actions/workflows/ci.yml/badge.svg
    :target: https://github.com/jd28/rollnw/actions?query=workflow%3Aci
+.. |wheels| image:: https://github.com/jd28/rollnw/actions/workflows/wheels.yml/badge.svg
+   :target: https://github.com/jd28/rollnw/actions?query=workflow%3Awheels
 .. |pypi| image:: https://badge.fury.io/py/rollnw.svg
     :target: https://badge.fury.io/py/rollnw
 .. |Language grade: C/C++| image:: https://img.shields.io/lgtm/grade/cpp/g/jd28/rollnw.svg?logo=lgtm&logoWidth=18
