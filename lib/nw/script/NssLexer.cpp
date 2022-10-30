@@ -458,12 +458,13 @@ NssToken NssLexer::next()
             case '/': // Comment
                 pos_ += 2;
                 while (pos_ < buffer_.size()) {
-                    if (get(pos_) == '\r' || get(pos_) == '\n')
+                    if (get(pos_) == '\n') {
+                        ++line_;
                         break;
+                    }
                     ++pos_;
                 }
                 continue;
-                break;
             case '*': // Block Comment
                 pos_ += 4;
                 while (pos_ < buffer_.size()) {
