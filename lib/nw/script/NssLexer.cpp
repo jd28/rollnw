@@ -453,6 +453,13 @@ NssToken NssLexer::next()
                 break;
             }
             break;
+        case '\\': // Escape character
+            // A couple scripts have escaped new lines (for no reason)
+            if (get(pos_ + 1) != '\r' && get(pos_ + 1) != '\n') {
+                LOG_F(WARNING, "Unrecognized character '{}', line: {}", get(pos_), line_);
+            }
+            ++pos_;
+            continue;
         case '/': // DIV
             switch (get(pos_ + 1)) {
             case '/': // Comment

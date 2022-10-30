@@ -137,6 +137,10 @@ TEST_CASE("NWScript lexer", "[formats]")
 
     script::NssLexer lexer7{"~value"};
     REQUIRE(lexer7.next().type == script::NssTokenType::TILDE);
+
+    script::NssLexer lexer8{R"x(    \
+    )x"};
+    REQUIRE(lexer8.next().type == script::NssTokenType::END);
 }
 
 TEST_CASE("NWScript parser error/warning callback", "[formats]")
