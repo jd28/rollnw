@@ -23,7 +23,6 @@ env:
   CI_GITHUB_ACTIONS: "1"
   MACOSX_DEPLOYMENT_TARGET: "10.15"
   CCACHE_DIR: "${{ github.workspace }}/ccache/"
-  SCCACHE_DIR: "${{ github.workspace }}/ccache/"
 
 jobs:
   generate-wheels-matrix:
@@ -100,7 +99,7 @@ jobs:
       - name: windows - install dependencies
         if: matrix.os == 'windows-2019'
         run: |
-          choco install sccache
+          choco install ccache
 
       # vcpkg
       - name: all - download vcpkg
@@ -177,7 +176,6 @@ jobs:
         run: |
           cmake --build --preset default
           ctest --preset default
-          ls ${{ github.workspace }}/ccache/
 
       - name: macOS|linux - delete cmakecache
         if: matrix.os != 'windows-2019'

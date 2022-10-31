@@ -88,8 +88,7 @@
             },
             "cacheVariables": {
                 "VCPKG_TARGET_TRIPLET": "x64-windows-static",
-                "VCPKG_HOST_TRIPLET": "x64-windows-static",
-                "CACHE_OPTION": "sccache"
+                "VCPKG_HOST_TRIPLET": "x64-windows-static"
             }
         },
         {
