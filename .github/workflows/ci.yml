@@ -72,6 +72,7 @@ jobs:
         if: matrix.os == 'windows-2019'
         run: |
           choco install ccache
+          choco install ninja
 
       - name: Set up ccache
         run: |

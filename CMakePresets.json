@@ -106,14 +106,14 @@
         {
             "name": "ci-windows",
             "inherits": "windows",
-            "generator": "NMake Makefiles",
+            "generator": "Ninja",
             "displayName": "windows ci build",
             "description": "windows ci build"
         },
         {
             "name": "ci-windows-python",
             "inherits": "windows-python",
-            "generator": "NMake Makefiles",
+            "generator": "Ninja",
             "displayName": "windows ci build",
             "description": "windows ci build"
         },
