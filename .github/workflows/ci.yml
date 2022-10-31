@@ -25,41 +25,13 @@ env:
   CCACHE_DIR: "${{ github.workspace }}/ccache/"
 
 jobs:
-  generate-wheels-matrix:
-    name: Generate wheels matrix
-    runs-on: ubuntu-latest
-    outputs:
-      include: ${{ steps.set-matrix.outputs.include }}
-    steps:
-      - uses: actions/checkout@v3
-      - name: Install cibuildwheel
-        run: pipx install cibuildwheel==2.11.2
-      - id: set-matrix
-        run: |
-          MATRIX=$(
-            {
-              cibuildwheel --print-build-identifiers --platform linux \
-              | jq -Rc '{"only": inputs, "os": "ubuntu-20.04"}' \
-              && cibuildwheel --print-build-identifiers --platform macos \
-              | jq -Rc '{"only": inputs, "os": "macos-11"}' \
-              && cibuildwheel --print-build-identifiers --platform windows \
-              | jq -Rc '{"only": inputs, "os": "windows-2019"}'
-            } | jq -sc
-          )
-          echo "include=$MATRIX" >> $GITHUB_OUTPUT
-    env:
-      CIBW_ARCHS_LINUX: x86_64
-      CIBW_ARCHS_MACOS: x86_64
-      CIBW_ARCHS_WINDOWS: AMD64
-
   build:
     strategy:
       fail-fast: false
       matrix:
-        include: ${{ fromJson(needs.generate-wheels-matrix.outputs.include) }}
+        os: [macos-11, ubuntu-20.04, windows-2019]
     runs-on: ${{ matrix.os }}
-    name: Build ${{ matrix.only }}
-    needs: generate-wheels-matrix
+    name: Build ${{ matrix.os }}
 
     steps:
       - uses: actions/checkout@v3
@@ -196,8 +168,6 @@ jobs:
           Remove-Item ${{ github.workspace }}/build/CMakeCache.txt
 
       - uses: pypa/cibuildwheel@v2.11.2
-        with:
-          only: ${{ matrix.only }}
 
       - uses: actions/upload-artifact@v3
         if: failure()
