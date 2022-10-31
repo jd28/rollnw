@@ -33,6 +33,7 @@ jobs:
       VCPKG_ROOT: "${{ github.workspace }}/vcpkg/"
       VCPKG_DEFAULT_BINARY_CACHE: "${{ github.workspace }}/vcpkg/.cache"
       VCPKG_CACHE_NAME: "vcpkg-cache"
+      CCACHE_DIR: "${{ github.workspace }}/ccache/"
 
     name: Analyze
     runs-on: ubuntu-latest
@@ -70,11 +71,6 @@ jobs:
       - name: Install latest CMake.
         uses: lukka/get-cmake@latest
 
-      - name: ccache
-        uses: hendrikmuhs/ccache-action@v1.2
-        with:
-          key: ccache-${{ matrix.os }}
-
       - name: download vcpkg
         run: |
           git clone https://github.com/microsoft/vcpkg ${{ github.workspace }}/vcpkg || true
@@ -91,6 +87,7 @@ jobs:
         with:
           path: |
             ${{ github.workspace }}/vcpkg/.cache
+            ${{ github.workspace }}/ccache
           key: ${{ runner.os }}-build-${{ env.vcpkg-tag }}-${{ env.VCPKG_CACHE_NAME }}-${{ hashFiles('vcpkg.json') }}
           restore-keys: |
             ${{ runner.os }}-build-

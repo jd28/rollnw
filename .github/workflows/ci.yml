@@ -22,6 +22,8 @@ env:
   VCPKG_CACHE_NAME: "vcpkg-cache"
   CI_GITHUB_ACTIONS: "1"
   MACOSX_DEPLOYMENT_TARGET: "10.15"
+  CCACHE_DIR: "${{ github.workspace }}/ccache/"
+  SCCACHE_DIR: "${{ github.workspace }}/ccache/"
 
 jobs:
   generate-wheels-matrix:
@@ -38,11 +40,11 @@ jobs:
           MATRIX=$(
             {
               cibuildwheel --print-build-identifiers --platform linux \
-              | jq -Rc '{"only": inputs, "os": "ubuntu-20.04", "ccache": "ccache"}' \
+              | jq -Rc '{"only": inputs, "os": "ubuntu-20.04"}' \
               && cibuildwheel --print-build-identifiers --platform macos \
-              | jq -Rc '{"only": inputs, "os": "macos-11", "ccache": "ccache" }' \
+              | jq -Rc '{"only": inputs, "os": "macos-11"}' \
               && cibuildwheel --print-build-identifiers --platform windows \
-              | jq -Rc '{"only": inputs, "os": "windows-2019", "ccache": "sccache"}'
+              | jq -Rc '{"only": inputs, "os": "windows-2019"}'
             } | jq -sc
           )
           echo "include=$MATRIX" >> $GITHUB_OUTPUT
@@ -100,12 +102,6 @@ jobs:
         run: |
           choco install sccache
 
-      - name: ccache
-        uses: hendrikmuhs/ccache-action@v1.2
-        with:
-          variant: matrix.ccache
-          key: ccache-${{ matrix.os }}
-
       # vcpkg
       - name: all - download vcpkg
         run: |
@@ -120,6 +116,7 @@ jobs:
         with:
           path: |
             ${{ github.workspace }}/vcpkg/.cache
+            ${{ github.workspace }}/ccache
           key: ${{ runner.os }}-build-${{ env.vcpkg-tag }}-${{ env.VCPKG_CACHE_NAME }}-${{ hashFiles('vcpkg.json') }}
           restore-keys: |
             ${{ runner.os }}-build-
@@ -180,6 +177,7 @@ jobs:
         run: |
           cmake --build --preset default
           ctest --preset default
+          ls ${{ github.workspace }}/ccache/
 
       - name: macOS|linux - delete cmakecache
         if: matrix.os != 'windows-2019'
