@@ -10,12 +10,12 @@ build-backend = "setuptools.build_meta"
 profile = "black"
 
 [tool.cibuildwheel]
-environment = {VCPKG_ROOT = "vcpkg", MACOSX_DEPLOYMENT_TARGET = "10.15"}
+environment = {VCPKG_ROOT = "vcpkg", MACOSX_DEPLOYMENT_TARGET = "10.15", CCACHE_DIR = "ccache"}
 skip = "*-win32 *-manylinux_i686 pp* cp36-* cp37-* *-musllinux_*"
 
 [tool.cibuildwheel.linux]
 before-all = [
-  "yum install -y curl zip unzip tar",
+  "yum install -y curl zip unzip tar ccache",
 ]
 
 [tool.pytest.ini_options]

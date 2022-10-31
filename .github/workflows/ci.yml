@@ -26,13 +26,41 @@ env:
   SCCACHE_DIR: "${{ github.workspace }}/ccache/"
 
 jobs:
+  generate-wheels-matrix:
+    name: Generate wheels matrix
+    runs-on: ubuntu-latest
+    outputs:
+      include: ${{ steps.set-matrix.outputs.include }}
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install cibuildwheel
+        run: pipx install cibuildwheel==2.11.2
+      - id: set-matrix
+        run: |
+          MATRIX=$(
+            {
+              cibuildwheel --print-build-identifiers --platform linux \
+              | jq -Rc '{"only": inputs, "os": "ubuntu-20.04"}' \
+              && cibuildwheel --print-build-identifiers --platform macos \
+              | jq -Rc '{"only": inputs, "os": "macos-11"}' \
+              && cibuildwheel --print-build-identifiers --platform windows \
+              | jq -Rc '{"only": inputs, "os": "windows-2019"}'
+            } | jq -sc
+          )
+          echo "include=$MATRIX" >> $GITHUB_OUTPUT
+    env:
+      CIBW_ARCHS_LINUX: x86_64
+      CIBW_ARCHS_MACOS: x86_64
+      CIBW_ARCHS_WINDOWS: AMD64
+
   build:
-    name: Build on ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-11, ubuntu-20.04, windows-2019]
+        include: ${{ fromJson(needs.generate-wheels-matrix.outputs.include) }}
     runs-on: ${{ matrix.os }}
+    name: Build ${{ matrix.only }}
+    needs: generate-wheels-matrix
 
     steps:
       - uses: actions/checkout@v3
@@ -65,7 +93,7 @@ jobs:
         run: |
           sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
           sudo apt update
-          sudo apt install gcc-11 g++-11 lcov doxygen ccache
+          sudo apt install gcc-11 g++-11 ccache
           sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-11 110 --slave /usr/bin/g++ g++ /usr/bin/g++-11 --slave /usr/bin/gcov gcov /usr/bin/gcov-11
 
       # Windows dependencies
@@ -93,17 +121,17 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-build-
 
-      - name: all - make cache dir
-        if: steps.cache-vcpkg.outputs.cache-hit != 'true'
-        run: mkdir "${{ github.workspace }}/vcpkg/.cache"
-
       - name: macOS|linux - bootstrap vcpkg
         if: matrix.os != 'windows-2019'  && steps.cache-vcpkg.outputs.cache-hit != 'true'
-        run: vcpkg/bootstrap-vcpkg.sh
+        run: |
+          mkdir -p vcpkg/.cache
+          vcpkg/bootstrap-vcpkg.sh
 
       - name: windows - bootstrap vcpkg
         if: matrix.os == 'windows-2019' && steps.cache-vcpkg.outputs.cache-hit != 'true'
-        run: vcpkg/bootstrap-vcpkg.bat
+        run:  |
+          md vcpkg/.cache -ea 0
+          vcpkg/bootstrap-vcpkg.bat
 
       # nwn
       - name: all - cache nwn
@@ -149,3 +177,63 @@ jobs:
         run: |
           cmake --build --preset default
           ctest --preset default
+
+      - name: macOS|linux - delete cmakecache
+        if: matrix.os != 'windows-2019'
+        run: |
+          rm -rf ${{ github.workspace }}/build/CMakeFiles
+          rm ${{ github.workspace }}/build/CMakeCache.txt
+
+      - name: windows - delete cmakecache
+        if: matrix.os == 'windows-2019'
+        run: |
+          Remove-Item ${{ github.workspace }}/build/CMakeFiles -Recursive
+          Remove-Item ${{ github.workspace }}/build/CMakeCache.txt
+
+      - name: all check ccache
+        run: ls ${{ github.workspace }}/ccache/
+
+      - uses: pypa/cibuildwheel@v2.11.2
+        with:
+          only: ${{ matrix.only }}
+
+      - uses: actions/upload-artifact@v3
+        if: failure()
+        with:
+          name: vcpkg-logs
+          path: ${{env.VCPKG_ROOT}}/buildtrees/**/*.log
+
+      - uses: actions/upload-artifact@v3
+        with:
+          path: ./wheelhouse/*.whl
+
+  build_sdist:
+    name: Build source distribution
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: true
+
+      - name: Build sdist
+        run: pipx run build --sdist
+
+      - uses: actions/upload-artifact@v3
+        with:
+          path: dist/*.tar.gz
+
+  upload_pypi:
+    needs: [build, build_sdist]
+    runs-on: ubuntu-20.04
+    if: github.event_name == 'release' && github.event.action == 'published'
+    steps:
+      - uses: actions/download-artifact@v3
+        with:
+          name: artifact
+          path: dist
+
+      - uses: pypa/gh-action-pypi-publish@v1.4.2
+        with:
+          user: __token__
+          password: ${{ secrets.PYPI_API_TOKEN }}
+          # repository_url: https://test.pypi.org/legacy/
