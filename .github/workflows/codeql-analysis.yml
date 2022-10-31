@@ -55,6 +55,12 @@ jobs:
           sudo apt install gcc-11 g++-11 ccache
           sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-11 110 --slave /usr/bin/g++ g++ /usr/bin/g++-11 --slave /usr/bin/gcov gcov /usr/bin/gcov-11
 
+      - name: Set up ccache
+        run: |
+          ccache --set-config=cache_dir=${{ github.workspace }}/ccache
+          ccache --set-config=max_size=500M
+          ccache --set-config=compression=true
+
       - name: Checkout repository
         uses: actions/checkout@v3
 
