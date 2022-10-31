@@ -177,6 +177,7 @@ jobs:
         run: |
           cmake --build --preset default
           ctest --preset default
+          ls ${{ github.workspace }}/ccache/
 
       - name: macOS|linux - delete cmakecache
         if: matrix.os != 'windows-2019'
@@ -187,11 +188,8 @@ jobs:
       - name: windows - delete cmakecache
         if: matrix.os == 'windows-2019'
         run: |
-          Remove-Item ${{ github.workspace }}/build/CMakeFiles -Recursive
+          Remove-Item ${{ github.workspace }}/build/CMakeFiles -Recurse
           Remove-Item ${{ github.workspace }}/build/CMakeCache.txt
-
-      - name: all check ccache
-        run: ls ${{ github.workspace }}/ccache/
 
       - uses: pypa/cibuildwheel@v2.11.2
         with:
