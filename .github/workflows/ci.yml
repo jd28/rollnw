@@ -19,7 +19,7 @@ env:
   VCPKG_ROOT: "${{ github.workspace }}/vcpkg/"
   VCPKG_DEFAULT_BINARY_CACHE: "${{ github.workspace }}/vcpkg/.cache"
   NWN_ROOT: "${{ github.workspace }}/nwn/"
-  VCPKG_CACHE_NAME: "vcpkg-cache"
+  VCPKG_CACHE_NAME: "vcpkg-cache2"
   CI_GITHUB_ACTIONS: "1"
   MACOSX_DEPLOYMENT_TARGET: "10.15"
   CCACHE_DIR: "${{ github.workspace }}/ccache/"
