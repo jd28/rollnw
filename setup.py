@@ -24,7 +24,7 @@ class CMakeBuild(build_ext):
         preset = "linux-python"
         debug = int(os.environ.get("DEBUG", 0)
                     ) if self.debug is None else self.debug
-        cfg = "Debug" if debug else "Release"
+        cfg = "Debug" if debug else "RelWithDebInfo"
 
         cmake_args = [
             f"-DCMAKE_LIBRARY_OUTPUT_DIRECTORY={extdir}",
@@ -60,5 +60,5 @@ setup(
     cmdclass={"build_ext": CMakeBuild},
     zip_safe=False,
     extras_require={"test": ["pytest>=6.0"]},
-    python_requires=">=3.9",
+    python_requires=">=3.10",
 )
