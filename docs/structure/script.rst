@@ -11,7 +11,7 @@ examples
 
 .. code:: python
 
-    from rollnw import Nss, FunctionDecl
+    from rollnw.script import Nss, FunctionDecl
 
     # Load
     nss = Nss("nwscript.nss")
