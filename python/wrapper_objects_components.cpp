@@ -214,6 +214,11 @@ void init_component_saves(py::module& m)
 
 void init_component_spellbook(py::module& m)
 {
+    py::class_<nw::SpecialAbility>(m, "SpecialAbility")
+        .def_readwrite("spell", &nw::SpecialAbility::spell)
+        .def_readwrite("level", &nw::SpecialAbility::level)
+        .def_readwrite("flags", &nw::SpecialAbility::flags);
+
     py::enum_<nw::SpellFlags>(m, "SpellFlags")
         .value("none", nw::SpellFlags::none)
         .value("readied", nw::SpellFlags::readied)

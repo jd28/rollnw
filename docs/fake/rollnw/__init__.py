@@ -44,46 +44,11 @@ class PathAlias(enum.Enum):
 ###############################################################################
 
 
-class ObjectType(enum.Enum):
-    """Object types"""
-    invalid = auto()
-    gui = auto()
-    tile = auto()
-    module = auto()
-    area = auto()
-    creature = auto()
-    item = auto()
-    trigger = auto()
-    projectile = auto()
-    placeable = auto()
-    door = auto()
-    areaofeffect = auto()
-    waypoint = auto()
-    encounter = auto()
-    store = auto()
-    portal = auto()
-    sound = auto()
-
-
-class ObjectHandle:
-    """Object handle
-
-    Attributes:
-        id (int): index into object array
-        version (int): object index version
-        type (ObjectType): object type
-    """
-
-    def valid(self):
-        """Determines if handle is valid"""
-        pass
-
-
 class Appearance:
     """Class containing creature's appearance
 
     Attributes:
-        body_parts (rollnw.BodyParts): body_parts
+        body_parts (BodyParts): body_parts
         hair (int): hair
         id (int): Index into ``appearance.2da``
         phenotype (int): phenotype
@@ -134,13 +99,34 @@ class Common:
     Attributes:
         resref (str): resref
         tag (str): tag
-        name (rollnw.LocString): name
-        locals (rollnw.LocalData): locals
-        location (rollnw.Location): location
+        name (LocString): name
+        locals (LocalData): locals
+        location (Location): location
         comment (str): comment
         palette_id (int): palette_id
     """
 
+    pass
+
+
+class CreatureScripts:
+    """A class containing a creature's script set.
+
+    Attributes:
+        on_attacked (str): A script
+        on_blocked (str): A script
+        on_conversation (str): A script
+        on_damaged (str): A script
+        on_death (str): A script
+        on_disturbed (str): A script
+        on_endround (str): A script
+        on_heartbeat (str): A script
+        on_perceived (str): A script
+        on_rested (str): A script
+        on_spawn (str): A script
+        on_spell_cast_at (str): A script
+        on_user_defined (str): A script
+    """
     pass
 
 
@@ -172,6 +158,28 @@ class CreatureStats:
     def set_skill_rank(id: int,  value: int) -> bool:
         """Sets a skill rank, returning true if successful"""
         pass
+
+
+class DoorScripts:
+    """Door's scripts
+
+    Attributes:
+        on_click (str)
+        on_closed (str)
+        on_damaged (str)
+        on_death (str)
+        on_disarm (str)
+        on_heartbeat (str)
+        on_lock (str)
+        on_melee_attacked (str)
+        on_open_failure (str)
+        on_open (str)
+        on_spell_cast_at (str)
+        on_trap_triggered (str)
+        on_unlock (str)
+        on_user_defined (str)
+    """
+    pass
 
 
 class EquipSlot(enum.Flag):
@@ -232,11 +240,23 @@ class Equips:
         pass
 
 
+class InventoryItem:
+    """An inventory item
+
+    Attributes:
+        infinite (bool): Only applicable to stores
+        x (int)
+        y (int)
+        item (str | Item)
+    """
+    pass
+
+
 class Inventory:
     """An Object's inventory
 
     Attributes:
-        items
+        items ([rollnw.InventoryItem])
         owner
     """
 
@@ -253,6 +273,7 @@ class ClassEntry:
         level
         spells
     """
+    pass
 
 
 class LevelStats:
@@ -361,15 +382,24 @@ class Lock:
         unlock_dc (int)
         remove_key (bool)
     """
-
     pass
 
 
+class Saves:
+    """An objects saves
+
+    Attributes:
+        fort (int)
+        reflex (int)
+        will (int)
+    """
+
+
 class SpellFlags(enum.Flag):
-    none = 0x0,
-    readied = 0x01,
-    spontaneous = 0x02,
-    unlimited = 0x04,
+    none = 0x0
+    readied = 0x01
+    spontaneous = 0x02
+    unlimited = 0x04
 
 
 class SpellMetaMagic(enum.Flag):
@@ -427,6 +457,16 @@ class SpellBook:
     def remove_memorized_spell(level: int, entry: SpellEntry):
         """Removes a memorized spell entry"""
         pass
+
+
+class SpecialAbility:
+    """Special Ability
+
+    Attributes:
+        spell
+        level
+        flags (SpellFlags)
+    """
 
 
 class Trap:
@@ -713,7 +753,119 @@ class ObjectBase:
     pass
 
 
+class ObjectType(enum.Enum):
+    """Object types"""
+    invalid = auto()
+    gui = auto()
+    tile = auto()
+    module = auto()
+    area = auto()
+    creature = auto()
+    item = auto()
+    trigger = auto()
+    projectile = auto()
+    placeable = auto()
+    door = auto()
+    areaofeffect = auto()
+    waypoint = auto()
+    encounter = auto()
+    store = auto()
+    portal = auto()
+    sound = auto()
+
+
+class ObjectHandle:
+    """Object handle
+
+    Attributes:
+        id (int): index into object array
+        version (int): object index version
+        type (ObjectType): object type
+    """
+
+    def valid(self):
+        """Determines if handle is valid"""
+        pass
+
+
+class AreaFlags(enum.Flag):
+    none = 0
+    interior = 0x0001
+    underground = 0x0002
+    natural = 0x0004
+
+
 class Area:
+    """Area object
+
+    Attributes:
+        comments
+        creator_id
+        creatures
+        doors
+        encounters
+        flags
+        height
+        id
+        items
+        listen_check_mod
+        loadscreen
+        name
+        no_rest
+        placeables
+        pvp
+        scripts
+        shadow_opacity
+        skybox
+        sounds
+        spot_check_mod
+        stores
+        tiles
+        tileset
+        triggers
+        version
+        waypoints
+        weather
+        width
+    """
+    pass
+
+
+class AreaScripts:
+    """Area's scripts
+
+    Attributes:
+        on_enter(str)
+        on_exit(str)
+        on_heartbeat(str)
+        on_user_defined(str)
+    """
+    pass
+
+
+class AreaWeather:
+    """Area's weather
+
+    Attributes:
+        chance_lightning
+        chance_rain
+        chance_snow
+        color_moon_ambient
+        color_moon_diffuse
+        color_moon_fog
+        color_sun_ambient
+        color_sun_diffuse
+        color_sun_fog
+        fog_clip_distance
+        wind_power
+        day_night_cycle
+        is_night
+        lighting_scheme
+        fog_moon_amount
+        moon_shadows
+        fog_sun_amount
+        sun_shadows
+    """
     pass
 
 
@@ -721,11 +873,11 @@ class Creature(ObjectBase):
     """Class that represents a Creature object
 
     Attributes:
-        appearance
+        appearance (Appearance)
         bodybag
         chunk_death
         combat_info
-        common (rollnw.Common)
+        common (Common)
         conversation (str): Dialog resref
         cr
         cr_adjust
@@ -753,7 +905,7 @@ class Creature(ObjectBase):
         scripts
         soundset
         starting_package
-        stats (rollnw.CreatureStats): Offensive and defensive stats.
+        stats (CreatureStats): Offensive and defensive stats.
         subrace (str): Subrace
         walkrate
     """
@@ -771,26 +923,11 @@ class Creature(ObjectBase):
         pass
 
 
-class CreatureScripts:
-    """A class containing a creature's script set.
-
-    Attributes:
-        on_attacked (str): A script
-        on_blocked (str): A script
-        on_conversation (str): A script
-        on_damaged (str): A script
-        on_death (str): A script
-        on_disturbed (str): A script
-        on_endround (str): A script
-        on_heartbeat (str): A script
-        on_perceived (str): A script
-        on_rested (str): A script
-        on_spawn (str): A script
-        on_spell_cast_at (str): A script
-        on_user_defined (str): A script
-    """
-
-    pass
+class DoorAnimationState(enum.Enum):
+    """Door animation states"""
+    closed = auto()
+    opened1 = auto()
+    opened2 = auto()
 
 
 class Door:
@@ -810,12 +947,12 @@ class Door:
         linked_to
         linked_to_flags
         loadscreen
-        lock
+        lock (Lock)
         plot
         portrait_id
         saves
-        scripts
-        trap
+        scripts (DoorScripts)
+        trap (Trap)
     """
     @staticmethod
     def from_dict(value: dict):
@@ -829,6 +966,39 @@ class Door:
         """
         pass
 
+    pass
+
+
+class EncounterScripts:
+    """Encounter's scripts
+
+    Attributes:
+        on_entered (str)
+        on_exhausted (str)
+        on_exit (str)
+        on_heartbeat (str)
+        on_user_defined (str)
+    """
+
+
+class SpawnCreature:
+    """Encounter creature spawn
+
+    Attributes:
+        appearance
+        cr
+        resref
+        single_spawn
+    """
+
+
+class SpawnPoint:
+    """A spawn point
+
+    Attributes:
+        orientation (vec3)
+        position (vec3)
+    """
     pass
 
 
@@ -864,6 +1034,59 @@ class Encounter:
         """
         pass
 
+
+class ItemModelType(enum.Enum):
+    simple = auto()
+    layered = auto()
+    composite = auto()
+    armor = auto()
+
+
+class ItemColors(enum.Enum):
+    cloth1 = auto()
+    cloth2 = auto()
+    leather1 = auto()
+    leather2 = auto()
+    metal1 = auto()
+    metal2 = auto()
+
+
+class ItemModelParts(enum.Enum):
+    model1 = auto()
+    model2 = auto()
+    model3 = auto()
+    armor_belt = auto()
+    armor_lbicep = auto()
+    armor_lfarm = auto()
+    armor_lfoot = auto()
+    armor_lhand = auto()
+    armor_lshin = auto()
+    armor_lshoul = auto()
+    armor_lthigh = auto()
+    armor_neck = auto()
+    armor_pelvis = auto()
+    armor_rbicep = auto()
+    armor_rfarm = auto()
+    armor_rfoot = auto()
+    armor_rhand = auto()
+    armor_robe = auto()
+    armor_rshin = auto()
+    armor_rshoul = auto()
+    armor_rthigh = auto()
+    armor_torso = auto()
+
+
+class ItemProperty:
+    """An item property
+
+    Attributes:
+        type
+        subtype
+        cost_table
+        cost_value
+        param_table
+        param_value
+    """
     pass
 
 
@@ -876,8 +1099,8 @@ class Item:
         charges
         cost
         cursed
-        description (rollnw.LocString): Description
-        description_id (rollnw.LocString): Description after being identified.
+        description (LocString): Description
+        description_id (LocString): Description after being identified.
         identified
         inventory
         model_colors
@@ -900,6 +1123,32 @@ class Item:
         """
         pass
 
+    pass
+
+
+class ModuleScripts:
+    """Module's Scripts
+
+    Attributes:
+        on_client_enter
+        on_client_leave
+        on_cutsnabort
+        on_heartbeat
+        on_item_acquire
+        on_item_activate
+        on_item_unaquire
+        on_load
+        on_player_chat
+        on_player_death
+        on_player_dying
+        on_player_equip
+        on_player_level_up
+        on_player_rest
+        on_player_uneqiup
+        on_spawnbtndn
+        on_start
+        on_user_defined
+    """
     pass
 
 
@@ -942,8 +1191,6 @@ class Module:
         """Get the number of areas in the module"""
         pass
 
-    pass
-
 
 class ModuleScripts:
     """Module Scripts
@@ -968,11 +1215,42 @@ class ModuleScripts:
         on_start
         on_user_defined
     """
-
     pass
 
 
-class Placeable:
+class PlaceableAnimationState(enum.Enum):
+    none = auto()
+    open = auto()
+    closed = auto()
+    destroyed = auto()
+    activated = auto()
+    deactivated = auto()
+
+
+class PlaceableScripts:
+    """Placeable's scripts
+
+    Attributes:
+        on_click (str)
+        on_closed (str)
+        on_damaged (str)
+        on_death (str)
+        on_disarm (str)
+        on_heartbeat (str)
+        on_inventory_disturbed (str)
+        on_lock (str)
+        on_melee_attacked (str)
+        on_open (str)
+        on_spell_cast_at (str)
+        on_trap_triggered (str)
+        on_unlock (str)
+        on_used (str)
+        on_user_defined (str)
+    """
+    pass
+
+
+class Placeable(ObjectBase):
     """Class that represents a Placeable object
 
     Attributes:
@@ -993,7 +1271,7 @@ class Placeable:
         plot
         portrait_id
         saves
-        scripts (rollnw.PlaceableScripts):
+        scripts (PlaceableScripts):
         static
         trap
         useable
@@ -1018,7 +1296,7 @@ class Sound(ObjectBase):
 
     Attributes:
         active
-        common (rollnw.Common): Common object component
+        common (Common): Common object component
         continuous
         distance_max
         distance_min
@@ -1056,6 +1334,16 @@ class Sound(ObjectBase):
     pass
 
 
+class StoreScripts:
+    """A Store's scripts
+
+    Attributes:
+        on_closed (str)
+        on_opened (str)
+    """
+    pass
+
+
 class Store(ObjectBase):
     """Class that represents a Store object
 
@@ -1071,7 +1359,7 @@ class Store(ObjectBase):
         miscellaneous
         potions
         rings
-        scripts
+        scripts (StoreScripts)
         weapons
 
     //.def_readonly("will_not_buy", &nw::Store::will_not_buy)
@@ -1093,6 +1381,39 @@ class Store(ObjectBase):
     pass
 
 
+class Tile:
+    """Area tile
+
+    Attributes:
+        id
+        height
+        orientation
+        animloop1
+        animloop2
+        animloop3
+        mainlight1
+        mainlight2
+        srclight1
+        srclight2
+    """
+    pass
+
+
+class TriggerScripts:
+    """A trigger's scripts
+
+    Attributes:
+        on_click
+        on_disarm
+        on_enter
+        on_exit
+        on_heartbeat
+        on_trap_triggered
+        on_user_defined
+    """
+    pass
+
+
 class Trigger(ObjectBase):
     """Class that represents a Trigger object
 
@@ -1105,23 +1426,22 @@ class Trigger(ObjectBase):
         linked_to_flags
         loadscreen
         portrait
-        scripts
-        trap (rollnw.Trap): A trap component
+        scripts (TriggerScripts)
+        trap (Trap): A trap component
         type
     """
-
     pass
 
 
-class Waypoint:
+class Waypoint(ObjectBase):
     """Class that represents a Waypoint object
 
     Attributes:
         appearance
-        description (rollnw.LocString)
+        description (LocString)
         has_map_note (bool): Has a map note
         linked_to (str): Tag of linked object
-        map_note (rollnw.LocString)
+        map_note (LocString)
         map_note_enabled
     """
     @staticmethod
@@ -1248,16 +1568,28 @@ class ResourceType(enum.Enum):
 class Resource:
     """Resource name
 
+    Args:
+        name (str): resref or filename
+        type (ResourceType | None): (Default None)
+
+    Notes:
+        If a resource type is not passed ``name`` is assumed to be a file name,
+        e.g. 'nw_chicken.utc'
+
     Attributes:
         resref (str)
         type (ResourceType)
     """
 
-    def filename(self):
+    def from_filename(filename: str) -> 'Resource':
+        """Creates resource from file name"""
+        pass
+
+    def filename(self) -> str:
         """Returns resource as 'resref.ext'"""
         pass
 
-    def valid(self):
+    def valid(self) -> bool:
         """Determines if is valid resource name"""
         pass
 
@@ -1292,43 +1624,43 @@ class Container:
         """Get all resources"""
         pass
 
-    def contains(self, res: Resource):
+    def contains(self, res: Resource | str) -> bool:
         """Get if container contains resource"""
         pass
 
-    def demand(self, res: Resource):
+    def demand(self, res: Resource | str) -> bytes:
         """Reads resource data, empty ByteArray if no match."""
         pass
 
-    def extract_by_glob(glob: str, output: str):
+    def extract_by_glob(glob: str, output: str) -> int:
         """Extract elements from a container by glob pattern"""
         pass
 
-    def extract(self, pattern, output):
+    def extract(self, pattern, output) -> int:
         """Extract elements from a container by regex"""
         pass
 
-    def name(self):
+    def name(self) -> str:
         """Equivalent to `basename path()`"""
         pass
 
-    def path(self):
+    def path(self) -> str:
         """Path to container, for basic containers, should be canonical"""
         pass
 
-    def size(self):
+    def size(self) -> int:
         """Gets the number of resources, if applicable, of the container"""
         pass
 
-    def stat(self, res):
+    def stat(self, res) -> ResourceDescriptor:
         """Get some general data about a resource"""
         pass
 
-    def valid(self):
+    def valid(self) -> bool:
         """Return true if loaded, false if not."""
         pass
 
-    def working_directory(self):
+    def working_directory(self) -> str:
         """Get container working directory"""
         pass
 

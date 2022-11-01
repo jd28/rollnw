@@ -25,7 +25,7 @@ struct Resource {
     Resource(const Resource&) = default;
     Resource(Resource&&) = default;
 
-    static Resource from_filename(const std::string& filename);
+    static Resource from_filename(std::string_view);
     static Resource from_path(const std::filesystem::path& path);
 
     Resref resref;

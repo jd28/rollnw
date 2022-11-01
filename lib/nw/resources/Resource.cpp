@@ -28,7 +28,7 @@ Resource::Resource(std::string_view resref_, ResourceType::type type_) noexcept
 {
 }
 
-Resource Resource::from_filename(const std::string& filename)
+Resource Resource::from_filename(std::string_view filename)
 {
     auto it = filename.find('.');
     if (it != std::string::npos) {

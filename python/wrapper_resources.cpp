@@ -128,7 +128,12 @@ void init_resources_resource(py::module& nw)
 
     py::class_<nw::Resource>(nw, "Resource")
         .def(py::init<>())
+        .def(py::init<>([](std::string_view name) {
+            return nw::Resource::from_filename(name);
+        }))
         .def(py::init<std::string_view, nw::ResourceType::type>())
+        .def_static("from_filename", nw::Resource::from_filename)
+        .def("__repr__", &nw::Resource::filename)
         .def("filename", &nw::Resource::filename)
         .def_readwrite("resref", &nw::Resource::resref)
         .def_readwrite("type", &nw::Resource::type)
@@ -148,14 +153,20 @@ void init_resources_container(py::module& nw)
 {
     py::class_<nw::Container>(nw, "Container")
         .def("all", &nw::Container::all, "Gets resource descriptors for all resources in a container")
+        .def("contains", &nw::Container::contains)
+        .def("contains", [](const nw::Container& self, std::string_view name) {
+            return self.contains(nw::Resource::from_filename(name));
+        })
         .def("demand", &nw::Container::demand)
+        .def("demand", [](const nw::Container& self, std::string_view name) {
+            return self.demand(nw::Resource::from_filename(name));
+        })
         .def("extract_by_glob", &nw::Container::extract_by_glob)
-        .def("extract",
-            [](nw::Container* self, std::string re, std::filesystem::path& path) {
-                return self->extract(std::regex(re), path);
-            })
+        .def("extract", [](nw::Container* self, std::string re, std::filesystem::path& path) {
+            return self->extract(std::regex(re), path);
+        })
         .def("name", &nw::Container::name)
-        .def("path", &nw::Container::path, "Gets containers absolute path")
+        .def("path", &nw::Container::path)
         .def("size", &nw::Container::size)
         .def("stat", &nw::Container::stat)
         .def("valid", &nw::Container::valid);

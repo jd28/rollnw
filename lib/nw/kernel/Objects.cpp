@@ -70,6 +70,7 @@ Module* ObjectSystem::make_module()
             nlohmann::json j = nlohmann::json::parse(sv.begin(), sv.end());
             Module::deserialize(obj, j);
         } catch (std::exception& e) {
+            LOG_F(ERROR, "[kernel] failed to load module from json: {}", e.what());
             delete obj;
             return nullptr;
         }

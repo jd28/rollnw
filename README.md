@@ -16,21 +16,21 @@ rollNW is a simple modern static C++/Python library for Neverwinter Nights (and 
 - hews as close to [C++ Core Guidelines](https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines) as possible.
 - aims to be as easily bindable as possible to other languages.  I.e. only library specific or STL types at API boundaries.
 
-See the [docs](https://jd28.github.io/rollnw/) and [tests](https://github.com/jd28/rollnw/tree/main/tests) for more info.
+See the [docs](https://rollnw.readthedocs.io/en/latest/) and [tests](https://github.com/jd28/rollnw/tree/main/tests) for more info.
 
 **This library is a work-in-progress.  There will be serious refactoring and until there is a real release, it should be assumed the library is a work-in-progress.**
 
 ## Features
 
-- An [ASCII Model Parser](https://jd28.github.io/rollnw/structure/model.html)
-- A recursive decent [NWScript Parser](https://jd28.github.io/rollnw/structure/script.html)
-- Implementations of pretty much every [NWN File Format](https://jd28.github.io/rollnw/structure/formats.html)
+- An [ASCII Model Parser](https://rollnw.readthedocs.io/en/latest/structure/model.html)
+- A recursive decent [NWScript Parser](https://rollnw.readthedocs.io/en/latest/structure/script.html)
+- Implementations of pretty much every [NWN File Format](https://rollnw.readthedocs.io/en/latest/structure/formats.html)
 - A Resource Manager that can load all NWN containers (e.g. erf, key, nwsync) and also Zip files.
-- An implementation of NWN's [Localization System](https://jd28.github.io/rollnw/structure/i18n.html) focused on
+- An implementation of NWN's [Localization System](https://rollnw.readthedocs.io/en/latest/structure/i18n.html) focused on
   utf8 everywhere.
-- A [Serialization System](https://jd28.github.io/rollnw/structure/serialization.html) that can transparently
+- A [Serialization System](https://rollnw.readthedocs.io/en/latest/structure/serialization.html) that can transparently
   handle GFF or JSON.
-- The beginnings of a novel [Rules System](https://jd28.github.io/rollnw/structure/rules.html) designed for
+- The beginnings of a novel [Rules System](https://rollnw.readthedocs.io/en/latest/structure/rules.html) designed for
   easily adding, overriding, expanding, or removing any rule and reasonable performance
 
 ## Quickstart - Open VS Code in your Browser

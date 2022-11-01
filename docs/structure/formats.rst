@@ -54,6 +54,13 @@ default 2das in under half of a second.
 
 -------------------------------------------------------------------------------
 
+gff
+---
+
+See `serialization docs <https://rollnw.readthedocs.io/en/latest/structure/serialization.html>`__
+
+-------------------------------------------------------------------------------
+
 images formats
 --------------
 
@@ -124,7 +131,7 @@ Supported thanks to `nholmann_json <https://github.com/nlohmann/json>`__
 mdl
 ---
 
-See `model docs <https://jd28.github.io/rollnw/structure/model.html>`__
+See `model docs <https://rollnw.readthedocs.io/en/latest/structure/model.html>`__
 
 -------------------------------------------------------------------------------
 

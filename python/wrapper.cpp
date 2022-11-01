@@ -16,7 +16,7 @@ void init_resources(py::module& nw);
 void init_serialization(py::module& nw);
 void init_util(py::module& nw);
 
-void init_kernel(py::module& nw, py::module& kernel);
+void init_kernel(py::module& kernel);
 void init_model(py::module& nw);
 void init_script(py::module& nw);
 
@@ -43,7 +43,7 @@ PYBIND11_MODULE(rollnw, nw)
     wrap_vmath(nw);
 
     py::module kernel = nw.def_submodule("kernel");
-    init_kernel(nw, kernel);
+    init_kernel(kernel);
     py::module script = nw.def_submodule("script");
     init_script(script);
     py::module model = nw.def_submodule("model");

@@ -22,6 +22,11 @@ using ObjectPayload = std::variant<ObjectHandle, std::unique_ptr<ObjectBase>>;
  *
  */
 struct ObjectSystem : public Service {
+    ObjectSystem() = default;
+    ObjectSystem(const ObjectSystem&) = delete;
+    ObjectSystem(ObjectSystem&&) = default;
+    ObjectSystem& operator=(ObjectSystem&) = delete;
+    ObjectSystem& operator=(ObjectSystem&&) = default;
     virtual ~ObjectSystem() { }
 
     /// Destroys all objects

@@ -1,6 +1,36 @@
 resources
 =========
 
+kernel service
+--------------
+
+The resource services provides access the file system and resources stored in NWN container files.
+The main goals mostly satisfied: the ability to read all NWN(:EE) containers. The ability to
+add new container types is limited in utility due to `NWNX:EE <https://github.com/nwnxee/unified>`__'s
+lack of a ResMan plugin, even so the ability to load files from a Zip file is included.
+
+**Example - Demanding a resource from resman**
+
+.. tabs::
+
+    .. code-tab:: python
+
+        import rollnw
+        from rollnw.kernel import resman
+
+        rollnw.kernel.start()
+        assert resman().contains('nw_chicken.utc')
+        data = resman().demand('nw_chicken.utc')
+        data2 = resman().demand(rollnw.Resource('nw_chicken', rollnw.ResourceType.utc))
+        assert data == data2
+
+
+    .. code-tab:: cpp
+
+        // TODO
+
+-------------------------------------------------------------------------------
+
 containers
 ----------
 
@@ -84,12 +114,3 @@ Zip
 ~~~
 
 **Status**: Read
-
-
-kernel service
---------------
-
-The resource services provides access the file system and resources stored in NWN container files.
-The main goals mostly satisfied: the ability to read all NWN(:EE) containers. The ability to
-add new container types is limited in utility due to `NWNX:EE <https://github.com/nwnxee/unified>`__'s
-lack of a ResMan plugin, even so the ability to load files from a Zip file is included.

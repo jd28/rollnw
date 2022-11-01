@@ -1,10 +1,17 @@
 #include <nw/components/Area.hpp>
 #include <nw/components/Creature.hpp>
 #include <nw/components/Door.hpp>
+#include <nw/components/Encounter.hpp>
 #include <nw/components/Module.hpp>
+#include <nw/components/Placeable.hpp>
+#include <nw/components/Store.hpp>
 #include <nw/components/Trigger.hpp>
+#include <nw/components/Waypoint.hpp>
 #include <nw/kernel/Kernel.hpp>
 #include <nw/kernel/Objects.hpp>
+#include <nw/kernel/Rules.hpp>
+#include <nw/kernel/ScriptCache.hpp>
+#include <nw/kernel/TwoDACache.hpp>
 #include <nwn1/Profile.hpp>
 
 #include <pybind11/pybind11.h>
@@ -16,22 +23,27 @@
 namespace py = pybind11;
 namespace fs = std::filesystem;
 
-template <typename T>
-T* load_object_helper(std::string_view resref)
+void init_kernel_config(py::module& kernel)
 {
-    return nw::kernel::objects().load<T>(resref);
-}
-
-template <typename T>
-T* load_object_helper_fs(const fs::path& path, nw::SerializationProfile profile)
-{
-    return nw::kernel::objects().load<T>(path, profile);
-}
-
-void init_kernel_config(py::module& nw, py::module& kernel)
-{
-    py::class_<nw::ConfigOptions>(nw, "ConfigOptions")
-        .def(py::init<>())
+    py::class_<nw::ConfigOptions>(kernel, "ConfigOptions")
+        .def(py::init([](bool probe, nw::GameVersion version) {
+            nw::ConfigOptions res{};
+            if (probe) {
+                auto p = nw::probe_nwn_install(version);
+                if (p.version == nw::GameVersion::invalid) {
+                    throw std::runtime_error("unable to locate a NWN installation");
+                } else if (p.version != nw::GameVersion::invalid) {
+                    throw std::runtime_error("NWN install did not match requested version");
+                }
+                res.version = p.version;
+                res.install = p.install;
+                res.user = p.user;
+            } else {
+                res.version = version;
+            }
+            return res;
+        }),
+            py::arg("probe") = true, py::arg("version") = nw::GameVersion::vEE)
         .def_readwrite("version", &nw::ConfigOptions::version)
         .def_readwrite("install", &nw::ConfigOptions::install)
         .def_readwrite("user", &nw::ConfigOptions::user)
@@ -41,34 +53,131 @@ void init_kernel_config(py::module& nw, py::module& kernel)
     kernel.def("config_initialize", [](const nw::ConfigOptions& options) {
         nw::kernel::config().initialize(options);
     });
+
+    // [TODO] Figure out what to do about toml..
+    py::class_<nw::kernel::Config>(kernel, "Config")
+        .def("alias_path", &nw::kernel::Config::alias_path)
+        .def("nwn_ini", &nw::kernel::Config::nwn_ini)
+        .def("nwnplayer_ini", &nw::kernel::Config::nwnplayer_ini)
+        .def("options", &nw::kernel::Config::options)
+        .def("resolve_alias", &nw::kernel::Config::resolve_alias)
+        .def("userpatch_ini", &nw::kernel::Config::userpatch_ini);
 }
 
-void init_kernel_objects(py::module& nw, py::module& kernel)
+template <typename T>
+T* load_object_helper(nw::kernel::ObjectSystem& self, std::string_view resref)
 {
+    return self.load<T>(resref);
 }
 
-void init_kernel(py::module& nw, py::module& kernel)
+template <typename T>
+T* load_object_helper_fs(nw::kernel::ObjectSystem& self, const fs::path& path, nw::SerializationProfile profile)
 {
-    init_kernel_config(nw, kernel);
+    return self.load<T>(path, profile);
+}
+
+void init_kernel_objects(py::module& kernel)
+{
+    py::class_<nw::kernel::ObjectSystem>(kernel, "Objects")
+        .def("area", &nw::kernel::ObjectSystem::make_area,
+            py::return_value_policy::reference_internal)
+        .def("creature", &load_object_helper<nw::Creature>,
+            py::return_value_policy::reference_internal)
+        .def("destroy", &nw::kernel::ObjectSystem::destroy)
+        .def("door", &load_object_helper<nw::Door>,
+            py::return_value_policy::reference_internal)
+        .def("encounter", &load_object_helper<nw::Encounter>,
+            py::return_value_policy::reference_internal)
+        // [TODO]
+        //.def("get", &nw::kernel::ObjectSystem::get,
+        //    py::return_value_policy::reference_internal)
+        .def("placeable", &load_object_helper<nw::Placeable>,
+            py::return_value_policy::reference_internal)
+        .def("store", &load_object_helper<nw::Store>,
+            py::return_value_policy::reference_internal)
+        .def("trigger", &load_object_helper<nw::Trigger>,
+            py::return_value_policy::reference_internal)
+        .def("valid", &nw::kernel::ObjectSystem::valid)
+        .def("waypoint", &load_object_helper<nw::Waypoint>,
+            py::return_value_policy::reference_internal);
+
+    kernel.def(
+        "objects", []() {
+            return nw::kernel::services().get_mut<nw::kernel::ObjectSystem>();
+        },
+        py::return_value_policy::reference);
+}
+
+void init_kernel_resources(py::module& kernel)
+{
+    py::class_<nw::kernel::Resources, nw::Container>(kernel, "Resources")
+        .def("demand_any", &nw::kernel::Resources::demand_any);
+
+    kernel.def(
+        "resman", []() {
+            return nw::kernel::services().get_mut<nw::kernel::Resources>();
+        },
+        py::return_value_policy::reference);
+}
+
+void init_kernel_rules(py::module& kernel)
+{
+    py::class_<nw::kernel::Rules>(kernel, "Rules");
+    kernel.def(
+        "rules", []() {
+            return nw::kernel::services().get_mut<nw::kernel::Rules>();
+        },
+        py::return_value_policy::reference);
+}
+
+void init_kernel_script_cache(py::module& kernel)
+{
+    py::class_<nw::kernel::ScriptCache>(kernel, "ScriptCache");
+    // kernel.def("scriptcache")
+}
+
+void init_kernel_strings(py::module& kernel)
+{
+    py::class_<nw::kernel::Strings>(kernel, "Strings");
+    kernel.def(
+        "strings", []() {
+            return nw::kernel::services().get_mut<nw::kernel::Strings>();
+        },
+        py::return_value_policy::reference);
+}
+
+void init_kernel_twoda_cache(py::module& kernel)
+{
+    py::class_<nw::kernel::TwoDACache>(kernel, "TwoDACache");
+    // kernel.def("twodacache")
+}
+
+void init_kernel(py::module& kernel)
+{
+    init_kernel_config(kernel);
+    init_kernel_objects(kernel);
+    init_kernel_resources(kernel);
+    init_kernel_rules(kernel);
+    init_kernel_script_cache(kernel);
+    init_kernel_strings(kernel);
+    init_kernel_twoda_cache(kernel);
 
     kernel.def("load_module", &nw::kernel::load_module, py::return_value_policy::reference)
         .def("unload_module", &nw::kernel::unload_module);
 
-    kernel.def("creature", &load_object_helper<nw::Creature>, py::return_value_policy::reference)
-        .def("creature", &load_object_helper_fs<nw::Creature>, py::return_value_policy::reference)
-        .def("door", &load_object_helper<nw::Door>, py::return_value_policy::reference)
-        .def("door", &load_object_helper_fs<nw::Door>, py::return_value_policy::reference)
-
-        ;
-
     kernel.def("start", []() {
-        auto info = nw::probe_nwn_install();
-        nw::kernel::config().initialize({
-            info.version,
-            info.install,
-            info.user,
+              auto info = nw::probe_nwn_install();
+              nw::kernel::config().initialize({
+                  info.version,
+                  info.install,
+                  info.user,
+              });
+              nw::kernel::services().start();
+              nw::kernel::load_profile(new nwn1::Profile);
+          })
+        .def("start", [](const nw::ConfigOptions& config) {
+            nw::kernel::config().initialize(config);
+            nw::kernel::services().start();
+            nw::kernel::load_profile(new nwn1::Profile);
         });
-        nw::kernel::services().start();
-        nw::kernel::load_profile(new nwn1::Profile);
-    });
 }

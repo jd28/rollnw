@@ -11,3 +11,11 @@ def test_erf_construction():
     assert erf.name() == "hak_with_description.hak"
     assert erf.size() == 1
     assert erf.all()[0].name.filename() == "build.txt"
+
+
+def test_kernel_service():
+    rollnw.kernel.start()
+    data = rollnw.kernel.resman().demand('nw_chicken.utc')
+    data2 = rollnw.kernel.resman().demand(
+        rollnw.Resource('nw_chicken', rollnw.ResourceType.utc))
+    assert data == data2
