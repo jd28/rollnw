@@ -1,16 +1,82 @@
 import enum
 from enum import auto
 
-# Config ######################################################################
+# Platform ####################################################################
 ###############################################################################
 
+
+class GameVersion(enum.Enum):
+    """Game versions"""
+    v1_69 = auto()
+    vEE = auto()
+
+
+class PathAlias(enum.Enum):
+    """Path aliases, some of these are EE only."""
+    ambient = auto()
+    cache = auto()
+    currentgame = auto()
+    database = auto()
+    development = auto()
+    dmvault = auto()
+    hak = auto()
+    hd0 = auto()
+    localvault = auto()
+    logs = auto()
+    modelcompiler = auto()
+    modules = auto()
+    movies = auto()
+    music = auto()
+    nwsync = auto()
+    oldservervault = auto()
+    override = auto()
+    patch = auto()
+    portraits = auto()
+    saves = auto()
+    screenshots = auto()
+    servervault = auto()
+    temp = auto()
+    tempclient = auto()
+    tlk = auto()
+    user = hd0
 
 # Components ##################################################################
 ###############################################################################
 
 
+class ObjectType(enum.Enum):
+    """Object types"""
+    invalid = auto()
+    gui = auto()
+    tile = auto()
+    module = auto()
+    area = auto()
+    creature = auto()
+    item = auto()
+    trigger = auto()
+    projectile = auto()
+    placeable = auto()
+    door = auto()
+    areaofeffect = auto()
+    waypoint = auto()
+    encounter = auto()
+    store = auto()
+    portal = auto()
+    sound = auto()
+
+
 class ObjectHandle:
-    pass
+    """Object handle
+
+    Attributes:
+        id (int): index into object array
+        version (int): object index version
+        type (ObjectType): object type
+    """
+
+    def valid(self):
+        """Determines if handle is valid"""
+        pass
 
 
 class Appearance:
@@ -59,7 +125,6 @@ class BodyParts:
 
 class CombatInfo:
     """Class containing combat related data"""
-
     pass
 
 
@@ -382,6 +447,67 @@ class Trap:
 
 # Formats #####################################################################
 ###############################################################################
+
+class Image:
+    """Loads an image
+
+    Args:
+        filename (str): image file to load
+    """
+
+    def channels(self):
+        """Gets BPP
+        """
+        pass
+
+    def data(self):
+        """Get raw data
+        """
+        pass
+
+    def height(self):
+        """Get height
+        """
+        pass
+
+    def valid(self):
+        """Determine if successfully loaded.
+        """
+        pass
+
+    def width(self):
+        """Get width
+        """
+        pass
+
+    def write_to(self):
+        """Write Image to file
+        """
+        pass
+
+
+class Ini:
+    """Loads an ini
+
+    Args:
+        filename (str): ini file to load
+    """
+
+    def get_int(self, key: str) -> int | None:
+        """Gets an INI value"""
+        pass
+
+    def get_float(self, key: str) -> float | None:
+        """Gets an INI value"""
+        pass
+
+    def get_str(self, key: str) -> str | None:
+        """Gets an INI value"""
+        pass
+
+    def valid(self):
+        """Deterimes if Ini file was successfully parsed"""
+        pass
 
 
 class TwoDA:

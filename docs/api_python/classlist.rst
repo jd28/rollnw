@@ -1,7 +1,0 @@
-classes
-=======
-
-.. toctree::
-   :glob:
-
-   classes/*

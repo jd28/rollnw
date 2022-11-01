@@ -1,4 +1,0 @@
-Trap
-====
-
-.. autoclass:: rollnw.Trap

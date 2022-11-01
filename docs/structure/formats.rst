@@ -79,7 +79,9 @@ dds (bioware) is supported by work based on Torlack's NWNExplorer.
 
     .. code-tab:: python
 
-        # TODO
+        from rollnw import Image
+        img = Image("my_texture.dds") # Can be Bioware DDS or standard
+        img.write_to("my_texture.png")
 
     .. code-tab:: c++
 
@@ -98,7 +100,11 @@ Supported thanks to `inih <https://github.com/benhoyt/inih>`__
 
     .. code-tab:: python
 
-        # TODO
+        from rollnw import Ini
+        ini = Ini("userpatch.ini")
+        if ini.get_str("Patch/PatchFile000"):
+            # User has patch files defined
+            pass
 
     .. code-tab:: c++
 
