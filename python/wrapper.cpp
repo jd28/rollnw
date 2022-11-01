@@ -46,5 +46,6 @@ PYBIND11_MODULE(rollnw, nw)
     init_kernel(nw, kernel);
     py::module script = nw.def_submodule("script");
     init_script(script);
-    init_model(nw);
+    py::module model = nw.def_submodule("model");
+    init_model(model);
 }

@@ -1,6 +1,5 @@
-from re import I
 import rollnw
-from rollnw import Mdl
+from rollnw.model import *
 
 
 def test_basic_loading():
@@ -13,11 +12,11 @@ def test_basic_loading():
     assert len(mdl.model) == i
 
     node = mdl.model[5]
-    assert isinstance(node, rollnw.MdlTrimeshNode)
+    assert isinstance(node, MdlTrimeshNode)
 
     assert node.name == "rthigh_g"
     assert len(node.verts) == 14
-    key, data = node.get_controller(rollnw.MdlControllerType.position, False)
+    key, data = node.get_controller(MdlControllerType.position, False)
     assert key
     assert not key.is_key
     assert len(data) == 3
@@ -30,13 +29,13 @@ def test_basic_loading():
     assert mdl.model.animation_count() == i
 
     anim = mdl.model.get_animation(2)
-    assert isinstance(anim, rollnw.MdlAnimation)
+    assert isinstance(anim, MdlAnimation)
     assert anim.name == "creadyr"
     assert len(anim) == 55
     anim_node = anim[5]
     assert anim_node.name == "rthigh_g"
     key, data = anim_node.get_controller(
-        rollnw.MdlControllerType.orientation, True)
+        MdlControllerType.orientation, True)
     assert key
     assert key.is_key
     assert len(data) / key.columns == 4
