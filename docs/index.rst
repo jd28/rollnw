@@ -172,6 +172,7 @@ Credits
 
   api_python/classlist
   api_python/enumlist
+  api_python/rollnw
 
 .. toctree::
   :caption: gff schemas

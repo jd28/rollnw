@@ -8,6 +8,7 @@ from enum import auto
 # Components ##################################################################
 ###############################################################################
 
+
 class ObjectHandle:
     pass
 
@@ -726,6 +727,7 @@ class MdlControllerType:
         self_illum_color
         alpha
     """
+    pass
 
 
 class MdlControllerKey:
@@ -740,6 +742,7 @@ class MdlControllerKey:
         columns
         is_key
     """
+    pass
 
 
 class MdlFace:
@@ -1480,12 +1483,145 @@ class Waypoint:
 # Resources ###################################################################
 ###############################################################################
 
+class ResourceType(enum.Enum):
+    invalid = auto()
+
+    container = auto()
+    gff_archive = auto()
+    movie = auto()
+    player = auto()
+    sound = auto()
+    texture = auto()
+    json = auto()
+
+    bmp = auto()
+    mve = auto()
+    tga = auto()
+    wav = auto()
+    plt = auto()
+    ini = auto()
+    bmu = auto()
+    mpg = auto()
+    txt = auto()
+    plh = auto()
+    tex = auto()
+    mdl = auto()
+    thg = auto()
+    fnt = auto()
+    lua = auto()
+    slt = auto()
+    nss = auto()
+    ncs = auto()
+    mod = auto()
+    are = auto()
+    set = auto()
+    ifo = auto()
+    bic = auto()
+    wok = auto()
+    twoda = auto()
+    tlk = auto()
+    txi = auto()
+    git = auto()
+    bti = auto()
+    uti = auto()
+    btc = auto()
+    utc = auto()
+    dlg = auto()
+    itp = auto()
+    btt = auto()
+    utt = auto()
+    dds = auto()
+    bts = auto()
+    uts = auto()
+    ltr = auto()
+    gff = auto()
+    fac = auto()
+    bte = auto()
+    ute = auto()
+    btd = auto()
+    utd = auto()
+    btp = auto()
+    utp = auto()
+    dft = auto()
+    gic = auto()
+    gui = auto()
+    css = auto()
+    ccs = auto()
+    btm = auto()
+    utm = auto()
+    dwk = auto()
+    pwk = auto()
+    btg = auto()
+    utg = auto()
+    jrl = auto()
+    sav = auto()
+    utw = auto()
+    fourpc = auto()
+    ssf = auto()
+    hak = auto()
+    nwm = auto()
+    bik = auto()
+    ndb = auto()
+    ptm = auto()
+    ptt = auto()
+    bak = auto()
+    dat = auto()
+    shd = auto()
+    xbc = auto()
+    wbm = auto()
+    mtr = auto()
+    ktx = auto()
+    ttf = auto()
+    sql = auto()
+    tml = auto()
+    sq3 = auto()
+    lod = auto()
+    gif = auto()
+    png = auto()
+    jpg = auto()
+    caf = auto()
+    ids = auto()
+    erf = auto()
+    bif = auto()
+    key = auto()
+
 
 class Resource:
+    """Resource name
+
+    Attributes:
+        resref (str)
+        type (ResourceType)
+    """
+
     def filename(self):
         """Returns resource as 'resref.ext'"""
         pass
 
+    def valid(self):
+        """Determines if is valid resource name"""
+        pass
+
+
+def resmatch(res: Resource, pattern: str) -> bool:
+    """Analog of fnmatch but for resource names
+
+    Args:
+        res (Resource): Resource name
+        pattern (str): glob pattern
+    """
+    pass
+
+
+class ResourceDescriptor:
+    """Resource descriptor
+
+    Attributes:
+        name
+        size
+        mtime
+        parent
+    """
     pass
 
 
@@ -1544,18 +1680,20 @@ class Directory(Container):
     """Implementation of a directory as a rollnw.Container
 
     Args:
-        filename (str): Erf file to load
+        path (str): Directory to load
     """
-
-    pass
+    def __init__(path: str):
+        pass
 
 
 class Erf(Container):
     """Implementation of Erf file format
 
     Args:
-        filename (str): Erf file to load
+        path (str): Erf file to load
     """
+    def __init__(path: str):
+        pass
 
     def add(self, path):
         """Adds resources from path"""
@@ -1572,31 +1710,37 @@ class Erf(Container):
     def reload(self):
         """Reloads Erf
 
-        @note Erf:: working_directory() will not change"""
+        Notes:
+            Erf:: working_directory() will not change
+        """
         pass
 
     def save(self):
         """Saves Erf to Erf:: path()
 
-        @note It's probably best to call Erf:: reload after save.
+        Notes:
+            It's probably best to call Erf:: reload after save.
         """
         pass
 
     def save_as(self, path):
         """Saves Erf to different path
 
-        @note Current Erf unmodified, to load Erf at new path a new Erf must
-        be constructed."""
+        Notes:
+            Current Erf unmodified, to load Erf at new path a new Erf must
+            be constructed.
+        """
         pass
-
-    pass
 
 
 class Key(Container):
     """Implementation Key/Bif file format as a rollnw.Container
-    """
 
-    pass
+    Args:
+        path (str): Path to key file
+    """
+    def __init__(path: str):
+        pass
 
 
 class NWSync:
@@ -1605,6 +1749,8 @@ class NWSync:
     Args:
         path (str): Path to NWSync repository
     """
+    def __init__(path: str):
+        pass
 
     def get(self, manifest):
         """Gets a particular manifest as a container"""
@@ -1625,7 +1771,6 @@ class NWSync:
 class NWSyncManifest(Container):
     """Implementation of NWSync Manifest as a rollnw.Container
     """
-
     pass
 
 
@@ -1633,10 +1778,10 @@ class Zip(Container):
     """Implementation of Zip file format as a container
 
     Args:
-        path (str): Path to NWSync repository
+        path (str): Path to zip file
     """
-
-    pass
+    def __init__(path: str):
+        pass
 
 # Rules #######################################################################
 ###############################################################################

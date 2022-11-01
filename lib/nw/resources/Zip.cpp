@@ -59,7 +59,7 @@ ByteArray Zip::demand(Resource resref) const
 
     std::string fn = resref.filename();
     // The 2 below forces case insensitve comparison
-    if (unzLocateFile(file_, reinterpret_cast<const char*>(fn.c_str()), 2) == UNZ_OK) {
+    if (unzLocateFile(file_, fn.c_str(), 2) == UNZ_OK) {
         unzOpenCurrentFile(file_);
         unz_file_info info;
         unzGetCurrentFileInfo(file_, &info, fname, 64, nullptr, 0, nullptr, 0);

@@ -121,14 +121,13 @@ void init_resources_resourcetype(py::module& nw)
 
 void init_resources_resource(py::module& nw)
 {
-    nw.def("resource_match", [](const nw::Resource& r, std::string_view pat) {
+    nw.def("resmatch", [](const nw::Resource& r, std::string_view pat) {
         auto re = nw::string::glob_to_regex(pat);
         return std::regex_match(r.filename(), re);
     });
 
     py::class_<nw::Resource>(nw, "Resource")
         .def(py::init<>())
-        .def(py::init<const nw::Resref&, nw::ResourceType::type>())
         .def(py::init<std::string_view, nw::ResourceType::type>())
         .def("filename", &nw::Resource::filename)
         .def_readwrite("resref", &nw::Resource::resref)
