@@ -5,10 +5,12 @@ on:
     paths-ignore:
       - "**.md"
       - "**.rst"
+      - "**.py"
   pull_request:
     paths-ignore:
       - "**.md"
       - "**.rst"
+      - "**.py"
   release:
     types:
       - published

@@ -17,11 +17,13 @@ on:
     paths-ignore:
       - "**.md"
       - "**.rst"
+      - "**.py"
   pull_request:
     branches: [main]
     paths-ignore:
       - "**.md"
       - "**.rst"
+      - "**.py"
   schedule:
     - cron: "21 9 * * 3"
 
