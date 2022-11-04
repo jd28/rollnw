@@ -1,7 +1,0 @@
-enums
-=====
-
-.. toctree::
-   :glob:
-
-   enums/*

@@ -51,6 +51,7 @@
 <li class="toctree-l1"><a class="reference internal" href="model.html">model</a></li>
 <li class="toctree-l1"><a class="reference internal" href="objects.html">objects</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">resources</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#kernel-service">kernel service</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#containers">containers</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#directory">Directory</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#erf">Erf</a></li>
@@ -59,7 +60,6 @@
 <li class="toctree-l3"><a class="reference internal" href="#zip">Zip</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#kernel-service">kernel service</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="rules.html">rules</a></li>
@@ -76,9 +76,8 @@
 </ul>
 <p class="caption" role="heading"><span class="caption-text">python api</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../api_python/classlist.html">classes</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../api_python/enumlist.html">enums</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api_python/rollnw.html">rollnw</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api_python/rollnw_kernel.html">rollnw.kernel</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api_python/rollnw_model.html">rollnw.model</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api_python/rollnw_script.html">rollnw.script</a></li>
 </ul>
@@ -117,8 +116,8 @@
         <div class="rst-content">
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
-      <li>resources</li>
+      <li><a href="../index.html" class="icon icon-home"></a></li>
+      <li class="breadcrumb-item active">resources</li>
       <li class="wy-breadcrumbs-aside">
             <a href="../_sources/structure/resources.rst.txt" rel="nofollow"> View page source</a>
       </li>
@@ -130,6 +129,30 @@
              
   <div class="section" id="resources">
 <h1>resources<a class="headerlink" href="#resources" title="Permalink to this headline"></a></h1>
+<div class="section" id="kernel-service">
+<h2>kernel service<a class="headerlink" href="#kernel-service" title="Permalink to this headline"></a></h2>
+<p>The resource services provides access the file system and resources stored in NWN container files.
+The main goals mostly satisfied: the ability to read all NWN(:EE) containers. The ability to
+add new container types is limited in utility due to <a class="reference external" href="https://github.com/nwnxee/unified">NWNX:EE</a>’s
+lack of a ResMan plugin, even so the ability to load files from a Zip file is included.</p>
+<p><strong>Example - Demanding a resource from resman</strong></p>
+<div class="sphinx-tabs docutils container">
+<div aria-label="Tabbed content" class="closeable" role="tablist"><button aria-controls="panel-0-UHl0aG9u" aria-selected="true" class="sphinx-tabs-tab code-tab group-tab" id="tab-0-UHl0aG9u" name="UHl0aG9u" role="tab" tabindex="0">Python</button><button aria-controls="panel-0-Qysr" aria-selected="false" class="sphinx-tabs-tab code-tab group-tab" id="tab-0-Qysr" name="Qysr" role="tab" tabindex="-1">C++</button></div><div aria-labelledby="tab-0-UHl0aG9u" class="sphinx-tabs-panel code-tab group-tab" id="panel-0-UHl0aG9u" name="UHl0aG9u" role="tabpanel" tabindex="0"><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">rollnw</span>
+<span class="kn">from</span> <span class="nn">rollnw.kernel</span> <span class="kn">import</span> <span class="n">resman</span>
+
+<span class="n">rollnw</span><span class="o">.</span><span class="n">kernel</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+<span class="k">assert</span> <span class="n">resman</span><span class="p">()</span><span class="o">.</span><span class="n">contains</span><span class="p">(</span><span class="s1">&#39;nw_chicken.utc&#39;</span><span class="p">)</span>
+<span class="n">data</span> <span class="o">=</span> <span class="n">resman</span><span class="p">()</span><span class="o">.</span><span class="n">demand</span><span class="p">(</span><span class="s1">&#39;nw_chicken.utc&#39;</span><span class="p">)</span>
+<span class="n">data2</span> <span class="o">=</span> <span class="n">resman</span><span class="p">()</span><span class="o">.</span><span class="n">demand</span><span class="p">(</span><span class="n">rollnw</span><span class="o">.</span><span class="n">Resource</span><span class="p">(</span><span class="s1">&#39;nw_chicken&#39;</span><span class="p">,</span> <span class="n">rollnw</span><span class="o">.</span><span class="n">ResourceType</span><span class="o">.</span><span class="n">utc</span><span class="p">))</span>
+<span class="k">assert</span> <span class="n">data</span> <span class="o">==</span> <span class="n">data2</span>
+</pre></div>
+</div>
+</div><div aria-labelledby="tab-0-Qysr" class="sphinx-tabs-panel code-tab group-tab" hidden="true" id="panel-0-Qysr" name="Qysr" role="tabpanel" tabindex="0"><div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="c1">// TODO</span>
+</pre></div>
+</div>
+</div></div>
+</div>
+<hr class="docutils" />
 <div class="section" id="containers">
 <h2>containers<a class="headerlink" href="#containers" title="Permalink to this headline"></a></h2>
 <div class="section" id="directory">
@@ -141,7 +164,7 @@
 <p><strong>Status</strong>: Read</p>
 <p><strong>Example - Load an Erf and Print Contents</strong></p>
 <div class="sphinx-tabs docutils container">
-<div aria-label="Tabbed content" class="closeable" role="tablist"><button aria-controls="panel-0-Qysr" aria-selected="true" class="sphinx-tabs-tab code-tab group-tab" id="tab-0-Qysr" name="Qysr" role="tab" tabindex="0">C++</button><button aria-controls="panel-0-UHl0aG9u" aria-selected="false" class="sphinx-tabs-tab code-tab group-tab" id="tab-0-UHl0aG9u" name="UHl0aG9u" role="tab" tabindex="-1">Python</button></div><div aria-labelledby="tab-0-Qysr" class="sphinx-tabs-panel code-tab group-tab" id="panel-0-Qysr" name="Qysr" role="tabpanel" tabindex="0"><div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;nw/resources/Erf.hpp&gt;</span><span class="cp"></span>
+<div aria-label="Tabbed content" class="closeable" role="tablist"><button aria-controls="panel-1-Qysr" aria-selected="true" class="sphinx-tabs-tab code-tab group-tab" id="tab-1-Qysr" name="Qysr" role="tab" tabindex="0">C++</button><button aria-controls="panel-1-UHl0aG9u" aria-selected="false" class="sphinx-tabs-tab code-tab group-tab" id="tab-1-UHl0aG9u" name="UHl0aG9u" role="tab" tabindex="-1">Python</button></div><div aria-labelledby="tab-1-Qysr" class="sphinx-tabs-panel code-tab group-tab" id="panel-1-Qysr" name="Qysr" role="tabpanel" tabindex="0"><div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;nw/resources/Erf.hpp&gt;</span><span class="cp"></span>
 <span class="c1">// ...</span>
 <span class="n">Erf</span><span class="w"> </span><span class="n">e</span><span class="p">(</span><span class="s">&quot;MyModule.mod&quot;</span><span class="p">);</span><span class="w"></span>
 <span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">e</span><span class="p">.</span><span class="n">valid</span><span class="p">())</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
@@ -152,7 +175,7 @@
 <span class="p">}</span><span class="w"></span>
 </pre></div>
 </div>
-</div><div aria-labelledby="tab-0-UHl0aG9u" class="sphinx-tabs-panel code-tab group-tab" hidden="true" id="panel-0-UHl0aG9u" name="UHl0aG9u" role="tabpanel" tabindex="0"><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">rollnw</span>
+</div><div aria-labelledby="tab-1-UHl0aG9u" class="sphinx-tabs-panel code-tab group-tab" hidden="true" id="panel-1-UHl0aG9u" name="UHl0aG9u" role="tabpanel" tabindex="0"><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">rollnw</span>
 
 <span class="n">erf</span> <span class="o">=</span> <span class="n">rollnw</span><span class="o">.</span><span class="n">Erf</span><span class="p">(</span><span class="s2">&quot;tests/test_data/user/hak/hak_with_description.hak&quot;</span><span class="p">)</span>
 <span class="nb">print</span><span class="p">(</span><span class="n">erf</span><span class="o">.</span><span class="n">name</span><span class="p">(),</span> <span class="n">erf</span><span class="o">.</span><span class="n">size</span><span class="p">())</span>
@@ -171,7 +194,7 @@
 <p><strong>Status</strong>: Read</p>
 <p><strong>Example - Loading and Reading From NWSync Manifest</strong></p>
 <div class="sphinx-tabs docutils container">
-<div aria-label="Tabbed content" class="closeable" role="tablist"><button aria-controls="panel-1-Qysr" aria-selected="true" class="sphinx-tabs-tab code-tab group-tab" id="tab-1-Qysr" name="Qysr" role="tab" tabindex="0">C++</button><button aria-controls="panel-1-UHl0aG9u" aria-selected="false" class="sphinx-tabs-tab code-tab group-tab" id="tab-1-UHl0aG9u" name="UHl0aG9u" role="tab" tabindex="-1">Python</button></div><div aria-labelledby="tab-1-Qysr" class="sphinx-tabs-panel code-tab group-tab" id="panel-1-Qysr" name="Qysr" role="tabpanel" tabindex="0"><div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;nw/resources/NWSync.hpp&gt;</span><span class="cp"></span>
+<div aria-label="Tabbed content" class="closeable" role="tablist"><button aria-controls="panel-2-Qysr" aria-selected="true" class="sphinx-tabs-tab code-tab group-tab" id="tab-2-Qysr" name="Qysr" role="tab" tabindex="0">C++</button><button aria-controls="panel-2-UHl0aG9u" aria-selected="false" class="sphinx-tabs-tab code-tab group-tab" id="tab-2-UHl0aG9u" name="UHl0aG9u" role="tab" tabindex="-1">Python</button></div><div aria-labelledby="tab-2-Qysr" class="sphinx-tabs-panel code-tab group-tab" id="panel-2-Qysr" name="Qysr" role="tabpanel" tabindex="0"><div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;nw/resources/NWSync.hpp&gt;</span><span class="cp"></span>
 <span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;nw/kernel/Kernel.hpp&gt;</span><span class="cp"></span>
 
 <span class="k">auto</span><span class="w"> </span><span class="n">path</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">nw</span><span class="o">::</span><span class="n">kernel</span><span class="o">::</span><span class="n">config</span><span class="p">().</span><span class="n">alias_path</span><span class="p">(</span><span class="n">nw</span><span class="o">::</span><span class="n">PathAlias</span><span class="o">::</span><span class="n">nwsync</span><span class="p">);</span><span class="w"></span>
@@ -191,7 +214,7 @@
 <span class="p">}</span><span class="w"></span>
 </pre></div>
 </div>
-</div><div aria-labelledby="tab-1-UHl0aG9u" class="sphinx-tabs-panel code-tab group-tab" hidden="true" id="panel-1-UHl0aG9u" name="UHl0aG9u" role="tabpanel" tabindex="0"><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># TODO</span>
+</div><div aria-labelledby="tab-2-UHl0aG9u" class="sphinx-tabs-panel code-tab group-tab" hidden="true" id="panel-2-UHl0aG9u" name="UHl0aG9u" role="tabpanel" tabindex="0"><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># TODO</span>
 </pre></div>
 </div>
 </div></div>
@@ -200,13 +223,6 @@
 <h3>Zip<a class="headerlink" href="#zip" title="Permalink to this headline"></a></h3>
 <p><strong>Status</strong>: Read</p>
 </div>
-</div>
-<div class="section" id="kernel-service">
-<h2>kernel service<a class="headerlink" href="#kernel-service" title="Permalink to this headline"></a></h2>
-<p>The resource services provides access the file system and resources stored in NWN container files.
-The main goals mostly satisfied: the ability to read all NWN(:EE) containers. The ability to
-add new container types is limited in utility due to <a class="reference external" href="https://github.com/nwnxee/unified">NWNX:EE</a>’s
-lack of a ResMan plugin, even so the ability to load files from a Zip file is included.</p>
 </div>
 </div>
 

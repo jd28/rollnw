@@ -47,6 +47,7 @@
 <ul class="current">
 <li class="toctree-l1 current"><a class="current reference internal" href="#">formats</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#da">2da</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#gff">gff</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#images-formats">images formats</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#ini">ini</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#json">json</a></li>
@@ -77,9 +78,8 @@
 </ul>
 <p class="caption" role="heading"><span class="caption-text">python api</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../api_python/classlist.html">classes</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../api_python/enumlist.html">enums</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api_python/rollnw.html">rollnw</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api_python/rollnw_kernel.html">rollnw.kernel</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api_python/rollnw_model.html">rollnw.model</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api_python/rollnw_script.html">rollnw.script</a></li>
 </ul>
@@ -118,8 +118,8 @@
         <div class="rst-content">
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
-      <li>formats</li>
+      <li><a href="../index.html" class="icon icon-home"></a></li>
+      <li class="breadcrumb-item active">formats</li>
       <li class="wy-breadcrumbs-aside">
             <a href="../_sources/structure/formats.rst.txt" rel="nofollow"> View page source</a>
       </li>
@@ -175,6 +175,11 @@ default 2das in under half of a second.</p>
 </div></div>
 </div>
 <hr class="docutils" />
+<div class="section" id="gff">
+<h2>gff<a class="headerlink" href="#gff" title="Permalink to this headline"></a></h2>
+<p>See <a class="reference external" href="https://rollnw.readthedocs.io/en/latest/structure/serialization.html">serialization docs</a></p>
+</div>
+<hr class="docutils" />
 <div class="section" id="images-formats">
 <h2>images formats<a class="headerlink" href="#images-formats" title="Permalink to this headline"></a></h2>
 <p><strong>Status</strong>:</p>
@@ -194,7 +199,9 @@ this has no goal of being any kind of useful conversion library.</p>
 dds (standard) is supported thanks to <a class="reference external" href="https://github.com/SpartanJ/SOIL2/">SOIL2</a>.
 dds (bioware) is supported by work based on Torlack’s NWNExplorer.</p>
 <div class="sphinx-tabs docutils container">
-<div aria-label="Tabbed content" class="closeable" role="tablist"><button aria-controls="panel-1-UHl0aG9u" aria-selected="true" class="sphinx-tabs-tab code-tab group-tab" id="tab-1-UHl0aG9u" name="UHl0aG9u" role="tab" tabindex="0">Python</button><button aria-controls="panel-1-Qysr" aria-selected="false" class="sphinx-tabs-tab code-tab group-tab" id="tab-1-Qysr" name="Qysr" role="tab" tabindex="-1">C++</button></div><div aria-labelledby="tab-1-UHl0aG9u" class="sphinx-tabs-panel code-tab group-tab" id="panel-1-UHl0aG9u" name="UHl0aG9u" role="tabpanel" tabindex="0"><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># TODO</span>
+<div aria-label="Tabbed content" class="closeable" role="tablist"><button aria-controls="panel-1-UHl0aG9u" aria-selected="true" class="sphinx-tabs-tab code-tab group-tab" id="tab-1-UHl0aG9u" name="UHl0aG9u" role="tab" tabindex="0">Python</button><button aria-controls="panel-1-Qysr" aria-selected="false" class="sphinx-tabs-tab code-tab group-tab" id="tab-1-Qysr" name="Qysr" role="tab" tabindex="-1">C++</button></div><div aria-labelledby="tab-1-UHl0aG9u" class="sphinx-tabs-panel code-tab group-tab" id="panel-1-UHl0aG9u" name="UHl0aG9u" role="tabpanel" tabindex="0"><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">rollnw</span> <span class="kn">import</span> <span class="n">Image</span>
+<span class="n">img</span> <span class="o">=</span> <span class="n">Image</span><span class="p">(</span><span class="s2">&quot;my_texture.dds&quot;</span><span class="p">)</span> <span class="c1"># Can be Bioware DDS or standard</span>
+<span class="n">img</span><span class="o">.</span><span class="n">write_to</span><span class="p">(</span><span class="s2">&quot;my_texture.png&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
 </div><div aria-labelledby="tab-1-Qysr" class="sphinx-tabs-panel code-tab group-tab" hidden="true" id="panel-1-Qysr" name="Qysr" role="tabpanel" tabindex="0"><div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="c1">// TODO</span>
@@ -208,7 +215,11 @@ dds (bioware) is supported by work based on Torlack’s NWNExplorer.</p>
 <p><strong>Status</strong>: read</p>
 <p>Supported thanks to <a class="reference external" href="https://github.com/benhoyt/inih">inih</a></p>
 <div class="sphinx-tabs docutils container">
-<div aria-label="Tabbed content" class="closeable" role="tablist"><button aria-controls="panel-2-UHl0aG9u" aria-selected="true" class="sphinx-tabs-tab code-tab group-tab" id="tab-2-UHl0aG9u" name="UHl0aG9u" role="tab" tabindex="0">Python</button><button aria-controls="panel-2-Qysr" aria-selected="false" class="sphinx-tabs-tab code-tab group-tab" id="tab-2-Qysr" name="Qysr" role="tab" tabindex="-1">C++</button></div><div aria-labelledby="tab-2-UHl0aG9u" class="sphinx-tabs-panel code-tab group-tab" id="panel-2-UHl0aG9u" name="UHl0aG9u" role="tabpanel" tabindex="0"><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># TODO</span>
+<div aria-label="Tabbed content" class="closeable" role="tablist"><button aria-controls="panel-2-UHl0aG9u" aria-selected="true" class="sphinx-tabs-tab code-tab group-tab" id="tab-2-UHl0aG9u" name="UHl0aG9u" role="tab" tabindex="0">Python</button><button aria-controls="panel-2-Qysr" aria-selected="false" class="sphinx-tabs-tab code-tab group-tab" id="tab-2-Qysr" name="Qysr" role="tab" tabindex="-1">C++</button></div><div aria-labelledby="tab-2-UHl0aG9u" class="sphinx-tabs-panel code-tab group-tab" id="panel-2-UHl0aG9u" name="UHl0aG9u" role="tabpanel" tabindex="0"><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">rollnw</span> <span class="kn">import</span> <span class="n">Ini</span>
+<span class="n">ini</span> <span class="o">=</span> <span class="n">Ini</span><span class="p">(</span><span class="s2">&quot;userpatch.ini&quot;</span><span class="p">)</span>
+<span class="k">if</span> <span class="n">ini</span><span class="o">.</span><span class="n">get_str</span><span class="p">(</span><span class="s2">&quot;Patch/PatchFile000&quot;</span><span class="p">):</span>
+    <span class="c1"># User has patch files defined</span>
+    <span class="k">pass</span>
 </pre></div>
 </div>
 </div><div aria-labelledby="tab-2-Qysr" class="sphinx-tabs-panel code-tab group-tab" hidden="true" id="panel-2-Qysr" name="Qysr" role="tabpanel" tabindex="0"><div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="c1">// TODO</span>
@@ -225,7 +236,7 @@ dds (bioware) is supported by work based on Torlack’s NWNExplorer.</p>
 <hr class="docutils" />
 <div class="section" id="mdl">
 <h2>mdl<a class="headerlink" href="#mdl" title="Permalink to this headline"></a></h2>
-<p>See <a class="reference external" href="https://jd28.github.io/rollnw/structure/model.html">model docs</a></p>
+<p>See <a class="reference external" href="https://rollnw.readthedocs.io/en/latest/structure/model.html">model docs</a></p>
 </div>
 <hr class="docutils" />
 <div class="section" id="mtr">

@@ -3,7 +3,7 @@ objects
 
 rollNW is all about live objects and *not* serialized file formats.
 
-Definitions
+definitions
 -----------
 
 :cpp:enum:`ObjectID`
@@ -18,18 +18,41 @@ Definitions
 :cpp:struct:`ObjectBase`
    The base class of all objects
 
-usage
------
+kernel service
+--------------
+
+Any object that is loaded via the Objects service, belongs to the service and must be deleted through it.
+
+**Example - Loading and Deleting a Creature**
 
 .. tabs::
 
+   .. code-tab:: python
+
+      import rollnw
+
+      rollnw.kernel.start()
+      obj = rollnw.kernel.objects().creature('nw_chicken.utc')
+      rollnw.kernel.objects().destroy(obj.handle())
+      # After this point accessing obj is undefined behavior and its handle if stored elsewhere
+      # will no longer be valid
+
    .. code-tab:: cpp
 
-      // Loading an object into the Objects kernel service directly from the file system.
       auto obj = nw::kernel::objects().load<nw::Creature>(fs::path("a/path/to/nw_chicken.utc"));
-      if(obj->scripts.on_attacked == "nw_c2_default5") {
-            obj->scripts.on_attacked = "nw_shakenbake";
-      }
+      nw::kernel::objects().destroy(obj->handle());
+      // After this point accessing obj is undefined behavior and its handle if stored elsewhere
+      // will no longer be valid
+
+-------------------------------------------------------------------------------
+
+area
+----
+
+creature
+--------
+
+.. tabs::
 
    .. code-tab:: python
 
@@ -40,22 +63,33 @@ usage
       if cre.scripts.on_attacked == "nw_c2_default5":
          cre.scripts.on_attacked = "nw_shakenbake"
 
-kernel service
---------------
+   .. code-tab:: cpp
 
-Any object that is loaded via the Objects service, belongs to the service and must be deleted through it.
+      // TODO
 
-**Example - Loading and Deleting a Creature**
+door
+----
 
-.. tabs::
+encounter
+--------
 
-    .. code-tab:: cpp
+item
+----
 
-        auto obj = nw::kernel::objects().load<nw::Creature>(fs::path("a/path/to/nw_chicken.utc"));
-        nw::kernel::objects().destory(obj->handle());
-        // After this point accessing obj is undefined behavior and its handle if stored elsewhere
-        // will no longer be valid
+module
+------
 
-    .. code-tab:: python
+placeable
+---------
 
-        # TODO
+sound
+-----
+
+store
+-----
+
+trigger
+-------
+
+waypoint
+--------
