@@ -34,7 +34,7 @@ jobs:
       vcpkg-tag: "2022.09.27"
       VCPKG_ROOT: "${{ github.workspace }}/vcpkg/"
       VCPKG_DEFAULT_BINARY_CACHE: "${{ github.workspace }}/vcpkg/.cache"
-      VCPKG_CACHE_NAME: "vcpkg-cache2"
+      VCPKG_CACHE_NAME: "vcpkg-cache3"
       CCACHE_DIR: "${{ github.workspace }}/ccache/"
 
     name: Analyze
