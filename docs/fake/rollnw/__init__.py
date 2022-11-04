@@ -58,7 +58,6 @@ class Appearance:
         tattoo1 (int): tattoo1
         tattoo2 (int): tattoo2
         wings (int): wings"""
-
     pass
 
 
@@ -84,7 +83,6 @@ class BodyParts:
         shoulder_right (int): body part
         thigh_left (int): body part
         thigh_right (int): body part"""
-
     pass
 
 
@@ -105,7 +103,6 @@ class Common:
         comment (str): comment
         palette_id (int): palette_id
     """
-
     pass
 
 
@@ -355,7 +352,6 @@ class LocalData:
     def size():
         """Gets number of variables"""
         pass
-
     pass
 
 
@@ -481,7 +477,6 @@ class Trap:
         one_shot (bool)
         type
     """
-
     pass
 
 
@@ -533,15 +528,15 @@ class Ini:
         filename (str): ini file to load
     """
 
-    def get_int(self, key: str) -> int | None:
+    def get_int(self, key: str) -> Optional[int]:
         """Gets an INI value"""
         pass
 
-    def get_float(self, key: str) -> float | None:
+    def get_float(self, key: str) -> Optional[float]:
         """Gets an INI value"""
         pass
 
-    def get_str(self, key: str) -> str | None:
+    def get_str(self, key: str) -> Optional[str]:
         """Gets an INI value"""
         pass
 
@@ -749,7 +744,6 @@ class ObjectBase:
     def handle(self):
         """Gets object handle"""
         pass
-
     pass
 
 
@@ -965,7 +959,6 @@ class Door:
         """Constructs object from file.  The file can be JSON or Gff.
         """
         pass
-
     pass
 
 
@@ -1122,7 +1115,6 @@ class Item:
         """Constructs object from file.  The file can be JSON or Gff.
         """
         pass
-
     pass
 
 
@@ -1287,7 +1279,6 @@ class Placeable(ObjectBase):
         """Constructs object from file.  The file can be JSON or Gff.
         """
         pass
-
     pass
 
 
@@ -1330,7 +1321,6 @@ class Sound(ObjectBase):
         """Constructs object from file.  The file can be JSON or Gff.
         """
         pass
-
     pass
 
 
@@ -1377,7 +1367,6 @@ class Store(ObjectBase):
         """Constructs object from file.  The file can be JSON or Gff.
         """
         pass
-
     pass
 
 
@@ -1403,13 +1392,13 @@ class TriggerScripts:
     """A trigger's scripts
 
     Attributes:
-        on_click
-        on_disarm
-        on_enter
-        on_exit
-        on_heartbeat
-        on_trap_triggered
-        on_user_defined
+        on_click (str)
+        on_disarm (str)
+        on_enter (str)
+        on_exit (str)
+        on_heartbeat (str)
+        on_trap_triggered (str)
+        on_user_defined (str)
     """
     pass
 
@@ -1442,7 +1431,7 @@ class Waypoint(ObjectBase):
         has_map_note (bool): Has a map note
         linked_to (str): Tag of linked object
         map_note (LocString)
-        map_note_enabled
+        map_note_enabled (bool)
     """
     @staticmethod
     def from_dict(value: dict):
@@ -1455,7 +1444,6 @@ class Waypoint(ObjectBase):
         """Constructs object from file.  The file can be JSON or Gff.
         """
         pass
-
     pass
 
 
@@ -1570,7 +1558,7 @@ class Resource:
 
     Args:
         name (str): resref or filename
-        type (ResourceType | None): (Default None)
+        type (Optional[ResourceType]): (Default None)
 
     Notes:
         If a resource type is not passed ``name`` is assumed to be a file name,
@@ -1663,7 +1651,6 @@ class Container:
     def working_directory(self) -> str:
         """Get container working directory"""
         pass
-
     pass
 
 
