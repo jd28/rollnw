@@ -34,7 +34,7 @@ struct LocalData {
 
     bool from_gff(const GffStruct& archive);
     bool from_json(const nlohmann::json& archive);
-    bool to_gff(GffBuilderStruct& archive) const;
+    bool to_gff(GffBuilderStruct& archive, SerializationProfile profile) const;
     nlohmann::json to_json(SerializationProfile profile) const;
 
     void delete_float(std::string_view var);

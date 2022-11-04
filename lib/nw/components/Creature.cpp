@@ -237,7 +237,7 @@ bool Creature::serialize(const Creature* obj, GffBuilderStruct& archive, Seriali
             .add_field("OrientationY", obj->common.location.orientation.y);
     }
 
-    obj->common.locals.to_gff(archive);
+    obj->common.locals.to_gff(archive, profile);
     obj->appearance.to_gff(archive);
     obj->combat_info.to_gff(archive);
     obj->equipment.to_gff(archive, profile);

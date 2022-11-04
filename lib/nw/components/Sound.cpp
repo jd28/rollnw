@@ -124,7 +124,7 @@ bool Sound::serialize(const Sound* obj, GffBuilderStruct& archive, Serialization
     }
 
     if (obj->common.locals.size()) {
-        obj->common.locals.to_gff(archive);
+        obj->common.locals.to_gff(archive, profile);
     }
 
     auto& list = archive.add_list("Sounds");

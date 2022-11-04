@@ -231,7 +231,7 @@ bool LocalData::from_json(const nlohmann::json& archive)
     return true;
 }
 
-bool LocalData::to_gff(GffBuilderStruct& archive) const
+bool LocalData::to_gff(GffBuilderStruct& archive, SerializationProfile profile) const
 {
     if (vars_.empty()) {
         return true;
@@ -248,29 +248,28 @@ bool LocalData::to_gff(GffBuilderStruct& archive) const
         if (value.flags.test(LocalVarType::float_)) {
             payload.add_field("Type", LocalVarType::float_);
             payload.add_field("Value", value.float_);
-        }
-        if (value.flags.test(LocalVarType::integer)) {
+        } else if (value.flags.test(LocalVarType::integer)) {
             payload.add_field("Type", LocalVarType::integer);
             payload.add_field("Value", value.integer);
-        }
-        if (value.flags.test(LocalVarType::object)) {
-            payload.add_field("Type", LocalVarType::object);
-            payload.add_field("Value", static_cast<uint32_t>(value.object));
-        }
-        if (value.flags.test(LocalVarType::string)) {
+        } else if (value.flags.test(LocalVarType::string)) {
             payload.add_field("Type", LocalVarType::string);
             payload.add_field("Value", value.string);
         }
-        if (value.flags.test(LocalVarType::location)) {
-            payload.add_field("Type", LocalVarType::location);
-            payload.add_struct("Value", 1)
-                .add_field("Area", static_cast<uint32_t>(value.loc.area))
-                .add_field("PositionX", value.loc.position.x)
-                .add_field("PositionY", value.loc.position.y)
-                .add_field("PositionZ", value.loc.position.z)
-                .add_field("OrientationX", value.loc.orientation.x)
-                .add_field("OrientationY", value.loc.orientation.y)
-                .add_field("OrientationZ", value.loc.orientation.z);
+        if (profile != SerializationProfile::blueprint) {
+            if (value.flags.test(LocalVarType::object)) {
+                payload.add_field("Type", LocalVarType::object);
+                payload.add_field("Value", static_cast<uint32_t>(value.object));
+            } else if (value.flags.test(LocalVarType::location)) {
+                payload.add_field("Type", LocalVarType::location);
+                payload.add_struct("Value", 1)
+                    .add_field("Area", static_cast<uint32_t>(value.loc.area))
+                    .add_field("PositionX", value.loc.position.x)
+                    .add_field("PositionY", value.loc.position.y)
+                    .add_field("PositionZ", value.loc.position.z)
+                    .add_field("OrientationX", value.loc.orientation.x)
+                    .add_field("OrientationY", value.loc.orientation.y)
+                    .add_field("OrientationZ", value.loc.orientation.z);
+            }
         }
     }
 
@@ -288,18 +287,18 @@ nlohmann::json LocalData::to_json(SerializationProfile profile) const
 
         if (value.flags.test(LocalVarType::float_)) {
             payload["float"] = value.float_;
-        }
-        if (value.flags.test(LocalVarType::integer)) {
+        } else if (value.flags.test(LocalVarType::integer)) {
             payload["integer"] = value.integer;
-        }
-        if (value.flags.test(LocalVarType::object)) {
-            payload["object"] = value.object;
-        }
-        if (value.flags.test(LocalVarType::string)) {
+        } else if (value.flags.test(LocalVarType::string)) {
             payload["string"] = value.string;
         }
-        if (value.flags.test(LocalVarType::location)) {
-            payload["location"] = value.loc;
+        if (profile != SerializationProfile::blueprint) {
+
+            if (value.flags.test(LocalVarType::object)) {
+                payload["object"] = value.object;
+            } else if (value.flags.test(LocalVarType::location)) {
+                payload["location"] = value.loc;
+            }
         }
     }
     return j;

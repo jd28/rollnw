@@ -74,7 +74,7 @@ bool Waypoint::serialize(const Waypoint* obj, GffBuilderStruct& archive,
     }
 
     if (obj->common.locals.size()) {
-        obj->common.locals.to_gff(archive);
+        obj->common.locals.to_gff(archive, profile);
     }
 
     archive.add_field("Description", obj->description)

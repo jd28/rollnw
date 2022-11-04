@@ -212,7 +212,7 @@ bool Door::serialize(const Door* obj, GffBuilderStruct& archive, SerializationPr
     }
 
     if (obj->common.locals.size()) {
-        obj->common.locals.to_gff(archive);
+        obj->common.locals.to_gff(archive, profile);
     }
 
     obj->lock.to_gff(archive);

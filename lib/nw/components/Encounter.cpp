@@ -242,7 +242,7 @@ bool Encounter::serialize(const Encounter* obj, GffBuilderStruct& archive, Seria
     }
 
     if (obj->common.locals.size()) {
-        obj->common.locals.to_gff(archive);
+        obj->common.locals.to_gff(archive, profile);
     }
 
     obj->scripts.to_gff(archive);

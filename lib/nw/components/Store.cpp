@@ -172,7 +172,7 @@ bool Store::serialize(const Store* obj, GffBuilderStruct& archive, Serialization
     }
 
     if (obj->common.locals.size()) {
-        obj->common.locals.to_gff(archive);
+        obj->common.locals.to_gff(archive, profile);
     }
 
     auto& store_list = archive.add_list("StoreList");

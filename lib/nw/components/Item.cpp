@@ -183,7 +183,7 @@ bool Item::serialize(const Item* obj, GffBuilderStruct& archive, SerializationPr
             .add_field("OrientationY", obj->common.location.orientation.y);
     }
 
-    obj->common.locals.to_gff(archive);
+    obj->common.locals.to_gff(archive, profile);
     obj->inventory.to_gff(archive, profile);
 
     archive.add_field("Description", obj->description);

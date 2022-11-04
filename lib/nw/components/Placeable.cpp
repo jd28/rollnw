@@ -217,7 +217,7 @@ bool Placeable::serialize(const Placeable* obj, GffBuilderStruct& archive, Seria
     }
 
     if (obj->common.locals.size()) {
-        obj->common.locals.to_gff(archive);
+        obj->common.locals.to_gff(archive, profile);
     }
 
     obj->inventory.to_gff(archive, profile);

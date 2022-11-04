@@ -280,7 +280,7 @@ bool Module::serialize(const Module* obj, GffBuilderStruct& archive)
         throw std::runtime_error("unable to serialize null object");
     }
 
-    obj->locals.to_gff(archive);
+    obj->locals.to_gff(archive, SerializationProfile::any);
     obj->scripts.to_gff(archive);
 
     auto& area_list = archive.add_list("Mod_Area_list");
