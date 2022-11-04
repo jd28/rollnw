@@ -67,7 +67,7 @@ classes
 
 -------------------------------------------------------------------------------
 
-.. autoclass:: rollnw.model.MdlEmitterFlag
+.. autoclass:: rollnw.model.ModelEmitterFlag
     :members:
 
 -------------------------------------------------------------------------------
