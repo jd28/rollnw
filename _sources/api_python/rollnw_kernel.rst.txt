@@ -22,6 +22,7 @@ classes
 .. autoclass:: rollnw.kernel.Resources
     :members:
     :show-inheritance:
+    :inherited-members:
 
 -------------------------------------------------------------------------------
 
