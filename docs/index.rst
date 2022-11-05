@@ -1,5 +1,5 @@
-|License: MIT| |ci| |wheels| |pypi| |Language grade: C/C++|
-|CodeQL| |codecov|
+|License: MIT| |pypi| |ci| |CodeQL| |Language grade: C/C++| |codecov|
+|Documentation Status|
 
 rollNW
 ======
@@ -122,10 +122,8 @@ Credits
    :target: https://opensource.org/licenses/MIT
 .. |ci| image:: https://github.com/jd28/rollnw/actions/workflows/ci.yml/badge.svg
    :target: https://github.com/jd28/rollnw/actions?query=workflow%3Aci
-.. |wheels| image:: https://github.com/jd28/rollnw/actions/workflows/wheels.yml/badge.svg
-   :target: https://github.com/jd28/rollnw/actions?query=workflow%3Awheels
 .. |pypi| image:: https://badge.fury.io/py/rollnw.svg
-    :target: https://badge.fury.io/py/rollnw
+   :target: https://badge.fury.io/py/rollnw
 .. |Language grade: C/C++| image:: https://img.shields.io/lgtm/grade/cpp/g/jd28/rollnw.svg?logo=lgtm&logoWidth=18
    :target: https://lgtm.com/projects/g/jd28/rollnw/context:cpp
 .. |CodeQL| image:: https://github.com/jd28/rollnw/actions/workflows/codeql-analysis.yml/badge.svg
@@ -134,6 +132,8 @@ Credits
    :target: https://codecov.io/gh/jd28/rollnw
 .. |Open in Gitpod| image:: https://gitpod.io/button/open-in-gitpod.svg
    :target: https://gitpod.io/#https://github.com/jd28/rollnw
+.. |Documentation Status| image:: https://readthedocs.org/projects/rollnw/badge/?version=latest
+    :target: https://rollnw.readthedocs.io/en/latest/?badge=latest
 
 .. toctree::
   :caption: getting started
