@@ -64,8 +64,8 @@ bool SpellBook::from_gff(const GffStruct& gff)
 bool SpellBook::from_json(const nlohmann::json& archive)
 {
     try {
-        archive.at("known_").get_to(known_);
-        archive.at("memorized_").get_to(memorized_);
+        archive.at("known").get_to(known_);
+        archive.at("memorized").get_to(memorized_);
     } catch (const nlohmann::json::exception& e) {
         LOG_F(ERROR, "SpellBook: json exception: {}", e.what());
         return false;
@@ -109,8 +109,8 @@ bool SpellBook::to_gff(GffBuilderStruct& archive) const
 nlohmann::json SpellBook::to_json() const
 {
     nlohmann::json j;
-    j["known_"] = known_;
-    j["memorized_"] = memorized_;
+    j["known"] = known_;
+    j["memorized"] = memorized_;
     return j;
 }
 
