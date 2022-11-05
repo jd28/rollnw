@@ -19,6 +19,11 @@ classes
 
 -------------------------------------------------------------------------------
 
+.. autoclass:: rollnw.kernel.ParsedScriptCache
+    :members:
+
+-------------------------------------------------------------------------------
+
 .. autoclass:: rollnw.kernel.Resources
     :members:
     :show-inheritance:
@@ -31,10 +36,6 @@ classes
 
 -------------------------------------------------------------------------------
 
-.. autoclass:: rollnw.kernel.ScriptCache
-    :members:
-
--------------------------------------------------------------------------------
 
 .. autoclass:: rollnw.kernel.Strings
     :members:

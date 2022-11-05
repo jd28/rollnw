@@ -3,9 +3,9 @@
 #include "../components/Module.hpp"
 #include "../log.hpp"
 #include "Objects.hpp"
+#include "ParsedScriptCache.hpp"
 #include "Resources.hpp"
 #include "Rules.hpp"
-#include "ScriptCache.hpp"
 #include "Strings.hpp"
 #include "TwoDACache.hpp"
 
@@ -23,7 +23,7 @@ Services::Services()
     services().add<Resources>();
     services().add<ObjectSystem>();
     services().add<Rules>();
-    services().add<ScriptCache>();
+    services().add<ParsedScriptCache>();
     services().add<TwoDACache>();
 }
 

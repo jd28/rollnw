@@ -1,10 +1,10 @@
-#include "ScriptCache.hpp"
+#include "ParsedScriptCache.hpp"
 
 #include "Resources.hpp"
 
 namespace nw::kernel {
 
-script::Script* ScriptCache::get(Resref resref)
+script::Script* ParsedScriptCache::get(Resref resref)
 {
     auto res = Resource{resref, ResourceType::nss};
     auto it = cache_.find(res);
@@ -25,12 +25,12 @@ script::Script* ScriptCache::get(Resref resref)
     return &nss->script();
 }
 
-void ScriptCache::clear()
+void ParsedScriptCache::clear()
 {
     cache_.clear();
 }
 
-void ScriptCache::initialize()
+void ParsedScriptCache::initialize()
 {
     get("nwscript");
 }

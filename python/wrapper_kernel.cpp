@@ -1,3 +1,6 @@
+#include "casters.hpp"
+#include "opaque_types.hpp"
+
 #include <nw/components/Area.hpp>
 #include <nw/components/Creature.hpp>
 #include <nw/components/Door.hpp>
@@ -9,8 +12,8 @@
 #include <nw/components/Waypoint.hpp>
 #include <nw/kernel/Kernel.hpp>
 #include <nw/kernel/Objects.hpp>
+#include <nw/kernel/ParsedScriptCache.hpp>
 #include <nw/kernel/Rules.hpp>
-#include <nw/kernel/ScriptCache.hpp>
 #include <nw/kernel/TwoDACache.hpp>
 #include <nwn1/Profile.hpp>
 
@@ -131,8 +134,15 @@ void init_kernel_rules(py::module& kernel)
 
 void init_kernel_script_cache(py::module& kernel)
 {
-    py::class_<nw::kernel::ScriptCache>(kernel, "ScriptCache");
-    // kernel.def("scriptcache")
+    py::class_<nw::kernel::ParsedScriptCache>(kernel, "ParsedScriptCache")
+        .def("get", &nw::kernel::ParsedScriptCache::get,
+            py::return_value_policy::reference_internal);
+
+    kernel.def(
+        "parsed_scripts", []() {
+            return nw::kernel::services().get_mut<nw::kernel::ParsedScriptCache>();
+        },
+        py::return_value_policy::reference);
 }
 
 void init_kernel_strings(py::module& kernel)

@@ -1,5 +1,6 @@
 from .. import GameVersion, Module, PathAlias, Ini, Container, TwoDA, Resource
 from .. import ObjectHandle, Area, Creature, Door, Encounter, Placeable, Store, Trigger, Waypoint
+from ..script import Script
 
 # Classes #####################################################################
 ###############################################################################
@@ -108,10 +109,17 @@ class Rules:
     pass
 
 
-class ScriptCache:
+class ParsedScriptCache:
     """Script Cache service
     """
-    pass
+
+    def get(self, resref: str) -> Script | None:
+        """Gets a parsed script
+
+        Notes:
+            If a script is not in the cache it is demanded from the resource manager and parsed
+        """
+        pass
 
 
 class Strings:
