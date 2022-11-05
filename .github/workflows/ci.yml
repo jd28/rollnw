@@ -6,11 +6,13 @@ on:
       - "**.md"
       - "**.rst"
       - "**.py"
+      - ".readthedocs.yaml"
   pull_request:
     paths-ignore:
       - "**.md"
       - "**.rst"
       - "**.py"
+      - ".readthedocs.yaml"
   release:
     types:
       - published

@@ -429,7 +429,6 @@ class MdlModel(MdlGeometry):
         bmin (vec3): bmin
         classification: classification
         ignorefog: ignorefog
-        animations: animations
         supermodel: supermodel
         radius: radius
         animationscale: animationscale

@@ -37,5 +37,6 @@ breathe_projects = {}
 if read_the_docs_build:
     input_dir = '../lib/nw ../profiles'
     output_dir = 'build'
+    breathe_projects['rollNW'] = 'build/xml/'
     configureDoxyfile(input_dir, output_dir)
     subprocess.call('doxygen', shell=True)

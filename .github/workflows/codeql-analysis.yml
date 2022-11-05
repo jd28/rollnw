@@ -18,12 +18,14 @@ on:
       - "**.md"
       - "**.rst"
       - "**.py"
+      - ".readthedocs.yaml"
   pull_request:
     branches: [main]
     paths-ignore:
       - "**.md"
       - "**.rst"
       - "**.py"
+      - ".readthedocs.yaml"
   schedule:
     - cron: "21 9 * * 3"
 

@@ -4,10 +4,12 @@ on:
     branches: [main]
     paths-ignore:
       - "**.md"
+      - ".readthedocs.yaml"
   pull_request:
     branches: [main]
     paths-ignore:
       - "**.md"
+      - ".readthedocs.yaml"
 
 jobs:
   build:

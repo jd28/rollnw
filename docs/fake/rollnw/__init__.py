@@ -528,15 +528,15 @@ class Ini:
         filename (str): ini file to load
     """
 
-    def get_int(self, key: str) -> Optional[int]:
+    def get_int(self, key: str) -> int | None:
         """Gets an INI value"""
         pass
 
-    def get_float(self, key: str) -> Optional[float]:
+    def get_float(self, key: str) -> float | None:
         """Gets an INI value"""
         pass
 
-    def get_str(self, key: str) -> Optional[str]:
+    def get_str(self, key: str) -> str | None:
         """Gets an INI value"""
         pass
 
@@ -1558,7 +1558,7 @@ class Resource:
 
     Args:
         name (str): resref or filename
-        type (Optional[ResourceType]): (Default None)
+        type (ResourceType | None): (Default None)
 
     Notes:
         If a resource type is not passed ``name`` is assumed to be a file name,
