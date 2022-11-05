@@ -147,7 +147,12 @@ lack of a ResMan plugin, even so the ability to load files from a Zip file is in
 <span class="k">assert</span> <span class="n">data</span> <span class="o">==</span> <span class="n">data2</span>
 </pre></div>
 </div>
-</div><div aria-labelledby="tab-0-Qysr" class="sphinx-tabs-panel code-tab group-tab" hidden="true" id="panel-0-Qysr" name="Qysr" role="tabpanel" tabindex="0"><div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="c1">// TODO</span>
+</div><div aria-labelledby="tab-0-Qysr" class="sphinx-tabs-panel code-tab group-tab" hidden="true" id="panel-0-Qysr" name="Qysr" role="tabpanel" tabindex="0"><div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">nw</span><span class="o">::</span><span class="n">kernel</span><span class="o">::</span><span class="n">start</span><span class="p">();</span><span class="w"></span>
+<span class="c1">// Assumes that NWN root directory was found.</span>
+<span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">nw</span><span class="o">::</span><span class="n">kernel</span><span class="o">::</span><span class="n">resman</span><span class="p">().</span><span class="n">contains</span><span class="p">({</span><span class="s">&quot;nw_chicken&quot;</span><span class="n">sv</span><span class="p">,</span><span class="w"> </span><span class="n">nw</span><span class="o">::</span><span class="n">ResourceType</span><span class="o">::</span><span class="n">utc</span><span class="p">}))</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">utc</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">nw</span><span class="o">::</span><span class="n">kernel</span><span class="o">::</span><span class="n">resman</span><span class="p">().</span><span class="n">demand</span><span class="p">({</span><span class="s">&quot;nw_chicken&quot;</span><span class="n">sv</span><span class="p">,</span><span class="w"> </span><span class="n">nw</span><span class="o">::</span><span class="n">ResourceType</span><span class="o">::</span><span class="n">utc</span><span class="p">});</span><span class="w"></span>
+<span class="w">    </span><span class="c1">// Do something with this chicken.</span>
+<span class="p">}</span><span class="w"></span>
 </pre></div>
 </div>
 </div></div>
@@ -164,7 +169,15 @@ lack of a ResMan plugin, even so the ability to load files from a Zip file is in
 <p><strong>Status</strong>: Read</p>
 <p><strong>Example - Load an Erf and Print Contents</strong></p>
 <div class="sphinx-tabs docutils container">
-<div aria-label="Tabbed content" class="closeable" role="tablist"><button aria-controls="panel-1-Qysr" aria-selected="true" class="sphinx-tabs-tab code-tab group-tab" id="tab-1-Qysr" name="Qysr" role="tab" tabindex="0">C++</button><button aria-controls="panel-1-UHl0aG9u" aria-selected="false" class="sphinx-tabs-tab code-tab group-tab" id="tab-1-UHl0aG9u" name="UHl0aG9u" role="tab" tabindex="-1">Python</button></div><div aria-labelledby="tab-1-Qysr" class="sphinx-tabs-panel code-tab group-tab" id="panel-1-Qysr" name="Qysr" role="tabpanel" tabindex="0"><div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;nw/resources/Erf.hpp&gt;</span><span class="cp"></span>
+<div aria-label="Tabbed content" class="closeable" role="tablist"><button aria-controls="panel-1-UHl0aG9u" aria-selected="true" class="sphinx-tabs-tab code-tab group-tab" id="tab-1-UHl0aG9u" name="UHl0aG9u" role="tab" tabindex="0">Python</button><button aria-controls="panel-1-Qysr" aria-selected="false" class="sphinx-tabs-tab code-tab group-tab" id="tab-1-Qysr" name="Qysr" role="tab" tabindex="-1">C++</button></div><div aria-labelledby="tab-1-UHl0aG9u" class="sphinx-tabs-panel code-tab group-tab" id="panel-1-UHl0aG9u" name="UHl0aG9u" role="tabpanel" tabindex="0"><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">rollnw</span>
+
+<span class="n">erf</span> <span class="o">=</span> <span class="n">rollnw</span><span class="o">.</span><span class="n">Erf</span><span class="p">(</span><span class="s2">&quot;tests/test_data/user/hak/hak_with_description.hak&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">erf</span><span class="o">.</span><span class="n">name</span><span class="p">(),</span> <span class="n">erf</span><span class="o">.</span><span class="n">size</span><span class="p">())</span>
+<span class="k">for</span> <span class="n">rd</span> <span class="ow">in</span> <span class="n">erf</span><span class="o">.</span><span class="n">all</span><span class="p">():</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">rd</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">filename</span><span class="p">(),</span> <span class="n">rd</span><span class="o">.</span><span class="n">size</span><span class="p">)</span>
+</pre></div>
+</div>
+</div><div aria-labelledby="tab-1-Qysr" class="sphinx-tabs-panel code-tab group-tab" hidden="true" id="panel-1-Qysr" name="Qysr" role="tabpanel" tabindex="0"><div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;nw/resources/Erf.hpp&gt;</span><span class="cp"></span>
 <span class="c1">// ...</span>
 <span class="n">Erf</span><span class="w"> </span><span class="n">e</span><span class="p">(</span><span class="s">&quot;MyModule.mod&quot;</span><span class="p">);</span><span class="w"></span>
 <span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">e</span><span class="p">.</span><span class="n">valid</span><span class="p">())</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
@@ -173,14 +186,6 @@ lack of a ResMan plugin, even so the ability to load files from a Zip file is in
 <span class="w">        </span><span class="n">std</span><span class="o">::</span><span class="n">cout</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="n">fmt</span><span class="o">::</span><span class="n">format</span><span class="p">(</span><span class="s">&quot;File: {}, Size: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">rd</span><span class="p">.</span><span class="n">name</span><span class="p">.</span><span class="n">filename</span><span class="p">(),</span><span class="w"> </span><span class="n">rd</span><span class="p">.</span><span class="n">size</span><span class="p">)</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="s">&quot;</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">;</span><span class="w"></span>
 <span class="w">    </span><span class="p">}</span><span class="w"></span>
 <span class="p">}</span><span class="w"></span>
-</pre></div>
-</div>
-</div><div aria-labelledby="tab-1-UHl0aG9u" class="sphinx-tabs-panel code-tab group-tab" hidden="true" id="panel-1-UHl0aG9u" name="UHl0aG9u" role="tabpanel" tabindex="0"><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">rollnw</span>
-
-<span class="n">erf</span> <span class="o">=</span> <span class="n">rollnw</span><span class="o">.</span><span class="n">Erf</span><span class="p">(</span><span class="s2">&quot;tests/test_data/user/hak/hak_with_description.hak&quot;</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="n">erf</span><span class="o">.</span><span class="n">name</span><span class="p">(),</span> <span class="n">erf</span><span class="o">.</span><span class="n">size</span><span class="p">())</span>
-<span class="k">for</span> <span class="n">rd</span> <span class="ow">in</span> <span class="n">erf</span><span class="o">.</span><span class="n">all</span><span class="p">():</span>
-    <span class="nb">print</span><span class="p">(</span><span class="n">rd</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">filename</span><span class="p">(),</span> <span class="n">rd</span><span class="o">.</span><span class="n">size</span><span class="p">)</span>
 </pre></div>
 </div>
 </div></div>
@@ -194,7 +199,18 @@ lack of a ResMan plugin, even so the ability to load files from a Zip file is in
 <p><strong>Status</strong>: Read</p>
 <p><strong>Example - Loading and Reading From NWSync Manifest</strong></p>
 <div class="sphinx-tabs docutils container">
-<div aria-label="Tabbed content" class="closeable" role="tablist"><button aria-controls="panel-2-Qysr" aria-selected="true" class="sphinx-tabs-tab code-tab group-tab" id="tab-2-Qysr" name="Qysr" role="tab" tabindex="0">C++</button><button aria-controls="panel-2-UHl0aG9u" aria-selected="false" class="sphinx-tabs-tab code-tab group-tab" id="tab-2-UHl0aG9u" name="UHl0aG9u" role="tab" tabindex="-1">Python</button></div><div aria-labelledby="tab-2-Qysr" class="sphinx-tabs-panel code-tab group-tab" id="panel-2-Qysr" name="Qysr" role="tabpanel" tabindex="0"><div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;nw/resources/NWSync.hpp&gt;</span><span class="cp"></span>
+<div aria-label="Tabbed content" class="closeable" role="tablist"><button aria-controls="panel-2-UHl0aG9u" aria-selected="true" class="sphinx-tabs-tab code-tab group-tab" id="tab-2-UHl0aG9u" name="UHl0aG9u" role="tab" tabindex="0">Python</button><button aria-controls="panel-2-Qysr" aria-selected="false" class="sphinx-tabs-tab code-tab group-tab" id="tab-2-Qysr" name="Qysr" role="tab" tabindex="-1">C++</button></div><div aria-labelledby="tab-2-UHl0aG9u" class="sphinx-tabs-panel code-tab group-tab" id="panel-2-UHl0aG9u" name="UHl0aG9u" role="tabpanel" tabindex="0"><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">rollnw</span>
+
+<span class="n">nws</span> <span class="o">=</span> <span class="n">rollnw</span><span class="o">.</span><span class="n">NWSync</span><span class="p">(</span><span class="s2">&quot;path/to/nwsync&quot;</span><span class="p">)</span>
+<span class="k">if</span> <span class="n">nws</span><span class="o">.</span><span class="n">is_loaded</span><span class="p">():</span>
+    <span class="c1"># One of the curated modules</span>
+    <span class="n">manifest</span> <span class="o">=</span> <span class="n">nws</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;9a84e512dd3971eb215d6f9b0816a2e3ae2fee54&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">manifest</span><span class="p">:</span>
+        <span class="n">tga</span> <span class="o">=</span> <span class="n">manifest</span><span class="o">.</span><span class="n">demand</span><span class="p">(</span><span class="s1">&#39;002metal.tga&#39;</span><span class="p">)</span>
+        <span class="c1"># Do something with this image..</span>
+</pre></div>
+</div>
+</div><div aria-labelledby="tab-2-Qysr" class="sphinx-tabs-panel code-tab group-tab" hidden="true" id="panel-2-Qysr" name="Qysr" role="tabpanel" tabindex="0"><div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;nw/resources/NWSync.hpp&gt;</span><span class="cp"></span>
 <span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;nw/kernel/Kernel.hpp&gt;</span><span class="cp"></span>
 
 <span class="k">auto</span><span class="w"> </span><span class="n">path</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">nw</span><span class="o">::</span><span class="n">kernel</span><span class="o">::</span><span class="n">config</span><span class="p">().</span><span class="n">alias_path</span><span class="p">(</span><span class="n">nw</span><span class="o">::</span><span class="n">PathAlias</span><span class="o">::</span><span class="n">nwsync</span><span class="p">);</span><span class="w"></span>
@@ -212,9 +228,6 @@ lack of a ResMan plugin, even so the ability to load files from a Zip file is in
 <span class="w">        </span><span class="n">manifest</span><span class="o">-&gt;</span><span class="n">extract</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">regex</span><span class="p">(</span><span class="n">resource</span><span class="p">[</span><span class="mi">0</span><span class="p">].</span><span class="n">name</span><span class="p">.</span><span class="n">filename</span><span class="p">()),</span><span class="w"> </span><span class="s">&quot;tmp/&quot;</span><span class="p">);</span><span class="w"></span>
 <span class="w">    </span><span class="p">}</span><span class="w"></span>
 <span class="p">}</span><span class="w"></span>
-</pre></div>
-</div>
-</div><div aria-labelledby="tab-2-UHl0aG9u" class="sphinx-tabs-panel code-tab group-tab" hidden="true" id="panel-2-UHl0aG9u" name="UHl0aG9u" role="tabpanel" tabindex="0"><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># TODO</span>
 </pre></div>
 </div>
 </div></div>
