@@ -27,7 +27,12 @@ lack of a ResMan plugin, even so the ability to load files from a Zip file is in
 
     .. code-tab:: cpp
 
-        // TODO
+        nw::kernel::start();
+        // Assumes that NWN root directory was found.
+        if (nw::kernel::resman().contains({"nw_chicken"sv, nw::ResourceType::utc})) {
+            auto utc = nw::kernel::resman().demand({"nw_chicken"sv, nw::ResourceType::utc});
+            // Do something with this chicken.
+        }
 
 -------------------------------------------------------------------------------
 
@@ -49,6 +54,15 @@ Erf
 
 .. tabs::
 
+    .. code-tab:: python
+
+        import rollnw
+
+        erf = rollnw.Erf("tests/test_data/user/hak/hak_with_description.hak")
+        print(erf.name(), erf.size())
+        for rd in erf.all():
+            print(rd.name.filename(), rd.size)
+
     .. code-tab:: cpp
 
         #include <nw/resources/Erf.hpp>
@@ -60,16 +74,6 @@ Erf
                 std::cout << fmt::format("File: {}, Size: {}", rd.name.filename(), rd.size) << "\n";
             }
         }
-
-    .. code-tab:: python
-
-        import rollnw
-
-        erf = rollnw.Erf("tests/test_data/user/hak/hak_with_description.hak")
-        print(erf.name(), erf.size())
-        for rd in erf.all():
-            print(rd.name.filename(), rd.size)
-
 
 Key/Bif
 ~~~~~~~
@@ -84,6 +88,18 @@ NWSync
 **Example - Loading and Reading From NWSync Manifest**
 
 .. tabs::
+
+    .. code-tab:: python
+
+        import rollnw
+
+        nws = rollnw.NWSync("path/to/nwsync")
+        if nws.is_loaded():
+            # One of the curated modules
+            manifest = nws.get('9a84e512dd3971eb215d6f9b0816a2e3ae2fee54')
+            if manifest:
+                tga = manifest.demand('002metal.tga')
+                # Do something with this image..
 
     .. code-tab:: cpp
 
@@ -105,10 +121,6 @@ NWSync
                 manifest->extract(std::regex(resource[0].name.filename()), "tmp/");
             }
         }
-
-    .. code-tab:: python
-
-        # TODO
 
 Zip
 ~~~
