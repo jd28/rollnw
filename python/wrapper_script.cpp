@@ -80,7 +80,7 @@ void init_script(py::module& nw)
         .value("BREAK", nws::NssTokenType::BREAK)               // break
         .value("CASE", nws::NssTokenType::CASE)                 // case
         .value("CASSOWARY", nws::NssTokenType::CASSOWARY)       // cassowary
-        .value("CONST", nws::NssTokenType::CONST)               // const
+        .value("CONST", nws::NssTokenType::CONST_)              // const
         .value("CONTINUE", nws::NssTokenType::CONTINUE)         // continue
         .value("DEFAULT", nws::NssTokenType::DEFAULT)           // default
         .value("DO", nws::NssTokenType::DO)                     // do
@@ -102,7 +102,7 @@ void init_script(py::module& nw)
         .value("SWITCH", nws::NssTokenType::SWITCH)             // switch
         .value("TALENT", nws::NssTokenType::TALENT)             // talent
         .value("VECTOR", nws::NssTokenType::VECTOR)             // vector
-        .value("VOID", nws::NssTokenType::VOID)                 // void
+        .value("VOID", nws::NssTokenType::VOID_)                // void
         .value("WHILE", nws::NssTokenType::WHILE);              // while
 
     py::class_<nws::NssToken>(nw, "NssToken")

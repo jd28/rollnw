@@ -61,7 +61,7 @@ inline NssTokenType check_keyword(const NssToken& tk)
         } else if (tk.id == "cassowary") {
             return NssTokenType::CASSOWARY;
         } else if (tk.id == "const") {
-            return NssTokenType::CONST;
+            return NssTokenType::CONST_;
         } else if (tk.id == "continue") {
             return NssTokenType::CONTINUE;
         }
@@ -138,7 +138,7 @@ inline NssTokenType check_keyword(const NssToken& tk)
         if (tk.id == "vector") {
             return NssTokenType::VECTOR;
         } else if (tk.id == "void") {
-            return NssTokenType::VOID;
+            return NssTokenType::VOID_;
         }
         break;
     case 'w':

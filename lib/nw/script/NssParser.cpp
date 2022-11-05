@@ -131,7 +131,7 @@ void NssParser::synchronize()
         switch (peek().type) {
         default:
             break;
-        case NssTokenType::CONST:
+        case NssTokenType::CONST_:
         case NssTokenType::ACTION:
         case NssTokenType::CASSOWARY:
         case NssTokenType::EFFECT:
@@ -147,7 +147,7 @@ void NssParser::synchronize()
         case NssTokenType::STRUCT:
         case NssTokenType::TALENT:
         case NssTokenType::VECTOR:
-        case NssTokenType::VOID:
+        case NssTokenType::VOID_:
         case NssTokenType::FOR:
         case NssTokenType::IF:
         case NssTokenType::WHILE:
@@ -385,7 +385,7 @@ Type NssParser::parse_type()
     Type t;
 
     // Type qualifiers
-    if (match({NssTokenType::CONST})) {
+    if (match({NssTokenType::CONST_})) {
         t.type_qualifier = previous();
     }
 
@@ -405,7 +405,7 @@ Type NssParser::parse_type()
             NssTokenType::STRUCT,
             NssTokenType::TALENT,
             NssTokenType::VECTOR,
-            NssTokenType::VOID})) {
+            NssTokenType::VOID_})) {
         t.type_specifier = previous();
         if (t.type_specifier.type == NssTokenType::STRUCT) {
             consume(NssTokenType::IDENTIFIER, "Expected 'IDENTIFIER'.");
@@ -600,7 +600,7 @@ std::unique_ptr<WhileStatement> NssParser::parse_stmt_while()
 std::unique_ptr<Statement> NssParser::parse_decl()
 {
     try {
-        if (check({NssTokenType::CONST,
+        if (check({NssTokenType::CONST_,
                 NssTokenType::ACTION,
                 NssTokenType::CASSOWARY,
                 NssTokenType::EFFECT,
@@ -616,7 +616,7 @@ std::unique_ptr<Statement> NssParser::parse_decl()
                 NssTokenType::STRUCT,
                 NssTokenType::TALENT,
                 NssTokenType::VECTOR,
-                NssTokenType::VOID})) {
+                NssTokenType::VOID_})) {
             auto decls = std::make_unique<DeclStatement>();
             Type t = parse_type();
 

@@ -75,7 +75,7 @@ enum class NssTokenType {
     BREAK,        // break
     CASE,         // case
     CASSOWARY,    // cassowary
-    CONST,        // const
+    CONST_,       // const
     CONTINUE,     // continue
     DEFAULT,      // default
     DO,           // do
@@ -97,7 +97,7 @@ enum class NssTokenType {
     SWITCH,       // switch
     TALENT,       // talent
     VECTOR,       // vector
-    VOID,         // void
+    VOID_,        // void
     WHILE,        // while
 };
 
