@@ -57,6 +57,7 @@ jobs:
           brew install pkg-config automake ninja libtool zlib llvm ccache
           echo "CC=$(brew --prefix llvm)/bin/clang" >> $GITHUB_ENV
           echo "CXX=$(brew --prefix llvm)/bin/clang++" >> $GITHUB_ENV
+          echo "PATH=/usr/local/opt/ccache/libexec:$PATH" >> $GITHUB_ENV
 
       - name: macOS - check clang version
         if: matrix.os == 'macos-11'
