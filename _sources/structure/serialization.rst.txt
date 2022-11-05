@@ -194,7 +194,7 @@ Sample rollnw JSON serialization format
                 "class": 4,
                 "level": 10,
                 "spellbook": {
-                    "known_": [
+                    "known": [
                         [],
                         [],
                         [],
@@ -206,7 +206,7 @@ Sample rollnw JSON serialization format
                         [],
                         []
                     ],
-                    "memorized_": [
+                    "memorized": [
                         [],
                         [],
                         [],
@@ -224,7 +224,7 @@ Sample rollnw JSON serialization format
                 "class": 5,
                 "level": 30,
                 "spellbook": {
-                    "known_": [
+                    "known": [
                         [],
                         [],
                         [],
@@ -236,7 +236,7 @@ Sample rollnw JSON serialization format
                         [],
                         []
                     ],
-                    "memorized_": [
+                    "memorized": [
                         [],
                         [],
                         [],
