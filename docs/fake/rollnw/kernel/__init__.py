@@ -1,5 +1,4 @@
-from tkinter import Place
-from .. import GameVersion, Module, PathAlias, Ini, Container, TwoDA
+from .. import GameVersion, Module, PathAlias, Ini, Container, TwoDA, Resource
 from .. import ObjectHandle, Area, Creature, Door, Encounter, Placeable, Store, Trigger, Waypoint
 
 # Classes #####################################################################
@@ -122,9 +121,12 @@ class Strings:
 
 
 class TwoDACache:
+    """2da cache
     """
-    """
-    pass
+
+    def get(self, name: str | Resource) -> TwoDA | None:
+        """Gets a cached twoda"""
+        pass
 
 # Functions ###################################################################
 ###############################################################################

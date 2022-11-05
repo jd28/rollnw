@@ -147,8 +147,17 @@ void init_kernel_strings(py::module& kernel)
 
 void init_kernel_twoda_cache(py::module& kernel)
 {
-    py::class_<nw::kernel::TwoDACache>(kernel, "TwoDACache");
-    // kernel.def("twodacache")
+    py::class_<nw::kernel::TwoDACache>(kernel, "TwoDACache")
+        .def("get", py::overload_cast<std::string_view>(&nw::kernel::TwoDACache::get),
+            py::return_value_policy::reference_internal)
+        .def("get", py::overload_cast<const nw::Resource&>(&nw::kernel::TwoDACache::get),
+            py::return_value_policy::reference_internal);
+
+    kernel.def(
+        "twodas", []() {
+            return nw::kernel::services().get_mut<nw::kernel::TwoDACache>();
+        },
+        py::return_value_policy::reference);
 }
 
 void init_kernel(py::module& kernel)

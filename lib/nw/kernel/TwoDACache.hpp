@@ -9,6 +9,12 @@
 namespace nw::kernel {
 
 struct TwoDACache : public Service {
+    TwoDACache() = default;
+    TwoDACache(const TwoDACache&) = delete;
+    TwoDACache(TwoDACache&&) = default;
+    TwoDACache& operator=(const TwoDACache&) = delete;
+    TwoDACache& operator=(TwoDACache&&) = default;
+
     /// Caches a 2da
     bool cache(std::string_view tda);
 
@@ -24,5 +30,11 @@ struct TwoDACache : public Service {
 private:
     absl::flat_hash_map<Resource, TwoDA> cached_2das_;
 };
+
+inline TwoDACache& twodas()
+{
+    auto res = detail::s_services.get_mut<TwoDACache>();
+    return res ? *res : *detail::s_services.add<TwoDACache>();
+}
 
 } // namespace nw::kernel

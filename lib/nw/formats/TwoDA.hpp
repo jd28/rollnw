@@ -75,6 +75,11 @@ struct TwoDA {
     static constexpr size_t npos = std::numeric_limits<size_t>::max();
 
     TwoDA() = default;
+    TwoDA(const TwoDA&) = delete;
+    TwoDA(TwoDA&&) = default;
+
+    TwoDA& operator=(const TwoDA&) = delete;
+    TwoDA& operator=(TwoDA&&) = default;
 
     /// Constructs TwoDA object from a file
     explicit TwoDA(const std::filesystem::path& filename);
