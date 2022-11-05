@@ -1,6 +1,7 @@
 #pragma once
 
 #include <fstream>
+#include <variant>
 
 namespace nw {
 
@@ -59,6 +60,12 @@ std::ostream& ostream_write(std::ostream& stream, const T* data, U size)
     static_assert(std::is_integral_v<U>, "size must be an integral type");
     return stream.write(reinterpret_cast<const char*>(data),
         static_cast<std::streamsize>(size));
+}
+
+template <typename T, typename... Us>
+bool alt(const std::variant<Us...>& variant)
+{
+    return std::holds_alternative<T>(variant);
 }
 
 } // namespace nw
