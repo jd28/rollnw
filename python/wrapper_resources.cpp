@@ -200,7 +200,7 @@ void init_resources_nwsync(py::module& nw)
 {
     py::class_<nw::NWSync>(nw, "NWSync")
         .def(py::init<std::filesystem::path>())
-        .def("get", &nw::NWSync::get)
+        .def("get", &nw::NWSync::get, py::return_value_policy::reference_internal)
         .def("is_loaded", &nw::NWSync::is_loaded)
         .def("manifests", &nw::NWSync::manifests)
         .def("shard_count", &nw::NWSync::shard_count);
