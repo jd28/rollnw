@@ -135,11 +135,11 @@ class CreatureStats:
         """
         pass
 
-    def get_ability_score(id: int):
+    def get_ability_score(self, id: int):
         """Gets an ability score"""
         pass
 
-    def get_skill_rank(id: int):
+    def get_skill_rank(self, id: int):
         """Gets a skill rank"""
         pass
 
@@ -148,11 +148,11 @@ class CreatureStats:
         """
         pass
 
-    def set_ability_score(id: int,  value: int) -> bool:
+    def set_ability_score(self, id: int,  value: int) -> bool:
         """Sets an ability score, returning true if successful"""
         pass
 
-    def set_skill_rank(id: int,  value: int) -> bool:
+    def set_skill_rank(self, id: int,  value: int) -> bool:
         """Sets a skill rank, returning true if successful"""
         pass
 
@@ -279,80 +279,14 @@ class LevelStats:
     Attributes:
         entries ([ClassEntry]): Entries for levels
     """
-    def level() -> int:
+
+    def level(self) -> int:
         """Gets total level"""
         pass
 
-    def level_by_class(class_: int) -> int:
+    def level_by_class(self, class_: int) -> int:
         """Gets level by class"""
         pass
-
-
-class LocalData:
-    def delete_float(varname: str):
-        """Deletes float variable"""
-        pass
-
-    def delete_int(varname: str):
-        """Deletes int variable"""
-        pass
-
-    def delete_object(varname: str):
-        """Deletes object variable"""
-        pass
-
-    def delete_string(varname: str):
-        """Deletes string variable"""
-        pass
-
-    def delete_location(varname: str):
-        """Deletes location variable"""
-        pass
-
-    def get_float(varname: str):
-        """Gets float variable"""
-        pass
-
-    def get_int(varname: str) -> int:
-        """Gets int variable"""
-        pass
-
-    def get_object(varname: str):
-        """Gets object variable"""
-        pass
-
-    def get_string(varname: str) -> str:
-        """Gets string variable"""
-        pass
-
-    def get_location(varname: str):
-        """Gets location variable"""
-        pass
-
-    def set_float(varname: str, value: float):
-        """Sets float variable"""
-        pass
-
-    def set_int(varname: str, value: int):
-        """Sets int variable"""
-        pass
-
-    def set_object(varname: str):
-        """Sets object variable"""
-        pass
-
-    def set_string(varname: str, value: str):
-        """Sets string variable"""
-        pass
-
-    def set_location(varname: str):
-        """Sets location variable"""
-        pass
-
-    def size():
-        """Gets number of variables"""
-        pass
-    pass
 
 
 class Location:
@@ -363,6 +297,73 @@ class Location:
         orientation
         position
     """
+    pass
+
+
+class LocalData:
+    def delete_float(self, varname: str):
+        """Deletes float variable"""
+        pass
+
+    def delete_int(self, varname: str):
+        """Deletes int variable"""
+        pass
+
+    def delete_object(self, varname: str):
+        """Deletes object variable"""
+        pass
+
+    def delete_string(self, varname: str):
+        """Deletes string variable"""
+        pass
+
+    def delete_location(self, varname: str):
+        """Deletes location variable"""
+        pass
+
+    def get_float(self, varname: str):
+        """Gets float variable"""
+        pass
+
+    def get_int(self, varname: str) -> int:
+        """Gets int variable"""
+        pass
+
+    def get_object(self, varname: str):
+        """Gets object variable"""
+        pass
+
+    def get_string(self, varname: str) -> str:
+        """Gets string variable"""
+        pass
+
+    def get_location(self, varname: str):
+        """Gets location variable"""
+        pass
+
+    def set_float(self, varname: str, value: float):
+        """Sets float variable"""
+        pass
+
+    def set_int(self, varname: str, value: int):
+        """Sets int variable"""
+        pass
+
+    def set_object(self, varname: str, value: 'ObjectHandle'):
+        """Sets object variable"""
+        pass
+
+    def set_string(self, varname: str, value: str):
+        """Sets string variable"""
+        pass
+
+    def set_location(self, varname: str, value: Location):
+        """Sets location variable"""
+        pass
+
+    def size(self):
+        """Gets number of variables"""
+        pass
     pass
 
 
@@ -422,35 +423,35 @@ class SpellEntry:
 class SpellBook:
     """Implements a spell casters spellbook"""
 
-    def add_known_spell(level: int,  entry: SpellEntry):
+    def add_known_spell(self, level: int,  entry: SpellEntry):
         """Adds a known spell at level"""
         pass
 
-    def add_memorized_spell(level: int, entry: SpellEntry):
+    def add_memorized_spell(self, level: int, entry: SpellEntry):
         """Adds a memorized spell at level"""
         pass
 
-    def get_known_spell_count(level: int):
+    def get_known_spell_count(self, level: int):
         """Gets the number of known at a given level"""
         pass
 
-    def get_memorized_spell_count(level: int):
+    def get_memorized_spell_count(self, level: int):
         """Gets the number of memorized at a given level"""
         pass
 
-    def get_known_spell(level: int, index: int):
+    def get_known_spell(self, level: int, index: int):
         """Gets a known spell entry"""
         pass
 
-    def get_memorized_spell(level: int, index: int):
+    def get_memorized_spell(self, level: int, index: int):
         """Gets a memorized spell entry"""
         pass
 
-    def remove_known_spell(level: int, entry: SpellEntry):
+    def remove_known_spell(self, level: int, entry: SpellEntry):
         """Removes a known spell entry"""
         pass
 
-    def remove_memorized_spell(level: int, entry: SpellEntry):
+    def remove_memorized_spell(self, level: int, entry: SpellEntry):
         """Removes a memorized spell entry"""
         pass
 
@@ -668,7 +669,7 @@ class LocString:
         """Gets number of localized strings"""
         pass
 
-    def strref():
+    def strref(self):
         """Gets string reference"""
         pass
 
@@ -1357,13 +1358,13 @@ class Store(ObjectBase):
     """
 
     @staticmethod
-    def from_dict(value: dict) -> Creature:
+    def from_dict(value: dict) -> 'Store':
         """Constructs object from python dict.
         """
         pass
 
     @staticmethod
-    def from_file(path: str):
+    def from_file(path: str) -> 'Store':
         """Constructs object from file.  The file can be JSON or Gff.
         """
         pass
@@ -1620,7 +1621,7 @@ class Container:
         """Reads resource data, empty ByteArray if no match."""
         pass
 
-    def extract_by_glob(glob: str, output: str) -> int:
+    def extract_by_glob(self, glob: str, output: str) -> int:
         """Extract elements from a container by glob pattern"""
         pass
 
@@ -1660,7 +1661,8 @@ class Directory(Container):
     Args:
         path (str): Directory to load
     """
-    def __init__(path: str):
+
+    def __init__(self, path: str):
         pass
 
 
@@ -1670,7 +1672,8 @@ class Erf(Container):
     Args:
         path (str): Erf file to load
     """
-    def __init__(path: str):
+
+    def __init__(self, path: str):
         pass
 
     def add(self, path):
@@ -1717,7 +1720,8 @@ class Key(Container):
     Args:
         path (str): Path to key file
     """
-    def __init__(path: str):
+
+    def __init__(self, path: str):
         pass
 
 
@@ -1727,7 +1731,8 @@ class NWSync:
     Args:
         path (str): Path to NWSync repository
     """
-    def __init__(path: str):
+
+    def __init__(self, path: str):
         pass
 
     def get(self, manifest):
@@ -1758,7 +1763,8 @@ class Zip(Container):
     Args:
         path (str): Path to zip file
     """
-    def __init__(path: str):
+
+    def __init__(self, path: str):
         pass
 
 # Rules #######################################################################
