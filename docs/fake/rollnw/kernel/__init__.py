@@ -1,5 +1,5 @@
 from tkinter import Place
-from .. import GameVersion, Module, PathAlias, Ini, Trigger
+from .. import GameVersion, Module, PathAlias, Ini, Container, TwoDA
 from .. import ObjectHandle, Area, Creature, Door, Encounter, Placeable, Store, Trigger, Waypoint
 
 # Classes #####################################################################
@@ -97,7 +97,7 @@ class Objects:
         pass
 
 
-class Resources:
+class Resources(Container):
     """Resources service
     """
     pass
