@@ -40,6 +40,9 @@ struct ObjectSystem : public Service {
     template <typename T>
     T* get(ObjectHandle obj);
 
+    /// Gets an object
+    ObjectBase* get_object_base(ObjectHandle obj);
+
     /// Loads an object from file system
     template <typename T>
     T* load(const std::filesystem::path& archive,

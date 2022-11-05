@@ -59,40 +59,41 @@ class Config:
 class Objects:
     """The object system creates, serializes, and deserializes entities
     """
-    def area(resref: str) -> Area:
+
+    def area(self, resref: str) -> Area:
         pass
 
-    def creature(resref: str) -> Creature:
+    def creature(self, resref: str) -> Creature:
         pass
 
-    def destroy(obj: ObjectHandle) -> None:
+    def destroy(self, obj: ObjectHandle) -> None:
         """Destroys an object and removes it from object system"""
         pass
 
-    def door(resref: str) -> Door:
+    def door(self, resref: str) -> Door:
         pass
 
-    def encounter(resref: str) -> Encounter:
+    def encounter(self, resref: str) -> Encounter:
         pass
 
-    def get(handle: ObjectHandle):
+    def get(self, handle: ObjectHandle):
         """Gets an object by its handle"""
         pass
 
-    def placeable(resref: str) -> Placeable:
+    def placeable(self, resref: str) -> Placeable:
         pass
 
-    def store(resref: str) -> Store:
+    def store(self, resref: str) -> Store:
         pass
 
-    def trigger(resref: str) -> Trigger:
+    def trigger(self, resref: str) -> Trigger:
         pass
 
-    def valid(handle: ObjectHandle) -> bool:
+    def valid(self, handle: ObjectHandle) -> bool:
         """Checks if an object handle is still valid"""
         pass
 
-    def waypoint(resref: str) -> Waypoint:
+    def waypoint(self, resref: str) -> Waypoint:
         pass
 
 

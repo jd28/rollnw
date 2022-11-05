@@ -84,3 +84,11 @@ def test_creature_level_stats():
     assert cre.levels.entries[0].id == 4
     assert cre.levels.entries[0].level == 10
     assert cre.levels.entries[0].spells.get_known_spell_count(1) == 0
+
+
+def test_objects_kernel_service():
+    rollnw.kernel.start()
+    cre = rollnw.kernel.objects().creature('nw_chicken.utc')
+    assert cre
+    cre2 = rollnw.kernel.objects().get(cre.handle())
+    assert cre == cre2

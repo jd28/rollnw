@@ -35,6 +35,13 @@ void ObjectSystem::destroy(ObjectHandle obj)
     }
 }
 
+ObjectBase* ObjectSystem::get_object_base(ObjectHandle obj)
+{
+    if (!valid(obj)) { return nullptr; }
+    auto idx = static_cast<size_t>(obj.id);
+    return std::get<std::unique_ptr<ObjectBase>>(objects_[idx]).get();
+}
+
 Area* ObjectSystem::make_area(Resref area)
 {
     Gff are{resman().demand({area, ResourceType::are})};

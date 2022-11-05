@@ -88,9 +88,8 @@ void init_kernel_objects(py::module& kernel)
             py::return_value_policy::reference_internal)
         .def("encounter", &load_object_helper<nw::Encounter>,
             py::return_value_policy::reference_internal)
-        // [TODO]
-        //.def("get", &nw::kernel::ObjectSystem::get,
-        //    py::return_value_policy::reference_internal)
+        .def("get", &nw::kernel::ObjectSystem::get_object_base,
+            py::return_value_policy::reference_internal)
         .def("placeable", &load_object_helper<nw::Placeable>,
             py::return_value_policy::reference_internal)
         .def("store", &load_object_helper<nw::Store>,
