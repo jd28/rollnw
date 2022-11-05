@@ -120,7 +120,7 @@ classes
 
 -------------------------------------------------------------------------------
 
-.. autoclass:: rollnw.model.MdlSKinNode
+.. autoclass:: rollnw.model.MdlSkinNode
    :members:
    :special-members:
    :inherited-members:
@@ -141,7 +141,7 @@ classes
 
 -------------------------------------------------------------------------------
 
-.. autoclass:: rollnw.model.ModelNodeFlags
+.. autoclass:: rollnw.model.MdlNodeFlags
    :members:
 
 -------------------------------------------------------------------------------
@@ -149,7 +149,7 @@ classes
 enums
 -----
 
-.. autoenum:: rollnw.model.MdlGeometryFlags
+.. autoenum:: rollnw.model.MdlGeometryFlag
     :members:
 
 -------------------------------------------------------------------------------
