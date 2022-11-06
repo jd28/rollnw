@@ -187,3 +187,25 @@ TEST_CASE("creature: gff round trip", "[ojbects]")
     REQUIRE(oa.header.list_idx_offset == g.head_->list_idx_offset);
     REQUIRE(oa.header.list_idx_count == g.head_->list_idx_count);
 }
+
+TEST_CASE("creature: apply and remove effects", "[objects]")
+{
+    auto obj = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/test_creature.utc"));
+    REQUIRE(obj);
+    REQUIRE(obj->instantiate());
+    auto eff = new nw::Effect(nwn1::effect_haste);
+    REQUIRE(obj->effects().add(eff));
+    REQUIRE(obj->effects().size());
+    REQUIRE(obj->effects().remove(eff));
+    REQUIRE(obj->effects().size() == 0);
+    REQUIRE_FALSE(obj->effects().remove(nullptr));
+
+    eff->creator = obj->handle();
+    REQUIRE(obj->effects().add(eff));
+    REQUIRE(obj->effects().add(eff));
+    REQUIRE(obj->effects().size());
+    REQUIRE(obj->effects().remove(obj->handle()) == 2);
+    REQUIRE(obj->effects().size() == 0);
+    REQUIRE(obj->effects().remove(obj->handle()) == 0);
+    delete eff;
+}

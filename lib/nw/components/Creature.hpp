@@ -85,6 +85,10 @@ struct Creature : public ObjectBase {
     int16_t hp_max = 0;
     uint16_t soundset;
 
+    // Transient
+    bool hasted = false;
+
+    // Serialized
     uint8_t bodybag = 0;
     uint8_t chunk_death = 0;
     uint8_t disarmable = 0;

@@ -38,6 +38,7 @@ add_executable(rollnw_test
     i18n_tlk.cpp
 
     kernel_config.cpp
+    kernel_effect_registry.cpp
     kernel_load_module.cpp
     kernel_objects.cpp
     kernel_resources.cpp
@@ -68,6 +69,7 @@ add_executable(rollnw_test
     resources_resource.cpp
     resources_zip.cpp
 
+    rules_effects.cpp
     rules_qualifier.cpp
     rules_random.cpp
     rules_requirement.cpp

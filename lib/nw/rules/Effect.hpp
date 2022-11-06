@@ -1,10 +1,13 @@
 #pragma once
 
+#include "../components/ObjectHandle.hpp"
+#include "Spell.hpp"
 #include "rule_type.hpp"
 #include "system.hpp"
 
 #include <absl/container/inlined_vector.h>
 
+#include <compare>
 #include <string>
 
 namespace nw {
@@ -21,35 +24,62 @@ enum struct EffectCategory {
     innate,
 };
 
+struct EffectID {
+    uint32_t version = 0;
+    uint32_t index = 0;
+};
+
 struct Effect {
-    static uint64_t next_id;
-
     Effect();
+    Effect(EffectType type_);
 
-    float get_float(size_t index) const;
-    int get_int(size_t index) const;
-    std::string_view get_string(size_t index) const;
+    /// Clears the effect such that it's as if default constructed
+    void clear();
 
+    /// Gets a floating point value
+    float get_float(size_t index) const noexcept;
+
+    /// Gets an integer point value
+    int get_int(size_t index) const noexcept;
+
+    /// Gets a string value
+    std::string_view get_string(size_t index) const noexcept;
+
+    /// Gets the effect's handle
     EffectHandle handle() const noexcept;
-    uint64_t id() const noexcept;
 
+    /// Gets the effect's ID
+    EffectID id() const noexcept;
+
+    /// Sets a floating point value
     void set_float(size_t index, float value);
+
+    /// Sets effect's ID
+    void set_id(EffectID id);
+
+    /// Sets an integer point value
     void set_int(size_t index, int value);
-    void set_string(size_t index, std::string_view value);
+
+    /// Sets a string value
+    void set_string(size_t index, std::string value);
+
+    /// Sets the versus value
     void set_versus(Versus vs);
 
+    /// Gets the versus value
     const Versus& versus() const noexcept;
 
-    int type = -1;
+    EffectType type = EffectType::invalid();
     EffectCategory category = EffectCategory::magical;
     int subtype = -1;
-    // flecs::entity creator;
+    ObjectHandle creator;
+    Spell spell_id = Spell::invalid();
     float duration = 0.0f;
     uint32_t expire_day = 0;
     uint32_t expire_time = 0;
 
 private:
-    uint64_t id_;
+    EffectID id_;
 
     absl::InlinedVector<int, 4> integers_;
     absl::InlinedVector<float, 4> floats_;
@@ -58,8 +88,11 @@ private:
 };
 
 struct EffectHandle {
-    int type = -1;
+    EffectType type = EffectType::invalid();
     const Effect* effect = nullptr;
+
+    bool operator==(const EffectHandle&) const = default;
+    bool operator<(const EffectHandle& rhs) const;
 };
 
 } // namespace nw

@@ -6,6 +6,7 @@ add_library(nw-components STATIC
     Item.cpp
     Module.cpp
     ObjectBase.cpp
+    ObjectHandle.cpp
     Placeable.cpp
     Sound.cpp
     Store.cpp
@@ -16,6 +17,7 @@ add_library(nw-components STATIC
     CombatInfo.cpp
     Common.cpp
     CreatureStats.cpp
+    EffectArray.cpp
     Equips.cpp
     Inventory.cpp
     LevelStats.cpp

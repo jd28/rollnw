@@ -1,6 +1,7 @@
 add_library(nw-kernel STATIC
     Kernel.cpp
     Config.cpp
+    EffectRegistry.cpp
     Objects.cpp
     Resources.cpp
     Rules.cpp
