@@ -21,13 +21,16 @@ jobs:
       ASAN_OPTIONS: "detect_leaks=0" # Not read for this yet..
       NWN_ROOT: "${{ github.workspace }}/nwn/"
       CI_GITHUB_ACTIONS: "1"
-      VCPKG_CACHE_NAME: "vcpkg-cache3"
       CCACHE_DIR: "${{ github.workspace }}/ccache/"
 
     name: build on linux
     runs-on: ubuntu-latest
 
     steps:
+      - name: Get current date
+        run: |
+          echo "DATE=$(date +'%Y-%m-%d')" >> $GITHUB_ENV
+
       - uses: actions/setup-python@v4
         with:
           python-version: '3.x' # Version range or exact version of a Python version to use, using SemVer's version range syntax
@@ -73,7 +76,7 @@ jobs:
           path: |
             ${{ github.workspace }}/vcpkg/.cache
             ${{ github.workspace }}/ccache
-          key: ${{ runner.os }}-coverage-${{ env.vcpkg-tag }}-${{ env.VCPKG_CACHE_NAME }}-${{ hashFiles('vcpkg.json') }}
+          key: ${{ runner.os }}-coverage-${{ env.vcpkg-tag }}-${{ env.DATE }}-${{ hashFiles('vcpkg.json') }}
           restore-keys: |
             ${{ runner.os }}-coverage-
 
