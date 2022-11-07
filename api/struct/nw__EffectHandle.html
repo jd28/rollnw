@@ -19,7 +19,7 @@
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
     <link rel="next" title="nw::Encounter" href="nw__Encounter.html" />
-    <link rel="prev" title="nw::Effect" href="nw__Effect.html" /> 
+    <link rel="prev" title="nw::EffectArray" href="nw__EffectArray.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -94,6 +94,7 @@
 <li class="toctree-l2"><a class="reference internal" href="nw__Door.html">nw::Door</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__DoorScripts.html">nw::DoorScripts</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Effect.html">nw::Effect</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__EffectArray.html">nw::EffectArray</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">nw::EffectHandle</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Encounter.html">nw::Encounter</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__EncounterScripts.html">nw::EncounterScripts</a></li>
@@ -235,6 +236,7 @@
 <li class="toctree-l2"><a class="reference internal" href="nw__ZlibHeader.html">nw::ZlibHeader</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__ZstdHeader.html">nw::ZstdHeader</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__kernel__Config.html">nw::kernel::Config</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__kernel__EffectRegistry.html">nw::kernel::EffectRegistry</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__kernel__ObjectSystem.html">nw::kernel::ObjectSystem</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__kernel__Resources.html">nw::kernel::Resources</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__kernel__Rules.html">nw::kernel::Rules</a></li>
@@ -346,10 +348,23 @@
 <dt class="sig sig-object cpp" id="_CPPv4N2nw12EffectHandleE">
 <span id="_CPPv3N2nw12EffectHandleE"></span><span id="_CPPv2N2nw12EffectHandleE"></span><span id="nw::EffectHandle"></span><span class="target" id="structnw_1_1_effect_handle"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">EffectHandle</span></span></span><a class="headerlink" href="#_CPPv4N2nw12EffectHandleE" title="Permalink to this definition"></a><br /></dt>
 <dd><div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK2nw12EffectHandleeqERK12EffectHandle">
+<span id="_CPPv3NK2nw12EffectHandleeqERK12EffectHandle"></span><span id="_CPPv2NK2nw12EffectHandleeqERK12EffectHandle"></span><span id="nw::EffectHandle::eq-operator__EffectHandleCRC"></span><span class="target" id="structnw_1_1_effect_handle_1a515d9d0146695f615fc190137cb9c9a7"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">==</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N2nw12EffectHandleE" title="nw::EffectHandle"><span class="n"><span class="pre">EffectHandle</span></span></a><span class="p"><span class="pre">&amp;</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">default</span></span><a class="headerlink" href="#_CPPv4NK2nw12EffectHandleeqERK12EffectHandle" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK2nw12EffectHandleltERK12EffectHandle">
+<span id="_CPPv3NK2nw12EffectHandleltERK12EffectHandle"></span><span id="_CPPv2NK2nw12EffectHandleltERK12EffectHandle"></span><span id="nw::EffectHandle::lt-operator__EffectHandleCRC"></span><span class="target" id="structnw_1_1_effect_handle_1a30f32ae2315389ba522d9f7be7d34f74"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">&lt;</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N2nw12EffectHandleE" title="nw::EffectHandle"><span class="n"><span class="pre">EffectHandle</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">rhs</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK2nw12EffectHandleltERK12EffectHandle" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw12EffectHandle4typeE">
-<span id="_CPPv3N2nw12EffectHandle4typeE"></span><span id="_CPPv2N2nw12EffectHandle4typeE"></span><span id="nw::EffectHandle::type__i"></span><span class="target" id="structnw_1_1_effect_handle_1ac12837367ceb5559cbf9ba4e437e366a"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">type</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="o"><span class="pre">-</span></span><span class="m"><span class="pre">1</span></span><a class="headerlink" href="#_CPPv4N2nw12EffectHandle4typeE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw12EffectHandle4typeE"></span><span id="_CPPv2N2nw12EffectHandle4typeE"></span><span id="nw::EffectHandle::type__EffectType"></span><span class="target" id="structnw_1_1_effect_handle_1afe7255bf0db6e3dcaeb88469050f6a04"></span><span class="n"><span class="pre">EffectType</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">type</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">EffectType</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">invalid</span></span><span class="p"><span class="pre">(</span></span><span class="p"><span class="pre">)</span></span><a class="headerlink" href="#_CPPv4N2nw12EffectHandle4typeE" title="Permalink to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
@@ -366,7 +381,7 @@
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="nw__Effect.html" class="btn btn-neutral float-left" title="nw::Effect" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="nw__EffectArray.html" class="btn btn-neutral float-left" title="nw::EffectArray" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
         <a href="nw__Encounter.html" class="btn btn-neutral float-right" title="nw::Encounter" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 

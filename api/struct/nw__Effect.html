@@ -18,7 +18,7 @@
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
-    <link rel="next" title="nw::EffectHandle" href="nw__EffectHandle.html" />
+    <link rel="next" title="nw::EffectArray" href="nw__EffectArray.html" />
     <link rel="prev" title="nw::DoorScripts" href="nw__DoorScripts.html" /> 
 </head>
 
@@ -94,6 +94,7 @@
 <li class="toctree-l2"><a class="reference internal" href="nw__Door.html">nw::Door</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__DoorScripts.html">nw::DoorScripts</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">nw::Effect</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__EffectArray.html">nw::EffectArray</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__EffectHandle.html">nw::EffectHandle</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Encounter.html">nw::Encounter</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__EncounterScripts.html">nw::EncounterScripts</a></li>
@@ -235,6 +236,7 @@
 <li class="toctree-l2"><a class="reference internal" href="nw__ZlibHeader.html">nw::ZlibHeader</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__ZstdHeader.html">nw::ZstdHeader</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__kernel__Config.html">nw::kernel::Config</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__kernel__EffectRegistry.html">nw::kernel::EffectRegistry</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__kernel__ObjectSystem.html">nw::kernel::ObjectSystem</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__kernel__Resources.html">nw::kernel::Resources</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__kernel__Rules.html">nw::kernel::Rules</a></li>
@@ -353,61 +355,88 @@
 <dd></dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4NK2nw6Effect9get_floatE6size_t">
-<span id="_CPPv3NK2nw6Effect9get_floatE6size_t"></span><span id="_CPPv2NK2nw6Effect9get_floatE6size_t"></span><span id="nw::Effect::get_float__sC"></span><span class="target" id="structnw_1_1_effect_1a33e1e83e8e5e5383bb7acdc59a9763c9"></span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_float</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">index</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK2nw6Effect9get_floatE6size_t" title="Permalink to this definition"></a><br /></dt>
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6Effect6EffectE10EffectType">
+<span id="_CPPv3N2nw6Effect6EffectE10EffectType"></span><span id="_CPPv2N2nw6Effect6EffectE10EffectType"></span><span id="nw::Effect::Effect__EffectType"></span><span class="target" id="structnw_1_1_effect_1abf4d5a51a4dcc7aed3cbbabf9ae8e8f2"></span><span class="sig-name descname"><span class="n"><span class="pre">Effect</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">EffectType</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">type_</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6Effect6EffectE10EffectType" title="Permalink to this definition"></a><br /></dt>
 <dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6Effect5clearEv">
+<span id="_CPPv3N2nw6Effect5clearEv"></span><span id="_CPPv2N2nw6Effect5clearEv"></span><span id="nw::Effect::clear"></span><span class="target" id="structnw_1_1_effect_1a4b49bc69fad06cfe8a4c668438c8f1a9"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">clear</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6Effect5clearEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Clears the effect such that it’s as if default constructed. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK2nw6Effect9get_floatE6size_t">
+<span id="_CPPv3NK2nw6Effect9get_floatE6size_t"></span><span id="_CPPv2NK2nw6Effect9get_floatE6size_t"></span><span id="nw::Effect::get_float__sC"></span><span class="target" id="structnw_1_1_effect_1a7519b75dfdcc79bb328e8b53584f007c"></span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_float</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">index</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="k"><span class="pre">noexcept</span></span><a class="headerlink" href="#_CPPv4NK2nw6Effect9get_floatE6size_t" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Gets a floating point value. </p>
+</dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4NK2nw6Effect7get_intE6size_t">
-<span id="_CPPv3NK2nw6Effect7get_intE6size_t"></span><span id="_CPPv2NK2nw6Effect7get_intE6size_t"></span><span id="nw::Effect::get_int__sC"></span><span class="target" id="structnw_1_1_effect_1ad524011e0af8c0d433326bd45109e184"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_int</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">index</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK2nw6Effect7get_intE6size_t" title="Permalink to this definition"></a><br /></dt>
-<dd></dd></dl>
+<span id="_CPPv3NK2nw6Effect7get_intE6size_t"></span><span id="_CPPv2NK2nw6Effect7get_intE6size_t"></span><span id="nw::Effect::get_int__sC"></span><span class="target" id="structnw_1_1_effect_1a8f88a2c02f06abfa55fc8458bc03c221"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_int</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">index</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="k"><span class="pre">noexcept</span></span><a class="headerlink" href="#_CPPv4NK2nw6Effect7get_intE6size_t" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Gets an integer point value. </p>
+</dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4NK2nw6Effect10get_stringE6size_t">
-<span id="_CPPv3NK2nw6Effect10get_stringE6size_t"></span><span id="_CPPv2NK2nw6Effect10get_stringE6size_t"></span><span id="nw::Effect::get_string__sC"></span><span class="target" id="structnw_1_1_effect_1a1ac3003a73255f074afcd0d2ae7d7e20"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_string</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">index</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK2nw6Effect10get_stringE6size_t" title="Permalink to this definition"></a><br /></dt>
-<dd></dd></dl>
+<span id="_CPPv3NK2nw6Effect10get_stringE6size_t"></span><span id="_CPPv2NK2nw6Effect10get_stringE6size_t"></span><span id="nw::Effect::get_string__sC"></span><span class="target" id="structnw_1_1_effect_1a0aaee88edaa4d0da87338179eba8d0a0"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_string</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">index</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="k"><span class="pre">noexcept</span></span><a class="headerlink" href="#_CPPv4NK2nw6Effect10get_stringE6size_t" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Gets a string value. </p>
+</dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4NK2nw6Effect6handleEv">
 <span id="_CPPv3NK2nw6Effect6handleEv"></span><span id="_CPPv2NK2nw6Effect6handleEv"></span><span id="nw::Effect::handleC"></span><span class="target" id="structnw_1_1_effect_1a8249f13f44bfd84fe03511fbb8a09b94"></span><a class="reference internal" href="nw__EffectHandle.html#_CPPv4N2nw12EffectHandleE" title="nw::EffectHandle"><span class="n"><span class="pre">EffectHandle</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">handle</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="k"><span class="pre">noexcept</span></span><a class="headerlink" href="#_CPPv4NK2nw6Effect6handleEv" title="Permalink to this definition"></a><br /></dt>
-<dd></dd></dl>
+<dd><p>Gets the effect’s handle. </p>
+</dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4NK2nw6Effect2idEv">
-<span id="_CPPv3NK2nw6Effect2idEv"></span><span id="_CPPv2NK2nw6Effect2idEv"></span><span id="nw::Effect::idC"></span><span class="target" id="structnw_1_1_effect_1ab2775ac482b4bf316be37d0fc97d92d1"></span><span class="n"><span class="pre">uint64_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">id</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="k"><span class="pre">noexcept</span></span><a class="headerlink" href="#_CPPv4NK2nw6Effect2idEv" title="Permalink to this definition"></a><br /></dt>
-<dd></dd></dl>
+<span id="_CPPv3NK2nw6Effect2idEv"></span><span id="_CPPv2NK2nw6Effect2idEv"></span><span id="nw::Effect::idC"></span><span class="target" id="structnw_1_1_effect_1a38ee599a847ceafbb746a039353dea18"></span><span class="n"><span class="pre">EffectID</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">id</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="k"><span class="pre">noexcept</span></span><a class="headerlink" href="#_CPPv4NK2nw6Effect2idEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Gets the effect’s ID. </p>
+</dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw6Effect9set_floatE6size_tf">
 <span id="_CPPv3N2nw6Effect9set_floatE6size_tf"></span><span id="_CPPv2N2nw6Effect9set_floatE6size_tf"></span><span id="nw::Effect::set_float__s.float"></span><span class="target" id="structnw_1_1_effect_1a029e82f2ddcbd72e7ad6d991b4046724"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_float</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">index</span></span>, <span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">value</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6Effect9set_floatE6size_tf" title="Permalink to this definition"></a><br /></dt>
-<dd></dd></dl>
+<dd><p>Sets a floating point value. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6Effect6set_idE8EffectID">
+<span id="_CPPv3N2nw6Effect6set_idE8EffectID"></span><span id="_CPPv2N2nw6Effect6set_idE8EffectID"></span><span id="nw::Effect::set_id__EffectID"></span><span class="target" id="structnw_1_1_effect_1a29cb2512f77f948e1a99099cd30f99f7"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_id</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">EffectID</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">id</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6Effect6set_idE8EffectID" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Sets effect’s ID. </p>
+</dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw6Effect7set_intE6size_ti">
 <span id="_CPPv3N2nw6Effect7set_intE6size_ti"></span><span id="_CPPv2N2nw6Effect7set_intE6size_ti"></span><span id="nw::Effect::set_int__s.i"></span><span class="target" id="structnw_1_1_effect_1a2eb6350cc7d8237ae834203523e43b61"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_int</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">index</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">value</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6Effect7set_intE6size_ti" title="Permalink to this definition"></a><br /></dt>
-<dd></dd></dl>
+<dd><p>Sets an integer point value. </p>
+</dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N2nw6Effect10set_stringE6size_tNSt11string_viewE">
-<span id="_CPPv3N2nw6Effect10set_stringE6size_tNSt11string_viewE"></span><span id="_CPPv2N2nw6Effect10set_stringE6size_tNSt11string_viewE"></span><span id="nw::Effect::set_string__s.std::string_view"></span><span class="target" id="structnw_1_1_effect_1a8a26f9cd1d746794002be2d68958461e"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_string</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">index</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">value</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6Effect10set_stringE6size_tNSt11string_viewE" title="Permalink to this definition"></a><br /></dt>
-<dd></dd></dl>
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6Effect10set_stringE6size_tNSt6stringE">
+<span id="_CPPv3N2nw6Effect10set_stringE6size_tNSt6stringE"></span><span id="_CPPv2N2nw6Effect10set_stringE6size_tNSt6stringE"></span><span id="nw::Effect::set_string__s.ss"></span><span class="target" id="structnw_1_1_effect_1a1c9bd818d8fbe335a1948adcbc22e591"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_string</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">index</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">value</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6Effect10set_stringE6size_tNSt6stringE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Sets a string value. </p>
+</dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw6Effect10set_versusE6Versus">
 <span id="_CPPv3N2nw6Effect10set_versusE6Versus"></span><span id="_CPPv2N2nw6Effect10set_versusE6Versus"></span><span id="nw::Effect::set_versus__Versus"></span><span class="target" id="structnw_1_1_effect_1ac6e041d178de95a16688a7e54f6d8020"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_versus</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="nw__Versus.html#_CPPv4N2nw6VersusE" title="nw::Versus"><span class="n"><span class="pre">Versus</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">vs</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6Effect10set_versusE6Versus" title="Permalink to this definition"></a><br /></dt>
-<dd></dd></dl>
+<dd><p>Sets the versus value. </p>
+</dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4NK2nw6Effect6versusEv">
 <span id="_CPPv3NK2nw6Effect6versusEv"></span><span id="_CPPv2NK2nw6Effect6versusEv"></span><span id="nw::Effect::versusC"></span><span class="target" id="structnw_1_1_effect_1ab89270915e893d214e6bce7c1b72c095"></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="nw__Versus.html#_CPPv4N2nw6VersusE" title="nw::Versus"><span class="n"><span class="pre">Versus</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">versus</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="k"><span class="pre">noexcept</span></span><a class="headerlink" href="#_CPPv4NK2nw6Effect6versusEv" title="Permalink to this definition"></a><br /></dt>
-<dd></dd></dl>
+<dd><p>Gets the versus value. </p>
+</dd></dl>
 
 </div>
 <div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw6Effect4typeE">
-<span id="_CPPv3N2nw6Effect4typeE"></span><span id="_CPPv2N2nw6Effect4typeE"></span><span id="nw::Effect::type__i"></span><span class="target" id="structnw_1_1_effect_1a0908567d31a18df551e0cfe25986d070"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">type</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="o"><span class="pre">-</span></span><span class="m"><span class="pre">1</span></span><a class="headerlink" href="#_CPPv4N2nw6Effect4typeE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw6Effect4typeE"></span><span id="_CPPv2N2nw6Effect4typeE"></span><span id="nw::Effect::type__EffectType"></span><span class="target" id="structnw_1_1_effect_1a0cc69fcfa4a130ed11b98e8bc891c622"></span><span class="n"><span class="pre">EffectType</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">type</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">EffectType</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">invalid</span></span><span class="p"><span class="pre">(</span></span><span class="p"><span class="pre">)</span></span><a class="headerlink" href="#_CPPv4N2nw6Effect4typeE" title="Permalink to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
@@ -418,6 +447,16 @@
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw6Effect7subtypeE">
 <span id="_CPPv3N2nw6Effect7subtypeE"></span><span id="_CPPv2N2nw6Effect7subtypeE"></span><span id="nw::Effect::subtype__i"></span><span class="target" id="structnw_1_1_effect_1ae140d7e8b2c551d60049914a5dfc9f2f"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">subtype</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="o"><span class="pre">-</span></span><span class="m"><span class="pre">1</span></span><a class="headerlink" href="#_CPPv4N2nw6Effect7subtypeE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6Effect7creatorE">
+<span id="_CPPv3N2nw6Effect7creatorE"></span><span id="_CPPv2N2nw6Effect7creatorE"></span><span id="nw::Effect::creator__ObjectHandle"></span><span class="target" id="structnw_1_1_effect_1a24e273c0c9765f47a05a3fcf5b8bfe22"></span><span class="n"><span class="pre">ObjectHandle</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">creator</span></span></span><a class="headerlink" href="#_CPPv4N2nw6Effect7creatorE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6Effect8spell_idE">
+<span id="_CPPv3N2nw6Effect8spell_idE"></span><span id="_CPPv2N2nw6Effect8spell_idE"></span><span id="nw::Effect::spell_id__Spell"></span><span class="target" id="structnw_1_1_effect_1a2d803d84b54afc1c25b67714d6c85663"></span><a class="reference internal" href="nw__Spell.html#_CPPv4N2nw5SpellE" title="nw::Spell"><span class="n"><span class="pre">Spell</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">spell_id</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="nw__Spell.html#_CPPv4N2nw5SpellE" title="nw::Spell"><span class="n"><span class="pre">Spell</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="nw__Spell.html#_CPPv4N2nw5Spell7invalidEv" title="nw::Spell::invalid"><span class="n"><span class="pre">invalid</span></span></a><span class="p"><span class="pre">(</span></span><span class="p"><span class="pre">)</span></span><a class="headerlink" href="#_CPPv4N2nw6Effect8spell_idE" title="Permalink to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
@@ -436,14 +475,6 @@
 <dd></dd></dl>
 
 </div>
-<div class="breathe-sectiondef docutils container">
-<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-static-attributes">Public Static Attributes</p>
-<dl class="cpp var">
-<dt class="sig sig-object cpp" id="_CPPv4N2nw6Effect7next_idE">
-<span id="_CPPv3N2nw6Effect7next_idE"></span><span id="_CPPv2N2nw6Effect7next_idE"></span><span id="nw::Effect::next_id__uint64_t"></span><span class="target" id="structnw_1_1_effect_1a07d7e37a187bb10c615cb487f7b1aafd"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="n"><span class="pre">uint64_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">next_id</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N2nw6Effect7next_idE" title="Permalink to this definition"></a><br /></dt>
-<dd></dd></dl>
-
-</div>
 </dd></dl>
 
 </div>
@@ -453,7 +484,7 @@
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="nw__DoorScripts.html" class="btn btn-neutral float-left" title="nw::DoorScripts" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="nw__EffectHandle.html" class="btn btn-neutral float-right" title="nw::EffectHandle" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="nw__EffectArray.html" class="btn btn-neutral float-right" title="nw::EffectArray" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
