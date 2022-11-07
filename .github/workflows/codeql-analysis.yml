@@ -95,15 +95,13 @@ jobs:
       - name: cache vcpkg
         id: cache-vcpkg
         uses: actions/cache@v3
-        env:
-          cache-name: cache-vcpgk
         with:
           path: |
             ${{ github.workspace }}/vcpkg/.cache
             ${{ github.workspace }}/ccache
-          key: ${{ runner.os }}-build-${{ env.vcpkg-tag }}-${{ env.DATE }}-${{ hashFiles('vcpkg.json') }}
+          key: ${{ runner.os }}-analyze-${{ env.vcpkg-tag }}-${{ env.DATE }}-${{ hashFiles('vcpkg.json') }}
           restore-keys: |
-            ${{ runner.os }}-build-
+            ${{ runner.os }}-analyze-
 
       - name: Make cache dir
         if: steps.cache-vcpkg.outputs.cache-hit != 'true'
@@ -111,7 +109,7 @@ jobs:
 
       - name: Configure
         run: |
-          cmake --preset linux
+          cmake --preset ci-codeql
 
       - name: Build
         run: |

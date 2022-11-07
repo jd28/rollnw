@@ -36,6 +36,23 @@
             }
         },
         {
+            "name": "ci-codeql",
+            "inherits": "linux",
+            "displayName": "ci-codeql",
+            "description": "CodeQL build",
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Linux"
+            },
+            "cacheVariables": {
+                "ENABLE_TESTING": {
+                    "type": "BOOL",
+                    "value": "OFF"
+                }
+            }
+        },
+        {
             "name": "ci-linux",
             "inherits": "linux",
             "displayName": "ci-linux",

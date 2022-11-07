@@ -70,8 +70,6 @@ jobs:
       - name: cache vcpkg
         id: cache-vcpkg
         uses: actions/cache@v3
-        env:
-          cache-name: cache-vcpgk4
         with:
           path: |
             ${{ github.workspace }}/vcpkg/.cache
@@ -87,12 +85,10 @@ jobs:
       - name: cache nwn
         id: cache-nwn
         uses: actions/cache@v3
-        env:
-          cache-name: cache-nwn
         with:
           path: |
             ${{ github.workspace }}/nwn/
-          key: ${{ env.cache-name }}-3e02cddcea5d0ae82111a3038f14aef6c14d05d9
+          key: cache-nwn-3e02cddcea5d0ae82111a3038f14aef6c14d05d9
 
       - name: Download NWN dedicated server
         if: steps.cache-nwn.outputs.cache-hit != 'true'
