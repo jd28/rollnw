@@ -10,6 +10,7 @@ vcpkg_installed/
 CMakeLists.txt.user
 .kdev4/
 *.kdev4
+.cache
 
 # bin/
 bin/*
