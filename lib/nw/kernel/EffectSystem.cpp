@@ -10,6 +10,12 @@ bool EffectSystem::add(EffectType type, EffectFunc apply, EffectFunc remove)
     return added;
 }
 
+bool EffectSystem::add(ItemPropertyType type, ItemPropFunc generator)
+{
+    auto [it, added] = itemprops_.emplace(*type, std::move(generator));
+    return added;
+}
+
 bool EffectSystem::apply(ObjectBase* obj, Effect* effect)
 {
     if (!effect) { return false; }
@@ -65,7 +71,17 @@ void EffectSystem::destroy(Effect* effect)
     free_list_.push(id.index);
 }
 
-bool EffectSystem::remove(ObjectBase* obj, Effect* effect)
+Effect* EffectSystem::generate(const ItemProperty& property) const
+{
+    auto it = itemprops_.find(property.type);
+    if (it == std::end(itemprops_)) { return nullptr; }
+    if (it->second) {
+        return it->second(property);
+    }
+    return nullptr;
+}
+
+bool EffectSystem::remove(ObjectBase* obj, const Effect* effect)
 {
     if (!effect) { return false; }
     auto it = registry_.find(*effect->type);

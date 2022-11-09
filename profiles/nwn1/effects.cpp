@@ -1,7 +1,11 @@
 #include "effects.hpp"
 
+#include "constants.hpp"
+
 #include <nw/components/Creature.hpp>
+#include <nw/kernel/EffectSystem.hpp>
 #include <nw/rules/Effect.hpp>
+#include <nw/rules/ItemProperty.hpp>
 
 namespace nwn1 {
 
@@ -22,5 +26,13 @@ bool effect_haste_remove(nw::ObjectBase* obj, const nw::Effect*)
     }
     return false;
 };
+
+// -- Item Property Generators ------------------------------------------------
+// ----------------------------------------------------------------------------
+
+nw::Effect* ip_gen_haste(const nw::ItemProperty& ip)
+{
+    return nw::kernel::effects().create(effect_haste);
+}
 
 } // namespace nwn1

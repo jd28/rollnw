@@ -24,7 +24,14 @@ namespace nwn1 {
 
 static inline void load_effects()
 {
+    LOG_F(INFO, "[nwn1] Loading effect appliers");
     nw::kernel::effects().add(effect_haste, effect_haste_apply, effect_haste_remove);
+}
+
+static inline void load_itemprop_generators()
+{
+    LOG_F(INFO, "[nwn1] Loading item property generators");
+    nw::kernel::effects().add(ip_haste, ip_gen_haste);
 }
 
 static inline bool load_master_feats()
@@ -426,8 +433,11 @@ bool Profile::load_rules() const
     // == Load Master Feats ===================================================
     load_master_feats();
 
-    // == Load Effects Feats ==================================================
+    // == Load Effects ========================================================
     load_effects();
+
+    // == Load Item Property Generators =======================================
+    load_itemprop_generators();
 
     return true;
 }
