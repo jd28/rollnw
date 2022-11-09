@@ -23,9 +23,6 @@ struct EffectArray {
     /// Removes an effect
     bool remove(Effect* effect);
 
-    /// Removes effects by creator
-    int remove(ObjectHandle obj);
-
     /// Gets the number of applied effects
     size_t size() const noexcept;
 

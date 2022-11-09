@@ -46,7 +46,7 @@ struct Effect {
     std::string_view get_string(size_t index) const noexcept;
 
     /// Gets the effect's handle
-    EffectHandle handle() const noexcept;
+    EffectHandle handle() noexcept;
 
     /// Gets the effect's ID
     EffectID id() const noexcept;
@@ -89,7 +89,7 @@ private:
 
 struct EffectHandle {
     EffectType type = EffectType::invalid();
-    const Effect* effect = nullptr;
+    Effect* effect = nullptr;
 
     bool operator==(const EffectHandle&) const = default;
     bool operator<(const EffectHandle& rhs) const;

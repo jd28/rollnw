@@ -48,7 +48,7 @@ struct EffectSystem : public Service {
     Effect* generate(const ItemProperty& property) const;
 
     /// Removes an effect to an object
-    bool remove(ObjectBase* obj, const Effect* effect);
+    bool remove(ObjectBase* obj, Effect* effect);
 
     /// Gets stats regarding the effect system
     EffectSystemStats stats() const noexcept;

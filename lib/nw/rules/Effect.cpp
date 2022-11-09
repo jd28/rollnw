@@ -41,7 +41,7 @@ std::string_view Effect::get_string(size_t index) const noexcept
     return index < strings_.size() ? strings_[index] : std::string_view{};
 }
 
-EffectHandle Effect::handle() const noexcept
+EffectHandle Effect::handle() noexcept
 {
     return {type, this};
 }

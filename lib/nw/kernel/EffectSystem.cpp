@@ -81,7 +81,7 @@ Effect* EffectSystem::generate(const ItemProperty& property) const
     return nullptr;
 }
 
-bool EffectSystem::remove(ObjectBase* obj, const Effect* effect)
+bool EffectSystem::remove(ObjectBase* obj, Effect* effect)
 {
     if (!effect) { return false; }
     auto it = registry_.find(*effect->type);
