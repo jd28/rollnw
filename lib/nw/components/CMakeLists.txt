@@ -29,7 +29,6 @@ add_library(nw-components STATIC
     Trap.cpp
 )
 
-target_include_directories(nw-components SYSTEM PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
 target_link_libraries(nw-components PRIVATE
     nw-base
     nw-libraries

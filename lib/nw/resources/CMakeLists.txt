@@ -11,7 +11,6 @@ add_library(nw-resources STATIC
     Zip.cpp
 )
 
-target_include_directories(nw-resources SYSTEM PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
 target_link_libraries(nw-resources PRIVATE
     nw-base
     nw-libraries

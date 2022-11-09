@@ -8,7 +8,6 @@ add_library(nw-util STATIC
     Tokenizer.cpp
 )
 
-target_include_directories(nw-util SYSTEM PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
 target_link_libraries(nw-util PRIVATE
     nw-base
     nw-libraries

@@ -5,7 +5,6 @@ add_library(nw-i18n STATIC
     Tlk.cpp
 )
 
-target_include_directories(nw-i18n SYSTEM PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
 target_link_libraries(nw-i18n PRIVATE
     nw-base
     nw-libraries
