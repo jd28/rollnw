@@ -6,8 +6,19 @@
 namespace nw {
 
 struct EffectArray {
+    using storage = std::vector<EffectHandle>;
+
+    using iterator = storage::iterator;
+    using const_iterator = storage::const_iterator;
+
+    iterator begin();
+    const_iterator begin() const;
+
     /// Adds an effect
     bool add(Effect* effect);
+
+    iterator end();
+    const_iterator end() const;
 
     /// Removes an effect
     bool remove(Effect* effect);
@@ -19,7 +30,7 @@ struct EffectArray {
     size_t size() const noexcept;
 
 private:
-    std::vector<EffectHandle> effects_;
+    storage effects_;
 };
 
 } // namespace nw

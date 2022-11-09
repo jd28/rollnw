@@ -4,6 +4,12 @@
 
 namespace nw {
 
+EffectArray::iterator EffectArray::begin() { return effects_.begin(); }
+EffectArray::const_iterator EffectArray::begin() const { return effects_.begin(); }
+
+EffectArray::iterator EffectArray::end() { return effects_.end(); }
+EffectArray::const_iterator EffectArray::end() const { return effects_.end(); }
+
 bool EffectArray::add(Effect* effect)
 {
     if (!effect) { return false; }
