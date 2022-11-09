@@ -16,13 +16,13 @@ namespace nw::kernel {
 using EffectFunc = std::function<bool(ObjectBase*, const Effect*)>;
 using EffectPair = std::pair<EffectFunc, EffectFunc>;
 
-struct EffectRegistryStats {
+struct EffectSystemStats {
     size_t free_list_size = 0;
     size_t pool_size = 0;
 };
 
-struct EffectRegistry : public Service {
-    virtual ~EffectRegistry() = default;
+struct EffectSystem : public Service {
+    virtual ~EffectSystem() = default;
 
     /// Adds an effect type to the registry
     bool add(EffectType type, EffectFunc apply, EffectFunc remove);
@@ -43,18 +43,19 @@ struct EffectRegistry : public Service {
     bool remove(ObjectBase* obj, Effect* effect);
 
     /// Gets stats regarding the effect system
-    EffectRegistryStats stats() const noexcept;
+    EffectSystemStats stats() const noexcept;
 
 private:
     absl::flat_hash_map<int32_t, EffectPair> registry_;
+
     std::deque<Effect> pool_;
     std::stack<uint32_t> free_list_;
 };
 
-inline EffectRegistry& effects()
+inline EffectSystem& effects()
 {
-    auto res = detail::s_services.get_mut<EffectRegistry>();
-    return res ? *res : *detail::s_services.add<EffectRegistry>();
+    auto res = detail::s_services.get_mut<EffectSystem>();
+    return res ? *res : *detail::s_services.add<EffectSystem>();
 }
 
 } // namespace nw::kernel

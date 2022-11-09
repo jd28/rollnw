@@ -14,9 +14,7 @@ int attack_bonus(const nw::Creature* obj, bool base)
 {
     ROLLNW_UNUSED(base);
     int result = 0;
-    if (!obj) {
-        return result;
-    }
+    if (!obj) { return result; }
 
     auto& classes = nw::kernel::rules().classes;
 
@@ -40,16 +38,12 @@ int number_of_attacks(const nw::Creature* obj, bool offhand)
 
 int weapon_iteration(const nw::Creature* obj, nw::Item* weapon)
 {
-    if (!obj) {
-        return 0;
-    }
+    if (!obj) { return 0; }
 
     auto& bia = nw::kernel::rules().baseitems;
 
     auto baseitem = bia.get(nw::BaseItem::make(weapon->baseitem));
-    if (!baseitem) {
-        return 0;
-    }
+    if (!baseitem) { return 0; }
 
     auto [yes, level] = can_use_monk_abilities(obj);
     if (baseitem->is_monk_weapon && yes) {

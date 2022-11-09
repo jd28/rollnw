@@ -12,6 +12,7 @@
 #include <nw/rules/Class.hpp>
 #include <nw/rules/Damage.hpp>
 #include <nw/rules/Effect.hpp>
+#include <nw/rules/ItemProperty.hpp>
 #include <nw/rules/Modifier.hpp>
 #include <nw/rules/Race.hpp>
 #include <nw/rules/Situation.hpp>
@@ -178,6 +179,87 @@ constexpr nw::EffectType effect_spell_failure = nw::EffectType::make(92);
 constexpr nw::EffectType effect_cutscene_ghost = nw::EffectType::make(93);
 constexpr nw::EffectType effect_cutscene_immobile = nw::EffectType::make(94);
 constexpr nw::EffectType effect_defensive_stance = nw::EffectType::make(95);
+
+constexpr nw::ItemPropertyType ip_ability_bonus = nw::ItemPropertyType::make(0);
+constexpr nw::ItemPropertyType ip_ac_bonus = nw::ItemPropertyType::make(1);
+constexpr nw::ItemPropertyType ip_ac_bonus_vs_alignment_group = nw::ItemPropertyType::make(2);
+constexpr nw::ItemPropertyType ip_ac_bonus_vs_damage_type = nw::ItemPropertyType::make(3);
+constexpr nw::ItemPropertyType ip_ac_bonus_vs_racial_group = nw::ItemPropertyType::make(4);
+constexpr nw::ItemPropertyType ip_ac_bonus_vs_specific_alignment = nw::ItemPropertyType::make(5);
+constexpr nw::ItemPropertyType ip_enhancement_bonus = nw::ItemPropertyType::make(6);
+constexpr nw::ItemPropertyType ip_enhancement_bonus_vs_alignment_group = nw::ItemPropertyType::make(7);
+constexpr nw::ItemPropertyType ip_enhancement_bonus_vs_racial_group = nw::ItemPropertyType::make(8);
+constexpr nw::ItemPropertyType ip_enhancement_bonus_vs_specific_alignement = nw::ItemPropertyType::make(9);
+constexpr nw::ItemPropertyType ip_decreased_enhancement_modifier = nw::ItemPropertyType::make(10);
+constexpr nw::ItemPropertyType ip_base_item_weight_reduction = nw::ItemPropertyType::make(11);
+constexpr nw::ItemPropertyType ip_bonus_feat = nw::ItemPropertyType::make(12);
+constexpr nw::ItemPropertyType ip_bonus_spell_slot_of_level_n = nw::ItemPropertyType::make(13);
+constexpr nw::ItemPropertyType ip_cast_spell = nw::ItemPropertyType::make(15);
+constexpr nw::ItemPropertyType ip_damage_bonus = nw::ItemPropertyType::make(16);
+constexpr nw::ItemPropertyType ip_damage_bonus_vs_alignment_group = nw::ItemPropertyType::make(17);
+constexpr nw::ItemPropertyType ip_damage_bonus_vs_racial_group = nw::ItemPropertyType::make(18);
+constexpr nw::ItemPropertyType ip_damage_bonus_vs_specific_alignment = nw::ItemPropertyType::make(19);
+constexpr nw::ItemPropertyType ip_immunity_damage_type = nw::ItemPropertyType::make(20);
+constexpr nw::ItemPropertyType ip_decreased_damage = nw::ItemPropertyType::make(21);
+constexpr nw::ItemPropertyType ip_damage_reduction = nw::ItemPropertyType::make(22);
+constexpr nw::ItemPropertyType ip_damage_resistance = nw::ItemPropertyType::make(23);
+constexpr nw::ItemPropertyType ip_damage_vulnerability = nw::ItemPropertyType::make(24);
+constexpr nw::ItemPropertyType ip_darkvision = nw::ItemPropertyType::make(26);
+constexpr nw::ItemPropertyType ip_decreased_ability_score = nw::ItemPropertyType::make(27);
+constexpr nw::ItemPropertyType ip_decreased_ac = nw::ItemPropertyType::make(28);
+constexpr nw::ItemPropertyType ip_decreased_skill_modifier = nw::ItemPropertyType::make(29);
+constexpr nw::ItemPropertyType ip_enhanced_container_reduced_weight = nw::ItemPropertyType::make(32);
+constexpr nw::ItemPropertyType ip_extra_melee_damage_type = nw::ItemPropertyType::make(33);
+constexpr nw::ItemPropertyType ip_extra_ranged_damage_type = nw::ItemPropertyType::make(34);
+constexpr nw::ItemPropertyType ip_haste = nw::ItemPropertyType::make(35);
+constexpr nw::ItemPropertyType ip_holy_avenger = nw::ItemPropertyType::make(36);
+constexpr nw::ItemPropertyType ip_immunity_miscellaneous = nw::ItemPropertyType::make(37);
+constexpr nw::ItemPropertyType ip_improved_evasion = nw::ItemPropertyType::make(38);
+constexpr nw::ItemPropertyType ip_spell_resistance = nw::ItemPropertyType::make(39);
+constexpr nw::ItemPropertyType ip_saving_throw_bonus = nw::ItemPropertyType::make(40);
+constexpr nw::ItemPropertyType ip_saving_throw_bonus_specific = nw::ItemPropertyType::make(41);
+constexpr nw::ItemPropertyType ip_keen = nw::ItemPropertyType::make(43);
+constexpr nw::ItemPropertyType ip_light = nw::ItemPropertyType::make(44);
+constexpr nw::ItemPropertyType ip_mighty = nw::ItemPropertyType::make(45);
+constexpr nw::ItemPropertyType ip_mind_blank = nw::ItemPropertyType::make(46);
+constexpr nw::ItemPropertyType ip_no_damage = nw::ItemPropertyType::make(47);
+constexpr nw::ItemPropertyType ip_on_hit_properties = nw::ItemPropertyType::make(48);
+constexpr nw::ItemPropertyType ip_decreased_saving_throws = nw::ItemPropertyType::make(49);
+constexpr nw::ItemPropertyType ip_decreased_saving_throws_specific = nw::ItemPropertyType::make(50);
+constexpr nw::ItemPropertyType ip_regeneration = nw::ItemPropertyType::make(51);
+constexpr nw::ItemPropertyType ip_skill_bonus = nw::ItemPropertyType::make(52);
+constexpr nw::ItemPropertyType ip_immunity_specific_spell = nw::ItemPropertyType::make(53);
+constexpr nw::ItemPropertyType ip_immunity_spell_school = nw::ItemPropertyType::make(54);
+constexpr nw::ItemPropertyType ip_thieves_tools = nw::ItemPropertyType::make(55);
+constexpr nw::ItemPropertyType ip_attack_bonus = nw::ItemPropertyType::make(56);
+constexpr nw::ItemPropertyType ip_attack_bonus_vs_alignment_group = nw::ItemPropertyType::make(57);
+constexpr nw::ItemPropertyType ip_attack_bonus_vs_racial_group = nw::ItemPropertyType::make(58);
+constexpr nw::ItemPropertyType ip_attack_bonus_vs_specific_alignment = nw::ItemPropertyType::make(59);
+constexpr nw::ItemPropertyType ip_decreased_attack_modifier = nw::ItemPropertyType::make(60);
+constexpr nw::ItemPropertyType ip_unlimited_ammunition = nw::ItemPropertyType::make(61);
+constexpr nw::ItemPropertyType ip_use_limitation_alignment_group = nw::ItemPropertyType::make(62);
+constexpr nw::ItemPropertyType ip_use_limitation_class = nw::ItemPropertyType::make(63);
+constexpr nw::ItemPropertyType ip_use_limitation_racial_type = nw::ItemPropertyType::make(64);
+constexpr nw::ItemPropertyType ip_use_limitation_specific_alignment = nw::ItemPropertyType::make(65);
+constexpr nw::ItemPropertyType ip_use_limitation_tileset = nw::ItemPropertyType::make(66);
+constexpr nw::ItemPropertyType ip_regeneration_vampiric = nw::ItemPropertyType::make(67);
+constexpr nw::ItemPropertyType ip_trap = nw::ItemPropertyType::make(70);
+constexpr nw::ItemPropertyType ip_true_seeing = nw::ItemPropertyType::make(71);
+constexpr nw::ItemPropertyType ip_on_monster_hit = nw::ItemPropertyType::make(72);
+constexpr nw::ItemPropertyType ip_turn_resistance = nw::ItemPropertyType::make(73);
+constexpr nw::ItemPropertyType ip_massive_criticals = nw::ItemPropertyType::make(74);
+constexpr nw::ItemPropertyType ip_freedom_of_movement = nw::ItemPropertyType::make(75);
+constexpr nw::ItemPropertyType ip_monster_damage = nw::ItemPropertyType::make(77);
+constexpr nw::ItemPropertyType ip_immunity_spells_by_level = nw::ItemPropertyType::make(78);
+constexpr nw::ItemPropertyType ip_special_walk = nw::ItemPropertyType::make(79);
+constexpr nw::ItemPropertyType ip_healers_kit = nw::ItemPropertyType::make(80);
+constexpr nw::ItemPropertyType ip_weight_increase = nw::ItemPropertyType::make(81);
+constexpr nw::ItemPropertyType ip_onhitcastspell = nw::ItemPropertyType::make(82);
+constexpr nw::ItemPropertyType ip_visualeffect = nw::ItemPropertyType::make(83);
+constexpr nw::ItemPropertyType ip_arcane_spell_failure = nw::ItemPropertyType::make(84);
+constexpr nw::ItemPropertyType ip_material = nw::ItemPropertyType::make(85);
+constexpr nw::ItemPropertyType ip_quality = nw::ItemPropertyType::make(86);
+constexpr nw::ItemPropertyType ip_additional = nw::ItemPropertyType::make(87);
 
 constexpr nw::Damage damage_type_bludgeoning = nw::Damage::make(0);
 constexpr nw::Damage damage_type_piercing = nw::Damage::make(1);

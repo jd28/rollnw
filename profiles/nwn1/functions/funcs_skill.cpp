@@ -15,7 +15,6 @@ int get_skill_rank(const nw::Creature* obj, nw::Skill skill, bool base)
     if (!obj) return 0;
 
     int result = 0;
-    bool untrained = true;
 
     auto& skill_array = nw::kernel::rules().skills;
     auto ski = skill_array.get(skill);
@@ -28,10 +27,8 @@ int get_skill_rank(const nw::Creature* obj, nw::Skill skill, bool base)
     result = obj->stats.get_skill_rank(skill);
     if (base) return result;
 
-    if (result == 0) {
-        untrained = ski->untrained;
-    }
-
+    bool untrained = true;
+    if (result == 0) { untrained = ski->untrained; }
     if (untrained) {
         result += get_ability_modifier(obj, ski->ability);
     }

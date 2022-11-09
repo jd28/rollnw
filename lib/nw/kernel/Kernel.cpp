@@ -2,6 +2,7 @@
 
 #include "../components/Module.hpp"
 #include "../log.hpp"
+#include "EffectSystem.hpp"
 #include "Objects.hpp"
 #include "ParsedScriptCache.hpp"
 #include "Resources.hpp"
@@ -23,6 +24,7 @@ Services::Services()
     services().add<Resources>();
     services().add<ObjectSystem>();
     services().add<Rules>();
+    services().add<EffectSystem>();
     services().add<ParsedScriptCache>();
     services().add<TwoDACache>();
 }

@@ -1,16 +1,16 @@
-#include "EffectRegistry.hpp"
+#include "EffectSystem.hpp"
 
 #include <limits>
 
 namespace nw::kernel {
 
-bool EffectRegistry::add(EffectType type, EffectFunc apply, EffectFunc remove)
+bool EffectSystem::add(EffectType type, EffectFunc apply, EffectFunc remove)
 {
     auto [it, added] = registry_.emplace(*type, std::make_pair(std::move(apply), std::move(remove)));
     return added;
 }
 
-bool EffectRegistry::apply(ObjectBase* obj, Effect* effect)
+bool EffectSystem::apply(ObjectBase* obj, Effect* effect)
 {
     if (!effect) { return false; }
     auto it = registry_.find(*effect->type);
@@ -22,7 +22,7 @@ bool EffectRegistry::apply(ObjectBase* obj, Effect* effect)
     return false;
 }
 
-Effect* EffectRegistry::create(EffectType type)
+Effect* EffectSystem::create(EffectType type)
 {
     EffectID id;
     Effect* effect = nullptr;
@@ -49,7 +49,7 @@ Effect* EffectRegistry::create(EffectType type)
     return effect;
 }
 
-void EffectRegistry::clear()
+void EffectSystem::clear()
 {
     registry_.clear();
     pool_.clear();
@@ -57,7 +57,7 @@ void EffectRegistry::clear()
     free_list_.swap(s);
 }
 
-void EffectRegistry::destroy(Effect* effect)
+void EffectSystem::destroy(Effect* effect)
 {
     if (!effect) { return; }
     auto id = effect->id();
@@ -65,7 +65,7 @@ void EffectRegistry::destroy(Effect* effect)
     free_list_.push(id.index);
 }
 
-bool EffectRegistry::remove(ObjectBase* obj, Effect* effect)
+bool EffectSystem::remove(ObjectBase* obj, Effect* effect)
 {
     if (!effect) { return false; }
     auto it = registry_.find(*effect->type);
@@ -77,9 +77,9 @@ bool EffectRegistry::remove(ObjectBase* obj, Effect* effect)
     return false;
 }
 
-EffectRegistryStats EffectRegistry::stats() const noexcept
+EffectSystemStats EffectSystem::stats() const noexcept
 {
-    EffectRegistryStats result;
+    EffectSystemStats result;
     result.free_list_size = free_list_.size();
     result.pool_size = pool_.size();
     return result;
