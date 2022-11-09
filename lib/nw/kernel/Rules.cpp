@@ -1,6 +1,7 @@
 #include "Rules.hpp"
 
 #include "../util/string.hpp"
+#include "TwoDACache.hpp"
 
 namespace nw::kernel {
 
@@ -21,11 +22,58 @@ void Rules::clear()
     spells.entries.clear();
     skills.entries.clear();
     master_feats.clear();
+    ip_cost_table_.clear();
+    ip_param_table_.clear();
 }
 
 void Rules::initialize()
 {
     LOG_F(INFO, "kernel: initializing rules system");
+    LOG_F(INFO, "  ... loading item property cost tables");
+    auto costtable = twodas().get("iprp_costtable");
+    if (costtable) {
+        ip_cost_table_.resize(costtable->rows());
+        std::optional<std::string_view> resref;
+        int count = 0;
+        for (size_t i = 0; i < costtable->rows(); ++i) {
+            if ((resref = costtable->get<std::string_view>(i, "Name"))) {
+                auto tda = twodas().get(*resref);
+                if (!tda) {
+                    LOG_F(WARNING, "  ... failed to load cost table {}", *resref);
+                    ip_cost_table_[i] = nullptr;
+                } else {
+                    ip_cost_table_[i] = tda;
+                    ++count;
+                }
+            }
+        }
+        LOG_F(INFO, "  ... loaded {} item property cost tables", count);
+    } else {
+        LOG_F(ERROR, "  ... failed to load item property cost tables");
+    }
+
+    LOG_F(INFO, "  ... loading item property param tables");
+    auto paramtable = twodas().get("iprp_paramtable");
+    if (paramtable) {
+        ip_param_table_.resize(paramtable->rows());
+        std::optional<std::string_view> resref;
+        int count = 0;
+        for (size_t i = 0; i < paramtable->rows(); ++i) {
+            if ((resref = paramtable->get<std::string_view>(i, "TableResRef"))) {
+                auto tda = twodas().get(*resref);
+                if (!tda) {
+                    LOG_F(WARNING, "  ... failed to load param table {}", *resref);
+                    ip_param_table_[i] = nullptr;
+                } else {
+                    ip_param_table_[i] = tda;
+                    ++count;
+                }
+            }
+        }
+        LOG_F(INFO, "  ... loaded {} item property param tables", count);
+    } else {
+        LOG_F(ERROR, "Failed to load item property param tables");
+    }
 }
 
 void Rules::add(Modifier mod)
@@ -36,6 +84,16 @@ void Rules::add(Modifier mod)
     } else {
         entries_.insert(it, std::move(mod));
     }
+}
+
+const TwoDA* Rules::ip_cost_table(size_t table) const
+{
+    return ip_cost_table_[table];
+}
+
+const TwoDA* Rules::ip_param_table(size_t table) const
+{
+    return ip_param_table_[table];
 }
 
 bool Rules::match(const Qualifier& qual, const ObjectBase* obj) const

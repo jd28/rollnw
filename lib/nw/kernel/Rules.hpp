@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../components/ObjectBase.hpp"
+#include "../formats/TwoDA.hpp"
 #include "../log.hpp"
 #include "../rules/BaseItem.hpp"
 #include "../rules/Class.hpp"
@@ -59,6 +60,12 @@ struct Rules : public Service {
     bool calculate(const ObjectBase* obj, const Modifier& mod, Callback cb,
         const ObjectBase* versus = nullptr) const;
 
+    /// Gets an item property cost table
+    const TwoDA* ip_cost_table(size_t table) const;
+
+    /// Gets an item property param table
+    const TwoDA* ip_param_table(size_t table) const;
+
     /// Match
     bool match(const Qualifier& qual, const ObjectBase* obj) const;
 
@@ -112,6 +119,8 @@ private:
     qualifier_type qualifier_;
     selector_type selector_;
     std::vector<Modifier> entries_;
+    std::vector<const TwoDA*> ip_cost_table_;
+    std::vector<const TwoDA*> ip_param_table_;
 };
 
 namespace detail {

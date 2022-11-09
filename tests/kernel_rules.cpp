@@ -1,6 +1,7 @@
 #include <catch2/catch_all.hpp>
 
 #include <nw/kernel/Kernel.hpp>
+#include <nw/kernel/Rules.hpp>
 #include <nw/kernel/TwoDACache.hpp>
 #include <nw/rules/Ability.hpp>
 #include <nw/rules/BaseItem.hpp>
@@ -55,6 +56,17 @@ TEST_CASE("rules manager", "[kernel]")
 
     REQUIRE(nwk::services().get_mut<nwk::TwoDACache>()->cache("placeables"sv));
     REQUIRE(nwk::services().get_mut<nwk::TwoDACache>()->get("placeables"sv)->rows() > 0);
+
+    nw::kernel::unload_module();
+}
+
+TEST_CASE("rules system item property cost/param tables", "[kernel]")
+{
+    auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
+    REQUIRE(mod);
+
+    REQUIRE(nwk::rules().ip_cost_table(4));
+    REQUIRE(nwk::rules().ip_param_table(3));
 
     nw::kernel::unload_module();
 }
