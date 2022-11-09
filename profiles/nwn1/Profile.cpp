@@ -1,10 +1,12 @@
 #include "Profile.hpp"
 
 #include "constants.hpp"
+#include "effects.hpp"
 #include "rules.hpp"
 
 #include <nw/components/Creature.hpp>
 #include <nw/formats/TwoDA.hpp>
+#include <nw/kernel/EffectSystem.hpp>
 #include <nw/kernel/Resources.hpp>
 #include <nw/kernel/Rules.hpp>
 #include <nw/kernel/TwoDACache.hpp>
@@ -19,6 +21,11 @@
 #include <nw/rules/system.hpp>
 
 namespace nwn1 {
+
+static inline void load_effects()
+{
+    nw::kernel::effects().add(effect_haste, effect_haste_apply, effect_haste_remove);
+}
 
 static inline bool load_master_feats()
 {
@@ -418,6 +425,9 @@ bool Profile::load_rules() const
 
     // == Load Master Feats ===================================================
     load_master_feats();
+
+    // == Load Effects Feats ==================================================
+    load_effects();
 
     return true;
 }

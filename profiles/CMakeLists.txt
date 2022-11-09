@@ -1,5 +1,8 @@
 add_library(nw-profiles STATIC
     nwn1/constants.cpp
+    nwn1/effects.cpp
+    nwn1/Profile.cpp
+    nwn1/rules.cpp
 
     nwn1/functions/funcs_ability.cpp
     nwn1/functions/funcs_armor_class.cpp
@@ -8,9 +11,6 @@ add_library(nw-profiles STATIC
     nwn1/functions/funcs_feat.cpp
     nwn1/functions/funcs_skill.cpp
     nwn1/functions/rule_helper_funcs.cpp
-
-    nwn1/Profile.cpp
-    nwn1/rules.cpp
 )
 
 target_link_libraries(nw-profiles PRIVATE

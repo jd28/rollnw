@@ -24,21 +24,6 @@ TEST_CASE("effect system pool", "[kernel]")
 
 TEST_CASE("effect system registration", "[kernel]")
 {
-    auto apply = [](nw::ObjectBase* obj, const nw::Effect*) -> bool {
-        if (auto cre = obj->as_creature()) {
-            cre->hasted = true;
-        }
-        return true;
-    };
-
-    auto remove = [](nw::ObjectBase* obj, const nw::Effect*) -> bool {
-        if (auto cre = obj->as_creature()) {
-            cre->hasted = false;
-        }
-        return true;
-    };
-
-    nwk::effects().add(nwn1::effect_haste, apply, remove);
     auto eff = nwk::effects().create(nwn1::effect_haste);
 
     auto obj = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/nw_chicken.utc"));

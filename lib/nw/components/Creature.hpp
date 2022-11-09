@@ -86,7 +86,7 @@ struct Creature : public ObjectBase {
     uint16_t soundset;
 
     // Transient
-    bool hasted = false;
+    int32_t hasted = false;
 
     // Serialized
     uint8_t bodybag = 0;
