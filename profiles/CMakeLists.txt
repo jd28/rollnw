@@ -1,6 +1,7 @@
 add_library(nw-profiles STATIC
     nwn1/constants.cpp
     nwn1/effects.cpp
+    nwn1/functions.cpp
     nwn1/Profile.cpp
     nwn1/rules.cpp
 

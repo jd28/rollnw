@@ -7,3 +7,24 @@
 #include "functions/funcs_feat.hpp"
 #include "functions/funcs_skill.hpp"
 #include "functions/rule_helper_funcs.hpp"
+
+namespace nwn1 {
+
+/// Determines if an item can be equipped
+bool can_equip_item(nw::Creature* obj, nw::Item* item, nw::EquipIndex slot);
+
+/// Equip an item
+bool equip_item(nw::Creature* obj, nw::Item* item, nw::EquipIndex slot);
+
+///
+int process_item_properties(nw::Creature* obj, const nw::Item* item, bool remove);
+
+/// Gets an equipped item
+nw::Item* get_equipped_item(nw::Creature* obj, nw::EquipIndex slot);
+
+/// Unequips an item
+nw::Item* unequip_item(nw::Creature* obj, nw::EquipIndex slot);
+
+int queue_remove_effect_by(nw::ObjectBase* obj, nw::ObjectHandle creator);
+
+} // namespace nwn1

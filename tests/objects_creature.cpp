@@ -1,6 +1,7 @@
 #include <catch2/catch_all.hpp>
 
 #include <nw/components/Creature.hpp>
+#include <nw/kernel/EventSystem.hpp>
 #include <nw/kernel/Objects.hpp>
 #include <nw/rules/Feat.hpp>
 #include <nw/serialization/Archives.hpp>
@@ -188,6 +189,38 @@ TEST_CASE("creature: gff round trip", "[ojbects]")
     REQUIRE(oa.header.list_idx_count == g.head_->list_idx_count);
 }
 
+TEST_CASE("creature: equip and unequip items", "[objects]")
+{
+    auto obj = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/test_creature.utc"));
+    REQUIRE(obj);
+    REQUIRE(obj->instantiate());
+
+    auto item = nwk::objects().load<nw::Item>(fs::path("test_data/user/development/cloth028.uti"));
+    REQUIRE(item);
+
+    REQUIRE(nwn1::equip_item(obj, item, nw::EquipIndex::chest));
+    REQUIRE(nwn1::get_equipped_item(obj, nw::EquipIndex::chest));
+
+    auto item1 = nwn1::unequip_item(obj, nw::EquipIndex::chest);
+    REQUIRE(item1);
+    REQUIRE_FALSE(nwn1::get_equipped_item(obj, nw::EquipIndex::chest));
+
+    REQUIRE_FALSE(nwn1::equip_item(obj, item, nw::EquipIndex::head));
+
+    auto item2 = nwn1::unequip_item(obj, nw::EquipIndex::head);
+    REQUIRE_FALSE(item2);
+
+    auto boots_of_speed = nwk::objects().load<nw::Item>("nw_it_mboots005"sv);
+    REQUIRE(boots_of_speed);
+    REQUIRE(nwn1::equip_item(obj, boots_of_speed, nw::EquipIndex::boots));
+    REQUIRE(nwk::events().process() > 0);
+    REQUIRE(obj->hasted);
+    auto boots_of_speed2 = nwn1::unequip_item(obj, nw::EquipIndex::boots);
+    REQUIRE(boots_of_speed2);
+    REQUIRE(nwk::events().process() > 0);
+    REQUIRE_FALSE(obj->hasted);
+}
+
 TEST_CASE("creature: apply and remove effects", "[objects]")
 {
     auto obj = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/test_creature.utc"));
@@ -199,13 +232,5 @@ TEST_CASE("creature: apply and remove effects", "[objects]")
     REQUIRE(obj->effects().remove(eff));
     REQUIRE(obj->effects().size() == 0);
     REQUIRE_FALSE(obj->effects().remove(nullptr));
-
-    eff->creator = obj->handle();
-    REQUIRE(obj->effects().add(eff));
-    REQUIRE(obj->effects().add(eff));
-    REQUIRE(obj->effects().size());
-    REQUIRE(obj->effects().remove(obj->handle()) == 2);
-    REQUIRE(obj->effects().size() == 0);
-    REQUIRE(obj->effects().remove(obj->handle()) == 0);
     delete eff;
 }
