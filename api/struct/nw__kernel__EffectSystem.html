@@ -18,7 +18,7 @@
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
-    <link rel="next" title="nw::kernel::ObjectSystem" href="nw__kernel__ObjectSystem.html" />
+    <link rel="next" title="nw::kernel::EventSystem" href="nw__kernel__EventSystem.html" />
     <link rel="prev" title="nw::kernel::Config" href="nw__kernel__Config.html" /> 
 </head>
 
@@ -237,6 +237,7 @@
 <li class="toctree-l2"><a class="reference internal" href="nw__ZstdHeader.html">nw::ZstdHeader</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__kernel__Config.html">nw::kernel::Config</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">nw::kernel::EffectSystem</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__kernel__EventSystem.html">nw::kernel::EventSystem</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__kernel__ObjectSystem.html">nw::kernel::ObjectSystem</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__kernel__Resources.html">nw::kernel::Resources</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__kernel__Rules.html">nw::kernel::Rules</a></li>
@@ -361,6 +362,12 @@
 </dd></dl>
 
 <dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6kernel12EffectSystem3addE16ItemPropertyType12ItemPropFunc">
+<span id="_CPPv3N2nw6kernel12EffectSystem3addE16ItemPropertyType12ItemPropFunc"></span><span id="_CPPv2N2nw6kernel12EffectSystem3addE16ItemPropertyType12ItemPropFunc"></span><span id="nw::kernel::EffectSystem::add__ItemPropertyType.ItemPropFunc"></span><span class="target" id="structnw_1_1kernel_1_1_effect_system_1a62b618d55113b2f97fb8b6b77eb3ee62"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">add</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">ItemPropertyType</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">type</span></span>, <span class="n"><span class="pre">ItemPropFunc</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">generator</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6kernel12EffectSystem3addE16ItemPropertyType12ItemPropFunc" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Adds an item property type to the registry. </p>
+</dd></dl>
+
+<dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw6kernel12EffectSystem5applyEP10ObjectBaseP6Effect">
 <span id="_CPPv3N2nw6kernel12EffectSystem5applyEP10ObjectBaseP6Effect"></span><span id="_CPPv2N2nw6kernel12EffectSystem5applyEP10ObjectBaseP6Effect"></span><span id="nw::kernel::EffectSystem::apply__ObjectBaseP.EffectP"></span><span class="target" id="structnw_1_1kernel_1_1_effect_system_1abf88288d95ae9e0d5132a27f62d29ad0"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">apply</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">ObjectBase</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">obj</span></span>, <a class="reference internal" href="nw__Effect.html#_CPPv4N2nw6EffectE" title="nw::Effect"><span class="n"><span class="pre">Effect</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">effect</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6kernel12EffectSystem5applyEP10ObjectBaseP6Effect" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Applies an effect to an object. </p>
@@ -382,6 +389,12 @@
 <dt class="sig sig-object cpp" id="_CPPv4N2nw6kernel12EffectSystem7destroyEP6Effect">
 <span id="_CPPv3N2nw6kernel12EffectSystem7destroyEP6Effect"></span><span id="_CPPv2N2nw6kernel12EffectSystem7destroyEP6Effect"></span><span id="nw::kernel::EffectSystem::destroy__EffectP"></span><span class="target" id="structnw_1_1kernel_1_1_effect_system_1af44ced1d3802dd2d22b36d6b19f9e8fc"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">destroy</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="nw__Effect.html#_CPPv4N2nw6EffectE" title="nw::Effect"><span class="n"><span class="pre">Effect</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">effect</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6kernel12EffectSystem7destroyEP6Effect" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Destroys an effect. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK2nw6kernel12EffectSystem8generateERK12ItemProperty">
+<span id="_CPPv3NK2nw6kernel12EffectSystem8generateERK12ItemProperty"></span><span id="_CPPv2NK2nw6kernel12EffectSystem8generateERK12ItemProperty"></span><span id="nw::kernel::EffectSystem::generate__ItemPropertyCRC"></span><span class="target" id="structnw_1_1kernel_1_1_effect_system_1a19486dc2c4ec5e0ad00582b56304b723"></span><a class="reference internal" href="nw__Effect.html#_CPPv4N2nw6EffectE" title="nw::Effect"><span class="n"><span class="pre">Effect</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">generate</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="nw__ItemProperty.html#_CPPv4N2nw12ItemPropertyE" title="nw::ItemProperty"><span class="n"><span class="pre">ItemProperty</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">property</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK2nw6kernel12EffectSystem8generateERK12ItemProperty" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Generates an effect from an item property. </p>
 </dd></dl>
 
 <dl class="cpp function">
@@ -412,7 +425,7 @@
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="nw__kernel__Config.html" class="btn btn-neutral float-left" title="nw::kernel::Config" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="nw__kernel__ObjectSystem.html" class="btn btn-neutral float-right" title="nw::kernel::ObjectSystem" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="nw__kernel__EventSystem.html" class="btn btn-neutral float-right" title="nw::kernel::EventSystem" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

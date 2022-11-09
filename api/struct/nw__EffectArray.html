@@ -237,6 +237,7 @@
 <li class="toctree-l2"><a class="reference internal" href="nw__ZstdHeader.html">nw::ZstdHeader</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__kernel__Config.html">nw::kernel::Config</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__kernel__EffectSystem.html">nw::kernel::EffectSystem</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__kernel__EventSystem.html">nw::kernel::EventSystem</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__kernel__ObjectSystem.html">nw::kernel::ObjectSystem</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__kernel__Resources.html">nw::kernel::Resources</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__kernel__Rules.html">nw::kernel::Rules</a></li>
@@ -348,7 +349,35 @@
 <dt class="sig sig-object cpp" id="_CPPv4N2nw11EffectArrayE">
 <span id="_CPPv3N2nw11EffectArrayE"></span><span id="_CPPv2N2nw11EffectArrayE"></span><span id="nw::EffectArray"></span><span class="target" id="structnw_1_1_effect_array"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">EffectArray</span></span></span><a class="headerlink" href="#_CPPv4N2nw11EffectArrayE" title="Permalink to this definition"></a><br /></dt>
 <dd><div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-types">Public Types</p>
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw11EffectArray7storageE">
+<span id="_CPPv3N2nw11EffectArray7storageE"></span><span id="_CPPv2N2nw11EffectArray7storageE"></span><span class="target" id="structnw_1_1_effect_array_1a772ca2f89ee4905db97b849f4dfb80c5"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">storage</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="nw__EffectHandle.html#_CPPv4N2nw12EffectHandleE" title="nw::EffectHandle"><span class="n"><span class="pre">EffectHandle</span></span></a><span class="p"><span class="pre">&gt;</span></span><a class="headerlink" href="#_CPPv4N2nw11EffectArray7storageE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw11EffectArray8iteratorE">
+<span id="_CPPv3N2nw11EffectArray8iteratorE"></span><span id="_CPPv2N2nw11EffectArray8iteratorE"></span><span class="target" id="structnw_1_1_effect_array_1a09717105a7591e426d6ea65666314c52"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">iterator</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N2nw11EffectArray7storageE" title="nw::EffectArray::storage"><span class="n"><span class="pre">storage</span></span></a><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">iterator</span></span><a class="headerlink" href="#_CPPv4N2nw11EffectArray8iteratorE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw11EffectArray14const_iteratorE">
+<span id="_CPPv3N2nw11EffectArray14const_iteratorE"></span><span id="_CPPv2N2nw11EffectArray14const_iteratorE"></span><span class="target" id="structnw_1_1_effect_array_1aec1e02a0a8e09c80cb12aed1bef36b31"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">const_iterator</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N2nw11EffectArray7storageE" title="nw::EffectArray::storage"><span class="n"><span class="pre">storage</span></span></a><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">const_iterator</span></span><a class="headerlink" href="#_CPPv4N2nw11EffectArray14const_iteratorE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw11EffectArray5beginEv">
+<span id="_CPPv3N2nw11EffectArray5beginEv"></span><span id="_CPPv2N2nw11EffectArray5beginEv"></span><span id="nw::EffectArray::begin"></span><span class="target" id="structnw_1_1_effect_array_1a0202fb24d039056313db3d3a4446d4ef"></span><a class="reference internal" href="#_CPPv4N2nw11EffectArray8iteratorE" title="nw::EffectArray::iterator"><span class="n"><span class="pre">iterator</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">begin</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw11EffectArray5beginEv" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK2nw11EffectArray5beginEv">
+<span id="_CPPv3NK2nw11EffectArray5beginEv"></span><span id="_CPPv2NK2nw11EffectArray5beginEv"></span><span id="nw::EffectArray::beginC"></span><span class="target" id="structnw_1_1_effect_array_1a85ebd03bedb4c2f12eb98c690a005b70"></span><a class="reference internal" href="#_CPPv4N2nw11EffectArray14const_iteratorE" title="nw::EffectArray::const_iterator"><span class="n"><span class="pre">const_iterator</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">begin</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK2nw11EffectArray5beginEv" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw11EffectArray3addEP6Effect">
 <span id="_CPPv3N2nw11EffectArray3addEP6Effect"></span><span id="_CPPv2N2nw11EffectArray3addEP6Effect"></span><span id="nw::EffectArray::add__EffectP"></span><span class="target" id="structnw_1_1_effect_array_1a1ec249240d1cd01995fd7108a351be3a"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">add</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="nw__Effect.html#_CPPv4N2nw6EffectE" title="nw::Effect"><span class="n"><span class="pre">Effect</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">effect</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw11EffectArray3addEP6Effect" title="Permalink to this definition"></a><br /></dt>
@@ -356,15 +385,19 @@
 </dd></dl>
 
 <dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw11EffectArray3endEv">
+<span id="_CPPv3N2nw11EffectArray3endEv"></span><span id="_CPPv2N2nw11EffectArray3endEv"></span><span id="nw::EffectArray::end"></span><span class="target" id="structnw_1_1_effect_array_1afe04a6870c625d3c3038b79ab70a676d"></span><a class="reference internal" href="#_CPPv4N2nw11EffectArray8iteratorE" title="nw::EffectArray::iterator"><span class="n"><span class="pre">iterator</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">end</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw11EffectArray3endEv" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK2nw11EffectArray3endEv">
+<span id="_CPPv3NK2nw11EffectArray3endEv"></span><span id="_CPPv2NK2nw11EffectArray3endEv"></span><span id="nw::EffectArray::endC"></span><span class="target" id="structnw_1_1_effect_array_1ab01a56a2dc869b507f27001906ea0322"></span><a class="reference internal" href="#_CPPv4N2nw11EffectArray14const_iteratorE" title="nw::EffectArray::const_iterator"><span class="n"><span class="pre">const_iterator</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">end</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK2nw11EffectArray3endEv" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw11EffectArray6removeEP6Effect">
 <span id="_CPPv3N2nw11EffectArray6removeEP6Effect"></span><span id="_CPPv2N2nw11EffectArray6removeEP6Effect"></span><span id="nw::EffectArray::remove__EffectP"></span><span class="target" id="structnw_1_1_effect_array_1a8482f7832c086d328a73733229acf043"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">remove</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="nw__Effect.html#_CPPv4N2nw6EffectE" title="nw::Effect"><span class="n"><span class="pre">Effect</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">effect</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw11EffectArray6removeEP6Effect" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Removes an effect. </p>
-</dd></dl>
-
-<dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N2nw11EffectArray6removeE12ObjectHandle">
-<span id="_CPPv3N2nw11EffectArray6removeE12ObjectHandle"></span><span id="_CPPv2N2nw11EffectArray6removeE12ObjectHandle"></span><span id="nw::EffectArray::remove__ObjectHandle"></span><span class="target" id="structnw_1_1_effect_array_1a84897287f4ae2642ccb0c3de29207126"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">remove</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">ObjectHandle</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">obj</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw11EffectArray6removeE12ObjectHandle" title="Permalink to this definition"></a><br /></dt>
-<dd><p>Removes effects by creator. </p>
 </dd></dl>
 
 <dl class="cpp function">
