@@ -6,6 +6,8 @@
 
 #include <absl/container/flat_hash_map.h>
 
+#include <memory>
+
 namespace nw::kernel {
 
 struct TwoDACache : public Service {
@@ -28,7 +30,7 @@ struct TwoDACache : public Service {
     const TwoDA* get(const nw::Resource& tda);
 
 private:
-    absl::flat_hash_map<Resource, TwoDA> cached_2das_;
+    absl::flat_hash_map<Resource, std::unique_ptr<TwoDA>> cached_2das_;
 };
 
 inline TwoDACache& twodas()

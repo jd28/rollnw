@@ -8,15 +8,16 @@ bool TwoDACache::cache(std::string_view tda)
 {
     Resource res{tda, ResourceType::twoda};
     auto it = cached_2das_.find(res);
-    if (it != std::end(cached_2das_) && it->second.is_valid() && it->second.rows() != 0) {
+    if (it != std::end(cached_2das_) && it->second->is_valid() && it->second->rows() != 0) {
         return true;
     }
 
-    auto t = TwoDA{kernel::resman().demand(res)};
-    if (t.is_valid()) {
+    auto t = std::make_unique<TwoDA>(kernel::resman().demand(res));
+    if (t->is_valid()) {
         cached_2das_[res] = std::move(t);
         return true;
     }
+
     return false;
 }
 
@@ -38,12 +39,12 @@ const TwoDA* TwoDACache::get(const Resource& tda)
     }
     auto it = cached_2das_.find(tda);
     if (it != std::end(cached_2das_)) {
-        return &it->second;
+        return it->second.get();
     } else {
-        auto t = TwoDA{kernel::resman().demand(tda)};
-        if (t.is_valid()) {
-            auto& res = cached_2das_[tda] = std::move(t);
-            return &res;
+        auto t = std::make_unique<TwoDA>(kernel::resman().demand(tda));
+        if (t->is_valid()) {
+            cached_2das_[tda] = std::move(t);
+            return cached_2das_[tda].get();
         }
     }
 
