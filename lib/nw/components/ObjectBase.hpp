@@ -27,7 +27,7 @@ struct Waypoint;
 
 struct ObjectBase {
     virtual ~ObjectBase() { }
-    ObjectHandle handle() { return handle_; }
+    ObjectHandle handle() const noexcept { return handle_; }
     void set_handle(ObjectHandle handle) { handle_ = handle; }
     EffectArray& effects();
     const EffectArray& effects() const;
