@@ -2,6 +2,7 @@ add_library(nw-kernel STATIC
     Kernel.cpp
     Config.cpp
     EffectSystem.cpp
+    EventSystem.cpp
     Objects.cpp
     Resources.cpp
     Rules.cpp
