@@ -67,6 +67,7 @@ TEST_CASE("rules system item property cost/param tables", "[kernel]")
 
     REQUIRE(nwk::rules().ip_cost_table(4));
     REQUIRE(nwk::rules().ip_param_table(3));
+    REQUIRE(nwk::rules().ip_definition(nwn1::ip_ability_bonus).name == 649);
 
     nw::kernel::unload_module();
 }
