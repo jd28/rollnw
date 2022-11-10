@@ -196,11 +196,6 @@ bool TwoDA::parse()
         }
     }
 
-    if (rows_.size() == 0) {
-        LOG_F(ERROR, "Invalid 2DA: No rows specified");
-        return false;
-    }
-
     return true;
 }
 
