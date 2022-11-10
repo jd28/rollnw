@@ -25,7 +25,7 @@ namespace nwn1 {
 static inline void load_effects()
 {
     LOG_F(INFO, "[nwn1] Loading effect appliers");
-    nw::kernel::effects().add(effect_haste, effect_haste_apply, effect_haste_remove);
+    nw::kernel::effects().add(effect_type_haste, effect_haste_apply, effect_haste_remove);
 }
 
 static inline void load_itemprop_generators()

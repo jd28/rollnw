@@ -226,7 +226,7 @@ TEST_CASE("creature: apply and remove effects", "[objects]")
     auto obj = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/test_creature.utc"));
     REQUIRE(obj);
     REQUIRE(obj->instantiate());
-    auto eff = new nw::Effect(nwn1::effect_haste);
+    auto eff = new nw::Effect(nwn1::effect_type_haste);
     REQUIRE(obj->effects().add(eff));
     REQUIRE(obj->effects().size());
     REQUIRE(obj->effects().remove(eff));

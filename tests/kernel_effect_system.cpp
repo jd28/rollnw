@@ -14,7 +14,7 @@ namespace nwk = nw::kernel;
 TEST_CASE("effect system pool", "[kernel]")
 {
     for (size_t i = 0; i < 100; ++i) {
-        auto eff = nwk::effects().create(nwn1::effect_haste);
+        auto eff = nwk::effects().create(nwn1::effect_type_haste);
         nwk::effects().destroy(eff);
     }
     auto stats = nwk::effects().stats();
@@ -24,7 +24,7 @@ TEST_CASE("effect system pool", "[kernel]")
 
 TEST_CASE("effect system registration", "[kernel]")
 {
-    auto eff = nwk::effects().create(nwn1::effect_haste);
+    auto eff = nwk::effects().create(nwn1::effect_type_haste);
 
     auto obj = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/nw_chicken.utc"));
     REQUIRE(obj);
