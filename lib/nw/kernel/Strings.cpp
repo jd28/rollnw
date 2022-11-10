@@ -3,6 +3,8 @@
 #include "../i18n/Language.hpp"
 #include "../log.hpp"
 #include "../util/templates.hpp"
+#include "Config.hpp"
+#include "Kernel.hpp"
 
 namespace fs = std::filesystem;
 
@@ -39,7 +41,9 @@ InternedString Strings::get_interned(std::string_view str) const
 
 void Strings::initialize()
 {
-    // Stub
+    auto lang = Language::to_string(global_language());
+    auto path = config().options().install / "lang" / lang / "data" / "dialog.tlk";
+    load_dialog_tlk(path);
 }
 
 InternedString Strings::intern(std::string_view str)
