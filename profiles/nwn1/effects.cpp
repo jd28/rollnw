@@ -35,7 +35,25 @@ bool effect_haste_remove(nw::ObjectBase* obj, const nw::Effect*)
 // -- Item Property Generators ------------------------------------------------
 // ----------------------------------------------------------------------------
 
-nw::Effect* ip_gen_haste(const nw::ItemProperty& ip)
+nw::ItemProperty itemprop_ability_bonus(nw::Ability ability, int modifier)
+{
+    nw::ItemProperty result;
+    if (modifier == 0) { return result; }
+    result.type = *ip_ability_bonus;
+    result.subtype = uint16_t(*ability);
+    result.cost_value = uint8_t(modifier);
+    return result;
+}
+
+
+nw::ItemProperty itemprop_haste()
+{
+    nw::ItemProperty result;
+    result.type = *ip_haste;
+    return result;
+}
+
+nw::Effect* ip_gen_haste(const nw::ItemProperty&)
 {
     return effect_haste();
 }

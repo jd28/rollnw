@@ -22,6 +22,9 @@ int process_item_properties(nw::Creature* obj, const nw::Item* item, bool remove
 /// Gets an equipped item
 nw::Item* get_equipped_item(nw::Creature* obj, nw::EquipIndex slot);
 
+/// Converts item property to in-game style string
+std::string itemprop_to_string(const nw::ItemProperty& ip);
+
 /// Queues remove effect events by effect creator
 int queue_remove_effect_by(nw::ObjectBase* obj, nw::ObjectHandle creator);
 
