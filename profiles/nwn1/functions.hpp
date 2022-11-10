@@ -16,15 +16,16 @@ bool can_equip_item(nw::Creature* obj, nw::Item* item, nw::EquipIndex slot);
 /// Equip an item
 bool equip_item(nw::Creature* obj, nw::Item* item, nw::EquipIndex slot);
 
-///
+/// Processes item properties and applies resulting effects to creature
 int process_item_properties(nw::Creature* obj, const nw::Item* item, bool remove);
 
 /// Gets an equipped item
 nw::Item* get_equipped_item(nw::Creature* obj, nw::EquipIndex slot);
 
+/// Queues remove effect events by effect creator
+int queue_remove_effect_by(nw::ObjectBase* obj, nw::ObjectHandle creator);
+
 /// Unequips an item
 nw::Item* unequip_item(nw::Creature* obj, nw::EquipIndex slot);
-
-int queue_remove_effect_by(nw::ObjectBase* obj, nw::ObjectHandle creator);
 
 } // namespace nwn1

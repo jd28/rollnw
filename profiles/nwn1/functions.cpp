@@ -51,6 +51,7 @@ int process_item_properties(nw::Creature* obj, const nw::Item* item, bool remove
         for (const auto& ip : item->properties) {
             if (auto eff = nw::kernel::effects().generate(ip)) {
                 eff->creator = item->handle();
+                eff->category = nw::EffectCategory::item;
                 nw::kernel::events().add(nw::kernel::EventType::apply_effect, obj, eff);
                 ++processed;
             }

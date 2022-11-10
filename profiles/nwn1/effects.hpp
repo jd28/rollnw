@@ -1,5 +1,7 @@
 #pragma once
 
+#include "constants.hpp"
+
 namespace nw {
 struct Effect;
 struct ItemProperty;
