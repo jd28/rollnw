@@ -45,7 +45,11 @@ jobs:
       - name: Get current date
         if: matrix.os == 'windows-2019'
         run: |
-          echo "DATE=$(Get-Date -Format 'yyyy-MM-dd')" >> $GITHUB_ENV
+          echo 'DATE=$(Get-Date -Format yyyy-MM-dd)' | Out-File -FilePath $env:GITHUB_ENV -Append
+
+      - name: Print date
+        run: |
+          echo $DATE
 
       - uses: actions/checkout@v3
         with:
