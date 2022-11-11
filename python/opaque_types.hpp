@@ -24,31 +24,31 @@
 #include <string>
 #include <vector>
 
-PYBIND11_MAKE_OPAQUE(std::vector<glm::vec3>);
-PYBIND11_MAKE_OPAQUE(std::vector<nw::ClassEntry>);
-PYBIND11_MAKE_OPAQUE(std::vector<nw::InventoryItem>);
-PYBIND11_MAKE_OPAQUE(std::vector<nw::Resref>);
-PYBIND11_MAKE_OPAQUE(std::vector<nw::Resource>);
-PYBIND11_MAKE_OPAQUE(std::vector<nw::ResourceDescriptor>);
-PYBIND11_MAKE_OPAQUE(std::vector<int64_t>);
-PYBIND11_MAKE_OPAQUE(std::vector<int32_t>);
-PYBIND11_MAKE_OPAQUE(std::vector<int16_t>);
-PYBIND11_MAKE_OPAQUE(std::vector<int8_t>);
-PYBIND11_MAKE_OPAQUE(std::vector<uint64_t>);
-PYBIND11_MAKE_OPAQUE(std::vector<uint32_t>);
-PYBIND11_MAKE_OPAQUE(std::vector<uint16_t>);
-PYBIND11_MAKE_OPAQUE(std::vector<uint8_t>);
-PYBIND11_MAKE_OPAQUE(std::vector<std::string>);
-PYBIND11_MAKE_OPAQUE(std::vector<nw::Area*>);
-PYBIND11_MAKE_OPAQUE(std::vector<nw::Tile>);
-PYBIND11_MAKE_OPAQUE(std::vector<nw::Creature*>);
-PYBIND11_MAKE_OPAQUE(std::vector<nw::Door*>);
-PYBIND11_MAKE_OPAQUE(std::vector<nw::Encounter*>);
-PYBIND11_MAKE_OPAQUE(std::vector<nw::Item*>);
-PYBIND11_MAKE_OPAQUE(std::vector<nw::Placeable*>);
-PYBIND11_MAKE_OPAQUE(std::vector<nw::Sound*>);
-PYBIND11_MAKE_OPAQUE(std::vector<nw::Store*>);
-PYBIND11_MAKE_OPAQUE(std::vector<nw::Trigger*>);
-PYBIND11_MAKE_OPAQUE(std::vector<nw::Waypoint*>);
+PYBIND11_MAKE_OPAQUE(std::vector<glm::vec3>)
+PYBIND11_MAKE_OPAQUE(std::vector<nw::ClassEntry>)
+PYBIND11_MAKE_OPAQUE(std::vector<nw::InventoryItem>)
+PYBIND11_MAKE_OPAQUE(std::vector<nw::Resref>)
+PYBIND11_MAKE_OPAQUE(std::vector<nw::Resource>)
+PYBIND11_MAKE_OPAQUE(std::vector<nw::ResourceDescriptor>)
+PYBIND11_MAKE_OPAQUE(std::vector<int64_t>)
+PYBIND11_MAKE_OPAQUE(std::vector<int32_t>)
+PYBIND11_MAKE_OPAQUE(std::vector<int16_t>)
+PYBIND11_MAKE_OPAQUE(std::vector<int8_t>)
+PYBIND11_MAKE_OPAQUE(std::vector<uint64_t>)
+PYBIND11_MAKE_OPAQUE(std::vector<uint32_t>)
+PYBIND11_MAKE_OPAQUE(std::vector<uint16_t>)
+PYBIND11_MAKE_OPAQUE(std::vector<uint8_t>)
+PYBIND11_MAKE_OPAQUE(std::vector<std::string>)
+PYBIND11_MAKE_OPAQUE(std::vector<nw::Area*>)
+PYBIND11_MAKE_OPAQUE(std::vector<nw::Tile>)
+PYBIND11_MAKE_OPAQUE(std::vector<nw::Creature*>)
+PYBIND11_MAKE_OPAQUE(std::vector<nw::Door*>)
+PYBIND11_MAKE_OPAQUE(std::vector<nw::Encounter*>)
+PYBIND11_MAKE_OPAQUE(std::vector<nw::Item*>)
+PYBIND11_MAKE_OPAQUE(std::vector<nw::Placeable*>)
+PYBIND11_MAKE_OPAQUE(std::vector<nw::Sound*>)
+PYBIND11_MAKE_OPAQUE(std::vector<nw::Store*>)
+PYBIND11_MAKE_OPAQUE(std::vector<nw::Trigger*>)
+PYBIND11_MAKE_OPAQUE(std::vector<nw::Waypoint*>)
 
 void bind_opaque_types(pybind11::module& m);

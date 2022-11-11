@@ -19,7 +19,7 @@ enum struct DamageCategory : uint64_t {
     unblockable = 1 << 2,
 };
 
-DEFINE_ENUM_FLAGS(DamageCategory);
+DEFINE_ENUM_FLAGS(DamageCategory)
 
 struct DamageRoll {
     DamageFlag type;
