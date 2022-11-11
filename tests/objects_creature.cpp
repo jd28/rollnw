@@ -1,3 +1,6 @@
+#include "nw/kernel/EffectSystem.hpp"
+#include "nwn1/constants.hpp"
+#include "nwn1/effects.hpp"
 #include <catch2/catch_all.hpp>
 
 #include <nw/components/Creature.hpp>
@@ -118,14 +121,32 @@ TEST_CASE("creature: ability ", "[objects]")
     auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
     REQUIRE(mod);
 
-    auto ent = nw::kernel::objects().load<nw::Creature>(fs::path("test_data/user/development/pl_agent_001.utc"));
-    REQUIRE(ent);
+    auto obj = nw::kernel::objects().load<nw::Creature>(fs::path("test_data/user/development/pl_agent_001.utc"));
+    REQUIRE(obj);
+    REQUIRE(obj->instantiate());
 
-    REQUIRE(nwn1::get_ability_score(ent, nwn1::ability_strength, false) == 40);
-    ent->stats.add_feat(nwn1::feat_epic_great_strength_1);
-    REQUIRE(nwn1::get_ability_score(ent, nwn1::ability_strength, false) == 41);
-    ent->stats.add_feat(nwn1::feat_epic_great_strength_2);
-    REQUIRE(nwn1::get_ability_score(ent, nwn1::ability_strength, false) == 42);
+    REQUIRE(nwn1::get_ability_score(obj, nwn1::ability_strength, false) == 40);
+    obj->stats.add_feat(nwn1::feat_epic_great_strength_1);
+    REQUIRE(nwn1::get_ability_score(obj, nwn1::ability_strength, false) == 41);
+    obj->stats.add_feat(nwn1::feat_epic_great_strength_2);
+    REQUIRE(nwn1::get_ability_score(obj, nwn1::ability_strength, false) == 42);
+
+    auto eff = nwn1::effect_ability_modifier(nwn1::ability_strength, 5);
+    REQUIRE(nw::kernel::effects().apply(obj, eff));
+    REQUIRE(obj->effects().size() > 0);
+    REQUIRE(nwn1::get_ability_score(obj, nwn1::ability_strength, false) == 47);
+
+    // Belt of Cloud Giant Strength
+    auto item = nwk::objects().load<nw::Item>("x2_it_mbelt001"sv);
+    REQUIRE(item);
+    REQUIRE(nwn1::equip_item(obj, item, nw::EquipIndex::belt));
+    // Note calls to process are necessary to apply effects.. normally this would be called by
+    // an event loop.
+    REQUIRE(nwk::events().process() > 0);
+    REQUIRE(nwn1::get_ability_score(obj, nwn1::ability_strength, false) == 55);
+    REQUIRE(nwn1::unequip_item(obj, nw::EquipIndex::belt));
+    REQUIRE(nwk::events().process() > 0);
+    REQUIRE(nwn1::get_ability_score(obj, nwn1::ability_strength, false) == 47);
 
     nwk::unload_module();
 }

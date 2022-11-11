@@ -25,6 +25,12 @@ namespace nwn1 {
 static inline void load_effects()
 {
     LOG_F(INFO, "[nwn1] Loading effect appliers");
+
+    nw::kernel::effects().add(effect_type_ability_increase,
+        effect_apply_is_creature, effect_remove_is_creature);
+    nw::kernel::effects().add(effect_type_ability_decrease,
+        effect_apply_is_creature, effect_remove_is_creature);
+
     nw::kernel::effects().add(effect_type_haste, effect_haste_apply, effect_haste_remove);
 }
 
@@ -32,6 +38,8 @@ static inline void load_itemprop_generators()
 {
     LOG_F(INFO, "[nwn1] Loading item property generators");
     nw::kernel::effects().add(ip_haste, ip_gen_haste);
+    nw::kernel::effects().add(ip_ability_bonus, ip_gen_ability_modifier);
+    nw::kernel::effects().add(ip_decreased_ability_score, ip_gen_ability_modifier);
 }
 
 static inline bool load_master_feats()

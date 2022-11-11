@@ -1,5 +1,7 @@
 #include "../constants.hpp"
+#include "nw/rules/Effect.hpp"
 
+#include <algorithm>
 #include <nw/components/Creature.hpp>
 #include <nw/kernel/Rules.hpp>
 #include <nw/rules/Ability.hpp>
@@ -21,7 +23,22 @@ int get_ability_score(const nw::Creature* obj, nw::Ability ability, bool base = 
         return result;
     }
 
-    // Effects
+    // Effects - This is very naive and everything stacks..
+    auto it = std::lower_bound(std::begin(obj->effects()), std::end(obj->effects()),
+        effect_type_ability_increase,
+        [](const nw::EffectHandle& handle, nw::EffectType type) {
+            return *handle.type < *type;
+        });
+
+    while (it != std::end(obj->effects()) && it->type == effect_type_ability_increase) {
+        result += it->effect->get_int(0);
+        ++it;
+    }
+
+    // If creature has ability decrease effects they will be next in line.
+    while (it != std::end(obj->effects()) && it->type == effect_type_ability_decrease) {
+        result -= it->effect->get_int(0);
+    }
 
     return result;
 }

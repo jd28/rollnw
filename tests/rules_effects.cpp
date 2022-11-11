@@ -43,7 +43,7 @@ TEST_CASE("item properties", "[rules]")
     auto str = nwn1::itemprop_to_string(ip);
     REQUIRE(str == "Haste");
 
-    auto ip2 = nwn1::itemprop_ability_bonus(nwn1::ability_strength, 6);
+    auto ip2 = nwn1::itemprop_ability_modifier(nwn1::ability_strength, 6);
     auto str2 = nwn1::itemprop_to_string(ip2);
     REQUIRE(str2 == "Enhancement Bonus: Strength +6");
 
