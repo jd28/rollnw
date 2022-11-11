@@ -6,8 +6,8 @@
 
 TEST_CASE("strings manager", "[kernel]")
 {
-    nw::kernel::strings().load_dialog_tlk("test_data/root/data/dialog.tlk");
-    nw::kernel::strings().load_custom_tlk("test_data/root/data/dialog.tlk");
+    nw::kernel::strings().load_dialog_tlk("test_data/root/lang/en/data/dialog.tlk");
+    nw::kernel::strings().load_custom_tlk("test_data/root/lang/en/data/dialog.tlk");
 
     REQUIRE(nw::kernel::strings().get(1000) == "Silence");
     REQUIRE(nw::kernel::strings().get(0x01001000) == "Stay here and don't move until I return.");
