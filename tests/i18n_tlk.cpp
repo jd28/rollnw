@@ -6,7 +6,7 @@
 
 TEST_CASE("Tlk", "[formats]")
 {
-    nw::Tlk t = nw::Tlk("test_data/root/data/dialog.tlk");
+    nw::Tlk t = nw::Tlk("test_data/root/lang/en/data/dialog.tlk");
     REQUIRE(t.valid());
     REQUIRE(t.size() > 0);
     REQUIRE(t.get(1000) == "Silence");
@@ -27,7 +27,7 @@ TEST_CASE("tlk: load languages")
 
 TEST_CASE("tlk: set", "[i18n]")
 {
-    nw::Tlk t = nw::Tlk("test_data/root/data/dialog.tlk");
+    nw::Tlk t = nw::Tlk("test_data/root/lang/en/data/dialog.tlk");
     REQUIRE(t.valid());
     t.set(1, "Hello World");
     REQUIRE(t.get(1) == "Hello World");
@@ -35,7 +35,7 @@ TEST_CASE("tlk: set", "[i18n]")
 
 TEST_CASE("tlk: save_as", "[i18n]")
 {
-    nw::Tlk t = nw::Tlk("test_data/root/data/dialog.tlk");
+    nw::Tlk t = nw::Tlk("test_data/root/lang/en/data/dialog.tlk");
     REQUIRE(t.valid());
     t.set(1, "Hello World");
     t.save_as("tmp/dialog.tlk");

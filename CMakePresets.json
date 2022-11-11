@@ -86,7 +86,13 @@
             "inherits": "linux-python",
             "generator": "Unix Makefiles",
             "displayName": "Default Config",
-            "description": "CI Linux with python, makefies"
+            "description": "CI Linux with python, makefies",
+            "cacheVariables": {
+                "ENABLE_TESTING": {
+                    "type": "BOOL",
+                    "value": "OFF"
+                }
+            }
         },
         {
             "name": "windows",
@@ -132,7 +138,13 @@
             "inherits": "windows-python",
             "generator": "Ninja",
             "displayName": "windows ci build",
-            "description": "windows ci build"
+            "description": "windows ci build",
+            "cacheVariables": {
+                "ENABLE_TESTING": {
+                    "type": "BOOL",
+                    "value": "OFF"
+                }
+            }
         },
         {
             "name": "macos",
@@ -161,7 +173,13 @@
         {
             "name": "ci-macos-python",
             "inherits": "macos-python",
-            "displayName": "CI macOS with python"
+            "displayName": "CI macOS with python",
+            "cacheVariables": {
+                "ENABLE_TESTING": {
+                    "type": "BOOL",
+                    "value": "OFF"
+                }
+            }
         }
     ],
     "buildPresets": [
