@@ -30,7 +30,10 @@ struct EventHandle {
         return !(*this < rhs) && *this != rhs;
     }
 
-    bool operator==(const EventHandle&) const = default;
+    bool operator==(const EventHandle& rhs) const
+    {
+        return std::tie(day, time) == std::tie(rhs.day, rhs.time);
+    }
 };
 
 struct EventSystem : public Service {
