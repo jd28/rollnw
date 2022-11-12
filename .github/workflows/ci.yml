@@ -26,6 +26,7 @@ env:
   CI_GITHUB_ACTIONS: "1"
   MACOSX_DEPLOYMENT_TARGET: "10.15"
   CCACHE_DIR: "${{ github.workspace }}/ccache/"
+  CCACHE_BASEDIR: "${{ github.workspace }}/ccache/"
 
 jobs:
   build:
@@ -91,7 +92,6 @@ jobs:
       - name: Set up ccache
         run: |
           ccache --set-config=cache_dir=${{ github.workspace }}/ccache
-          ccache --set-config=base_dir=${{ github.workspace }}/ccache
           ccache --set-config=max_size=500M
           ccache --set-config=compression=true
 
