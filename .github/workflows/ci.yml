@@ -47,10 +47,6 @@ jobs:
         run: |
           echo 'DATE=$(Get-Date -Format yyyy-MM-dd)' | Out-File -FilePath $env:GITHUB_ENV -Append
 
-      - name: Print date
-        run: |
-          echo $DATE
-
       - uses: actions/checkout@v3
         with:
           submodules: true
@@ -95,6 +91,7 @@ jobs:
       - name: Set up ccache
         run: |
           ccache --set-config=cache_dir=${{ github.workspace }}/ccache
+          ccache --set-config=base_dir=${{ github.workspace }}/ccache
           ccache --set-config=max_size=500M
           ccache --set-config=compression=true
 
