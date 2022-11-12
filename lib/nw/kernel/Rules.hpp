@@ -64,7 +64,7 @@ struct Rules : public Service {
     const TwoDA* ip_cost_table(size_t table) const;
 
     /// Gets an item property definition
-    const ItemPropertyDefinition& ip_definition(ItemPropertyType type) const;
+    const ItemPropertyDefinition* ip_definition(ItemPropertyType type) const;
 
     /// Gets an item property param table
     const TwoDA* ip_param_table(size_t table) const;

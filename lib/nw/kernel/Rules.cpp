@@ -2,6 +2,7 @@
 
 #include "../util/string.hpp"
 #include "TwoDACache.hpp"
+#include <cstddef>
 
 namespace nw::kernel {
 
@@ -117,16 +118,19 @@ void Rules::add(Modifier mod)
 
 const TwoDA* Rules::ip_cost_table(size_t table) const
 {
+    if (table >= ip_cost_table_.size()) { return nullptr; }
     return ip_cost_table_[table];
 }
 
-const ItemPropertyDefinition& Rules::ip_definition(ItemPropertyType type) const
+const ItemPropertyDefinition* Rules::ip_definition(ItemPropertyType type) const
 {
-    return ip_definitions_[type.idx()];
+    if (type.idx() >= ip_definitions_.size()) { return nullptr; }
+    return &ip_definitions_[type.idx()];
 }
 
 const TwoDA* Rules::ip_param_table(size_t table) const
 {
+    if (table >= ip_param_table_.size()) { return nullptr; }
     return ip_param_table_[table];
 }
 

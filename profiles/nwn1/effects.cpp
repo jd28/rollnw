@@ -76,11 +76,12 @@ nw::Effect* ip_gen_ability_modifier(const nw::ItemProperty& ip)
 {
     auto type = nw::ItemPropertyType::make(ip.type);
     auto abil = nw::Ability::make(ip.subtype);
-    const auto& def = nw::kernel::rules().ip_definition(type);
+    const auto def = nw::kernel::rules().ip_definition(type);
+    if (!def) { return nullptr; }
 
-    if ((type == ip_ability_bonus || type == ip_decreased_ability_score) && def.cost_table) {
+    if ((type == ip_ability_bonus || type == ip_decreased_ability_score) && def->cost_table) {
         // Note: value will already be negative for decreased ability score.
-        if (auto value = def.cost_table->get<int>(ip.cost_value, "Value")) {
+        if (auto value = def->cost_table->get<int>(ip.cost_value, "Value")) {
             return effect_ability_modifier(abil, *value);
         }
     }

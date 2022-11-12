@@ -49,22 +49,24 @@ std::string itemprop_to_string(const nw::ItemProperty& ip)
     if (ip.type == std::numeric_limits<uint16_t>::max()) { return result; }
     auto type = nw::ItemPropertyType::make(ip.type);
     auto def = nw::kernel::rules().ip_definition(type);
-    result = nw::kernel::strings().get(def.game_string);
+    if (!def) { return nullptr; }
 
-    if (ip.subtype != std::numeric_limits<uint16_t>::max() && def.subtype) {
-        if (auto name = def.subtype->get<uint32_t>(ip.subtype, "Name")) {
+    result = nw::kernel::strings().get(def->game_string);
+
+    if (ip.subtype != std::numeric_limits<uint16_t>::max() && def->subtype) {
+        if (auto name = def->subtype->get<uint32_t>(ip.subtype, "Name")) {
             result += " " + nw::kernel::strings().get(*name);
         }
     }
 
-    if (ip.cost_value != std::numeric_limits<uint16_t>::max() && def.cost_table) {
-        if (auto name = def.cost_table->get<uint32_t>(ip.cost_value, "Name")) {
+    if (ip.cost_value != std::numeric_limits<uint16_t>::max() && def->cost_table) {
+        if (auto name = def->cost_table->get<uint32_t>(ip.cost_value, "Name")) {
             result += " " + nw::kernel::strings().get(*name);
         }
     }
 
-    if (ip.param_value != std::numeric_limits<uint8_t>::max() && def.param_table) {
-        if (auto name = def.param_table->get<uint32_t>(ip.param_value, "Name")) {
+    if (ip.param_value != std::numeric_limits<uint8_t>::max() && def->param_table) {
+        if (auto name = def->param_table->get<uint32_t>(ip.param_value, "Name")) {
             result += " " + nw::kernel::strings().get(*name);
         }
     }
