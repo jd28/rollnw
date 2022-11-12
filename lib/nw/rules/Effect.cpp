@@ -43,7 +43,7 @@ std::string_view Effect::get_string(size_t index) const noexcept
 
 EffectHandle Effect::handle() noexcept
 {
-    return {type, this};
+    return {type, subtype, creator, spell_id, category, this};
 }
 
 EffectID Effect::id() const noexcept
@@ -83,10 +83,5 @@ void Effect::set_string(size_t index, std::string value)
 void Effect::set_versus(Versus vs) { versus_ = vs; }
 
 const Versus& Effect::versus() const noexcept { return versus_; }
-
-bool EffectHandle::operator<(const EffectHandle& rhs) const
-{
-    return type < rhs.type;
-}
 
 } // namespace nw

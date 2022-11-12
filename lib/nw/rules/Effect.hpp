@@ -89,10 +89,14 @@ private:
 
 struct EffectHandle {
     EffectType type = EffectType::invalid();
+    int subtype = -1;
+    ObjectHandle creator;
+    Spell spell_id = Spell::invalid();
+    EffectCategory category = EffectCategory::magical;
     Effect* effect = nullptr;
 
     bool operator==(const EffectHandle&) const = default;
-    bool operator<(const EffectHandle& rhs) const;
+    auto operator<=>(const EffectHandle&) const = default;
 };
 
 } // namespace nw
