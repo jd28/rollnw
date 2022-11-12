@@ -1,6 +1,10 @@
 include README.md LICENSE
+graft benchmarks
+graft cmake
 graft external
-graft src
+graft lib
+graft profiles
+graft python
 graft tests
 global-include CMakeLists.txt CMakePresets.json *.cmake vcpkg.json
 prune **/__pycache__
