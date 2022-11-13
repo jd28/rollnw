@@ -4,18 +4,11 @@
 rollNW
 ======
 
-rollNW is a simple modern static C++ library for Neverwinter Nights (and
-some Enhanced Edition) file formats and objects, that
+rollNW is an homage to Neverwinter Nights in C++ and Python.
 
--  aims to implement an RPG engine inspired by NWN, excluding graphics
-   and networking.
--  focuses on usage, instead of doing things the Aurora Engine Way.
--  follows `utf8 everywhere <https://utf8everywhere.org/>`__.
--  hews as close to `C++ Core
-   Guidelines <https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines>`__
-   as possible.
--  aims to be as easily bindable as possible to other languages. I.e.
-   only library specific or STL types at API boundaries.
+See the `docs <https://rollnw.readthedocs.io/en/latest/>`__ and
+`tests <https://github.com/jd28/rollnw/tree/main/tests>`__ for more info,
+or open an IDE in browser in the quickstart section below.
 
 **This library is a work-in-progress. There will be serious refactoring
 and until there is a real release, it should be assumed the library is
@@ -39,6 +32,20 @@ features
 
 -----------------------------------------
 
+goals
+-----
+
+-  aims to implement an RPG engine inspired by NWN, excluding graphics and networking.
+-  focuses on usage, instead of doing things the Aurora Engine Way.
+-  follows `utf8 everywhere <https://utf8everywhere.org/>`__.
+-  hews as close to `C++ Core
+   Guidelines <https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines>`__
+   as possible.
+-  aims to be as easily bindable as possible to other languages. I.e.
+   only library specific or STL types at API boundaries.
+
+-----------------------------------------
+
 quickstart - Open VS Code in your Browser
 -----------------------------------------
 
@@ -57,20 +64,8 @@ personal minimalist toolset, modernized and with new EE stuff added. In
 some sense, it's a work of historical fiction - it's what I'd have
 suggested at the start of NWN:EE: get the game and the community on the
 same set of libraries. Similarly to an older project that asked `“what
-if Bioware had stuck with
-Lua?” <https://solstice.readthedocs.io/en/latest/>`__. The answer to
+if Bioware had stuck with Lua?” <https://solstice.readthedocs.io/en/latest/>`__. The answer to
 that was pretty positive: a decade ahead, at least, of nwscript.
-
------------------------------------------
-
-General Warning
----------------
-
-
-If you've somehow found your way here by accident, you should head to
-`neverwinter.nim <https://github.com/niv/neverwinter.nim>`__, those are
-the official tools of NWN:EE and can handle basic workflows out of the
-box.
 
 -----------------------------------------
 

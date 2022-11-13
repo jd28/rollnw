@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>nw::RaceArray &mdash; rollNW  documentation</title>
+      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/tabs.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/doctools.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="nw::RuleValue" href="nw__RuleValue.html" />
+    <link rel="prev" title="nw::ModifierVariant" href="nw__ModifierVariant.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../index.html" class="icon icon-home"> rollNW
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">getting started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../gs/building.html">building</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gs/using.html">using</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">structure</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../structure/formats.html">formats</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../structure/i18n.html">i18n</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../structure/kernel.html">kernel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../structure/model.html">model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../structure/objects.html">objects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../structure/resources.html">resources</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../structure/rules.html">rules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../structure/script.html">script</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../structure/serialization.html">serialization</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">c++ api</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../classlist.html">classes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../definelist.html">defines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../enumlist.html">enums</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../functionlist.html">functions</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../typedeflist.html">typedefs</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="nw__AbilityArray.html">nw::AbilityArray</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__BaseItemArray.html">nw::BaseItemArray</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__DamageFlags.html">nw::DamageFlag</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__EquipItem.html">nw::EquipItem</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__FeatArray.html">nw::FeatArray</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__LocalVarTable.html">nw::LocalVarTable</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ModifierFunction.html">nw::ModifierFunction</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ModifierInputs.html">nw::ModifierInputs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ModifierOutputs.html">nw::ModifierOutputs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ModifierResult.html">nw::ModifierResult</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ModifierVariant.html">nw::ModifierVariant</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">nw::RaceArray</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__RuleValue.html">nw::RuleValue</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__SkillArray.html">nw::SkillArray</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__SpellArray.html">nw::SpellArray</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__sqlite3_ptr.html">nw::sqlite3_ptr</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__unique_container.html">nw::unique_container</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">python api</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../api_python/rollnw.html">rollnw</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api_python/rollnw_kernel.html">rollnw.kernel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api_python/rollnw_model.html">rollnw.model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api_python/rollnw_script.html">rollnw.script</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">gff schemas</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/are.html">are</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/dlg.html">dlg</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/fac.html">fac</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/gic.html">gic</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/git.html">git</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/ifo.html">ifo</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/itp.html">itp</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/jrl.html">jrl</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/utc.html">utc</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/utd.html">utd</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/ute.html">ute</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/uti.html">uti</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/utm.html">utm</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/utp.html">utp</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/uts.html">uts</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/utt.html">utt</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/utw.html">utw</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/vartable.html">vartable</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">rollNW</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home"></a></li>
+          <li class="breadcrumb-item"><a href="../typedeflist.html">typedefs</a></li>
+      <li class="breadcrumb-item active">nw::RaceArray</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/api/typedef/nw__RaceArray.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <div class="section" id="nw-racearray">
+<h1>nw::RaceArray<a class="headerlink" href="#nw-racearray" title="Permalink to this headline"></a></h1>
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw9RaceArrayE">
+<span id="_CPPv3N2nw9RaceArrayE"></span><span id="_CPPv2N2nw9RaceArrayE"></span><span class="target" id="namespacenw_1aa5691102430df6898fdbdd43bf886a99"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">nw</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">RaceArray</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="../struct/nw__RuleTypeArray.html#_CPPv4I00EN2nw13RuleTypeArrayE" title="nw::RuleTypeArray"><span class="n"><span class="pre">RuleTypeArray</span></span></a><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="../struct/nw__Race.html#_CPPv4N2nw4RaceE" title="nw::Race"><span class="n"><span class="pre">Race</span></span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="../struct/nw__RaceInfo.html#_CPPv4N2nw8RaceInfoE" title="nw::RaceInfo"><span class="n"><span class="pre">RaceInfo</span></span></a><span class="p"><span class="pre">&gt;</span></span><a class="headerlink" href="#_CPPv4N2nw9RaceArrayE" title="Permalink to this definition"></a><br /></dt>
+<dd><p><a class="reference internal" href="../struct/nw__Race.html#structnw_1_1_race"><span class="std std-ref">Race</span></a> singleton component. </p>
+</dd></dl>
+
+</div>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="nw__ModifierVariant.html" class="btn btn-neutral float-left" title="nw::ModifierVariant" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="nw__RuleValue.html" class="btn btn-neutral float-right" title="nw::RuleValue" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright .</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

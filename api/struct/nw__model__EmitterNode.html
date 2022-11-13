@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>nw::model::EmitterNode &mdash; rollNW  documentation</title>
+      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/tabs.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/doctools.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="nw::model::Face" href="nw__model__Face.html" />
+    <link rel="prev" title="nw::model::EmitterFlag" href="nw__model__EmitterFlag.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../index.html" class="icon icon-home"> rollNW
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">getting started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../gs/building.html">building</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gs/using.html">using</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">structure</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../structure/formats.html">formats</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../structure/i18n.html">i18n</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../structure/kernel.html">kernel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../structure/model.html">model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../structure/objects.html">objects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../structure/resources.html">resources</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../structure/rules.html">rules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../structure/script.html">script</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../structure/serialization.html">serialization</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">c++ api</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="../classlist.html">classes</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="nw__Ability.html">nw::Ability</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__AbilityInfo.html">nw::AbilityInfo</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Appearance.html">nw::Appearance</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Area.html">nw::Area</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__AreaScripts.html">nw::AreaScripts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__AreaWeather.html">nw::AreaWeather</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__BaseItem.html">nw::BaseItem</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__BeamdogInstall.html">nw::BeamdogInstall</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Bif.html">nw::Bif</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__BodyParts.html">nw::BodyParts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ByteArray.html">nw::ByteArray</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Class.html">nw::Class</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ClassArray.html">nw::ClassArray</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ClassEntry.html">nw::ClassEntry</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ClassInfo.html">nw::ClassInfo</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__CombatInfo.html">nw::CombatInfo</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Common.html">nw::Common</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__CompressionHeader.html">nw::CompressionHeader</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ConfigOptions.html">nw::ConfigOptions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Container.html">nw::Container</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Creature.html">nw::Creature</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__CreatureScripts.html">nw::CreatureScripts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__CreatureStats.html">nw::CreatureStats</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__DamageRoll.html">nw::DamageRoll</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Dialog.html">nw::Dialog</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__DialogNode.html">nw::DialogNode</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__DialogPtr.html">nw::DialogPtr</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__DiceRoll.html">nw::DiceRoll</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Directory.html">nw::Directory</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Disease.html">nw::Disease</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Door.html">nw::Door</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__DoorScripts.html">nw::DoorScripts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Effect.html">nw::Effect</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__EffectArray.html">nw::EffectArray</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__EffectHandle.html">nw::EffectHandle</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Encounter.html">nw::Encounter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__EncounterScripts.html">nw::EncounterScripts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Equips.html">nw::Equips</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Erf.html">nw::Erf</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Faction.html">nw::Faction</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__FactionInfo.html">nw::FactionInfo</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Feat.html">nw::Feat</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__FeatInfo.html">nw::FeatInfo</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__GameProfile.html">nw::GameProfile</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Gff.html">nw::Gff</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__GffBuilder.html">nw::GffBuilder</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__GffBuilderField.html">nw::GffBuilderField</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__GffBuilderList.html">nw::GffBuilderList</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__GffBuilderStruct.html">nw::GffBuilderStruct</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__GffField.html">nw::GffField</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__GffLabel.html">nw::GffLabel</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__GffStruct.html">nw::GffStruct</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Image.html">nw::Image</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Ini.html">nw::Ini</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__InstallInfo.html">nw::InstallInfo</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__InternedString.html">nw::InternedString</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Inventory.html">nw::Inventory</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__InventoryItem.html">nw::InventoryItem</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Item.html">nw::Item</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ItemColors.html">nw::ItemColors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ItemModelParts.html">nw::ItemModelParts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ItemProperty.html">nw::ItemProperty</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Journal.html">nw::Journal</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__JournalCategory.html">nw::JournalCategory</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__JournalEntry.html">nw::JournalEntry</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Key.html">nw::Key</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Language.html">nw::Language</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Language__Properties.html">nw::Language::Properties</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__LevelHistory.html">nw::LevelHistory</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__LevelHistoryEntry.html">nw::LevelHistoryEntry</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__LevelStats.html">nw::LevelStats</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__LocString.html">nw::LocString</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__LocalData.html">nw::LocalData</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__LocalVar.html">nw::LocalVar</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__LocalVarType.html">nw::LocalVarType</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Location.html">nw::Location</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Lock.html">nw::Lock</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__MasterFeat.html">nw::MasterFeat</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__MasterFeatRegistry.html">nw::MasterFeatRegistry</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Modifier.html">nw::Modifier</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ModifierType.html">nw::ModifierType</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Module.html">nw::Module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ModuleScripts.html">nw::ModuleScripts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__NWSync.html">nw::NWSync</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__NWSyncManifest.html">nw::NWSyncManifest</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Null.html">nw::Null</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Palette.html">nw::Palette</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__PaletteTreeNode.html">nw::PaletteTreeNode</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Placeable.html">nw::Placeable</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__PlaceableScripts.html">nw::PlaceableScripts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Qualifier.html">nw::Qualifier</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Race.html">nw::Race</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__RaceInfo.html">nw::RaceInfo</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Reputation.html">nw::Reputation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Requirement.html">nw::Requirement</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Resource.html">nw::Resource</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ResourceDescriptor.html">nw::ResourceDescriptor</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ResourceType.html">nw::ResourceType</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Resref.html">nw::Resref</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__RuleFlag.html">nw::RuleFlag</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__RuleTypeArray.html">nw::RuleTypeArray</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Save.html">nw::Save</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Saves.html">nw::Saves</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Selector.html">nw::Selector</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__SerializationType.html">nw::SerializationType</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Situation.html">nw::Situation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Skill.html">nw::Skill</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__SkillInfo.html">nw::SkillInfo</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Sound.html">nw::Sound</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__SpawnCreature.html">nw::SpawnCreature</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__SpawnPoint.html">nw::SpawnPoint</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__SpecialAbility.html">nw::SpecialAbility</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Spell.html">nw::Spell</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__SpellBook.html">nw::SpellBook</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__SpellEntry.html">nw::SpellEntry</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__SpellInfo.html">nw::SpellInfo</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Store.html">nw::Store</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__StoreInventory.html">nw::StoreInventory</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__StoreScripts.html">nw::StoreScripts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Tile.html">nw::Tile</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Tlk.html">nw::Tlk</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__TlkElement.html">nw::TlkElement</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__TlkFlags.html">nw::TlkFlags</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__TlkHeader.html">nw::TlkHeader</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Tokenizer.html">nw::Tokenizer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Trap.html">nw::Trap</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Trigger.html">nw::Trigger</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__TriggerScripts.html">nw::TriggerScripts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__TwoDA.html">nw::TwoDA</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__TwoDACache.html">nw::TwoDACache</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Variant.html">nw::Variant</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Versus.html">nw::Versus</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Waypoint.html">nw::Waypoint</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Zip.html">nw::Zip</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ZipElement.html">nw::ZipElement</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ZlibHeader.html">nw::ZlibHeader</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ZstdHeader.html">nw::ZstdHeader</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__kernel__Config.html">nw::kernel::Config</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__kernel__EffectSystem.html">nw::kernel::EffectSystem</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__kernel__EventSystem.html">nw::kernel::EventSystem</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__kernel__ObjectSystem.html">nw::kernel::ObjectSystem</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__kernel__Resources.html">nw::kernel::Resources</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__kernel__Rules.html">nw::kernel::Rules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__kernel__Service.html">nw::kernel::Service</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__kernel__Services.html">nw::kernel::Services</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__kernel__Strings.html">nw::kernel::Strings</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__model__AABBEntry.html">nw::model::AABBEntry</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__model__AABBNode.html">nw::model::AABBNode</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__model__Animation.html">nw::model::Animation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__model__AnimationEvent.html">nw::model::AnimationEvent</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__model__AnimeshNode.html">nw::model::AnimeshNode</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__model__CameraNode.html">nw::model::CameraNode</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__model__ControllerKey.html">nw::model::ControllerKey</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__model__ControllerType.html">nw::model::ControllerType</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__model__DanglymeshNode.html">nw::model::DanglymeshNode</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__model__DummyNode.html">nw::model::DummyNode</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__model__EmitterFlag.html">nw::model::EmitterFlag</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">nw::model::EmitterNode</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__model__Face.html">nw::model::Face</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__model__Geometry.html">nw::model::Geometry</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__model__GeometryFlag.html">nw::model::GeometryFlag</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__model__GeometryType.html">nw::model::GeometryType</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__model__LightNode.html">nw::model::LightNode</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__model__Mdl.html">nw::model::Mdl</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__model__MdlTextParser.html">nw::model::TextParser</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__model__Model.html">nw::model::Model</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__model__ModelClass.html">nw::model::ModelClass</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__model__Node.html">nw::model::Node</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__model__NodeFlags.html">nw::model::NodeFlags</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__model__NodeTypes.html">nw::model::NodeType</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__model__PatchNode.html">nw::model::PatchNode</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__model__ReferenceNode.html">nw::model::ReferenceNode</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__model__SkinNode.html">nw::model::SkinNode</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__model__SkinWeight.html">nw::model::SkinWeight</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__model__TriangleMode.html">nw::model::TriangleMode</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__model__TrimeshNode.html">nw::model::TrimeshNode</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__AssignExpression.html">nw::script::AssignExpression</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__AstNode.html">nw::script::AstNode</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__BaseVisitor.html">nw::script::BaseVisitor</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__BinaryExpression.html">nw::script::BinaryExpression</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__BlockStatement.html">nw::script::BlockStatement</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__CallExpression.html">nw::script::CallExpression</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__ConditionalExpression.html">nw::script::ConditionalExpression</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__Declaration.html">nw::script::Declaration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__DoStatement.html">nw::script::DoStatement</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__DotExpression.html">nw::script::DotExpression</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__ExprStatement.html">nw::script::ExprStatement</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__Expression.html">nw::script::Expression</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__ForStatement.html">nw::script::ForStatement</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__FunctionDecl.html">nw::script::FunctionDecl</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__FunctionDefinition.html">nw::script::FunctionDefinition</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__GroupingExpression.html">nw::script::GroupingExpression</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__IfStatement.html">nw::script::IfStatement</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__JumpStatement.html">nw::script::JumpStatement</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__LabelStatement.html">nw::script::LabelStatement</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__LiteralExpression.html">nw::script::LiteralExpression</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__LiteralVectorExpression.html">nw::script::LiteralVectorExpression</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__LogicalExpression.html">nw::script::LogicalExpression</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__Nss.html">nw::script::Nss</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__NssAstPrinter.html">nw::script::NssAstPrinter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__NssLexer.html">nw::script::NssLexer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__NssParser.html">nw::script::NssParser</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__NssToken.html">nw::script::NssToken</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__PostfixExpression.html">nw::script::PostfixExpression</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__Script.html">nw::script::Script</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__Statement.html">nw::script::Statement</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__StructDecl.html">nw::script::StructDecl</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__SwitchStatement.html">nw::script::SwitchStatement</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__Type.html">nw::script::Type</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__UnaryExpression.html">nw::script::UnaryExpression</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__VarDecl.html">nw::script::VarDecl</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__VariableExpression.html">nw::script::VariableExpression</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__WhileStatement.html">nw::script::WhileStatement</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nwn1__Profile.html">nwn1::Profile</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../definelist.html">defines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../enumlist.html">enums</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../functionlist.html">functions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../typedeflist.html">typedefs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">python api</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../api_python/rollnw.html">rollnw</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api_python/rollnw_kernel.html">rollnw.kernel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api_python/rollnw_model.html">rollnw.model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api_python/rollnw_script.html">rollnw.script</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">gff schemas</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/are.html">are</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/dlg.html">dlg</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/fac.html">fac</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/gic.html">gic</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/git.html">git</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/ifo.html">ifo</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/itp.html">itp</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/jrl.html">jrl</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/utc.html">utc</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/utd.html">utd</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/ute.html">ute</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/uti.html">uti</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/utm.html">utm</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/utp.html">utp</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/uts.html">uts</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/utt.html">utt</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/utw.html">utw</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/vartable.html">vartable</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">rollNW</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home"></a></li>
+          <li class="breadcrumb-item"><a href="../classlist.html">classes</a></li>
+      <li class="breadcrumb-item active">nw::model::EmitterNode</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/api/struct/nw__model__EmitterNode.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <div class="section" id="nw-model-emitternode">
+<h1>nw::model::EmitterNode<a class="headerlink" href="#nw-model-emitternode" title="Permalink to this headline"></a></h1>
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw5model11EmitterNodeE">
+<span id="_CPPv3N2nw5model11EmitterNodeE"></span><span id="_CPPv2N2nw5model11EmitterNodeE"></span><span id="nw::model::EmitterNode"></span><span class="target" id="structnw_1_1model_1_1_emitter_node"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">EmitterNode</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><span class="n"><span class="pre">nw</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">model</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="nw__model__Node.html#_CPPv4N2nw5model4NodeE" title="nw::model::Node"><span class="n"><span class="pre">Node</span></span></a><a class="headerlink" href="#_CPPv4N2nw5model11EmitterNodeE" title="Permalink to this definition"></a><br /></dt>
+<dd><div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw5model11EmitterNode11EmitterNodeENSt6stringE">
+<span id="_CPPv3N2nw5model11EmitterNode11EmitterNodeENSt6stringE"></span><span id="_CPPv2N2nw5model11EmitterNode11EmitterNodeENSt6stringE"></span><span id="nw::model::EmitterNode::EmitterNode__ss"></span><span class="target" id="structnw_1_1model_1_1_emitter_node_1ae9e38db9eb0d89401bcb12527f8b7c76"></span><span class="sig-name descname"><span class="n"><span class="pre">EmitterNode</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">name_</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw5model11EmitterNode11EmitterNodeENSt6stringE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw5model11EmitterNode19add_controller_dataENSt11string_viewE8uint32_tNSt6vectorIfEEii">
+<span id="_CPPv3N2nw5model11EmitterNode19add_controller_dataENSt11string_viewE8uint32_tNSt6vectorIfEEii"></span><span id="_CPPv2N2nw5model11EmitterNode19add_controller_dataENSt11string_viewE8uint32_tNSt6vectorIfEEii"></span><span id="nw::model::EmitterNode::add_controller_data__std::string_view.uint32_t.std::vector:float:.i.i"></span><span class="target" id="structnw_1_1model_1_1_node_1addb0dd079414109429fffdcdba0a0b8e"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">add_controller_data</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">name_</span></span>, <span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">type_</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">float</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">data_</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">rows_</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">columns_</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">1</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw5model11EmitterNode19add_controller_dataENSt11string_viewE8uint32_tNSt6vectorIfEEii" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Adds a controller to a model node. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK2nw5model11EmitterNode14get_controllerE8uint32_tb">
+<span id="_CPPv3NK2nw5model11EmitterNode14get_controllerE8uint32_tb"></span><span id="_CPPv2NK2nw5model11EmitterNode14get_controllerE8uint32_tb"></span><span id="nw::model::EmitterNode::get_controller__uint32_t.bC"></span><span class="target" id="structnw_1_1model_1_1_node_1a158d61984cfe03a98afd833046a7f0ea"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">pair</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="nw__model__ControllerKey.html#_CPPv4N2nw5model13ControllerKeyE" title="nw::model::ControllerKey"><span class="n"><span class="pre">ControllerKey</span></span></a><span class="p"><span class="pre">*</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">span</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">float</span></span><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_controller</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">type_</span></span>, <span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">key</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">false</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK2nw5model11EmitterNode14get_controllerE8uint32_tb" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Gets a controller to a model node. </p>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw5model11EmitterNode11blastlengthE">
+<span id="_CPPv3N2nw5model11EmitterNode11blastlengthE"></span><span id="_CPPv2N2nw5model11EmitterNode11blastlengthE"></span><span id="nw::model::EmitterNode::blastlength__float"></span><span class="target" id="structnw_1_1model_1_1_emitter_node_1af5796bc3e306325efdb71d8de1efd63d"></span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">blastlength</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="m"><span class="pre">0.0f</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N2nw5model11EmitterNode11blastlengthE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw5model11EmitterNode11blastradiusE">
+<span id="_CPPv3N2nw5model11EmitterNode11blastradiusE"></span><span id="_CPPv2N2nw5model11EmitterNode11blastradiusE"></span><span id="nw::model::EmitterNode::blastradius__float"></span><span class="target" id="structnw_1_1model_1_1_emitter_node_1a0c0bb14fece7a70dd5ca7b781bdd6fe4"></span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">blastradius</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="m"><span class="pre">0.0f</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N2nw5model11EmitterNode11blastradiusE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw5model11EmitterNode5blendE">
+<span id="_CPPv3N2nw5model11EmitterNode5blendE"></span><span id="_CPPv2N2nw5model11EmitterNode5blendE"></span><span id="nw::model::EmitterNode::blend__ss"></span><span class="target" id="structnw_1_1model_1_1_emitter_node_1ac69351bb9af697abb349c3696844f0ba"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">blend</span></span></span><a class="headerlink" href="#_CPPv4N2nw5model11EmitterNode5blendE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw5model11EmitterNode9chunknameE">
+<span id="_CPPv3N2nw5model11EmitterNode9chunknameE"></span><span id="_CPPv2N2nw5model11EmitterNode9chunknameE"></span><span id="nw::model::EmitterNode::chunkname__ss"></span><span class="target" id="structnw_1_1model_1_1_emitter_node_1a523265241fbfc343cf9384f2ae042774"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">chunkname</span></span></span><a class="headerlink" href="#_CPPv4N2nw5model11EmitterNode9chunknameE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw5model11EmitterNode9deadspaceE">
+<span id="_CPPv3N2nw5model11EmitterNode9deadspaceE"></span><span id="_CPPv2N2nw5model11EmitterNode9deadspaceE"></span><span id="nw::model::EmitterNode::deadspace__float"></span><span class="target" id="structnw_1_1model_1_1_emitter_node_1a27e103da629a70ac341e433f07f089c0"></span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">deadspace</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="m"><span class="pre">0.0f</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N2nw5model11EmitterNode9deadspaceE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw5model11EmitterNode4loopE">
+<span id="_CPPv3N2nw5model11EmitterNode4loopE"></span><span id="_CPPv2N2nw5model11EmitterNode4loopE"></span><span id="nw::model::EmitterNode::loop__uint32_t"></span><span class="target" id="structnw_1_1model_1_1_emitter_node_1a1eb3a028e7b2f86b20a961b32f63c20a"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">loop</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="m"><span class="pre">0</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N2nw5model11EmitterNode4loopE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw5model11EmitterNode6renderE">
+<span id="_CPPv3N2nw5model11EmitterNode6renderE"></span><span id="_CPPv2N2nw5model11EmitterNode6renderE"></span><span id="nw::model::EmitterNode::render__ss"></span><span class="target" id="structnw_1_1model_1_1_emitter_node_1ae9220c3579d9a3dfa4679c96aac64fae"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">render</span></span></span><a class="headerlink" href="#_CPPv4N2nw5model11EmitterNode6renderE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw5model11EmitterNode11renderorderE">
+<span id="_CPPv3N2nw5model11EmitterNode11renderorderE"></span><span id="_CPPv2N2nw5model11EmitterNode11renderorderE"></span><span id="nw::model::EmitterNode::renderorder__uint32_t"></span><span class="target" id="structnw_1_1model_1_1_emitter_node_1a8eea6add8b209dc2ee4c0a9c4553877e"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">renderorder</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="m"><span class="pre">0</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N2nw5model11EmitterNode11renderorderE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw5model11EmitterNode9spawntypeE">
+<span id="_CPPv3N2nw5model11EmitterNode9spawntypeE"></span><span id="_CPPv2N2nw5model11EmitterNode9spawntypeE"></span><span id="nw::model::EmitterNode::spawntype__int32_t"></span><span class="target" id="structnw_1_1model_1_1_emitter_node_1a3ae5120b9f10e0684cb2eeafbf77ae9c"></span><span class="n"><span class="pre">int32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">spawntype</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="m"><span class="pre">0</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N2nw5model11EmitterNode9spawntypeE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw5model11EmitterNode7textureE">
+<span id="_CPPv3N2nw5model11EmitterNode7textureE"></span><span id="_CPPv2N2nw5model11EmitterNode7textureE"></span><span id="nw::model::EmitterNode::texture__ss"></span><span class="target" id="structnw_1_1model_1_1_emitter_node_1a24ab0a6f1e93c9df82f47eec0ee6e609"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">texture</span></span></span><a class="headerlink" href="#_CPPv4N2nw5model11EmitterNode7textureE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw5model11EmitterNode11twosidedtexE">
+<span id="_CPPv3N2nw5model11EmitterNode11twosidedtexE"></span><span id="_CPPv2N2nw5model11EmitterNode11twosidedtexE"></span><span id="nw::model::EmitterNode::twosidedtex__uint32_t"></span><span class="target" id="structnw_1_1model_1_1_emitter_node_1a1fbbd30c2fce98f5337296af0ca57ae2"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">twosidedtex</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="m"><span class="pre">0</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N2nw5model11EmitterNode11twosidedtexE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw5model11EmitterNode6updateE">
+<span id="_CPPv3N2nw5model11EmitterNode6updateE"></span><span id="_CPPv2N2nw5model11EmitterNode6updateE"></span><span id="nw::model::EmitterNode::update__ss"></span><span class="target" id="structnw_1_1model_1_1_emitter_node_1aa6691177a8ff3ac803828466d7a4aaf3"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">update</span></span></span><a class="headerlink" href="#_CPPv4N2nw5model11EmitterNode6updateE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw5model11EmitterNode5xgridE">
+<span id="_CPPv3N2nw5model11EmitterNode5xgridE"></span><span id="_CPPv2N2nw5model11EmitterNode5xgridE"></span><span id="nw::model::EmitterNode::xgrid__uint32_t"></span><span class="target" id="structnw_1_1model_1_1_emitter_node_1a9f56b49dda5b5036f7cb09ab737df153"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">xgrid</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="m"><span class="pre">0</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N2nw5model11EmitterNode5xgridE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw5model11EmitterNode5ygridE">
+<span id="_CPPv3N2nw5model11EmitterNode5ygridE"></span><span id="_CPPv2N2nw5model11EmitterNode5ygridE"></span><span id="nw::model::EmitterNode::ygrid__uint32_t"></span><span class="target" id="structnw_1_1model_1_1_emitter_node_1a55a96466e1ed9551456ba4b7ea28f61e"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ygrid</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="m"><span class="pre">0</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N2nw5model11EmitterNode5ygridE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw5model11EmitterNode5flagsE">
+<span id="_CPPv3N2nw5model11EmitterNode5flagsE"></span><span id="_CPPv2N2nw5model11EmitterNode5flagsE"></span><span id="nw::model::EmitterNode::flags__uint32_t"></span><span class="target" id="structnw_1_1model_1_1_emitter_node_1a3cb19af35eda7bbfbaece5a146acf7ae"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">flags</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="m"><span class="pre">0</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N2nw5model11EmitterNode5flagsE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw5model11EmitterNode10render_selE">
+<span id="_CPPv3N2nw5model11EmitterNode10render_selE"></span><span id="_CPPv2N2nw5model11EmitterNode10render_selE"></span><span id="nw::model::EmitterNode::render_sel__uint32_t"></span><span class="target" id="structnw_1_1model_1_1_emitter_node_1a3f83a19ef2450439166acf04d088e244"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">render_sel</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="m"><span class="pre">0</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N2nw5model11EmitterNode10render_selE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw5model11EmitterNode9blend_selE">
+<span id="_CPPv3N2nw5model11EmitterNode9blend_selE"></span><span id="_CPPv2N2nw5model11EmitterNode9blend_selE"></span><span id="nw::model::EmitterNode::blend_sel__uint32_t"></span><span class="target" id="structnw_1_1model_1_1_emitter_node_1a47d0470e3583afde334730af0be5102a"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">blend_sel</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="m"><span class="pre">0</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N2nw5model11EmitterNode9blend_selE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw5model11EmitterNode10update_selE">
+<span id="_CPPv3N2nw5model11EmitterNode10update_selE"></span><span id="_CPPv2N2nw5model11EmitterNode10update_selE"></span><span id="nw::model::EmitterNode::update_sel__uint32_t"></span><span class="target" id="structnw_1_1model_1_1_emitter_node_1a1a9a460bfa1b24bc569e6c485097198f"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">update_sel</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="m"><span class="pre">0</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N2nw5model11EmitterNode10update_selE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw5model11EmitterNode13spawntype_selE">
+<span id="_CPPv3N2nw5model11EmitterNode13spawntype_selE"></span><span id="_CPPv2N2nw5model11EmitterNode13spawntype_selE"></span><span id="nw::model::EmitterNode::spawntype_sel__uint32_t"></span><span class="target" id="structnw_1_1model_1_1_emitter_node_1a46dafc8996ddecfea8a66b57746b47b4"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">spawntype_sel</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="m"><span class="pre">0</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N2nw5model11EmitterNode13spawntype_selE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw5model11EmitterNode7opacityE">
+<span id="_CPPv3N2nw5model11EmitterNode7opacityE"></span><span id="_CPPv2N2nw5model11EmitterNode7opacityE"></span><span id="nw::model::EmitterNode::opacity__float"></span><span class="target" id="structnw_1_1model_1_1_emitter_node_1a6a640385af55d5edc8cbf99edbd04927"></span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">opacity</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="m"><span class="pre">0.0f</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N2nw5model11EmitterNode7opacityE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw5model11EmitterNode8p2p_typeE">
+<span id="_CPPv3N2nw5model11EmitterNode8p2p_typeE"></span><span id="_CPPv2N2nw5model11EmitterNode8p2p_typeE"></span><span id="nw::model::EmitterNode::p2p_type__ss"></span><span class="target" id="structnw_1_1model_1_1_emitter_node_1a22ee5c62d8f32c79a456639120579080"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">p2p_type</span></span></span><a class="headerlink" href="#_CPPv4N2nw5model11EmitterNode8p2p_typeE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw5model11EmitterNode8tilefadeE">
+<span id="_CPPv3N2nw5model11EmitterNode8tilefadeE"></span><span id="_CPPv2N2nw5model11EmitterNode8tilefadeE"></span><span id="nw::model::EmitterNode::tilefade__uint32_t"></span><span class="target" id="structnw_1_1model_1_1_emitter_node_1afd4a2f6f591c9b5ed931dfbb45878c3d"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">tilefade</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="m"><span class="pre">0</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N2nw5model11EmitterNode8tilefadeE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw5model11EmitterNode4nameE">
+<span id="_CPPv3N2nw5model11EmitterNode4nameE"></span><span id="_CPPv2N2nw5model11EmitterNode4nameE"></span><span id="nw::model::EmitterNode::name__ss"></span><span class="target" id="structnw_1_1model_1_1_node_1a71395778d6211c3f28312fd428e43eff"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">name</span></span></span><a class="headerlink" href="#_CPPv4N2nw5model11EmitterNode4nameE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw5model11EmitterNode4typeE">
+<span id="_CPPv3N2nw5model11EmitterNode4typeE"></span><span id="_CPPv2N2nw5model11EmitterNode4typeE"></span><span id="nw::model::EmitterNode::type__uint32_tC"></span><span class="target" id="structnw_1_1model_1_1_node_1aba1f561723851788fcda6091b52a2e76"></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">type</span></span></span><a class="headerlink" href="#_CPPv4N2nw5model11EmitterNode4typeE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw5model11EmitterNode12inheritcolorE">
+<span id="_CPPv3N2nw5model11EmitterNode12inheritcolorE"></span><span id="_CPPv2N2nw5model11EmitterNode12inheritcolorE"></span><span id="nw::model::EmitterNode::inheritcolor__b"></span><span class="target" id="structnw_1_1model_1_1_node_1aad81968854069dd38e09422eb4b6ede3"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">inheritcolor</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">false</span></span><a class="headerlink" href="#_CPPv4N2nw5model11EmitterNode12inheritcolorE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw5model11EmitterNode6parentE">
+<span id="_CPPv3N2nw5model11EmitterNode6parentE"></span><span id="_CPPv2N2nw5model11EmitterNode6parentE"></span><span id="nw::model::EmitterNode::parent__NodeP"></span><span class="target" id="structnw_1_1model_1_1_node_1aa9e45f5771d4f854256e57e5a089785c"></span><a class="reference internal" href="nw__model__Node.html#_CPPv4N2nw5model4NodeE" title="nw::model::Node"><span class="n"><span class="pre">Node</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">parent</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">nullptr</span></span><a class="headerlink" href="#_CPPv4N2nw5model11EmitterNode6parentE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw5model11EmitterNode8childrenE">
+<span id="_CPPv3N2nw5model11EmitterNode8childrenE"></span><span id="_CPPv2N2nw5model11EmitterNode8childrenE"></span><span id="nw::model::EmitterNode::children__std::vector:NodeP:"></span><span class="target" id="structnw_1_1model_1_1_node_1afc13448c76480bcb13c3538db22929a8"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="nw__model__Node.html#_CPPv4N2nw5model4NodeE" title="nw::model::Node"><span class="n"><span class="pre">Node</span></span></a><span class="p"><span class="pre">*</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">children</span></span></span><a class="headerlink" href="#_CPPv4N2nw5model11EmitterNode8childrenE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw5model11EmitterNode15controller_keysE">
+<span id="_CPPv3N2nw5model11EmitterNode15controller_keysE"></span><span id="_CPPv2N2nw5model11EmitterNode15controller_keysE"></span><span id="nw::model::EmitterNode::controller_keys__std::vector:ControllerKey:"></span><span class="target" id="structnw_1_1model_1_1_node_1a65257cc8632521c568a32cd3c4a2f71c"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="nw__model__ControllerKey.html#_CPPv4N2nw5model13ControllerKeyE" title="nw::model::ControllerKey"><span class="n"><span class="pre">ControllerKey</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">controller_keys</span></span></span><a class="headerlink" href="#_CPPv4N2nw5model11EmitterNode15controller_keysE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw5model11EmitterNode15controller_dataE">
+<span id="_CPPv3N2nw5model11EmitterNode15controller_dataE"></span><span id="_CPPv2N2nw5model11EmitterNode15controller_dataE"></span><span id="nw::model::EmitterNode::controller_data__std::vector:float:"></span><span class="target" id="structnw_1_1model_1_1_node_1a5fe2ae84abbad9c26653696a85567d95"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">float</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">controller_data</span></span></span><a class="headerlink" href="#_CPPv4N2nw5model11EmitterNode15controller_dataE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+</div>
+</dd></dl>
+
+</div>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="nw__model__EmitterFlag.html" class="btn btn-neutral float-left" title="nw::model::EmitterFlag" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="nw__model__Face.html" class="btn btn-neutral float-right" title="nw::model::Face" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright .</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
