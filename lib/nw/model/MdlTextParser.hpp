@@ -7,25 +7,25 @@
 #include <string_view>
 #include <vector>
 
-namespace nw {
+namespace nw::model {
 
 class Mdl;
-struct MdlGeometry;
-struct MdlNode;
+struct Geometry;
+struct Node;
 
-class MdlTextParser {
+class TextParser {
     Tokenizer tokens_;
     Mdl* mdl_;
 
     bool parse_anim();
-    bool parse_controller(MdlNode* node, std::string_view name, uint32_t type);
+    bool parse_controller(Node* node, std::string_view name, uint32_t type);
     bool parse_geometry();
     bool parse_model();
-    bool parse_node(MdlGeometry* geometry);
+    bool parse_node(Geometry* geometry);
 
 public:
-    MdlTextParser(std::string_view buffer, Mdl* mdl);
+    TextParser(std::string_view buffer, Mdl* mdl);
     bool parse();
 };
 
-} // namespace nw
+} // namespace nw::model

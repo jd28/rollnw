@@ -6,207 +6,207 @@
 #include "../util/string.hpp"
 #include "MdlTextParser.hpp"
 
-namespace nw {
+namespace nw::model {
 
-const std::unordered_map<std::string_view, std::pair<uint32_t, uint32_t>> MdlControllerType::map = {
+const std::unordered_map<std::string_view, std::pair<uint32_t, uint32_t>> ControllerType::map = {
     // Common
-    {"position", {MdlControllerType::Position, MdlNodeFlags::header}},
-    {"orientation", {MdlControllerType::Orientation, MdlNodeFlags::header}},
-    {"scale", {MdlControllerType::Scale, MdlNodeFlags::header}},
-    {"wirecolor", {MdlControllerType::Wirecolor, MdlNodeFlags::header}},
+    {"position", {ControllerType::Position, NodeFlags::header}},
+    {"orientation", {ControllerType::Orientation, NodeFlags::header}},
+    {"scale", {ControllerType::Scale, NodeFlags::header}},
+    {"wirecolor", {ControllerType::Wirecolor, NodeFlags::header}},
     // Light
-    {"color", {MdlControllerType::Color, MdlNodeFlags::light}},
-    {"radius", {MdlControllerType::Radius, MdlNodeFlags::light}},
-    {"shadowradius", {MdlControllerType::ShadowRadius, MdlNodeFlags::light}},
-    {"verticaldisplacement", {MdlControllerType::VerticalDisplacement, MdlNodeFlags::light}},
-    {"multiplier", {MdlControllerType::Multiplier, MdlNodeFlags::light}},
+    {"color", {ControllerType::Color, NodeFlags::light}},
+    {"radius", {ControllerType::Radius, NodeFlags::light}},
+    {"shadowradius", {ControllerType::ShadowRadius, NodeFlags::light}},
+    {"verticaldisplacement", {ControllerType::VerticalDisplacement, NodeFlags::light}},
+    {"multiplier", {ControllerType::Multiplier, NodeFlags::light}},
     // Emitter
-    {"alphaEnd", {MdlControllerType::AlphaEnd, MdlNodeFlags::emitter}},
-    {"alphaStart", {MdlControllerType::AlphaStart, MdlNodeFlags::emitter}},
-    {"birthrate", {MdlControllerType::BirthRate, MdlNodeFlags::emitter}},
-    {"bounce_co", {MdlControllerType::Bounce_Co, MdlNodeFlags::emitter}},
-    {"colorEnd", {MdlControllerType::ColorEnd, MdlNodeFlags::emitter}},
-    {"colorStart", {MdlControllerType::ColorStart, MdlNodeFlags::emitter}},
-    {"combinetime", {MdlControllerType::CombineTime, MdlNodeFlags::emitter}},
-    {"drag", {MdlControllerType::Drag, MdlNodeFlags::emitter}},
-    {"fps", {MdlControllerType::FPS, MdlNodeFlags::emitter}},
-    {"frameEnd", {MdlControllerType::FrameEnd, MdlNodeFlags::emitter}},
-    {"frameStart", {MdlControllerType::FrameStart, MdlNodeFlags::emitter}},
-    {"grav", {MdlControllerType::Grav, MdlNodeFlags::emitter}},
-    {"lifeExp", {MdlControllerType::LifeExp, MdlNodeFlags::emitter}},
-    {"mass", {MdlControllerType::Mass, MdlNodeFlags::emitter}},
-    {"p2p_bezier2", {MdlControllerType::P2P_Bezier2, MdlNodeFlags::emitter}},
-    {"p2p_bezier3", {MdlControllerType::P2P_Bezier3, MdlNodeFlags::emitter}},
-    {"particleRot", {MdlControllerType::ParticleRot, MdlNodeFlags::emitter}},
-    {"randvel", {MdlControllerType::RandVel, MdlNodeFlags::emitter}},
-    {"sizeStart", {MdlControllerType::SizeStart, MdlNodeFlags::emitter}},
-    {"sizeEnd", {MdlControllerType::SizeEnd, MdlNodeFlags::emitter}},
-    {"sizeStart_y", {MdlControllerType::SizeStart_Y, MdlNodeFlags::emitter}},
-    {"sizeEnd_y", {MdlControllerType::SizeEnd_Y, MdlNodeFlags::emitter}},
-    {"spread", {MdlControllerType::Spread, MdlNodeFlags::emitter}},
-    {"threshold", {MdlControllerType::Threshold, MdlNodeFlags::emitter}},
-    {"velocity", {MdlControllerType::Velocity, MdlNodeFlags::emitter}},
-    {"xsize", {MdlControllerType::XSize, MdlNodeFlags::emitter}},
-    {"ysize", {MdlControllerType::YSize, MdlNodeFlags::emitter}},
-    {"blurlength", {MdlControllerType::BlurLength, MdlNodeFlags::emitter}},
-    {"lightningDelay", {MdlControllerType::LightningDelay, MdlNodeFlags::emitter}},
-    {"lightningRadius", {MdlControllerType::LightningRadius, MdlNodeFlags::emitter}},
-    {"lightningScale", {MdlControllerType::LightningScale, MdlNodeFlags::emitter}},
-    {"detonate", {MdlControllerType::Detonate, MdlNodeFlags::emitter}},
-    {"alphaMid", {MdlControllerType::AlphaMid, MdlNodeFlags::emitter}},
-    {"colorMid", {MdlControllerType::ColorMid, MdlNodeFlags::emitter}},
-    {"percentStart", {MdlControllerType::PercentStart, MdlNodeFlags::emitter}},
-    {"percentMid", {MdlControllerType::PercentMid, MdlNodeFlags::emitter}},
-    {"percentEnd", {MdlControllerType::PercentEnd, MdlNodeFlags::emitter}},
-    {"sizeMid", {MdlControllerType::SizeMid, MdlNodeFlags::emitter}},
-    {"sizeMid_y", {MdlControllerType::SizeMid_Y, MdlNodeFlags::emitter}},
-    {"lockAxes", {MdlControllerType::lock_axes, MdlNodeFlags::emitter}},
-    {"spawnType", {MdlControllerType::spawn_type, MdlNodeFlags::emitter}},
-    {"random", {MdlControllerType::random, MdlNodeFlags::emitter}},
-    {"inherit", {MdlControllerType::inherit, MdlNodeFlags::emitter}},
-    {"inherit_local", {MdlControllerType::inherit_local, MdlNodeFlags::emitter}},
+    {"alphaEnd", {ControllerType::AlphaEnd, NodeFlags::emitter}},
+    {"alphaStart", {ControllerType::AlphaStart, NodeFlags::emitter}},
+    {"birthrate", {ControllerType::BirthRate, NodeFlags::emitter}},
+    {"bounce_co", {ControllerType::Bounce_Co, NodeFlags::emitter}},
+    {"colorEnd", {ControllerType::ColorEnd, NodeFlags::emitter}},
+    {"colorStart", {ControllerType::ColorStart, NodeFlags::emitter}},
+    {"combinetime", {ControllerType::CombineTime, NodeFlags::emitter}},
+    {"drag", {ControllerType::Drag, NodeFlags::emitter}},
+    {"fps", {ControllerType::FPS, NodeFlags::emitter}},
+    {"frameEnd", {ControllerType::FrameEnd, NodeFlags::emitter}},
+    {"frameStart", {ControllerType::FrameStart, NodeFlags::emitter}},
+    {"grav", {ControllerType::Grav, NodeFlags::emitter}},
+    {"lifeExp", {ControllerType::LifeExp, NodeFlags::emitter}},
+    {"mass", {ControllerType::Mass, NodeFlags::emitter}},
+    {"p2p_bezier2", {ControllerType::P2P_Bezier2, NodeFlags::emitter}},
+    {"p2p_bezier3", {ControllerType::P2P_Bezier3, NodeFlags::emitter}},
+    {"particleRot", {ControllerType::ParticleRot, NodeFlags::emitter}},
+    {"randvel", {ControllerType::RandVel, NodeFlags::emitter}},
+    {"sizeStart", {ControllerType::SizeStart, NodeFlags::emitter}},
+    {"sizeEnd", {ControllerType::SizeEnd, NodeFlags::emitter}},
+    {"sizeStart_y", {ControllerType::SizeStart_Y, NodeFlags::emitter}},
+    {"sizeEnd_y", {ControllerType::SizeEnd_Y, NodeFlags::emitter}},
+    {"spread", {ControllerType::Spread, NodeFlags::emitter}},
+    {"threshold", {ControllerType::Threshold, NodeFlags::emitter}},
+    {"velocity", {ControllerType::Velocity, NodeFlags::emitter}},
+    {"xsize", {ControllerType::XSize, NodeFlags::emitter}},
+    {"ysize", {ControllerType::YSize, NodeFlags::emitter}},
+    {"blurlength", {ControllerType::BlurLength, NodeFlags::emitter}},
+    {"lightningDelay", {ControllerType::LightningDelay, NodeFlags::emitter}},
+    {"lightningRadius", {ControllerType::LightningRadius, NodeFlags::emitter}},
+    {"lightningScale", {ControllerType::LightningScale, NodeFlags::emitter}},
+    {"detonate", {ControllerType::Detonate, NodeFlags::emitter}},
+    {"alphaMid", {ControllerType::AlphaMid, NodeFlags::emitter}},
+    {"colorMid", {ControllerType::ColorMid, NodeFlags::emitter}},
+    {"percentStart", {ControllerType::PercentStart, NodeFlags::emitter}},
+    {"percentMid", {ControllerType::PercentMid, NodeFlags::emitter}},
+    {"percentEnd", {ControllerType::PercentEnd, NodeFlags::emitter}},
+    {"sizeMid", {ControllerType::SizeMid, NodeFlags::emitter}},
+    {"sizeMid_y", {ControllerType::SizeMid_Y, NodeFlags::emitter}},
+    {"lockAxes", {ControllerType::lock_axes, NodeFlags::emitter}},
+    {"spawnType", {ControllerType::spawn_type, NodeFlags::emitter}},
+    {"random", {ControllerType::random, NodeFlags::emitter}},
+    {"inherit", {ControllerType::inherit, NodeFlags::emitter}},
+    {"inherit_local", {ControllerType::inherit_local, NodeFlags::emitter}},
     // Meshes
-    {"selfillumcolor", {MdlControllerType::SelfIllumColor, MdlNodeFlags::mesh}},
-    {"alpha", {MdlControllerType::Alpha, MdlNodeFlags::mesh | MdlNodeFlags::emitter}},
+    {"selfillumcolor", {ControllerType::SelfIllumColor, NodeFlags::mesh}},
+    {"alpha", {ControllerType::Alpha, NodeFlags::mesh | NodeFlags::emitter}},
 };
 
-std::pair<uint32_t, uint32_t> MdlControllerType::lookup(std::string_view cont)
+std::pair<uint32_t, uint32_t> ControllerType::lookup(std::string_view cont)
 {
     // Common
     if (string::icmp(cont, "position")) {
-        return {MdlControllerType::Position, MdlNodeFlags::header};
+        return {ControllerType::Position, NodeFlags::header};
     } else if (string::icmp(cont, "orientation")) {
-        return {MdlControllerType::Orientation, MdlNodeFlags::header};
+        return {ControllerType::Orientation, NodeFlags::header};
     } else if (string::icmp(cont, "scale")) {
-        return {MdlControllerType::Scale, MdlNodeFlags::header};
+        return {ControllerType::Scale, NodeFlags::header};
     } else if (string::icmp(cont, "wirecolor")) {
-        return {MdlControllerType::Wirecolor, MdlNodeFlags::header};
+        return {ControllerType::Wirecolor, NodeFlags::header};
     }
     // Light
     else if (string::icmp(cont, "color")) {
-        return {MdlControllerType::Color, MdlNodeFlags::light};
+        return {ControllerType::Color, NodeFlags::light};
     } else if (string::icmp(cont, "radius")) {
-        return {MdlControllerType::Radius, MdlNodeFlags::light};
+        return {ControllerType::Radius, NodeFlags::light};
     } else if (string::icmp(cont, "shadowradius")) {
-        return {MdlControllerType::ShadowRadius, MdlNodeFlags::light};
+        return {ControllerType::ShadowRadius, NodeFlags::light};
     } else if (string::icmp(cont, "verticaldisplacement")) {
-        return {MdlControllerType::VerticalDisplacement, MdlNodeFlags::light};
+        return {ControllerType::VerticalDisplacement, NodeFlags::light};
     } else if (string::icmp(cont, "multiplier")) {
-        return {MdlControllerType::Multiplier, MdlNodeFlags::light};
+        return {ControllerType::Multiplier, NodeFlags::light};
     }
     // Emitter
     else if (string::icmp(cont, "alphaEnd")) {
-        return {MdlControllerType::AlphaEnd, MdlNodeFlags::emitter};
+        return {ControllerType::AlphaEnd, NodeFlags::emitter};
     } else if (string::icmp(cont, "alphaStart")) {
-        return {MdlControllerType::AlphaStart, MdlNodeFlags::emitter};
+        return {ControllerType::AlphaStart, NodeFlags::emitter};
     } else if (string::icmp(cont, "birthrate")) {
-        return {MdlControllerType::BirthRate, MdlNodeFlags::emitter};
+        return {ControllerType::BirthRate, NodeFlags::emitter};
     } else if (string::icmp(cont, "bounce_co")) {
-        return {MdlControllerType::Bounce_Co, MdlNodeFlags::emitter};
+        return {ControllerType::Bounce_Co, NodeFlags::emitter};
     } else if (string::icmp(cont, "colorEnd")) {
-        return {MdlControllerType::ColorEnd, MdlNodeFlags::emitter};
+        return {ControllerType::ColorEnd, NodeFlags::emitter};
     } else if (string::icmp(cont, "colorStart")) {
-        return {MdlControllerType::ColorStart, MdlNodeFlags::emitter};
+        return {ControllerType::ColorStart, NodeFlags::emitter};
     } else if (string::icmp(cont, "combinetime")) {
-        return {MdlControllerType::CombineTime, MdlNodeFlags::emitter};
+        return {ControllerType::CombineTime, NodeFlags::emitter};
     } else if (string::icmp(cont, "drag")) {
-        return {MdlControllerType::Drag, MdlNodeFlags::emitter};
+        return {ControllerType::Drag, NodeFlags::emitter};
     } else if (string::icmp(cont, "fps")) {
-        return {MdlControllerType::FPS, MdlNodeFlags::emitter};
+        return {ControllerType::FPS, NodeFlags::emitter};
     } else if (string::icmp(cont, "frameEnd")) {
-        return {MdlControllerType::FrameEnd, MdlNodeFlags::emitter};
+        return {ControllerType::FrameEnd, NodeFlags::emitter};
     } else if (string::icmp(cont, "frameStart")) {
-        return {MdlControllerType::FrameStart, MdlNodeFlags::emitter};
+        return {ControllerType::FrameStart, NodeFlags::emitter};
     } else if (string::icmp(cont, "grav")) {
-        return {MdlControllerType::Grav, MdlNodeFlags::emitter};
+        return {ControllerType::Grav, NodeFlags::emitter};
     } else if (string::icmp(cont, "lifeExp")) {
-        return {MdlControllerType::LifeExp, MdlNodeFlags::emitter};
+        return {ControllerType::LifeExp, NodeFlags::emitter};
     } else if (string::icmp(cont, "mass")) {
-        return {MdlControllerType::Mass, MdlNodeFlags::emitter};
+        return {ControllerType::Mass, NodeFlags::emitter};
     } else if (string::icmp(cont, "p2p_bezier2")) {
-        return {MdlControllerType::P2P_Bezier2, MdlNodeFlags::emitter};
+        return {ControllerType::P2P_Bezier2, NodeFlags::emitter};
     } else if (string::icmp(cont, "p2p_bezier3")) {
-        return {MdlControllerType::P2P_Bezier3, MdlNodeFlags::emitter};
+        return {ControllerType::P2P_Bezier3, NodeFlags::emitter};
     } else if (string::icmp(cont, "particleRot")) {
-        return {MdlControllerType::ParticleRot, MdlNodeFlags::emitter};
+        return {ControllerType::ParticleRot, NodeFlags::emitter};
     } else if (string::icmp(cont, "randvel")) {
-        return {MdlControllerType::RandVel, MdlNodeFlags::emitter};
+        return {ControllerType::RandVel, NodeFlags::emitter};
     } else if (string::icmp(cont, "sizeStart")) {
-        return {MdlControllerType::SizeStart, MdlNodeFlags::emitter};
+        return {ControllerType::SizeStart, NodeFlags::emitter};
     } else if (string::icmp(cont, "sizeEnd")) {
-        return {MdlControllerType::SizeEnd, MdlNodeFlags::emitter};
+        return {ControllerType::SizeEnd, NodeFlags::emitter};
     } else if (string::icmp(cont, "sizeStart_y")) {
-        return {MdlControllerType::SizeStart_Y, MdlNodeFlags::emitter};
+        return {ControllerType::SizeStart_Y, NodeFlags::emitter};
     } else if (string::icmp(cont, "sizeEnd_y")) {
-        return {MdlControllerType::SizeEnd_Y, MdlNodeFlags::emitter};
+        return {ControllerType::SizeEnd_Y, NodeFlags::emitter};
     } else if (string::icmp(cont, "spread")) {
-        return {MdlControllerType::Spread, MdlNodeFlags::emitter};
+        return {ControllerType::Spread, NodeFlags::emitter};
     } else if (string::icmp(cont, "threshold")) {
-        return {MdlControllerType::Threshold, MdlNodeFlags::emitter};
+        return {ControllerType::Threshold, NodeFlags::emitter};
     } else if (string::icmp(cont, "velocity")) {
-        return {MdlControllerType::Velocity, MdlNodeFlags::emitter};
+        return {ControllerType::Velocity, NodeFlags::emitter};
     } else if (string::icmp(cont, "xsize")) {
-        return {MdlControllerType::XSize, MdlNodeFlags::emitter};
+        return {ControllerType::XSize, NodeFlags::emitter};
     } else if (string::icmp(cont, "ysize")) {
-        return {MdlControllerType::YSize, MdlNodeFlags::emitter};
+        return {ControllerType::YSize, NodeFlags::emitter};
     } else if (string::icmp(cont, "blurlength")) {
-        return {MdlControllerType::BlurLength, MdlNodeFlags::emitter};
+        return {ControllerType::BlurLength, NodeFlags::emitter};
     } else if (string::icmp(cont, "lightningDelay")) {
-        return {MdlControllerType::LightningDelay, MdlNodeFlags::emitter};
+        return {ControllerType::LightningDelay, NodeFlags::emitter};
     } else if (string::icmp(cont, "lightningRadius")) {
-        return {MdlControllerType::LightningRadius, MdlNodeFlags::emitter};
+        return {ControllerType::LightningRadius, NodeFlags::emitter};
     } else if (string::icmp(cont, "lightningScale")) {
-        return {MdlControllerType::LightningScale, MdlNodeFlags::emitter};
+        return {ControllerType::LightningScale, NodeFlags::emitter};
     } else if (string::icmp(cont, "lightningSubDiv")) {
-        return {MdlControllerType::LightningSubDiv, MdlNodeFlags::emitter};
+        return {ControllerType::LightningSubDiv, NodeFlags::emitter};
     } else if (string::icmp(cont, "detonate")) {
-        return {MdlControllerType::Detonate, MdlNodeFlags::emitter};
+        return {ControllerType::Detonate, NodeFlags::emitter};
     } else if (string::icmp(cont, "alphaMid")) {
-        return {MdlControllerType::AlphaMid, MdlNodeFlags::emitter};
+        return {ControllerType::AlphaMid, NodeFlags::emitter};
     } else if (string::icmp(cont, "colorMid")) {
-        return {MdlControllerType::ColorMid, MdlNodeFlags::emitter};
+        return {ControllerType::ColorMid, NodeFlags::emitter};
     } else if (string::icmp(cont, "percentStart")) {
-        return {MdlControllerType::PercentStart, MdlNodeFlags::emitter};
+        return {ControllerType::PercentStart, NodeFlags::emitter};
     } else if (string::icmp(cont, "percentMid")) {
-        return {MdlControllerType::PercentMid, MdlNodeFlags::emitter};
+        return {ControllerType::PercentMid, NodeFlags::emitter};
     } else if (string::icmp(cont, "percentEnd")) {
-        return {MdlControllerType::PercentEnd, MdlNodeFlags::emitter};
+        return {ControllerType::PercentEnd, NodeFlags::emitter};
     } else if (string::icmp(cont, "sizeMid")) {
-        return {MdlControllerType::SizeMid, MdlNodeFlags::emitter};
+        return {ControllerType::SizeMid, NodeFlags::emitter};
     } else if (string::icmp(cont, "sizeMid_y")) {
-        return {MdlControllerType::SizeMid_Y, MdlNodeFlags::emitter};
+        return {ControllerType::SizeMid_Y, NodeFlags::emitter};
     } else if (string::icmp(cont, "lockAxes")) {
-        return {MdlControllerType::lock_axes, MdlNodeFlags::emitter};
+        return {ControllerType::lock_axes, NodeFlags::emitter};
     } else if (string::icmp(cont, "spawnType")) {
-        return {MdlControllerType::spawn_type, MdlNodeFlags::emitter};
+        return {ControllerType::spawn_type, NodeFlags::emitter};
     } else if (string::icmp(cont, "random")) {
-        return {MdlControllerType::random, MdlNodeFlags::emitter};
+        return {ControllerType::random, NodeFlags::emitter};
     } else if (string::icmp(cont, "inherit")) {
-        return {MdlControllerType::inherit, MdlNodeFlags::emitter};
+        return {ControllerType::inherit, NodeFlags::emitter};
     } else if (string::icmp(cont, "inherit_local")) {
-        return {MdlControllerType::inherit_local, MdlNodeFlags::emitter};
+        return {ControllerType::inherit_local, NodeFlags::emitter};
     }
     // Meshes
     else if (string::icmp(cont, "selfillumcolor")) {
-        return {MdlControllerType::SelfIllumColor, MdlNodeFlags::mesh};
+        return {ControllerType::SelfIllumColor, NodeFlags::mesh};
     } else if (string::icmp(cont, "alpha")) {
-        return {MdlControllerType::Alpha, MdlNodeFlags::mesh | MdlNodeFlags::emitter};
+        return {ControllerType::Alpha, NodeFlags::mesh | NodeFlags::emitter};
     }
     return {0, 0};
 }
 
 // -- Nodes -------------------------------------------------------------------
 
-MdlNode::MdlNode(std::string name_, uint32_t type_)
+Node::Node(std::string name_, uint32_t type_)
     : name{name_}
     , type{type_}
 {
 }
 
-void MdlNode::add_controller_data(std::string_view name_, uint32_t type_, std::vector<float> data_,
+void Node::add_controller_data(std::string_view name_, uint32_t type_, std::vector<float> data_,
     int rows_, int columns_)
 {
-    MdlControllerKey k{
+    ControllerKey k{
         nw::kernel::strings().intern(name_),
         type_,
         rows_,
@@ -223,8 +223,8 @@ void MdlNode::add_controller_data(std::string_view name_, uint32_t type_, std::v
     }
 }
 
-std::pair<const MdlControllerKey*, std::span<const float>>
-MdlNode::get_controller(uint32_t type_, bool key) const
+std::pair<const ControllerKey*, std::span<const float>>
+Node::get_controller(uint32_t type_, bool key) const
 {
     std::span<const float> result;
     for (const auto& c : controller_keys) {
@@ -237,73 +237,73 @@ MdlNode::get_controller(uint32_t type_, bool key) const
     return std::make_pair(nullptr, result);
 }
 
-MdlAABBNode::MdlAABBNode(std::string name_)
-    : MdlTrimeshNode(std::move(name_), MdlNodeType::aabb)
+AABBNode::AABBNode(std::string name_)
+    : TrimeshNode(std::move(name_), NodeType::aabb)
 {
 }
 
-MdlAnimeshNode::MdlAnimeshNode(std::string name_)
-    : MdlTrimeshNode(std::move(name_), MdlNodeType::animmesh)
+AnimeshNode::AnimeshNode(std::string name_)
+    : TrimeshNode(std::move(name_), NodeType::animmesh)
 {
 }
 
-MdlCameraNode::MdlCameraNode(std::string name_)
-    : MdlNode(std::move(name_), MdlNodeType::camera)
+CameraNode::CameraNode(std::string name_)
+    : Node(std::move(name_), NodeType::camera)
 {
 }
 
-MdlDanglymeshNode::MdlDanglymeshNode(std::string name_)
-    : MdlTrimeshNode(std::move(name_), MdlNodeType::danglymesh)
+DanglymeshNode::DanglymeshNode(std::string name_)
+    : TrimeshNode(std::move(name_), NodeType::danglymesh)
 {
 }
 
-MdlDummyNode::MdlDummyNode(std::string name_)
-    : MdlNode(std::move(name_), MdlNodeType::dummy)
+DummyNode::DummyNode(std::string name_)
+    : Node(std::move(name_), NodeType::dummy)
 {
 }
 
-MdlEmitterNode::MdlEmitterNode(std::string name_)
-    : MdlNode(std::move(name_), MdlNodeType::emitter)
+EmitterNode::EmitterNode(std::string name_)
+    : Node(std::move(name_), NodeType::emitter)
 {
 }
 
-MdlLightNode::MdlLightNode(std::string name_)
-    : MdlNode(std::move(name_), MdlNodeType::light)
+LightNode::LightNode(std::string name_)
+    : Node(std::move(name_), NodeType::light)
 {
 }
 
-MdlPatchNode::MdlPatchNode(std::string name_)
-    : MdlNode(std::move(name_), MdlNodeType::patch)
+PatchNode::PatchNode(std::string name_)
+    : Node(std::move(name_), NodeType::patch)
 {
 }
 
-MdlReferenceNode::MdlReferenceNode(std::string name_)
-    : MdlNode(std::move(name_), MdlNodeType::reference)
+ReferenceNode::ReferenceNode(std::string name_)
+    : Node(std::move(name_), NodeType::reference)
     , reattachable{false}
 {
 }
 
-MdlSkinNode::MdlSkinNode(std::string name_)
-    : MdlTrimeshNode(std::move(name_), MdlNodeType::skin)
+SkinNode::SkinNode(std::string name_)
+    : TrimeshNode(std::move(name_), NodeType::skin)
 {
 }
 
-MdlTrimeshNode::MdlTrimeshNode(std::string name_, uint32_t type_)
-    : MdlNode(std::move(name_), type_)
+TrimeshNode::TrimeshNode(std::string name_, uint32_t type_)
+    : Node(std::move(name_), type_)
     , diffuse{0.8, 0.8, 0.8}
 {
 }
 
 // -- Geometry ----------------------------------------------------------------
 
-MdlGeometry::MdlGeometry(MdlGeometryType type_)
+Geometry::Geometry(GeometryType type_)
     : type{type_}
 {
 }
 
-MdlModel::MdlModel()
-    : MdlGeometry(MdlGeometryType::model)
-    , classification{MdlModelClass::invalid}
+Model::Model()
+    : Geometry(GeometryType::model)
+    , classification{ModelClass::invalid}
     , ignorefog{1}
     , bmin{-5.0f, -5.0f, -1.0f}
     , bmax{5.0f, 5.0f, 10.0f}
@@ -312,54 +312,54 @@ MdlModel::MdlModel()
 {
 }
 
-MdlAnimation::MdlAnimation(std::string name_)
-    : MdlGeometry(MdlGeometryType::animation)
+Animation::Animation(std::string name_)
+    : Geometry(GeometryType::animation)
 {
     name = name_;
 }
 
-// -- Mdl -------------------------------------------------------------------
+// --  -------------------------------------------------------------------
 
 Mdl::Mdl(const std::string& filename)
     : bytes_{ByteArray::from_file(filename)}
 {
     if (bytes_[0] == 0) {
-        // MdlBinaryParser p{ByteView(bytes_.data(), bytes_.size()), this};
+        // BinaryParser p{ByteView(bytes_.data(), bytes_.size()), this};
         // loaded_ = parse_binary();
     } else {
-        MdlTextParser p{bytes_.string_view(), this};
+        TextParser p{bytes_.string_view(), this};
         loaded_ = p.parse();
     }
 }
 
-std::unique_ptr<MdlNode> Mdl::make_node(uint32_t type, std::string_view name)
+std::unique_ptr<Node> Mdl::make_node(uint32_t type, std::string_view name)
 {
     switch (type) {
     default:
         LOG_F(ERROR, "Invalid node type: {}, name: {}", type, name);
         return {};
-    case MdlNodeType::dummy:
-        return std::make_unique<MdlDummyNode>(std::string(name));
-    case MdlNodeType::patch:
-        return std::make_unique<MdlPatchNode>(std::string(name));
-    case MdlNodeType::reference:
-        return std::make_unique<MdlReferenceNode>(std::string(name));
-    case MdlNodeType::trimesh:
-        return std::make_unique<MdlTrimeshNode>(std::string(name));
-    case MdlNodeType::danglymesh:
-        return std::make_unique<MdlDanglymeshNode>(std::string(name));
-    case MdlNodeType::skin:
-        return std::make_unique<MdlSkinNode>(std::string(name));
-    case MdlNodeType::animmesh:
-        return std::make_unique<MdlAnimeshNode>(std::string(name));
-    case MdlNodeType::emitter:
-        return std::make_unique<MdlEmitterNode>(std::string(name));
-    case MdlNodeType::light:
-        return std::make_unique<MdlLightNode>(std::string(name));
-    case MdlNodeType::aabb:
-        return std::make_unique<MdlAABBNode>(std::string(name));
-    case MdlNodeType::camera:
-        return std::make_unique<MdlCameraNode>(std::string(name));
+    case NodeType::dummy:
+        return std::make_unique<DummyNode>(std::string(name));
+    case NodeType::patch:
+        return std::make_unique<PatchNode>(std::string(name));
+    case NodeType::reference:
+        return std::make_unique<ReferenceNode>(std::string(name));
+    case NodeType::trimesh:
+        return std::make_unique<TrimeshNode>(std::string(name));
+    case NodeType::danglymesh:
+        return std::make_unique<DanglymeshNode>(std::string(name));
+    case NodeType::skin:
+        return std::make_unique<SkinNode>(std::string(name));
+    case NodeType::animmesh:
+        return std::make_unique<AnimeshNode>(std::string(name));
+    case NodeType::emitter:
+        return std::make_unique<EmitterNode>(std::string(name));
+    case NodeType::light:
+        return std::make_unique<LightNode>(std::string(name));
+    case NodeType::aabb:
+        return std::make_unique<AABBNode>(std::string(name));
+    case NodeType::camera:
+        return std::make_unique<CameraNode>(std::string(name));
     }
 }
 
@@ -373,7 +373,7 @@ bool Mdl::valid() const
     return loaded_;
 }
 
-void write_out(std::ostream& out, const MdlDanglymeshNode* node, bool is_anim)
+void write_out(std::ostream& out, const DanglymeshNode* node, bool is_anim)
 {
     if (!is_anim) {
         out << fmt::format("  displacement {}\n", node->displacement);
@@ -387,7 +387,7 @@ void write_out(std::ostream& out, const MdlDanglymeshNode* node, bool is_anim)
     }
 }
 
-void write_out(std::ostream& out, const MdlEmitterNode* node, bool is_anim)
+void write_out(std::ostream& out, const EmitterNode* node, bool is_anim)
 {
     if (!is_anim) {
         out << fmt::format("  blastlength {}\n", node->blastlength);
@@ -411,20 +411,20 @@ void write_out(std::ostream& out, const MdlEmitterNode* node, bool is_anim)
         out << fmt::format("  opacity {}\n", node->opacity);
         out << fmt::format("  p2p_type {}\n", node->p2p_type);
 
-        out << fmt::format("  affectedByWind {}\n", node->flags & MdlEmitterFlag::AffectedByWind ? 1 : 0);
-        out << fmt::format("  bounce {}\n", node->flags & MdlEmitterFlag::Bounce ? 1 : 0);
-        out << fmt::format("  inherit {}\n", node->flags & MdlEmitterFlag::Inherit ? 1 : 0);
-        out << fmt::format("  inherit_local {}\n", node->flags & MdlEmitterFlag::InheritLocal ? 1 : 0);
-        out << fmt::format("  inherit_part {}\n", node->flags & MdlEmitterFlag::InheritPart ? 1 : 0);
-        out << fmt::format("  inheritvel {}\n", node->flags & MdlEmitterFlag::InheritVel ? 1 : 0);
-        out << fmt::format("  m_isTinted {}\n", node->flags & MdlEmitterFlag::IsTinted ? 1 : 0);
-        out << fmt::format("  p2p {}\n", node->flags & MdlEmitterFlag::P2P ? 1 : 0);
-        out << fmt::format("  p2p_sel {}\n", node->flags & MdlEmitterFlag::P2PSel ? 1 : 0);
-        out << fmt::format("  random {}\n", node->flags & MdlEmitterFlag::Random ? 1 : 0);
-        out << fmt::format("  splat {}\n", node->flags & MdlEmitterFlag::Splat ? 1 : 0);
+        out << fmt::format("  affectedByWind {}\n", node->flags & EmitterFlag::AffectedByWind ? 1 : 0);
+        out << fmt::format("  bounce {}\n", node->flags & EmitterFlag::Bounce ? 1 : 0);
+        out << fmt::format("  inherit {}\n", node->flags & EmitterFlag::Inherit ? 1 : 0);
+        out << fmt::format("  inherit_local {}\n", node->flags & EmitterFlag::InheritLocal ? 1 : 0);
+        out << fmt::format("  inherit_part {}\n", node->flags & EmitterFlag::InheritPart ? 1 : 0);
+        out << fmt::format("  inheritvel {}\n", node->flags & EmitterFlag::InheritVel ? 1 : 0);
+        out << fmt::format("  m_isTinted {}\n", node->flags & EmitterFlag::IsTinted ? 1 : 0);
+        out << fmt::format("  p2p {}\n", node->flags & EmitterFlag::P2P ? 1 : 0);
+        out << fmt::format("  p2p_sel {}\n", node->flags & EmitterFlag::P2PSel ? 1 : 0);
+        out << fmt::format("  random {}\n", node->flags & EmitterFlag::Random ? 1 : 0);
+        out << fmt::format("  splat {}\n", node->flags & EmitterFlag::Splat ? 1 : 0);
     }
-    for (const auto& [k, v] : MdlControllerType::map) {
-        if (v.second == MdlNodeFlags::emitter) {
+    for (const auto& [k, v] : ControllerType::map) {
+        if (v.second == NodeFlags::emitter) {
             auto [ckey, cdata] = node->get_controller(v.first);
             if (!ckey || cdata.empty()) continue;
             if (!is_anim && string::endswith(ckey->name.view(), "key")) {
@@ -446,7 +446,7 @@ void write_out(std::ostream& out, const MdlEmitterNode* node, bool is_anim)
     }
 }
 
-void write_out(std::ostream& out, const MdlLightNode* node, bool is_anim)
+void write_out(std::ostream& out, const LightNode* node, bool is_anim)
 {
     if (!is_anim) {
         out << fmt::format("  ambientonly {}\n", node->ambientonly);
@@ -459,8 +459,8 @@ void write_out(std::ostream& out, const MdlLightNode* node, bool is_anim)
         out << fmt::format("  multiplier {}\n", node->multiplier);
         out << fmt::format("  color {:3.2f} {:3.2f} {:3.2f}\n", node->color.x, node->color.y, node->color.z);
     }
-    for (const auto& [k, v] : MdlControllerType::map) {
-        if (v.second == MdlNodeFlags::light) {
+    for (const auto& [k, v] : ControllerType::map) {
+        if (v.second == NodeFlags::light) {
             auto [ckey, cdata] = node->get_controller(v.first);
             if (!ckey || cdata.empty()) continue;
             out << fmt::format("        {}\n", ckey->name);
@@ -479,7 +479,7 @@ void write_out(std::ostream& out, const MdlLightNode* node, bool is_anim)
     }
 }
 
-void write_out(std::ostream& out, const MdlSkinNode* node, bool is_anim)
+void write_out(std::ostream& out, const SkinNode* node, bool is_anim)
 {
     if (!is_anim) {
         out << fmt::format("  weights {}\n", node->weights.size());
@@ -492,11 +492,11 @@ void write_out(std::ostream& out, const MdlSkinNode* node, bool is_anim)
     }
 }
 
-void write_out(std::ostream& out, const MdlTrimeshNode* node, MdlModelClass class_, bool is_anim)
+void write_out(std::ostream& out, const TrimeshNode* node, ModelClass class_, bool is_anim)
 {
     if (!is_anim) {
-        auto [alpha_key, alpha_data] = node->get_controller(MdlControllerType::Alpha);
-        auto [selfilum_key, selfilum_data] = node->get_controller(MdlControllerType::SelfIllumColor);
+        auto [alpha_key, alpha_data] = node->get_controller(ControllerType::Alpha);
+        auto [selfilum_key, selfilum_data] = node->get_controller(ControllerType::SelfIllumColor);
 
         if (alpha_key) {
             out << fmt::format("  alpha {}\n", alpha_data[0]);
@@ -518,13 +518,13 @@ void write_out(std::ostream& out, const MdlTrimeshNode* node, MdlModelClass clas
         out << fmt::format("  beaming {}\n", int(node->beaming));
         out << fmt::format("  transparencyhint {}\n", int(node->transparencyhint));
 
-        if (class_ == MdlModelClass::tile
-            || class_ == MdlModelClass::invalid
-            || class_ == MdlModelClass::character) {
+        if (class_ == ModelClass::tile
+            || class_ == ModelClass::invalid
+            || class_ == ModelClass::character) {
             out << fmt::format("  tilefade {}\n", node->tilefade);
         }
 
-        if (class_ == MdlModelClass::tile) {
+        if (class_ == ModelClass::tile) {
             out << fmt::format("  rotatetexture {}\n", int(node->rotatetexture));
         }
 
@@ -558,8 +558,8 @@ void write_out(std::ostream& out, const MdlTrimeshNode* node, MdlModelClass clas
             }
         }
     } else {
-        for (const auto& [k, v] : MdlControllerType::map) {
-            if (v.second == MdlNodeFlags::mesh) {
+        for (const auto& [k, v] : ControllerType::map) {
+            if (v.second == NodeFlags::mesh) {
                 auto [ckey, cdata] = node->get_controller(v.first);
                 if (!ckey || cdata.empty()) continue;
                 out << fmt::format("        {}\n", ckey->name);
@@ -591,12 +591,12 @@ std::ostream& operator<<(std::ostream& out, const Mdl& mdl)
         << fmt::format("beginmodelgeom {}\n", mdl.model.name);
 
     for (const auto& node : mdl.model.nodes) {
-        out << fmt::format("node {} {}\n", MdlNodeType::to_string(node->type), node->name);
+        out << fmt::format("node {} {}\n", NodeType::to_string(node->type), node->name);
 
-        auto [pos_key, pos_data] = node->get_controller(MdlControllerType::Position);
-        auto [ori_key, ori_data] = node->get_controller(MdlControllerType::Orientation);
-        auto [scale_key, scale_data] = node->get_controller(MdlControllerType::Scale);
-        auto [wire_key, wire_data] = node->get_controller(MdlControllerType::Wirecolor);
+        auto [pos_key, pos_data] = node->get_controller(ControllerType::Position);
+        auto [ori_key, ori_data] = node->get_controller(ControllerType::Orientation);
+        auto [scale_key, scale_data] = node->get_controller(ControllerType::Scale);
+        auto [wire_key, wire_data] = node->get_controller(ControllerType::Wirecolor);
 
         out << fmt::format("  parent {}\n", node->parent ? node->parent->name : "null");
         if (!node->parent) {
@@ -612,29 +612,29 @@ std::ostream& operator<<(std::ostream& out, const Mdl& mdl)
             out << fmt::format("  scale {:.2f}\n", scale_data[0]);
         }
 
-        if (dynamic_cast<MdlAABBNode*>(node.get())) {
-            auto n = static_cast<MdlAABBNode*>(node.get());
-            write_out(out, static_cast<const MdlTrimeshNode*>(n), mdl.model.classification, false);
-        } else if (dynamic_cast<MdlAnimeshNode*>(node.get())) {
-            auto n = static_cast<MdlAnimeshNode*>(node.get());
-            write_out(out, static_cast<const MdlTrimeshNode*>(n), mdl.model.classification, false);
-        } else if (dynamic_cast<MdlDanglymeshNode*>(node.get())) {
-            write_out(out, static_cast<const MdlTrimeshNode*>(node.get()), mdl.model.classification, false);
-            write_out(out, static_cast<MdlDanglymeshNode*>(node.get()), false);
-        } else if (dynamic_cast<MdlEmitterNode*>(node.get())) {
-            write_out(out, static_cast<MdlEmitterNode*>(node.get()), false);
-        } else if (dynamic_cast<MdlLightNode*>(node.get())) {
-            write_out(out, static_cast<MdlLightNode*>(node.get()), false);
-        } else if (dynamic_cast<MdlReferenceNode*>(node.get())) {
-            auto n = static_cast<MdlReferenceNode*>(node.get());
+        if (dynamic_cast<AABBNode*>(node.get())) {
+            auto n = static_cast<AABBNode*>(node.get());
+            write_out(out, static_cast<const TrimeshNode*>(n), mdl.model.classification, false);
+        } else if (dynamic_cast<AnimeshNode*>(node.get())) {
+            auto n = static_cast<AnimeshNode*>(node.get());
+            write_out(out, static_cast<const TrimeshNode*>(n), mdl.model.classification, false);
+        } else if (dynamic_cast<DanglymeshNode*>(node.get())) {
+            write_out(out, static_cast<const TrimeshNode*>(node.get()), mdl.model.classification, false);
+            write_out(out, static_cast<DanglymeshNode*>(node.get()), false);
+        } else if (dynamic_cast<EmitterNode*>(node.get())) {
+            write_out(out, static_cast<EmitterNode*>(node.get()), false);
+        } else if (dynamic_cast<LightNode*>(node.get())) {
+            write_out(out, static_cast<LightNode*>(node.get()), false);
+        } else if (dynamic_cast<ReferenceNode*>(node.get())) {
+            auto n = static_cast<ReferenceNode*>(node.get());
             out << fmt::format("  refmodel {}\n", n->refmodel);
             out << fmt::format("  reattachable {}\n", int(n->reattachable));
-        } else if (dynamic_cast<MdlSkinNode*>(node.get())) {
-            auto n = static_cast<MdlSkinNode*>(node.get());
-            write_out(out, static_cast<const MdlTrimeshNode*>(n), mdl.model.classification, false);
-            write_out(out, static_cast<const MdlSkinNode*>(n), false);
-        } else if (dynamic_cast<MdlTrimeshNode*>(node.get())) {
-            auto n = static_cast<MdlTrimeshNode*>(node.get());
+        } else if (dynamic_cast<SkinNode*>(node.get())) {
+            auto n = static_cast<SkinNode*>(node.get());
+            write_out(out, static_cast<const TrimeshNode*>(n), mdl.model.classification, false);
+            write_out(out, static_cast<const SkinNode*>(n), false);
+        } else if (dynamic_cast<TrimeshNode*>(node.get())) {
+            auto n = static_cast<TrimeshNode*>(node.get());
             write_out(out, n, mdl.model.classification, false);
         }
 
@@ -656,7 +656,7 @@ std::ostream& operator<<(std::ostream& out, const Mdl& mdl)
             }
 
             for (const auto& node : anim->nodes) {
-                out << fmt::format("node {} {}\n", MdlNodeType::to_string(node->type), node->name);
+                out << fmt::format("node {} {}\n", NodeType::to_string(node->type), node->name);
 
                 out << fmt::format("  parent {}\n", node->parent ? node->parent->name : "null");
                 if (!node->parent) {
@@ -664,8 +664,8 @@ std::ostream& operator<<(std::ostream& out, const Mdl& mdl)
                     continue;
                 }
 
-                for (const auto& [k, v] : MdlControllerType::map) {
-                    if (v.second == MdlNodeFlags::header) {
+                for (const auto& [k, v] : ControllerType::map) {
+                    if (v.second == NodeFlags::header) {
                         auto [ckey, cdata] = node->get_controller(v.first);
                         if (!ckey || cdata.empty()) continue;
                         out << fmt::format("        {}\n", ckey->name);
@@ -683,27 +683,27 @@ std::ostream& operator<<(std::ostream& out, const Mdl& mdl)
                     }
                 }
 
-                if (dynamic_cast<MdlAABBNode*>(node.get())) {
-                    auto n = static_cast<MdlAABBNode*>(node.get());
-                    write_out(out, static_cast<const MdlTrimeshNode*>(n), mdl.model.classification, true);
-                } else if (dynamic_cast<MdlAnimeshNode*>(node.get())) {
-                    auto n = static_cast<MdlAnimeshNode*>(node.get());
-                    write_out(out, static_cast<const MdlTrimeshNode*>(n), mdl.model.classification, true);
-                } else if (dynamic_cast<MdlDanglymeshNode*>(node.get())) {
-                    write_out(out, static_cast<const MdlTrimeshNode*>(node.get()), mdl.model.classification, true);
-                    write_out(out, static_cast<MdlDanglymeshNode*>(node.get()), true);
-                } else if (dynamic_cast<MdlEmitterNode*>(node.get())) {
-                    write_out(out, static_cast<MdlEmitterNode*>(node.get()), true);
-                } else if (dynamic_cast<MdlLightNode*>(node.get())) {
-                    write_out(out, static_cast<MdlLightNode*>(node.get()), true);
-                } else if (dynamic_cast<MdlReferenceNode*>(node.get())) {
-                    // auto n = static_cast<MdlReferenceNode*>(node.get());
-                } else if (dynamic_cast<MdlSkinNode*>(node.get())) {
-                    auto n = static_cast<MdlSkinNode*>(node.get());
-                    write_out(out, static_cast<const MdlTrimeshNode*>(n), mdl.model.classification, true);
-                    write_out(out, static_cast<const MdlSkinNode*>(n), true);
-                } else if (dynamic_cast<MdlTrimeshNode*>(node.get())) {
-                    auto n = static_cast<MdlTrimeshNode*>(node.get());
+                if (dynamic_cast<AABBNode*>(node.get())) {
+                    auto n = static_cast<AABBNode*>(node.get());
+                    write_out(out, static_cast<const TrimeshNode*>(n), mdl.model.classification, true);
+                } else if (dynamic_cast<AnimeshNode*>(node.get())) {
+                    auto n = static_cast<AnimeshNode*>(node.get());
+                    write_out(out, static_cast<const TrimeshNode*>(n), mdl.model.classification, true);
+                } else if (dynamic_cast<DanglymeshNode*>(node.get())) {
+                    write_out(out, static_cast<const TrimeshNode*>(node.get()), mdl.model.classification, true);
+                    write_out(out, static_cast<DanglymeshNode*>(node.get()), true);
+                } else if (dynamic_cast<EmitterNode*>(node.get())) {
+                    write_out(out, static_cast<EmitterNode*>(node.get()), true);
+                } else if (dynamic_cast<LightNode*>(node.get())) {
+                    write_out(out, static_cast<LightNode*>(node.get()), true);
+                } else if (dynamic_cast<ReferenceNode*>(node.get())) {
+                    // auto n = static_cast<ReferenceNode*>(node.get());
+                } else if (dynamic_cast<SkinNode*>(node.get())) {
+                    auto n = static_cast<SkinNode*>(node.get());
+                    write_out(out, static_cast<const TrimeshNode*>(n), mdl.model.classification, true);
+                    write_out(out, static_cast<const SkinNode*>(n), true);
+                } else if (dynamic_cast<TrimeshNode*>(node.get())) {
+                    auto n = static_cast<TrimeshNode*>(node.get());
                     write_out(out, n, mdl.model.classification, true);
                 }
                 out << "endnode\n";
@@ -717,4 +717,4 @@ std::ostream& operator<<(std::ostream& out, const Mdl& mdl)
     return out;
 }
 
-} // namespace nw
+} // namespace nw::model

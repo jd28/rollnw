@@ -10,7 +10,7 @@
 
 using namespace std::literals;
 
-namespace nw {
+namespace nw::model {
 
 using string::icmp;
 
@@ -20,7 +20,7 @@ inline bool is_newline(std::string_view tk)
     return tk[0] == '\r' || tk[0] == '\n';
 }
 
-MdlTextParser::MdlTextParser(std::string_view buffer, Mdl* mdl)
+TextParser::TextParser(std::string_view buffer, Mdl* mdl)
     : tokens_(buffer, "#", false)
     , mdl_{mdl}
 {
@@ -147,7 +147,7 @@ bool parse_tokens(Tokenizer& tokens, std::string_view name, glm::quat& out)
     return true;
 }
 
-bool parse_tokens(Tokenizer& tokens, std::string_view name, MdlFace& out)
+bool parse_tokens(Tokenizer& tokens, std::string_view name, Face& out)
 {
     if (!parse_tokens(tokens, name, out.vert_idx[0])
         || !parse_tokens(tokens, name, out.vert_idx[1])
@@ -163,7 +163,7 @@ bool parse_tokens(Tokenizer& tokens, std::string_view name, MdlFace& out)
     return true;
 }
 
-bool parse_tokens(Tokenizer& tokens, std::string_view name, MdlSkinWeight& out)
+bool parse_tokens(Tokenizer& tokens, std::string_view name, SkinWeight& out)
 {
     std::string bone;
     float value = 0.0f;
@@ -187,11 +187,11 @@ bool parse_tokens(Tokenizer& tokens, std::string_view name, MdlSkinWeight& out)
     return true;
 }
 
-bool parse_tokens(Tokenizer& tokens, std::string_view name, MdlAABBNode* node)
+bool parse_tokens(Tokenizer& tokens, std::string_view name, AABBNode* node)
 {
     // Will have to create the tree structure later.
     while (true) {
-        MdlAABBEntry out;
+        AABBEntry out;
         if (!parse_tokens(tokens, name, out.bmin)
             || !parse_tokens(tokens, name, out.bmax)
             || !parse_tokens(tokens, name, out.leaf_face)) {
@@ -230,7 +230,7 @@ bool parse_tokens(Tokenizer& tokens, std::string_view name, std::vector<T>& out)
     return true;
 }
 
-bool MdlTextParser::parse_controller(MdlNode* node, std::string_view name, uint32_t type)
+bool TextParser::parse_controller(Node* node, std::string_view name, uint32_t type)
 {
     size_t start_line = tokens_.line();
     std::string_view tk = tokens_.next();
@@ -341,7 +341,7 @@ bool MdlTextParser::parse_controller(MdlNode* node, std::string_view name, uint3
         }                                               \
     }
 
-bool MdlTextParser::parse_node(MdlGeometry* geometry)
+bool TextParser::parse_node(Geometry* geometry)
 {
     bool result = true;
     std::string_view tktype = tokens_.next();
@@ -356,7 +356,7 @@ bool MdlTextParser::parse_node(MdlGeometry* geometry)
         return false;
     }
 
-    uint32_t type = MdlNodeType::from_string(tktype);
+    uint32_t type = NodeType::from_string(tktype);
 
     auto node = mdl_->make_node(type, tkname);
     if (!node) return false;
@@ -394,7 +394,7 @@ bool MdlTextParser::parse_node(MdlGeometry* geometry)
         }
 
         // Check if it's a controller.
-        auto [ctype, ntype] = MdlControllerType::lookup(controller_tk);
+        auto [ctype, ntype] = ControllerType::lookup(controller_tk);
         if (ctype != 0) {
             if (!(node->type & ntype)) {
                 LOG_F(ERROR, "Controller set on an incompatible node: {}, line: {}", tk, tokens_.line());
@@ -424,8 +424,8 @@ bool MdlTextParser::parse_node(MdlGeometry* geometry)
             continue;
         }
 
-        if (node->type & MdlNodeFlags::mesh) {
-            MdlTrimeshNode* n = static_cast<MdlTrimeshNode*>(node.get());
+        if (node->type & NodeFlags::mesh) {
+            TrimeshNode* n = static_cast<TrimeshNode*>(node.get());
 
             PARSE_DATA(ambient, n)
             PARSE_DATA(beaming, n)
@@ -497,8 +497,8 @@ bool MdlTextParser::parse_node(MdlGeometry* geometry)
             continue;
         }
 
-        if (node->type & MdlNodeFlags::reference) {
-            MdlReferenceNode* n = static_cast<MdlReferenceNode*>(node.get());
+        if (node->type & NodeFlags::reference) {
+            ReferenceNode* n = static_cast<ReferenceNode*>(node.get());
             PARSE_DATA(reattachable, n)
             PARSE_DATA(refmodel, n)
             if (tk == "Dummy") { // There is a weird "Dummy Dummy" entry in some reference nodes.  Dunno.
@@ -507,16 +507,16 @@ bool MdlTextParser::parse_node(MdlGeometry* geometry)
             }
         }
 
-        if (node->type & MdlNodeFlags::dangly) {
-            MdlDanglymeshNode* n = static_cast<MdlDanglymeshNode*>(node.get());
+        if (node->type & NodeFlags::dangly) {
+            DanglymeshNode* n = static_cast<DanglymeshNode*>(node.get());
             PARSE_DATA(constraints, n)
             PARSE_DATA(displacement, n)
             PARSE_DATA(period, n)
             PARSE_DATA(tightness, n)
         }
 
-        if (node->type & MdlNodeFlags::emitter) {
-            MdlEmitterNode* n = static_cast<MdlEmitterNode*>(node.get());
+        if (node->type & NodeFlags::emitter) {
+            EmitterNode* n = static_cast<EmitterNode*>(node.get());
             PARSE_DATA(blastlength, n)
             PARSE_DATA(blastradius, n)
             PARSE_DATA(blend, n)
@@ -542,54 +542,54 @@ bool MdlTextParser::parse_node(MdlGeometry* geometry)
             bool value;
             if (icmp(tk, "affectedByWind")) {
                 if (!parse_tokens(tokens_, tk, value)) return false;
-                if (value) n->flags |= MdlEmitterFlag::AffectedByWind;
+                if (value) n->flags |= EmitterFlag::AffectedByWind;
                 continue;
             } else if (icmp(tk, "bounce")) {
                 if (!parse_tokens(tokens_, tk, value)) return false;
-                if (value) n->flags |= MdlEmitterFlag::Bounce;
+                if (value) n->flags |= EmitterFlag::Bounce;
                 continue;
             } else if (icmp(tk, "inherit")) {
                 if (!parse_tokens(tokens_, tk, value)) return false;
-                if (value) n->flags |= MdlEmitterFlag::Inherit;
+                if (value) n->flags |= EmitterFlag::Inherit;
                 continue;
             } else if (icmp(tk, "inherit_local")) {
                 if (!parse_tokens(tokens_, tk, value)) return false;
-                if (value) n->flags |= MdlEmitterFlag::InheritLocal;
+                if (value) n->flags |= EmitterFlag::InheritLocal;
                 continue;
             } else if (icmp(tk, "inherit_part")) {
                 if (!parse_tokens(tokens_, tk, value)) return false;
-                if (value) n->flags |= MdlEmitterFlag::InheritPart;
+                if (value) n->flags |= EmitterFlag::InheritPart;
                 continue;
             } else if (icmp(tk, "inheritvel")) {
                 if (!parse_tokens(tokens_, tk, value)) return false;
-                if (value) n->flags |= MdlEmitterFlag::InheritVel;
+                if (value) n->flags |= EmitterFlag::InheritVel;
                 continue;
             } else if (icmp(tk, "m_isTinted") || icmp(tk, "m_istnited")) {
                 if (!parse_tokens(tokens_, tk, value)) return false;
-                if (value) n->flags |= MdlEmitterFlag::IsTinted;
+                if (value) n->flags |= EmitterFlag::IsTinted;
                 continue;
             } else if (icmp(tk, "p2p")) {
                 if (!parse_tokens(tokens_, tk, value)) return false;
-                if (value) n->flags |= MdlEmitterFlag::P2P;
+                if (value) n->flags |= EmitterFlag::P2P;
                 continue;
             } else if (icmp(tk, "p2p_sel")) {
                 uint32_t v;
                 if (!parse_tokens(tokens_, tk, v)) return false;
-                if (v) n->flags |= MdlEmitterFlag::P2PSel;
+                if (v) n->flags |= EmitterFlag::P2PSel;
                 continue;
             } else if (icmp(tk, "random")) {
                 if (!parse_tokens(tokens_, tk, value)) return false;
-                if (value) n->flags |= MdlEmitterFlag::Random;
+                if (value) n->flags |= EmitterFlag::Random;
                 continue;
             } else if (icmp(tk, "splat")) {
                 if (!parse_tokens(tokens_, tk, value)) return false;
-                if (value) n->flags |= MdlEmitterFlag::Splat;
+                if (value) n->flags |= EmitterFlag::Splat;
                 continue;
             }
         }
 
-        if (node->type & MdlNodeFlags::light) {
-            MdlLightNode* n = static_cast<MdlLightNode*>(node.get());
+        if (node->type & NodeFlags::light) {
+            LightNode* n = static_cast<LightNode*>(node.get());
             PARSE_DATA(lensflares, n)
             PARSE_DATA(affectdynamic, n)
             PARSE_DATA_TO(affect_dynamic, n, affectdynamic) // yes..
@@ -614,8 +614,8 @@ bool MdlTextParser::parse_node(MdlGeometry* geometry)
             PARSE_DATA_TO(texturenames, n, textures);
         }
 
-        if (node->type & MdlNodeFlags::aabb) {
-            MdlAABBNode* n = static_cast<MdlAABBNode*>(node.get());
+        if (node->type & NodeFlags::aabb) {
+            AABBNode* n = static_cast<AABBNode*>(node.get());
             if (icmp(tk, "aabb")) {
                 if (!parse_tokens(tokens_, "aabb", n)) {
                     return false;
@@ -625,13 +625,13 @@ bool MdlTextParser::parse_node(MdlGeometry* geometry)
             }
         }
 
-        if (node->type & MdlNodeFlags::skin) {
-            MdlSkinNode* n = static_cast<MdlSkinNode*>(node.get());
+        if (node->type & NodeFlags::skin) {
+            SkinNode* n = static_cast<SkinNode*>(node.get());
             PARSE_DATA(weights, n)
         }
 
-        if (node->type & MdlNodeFlags::anim) {
-            MdlAnimeshNode* n = static_cast<MdlAnimeshNode*>(node.get());
+        if (node->type & NodeFlags::anim) {
+            AnimeshNode* n = static_cast<AnimeshNode*>(node.get());
             PARSE_DATA(animtverts, n);
             PARSE_DATA(animverts, n);
             PARSE_DATA(sampleperiod, n);
@@ -654,7 +654,7 @@ bool MdlTextParser::parse_node(MdlGeometry* geometry)
     return tk == "endnode";
 }
 
-bool MdlTextParser::parse_geometry()
+bool TextParser::parse_geometry()
 {
     std::string_view tk;
     for (tk = tokens_.next(); !tk.empty(); tk = tokens_.next()) {
@@ -670,10 +670,10 @@ bool MdlTextParser::parse_geometry()
     return tk == "endmodelgeom";
 }
 
-bool MdlTextParser::parse_anim()
+bool TextParser::parse_anim()
 {
     std::string_view tk = tokens_.next();
-    auto anim = std::make_unique<MdlAnimation>(std::string(tk));
+    auto anim = std::make_unique<Animation>(std::string(tk));
     tokens_.next(); // drop model name
 
     for (tk = tokens_.next(); !tk.empty(); tk = tokens_.next()) {
@@ -687,7 +687,7 @@ bool MdlTextParser::parse_anim()
             if (!parse_tokens(tokens_, "animroot", anim->anim_root))
                 return false;
         } else if (icmp(tk, "event")) {
-            MdlAnimationEvent ev;
+            AnimationEvent ev;
             if (parse_tokens(tokens_, "time", ev.time)
                 && parse_tokens(tokens_, "name", ev.name)) {
                 anim->events.push_back(std::move(ev));
@@ -713,7 +713,7 @@ bool MdlTextParser::parse_anim()
     return icmp(tk, "doneanim");
 }
 
-bool MdlTextParser::parse_model()
+bool TextParser::parse_model()
 {
     std::string_view tk = tokens_.next();
     mdl_->model.name = std::string(tk);
@@ -734,19 +734,19 @@ bool MdlTextParser::parse_model()
             std::string name;
             if (!parse_tokens(tokens_, tk, name)) return false;
             if (icmp(name, "character"))
-                mdl_->model.classification = MdlModelClass::character;
+                mdl_->model.classification = ModelClass::character;
             else if (icmp(name, "door"))
-                mdl_->model.classification = MdlModelClass::door;
+                mdl_->model.classification = ModelClass::door;
             else if (icmp(name, "effect") || icmp(name, "effects"))
-                mdl_->model.classification = MdlModelClass::effect;
+                mdl_->model.classification = ModelClass::effect;
             else if (icmp(name, "tile"))
-                mdl_->model.classification = MdlModelClass::tile;
+                mdl_->model.classification = ModelClass::tile;
             else if (icmp(name, "item"))
-                mdl_->model.classification = MdlModelClass::item;
+                mdl_->model.classification = ModelClass::item;
             else if (icmp(name, "gui"))
-                mdl_->model.classification = MdlModelClass::gui;
+                mdl_->model.classification = ModelClass::gui;
             else if (icmp(name, "unknown") || icmp(name, "other")) // not sure what other is about
-                mdl_->model.classification = MdlModelClass::invalid;
+                mdl_->model.classification = ModelClass::invalid;
             else {
                 LOG_F(ERROR, "Unknown Model Classification {}, line: {}", name, tokens_.line());
                 return false;
@@ -771,7 +771,7 @@ bool MdlTextParser::parse_model()
     return tk == "donemodel";
 }
 
-bool MdlTextParser::parse()
+bool TextParser::parse()
 {
     bool result = true;
     for (std::string_view tk = tokens_.next(); !tk.empty() && result; tk = tokens_.next()) {
@@ -797,4 +797,4 @@ bool MdlTextParser::parse()
     return result;
 }
 
-} // namespace nw
+} // namespace nw::model

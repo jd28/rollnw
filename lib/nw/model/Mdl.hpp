@@ -20,11 +20,11 @@
 #include <unordered_map>
 #include <vector>
 
-namespace nw {
+namespace nw::model {
 
 // -- Constants ---------------------------------------------------------------
 
-struct MdlNodeFlags {
+struct NodeFlags {
     static constexpr uint32_t header = 0x00000001;
     static constexpr uint32_t light = 0x00000002;
     static constexpr uint32_t emitter = 0x00000004;
@@ -38,18 +38,18 @@ struct MdlNodeFlags {
     static constexpr uint32_t patch = 0x00000400;
 };
 
-struct MdlNodeType {
-    static constexpr uint32_t camera = (MdlNodeFlags::header | MdlNodeFlags::camera); // Dunno about this one.
-    static constexpr uint32_t dummy = MdlNodeFlags::header;
-    static constexpr uint32_t emitter = MdlNodeFlags::header | MdlNodeFlags::emitter;
-    static constexpr uint32_t light = MdlNodeFlags::header | MdlNodeFlags::light;
-    static constexpr uint32_t reference = MdlNodeFlags::header | MdlNodeFlags::reference;
-    static constexpr uint32_t patch = MdlNodeFlags::header | MdlNodeFlags::patch;
-    static constexpr uint32_t trimesh = MdlNodeFlags::header | MdlNodeFlags::mesh;
-    static constexpr uint32_t danglymesh = trimesh | MdlNodeFlags::dangly;
-    static constexpr uint32_t skin = trimesh | MdlNodeFlags::skin;
-    static constexpr uint32_t animmesh = trimesh | MdlNodeFlags::anim;
-    static constexpr uint32_t aabb = trimesh | MdlNodeFlags::aabb;
+struct NodeType {
+    static constexpr uint32_t camera = (NodeFlags::header | NodeFlags::camera); // Dunno about this one.
+    static constexpr uint32_t dummy = NodeFlags::header;
+    static constexpr uint32_t emitter = NodeFlags::header | NodeFlags::emitter;
+    static constexpr uint32_t light = NodeFlags::header | NodeFlags::light;
+    static constexpr uint32_t reference = NodeFlags::header | NodeFlags::reference;
+    static constexpr uint32_t patch = NodeFlags::header | NodeFlags::patch;
+    static constexpr uint32_t trimesh = NodeFlags::header | NodeFlags::mesh;
+    static constexpr uint32_t danglymesh = trimesh | NodeFlags::dangly;
+    static constexpr uint32_t skin = trimesh | NodeFlags::skin;
+    static constexpr uint32_t animmesh = trimesh | NodeFlags::anim;
+    static constexpr uint32_t aabb = trimesh | NodeFlags::aabb;
 
     static uint32_t from_string(std::string_view str)
     {
@@ -99,7 +99,7 @@ struct MdlNodeType {
     }
 };
 
-struct MdlEmitterFlag {
+struct EmitterFlag {
     static constexpr uint32_t P2P = 0x0001;
     static constexpr uint32_t P2PSel = 0x0002;
     static constexpr uint32_t AffectedByWind = 0x0004;
@@ -113,25 +113,25 @@ struct MdlEmitterFlag {
     static constexpr uint32_t InheritPart = 0x0400;
 };
 
-enum struct MdlTriangleMode : uint32_t {
+enum struct TriangleMode : uint32_t {
     triangle = 0x03,
     triangle_strip = 0x04,
 };
 
-enum struct MdlGeometryFlag : uint32_t {
+enum struct GeometryFlag : uint32_t {
     geometry = 0x01,
     model = 0x02,
     animation = 0x04,
     binary = 0x80,
 };
 
-enum struct MdlGeometryType : uint8_t {
+enum struct GeometryType : uint8_t {
     geometry = 1,
     model = 2,
     animation = 5,
 };
 
-enum struct MdlModelClass : uint32_t {
+enum struct ModelClass : uint32_t {
     invalid = 0,
     effect = 1,
     tile = 2,
@@ -141,29 +141,29 @@ enum struct MdlModelClass : uint32_t {
     gui = 32,
 };
 
-inline std::string_view model_class_to_string(MdlModelClass cls)
+inline std::string_view model_class_to_string(ModelClass cls)
 {
     switch (cls) {
     default:
         return "";
-    case MdlModelClass::invalid:
+    case ModelClass::invalid:
         return "UNKNOWN";
-    case MdlModelClass::effect:
+    case ModelClass::effect:
         return "EFFECT";
-    case MdlModelClass::tile:
+    case ModelClass::tile:
         return "TILE";
-    case MdlModelClass::character:
+    case ModelClass::character:
         return "CHARACTER";
-    case MdlModelClass::door:
+    case ModelClass::door:
         return "DOOR";
-    case MdlModelClass::item:
+    case ModelClass::item:
         return "ITEM";
-    case MdlModelClass::gui:
+    case ModelClass::gui:
         return "GUI";
     }
 }
 
-struct MdlControllerType {
+struct ControllerType {
 
     // Common to all nodes
 
@@ -239,8 +239,8 @@ struct MdlControllerType {
 
 // -- Controller --------------------------------------------------------------
 
-struct MdlControllerKey {
-    MdlControllerKey(InternedString name_, uint32_t type_, int rows_, int key_offset_,
+struct ControllerKey {
+    ControllerKey(InternedString name_, uint32_t type_, int rows_, int key_offset_,
         int data_offset_, int columns_, bool is_key_)
         : name{name_}
         , type{type_}
@@ -271,23 +271,23 @@ struct MdlControllerKey {
 
 // -- Nodes -------------------------------------------------------------------
 
-struct MdlFace {
+struct Face {
     std::array<uint32_t, 3> vert_idx;
     int32_t shader_group_idx;
     std::array<uint32_t, 3> tvert_idx;
     uint32_t material_idx;
 };
 
-struct MdlNode {
-    MdlNode(std::string name_, uint32_t type_);
-    virtual ~MdlNode() = default;
+struct Node {
+    Node(std::string name_, uint32_t type_);
+    virtual ~Node() = default;
 
     std::string name;
     const uint32_t type;
     bool inheritcolor = false;
-    MdlNode* parent = nullptr;
-    std::vector<MdlNode*> children;
-    std::vector<MdlControllerKey> controller_keys;
+    Node* parent = nullptr;
+    std::vector<Node*> children;
+    std::vector<ControllerKey> controller_keys;
     std::vector<float> controller_data;
 
     /// Adds a controller to a model node
@@ -295,20 +295,20 @@ struct MdlNode {
         int rows_, int columns_ = 1);
 
     /// Gets a controller to a model node
-    std::pair<const MdlControllerKey*, std::span<const float>>
+    std::pair<const ControllerKey*, std::span<const float>>
     get_controller(uint32_t type_, bool key = false) const;
 };
 
-struct MdlDummyNode : public MdlNode {
-    MdlDummyNode(std::string name_);
+struct DummyNode : public Node {
+    DummyNode(std::string name_);
 };
 
-struct MdlCameraNode : public MdlNode {
-    MdlCameraNode(std::string name_);
+struct CameraNode : public Node {
+    CameraNode(std::string name_);
 };
 
-struct MdlEmitterNode : public MdlNode {
-    MdlEmitterNode(std::string name_);
+struct EmitterNode : public Node {
+    EmitterNode(std::string name_);
 
     float blastlength{0.0f};
     float blastradius{0.0f};
@@ -335,9 +335,9 @@ struct MdlEmitterNode : public MdlNode {
     uint32_t tilefade{0}; // This may be an accident on one model..
 };
 
-struct MdlLightNode : public MdlNode {
-    MdlLightNode(std::string name_);
-    virtual ~MdlLightNode() = default;
+struct LightNode : public Node {
+    LightNode(std::string name_);
+    virtual ~LightNode() = default;
 
     int32_t lensflares{0}; // dunno, maybe obsolete?
     float flareradius{0.0f};
@@ -356,20 +356,20 @@ struct MdlLightNode : public MdlNode {
     uint32_t fadinglight{1};
 };
 
-struct MdlPatchNode : public MdlNode {
-    MdlPatchNode(std::string name_);
+struct PatchNode : public Node {
+    PatchNode(std::string name_);
 };
 
-struct MdlReferenceNode : public MdlNode {
-    MdlReferenceNode(std::string name_);
+struct ReferenceNode : public Node {
+    ReferenceNode(std::string name_);
 
     std::string refmodel;
     bool reattachable;
 };
 
-struct MdlTrimeshNode : public MdlNode {
-    MdlTrimeshNode(std::string name_, uint32_t type_ = MdlNodeType::trimesh);
-    virtual ~MdlTrimeshNode() = default;
+struct TrimeshNode : public Node {
+    TrimeshNode(std::string name_, uint32_t type_ = NodeType::trimesh);
+    virtual ~TrimeshNode() = default;
 
     glm::vec3 ambient;
     bool beaming;
@@ -378,7 +378,7 @@ struct MdlTrimeshNode : public MdlNode {
     std::string bitmap;
     glm::vec3 center;
     glm::vec3 diffuse;
-    std::vector<MdlFace> faces;
+    std::vector<Face> faces;
     std::string materialname;
     std::string gizmo;
     int danglymesh{0};
@@ -405,19 +405,19 @@ struct MdlTrimeshNode : public MdlNode {
     std::vector<glm::vec4> tangents;
 };
 
-struct MdlSkinWeight {
+struct SkinWeight {
     std::array<std::string, 4> bones;
     std::array<float, 4> weights;
 };
 
-struct MdlSkinNode : public MdlTrimeshNode {
-    MdlSkinNode(std::string name_);
+struct SkinNode : public TrimeshNode {
+    SkinNode(std::string name_);
 
-    std::vector<MdlSkinWeight> weights;
+    std::vector<SkinWeight> weights;
 };
 
-struct MdlAnimeshNode : public MdlTrimeshNode {
-    MdlAnimeshNode(std::string name_);
+struct AnimeshNode : public TrimeshNode {
+    AnimeshNode(std::string name_);
 
     std::vector<glm::vec3> animtverts;
     std::vector<glm::vec3> animverts;
@@ -428,8 +428,8 @@ struct MdlAnimeshNode : public MdlTrimeshNode {
     float clipu{0.0f}; // Dunno
 };
 
-struct MdlDanglymeshNode : public MdlTrimeshNode {
-    MdlDanglymeshNode(std::string name_);
+struct DanglymeshNode : public TrimeshNode {
+    DanglymeshNode(std::string name_);
 
     std::vector<uint32_t> constraints;
     float displacement;
@@ -437,7 +437,7 @@ struct MdlDanglymeshNode : public MdlTrimeshNode {
     float tightness;
 };
 
-struct MdlAABBEntry {
+struct AABBEntry {
     glm::vec3 bmin;
     glm::vec3 bmax;
     int32_t leaf_face;
@@ -448,56 +448,56 @@ struct MdlAABBEntry {
     // 0x10 = Negative Y
     // 0x20 = Negative Z
 
-    // std::unique_ptr<MdlAABBEntry> left;
-    // std::unique_ptr<MdlAABBEntry> right;
+    // std::unique_ptr<AABBEntry> left;
+    // std::unique_ptr<AABBEntry> right;
 };
 
-struct MdlAABBNode : public MdlTrimeshNode {
-    MdlAABBNode(std::string name_);
+struct AABBNode : public TrimeshNode {
+    AABBNode(std::string name_);
 
-    std::vector<MdlAABBEntry> entries;
+    std::vector<AABBEntry> entries;
 };
 
 // -- Geometry ----------------------------------------------------------------
 
-struct MdlGeometry {
-    MdlGeometry(MdlGeometryType type_ = MdlGeometryType::geometry);
-    MdlGeometry(MdlGeometry&) = delete;
-    virtual ~MdlGeometry() = default;
+struct Geometry {
+    Geometry(GeometryType type_ = GeometryType::geometry);
+    Geometry(Geometry&) = delete;
+    virtual ~Geometry() = default;
 
-    MdlGeometry& operator=(MdlGeometry&) = delete;
+    Geometry& operator=(Geometry&) = delete;
 
     std::string name;
-    MdlGeometryType type;
-    std::vector<std::unique_ptr<MdlNode>> nodes;
+    GeometryType type;
+    std::vector<std::unique_ptr<Node>> nodes;
 };
 
-struct MdlAnimationEvent {
+struct AnimationEvent {
     float time{0.0f};
     std::string name;
 };
 
-struct MdlAnimation : public MdlGeometry {
-    MdlAnimation(std::string name__);
-    virtual ~MdlAnimation() = default;
+struct Animation : public Geometry {
+    Animation(std::string name__);
+    virtual ~Animation() = default;
 
     float length{1.0f};
     float transition_time{0.25f};
     std::string anim_root;
-    std::vector<MdlAnimationEvent> events;
+    std::vector<AnimationEvent> events;
 };
 
-struct MdlModel : public MdlGeometry {
-    MdlModel();
-    MdlModel(MdlModel&) = delete;
-    virtual ~MdlModel() = default;
+struct Model : public Geometry {
+    Model();
+    Model(Model&) = delete;
+    virtual ~Model() = default;
 
-    MdlModel& operator=(MdlModel&) = delete;
+    Model& operator=(Model&) = delete;
 
-    MdlModelClass classification;
+    ModelClass classification;
     bool ignorefog;
-    std::vector<std::unique_ptr<MdlAnimation>> animations;
-    MdlModel* supermodel{nullptr};
+    std::vector<std::unique_ptr<Animation>> animations;
+    Model* supermodel{nullptr};
     glm::vec3 bmin;
     glm::vec3 bmax;
     float radius;
@@ -506,7 +506,7 @@ struct MdlModel : public MdlGeometry {
     std::string file_dependency;
 };
 
-/// Implements mdl file format
+/// Implements  file format
 /// @warning This is highly untested.
 /// @note This only supports reading ASCII models (and probably not even all of those).. for now.
 class Mdl {
@@ -516,14 +516,14 @@ class Mdl {
     bool parse_binary();
 
 public:
-    MdlModel model;
+    Model model;
 
     Mdl(const std::string& filename);
 
-    std::unique_ptr<MdlNode> make_node(uint32_t type, std::string_view name);
+    std::unique_ptr<Node> make_node(uint32_t type, std::string_view name);
     bool valid() const;
 };
 
-std::ostream& operator<<(std::ostream& out, const Mdl& mdl);
+std::ostream& operator<<(std::ostream& out, const Mdl& model);
 
-} // namespace nw
+} // namespace nw::model

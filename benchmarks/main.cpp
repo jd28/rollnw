@@ -164,7 +164,7 @@ static void BM_formats_nss(benchmark::State& state)
 static void BM_model_parse(benchmark::State& state)
 {
     for (auto _ : state) {
-        nw::Mdl mdl{"../tests/test_data/user/development/alt_dfa19.mdl"};
+        nw::model::Mdl mdl{"../tests/test_data/user/development/alt_dfa19.mdl"};
         benchmark::DoNotOptimize(mdl);
     }
 }
