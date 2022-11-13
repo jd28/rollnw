@@ -41,6 +41,18 @@ nw::Effect* effect_haste()
     return nw::kernel::effects().create(effect_type_haste);
 }
 
+nw::Effect* effect_skill_modifier(nw::Skill skill, int modifier)
+{
+    if (modifier == 0) { return nullptr; }
+    auto type = modifier > 0 ? effect_type_skill_increase : effect_type_skill_decrease;
+    int value = modifier > 0 ? modifier : -modifier;
+
+    auto eff = nw::kernel::effects().create(type);
+    eff->subtype = *skill;
+    eff->set_int(0, value);
+    return eff;
+}
+
 bool effect_haste_apply(nw::ObjectBase* obj, const nw::Effect*)
 {
     if (auto cre = obj->as_creature()) {
@@ -98,6 +110,32 @@ nw::ItemProperty itemprop_haste()
 nw::Effect* ip_gen_haste(const nw::ItemProperty&)
 {
     return effect_haste();
+}
+
+nw::ItemProperty itemprop_skill_modifier(nw::Skill skill, int modifier)
+{
+    nw::ItemProperty result;
+    if (modifier == 0) { return result; }
+    result.type = modifier > 0 ? *ip_skill_bonus : *ip_decreased_skill_modifier;
+    result.subtype = uint16_t(*skill);
+    result.cost_value = uint8_t(modifier);
+    return result;
+}
+
+nw::Effect* ip_gen_skill_modifier(const nw::ItemProperty& ip)
+{
+    auto type = nw::ItemPropertyType::make(ip.type);
+    auto sk = nw::Skill::make(ip.subtype);
+    const auto def = nw::kernel::rules().ip_definition(type);
+    if (!def) { return nullptr; }
+
+    if ((type == ip_skill_bonus || type == ip_decreased_skill_modifier) && def->cost_table) {
+        // Note: value will already be negative for decreased skill score.
+        if (auto value = def->cost_table->get<int>(ip.cost_value, "Value")) {
+            return effect_skill_modifier(sk, *value);
+        }
+    }
+    return nullptr;
 }
 
 } // namespace nwn1

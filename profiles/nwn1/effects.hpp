@@ -16,6 +16,9 @@ namespace nwn1 {
 /// Creates an ability modifier effect
 nw::Effect* effect_ability_modifier(nw::Ability ability, int modifier);
 
+/// Creates an skill modifier effect
+nw::Effect* effect_skill_modifier(nw::Skill skill, int modifier);
+
 /// Creates a haste effect
 nw::Effect* effect_haste();
 
@@ -37,11 +40,16 @@ nw::ItemProperty itemprop_ability_modifier(nw::Ability ability, int modifier);
 /// Creates haste item property
 nw::ItemProperty itemprop_haste();
 
+/// Creates skill modifier item property
+nw::ItemProperty itemprop_skill_modifier(nw::Skill skill, int modifier);
+
 // -- Item Property Generators ------------------------------------------------
 // ----------------------------------------------------------------------------
 
 nw::Effect* ip_gen_ability_modifier(const nw::ItemProperty& ip);
 
 nw::Effect* ip_gen_haste(const nw::ItemProperty&);
+
+nw::Effect* ip_gen_skill_modifier(const nw::ItemProperty& ip);
 
 } // namespace nwn1
