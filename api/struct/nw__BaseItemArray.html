@@ -197,6 +197,7 @@
 <li class="toctree-l2"><a class="reference internal" href="nw__ResourceType.html">nw::ResourceType</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Resref.html">nw::Resref</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__RuleFlag.html">nw::RuleFlag</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__RuleTypeArray.html">nw::RuleTypeArray</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Save.html">nw::Save</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Saves.html">nw::Saves</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Selector.html">nw::Selector</a></li>
@@ -345,51 +346,10 @@
              
   <div class="section" id="nw-baseitemarray">
 <h1>nw::BaseItemArray<a class="headerlink" href="#nw-baseitemarray" title="Permalink to this headline"></a></h1>
-<dl class="cpp struct">
-<dt class="sig sig-object cpp" id="_CPPv4N2nw13BaseItemArrayE">
-<span id="_CPPv3N2nw13BaseItemArrayE"></span><span id="_CPPv2N2nw13BaseItemArrayE"></span><span id="nw::BaseItemArray"></span><span class="target" id="structnw_1_1_base_item_array"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">BaseItemArray</span></span></span><a class="headerlink" href="#_CPPv4N2nw13BaseItemArrayE" title="Permalink to this definition"></a><br /></dt>
-<dd><p><a class="reference internal" href="nw__BaseItem.html#structnw_1_1_base_item"><span class="std std-ref">BaseItem</span></a> singleton component. </p>
-<div class="breathe-sectiondef docutils container">
-<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-types">Public Types</p>
-<dl class="cpp type">
-<dt class="sig sig-object cpp" id="_CPPv4N2nw13BaseItemArray8map_typeE">
-<span id="_CPPv3N2nw13BaseItemArray8map_typeE"></span><span id="_CPPv2N2nw13BaseItemArray8map_typeE"></span><span class="target" id="structnw_1_1_base_item_array_1a84019c672068312cef4c9c598a2c1141"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">map_type</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">absl</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">flat_hash_map</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="nw__InternedString.html#_CPPv4N2nw14InternedStringE" title="nw::InternedString"><span class="n"><span class="pre">InternedString</span></span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="nw__BaseItem.html#_CPPv4N2nw8BaseItemE" title="nw::BaseItem"><span class="n"><span class="pre">BaseItem</span></span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">InternedStringHash</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">InternedStringEq</span></span><span class="p"><span class="pre">&gt;</span></span><a class="headerlink" href="#_CPPv4N2nw13BaseItemArray8map_typeE" title="Permalink to this definition"></a><br /></dt>
-<dd></dd></dl>
-
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>doxygenstruct: Cannot find class “nw::BaseItemArray” in doxygen xml output for project “rollNW” from directory: /home/runner/work/rollnw/rollnw/build/docs/doxygen/xml</p>
 </div>
-<div class="breathe-sectiondef docutils container">
-<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
-<dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4NK2nw13BaseItemArray3getE8BaseItem">
-<span id="_CPPv3NK2nw13BaseItemArray3getE8BaseItem"></span><span id="_CPPv2NK2nw13BaseItemArray3getE8BaseItem"></span><span id="nw::BaseItemArray::get__BaseItemC"></span><span class="target" id="structnw_1_1_base_item_array_1ac12d565b85981ae13882da4801010b48"></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">BaseItemInfo</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">get</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="nw__BaseItem.html#_CPPv4N2nw8BaseItemE" title="nw::BaseItem"><span class="n"><span class="pre">BaseItem</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">baseitem</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="k"><span class="pre">noexcept</span></span><a class="headerlink" href="#_CPPv4NK2nw13BaseItemArray3getE8BaseItem" title="Permalink to this definition"></a><br /></dt>
-<dd></dd></dl>
-
-<dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4NK2nw13BaseItemArray8is_validE8BaseItem">
-<span id="_CPPv3NK2nw13BaseItemArray8is_validE8BaseItem"></span><span id="_CPPv2NK2nw13BaseItemArray8is_validE8BaseItem"></span><span id="nw::BaseItemArray::is_valid__BaseItemC"></span><span class="target" id="structnw_1_1_base_item_array_1a7da3e456c5e3945eb99e544f635e6485"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">is_valid</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="nw__BaseItem.html#_CPPv4N2nw8BaseItemE" title="nw::BaseItem"><span class="n"><span class="pre">BaseItem</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">baseitem</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="k"><span class="pre">noexcept</span></span><a class="headerlink" href="#_CPPv4NK2nw13BaseItemArray8is_validE8BaseItem" title="Permalink to this definition"></a><br /></dt>
-<dd></dd></dl>
-
-<dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4NK2nw13BaseItemArray13from_constantENSt11string_viewE">
-<span id="_CPPv3NK2nw13BaseItemArray13from_constantENSt11string_viewE"></span><span id="_CPPv2NK2nw13BaseItemArray13from_constantENSt11string_viewE"></span><span id="nw::BaseItemArray::from_constant__std::string_viewC"></span><span class="target" id="structnw_1_1_base_item_array_1aee4c1231e894db6c8152afa07c29b4a2"></span><a class="reference internal" href="nw__BaseItem.html#_CPPv4N2nw8BaseItemE" title="nw::BaseItem"><span class="n"><span class="pre">BaseItem</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">from_constant</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">constant</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK2nw13BaseItemArray13from_constantENSt11string_viewE" title="Permalink to this definition"></a><br /></dt>
-<dd></dd></dl>
-
-</div>
-<div class="breathe-sectiondef docutils container">
-<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
-<dl class="cpp var">
-<dt class="sig sig-object cpp" id="_CPPv4N2nw13BaseItemArray7entriesE">
-<span id="_CPPv3N2nw13BaseItemArray7entriesE"></span><span id="_CPPv2N2nw13BaseItemArray7entriesE"></span><span id="nw::BaseItemArray::entries__std::vector:BaseItemInfo:"></span><span class="target" id="structnw_1_1_base_item_array_1a989ff128479a9f3f2839d3963cb4a56c"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">BaseItemInfo</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">entries</span></span></span><a class="headerlink" href="#_CPPv4N2nw13BaseItemArray7entriesE" title="Permalink to this definition"></a><br /></dt>
-<dd></dd></dl>
-
-<dl class="cpp var">
-<dt class="sig sig-object cpp" id="_CPPv4N2nw13BaseItemArray17constant_to_indexE">
-<span id="_CPPv3N2nw13BaseItemArray17constant_to_indexE"></span><span id="_CPPv2N2nw13BaseItemArray17constant_to_indexE"></span><span id="nw::BaseItemArray::constant_to_index__map_type"></span><span class="target" id="structnw_1_1_base_item_array_1a5c63589b497c4999adfa272922b4ea99"></span><a class="reference internal" href="#_CPPv4N2nw13BaseItemArray8map_typeE" title="nw::BaseItemArray::map_type"><span class="n"><span class="pre">map_type</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">constant_to_index</span></span></span><a class="headerlink" href="#_CPPv4N2nw13BaseItemArray17constant_to_indexE" title="Permalink to this definition"></a><br /></dt>
-<dd></dd></dl>
-
-</div>
-</dd></dl>
-
 </div>
 
 

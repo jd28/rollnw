@@ -197,6 +197,7 @@
 <li class="toctree-l2"><a class="reference internal" href="nw__ResourceType.html">nw::ResourceType</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Resref.html">nw::Resref</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__RuleFlag.html">nw::RuleFlag</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__RuleTypeArray.html">nw::RuleTypeArray</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Save.html">nw::Save</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Saves.html">nw::Saves</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Selector.html">nw::Selector</a></li>
@@ -345,51 +346,10 @@
              
   <div class="section" id="nw-racearray">
 <h1>nw::RaceArray<a class="headerlink" href="#nw-racearray" title="Permalink to this headline"></a></h1>
-<dl class="cpp struct">
-<dt class="sig sig-object cpp" id="_CPPv4N2nw9RaceArrayE">
-<span id="_CPPv3N2nw9RaceArrayE"></span><span id="_CPPv2N2nw9RaceArrayE"></span><span id="nw::RaceArray"></span><span class="target" id="structnw_1_1_race_array"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">RaceArray</span></span></span><a class="headerlink" href="#_CPPv4N2nw9RaceArrayE" title="Permalink to this definition"></a><br /></dt>
-<dd><p><a class="reference internal" href="nw__Race.html#structnw_1_1_race"><span class="std std-ref">Race</span></a> singleton component. </p>
-<div class="breathe-sectiondef docutils container">
-<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-types">Public Types</p>
-<dl class="cpp type">
-<dt class="sig sig-object cpp" id="_CPPv4N2nw9RaceArray8map_typeE">
-<span id="_CPPv3N2nw9RaceArray8map_typeE"></span><span id="_CPPv2N2nw9RaceArray8map_typeE"></span><span class="target" id="structnw_1_1_race_array_1a48225ad2ac630d3caf8cfe379ea5c43a"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">map_type</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">absl</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">flat_hash_map</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="nw__InternedString.html#_CPPv4N2nw14InternedStringE" title="nw::InternedString"><span class="n"><span class="pre">InternedString</span></span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="nw__Race.html#_CPPv4N2nw4RaceE" title="nw::Race"><span class="n"><span class="pre">Race</span></span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">InternedStringHash</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">InternedStringEq</span></span><span class="p"><span class="pre">&gt;</span></span><a class="headerlink" href="#_CPPv4N2nw9RaceArray8map_typeE" title="Permalink to this definition"></a><br /></dt>
-<dd></dd></dl>
-
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>doxygenstruct: Cannot find class “nw::RaceArray” in doxygen xml output for project “rollNW” from directory: /home/runner/work/rollnw/rollnw/build/docs/doxygen/xml</p>
 </div>
-<div class="breathe-sectiondef docutils container">
-<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
-<dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4NK2nw9RaceArray3getE4Race">
-<span id="_CPPv3NK2nw9RaceArray3getE4Race"></span><span id="_CPPv2NK2nw9RaceArray3getE4Race"></span><span id="nw::RaceArray::get__RaceC"></span><span class="target" id="structnw_1_1_race_array_1a6e4e4336ca2eff0379522b65b50c1f16"></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="nw__RaceInfo.html#_CPPv4N2nw8RaceInfoE" title="nw::RaceInfo"><span class="n"><span class="pre">RaceInfo</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">get</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="nw__Race.html#_CPPv4N2nw4RaceE" title="nw::Race"><span class="n"><span class="pre">Race</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">race</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="k"><span class="pre">noexcept</span></span><a class="headerlink" href="#_CPPv4NK2nw9RaceArray3getE4Race" title="Permalink to this definition"></a><br /></dt>
-<dd></dd></dl>
-
-<dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4NK2nw9RaceArray8is_validE4Race">
-<span id="_CPPv3NK2nw9RaceArray8is_validE4Race"></span><span id="_CPPv2NK2nw9RaceArray8is_validE4Race"></span><span id="nw::RaceArray::is_valid__RaceC"></span><span class="target" id="structnw_1_1_race_array_1aa3f8d75f7ea6564b981540d6f18e33c9"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">is_valid</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="nw__Race.html#_CPPv4N2nw4RaceE" title="nw::Race"><span class="n"><span class="pre">Race</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">race</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="k"><span class="pre">noexcept</span></span><a class="headerlink" href="#_CPPv4NK2nw9RaceArray8is_validE4Race" title="Permalink to this definition"></a><br /></dt>
-<dd></dd></dl>
-
-<dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4NK2nw9RaceArray13from_constantENSt11string_viewE">
-<span id="_CPPv3NK2nw9RaceArray13from_constantENSt11string_viewE"></span><span id="_CPPv2NK2nw9RaceArray13from_constantENSt11string_viewE"></span><span id="nw::RaceArray::from_constant__std::string_viewC"></span><span class="target" id="structnw_1_1_race_array_1a6e72587e429d8b5cd39ac4f4ee2c7749"></span><a class="reference internal" href="nw__Race.html#_CPPv4N2nw4RaceE" title="nw::Race"><span class="n"><span class="pre">Race</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">from_constant</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">constant</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK2nw9RaceArray13from_constantENSt11string_viewE" title="Permalink to this definition"></a><br /></dt>
-<dd></dd></dl>
-
-</div>
-<div class="breathe-sectiondef docutils container">
-<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
-<dl class="cpp var">
-<dt class="sig sig-object cpp" id="_CPPv4N2nw9RaceArray7entriesE">
-<span id="_CPPv3N2nw9RaceArray7entriesE"></span><span id="_CPPv2N2nw9RaceArray7entriesE"></span><span id="nw::RaceArray::entries__std::vector:RaceInfo:"></span><span class="target" id="structnw_1_1_race_array_1a872d384d1a91daaa46ef175a4d10328e"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="nw__RaceInfo.html#_CPPv4N2nw8RaceInfoE" title="nw::RaceInfo"><span class="n"><span class="pre">RaceInfo</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">entries</span></span></span><a class="headerlink" href="#_CPPv4N2nw9RaceArray7entriesE" title="Permalink to this definition"></a><br /></dt>
-<dd></dd></dl>
-
-<dl class="cpp var">
-<dt class="sig sig-object cpp" id="_CPPv4N2nw9RaceArray17constant_to_indexE">
-<span id="_CPPv3N2nw9RaceArray17constant_to_indexE"></span><span id="_CPPv2N2nw9RaceArray17constant_to_indexE"></span><span id="nw::RaceArray::constant_to_index__map_type"></span><span class="target" id="structnw_1_1_race_array_1a1f7fe035e249eb556213ec40771dfd01"></span><a class="reference internal" href="#_CPPv4N2nw9RaceArray8map_typeE" title="nw::RaceArray::map_type"><span class="n"><span class="pre">map_type</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">constant_to_index</span></span></span><a class="headerlink" href="#_CPPv4N2nw9RaceArray17constant_to_indexE" title="Permalink to this definition"></a><br /></dt>
-<dd></dd></dl>
-
-</div>
-</dd></dl>
-
 </div>
 
 
