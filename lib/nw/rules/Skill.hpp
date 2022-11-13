@@ -37,19 +37,6 @@ struct SkillInfo {
 };
 
 /// Singleton Component for Skills
-struct SkillArray {
-    using map_type = absl::flat_hash_map<
-        InternedString,
-        Skill,
-        InternedStringHash,
-        InternedStringEq>;
-
-    const SkillInfo* get(Skill skill) const noexcept;
-    bool is_valid(Skill skill) const noexcept;
-    Skill from_constant(std::string_view constant) const;
-
-    std::vector<SkillInfo> entries;
-    map_type constant_to_index;
-};
+using SkillArray = RuleTypeArray<Skill, SkillInfo>;
 
 } // namespace nw

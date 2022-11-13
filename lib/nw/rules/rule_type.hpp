@@ -1,5 +1,8 @@
 #pragma once
 
+#include "../util/InternedString.hpp"
+
+#include <absl/container/flat_hash_map.h>
 #include <nlohmann/json.hpp>
 
 #include <bitset>
@@ -134,6 +137,49 @@ struct RuleFlag : private std::bitset<N> {
         static_assert(is_rule_type<T>::value, "only rule types allowed");
         return T::invalid() != pos ? Base::test(pos.idx()) : false;
     }
+};
+
+/**
+ * @brief Base template for rule type arrays
+ *
+ * @tparam RuleType
+ * @tparam RuleTypeInfo
+ */
+template <typename RuleType, typename RuleTypeInfo>
+struct RuleTypeArray {
+    using map_type = absl::flat_hash_map<
+        InternedString,
+        RuleType,
+        InternedStringHash,
+        InternedStringEq>;
+
+    const RuleTypeInfo* get(RuleType type) const noexcept
+    {
+        if (type.idx() < entries.size() && entries[type.idx()].valid()) {
+            return &entries[type.idx()];
+        } else {
+            return nullptr;
+        }
+    }
+
+    bool is_valid(RuleType type) const noexcept
+    {
+        return type.idx() < entries.size() && entries[type.idx()].valid();
+    }
+
+    RuleType from_constant(std::string_view constant) const
+    {
+        absl::string_view v{constant.data(), constant.size()};
+        auto it = constant_to_index.find(v);
+        if (it == constant_to_index.end()) {
+            return RuleType::invalid();
+        } else {
+            return it->second;
+        }
+    }
+
+    std::vector<RuleTypeInfo> entries;
+    map_type constant_to_index;
 };
 
 } // namespace nw

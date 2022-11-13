@@ -1,5 +1,4 @@
 add_library(nw-rules STATIC
-    Ability.cpp
     Alignment.cpp
     ArmorClass.cpp
     BaseItem.cpp

@@ -45,20 +45,7 @@ struct FeatInfo {
 };
 
 /// Feat Singleton Component
-struct FeatArray {
-    using map_type = absl::flat_hash_map<
-        InternedString,
-        Feat,
-        InternedStringHash,
-        InternedStringEq>;
-
-    const FeatInfo* get(Feat feat) const noexcept;
-    bool is_valid(Feat feat) const noexcept;
-    Feat from_constant(std::string_view constant) const;
-
-    std::vector<FeatInfo> entries;
-    map_type constant_to_index;
-};
+using FeatArray = RuleTypeArray<Feat, FeatInfo>;
 
 // Not Implemented Yet
 // - MINATTACKBONUS

@@ -106,28 +106,4 @@ BaseItemInfo::BaseItemInfo(const TwoDARowView& tda)
     // WeaponFinesseMinimumCreatureSize
 }
 
-const BaseItemInfo* BaseItemArray::get(BaseItem baseitem) const noexcept
-{
-    if (baseitem.idx() < entries.size() && entries[baseitem.idx()].valid()) {
-        return &entries[baseitem.idx()];
-    }
-    return nullptr;
-}
-
-bool BaseItemArray::is_valid(BaseItem baseitem) const noexcept
-{
-    return baseitem.idx() < entries.size() && entries[baseitem.idx()].valid();
-}
-
-BaseItem BaseItemArray::from_constant(std::string_view constant) const
-{
-    absl::string_view v{constant.data(), constant.size()};
-    auto it = constant_to_index.find(v);
-    if (it == constant_to_index.end()) {
-        return BaseItem::invalid();
-    } else {
-        return it->second;
-    }
-}
-
 } // namespace nw

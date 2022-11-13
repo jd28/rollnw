@@ -97,28 +97,4 @@ ClassInfo::ClassInfo(const TwoDARowView& tda)
     }
 }
 
-const ClassInfo* ClassArray::get(Class class_) const noexcept
-{
-    if (class_.idx() < entries.size() && entries[class_.idx()].valid()) {
-        return &entries[class_.idx()];
-    }
-    return nullptr;
-}
-
-bool ClassArray::is_valid(Class class_) const noexcept
-{
-    return class_.idx() < entries.size() && entries[class_.idx()].valid();
-}
-
-Class ClassArray::from_constant(std::string_view constant) const
-{
-    absl::string_view v{constant.data(), constant.size()};
-    auto it = constant_to_index.find(v);
-    if (it == constant_to_index.end()) {
-        return Class::invalid();
-    } else {
-        return it->second;
-    }
-}
-
 } // namespace nw

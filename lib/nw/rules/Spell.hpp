@@ -68,8 +68,6 @@ struct SpellInfo {
 };
 
 /// Spell singleton component
-struct SpellArray {
-    std::vector<SpellInfo> entries;
-};
+using SpellArray = RuleTypeArray<Spell, SpellInfo>;
 
 } // namespace nw

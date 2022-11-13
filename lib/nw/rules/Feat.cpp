@@ -41,29 +41,4 @@ FeatInfo::FeatInfo(const TwoDARowView& tda)
     tda.get_to("ReqAction", requires_action);
 }
 
-const FeatInfo* FeatArray::get(Feat feat) const noexcept
-{
-    if (feat.idx() < entries.size() && entries[feat.idx()].valid()) {
-        return &entries[feat.idx()];
-    } else {
-        return nullptr;
-    }
-}
-
-bool FeatArray::is_valid(Feat feat) const noexcept
-{
-    return feat.idx() < entries.size() && entries[feat.idx()].valid();
-}
-
-Feat FeatArray::from_constant(std::string_view constant) const
-{
-    absl::string_view v{constant.data(), constant.size()};
-    auto it = constant_to_index.find(v);
-    if (it == constant_to_index.end()) {
-        return Feat::invalid();
-    } else {
-        return it->second;
-    }
-}
-
 } // namespace nw

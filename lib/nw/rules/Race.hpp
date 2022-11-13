@@ -1,10 +1,7 @@
 #pragma once
 
 #include "../resources/Resource.hpp"
-#include "../util/InternedString.hpp"
 #include "rule_type.hpp"
-
-#include <absl/container/flat_hash_map.h>
 
 #include <cstdint>
 #include <limits>
@@ -48,20 +45,7 @@ struct RaceInfo {
 };
 
 /// Race singleton component
-struct RaceArray {
-    using map_type = absl::flat_hash_map<
-        InternedString,
-        Race,
-        InternedStringHash,
-        InternedStringEq>;
-
-    const RaceInfo* get(Race race) const noexcept;
-    bool is_valid(Race race) const noexcept;
-    Race from_constant(std::string_view constant) const;
-
-    std::vector<RaceInfo> entries;
-    map_type constant_to_index;
-};
+using RaceArray = RuleTypeArray<Race, RaceInfo>;
 
 // Not Implemented Yet
 // - NameGenTableA

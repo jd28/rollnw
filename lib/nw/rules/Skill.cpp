@@ -25,28 +25,4 @@ SkillInfo::SkillInfo(const TwoDARowView& tda)
     }
 }
 
-const SkillInfo* SkillArray::get(Skill skill) const noexcept
-{
-    if (skill.idx() < entries.size() && entries[skill.idx()].valid()) {
-        return &entries[skill.idx()];
-    }
-    return nullptr;
-}
-
-bool SkillArray::is_valid(Skill skill) const noexcept
-{
-    return skill.idx() < entries.size() && entries[skill.idx()].valid();
-}
-
-Skill SkillArray::from_constant(std::string_view constant) const
-{
-    absl::string_view v{constant.data(), constant.size()};
-    auto it = constant_to_index.find(v);
-    if (it == constant_to_index.end()) {
-        return Skill::invalid();
-    } else {
-        return it->second;
-    }
-}
-
 } // namespace nw

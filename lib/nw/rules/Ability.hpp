@@ -22,19 +22,6 @@ struct AbilityInfo {
 };
 
 /// Ability singleton component
-struct AbilityArray {
-    using map_type = absl::flat_hash_map<
-        InternedString,
-        Ability,
-        InternedStringHash,
-        InternedStringEq>;
-
-    const AbilityInfo* get(Ability ability) const noexcept;
-    bool is_valid(Ability ability) const noexcept;
-    Ability from_constant(std::string_view constant) const;
-
-    std::vector<AbilityInfo> entries;
-    map_type constant_to_index;
-};
+using AbilityArray = RuleTypeArray<Ability, AbilityInfo>;
 
 } // namespace nw

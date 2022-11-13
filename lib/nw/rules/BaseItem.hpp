@@ -147,19 +147,6 @@ struct BaseItemInfo {
 };
 
 /// BaseItem singleton component
-struct BaseItemArray {
-    using map_type = absl::flat_hash_map<
-        InternedString,
-        BaseItem,
-        InternedStringHash,
-        InternedStringEq>;
-
-    const BaseItemInfo* get(BaseItem baseitem) const noexcept;
-    bool is_valid(BaseItem baseitem) const noexcept;
-    BaseItem from_constant(std::string_view constant) const;
-
-    std::vector<BaseItemInfo> entries;
-    map_type constant_to_index;
-};
+using BaseItemArray = RuleTypeArray<BaseItem, BaseItemInfo>;
 
 } // namespace nw
