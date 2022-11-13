@@ -1,0 +1,103 @@
+#pragma once
+
+#include "nw/components/ObjectBase.hpp"
+#include "nw/rules/Effect.hpp"
+#include <functional>
+#include <iterator>
+
+namespace nwn1 {
+
+/// Extracts the 0th integer value from an effect
+int effect_extract_int0(const nw::EffectHandle& effect);
+
+/**
+ * @brief Finds first effect of a given type
+ *
+ * @tparam It A forward iterator
+ * @param begin Beginning of an range of effects
+ * @param end Beginning of an range of effects
+ * @param type An effect_type_* constant
+ * @param subtype An effect subtype
+ * @return It iterator to the first effect, or ``end``
+ */
+template <typename It>
+It find_first_effect_of(It begin, It end, nw::EffectType type, int subtype = -1)
+{
+    nw::EffectHandle needle;
+    needle.type = type;
+    needle.subtype = subtype;
+
+    auto comp = [](const nw::EffectHandle& handle, const nw::EffectHandle& needle) {
+        return std::tie(handle.type, handle.subtype) < std::tie(needle.type, needle.subtype);
+    };
+
+    return std::lower_bound(begin, end, needle, comp);
+}
+
+/**
+ * @brief Finds all applicable effects of a given type / subtype.
+ *
+ * Applicable effects are passed to a user supplied callback.
+ *
+ * @tparam T An arbitrary type that can be held in an effect, e.g. a simple integer, a damage roll, etc.
+ * @tparam It An iterator type
+ * @tparam CallBack A function with the signature void(T) supplied by the user
+ * @tparam Extractor A function that extracts a value of type ``T`` from an EffectHandle
+ * @tparam Comp A comparator taking two ``T`` values and returns ``true`` if the first is greater
+ *         (Default std::greater<T>)
+ * @param begin Start of a range of effect handles of a type/subtype
+ * @param end End range of effect handles
+ * @param type An effect_type_* constant
+ * @param subtype A effect subtype, if no subtype -1 should be passed
+ * @param cb A user defined callback that will be passed an applicable effects value.
+ * @param extractor A function that extracts the value from a particular effect.
+ * @param comparator A function taking two ``T`` values and returns ``true`` if the first is greater
+ *        (Default std::greater<T>)
+ * @return Number of effects processed
+ */
+template <typename T, typename It, typename CallBack, typename Extractor, typename Comp = std::greater<T>>
+int resolve_effects_of(It begin, It end, nw::EffectType type, int subtype,
+    CallBack cb, Extractor extractor, Comp comparator = std::greater<T>{}) noexcept
+{
+    if (type == nw::EffectType::invalid()) { return 0; }
+    auto it = begin;
+
+    int result = 0;
+    while (it != end && it->type == type && it->subtype == subtype) {
+        if (it->creator.type == nw::ObjectType::item) {
+            auto item = it->creator;
+            T value = extractor(*it);
+            while (it != end && it->type == type
+                && it->subtype == subtype
+                && it->creator == item) {
+                T next = extractor(*it);
+                value = comparator(value, next) ? value : next;
+                ++it;
+            }
+            cb(value);
+            ++result;
+        } else if (it->spell_id != nw::Spell::invalid()) {
+            auto spell = it->spell_id;
+            T value = it->effect->get_int(0);
+            while (it != end && it->type == type
+                && it->subtype == subtype
+                && it->spell_id == spell) {
+                T next = extractor(*it);
+                value = comparator(value, next) ? value : next;
+                ++it;
+            }
+            cb(value);
+            ++result;
+        } else {
+            cb(extractor(*it));
+            ++result;
+            ++it;
+        }
+    }
+    return result;
+}
+
+/// Determines if an effect type is applied to an object
+bool has_effect_applied(nw::ObjectBase* obj, nw::EffectType type, int subtype = -1);
+
+} // namespace nwn1

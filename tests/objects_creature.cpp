@@ -1,6 +1,8 @@
 #include "nw/kernel/EffectSystem.hpp"
 #include "nwn1/constants.hpp"
 #include "nwn1/effects.hpp"
+#include "nwn1/functions.hpp"
+#include "nwn1/functions/funcs_effects.hpp"
 #include <catch2/catch_all.hpp>
 
 #include <nw/components/Creature.hpp>
@@ -247,11 +249,12 @@ TEST_CASE("creature: apply and remove effects", "[objects]")
     auto obj = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/test_creature.utc"));
     REQUIRE(obj);
     REQUIRE(obj->instantiate());
-    auto eff = new nw::Effect(nwn1::effect_type_haste);
+    auto eff = nwn1::effect_haste();
     REQUIRE(obj->effects().add(eff));
+    REQUIRE(nwn1::has_effect_applied(obj, nwn1::effect_type_haste));
     REQUIRE(obj->effects().size());
     REQUIRE(obj->effects().remove(eff));
+    REQUIRE_FALSE(nwn1::has_effect_applied(obj, nwn1::effect_type_haste));
     REQUIRE(obj->effects().size() == 0);
     REQUIRE_FALSE(obj->effects().remove(nullptr));
-    delete eff;
 }

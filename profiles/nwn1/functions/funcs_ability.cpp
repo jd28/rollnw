@@ -1,17 +1,21 @@
+#include "funcs_ability.hpp"
+
 #include "../constants.hpp"
-#include "nw/components/ObjectHandle.hpp"
-#include "nw/rules/Effect.hpp"
-#include "nw/rules/Spell.hpp"
+#include "funcs_effects.hpp"
 
 #include <nw/components/Creature.hpp>
+#include <nw/components/EffectArray.hpp>
+#include <nw/components/ObjectHandle.hpp>
 #include <nw/kernel/Rules.hpp>
 #include <nw/rules/Ability.hpp>
+#include <nw/rules/Effect.hpp>
+#include <nw/rules/Spell.hpp>
 
 #include <algorithm>
 
 namespace nwn1 {
 
-int get_ability_score(const nw::Creature* obj, nw::Ability ability, bool base = false)
+int get_ability_score(const nw::Creature* obj, nw::Ability ability, bool base)
 {
     if (!obj || ability == nw::Ability::invalid()) { return 0; }
 
@@ -28,60 +32,31 @@ int get_ability_score(const nw::Creature* obj, nw::Ability ability, bool base = 
 
     if (base) { return result; }
 
-    nw::EffectHandle needle;
-    needle.type = effect_type_ability_increase;
-    needle.subtype = *ability;
-
     // Effects
-    auto comp = [](const nw::EffectHandle& handle, const nw::EffectHandle& needle) {
-        return std::tie(handle.type, handle.subtype) < std::tie(needle.type, needle.subtype);
-    };
-
-    auto calculate = [](auto it, auto end, nw::EffectType type, nw::Ability subtype) -> int {
-        int result = 0;
-        while (it != end && it->type == type && it->subtype == *subtype) {
-            if (it->creator.type == nw::ObjectType::item) {
-                auto item = it->creator;
-                int value = it->effect->get_int(0);
-                while (it != end && it->type == type
-                    && it->subtype == *subtype
-                    && it->creator == item) {
-                    value = std::max(value, it->effect->get_int(0));
-                    ++it;
-                }
-                result += value;
-            } else if (it->spell_id != nw::Spell::invalid()) {
-                auto spell = it->spell_id;
-                int value = it->effect->get_int(0);
-                while (it != end && it->type == type
-                    && it->subtype == *subtype
-                    && it->spell_id == spell) {
-                    value = std::max(value, it->effect->get_int(0));
-                    ++it;
-                }
-                result += value;
-            } else {
-                result += it->effect->get_int(0);
-                ++it;
-            }
-        }
-        return result;
-    };
 
     auto end = std::end(obj->effects());
-    auto it = std::lower_bound(std::begin(obj->effects()), end, needle, comp);
-    int bonus = calculate(it, end, effect_type_ability_increase, ability);
+    auto it = find_first_effect_of(std::begin(obj->effects()), end,
+        effect_type_ability_increase, *ability);
 
-    needle.type = effect_type_ability_decrease;
-    it = std::lower_bound(it, end, needle, comp);
-    int decrease = calculate(it, end, effect_type_ability_decrease, ability);
+    int bonus = 0;
+    int value = 0;
 
-    LOG_F(INFO, "{}, {}", bonus, decrease);
+    auto callback = [&value](int result) { value += result; };
 
-    return result + std::clamp(bonus, 0, 12) - std::clamp(decrease, 0, 12);
+    resolve_effects_of<int>(it, end, effect_type_ability_increase, *ability,
+        callback, &effect_extract_int0);
+    bonus = value;
+    value = 0;
+
+    it = find_first_effect_of(it, end, effect_type_ability_decrease, *ability);
+    resolve_effects_of<int>(it, end, effect_type_ability_increase, *ability,
+        callback, &effect_extract_int0);
+    int decrease = value;
+
+    return result + std::clamp(bonus - decrease, -12, 12);
 }
 
-int get_ability_modifier(const nw::Creature* obj, nw::Ability ability, bool base = false)
+int get_ability_modifier(const nw::Creature* obj, nw::Ability ability, bool base)
 {
     return (get_ability_score(obj, ability, base) - 10) / 2;
 }
