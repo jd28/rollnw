@@ -66,7 +66,7 @@ nw::ItemProperty itemprop_ability_modifier(nw::Ability ability, int modifier)
 {
     nw::ItemProperty result;
     if (modifier == 0) { return result; }
-    result.type = *ip_ability_bonus;
+    result.type = modifier > 0 ? *ip_ability_bonus : *ip_decreased_ability_score;
     result.subtype = uint16_t(*ability);
     result.cost_value = uint8_t(modifier);
     return result;
