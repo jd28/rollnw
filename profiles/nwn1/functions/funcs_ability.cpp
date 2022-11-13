@@ -13,16 +13,14 @@ namespace nwn1 {
 
 int get_ability_score(const nw::Creature* obj, nw::Ability ability, bool base = false)
 {
-    if (!obj || ability == nw::Ability::invalid()) {
-        return 0;
-    }
+    if (!obj || ability == nw::Ability::invalid()) { return 0; }
 
     // Base
     int result = obj->stats.get_ability_score(ability);
 
     // Race
     auto race = nw::kernel::rules().races.get(obj->race);
-    result += race->ability_modifiers[ability.idx()];
+    if (race) { result += race->ability_modifiers[ability.idx()]; }
 
     // Modifiers = Feats, etc
     nw::kernel::rules().calculate(obj, mod_type_ability, ability,
