@@ -8,15 +8,7 @@
 
 # rollNW
 
-rollNW is a simple modern static C++/Python library for Neverwinter Nights (and some Enhanced Edition) file formats and objects, that
-
-- aims to implement an RPG engine inspired by NWN, excluding graphics and networking.
-- focuses on usage, instead of doing things the Aurora Engine Way.
-- follows [utf8 everywhere](https://utf8everywhere.org/).
-- hews as close to [C++ Core Guidelines](https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines) as possible.
-- aims to be as easily bindable as possible to other languages.  I.e. only library specific or STL types at API boundaries.
-
-See the [docs](https://rollnw.readthedocs.io/en/latest/) and [tests](https://github.com/jd28/rollnw/tree/main/tests) for more info.
+rollNW is an homage to Neverwinter Nights in C++ and Python.  See the [docs](https://rollnw.readthedocs.io/en/latest/) and [tests](https://github.com/jd28/rollnw/tree/main/tests) for more info, or open an IDE in browser in the quickstart section below.
 
 **This library is a work-in-progress.  There will be serious refactoring and until there is a real release, it should be assumed the library is a work-in-progress.**
 
@@ -26,12 +18,17 @@ See the [docs](https://rollnw.readthedocs.io/en/latest/) and [tests](https://git
 - A recursive decent [NWScript Parser](https://rollnw.readthedocs.io/en/latest/structure/script.html)
 - Implementations of pretty much every [NWN File Format](https://rollnw.readthedocs.io/en/latest/structure/formats.html)
 - A Resource Manager that can load all NWN containers (e.g. erf, key, nwsync) and also Zip files.
-- An implementation of NWN's [Localization System](https://rollnw.readthedocs.io/en/latest/structure/i18n.html) focused on
-  utf8 everywhere.
-- A [Serialization System](https://rollnw.readthedocs.io/en/latest/structure/serialization.html) that can transparently
-  handle GFF or JSON.
-- The beginnings of a novel [Rules System](https://rollnw.readthedocs.io/en/latest/structure/rules.html) designed for
-  easily adding, overriding, expanding, or removing any rule and reasonable performance
+- An implementation of NWN's [Localization System](https://rollnw.readthedocs.io/en/latest/structure/i18n.html) focused on utf8 everywhere.
+- A [Serialization System](https://rollnw.readthedocs.io/en/latest/structure/serialization.html) that can transparently handle GFF or JSON.
+- The beginnings of a novel [Rules System](https://rollnw.readthedocs.io/en/latest/structure/rules.html) designed for easily adding, overriding, expanding, or removing any rule and reasonable performance
+
+## Goals
+
+- aims to implement an RPG engine inspired by NWN, excluding graphics and networking.
+- focuses on usage, instead of doing things the Aurora Engine Way.
+- follows [utf8 everywhere](https://utf8everywhere.org/).
+- hews as close to [C++ Core Guidelines](https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines) as possible.
+- aims to be as easily bindable as possible to other languages.  I.e. only library specific or STL types at API boundaries.
 
 ## Quickstart - Open VS Code in your Browser
 
