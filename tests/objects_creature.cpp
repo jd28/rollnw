@@ -143,7 +143,7 @@ TEST_CASE("creature: ability ", "[objects]")
     // Note calls to process are necessary to apply effects.. normally this would be called by
     // an event loop.
     REQUIRE(nwk::events().process() > 0);
-    REQUIRE(nwn1::get_ability_score(obj, nwn1::ability_strength, false) == 55);
+    REQUIRE(nwn1::get_ability_score(obj, nwn1::ability_strength, false) == 54);
     REQUIRE(nwn1::unequip_item(obj, nw::EquipIndex::belt));
     REQUIRE(nwk::events().process() > 0);
     REQUIRE(nwn1::get_ability_score(obj, nwn1::ability_strength, false) == 47);
