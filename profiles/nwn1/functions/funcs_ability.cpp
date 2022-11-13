@@ -28,9 +28,13 @@ int get_ability_score(const nw::Creature* obj, nw::Ability ability, bool base = 
 
     if (base) { return result; }
 
+    nw::EffectHandle needle;
+    needle.type = effect_type_ability_increase;
+    needle.subtype = *ability;
+
     // Effects
-    auto comp = [](const nw::EffectHandle& handle, nw::EffectType type) {
-        return *handle.type < *type;
+    auto comp = [](const nw::EffectHandle& handle, const nw::EffectHandle& needle) {
+        return std::tie(handle.type, handle.subtype) < std::tie(needle.type, needle.subtype);
     };
 
     auto calculate = [](auto it, auto end, nw::EffectType type, nw::Ability subtype) -> int {
@@ -65,11 +69,11 @@ int get_ability_score(const nw::Creature* obj, nw::Ability ability, bool base = 
     };
 
     auto end = std::end(obj->effects());
-    auto it = std::lower_bound(std::begin(obj->effects()), end,
-        effect_type_ability_increase, comp);
+    auto it = std::lower_bound(std::begin(obj->effects()), end, needle, comp);
     int bonus = calculate(it, end, effect_type_ability_increase, ability);
 
-    it = std::lower_bound(it, end, effect_type_ability_decrease, comp);
+    needle.type = effect_type_ability_decrease;
+    it = std::lower_bound(it, end, needle, comp);
     int decrease = calculate(it, end, effect_type_ability_decrease, ability);
 
     LOG_F(INFO, "{}, {}", bonus, decrease);
