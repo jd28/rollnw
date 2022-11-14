@@ -105,7 +105,7 @@ nlohmann::json process_node(nw::ResourceType::type restype, const PaletteTreeNod
         }
     }
     return res;
-};
+}
 
 nlohmann::json Palette::to_json(nw::ResourceType::type restype) const
 {

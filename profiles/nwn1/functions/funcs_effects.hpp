@@ -1,8 +1,8 @@
 #pragma once
 
-#include "nw/components/ObjectBase.hpp"
-#include "nw/components/ObjectHandle.hpp"
-#include "nw/rules/Effect.hpp"
+#include <nw/components/ObjectBase.hpp>
+#include <nw/rules/Effect.hpp>
+
 #include <functional>
 #include <iterator>
 
@@ -62,7 +62,7 @@ int remove_effects_by(nw::ObjectBase* obj, nw::ObjectHandle creator);
  * @param end End range of effect handles
  * @param type An effect_type_* constant
  * @param subtype A effect subtype, if no subtype -1 should be passed
- * @param cb A user defined callback that will be passed an applicable effects value.
+ * @param cb A user defined callback that will be passed an applicable effect's value.
  * @param extractor A function that extracts the value from a particular effect.
  * @param comparator A function taking two ``T`` values and returns ``true`` if the first is greater
  *        (Default std::greater<T>)
@@ -91,7 +91,7 @@ int resolve_effects_of(It begin, It end, nw::EffectType type, int subtype,
             ++result;
         } else if (it->spell_id != nw::Spell::invalid()) {
             auto spell = it->spell_id;
-            T value = it->effect->get_int(0);
+            T value = extractor(*it);
             while (it != end && it->type == type
                 && it->subtype == subtype
                 && it->spell_id == spell) {

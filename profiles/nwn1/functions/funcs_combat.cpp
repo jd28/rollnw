@@ -67,7 +67,7 @@ int attack_bonus(const nw::Creature* obj, nw::AttackType type, bool base)
     // an 'any' subtype.
     auto end = std::end(obj->effects());
     int value = 0;
-    auto callback = [&value](int result) { value += result; };
+    auto callback = [&value](int mod) { value += mod; };
 
     auto it = find_first_effect_of(std::begin(obj->effects()), end,
         effect_type_attack_increase, *attack_type_any);

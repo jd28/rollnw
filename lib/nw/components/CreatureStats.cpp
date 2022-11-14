@@ -136,7 +136,7 @@ bool CreatureStats::set_ability_score(Ability id, int value)
     if (id.idx() > abilities_.size()) {
         return 0;
     }
-    return abilities_[id.idx()] = uint8_t(value);
+    return (abilities_[id.idx()] = uint8_t(value));
 }
 
 bool CreatureStats::set_skill_rank(Skill id, int value)
@@ -144,7 +144,7 @@ bool CreatureStats::set_skill_rank(Skill id, int value)
     if (id.idx() > skills_.size()) {
         return 0;
     }
-    return skills_[id.idx()] = uint8_t(value);
+    return (skills_[id.idx()] = uint8_t(value));
 }
 
 } // namespace nw

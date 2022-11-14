@@ -46,9 +46,8 @@ bool LevelStats::to_gff(GffBuilderStruct& archive) const
 {
     auto& list = archive.add_list("ClassList");
     for (const auto& cls : entries) {
-        int32_t cls_id = static_cast<int32_t>(*cls.id);
         cls.spells.to_gff(list.push_back(3)
-                              .add_field("Class", cls_id)
+                              .add_field("Class", *cls.id)
                               .add_field("ClassLevel", cls.level));
     }
 

@@ -114,7 +114,7 @@ ResourceDescriptor Zip::stat(const Resource& res) const
     ResourceDescriptor rd;
     std::string fn = res.filename();
     char fname[64] = {0};
-    if (unzLocateFile(file_, reinterpret_cast<const char*>(fn.c_str()), 0) == UNZ_OK) {
+    if (unzLocateFile(file_, fn.c_str(), 0) == UNZ_OK) {
         unz_file_info info;
         unzGetCurrentFileInfo(file_, &info, fname, 64, nullptr, 0, nullptr, 0);
         char* dot = strchr(fname, '.');

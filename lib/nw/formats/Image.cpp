@@ -342,14 +342,14 @@ static void DecompressDdsColorBlock(const uint8_t* data, D3DCOLOR* dest, uint32_
     else
         alphas = reinterpret_cast<const uint8_t*>("\xff\xff\xff\xff");
 
-    c[0].r = (word1 >> 11) & 0x1F;
+    c[0].r = uint8_t((word1 >> 11) & 0x1F);
     c[0].r = DdsRound(static_cast<double>(c[0].r) * 0xFF / 0x1F);
     c[0].g = (word1 >> 5) & 0x3F;
     c[0].g = DdsRound(static_cast<double>(c[0].g) * 0xFF / 0x3F);
     c[0].b = (word1)&0x1F;
     c[0].b = DdsRound(static_cast<double>(c[0].b) * 0xFF / 0x1F);
 
-    c[1].r = (word2 >> 11) & 0x1F;
+    c[1].r = uint8_t((word2 >> 11) & 0x1F);
     c[1].r = DdsRound(static_cast<double>(c[1].r) * 0xFF / 0x1F);
     c[1].g = (word2 >> 5) & 0x3F;
     c[1].g = DdsRound(static_cast<double>(c[1].g) * 0xFF / 0x3F);

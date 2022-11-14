@@ -70,7 +70,7 @@ bool effect_haste_apply(nw::ObjectBase* obj, const nw::Effect*)
         return true;
     }
     return false;
-};
+}
 
 bool effect_haste_remove(nw::ObjectBase* obj, const nw::Effect*)
 {
@@ -79,7 +79,7 @@ bool effect_haste_remove(nw::ObjectBase* obj, const nw::Effect*)
         return true;
     }
     return false;
-};
+}
 
 // -- Item Property Generators ------------------------------------------------
 // ----------------------------------------------------------------------------

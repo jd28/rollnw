@@ -192,7 +192,7 @@ bool Erf::save_as(const std::filesystem::path& path) const
         auto rd = stat(e);
         entry_keys.push_back({e.resref.data(), id++, e.type, 0});
         entry_info.push_back({data_offset, static_cast<uint32_t>(rd.size)});
-        data_offset += rd.size;
+        data_offset += static_cast<uint32_t>(rd.size);
     }
 
     fs::path temp_path = fs::temp_directory_path() / path.filename();
