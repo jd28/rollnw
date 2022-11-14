@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../components/Equips.hpp"
 #include "../components/ObjectBase.hpp"
 #include "../rules/Effect.hpp"
 #include "../rules/ItemProperty.hpp"
@@ -16,7 +17,7 @@ namespace nw::kernel {
 
 using EffectFunc = std::function<bool(ObjectBase*, const Effect*)>;
 using EffectPair = std::pair<EffectFunc, EffectFunc>;
-using ItemPropFunc = std::function<Effect*(const ItemProperty&)>;
+using ItemPropFunc = std::function<Effect*(const ItemProperty&, EquipIndex)>;
 
 struct EffectSystemStats {
     size_t free_list_size = 0;
@@ -45,7 +46,7 @@ struct EffectSystem : public Service {
     void destroy(Effect* effect);
 
     /// Generates an effect from an item property
-    Effect* generate(const ItemProperty& property) const;
+    Effect* generate(const ItemProperty& property, EquipIndex index) const;
 
     /// Removes an effect to an object
     bool remove(ObjectBase* obj, Effect* effect);

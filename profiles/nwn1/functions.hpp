@@ -18,7 +18,7 @@ bool can_equip_item(const nw::Creature* obj, nw::Item* item, nw::EquipIndex slot
 bool equip_item(nw::Creature* obj, nw::Item* item, nw::EquipIndex slot);
 
 /// Processes item properties and applies resulting effects to creature
-int process_item_properties(nw::Creature* obj, const nw::Item* item, bool remove);
+int process_item_properties(nw::Creature* obj, const nw::Item* item, nw::EquipIndex index, bool remove);
 
 /// Gets an equipped item
 nw::Item* get_equipped_item(const nw::Creature* obj, nw::EquipIndex slot);

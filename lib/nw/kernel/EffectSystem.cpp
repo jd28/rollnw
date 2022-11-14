@@ -71,12 +71,12 @@ void EffectSystem::destroy(Effect* effect)
     free_list_.push(id.index);
 }
 
-Effect* EffectSystem::generate(const ItemProperty& property) const
+Effect* EffectSystem::generate(const ItemProperty& property, EquipIndex index) const
 {
     auto it = itemprops_.find(property.type);
     if (it == std::end(itemprops_)) { return nullptr; }
     if (it->second) {
-        return it->second(property);
+        return it->second(property, index);
     }
     return nullptr;
 }

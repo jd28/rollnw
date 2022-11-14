@@ -28,7 +28,7 @@ bool equip_item(nw::Creature* obj, nw::Item* item, nw::EquipIndex slot)
     if (!can_equip_item(obj, item, slot)) { return false; }
     unequip_item(obj, slot);
     obj->equipment.equips[size_t(slot)] = item;
-    process_item_properties(obj, item, false);
+    process_item_properties(obj, item, slot, false);
     return true;
 }
 
@@ -75,14 +75,14 @@ std::string itemprop_to_string(const nw::ItemProperty& ip)
     return result;
 }
 
-int process_item_properties(nw::Creature* obj, const nw::Item* item, bool remove)
+int process_item_properties(nw::Creature* obj, const nw::Item* item, nw::EquipIndex index, bool remove)
 {
     if (!obj || !item) { return 0; }
 
     int processed = 0;
     if (!remove) {
         for (const auto& ip : item->properties) {
-            if (auto eff = nw::kernel::effects().generate(ip)) {
+            if (auto eff = nw::kernel::effects().generate(ip, index)) {
                 eff->creator = item->handle();
                 eff->category = nw::EffectCategory::item;
                 if (!apply_effect(obj, eff)) {
@@ -118,7 +118,7 @@ nw::Item* unequip_item(nw::Creature* obj, nw::EquipIndex slot)
     if (alt<nw::Item*>(it)) {
         result = std::get<nw::Item*>(it);
         it = nullptr;
-        process_item_properties(obj, result, true);
+        process_item_properties(obj, result, slot, true);
     }
     return result;
 }

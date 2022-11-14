@@ -1,6 +1,7 @@
 #pragma once
 
 #include "constants.hpp"
+#include "nw/components/Equips.hpp"
 #include "nw/rules/Attack.hpp"
 
 namespace nw {
@@ -20,11 +21,11 @@ nw::Effect* effect_ability_modifier(nw::Ability ability, int modifier);
 /// Creates an attack modifier effect
 nw::Effect* effect_attack_modifier(nw::AttackType attack, int modifier);
 
-/// Creates an skill modifier effect
-nw::Effect* effect_skill_modifier(nw::Skill skill, int modifier);
-
 /// Creates a haste effect
 nw::Effect* effect_haste();
+
+/// Creates an skill modifier effect
+nw::Effect* effect_skill_modifier(nw::Skill skill, int modifier);
 
 // -- Effect Apply/Remove -----------------------------------------------------
 // ----------------------------------------------------------------------------
@@ -50,10 +51,8 @@ nw::ItemProperty itemprop_skill_modifier(nw::Skill skill, int modifier);
 // -- Item Property Generators ------------------------------------------------
 // ----------------------------------------------------------------------------
 
-nw::Effect* ip_gen_ability_modifier(const nw::ItemProperty& ip);
-
-nw::Effect* ip_gen_haste(const nw::ItemProperty&);
-
-nw::Effect* ip_gen_skill_modifier(const nw::ItemProperty& ip);
+nw::Effect* ip_gen_ability_modifier(const nw::ItemProperty& ip, nw::EquipIndex);
+nw::Effect* ip_gen_haste(const nw::ItemProperty&, nw::EquipIndex);
+nw::Effect* ip_gen_skill_modifier(const nw::ItemProperty& ip, nw::EquipIndex);
 
 } // namespace nwn1

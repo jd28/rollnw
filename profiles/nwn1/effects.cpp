@@ -94,7 +94,7 @@ nw::ItemProperty itemprop_ability_modifier(nw::Ability ability, int modifier)
     return result;
 }
 
-nw::Effect* ip_gen_ability_modifier(const nw::ItemProperty& ip)
+nw::Effect* ip_gen_ability_modifier(const nw::ItemProperty& ip, nw::EquipIndex)
 {
     auto type = nw::ItemPropertyType::make(ip.type);
     auto abil = nw::Ability::make(ip.subtype);
@@ -117,7 +117,7 @@ nw::ItemProperty itemprop_haste()
     return result;
 }
 
-nw::Effect* ip_gen_haste(const nw::ItemProperty&)
+nw::Effect* ip_gen_haste(const nw::ItemProperty&, nw::EquipIndex)
 {
     return effect_haste();
 }
@@ -132,7 +132,7 @@ nw::ItemProperty itemprop_skill_modifier(nw::Skill skill, int modifier)
     return result;
 }
 
-nw::Effect* ip_gen_skill_modifier(const nw::ItemProperty& ip)
+nw::Effect* ip_gen_skill_modifier(const nw::ItemProperty& ip, nw::EquipIndex)
 {
     auto type = nw::ItemPropertyType::make(ip.type);
     auto sk = nw::Skill::make(ip.subtype);
