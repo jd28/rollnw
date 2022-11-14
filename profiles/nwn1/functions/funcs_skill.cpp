@@ -53,7 +53,7 @@ int get_skill_rank(const nw::Creature* obj, nw::Skill skill, bool base)
 
     auto it = find_first_effect_of(std::begin(obj->effects()), end,
         effect_type_skill_increase, *skill);
-    resolve_effects_of<int>(it, end, effect_type_skill_increase, *skill,
+    it = resolve_effects_of<int>(it, end, effect_type_skill_increase, *skill,
         callback, &effect_extract_int0);
 
     int bonus = value;

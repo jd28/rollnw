@@ -2,13 +2,13 @@
 
 #include "../constants.hpp"
 #include "../functions.hpp"
-#include "nw/components/Equips.hpp"
-#include "nw/rules/Attack.hpp"
-#include "nw/rules/BaseItem.hpp"
 
 #include <nw/components/Creature.hpp>
+#include <nw/components/Equips.hpp>
 #include <nw/components/Item.hpp>
 #include <nw/kernel/Rules.hpp>
+#include <nw/rules/Attack.hpp>
+#include <nw/rules/BaseItem.hpp>
 #include <nw/rules/Class.hpp>
 #include <nw/util/macros.hpp>
 
@@ -72,19 +72,18 @@ int attack_bonus(const nw::Creature* obj, nw::AttackType type, bool base)
 
     auto it = find_first_effect_of(std::begin(obj->effects()), end,
         effect_type_attack_increase, *attack_type_any);
-    resolve_effects_of<int>(it, end, effect_type_attack_increase, *attack_type_any,
+    it = resolve_effects_of<int>(it, end, effect_type_attack_increase, *attack_type_any,
         callback, &effect_extract_int0);
 
-    it = find_first_effect_of(std::begin(obj->effects()), end,
-        effect_type_attack_increase, *type);
-    resolve_effects_of<int>(it, end, effect_type_attack_increase, *type,
+    it = find_first_effect_of(it, end, effect_type_attack_increase, *type);
+    it = resolve_effects_of<int>(it, end, effect_type_attack_increase, *type,
         callback, &effect_extract_int0);
 
     int bonus = value;
     value = 0;
 
     it = find_first_effect_of(it, end, effect_type_attack_decrease, *attack_type_any);
-    resolve_effects_of<int>(it, end, effect_type_attack_decrease, *attack_type_any,
+    it = resolve_effects_of<int>(it, end, effect_type_attack_decrease, *attack_type_any,
         callback, &effect_extract_int0);
 
     it = find_first_effect_of(it, end, effect_type_attack_decrease, *type);
@@ -93,8 +92,6 @@ int attack_bonus(const nw::Creature* obj, nw::AttackType type, bool base)
     int decrease = value;
 
     return result + std::clamp(bonus - decrease, -12, 12);
-
-    return result;
 }
 
 nw::AttackType equip_index_to_attack_type(nw::EquipIndex equip)

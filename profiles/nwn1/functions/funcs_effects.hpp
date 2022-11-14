@@ -69,13 +69,12 @@ int remove_effects_by(nw::ObjectBase* obj, nw::ObjectHandle creator);
  * @return Number of effects processed
  */
 template <typename T, typename It, typename CallBack, typename Extractor, typename Comp = std::greater<T>>
-int resolve_effects_of(It begin, It end, nw::EffectType type, int subtype,
+It resolve_effects_of(It begin, It end, nw::EffectType type, int subtype,
     CallBack cb, Extractor extractor, Comp comparator = std::greater<T>{}) noexcept
 {
-    if (type == nw::EffectType::invalid()) { return 0; }
+    if (type == nw::EffectType::invalid()) { return end; }
     auto it = begin;
 
-    int result = 0;
     while (it != end && it->type == type && it->subtype == subtype) {
         if (it->creator.type == nw::ObjectType::item) {
             auto item = it->creator;
@@ -88,7 +87,6 @@ int resolve_effects_of(It begin, It end, nw::EffectType type, int subtype,
                 ++it;
             }
             cb(value);
-            ++result;
         } else if (it->spell_id != nw::Spell::invalid()) {
             auto spell = it->spell_id;
             T value = extractor(*it);
@@ -100,14 +98,12 @@ int resolve_effects_of(It begin, It end, nw::EffectType type, int subtype,
                 ++it;
             }
             cb(value);
-            ++result;
         } else {
             cb(extractor(*it));
-            ++result;
             ++it;
         }
     }
-    return result;
+    return it;
 }
 
 } // namespace nwn1

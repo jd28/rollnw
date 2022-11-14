@@ -39,7 +39,7 @@ int get_ability_score(const nw::Creature* obj, nw::Ability ability, bool base)
 
     auto it = find_first_effect_of(std::begin(obj->effects()), end,
         effect_type_ability_increase, *ability);
-    resolve_effects_of<int>(it, end, effect_type_ability_increase, *ability,
+    it = resolve_effects_of<int>(it, end, effect_type_ability_increase, *ability,
         callback, &effect_extract_int0);
 
     int bonus = value;
