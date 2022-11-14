@@ -98,7 +98,7 @@ struct BaseItemInfo {
     bool is_container = false;
     // WeaponWield
     // WeaponType
-    // WeaponSize
+    int weapon_size = 0;
     bool ranged = false;
     // PrefAttackDist
     // MinRange
@@ -135,13 +135,10 @@ struct BaseItemInfo {
     // StorePanelSort
     // ILRStackSize
 
-    // Don't care what these feats represent, could be Weapon Focus, could be Dev Crit, etc.
-    // How they actually affect combat will be dealt with by their Master Feats in a different
-    // part of the rules system.
-    absl::InlinedVector<int, 8> weapon_modifiers_feats;
+    // Don't care about the weapon feats, these will be loaded in to the masterfeat system
 
     bool is_monk_weapon = false;
-    // WeaponFinesseMinimumCreatureSize
+    int finesse_size = 3;
 
     bool valid() const noexcept { return name != 0xFFFFFFFF; }
 };

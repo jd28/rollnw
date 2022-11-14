@@ -8,7 +8,6 @@ namespace nw {
 BaseItemInfo::BaseItemInfo(const TwoDARowView& tda)
 {
     std::string temp_string;
-    int temp_int;
 
     if (!tda.get_to("label", temp_string)) { return; }
 
@@ -30,7 +29,7 @@ BaseItemInfo::BaseItemInfo(const TwoDARowView& tda)
     tda.get_to("Container", is_container);
     // WeaponWield
     // WeaponType
-    // WeaponSize
+    tda.get_to("WeaponSize", weapon_size);
     tda.get_to("RangedWeapon", ranged);
     // PrefAttackDist
     // MinRange
@@ -67,43 +66,8 @@ BaseItemInfo::BaseItemInfo(const TwoDARowView& tda)
     // StorePanelSort
     // ILRStackSize
 
-    if (tda.get_to("WeaponFocusFeat", temp_int)) {
-        weapon_modifiers_feats.push_back(temp_int);
-    }
-
-    if (tda.get_to("EpicWeaponFocusFeat", temp_int)) {
-        weapon_modifiers_feats.push_back(temp_int);
-    }
-
-    if (tda.get_to("WeaponSpecializationFeat", temp_int)) {
-        weapon_modifiers_feats.push_back(temp_int);
-    }
-
-    if (tda.get_to("EpicWeaponSpecializationFeat", temp_int)) {
-        weapon_modifiers_feats.push_back(temp_int);
-    }
-
-    if (tda.get_to("WeaponImprovedCriticalFeat", temp_int)) {
-        weapon_modifiers_feats.push_back(temp_int);
-    }
-
-    if (tda.get_to("EpicWeaponOverwhelmingCriticalFeat", temp_int)) {
-        weapon_modifiers_feats.push_back(temp_int);
-    }
-
-    if (tda.get_to("EpicWeaponDevastatingCriticalFeat", temp_int)) {
-        weapon_modifiers_feats.push_back(temp_int);
-    }
-
-    if (tda.get_to("WeaponOfChoiceFeat", temp_int)) {
-        weapon_modifiers_feats.push_back(temp_int);
-    }
-
-    std::sort(std::begin(weapon_modifiers_feats),
-        std::end(weapon_modifiers_feats));
-
     tda.get_to("IsMonkWeapon", is_monk_weapon);
-    // WeaponFinesseMinimumCreatureSize
+    tda.get_to("WeaponFinesseMinimumCreatureSize", finesse_size);
 }
 
 } // namespace nw
