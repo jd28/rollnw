@@ -87,6 +87,9 @@ struct Creature : public ObjectBase {
 
     // Transient
     int32_t hasted = false;
+    int32_t size = 0;
+    int32_t size_ab_modifier = 0;
+    int32_t size_ac_modifier = 0;
 
     // Serialized
     uint8_t bodybag = 0;

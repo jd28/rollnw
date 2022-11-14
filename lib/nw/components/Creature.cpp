@@ -1,5 +1,7 @@
 #include "Creature.hpp"
 
+#include "../kernel/TwoDACache.hpp"
+
 #include <nlohmann/json.hpp>
 
 namespace nw {
@@ -95,6 +97,17 @@ Creature::Creature()
 bool Creature::instantiate()
 {
     if (instantiated_) return true;
+    auto tda = nw::kernel::twodas().get("appearance");
+    if (tda) {
+        if (tda->get_to(appearance.id, "SIZECATEGORY", size)) {
+            auto cresize = nw::kernel::twodas().get("creaturesize");
+            if (cresize) {
+                cresize->get_to(size, "ACATTACKMOD", size_ab_modifier);
+                cresize->get_to(size, "ACATTACKMOD", size_ac_modifier);
+            }
+        }
+    }
+
     return instantiated_ = (inventory.instantiate() && equipment.instantiate());
 }
 
