@@ -1,5 +1,6 @@
 #include "nw/kernel/EffectSystem.hpp"
 #include "nwn1/constants.hpp"
+#include "nwn1/constants/const_feat.hpp"
 #include "nwn1/effects.hpp"
 #include "nwn1/functions.hpp"
 #include "nwn1/functions/funcs_effects.hpp"
@@ -93,10 +94,20 @@ TEST_CASE("creature: base attack bonus", "[objects]")
     auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
     REQUIRE(mod);
 
-    auto ent = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/pl_agent_001.utc"));
-    REQUIRE(ent);
+    auto obj = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/pl_agent_001.utc"));
+    REQUIRE(obj);
 
-    REQUIRE(32 == nwn1::attack_bonus(ent, true));
+    REQUIRE(32 == nwn1::attack_bonus(obj, nwn1::attack_type_unarmed, true));
+    REQUIRE(47 == nwn1::attack_bonus(obj, nwn1::attack_type_unarmed));
+    obj->stats.add_feat(nwn1::feat_weapon_focus_unarmed);
+    obj->stats.add_feat(nwn1::feat_epic_weapon_focus_unarmed);
+    REQUIRE(50 == nwn1::attack_bonus(obj, nwn1::attack_type_unarmed));
+    auto eff1 = nwn1::effect_attack_modifier(nwn1::attack_type_any, 2);
+    REQUIRE(nw::kernel::effects().apply(obj, eff1));
+    REQUIRE(52 == nwn1::attack_bonus(obj, nwn1::attack_type_unarmed));
+    auto eff2 = nwn1::effect_attack_modifier(nwn1::attack_type_unarmed, 3);
+    REQUIRE(nw::kernel::effects().apply(obj, eff2));
+    REQUIRE(55 == nwn1::attack_bonus(obj, nwn1::attack_type_unarmed));
 
     nwk::unload_module();
 }
@@ -134,6 +145,12 @@ TEST_CASE("creature: ability ", "[objects]")
     auto obj = nw::kernel::objects().load<nw::Creature>(fs::path("test_data/user/development/pl_agent_001.utc"));
     REQUIRE(obj);
     REQUIRE(obj->instantiate());
+
+    REQUIRE(nwn1::get_ability_score(obj, nwn1::ability_strength) == 40);
+    REQUIRE(nwn1::get_ability_modifier(obj, nwn1::ability_strength) == 15);
+
+    REQUIRE(nwn1::get_ability_score(obj, nwn1::ability_dexterity) == 13);
+    REQUIRE(nwn1::get_ability_modifier(obj, nwn1::ability_dexterity) == 1);
 
     REQUIRE(nwn1::get_ability_score(obj, nwn1::ability_strength, false) == 40);
     obj->stats.add_feat(nwn1::feat_epic_great_strength_1);

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "../constants.hpp"
+
 namespace nw {
 struct Creature;
 struct Item;
@@ -9,13 +11,19 @@ struct ObjectBase;
 namespace nwn1 {
 
 /// Calculates attack bonus
-int attack_bonus(const nw::Creature* obj, bool base = false);
+int attack_bonus(const nw::Creature* obj, nw::AttackType type, bool base = false);
 
 /// Number of attacks per second
 float attacks_per_second(const nw::Creature* obj, const nw::ObjectBase* vs);
 
 /// Calculates number of attacks
 int number_of_attacks(const nw::Creature* obj, bool offhand = false);
+
+/// Gets an equipped weapon by attack type
+nw::Item* get_weapon_by_attack_type(const nw::Creature* obj, nw::AttackType type);
+
+/// Determines if a weapon is finessable
+bool weapon_is_finessable(const nw::Creature* obj, nw::Item* weapon);
 
 /// Calculates weapon iteration, e.g. 5 or 3 for monk weapons
 int weapon_iteration(const nw::Creature* obj, const nw::Item* weapon);
