@@ -1,6 +1,7 @@
 #include "Profile.hpp"
 
 #include "constants.hpp"
+#include "constants/const_feat.hpp"
 #include "effects.hpp"
 #include "rules.hpp"
 
@@ -26,17 +27,21 @@ static inline void load_effects()
 {
     LOG_F(INFO, "[nwn1] Loading effect appliers");
 
-    nw::kernel::effects().add(effect_type_ability_increase,
-        effect_apply_is_creature, effect_remove_is_creature);
-    nw::kernel::effects().add(effect_type_ability_decrease,
-        effect_apply_is_creature, effect_remove_is_creature);
+#define ADD_IS_CREATURE_EFFECT(type) \
+    nw::kernel::effects().add(type, effect_apply_is_creature, effect_remove_is_creature)
+
+    ADD_IS_CREATURE_EFFECT(effect_type_ability_increase);
+    ADD_IS_CREATURE_EFFECT(effect_type_ability_decrease);
+
+    ADD_IS_CREATURE_EFFECT(effect_type_attack_increase);
+    ADD_IS_CREATURE_EFFECT(effect_type_attack_decrease);
 
     nw::kernel::effects().add(effect_type_haste, effect_haste_apply, effect_haste_remove);
 
-    nw::kernel::effects().add(effect_type_skill_increase,
-        effect_apply_is_creature, effect_remove_is_creature);
-    nw::kernel::effects().add(effect_type_skill_decrease,
-        effect_apply_is_creature, effect_remove_is_creature);
+    ADD_IS_CREATURE_EFFECT(effect_type_skill_increase);
+    ADD_IS_CREATURE_EFFECT(effect_type_skill_decrease);
+
+#undef ADD_IS_CREATURE_EFFECT
 }
 
 static inline void load_itemprop_generators()

@@ -36,6 +36,16 @@ nw::Effect* effect_ability_modifier(nw::Ability ability, int modifier)
     return eff;
 }
 
+nw::Effect* effect_attack_modifier(nw::AttackType attack, int modifier)
+{
+    if (modifier == 0) { return nullptr; }
+    auto eff = nw::kernel::effects().create(effect_type_haste);
+    eff->type = modifier > 0 ? effect_type_attack_increase : effect_type_attack_decrease;
+    eff->subtype = *attack;
+    eff->set_int(0, modifier);
+    return eff;
+}
+
 nw::Effect* effect_haste()
 {
     return nw::kernel::effects().create(effect_type_haste);

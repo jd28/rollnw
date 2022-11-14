@@ -1,6 +1,7 @@
 #pragma once
 
 #include "constants.hpp"
+#include "nw/rules/Attack.hpp"
 
 namespace nw {
 struct Effect;
@@ -15,6 +16,9 @@ namespace nwn1 {
 
 /// Creates an ability modifier effect
 nw::Effect* effect_ability_modifier(nw::Ability ability, int modifier);
+
+/// Creates an attack modifier effect
+nw::Effect* effect_attack_modifier(nw::AttackType attack, int modifier);
 
 /// Creates an skill modifier effect
 nw::Effect* effect_skill_modifier(nw::Skill skill, int modifier);
