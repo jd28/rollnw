@@ -102,6 +102,16 @@ static inline bool load_master_feats()
     mfr.set_bonus(mfeat_devastating_crit, 1);
     mfr.set_bonus(mfeat_improved_crit, 1);
     mfr.set_bonus(mfeat_overwhelming_crit, 1);
+    mfr.set_bonus(mfeat_weapon_of_choice, 1);
+
+    // Special case baseitem invalid
+    mfr.add(nw::BaseItem::invalid(), mfeat_weapon_focus, feat_weapon_focus_unarmed);
+    mfr.add(nw::BaseItem::invalid(), mfeat_weapon_focus_epic, feat_epic_weapon_focus_unarmed);
+    mfr.add(nw::BaseItem::invalid(), mfeat_weapon_spec, feat_weapon_specialization_unarmed);
+    mfr.add(nw::BaseItem::invalid(), mfeat_weapon_spec_epic, feat_epic_devastating_critical_unarmed);
+    mfr.add(nw::BaseItem::invalid(), mfeat_devastating_crit, feat_epic_devastating_critical_unarmed);
+    mfr.add(nw::BaseItem::invalid(), mfeat_improved_crit, feat_improved_critical_unarmed);
+    mfr.add(nw::BaseItem::invalid(), mfeat_overwhelming_crit, feat_epic_overwhelming_critical_unarmed);
 
     return true;
 }
