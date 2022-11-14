@@ -33,6 +33,7 @@ constexpr nw::ArmorClass ac_armor = nw::ArmorClass::make(2);
 constexpr nw::ArmorClass ac_shield = nw::ArmorClass::make(3);
 constexpr nw::ArmorClass ac_deflection = nw::ArmorClass::make(4);
 
+constexpr nw::AttackType attack_type_any = nw::AttackType::invalid();
 constexpr nw::AttackType attack_type_onhand = nw::AttackType::make(0);
 constexpr nw::AttackType attack_type_offhand = nw::AttackType::make(1);
 constexpr nw::AttackType attack_type_unarmed = nw::AttackType::make(2);

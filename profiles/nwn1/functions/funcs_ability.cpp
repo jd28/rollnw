@@ -33,7 +33,6 @@ int get_ability_score(const nw::Creature* obj, nw::Ability ability, bool base)
     if (base) { return result; }
 
     // Effects
-
     auto end = std::end(obj->effects());
     int value = 0;
     auto callback = [&value](int result) { value += result; };
