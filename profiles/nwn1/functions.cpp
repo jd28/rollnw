@@ -9,7 +9,7 @@
 namespace nwn1 {
 
 // [TODO] Check polymorph, creature size for weapons
-bool can_equip_item(nw::Creature* obj, nw::Item* item, nw::EquipIndex slot)
+bool can_equip_item(const nw::Creature* obj, nw::Item* item, nw::EquipIndex slot)
 {
     if (!obj || !item) { return false; }
     auto& bia = nw::kernel::rules().baseitems;
@@ -31,7 +31,7 @@ bool equip_item(nw::Creature* obj, nw::Item* item, nw::EquipIndex slot)
     return true;
 }
 
-nw::Item* get_equipped_item(nw::Creature* obj, nw::EquipIndex slot)
+nw::Item* get_equipped_item(const nw::Creature* obj, nw::EquipIndex slot)
 {
     nw::Item* result = nullptr;
     if (!obj) { return result; }

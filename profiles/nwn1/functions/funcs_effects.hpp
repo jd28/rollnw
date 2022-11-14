@@ -27,8 +27,8 @@ It find_first_effect_of(It begin, It end, nw::EffectType type, int subtype = -1)
     needle.type = type;
     needle.subtype = subtype;
 
-    auto comp = [](const nw::EffectHandle& handle, const nw::EffectHandle& needle) {
-        return std::tie(handle.type, handle.subtype) < std::tie(needle.type, needle.subtype);
+    auto comp = [](const nw::EffectHandle& h, const nw::EffectHandle& n) {
+        return std::tie(h.type, h.subtype) < std::tie(n.type, n.subtype);
     };
 
     return std::lower_bound(begin, end, needle, comp);
