@@ -1,3 +1,4 @@
+#include "nwn1/functions/funcs_effects.hpp"
 #include <catch2/catch_all.hpp>
 
 #include <nw/components/Creature.hpp>
@@ -28,10 +29,10 @@ TEST_CASE("effect system registration", "[kernel]")
 
     auto obj = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/nw_chicken.utc"));
     REQUIRE(obj);
-    REQUIRE(nwk::effects().apply(obj, eff));
+    REQUIRE(nwn1::apply_effect(obj, eff));
     REQUIRE(obj->hasted);
     REQUIRE(obj->effects().size() == 1);
-    REQUIRE(nwk::effects().remove(obj, eff));
+    REQUIRE(nwn1::remove_effect(obj, eff));
     REQUIRE_FALSE(obj->hasted);
     REQUIRE(obj->effects().size() == 0);
 }

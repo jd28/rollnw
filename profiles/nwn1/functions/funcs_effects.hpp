@@ -1,11 +1,15 @@
 #pragma once
 
 #include "nw/components/ObjectBase.hpp"
+#include "nw/components/ObjectHandle.hpp"
 #include "nw/rules/Effect.hpp"
 #include <functional>
 #include <iterator>
 
 namespace nwn1 {
+
+/// Applies an effect to an object
+bool apply_effect(nw::ObjectBase* obj, nw::Effect* effect);
 
 /// Extracts the 0th integer value from an effect
 int effect_extract_int0(const nw::EffectHandle& effect);
@@ -33,6 +37,15 @@ It find_first_effect_of(It begin, It end, nw::EffectType type, int subtype = -1)
 
     return std::lower_bound(begin, end, needle, comp);
 }
+
+/// Determines if an effect type is applied to an object
+bool has_effect_applied(nw::ObjectBase* obj, nw::EffectType type, int subtype = -1);
+
+/// Removes an effect from an object
+bool remove_effect(nw::ObjectBase* obj, nw::Effect* effect, bool destroy = true);
+
+/// Removes effects by creator
+int remove_effects_by(nw::ObjectBase* obj, nw::ObjectHandle creator);
 
 /**
  * @brief Finds all applicable effects of a given type / subtype.
@@ -96,8 +109,5 @@ int resolve_effects_of(It begin, It end, nw::EffectType type, int subtype,
     }
     return result;
 }
-
-/// Determines if an effect type is applied to an object
-bool has_effect_applied(nw::ObjectBase* obj, nw::EffectType type, int subtype = -1);
 
 } // namespace nwn1

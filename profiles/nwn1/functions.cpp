@@ -1,4 +1,5 @@
 #include "functions.hpp"
+#include "functions/funcs_effects.hpp"
 
 #include <nw/kernel/EffectSystem.hpp>
 #include <nw/kernel/EventSystem.hpp>
@@ -84,13 +85,15 @@ int process_item_properties(nw::Creature* obj, const nw::Item* item, bool remove
             if (auto eff = nw::kernel::effects().generate(ip)) {
                 eff->creator = item->handle();
                 eff->category = nw::EffectCategory::item;
-                nw::kernel::events().add(nw::kernel::EventType::apply_effect, obj, eff);
+                if (!apply_effect(obj, eff)) {
+                    nw::kernel::effects().destroy(eff);
+                }
                 ++processed;
             }
         }
         return processed;
     } else {
-        return queue_remove_effect_by(obj, item->handle());
+        return remove_effects_by(obj, item->handle());
     }
 }
 

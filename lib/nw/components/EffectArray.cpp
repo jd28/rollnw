@@ -21,6 +21,11 @@ bool EffectArray::add(Effect* effect)
     return true;
 }
 
+void EffectArray::erase(EffectArray::const_iterator first, EffectArray::const_iterator last)
+{
+    effects_.erase(first, last);
+}
+
 bool EffectArray::remove(Effect* effect)
 {
     if (!effect) { return false; }

@@ -22,7 +22,6 @@ bool EffectSystem::apply(ObjectBase* obj, Effect* effect)
     auto it = registry_.find(*effect->type);
     if (it == std::end(registry_)) { return false; }
     if (it->second.first && it->second.first(obj, effect)) {
-        obj->effects().add(effect);
         return true;
     }
     return false;
@@ -40,6 +39,7 @@ Effect* EffectSystem::create(EffectType type)
         if (id.version != std::numeric_limits<uint32_t>::max()) {
             effect = &pool_[index];
             id.version++;
+            effect->type = type;
             effect->set_id(id);
         }
     }
@@ -87,7 +87,6 @@ bool EffectSystem::remove(ObjectBase* obj, Effect* effect)
     auto it = registry_.find(*effect->type);
     if (it == std::end(registry_)) { return false; }
     if (it->second.second && it->second.second(obj, effect)) {
-        obj->effects().remove(effect);
         return true;
     }
     return false;

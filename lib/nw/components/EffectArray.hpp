@@ -11,14 +11,17 @@ struct EffectArray {
     using iterator = storage::iterator;
     using const_iterator = storage::const_iterator;
 
-    iterator begin();
-    const_iterator begin() const;
-
     /// Adds an effect
     bool add(Effect* effect);
 
+    iterator begin();
+    const_iterator begin() const;
+
     iterator end();
     const_iterator end() const;
+
+    /// Removes a range of effects
+    void erase(const_iterator first, const_iterator last);
 
     /// Removes an effect
     bool remove(Effect* effect);

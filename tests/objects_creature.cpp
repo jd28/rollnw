@@ -103,10 +103,10 @@ TEST_CASE("creature: base attack bonus", "[objects]")
     obj->stats.add_feat(nwn1::feat_epic_weapon_focus_unarmed);
     REQUIRE(50 == nwn1::attack_bonus(obj, nwn1::attack_type_unarmed));
     auto eff1 = nwn1::effect_attack_modifier(nwn1::attack_type_any, 2);
-    REQUIRE(nw::kernel::effects().apply(obj, eff1));
+    REQUIRE(nwn1::apply_effect(obj, eff1));
     REQUIRE(52 == nwn1::attack_bonus(obj, nwn1::attack_type_unarmed));
     auto eff2 = nwn1::effect_attack_modifier(nwn1::attack_type_unarmed, 3);
-    REQUIRE(nw::kernel::effects().apply(obj, eff2));
+    REQUIRE(nwn1::apply_effect(obj, eff2));
     REQUIRE(55 == nwn1::attack_bonus(obj, nwn1::attack_type_unarmed));
 
     nwk::unload_module();
@@ -127,11 +127,11 @@ TEST_CASE("creature: skills ", "[objects]")
     REQUIRE(nwn1::get_skill_rank(obj, nwn1::skill_discipline, false) == 68);
 
     auto eff = nwn1::effect_skill_modifier(nwn1::skill_discipline, 5);
-    REQUIRE(nw::kernel::effects().apply(obj, eff));
+    REQUIRE(nwn1::apply_effect(obj, eff));
     REQUIRE(nwn1::get_skill_rank(obj, nwn1::skill_discipline, false) == 73);
 
     auto eff2 = nwn1::effect_ability_modifier(nwn1::ability_strength, 5);
-    REQUIRE(nw::kernel::effects().apply(obj, eff2));
+    REQUIRE(nwn1::apply_effect(obj, eff2));
     REQUIRE(nwn1::get_skill_rank(obj, nwn1::skill_discipline, false) == 75);
 
     nwk::unload_module();
@@ -159,7 +159,7 @@ TEST_CASE("creature: ability ", "[objects]")
     REQUIRE(nwn1::get_ability_score(obj, nwn1::ability_strength, false) == 42);
 
     auto eff = nwn1::effect_ability_modifier(nwn1::ability_strength, 5);
-    REQUIRE(nw::kernel::effects().apply(obj, eff));
+    REQUIRE(nwn1::apply_effect(obj, eff));
     REQUIRE(obj->effects().size() > 0);
     REQUIRE(nwn1::get_ability_score(obj, nwn1::ability_strength, false) == 47);
 
@@ -167,12 +167,9 @@ TEST_CASE("creature: ability ", "[objects]")
     auto item = nwk::objects().load<nw::Item>("x2_it_mbelt001"sv);
     REQUIRE(item);
     REQUIRE(nwn1::equip_item(obj, item, nw::EquipIndex::belt));
-    // Note calls to process are necessary to apply effects.. normally this would be called by
-    // an event loop.
-    REQUIRE(nwk::events().process() > 0);
+    REQUIRE(obj->effects().size() > 1);
     REQUIRE(nwn1::get_ability_score(obj, nwn1::ability_strength, false) == 54);
     REQUIRE(nwn1::unequip_item(obj, nw::EquipIndex::belt));
-    REQUIRE(nwk::events().process() > 0);
     REQUIRE(nwn1::get_ability_score(obj, nwn1::ability_strength, false) == 47);
 
     nwk::unload_module();
@@ -261,11 +258,9 @@ TEST_CASE("creature: equip and unequip items", "[objects]")
     auto boots_of_speed = nwk::objects().load<nw::Item>("nw_it_mboots005"sv);
     REQUIRE(boots_of_speed);
     REQUIRE(nwn1::equip_item(obj, boots_of_speed, nw::EquipIndex::boots));
-    REQUIRE(nwk::events().process() > 0);
     REQUIRE(obj->hasted);
     auto boots_of_speed2 = nwn1::unequip_item(obj, nw::EquipIndex::boots);
     REQUIRE(boots_of_speed2);
-    REQUIRE(nwk::events().process() > 0);
     REQUIRE_FALSE(obj->hasted);
 }
 
