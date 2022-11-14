@@ -3,6 +3,7 @@
 #include "../constants.hpp"
 #include "../functions.hpp"
 #include "nw/components/Equips.hpp"
+#include "nw/rules/Attack.hpp"
 #include "nw/rules/BaseItem.hpp"
 
 #include <nw/components/Creature.hpp>
@@ -94,6 +95,26 @@ int attack_bonus(const nw::Creature* obj, nw::AttackType type, bool base)
     return result + std::clamp(bonus - decrease, -12, 12);
 
     return result;
+}
+
+nw::AttackType equip_index_to_attack_type(nw::EquipIndex equip)
+{
+    switch (equip) {
+    default:
+        return attack_type_any;
+    case nw::EquipIndex::righthand:
+        return attack_type_onhand;
+    case nw::EquipIndex::lefthand:
+        return attack_type_offhand;
+    case nw::EquipIndex::arms:
+        return attack_type_unarmed;
+    case nw::EquipIndex::creature_bite:
+        return attack_type_cweapon1;
+    case nw::EquipIndex::creature_left:
+        return attack_type_cweapon2;
+    case nw::EquipIndex::creature_right:
+        return attack_type_cweapon3;
+    }
 }
 
 nw::Item* get_weapon_by_attack_type(const nw::Creature* obj, nw::AttackType type)

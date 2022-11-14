@@ -2,6 +2,8 @@
 
 #include "../constants.hpp"
 
+#include <nw/components/Equips.hpp>
+
 namespace nw {
 struct Creature;
 struct Item;
@@ -15,6 +17,9 @@ int attack_bonus(const nw::Creature* obj, nw::AttackType type, bool base = false
 
 /// Number of attacks per second
 float attacks_per_second(const nw::Creature* obj, const nw::ObjectBase* vs);
+
+/// Converts an equip index to an attack type
+nw::AttackType equip_index_to_attack_type(nw::EquipIndex equip);
 
 /// Calculates number of attacks
 int number_of_attacks(const nw::Creature* obj, bool offhand = false);

@@ -42,6 +42,12 @@ bool effect_haste_remove(nw::ObjectBase* obj, const nw::Effect*);
 /// Creates ability modifier item property
 nw::ItemProperty itemprop_ability_modifier(nw::Ability ability, int modifier);
 
+/// Creates attack modifier item property
+nw::ItemProperty itemprop_attack_modifier(int value);
+
+/// Creates enhancement modifier item property
+nw::ItemProperty itemprop_enhancement_modifier(int value);
+
 /// Creates haste item property
 nw::ItemProperty itemprop_haste();
 
@@ -52,6 +58,8 @@ nw::ItemProperty itemprop_skill_modifier(nw::Skill skill, int modifier);
 // ----------------------------------------------------------------------------
 
 nw::Effect* ip_gen_ability_modifier(const nw::ItemProperty& ip, nw::EquipIndex);
+nw::Effect* ip_gen_attack_modifier(const nw::ItemProperty& ip, nw::EquipIndex);
+nw::Effect* ip_gen_enhancement_modifier(const nw::ItemProperty& ip, nw::EquipIndex);
 nw::Effect* ip_gen_haste(const nw::ItemProperty&, nw::EquipIndex);
 nw::Effect* ip_gen_skill_modifier(const nw::ItemProperty& ip, nw::EquipIndex);
 

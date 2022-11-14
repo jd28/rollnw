@@ -1,7 +1,9 @@
 #include "effects.hpp"
 
 #include "constants.hpp"
+#include "functions.hpp"
 
+#include <algorithm>
 #include <nw/components/Creature.hpp>
 #include <nw/kernel/EffectSystem.hpp>
 #include <nw/kernel/Rules.hpp>
@@ -105,6 +107,66 @@ nw::Effect* ip_gen_ability_modifier(const nw::ItemProperty& ip, nw::EquipIndex)
         // Note: value will already be negative for decreased ability score.
         if (auto value = def->cost_table->get<int>(ip.cost_value, "Value")) {
             return effect_ability_modifier(abil, *value);
+        }
+    }
+    return nullptr;
+}
+
+nw::ItemProperty itemprop_attack_modifier(int value)
+{
+    nw::ItemProperty result;
+    if (value == 0) { return result; }
+    auto type = value > 0 ? ip_attack_bonus : ip_attack_penalty;
+
+    const auto def = nw::kernel::rules().ip_definition(type);
+    if (!def || !def->cost_table) { return result; }
+    value = std::clamp(value, 0, int(def->cost_table->rows()));
+
+    result.type = uint16_t(*type);
+    result.cost_value = uint16_t(value);
+    return result;
+}
+
+nw::Effect* ip_gen_attack_modifier(const nw::ItemProperty& ip, nw::EquipIndex equip)
+{
+    auto type = nw::ItemPropertyType::make(ip.type);
+    const auto def = nw::kernel::rules().ip_definition(type);
+    if (!def) { return nullptr; }
+
+    if ((type == ip_attack_bonus || type == ip_attack_penalty) && def->cost_table) {
+        // Note: value will already be negative for decreased ability score.
+        if (auto value = def->cost_table->get<int>(ip.cost_value, "Value")) {
+            return effect_attack_modifier(equip_index_to_attack_type(equip), *value);
+        }
+    }
+    return nullptr;
+}
+
+nw::ItemProperty itemprop_enhancement_modifier(int value)
+{
+    nw::ItemProperty result;
+    if (value == 0) { return result; }
+    auto type = value > 0 ? ip_enhancement_bonus : ip_enhancement_penalty;
+
+    const auto def = nw::kernel::rules().ip_definition(type);
+    if (!def || !def->cost_table) { return result; }
+    value = std::clamp(value, 0, int(def->cost_table->rows()));
+
+    result.type = uint16_t(*type);
+    result.cost_value = uint16_t(value);
+    return result;
+}
+
+nw::Effect* ip_gen_enhancement_modifier(const nw::ItemProperty& ip, nw::EquipIndex equip)
+{
+    auto type = nw::ItemPropertyType::make(ip.type);
+    const auto def = nw::kernel::rules().ip_definition(type);
+    if (!def) { return nullptr; }
+
+    if ((type == ip_enhancement_bonus || type == ip_enhancement_penalty) && def->cost_table) {
+        // Note: value will already be negative for decreased ability score.
+        if (auto value = def->cost_table->get<int>(ip.cost_value, "Value")) {
+            return effect_attack_modifier(equip_index_to_attack_type(equip), *value);
         }
     }
     return nullptr;
