@@ -1,6 +1,7 @@
 #pragma once
 
 #include "functions.hpp"
+#include "nw/rules/Modifier.hpp"
 
 #include <nw/components/ObjectBase.hpp>
 #include <nw/rules/system.hpp>
@@ -19,6 +20,9 @@ nw::ModifierResult epic_great_ability(const nw::ObjectBase* obj, int32_t subtype
 // Armor Class
 nw::ModifierResult dragon_disciple_ac(const nw::ObjectBase* obj);
 nw::ModifierResult pale_master_ac(const nw::ObjectBase* obj);
+
+// Attack Bonus
+nw::ModifierResult weapon_master_ab(const nw::ObjectBase* obj, int32_t subtype);
 
 // Damage Resist
 nw::ModifierResult energy_resistance(const nw::ObjectBase* obj, int32_t subtype);

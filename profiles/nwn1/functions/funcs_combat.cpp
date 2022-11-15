@@ -45,7 +45,7 @@ int attack_bonus(const nw::Creature* obj, nw::AttackType type, bool base)
     }
 
     // Modifiers
-    nw::kernel::rules().calculate(obj, mod_type_attack_bonus, baseitem,
+    nw::kernel::rules().calculate(obj, mod_type_attack_bonus_item, baseitem,
         [&result](int value) { result += value; });
 
     // Master Feats
@@ -53,9 +53,6 @@ int attack_bonus(const nw::Creature* obj, nw::AttackType type, bool base)
     for (auto b : mfr.resolve<int>(obj, baseitem, mfeat_weapon_focus, mfeat_weapon_focus_epic)) {
         result += b;
     }
-
-    // int wm = obj->levels.level_by_class(class_type_weapon_master);
-    // auto s = mfr.resolve<int>(obj, baseitem, mfeat_weapon_of_choice);
 
     // Abilities
     int modifier = get_ability_modifier(obj, ability_strength);

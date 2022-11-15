@@ -1,13 +1,14 @@
 #include "rules.hpp"
 
 #include "constants.hpp"
+#include "constants/const_feat.hpp"
 #include "functions.hpp"
+#include "nw/rules/BaseItem.hpp"
 
 #include <nw/components/Common.hpp>
 #include <nw/components/Creature.hpp>
-#include <nw/components/CreatureStats.hpp>
-#include <nw/components/LevelStats.hpp>
 #include <nw/kernel/Kernel.hpp>
+#include <nw/kernel/Rules.hpp>
 #include <nw/kernel/TwoDACache.hpp>
 #include <nw/log.hpp>
 #include <nw/rules/Class.hpp>
@@ -299,12 +300,32 @@ nw::ModifierResult dragon_disciple_ac(const nw::ObjectBase* obj)
 nw::ModifierResult pale_master_ac(const nw::ObjectBase* obj)
 {
     auto cre = obj->as_creature();
-    if (!cre) {
-        return 0;
-    }
+    if (!cre) { return 0; }
     auto pm_level = cre->levels.level_by_class(nwn1::class_type_pale_master);
 
     return pm_level > 0 ? ((pm_level / 4) + 1) * 2 : 0;
+}
+
+// Attack Bonus
+nw::ModifierResult weapon_master_ab(const nw::ObjectBase* obj, int32_t subtype)
+{
+    auto baseitem = nw::BaseItem::make(subtype);
+    auto cre = obj->as_creature();
+    if (!cre) { return 0; }
+    auto wm = cre->levels.level_by_class(nwn1::class_type_weapon_master);
+    if (wm < 5) { return 0; }
+
+    auto& mfr = nw::kernel::rules().master_feats;
+    bool has_feat = !!mfr.resolve<int>(cre, baseitem, mfeat_weapon_of_choice)[0];
+    if (!has_feat) { return 0; }
+
+    int result = 1;
+
+    if (wm >= 13) {
+        result += (wm - 10) / 3;
+    }
+
+    return result;
 }
 
 // Damage Resist

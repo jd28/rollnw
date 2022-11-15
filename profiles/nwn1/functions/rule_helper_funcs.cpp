@@ -1,6 +1,8 @@
 #include "rule_helper_funcs.hpp"
 
 #include "../constants.hpp"
+#include "nw/rules/Attack.hpp"
+#include "nw/rules/BaseItem.hpp"
 
 #include <nw/kernel/Kernel.hpp>
 
@@ -40,6 +42,8 @@ namespace mod {
 
 DEFINE_MOD_WITH_SUBTYPE(armor_class, nw::ArmorClass, mod_type_armor_class)
 DEFINE_MOD_WITH_SUBTYPE(ability, nw::Ability, mod_type_ability)
+DEFINE_MOD_WITH_SUBTYPE(attack_bonus, nw::AttackType, mod_type_attack_bonus)
+DEFINE_MOD_WITH_SUBTYPE(attack_bonus_item, nw::BaseItem, mod_type_attack_bonus_item)
 DEFINE_MOD_WITH_SUBTYPE(damage_resist, nw::Damage, mod_type_dmg_resistance)
 DEFINE_MOD(hitpoints, mod_type_hitpoints)
 DEFINE_MOD_WITH_SUBTYPE(skill, nw::Skill, mod_type_skill)
