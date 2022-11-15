@@ -91,7 +91,7 @@ int attack_bonus(const nw::Creature* obj, nw::AttackType type, bool base)
         callback, &effect_extract_int0);
     int decrease = value;
 
-    return result + std::clamp(bonus - decrease, -12, 12);
+    return result + std::clamp(bonus - decrease, -20, 20);
 }
 
 nw::AttackType equip_index_to_attack_type(nw::EquipIndex equip)
