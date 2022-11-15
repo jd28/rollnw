@@ -46,7 +46,8 @@ int remove_effects_by(nw::ObjectBase* obj, nw::ObjectHandle creator)
     int result = 0;
     auto it = std::remove_if(std::begin(obj->effects()), std::end(obj->effects()),
         [&](const nw::EffectHandle& handle) {
-            if (handle.creator == creator && remove_effect(obj, handle.effect)) {
+            if (handle.creator == creator && nw::kernel::effects().remove(obj, handle.effect)) {
+                nw::kernel::effects().destroy(handle.effect);
                 ++result;
                 return true;
             }

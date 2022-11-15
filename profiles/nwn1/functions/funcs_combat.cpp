@@ -31,7 +31,7 @@ int attack_bonus(const nw::Creature* obj, nw::AttackType type, bool base)
     }
 
     // Size
-    base += obj->size_ab_modifier;
+    result += obj->size_ab_modifier;
 
     if (base) { return result; }
 

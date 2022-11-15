@@ -21,7 +21,7 @@ struct EffectArray {
     const_iterator end() const;
 
     /// Removes a range of effects
-    void erase(const_iterator first, const_iterator last);
+    void erase(iterator first, iterator last);
 
     /// Removes an effect
     bool remove(Effect* effect);
