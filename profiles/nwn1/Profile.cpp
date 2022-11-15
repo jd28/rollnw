@@ -3,6 +3,7 @@
 #include "constants.hpp"
 #include "constants/const_feat.hpp"
 #include "effects.hpp"
+#include "functions/rule_helper_funcs.hpp"
 #include "rules.hpp"
 
 #include <nw/components/Creature.hpp>
@@ -127,42 +128,14 @@ static inline void load_modifiers()
 
     auto& rules = nw::kernel::rules();
 
+    // Ability
     rules.add(mod::ability(
-        ability_strength,
+        nw::Ability::invalid(),
         epic_great_ability,
-        "dnd-3.0-epic-great-strength",
+        "dnd-3.0-epic-great-ability",
         nw::ModifierSource::feat));
 
-    rules.add(mod::ability(
-        ability_dexterity,
-        epic_great_ability,
-        "dnd-3.0-epic-great-dexterity",
-        nw::ModifierSource::feat));
-
-    rules.add(mod::ability(
-        ability_constitution,
-        epic_great_ability,
-        "dnd-3.0-epic-great-constitution",
-        nw::ModifierSource::feat));
-
-    rules.add(mod::ability(
-        ability_intelligence,
-        epic_great_ability,
-        "dnd-3.0-epic-great-intelligence",
-        nw::ModifierSource::feat));
-
-    rules.add(mod::ability(
-        ability_wisdom,
-        epic_great_ability,
-        "dnd-3.0-epic-great-wisdom",
-        nw::ModifierSource::feat));
-
-    rules.add(mod::ability(
-        ability_charisma,
-        epic_great_ability,
-        "dnd-3.0-epic-great-charisma",
-        nw::ModifierSource::feat));
-
+    // Armor Class
     rules.add(mod::armor_class(
         ac_natural,
         dragon_disciple_ac,
@@ -173,6 +146,13 @@ static inline void load_modifiers()
         ac_natural,
         pale_master_ac,
         "dnd-3.0-palemaster-ac",
+        nw::ModifierSource::class_));
+
+    // Attack Bonus
+    rules.add(mod::attack_bonus_item(
+        nw::BaseItem::invalid(),
+        weapon_master_ab,
+        "dnd-3.0-weaponmaster-ab",
         nw::ModifierSource::class_));
 
     // Damage Resist

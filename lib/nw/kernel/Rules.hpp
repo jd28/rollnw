@@ -16,6 +16,7 @@
 #include <cstdint>
 #include <limits>
 #include <memory>
+#include <utility>
 #include <vector>
 
 namespace nw::kernel {
@@ -50,7 +51,7 @@ struct Rules : public Service {
      */
     template <typename U, typename Callback>
     bool calculate(const ObjectBase* obj, const ModifierType type, U subtype, Callback cb,
-        const ObjectBase* versus = nullptr) const;
+        const ObjectBase* versus = nullptr, bool match_invalid = false) const;
 
     /**
      * @brief Calculates a modifier
@@ -58,7 +59,7 @@ struct Rules : public Service {
      */
     template <typename Callback>
     bool calculate(const ObjectBase* obj, const Modifier& mod, Callback cb,
-        const ObjectBase* versus = nullptr) const;
+        const ObjectBase* versus = nullptr, int32_t subtype = -1) const;
 
     /// Gets an item property cost table
     const TwoDA* ip_cost_table(size_t table) const;
@@ -163,7 +164,7 @@ struct function_traits<R (&)(Args...)> {
 
 template <typename T>
 bool calc_mod_input(T& out, const ObjectBase* obj, const ObjectBase* versus,
-    const Modifier& mod, const ModifierVariant& in)
+    const ModifierVariant& in, int32_t subtype)
 {
     if (in.is<T>()) {
         out = in.as<T>();
@@ -176,7 +177,7 @@ bool calc_mod_input(T& out, const ObjectBase* obj, const ObjectBase* versus,
             return false;
         }
     } else if (in.is<ModifierSubFunction>()) {
-        auto res = in.as<ModifierSubFunction>()(obj, mod.subtype);
+        auto res = in.as<ModifierSubFunction>()(obj, subtype);
         if (res.is<T>()) {
             out = res.as<T>();
         } else {
@@ -192,7 +193,7 @@ bool calc_mod_input(T& out, const ObjectBase* obj, const ObjectBase* versus,
             return false;
         }
     } else if (in.is<ModifierSubVsFunction>()) {
-        auto res = in.as<ModifierSubVsFunction>()(obj, versus, mod.subtype);
+        auto res = in.as<ModifierSubVsFunction>()(obj, versus, subtype);
         if (res.is<T>()) {
             out = res.as<T>();
         } else {
@@ -207,17 +208,25 @@ bool calc_mod_input(T& out, const ObjectBase* obj, const ObjectBase* versus,
 }
 
 template <typename TupleT, std::size_t... Is>
-bool calc_mod_inputs(TupleT& tp, const ObjectBase* obj, const ObjectBase* versus,
+bool calc_mod_inputs(TupleT& tp, const ObjectBase* obj, const ObjectBase* versus, int32_t subtype,
     const Modifier& mod, std::index_sequence<Is...>)
 {
-    return (calc_mod_input(std::get<Is>(tp), obj, versus, mod, mod.value[Is]) && ...);
+    return (calc_mod_input(std::get<Is>(tp), obj, versus, mod.value[Is], subtype) && ...);
+}
+
+template <typename It>
+inline std::vector<Modifier>::const_iterator
+find_first_modifier_of(It begin, It end, const ModifierType type, int32_t subtype = -1)
+{
+    Modifier temp{type, {}, {}, ModifierSource::unknown, Requirement{}, {}, subtype};
+    return std::lower_bound(begin, end, temp);
 }
 
 } // namespace detail
 
 template <typename Callback>
 bool Rules::calculate(const ObjectBase* obj, const Modifier& mod, Callback cb,
-    const ObjectBase* versus) const
+    const ObjectBase* versus, int32_t subtype) const
 {
     static_assert(detail::function_traits<Callback>::validate_args(), "invalid argument types");
 
@@ -231,7 +240,7 @@ bool Rules::calculate(const ObjectBase* obj, const Modifier& mod, Callback cb,
     }
 
     typename detail::function_traits<Callback>::tuple_type output;
-    bool res = detail::calc_mod_inputs(output, obj, versus, mod,
+    bool res = detail::calc_mod_inputs(output, obj, versus, subtype, mod,
         std::make_integer_sequence<size_t, detail::function_traits<Callback>::arity>{});
 
     if (!res) {
@@ -247,9 +256,7 @@ template <typename Callback>
 bool Rules::calculate(const ObjectBase* obj, const ModifierType type, Callback cb,
     const ObjectBase* versus) const
 {
-    Modifier temp{type, {}, {}, ModifierSource::unknown, Requirement{}, {}, -1};
-    auto it = std::lower_bound(std::begin(entries_), std::end(entries_), temp);
-
+    auto it = detail::find_first_modifier_of(std::begin(entries_), std::end(entries_), type);
     while (it != std::end(entries_) && it->type == type) {
         if (!calculate(obj, *it, cb, versus)) return false;
         ++it;
@@ -259,13 +266,21 @@ bool Rules::calculate(const ObjectBase* obj, const ModifierType type, Callback c
 
 template <typename U, typename Callback>
 bool Rules::calculate(const ObjectBase* obj, const ModifierType type, U subtype, Callback cb,
-    const ObjectBase* versus) const
+    const ObjectBase* versus, bool match_invalid) const
 {
-    Modifier temp{type, {}, {}, ModifierSource::unknown, Requirement{}, {}, *subtype};
-    auto it = std::lower_bound(std::begin(entries_), std::end(entries_), temp);
+    std::vector<Modifier>::const_iterator it = std::begin(entries_);
+    auto end = std::end(entries_);
+    if (match_invalid) {
+        it = detail::find_first_modifier_of(it, end, type);
+        while (it != std::end(entries_) && it->type == type && it->subtype == -1) {
+            if (!calculate(obj, *it, cb, versus, *subtype)) return false;
+            ++it;
+        }
+    }
 
+    it = detail::find_first_modifier_of(it, end, type, *subtype);
     while (it != std::end(entries_) && it->type == type && it->subtype == *subtype) {
-        if (!calculate(obj, *it, cb, versus)) return false;
+        if (!calculate(obj, *it, cb, versus, *subtype)) return false;
         ++it;
     }
     return true;
