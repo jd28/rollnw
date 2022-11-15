@@ -41,17 +41,34 @@ struct Rules : public Service {
      * @tparam Callback Modifier callback function
      */
     template <typename Callback>
-    bool calculate(const ObjectBase* obj, const ModifierType type, Callback cb,
-        const ObjectBase* versus = nullptr) const;
+    bool calculate(const ObjectBase* obj, const ModifierType type, Callback cb) const;
 
     /**
-     * @brief Calculates all modifiers of `type`
+     * @brief Calculates all modifiers of `type` versus an object
+     * @tparam Callback Modifier callback function
+     */
+    template <typename Callback>
+    bool calculate(const ObjectBase* obj, const ModifierType type,
+        const ObjectBase* versus, Callback cb) const;
+
+    /**
+     * @brief Calculates all modifiers of a `type` and `subtype`
      * @tparam U is some rule subtype
      * @tparam Callback Modifier callback function
      */
-    template <typename U, typename Callback>
-    bool calculate(const ObjectBase* obj, const ModifierType type, U subtype, Callback cb,
-        const ObjectBase* versus = nullptr, bool match_invalid = false) const;
+    template <typename SubType, typename Callback>
+    bool calculate(const ObjectBase* obj, const ModifierType type, SubType subtype,
+        Callback cb) const;
+
+    /**
+     * @brief Calculates all modifiers of a `type` and `subtype` versus
+     *        another object
+     * @tparam U is some rule subtype
+     * @tparam Callback Modifier callback function
+     */
+    template <typename SubType, typename Callback>
+    bool calculate(const ObjectBase* obj, const ModifierType type, SubType subtype,
+        const ObjectBase* versus, Callback cb) const;
 
     /**
      * @brief Calculates a modifier
@@ -253,26 +270,42 @@ bool Rules::calculate(const ObjectBase* obj, const Modifier& mod, Callback cb,
 }
 
 template <typename Callback>
-bool Rules::calculate(const ObjectBase* obj, const ModifierType type, Callback cb,
-    const ObjectBase* versus) const
+bool Rules::calculate(const ObjectBase* obj, const ModifierType type, Callback cb) const
 {
-    auto it = detail::find_first_modifier_of(std::begin(entries_), std::end(entries_), type);
-    while (it != std::end(entries_) && it->type == type) {
-        if (!calculate(obj, *it, cb, versus)) return false;
+    return calculate(obj, type, static_cast<const ObjectBase*>(nullptr), cb);
+}
+
+template <typename Callback>
+bool Rules::calculate(const ObjectBase* obj, const ModifierType type,
+    const ObjectBase* versus, Callback cb) const
+{
+    auto end = std::end(entries_);
+    auto it = detail::find_first_modifier_of(std::begin(entries_), end, type, -1);
+    while (it != end && it->type == type) {
+        if (!calculate(obj, *it, cb, versus, -1)) return false;
         ++it;
     }
     return true;
 }
 
-template <typename U, typename Callback>
-bool Rules::calculate(const ObjectBase* obj, const ModifierType type, U subtype, Callback cb,
-    const ObjectBase* versus, bool match_invalid) const
+template <typename SubType, typename Callback>
+bool Rules::calculate(const ObjectBase* obj, const ModifierType type, SubType subtype,
+    Callback cb) const
 {
+    static_assert(is_rule_type<SubType>(), "Subtypes must be rule types");
+    return calculate(obj, type, subtype, nullptr, cb);
+}
+
+template <typename SubType, typename Callback>
+bool Rules::calculate(const ObjectBase* obj, const ModifierType type, SubType subtype,
+    const ObjectBase* versus, Callback cb) const
+{
+    static_assert(is_rule_type<SubType>(), "Subtypes must be rule types");
     std::vector<Modifier>::const_iterator it = std::begin(entries_);
     auto end = std::end(entries_);
-    if (match_invalid) {
+    if (subtype != SubType::invalid()) {
         it = detail::find_first_modifier_of(it, end, type);
-        while (it != std::end(entries_) && it->type == type && it->subtype == -1) {
+        while (it != end && it->type == type && it->subtype == -1) {
             if (!calculate(obj, *it, cb, versus, *subtype)) return false;
             ++it;
         }

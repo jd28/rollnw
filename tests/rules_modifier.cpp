@@ -64,9 +64,7 @@ TEST_CASE("modifier kernel", "[rules]")
 
     int res = 0;
     nwk::rules().calculate(ent, nwn1::mod_type_armor_class, nwn1::ac_natural,
-        [&res](int value) {
-            res += value;
-        });
+        [&res](int value) { res += value; });
     REQUIRE(res == 6);
 
     auto pm_ac_nerf = [](const nw::ObjectBase* obj) -> nw::ModifierResult {
@@ -138,9 +136,7 @@ TEST_CASE("modifier kernel 3", "[rules]")
     REQUIRE(nwk::rules().calculate(
         ent, nwn1::mod_type_dmg_resistance,
         nwn1::damage_type_acid,
-        [&res](int value) {
-            res += value;
-        }));
+        [&res](int value) { res += value; }));
 
     REQUIRE(res == 5);
 
@@ -149,9 +145,7 @@ TEST_CASE("modifier kernel 3", "[rules]")
     res = 0;
     REQUIRE(nwk::rules().calculate(ent, nwn1::mod_type_dmg_resistance,
         nwn1::damage_type_acid,
-        [&res](int value) {
-            res += value;
-        }));
+        [&res](int value) { res += value; }));
 
     REQUIRE(res == 20);
 

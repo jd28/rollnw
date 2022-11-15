@@ -27,10 +27,8 @@ int get_ability_score(const nw::Creature* obj, nw::Ability ability, bool base)
     if (race) { result += race->ability_modifiers[ability.idx()]; }
 
     // Modifiers = Feats, etc
-    nw::kernel::rules().calculate(
-        obj, mod_type_ability, ability,
-        [&result](int value) { result += value; },
-        nullptr, true);
+    nw::kernel::rules().calculate(obj, mod_type_ability, ability,
+        [&result](int value) { result += value; });
 
     if (base) { return result; }
 
