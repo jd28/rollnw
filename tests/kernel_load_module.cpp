@@ -10,20 +10,6 @@
 
 using namespace std::literals;
 
-TEST_CASE("load real module", "[kernel]")
-{
-    std::string mod_path;
-    if (const char* var = nowide::getenv("ROLLNW_TEST_MODULE")) {
-        mod_path = var;
-    }
-    if (!mod_path.empty()) {
-        auto mod = nw::kernel::load_module(mod_path);
-        REQUIRE(mod);
-        REQUIRE(mod->area_count());
-        nw::kernel::unload_module();
-    }
-}
-
 TEST_CASE("load module from .mod", "[kernel]")
 {
     auto mod = nw::kernel::load_module("test_data/user/modules/DockerDemo.mod");

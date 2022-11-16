@@ -30,7 +30,7 @@ int main(int argc, char* argv[])
         nw::kernel::config().initialize({
             info.version,
             info.install,
-            info.user,
+            "test_data/user/",
         });
     } else if (nowide::getenv("CI_GITHUB_ACTIONS")) {
         nw::kernel::config().initialize({
