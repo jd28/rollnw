@@ -149,6 +149,11 @@ static inline void load_modifiers()
 
     // Attack Bonus
     rules.add(mod::attack_bonus_item(
+        enchant_arrow_ab,
+        "dnd-3.0-enchange-arrow",
+        nw::ModifierSource::class_));
+
+    rules.add(mod::attack_bonus_item(
         weapon_master_ab,
         "dnd-3.0-weaponmaster-ab",
         nw::ModifierSource::class_));

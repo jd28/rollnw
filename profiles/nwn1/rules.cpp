@@ -3,6 +3,7 @@
 #include "constants.hpp"
 #include "constants/const_feat.hpp"
 #include "functions.hpp"
+#include "functions/funcs_feat.hpp"
 #include "nw/rules/BaseItem.hpp"
 
 #include <nw/components/Common.hpp>
@@ -307,6 +308,28 @@ nw::ModifierResult pale_master_ac(const nw::ObjectBase* obj)
 }
 
 // Attack Bonus
+nw::ModifierResult enchant_arrow_ab(const nw::ObjectBase* obj, int32_t subtype)
+{
+    auto baseitem = nw::BaseItem::make(subtype);
+    auto cre = obj->as_creature();
+    if (!cre) { return 0; }
+
+    if (baseitem == base_item_longbow || baseitem == base_item_shortbow) {
+        auto feat = highest_feat_in_range(cre, feat_prestige_enchant_arrow_6,
+            feat_prestige_enchant_arrow_20);
+        if (feat != nw::Feat::invalid()) {
+            return (*feat - *feat_prestige_enchant_arrow_6) + 6;
+        } else {
+            feat = highest_feat_in_range(cre, feat_prestige_enchant_arrow_1,
+                feat_prestige_enchant_arrow_5);
+            if (feat != nw::Feat::invalid()) {
+                return (*feat - *feat_prestige_enchant_arrow_1) + 1;
+            }
+        }
+    }
+    return 0;
+}
+
 nw::ModifierResult weapon_master_ab(const nw::ObjectBase* obj, int32_t subtype)
 {
     auto baseitem = nw::BaseItem::make(subtype);
