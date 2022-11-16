@@ -89,6 +89,7 @@ nlohmann::json CreatureScripts::to_json() const
 }
 
 Creature::Creature()
+    : equipment{this}
 {
     set_handle({object_invalid, ObjectType::creature, 0});
     inventory.owner = this;

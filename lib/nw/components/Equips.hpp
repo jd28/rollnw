@@ -7,6 +7,7 @@
 
 namespace nw {
 
+struct Creature;
 struct Item;
 
 enum struct EquipSlot {
@@ -144,7 +145,7 @@ constexpr EquipIndex equip_slot_to_index(EquipSlot slot)
 using EquipItem = std::variant<Resref, Item*>;
 
 struct Equips {
-    Equips() = default;
+    Equips(Creature* owner);
     Equips(const Equips&) = delete;
     Equips(Equips&&) = default;
     Equips& operator=(const Equips&) = delete;
@@ -157,6 +158,7 @@ struct Equips {
     bool to_gff(GffBuilderStruct& archive, SerializationProfile profile) const;
     nlohmann::json to_json(SerializationProfile profile) const;
 
+    nw::Creature* owner_ = nullptr;
     std::array<EquipItem, 18> equips;
 };
 

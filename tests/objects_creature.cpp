@@ -24,6 +24,9 @@ namespace nwk = nw::kernel;
 
 TEST_CASE("creature: load nw_chicken", "[objects]")
 {
+    auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
+    REQUIRE(mod);
+
     auto ent = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/nw_chicken.utc"));
     REQUIRE(ent);
     REQUIRE(nwk::objects().valid(ent->handle()));
@@ -33,10 +36,15 @@ TEST_CASE("creature: load nw_chicken", "[objects]")
     REQUIRE(ent->scripts.on_attacked == "nw_c2_default5");
     REQUIRE(ent->appearance.id == 31);
     REQUIRE(ent->gender == 1);
+
+    nwk::unload_module();
 }
 
 TEST_CASE("creature: load pl_agent_001", "[objects]")
 {
+    auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
+    REQUIRE(mod);
+
     auto ent = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/pl_agent_001.utc"));
     REQUIRE(ent);
 
@@ -46,20 +54,27 @@ TEST_CASE("creature: load pl_agent_001", "[objects]")
     REQUIRE(ent->appearance.id == 6);
     REQUIRE(ent->appearance.body_parts.shin_left == 1);
     REQUIRE(ent->soundset == 171);
-    REQUIRE(std::get<nw::Resref>(ent->equipment.equips[1]) == "dk_agent_thread2");
+    REQUIRE(std::get<nw::Item*>(ent->equipment.equips[1]));
     REQUIRE(ent->combat_info.ac_natural == 0);
     REQUIRE(ent->combat_info.special_abilities.size() == 1);
     REQUIRE(ent->combat_info.special_abilities[0].spell == 120);
+
+    nwk::unload_module();
 }
 
 TEST_CASE("creature: add/has/remove_feat", "[objects]")
 {
+    auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
+    REQUIRE(mod);
+
     auto ent = nw::kernel::objects().load<nw::Creature>(fs::path("test_data/user/development/pl_agent_001.utc"));
     REQUIRE(ent);
 
     REQUIRE(ent->stats.feats().size() == 37);
     REQUIRE(ent->stats.has_feat(ent->stats.feats()[20]));
     REQUIRE_FALSE(ent->stats.add_feat(ent->stats.feats()[20]));
+
+    nwk::unload_module();
 }
 
 TEST_CASE("creature: feat search", "[objects]")
@@ -122,17 +137,17 @@ TEST_CASE("creature: skills ", "[objects]")
 
     REQUIRE(nwn1::get_skill_rank(obj, nwn1::skill_discipline, true) == 40);
     obj->stats.add_feat(nwn1::feat_skill_focus_discipline);
-    REQUIRE(nwn1::get_skill_rank(obj, nwn1::skill_discipline, false) == 58);
+    REQUIRE(nwn1::get_skill_rank(obj, nwn1::skill_discipline, false) == 61);
     obj->stats.add_feat(nwn1::feat_epic_skill_focus_discipline);
-    REQUIRE(nwn1::get_skill_rank(obj, nwn1::skill_discipline, false) == 68);
+    REQUIRE(nwn1::get_skill_rank(obj, nwn1::skill_discipline, false) == 71);
 
     auto eff = nwn1::effect_skill_modifier(nwn1::skill_discipline, 5);
     REQUIRE(nwn1::apply_effect(obj, eff));
-    REQUIRE(nwn1::get_skill_rank(obj, nwn1::skill_discipline, false) == 73);
+    REQUIRE(nwn1::get_skill_rank(obj, nwn1::skill_discipline, false) == 76);
 
     auto eff2 = nwn1::effect_ability_modifier(nwn1::ability_strength, 5);
     REQUIRE(nwn1::apply_effect(obj, eff2));
-    REQUIRE(nwn1::get_skill_rank(obj, nwn1::skill_discipline, false) == 75);
+    REQUIRE(nwn1::get_skill_rank(obj, nwn1::skill_discipline, false) == 78);
 
     nwk::unload_module();
 }
@@ -149,8 +164,8 @@ TEST_CASE("creature: ability ", "[objects]")
     REQUIRE(nwn1::get_ability_score(obj, nwn1::ability_strength) == 40);
     REQUIRE(nwn1::get_ability_modifier(obj, nwn1::ability_strength) == 15);
 
-    REQUIRE(nwn1::get_ability_score(obj, nwn1::ability_dexterity) == 13);
-    REQUIRE(nwn1::get_ability_modifier(obj, nwn1::ability_dexterity) == 1);
+    REQUIRE(nwn1::get_ability_score(obj, nwn1::ability_dexterity) == 17);
+    REQUIRE(nwn1::get_ability_modifier(obj, nwn1::ability_dexterity) == 3);
 
     REQUIRE(nwn1::get_ability_score(obj, nwn1::ability_strength, false) == 40);
     obj->stats.add_feat(nwn1::feat_epic_great_strength_1);
@@ -177,6 +192,9 @@ TEST_CASE("creature: ability ", "[objects]")
 
 TEST_CASE("creature: to_json", "[objects]")
 {
+    auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
+    REQUIRE(mod);
+
     auto ent = nw::kernel::objects().load<nw::Creature>(fs::path("test_data/user/development/pl_agent_001.utc"));
     REQUIRE(ent);
 
@@ -185,10 +203,15 @@ TEST_CASE("creature: to_json", "[objects]")
 
     std::ofstream f{"tmp/pl_agent_001.utc.json"};
     f << std::setw(4) << j;
+
+    nwk::unload_module();
 }
 
 TEST_CASE("creature: json to and from", "[objects]")
 {
+    auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
+    REQUIRE(mod);
+
     auto ent = nw::kernel::objects().load<nw::Creature>(fs::path("test_data/user/development/pl_agent_001.utc"));
     REQUIRE(ent);
 
@@ -203,10 +226,15 @@ TEST_CASE("creature: json to and from", "[objects]")
     nw::Creature::serialize(ent2, j2, nw::SerializationProfile::blueprint);
 
     REQUIRE(j == j2);
+
+    nwk::unload_module();
 }
 
 TEST_CASE("creature: gff round trip", "[ojbects]")
 {
+    auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
+    REQUIRE(mod);
+
     auto ent = nw::kernel::objects().load<nw::Creature>(fs::path("test_data/user/development/pl_agent_001.utc"));
     REQUIRE(ent);
 
@@ -232,10 +260,15 @@ TEST_CASE("creature: gff round trip", "[ojbects]")
     REQUIRE(oa.header.field_idx_count == g.head_->field_idx_count);
     REQUIRE(oa.header.list_idx_offset == g.head_->list_idx_offset);
     REQUIRE(oa.header.list_idx_count == g.head_->list_idx_count);
+
+    nwk::unload_module();
 }
 
 TEST_CASE("creature: equip and unequip items", "[objects]")
 {
+    auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
+    REQUIRE(mod);
+
     auto obj = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/test_creature.utc"));
     REQUIRE(obj);
     REQUIRE(obj->instantiate());
@@ -262,13 +295,19 @@ TEST_CASE("creature: equip and unequip items", "[objects]")
     auto boots_of_speed2 = nwn1::unequip_item(obj, nw::EquipIndex::boots);
     REQUIRE(boots_of_speed2);
     REQUIRE_FALSE(obj->hasted);
+
+    nwk::unload_module();
 }
 
 TEST_CASE("creature: apply and remove effects", "[objects]")
 {
+    auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
+    REQUIRE(mod);
+
     auto obj = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/test_creature.utc"));
     REQUIRE(obj);
     REQUIRE(obj->instantiate());
+
     auto eff = nwn1::effect_haste();
     REQUIRE(obj->effects().add(eff));
     REQUIRE(nwn1::has_effect_applied(obj, nwn1::effect_type_haste));
@@ -277,4 +316,6 @@ TEST_CASE("creature: apply and remove effects", "[objects]")
     REQUIRE_FALSE(nwn1::has_effect_applied(obj, nwn1::effect_type_haste));
     REQUIRE(obj->effects().size() == 0);
     REQUIRE_FALSE(obj->effects().remove(nullptr));
+
+    nwk::unload_module();
 }

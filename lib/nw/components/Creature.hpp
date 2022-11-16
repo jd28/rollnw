@@ -106,7 +106,7 @@ struct Creature : public ObjectBase {
     bool plot = false;
     uint8_t starting_package = 0;
 
-    bool instantiated_ = true;
+    bool instantiated_ = false;
 };
 
 } // namespace nw

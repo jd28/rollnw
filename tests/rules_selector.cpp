@@ -24,13 +24,13 @@ TEST_CASE("selectors", "[rules]")
     REQUIRE(nwk::rules().select(sel2, ent).as<int32_t>() == 16);
 
     auto sel3 = nwn1::sel::skill(nwn1::skill_tumble);
-    REQUIRE(nwk::rules().select(sel3, ent).as<int32_t>() == 0);
+    REQUIRE(nwk::rules().select(sel3, ent).as<int32_t>() == 6);
 
     auto sel4 = nwn1::sel::skill(nwn1::skill_discipline);
     REQUIRE(sel4.type == nw::SelectorType::skill);
     REQUIRE(sel4.subtype.is<int32_t>());
     REQUIRE(sel4.subtype.as<int32_t>() == 3);
-    REQUIRE(nwk::rules().select(sel4, ent).as<int32_t>() == 55);
+    REQUIRE(nwk::rules().select(sel4, ent).as<int32_t>() == 58);
 
     nw::kernel::unload_module();
 }

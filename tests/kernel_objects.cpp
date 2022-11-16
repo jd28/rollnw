@@ -8,10 +8,14 @@
 #include <filesystem>
 
 namespace fs = std::filesystem;
+namespace nwk = nw::kernel;
 
 TEST_CASE("objects manager", "[kernel]")
 {
-    auto ent = nw::kernel::objects().load<nw::Creature>("nw_chicken"sv);
+    auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
+    REQUIRE(mod);
+
+    auto ent = nwk::objects().load<nw::Creature>("nw_chicken"sv);
 
     REQUIRE(ent);
     REQUIRE(ent->common.resref == "nw_chicken");
@@ -20,14 +24,14 @@ TEST_CASE("objects manager", "[kernel]")
     REQUIRE(ent->appearance.id == 31);
     REQUIRE(ent->gender == 1);
 
-    auto ent2 = nw::kernel::objects().get<nw::Creature>(ent->handle());
+    auto ent2 = nwk::objects().get<nw::Creature>(ent->handle());
     REQUIRE(ent == ent2);
 
     auto handle = ent->handle();
-    nw::kernel::objects().destroy(handle);
-    REQUIRE_FALSE(nw::kernel::objects().valid(handle));
+    nwk::objects().destroy(handle);
+    REQUIRE_FALSE(nwk::objects().valid(handle));
 
-    auto ent3 = nw::kernel::objects().load<nw::Creature>(fs::path("test_data/user/scratch/pl_agent_001.utc.json"));
+    auto ent3 = nwk::objects().load<nw::Creature>(fs::path("test_data/user/scratch/pl_agent_001.utc.json"));
 
     REQUIRE(ent3);
     REQUIRE(ent3->common.resref == "pl_agent_001");
@@ -36,7 +40,7 @@ TEST_CASE("objects manager", "[kernel]")
     REQUIRE(ent3->appearance.id == 6);
     REQUIRE(ent3->appearance.body_parts.shin_left == 1);
     REQUIRE(ent3->soundset == 171);
-    REQUIRE(std::get<nw::Resref>(ent3->equipment.equips[1]) == "dk_agent_thread2");
+    REQUIRE(std::get<nw::Item*>(ent3->equipment.equips[1]));
     REQUIRE(ent3->combat_info.ac_natural == 0);
     REQUIRE(ent3->combat_info.special_abilities.size() == 1);
     REQUIRE(ent3->combat_info.special_abilities[0].spell == 120);
@@ -44,4 +48,6 @@ TEST_CASE("objects manager", "[kernel]")
     auto handle2 = ent3->handle();
 
     REQUIRE(handle.id == handle2.id);
+
+    nwk::unload_module();
 }

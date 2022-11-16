@@ -1,24 +1,46 @@
 #include "Equips.hpp"
 
+#include "../kernel/EffectSystem.hpp"
 #include "../kernel/Objects.hpp"
+#include "Creature.hpp"
 #include "Item.hpp"
 
 #include <nlohmann/json.hpp>
 
 namespace nw {
 
+Equips::Equips(Creature* owner)
+    : owner_{owner}
+{
+}
+
 bool Equips::instantiate()
 {
+    int i = 0;
     for (auto& e : equips) {
         if (std::holds_alternative<Resref>(e) && std::get<Resref>(e).length()) {
             auto temp = nw::kernel::objects().load<Item>(std::get<Resref>(e).view());
             if (temp) {
                 e = temp;
+                for (const auto& ip : temp->properties) {
+                    if (auto eff = nw::kernel::effects().generate(ip, static_cast<EquipIndex>(i))) {
+                        eff->creator = temp->handle();
+                        eff->category = nw::EffectCategory::item;
+                        if (!nw::kernel::effects().apply(owner_, eff)) {
+                            nw::kernel::effects().destroy(eff);
+                        } else {
+                            owner_->effects().add(eff);
+                        }
+                    }
+                }
+
             } else {
+                e = static_cast<nw::Item*>(nullptr);
                 LOG_F(WARNING, "failed to instantiate item, perhaps you're missing '{}.uti'?",
                     std::get<Resref>(e));
             }
         }
+        ++i;
     }
     return true;
 }
