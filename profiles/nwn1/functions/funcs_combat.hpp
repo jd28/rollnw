@@ -13,10 +13,13 @@ struct ObjectBase;
 namespace nwn1 {
 
 /// Calculates attack bonus
-int attack_bonus(const nw::Creature* obj, nw::AttackType type, bool base = false);
+int attack_bonus(const nw::Creature* obj, nw::AttackType type);
 
 /// Number of attacks per second
 float attacks_per_second(const nw::Creature* obj, const nw::ObjectBase* vs);
+
+/// Calculates base attack bonus
+int base_attack_bonus(const nw::Creature* obj);
 
 /// Converts an equip index to an attack type
 nw::AttackType equip_index_to_attack_type(nw::EquipIndex equip);

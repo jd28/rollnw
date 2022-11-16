@@ -14,26 +14,16 @@
 
 namespace nwn1 {
 
-int attack_bonus(const nw::Creature* obj, nw::AttackType type, bool base)
+int attack_bonus(const nw::Creature* obj, nw::AttackType type)
 {
-    ROLLNW_UNUSED(base);
     int result = 0;
     if (!obj) { return result; }
 
-    auto& classes = nw::kernel::rules().classes;
-
-    // [TODO] This is obviously pretty wrong.
-    for (const auto& cl : obj->levels.entries) {
-        if (!classes.entries[cl.id.idx()].attack_bonus_table) {
-            continue;
-        }
-        result += (*classes.entries[cl.id.idx()].attack_bonus_table)[cl.level];
-    }
+    // BAB
+    result = base_attack_bonus(obj);
 
     // Size
     result += obj->size_ab_modifier;
-
-    if (base) { return result; }
 
     auto weapon = get_weapon_by_attack_type(obj, type);
     auto baseitem = nw::BaseItem::invalid();
@@ -91,6 +81,33 @@ int attack_bonus(const nw::Creature* obj, nw::AttackType type, bool base)
     return result + std::clamp(bonus - decrease, -20, 20);
 }
 
+int base_attack_bonus(const nw::Creature* obj)
+{
+    if (!obj) { return 0; }
+
+    int result = 0;
+    auto& classes = nw::kernel::rules().classes;
+
+    // [TODO] PCs
+    int levels = obj->levels.level();
+    int epic = 0;
+    if (levels >= 20) {
+        epic = (levels - 20) / 2;
+        levels = 20;
+    }
+
+    for (const auto& cl : obj->levels.entries) {
+        if (!classes.entries[cl.id.idx()].attack_bonus_table) {
+            continue;
+        }
+        if (levels == 0) { break; }
+        auto count = std::min(levels, int(cl.level));
+        result += (*classes.entries[cl.id.idx()].attack_bonus_table)[count - 1];
+        levels -= count;
+    }
+    return result + epic;
+}
+
 nw::AttackType equip_index_to_attack_type(nw::EquipIndex equip)
 {
     switch (equip) {
@@ -133,7 +150,7 @@ nw::Item* get_weapon_by_attack_type(const nw::Creature* obj, nw::AttackType type
 
 int number_of_attacks(const nw::Creature* obj, bool offhand)
 {
-    int ab = attack_bonus(obj, offhand ? attack_type_offhand : attack_type_onhand, true);
+    int ab = base_attack_bonus(obj);
     // int iter = weapon_iteration(ent, )
     return ab / 5;
 }

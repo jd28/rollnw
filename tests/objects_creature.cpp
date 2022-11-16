@@ -1,10 +1,11 @@
+#include <catch2/catch_all.hpp>
+
 #include "nw/kernel/EffectSystem.hpp"
 #include "nwn1/constants.hpp"
 #include "nwn1/constants/const_feat.hpp"
 #include "nwn1/effects.hpp"
 #include "nwn1/functions.hpp"
 #include "nwn1/functions/funcs_effects.hpp"
-#include <catch2/catch_all.hpp>
 
 #include <nw/components/Creature.hpp>
 #include <nw/kernel/EventSystem.hpp>
@@ -112,17 +113,42 @@ TEST_CASE("creature: base attack bonus", "[objects]")
     auto obj = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/pl_agent_001.utc"));
     REQUIRE(obj);
 
-    REQUIRE(32 == nwn1::attack_bonus(obj, nwn1::attack_type_unarmed, true));
-    REQUIRE(47 == nwn1::attack_bonus(obj, nwn1::attack_type_unarmed));
+    REQUIRE(27 == nwn1::base_attack_bonus(obj));
+    REQUIRE(42 == nwn1::attack_bonus(obj, nwn1::attack_type_unarmed));
+
+    REQUIRE_FALSE(obj->stats.has_feat(nwn1::feat_weapon_focus_unarmed));
+    REQUIRE_FALSE(obj->stats.has_feat(nwn1::feat_epic_weapon_focus_unarmed));
     obj->stats.add_feat(nwn1::feat_weapon_focus_unarmed);
     obj->stats.add_feat(nwn1::feat_epic_weapon_focus_unarmed);
-    REQUIRE(50 == nwn1::attack_bonus(obj, nwn1::attack_type_unarmed));
+
+    REQUIRE(45 == nwn1::attack_bonus(obj, nwn1::attack_type_unarmed));
     auto eff1 = nwn1::effect_attack_modifier(nwn1::attack_type_any, 2);
     REQUIRE(nwn1::apply_effect(obj, eff1));
-    REQUIRE(52 == nwn1::attack_bonus(obj, nwn1::attack_type_unarmed));
+    REQUIRE(47 == nwn1::attack_bonus(obj, nwn1::attack_type_unarmed));
     auto eff2 = nwn1::effect_attack_modifier(nwn1::attack_type_unarmed, 3);
     REQUIRE(nwn1::apply_effect(obj, eff2));
-    REQUIRE(55 == nwn1::attack_bonus(obj, nwn1::attack_type_unarmed));
+    REQUIRE(50 == nwn1::attack_bonus(obj, nwn1::attack_type_unarmed));
+
+    nwk::unload_module();
+}
+
+TEST_CASE("creature: attack bonus", "[objects]")
+{
+    auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
+    REQUIRE(mod);
+
+    auto obj = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/drorry.utc"));
+    REQUIRE(obj);
+    REQUIRE(obj->instantiate());
+
+    REQUIRE(obj->levels.level() == 38);
+    REQUIRE(obj->levels.level_by_class(nwn1::class_type_fighter) == 10);
+    REQUIRE(obj->levels.level_by_class(nwn1::class_type_weapon_master) == 28);
+    REQUIRE(nwn1::get_ability_score(obj, nwn1::ability_strength) == 16);
+    REQUIRE(nwn1::get_ability_modifier(obj, nwn1::ability_strength) == 3);
+    REQUIRE(obj->size_ab_modifier == 1);
+    REQUIRE(29 == nwn1::base_attack_bonus(obj));
+    REQUIRE(43 == nwn1::attack_bonus(obj, nwn1::attack_type_onhand));
 
     nwk::unload_module();
 }
