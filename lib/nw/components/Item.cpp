@@ -52,7 +52,7 @@ bool Item::deserialize(Item* obj, const GffStruct& archive, SerializationProfile
     archive.get_to("StackSize", obj->stacksize);
 
     archive.get_to("Charges", obj->charges);
-    archive.get_to("Cursed", obj->cursed);
+    archive.get_to("Cursed", obj->cursed, false);
     archive.get_to("Identified", obj->identified);
     archive.get_to("Plot", obj->plot);
     archive.get_to("Stolen", obj->stolen);
