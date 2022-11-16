@@ -38,6 +38,15 @@ int attack_bonus(const nw::Creature* obj, nw::AttackType type)
     nw::kernel::rules().calculate(obj, mod_type_attack_bonus_item, baseitem,
         [&result](int value) { result += value; });
 
+    nw::kernel::rules().calculate(obj, mod_type_attack_bonus_mode, obj->combat_mode,
+        [&result](int value) { result += value; });
+
+    nw::kernel::rules().calculate(obj, mod_type_attack_bonus, type,
+        [&result](int value) { result += value; });
+
+    nw::kernel::rules().calculate(obj, mod_type_attack_bonus, attack_type_any,
+        [&result](int value) { result += value; });
+
     // Master Feats
     auto& mfr = nw::kernel::rules().master_feats;
     for (auto b : mfr.resolve<int>(obj, baseitem, mfeat_weapon_focus, mfeat_weapon_focus_epic)) {

@@ -1,10 +1,11 @@
 #pragma once
 
-#include "nw/rules/Attack.hpp"
-#include "nw/rules/BaseItem.hpp"
 #include <nw/rules/Ability.hpp>
 #include <nw/rules/ArmorClass.hpp>
+#include <nw/rules/Attack.hpp>
+#include <nw/rules/BaseItem.hpp>
 #include <nw/rules/Class.hpp>
+#include <nw/rules/CombatMode.hpp>
 #include <nw/rules/Damage.hpp>
 #include <nw/rules/Feat.hpp>
 #include <nw/rules/Modifier.hpp>
@@ -35,6 +36,7 @@ DECLARE_MOD(hitpoints);
 DECLARE_MOD_WITH_SUBTYPE(ability, nw::Ability);
 DECLARE_MOD_WITH_SUBTYPE(armor_class, nw::ArmorClass);
 DECLARE_MOD_WITH_SUBTYPE(attack_bonus_item, nw::BaseItem);
+DECLARE_MOD_WITH_SUBTYPE(attack_bonus_mode, nw::CombatMode);
 DECLARE_MOD_WITH_SUBTYPE(attack_bonus, nw::AttackType);
 DECLARE_MOD_WITH_SUBTYPE(damage_resist, nw::Damage);
 DECLARE_MOD_WITH_SUBTYPE(skill, nw::Skill);

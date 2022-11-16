@@ -14,6 +14,7 @@ enum struct ModifierSource {
     unknown,
     ability,
     class_,
+    combat_mode,
     environment,
     feat,
     race,

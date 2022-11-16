@@ -12,15 +12,7 @@
 #include <nw/kernel/Resources.hpp>
 #include <nw/kernel/Rules.hpp>
 #include <nw/kernel/TwoDACache.hpp>
-#include <nw/rules/Ability.hpp>
-#include <nw/rules/BaseItem.hpp>
-#include <nw/rules/Class.hpp>
-#include <nw/rules/Feat.hpp>
 #include <nw/rules/MasterFeat.hpp>
-#include <nw/rules/Race.hpp>
-#include <nw/rules/Skill.hpp>
-#include <nw/rules/Spell.hpp>
-#include <nw/rules/system.hpp>
 
 namespace nwn1 {
 
@@ -157,6 +149,42 @@ static inline void load_modifiers()
         weapon_master_ab,
         "dnd-3.0-weaponmaster-ab",
         nw::ModifierSource::class_));
+
+    rules.add(mod::attack_bonus_mode(
+        combat_mode_expertise,
+        -5,
+        "dnd-3.0-rapid_shot-ab",
+        nw::ModifierSource::combat_mode));
+
+    rules.add(mod::attack_bonus_mode(
+        combat_mode_improved_expertise,
+        -10,
+        "dnd-3.0-rapid_shot-ab",
+        nw::ModifierSource::combat_mode));
+
+    rules.add(mod::attack_bonus_mode(
+        combat_mode_flurry_of_blows,
+        -2,
+        "dnd-3.0-rapid_shot-ab",
+        nw::ModifierSource::combat_mode));
+
+    rules.add(mod::attack_bonus_mode(
+        combat_mode_power_attack,
+        -5,
+        "dnd-3.0-rapid_shot-ab",
+        nw::ModifierSource::combat_mode));
+
+    rules.add(mod::attack_bonus_mode(
+        combat_mode_improved_power_attack,
+        -10,
+        "dnd-3.0-rapid_shot-ab",
+        nw::ModifierSource::combat_mode));
+
+    rules.add(mod::attack_bonus_mode(
+        combat_mode_rapid_shot,
+        -2,
+        "dnd-3.0-rapid_shot-ab",
+        nw::ModifierSource::combat_mode));
 
     // Damage Resist
     rules.add(mod::damage_resist(

@@ -10,6 +10,7 @@
 #include <nw/rules/ArmorClass.hpp>
 #include <nw/rules/Attack.hpp>
 #include <nw/rules/Class.hpp>
+#include <nw/rules/CombatMode.hpp>
 #include <nw/rules/Damage.hpp>
 #include <nw/rules/Effect.hpp>
 #include <nw/rules/ItemProperty.hpp>
@@ -87,6 +88,18 @@ constexpr nw::Class class_type_ooze = nw::Class::make(38);
 constexpr nw::Class class_type_eye_of_gruumsh = nw::Class::make(39);
 constexpr nw::Class class_type_shou_disciple = nw::Class::make(40);
 constexpr nw::Class class_type_purple_dragon_knight = nw::Class::make(41);
+
+constexpr nw::CombatMode combat_mode_parry = nw::CombatMode::make(1);
+constexpr nw::CombatMode combat_mode_power_attack = nw::CombatMode::make(2);
+constexpr nw::CombatMode combat_mode_improved_power_attack = nw::CombatMode::make(3);
+constexpr nw::CombatMode combat_mode_counter_spell = nw::CombatMode::make(4);
+constexpr nw::CombatMode combat_mode_flurry_of_blows = nw::CombatMode::make(5);
+constexpr nw::CombatMode combat_mode_rapid_shot = nw::CombatMode::make(6);
+constexpr nw::CombatMode combat_mode_expertise = nw::CombatMode::make(7);
+constexpr nw::CombatMode combat_mode_improved_expertise = nw::CombatMode::make(8);
+constexpr nw::CombatMode combat_mode_defensive_casting = nw::CombatMode::make(9);
+constexpr nw::CombatMode combat_mode_dirty_fighting = nw ::CombatMode::make(10);
+constexpr nw::CombatMode combat_mode_defensive_stance = nw ::CombatMode::make(11);
 
 constexpr nw::EffectType effect_type_haste = nw::EffectType::make(1);
 constexpr nw::EffectType effect_type_damage_resistance = nw::EffectType::make(2);
@@ -384,5 +397,6 @@ constexpr nw::ModifierType mod_type_skill = nw::ModifierType::make(15);
 constexpr nw::ModifierType mod_type_spell_immunity = nw::ModifierType::make(16);
 constexpr nw::ModifierType mod_type_spell_resistance = nw::ModifierType::make(17);
 constexpr nw::ModifierType mod_type_attack_bonus_item = nw::ModifierType::make(18);
+constexpr nw::ModifierType mod_type_attack_bonus_mode = nw::ModifierType::make(18);
 
 } // namespace nwn1

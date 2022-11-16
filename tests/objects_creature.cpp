@@ -1,19 +1,17 @@
 #include <catch2/catch_all.hpp>
 
-#include "nw/kernel/EffectSystem.hpp"
-#include "nwn1/constants.hpp"
-#include "nwn1/constants/const_feat.hpp"
-#include "nwn1/effects.hpp"
-#include "nwn1/functions.hpp"
-#include "nwn1/functions/funcs_effects.hpp"
-
 #include <nw/components/Creature.hpp>
+#include <nw/kernel/EffectSystem.hpp>
 #include <nw/kernel/EventSystem.hpp>
 #include <nw/kernel/Objects.hpp>
 #include <nw/rules/Feat.hpp>
 #include <nw/serialization/Archives.hpp>
 #include <nwn1/Profile.hpp>
+#include <nwn1/constants.hpp>
+#include <nwn1/constants/const_feat.hpp>
+#include <nwn1/effects.hpp>
 #include <nwn1/functions.hpp>
+#include <nwn1/functions/funcs_effects.hpp>
 
 #include <nlohmann/json.hpp>
 
@@ -149,6 +147,16 @@ TEST_CASE("creature: attack bonus", "[objects]")
     REQUIRE(obj->size_ab_modifier == 1);
     REQUIRE(29 == nwn1::base_attack_bonus(obj));
     REQUIRE(43 == nwn1::attack_bonus(obj, nwn1::attack_type_onhand));
+
+    obj->combat_mode = nwn1::combat_mode_power_attack;
+    REQUIRE(38 == nwn1::attack_bonus(obj, nwn1::attack_type_onhand));
+    obj->combat_mode = nwn1::combat_mode_improved_power_attack;
+    REQUIRE(33 == nwn1::attack_bonus(obj, nwn1::attack_type_onhand));
+
+    obj->combat_mode = nwn1::combat_mode_expertise;
+    REQUIRE(38 == nwn1::attack_bonus(obj, nwn1::attack_type_onhand));
+    obj->combat_mode = nwn1::combat_mode_improved_expertise;
+    REQUIRE(33 == nwn1::attack_bonus(obj, nwn1::attack_type_onhand));
 
     nwk::unload_module();
 }

@@ -2,6 +2,7 @@
 
 #include "ObjectBase.hpp"
 
+#include "../rules/CombatMode.hpp"
 #include "../rules/Race.hpp"
 #include "Appearance.hpp"
 #include "CombatInfo.hpp"
@@ -86,7 +87,8 @@ struct Creature : public ObjectBase {
     uint16_t soundset;
 
     // Transient
-    int32_t hasted = false;
+    CombatMode combat_mode = nw::CombatMode::invalid();
+    int32_t hasted = 0;
     int32_t size = 0;
     int32_t size_ab_modifier = 0;
     int32_t size_ac_modifier = 0;
