@@ -27,12 +27,16 @@ namespace mod {
         nw::ModifierSource source = nw::ModifierSource::unknown,                     \
         nw::Requirement req = nw::Requirement{}, nw::Versus versus = {})
 
+DECLARE_MOD(ability);
+DECLARE_MOD(attack_bonus_item);
+DECLARE_MOD(attack_bonus);
+DECLARE_MOD(damage_resist);
+DECLARE_MOD(hitpoints);
 DECLARE_MOD_WITH_SUBTYPE(ability, nw::Ability);
 DECLARE_MOD_WITH_SUBTYPE(armor_class, nw::ArmorClass);
-DECLARE_MOD_WITH_SUBTYPE(attack_bonus, nw::AttackType);
 DECLARE_MOD_WITH_SUBTYPE(attack_bonus_item, nw::BaseItem);
+DECLARE_MOD_WITH_SUBTYPE(attack_bonus, nw::AttackType);
 DECLARE_MOD_WITH_SUBTYPE(damage_resist, nw::Damage);
-DECLARE_MOD(hitpoints);
 DECLARE_MOD_WITH_SUBTYPE(skill, nw::Skill);
 
 #undef DECLARE_MOD

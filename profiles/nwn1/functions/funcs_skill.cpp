@@ -13,7 +13,7 @@ namespace nwn1 {
 
 int get_skill_rank(const nw::Creature* obj, nw::Skill skill, bool base)
 {
-    if (!obj) return 0;
+    if (!obj) { return 0; }
 
     int result = 0;
 

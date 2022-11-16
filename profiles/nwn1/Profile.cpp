@@ -130,7 +130,6 @@ static inline void load_modifiers()
 
     // Ability
     rules.add(mod::ability(
-        nw::Ability::invalid(),
         epic_great_ability,
         "dnd-3.0-epic-great-ability",
         nw::ModifierSource::feat));
@@ -150,42 +149,17 @@ static inline void load_modifiers()
 
     // Attack Bonus
     rules.add(mod::attack_bonus_item(
-        nw::BaseItem::invalid(),
         weapon_master_ab,
         "dnd-3.0-weaponmaster-ab",
         nw::ModifierSource::class_));
 
     // Damage Resist
     rules.add(mod::damage_resist(
-        damage_type_acid,
         energy_resistance,
         "dnd-3.0-energy-resist-acid",
         nw::ModifierSource::feat));
 
-    rules.add(mod::damage_resist(
-        damage_type_cold,
-        energy_resistance,
-        "dnd-3.0-energy-resist-cold",
-        nw::ModifierSource::feat));
-
-    rules.add(mod::damage_resist(
-        damage_type_electrical,
-        energy_resistance,
-        "dnd-3.0-energy-resist-electrical",
-        nw::ModifierSource::feat));
-
-    rules.add(mod::damage_resist(
-        damage_type_fire,
-        energy_resistance,
-        "dnd-3.0-energy-resist-fire",
-        nw::ModifierSource::feat));
-
-    rules.add(mod::damage_resist(
-        damage_type_sonic,
-        energy_resistance,
-        "dnd-3.0-energy-resist-sonic",
-        nw::ModifierSource::feat));
-
+    // Hitpoints
     rules.add(mod::hitpoints(
         toughness,
         "dnd-3.0-toughness",
@@ -196,6 +170,7 @@ static inline void load_modifiers()
         "dnd-3.0-epic-toughness",
         nw::ModifierSource::feat));
 
+    // Skills
     rules.add(mod::skill(
         skill_search,
         simple_feat_mod(feat_stonecunning, 2),
@@ -230,35 +205,35 @@ bool Profile::load_rules() const
             auto& info = baseitem_array.entries.emplace_back(baseitems.row(i));
             if (info.valid()) {
                 if (baseitems.get_to(i, "WeaponFocusFeat", temp_int)) {
-                    mfr.add(nw::BaseItem::make(static_cast<uint32_t>(i)),
+                    mfr.add(nw::BaseItem::make(static_cast<int32_t>(i)),
                         mfeat_weapon_focus, nw::Feat::make(temp_int));
                 }
                 if (baseitems.get_to(i, "EpicWeaponFocusFeat", temp_int)) {
-                    mfr.add(nw::BaseItem::make(static_cast<uint32_t>(i)),
+                    mfr.add(nw::BaseItem::make(static_cast<int32_t>(i)),
                         mfeat_weapon_focus_epic, nw::Feat::make(temp_int));
                 }
                 if (baseitems.get_to(i, "WeaponSpecializationFeat", temp_int)) {
-                    mfr.add(nw::BaseItem::make(static_cast<uint32_t>(i)),
+                    mfr.add(nw::BaseItem::make(static_cast<int32_t>(i)),
                         mfeat_weapon_spec, nw::Feat::make(temp_int));
                 }
                 if (baseitems.get_to(i, "EpicWeaponSpecializationFeat", temp_int)) {
-                    mfr.add(nw::BaseItem::make(static_cast<uint32_t>(i)),
+                    mfr.add(nw::BaseItem::make(static_cast<int32_t>(i)),
                         mfeat_weapon_spec_epic, nw::Feat::make(temp_int));
                 }
                 if (baseitems.get_to(i, "WeaponImprovedCriticalFeat", temp_int)) {
-                    mfr.add(nw::BaseItem::make(static_cast<uint32_t>(i)),
+                    mfr.add(nw::BaseItem::make(static_cast<int32_t>(i)),
                         mfeat_improved_crit, nw::Feat::make(temp_int));
                 }
                 if (baseitems.get_to(i, "EpicWeaponOverwhelmingCriticalFeat", temp_int)) {
-                    mfr.add(nw::BaseItem::make(static_cast<uint32_t>(i)),
+                    mfr.add(nw::BaseItem::make(static_cast<int32_t>(i)),
                         mfeat_overwhelming_crit, nw::Feat::make(temp_int));
                 }
                 if (baseitems.get_to(i, "EpicWeaponDevastatingCriticalFeat", temp_int)) {
-                    mfr.add(nw::BaseItem::make(static_cast<uint32_t>(i)),
+                    mfr.add(nw::BaseItem::make(static_cast<int32_t>(i)),
                         mfeat_devastating_crit, nw::Feat::make(temp_int));
                 }
                 if (baseitems.get_to(i, "WeaponOfChoiceFeat", temp_int)) {
-                    mfr.add(nw::BaseItem::make(static_cast<uint32_t>(i)),
+                    mfr.add(nw::BaseItem::make(static_cast<int32_t>(i)),
                         mfeat_weapon_of_choice, nw::Feat::make(temp_int));
                 }
             }
@@ -274,7 +249,7 @@ bool Profile::load_rules() const
         for (size_t i = 0; i < classes.rows(); ++i) {
             const auto& info = class_array.entries.emplace_back(classes.row(i));
             if (info.constant) {
-                class_array.constant_to_index.emplace(info.constant, nw::Class::make(uint32_t(i)));
+                class_array.constant_to_index.emplace(info.constant, nw::Class::make(int32_t(i)));
             } else if (info.valid()) {
                 LOG_F(WARNING, "[nwn1] valid class ({}) with invalid constant", i);
             }
@@ -290,7 +265,7 @@ bool Profile::load_rules() const
         for (size_t i = 0; i < feat.rows(); ++i) {
             const auto& info = feat_array.entries.emplace_back(feat.row(i));
             if (info.constant) {
-                feat_array.constant_to_index.emplace(info.constant, nw::Feat::make(uint32_t(i)));
+                feat_array.constant_to_index.emplace(info.constant, nw::Feat::make(int32_t(i)));
             } else if (info.valid()) {
                 LOG_F(WARNING, "[nwn1] valid feat ({}) with invalid constant", i);
             }
@@ -306,7 +281,7 @@ bool Profile::load_rules() const
         for (size_t i = 0; i < racialtypes.rows(); ++i) {
             const auto& info = race_array.entries.emplace_back(racialtypes.row(i));
             if (info.constant) {
-                race_array.constant_to_index.emplace(info.constant, nw::Race::make(uint32_t(i)));
+                race_array.constant_to_index.emplace(info.constant, nw::Race::make(int32_t(i)));
             } else if (info.valid()) {
                 LOG_F(WARNING, "[nwn1] valid race ({}) with invalid constant", i);
             }
@@ -322,7 +297,7 @@ bool Profile::load_rules() const
         for (size_t i = 0; i < skills.rows(); ++i) {
             const auto& info = skill_array.entries.emplace_back(skills.row(i));
             if (info.constant) {
-                skill_array.constant_to_index.emplace(info.constant, nw::Skill::make(uint32_t(i)));
+                skill_array.constant_to_index.emplace(info.constant, nw::Skill::make(int32_t(i)));
             } else if (info.valid()) {
                 LOG_F(WARNING, "[nwn1] valid skill ({}) with invalid constant", i);
             }

@@ -6,12 +6,10 @@ namespace nwn1 {
 
 int count_feats_in_range(const nw::Creature* obj, nw::Feat start, nw::Feat end)
 {
-    auto result = 0;
-    int32_t s = *start, e = *end;
+    if (!obj) { return 0; }
 
-    if (!obj) {
-        return result;
-    }
+    int result = 0;
+    int32_t s = *start, e = *end;
 
     while (e >= s) {
         if (obj->stats.has_feat(nw::Feat::make(e))) {
@@ -46,9 +44,7 @@ std::vector<nw::Feat> get_all_available_feats(const nw::Creature* obj)
 
 bool knows_feat(const nw::Creature* obj, nw::Feat feat)
 {
-    if (!obj) {
-        return false;
-    }
+    if (!obj) { return false; }
 
     auto it = std::lower_bound(std::begin(obj->stats.feats()), std::end(obj->stats.feats()), feat);
     return it != std::end(obj->stats.feats()) && *it == feat;
@@ -60,11 +56,7 @@ std::pair<nw::Feat, int> has_feat_successor(const nw::Creature* obj, nw::Feat fe
     int count = 0;
 
     auto featarray = &nw::kernel::rules().feats;
-    if (!featarray) {
-        return {highest, count};
-    }
-
-    if (!obj) {
+    if (!featarray || !obj) {
         return {highest, count};
     }
 
@@ -88,9 +80,8 @@ std::pair<nw::Feat, int> has_feat_successor(const nw::Creature* obj, nw::Feat fe
 
 nw::Feat highest_feat_in_range(const nw::Creature* obj, nw::Feat start, nw::Feat end)
 {
-    if (!obj) {
-        return nw::Feat::invalid();
-    }
+    if (!obj) { return nw::Feat::invalid(); }
+
     int32_t s = *start, e = *end;
     while (e >= s) {
         if (obj->stats.has_feat(nw::Feat::make(e))) {

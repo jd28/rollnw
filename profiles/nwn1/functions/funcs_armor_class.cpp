@@ -13,9 +13,7 @@ int calculate_ac_versus(const nw::Creature* obj, nw::ObjectBase* versus, bool is
 
 int calculate_ac(const nw::Item* obj)
 {
-    if (!obj) {
-        return 0;
-    }
+    if (!obj) { return 0; }
 
     if (obj->model_type == nw::ItemModelType::armor) {
         auto tda = nw::kernel::services().get_mut<nw::kernel::TwoDACache>();
