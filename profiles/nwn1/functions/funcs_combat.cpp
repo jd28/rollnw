@@ -2,7 +2,7 @@
 
 #include "../constants.hpp"
 #include "../functions.hpp"
-#include "nw/rules/Modifier.hpp"
+#include "nw/rules/system.hpp"
 
 #include <nw/components/Creature.hpp>
 #include <nw/components/Equips.hpp>
@@ -37,10 +37,10 @@ int attack_bonus(const nw::Creature* obj, nw::AttackType type)
     }
 
     // Modifiers
-    nw::kernel::rules().calculate(obj, mod_type_attack_bonus_item, baseitem, adder);
-    nw::kernel::rules().calculate(obj, mod_type_attack_bonus_mode, obj->combat_mode, adder);
-    nw::kernel::rules().calculate(obj, mod_type_attack_bonus, type, adder);
-    nw::kernel::rules().calculate(obj, mod_type_attack_bonus, attack_type_any, adder);
+    nw::kernel::resolve_modifier(obj, mod_type_attack_bonus_item, baseitem, adder);
+    nw::kernel::resolve_modifier(obj, mod_type_attack_bonus_mode, obj->combat_mode, adder);
+    nw::kernel::resolve_modifier(obj, mod_type_attack_bonus, type, adder);
+    nw::kernel::resolve_modifier(obj, mod_type_attack_bonus, attack_type_any, adder);
 
     // Master Feats
     nw::kernel::resolve_master_feats<int>(obj, baseitem, adder, mfeat_weapon_focus, mfeat_weapon_focus_epic);

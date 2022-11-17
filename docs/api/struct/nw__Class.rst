@@ -1,5 +1,5 @@
 nw::Class
 =========
 
-.. doxygenstruct:: nw::class
+.. doxygenstruct:: nw::Class
     :members:

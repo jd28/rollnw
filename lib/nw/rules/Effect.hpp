@@ -2,8 +2,8 @@
 
 #include "../components/ObjectHandle.hpp"
 #include "Spell.hpp"
+#include "Versus.hpp"
 #include "rule_type.hpp"
-#include "system.hpp"
 
 #include <absl/container/inlined_vector.h>
 
@@ -11,6 +11,9 @@
 #include <string>
 
 namespace nw {
+
+// == Effect ==================================================================
+// ============================================================================
 
 DECLARE_RULE_TYPE(EffectType);
 

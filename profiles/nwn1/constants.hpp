@@ -6,7 +6,6 @@
 
 #include <nw/rules/Class.hpp>
 #include <nw/rules/Effect.hpp>
-#include <nw/rules/Modifier.hpp>
 #include <nw/rules/combat.hpp>
 #include <nw/rules/items.hpp>
 

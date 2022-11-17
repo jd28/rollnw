@@ -4,6 +4,7 @@
 #include <nw/kernel/EffectSystem.hpp>
 #include <nw/kernel/EventSystem.hpp>
 #include <nw/kernel/Objects.hpp>
+#include <nw/kernel/Rules.hpp>
 #include <nw/rules/feats.hpp>
 #include <nw/serialization/Archives.hpp>
 #include <nwn1/Profile.hpp>
@@ -111,6 +112,7 @@ TEST_CASE("creature: base attack bonus", "[objects]")
     auto obj = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/pl_agent_001.utc"));
     REQUIRE(obj);
 
+    REQUIRE(nw::kernel::rules().modifiers.size() == 15);
     REQUIRE(27 == nwn1::base_attack_bonus(obj));
     REQUIRE(42 == nwn1::attack_bonus(obj, nwn1::attack_type_unarmed));
 

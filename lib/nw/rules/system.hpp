@@ -1,8 +1,12 @@
 #pragma once
 
+#include "../components/ObjectBase.hpp"
 #include "../kernel/Strings.hpp"
 #include "../util/Variant.hpp"
+#include "Versus.hpp"
 #include "attributes.hpp"
+#include "rule_type.hpp"
+#include "system.hpp"
 
 #include <absl/container/inlined_vector.h>
 
@@ -13,9 +17,12 @@
 
 namespace nw {
 
+struct ObjectBase;
+
 using RuleValue = Variant<int32_t, float, std::string>;
 
 // == Selector ================================================================
+// ============================================================================
 
 /// Selector types
 enum struct SelectorType : uint32_t {
@@ -44,6 +51,7 @@ bool operator==(const Selector& lhs, const Selector& rhs);
 bool operator<(const Selector& lhs, const Selector& rhs);
 
 // == Qualifier ===============================================================
+// ============================================================================
 
 struct Qualifier {
     Selector selector;
@@ -51,6 +59,7 @@ struct Qualifier {
 };
 
 // == Requirement =============================================================
+// ============================================================================
 
 struct Requirement {
     explicit Requirement(bool conjunction_ = true);
@@ -61,13 +70,106 @@ struct Requirement {
     bool conjunction = true;
 };
 
-// == Versus ==================================================================
+// == Modifier ================================================================
+// ============================================================================
 
-struct Versus {
-    uint64_t race_flags = 0;
-    AlignmentFlags align_flags = AlignmentFlags::none;
-    AlignmentAxis align_axis = AlignmentAxis::neither;
-    bool trap = false;
+DECLARE_RULE_TYPE(ModifierType);
+
+enum struct ModifierSource {
+    unknown,
+    ability,
+    class_,
+    combat_mode,
+    environment,
+    feat,
+    race,
+    situation,
+    skill,
+};
+
+using ModifierResult = Variant<int, float>;
+using ModifierFunction = std::function<ModifierResult(const ObjectBase*)>;
+using ModifierSubFunction = std::function<ModifierResult(const ObjectBase*, int32_t)>;
+using ModifierVsFunction = std::function<ModifierResult(const ObjectBase*, const ObjectBase*)>;
+using ModifierSubVsFunction = std::function<ModifierResult(const ObjectBase*, const ObjectBase*, int32_t)>;
+
+using ModifierVariant = Variant<
+    int,
+    float,
+    ModifierFunction,
+    ModifierSubFunction,
+    ModifierVsFunction,
+    ModifierSubVsFunction>;
+
+using ModifierInputs = absl::InlinedVector<ModifierVariant, 4>;
+template <typename T>
+using ModifierOutputs = absl::InlinedVector<T, 4>;
+
+struct Modifier {
+    ModifierType type = ModifierType::invalid();
+    ModifierInputs value;
+    InternedString tagged;
+    ModifierSource source = ModifierSource::unknown;
+    Requirement requirement = Requirement{};
+    Versus versus = {};
+    int subtype = -1;
+};
+
+inline bool operator<(const Modifier& lhs, const Modifier& rhs)
+{
+    return std::tie(lhs.type, lhs.subtype, lhs.source) < std::tie(rhs.type, rhs.subtype, rhs.source);
+}
+
+struct ModifierRegistry {
+    using Storage = std::vector<Modifier>;
+    using iterator = Storage::iterator;
+    using const_iterator = Storage::const_iterator;
+
+    /// Adds a modifier to the system
+    void add(Modifier mod);
+
+    iterator begin();
+    const_iterator begin() const;
+    const_iterator cbegin() const;
+
+    /// Clears all modifiers
+    void clear();
+
+    iterator end();
+    const_iterator end() const;
+    const_iterator cend() const;
+
+    /**
+     * @brief Removes modifiers by tag
+     *
+     * @param tag if ``string_view`` ends with '*' then matches any tag that starts with ``tag``
+     * @return int number of modifiers affected
+     */
+    int remove(std::string_view tag);
+
+    /**
+     * @brief Replace modifier value
+     *
+     * @param tag if ``string_view`` ends with '*' then matches any tag that starts with ``tag``
+     * @param value new value
+     * @return int number of modifiers affected
+     */
+    int replace(std::string_view tag, ModifierInputs value);
+
+    /**
+     * @brief Replace modifier requirement
+     *
+     * @param tag if ``string_view`` ends with '*' then matches any tag that starts with ``tag``
+     * @param req new requirement
+     * @return int number of modifiers affected
+     */
+    int replace(std::string_view tag, const Requirement& req);
+
+    /// Gets the number of modifiers
+    size_t size() const;
+
+private:
+    Storage entries_;
 };
 
 } // namespace nw

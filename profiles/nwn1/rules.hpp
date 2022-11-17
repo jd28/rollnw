@@ -1,7 +1,6 @@
 #pragma once
 
 #include "functions.hpp"
-#include "nw/rules/Modifier.hpp"
 
 #include <nw/components/ObjectBase.hpp>
 #include <nw/rules/system.hpp>

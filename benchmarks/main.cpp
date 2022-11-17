@@ -102,11 +102,9 @@ static void BM_creature_modifier_simple(benchmark::State& state)
     ent->levels.entries[0].id = nwn1::class_type_pale_master;
     ent->levels.entries[1].id = nwn1::class_type_dragon_disciple;
 
-    auto& rules = nwk::rules();
-
     for (auto _ : state) {
         int out = 0;
-        rules.calculate(ent, nwn1::mod_type_armor_class, nwn1::ac_armor,
+        nwk::resolve_modifier(ent, nwn1::mod_type_armor_class, nwn1::ac_armor,
             [&out](int value) { out += value; });
         benchmark::DoNotOptimize(out);
     }
@@ -118,11 +116,9 @@ static void BM_creature_modifier_complex(benchmark::State& state)
     ent->levels.entries[0].id = nwn1::class_type_pale_master;
     ent->levels.entries[1].id = nwn1::class_type_dragon_disciple;
 
-    auto& rules = nwk::rules();
-
     for (auto _ : state) {
         int out = 0;
-        rules.calculate(ent, nwn1::mod_type_hitpoints,
+        nwk::resolve_modifier(ent, nwn1::mod_type_hitpoints,
             [&out](int value) { out += value; });
         benchmark::DoNotOptimize(out);
     }

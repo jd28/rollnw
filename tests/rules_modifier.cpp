@@ -3,7 +3,6 @@
 #include <nw/components/Creature.hpp>
 #include <nw/kernel/Objects.hpp>
 #include <nw/kernel/Rules.hpp>
-#include <nw/rules/Modifier.hpp>
 #include <nw/rules/feats.hpp>
 #include <nw/rules/system.hpp>
 #include <nwn1/Profile.hpp>
@@ -33,21 +32,21 @@ TEST_CASE("modifier", "[rules]")
         "dnd-3.0-palemaster-ac", nw::ModifierSource::class_);
 
     int res = 0;
-    REQUIRE(nwk::rules().calculate(ent, mod2,
+    REQUIRE(nwk::resolve_modifier(ent, mod2,
         [&res](int value) {
             res += value;
         }));
     REQUIRE(res == 6);
 
     // False because output size mismatch
-    REQUIRE_FALSE(nwk::rules().calculate(ent, mod2,
+    REQUIRE_FALSE(nwk::resolve_modifier(ent, mod2,
         [&res](int value, float) {
             res += value;
         }));
 
     // False because output mismatch
     float res2 = 0.0f;
-    REQUIRE_FALSE(nwk::rules().calculate(ent, mod2,
+    REQUIRE_FALSE(nwk::resolve_modifier(ent, mod2,
         [&res2](float value) {
             res2 += value;
         }));
@@ -63,7 +62,7 @@ TEST_CASE("modifier kernel", "[rules]")
     ent->levels.entries[0].id = nwn1::class_type_pale_master;
 
     int res = 0;
-    nwk::rules().calculate(ent, nwn1::mod_type_armor_class, nwn1::ac_natural,
+    nwk::resolve_modifier(ent, nwn1::mod_type_armor_class, nwn1::ac_natural,
         [&res](int value) { res += value; });
     REQUIRE(res == 6);
 
@@ -77,19 +76,19 @@ TEST_CASE("modifier kernel", "[rules]")
     };
 
     // Get rid of any requirement
-    REQUIRE(nwk::rules().replace("dnd-3.0-palemaster-ac", nw::Requirement{}));
+    REQUIRE(nwk::rules().modifiers.replace("dnd-3.0-palemaster-ac", nw::Requirement{}));
     // Set nerf
-    REQUIRE(nwk::rules().replace("dnd-3.0-palemaster-ac", nw::ModifierInputs{pm_ac_nerf}));
+    REQUIRE(nwk::rules().modifiers.replace("dnd-3.0-palemaster-ac", nw::ModifierInputs{pm_ac_nerf}));
     res = 0;
-    REQUIRE(nwk::rules().calculate(ent, nwn1::mod_type_armor_class, nwn1::ac_natural,
+    REQUIRE(nwk::resolve_modifier(ent, nwn1::mod_type_armor_class, nwn1::ac_natural,
         [&res](int value) {
             res += value;
         }));
     REQUIRE(res == 3);
 
-    REQUIRE(nwk::rules().remove("dnd-3.0-palemaster-*"));
+    REQUIRE(nwk::rules().modifiers.remove("dnd-3.0-palemaster-*"));
     res = 0;
-    REQUIRE(nwk::rules().calculate(ent, nwn1::mod_type_armor_class, nwn1::ac_natural,
+    REQUIRE(nwk::resolve_modifier(ent, nwn1::mod_type_armor_class, nwn1::ac_natural,
         [&res](int value) {
             res += value;
         }));
@@ -114,7 +113,7 @@ TEST_CASE("modifier kernel 2", "[rules]")
     REQUIRE(nth == 4);
 
     int res = 0;
-    REQUIRE(nwk::rules().calculate(ent, nwn1::mod_type_hitpoints,
+    REQUIRE(nwk::resolve_modifier(ent, nwn1::mod_type_hitpoints,
         [&res](int value) {
             res += value;
         }));
@@ -133,7 +132,7 @@ TEST_CASE("modifier kernel 3", "[rules]")
     ent->stats.add_feat(nwn1::feat_resist_energy_acid);
 
     int res = 0;
-    REQUIRE(nwk::rules().calculate(
+    REQUIRE(nwk::resolve_modifier(
         ent, nwn1::mod_type_dmg_resistance,
         nwn1::damage_type_acid,
         [&res](int value) { res += value; }));
@@ -143,7 +142,7 @@ TEST_CASE("modifier kernel 3", "[rules]")
     ent->stats.add_feat(nwn1::feat_epic_energy_resistance_acid_1);
     ent->stats.add_feat(nwn1::feat_epic_energy_resistance_acid_2);
     res = 0;
-    REQUIRE(nwk::rules().calculate(ent, nwn1::mod_type_dmg_resistance,
+    REQUIRE(nwk::resolve_modifier(ent, nwn1::mod_type_dmg_resistance,
         nwn1::damage_type_acid,
         [&res](int value) { res += value; }));
 

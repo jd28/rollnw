@@ -5,7 +5,6 @@
 #include "../formats/TwoDA.hpp"
 #include "../log.hpp"
 #include "../rules/Class.hpp"
-#include "../rules/Modifier.hpp"
 #include "../rules/Spell.hpp"
 #include "../rules/attributes.hpp"
 #include "../rules/feats.hpp"
@@ -32,51 +31,6 @@ struct Rules : public Service {
     /// Clears rules system of all rules and cached 2da files
     virtual void clear() override;
 
-    /// Adds a modifier to the system
-    void add(Modifier mod);
-
-    /**
-     * @brief Calculates all modifiers of `type`
-     * @tparam Callback Modifier callback function
-     */
-    template <typename Callback>
-    bool calculate(const ObjectBase* obj, const ModifierType type, Callback cb) const;
-
-    /**
-     * @brief Calculates all modifiers of `type` versus an object
-     * @tparam Callback Modifier callback function
-     */
-    template <typename Callback>
-    bool calculate(const ObjectBase* obj, const ModifierType type,
-        const ObjectBase* versus, Callback cb) const;
-
-    /**
-     * @brief Calculates all modifiers of a `type` and `subtype`
-     * @tparam U is some rule subtype
-     * @tparam Callback Modifier callback function
-     */
-    template <typename SubType, typename Callback>
-    bool calculate(const ObjectBase* obj, const ModifierType type, SubType subtype,
-        Callback cb) const;
-
-    /**
-     * @brief Calculates all modifiers of a `type` and `subtype` versus
-     *        another object
-     * @tparam U is some rule subtype
-     * @tparam Callback Modifier callback function
-     */
-    template <typename SubType, typename Callback>
-    bool calculate(const ObjectBase* obj, const ModifierType type, SubType subtype,
-        const ObjectBase* versus, Callback cb) const;
-
-    /**
-     * @brief Calculates a modifier
-     * @tparam Callback Modifier callback function
-     */
-    template <typename Callback>
-    bool calculate(const ObjectBase* obj, const Modifier& mod, Callback cb,
-        const ObjectBase* versus = nullptr, int32_t subtype = -1) const;
-
     /// Gets an item property cost table
     const TwoDA* ip_cost_table(size_t table) const;
 
@@ -91,32 +45,6 @@ struct Rules : public Service {
 
     /// Meets requirements
     bool meets_requirement(const Requirement& req, const ObjectBase* obj) const;
-
-    /**
-     * @brief Removes modifiers by tag
-     *
-     * @param tag if ``string_view`` ends with '*' then matches any tag that starts with ``tag``
-     * @return int number of modifiers affected
-     */
-    int remove(std::string_view tag);
-
-    /**
-     * @brief Replace modifier value
-     *
-     * @param tag if ``string_view`` ends with '*' then matches any tag that starts with ``tag``
-     * @param value new value
-     * @return int number of modifiers affected
-     */
-    int replace(std::string_view tag, ModifierInputs value);
-
-    /**
-     * @brief Replace modifier requirement
-     *
-     * @param tag if ``string_view`` ends with '*' then matches any tag that starts with ``tag``
-     * @param req new requirement
-     * @return int number of modifiers affected
-     */
-    int replace(std::string_view tag, const Requirement& req);
 
     /// Select
     RuleValue select(const Selector&, const ObjectBase*) const;
@@ -134,15 +62,21 @@ struct Rules : public Service {
     SpellArray spells;
     SkillArray skills;
     MasterFeatRegistry master_feats;
+    ModifierRegistry modifiers;
 
 private:
     qualifier_type qualifier_;
     selector_type selector_;
-    std::vector<Modifier> entries_;
     std::vector<ItemPropertyDefinition> ip_definitions_;
     std::vector<const TwoDA*> ip_cost_table_;
     std::vector<const TwoDA*> ip_param_table_;
 };
+
+inline Rules& rules()
+{
+    auto res = detail::s_services.get_mut<Rules>();
+    return res ? *res : *detail::s_services.add<Rules>();
+}
 
 namespace detail {
 
@@ -240,9 +174,14 @@ find_first_modifier_of(It begin, It end, const ModifierType type, int32_t subtyp
 
 } // namespace detail
 
+/**
+ * @brief Calculates a modifier
+ * @overload resolve_modifier(const ObjectBase* obj, const Modifier& mod, Callback cb, const ObjectBase* versus = nullptr, int32_t subtype = -1)
+ * @tparam Callback Modifier callback function
+ */
 template <typename Callback>
-bool Rules::calculate(const ObjectBase* obj, const Modifier& mod, Callback cb,
-    const ObjectBase* versus, int32_t subtype) const
+bool resolve_modifier(const ObjectBase* obj, const Modifier& mod, Callback cb,
+    const ObjectBase* versus = nullptr, int32_t subtype = -1)
 {
     static_assert(detail::function_traits<Callback>::validate_args(), "invalid argument types");
 
@@ -251,7 +190,7 @@ bool Rules::calculate(const ObjectBase* obj, const Modifier& mod, Callback cb,
         return false;
     }
 
-    if (!meets_requirement(mod.requirement, obj)) {
+    if (!rules().meets_requirement(mod.requirement, obj)) {
         return false;
     }
 
@@ -264,64 +203,81 @@ bool Rules::calculate(const ObjectBase* obj, const Modifier& mod, Callback cb,
         return false;
     }
 
+    LOG_F(INFO, "Applying modifier {}", mod.tagged.view());
     std::apply(cb, output);
     return true;
 }
 
+/**
+ * @brief Calculates all modifiers of `type` versus an object
+ * @overload resolve_modifier(const ObjectBase* obj, const ModifierType type, const ObjectBase* versus, Callback cb)
+ * @tparam Callback Modifier callback function
+ */
 template <typename Callback>
-bool Rules::calculate(const ObjectBase* obj, const ModifierType type, Callback cb) const
+bool resolve_modifier(const ObjectBase* obj, const ModifierType type,
+    const ObjectBase* versus, Callback cb)
 {
-    return calculate(obj, type, static_cast<const ObjectBase*>(nullptr), cb);
-}
-
-template <typename Callback>
-bool Rules::calculate(const ObjectBase* obj, const ModifierType type,
-    const ObjectBase* versus, Callback cb) const
-{
-    auto end = std::end(entries_);
-    auto it = detail::find_first_modifier_of(std::begin(entries_), end, type, -1);
+    auto end = std::cend(rules().modifiers);
+    auto it = detail::find_first_modifier_of(std::cbegin(rules().modifiers), end, type, -1);
     while (it != end && it->type == type) {
-        if (!calculate(obj, *it, cb, versus, -1)) return false;
+        if (!resolve_modifier(obj, *it, cb, versus, -1)) return false;
         ++it;
     }
     return true;
 }
 
-template <typename SubType, typename Callback>
-bool Rules::calculate(const ObjectBase* obj, const ModifierType type, SubType subtype,
-    Callback cb) const
+/**
+ * @brief Calculates all modifiers of `type`
+ * @overload resolve_modifier(const ObjectBase* obj, const ModifierType type, Callback cb)
+ * @tparam Callback Modifier callback function
+ */
+template <typename Callback>
+bool resolve_modifier(const ObjectBase* obj, const ModifierType type, Callback cb)
 {
-    static_assert(is_rule_type<SubType>(), "Subtypes must be rule types");
-    return calculate(obj, type, subtype, nullptr, cb);
+    return resolve_modifier(obj, type, static_cast<const ObjectBase*>(nullptr), cb);
 }
 
+/**
+ * @brief Calculates all modifiers of a `type` and `subtype` versus another object
+ * @overload resolve_modifier(const ObjectBase* obj, const ModifierType type, SubType subtype, const ObjectBase* versus, Callback cb)
+ * @tparam U is some rule subtype
+ * @tparam Callback Modifier callback function
+ */
 template <typename SubType, typename Callback>
-bool Rules::calculate(const ObjectBase* obj, const ModifierType type, SubType subtype,
-    const ObjectBase* versus, Callback cb) const
+bool resolve_modifier(const ObjectBase* obj, const ModifierType type, SubType subtype,
+    const ObjectBase* versus, Callback cb)
 {
     static_assert(is_rule_type<SubType>(), "Subtypes must be rule types");
-    std::vector<Modifier>::const_iterator it = std::begin(entries_);
-    auto end = std::end(entries_);
+    std::vector<Modifier>::const_iterator it = std::cbegin(rules().modifiers);
+    auto end = std::cend(rules().modifiers);
     if (subtype != SubType::invalid()) {
         it = detail::find_first_modifier_of(it, end, type);
         while (it != end && it->type == type && it->subtype == -1) {
-            if (!calculate(obj, *it, cb, versus, *subtype)) return false;
+            if (!resolve_modifier(obj, *it, cb, versus, *subtype)) return false;
             ++it;
         }
     }
 
     it = detail::find_first_modifier_of(it, end, type, *subtype);
-    while (it != std::end(entries_) && it->type == type && it->subtype == *subtype) {
-        if (!calculate(obj, *it, cb, versus, *subtype)) return false;
+    while (it != std::cend(rules().modifiers) && it->type == type && it->subtype == *subtype) {
+        if (!resolve_modifier(obj, *it, cb, versus, *subtype)) return false;
         ++it;
     }
     return true;
 }
 
-inline Rules& rules()
+/**
+ * @brief Calculates all modifiers of a `type` and `subtype`
+ * @overload resolve_modifier(const ObjectBase* obj, const ModifierType type, SubType subtype, Callback cb)
+ * @tparam U is some rule subtype
+ * @tparam Callback Modifier callback function
+ */
+template <typename SubType, typename Callback>
+bool resolve_modifier(const ObjectBase* obj, const ModifierType type, SubType subtype,
+    Callback cb)
 {
-    auto res = detail::s_services.get_mut<Rules>();
-    return res ? *res : *detail::s_services.add<Rules>();
+    static_assert(is_rule_type<SubType>(), "Subtypes must be rule types");
+    return resolve_modifier(obj, type, subtype, nullptr, cb);
 }
 
 /**

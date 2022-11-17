@@ -1,7 +1,6 @@
 #pragma once
 
 #include "../resources/Resource.hpp"
-#include "Modifier.hpp"
 #include "rule_type.hpp"
 #include "system.hpp"
 

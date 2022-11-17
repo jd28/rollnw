@@ -40,7 +40,7 @@ int get_skill_rank(const nw::Creature* obj, nw::Skill skill, bool base)
         mfeat_skill_focus, mfeat_skill_focus_epic);
 
     // Modifiers
-    nw::kernel::rules().calculate(obj, mod_type_skill, skill, adder);
+    nw::kernel::resolve_modifier(obj, mod_type_skill, skill, adder);
 
     // Effects
     auto end = std::end(obj->effects());
