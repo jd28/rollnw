@@ -137,6 +137,7 @@
 <li class="toctree-l2"><a class="reference internal" href="nw__MasterFeat.html">nw::MasterFeat</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__MasterFeatRegistry.html">nw::MasterFeatRegistry</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Modifier.html">nw::Modifier</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ModifierRegistry.html">nw::ModifierRegistry</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__ModifierType.html">nw::ModifierType</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Module.html">nw::Module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__ModuleScripts.html">nw::ModuleScripts</a></li>
@@ -370,73 +371,6 @@
 </dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N2nw6kernel5Rules3addE8Modifier">
-<span id="_CPPv3N2nw6kernel5Rules3addE8Modifier"></span><span id="_CPPv2N2nw6kernel5Rules3addE8Modifier"></span><span id="nw::kernel::Rules::add__Modifier"></span><span class="target" id="structnw_1_1kernel_1_1_rules_1ab22cc00770288d046800e9b1e01b592c"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">add</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="nw__Modifier.html#_CPPv4N2nw8ModifierE" title="nw::Modifier"><span class="n"><span class="pre">Modifier</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">mod</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6kernel5Rules3addE8Modifier" title="Permalink to this definition"></a><br /></dt>
-<dd><p>Adds a modifier to the system. </p>
-</dd></dl>
-
-<dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4I0ENK2nw6kernel5Rules9calculateEbPK10ObjectBaseK12ModifierType8Callback">
-<span id="_CPPv3I0ENK2nw6kernel5Rules9calculateEPK10ObjectBaseK12ModifierType8Callback"></span><span id="_CPPv2I0ENK2nw6kernel5Rules9calculateEPK10ObjectBaseK12ModifierType8Callback"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Callback</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="structnw_1_1kernel_1_1_rules_1abb53ab2abbf4d8e59915588ec2f793ee"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">calculate</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">ObjectBase</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">obj</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="nw__ModifierType.html#_CPPv4N2nw12ModifierTypeE" title="nw::ModifierType"><span class="n"><span class="pre">ModifierType</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">type</span></span>, <a class="reference internal" href="#_CPPv4I0ENK2nw6kernel5Rules9calculateEbPK10ObjectBaseK12ModifierType8Callback" title="nw::kernel::Rules::calculate::Callback"><span class="n"><span class="pre">Callback</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">cb</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4I0ENK2nw6kernel5Rules9calculateEbPK10ObjectBaseK12ModifierType8Callback" title="Permalink to this definition"></a><br /></dt>
-<dd><p>Calculates all modifiers of <code class="docutils literal notranslate"><span class="pre">type</span></code> </p>
-<dl class="field-list simple">
-<dt class="field-odd">Template Parameters</dt>
-<dd class="field-odd"><p><strong>Callback</strong> – <a class="reference internal" href="nw__Modifier.html#structnw_1_1_modifier"><span class="std std-ref">Modifier</span></a> callback function </p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4I0ENK2nw6kernel5Rules9calculateEbPK10ObjectBaseK12ModifierTypePK10ObjectBase8Callback">
-<span id="_CPPv3I0ENK2nw6kernel5Rules9calculateEPK10ObjectBaseK12ModifierTypePK10ObjectBase8Callback"></span><span id="_CPPv2I0ENK2nw6kernel5Rules9calculateEPK10ObjectBaseK12ModifierTypePK10ObjectBase8Callback"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Callback</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="structnw_1_1kernel_1_1_rules_1afefbc1a371ccf82c22d6977d4810bee0"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">calculate</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">ObjectBase</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">obj</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="nw__ModifierType.html#_CPPv4N2nw12ModifierTypeE" title="nw::ModifierType"><span class="n"><span class="pre">ModifierType</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">type</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">ObjectBase</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">versus</span></span>, <a class="reference internal" href="#_CPPv4I0ENK2nw6kernel5Rules9calculateEbPK10ObjectBaseK12ModifierTypePK10ObjectBase8Callback" title="nw::kernel::Rules::calculate::Callback"><span class="n"><span class="pre">Callback</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">cb</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4I0ENK2nw6kernel5Rules9calculateEbPK10ObjectBaseK12ModifierTypePK10ObjectBase8Callback" title="Permalink to this definition"></a><br /></dt>
-<dd><p>Calculates all modifiers of <code class="docutils literal notranslate"><span class="pre">type</span></code> versus an object. </p>
-<dl class="field-list simple">
-<dt class="field-odd">Template Parameters</dt>
-<dd class="field-odd"><p><strong>Callback</strong> – <a class="reference internal" href="nw__Modifier.html#structnw_1_1_modifier"><span class="std std-ref">Modifier</span></a> callback function </p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4I00ENK2nw6kernel5Rules9calculateEbPK10ObjectBaseK12ModifierType7SubType8Callback">
-<span id="_CPPv3I00ENK2nw6kernel5Rules9calculateEPK10ObjectBaseK12ModifierType7SubType8Callback"></span><span id="_CPPv2I00ENK2nw6kernel5Rules9calculateEPK10ObjectBaseK12ModifierType7SubType8Callback"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SubType</span></span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Callback</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="structnw_1_1kernel_1_1_rules_1a7fd2f2039974c99cde39fb678f31ef9c"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">calculate</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">ObjectBase</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">obj</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="nw__ModifierType.html#_CPPv4N2nw12ModifierTypeE" title="nw::ModifierType"><span class="n"><span class="pre">ModifierType</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">type</span></span>, <a class="reference internal" href="#_CPPv4I00ENK2nw6kernel5Rules9calculateEbPK10ObjectBaseK12ModifierType7SubType8Callback" title="nw::kernel::Rules::calculate::SubType"><span class="n"><span class="pre">SubType</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">subtype</span></span>, <a class="reference internal" href="#_CPPv4I00ENK2nw6kernel5Rules9calculateEbPK10ObjectBaseK12ModifierType7SubType8Callback" title="nw::kernel::Rules::calculate::Callback"><span class="n"><span class="pre">Callback</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">cb</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4I00ENK2nw6kernel5Rules9calculateEbPK10ObjectBaseK12ModifierType7SubType8Callback" title="Permalink to this definition"></a><br /></dt>
-<dd><p>Calculates all modifiers of a <code class="docutils literal notranslate"><span class="pre">type</span></code> and <code class="docutils literal notranslate"><span class="pre">subtype</span></code> </p>
-<dl class="field-list simple">
-<dt class="field-odd">Template Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>U</strong> – is some rule subtype </p></li>
-<li><p><strong>Callback</strong> – <a class="reference internal" href="nw__Modifier.html#structnw_1_1_modifier"><span class="std std-ref">Modifier</span></a> callback function </p></li>
-</ul>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4I00ENK2nw6kernel5Rules9calculateEbPK10ObjectBaseK12ModifierType7SubTypePK10ObjectBase8Callback">
-<span id="_CPPv3I00ENK2nw6kernel5Rules9calculateEPK10ObjectBaseK12ModifierType7SubTypePK10ObjectBase8Callback"></span><span id="_CPPv2I00ENK2nw6kernel5Rules9calculateEPK10ObjectBaseK12ModifierType7SubTypePK10ObjectBase8Callback"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SubType</span></span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Callback</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="structnw_1_1kernel_1_1_rules_1a5e27e8bb67e05a0d087959c36ef19b38"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">calculate</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">ObjectBase</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">obj</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="nw__ModifierType.html#_CPPv4N2nw12ModifierTypeE" title="nw::ModifierType"><span class="n"><span class="pre">ModifierType</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">type</span></span>, <a class="reference internal" href="#_CPPv4I00ENK2nw6kernel5Rules9calculateEbPK10ObjectBaseK12ModifierType7SubTypePK10ObjectBase8Callback" title="nw::kernel::Rules::calculate::SubType"><span class="n"><span class="pre">SubType</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">subtype</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">ObjectBase</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">versus</span></span>, <a class="reference internal" href="#_CPPv4I00ENK2nw6kernel5Rules9calculateEbPK10ObjectBaseK12ModifierType7SubTypePK10ObjectBase8Callback" title="nw::kernel::Rules::calculate::Callback"><span class="n"><span class="pre">Callback</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">cb</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4I00ENK2nw6kernel5Rules9calculateEbPK10ObjectBaseK12ModifierType7SubTypePK10ObjectBase8Callback" title="Permalink to this definition"></a><br /></dt>
-<dd><p>Calculates all modifiers of a <code class="docutils literal notranslate"><span class="pre">type</span></code> and <code class="docutils literal notranslate"><span class="pre">subtype</span></code> versus another object. </p>
-<dl class="field-list simple">
-<dt class="field-odd">Template Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>U</strong> – is some rule subtype </p></li>
-<li><p><strong>Callback</strong> – <a class="reference internal" href="nw__Modifier.html#structnw_1_1_modifier"><span class="std std-ref">Modifier</span></a> callback function </p></li>
-</ul>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4I0ENK2nw6kernel5Rules9calculateEbPK10ObjectBaseRK8Modifier8CallbackPK10ObjectBase7int32_t">
-<span id="_CPPv3I0ENK2nw6kernel5Rules9calculateEPK10ObjectBaseRK8Modifier8CallbackPK10ObjectBase7int32_t"></span><span id="_CPPv2I0ENK2nw6kernel5Rules9calculateEPK10ObjectBaseRK8Modifier8CallbackPK10ObjectBase7int32_t"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Callback</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="structnw_1_1kernel_1_1_rules_1a1fd6fd7b13464fdca389e2077939570f"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">calculate</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">ObjectBase</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">obj</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="nw__Modifier.html#_CPPv4N2nw8ModifierE" title="nw::Modifier"><span class="n"><span class="pre">Modifier</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">mod</span></span>, <a class="reference internal" href="#_CPPv4I0ENK2nw6kernel5Rules9calculateEbPK10ObjectBaseRK8Modifier8CallbackPK10ObjectBase7int32_t" title="nw::kernel::Rules::calculate::Callback"><span class="n"><span class="pre">Callback</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">cb</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">ObjectBase</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">versus</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">nullptr</span></span>, <span class="n"><span class="pre">int32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">subtype</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="o"><span class="pre">-</span></span><span class="m"><span class="pre">1</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4I0ENK2nw6kernel5Rules9calculateEbPK10ObjectBaseRK8Modifier8CallbackPK10ObjectBase7int32_t" title="Permalink to this definition"></a><br /></dt>
-<dd><p>Calculates a modifier. </p>
-<dl class="field-list simple">
-<dt class="field-odd">Template Parameters</dt>
-<dd class="field-odd"><p><strong>Callback</strong> – <a class="reference internal" href="nw__Modifier.html#structnw_1_1_modifier"><span class="std std-ref">Modifier</span></a> callback function </p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4NK2nw6kernel5Rules13ip_cost_tableE6size_t">
 <span id="_CPPv3NK2nw6kernel5Rules13ip_cost_tableE6size_t"></span><span id="_CPPv2NK2nw6kernel5Rules13ip_cost_tableE6size_t"></span><span id="nw::kernel::Rules::ip_cost_table__sC"></span><span class="target" id="structnw_1_1kernel_1_1_rules_1aa2529a09b90f3e2f7e89665d2e3487bb"></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="nw__TwoDA.html#_CPPv4N2nw5TwoDAE" title="nw::TwoDA"><span class="n"><span class="pre">TwoDA</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">ip_cost_table</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">table</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK2nw6kernel5Rules13ip_cost_tableE6size_t" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Gets an item property cost table. </p>
@@ -464,54 +398,6 @@
 <dt class="sig sig-object cpp" id="_CPPv4NK2nw6kernel5Rules17meets_requirementERK11RequirementPK10ObjectBase">
 <span id="_CPPv3NK2nw6kernel5Rules17meets_requirementERK11RequirementPK10ObjectBase"></span><span id="_CPPv2NK2nw6kernel5Rules17meets_requirementERK11RequirementPK10ObjectBase"></span><span id="nw::kernel::Rules::meets_requirement__RequirementCR.ObjectBaseCPC"></span><span class="target" id="structnw_1_1kernel_1_1_rules_1a9b87ab10972b7f4774a2bbdf8cfc8c9e"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">meets_requirement</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="nw__Requirement.html#_CPPv4N2nw11RequirementE" title="nw::Requirement"><span class="n"><span class="pre">Requirement</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">req</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">ObjectBase</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">obj</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK2nw6kernel5Rules17meets_requirementERK11RequirementPK10ObjectBase" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Meets requirements. </p>
-</dd></dl>
-
-<dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N2nw6kernel5Rules6removeENSt11string_viewE">
-<span id="_CPPv3N2nw6kernel5Rules6removeENSt11string_viewE"></span><span id="_CPPv2N2nw6kernel5Rules6removeENSt11string_viewE"></span><span id="nw::kernel::Rules::remove__std::string_view"></span><span class="target" id="structnw_1_1kernel_1_1_rules_1a9d2edcc81bcd5d8d7b56c63e4438fc64"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">remove</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">tag</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6kernel5Rules6removeENSt11string_viewE" title="Permalink to this definition"></a><br /></dt>
-<dd><p>Removes modifiers by tag. </p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>tag</strong> – if <code class="docutils literal notranslate"><span class="pre">string_view</span></code> ends with ‘*’ then matches any tag that starts with <code class="docutils literal notranslate"><span class="pre">tag</span></code> </p>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>int number of modifiers affected </p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N2nw6kernel5Rules7replaceENSt11string_viewE14ModifierInputs">
-<span id="_CPPv3N2nw6kernel5Rules7replaceENSt11string_viewE14ModifierInputs"></span><span id="_CPPv2N2nw6kernel5Rules7replaceENSt11string_viewE14ModifierInputs"></span><span id="nw::kernel::Rules::replace__std::string_view.ModifierInputs"></span><span class="target" id="structnw_1_1kernel_1_1_rules_1a0be4c9b9edc8e21e3050aad09ee2e788"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">replace</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">tag</span></span>, <a class="reference internal" href="../typedef/nw__ModifierInputs.html#_CPPv4N2nw14ModifierInputsE" title="nw::ModifierInputs"><span class="n"><span class="pre">ModifierInputs</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">value</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6kernel5Rules7replaceENSt11string_viewE14ModifierInputs" title="Permalink to this definition"></a><br /></dt>
-<dd><p>Replace modifier value. </p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>tag</strong> – if <code class="docutils literal notranslate"><span class="pre">string_view</span></code> ends with ‘*’ then matches any tag that starts with <code class="docutils literal notranslate"><span class="pre">tag</span></code> </p></li>
-<li><p><strong>value</strong> – new value </p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>int number of modifiers affected </p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N2nw6kernel5Rules7replaceENSt11string_viewERK11Requirement">
-<span id="_CPPv3N2nw6kernel5Rules7replaceENSt11string_viewERK11Requirement"></span><span id="_CPPv2N2nw6kernel5Rules7replaceENSt11string_viewERK11Requirement"></span><span id="nw::kernel::Rules::replace__std::string_view.RequirementCR"></span><span class="target" id="structnw_1_1kernel_1_1_rules_1aac2d747ab9d3f3dd191bffebb6887a5a"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">replace</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">tag</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="nw__Requirement.html#_CPPv4N2nw11RequirementE" title="nw::Requirement"><span class="n"><span class="pre">Requirement</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">req</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6kernel5Rules7replaceENSt11string_viewERK11Requirement" title="Permalink to this definition"></a><br /></dt>
-<dd><p>Replace modifier requirement. </p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>tag</strong> – if <code class="docutils literal notranslate"><span class="pre">string_view</span></code> ends with ‘*’ then matches any tag that starts with <code class="docutils literal notranslate"><span class="pre">tag</span></code> </p></li>
-<li><p><strong>req</strong> – new requirement </p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>int number of modifiers affected </p>
-</dd>
-</dl>
 </dd></dl>
 
 <dl class="cpp function">
@@ -568,6 +454,11 @@
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw6kernel5Rules12master_featsE">
 <span id="_CPPv3N2nw6kernel5Rules12master_featsE"></span><span id="_CPPv2N2nw6kernel5Rules12master_featsE"></span><span id="nw::kernel::Rules::master_feats__MasterFeatRegistry"></span><span class="target" id="structnw_1_1kernel_1_1_rules_1a13a1b72da253f83e77617e4d92155f8f"></span><a class="reference internal" href="nw__MasterFeatRegistry.html#_CPPv4N2nw18MasterFeatRegistryE" title="nw::MasterFeatRegistry"><span class="n"><span class="pre">MasterFeatRegistry</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">master_feats</span></span></span><a class="headerlink" href="#_CPPv4N2nw6kernel5Rules12master_featsE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6kernel5Rules9modifiersE">
+<span id="_CPPv3N2nw6kernel5Rules9modifiersE"></span><span id="_CPPv2N2nw6kernel5Rules9modifiersE"></span><span id="nw::kernel::Rules::modifiers__ModifierRegistry"></span><span class="target" id="structnw_1_1kernel_1_1_rules_1af9d6856da562a8575e9275e3caa0c6e8"></span><a class="reference internal" href="nw__ModifierRegistry.html#_CPPv4N2nw16ModifierRegistryE" title="nw::ModifierRegistry"><span class="n"><span class="pre">ModifierRegistry</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">modifiers</span></span></span><a class="headerlink" href="#_CPPv4N2nw6kernel5Rules9modifiersE" title="Permalink to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 </div>

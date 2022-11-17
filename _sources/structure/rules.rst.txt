@@ -109,7 +109,7 @@ Definitions
    .. code:: cpp
 
       int result = 0;
-      nw::kernel::rules().calculate(obj, mod_type_ability, ability_strength,
+      nw::kernel::resolve_modifier(obj, mod_type_ability, ability_strength,
           [&result](int value) { result += value; });
 
 
@@ -126,7 +126,7 @@ Definitions
    );
 
    // Add it to the global modifier table
-   nw::kernel::rules().add(mod2);
+   nw::kernel::rules().modifier.add(mod2);
 
 **Example - Pale Master Armor Class Bonus**:
 
@@ -136,7 +136,7 @@ Definitions
    auto ent = nwk::objects().load<nw::Creature>(fs::path("some/palemaster.utc"));
 
    int res = 0;
-   nwk::rules().calculate(ent, nwn1::mod_type_armor_class, nwn1::ac_natural,
+   nwk::resolve_modifier(ent, nwn1::mod_type_armor_class, nwn1::ac_natural,
       [&res](int value) { res += value; });
    // res == 6
 
@@ -148,16 +148,16 @@ Definitions
    };
 
    // Get rid of any requirement
-   nwk::rules().replace("dnd-3.0-palemaster-ac", nw::Requirement{});
+   nwk::rules().modifiers.replace("dnd-3.0-palemaster-ac", nw::Requirement{});
    // Set nerf
-   nwk::rules().replace("dnd-3.0-palemaster-ac", nw::ModifierInputs{pm_ac_nerf}));
+   nwk::rules().modifiers.replace("dnd-3.0-palemaster-ac", nw::ModifierInputs{pm_ac_nerf}));
    res = 0;
-   REQUIRE(nwk::rules().calculate(ent, nwn1::mod_type_armor_class, nwn1::ac_natural,
+   REQUIRE(nwk::resolve_modifier(ent, nwn1::mod_type_armor_class, nwn1::ac_natural,
       [&res](int value) { res += value; }));
    // res == 3
 
    res = 0;
-   nwk::rules().calculate(ent, nwn1::mod_type_armor_class, nwn1::ac_natural,
+   nwk::resolve_modifier(ent, nwn1::mod_type_armor_class, nwn1::ac_natural,
       [&res](int value) { res += value; });
    // res == 0
 
