@@ -16,6 +16,7 @@ int get_skill_rank(const nw::Creature* obj, nw::Skill skill, bool base)
     if (!obj) { return 0; }
 
     int result = 0;
+    auto adder = [&result](int value) { result += value; };
 
     auto& skill_array = nw::kernel::rules().skills;
     auto ski = skill_array.get(skill);
@@ -36,14 +37,10 @@ int get_skill_rank(const nw::Creature* obj, nw::Skill skill, bool base)
 
     // Master Feats
     auto& mfr = nw::kernel::rules().master_feats;
-    auto mf_bonus = mfr.resolve<int>(obj, skill, mfeat_skill_focus, mfeat_skill_focus_epic);
-    for (auto b : mf_bonus) {
-        result += b;
-    }
+    mfr.resolve_n<int>(obj, skill, adder, mfeat_skill_focus, mfeat_skill_focus_epic);
 
     // Modifiers
-    nw::kernel::rules().calculate(obj, mod_type_skill, skill,
-        [&result](int value) { result += value; });
+    nw::kernel::rules().calculate(obj, mod_type_skill, skill, adder);
 
     // Effects
     auto end = std::end(obj->effects());
@@ -51,15 +48,12 @@ int get_skill_rank(const nw::Creature* obj, nw::Skill skill, bool base)
 
     auto callback = [&value](int mod) { value += mod; };
 
-    auto it = find_first_effect_of(std::begin(obj->effects()), end,
-        effect_type_skill_increase, *skill);
-    it = resolve_effects_of<int>(it, end, effect_type_skill_increase, *skill,
-        callback, &effect_extract_int0);
+    auto it = resolve_effects_of<int>(std::begin(obj->effects()), end,
+        effect_type_skill_increase, *skill, callback, &effect_extract_int0);
 
     int bonus = value;
-    value = 0;
+    value = 0; // Reset value for penalties
 
-    it = find_first_effect_of(it, end, effect_type_skill_decrease, *skill);
     resolve_effects_of<int>(it, end, effect_type_skill_decrease, *skill,
         callback, &effect_extract_int0);
     int decrease = value;

@@ -73,7 +73,7 @@ It resolve_effects_of(It begin, It end, nw::EffectType type, int subtype,
     CallBack cb, Extractor extractor, Comp comparator = std::greater<T>{}) noexcept
 {
     if (type == nw::EffectType::invalid()) { return end; }
-    auto it = begin;
+    auto it = find_first_effect_of(begin, end, type, subtype);
 
     while (it != end && it->type == type && it->subtype == subtype) {
         if (it->creator.type == nw::ObjectType::item) {

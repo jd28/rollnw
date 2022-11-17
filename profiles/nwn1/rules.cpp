@@ -335,11 +335,12 @@ nw::ModifierResult weapon_master_ab(const nw::ObjectBase* obj, int32_t subtype)
     auto baseitem = nw::BaseItem::make(subtype);
     auto cre = obj->as_creature();
     if (!cre) { return 0; }
+
     auto wm = cre->levels.level_by_class(nwn1::class_type_weapon_master);
     if (wm < 5) { return 0; }
 
     auto& mfr = nw::kernel::rules().master_feats;
-    bool has_feat = !!mfr.resolve<int>(cre, baseitem, mfeat_weapon_of_choice)[0];
+    bool has_feat = !!mfr.resolve<int>(cre, baseitem, mfeat_weapon_of_choice);
     if (!has_feat) { return 0; }
 
     int result = 1;

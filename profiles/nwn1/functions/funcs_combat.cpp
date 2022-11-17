@@ -2,6 +2,7 @@
 
 #include "../constants.hpp"
 #include "../functions.hpp"
+#include "nw/rules/Modifier.hpp"
 
 #include <nw/components/Creature.hpp>
 #include <nw/components/Equips.hpp>
@@ -18,6 +19,7 @@ int attack_bonus(const nw::Creature* obj, nw::AttackType type)
 {
     int result = 0;
     if (!obj) { return result; }
+    auto adder = [&result](int value) { result += value; };
 
     // BAB
     result = base_attack_bonus(obj);
@@ -35,23 +37,14 @@ int attack_bonus(const nw::Creature* obj, nw::AttackType type)
     }
 
     // Modifiers
-    nw::kernel::rules().calculate(obj, mod_type_attack_bonus_item, baseitem,
-        [&result](int value) { result += value; });
-
-    nw::kernel::rules().calculate(obj, mod_type_attack_bonus_mode, obj->combat_mode,
-        [&result](int value) { result += value; });
-
-    nw::kernel::rules().calculate(obj, mod_type_attack_bonus, type,
-        [&result](int value) { result += value; });
-
-    nw::kernel::rules().calculate(obj, mod_type_attack_bonus, attack_type_any,
-        [&result](int value) { result += value; });
+    nw::kernel::rules().calculate(obj, mod_type_attack_bonus_item, baseitem, adder);
+    nw::kernel::rules().calculate(obj, mod_type_attack_bonus_mode, obj->combat_mode, adder);
+    nw::kernel::rules().calculate(obj, mod_type_attack_bonus, type, adder);
+    nw::kernel::rules().calculate(obj, mod_type_attack_bonus, attack_type_any, adder);
 
     // Master Feats
     auto& mfr = nw::kernel::rules().master_feats;
-    for (auto b : mfr.resolve<int>(obj, baseitem, mfeat_weapon_focus, mfeat_weapon_focus_epic)) {
-        result += b;
-    }
+    mfr.resolve_n<int>(obj, baseitem, adder, mfeat_weapon_focus, mfeat_weapon_focus_epic);
 
     // Abilities
     int modifier = get_ability_modifier(obj, ability_strength);
@@ -62,27 +55,23 @@ int attack_bonus(const nw::Creature* obj, nw::AttackType type)
 
     // Effects attack increase/decrease is a little more complicated due to needing to support
     // an 'any' subtype.
+    auto begin = std::begin(obj->effects());
     auto end = std::end(obj->effects());
     int value = 0;
     auto callback = [&value](int mod) { value += mod; };
 
-    auto it = find_first_effect_of(std::begin(obj->effects()), end,
-        effect_type_attack_increase, *attack_type_any);
-    it = resolve_effects_of<int>(it, end, effect_type_attack_increase, *attack_type_any,
+    auto it = resolve_effects_of<int>(begin, end, effect_type_attack_increase, *attack_type_any,
         callback, &effect_extract_int0);
 
-    it = find_first_effect_of(it, end, effect_type_attack_increase, *type);
     it = resolve_effects_of<int>(it, end, effect_type_attack_increase, *type,
         callback, &effect_extract_int0);
 
     int bonus = value;
-    value = 0;
+    value = 0; // Reset value for penalties
 
-    it = find_first_effect_of(it, end, effect_type_attack_decrease, *attack_type_any);
     it = resolve_effects_of<int>(it, end, effect_type_attack_decrease, *attack_type_any,
         callback, &effect_extract_int0);
 
-    it = find_first_effect_of(it, end, effect_type_attack_decrease, *type);
     resolve_effects_of<int>(it, end, effect_type_attack_decrease, *type,
         callback, &effect_extract_int0);
     int decrease = value;

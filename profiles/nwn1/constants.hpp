@@ -98,8 +98,8 @@ constexpr nw::CombatMode combat_mode_rapid_shot = nw::CombatMode::make(6);
 constexpr nw::CombatMode combat_mode_expertise = nw::CombatMode::make(7);
 constexpr nw::CombatMode combat_mode_improved_expertise = nw::CombatMode::make(8);
 constexpr nw::CombatMode combat_mode_defensive_casting = nw::CombatMode::make(9);
-constexpr nw::CombatMode combat_mode_dirty_fighting = nw ::CombatMode::make(10);
-constexpr nw::CombatMode combat_mode_defensive_stance = nw ::CombatMode::make(11);
+constexpr nw::CombatMode combat_mode_dirty_fighting = nw::CombatMode::make(10);
+constexpr nw::CombatMode combat_mode_defensive_stance = nw::CombatMode::make(11);
 
 constexpr nw::EffectType effect_type_haste = nw::EffectType::make(1);
 constexpr nw::EffectType effect_type_damage_resistance = nw::EffectType::make(2);

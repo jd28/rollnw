@@ -158,7 +158,7 @@ Definitions
 
    res = 0;
    nwk::rules().calculate(ent, nwn1::mod_type_armor_class, nwn1::ac_natural,
-      [&res](int value) { res += value; }));
+      [&res](int value) { res += value; });
    // res == 0
 
 -------------------------------------------------------------------------------
@@ -189,13 +189,19 @@ for all martial weapons.
 
 .. code:: cpp
 
-    auto mfr = nw::kernel::world().get_mut<nw::MasterFeatRegistry>();
+    auto& mfr = nw::kernel::rules().master_feats;
     // Set up bonuses...
-    mfr->add(baseitem_longsword, mfeat_weapon_focus, feat_weapon_focus_longsword);
-    mfr->add(baseitem_longsword, mfeat_weapon_focus, feat_weapon_focus_martial);
+    mfr.add(baseitem_longsword, mfeat_weapon_focus, feat_weapon_focus_longsword);
+    mfr.add(baseitem_longsword, mfeat_weapon_focus, feat_weapon_focus_martial);
 
     // Will return an array of length 2 containing the respective bonuses
-    auto mf_bonus = mfr->resolve<int>(cre, baseitem, mfeat_weapon_focus, mfeat_weapon_focus_epic);
+    auto callback = [](int value) { /* do something with value */ };
+    mfr.resolve_n<int>(cre, baseitem, callback, mfeat_weapon_focus, mfeat_weapon_focus_epic);
+
+    // If you are only interested in resolving one master feat you can get that result
+    // directly:
+    int value = mfr.resolve_n<int>(cre, baseitem, callback, mfeat_weapon_focus);
+
 
 -------------------------------------------------------------------------------
 
