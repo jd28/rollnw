@@ -8,9 +8,9 @@
 #include <nw/kernel/EffectSystem.hpp>
 #include <nw/kernel/Rules.hpp>
 #include <nw/kernel/Strings.hpp>
-#include <nw/rules/Ability.hpp>
 #include <nw/rules/Effect.hpp>
-#include <nw/rules/ItemProperty.hpp>
+#include <nw/rules/attributes.hpp>
+#include <nw/rules/items.hpp>
 
 #include <limits>
 

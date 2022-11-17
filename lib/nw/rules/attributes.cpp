@@ -1,9 +1,33 @@
-#include "Race.hpp"
+#include "attributes.hpp"
 
 #include "../formats/TwoDA.hpp"
 #include "../kernel/Strings.hpp"
 
 namespace nw {
+
+// -- Alignment ---------------------------------------------------------------
+// ----------------------------------------------------------------------------
+
+AlignmentAxis alignment_axis_from_flags(AlignmentFlags flags)
+{
+    static constexpr AlignmentFlags good_evil{AlignmentFlags::good | AlignmentFlags::evil};
+    static constexpr AlignmentFlags law_chaos{AlignmentFlags::lawful | AlignmentFlags::chaotic};
+
+    AlignmentAxis result = AlignmentAxis::neither;
+
+    if (to_bool(flags | good_evil)) {
+        result |= AlignmentAxis::good_evil;
+    }
+
+    if (to_bool(flags | law_chaos)) {
+        result |= AlignmentAxis::law_chaos;
+    }
+
+    return result;
+}
+
+// -- Race --------------------------------------------------------------------
+// ----------------------------------------------------------------------------
 
 RaceInfo::RaceInfo(const TwoDARowView& tda)
 {
@@ -42,6 +66,29 @@ RaceInfo::RaceInfo(const TwoDARowView& tda)
         tda.get_to("NormalFeatEveryNthLevel", feats_normal_level);
         tda.get_to("NumberNormalFeatsEveryNthLevel", feats_normal_amount);
         tda.get_to("SkillPointModifierAbility", skillpoints_ability);
+    }
+}
+
+// -- Skill -------------------------------------------------------------------
+// ----------------------------------------------------------------------------
+
+SkillInfo::SkillInfo(const TwoDARowView& tda)
+{
+    std::string temp_string;
+    if (tda.get_to("label", temp_string)) {
+        tda.get_to("Name", name);
+        tda.get_to("Description", description);
+        if (tda.get_to("Icon", temp_string)) {
+            icon = {temp_string, nw::ResourceType::texture};
+        }
+        tda.get_to("Untrained", untrained);
+
+        tda.get_to("ArmorCheckPenalty", armor_check_penalty);
+        tda.get_to("AllClassesCanUse", all_can_use);
+        if (tda.get_to("Constant", temp_string)) {
+            constant = nw::kernel::strings().intern(temp_string);
+        }
+        tda.get_to("HostileSkill", hostile);
     }
 }
 

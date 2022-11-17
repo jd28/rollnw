@@ -37,7 +37,7 @@ Definitions
 
    .. code:: cpp
 
-      // Definition of an attribute in nw/rules/ArmorClass.hpp
+      // Definition of an attribute in nw/rules/attributes.hpp
       DECLARE_RULE_TYPE(ArmorClass)
 
       // Somewhere else in a rule profile that uses the concept of armor class

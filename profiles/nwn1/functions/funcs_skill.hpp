@@ -1,7 +1,7 @@
 #pragma once
 
 #include <nw/components/Creature.hpp>
-#include <nw/rules/Skill.hpp>
+#include <nw/rules/attributes.hpp>
 
 namespace nwn1 {
 

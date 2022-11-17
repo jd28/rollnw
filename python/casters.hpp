@@ -2,10 +2,9 @@
 
 #include <nw/kernel/Strings.hpp>
 #include <nw/resources/Resref.hpp>
-#include <nw/rules/Ability.hpp>
 #include <nw/rules/Class.hpp>
-#include <nw/rules/Feat.hpp>
-#include <nw/rules/Skill.hpp>
+#include <nw/rules/attributes.hpp>
+#include <nw/rules/feats.hpp>
 #include <nw/util/ByteArray.hpp>
 #include <nw/util/InternedString.hpp>
 #include <nw/util/macros.hpp>

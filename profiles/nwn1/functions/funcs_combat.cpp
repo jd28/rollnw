@@ -8,9 +8,9 @@
 #include <nw/components/Equips.hpp>
 #include <nw/components/Item.hpp>
 #include <nw/kernel/Rules.hpp>
-#include <nw/rules/Attack.hpp>
-#include <nw/rules/BaseItem.hpp>
 #include <nw/rules/Class.hpp>
+#include <nw/rules/combat.hpp>
+#include <nw/rules/items.hpp>
 #include <nw/util/macros.hpp>
 
 namespace nwn1 {
@@ -43,8 +43,7 @@ int attack_bonus(const nw::Creature* obj, nw::AttackType type)
     nw::kernel::rules().calculate(obj, mod_type_attack_bonus, attack_type_any, adder);
 
     // Master Feats
-    auto& mfr = nw::kernel::rules().master_feats;
-    mfr.resolve_n<int>(obj, baseitem, adder, mfeat_weapon_focus, mfeat_weapon_focus_epic);
+    nw::kernel::resolve_master_feats<int>(obj, baseitem, adder, mfeat_weapon_focus, mfeat_weapon_focus_epic);
 
     // Abilities
     int modifier = get_ability_modifier(obj, ability_strength);

@@ -1,16 +1,15 @@
 #pragma once
 
+#include "../components/Creature.hpp"
 #include "../components/ObjectBase.hpp"
 #include "../formats/TwoDA.hpp"
 #include "../log.hpp"
-#include "../rules/BaseItem.hpp"
 #include "../rules/Class.hpp"
-#include "../rules/Feat.hpp"
-#include "../rules/MasterFeat.hpp"
 #include "../rules/Modifier.hpp"
-#include "../rules/Race.hpp"
-#include "../rules/Skill.hpp"
 #include "../rules/Spell.hpp"
+#include "../rules/attributes.hpp"
+#include "../rules/feats.hpp"
+#include "../rules/items.hpp"
 #include "../rules/system.hpp"
 
 #include <cstdint>
@@ -323,6 +322,84 @@ inline Rules& rules()
 {
     auto res = detail::s_services.get_mut<Rules>();
     return res ? *res : *detail::s_services.add<Rules>();
+}
+
+/**
+ * @brief Resolves an arbitrary number of master feats
+ *
+ * @tparam T Return type
+ * @tparam U Rule type
+ * @tparam Callback Callback type should be ``void(T)``
+ * @tparam Args MasterFeat...
+ * @param obj Creature object
+ * @param type Rule value
+ * @param cb This parameter will be called with any valid master feat bonus as a parameter.
+ * @param mfeats As many master feats as needed
+ */
+template <typename T, typename U, typename Callback, typename... Args>
+void resolve_master_feats(const Creature* obj, U type, Callback cb, Args... mfeats)
+{
+    static_assert(is_rule_type<U>::value, "only rule types allowed");
+    static_assert(std::is_same_v<T, int> || std::is_same_v<T, float>,
+        "result type can only be int or float");
+
+    if (!obj) { return; }
+
+    std::array<T, sizeof...(Args)> result{};
+    std::array<MasterFeat, sizeof...(Args)> mfs{mfeats...};
+    std::sort(std::begin(mfs), std::end(mfs));
+
+    auto it = std::begin(rules().master_feats.entries());
+    auto end = std::end(rules().master_feats.entries());
+    size_t i = 0;
+
+    for (auto mf : mfs) {
+        MasterFeatEntry mfe{mf, static_cast<int32_t>(*type), Feat::invalid()};
+        const auto& mf_bonus = rules().master_feats.get_bonus(mf);
+        if (mf_bonus.empty()) { continue; }
+
+        it = std::lower_bound(it, end, mfe);
+        if (it == end) { break; }
+
+        while (it != end && it->type == *type) {
+            if (obj->stats.has_feat(it->feat)) {
+                if (mf_bonus.template is<T>()) {
+                    result[i] = mf_bonus.template as<T>();
+                } else if (mf_bonus.template is<ModifierFunction>()) {
+                    auto res = mf_bonus.template as<ModifierFunction>()(obj);
+                    if (res.template is<T>()) {
+                        result[i] = res.template as<T>();
+                    }
+                }
+                break;
+            }
+            ++it;
+        }
+        ++i;
+    }
+    for (const auto& value : result) {
+        cb(value);
+    }
+}
+
+/**
+ * @brief Resolves a master feat bonus
+ *
+ * @tparam T Return type
+ * @tparam U Rule type
+ * @param obj Creature object
+ * @param type Rule value
+ * @param mfeat Master feat
+ */
+template <typename T, typename U>
+T resolve_master_feat(const Creature* obj, U type, MasterFeat mfeat)
+{
+    T result{};
+    resolve_master_feats<T>(
+        obj, type,
+        [&result](T val) { result = val; },
+        mfeat);
+    return result;
 }
 
 } // namespace nw::kernel

@@ -2,8 +2,8 @@
 
 #include "ObjectBase.hpp"
 
-#include "../rules/CombatMode.hpp"
-#include "../rules/Race.hpp"
+#include "../rules/attributes.hpp"
+#include "../rules/combat.hpp"
 #include "Appearance.hpp"
 #include "CombatInfo.hpp"
 #include "Common.hpp"

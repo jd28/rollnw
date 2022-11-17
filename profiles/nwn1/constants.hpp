@@ -1,23 +1,14 @@
 #pragma once
 
 #include "constants/const_baseitem.hpp"
-#include "constants/const_disease.hpp"
 #include "constants/const_feat.hpp"
-#include "constants/const_poison.hpp"
 #include "constants/const_spell.hpp"
 
-#include <nw/rules/Ability.hpp>
-#include <nw/rules/ArmorClass.hpp>
-#include <nw/rules/Attack.hpp>
 #include <nw/rules/Class.hpp>
-#include <nw/rules/CombatMode.hpp>
-#include <nw/rules/Damage.hpp>
 #include <nw/rules/Effect.hpp>
-#include <nw/rules/ItemProperty.hpp>
 #include <nw/rules/Modifier.hpp>
-#include <nw/rules/Race.hpp>
-#include <nw/rules/Situation.hpp>
-#include <nw/rules/Skill.hpp>
+#include <nw/rules/combat.hpp>
+#include <nw/rules/items.hpp>
 
 namespace nwn1 {
 
@@ -100,6 +91,24 @@ constexpr nw::CombatMode combat_mode_improved_expertise = nw::CombatMode::make(8
 constexpr nw::CombatMode combat_mode_defensive_casting = nw::CombatMode::make(9);
 constexpr nw::CombatMode combat_mode_dirty_fighting = nw::CombatMode::make(10);
 constexpr nw::CombatMode combat_mode_defensive_stance = nw::CombatMode::make(11);
+
+constexpr nw::Disease disease_blinding_sickness = nw::Disease::make(0);
+constexpr nw::Disease disease_cackle_fever = nw::Disease::make(1);
+constexpr nw::Disease disease_devil_chills = nw::Disease::make(2);
+constexpr nw::Disease disease_demon_fever = nw::Disease::make(3);
+constexpr nw::Disease disease_filth_fever = nw::Disease::make(4);
+constexpr nw::Disease disease_mindfire = nw::Disease::make(5);
+constexpr nw::Disease disease_mummy_rot = nw::Disease::make(6);
+constexpr nw::Disease disease_red_ache = nw::Disease::make(7);
+constexpr nw::Disease disease_shakes = nw::Disease::make(8);
+constexpr nw::Disease disease_slimy_doom = nw::Disease::make(9);
+constexpr nw::Disease disease_red_slaad_eggs = nw::Disease::make(10);
+constexpr nw::Disease disease_ghoul_rot = nw::Disease::make(11);
+constexpr nw::Disease disease_zombie_creep = nw::Disease::make(12);
+constexpr nw::Disease disease_dread_blisters = nw::Disease::make(13);
+constexpr nw::Disease disease_burrow_maggots = nw::Disease::make(14);
+constexpr nw::Disease disease_soldier_shakes = nw::Disease::make(15);
+constexpr nw::Disease disease_vermin_madness = nw::Disease::make(16);
 
 constexpr nw::EffectType effect_type_haste = nw::EffectType::make(1);
 constexpr nw::EffectType effect_type_damage_resistance = nw::EffectType::make(2);
@@ -306,6 +315,51 @@ extern const nw::DamageFlag damage_flag_negative;
 extern const nw::DamageFlag damage_flag_positive;
 extern const nw::DamageFlag damage_flag_sonic;
 extern const nw::DamageFlag damage_flag_base_weapon;
+
+constexpr nw::Poison poison_nightshade = nw::Poison::make(0);
+constexpr nw::Poison poison_small_centipede_poison = nw::Poison::make(1);
+constexpr nw::Poison poison_blade_bane = nw::Poison::make(2);
+constexpr nw::Poison poison_greenblood_oil = nw::Poison::make(3);
+constexpr nw::Poison poison_bloodroot = nw::Poison::make(4);
+constexpr nw::Poison poison_purple_worm_poison = nw::Poison::make(5);
+constexpr nw::Poison poison_large_scorpion_venom = nw::Poison::make(6);
+constexpr nw::Poison poison_wyvern_poison = nw::Poison::make(7);
+constexpr nw::Poison poison_blue_whinnis = nw::Poison::make(8);
+constexpr nw::Poison poison_giant_wasp_poison = nw::Poison::make(9);
+constexpr nw::Poison poison_shadow_essence = nw::Poison::make(10);
+constexpr nw::Poison poison_black_adder_venom = nw::Poison::make(11);
+constexpr nw::Poison poison_deathblade = nw::Poison::make(12);
+constexpr nw::Poison poison_malyss_root_paste = nw::Poison::make(13);
+constexpr nw::Poison poison_nitharit = nw::Poison::make(14);
+constexpr nw::Poison poison_dragon_bile = nw::Poison::make(15);
+constexpr nw::Poison poison_sassone_leaf_residue = nw::Poison::make(16);
+constexpr nw::Poison poison_terinav_root = nw::Poison::make(17);
+constexpr nw::Poison poison_carrion_crawler_brain_juice = nw::Poison::make(18);
+constexpr nw::Poison poison_black_lotus_extract = nw::Poison::make(19);
+constexpr nw::Poison poison_oil_of_taggit = nw::Poison::make(20);
+constexpr nw::Poison poison_id_moss = nw::Poison::make(21);
+constexpr nw::Poison poison_striped_toadstool = nw::Poison::make(22);
+constexpr nw::Poison poison_arsenic = nw::Poison::make(23);
+constexpr nw::Poison poison_lich_dust = nw::Poison::make(24);
+constexpr nw::Poison poison_dark_reaver_powder = nw::Poison::make(25);
+constexpr nw::Poison poison_ungol_dust = nw::Poison::make(26);
+constexpr nw::Poison poison_burnt_othur_fumes = nw::Poison::make(27);
+constexpr nw::Poison poison_chaos_mist = nw::Poison::make(28);
+constexpr nw::Poison poison_bebilith_venom = nw::Poison::make(29);
+constexpr nw::Poison poison_quasit_venom = nw::Poison::make(30);
+constexpr nw::Poison poison_pit_fiend_ichor = nw::Poison::make(31);
+constexpr nw::Poison poison_ettercap_venom = nw::Poison::make(32);
+constexpr nw::Poison poison_aranea_venom = nw::Poison::make(33);
+constexpr nw::Poison poison_tiny_spider_venom = nw::Poison::make(34);
+constexpr nw::Poison poison_small_spider_venom = nw::Poison::make(35);
+constexpr nw::Poison poison_medium_spider_venom = nw::Poison::make(36);
+constexpr nw::Poison poison_large_spider_venom = nw::Poison::make(37);
+constexpr nw::Poison poison_huge_spider_venom = nw::Poison::make(38);
+constexpr nw::Poison poison_gargantuan_spider_venom = nw::Poison::make(39);
+constexpr nw::Poison poison_colossal_spider_venom = nw::Poison::make(40);
+constexpr nw::Poison poison_phase_spider_venom = nw::Poison::make(41);
+constexpr nw::Poison poison_wraith_spider_venom = nw::Poison::make(42);
+constexpr nw::Poison poison_iron_golem = nw::Poison::make(43);
 
 constexpr nw::Race racial_type_dwarf = nw::Race::make(0);
 constexpr nw::Race racial_type_elf = nw::Race::make(1);

@@ -1,7 +1,6 @@
 #pragma once
 
-#include "../rules/BaseItem.hpp"
-#include "../rules/ItemProperty.hpp"
+#include "../rules/items.hpp"
 #include "Common.hpp"
 #include "Inventory.hpp"
 #include "LocalData.hpp"

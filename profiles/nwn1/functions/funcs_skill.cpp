@@ -7,7 +7,7 @@
 
 #include <nw/components/Creature.hpp>
 #include <nw/kernel/Rules.hpp>
-#include <nw/rules/MasterFeat.hpp>
+#include <nw/rules/feats.hpp>
 
 namespace nwn1 {
 
@@ -36,8 +36,8 @@ int get_skill_rank(const nw::Creature* obj, nw::Skill skill, bool base)
     }
 
     // Master Feats
-    auto& mfr = nw::kernel::rules().master_feats;
-    mfr.resolve_n<int>(obj, skill, adder, mfeat_skill_focus, mfeat_skill_focus_epic);
+    nw::kernel::resolve_master_feats<int>(obj, skill, adder,
+        mfeat_skill_focus, mfeat_skill_focus_epic);
 
     // Modifiers
     nw::kernel::rules().calculate(obj, mod_type_skill, skill, adder);

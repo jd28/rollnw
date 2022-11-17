@@ -4,7 +4,7 @@
 #include <nw/kernel/EffectSystem.hpp>
 #include <nw/kernel/EventSystem.hpp>
 #include <nw/kernel/Objects.hpp>
-#include <nw/rules/Feat.hpp>
+#include <nw/rules/feats.hpp>
 #include <nw/serialization/Archives.hpp>
 #include <nwn1/Profile.hpp>
 #include <nwn1/constants.hpp>

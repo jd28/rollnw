@@ -1,17 +1,12 @@
 #pragma once
 
-#include <nw/rules/Ability.hpp>
-#include <nw/rules/ArmorClass.hpp>
-#include <nw/rules/Attack.hpp>
-#include <nw/rules/BaseItem.hpp>
 #include <nw/rules/Class.hpp>
-#include <nw/rules/CombatMode.hpp>
-#include <nw/rules/Damage.hpp>
-#include <nw/rules/Feat.hpp>
 #include <nw/rules/Modifier.hpp>
-#include <nw/rules/Race.hpp>
-#include <nw/rules/Skill.hpp>
 #include <nw/rules/Spell.hpp>
+#include <nw/rules/attributes.hpp>
+#include <nw/rules/combat.hpp>
+#include <nw/rules/feats.hpp>
+#include <nw/rules/items.hpp>
 #include <nw/rules/system.hpp>
 
 namespace nwn1 {

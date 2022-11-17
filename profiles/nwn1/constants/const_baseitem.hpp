@@ -1,6 +1,6 @@
 #pragma once
 
-#include <nw/rules/BaseItem.hpp>
+#include <nw/rules/items.hpp>
 
 namespace nwn1 {
 

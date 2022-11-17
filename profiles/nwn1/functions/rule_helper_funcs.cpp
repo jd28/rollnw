@@ -1,8 +1,8 @@
 #include "rule_helper_funcs.hpp"
 
 #include "../constants.hpp"
-#include "nw/rules/Attack.hpp"
-#include "nw/rules/BaseItem.hpp"
+#include "nw/rules/combat.hpp"
+#include "nw/rules/items.hpp"
 
 #include <nw/kernel/Kernel.hpp>
 

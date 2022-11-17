@@ -3,7 +3,7 @@
 #include "../components/Equips.hpp"
 #include "../components/ObjectBase.hpp"
 #include "../rules/Effect.hpp"
-#include "../rules/ItemProperty.hpp"
+#include "../rules/items.hpp"
 #include "Kernel.hpp"
 
 #include <absl/container/flat_hash_map.h>

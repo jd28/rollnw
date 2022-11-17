@@ -4,7 +4,7 @@
 #include "constants/const_feat.hpp"
 #include "functions.hpp"
 #include "functions/funcs_feat.hpp"
-#include "nw/rules/BaseItem.hpp"
+#include "nw/rules/items.hpp"
 
 #include <nw/components/Common.hpp>
 #include <nw/components/Creature.hpp>
@@ -13,7 +13,7 @@
 #include <nw/kernel/TwoDACache.hpp>
 #include <nw/log.hpp>
 #include <nw/rules/Class.hpp>
-#include <nw/rules/Feat.hpp>
+#include <nw/rules/feats.hpp>
 
 namespace nwn1 {
 
@@ -339,8 +339,7 @@ nw::ModifierResult weapon_master_ab(const nw::ObjectBase* obj, int32_t subtype)
     auto wm = cre->levels.level_by_class(nwn1::class_type_weapon_master);
     if (wm < 5) { return 0; }
 
-    auto& mfr = nw::kernel::rules().master_feats;
-    bool has_feat = !!mfr.resolve<int>(cre, baseitem, mfeat_weapon_of_choice);
+    bool has_feat = !!nw::kernel::resolve_master_feat<int>(cre, baseitem, mfeat_weapon_of_choice);
     if (!has_feat) { return 0; }
 
     int result = 1;

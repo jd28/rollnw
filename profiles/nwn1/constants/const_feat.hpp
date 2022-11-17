@@ -1,7 +1,6 @@
 #pragma once
 
-#include <nw/rules/Feat.hpp>
-#include <nw/rules/MasterFeat.hpp>
+#include <nw/rules/feats.hpp>
 
 namespace nwn1 {
 

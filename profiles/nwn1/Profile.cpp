@@ -12,7 +12,7 @@
 #include <nw/kernel/Resources.hpp>
 #include <nw/kernel/Rules.hpp>
 #include <nw/kernel/TwoDACache.hpp>
-#include <nw/rules/MasterFeat.hpp>
+#include <nw/rules/feats.hpp>
 
 namespace nwn1 {
 

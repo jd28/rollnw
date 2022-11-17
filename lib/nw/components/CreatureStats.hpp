@@ -1,8 +1,7 @@
 #pragma once
 
-#include "../rules/Ability.hpp"
-#include "../rules/Feat.hpp"
-#include "../rules/Skill.hpp"
+#include "../rules/attributes.hpp"
+#include "../rules/feats.hpp"
 #include "../serialization/Archives.hpp"
 #include "Saves.hpp"
 

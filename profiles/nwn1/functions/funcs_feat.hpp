@@ -1,7 +1,7 @@
 #pragma once
 
 #include <nw/components/Creature.hpp>
-#include <nw/rules/Feat.hpp>
+#include <nw/rules/feats.hpp>
 
 #include <array>
 #include <vector>

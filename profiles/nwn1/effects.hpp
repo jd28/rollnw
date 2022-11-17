@@ -2,7 +2,7 @@
 
 #include "constants.hpp"
 #include "nw/components/Equips.hpp"
-#include "nw/rules/Attack.hpp"
+#include "nw/rules/combat.hpp"
 
 namespace nw {
 struct Effect;

@@ -3,13 +3,11 @@
 #include <nw/kernel/Kernel.hpp>
 #include <nw/kernel/Rules.hpp>
 #include <nw/kernel/TwoDACache.hpp>
-#include <nw/rules/Ability.hpp>
-#include <nw/rules/BaseItem.hpp>
 #include <nw/rules/Class.hpp>
-#include <nw/rules/Feat.hpp>
-#include <nw/rules/Race.hpp>
-#include <nw/rules/Skill.hpp>
 #include <nw/rules/Spell.hpp>
+#include <nw/rules/attributes.hpp>
+#include <nw/rules/feats.hpp>
+#include <nw/rules/items.hpp>
 #include <nwn1/Profile.hpp>
 
 #include <nw/util/game_install.hpp>

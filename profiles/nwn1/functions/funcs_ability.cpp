@@ -7,9 +7,9 @@
 #include <nw/components/EffectArray.hpp>
 #include <nw/components/ObjectHandle.hpp>
 #include <nw/kernel/Rules.hpp>
-#include <nw/rules/Ability.hpp>
 #include <nw/rules/Effect.hpp>
 #include <nw/rules/Spell.hpp>
+#include <nw/rules/attributes.hpp>
 
 #include <algorithm>
 
