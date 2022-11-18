@@ -14,7 +14,7 @@ bool operator==(const DiceRoll& lhs, const DiceRoll& rhs);
 bool operator<(const DiceRoll& lhs, const DiceRoll& rhs);
 
 /// Rolls a set of dice
-/// @param dice Dice to roll
+/// @param roll Dice to roll
 int roll_dice(DiceRoll roll);
 
 /// Rolls a set exploding of dice

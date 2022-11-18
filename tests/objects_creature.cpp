@@ -1,4 +1,3 @@
-#include "nw/rules/combat.hpp"
 #include <catch2/catch_all.hpp>
 
 #include <nw/components/Creature.hpp>
@@ -6,14 +5,13 @@
 #include <nw/kernel/EventSystem.hpp>
 #include <nw/kernel/Objects.hpp>
 #include <nw/kernel/Rules.hpp>
+#include <nw/rules/combat.hpp>
 #include <nw/rules/feats.hpp>
 #include <nw/serialization/Archives.hpp>
 #include <nwn1/Profile.hpp>
 #include <nwn1/constants.hpp>
-#include <nwn1/constants/const_feat.hpp>
 #include <nwn1/effects.hpp>
 #include <nwn1/functions.hpp>
-#include <nwn1/functions/funcs_effects.hpp>
 
 #include <nlohmann/json.hpp>
 

@@ -5,7 +5,8 @@ vcpkg/
 vcpkg_installed/
 
 # IDEs
-.vscode/
+.vscode/*
+!.vscode/extensions.json
 .clion/
 CMakeLists.txt.user
 .kdev4/
