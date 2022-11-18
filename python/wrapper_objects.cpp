@@ -9,6 +9,7 @@
 #include <nw/components/Module.hpp>
 #include <nw/components/ObjectBase.hpp>
 #include <nw/components/Placeable.hpp>
+#include <nw/components/Player.hpp>
 #include <nw/components/Sound.hpp>
 #include <nw/components/Store.hpp>
 #include <nw/components/Trigger.hpp>
@@ -618,6 +619,11 @@ void init_objects_placeable(py::module& nw)
         .def_readwrite("useable", &nw::Placeable::useable);
 }
 
+void init_objects_player(py::module& nw)
+{
+    py::class_<nw::Player, nw::Creature>(nw, "Player");
+}
+
 void init_objects_sound(py::module& nw)
 {
     py::class_<nw::Sound, nw::ObjectBase>(nw, "Sound")
@@ -771,6 +777,7 @@ void init_objects(py::module& nw)
     init_objects_item(nw);
     init_objects_module(nw);
     init_objects_placeable(nw);
+    init_objects_player(nw);
     init_objects_sound(nw);
     init_objects_store(nw);
     init_object_trigger(nw);

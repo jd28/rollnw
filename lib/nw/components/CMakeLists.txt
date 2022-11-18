@@ -8,6 +8,7 @@ add_library(nw-components STATIC
     ObjectBase.cpp
     ObjectHandle.cpp
     Placeable.cpp
+    Player.cpp
     Sound.cpp
     Store.cpp
     Trigger.cpp

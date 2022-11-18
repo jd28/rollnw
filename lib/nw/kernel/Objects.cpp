@@ -6,6 +6,7 @@
 #include "../components/Encounter.hpp"
 #include "../components/Item.hpp"
 #include "../components/Module.hpp"
+#include "../components/Player.hpp"
 #include "../components/Trigger.hpp"
 #include "../log.hpp"
 #include "../util/platform.hpp"
@@ -43,14 +44,14 @@ ObjectBase* ObjectSystem::get_object_base(ObjectHandle obj)
     return std::get<std::unique_ptr<ObjectBase>>(objects_[idx]).get();
 }
 
-nw::Creature* ObjectSystem::load_player(std::string_view cdkey, std::string_view resref)
+nw::Player* ObjectSystem::load_player(std::string_view cdkey, std::string_view resref)
 {
     auto ba = resman().demand_server_vault(cdkey, resref);
     if (ba.size() == 0) { return nullptr; }
 
-    auto obj = make<nw::Creature>();
+    auto obj = make<nw::Player>();
     Gff in{std::move(ba)};
-    Creature::deserialize(obj, in.toplevel(), SerializationProfile::instance);
+    Player::deserialize(obj, in.toplevel());
 
     return obj;
 }

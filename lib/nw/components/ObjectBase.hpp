@@ -20,6 +20,7 @@ struct Encounter;
 struct Item;
 struct Module;
 struct Placeable;
+struct Player;
 struct Sound;
 struct Store;
 struct Trigger;
@@ -48,6 +49,8 @@ struct ObjectBase {
     virtual const Module* as_module() const { return nullptr; }
     virtual Placeable* as_placeable() { return nullptr; }
     virtual const Placeable* as_placeable() const { return nullptr; }
+    virtual Player* as_player() { return nullptr; }
+    virtual const Player* as_player() const { return nullptr; }
     virtual Sound* as_sound() { return nullptr; }
     virtual const Sound* as_sound() const { return nullptr; }
     virtual Store* as_store() { return nullptr; }

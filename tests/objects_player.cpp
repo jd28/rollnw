@@ -39,3 +39,20 @@ TEST_CASE("player: to gffjson", "[objects]")
 
     nwk::unload_module();
 }
+
+TEST_CASE("player: to json", "[objects]")
+{
+    auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
+    REQUIRE(mod);
+
+    auto pl = nwk::objects().load_player("CDKEY", "tobias");
+    REQUIRE(pl);
+
+    nlohmann::json j;
+    nw::Player::serialize(pl, j);
+
+    std::ofstream out{"tmp/tobias.bic.json"};
+    out << std::setw(4) << j;
+
+    nwk::unload_module();
+}

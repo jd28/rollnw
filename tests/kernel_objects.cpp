@@ -2,6 +2,7 @@
 #include <catch2/catch_all.hpp>
 
 #include <nw/components/Creature.hpp>
+#include <nw/components/Player.hpp>
 #include <nw/kernel/Objects.hpp>
 #include <nw/log.hpp>
 #include <nwn1/Profile.hpp>
@@ -65,8 +66,7 @@ TEST_CASE("objects manager: load player file", "[kernel]")
     auto pl2 = nwk::objects().load_player("WRONG", "tobias");
     REQUIRE_FALSE(pl2);
 
-    auto pl3 = nwk::objects().load<nw::Creature>(fs::path("test_data/user/servervault/CDKEY/tobias.bic"),
-        nw::SerializationProfile::instance);
+    auto pl3 = nwk::objects().load<nw::Player>(fs::path("test_data/user/servervault/CDKEY/tobias.bic"));
     REQUIRE(pl3);
 
     nwk::unload_module();

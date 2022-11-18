@@ -41,6 +41,7 @@ enum struct ObjectType : uint16_t {
     store = 14,
     portal = 15,
     sound = 16,
+    player = 17,
 };
 
 /// nlohmann::json specialization

@@ -1283,6 +1283,12 @@ class Placeable(ObjectBase):
     pass
 
 
+class Player(Creature):
+    """Player character
+    """
+    pass
+
+
 class Sound(ObjectBase):
     """Class that represents a Sound object
 
