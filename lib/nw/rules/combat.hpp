@@ -66,4 +66,24 @@ DECLARE_RULE_TYPE(Situation);
 
 using SituationFlag = RuleFlag<Situation, 64>;
 
+// -- Target State ------------------------------------------------------------
+// ----------------------------------------------------------------------------
+
+enum struct TargetState {
+    none = 0,
+    blind = 1,
+    attacker_invis = 2,
+    unseen = 4,
+    moving = 8,
+    prone = 16,
+    stunned = 32,
+    flanked = 64,
+    flatfooted = 128,
+    asleep = 256,
+    attacker_unseen = 512,
+    invis = 1024,
+};
+
+DEFINE_ENUM_FLAGS(TargetState);
+
 } // namespace nw

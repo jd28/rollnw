@@ -4,6 +4,7 @@
 #include "constants/const_feat.hpp"
 #include "functions.hpp"
 #include "functions/funcs_feat.hpp"
+#include "nw/rules/combat.hpp"
 #include "nw/rules/items.hpp"
 
 #include <nw/components/Common.hpp>
@@ -328,6 +329,49 @@ nw::ModifierResult enchant_arrow_ab(const nw::ObjectBase* obj, int32_t subtype)
         }
     }
     return 0;
+}
+
+nw::ModifierResult target_state_ab(const nw::ObjectBase* obj, const nw::ObjectBase* target)
+{
+    int result = 0;
+    if (!obj || !target) { return result; }
+    auto cre = obj->as_creature();
+    auto vs = target->as_creature();
+    if (!cre || !vs) { return result; }
+
+    if (to_bool(cre->target_state & nw::TargetState::attacker_invis)
+        || to_bool(cre->target_state & nw::TargetState::blind)) {
+        if (!vs->stats.has_feat(feat_blind_fight)) {
+            result += 2;
+        }
+    }
+
+    if (to_bool(cre->target_state & nw::TargetState::stunned)) {
+        result += 2;
+    }
+
+    if (to_bool(cre->target_state & nw::TargetState::flanked)) {
+        if (!vs->stats.has_feat(feat_prestige_defensive_awareness_2)) {
+            result += 2;
+        }
+    }
+
+    if (to_bool(cre->target_state & nw::TargetState::unseen)
+        || to_bool(cre->target_state & nw::TargetState::invis)) {
+        result -= 4;
+    }
+
+    // Others - will need to wait
+    //
+    // Melee only
+    // Target is prone. +4AB
+    // Ranged only
+    // Attacker is mounted. -4AB (or -2AB with mounted archery)
+    // Target is moving. -2AB
+    // Target is prone. -4AB
+    // Target is within 3.5 meters of the attacker. -4AB (unless negated by point blank shot)
+
+    return result;
 }
 
 nw::ModifierResult weapon_master_ab(const nw::ObjectBase* obj, int32_t subtype)

@@ -4,6 +4,7 @@
 #include "constants/const_feat.hpp"
 #include "effects.hpp"
 #include "functions/rule_helper_funcs.hpp"
+#include "nw/rules/system.hpp"
 #include "rules.hpp"
 
 #include <nw/components/Creature.hpp>
@@ -144,6 +145,18 @@ static inline void load_modifiers()
         enchant_arrow_ab,
         "dnd-3.0-enchange-arrow",
         nw::ModifierSource::class_));
+
+    rules.modifiers.add(mod::attack_bonus(
+        attack_type_any,
+        simple_feat_mod(feat_epic_prowess, 1),
+        "dnd-3.0-epic-prowess",
+        nw::ModifierSource::feat));
+
+    rules.modifiers.add(mod::attack_bonus(
+        attack_type_any,
+        target_state_ab,
+        "dnd-3.0-target_state",
+        nw::ModifierSource::unknown));
 
     rules.modifiers.add(mod::attack_bonus_item(
         weapon_master_ab,

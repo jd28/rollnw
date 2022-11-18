@@ -1,3 +1,4 @@
+#include "nw/rules/combat.hpp"
 #include <catch2/catch_all.hpp>
 
 #include <nw/components/Creature.hpp>
@@ -112,7 +113,6 @@ TEST_CASE("creature: base attack bonus", "[objects]")
     auto obj = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/pl_agent_001.utc"));
     REQUIRE(obj);
 
-    REQUIRE(nw::kernel::rules().modifiers.size() == 15);
     REQUIRE(27 == nwn1::base_attack_bonus(obj));
     REQUIRE(42 == nwn1::attack_bonus(obj, nwn1::attack_type_unarmed));
 
@@ -141,6 +141,10 @@ TEST_CASE("creature: attack bonus", "[objects]")
     REQUIRE(obj);
     REQUIRE(obj->instantiate());
 
+    auto vs = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/drorry.utc"));
+    REQUIRE(vs);
+    REQUIRE(vs->instantiate());
+
     REQUIRE(obj->levels.level() == 38);
     REQUIRE(obj->levels.level_by_class(nwn1::class_type_fighter) == 10);
     REQUIRE(obj->levels.level_by_class(nwn1::class_type_weapon_master) == 28);
@@ -159,6 +163,14 @@ TEST_CASE("creature: attack bonus", "[objects]")
     REQUIRE(38 == nwn1::attack_bonus(obj, nwn1::attack_type_onhand));
     obj->combat_mode = nwn1::combat_mode_improved_expertise;
     REQUIRE(33 == nwn1::attack_bonus(obj, nwn1::attack_type_onhand));
+    obj->combat_mode = nw::CombatMode::invalid();
+    REQUIRE(43 == nwn1::attack_bonus(obj, nwn1::attack_type_onhand));
+
+    obj->stats.add_feat(nwn1::feat_epic_prowess);
+    REQUIRE(44 == nwn1::attack_bonus(obj, nwn1::attack_type_onhand));
+
+    obj->target_state = nw::TargetState::flanked;
+    REQUIRE(46 == nwn1::attack_bonus(obj, nwn1::attack_type_onhand, vs));
 
     nwk::unload_module();
 }

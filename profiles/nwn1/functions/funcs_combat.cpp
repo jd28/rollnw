@@ -15,7 +15,7 @@
 
 namespace nwn1 {
 
-int attack_bonus(const nw::Creature* obj, nw::AttackType type)
+int attack_bonus(const nw::Creature* obj, nw::AttackType type, nw::ObjectBase* versus)
 {
     int result = 0;
     if (!obj) { return result; }
@@ -37,10 +37,10 @@ int attack_bonus(const nw::Creature* obj, nw::AttackType type)
     }
 
     // Modifiers
-    nw::kernel::resolve_modifier(obj, mod_type_attack_bonus_item, baseitem, adder);
-    nw::kernel::resolve_modifier(obj, mod_type_attack_bonus_mode, obj->combat_mode, adder);
-    nw::kernel::resolve_modifier(obj, mod_type_attack_bonus, type, adder);
-    nw::kernel::resolve_modifier(obj, mod_type_attack_bonus, attack_type_any, adder);
+    nw::kernel::resolve_modifier(obj, mod_type_attack_bonus_item, baseitem, versus, adder);
+    nw::kernel::resolve_modifier(obj, mod_type_attack_bonus_mode, obj->combat_mode, versus, adder);
+    nw::kernel::resolve_modifier(obj, mod_type_attack_bonus, type, versus, adder);
+    nw::kernel::resolve_modifier(obj, mod_type_attack_bonus, attack_type_any, versus, adder);
 
     // Master Feats
     nw::kernel::resolve_master_feats<int>(obj, baseitem, adder, mfeat_weapon_focus, mfeat_weapon_focus_epic);

@@ -13,7 +13,7 @@ struct ObjectBase;
 namespace nwn1 {
 
 /// Calculates attack bonus
-int attack_bonus(const nw::Creature* obj, nw::AttackType type);
+int attack_bonus(const nw::Creature* obj, nw::AttackType type, nw::ObjectBase* versus = nullptr);
 
 /// Number of attacks per second
 float attacks_per_second(const nw::Creature* obj, const nw::ObjectBase* vs);

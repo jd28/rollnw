@@ -22,6 +22,7 @@ nw::ModifierResult pale_master_ac(const nw::ObjectBase* obj);
 
 // Attack Bonus
 nw::ModifierResult enchant_arrow_ab(const nw::ObjectBase* obj, int32_t subtype);
+nw::ModifierResult target_state_ab(const nw::ObjectBase* obj, const nw::ObjectBase* target);
 nw::ModifierResult weapon_master_ab(const nw::ObjectBase* obj, int32_t subtype);
 
 // Damage Resist
