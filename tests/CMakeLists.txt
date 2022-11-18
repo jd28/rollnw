@@ -56,6 +56,7 @@ add_executable(rollnw_test
     objects_item.cpp
     objects_module.cpp
     objects_placeable.cpp
+    objects_player.cpp
     objects_sound.cpp
     objects_store.cpp
     objects_trigger.cpp

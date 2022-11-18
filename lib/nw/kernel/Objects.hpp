@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../components/Area.hpp"
+#include "../components/Creature.hpp"
 #include "../components/Module.hpp"
 #include "../components/ObjectBase.hpp"
 #include "../serialization/Archives.hpp"
@@ -51,6 +52,9 @@ struct ObjectSystem : public Service {
     /// Loads an object from resource system
     template <typename T>
     T* load(std::string_view resref);
+
+    /// Loads an object from resource system
+    nw::Creature* load_player(std::string_view cdkey, std::string_view resref);
 
     /// Creates a new object
     template <typename T>
@@ -149,6 +153,15 @@ T* ObjectSystem::load(const std::filesystem::path& archive, SerializationProfile
             }
         } catch (std::exception& e) {
             LOG_F(ERROR, "Failed to parse json file '{}' because {}", archive, e.what());
+        }
+    }
+    if (restype == ResourceType::bic) {
+        Gff in{ByteArray::from_file(archive)};
+        if (in.valid()) {
+            type = serial_id_to_obj_type(in.type());
+            if (type == T::object_type) {
+                T::deserialize(obj, in.toplevel(), profile);
+            }
         }
     } else if (ResourceType::check_category(ResourceType::gff_archive, restype)) {
         Gff in{ByteArray::from_file(archive)};

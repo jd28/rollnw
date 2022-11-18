@@ -11,6 +11,7 @@
 #include "../util/platform.hpp"
 #include "../util/templates.hpp"
 #include "Kernel.hpp"
+#include "Resources.hpp"
 
 namespace nw::kernel {
 
@@ -40,6 +41,18 @@ ObjectBase* ObjectSystem::get_object_base(ObjectHandle obj)
     if (!valid(obj)) { return nullptr; }
     auto idx = static_cast<size_t>(obj.id);
     return std::get<std::unique_ptr<ObjectBase>>(objects_[idx]).get();
+}
+
+nw::Creature* ObjectSystem::load_player(std::string_view cdkey, std::string_view resref)
+{
+    auto ba = resman().demand_server_vault(cdkey, resref);
+    if (ba.size() == 0) { return nullptr; }
+
+    auto obj = make<nw::Creature>();
+    Gff in{std::move(ba)};
+    Creature::deserialize(obj, in.toplevel(), SerializationProfile::instance);
+
+    return obj;
 }
 
 Area* ObjectSystem::make_area(Resref area)

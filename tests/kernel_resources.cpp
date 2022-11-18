@@ -1,3 +1,4 @@
+#include "nw/kernel/Kernel.hpp"
 #include <catch2/catch_all.hpp>
 
 #include <nw/kernel/Resources.hpp>
@@ -7,6 +8,7 @@
 #include <nw/resources/Zip.hpp>
 
 using namespace std::literals;
+namespace nwk = nw::kernel;
 
 TEST_CASE("resources", "[kernel]")
 {
@@ -46,4 +48,21 @@ TEST_CASE("resources: load module", "[kernel]")
         REQUIRE(rm->load_module("test_data/user/modules/DockerDemo.mod"));
         rm->unload_module();
     }
+}
+
+TEST_CASE("resources: player file", "[kernel]")
+{
+    auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
+    REQUIRE(mod);
+
+    auto ba = nwk::resman().demand_server_vault("CDKEY", "tobias");
+    REQUIRE(ba.size());
+
+    ba = nwk::resman().demand_server_vault("WRONGKEY", "tobias");
+    REQUIRE_FALSE(ba.size());
+
+    ba = nwk::resman().demand_server_vault("CDKEY", "WRONGNAME");
+    REQUIRE_FALSE(ba.size());
+
+    nwk::unload_module();
 }

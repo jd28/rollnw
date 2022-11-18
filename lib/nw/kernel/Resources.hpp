@@ -7,6 +7,7 @@
 #include "../resources/Zip.hpp"
 #include "Kernel.hpp"
 
+#include <string_view>
 #include <variant>
 
 namespace nw {
@@ -41,6 +42,9 @@ struct Resources : public Container, public Service {
 
     /// Unloads module
     void unload_module();
+
+    /// Demands a player character file
+    ByteArray demand_server_vault(std::string_view cdkey, std::string_view resref);
 
     /// Attempts to locate first matching resource type by container priority
     std::pair<ByteArray, ResourceType::type>

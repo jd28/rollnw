@@ -4,8 +4,10 @@
 #include "../util/game_install.hpp"
 #include "../util/platform.hpp"
 #include "../util/templates.hpp"
+#include "Kernel.hpp"
 #include "Strings.hpp"
 
+#include <filesystem>
 #include <memory>
 
 namespace nw::kernel {
@@ -243,6 +245,23 @@ Resources::demand_in_order(Resref resref, std::initializer_list<ResourceType::ty
         }
     }
     return {result, nw::ResourceType::invalid};
+}
+
+ByteArray Resources::demand_server_vault(std::string_view cdkey, std::string_view resref)
+{
+    ByteArray result;
+    auto vault_path = config().alias_path(PathAlias::servervault);
+    if (!fs::exists(vault_path)) { return result; }
+
+    vault_path /= cdkey;
+    if (!fs::exists(vault_path)) { return result; }
+
+    Resource res{resref, ResourceType::bic};
+    vault_path /= res.filename();
+    if (!fs::exists(vault_path)) { return result; }
+    result = ByteArray::from_file(vault_path);
+
+    return result;
 }
 
 int Resources::extract(const std::regex& pattern, const std::filesystem::path& output) const
