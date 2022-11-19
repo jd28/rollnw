@@ -16,9 +16,9 @@ struct Player : public Creature {
     static bool deserialize(Player* obj, const GffStruct& archive);
     static bool deserialize(Player* obj, const nlohmann::json& archive);
 
-    static GffBuilder serialize(const Player* obj);
-    static bool serialize(const Player* obj, GffBuilderStruct& archive);
-    static bool serialize(const Player* obj, nlohmann::json& archive);
+    // static GffBuilder serialize(const Player* obj);
+    // static bool serialize(const Player* obj, GffBuilderStruct& archive);
+    // static bool serialize(const Player* obj, nlohmann::json& archive);
 };
 
 } // namespace nw

@@ -27,28 +27,28 @@ bool Player::deserialize(Player* obj, const nlohmann::json& archive)
     return true;
 }
 
-GffBuilder Player::serialize(const Player* obj)
-{
-    GffBuilder result{"BIC"};
-    Player::serialize(obj, result.top);
-    return result;
-}
+// GffBuilder Player::serialize(const Player* obj)
+// {
+//     GffBuilder result{"BIC"};
+//     Player::serialize(obj, result.top);
+//     return result;
+// }
 
-bool Player::serialize(const Player* obj, GffBuilderStruct& archive)
-{
-    Creature::serialize(obj, archive, SerializationProfile::instance);
-    auto list = archive.add_list("LvlStatList");
-    for (auto it : obj->history.entries) {
-        it.to_gff(list.push_back(0));
-    }
-    return true;
-}
+// bool Player::serialize(const Player* obj, GffBuilderStruct& archive)
+// {
+//     Creature::serialize(obj, archive, SerializationProfile::instance);
+//     auto list = archive.add_list("LvlStatList");
+//     for (auto it : obj->history.entries) {
+//         it.to_gff(list.push_back(0));
+//     }
+//     return true;
+// }
 
-bool Player::serialize(const Player* obj, nlohmann::json& archive)
-{
-    Creature::serialize(obj, archive, SerializationProfile::instance);
-    archive["history"] = obj->history.entries;
-    return true;
-}
+// bool Player::serialize(const Player* obj, nlohmann::json& archive)
+// {
+//     Creature::serialize(obj, archive, SerializationProfile::instance);
+//     archive["history"] = obj->history.entries;
+//     return true;
+// }
 
 } // namespace nw
