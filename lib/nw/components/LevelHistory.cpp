@@ -1,6 +1,9 @@
 #include "LevelHistory.hpp"
 
+#include <fmt/format.h>
 #include <nlohmann/json.hpp>
+
+#include <algorithm>
 
 namespace nw {
 
@@ -11,7 +14,7 @@ bool LevelUp::from_gff(const GffStruct& archive)
 
     archive.get_to("EpicLevel", epic);
 
-    if (archive.get_to("LvlStatAbility", temp)) {
+    if (archive.get_to("LvlStatAbility", temp, false)) {
         ability = nw::Ability::make(temp);
     }
 
@@ -43,6 +46,17 @@ bool LevelUp::from_gff(const GffStruct& archive)
         }
     }
 
+    for (size_t i = 0; i < 10; ++i) {
+        auto key = fmt::format("KnownList{}", i);
+        auto known = archive[key];
+        for (size_t j = 0; j < known.size(); ++j) {
+            if (known[j].get_to("Spell", word)) {
+                known_spells.emplace_back(i, nw::Spell::make(word));
+            }
+        }
+    }
+    std::sort(std::begin(known_spells), std::end(known_spells));
+
     return true;
 }
 
@@ -65,40 +79,44 @@ bool LevelUp::to_gff(GffBuilderStruct& archive) const
     for (auto it : skills) {
         skill_list.push_back(0).add_field("Rank", uint8_t(it));
     }
+
+    if (known_spells.size()) {
+        int prev = known_spells[0].first;
+        GffBuilderList& known = archive.add_list(fmt::format("KnownList{}", known_spells[0].first));
+        for (size_t i = 1; i < known_spells.size(); ++i) {
+            auto [level, spell] = known_spells[i];
+            if (level != prev) {
+                known = archive.add_list(fmt::format("KnownList{}", level));
+                prev = level;
+            }
+            known.push_back(0).add_field("Spell", uint16_t(*spell));
+        }
+    }
+
     return true;
 }
 
 void from_json(const nlohmann::json& json, LevelUp& entry)
 {
-
-    entry.class_ = nw::Class::make(json.at("class").get<int32_t>());
-    entry.ability = nw::Ability::make(json.at("ability").get<int32_t>());
-
+    json.at("ability").get_to(entry.ability);
+    json.at("class").get_to(entry.class_);
     json.at("epic").get_to(entry.epic);
+    json.at("feats").get_to(entry.feats);
     json.at("hitpoints").get_to(entry.hitpoints);
+    json.at("known_spells").get_to(entry.known_spells);
     json.at("skillpoints").get_to(entry.skillpoints);
-
-    const auto& feats = json.at("feats");
-    for (auto feat : feats) {
-        entry.feats.push_back(nw::Feat::make(feat.get<int32_t>()));
-    }
-
     json.at("skills").get_to(entry.skills);
 }
 
 void to_json(nlohmann::json& json, const LevelUp& entry)
 {
-    json["class"] = *entry.class_;
     json["ability"] = entry.ability;
+    json["class"] = *entry.class_;
     json["epic"] = entry.epic;
+    json["feats"] = entry.feats;
     json["hitpoints"] = entry.hitpoints;
+    json["known_spells"] = entry.known_spells;
     json["skillpoints"] = entry.skillpoints;
-
-    json["feats"] = nlohmann::json::array();
-    for (auto feat : entry.feats) {
-        json["feats"].push_back(*feat);
-    }
-
     json["skills"] = entry.skills;
 }
 

@@ -29,9 +29,10 @@ TEST_CASE("player: level history", "[objects]")
     auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
     REQUIRE(mod);
 
-    auto pl = nwk::objects().load_player("CDKEY", "tobias");
+    auto pl = nwk::objects().load_player("CDKEY", "testsorcpc1");
     REQUIRE(pl);
-    REQUIRE(pl->history.entries.size() == 60);
+    REQUIRE(pl->history.entries.size() == 15);
+    REQUIRE(pl->history.entries[0].known_spells.size() == 6);
 
     nwk::unload_module();
 }
@@ -41,29 +42,12 @@ TEST_CASE("player: to gffjson", "[objects]")
     auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
     REQUIRE(mod);
 
-    auto ba = nwk::resman().demand_server_vault("CDKEY", "tobias");
+    auto ba = nwk::resman().demand_server_vault("CDKEY", "testwizardpc1");
     nw::Gff g{std::move(ba)};
     REQUIRE(g.valid());
 
     auto j = nw::gff_to_gffjson(g);
-    std::ofstream out{"tmp/tobias.bic.gffjson"};
-    out << std::setw(4) << j;
-
-    nwk::unload_module();
-}
-
-TEST_CASE("player: to json", "[objects]")
-{
-    auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
-    REQUIRE(mod);
-
-    auto pl = nwk::objects().load_player("CDKEY", "tobias");
-    REQUIRE(pl);
-
-    nlohmann::json j;
-    nw::Player::serialize(pl, j);
-
-    std::ofstream out{"tmp/tobias.bic.json"};
+    std::ofstream out{"tmp/testwizardpc1.bic.gffjson"};
     out << std::setw(4) << j;
 
     nwk::unload_module();

@@ -1,14 +1,18 @@
 # [TODO] - A lot
 
-all:
+instances:
   $inherit: utc.yaml
+  Age: int
   LvlStatList:
     - $struct_id: 0
       EpicLevel: byte
       FeatList:
         - $struct_id: 0
           Feat: word
-      LvlStatAbility: byte
+      KnownList{0-9}?:
+        - $struct_id: 0
+          Spell: word
+      LvlStatAbility: byte?
       LvlStatClass: byte
       LvlStatHitDie: byte
       SkillList:

@@ -179,8 +179,8 @@ all:
 blueprint:
   Comment: cexostr
   Equip_ItemList:
-  - Dropable: byte
-    EquippedRes: resref
+    - Dropable: byte
+      EquippedRes: resref
   ItemList:
     - Dropable: byte
       InventoryRes: resref
@@ -191,8 +191,8 @@ blueprint:
 
 instance:
   Equip_ItemList:
-  - uti.yml: instance
-    Dropable: byte
+    - uti.yml: instance
+      Dropable: byte
   ItemList:
     - uti.yml: instance
       Dropable: byte

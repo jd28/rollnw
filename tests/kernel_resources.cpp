@@ -55,10 +55,10 @@ TEST_CASE("resources: player file", "[kernel]")
     auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
     REQUIRE(mod);
 
-    auto ba = nwk::resman().demand_server_vault("CDKEY", "tobias");
+    auto ba = nwk::resman().demand_server_vault("CDKEY", "testsorcpc1");
     REQUIRE(ba.size());
 
-    ba = nwk::resman().demand_server_vault("WRONGKEY", "tobias");
+    ba = nwk::resman().demand_server_vault("WRONGKEY", "testsorcpc1");
     REQUIRE_FALSE(ba.size());
 
     ba = nwk::resman().demand_server_vault("CDKEY", "WRONGNAME");

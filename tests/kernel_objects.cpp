@@ -59,14 +59,13 @@ TEST_CASE("objects manager: load player file", "[kernel]")
     auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
     REQUIRE(mod);
 
-    auto pl = nwk::objects().load_player("CDKEY", "tobias");
+    auto pl = nwk::objects().load_player("CDKEY", "testmonkpc");
     REQUIRE(pl);
-    REQUIRE(pl->common.tag == "fGoMtYWY");
 
-    auto pl2 = nwk::objects().load_player("WRONG", "tobias");
+    auto pl2 = nwk::objects().load_player("WRONG", "testmonkpc");
     REQUIRE_FALSE(pl2);
 
-    auto pl3 = nwk::objects().load<nw::Player>(fs::path("test_data/user/servervault/CDKEY/tobias.bic"));
+    auto pl3 = nwk::objects().load<nw::Player>(fs::path("test_data/user/servervault/CDKEY/testmonkpc.bic"));
     REQUIRE(pl3);
 
     nwk::unload_module();

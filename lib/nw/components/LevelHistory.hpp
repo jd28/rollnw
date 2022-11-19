@@ -19,7 +19,7 @@ struct LevelUp {
     int skillpoints = 0;
     std::vector<Feat> feats;
     std::vector<int32_t> skills;
-    // [TODO] Spells
+    std::vector<std::pair<int32_t, Spell>> known_spells;
 };
 
 void from_json(const nlohmann::json& json, LevelUp& entry);
