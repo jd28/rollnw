@@ -117,15 +117,19 @@
 <h1>bic<a class="headerlink" href="#bic" title="Permalink to this headline"></a></h1>
 <div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="c1"># [TODO] - A lot</span><span class="w"></span>
 
-<span class="nt">all</span><span class="p">:</span><span class="w"></span>
+<span class="nt">instances</span><span class="p">:</span><span class="w"></span>
 <span class="w">  </span><span class="nt">$inherit</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">utc.yaml</span><span class="w"></span>
+<span class="w">  </span><span class="nt">Age</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">int</span><span class="w"></span>
 <span class="w">  </span><span class="nt">LvlStatList</span><span class="p">:</span><span class="w"></span>
 <span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">$struct_id</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0</span><span class="w"></span>
 <span class="w">      </span><span class="nt">EpicLevel</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">byte</span><span class="w"></span>
 <span class="w">      </span><span class="nt">FeatList</span><span class="p">:</span><span class="w"></span>
 <span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">$struct_id</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0</span><span class="w"></span>
 <span class="w">          </span><span class="nt">Feat</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">word</span><span class="w"></span>
-<span class="w">      </span><span class="nt">LvlStatAbility</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">byte</span><span class="w"></span>
+<span class="w">      </span><span class="l l-Scalar l-Scalar-Plain">KnownList{0-9}?</span><span class="p p-Indicator">:</span><span class="w"></span>
+<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">$struct_id</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0</span><span class="w"></span>
+<span class="w">          </span><span class="nt">Spell</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">word</span><span class="w"></span>
+<span class="w">      </span><span class="nt">LvlStatAbility</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">byte?</span><span class="w"></span>
 <span class="w">      </span><span class="nt">LvlStatClass</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">byte</span><span class="w"></span>
 <span class="w">      </span><span class="nt">LvlStatHitDie</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">byte</span><span class="w"></span>
 <span class="w">      </span><span class="nt">SkillList</span><span class="p">:</span><span class="w"></span>
