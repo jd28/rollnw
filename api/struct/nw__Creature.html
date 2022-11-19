@@ -148,6 +148,7 @@
 <li class="toctree-l2"><a class="reference internal" href="nw__PaletteTreeNode.html">nw::PaletteTreeNode</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Placeable.html">nw::Placeable</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__PlaceableScripts.html">nw::PlaceableScripts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Player.html">nw::Player</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Qualifier.html">nw::Qualifier</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Race.html">nw::Race</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__RaceInfo.html">nw::RaceInfo</a></li>
@@ -338,7 +339,8 @@
 <dl class="cpp struct">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw8CreatureE">
 <span id="_CPPv3N2nw8CreatureE"></span><span id="_CPPv2N2nw8CreatureE"></span><span id="nw::Creature"></span><span class="target" id="structnw_1_1_creature"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Creature</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><span class="n"><span class="pre">nw</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">ObjectBase</span></span><a class="headerlink" href="#_CPPv4N2nw8CreatureE" title="Permalink to this definition"></a><br /></dt>
-<dd><div class="breathe-sectiondef docutils container">
+<dd><p>Subclassed by <a class="reference internal" href="nw__Player.html#structnw_1_1_player"><span class="std std-ref">nw::Player</span></a></p>
+<div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw8Creature8CreatureEv">
@@ -451,6 +453,16 @@
 <dd></dd></dl>
 
 <dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw8Creature9as_playerEv">
+<span id="_CPPv3N2nw8Creature9as_playerEv"></span><span id="_CPPv2N2nw8Creature9as_playerEv"></span><span id="nw::Creature::as_player"></span><span class="target" id="structnw_1_1_object_base_1a771087e37aa54a2df93112f2a7c01e19"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><a class="reference internal" href="nw__Player.html#_CPPv4N2nw6PlayerE" title="nw::Player"><span class="n"><span class="pre">Player</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">as_player</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw8Creature9as_playerEv" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK2nw8Creature9as_playerEv">
+<span id="_CPPv3NK2nw8Creature9as_playerEv"></span><span id="_CPPv2NK2nw8Creature9as_playerEv"></span><span id="nw::Creature::as_playerC"></span><span class="target" id="structnw_1_1_object_base_1ab8be1f9dad4508fb6178938153adce18"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="nw__Player.html#_CPPv4N2nw6PlayerE" title="nw::Player"><span class="n"><span class="pre">Player</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">as_player</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK2nw8Creature9as_playerEv" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw8Creature8as_soundEv">
 <span id="_CPPv3N2nw8Creature8as_soundEv"></span><span id="_CPPv2N2nw8Creature8as_soundEv"></span><span id="nw::Creature::as_sound"></span><span class="target" id="structnw_1_1_object_base_1ad616bf3f2e4413167140c0e052e3fc46"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><a class="reference internal" href="nw__Sound.html#_CPPv4N2nw5SoundE" title="nw::Sound"><span class="n"><span class="pre">Sound</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">as_sound</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw8Creature8as_soundEv" title="Permalink to this definition"></a><br /></dt>
 <dd></dd></dl>
@@ -521,6 +533,11 @@
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw8Creature6levelsE">
 <span id="_CPPv3N2nw8Creature6levelsE"></span><span id="_CPPv2N2nw8Creature6levelsE"></span><span id="nw::Creature::levels__LevelStats"></span><span class="target" id="structnw_1_1_creature_1ace60867e6e8faad757fb5f9264fbc149"></span><a class="reference internal" href="nw__LevelStats.html#_CPPv4N2nw10LevelStatsE" title="nw::LevelStats"><span class="n"><span class="pre">LevelStats</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">levels</span></span></span><a class="headerlink" href="#_CPPv4N2nw8Creature6levelsE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw8Creature7historyE">
+<span id="_CPPv3N2nw8Creature7historyE"></span><span id="_CPPv2N2nw8Creature7historyE"></span><span id="nw::Creature::history__LevelHistory"></span><span class="target" id="structnw_1_1_creature_1aead58a9cb3f5b715c4167204f5c9b228"></span><a class="reference internal" href="nw__LevelHistory.html#_CPPv4N2nw12LevelHistoryE" title="nw::LevelHistory"><span class="n"><span class="pre">LevelHistory</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">history</span></span></span><a class="headerlink" href="#_CPPv4N2nw8Creature7historyE" title="Permalink to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
