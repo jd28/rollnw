@@ -211,6 +211,8 @@ classes
 
 .. autoclass:: rollnw.Player
     :members:
+    :inherited-members:
+    :show-inheritance:
 
 -------------------------------------------------------------------------------
 

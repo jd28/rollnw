@@ -282,6 +282,7 @@ class LevelUp:
         epic (bool): ``True`` if level is an epic level
         feats ([int]): Added feats
         hitpoints (int): Hitpoints gained.
+        known_spells ((int, int)): Level, Spell pair for gained spells
         skillpoints (int): Roll over skill points
         skills ([(int, int)]): Skill and the amount increased
     """
@@ -1310,6 +1311,10 @@ class Placeable(ObjectBase):
 
 class Player(Creature):
     """Player character
+
+    Warnings
+    --------
+        This is very incomplete
     """
     pass
 

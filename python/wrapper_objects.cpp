@@ -40,7 +40,11 @@ template <typename T>
 T* create_object_from_json_helper(const nlohmann::json& j)
 {
     auto obj = new T;
-    T::deserialize(obj, j, nw::SerializationProfile::blueprint);
+    if constexpr (!std::is_same_v<T, nw::Player>) {
+        T::deserialize(obj, j, nw::SerializationProfile::blueprint);
+    } else {
+        T::deserialize(obj, j);
+    }
     return obj;
 }
 
@@ -56,12 +60,20 @@ T* create_object_from_file_helper(const std::filesystem::path& path)
         std::ifstream f(p);
         nlohmann::json data = nlohmann::json::parse(f);
         auto obj = new T;
-        T::deserialize(obj, data, nw::SerializationProfile::blueprint);
+        if constexpr (!std::is_same_v<T, nw::Player>) {
+            T::deserialize(obj, data, nw::SerializationProfile::blueprint);
+        } else {
+            T::deserialize(obj, data);
+        }
         return obj;
     } else if (nw::ResourceType::from_extension(ext) == T::restype) {
         nw::Gff data{p};
         auto obj = new T;
-        T::deserialize(obj, data.toplevel(), nw::SerializationProfile::blueprint);
+        if constexpr (!std::is_same_v<T, nw::Player>) {
+            T::deserialize(obj, data.toplevel(), nw::SerializationProfile::blueprint);
+        } else {
+            T::deserialize(obj, data.toplevel());
+        }
         return obj;
     }
     throw std::runtime_error(fmt::format("unknown file extension: {}", ext));
@@ -623,7 +635,12 @@ void init_objects_placeable(py::module& nw)
 
 void init_objects_player(py::module& nw)
 {
-    py::class_<nw::Player, nw::Creature>(nw, "Player");
+    py::class_<nw::Player, nw::Creature>(nw, "Player")
+        .def_readonly_static("json_archive_version", &nw::Player::json_archive_version)
+        .def_readonly_static("object_type", &nw::Player::object_type)
+
+        .def_static("from_dict", &create_object_from_json_helper<nw::Player>)
+        .def_static("from_file", &create_object_from_file_helper<nw::Player>);
 }
 
 void init_objects_sound(py::module& nw)

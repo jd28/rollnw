@@ -157,6 +157,7 @@ void init_component_levelhistory(py::module& m)
         .def_readwrite("epic", &nw::LevelUp::epic)
         .def_readwrite("feats", &nw::LevelUp::feats)
         .def_readwrite("hitpoints", &nw::LevelUp::hitpoints)
+        .def_readwrite("known_spells", &nw::LevelUp::known_spells)
         .def_readwrite("skillpoints", &nw::LevelUp::skillpoints)
         .def_readwrite("skills", &nw::LevelUp::skills);
 
@@ -287,6 +288,7 @@ void init_object_components(py::module& m)
     init_component_creature_stats(m);
     init_component_equips(m);
     init_component_inventory(m);
+    init_component_levelhistory(m);
     init_component_levelstats(m);
     init_component_localdata(m);
     init_component_location(m);

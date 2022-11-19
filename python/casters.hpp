@@ -3,6 +3,7 @@
 #include <nw/kernel/Strings.hpp>
 #include <nw/resources/Resref.hpp>
 #include <nw/rules/Class.hpp>
+#include <nw/rules/Spell.hpp>
 #include <nw/rules/attributes.hpp>
 #include <nw/rules/feats.hpp>
 #include <nw/util/ByteArray.hpp>
@@ -99,5 +100,7 @@ DEFINE_RULE_TYPE_CASTER(Ability)
 DEFINE_RULE_TYPE_CASTER(Class)
 DEFINE_RULE_TYPE_CASTER(Feat)
 DEFINE_RULE_TYPE_CASTER(Skill)
+DEFINE_RULE_TYPE_CASTER(Spell)
+DEFINE_RULE_TYPE_CASTER(Race)
 
 }

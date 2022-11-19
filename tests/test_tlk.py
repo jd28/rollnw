@@ -8,7 +8,7 @@ def test_language_id_construct():
 
 
 def test_path_construct():
-    tlk = Tlk("tests/test_data/root/data/dialog.tlk")
+    tlk = Tlk("tests/test_data/root/lang/en/data/dialog.tlk")
     assert tlk.language_id() == LanguageID.english
     assert tlk[0] == "Bad Strref"
     assert tlk[3] == "Bards"
