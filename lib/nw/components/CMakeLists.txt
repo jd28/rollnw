@@ -21,6 +21,7 @@ add_library(nw-components STATIC
     EffectArray.cpp
     Equips.cpp
     Inventory.cpp
+    LevelHistory.cpp
     LevelStats.cpp
     LocalData.cpp
     Location.cpp

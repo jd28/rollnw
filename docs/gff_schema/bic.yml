@@ -8,6 +8,7 @@ all:
       FeatList:
         - $struct_id: 0
           Feat: word
+      LvlStatAbility: byte
       LvlStatClass: byte
       LvlStatHitDie: byte
       SkillList:

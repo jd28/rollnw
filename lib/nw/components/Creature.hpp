@@ -11,6 +11,7 @@
 #include "Equips.hpp"
 #include "Inventory.hpp"
 #include "Item.hpp"
+#include "LevelHistory.hpp"
 #include "LevelStats.hpp"
 #include "Location.hpp"
 
@@ -64,6 +65,7 @@ struct Creature : public ObjectBase {
     Equips equipment;
     Inventory inventory;
     LevelStats levels;
+    LevelHistory history;
     CreatureScripts scripts;
     CreatureStats stats;
 

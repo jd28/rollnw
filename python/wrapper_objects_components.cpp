@@ -8,6 +8,7 @@
 #include <nw/components/Equips.hpp>
 #include <nw/components/Inventory.hpp>
 #include <nw/components/Item.hpp>
+#include <nw/components/LevelHistory.hpp>
 #include <nw/components/LevelStats.hpp>
 #include <nw/components/Location.hpp>
 #include <nw/components/Lock.hpp>
@@ -146,6 +147,21 @@ void init_component_inventory(py::module& m)
         .def("instantiate", &nw::Inventory::instantiate)
         .def_readwrite("owner", &nw::Inventory::owner)
         .def_readonly("items", &nw::Inventory::items);
+}
+
+void init_component_levelhistory(py::module& m)
+{
+    py::class_<nw::LevelUp>(m, "LevelUp")
+        .def_readwrite("class_", &nw::LevelUp::class_)
+        .def_readwrite("ability", &nw::LevelUp::ability)
+        .def_readwrite("epic", &nw::LevelUp::epic)
+        .def_readwrite("feats", &nw::LevelUp::feats)
+        .def_readwrite("hitpoints", &nw::LevelUp::hitpoints)
+        .def_readwrite("skillpoints", &nw::LevelUp::skillpoints)
+        .def_readwrite("skills", &nw::LevelUp::skills);
+
+    py::class_<nw::LevelHistory>(m, "LevelHistory")
+        .def_readwrite("entries", &nw::LevelHistory::entries);
 }
 
 void init_component_levelstats(py::module& m)

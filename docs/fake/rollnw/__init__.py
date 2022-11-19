@@ -273,6 +273,30 @@ class ClassEntry:
     pass
 
 
+class LevelUp:
+    """Level up data
+
+    Attributes:
+        class_ (int): Class the level was taken as
+        ability (int): Ability score that was raised, if any.
+        epic (bool): ``True`` if level is an epic level
+        feats ([int]): Added feats
+        hitpoints (int): Hitpoints gained.
+        skillpoints (int): Roll over skill points
+        skills ([(int, int)]): Skill and the amount increased
+    """
+    pass
+
+
+class LevelHistory:
+    """Implements a creatures levelup history
+
+    Attributes:
+        entries ([LevelHistoryEntry]): Entries for levels
+    """
+    pass
+
+
 class LevelStats:
     """Implements a creatures level related stats
 
@@ -883,6 +907,7 @@ class Creature(ObjectBase):
         faction_id
         gender
         good_evil
+        history (LevelHistory)
         hp
         hp_current
         hp_max

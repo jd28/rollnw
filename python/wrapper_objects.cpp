@@ -253,6 +253,8 @@ void init_objects_creature(py::module& nw)
         .def_property_readonly(
             "equipment", [](const nw::Creature& self) { return &self.equipment; }, py::return_value_policy::reference_internal)
         .def_property_readonly(
+            "history", [](const nw::Creature& self) { return &self.history; }, py::return_value_policy::reference_internal)
+        .def_property_readonly(
             "inventory", [](const nw::Creature& c) { return &c.inventory; }, py::return_value_policy::reference_internal)
         .def_readwrite("levels", &nw::Creature::levels)
         .def_readwrite("name_first", &nw::Creature::name_first)

@@ -1,12 +1,12 @@
-#include "nw/kernel/Kernel.hpp"
-#include "nw/kernel/Resources.hpp"
 #include <catch2/catch_all.hpp>
 
-#include <iomanip>
 #include <nw/components/Creature.hpp>
+#include <nw/components/Player.hpp>
 #include <nw/kernel/EffectSystem.hpp>
 #include <nw/kernel/EventSystem.hpp>
+#include <nw/kernel/Kernel.hpp>
 #include <nw/kernel/Objects.hpp>
+#include <nw/kernel/Resources.hpp>
 #include <nw/kernel/Rules.hpp>
 #include <nw/rules/combat.hpp>
 #include <nw/rules/feats.hpp>
@@ -23,6 +23,18 @@
 
 namespace fs = std::filesystem;
 namespace nwk = nw::kernel;
+
+TEST_CASE("player: level history", "[objects]")
+{
+    auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
+    REQUIRE(mod);
+
+    auto pl = nwk::objects().load_player("CDKEY", "tobias");
+    REQUIRE(pl);
+    REQUIRE(pl->history.entries.size() == 60);
+
+    nwk::unload_module();
+}
 
 TEST_CASE("player: to gffjson", "[objects]")
 {
