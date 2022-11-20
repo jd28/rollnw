@@ -166,37 +166,37 @@ static inline void load_modifiers()
     rules.modifiers.add(mod::attack_bonus_mode(
         combat_mode_expertise,
         -5,
-        "dnd-3.0-rapid_shot-ab",
+        "dnd-3.0-expertise-ab",
         nw::ModifierSource::combat_mode));
 
     rules.modifiers.add(mod::attack_bonus_mode(
         combat_mode_improved_expertise,
         -10,
-        "dnd-3.0-rapid_shot-ab",
+        "dnd-3.0-improved-expertise-ab",
         nw::ModifierSource::combat_mode));
 
     rules.modifiers.add(mod::attack_bonus_mode(
         combat_mode_flurry_of_blows,
         -2,
-        "dnd-3.0-rapid_shot-ab",
+        "dnd-3.0-flurry-of-blows-ab",
         nw::ModifierSource::combat_mode));
 
     rules.modifiers.add(mod::attack_bonus_mode(
         combat_mode_power_attack,
         -5,
-        "dnd-3.0-rapid_shot-ab",
+        "dnd-3.0-power-attack-ab",
         nw::ModifierSource::combat_mode));
 
     rules.modifiers.add(mod::attack_bonus_mode(
         combat_mode_improved_power_attack,
         -10,
-        "dnd-3.0-rapid_shot-ab",
+        "dnd-3.0-improved-power-attack-ab",
         nw::ModifierSource::combat_mode));
 
     rules.modifiers.add(mod::attack_bonus_mode(
         combat_mode_rapid_shot,
         -2,
-        "dnd-3.0-rapid_shot-ab",
+        "dnd-3.0-rapid-shot-ab",
         nw::ModifierSource::combat_mode));
 
     // Damage Resist

@@ -450,6 +450,6 @@ constexpr nw::ModifierType mod_type_skill = nw::ModifierType::make(15);
 constexpr nw::ModifierType mod_type_spell_immunity = nw::ModifierType::make(16);
 constexpr nw::ModifierType mod_type_spell_resistance = nw::ModifierType::make(17);
 constexpr nw::ModifierType mod_type_attack_bonus_item = nw::ModifierType::make(18);
-constexpr nw::ModifierType mod_type_attack_bonus_mode = nw::ModifierType::make(18);
+constexpr nw::ModifierType mod_type_attack_bonus_mode = nw::ModifierType::make(19);
 
 } // namespace nwn1

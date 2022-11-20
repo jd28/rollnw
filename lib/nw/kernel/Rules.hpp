@@ -164,8 +164,6 @@ find_first_modifier_of(It begin, It end, const ModifierType type, int32_t subtyp
     Modifier temp{type, {}, {}, ModifierSource::unknown, Requirement{}, {}, subtype};
     auto it = std::lower_bound(begin, end, temp);
     if (it->type != type) { return end; }
-    // Modifier Variant can be applied to any invalid subtype iff it's a function that
-    // takes a subtype.
     return it;
 }
 
@@ -196,7 +194,6 @@ bool resolve_modifier(const ObjectBase* obj, const Modifier& mod, Callback cb,
         return false;
     }
 
-    LOG_F(INFO, "Applying modifier {}, {}", mod.tagged.view(), std::get<0>(output));
     cb(std::get<0>(output));
     return true;
 }
@@ -246,14 +243,18 @@ bool resolve_modifier(const ObjectBase* obj, const ModifierType type, SubType su
     if (subtype != SubType::invalid()) {
         it = detail::find_first_modifier_of(it, end, type);
         while (it != end && it->type == type && it->subtype == -1) {
-            if (!resolve_modifier(obj, *it, cb, versus, *subtype)) return false;
+            // Modifier Variant can be applied to any invalid subtype iff it's a function that
+            // takes a subtype.
+            if (it->input.is<ModifierSubFunction>() || it->input.is<ModifierSubFunction>()) {
+                if (!resolve_modifier(obj, *it, cb, versus, *subtype)) { return false; }
+            }
             ++it;
         }
     }
 
     it = detail::find_first_modifier_of(it, end, type, *subtype);
     while (it != std::cend(rules().modifiers) && it->type == type && it->subtype == *subtype) {
-        if (!resolve_modifier(obj, *it, cb, versus, *subtype)) return false;
+        if (!resolve_modifier(obj, *it, cb, versus, *subtype)) { return false; }
         ++it;
     }
     return true;
