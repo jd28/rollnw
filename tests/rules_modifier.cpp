@@ -38,12 +38,6 @@ TEST_CASE("modifier", "[rules]")
         }));
     REQUIRE(res == 6);
 
-    // False because output size mismatch
-    REQUIRE_FALSE(nwk::resolve_modifier(ent, mod2,
-        [&res](int value, float) {
-            res += value;
-        }));
-
     // False because output mismatch
     float res2 = 0.0f;
     REQUIRE_FALSE(nwk::resolve_modifier(ent, mod2,
@@ -78,7 +72,7 @@ TEST_CASE("modifier kernel", "[rules]")
     // Get rid of any requirement
     REQUIRE(nwk::rules().modifiers.replace("dnd-3.0-palemaster-ac", nw::Requirement{}));
     // Set nerf
-    REQUIRE(nwk::rules().modifiers.replace("dnd-3.0-palemaster-ac", nw::ModifierInputs{pm_ac_nerf}));
+    REQUIRE(nwk::rules().modifiers.replace("dnd-3.0-palemaster-ac", pm_ac_nerf));
     res = 0;
     REQUIRE(nwk::resolve_modifier(ent, nwn1::mod_type_armor_class, nwn1::ac_natural,
         [&res](int value) {

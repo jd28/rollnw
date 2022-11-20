@@ -100,7 +100,7 @@ int ModifierRegistry::remove(std::string_view tag)
     return result;
 }
 
-int ModifierRegistry::replace(std::string_view tag, ModifierInputs value)
+int ModifierRegistry::replace(std::string_view tag, ModifierVariant value)
 {
     std::string_view prefix = tag;
     bool starts = false;
@@ -121,11 +121,11 @@ int ModifierRegistry::replace(std::string_view tag, ModifierInputs value)
     for (auto& mod : entries_) {
         if (starts) {
             if (string::startswith(mod.tagged, prefix)) {
-                mod.value = std::move(value);
+                mod.input = std::move(value);
                 ++result;
             }
         } else if (mod.tagged == prefix) {
-            mod.value = std::move(value);
+            mod.input = std::move(value);
             ++result;
         }
     }

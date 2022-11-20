@@ -312,6 +312,7 @@ nw::ModifierResult pale_master_ac(const nw::ObjectBase* obj)
 nw::ModifierResult enchant_arrow_ab(const nw::ObjectBase* obj, int32_t subtype)
 {
     auto baseitem = nw::BaseItem::make(subtype);
+    int result = 0;
     auto cre = obj->as_creature();
     if (!cre) { return 0; }
 
@@ -319,16 +320,16 @@ nw::ModifierResult enchant_arrow_ab(const nw::ObjectBase* obj, int32_t subtype)
         auto feat = highest_feat_in_range(cre, feat_prestige_enchant_arrow_6,
             feat_prestige_enchant_arrow_20);
         if (feat != nw::Feat::invalid()) {
-            return (*feat - *feat_prestige_enchant_arrow_6) + 6;
+            result = (*feat - *feat_prestige_enchant_arrow_6) + 6;
         } else {
             feat = highest_feat_in_range(cre, feat_prestige_enchant_arrow_1,
                 feat_prestige_enchant_arrow_5);
             if (feat != nw::Feat::invalid()) {
-                return (*feat - *feat_prestige_enchant_arrow_1) + 1;
+                result = (*feat - *feat_prestige_enchant_arrow_1) + 1;
             }
         }
     }
-    return 0;
+    return result;
 }
 
 nw::ModifierResult target_state_ab(const nw::ObjectBase* obj, const nw::ObjectBase* target)

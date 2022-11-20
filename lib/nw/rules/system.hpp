@@ -101,13 +101,9 @@ using ModifierVariant = Variant<
     ModifierVsFunction,
     ModifierSubVsFunction>;
 
-using ModifierInputs = absl::InlinedVector<ModifierVariant, 4>;
-template <typename T>
-using ModifierOutputs = absl::InlinedVector<T, 4>;
-
 struct Modifier {
     ModifierType type = ModifierType::invalid();
-    ModifierInputs value;
+    ModifierVariant input;
     InternedString tagged;
     ModifierSource source = ModifierSource::unknown;
     Requirement requirement = Requirement{};
@@ -154,7 +150,7 @@ struct ModifierRegistry {
      * @param value new value
      * @return int number of modifiers affected
      */
-    int replace(std::string_view tag, ModifierInputs value);
+    int replace(std::string_view tag, ModifierVariant value);
 
     /**
      * @brief Replace modifier requirement

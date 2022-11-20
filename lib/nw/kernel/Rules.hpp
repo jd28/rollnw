@@ -157,19 +157,16 @@ bool calc_mod_input(T& out, const ObjectBase* obj, const ObjectBase* versus,
     return true;
 }
 
-template <typename TupleT, std::size_t... Is>
-bool calc_mod_inputs(TupleT& tp, const ObjectBase* obj, const ObjectBase* versus, int32_t subtype,
-    const Modifier& mod, std::index_sequence<Is...>)
-{
-    return (calc_mod_input(std::get<Is>(tp), obj, versus, mod.value[Is], subtype) && ...);
-}
-
 template <typename It>
 inline std::vector<Modifier>::const_iterator
 find_first_modifier_of(It begin, It end, const ModifierType type, int32_t subtype = -1)
 {
     Modifier temp{type, {}, {}, ModifierSource::unknown, Requirement{}, {}, subtype};
-    return std::lower_bound(begin, end, temp);
+    auto it = std::lower_bound(begin, end, temp);
+    if (it->type != type) { return end; }
+    // Modifier Variant can be applied to any invalid subtype iff it's a function that
+    // takes a subtype.
+    return it;
 }
 
 } // namespace detail
@@ -184,27 +181,23 @@ bool resolve_modifier(const ObjectBase* obj, const Modifier& mod, Callback cb,
     const ObjectBase* versus = nullptr, int32_t subtype = -1)
 {
     static_assert(detail::function_traits<Callback>::validate_args(), "invalid argument types");
-
-    if (detail::function_traits<Callback>::arity != mod.value.size()) {
-        LOG_F(ERROR, "Input/output size mismatch");
-        return false;
-    }
+    static_assert(detail::function_traits<Callback>::arity == 1,
+        "callbacks can only have one parameter of a modifier result type");
 
     if (!rules().meets_requirement(mod.requirement, obj)) {
         return false;
     }
 
     typename detail::function_traits<Callback>::tuple_type output;
-    bool res = detail::calc_mod_inputs(output, obj, versus, subtype, mod,
-        std::make_integer_sequence<size_t, detail::function_traits<Callback>::arity>{});
+    bool res = detail::calc_mod_input(std::get<0>(output), obj, versus, mod.input, subtype);
 
     if (!res) {
         LOG_F(ERROR, "Input/output size mismatch");
         return false;
     }
 
-    LOG_F(INFO, "Applying modifier {}", mod.tagged.view());
-    std::apply(cb, output);
+    LOG_F(INFO, "Applying modifier {}, {}", mod.tagged.view(), std::get<0>(output));
+    cb(std::get<0>(output));
     return true;
 }
 
