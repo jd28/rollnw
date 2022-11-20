@@ -44,6 +44,7 @@ namespace qual {
 
 nw::Qualifier ability(nw::Ability id, int min, int max = 0);
 nw::Qualifier alignment(nw::AlignmentAxis axis, nw::AlignmentFlags flags);
+nw::Qualifier base_attack_bonus(int min, int max = 0);
 nw::Qualifier class_level(nw::Class id, int min, int max = 0);
 nw::Qualifier level(int min, int max = 0);
 nw::Qualifier feat(nw::Feat id);
@@ -57,6 +58,7 @@ namespace sel {
 
 nw::Selector ability(nw::Ability id);
 nw::Selector alignment(nw::AlignmentAxis id);
+nw::Selector base_attack_bonus();
 // nw::Selector armor_class(nw::Index id, bool base = false);
 nw::Selector class_level(nw::Class id);
 nw::Selector feat(nw::Feat id);

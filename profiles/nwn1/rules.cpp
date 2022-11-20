@@ -77,6 +77,15 @@ bool match(const nw::Qualifier& qual, const nw::ObjectBase* obj)
                 }
             }
         } break;
+        case nw::SelectorType::bab: {
+            auto val = value.as<int32_t>();
+            auto min = qual.params[0].as<int32_t>();
+            auto max = qual.params[1].as<int32_t>();
+            if (val < min || (max != 0 && val > max)) {
+                return false;
+            }
+            return true;
+        }
         case nw::SelectorType::class_level:
         case nw::SelectorType::level: {
             auto val = value.as<int32_t>();
@@ -130,9 +139,8 @@ nw::RuleValue selector(const nw::Selector& selector, const nw::ObjectBase* obj)
             return {};
         }
         auto cre = obj->as_creature();
-        if (!cre) {
-            return {};
-        }
+        if (!cre) { return {}; }
+
         if (selector.subtype.as<int32_t>() == 0x1) {
             return cre->lawful_chaotic;
         } else if (selector.subtype.as<int32_t>() == 0x2) {
@@ -141,6 +149,11 @@ nw::RuleValue selector(const nw::Selector& selector, const nw::ObjectBase* obj)
             return -1;
         }
     }
+    case nw::SelectorType::bab: {
+        auto cre = obj->as_creature();
+        if (!cre) { return {}; }
+        return base_attack_bonus(cre);
+    }
     case nw::SelectorType::class_level: {
         if (!selector.subtype.is<int32_t>()) {
             LOG_F(ERROR, "selector - class_level: invalid subtype");
@@ -148,9 +161,7 @@ nw::RuleValue selector(const nw::Selector& selector, const nw::ObjectBase* obj)
         }
 
         auto cre = obj->as_creature();
-        if (!cre) {
-            return {};
-        }
+        if (!cre) { return {}; }
 
         for (const auto& ce : cre->levels.entries) {
             if (ce.id == nw::Class::make(selector.subtype.as<int32_t>())) {
@@ -166,23 +177,14 @@ nw::RuleValue selector(const nw::Selector& selector, const nw::ObjectBase* obj)
         }
 
         auto cre = obj->as_creature();
-        if (!cre) {
-            return {};
-        }
+        if (!cre) { return {}; }
 
         return cre->stats.has_feat(nw::Feat::make(selector.subtype.as<int32_t>()));
     }
     case nw::SelectorType::level: {
         auto cre = obj->as_creature();
-        if (!cre) {
-            return {};
-        }
-
-        int level = 0;
-        for (const auto& ce : cre->levels.entries) {
-            level += ce.level;
-        }
-        return level;
+        if (!cre) { return {}; }
+        return cre->levels.level();
     }
     case nw::SelectorType::local_var_int: {
         auto common = obj->as_common();

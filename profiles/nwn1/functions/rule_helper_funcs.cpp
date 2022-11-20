@@ -74,6 +74,15 @@ nw::Qualifier alignment(nw::AlignmentAxis axis, nw::AlignmentFlags flags)
     return q;
 }
 
+nw::Qualifier base_attack_bonus(int min, int max)
+{
+    nw::Qualifier q;
+    q.selector = sel::base_attack_bonus();
+    q.params.push_back(min);
+    q.params.push_back(max);
+    return q;
+}
+
 nw::Qualifier class_level(nw::Class id, int min, int max)
 {
     nw::Qualifier q;
@@ -128,6 +137,11 @@ nw::Selector ability(nw::Ability id)
 nw::Selector alignment(nw::AlignmentAxis id)
 {
     return {nw::SelectorType::alignment, int32_t(id)};
+}
+
+nw::Selector base_attack_bonus()
+{
+    return {nw::SelectorType::bab, {}};
 }
 
 nw::Selector class_level(nw::Class id)
