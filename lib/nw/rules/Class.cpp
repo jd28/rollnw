@@ -97,4 +97,40 @@ ClassInfo::ClassInfo(const TwoDARowView& tda)
     }
 }
 
+Class ClassArray::from_constant(std::string_view constant) const
+{
+    absl::string_view v{constant.data(), constant.size()};
+    auto it = constant_to_index.find(v);
+    if (it == constant_to_index.end()) {
+        return Class::invalid();
+    } else {
+        return it->second;
+    }
+}
+
+const ClassInfo* ClassArray::get(Class type) const noexcept
+{
+    if (type.idx() < entries.size() && entries[type.idx()].valid()) {
+        return &entries[type.idx()];
+    } else {
+        return nullptr;
+    }
+}
+
+int ClassArray::get_base_attack_bonus(Class class_, size_t level) const
+{
+    level -= 1;
+    if (!is_valid(class_)) { return 0; }
+    auto& info = entries[class_.idx()];
+    if (info.attack_bonus_table && level < info.attack_bonus_table->size()) {
+        return (*info.attack_bonus_table)[level];
+    }
+    return 0;
+}
+
+bool ClassArray::is_valid(Class type) const noexcept
+{
+    return type.idx() < entries.size() && entries[type.idx()].valid();
+}
+
 } // namespace nw

@@ -81,6 +81,7 @@ struct ClassArray {
     const ClassInfo* get(Class class_) const noexcept;
     bool is_valid(Class class_) const noexcept;
     Class from_constant(std::string_view constant) const;
+    int get_base_attack_bonus(Class class_, size_t level) const;
 
     std::set<std::vector<int>> attack_tables;
     std::vector<int> skill_table;

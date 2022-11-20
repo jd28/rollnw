@@ -95,11 +95,13 @@ int base_attack_bonus(const nw::Creature* obj)
     if (!obj) { return 0; }
 
     size_t result = 0;
-    auto& classes = nw::kernel::rules().classes;
+    const auto& classes = nw::kernel::rules().classes;
 
     size_t levels = obj->levels.level();
     size_t epic = 0;
     if (levels >= 20) {
+        // Not sure what account the NWN takes of the attack bonus tables when epic.
+        // pretty sure it's none.
         epic = (levels - 20) / 2;
         levels = 20;
     }
@@ -114,7 +116,7 @@ int base_attack_bonus(const nw::Creature* obj)
         for (size_t i = 0; i < nw::LevelStats::max_classes; ++i) {
             if (class_levels[i] == 0) { break; }
             auto cl = obj->levels.entries[i].id;
-            result += (*classes.entries[cl.idx()].attack_bonus_table)[class_levels[i] - 1];
+            result += classes.get_base_attack_bonus(cl, class_levels[i]);
         }
     } else {
         for (const auto& cl : obj->levels.entries) {
@@ -122,7 +124,7 @@ int base_attack_bonus(const nw::Creature* obj)
             if (!classes.entries[cl.id.idx()].attack_bonus_table) { continue; }
 
             auto count = std::min(levels, size_t(cl.level));
-            result += (*classes.entries[cl.id.idx()].attack_bonus_table)[count - 1];
+            result += classes.get_base_attack_bonus(cl.id, count);
             levels -= count;
         }
     }
