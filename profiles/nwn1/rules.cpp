@@ -236,9 +236,24 @@ nw::ModifierFunction simple_feat_mod(nw::Feat feat, int value)
     };
 }
 
+nw::ModifierResult class_stat_gain(const nw::ObjectBase* obj, int32_t subtype)
+{
+    auto cre = obj->as_creature();
+    if (!cre) { return 0; }
+    if (subtype < 0 || subtype > 5) { return 0; }
+    nw::Ability abil = nw::Ability::make(subtype);
+    int result = 0;
+    for (const auto& cl : cre->levels.entries) {
+        if (cl.id == nw::Class::invalid()) { break; }
+        result += nw::kernel::rules().classes.get_stat_gain(cl.id, abil, cl.level);
+    }
+    LOG_F(INFO, "stat gain abil {} value {}", subtype, result);
+    return result;
+}
+
 nw::ModifierResult epic_great_ability(const nw::ObjectBase* obj, int32_t subtype)
 {
-    if (subtype < 0 || subtype >= 5) return 0;
+    if (subtype < 0 || subtype > 5) return 0;
     nw::Ability abil = nw::Ability::make(subtype);
     nw::Feat start, stop;
     switch (*abil) {

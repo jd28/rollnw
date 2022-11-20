@@ -123,6 +123,11 @@ static inline void load_modifiers()
 
     // Ability
     rules.modifiers.add(mod::ability(
+        class_stat_gain,
+        "nwn-ee-class-stat-gain",
+        nw::ModifierSource::class_));
+
+    rules.modifiers.add(mod::ability(
         epic_great_ability,
         "dnd-3.0-epic-great-ability",
         nw::ModifierSource::feat));

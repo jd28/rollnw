@@ -262,6 +262,17 @@ TEST_CASE("creature: ability ", "[objects]")
     REQUIRE(nwn1::unequip_item(obj, nw::EquipIndex::belt));
     REQUIRE(nwn1::get_ability_score(obj, nwn1::ability_strength, false) == 47);
 
+    // Class stat gain
+    auto obj2 = nw::kernel::objects().load<nw::Creature>(fs::path("test_data/user/development/sorcrdd.utc"));
+    REQUIRE(obj2);
+    REQUIRE(obj2->instantiate());
+
+    REQUIRE(obj2->stats.get_ability_score(nwn1::ability_strength) == 15);
+    REQUIRE(nwn1::get_ability_score(obj2, nwn1::ability_strength) == 23);
+
+    REQUIRE(obj2->stats.get_ability_score(nwn1::ability_constitution) == 14);
+    REQUIRE(nwn1::get_ability_score(obj2, nwn1::ability_constitution) == 14); // This is an elf!
+
     nwk::unload_module();
 }
 
