@@ -24,13 +24,20 @@ struct ClassStatGain {
     int natural_ac = 0;
 };
 
+struct ClassRequirement {
+    Requirement main{};
+    Requirement feat_or{{}, false};
+    Requirement class_or{{}, false};
+    Requirement class_not{};
+};
+
 struct ClassInfo {
     ClassInfo() = default;
     ClassInfo(const TwoDARowView& tda);
 
     bool valid() const noexcept { return name != 0xFFFFFFFF; }
 
-    Requirement requirements;
+    ClassRequirement requirements;
 
     uint32_t name = 0xFFFFFFFF;
     uint32_t plural = 0xFFFFFFFF;
@@ -102,6 +109,9 @@ struct ClassArray {
 
     /// Gets class Natural AC gain
     int get_natural_ac(Class class_, size_t level) const;
+
+    /// Gets class requirements
+    const ClassRequirement* get_requirement(Class class_) const;
 
     /// Gets class ability gain
     int get_stat_gain(Class class_, Ability ability, size_t level) const;

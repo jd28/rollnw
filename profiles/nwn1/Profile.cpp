@@ -355,6 +355,65 @@ bool Profile::load_rules() const
                     }
                 }
             }
+            if (info.prereq_table.valid()) {
+                nw::TwoDA tda{nw::kernel::resman().demand(info.prereq_table)};
+                if (tda.is_valid()) {
+                    for (size_t j = 0; j < tda.rows(); ++j) {
+                        std::string_view temp;
+                        if (!tda.get_to(j, "ReqType", temp)) { continue; }
+                        int param1_int = 0;
+                        int param2_int = 0;
+
+                        if (nw::string::icmp("ARCSPELL", temp)) {
+                            // [TODO]
+                        } else if (nw::string::icmp("BAB", temp)) {
+                            if (tda.get_to(j, "ReqParam1", param1_int)) {
+                                info.requirements.main.add(
+                                    qual::base_attack_bonus(param1_int));
+                            }
+                        } else if (nw::string::icmp("CLASSOR", temp)) {
+                            if (tda.get_to(j, "ReqParam1", param1_int)) {
+                                info.requirements.class_or.add(
+                                    qual::class_level(nw::Class::make(param1_int), 1));
+                            }
+                        } else if (nw::string::icmp("CLASSNOT", temp)) {
+                            if (tda.get_to(j, "ReqParam1", param1_int)) {
+                                info.requirements.class_not.add(
+                                    qual::class_level(nw::Class::make(param1_int), 1));
+                            }
+                        } else if (nw::string::icmp("FEAT", temp)) {
+                            if (tda.get_to(j, "ReqParam1", param1_int)) {
+                                info.requirements.main.add(
+                                    qual::feat(nw::Feat::make(param1_int)));
+                            }
+                        } else if (nw::string::icmp("FEATOR", temp)) {
+                            if (tda.get_to(j, "ReqParam1", param1_int)) {
+                                info.requirements.feat_or.add(
+                                    qual::feat(nw::Feat::make(param1_int)));
+                            }
+                        } else if (nw::string::icmp("RACE", temp)) {
+                            if (tda.get_to(j, "ReqParam1", param1_int)) {
+                                info.requirements.main.add(
+                                    qual::race(nw::Race::make(param1_int)));
+                            }
+                        } else if (nw::string::icmp("SAVE", temp)) {
+                            // [TODO]
+                        } else if (nw::string::icmp("SKILL", temp)) {
+                            if (tda.get_to(j, "ReqParam1", param1_int)
+                                && tda.get_to(j, "ReqParam2", param2_int)) {
+                                info.requirements.main.add(
+                                    qual::skill(nw::Skill::make(param1_int), param2_int));
+                            }
+                        } else if (nw::string::icmp("SPELL", temp)) {
+                            // [TODO]
+                        } else if (nw::string::icmp("VAR", temp)) {
+                            // [TODO]
+                        } else {
+                            LOG_F(ERROR, "class array: unknown requirement");
+                        }
+                    }
+                }
+            }
         }
     } else {
         throw std::runtime_error("rules: failed to load 'classes.2da'");

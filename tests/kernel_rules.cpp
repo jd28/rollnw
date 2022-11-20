@@ -106,5 +106,8 @@ TEST_CASE("rules system: class info", "[kernel]")
                 nwn1::ability_constitution, 20)
         == 2);
 
+    auto req = nwk::rules().classes.get_requirement(nwn1::class_type_dwarven_defender);
+    REQUIRE(req);
+    REQUIRE(req->main.size() == 4);
     nw::kernel::unload_module();
 }

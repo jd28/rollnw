@@ -158,6 +158,14 @@ int ClassArray::get_natural_ac(Class class_, size_t level) const
     return result;
 }
 
+const ClassRequirement* ClassArray::get_requirement(Class class_) const
+{
+    if (auto info = get(class_)) {
+        return &info->requirements;
+    }
+    return nullptr;
+}
+
 int ClassArray::get_stat_gain(Class class_, Ability ability, size_t level) const
 {
     if (ability == nw::Ability::invalid()) { return 0; }
