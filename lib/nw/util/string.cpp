@@ -69,10 +69,12 @@ std::optional<bool> from(std::string_view str) ///< @private
         return res.ptr != str.data() ? std::optional<type>(v) : std::optional<type>(); \
     }
 
+DEFINE_FROM_INT(int16_t)
 DEFINE_FROM_INT(int32_t)
 DEFINE_FROM_INT(uint32_t)
 DEFINE_FROM_INT(int64_t)
 DEFINE_FROM_INT(uint64_t)
+DEFINE_FROM_INT(size_t)
 DEFINE_FROM_FLOAT(float)
 DEFINE_FROM_FLOAT(double)
 

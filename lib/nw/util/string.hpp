@@ -23,6 +23,8 @@ std::optional<T> from(std::string_view str) = delete;
 template <>
 std::optional<bool> from(std::string_view str);
 template <>
+std::optional<int16_t> from(std::string_view str);
+template <>
 std::optional<int32_t> from(std::string_view str);
 template <>
 std::optional<uint32_t> from(std::string_view str);
@@ -30,6 +32,8 @@ template <>
 std::optional<int64_t> from(std::string_view str);
 template <>
 std::optional<uint64_t> from(std::string_view str);
+template <>
+std::optional<size_t> from(std::string_view str);
 template <>
 std::optional<float> from(std::string_view str);
 template <>
