@@ -30,8 +30,10 @@ template <>
 std::optional<uint32_t> from(std::string_view str);
 template <>
 std::optional<int64_t> from(std::string_view str);
+#ifdef ROLLNW_OS_MACOS
 template <>
 std::optional<uint64_t> from(std::string_view str);
+#endif
 template <>
 std::optional<size_t> from(std::string_view str);
 template <>
