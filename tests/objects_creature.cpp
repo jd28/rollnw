@@ -170,6 +170,35 @@ TEST_CASE("creature: attack bonus", "[objects]")
     obj->target_state = nw::TargetState::flanked;
     REQUIRE(46 == nwn1::attack_bonus(obj, nwn1::attack_type_onhand, vs));
 
+    // Zen Archery
+    auto obj2 = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/lentiane.utc"));
+    REQUIRE(obj2);
+    REQUIRE(obj2->instantiate());
+
+    REQUIRE(nwn1::get_equipped_item(obj2, nw::EquipIndex::righthand));
+    REQUIRE(nwn1::get_equipped_item(obj2, nw::EquipIndex::righthand)->baseitem == nwn1::base_item_shortbow);
+    REQUIRE(nwn1::is_ranged_weapon(nwn1::get_equipped_item(obj2, nw::EquipIndex::righthand)));
+    REQUIRE(obj2->stats.has_feat(nwn1::feat_zen_archery));
+    REQUIRE(nwn1::get_ability_modifier(obj2, nwn1::ability_wisdom) == 10);
+    REQUIRE(nwn1::get_ability_modifier(obj2, nwn1::ability_dexterity) == 3);
+    REQUIRE(26 == nwn1::base_attack_bonus(obj2));
+    REQUIRE(36 == nwn1::attack_bonus(obj2, nwn1::attack_type_onhand));
+
+    // Dex Archery
+    auto obj3 = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/rangerdexranged.utc"));
+    REQUIRE(obj3);
+    REQUIRE(obj3->instantiate());
+
+    REQUIRE(!obj3->stats.has_feat(nwn1::feat_zen_archery));
+    REQUIRE(obj3->combat_mode == nw::CombatMode::invalid());
+    REQUIRE(nwn1::get_equipped_item(obj3, nw::EquipIndex::righthand));
+    REQUIRE(nwn1::get_equipped_item(obj3, nw::EquipIndex::righthand)->baseitem == nwn1::base_item_longbow);
+    REQUIRE(nwn1::is_ranged_weapon(nwn1::get_equipped_item(obj3, nw::EquipIndex::righthand)));
+    REQUIRE(nwn1::get_ability_modifier(obj3, nwn1::ability_strength) == 2);
+    REQUIRE(nwn1::get_ability_modifier(obj3, nwn1::ability_dexterity) == 8);
+    REQUIRE(30 == nwn1::base_attack_bonus(obj3));
+    REQUIRE(39 == nwn1::attack_bonus(obj3, nwn1::attack_type_onhand));
+
     nwk::unload_module();
 }
 

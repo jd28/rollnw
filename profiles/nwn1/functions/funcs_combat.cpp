@@ -24,6 +24,7 @@ int attack_bonus(const nw::Creature* obj, nw::AttackType type, nw::ObjectBase* v
 
     // BAB
     result = base_attack_bonus(obj);
+    LOG_F(INFO, "{}", result);
 
     // Size
     result += obj->size_ab_modifier;
@@ -45,13 +46,24 @@ int attack_bonus(const nw::Creature* obj, nw::AttackType type, nw::ObjectBase* v
 
     // Master Feats
     nw::kernel::resolve_master_feats<int>(obj, baseitem, adder, mfeat_weapon_focus, mfeat_weapon_focus_epic);
-
+    LOG_F(INFO, "{}", result);
     // Abilities
-    int modifier = get_ability_modifier(obj, ability_strength);
-    if (obj->stats.has_feat(feat_weapon_finesse) && weapon_is_finessable(obj, weapon)) {
-        modifier = std::max(modifier, get_ability_modifier(obj, ability_dexterity));
+    int modifier = 0;
+    bool is_ranged = is_ranged_weapon(weapon);
+    if (is_ranged) {
+        modifier = get_ability_modifier(obj, ability_dexterity);
+        if (obj->stats.has_feat(feat_zen_archery)) {
+            modifier = std::max(modifier, get_ability_modifier(obj, ability_wisdom));
+        }
+    } else {
+        modifier = get_ability_modifier(obj, ability_strength);
+        if (obj->stats.has_feat(feat_weapon_finesse) && weapon_is_finessable(obj, weapon)) {
+            modifier = std::max(modifier, get_ability_modifier(obj, ability_dexterity));
+        }
     }
+
     result += modifier;
+    LOG_F(INFO, "{}", result);
 
     // Effects attack increase/decrease is a little more complicated due to needing to support
     // an 'any' subtype.
@@ -107,10 +119,9 @@ int base_attack_bonus(const nw::Creature* obj)
         }
     } else {
         for (const auto& cl : obj->levels.entries) {
-            if (!classes.entries[cl.id.idx()].attack_bonus_table) {
-                continue;
-            }
-            if (levels == 0) { break; }
+            if (levels == 0 || cl.id == nw::Class::invalid()) { break; }
+            if (!classes.entries[cl.id.idx()].attack_bonus_table) { continue; }
+
             auto count = std::min(levels, size_t(cl.level));
             result += (*classes.entries[cl.id.idx()].attack_bonus_table)[count - 1];
             levels -= count;
@@ -137,6 +148,13 @@ nw::AttackType equip_index_to_attack_type(nw::EquipIndex equip)
     case nw::EquipIndex::creature_right:
         return attack_type_cweapon3;
     }
+}
+
+bool is_ranged_weapon(const nw::Item* item)
+{
+    if (!item) { return false; }
+    auto bi = nw::kernel::rules().baseitems.get(item->baseitem);
+    return bi ? bi->ranged : false;
 }
 
 nw::Item* get_weapon_by_attack_type(const nw::Creature* obj, nw::AttackType type)
