@@ -38,6 +38,11 @@ void Requirement::add(Qualifier qualifier)
     qualifiers.push_back(std::move(qualifier));
 }
 
+size_t Requirement::size() const noexcept
+{
+    return qualifiers.size();
+}
+
 // == Modifier ================================================================
 // ============================================================================
 

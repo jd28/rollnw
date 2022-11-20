@@ -65,6 +65,7 @@ struct Requirement {
     explicit Requirement(bool conjunction_ = true);
     explicit Requirement(std::initializer_list<Qualifier> quals, bool conjunction_ = true);
     void add(Qualifier qualifier);
+    size_t size() const noexcept;
 
     absl::InlinedVector<Qualifier, 8> qualifiers;
     bool conjunction = true;
