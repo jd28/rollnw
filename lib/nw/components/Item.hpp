@@ -40,7 +40,7 @@ struct Item : public ObjectBase {
 
     uint32_t cost = 0;
     uint32_t additional_cost = 0;
-    int32_t baseitem;
+    nw::BaseItem baseitem;
 
     uint16_t stacksize = 1;
 

@@ -122,7 +122,7 @@ struct BaseItemInfo {
     // WeaponWield
     // WeaponType
     int weapon_size = 0;
-    bool ranged = false;
+    uint32_t ranged = 0;
     // PrefAttackDist
     // MinRange
     // MaxRange

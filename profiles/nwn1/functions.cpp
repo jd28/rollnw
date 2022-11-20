@@ -13,9 +13,8 @@ namespace nwn1 {
 bool can_equip_item(const nw::Creature* obj, nw::Item* item, nw::EquipIndex slot)
 {
     if (!obj || !item) { return false; }
-    auto& bia = nw::kernel::rules().baseitems;
 
-    auto baseitem = bia.get(nw::BaseItem::make(item->baseitem));
+    auto baseitem = nw::kernel::rules().baseitems.get(item->baseitem);
     if (!baseitem) { return false; }
 
     auto flag = 1 << size_t(slot);

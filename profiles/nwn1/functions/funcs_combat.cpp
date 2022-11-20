@@ -34,7 +34,7 @@ int attack_bonus(const nw::Creature* obj, nw::AttackType type, nw::ObjectBase* v
         // If there is no weapon, proceed as an unarmed attack.
         type = attack_type_unarmed;
     } else {
-        baseitem = nw::BaseItem::make(weapon->baseitem);
+        baseitem = weapon->baseitem;
     }
 
     // Modifiers
@@ -170,8 +170,7 @@ bool weapon_is_finessable(const nw::Creature* obj, nw::Item* weapon)
 {
     if (!obj) { return false; }
     if (!weapon) { return true; }
-    auto& bia = nw::kernel::rules().baseitems;
-    auto baseitem = bia.get(nw::BaseItem::make(weapon->baseitem));
+    auto baseitem = nw::kernel::rules().baseitems.get(weapon->baseitem);
     if (!baseitem) { return false; }
     return baseitem->finesse_size >= obj->size;
 }
@@ -180,13 +179,14 @@ int weapon_iteration(const nw::Creature* obj, nw::Item* weapon)
 {
     if (!obj) { return 0; }
 
-    auto& bia = nw::kernel::rules().baseitems;
-
-    auto baseitem = bia.get(nw::BaseItem::make(weapon->baseitem));
-    if (!baseitem) { return 0; }
+    bool is_monk_or_null = !!weapon;
+    if (weapon) {
+        auto baseitem = nw::kernel::rules().baseitems.get(weapon->baseitem);
+        is_monk_or_null = baseitem->is_monk_weapon;
+    }
 
     auto [yes, level] = can_use_monk_abilities(obj);
-    if (baseitem->is_monk_weapon && yes) {
+    if (is_monk_or_null && yes) {
         return 3;
     }
 

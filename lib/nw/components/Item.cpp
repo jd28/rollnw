@@ -21,7 +21,7 @@ bool Item::deserialize(Item* obj, const GffStruct& archive, SerializationProfile
     if (!obj) {
         throw std::runtime_error("unable to serialize null object");
     }
-
+    int temp_int = 0;
     obj->common.from_gff(archive, profile, ObjectType::item);
     obj->inventory.from_gff(archive, profile);
 
@@ -47,7 +47,9 @@ bool Item::deserialize(Item* obj, const GffStruct& archive, SerializationProfile
 
     archive.get_to("Cost", obj->cost);
     archive.get_to("AddCost", obj->additional_cost);
-    archive.get_to("BaseItem", obj->baseitem);
+    if (archive.get_to("BaseItem", temp_int)) {
+        obj->baseitem = nw::BaseItem::make(temp_int);
+    }
 
     archive.get_to("StackSize", obj->stacksize);
 
@@ -191,7 +193,7 @@ bool Item::serialize(const Item* obj, GffBuilderStruct& archive, SerializationPr
 
     archive.add_field("Cost", obj->cost)
         .add_field("AddCost", obj->additional_cost)
-        .add_field("BaseItem", obj->baseitem);
+        .add_field("BaseItem", *obj->baseitem);
 
     archive.add_field("StackSize", obj->stacksize);
 
