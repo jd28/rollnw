@@ -39,7 +39,7 @@ ClassInfo::ClassInfo(const TwoDARowView& tda)
             saving_throw_table = {temp_string, nw::ResourceType::twoda};
         }
         if (tda.get_to("SkillsTable", temp_string)) {
-            skills_table = {temp_string, nw::ResourceType::twoda};
+            skill_table = {temp_string, nw::ResourceType::twoda};
         }
         if (tda.get_to("BonusFeatsTable", temp_string)) {
             bonus_feats_table = {temp_string, nw::ResourceType::twoda};
@@ -126,6 +126,50 @@ int ClassArray::get_base_attack_bonus(Class class_, size_t level) const
         return (*info.attack_bonus_table)[level];
     }
     return 0;
+}
+
+Saves ClassArray::get_class_save_bonus(Class class_, size_t level) const
+{
+    auto info = get(class_);
+    if (info && level - 1 < info->class_saves.size()) {
+        return info->class_saves[level - 1];
+    }
+    return {};
+}
+
+bool ClassArray::get_is_class_skill(Class class_, Skill skill) const
+{
+    auto info = get(class_);
+    if (info && skill.idx() < info->class_skills.size()) {
+        return !!info->class_skills[skill.idx()];
+    }
+    return false;
+}
+
+int ClassArray::get_natural_ac(Class class_, size_t level) const
+{
+    int result = 0;
+    auto info = get(class_);
+    if (info && level - 1 < info->class_stat_gain.size()) {
+        for (size_t i = 0; i < level; ++i) {
+            result += info->class_stat_gain[i].natural_ac;
+        }
+    }
+    return result;
+}
+
+int ClassArray::get_stat_gain(Class class_, Ability ability, size_t level) const
+{
+    if (ability == nw::Ability::invalid()) { return 0; }
+    int result = 0;
+    auto info = get(class_);
+    if (info && level - 1 < info->class_stat_gain.size()) {
+        // Wild this isn't additive like every other class table
+        for (size_t i = 0; i < level; ++i) {
+            result += info->class_stat_gain[i].ability[ability.idx()];
+        }
+    }
+    return result;
 }
 
 bool ClassArray::is_valid(Class type) const noexcept

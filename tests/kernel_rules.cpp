@@ -58,7 +58,7 @@ TEST_CASE("rules manager", "[kernel]")
     nw::kernel::unload_module();
 }
 
-TEST_CASE("rules system item property cost/param tables", "[kernel]")
+TEST_CASE("rules system: item property cost/param tables", "[kernel]")
 {
     auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
     REQUIRE(mod);
@@ -66,6 +66,45 @@ TEST_CASE("rules system item property cost/param tables", "[kernel]")
     REQUIRE(nwk::rules().ip_cost_table(4));
     REQUIRE(nwk::rules().ip_param_table(3));
     REQUIRE(nwk::rules().ip_definition(nwn1::ip_ability_bonus)->name == 649);
+
+    nw::kernel::unload_module();
+}
+
+TEST_CASE("rules system: class info", "[kernel]")
+{
+    auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
+    REQUIRE(mod);
+
+    REQUIRE(nwk::rules().classes.get_is_class_skill(nwn1::class_type_barbarian, nwn1::skill_discipline));
+    REQUIRE_FALSE(nwk::rules().classes.get_is_class_skill(nwn1::class_type_barbarian, nwn1::skill_tumble));
+    REQUIRE_FALSE(nwk::rules().classes.get_is_class_skill(nw::Class::invalid(), nwn1::skill_craft_trap));
+    REQUIRE_FALSE(nwk::rules().classes.get_is_class_skill(nwn1::class_type_barbarian, nw::Skill::invalid()));
+
+    nw::Saves s;
+    s = nwk::rules().classes.get_class_save_bonus(nwn1::class_type_rogue, 16);
+    REQUIRE(s.fort == 5);
+    REQUIRE(s.reflex == 10);
+    REQUIRE(s.will == 5);
+
+    s = nwk::rules().classes.get_class_save_bonus(nwn1::class_type_rogue, 90);
+    REQUIRE(s.fort == 0);
+    REQUIRE(s.reflex == 0);
+    REQUIRE(s.will == 0);
+
+    s = nwk::rules().classes.get_class_save_bonus(nw::Class::invalid(), 10);
+    REQUIRE(s.fort == 0);
+    REQUIRE(s.reflex == 0);
+    REQUIRE(s.will == 0);
+
+    REQUIRE(nwk::rules().classes.get_stat_gain(
+                nwn1::class_type_dragon_disciple,
+                nwn1::ability_strength, 10)
+        == 8);
+
+    REQUIRE(nwk::rules().classes.get_stat_gain(
+                nwn1::class_type_dragon_disciple,
+                nwn1::ability_constitution, 20)
+        == 2);
 
     nw::kernel::unload_module();
 }

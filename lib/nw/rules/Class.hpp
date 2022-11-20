@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../components/Saves.hpp"
 #include "../resources/Resource.hpp"
 #include "../util/InternedString.hpp"
 #include "rule_type.hpp"
@@ -18,6 +19,11 @@ struct TwoDARowView;
 
 DECLARE_RULE_TYPE(Class);
 
+struct ClassStatGain {
+    std::array<int, 6> ability;
+    int natural_ac = 0;
+};
+
 struct ClassInfo {
     ClassInfo() = default;
     ClassInfo(const TwoDARowView& tda);
@@ -35,7 +41,9 @@ struct ClassInfo {
     const std::vector<int>* attack_bonus_table = nullptr;
     Resource feats_table;
     Resource saving_throw_table;
-    Resource skills_table;
+    std::vector<Saves> class_saves;
+    Resource skill_table;
+    std::vector<int> class_skills;
     Resource bonus_feats_table;
     int skill_point_base = 0;
     Resource spell_gain_table;
@@ -55,6 +63,7 @@ struct ClassInfo {
     int epic_level_limit = -1;
     int package = 0;
     Resource stat_gain_table;
+    std::vector<ClassStatGain> class_stat_gain;
     bool memorizes_spells = false;
     bool spellbook_restricted = false;
     bool pick_domains = false;
@@ -81,10 +90,23 @@ struct ClassArray {
     const ClassInfo* get(Class class_) const noexcept;
     bool is_valid(Class class_) const noexcept;
     Class from_constant(std::string_view constant) const;
+
+    /// Gets class base attack from attack tables
     int get_base_attack_bonus(Class class_, size_t level) const;
 
+    /// Gets class save bonuses from save tables
+    Saves get_class_save_bonus(Class class_, size_t level) const;
+
+    /// Determines if skill is a class skill
+    bool get_is_class_skill(Class class_, Skill skill) const;
+
+    /// Gets class Natural AC gain
+    int get_natural_ac(Class class_, size_t level) const;
+
+    /// Gets class ability gain
+    int get_stat_gain(Class class_, Ability ability, size_t level) const;
+
     std::set<std::vector<int>> attack_tables;
-    std::vector<int> skill_table;
     std::vector<int> stat_gain_tables;
 
     std::vector<ClassInfo> entries;

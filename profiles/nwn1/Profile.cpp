@@ -293,11 +293,62 @@ bool Profile::load_rules() const
     if (classes.is_valid()) {
         class_array.entries.reserve(classes.rows());
         for (size_t i = 0; i < classes.rows(); ++i) {
-            const auto& info = class_array.entries.emplace_back(classes.row(i));
+            auto& info = class_array.entries.emplace_back(classes.row(i));
             if (info.constant) {
                 class_array.constant_to_index.emplace(info.constant, nw::Class::make(int32_t(i)));
             } else if (info.valid()) {
                 LOG_F(WARNING, "[nwn1] valid class ({}) with invalid constant", i);
+            }
+            if (info.skill_table.valid()) {
+                nw::TwoDA tda{nw::kernel::resman().demand(info.skill_table)};
+                if (tda.is_valid()) {
+                    info.class_skills.resize(skills.rows());
+                    for (size_t j = 0; j < tda.rows(); ++j) {
+                        size_t index;
+                        int is_class;
+                        if (tda.get_to(j, "SkillIndex", index)
+                            && tda.get_to(j, "ClassSkill", is_class)) {
+                            if (index >= info.class_skills.size()) {
+                                LOG_F(ERROR, "class array: invalid skill index {} on row {}", index, j);
+                                continue;
+                            }
+                            info.class_skills[index] = is_class;
+                        }
+                    }
+                }
+            }
+            if (info.saving_throw_table.valid()) {
+                nw::TwoDA tda{nw::kernel::resman().demand(info.saving_throw_table)};
+                if (tda.is_valid()) {
+                    info.class_saves.reserve(tda.rows());
+                    for (size_t j = 0; j < tda.rows(); ++j) {
+                        nw::Saves save;
+
+                        if (!tda.get_to(j, "FortSave", save.fort)
+                            || !tda.get_to(j, "RefSave", save.reflex)
+                            || !tda.get_to(j, "WillSave", save.will)) {
+                            LOG_F(ERROR, "class array: invalid save on row {}", j);
+                        }
+                        info.class_saves.push_back(save);
+                    }
+                }
+            }
+            if (info.stat_gain_table.valid()) {
+                nw::TwoDA tda{nw::kernel::resman().demand(info.stat_gain_table)};
+                if (tda.is_valid()) {
+                    info.class_stat_gain.reserve(tda.rows());
+                    for (size_t j = 0; j < tda.rows(); ++j) {
+                        nw::ClassStatGain result{};
+                        tda.get_to(j, "Str", result.ability[0]);
+                        tda.get_to(j, "Dex", result.ability[1]);
+                        tda.get_to(j, "Con", result.ability[2]);
+                        tda.get_to(j, "Wis", result.ability[3]);
+                        tda.get_to(j, "Int", result.ability[4]);
+                        tda.get_to(j, "Cha", result.ability[5]);
+                        tda.get_to(j, "NaturalAC", result.natural_ac);
+                        info.class_stat_gain.push_back(result);
+                    }
+                }
             }
         }
     } else {
