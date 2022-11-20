@@ -50,7 +50,8 @@ int get_ability_score(const nw::Creature* obj, nw::Ability ability, bool base)
         callback, &effect_extract_int0);
     int decrease = value;
 
-    return result + std::clamp(bonus - decrease, -12, 12);
+    auto [min, max] = nw::kernel::rules().ability_effect_limits();
+    return result + std::clamp(bonus - decrease, min, max);
 }
 
 int get_ability_modifier(const nw::Creature* obj, nw::Ability ability, bool base)

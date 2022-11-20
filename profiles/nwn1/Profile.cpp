@@ -143,7 +143,7 @@ static inline void load_modifiers()
     // Attack Bonus
     rules.modifiers.add(mod::attack_bonus_item(
         enchant_arrow_ab,
-        "dnd-3.0-enchange-arrow",
+        "dnd-3.0-enchant-arrow",
         nw::ModifierSource::class_));
 
     rules.modifiers.add(mod::attack_bonus(
@@ -155,7 +155,7 @@ static inline void load_modifiers()
     rules.modifiers.add(mod::attack_bonus(
         attack_type_any,
         target_state_ab,
-        "dnd-3.0-target_state",
+        "dnd-3.0-target-state",
         nw::ModifierSource::unknown));
 
     rules.modifiers.add(mod::attack_bonus_item(

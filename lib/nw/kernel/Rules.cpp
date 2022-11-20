@@ -12,6 +12,17 @@ Rules::~Rules()
     clear();
 }
 
+std::pair<int, int> Rules::ability_effect_limits() const noexcept
+{
+    return ability_effect_limits_;
+}
+
+/// Gets ability effect minimum and maximum
+std::pair<int, int> Rules::attack_effect_limits() const noexcept
+{
+    return attack_effect_limits_;
+}
+
 void Rules::clear()
 {
     qualifier_ = qualifier_type{};
@@ -155,6 +166,16 @@ RuleValue Rules::select(const Selector& selector, const ObjectBase* obj) const
     }
 
     return selector_(selector, obj);
+}
+
+void Rules::set_ability_effect_limits(int min, int max) noexcept
+{
+    ability_effect_limits_ = std::make_pair(min, max);
+}
+
+void Rules::set_attack_effect_limits(int min, int max) noexcept
+{
+    attack_effect_limits_ = std::make_pair(min, max);
 }
 
 void Rules::set_qualifier(qualifier_type match)

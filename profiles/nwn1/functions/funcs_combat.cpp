@@ -2,16 +2,16 @@
 
 #include "../constants.hpp"
 #include "../functions.hpp"
-#include "nw/components/LevelStats.hpp"
-#include "nw/rules/system.hpp"
 
 #include <nw/components/Creature.hpp>
 #include <nw/components/Equips.hpp>
 #include <nw/components/Item.hpp>
+#include <nw/components/LevelStats.hpp>
 #include <nw/kernel/Rules.hpp>
 #include <nw/rules/Class.hpp>
 #include <nw/rules/combat.hpp>
 #include <nw/rules/items.hpp>
+#include <nw/rules/system.hpp>
 #include <nw/util/macros.hpp>
 
 namespace nwn1 {
@@ -24,7 +24,6 @@ int attack_bonus(const nw::Creature* obj, nw::AttackType type, nw::ObjectBase* v
 
     // BAB
     result = base_attack_bonus(obj);
-    LOG_F(INFO, "{}", result);
 
     // Size
     result += obj->size_ab_modifier;
@@ -46,7 +45,7 @@ int attack_bonus(const nw::Creature* obj, nw::AttackType type, nw::ObjectBase* v
 
     // Master Feats
     nw::kernel::resolve_master_feats<int>(obj, baseitem, adder, mfeat_weapon_focus, mfeat_weapon_focus_epic);
-    LOG_F(INFO, "{}", result);
+
     // Abilities
     int modifier = 0;
     bool is_ranged = is_ranged_weapon(weapon);
@@ -63,7 +62,6 @@ int attack_bonus(const nw::Creature* obj, nw::AttackType type, nw::ObjectBase* v
     }
 
     result += modifier;
-    LOG_F(INFO, "{}", result);
 
     // Effects attack increase/decrease is a little more complicated due to needing to support
     // an 'any' subtype.
@@ -88,7 +86,8 @@ int attack_bonus(const nw::Creature* obj, nw::AttackType type, nw::ObjectBase* v
         callback, &effect_extract_int0);
     int decrease = value;
 
-    return result + std::clamp(bonus - decrease, -20, 20);
+    auto [min, max] = nw::kernel::rules().attack_effect_limits();
+    return result + std::clamp(bonus - decrease, min, max);
 }
 
 int base_attack_bonus(const nw::Creature* obj)
