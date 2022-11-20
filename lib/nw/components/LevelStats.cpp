@@ -9,16 +9,18 @@ namespace nw {
 bool LevelStats::from_gff(const GffStruct& archive)
 {
     size_t sz = archive["ClassList"].size();
-    entries.reserve(sz);
+    if (sz >= max_classes) {
+        LOG_F(ERROR, "level stats: attempting a creature with more than {} classes", max_classes);
+        return false;
+    }
+
     for (size_t i = 0; i < sz; ++i) {
-        ClassEntry c;
         int32_t temp;
         if (archive["ClassList"][i].get_to("Class", temp)) {
-            c.id = Class::make(temp);
+            entries[i].id = Class::make(temp);
         }
-        archive["ClassList"][i].get_to("ClassLevel", c.level);
-        c.spells.from_gff(archive["ClassList"][i]);
-        entries.push_back(std::move(c));
+        archive["ClassList"][i].get_to("ClassLevel", entries[i].level);
+        entries[i].spells.from_gff(archive["ClassList"][i]);
     }
 
     return true;
@@ -27,12 +29,17 @@ bool LevelStats::from_gff(const GffStruct& archive)
 bool LevelStats::from_json(const nlohmann::json& archive)
 {
     try {
+        if (archive.size() >= max_classes) {
+            LOG_F(ERROR, "level stats: attempting a creature with more than {} classes", max_classes);
+            return false;
+        }
+
+        size_t i = 0;
         for (const auto& cls : archive) {
-            ClassEntry c;
-            cls.at("class").get_to(c.id);
-            cls.at("level").get_to(c.level);
-            c.spells.from_json(cls.at("spellbook"));
-            entries.push_back(std::move(c));
+            cls.at("class").get_to(entries[i].id);
+            cls.at("level").get_to(entries[i].level);
+            entries[i].spells.from_json(cls.at("spellbook"));
+            ++i;
         }
     } catch (const nlohmann::json::exception& e) {
         LOG_F(ERROR, "LevelStats: json exception: {}", e.what());
@@ -46,6 +53,7 @@ bool LevelStats::to_gff(GffBuilderStruct& archive) const
 {
     auto& list = archive.add_list("ClassList");
     for (const auto& cls : entries) {
+        if (cls.id == nw::Class::invalid()) { continue; }
         cls.spells.to_gff(list.push_back(3)
                               .add_field("Class", *cls.id)
                               .add_field("ClassLevel", cls.level));
@@ -58,6 +66,7 @@ nlohmann::json LevelStats::to_json() const
 {
     nlohmann::json j = nlohmann::json::array();
     for (const auto& cls : entries) {
+        if (cls.id == nw::Class::invalid()) { continue; }
         j.push_back({
             {"class", cls.id},
             {"level", cls.level},
@@ -85,6 +94,21 @@ int LevelStats::level_by_class(Class id) const noexcept
         }
     }
     return 0;
+}
+
+size_t LevelStats::position(Class id) const noexcept
+{
+    if (id == nw::Class::invalid()) { return npos; }
+
+    for (size_t i = 0; i < max_classes; ++i) {
+        if (entries[i].id == id) {
+            return i;
+        } else if (entries[i].id == nw::Class::invalid()) {
+            break;
+        }
+    }
+
+    return npos;
 }
 
 } // namespace nw

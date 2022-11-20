@@ -2,6 +2,7 @@
 
 #include "../constants.hpp"
 #include "../functions.hpp"
+#include "nw/components/LevelStats.hpp"
 #include "nw/rules/system.hpp"
 
 #include <nw/components/Creature.hpp>
@@ -82,27 +83,40 @@ int base_attack_bonus(const nw::Creature* obj)
 {
     if (!obj) { return 0; }
 
-    int result = 0;
+    size_t result = 0;
     auto& classes = nw::kernel::rules().classes;
 
-    // [TODO] PCs
-    int levels = obj->levels.level();
-    int epic = 0;
+    size_t levels = obj->levels.level();
+    size_t epic = 0;
     if (levels >= 20) {
         epic = (levels - 20) / 2;
         levels = 20;
     }
 
-    for (const auto& cl : obj->levels.entries) {
-        if (!classes.entries[cl.id.idx()].attack_bonus_table) {
-            continue;
+    std::array<int, nw::LevelStats::max_classes> class_levels{};
+
+    if (obj->pc) {
+        for (size_t i = 0; i < levels; ++i) {
+            ++class_levels[obj->levels.position(obj->history.entries[i].class_)];
         }
-        if (levels == 0) { break; }
-        auto count = std::min(levels, int(cl.level));
-        result += (*classes.entries[cl.id.idx()].attack_bonus_table)[count - 1];
-        levels -= count;
+
+        for (size_t i = 0; i < nw::LevelStats::max_classes; ++i) {
+            if (class_levels[i] == 0) { break; }
+            auto cl = obj->levels.entries[i].id;
+            result += (*classes.entries[cl.idx()].attack_bonus_table)[class_levels[i] - 1];
+        }
+    } else {
+        for (const auto& cl : obj->levels.entries) {
+            if (!classes.entries[cl.id.idx()].attack_bonus_table) {
+                continue;
+            }
+            if (levels == 0) { break; }
+            auto count = std::min(levels, size_t(cl.level));
+            result += (*classes.entries[cl.id.idx()].attack_bonus_table)[count - 1];
+            levels -= count;
+        }
     }
-    return result + epic;
+    return int(result + epic);
 }
 
 nw::AttackType equip_index_to_attack_type(nw::EquipIndex equip)
