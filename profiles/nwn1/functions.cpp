@@ -17,6 +17,10 @@ bool can_equip_item(const nw::Creature* obj, nw::Item* item, nw::EquipIndex slot
     auto baseitem = nw::kernel::rules().baseitems.get(item->baseitem);
     if (!baseitem) { return false; }
 
+    if (!nw::kernel::rules().meets_requirement(baseitem->feat_requirement, obj)) {
+        return false;
+    }
+
     auto flag = 1 << size_t(slot);
     return baseitem->equipable_slots & flag;
 }
