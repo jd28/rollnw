@@ -149,6 +149,12 @@ static inline void load_modifiers()
         "dnd-3.0-palemaster-ac",
         nw::ModifierSource::class_));
 
+    rules.modifiers.add(mod::armor_class(
+        ac_natural,
+        simple_feat_mod(feat_epic_armor_skin, 2),
+        "dnd-3.0-epic-armor-skin",
+        nw::ModifierSource::feat));
+
     // Attack Bonus
     rules.modifiers.add(mod::attack_bonus_item(
         enchant_arrow_ab,
