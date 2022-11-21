@@ -178,6 +178,20 @@ TEST_CASE("creature: attack bonus", "[objects]")
 
     obj->target_state = nw::TargetState::flanked;
     REQUIRE(48 == nwn1::attack_bonus(obj, nwn1::attack_type_onhand, vs));
+    obj->target_state = nw::TargetState::none;
+
+    // Good aim
+    REQUIRE(nwn1::get_ability_modifier(obj, nwn1::ability_dexterity) == 2);
+    auto sling = nwk::objects().load<nw::Item>("nw_wbwsl001"sv);
+    REQUIRE(sling);
+    nwn1::equip_item(obj, sling, nw::EquipIndex::righthand);
+    REQUIRE(34 == nwn1::attack_bonus(obj, nwn1::attack_type_onhand));
+
+    REQUIRE(obj->stats.has_feat(nwn1::feat_good_aim));
+    auto dart = nwk::objects().load<nw::Item>("nw_wthdt001"sv);
+    REQUIRE(dart);
+    nwn1::equip_item(obj, dart, nw::EquipIndex::righthand);
+    REQUIRE(34 == nwn1::attack_bonus(obj, nwn1::attack_type_onhand));
 
     // Zen Archery
     auto obj2 = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/lentiane.utc"));

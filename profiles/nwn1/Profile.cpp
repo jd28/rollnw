@@ -167,6 +167,11 @@ static inline void load_modifiers()
         "dnd-3.0-epic-prowess",
         nw::ModifierSource::feat));
 
+    rules.modifiers.add(mod::attack_bonus_item(
+        good_aim,
+        "dnd-3.0-good-aim",
+        nw::ModifierSource::feat));
+
     rules.modifiers.add(mod::attack_bonus(
         attack_type_any,
         target_state_ab,

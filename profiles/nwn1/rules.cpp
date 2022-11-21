@@ -348,6 +348,27 @@ nw::ModifierResult enchant_arrow_ab(const nw::ObjectBase* obj, int32_t subtype)
     return result;
 }
 
+nw::ModifierResult good_aim(const nw::ObjectBase* obj, int32_t subtype)
+{
+    if (!obj) { return 0; }
+    auto cre = obj->as_creature();
+    if (!cre) { return 0; }
+
+    auto baseitem = nw::BaseItem::make(subtype);
+
+    if (cre->race == racial_type_halfling && baseitem == base_item_sling) {
+        return 1;
+    }
+
+    auto bi = nw::kernel::rules().baseitems.get(baseitem);
+    if (bi && (bi->weapon_wield == 10 || bi->weapon_wield == 11)
+        && cre->stats.has_feat(feat_good_aim)) {
+        return 1;
+    }
+
+    return 0;
+}
+
 nw::ModifierResult target_state_ab(const nw::ObjectBase* obj, const nw::ObjectBase* target)
 {
     int result = 0;

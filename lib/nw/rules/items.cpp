@@ -27,8 +27,8 @@ BaseItemInfo::BaseItemInfo(const TwoDARowView& tda)
     }
     tda.get_to("DefaultIcon", default_icon);
     tda.get_to("Container", is_container);
-    // WeaponWield
-    // WeaponType
+    tda.get_to("WeaponWield", weapon_wield);
+    tda.get_to("WeaponType", weapon_type);
     tda.get_to("WeaponSize", weapon_size);
     tda.get_to("RangedWeapon", ranged);
     // PrefAttackDist
