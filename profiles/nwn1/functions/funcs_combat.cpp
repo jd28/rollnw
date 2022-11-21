@@ -192,7 +192,7 @@ bool weapon_is_finessable(const nw::Creature* obj, nw::Item* weapon)
     if (!weapon) { return true; }
     auto baseitem = nw::kernel::rules().baseitems.get(weapon->baseitem);
     if (!baseitem) { return false; }
-    return baseitem->finesse_size >= obj->size;
+    return baseitem->finesse_size <= obj->size;
 }
 
 int weapon_iteration(const nw::Creature* obj, const nw::Item* weapon)

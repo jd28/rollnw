@@ -182,7 +182,6 @@ TEST_CASE("creature: attack bonus", "[objects]")
     // Zen Archery
     auto obj2 = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/lentiane.utc"));
     REQUIRE(obj2);
-    REQUIRE(obj2->instantiate());
 
     REQUIRE(nwn1::get_equipped_item(obj2, nw::EquipIndex::righthand));
     REQUIRE(nwn1::get_equipped_item(obj2, nw::EquipIndex::righthand)->baseitem == nwn1::base_item_shortbow);
@@ -196,7 +195,6 @@ TEST_CASE("creature: attack bonus", "[objects]")
     // Dex Archery
     auto obj3 = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/rangerdexranged.utc"));
     REQUIRE(obj3);
-    REQUIRE(obj3->instantiate());
 
     REQUIRE(!obj3->stats.has_feat(nwn1::feat_zen_archery));
     REQUIRE(obj3->combat_mode == nw::CombatMode::invalid());
@@ -207,6 +205,19 @@ TEST_CASE("creature: attack bonus", "[objects]")
     REQUIRE(nwn1::get_ability_modifier(obj3, nwn1::ability_dexterity) == 8);
     REQUIRE(30 == nwn1::base_attack_bonus(obj3));
     REQUIRE(47 == nwn1::attack_bonus(obj3, nwn1::attack_type_onhand));
+
+    // Dex Weapon Finesse
+    auto obj4 = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/dexweapfin.utc"));
+    REQUIRE(obj4);
+
+    REQUIRE(obj4->stats.has_feat(nwn1::feat_weapon_finesse));
+    REQUIRE(obj4->combat_mode == nw::CombatMode::invalid());
+    REQUIRE(nwn1::get_equipped_item(obj4, nw::EquipIndex::righthand));
+    REQUIRE(nwn1::get_equipped_item(obj4, nw::EquipIndex::righthand)->baseitem == nwn1::base_item_dagger);
+    REQUIRE(nwn1::get_ability_modifier(obj4, nwn1::ability_strength) == 1);
+    REQUIRE(nwn1::get_ability_modifier(obj4, nwn1::ability_dexterity) == 11);
+    REQUIRE(25 == nwn1::base_attack_bonus(obj4));
+    REQUIRE(40 == nwn1::attack_bonus(obj4, nwn1::attack_type_onhand));
 
     nwk::unload_module();
 }
