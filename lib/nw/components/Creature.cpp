@@ -1,5 +1,6 @@
 #include "Creature.hpp"
 
+#include "../functions.hpp"
 #include "../kernel/TwoDACache.hpp"
 
 #include <nlohmann/json.hpp>
@@ -108,8 +109,16 @@ bool Creature::instantiate()
             }
         }
     }
-
-    return instantiated_ = (inventory.instantiate() && equipment.instantiate());
+    instantiated_ = (inventory.instantiate() && equipment.instantiate());
+    size_t i = 0;
+    for (auto& equip : equipment.equips) {
+        if (alt<nw::Item*>(equip)) {
+            process_item_properties(this, std::get<nw::Item*>(equip),
+                static_cast<nw::EquipIndex>(i), false);
+        }
+        ++i;
+    }
+    return instantiated_;
 }
 
 bool Creature::deserialize(Creature* obj, const GffStruct& archive, SerializationProfile profile)

@@ -1,6 +1,7 @@
 #include <catch2/catch_all.hpp>
 
 #include <nw/components/Creature.hpp>
+#include <nw/functions.hpp>
 #include <nw/kernel/EffectSystem.hpp>
 #include <nw/kernel/EventSystem.hpp>
 #include <nw/kernel/Objects.hpp>
@@ -112,20 +113,20 @@ TEST_CASE("creature: base attack bonus", "[objects]")
     REQUIRE(obj);
 
     REQUIRE(27 == nwn1::base_attack_bonus(obj));
-    REQUIRE(42 == nwn1::attack_bonus(obj, nwn1::attack_type_unarmed));
+    REQUIRE(47 == nwn1::attack_bonus(obj, nwn1::attack_type_unarmed));
 
     REQUIRE_FALSE(obj->stats.has_feat(nwn1::feat_weapon_focus_unarmed));
     REQUIRE_FALSE(obj->stats.has_feat(nwn1::feat_epic_weapon_focus_unarmed));
     obj->stats.add_feat(nwn1::feat_weapon_focus_unarmed);
     obj->stats.add_feat(nwn1::feat_epic_weapon_focus_unarmed);
 
-    REQUIRE(45 == nwn1::attack_bonus(obj, nwn1::attack_type_unarmed));
-    auto eff1 = nwn1::effect_attack_modifier(nwn1::attack_type_any, 2);
-    REQUIRE(nwn1::apply_effect(obj, eff1));
-    REQUIRE(47 == nwn1::attack_bonus(obj, nwn1::attack_type_unarmed));
-    auto eff2 = nwn1::effect_attack_modifier(nwn1::attack_type_unarmed, 3);
-    REQUIRE(nwn1::apply_effect(obj, eff2));
     REQUIRE(50 == nwn1::attack_bonus(obj, nwn1::attack_type_unarmed));
+    auto eff1 = nwn1::effect_attack_modifier(nwn1::attack_type_any, 2);
+    REQUIRE(nw::apply_effect(obj, eff1));
+    REQUIRE(52 == nwn1::attack_bonus(obj, nwn1::attack_type_unarmed));
+    auto eff2 = nwn1::effect_attack_modifier(nwn1::attack_type_unarmed, 3);
+    REQUIRE(nw::apply_effect(obj, eff2));
+    REQUIRE(55 == nwn1::attack_bonus(obj, nwn1::attack_type_unarmed));
 
     nwk::unload_module();
 }
@@ -137,11 +138,19 @@ TEST_CASE("creature: attack bonus", "[objects]")
 
     auto obj = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/drorry.utc"));
     REQUIRE(obj);
-    REQUIRE(obj->instantiate());
 
     auto vs = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/drorry.utc"));
     REQUIRE(vs);
-    REQUIRE(vs->instantiate());
+
+    int test = 0;
+    auto adder = [&test](int val) { test += val; };
+    nw::resolve_effects_of<int>(
+        obj->effects().begin(),
+        obj->effects().end(),
+        nwn1::effect_type_attack_increase,
+        *nwn1::attack_type_onhand,
+        adder, &nw::effect_extract_int0);
+    REQUIRE(test == 2);
 
     REQUIRE(obj->levels.level() == 38);
     REQUIRE(obj->levels.level_by_class(nwn1::class_type_fighter) == 10);
@@ -150,25 +159,25 @@ TEST_CASE("creature: attack bonus", "[objects]")
     REQUIRE(nwn1::get_ability_modifier(obj, nwn1::ability_strength) == 3);
     REQUIRE(obj->size_ab_modifier == 1);
     REQUIRE(29 == nwn1::base_attack_bonus(obj));
-    REQUIRE(43 == nwn1::attack_bonus(obj, nwn1::attack_type_onhand));
+    REQUIRE(45 == nwn1::attack_bonus(obj, nwn1::attack_type_onhand));
 
     obj->combat_mode = nwn1::combat_mode_power_attack;
-    REQUIRE(38 == nwn1::attack_bonus(obj, nwn1::attack_type_onhand));
+    REQUIRE(40 == nwn1::attack_bonus(obj, nwn1::attack_type_onhand));
     obj->combat_mode = nwn1::combat_mode_improved_power_attack;
-    REQUIRE(33 == nwn1::attack_bonus(obj, nwn1::attack_type_onhand));
+    REQUIRE(35 == nwn1::attack_bonus(obj, nwn1::attack_type_onhand));
 
     obj->combat_mode = nwn1::combat_mode_expertise;
-    REQUIRE(38 == nwn1::attack_bonus(obj, nwn1::attack_type_onhand));
+    REQUIRE(40 == nwn1::attack_bonus(obj, nwn1::attack_type_onhand));
     obj->combat_mode = nwn1::combat_mode_improved_expertise;
-    REQUIRE(33 == nwn1::attack_bonus(obj, nwn1::attack_type_onhand));
+    REQUIRE(35 == nwn1::attack_bonus(obj, nwn1::attack_type_onhand));
     obj->combat_mode = nw::CombatMode::invalid();
-    REQUIRE(43 == nwn1::attack_bonus(obj, nwn1::attack_type_onhand));
+    REQUIRE(45 == nwn1::attack_bonus(obj, nwn1::attack_type_onhand));
 
     obj->stats.add_feat(nwn1::feat_epic_prowess);
-    REQUIRE(44 == nwn1::attack_bonus(obj, nwn1::attack_type_onhand));
+    REQUIRE(46 == nwn1::attack_bonus(obj, nwn1::attack_type_onhand));
 
     obj->target_state = nw::TargetState::flanked;
-    REQUIRE(46 == nwn1::attack_bonus(obj, nwn1::attack_type_onhand, vs));
+    REQUIRE(48 == nwn1::attack_bonus(obj, nwn1::attack_type_onhand, vs));
 
     // Zen Archery
     auto obj2 = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/lentiane.utc"));
@@ -197,7 +206,7 @@ TEST_CASE("creature: attack bonus", "[objects]")
     REQUIRE(nwn1::get_ability_modifier(obj3, nwn1::ability_strength) == 2);
     REQUIRE(nwn1::get_ability_modifier(obj3, nwn1::ability_dexterity) == 8);
     REQUIRE(30 == nwn1::base_attack_bonus(obj3));
-    REQUIRE(39 == nwn1::attack_bonus(obj3, nwn1::attack_type_onhand));
+    REQUIRE(47 == nwn1::attack_bonus(obj3, nwn1::attack_type_onhand));
 
     nwk::unload_module();
 }
@@ -217,11 +226,11 @@ TEST_CASE("creature: skills ", "[objects]")
     REQUIRE(nwn1::get_skill_rank(obj, nwn1::skill_discipline, false) == 71);
 
     auto eff = nwn1::effect_skill_modifier(nwn1::skill_discipline, 5);
-    REQUIRE(nwn1::apply_effect(obj, eff));
+    REQUIRE(nw::apply_effect(obj, eff));
     REQUIRE(nwn1::get_skill_rank(obj, nwn1::skill_discipline, false) == 76);
 
     auto eff2 = nwn1::effect_ability_modifier(nwn1::ability_strength, 5);
-    REQUIRE(nwn1::apply_effect(obj, eff2));
+    REQUIRE(nw::apply_effect(obj, eff2));
     REQUIRE(nwn1::get_skill_rank(obj, nwn1::skill_discipline, false) == 78);
 
     nwk::unload_module();
@@ -249,7 +258,7 @@ TEST_CASE("creature: ability ", "[objects]")
     REQUIRE(nwn1::get_ability_score(obj, nwn1::ability_strength, false) == 42);
 
     auto eff = nwn1::effect_ability_modifier(nwn1::ability_strength, 5);
-    REQUIRE(nwn1::apply_effect(obj, eff));
+    REQUIRE(nw::apply_effect(obj, eff));
     REQUIRE(obj->effects().size() > 0);
     REQUIRE(nwn1::get_ability_score(obj, nwn1::ability_strength, false) == 47);
 
@@ -396,10 +405,10 @@ TEST_CASE("creature: apply and remove effects", "[objects]")
 
     auto eff = nwn1::effect_haste();
     REQUIRE(obj->effects().add(eff));
-    REQUIRE(nwn1::has_effect_applied(obj, nwn1::effect_type_haste));
+    REQUIRE(nw::has_effect_applied(obj, nwn1::effect_type_haste));
     REQUIRE(obj->effects().size());
     REQUIRE(obj->effects().remove(eff));
-    REQUIRE_FALSE(nwn1::has_effect_applied(obj, nwn1::effect_type_haste));
+    REQUIRE_FALSE(nw::has_effect_applied(obj, nwn1::effect_type_haste));
     REQUIRE(obj->effects().size() == 0);
     REQUIRE_FALSE(obj->effects().remove(nullptr));
 
