@@ -452,4 +452,20 @@ constexpr nw::ModifierType mod_type_spell_resistance = nw::ModifierType::make(17
 constexpr nw::ModifierType mod_type_attack_bonus_item = nw::ModifierType::make(18);
 constexpr nw::ModifierType mod_type_attack_bonus_mode = nw::ModifierType::make(19);
 
+constexpr nw::SpecialAttack special_attack_aoo = nw::SpecialAttack::make(65002);
+constexpr nw::SpecialAttack special_attack_called_shot_arm = nw::SpecialAttack::make(65001);
+constexpr nw::SpecialAttack special_attack_called_shot_leg = nw::SpecialAttack::make(65000);
+constexpr nw::SpecialAttack special_attack_cleave = nw::SpecialAttack::make(6);
+constexpr nw::SpecialAttack special_attack_cleave_great = nw::SpecialAttack::make(391);
+constexpr nw::SpecialAttack special_attack_disarm = nw::SpecialAttack::make(9);
+constexpr nw::SpecialAttack special_attack_disarm_improved = nw::SpecialAttack::make(16);
+constexpr nw::SpecialAttack special_attack_ki_damage = nw::SpecialAttack::make(882);
+constexpr nw::SpecialAttack special_attack_knockdown = nw::SpecialAttack::make(23);
+constexpr nw::SpecialAttack special_attack_knockdown_improved = nw::SpecialAttack::make(17);
+constexpr nw::SpecialAttack special_attack_quivering_palm = nw::SpecialAttack::make(296);
+constexpr nw::SpecialAttack special_attack_sap = nw::SpecialAttack::make(31);
+constexpr nw::SpecialAttack special_attack_smite_evil = nw::SpecialAttack::make(301);
+constexpr nw::SpecialAttack special_attack_smite_good = nw::SpecialAttack::make(472);
+constexpr nw::SpecialAttack special_attack_stunning_fist = nw::SpecialAttack::make(39);
+
 } // namespace nwn1
