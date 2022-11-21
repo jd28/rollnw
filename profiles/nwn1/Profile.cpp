@@ -42,7 +42,11 @@ static inline void load_itemprop_generators()
 {
     LOG_F(INFO, "[nwn1] Loading item property generators");
     nw::kernel::effects().add(ip_ability_bonus, ip_gen_ability_modifier);
+    nw::kernel::effects().add(ip_attack_bonus, ip_gen_attack_modifier);
+    nw::kernel::effects().add(ip_attack_penalty, ip_gen_attack_modifier);
     nw::kernel::effects().add(ip_decreased_ability_score, ip_gen_ability_modifier);
+    nw::kernel::effects().add(ip_enhancement_bonus, ip_gen_enhancement_modifier);
+    nw::kernel::effects().add(ip_enhancement_penalty, ip_gen_enhancement_modifier);
     nw::kernel::effects().add(ip_haste, ip_gen_haste);
     nw::kernel::effects().add(ip_skill_bonus, ip_gen_skill_modifier);
     nw::kernel::effects().add(ip_decreased_skill_modifier, ip_gen_skill_modifier);
