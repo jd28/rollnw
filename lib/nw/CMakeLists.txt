@@ -41,6 +41,7 @@ if(NOT Iconv_IS_BUILT_IN)
 endif()
 
 add_library(nw STATIC
+    functions.cpp
     log.cpp
 )
 

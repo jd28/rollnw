@@ -249,7 +249,6 @@ nw::ModifierResult class_stat_gain(const nw::ObjectBase* obj, int32_t subtype)
         if (cl.id == nw::Class::invalid()) { break; }
         result += nw::kernel::rules().classes.get_stat_gain(cl.id, abil, cl.level);
     }
-    LOG_F(INFO, "stat gain abil {} value {}", subtype, result);
     return result;
 }
 

@@ -1,11 +1,11 @@
 #include "funcs_ability.hpp"
 
 #include "../constants.hpp"
-#include "funcs_effects.hpp"
 
 #include <nw/components/Creature.hpp>
 #include <nw/components/EffectArray.hpp>
 #include <nw/components/ObjectHandle.hpp>
+#include <nw/functions.hpp>
 #include <nw/kernel/Rules.hpp>
 #include <nw/rules/Effect.hpp>
 #include <nw/rules/Spell.hpp>
@@ -37,17 +37,17 @@ int get_ability_score(const nw::Creature* obj, nw::Ability ability, bool base)
     int value = 0;
     auto callback = [&value](int result) { value += result; };
 
-    auto it = find_first_effect_of(std::begin(obj->effects()), end,
+    auto it = nw::find_first_effect_of(std::begin(obj->effects()), end,
         effect_type_ability_increase, *ability);
-    it = resolve_effects_of<int>(it, end, effect_type_ability_increase, *ability,
-        callback, &effect_extract_int0);
+    it = nw::resolve_effects_of<int>(it, end, effect_type_ability_increase, *ability,
+        callback, &nw::effect_extract_int0);
 
     int bonus = value;
     value = 0;
 
-    it = find_first_effect_of(it, end, effect_type_ability_decrease, *ability);
-    resolve_effects_of<int>(it, end, effect_type_ability_decrease, *ability,
-        callback, &effect_extract_int0);
+    it = nw::find_first_effect_of(it, end, effect_type_ability_decrease, *ability);
+    nw::resolve_effects_of<int>(it, end, effect_type_ability_decrease, *ability,
+        callback, &nw::effect_extract_int0);
     int decrease = value;
 
     auto [min, max] = nw::kernel::rules().ability_effect_limits();

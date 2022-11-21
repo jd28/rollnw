@@ -1,12 +1,21 @@
 #pragma once
 
-#include <nw/components/ObjectBase.hpp>
-#include <nw/rules/Effect.hpp>
+#include "rules/Effect.hpp"
 
-#include <functional>
-#include <iterator>
+#include <cstdint>
 
-namespace nwn1 {
+namespace nw {
+
+// == Forward Decls ===========================================================
+// ============================================================================
+
+struct Creature;
+struct ObjectBase;
+struct Item;
+enum struct EquipIndex : uint32_t;
+
+// == Effects =================================================================
+// ============================================================================
 
 /// Applies an effect to an object
 bool apply_effect(nw::ObjectBase* obj, nw::Effect* effect);
@@ -106,4 +115,10 @@ It resolve_effects_of(It begin, It end, nw::EffectType type, int subtype,
     return it;
 }
 
-} // namespace nwn1
+// == Item Properties =========================================================
+// ============================================================================
+
+/// Processes item properties and applies resulting effects to creature
+int process_item_properties(nw::Creature* obj, const nw::Item* item, nw::EquipIndex index, bool remove);
+
+} // namespace nw

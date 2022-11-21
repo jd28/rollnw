@@ -2,10 +2,10 @@
 
 #include "../constants.hpp"
 #include "funcs_ability.hpp"
-#include "funcs_effects.hpp"
 #include "funcs_feat.hpp"
 
 #include <nw/components/Creature.hpp>
+#include <nw/functions.hpp>
 #include <nw/kernel/Rules.hpp>
 #include <nw/rules/feats.hpp>
 
@@ -48,14 +48,14 @@ int get_skill_rank(const nw::Creature* obj, nw::Skill skill, bool base)
 
     auto callback = [&value](int mod) { value += mod; };
 
-    auto it = resolve_effects_of<int>(std::begin(obj->effects()), end,
-        effect_type_skill_increase, *skill, callback, &effect_extract_int0);
+    auto it = nw::resolve_effects_of<int>(std::begin(obj->effects()), end,
+        effect_type_skill_increase, *skill, callback, &nw::effect_extract_int0);
 
     int bonus = value;
     value = 0; // Reset value for penalties
 
-    resolve_effects_of<int>(it, end, effect_type_skill_decrease, *skill,
-        callback, &effect_extract_int0);
+    nw::resolve_effects_of<int>(it, end, effect_type_skill_decrease, *skill,
+        callback, &nw::effect_extract_int0);
     int decrease = value;
 
     return result + std::clamp(bonus - decrease, -50, 50);

@@ -1,11 +1,12 @@
-#include "funcs_effects.hpp"
+#include "functions.hpp"
 
-#include <nw/kernel/EffectSystem.hpp>
-#include <nw/rules/Effect.hpp>
+#include "components/Creature.hpp"
+#include "kernel/EffectSystem.hpp"
 
-#include <algorithm>
+namespace nw {
 
-namespace nwn1 {
+// == Effects =================================================================
+// ============================================================================
 
 bool apply_effect(nw::ObjectBase* obj, nw::Effect* effect)
 {
@@ -59,4 +60,29 @@ int remove_effects_by(nw::ObjectBase* obj, nw::ObjectHandle creator)
     return result;
 }
 
-} // namespace nwn1
+// == Item Properties =========================================================
+// ============================================================================
+
+int process_item_properties(nw::Creature* obj, const nw::Item* item, nw::EquipIndex index, bool remove)
+{
+    if (!obj || !item) { return 0; }
+
+    int processed = 0;
+    if (!remove) {
+        for (const auto& ip : item->properties) {
+            if (auto eff = nw::kernel::effects().generate(ip, index)) {
+                eff->creator = item->handle();
+                eff->category = nw::EffectCategory::item;
+                if (!apply_effect(obj, eff)) {
+                    nw::kernel::effects().destroy(eff);
+                }
+                ++processed;
+            }
+        }
+        return processed;
+    } else {
+        return remove_effects_by(obj, item->handle());
+    }
+}
+
+} // namespace nw

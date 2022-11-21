@@ -7,6 +7,7 @@
 #include <nw/components/Equips.hpp>
 #include <nw/components/Item.hpp>
 #include <nw/components/LevelStats.hpp>
+#include <nw/functions.hpp>
 #include <nw/kernel/Rules.hpp>
 #include <nw/rules/Class.hpp>
 #include <nw/rules/combat.hpp>
@@ -70,20 +71,20 @@ int attack_bonus(const nw::Creature* obj, nw::AttackType type, nw::ObjectBase* v
     int value = 0;
     auto callback = [&value](int mod) { value += mod; };
 
-    auto it = resolve_effects_of<int>(begin, end, effect_type_attack_increase, *attack_type_any,
-        callback, &effect_extract_int0);
+    auto it = nw::resolve_effects_of<int>(begin, end, effect_type_attack_increase, *attack_type_any,
+        callback, &nw::effect_extract_int0);
 
-    it = resolve_effects_of<int>(it, end, effect_type_attack_increase, *type,
-        callback, &effect_extract_int0);
+    it = nw::resolve_effects_of<int>(it, end, effect_type_attack_increase, *type,
+        callback, &nw::effect_extract_int0);
 
     int bonus = value;
     value = 0; // Reset value for penalties
 
-    it = resolve_effects_of<int>(it, end, effect_type_attack_decrease, *attack_type_any,
-        callback, &effect_extract_int0);
+    it = nw::resolve_effects_of<int>(it, end, effect_type_attack_decrease, *attack_type_any,
+        callback, &nw::effect_extract_int0);
 
-    resolve_effects_of<int>(it, end, effect_type_attack_decrease, *type,
-        callback, &effect_extract_int0);
+    nw::resolve_effects_of<int>(it, end, effect_type_attack_decrease, *type,
+        callback, &nw::effect_extract_int0);
     int decrease = value;
 
     auto [min, max] = nw::kernel::rules().attack_effect_limits();
@@ -179,8 +180,10 @@ nw::Item* get_weapon_by_attack_type(const nw::Creature* obj, nw::AttackType type
 int number_of_attacks(const nw::Creature* obj, bool offhand)
 {
     int ab = base_attack_bonus(obj);
-    // int iter = weapon_iteration(ent, )
-    return ab / 5;
+    auto equip = offhand ? nw::EquipIndex::lefthand : nw::EquipIndex::lefthand;
+    auto item = get_equipped_item(obj, equip);
+    int iter = weapon_iteration(obj, item);
+    return ab / iter;
 }
 
 bool weapon_is_finessable(const nw::Creature* obj, nw::Item* weapon)
@@ -192,7 +195,7 @@ bool weapon_is_finessable(const nw::Creature* obj, nw::Item* weapon)
     return baseitem->finesse_size >= obj->size;
 }
 
-int weapon_iteration(const nw::Creature* obj, nw::Item* weapon)
+int weapon_iteration(const nw::Creature* obj, const nw::Item* weapon)
 {
     if (!obj) { return 0; }
 
