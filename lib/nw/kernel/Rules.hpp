@@ -37,15 +37,6 @@ struct Rules : public Service {
     /// Clears rules system of all rules and cached 2da files
     virtual void clear() override;
 
-    /// Gets an item property cost table
-    const TwoDA* ip_cost_table(size_t table) const;
-
-    /// Gets an item property definition
-    const ItemPropertyDefinition* ip_definition(ItemPropertyType type) const;
-
-    /// Gets an item property param table
-    const TwoDA* ip_param_table(size_t table) const;
-
     /// Match
     bool match(const Qualifier& qual, const ObjectBase* obj) const;
 
@@ -81,9 +72,6 @@ private:
     std::pair<int, int> attack_effect_limits_{-20, 20};
     qualifier_type qualifier_;
     selector_type selector_;
-    std::vector<ItemPropertyDefinition> ip_definitions_;
-    std::vector<const TwoDA*> ip_cost_table_;
-    std::vector<const TwoDA*> ip_param_table_;
 };
 
 inline Rules& rules()

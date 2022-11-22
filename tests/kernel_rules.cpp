@@ -58,18 +58,6 @@ TEST_CASE("rules manager", "[kernel]")
     nw::kernel::unload_module();
 }
 
-TEST_CASE("rules system: item property cost/param tables", "[kernel]")
-{
-    auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
-    REQUIRE(mod);
-
-    REQUIRE(nwk::rules().ip_cost_table(4));
-    REQUIRE(nwk::rules().ip_param_table(3));
-    REQUIRE(nwk::rules().ip_definition(nwn1::ip_ability_bonus)->name == 649);
-
-    nw::kernel::unload_module();
-}
-
 TEST_CASE("rules system: class info", "[kernel]")
 {
     auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");

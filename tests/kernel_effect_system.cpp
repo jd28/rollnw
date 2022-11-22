@@ -36,3 +36,15 @@ TEST_CASE("effect system registration", "[kernel]")
     REQUIRE_FALSE(obj->hasted);
     REQUIRE(obj->effects().size() == 0);
 }
+
+TEST_CASE("rules system: item property cost/param tables", "[kernel]")
+{
+    auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
+    REQUIRE(mod);
+
+    REQUIRE(nwk::effects().ip_cost_table(4));
+    REQUIRE(nwk::effects().ip_param_table(3));
+    REQUIRE(nwk::effects().ip_definition(nwn1::ip_ability_bonus)->name == 649);
+
+    nw::kernel::unload_module();
+}
