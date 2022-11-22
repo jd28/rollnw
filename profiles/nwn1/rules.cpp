@@ -325,6 +325,31 @@ nw::ModifierResult pale_master_ac(const nw::ObjectBase* obj)
 }
 
 // Attack Bonus
+nw::ModifierResult ability_attack_bonus(const nw::ObjectBase* obj, int32_t subtype)
+{
+    auto cre = obj->as_creature();
+    if (!cre) { return 0; }
+    auto type = nw::AttackType::make(subtype);
+    if (type == nw::AttackType::invalid() || type == attack_type_any) {
+        return 0;
+    }
+    int modifier = 0;
+    auto weapon = get_weapon_by_attack_type(cre, type);
+    bool is_ranged = is_ranged_weapon(weapon);
+    if (is_ranged) {
+        modifier = get_ability_modifier(cre, ability_dexterity);
+        if (cre->stats.has_feat(feat_zen_archery)) {
+            modifier = std::max(modifier, get_ability_modifier(cre, ability_wisdom));
+        }
+    } else {
+        modifier = get_ability_modifier(cre, ability_strength);
+        if (cre->stats.has_feat(feat_weapon_finesse) && weapon_is_finessable(cre, weapon)) {
+            modifier = std::max(modifier, get_ability_modifier(cre, ability_dexterity));
+        }
+    }
+    return modifier;
+}
+
 nw::ModifierResult enchant_arrow_ab(const nw::ObjectBase* obj, int32_t subtype)
 {
     auto baseitem = nw::BaseItem::make(subtype);

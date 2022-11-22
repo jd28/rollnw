@@ -156,6 +156,11 @@ static inline void load_modifiers()
         nw::ModifierSource::feat));
 
     // Attack Bonus
+    rules.modifiers.add(mod::attack_bonus(
+        ability_attack_bonus,
+        "dnd-3.0-ability-attack-bonus",
+        nw::ModifierSource::ability));
+
     rules.modifiers.add(mod::attack_bonus_item(
         enchant_arrow_ab,
         "dnd-3.0-enchant-arrow",

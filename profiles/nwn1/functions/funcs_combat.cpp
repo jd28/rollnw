@@ -38,31 +38,14 @@ int attack_bonus(const nw::Creature* obj, nw::AttackType type, nw::ObjectBase* v
         baseitem = weapon->baseitem;
     }
 
-    // Modifiers
-    nw::kernel::resolve_modifier(obj, mod_type_attack_bonus_item, baseitem, versus, adder);
-    nw::kernel::resolve_modifier(obj, mod_type_attack_bonus_mode, obj->combat_mode, versus, adder);
+    // Modifiers - abilities will be handled by the first modifier search.
     nw::kernel::resolve_modifier(obj, mod_type_attack_bonus, type, versus, adder);
     nw::kernel::resolve_modifier(obj, mod_type_attack_bonus, attack_type_any, versus, adder);
+    nw::kernel::resolve_modifier(obj, mod_type_attack_bonus_item, baseitem, versus, adder);
+    nw::kernel::resolve_modifier(obj, mod_type_attack_bonus_mode, obj->combat_mode, versus, adder);
 
     // Master Feats
     nw::kernel::resolve_master_feats<int>(obj, baseitem, adder, mfeat_weapon_focus, mfeat_weapon_focus_epic);
-
-    // Abilities
-    int modifier = 0;
-    bool is_ranged = is_ranged_weapon(weapon);
-    if (is_ranged) {
-        modifier = get_ability_modifier(obj, ability_dexterity);
-        if (obj->stats.has_feat(feat_zen_archery)) {
-            modifier = std::max(modifier, get_ability_modifier(obj, ability_wisdom));
-        }
-    } else {
-        modifier = get_ability_modifier(obj, ability_strength);
-        if (obj->stats.has_feat(feat_weapon_finesse) && weapon_is_finessable(obj, weapon)) {
-            modifier = std::max(modifier, get_ability_modifier(obj, ability_dexterity));
-        }
-    }
-
-    result += modifier;
 
     // Effects attack increase/decrease is a little more complicated due to needing to support
     // an 'any' subtype.
