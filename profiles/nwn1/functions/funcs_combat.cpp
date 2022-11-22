@@ -21,13 +21,6 @@ int attack_bonus(const nw::Creature* obj, nw::AttackType type, nw::ObjectBase* v
 {
     int result = 0;
     if (!obj) { return result; }
-    auto adder = [&result](int value) { result += value; };
-
-    // BAB
-    result = base_attack_bonus(obj);
-
-    // Size
-    result += obj->size_ab_modifier;
 
     auto weapon = get_weapon_by_attack_type(obj, type);
     auto baseitem = nw::BaseItem::invalid();
@@ -38,40 +31,47 @@ int attack_bonus(const nw::Creature* obj, nw::AttackType type, nw::ObjectBase* v
         baseitem = weapon->baseitem;
     }
 
+    // BAB
+    result = base_attack_bonus(obj);
+
+    // Size
+    int modifier = obj->size_ab_modifier;
+
     // Modifiers - abilities will be handled by the first modifier search.
-    nw::kernel::resolve_modifier(obj, mod_type_attack_bonus, type, versus, adder);
-    nw::kernel::resolve_modifier(obj, mod_type_attack_bonus, attack_type_any, versus, adder);
-    nw::kernel::resolve_modifier(obj, mod_type_attack_bonus_item, baseitem, versus, adder);
-    nw::kernel::resolve_modifier(obj, mod_type_attack_bonus_mode, obj->combat_mode, versus, adder);
+    auto mod_adder = [&modifier](int value) { modifier += value; };
+    nw::kernel::resolve_modifier(obj, mod_type_attack_bonus, type, versus, mod_adder);
+    nw::kernel::resolve_modifier(obj, mod_type_attack_bonus, attack_type_any, versus, mod_adder);
+    nw::kernel::resolve_modifier(obj, mod_type_attack_bonus_item, baseitem, versus, mod_adder);
+    nw::kernel::resolve_modifier(obj, mod_type_attack_bonus_mode, obj->combat_mode, versus, mod_adder);
 
     // Master Feats
-    nw::kernel::resolve_master_feats<int>(obj, baseitem, adder, mfeat_weapon_focus, mfeat_weapon_focus_epic);
+    nw::kernel::resolve_master_feats<int>(obj, baseitem, mod_adder, mfeat_weapon_focus, mfeat_weapon_focus_epic);
 
     // Effects attack increase/decrease is a little more complicated due to needing to support
     // an 'any' subtype.
     auto begin = std::begin(obj->effects());
     auto end = std::end(obj->effects());
-    int value = 0;
-    auto callback = [&value](int mod) { value += mod; };
+
+    int bonus = 0;
+    auto bonus_adder = [&bonus](int mod) { bonus += mod; };
 
     auto it = nw::resolve_effects_of<int>(begin, end, effect_type_attack_increase, *attack_type_any,
-        callback, &nw::effect_extract_int0);
+        bonus_adder, &nw::effect_extract_int0);
 
     it = nw::resolve_effects_of<int>(it, end, effect_type_attack_increase, *type,
-        callback, &nw::effect_extract_int0);
+        bonus_adder, &nw::effect_extract_int0);
 
-    int bonus = value;
-    value = 0; // Reset value for penalties
+    int decrease = 0;
+    auto decrease_adder = [&decrease](int mod) { decrease += mod; };
 
     it = nw::resolve_effects_of<int>(it, end, effect_type_attack_decrease, *attack_type_any,
-        callback, &nw::effect_extract_int0);
+        decrease_adder, &nw::effect_extract_int0);
 
     nw::resolve_effects_of<int>(it, end, effect_type_attack_decrease, *type,
-        callback, &nw::effect_extract_int0);
-    int decrease = value;
+        decrease_adder, &nw::effect_extract_int0);
 
     auto [min, max] = nw::kernel::rules().attack_effect_limits();
-    return result + std::clamp(bonus - decrease, min, max);
+    return result + modifier + std::clamp(bonus - decrease, min, max);
 }
 
 int base_attack_bonus(const nw::Creature* obj)
