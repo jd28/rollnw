@@ -16,6 +16,47 @@
 
 namespace nwn1 {
 
+// == Loaders =================================================================
+// ============================================================================
+
+void load_effects()
+{
+    LOG_F(INFO, "[nwn1] Loading effect appliers");
+
+#define ADD_IS_CREATURE_EFFECT(type) \
+    nw::kernel::effects().add(type, effect_apply_is_creature, effect_remove_is_creature)
+
+    ADD_IS_CREATURE_EFFECT(effect_type_ability_increase);
+    ADD_IS_CREATURE_EFFECT(effect_type_ability_decrease);
+
+    ADD_IS_CREATURE_EFFECT(effect_type_attack_increase);
+    ADD_IS_CREATURE_EFFECT(effect_type_attack_decrease);
+
+    nw::kernel::effects().add(effect_type_haste, effect_haste_apply, effect_haste_remove);
+
+    ADD_IS_CREATURE_EFFECT(effect_type_skill_increase);
+    ADD_IS_CREATURE_EFFECT(effect_type_skill_decrease);
+
+#undef ADD_IS_CREATURE_EFFECT
+}
+
+void load_itemprop_generators()
+{
+    LOG_F(INFO, "[nwn1] Loading item property generators");
+    nw::kernel::effects().add(ip_ability_bonus, ip_gen_ability_modifier);
+    nw::kernel::effects().add(ip_attack_bonus, ip_gen_attack_modifier);
+    nw::kernel::effects().add(ip_attack_penalty, ip_gen_attack_modifier);
+    nw::kernel::effects().add(ip_decreased_ability_score, ip_gen_ability_modifier);
+    nw::kernel::effects().add(ip_enhancement_bonus, ip_gen_enhancement_modifier);
+    nw::kernel::effects().add(ip_enhancement_penalty, ip_gen_enhancement_modifier);
+    nw::kernel::effects().add(ip_haste, ip_gen_haste);
+    nw::kernel::effects().add(ip_skill_bonus, ip_gen_skill_modifier);
+    nw::kernel::effects().add(ip_decreased_skill_modifier, ip_gen_skill_modifier);
+}
+
+// == Effect Apply/Remove =====================================================
+// ============================================================================
+
 bool effect_apply_is_creature(nw::ObjectBase* obj, const nw::Effect*)
 {
     return !!obj->as_creature();
@@ -25,6 +66,9 @@ bool effect_remove_is_creature(nw::ObjectBase* obj, const nw::Effect*)
 {
     return !!obj->as_creature();
 }
+
+// == Effect Creation =========================================================
+// ============================================================================
 
 nw::Effect* effect_ability_modifier(nw::Ability ability, int modifier)
 {
@@ -83,8 +127,8 @@ bool effect_haste_remove(nw::ObjectBase* obj, const nw::Effect*)
     return false;
 }
 
-// -- Item Property Generators ------------------------------------------------
-// ----------------------------------------------------------------------------
+// == Item Properties =========================================================
+// ============================================================================
 
 nw::ItemProperty itemprop_ability_modifier(nw::Ability ability, int modifier)
 {

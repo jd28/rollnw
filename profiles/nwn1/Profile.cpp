@@ -17,41 +17,6 @@
 
 namespace nwn1 {
 
-static inline void load_effects()
-{
-    LOG_F(INFO, "[nwn1] Loading effect appliers");
-
-#define ADD_IS_CREATURE_EFFECT(type) \
-    nw::kernel::effects().add(type, effect_apply_is_creature, effect_remove_is_creature)
-
-    ADD_IS_CREATURE_EFFECT(effect_type_ability_increase);
-    ADD_IS_CREATURE_EFFECT(effect_type_ability_decrease);
-
-    ADD_IS_CREATURE_EFFECT(effect_type_attack_increase);
-    ADD_IS_CREATURE_EFFECT(effect_type_attack_decrease);
-
-    nw::kernel::effects().add(effect_type_haste, effect_haste_apply, effect_haste_remove);
-
-    ADD_IS_CREATURE_EFFECT(effect_type_skill_increase);
-    ADD_IS_CREATURE_EFFECT(effect_type_skill_decrease);
-
-#undef ADD_IS_CREATURE_EFFECT
-}
-
-static inline void load_itemprop_generators()
-{
-    LOG_F(INFO, "[nwn1] Loading item property generators");
-    nw::kernel::effects().add(ip_ability_bonus, ip_gen_ability_modifier);
-    nw::kernel::effects().add(ip_attack_bonus, ip_gen_attack_modifier);
-    nw::kernel::effects().add(ip_attack_penalty, ip_gen_attack_modifier);
-    nw::kernel::effects().add(ip_decreased_ability_score, ip_gen_ability_modifier);
-    nw::kernel::effects().add(ip_enhancement_bonus, ip_gen_enhancement_modifier);
-    nw::kernel::effects().add(ip_enhancement_penalty, ip_gen_enhancement_modifier);
-    nw::kernel::effects().add(ip_haste, ip_gen_haste);
-    nw::kernel::effects().add(ip_skill_bonus, ip_gen_skill_modifier);
-    nw::kernel::effects().add(ip_decreased_skill_modifier, ip_gen_skill_modifier);
-}
-
 static inline bool load_master_feats()
 {
     LOG_F(INFO, "[nwn1] Loading master feats");
@@ -107,7 +72,7 @@ static inline bool load_master_feats()
     mfr.set_bonus(mfeat_overwhelming_crit, 1);
     mfr.set_bonus(mfeat_weapon_of_choice, 1);
 
-    // Special case baseitem invalid
+    // Special case baseitem invalid - the rest will be loaded during the baseitem loading below
     mfr.add(nw::BaseItem::invalid(), mfeat_weapon_focus, feat_weapon_focus_unarmed);
     mfr.add(nw::BaseItem::invalid(), mfeat_weapon_focus_epic, feat_epic_weapon_focus_unarmed);
     mfr.add(nw::BaseItem::invalid(), mfeat_weapon_spec, feat_weapon_specialization_unarmed);
@@ -117,136 +82,6 @@ static inline bool load_master_feats()
     mfr.add(nw::BaseItem::invalid(), mfeat_overwhelming_crit, feat_epic_overwhelming_critical_unarmed);
 
     return true;
-}
-
-static inline void load_modifiers()
-{
-    LOG_F(INFO, "[nwn1] loading modifiers...");
-
-    auto& rules = nw::kernel::rules();
-
-    // Ability
-    rules.modifiers.add(mod::ability(
-        class_stat_gain,
-        "nwn-ee-class-stat-gain",
-        nw::ModifierSource::class_));
-
-    rules.modifiers.add(mod::ability(
-        epic_great_ability,
-        "dnd-3.0-epic-great-ability",
-        nw::ModifierSource::feat));
-
-    // Armor Class
-    rules.modifiers.add(mod::armor_class(
-        ac_natural,
-        dragon_disciple_ac,
-        "dnd-3.0-dragon-disciple-ac",
-        nw::ModifierSource::class_));
-
-    rules.modifiers.add(mod::armor_class(
-        ac_natural,
-        pale_master_ac,
-        "dnd-3.0-palemaster-ac",
-        nw::ModifierSource::class_));
-
-    rules.modifiers.add(mod::armor_class(
-        ac_natural,
-        simple_feat_mod(feat_epic_armor_skin, 2),
-        "dnd-3.0-epic-armor-skin",
-        nw::ModifierSource::feat));
-
-    // Attack Bonus
-    rules.modifiers.add(mod::attack_bonus(
-        ability_attack_bonus,
-        "dnd-3.0-ability-attack-bonus",
-        nw::ModifierSource::ability));
-
-    rules.modifiers.add(mod::attack_bonus_item(
-        enchant_arrow_ab,
-        "dnd-3.0-enchant-arrow",
-        nw::ModifierSource::class_));
-
-    rules.modifiers.add(mod::attack_bonus(
-        attack_type_any,
-        simple_feat_mod(feat_epic_prowess, 1),
-        "dnd-3.0-epic-prowess",
-        nw::ModifierSource::feat));
-
-    rules.modifiers.add(mod::attack_bonus_item(
-        good_aim,
-        "dnd-3.0-good-aim",
-        nw::ModifierSource::feat));
-
-    rules.modifiers.add(mod::attack_bonus(
-        attack_type_any,
-        target_state_ab,
-        "dnd-3.0-target-state",
-        nw::ModifierSource::unknown));
-
-    rules.modifiers.add(mod::attack_bonus_item(
-        weapon_master_ab,
-        "dnd-3.0-weaponmaster-ab",
-        nw::ModifierSource::class_));
-
-    rules.modifiers.add(mod::attack_bonus_mode(
-        combat_mode_expertise,
-        -5,
-        "dnd-3.0-expertise-ab",
-        nw::ModifierSource::combat_mode));
-
-    rules.modifiers.add(mod::attack_bonus_mode(
-        combat_mode_improved_expertise,
-        -10,
-        "dnd-3.0-improved-expertise-ab",
-        nw::ModifierSource::combat_mode));
-
-    rules.modifiers.add(mod::attack_bonus_mode(
-        combat_mode_flurry_of_blows,
-        -2,
-        "dnd-3.0-flurry-of-blows-ab",
-        nw::ModifierSource::combat_mode));
-
-    rules.modifiers.add(mod::attack_bonus_mode(
-        combat_mode_power_attack,
-        -5,
-        "dnd-3.0-power-attack-ab",
-        nw::ModifierSource::combat_mode));
-
-    rules.modifiers.add(mod::attack_bonus_mode(
-        combat_mode_improved_power_attack,
-        -10,
-        "dnd-3.0-improved-power-attack-ab",
-        nw::ModifierSource::combat_mode));
-
-    rules.modifiers.add(mod::attack_bonus_mode(
-        combat_mode_rapid_shot,
-        -2,
-        "dnd-3.0-rapid-shot-ab",
-        nw::ModifierSource::combat_mode));
-
-    // Damage Resist
-    rules.modifiers.add(mod::damage_resist(
-        energy_resistance,
-        "dnd-3.0-energy-resist-acid",
-        nw::ModifierSource::feat));
-
-    // Hitpoints
-    rules.modifiers.add(mod::hitpoints(
-        toughness,
-        "dnd-3.0-toughness",
-        nw::ModifierSource::feat));
-
-    rules.modifiers.add(mod::hitpoints(
-        epic_toughness,
-        "dnd-3.0-epic-toughness",
-        nw::ModifierSource::feat));
-
-    // Skills
-    rules.modifiers.add(mod::skill(
-        skill_search,
-        simple_feat_mod(feat_stonecunning, 2),
-        "dnd-3.0-stone-cunning",
-        nw::ModifierSource::feat));
 }
 
 bool Profile::load_rules() const

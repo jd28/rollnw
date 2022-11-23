@@ -18,6 +18,9 @@
 
 namespace nwn1 {
 
+// == Qualifiers ==============================================================
+// ============================================================================
+
 bool match(const nw::Qualifier& qual, const nw::ObjectBase* obj)
 {
     auto value = selector(qual.selector, obj);
@@ -120,6 +123,9 @@ bool match(const nw::Qualifier& qual, const nw::ObjectBase* obj)
     }
     return false;
 }
+
+// == Selectors ===============================================================
+// ============================================================================
 
 nw::RuleValue selector(const nw::Selector& selector, const nw::ObjectBase* obj)
 {
@@ -225,6 +231,139 @@ nw::RuleValue selector(const nw::Selector& selector, const nw::ObjectBase* obj)
     }
 
     return {};
+}
+
+// == Modifiers ===============================================================
+// ============================================================================
+
+void load_modifiers()
+{
+    LOG_F(INFO, "[nwn1] loading modifiers...");
+
+    auto& rules = nw::kernel::rules();
+
+    // Ability
+    rules.modifiers.add(mod::ability(
+        class_stat_gain,
+        "nwn-ee-class-stat-gain",
+        nw::ModifierSource::class_));
+
+    rules.modifiers.add(mod::ability(
+        epic_great_ability,
+        "dnd-3.0-epic-great-ability",
+        nw::ModifierSource::feat));
+
+    // Armor Class
+    rules.modifiers.add(mod::armor_class(
+        ac_natural,
+        dragon_disciple_ac,
+        "dnd-3.0-dragon-disciple-ac",
+        nw::ModifierSource::class_));
+
+    rules.modifiers.add(mod::armor_class(
+        ac_natural,
+        pale_master_ac,
+        "dnd-3.0-palemaster-ac",
+        nw::ModifierSource::class_));
+
+    rules.modifiers.add(mod::armor_class(
+        ac_natural,
+        simple_feat_mod(feat_epic_armor_skin, 2),
+        "dnd-3.0-epic-armor-skin",
+        nw::ModifierSource::feat));
+
+    // Attack Bonus
+    rules.modifiers.add(mod::attack_bonus(
+        ability_attack_bonus,
+        "dnd-3.0-ability-attack-bonus",
+        nw::ModifierSource::ability));
+
+    rules.modifiers.add(mod::attack_bonus_item(
+        enchant_arrow_ab,
+        "dnd-3.0-enchant-arrow",
+        nw::ModifierSource::class_));
+
+    rules.modifiers.add(mod::attack_bonus(
+        attack_type_any,
+        simple_feat_mod(feat_epic_prowess, 1),
+        "dnd-3.0-epic-prowess",
+        nw::ModifierSource::feat));
+
+    rules.modifiers.add(mod::attack_bonus_item(
+        good_aim,
+        "dnd-3.0-good-aim",
+        nw::ModifierSource::feat));
+
+    rules.modifiers.add(mod::attack_bonus(
+        attack_type_any,
+        target_state_ab,
+        "dnd-3.0-target-state",
+        nw::ModifierSource::unknown));
+
+    rules.modifiers.add(mod::attack_bonus_item(
+        weapon_master_ab,
+        "dnd-3.0-weaponmaster-ab",
+        nw::ModifierSource::class_));
+
+    rules.modifiers.add(mod::attack_bonus_mode(
+        combat_mode_expertise,
+        -5,
+        "dnd-3.0-expertise-ab",
+        nw::ModifierSource::combat_mode));
+
+    rules.modifiers.add(mod::attack_bonus_mode(
+        combat_mode_improved_expertise,
+        -10,
+        "dnd-3.0-improved-expertise-ab",
+        nw::ModifierSource::combat_mode));
+
+    rules.modifiers.add(mod::attack_bonus_mode(
+        combat_mode_flurry_of_blows,
+        -2,
+        "dnd-3.0-flurry-of-blows-ab",
+        nw::ModifierSource::combat_mode));
+
+    rules.modifiers.add(mod::attack_bonus_mode(
+        combat_mode_power_attack,
+        -5,
+        "dnd-3.0-power-attack-ab",
+        nw::ModifierSource::combat_mode));
+
+    rules.modifiers.add(mod::attack_bonus_mode(
+        combat_mode_improved_power_attack,
+        -10,
+        "dnd-3.0-improved-power-attack-ab",
+        nw::ModifierSource::combat_mode));
+
+    rules.modifiers.add(mod::attack_bonus_mode(
+        combat_mode_rapid_shot,
+        -2,
+        "dnd-3.0-rapid-shot-ab",
+        nw::ModifierSource::combat_mode));
+
+    // Damage Resist
+    rules.modifiers.add(mod::damage_resist(
+        energy_resistance,
+        "dnd-3.0-energy-resist-acid",
+        nw::ModifierSource::feat));
+
+    // Hitpoints
+    rules.modifiers.add(mod::hitpoints(
+        toughness,
+        "dnd-3.0-toughness",
+        nw::ModifierSource::feat));
+
+    rules.modifiers.add(mod::hitpoints(
+        epic_toughness,
+        "dnd-3.0-epic-toughness",
+        nw::ModifierSource::feat));
+
+    // Skills
+    rules.modifiers.add(mod::skill(
+        skill_search,
+        simple_feat_mod(feat_stonecunning, 2),
+        "dnd-3.0-stone-cunning",
+        nw::ModifierSource::feat));
 }
 
 nw::ModifierFunction simple_feat_mod(nw::Feat feat, int value)

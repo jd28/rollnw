@@ -10,6 +10,11 @@ namespace nwn1 {
 bool match(const nw::Qualifier& qual, const nw::ObjectBase* obj);
 nw::RuleValue selector(const nw::Selector& selector, const nw::ObjectBase* obj);
 
+// == Modifiers ===============================================================
+// ============================================================================
+
+void load_modifiers();
+
 // Generic
 nw::ModifierFunction simple_feat_mod(nw::Feat feat, int value);
 
