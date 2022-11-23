@@ -212,6 +212,7 @@ bool Area::deserialize(Area* obj, const GffStruct& are, const GffStruct& git, co
             auto o = nw::kernel::objects().make<type>();                            \
             if (o && type::deserialize(o, st[i], SerializationProfile::instance)) { \
                 holder.push_back(o);                                                \
+                holder.back()->instantiate();                                       \
             } else {                                                                \
                 LOG_F(WARNING, "Something dreadfully wrong.");                      \
             }                                                                       \
@@ -289,6 +290,7 @@ bool Area::deserialize(Area* obj, const nlohmann::json& are,
             auto ob = nw::kernel::objects().make<type>();                              \
             if (ob && type::deserialize(ob, arr[i], SerializationProfile::instance)) { \
                 obj->holder.push_back(ob);                                             \
+                obj->holder.back()->instantiate();                                     \
             } else {                                                                   \
                 LOG_F(WARNING, "Something dreadfully wrong.");                         \
             }                                                                          \
