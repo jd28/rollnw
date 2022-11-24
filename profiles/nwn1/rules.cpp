@@ -279,6 +279,11 @@ void load_modifiers()
         nw::ModifierSource::ability));
 
     rules.modifiers.add(mod::attack_bonus_item(
+        weapon_feat_ab,
+        "dnd-3.0-weapon-feats",
+        nw::ModifierSource::feat));
+
+    rules.modifiers.add(mod::attack_bonus_item(
         enchant_arrow_ab,
         "dnd-3.0-enchant-arrow",
         nw::ModifierSource::class_));
@@ -573,6 +578,20 @@ nw::ModifierResult target_state_ab(const nw::ObjectBase* obj, const nw::ObjectBa
     // Target is prone. -4AB
     // Target is within 3.5 meters of the attacker. -4AB (unless negated by point blank shot)
 
+    return result;
+}
+
+nw::ModifierResult weapon_feat_ab(const nw::ObjectBase* obj, int32_t subtype)
+{
+    auto baseitem = nw::BaseItem::make(subtype);
+    auto cre = obj->as_creature();
+    if (!cre) { return 0; }
+    int result = 0;
+
+    nw::kernel::resolve_master_feats<int>(
+        cre, baseitem,
+        [&result](int val) { result += val; },
+        mfeat_weapon_focus, mfeat_weapon_focus_epic);
     return result;
 }
 
