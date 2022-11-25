@@ -46,9 +46,10 @@ DEFINE_MOD(attack_bonus, mod_type_attack_bonus)
 DEFINE_MOD(damage_resist, mod_type_dmg_resistance)
 DEFINE_MOD(hitpoints, mod_type_hitpoints)
 DEFINE_MOD_WITH_SUBTYPE(ability, nw::Ability, mod_type_ability)
+DEFINE_MOD_WITH_SUBTYPE(armor_class, nw::ArmorClass, mod_type_armor_class)
 DEFINE_MOD_WITH_SUBTYPE(attack_bonus_item, nw::BaseItem, mod_type_attack_bonus_item)
 DEFINE_MOD_WITH_SUBTYPE(attack_bonus, nw::AttackType, mod_type_attack_bonus)
-DEFINE_MOD_WITH_SUBTYPE(attack_bonus_mode, nw::CombatMode, mod_type_attack_bonus_mode);
+DEFINE_MOD_WITH_SUBTYPE(attack_bonus_mode, nw::CombatMode, mod_type_attack_bonus_mode)
 DEFINE_MOD_WITH_SUBTYPE(damage_resist, nw::Damage, mod_type_dmg_resistance)
 DEFINE_MOD_WITH_SUBTYPE(skill, nw::Skill, mod_type_skill)
 

@@ -270,6 +270,7 @@ void load_modifiers()
         nw::ModifierSource::feat));
 
     rules.modifiers.add(mod::armor_class(
+        ac_dodge,
         tumble_ac,
         "dnd-3.0-tumble-ac",
         nw::ModifierSource::skill));
