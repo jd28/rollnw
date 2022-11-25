@@ -32,11 +32,11 @@ TEST_CASE("item: load armor item", "[objects]")
     REQUIRE(ent->properties.size() > 0);
     REQUIRE(ent->model_type == nw::ItemModelType::armor);
 
-    REQUIRE(nwn1::calculate_ac(ent) == 0);
-    REQUIRE(nwn1::calculate_ac(light) == 1);
-    REQUIRE(nwn1::calculate_ac(medium) == 5);
-    REQUIRE(nwn1::calculate_ac(heavy1) == 7);
-    REQUIRE(nwn1::calculate_ac(heavy2) == 8);
+    REQUIRE(nwn1::calculate_item_ac(ent) == 0);
+    REQUIRE(nwn1::calculate_item_ac(light) == 1);
+    REQUIRE(nwn1::calculate_item_ac(medium) == 5);
+    REQUIRE(nwn1::calculate_item_ac(heavy1) == 7);
+    REQUIRE(nwn1::calculate_item_ac(heavy2) == 8);
 
     nw::kernel::unload_module();
 }

@@ -38,6 +38,9 @@ struct Item : public ObjectBase {
     LocString description_id;
     std::vector<ItemProperty> properties;
 
+    // Transient
+    int armor_id = -1;
+
     uint32_t cost = 0;
     uint32_t additional_cost = 0;
     nw::BaseItem baseitem;

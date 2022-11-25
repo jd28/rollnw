@@ -19,6 +19,9 @@ bool equip_item(nw::Creature* obj, nw::Item* item, nw::EquipIndex slot);
 /// Gets an equipped item
 nw::Item* get_equipped_item(const nw::Creature* obj, nw::EquipIndex slot);
 
+/// Determines if item is a shield
+bool is_shield(nw::BaseItem baseitem);
+
 /// Converts item property to in-game style string
 std::string itemprop_to_string(const nw::ItemProperty& ip);
 

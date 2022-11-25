@@ -1,5 +1,7 @@
 #include "Item.hpp"
 
+#include "../kernel/TwoDACache.hpp"
+
 #include <nlohmann/json.hpp>
 
 namespace nw {
@@ -12,8 +14,24 @@ Item::Item()
 
 bool Item::instantiate()
 {
-    if (instantiated_) return true;
-    return instantiated_ = inventory.instantiate();
+    if (instantiated_) { return true; }
+    instantiated_ = inventory.instantiate();
+
+    if (model_type == nw::ItemModelType::armor) {
+        auto& tda = nw::kernel::twodas();
+        auto parts_chest = tda.get("parts_chest");
+        if (parts_chest) {
+            float temp = 0.0f;
+            if (parts_chest->get_to(model_parts[nw::ItemModelParts::armor_torso], "ACBonus", temp)) {
+                armor_id = static_cast<int>(temp);
+            }
+        } else {
+            LOG_F(ERROR, "item: failed to load parts_chest.2da");
+            instantiated_ = false;
+        }
+    }
+
+    return instantiated_;
 }
 
 bool Item::deserialize(Item* obj, const GffStruct& archive, SerializationProfile profile)

@@ -32,6 +32,12 @@ bool equip_item(nw::Creature* obj, nw::Item* item, nw::EquipIndex slot)
     unequip_item(obj, slot);
     obj->equipment.equips[size_t(slot)] = item;
     nw::process_item_properties(obj, item, slot, false);
+    if (slot == nw::EquipIndex::chest) {
+        obj->combat_info.ac_armor_base = calculate_item_ac(item);
+    } else if (slot == nw::EquipIndex::lefthand && is_shield(item->baseitem)) {
+        obj->combat_info.ac_shield_base = calculate_item_ac(item);
+    }
+
     return true;
 }
 
@@ -45,6 +51,13 @@ nw::Item* get_equipped_item(const nw::Creature* obj, nw::EquipIndex slot)
         result = std::get<nw::Item*>(it);
     }
     return result;
+}
+
+bool is_shield(nw::BaseItem baseitem)
+{
+    return baseitem == base_item_smallshield
+        || baseitem == base_item_largeshield
+        || baseitem == base_item_towershield;
 }
 
 std::string itemprop_to_string(const nw::ItemProperty& ip)
@@ -98,8 +111,14 @@ nw::Item* unequip_item(nw::Creature* obj, nw::EquipIndex slot)
     auto& it = obj->equipment.equips[size_t(slot)];
     if (alt<nw::Item*>(it)) {
         result = std::get<nw::Item*>(it);
+        if (!result) { return result; }
         it = nullptr;
         nw::process_item_properties(obj, result, slot, true);
+        if (slot == nw::EquipIndex::chest) {
+            obj->combat_info.ac_armor_base = 0;
+        } else if (slot == nw::EquipIndex::lefthand && is_shield(result->baseitem)) {
+            obj->combat_info.ac_shield_base = 0;
+        }
     }
     return result;
 }
