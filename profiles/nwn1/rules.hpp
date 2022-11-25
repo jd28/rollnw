@@ -25,6 +25,7 @@ nw::ModifierResult epic_great_ability(const nw::ObjectBase* obj, int32_t subtype
 // Armor Class
 nw::ModifierResult dragon_disciple_ac(const nw::ObjectBase* obj);
 nw::ModifierResult pale_master_ac(const nw::ObjectBase* obj);
+nw::ModifierResult tumble_ac(const nw::ObjectBase* obj);
 
 // Attack Bonus
 nw::ModifierResult ability_attack_bonus(const nw::ObjectBase* obj, int32_t subtype);

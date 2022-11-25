@@ -255,22 +255,24 @@ void load_modifiers()
 
     // Armor Class
     rules.modifiers.add(mod::armor_class(
-        ac_natural,
         dragon_disciple_ac,
         "dnd-3.0-dragon-disciple-ac",
         nw::ModifierSource::class_));
 
     rules.modifiers.add(mod::armor_class(
-        ac_natural,
         pale_master_ac,
         "dnd-3.0-palemaster-ac",
         nw::ModifierSource::class_));
 
     rules.modifiers.add(mod::armor_class(
-        ac_natural,
         simple_feat_mod(feat_epic_armor_skin, 2),
         "dnd-3.0-epic-armor-skin",
         nw::ModifierSource::feat));
+
+    rules.modifiers.add(mod::armor_class(
+        tumble_ac,
+        "dnd-3.0-tumble-ac",
+        nw::ModifierSource::skill));
 
     // Attack Bonus
     rules.modifiers.add(mod::attack_bonus(
@@ -439,11 +441,9 @@ nw::ModifierResult epic_great_ability(const nw::ObjectBase* obj, int32_t subtype
 
 nw::ModifierResult dragon_disciple_ac(const nw::ObjectBase* obj)
 {
+    if (!obj) { return 0; }
     auto cre = obj->as_creature();
-
-    if (!obj) {
-        return 0;
-    }
+    if (!cre) { return 0; }
 
     auto level = cre->levels.level_by_class(nwn1::class_type_dragon_disciple);
 
@@ -461,18 +461,30 @@ nw::ModifierResult dragon_disciple_ac(const nw::ObjectBase* obj)
 
 nw::ModifierResult pale_master_ac(const nw::ObjectBase* obj)
 {
+    if (!obj) { return 0; }
     auto cre = obj->as_creature();
     if (!cre) { return 0; }
+
     auto pm_level = cre->levels.level_by_class(nwn1::class_type_pale_master);
 
     return pm_level > 0 ? ((pm_level / 4) + 1) * 2 : 0;
 }
 
+nw::ModifierResult tumble_ac(const nw::ObjectBase* obj)
+{
+    if (!obj) { return 0; }
+    auto cre = obj->as_creature();
+    if (!cre) { return 0; }
+    return cre->stats.get_skill_rank(skill_tumble) / 5;
+}
+
 // Attack Bonus
 nw::ModifierResult ability_attack_bonus(const nw::ObjectBase* obj, int32_t subtype)
 {
+    if (!obj) { return 0; }
     auto cre = obj->as_creature();
     if (!cre) { return 0; }
+
     auto type = nw::AttackType::make(subtype);
     if (type == nw::AttackType::invalid() || type == attack_type_any) {
         return 0;
