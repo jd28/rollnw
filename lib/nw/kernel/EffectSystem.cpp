@@ -153,12 +153,12 @@ void EffectSystem::initialize()
     }
 }
 
-Effect* EffectSystem::generate(const ItemProperty& property, EquipIndex index) const
+Effect* EffectSystem::generate(const ItemProperty& property, EquipIndex index, BaseItem baseitem) const
 {
     auto it = itemprops_.find(property.type);
     if (it == std::end(itemprops_)) { return nullptr; }
     if (it->second) {
-        return it->second(property, index);
+        return it->second(property, index, baseitem);
     }
     return nullptr;
 }

@@ -63,10 +63,10 @@ nw::ItemProperty itemprop_skill_modifier(nw::Skill skill, int modifier);
 // == Item Property Generators ================================================
 // ============================================================================
 
-nw::Effect* ip_gen_ability_modifier(const nw::ItemProperty& ip, nw::EquipIndex);
-nw::Effect* ip_gen_attack_modifier(const nw::ItemProperty& ip, nw::EquipIndex);
-nw::Effect* ip_gen_enhancement_modifier(const nw::ItemProperty& ip, nw::EquipIndex);
-nw::Effect* ip_gen_haste(const nw::ItemProperty&, nw::EquipIndex);
-nw::Effect* ip_gen_skill_modifier(const nw::ItemProperty& ip, nw::EquipIndex);
+nw::Effect* ip_gen_ability_modifier(const nw::ItemProperty& ip, nw::EquipIndex, nw::BaseItem);
+nw::Effect* ip_gen_attack_modifier(const nw::ItemProperty& ip, nw::EquipIndex, nw::BaseItem);
+nw::Effect* ip_gen_enhancement_modifier(const nw::ItemProperty& ip, nw::EquipIndex, nw::BaseItem);
+nw::Effect* ip_gen_haste(const nw::ItemProperty&, nw::EquipIndex, nw::BaseItem);
+nw::Effect* ip_gen_skill_modifier(const nw::ItemProperty& ip, nw::EquipIndex, nw::BaseItem);
 
 } // namespace nwn1

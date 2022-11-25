@@ -70,7 +70,7 @@ int process_item_properties(nw::Creature* obj, const nw::Item* item, nw::EquipIn
     int processed = 0;
     if (!remove) {
         for (const auto& ip : item->properties) {
-            if (auto eff = nw::kernel::effects().generate(ip, index)) {
+            if (auto eff = nw::kernel::effects().generate(ip, index, item->baseitem)) {
                 eff->creator = item->handle();
                 eff->category = nw::EffectCategory::item;
                 if (!apply_effect(obj, eff)) {

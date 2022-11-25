@@ -17,7 +17,7 @@ namespace nw::kernel {
 
 using EffectFunc = std::function<bool(ObjectBase*, const Effect*)>;
 using EffectPair = std::pair<EffectFunc, EffectFunc>;
-using ItemPropFunc = std::function<Effect*(const ItemProperty&, EquipIndex)>;
+using ItemPropFunc = std::function<Effect*(const ItemProperty&, EquipIndex, BaseItem)>;
 
 struct EffectSystemStats {
     size_t free_list_size = 0;
@@ -46,7 +46,7 @@ struct EffectSystem : public Service {
     void destroy(Effect* effect);
 
     /// Generates an effect from an item property
-    Effect* generate(const ItemProperty& property, EquipIndex index) const;
+    Effect* generate(const ItemProperty& property, EquipIndex index, BaseItem baseitem) const;
 
     /// Initialize effect system
     virtual void initialize() override;

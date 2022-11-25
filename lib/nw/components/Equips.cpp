@@ -23,7 +23,8 @@ bool Equips::instantiate()
             if (temp) {
                 e = temp;
                 for (const auto& ip : temp->properties) {
-                    if (auto eff = nw::kernel::effects().generate(ip, static_cast<EquipIndex>(i))) {
+                    if (auto eff = nw::kernel::effects().generate(ip,
+                            static_cast<EquipIndex>(i), temp->baseitem)) {
                         eff->creator = temp->handle();
                         eff->category = nw::EffectCategory::item;
                         if (!nw::kernel::effects().apply(owner_, eff)) {
