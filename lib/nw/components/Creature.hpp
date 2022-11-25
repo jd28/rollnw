@@ -89,12 +89,8 @@ struct Creature : public ObjectBase {
     uint16_t soundset;
 
     // Transient
-    CombatMode combat_mode = nw::CombatMode::invalid();
-    TargetState target_state = TargetState::none;
     int32_t hasted = 0;
     int32_t size = 0;
-    int32_t size_ab_modifier = 0;
-    int32_t size_ac_modifier = 0;
 
     // Serialized
     uint8_t bodybag = 0;

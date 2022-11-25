@@ -43,7 +43,7 @@ TEST_CASE("objects manager", "[kernel]")
     REQUIRE(ent3->appearance.body_parts.shin_left == 1);
     REQUIRE(ent3->soundset == 171);
     REQUIRE(std::get<nw::Item*>(ent3->equipment.equips[1]));
-    REQUIRE(ent3->combat_info.ac_natural == 0);
+    REQUIRE(ent3->combat_info.ac_natural_bonus == 0);
     REQUIRE(ent3->combat_info.special_abilities.size() == 1);
     REQUIRE(ent3->combat_info.special_abilities[0].spell == 120);
 

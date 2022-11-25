@@ -87,7 +87,17 @@ class BodyParts:
 
 
 class CombatInfo:
-    """Class containing combat related data"""
+    """Class containing combat related data
+
+    Attributes:
+        ac_natural_bonus (int)
+        ac_armor_base (int)
+        ac_shield_base (int)
+        combat_mode (int)
+        target_state (int)
+        size_ab_modifier (int)
+        size_ac_modifier (int)
+    """
     pass
 
 

@@ -6,7 +6,10 @@ namespace nw {
 
 bool CombatInfo::from_gff(const GffStruct& archive)
 {
-    archive.get_to("NaturalAC", ac_natural);
+    uint8_t temp;
+    if (archive.get_to("NaturalAC", temp)) {
+        ac_natural_bonus = temp;
+    }
 
     size_t sz = archive["SpecAbilityList"].size();
     special_abilities.reserve(sz);
@@ -23,7 +26,7 @@ bool CombatInfo::from_gff(const GffStruct& archive)
 bool CombatInfo::from_json(const nlohmann::json& archive)
 {
     try {
-        archive.at("ac_natural").get_to(ac_natural);
+        archive.at("ac_natural").get_to(ac_natural_bonus);
 
         auto& arr = archive.at("special_abilities");
         special_abilities.resize(arr.size());
@@ -41,7 +44,7 @@ bool CombatInfo::from_json(const nlohmann::json& archive)
 
 bool CombatInfo::to_gff(GffBuilderStruct& archive) const
 {
-    archive.add_field("NaturalAC", ac_natural);
+    archive.add_field("NaturalAC", uint8_t(ac_natural_bonus));
     auto& list = archive.add_list("SpecAbilityList");
     for (const auto& spec : special_abilities) {
         list.push_back(4)
@@ -56,7 +59,7 @@ bool CombatInfo::to_gff(GffBuilderStruct& archive) const
 nlohmann::json CombatInfo::to_json() const
 {
     nlohmann::json j;
-    j["ac_natural"] = ac_natural;
+    j["ac_natural"] = ac_natural_bonus;
 
     auto& arr = j["special_abilities"] = nlohmann::json::array();
     for (const auto& sa : special_abilities) {

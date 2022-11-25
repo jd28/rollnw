@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../rules/combat.hpp"
 #include "../serialization/Archives.hpp"
 #include "SpellBook.hpp"
 
@@ -24,7 +25,17 @@ struct CombatInfo {
     bool to_gff(GffBuilderStruct& archive) const;
     nlohmann::json to_json() const;
 
-    uint8_t ac_natural = 0;
+    // Serialized Blueprint
+    int ac_natural_bonus = 0;
+
+    // Transient
+    int ac_armor_base = 0;
+    int ac_shield_base = 0;
+    CombatMode combat_mode = nw::CombatMode::invalid();
+    TargetState target_state = TargetState::none;
+    int32_t size_ab_modifier = 0;
+    int32_t size_ac_modifier = 0;
+
     std::vector<SpecialAbility> special_abilities;
 };
 

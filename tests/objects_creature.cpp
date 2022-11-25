@@ -55,7 +55,7 @@ TEST_CASE("creature: load pl_agent_001", "[objects]")
     REQUIRE(ent->appearance.body_parts.shin_left == 1);
     REQUIRE(ent->soundset == 171);
     REQUIRE(std::get<nw::Item*>(ent->equipment.equips[1]));
-    REQUIRE(ent->combat_info.ac_natural == 0);
+    REQUIRE(ent->combat_info.ac_natural_bonus == 0);
     REQUIRE(ent->combat_info.special_abilities.size() == 1);
     REQUIRE(ent->combat_info.special_abilities[0].spell == 120);
 
@@ -157,28 +157,28 @@ TEST_CASE("creature: attack bonus", "[objects]")
     REQUIRE(obj->levels.level_by_class(nwn1::class_type_weapon_master) == 28);
     REQUIRE(nwn1::get_ability_score(obj, nwn1::ability_strength) == 16);
     REQUIRE(nwn1::get_ability_modifier(obj, nwn1::ability_strength) == 3);
-    REQUIRE(obj->size_ab_modifier == 1);
+    REQUIRE(obj->combat_info.size_ab_modifier == 1);
     REQUIRE(29 == nwn1::base_attack_bonus(obj));
     REQUIRE(45 == nwn1::attack_bonus(obj, nwn1::attack_type_onhand));
 
-    obj->combat_mode = nwn1::combat_mode_power_attack;
+    obj->combat_info.combat_mode = nwn1::combat_mode_power_attack;
     REQUIRE(40 == nwn1::attack_bonus(obj, nwn1::attack_type_onhand));
-    obj->combat_mode = nwn1::combat_mode_improved_power_attack;
+    obj->combat_info.combat_mode = nwn1::combat_mode_improved_power_attack;
     REQUIRE(35 == nwn1::attack_bonus(obj, nwn1::attack_type_onhand));
 
-    obj->combat_mode = nwn1::combat_mode_expertise;
+    obj->combat_info.combat_mode = nwn1::combat_mode_expertise;
     REQUIRE(40 == nwn1::attack_bonus(obj, nwn1::attack_type_onhand));
-    obj->combat_mode = nwn1::combat_mode_improved_expertise;
+    obj->combat_info.combat_mode = nwn1::combat_mode_improved_expertise;
     REQUIRE(35 == nwn1::attack_bonus(obj, nwn1::attack_type_onhand));
-    obj->combat_mode = nw::CombatMode::invalid();
+    obj->combat_info.combat_mode = nw::CombatMode::invalid();
     REQUIRE(45 == nwn1::attack_bonus(obj, nwn1::attack_type_onhand));
 
     obj->stats.add_feat(nwn1::feat_epic_prowess);
     REQUIRE(46 == nwn1::attack_bonus(obj, nwn1::attack_type_onhand));
 
-    obj->target_state = nw::TargetState::flanked;
+    obj->combat_info.target_state = nw::TargetState::flanked;
     REQUIRE(48 == nwn1::attack_bonus(obj, nwn1::attack_type_onhand, vs));
-    obj->target_state = nw::TargetState::none;
+    obj->combat_info.target_state = nw::TargetState::none;
 
     // Good aim
     REQUIRE(nwn1::get_ability_modifier(obj, nwn1::ability_dexterity) == 2);
@@ -211,7 +211,7 @@ TEST_CASE("creature: attack bonus", "[objects]")
     REQUIRE(obj3);
 
     REQUIRE(!obj3->stats.has_feat(nwn1::feat_zen_archery));
-    REQUIRE(obj3->combat_mode == nw::CombatMode::invalid());
+    REQUIRE(obj3->combat_info.combat_mode == nw::CombatMode::invalid());
     REQUIRE(nwn1::get_equipped_item(obj3, nw::EquipIndex::righthand));
     REQUIRE(nwn1::get_equipped_item(obj3, nw::EquipIndex::righthand)->baseitem == nwn1::base_item_longbow);
     REQUIRE(nwn1::is_ranged_weapon(nwn1::get_equipped_item(obj3, nw::EquipIndex::righthand)));
@@ -225,7 +225,7 @@ TEST_CASE("creature: attack bonus", "[objects]")
     REQUIRE(obj4);
 
     REQUIRE(obj4->stats.has_feat(nwn1::feat_weapon_finesse));
-    REQUIRE(obj4->combat_mode == nw::CombatMode::invalid());
+    REQUIRE(obj4->combat_info.combat_mode == nw::CombatMode::invalid());
     REQUIRE(nwn1::get_equipped_item(obj4, nw::EquipIndex::righthand));
     REQUIRE(nwn1::get_equipped_item(obj4, nw::EquipIndex::righthand)->baseitem == nwn1::base_item_dagger);
     REQUIRE(nwn1::get_ability_modifier(obj4, nwn1::ability_strength) == 1);

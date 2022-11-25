@@ -60,7 +60,14 @@ void init_component_appearance(py::module& m)
 
 void init_component_combatinfo(py::module& m)
 {
-    py::class_<nw::CombatInfo>(m, "CombatInfo");
+    py::class_<nw::CombatInfo>(m, "CombatInfo")
+        .def_readwrite("ac_natural_bonus", &nw::CombatInfo::ac_natural_bonus)
+        .def_readwrite("ac_armor_base", &nw::CombatInfo::ac_armor_base)
+        .def_readwrite("ac_shield_base", &nw::CombatInfo::ac_shield_base)
+        .def_readwrite("combat_mode", &nw::CombatInfo::combat_mode)
+        .def_readwrite("target_state", &nw::CombatInfo::target_state)
+        .def_readwrite("size_ab_modifier", &nw::CombatInfo::size_ab_modifier)
+        .def_readwrite("size_ac_modifier", &nw::CombatInfo::size_ac_modifier);
 }
 
 void init_component_common(py::module& m)

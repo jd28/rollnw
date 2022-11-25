@@ -104,8 +104,8 @@ bool Creature::instantiate()
         if (tda->get_to(appearance.id, "SIZECATEGORY", size)) {
             auto cresize = nw::kernel::twodas().get("creaturesize");
             if (cresize) {
-                cresize->get_to(size, "ACATTACKMOD", size_ab_modifier);
-                cresize->get_to(size, "ACATTACKMOD", size_ac_modifier);
+                cresize->get_to(size, "ACATTACKMOD", combat_info.size_ab_modifier);
+                cresize->get_to(size, "ACATTACKMOD", combat_info.size_ac_modifier);
             }
         }
     }

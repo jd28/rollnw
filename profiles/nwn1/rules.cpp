@@ -558,25 +558,25 @@ nw::ModifierResult target_state_ab(const nw::ObjectBase* obj, const nw::ObjectBa
     auto vs = target->as_creature();
     if (!cre || !vs) { return result; }
 
-    if (to_bool(cre->target_state & nw::TargetState::attacker_invis)
-        || to_bool(cre->target_state & nw::TargetState::blind)) {
+    if (to_bool(cre->combat_info.target_state & nw::TargetState::attacker_invis)
+        || to_bool(cre->combat_info.target_state & nw::TargetState::blind)) {
         if (!vs->stats.has_feat(feat_blind_fight)) {
             result += 2;
         }
     }
 
-    if (to_bool(cre->target_state & nw::TargetState::stunned)) {
+    if (to_bool(cre->combat_info.target_state & nw::TargetState::stunned)) {
         result += 2;
     }
 
-    if (to_bool(cre->target_state & nw::TargetState::flanked)) {
+    if (to_bool(cre->combat_info.target_state & nw::TargetState::flanked)) {
         if (!vs->stats.has_feat(feat_prestige_defensive_awareness_2)) {
             result += 2;
         }
     }
 
-    if (to_bool(cre->target_state & nw::TargetState::unseen)
-        || to_bool(cre->target_state & nw::TargetState::invis)) {
+    if (to_bool(cre->combat_info.target_state & nw::TargetState::unseen)
+        || to_bool(cre->combat_info.target_state & nw::TargetState::invis)) {
         result -= 4;
     }
 

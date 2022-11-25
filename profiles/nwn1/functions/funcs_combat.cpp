@@ -35,7 +35,7 @@ int attack_bonus(const nw::Creature* obj, nw::AttackType type, nw::ObjectBase* v
     result = base_attack_bonus(obj);
 
     // Size
-    int modifier = obj->size_ab_modifier;
+    int modifier = obj->combat_info.size_ab_modifier;
 
     // Modifiers - abilities will be handled by the first modifier search.
     auto mod_adder = [&modifier](int value) { modifier += value; };
@@ -45,7 +45,7 @@ int attack_bonus(const nw::Creature* obj, nw::AttackType type, nw::ObjectBase* v
     // Weapon feats, weapon master type stuff occurs below.
     nw::kernel::resolve_modifier(obj, mod_type_attack_bonus_item, baseitem, versus, mod_adder);
     // Combat Modes
-    nw::kernel::resolve_modifier(obj, mod_type_attack_bonus_mode, obj->combat_mode, versus, mod_adder);
+    nw::kernel::resolve_modifier(obj, mod_type_attack_bonus_mode, obj->combat_info.combat_mode, versus, mod_adder);
 
     // Effects attack increase/decrease is a little more complicated due to needing to support
     // an 'any' subtype.
