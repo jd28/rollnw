@@ -4,9 +4,9 @@
 #include "constants/const_feat.hpp"
 #include "functions.hpp"
 #include "functions/funcs_feat.hpp"
+
 #include "nw/rules/combat.hpp"
 #include "nw/rules/items.hpp"
-
 #include <nw/components/Common.hpp>
 #include <nw/components/Creature.hpp>
 #include <nw/kernel/Kernel.hpp>
@@ -476,7 +476,7 @@ nw::ModifierResult tumble_ac(const nw::ObjectBase* obj)
     if (!obj) { return 0; }
     auto cre = obj->as_creature();
     if (!cre) { return 0; }
-    return cre->stats.get_skill_rank(skill_tumble) / 5;
+    return get_skill_rank(cre, skill_tumble) / 5;
 }
 
 // Attack Bonus

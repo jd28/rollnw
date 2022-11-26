@@ -8,6 +8,7 @@ namespace nw {
 BaseItemInfo::BaseItemInfo(const TwoDARowView& tda)
 {
     std::string temp_string;
+    int temp_int;
 
     if (!tda.get_to("label", temp_string)) { return; }
 
@@ -49,7 +50,9 @@ BaseItemInfo::BaseItemInfo(const TwoDARowView& tda)
     // PropColumn
     // StorePanel
 
-    // AC_Enchant
+    if (tda.get_to("AC_Enchant", temp_int)) {
+        ac_type = nw::ArmorClass::make(temp_int);
+    }
     // BaseAC
     // ArmorCheckPen
     // BaseItemStatRef

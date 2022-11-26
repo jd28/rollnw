@@ -11,4 +11,7 @@ int get_ability_score(const nw::Creature* obj, nw::Ability ability, bool base = 
 /// Gets creatures ability modifier
 int get_ability_modifier(const nw::Creature* obj, nw::Ability ability, bool base = false);
 
+/// Gets creatures dexterity modifier as modified by armor, etc.
+int get_dex_modifier(const nw::Creature* obj);
+
 } // namespace nwn1

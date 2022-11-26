@@ -104,6 +104,60 @@ TEST_CASE("creature: feat search", "[objects]")
     nwk::unload_module();
 }
 
+TEST_CASE("creature: armor class", "[objects]")
+{
+    auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
+    REQUIRE(mod);
+
+    auto obj = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/pl_agent_001.utc"));
+    REQUIRE(obj);
+    REQUIRE_FALSE(obj->hasted);
+    REQUIRE(nwn1::calculate_ac_versus(obj, nullptr, false) == 14);
+    REQUIRE(nwn1::calculate_ac_versus(obj, nullptr, true) == 14);
+
+    auto eff1 = nwn1::effect_haste();
+    nw::apply_effect(obj, eff1);
+    REQUIRE(nwn1::calculate_ac_versus(obj, nullptr, false) == 18);
+    REQUIRE(nwn1::calculate_ac_versus(obj, nullptr, true) == 18);
+
+    auto eff2 = nwn1::effect_armor_class_modifier(nwn1::ac_dodge, 4);
+    nw::apply_effect(obj, eff2);
+    REQUIRE(nwn1::calculate_ac_versus(obj, nullptr, false) == 22);
+    REQUIRE(nwn1::calculate_ac_versus(obj, nullptr, true) == 22);
+
+    auto eff3 = nwn1::effect_armor_class_modifier(nwn1::ac_shield, 2);
+    nw::apply_effect(obj, eff3);
+    REQUIRE(nwn1::calculate_ac_versus(obj, nullptr, false) == 24);
+    REQUIRE(nwn1::calculate_ac_versus(obj, nullptr, true) == 22);
+
+    auto eff4 = nwn1::effect_armor_class_modifier(nwn1::ac_natural, 2);
+    nw::apply_effect(obj, eff4);
+    REQUIRE(nwn1::calculate_ac_versus(obj, nullptr, false) == 26);
+    REQUIRE(nwn1::calculate_ac_versus(obj, nullptr, true) == 22);
+
+    auto eff5 = nwn1::effect_armor_class_modifier(nwn1::ac_deflection, 2);
+    nw::apply_effect(obj, eff5);
+    REQUIRE(nwn1::calculate_ac_versus(obj, nullptr, false) == 28);
+    REQUIRE(nwn1::calculate_ac_versus(obj, nullptr, true) == 24);
+
+    auto eff6 = nwn1::effect_armor_class_modifier(nwn1::ac_natural, 1);
+    nw::apply_effect(obj, eff6);
+    REQUIRE(nwn1::calculate_ac_versus(obj, nullptr, false) == 28);
+    REQUIRE(nwn1::calculate_ac_versus(obj, nullptr, true) == 24);
+
+    auto eff7 = nwn1::effect_armor_class_modifier(nwn1::ac_dodge, 1);
+    nw::apply_effect(obj, eff7);
+    REQUIRE(nwn1::calculate_ac_versus(obj, nullptr, false) == 29);
+    REQUIRE(nwn1::calculate_ac_versus(obj, nullptr, true) == 25);
+
+    auto eff8 = nwn1::effect_armor_class_modifier(nwn1::ac_dodge, -1);
+    nw::apply_effect(obj, eff8);
+    REQUIRE(nwn1::calculate_ac_versus(obj, nullptr, false) == 28);
+    REQUIRE(nwn1::calculate_ac_versus(obj, nullptr, true) == 24);
+
+    nwk::unload_module();
+}
+
 TEST_CASE("creature: base attack bonus", "[objects]")
 {
     auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");

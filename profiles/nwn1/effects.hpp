@@ -24,6 +24,9 @@ void load_itemprop_generators();
 /// Creates an ability modifier effect
 nw::Effect* effect_ability_modifier(nw::Ability ability, int modifier);
 
+/// Creates an armor class modifier effect
+nw::Effect* effect_armor_class_modifier(nw::ArmorClass type, int modifier);
+
 /// Creates an attack modifier effect
 nw::Effect* effect_attack_modifier(nw::AttackType attack, int modifier);
 
@@ -48,6 +51,9 @@ bool effect_haste_remove(nw::ObjectBase* obj, const nw::Effect*);
 /// Creates ability modifier item property
 nw::ItemProperty itemprop_ability_modifier(nw::Ability ability, int modifier);
 
+/// Creates armor modifier item property
+nw::ItemProperty itemprop_armor_class_modifier(int value);
+
 /// Creates attack modifier item property
 nw::ItemProperty itemprop_attack_modifier(int value);
 
@@ -64,6 +70,7 @@ nw::ItemProperty itemprop_skill_modifier(nw::Skill skill, int modifier);
 // ============================================================================
 
 nw::Effect* ip_gen_ability_modifier(const nw::ItemProperty& ip, nw::EquipIndex, nw::BaseItem);
+nw::Effect* ip_gen_ac_modifier(const nw::ItemProperty& ip, nw::EquipIndex, nw::BaseItem baseitem);
 nw::Effect* ip_gen_attack_modifier(const nw::ItemProperty& ip, nw::EquipIndex, nw::BaseItem);
 nw::Effect* ip_gen_enhancement_modifier(const nw::ItemProperty& ip, nw::EquipIndex, nw::BaseItem);
 nw::Effect* ip_gen_haste(const nw::ItemProperty&, nw::EquipIndex, nw::BaseItem);

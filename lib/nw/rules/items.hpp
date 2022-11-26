@@ -141,7 +141,7 @@ struct BaseItemInfo {
     // PropColumn
     // StorePanel
     Requirement feat_requirement{{}, false};
-    // AC_Enchant
+    ArmorClass ac_type = ArmorClass::invalid();
     // BaseAC
     // ArmorCheckPen
     // BaseItemStatRef

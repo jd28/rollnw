@@ -1,12 +1,14 @@
 #include "funcs_ability.hpp"
 
 #include "../constants.hpp"
+#include "../functions.hpp"
 
 #include <nw/components/Creature.hpp>
 #include <nw/components/EffectArray.hpp>
 #include <nw/components/ObjectHandle.hpp>
 #include <nw/functions.hpp>
 #include <nw/kernel/Rules.hpp>
+#include <nw/kernel/TwoDACache.hpp>
 #include <nw/rules/Effect.hpp>
 #include <nw/rules/Spell.hpp>
 #include <nw/rules/attributes.hpp>
@@ -57,6 +59,22 @@ int get_ability_score(const nw::Creature* obj, nw::Ability ability, bool base)
 int get_ability_modifier(const nw::Creature* obj, nw::Ability ability, bool base)
 {
     return (get_ability_score(obj, ability, base) - 10) / 2;
+}
+
+int get_dex_modifier(const nw::Creature* obj)
+{
+    int base = get_ability_modifier(obj, ability_dexterity);
+    auto item = get_equipped_item(obj, nw::EquipIndex::chest);
+    if (item && item->baseitem == base_item_armor && item->armor_id != -1) {
+        // [TODO] Optimize
+        auto& tda = nw::kernel::twodas();
+        if (auto armor = tda.get("armor")) {
+            if (auto result = armor->get<int32_t>(item->armor_id, "DEXBONUS")) {
+                return std::min(base, *result);
+            }
+        }
+    }
+    return base;
 }
 
 } // namespace nwn1

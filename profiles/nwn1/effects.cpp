@@ -29,6 +29,9 @@ void load_effects()
     ADD_IS_CREATURE_EFFECT(effect_type_ability_increase);
     ADD_IS_CREATURE_EFFECT(effect_type_ability_decrease);
 
+    ADD_IS_CREATURE_EFFECT(effect_type_ac_increase);
+    ADD_IS_CREATURE_EFFECT(effect_type_ac_decrease);
+
     ADD_IS_CREATURE_EFFECT(effect_type_attack_increase);
     ADD_IS_CREATURE_EFFECT(effect_type_attack_decrease);
 
@@ -78,6 +81,18 @@ nw::Effect* effect_ability_modifier(nw::Ability ability, int modifier)
 
     auto eff = nw::kernel::effects().create(type);
     eff->subtype = *ability;
+    eff->set_int(0, value);
+    return eff;
+}
+
+nw::Effect* effect_armor_class_modifier(nw::ArmorClass type, int modifier)
+{
+    if (modifier == 0) { return nullptr; }
+    auto efftype = modifier > 0 ? effect_type_ac_increase : effect_type_ac_decrease;
+    int value = modifier > 0 ? modifier : -modifier;
+
+    auto eff = nw::kernel::effects().create(efftype);
+    eff->subtype = *type;
     eff->set_int(0, value);
     return eff;
 }
@@ -151,6 +166,39 @@ nw::Effect* ip_gen_ability_modifier(const nw::ItemProperty& ip, nw::EquipIndex, 
         // Note: value will already be negative for decreased ability score.
         if (auto value = def->cost_table->get<int>(ip.cost_value, "Value")) {
             return effect_ability_modifier(abil, *value);
+        }
+    }
+    return nullptr;
+}
+
+nw::ItemProperty itemprop_armor_class_modifier(int value)
+{
+    nw::ItemProperty result;
+    if (value == 0) { return result; }
+    auto type = value > 0 ? ip_ac_bonus : ip_decreased_ac;
+    const auto def = nw::kernel::effects().ip_definition(type);
+    if (!def || !def->cost_table) { return result; }
+    value = std::clamp(value, 0, int(def->cost_table->rows()));
+
+    result.type = uint16_t(*type);
+    result.cost_value = uint16_t(value);
+    return result;
+}
+
+nw::Effect* ip_gen_ac_modifier(const nw::ItemProperty& ip, nw::EquipIndex, nw::BaseItem baseitem)
+{
+    auto type = nw::ItemPropertyType::make(ip.type);
+    const auto def = nw::kernel::effects().ip_definition(type);
+    if (!def) { return nullptr; }
+
+    auto base = nw::kernel::rules().baseitems.get(baseitem);
+    if (!base) { return nullptr; }
+    auto ac_type = base->ac_type;
+
+    if ((type == ip_ac_bonus || type == ip_decreased_ac) && def->cost_table) {
+        // Note: value will already be negative for decreased ability score.
+        if (auto value = def->cost_table->get<int>(ip.cost_value, "Value")) {
+            return effect_armor_class_modifier(ac_type, *value);
         }
     }
     return nullptr;
