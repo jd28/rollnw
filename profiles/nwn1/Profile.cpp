@@ -81,6 +81,33 @@ static inline bool load_master_feats()
     mfr.add(nw::BaseItem::invalid(), mfeat_improved_crit, feat_improved_critical_unarmed);
     mfr.add(nw::BaseItem::invalid(), mfeat_overwhelming_crit, feat_epic_overwhelming_critical_unarmed);
 
+    // Favored Enemy - Bonus is just a check for having the feat.
+    mfr.set_bonus(mfeat_favored_enemy, 1);
+    mfr.add(racial_type_dwarf, mfeat_favored_enemy, feat_favored_enemy_dwarf);
+    mfr.add(racial_type_elf, mfeat_favored_enemy, feat_favored_enemy_elf);
+    mfr.add(racial_type_gnome, mfeat_favored_enemy, feat_favored_enemy_gnome);
+    mfr.add(racial_type_halfling, mfeat_favored_enemy, feat_favored_enemy_halfling);
+    mfr.add(racial_type_halfelf, mfeat_favored_enemy, feat_favored_enemy_halfelf);
+    mfr.add(racial_type_halforc, mfeat_favored_enemy, feat_favored_enemy_halforc);
+    mfr.add(racial_type_human, mfeat_favored_enemy, feat_favored_enemy_human);
+    mfr.add(racial_type_aberration, mfeat_favored_enemy, feat_favored_enemy_aberration);
+    mfr.add(racial_type_animal, mfeat_favored_enemy, feat_favored_enemy_animal);
+    mfr.add(racial_type_beast, mfeat_favored_enemy, feat_favored_enemy_beast);
+    mfr.add(racial_type_construct, mfeat_favored_enemy, feat_favored_enemy_construct);
+    mfr.add(racial_type_dragon, mfeat_favored_enemy, feat_favored_enemy_dragon);
+    mfr.add(racial_type_humanoid_goblinoid, mfeat_favored_enemy, feat_favored_enemy_goblinoid);
+    mfr.add(racial_type_humanoid_monstrous, mfeat_favored_enemy, feat_favored_enemy_monstrous);
+    mfr.add(racial_type_humanoid_orc, mfeat_favored_enemy, feat_favored_enemy_orc);
+    mfr.add(racial_type_humanoid_reptilian, mfeat_favored_enemy, feat_favored_enemy_reptilian);
+    mfr.add(racial_type_elemental, mfeat_favored_enemy, feat_favored_enemy_elemental);
+    mfr.add(racial_type_fey, mfeat_favored_enemy, feat_favored_enemy_fey);
+    mfr.add(racial_type_giant, mfeat_favored_enemy, feat_favored_enemy_giant);
+    mfr.add(racial_type_magical_beast, mfeat_favored_enemy, feat_favored_enemy_magical_beast);
+    mfr.add(racial_type_outsider, mfeat_favored_enemy, feat_favored_enemy_outsider);
+    mfr.add(racial_type_shapechanger, mfeat_favored_enemy, feat_favored_enemy_shapechanger);
+    mfr.add(racial_type_undead, mfeat_favored_enemy, feat_favored_enemy_undead);
+    mfr.add(racial_type_vermin, mfeat_favored_enemy, feat_favored_enemy_vermin);
+
     return true;
 }
 

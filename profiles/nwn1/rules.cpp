@@ -297,6 +297,12 @@ void load_modifiers()
         "dnd-3.0-epic-prowess",
         nw::ModifierSource::feat));
 
+    rules.modifiers.add(mod::attack_bonus(
+        attack_type_any,
+        favored_enemy_ab,
+        "dnd-3.0-favored-enemy",
+        nw::ModifierSource::class_));
+
     rules.modifiers.add(mod::attack_bonus_item(
         good_aim,
         "dnd-3.0-good-aim",
@@ -528,6 +534,25 @@ nw::ModifierResult enchant_arrow_ab(const nw::ObjectBase* obj, int32_t subtype)
         }
     }
     return result;
+}
+
+nw::ModifierResult favored_enemy_ab(const nw::ObjectBase* obj, const nw::ObjectBase* vs, int32_t subtype)
+{
+    if (!obj) { return 0; }
+    auto cre = obj->as_creature();
+    if (!cre || !vs) { return 0; }
+    auto vs_cre = vs->as_creature();
+    if (!vs_cre) { return 0; }
+
+    if (nw::AttackType::make(subtype) != attack_type_any) { return 0; }
+    if (cre->levels.level_by_class(class_type_ranger) == 0) { return 0; }
+
+    if (!!nw::kernel::resolve_master_feat<int>(cre, vs_cre->race, mfeat_favored_enemy)) {
+        if (cre->stats.has_feat(feat_epic_bane_of_enemies)) {
+            return 2;
+        }
+    }
+    return 0;
 }
 
 nw::ModifierResult good_aim(const nw::ObjectBase* obj, int32_t subtype)
