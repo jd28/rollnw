@@ -25,6 +25,7 @@ namespace mod {
 DECLARE_MOD(ability);
 DECLARE_MOD(armor_class);
 DECLARE_MOD(attack_bonus_item);
+DECLARE_MOD(attack_bonus_mode);
 DECLARE_MOD(attack_bonus);
 DECLARE_MOD(damage_resist);
 DECLARE_MOD(hitpoints);

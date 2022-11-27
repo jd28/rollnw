@@ -42,6 +42,7 @@ namespace mod {
 
 DEFINE_MOD(ability, mod_type_ability)
 DEFINE_MOD(attack_bonus_item, mod_type_attack_bonus_item)
+DEFINE_MOD(attack_bonus_mode, mod_type_attack_bonus_mode)
 DEFINE_MOD(attack_bonus, mod_type_attack_bonus)
 DEFINE_MOD(damage_resist, mod_type_dmg_resistance)
 DEFINE_MOD(hitpoints, mod_type_hitpoints)

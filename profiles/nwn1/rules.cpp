@@ -303,6 +303,11 @@ void load_modifiers()
         "dnd-3.0-favored-enemy",
         nw::ModifierSource::class_));
 
+    rules.modifiers.add(mod::attack_bonus_mode(
+        combat_mode_ab,
+        "dnd-3.0-combat-mode",
+        nw::ModifierSource::combat_mode));
+
     rules.modifiers.add(mod::attack_bonus_item(
         good_aim,
         "dnd-3.0-good-aim",
@@ -318,42 +323,6 @@ void load_modifiers()
         weapon_master_ab,
         "dnd-3.0-weaponmaster-ab",
         nw::ModifierSource::class_));
-
-    rules.modifiers.add(mod::attack_bonus_mode(
-        combat_mode_expertise,
-        -5,
-        "dnd-3.0-expertise-ab",
-        nw::ModifierSource::combat_mode));
-
-    rules.modifiers.add(mod::attack_bonus_mode(
-        combat_mode_improved_expertise,
-        -10,
-        "dnd-3.0-improved-expertise-ab",
-        nw::ModifierSource::combat_mode));
-
-    rules.modifiers.add(mod::attack_bonus_mode(
-        combat_mode_flurry_of_blows,
-        -2,
-        "dnd-3.0-flurry-of-blows-ab",
-        nw::ModifierSource::combat_mode));
-
-    rules.modifiers.add(mod::attack_bonus_mode(
-        combat_mode_power_attack,
-        -5,
-        "dnd-3.0-power-attack-ab",
-        nw::ModifierSource::combat_mode));
-
-    rules.modifiers.add(mod::attack_bonus_mode(
-        combat_mode_improved_power_attack,
-        -10,
-        "dnd-3.0-improved-power-attack-ab",
-        nw::ModifierSource::combat_mode));
-
-    rules.modifiers.add(mod::attack_bonus_mode(
-        combat_mode_rapid_shot,
-        -2,
-        "dnd-3.0-rapid-shot-ab",
-        nw::ModifierSource::combat_mode));
 
     // Damage Resist
     rules.modifiers.add(mod::damage_resist(
@@ -511,6 +480,30 @@ nw::ModifierResult ability_attack_bonus(const nw::ObjectBase* obj, int32_t subty
         }
     }
     return modifier;
+}
+
+nw::ModifierResult combat_mode_ab(const nw::ObjectBase* obj, int32_t subtype)
+{
+    auto cre = obj->as_creature();
+    if (!cre) { return 0; }
+    auto mode = nw::CombatMode::make(subtype);
+
+    switch (*mode) {
+    default:
+        return 0;
+    case *combat_mode_expertise:
+        return -5;
+    case *combat_mode_improved_expertise:
+        return -10;
+    case *combat_mode_flurry_of_blows:
+        return -2;
+    case *combat_mode_power_attack:
+        return -5;
+    case *combat_mode_improved_power_attack:
+        return -10;
+    case *combat_mode_rapid_shot:
+        return -2;
+    }
 }
 
 nw::ModifierResult enchant_arrow_ab(const nw::ObjectBase* obj, int32_t subtype)
