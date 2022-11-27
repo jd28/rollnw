@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../rules/Versus.hpp"
 #include "../serialization/Archives.hpp"
 #include "EffectArray.hpp"
 #include "ObjectHandle.hpp"
@@ -32,6 +33,7 @@ struct ObjectBase {
     void set_handle(ObjectHandle handle) { handle_ = handle; }
     EffectArray& effects();
     const EffectArray& effects() const;
+    virtual Versus versus_me() const { return Versus{}; }
 
     virtual Area* as_area() { return nullptr; }
     virtual const Area* as_area() const { return nullptr; }

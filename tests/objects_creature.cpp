@@ -203,6 +203,7 @@ TEST_CASE("creature: attack bonus", "[objects]")
         obj->effects().end(),
         nwn1::effect_type_attack_increase,
         *nwn1::attack_type_onhand,
+        nw::Versus{},
         adder, &nw::effect_extract_int0);
     REQUIRE(test == 2);
 
@@ -279,6 +280,14 @@ TEST_CASE("creature: attack bonus", "[objects]")
     REQUIRE(47 == nwn1::attack_bonus(obj3, nwn1::attack_type_onhand));
     // Bane of enemies
     REQUIRE(49 == nwn1::attack_bonus(obj3, nwn1::attack_type_onhand, vs1));
+
+    auto eff1 = nwn1::effect_attack_modifier(nwn1::attack_type_any, 3);
+    eff1->set_versus(vs1->versus_me());
+    nw::apply_effect(obj3, eff1);
+    auto eff2 = nwn1::effect_attack_modifier(nwn1::attack_type_any, 3);
+    eff2->set_versus({nwn1::racial_type_halfling});
+    nw::apply_effect(obj3, eff2);
+    REQUIRE(52 == nwn1::attack_bonus(obj3, nwn1::attack_type_onhand, vs1));
 
     // Dex Weapon Finesse
     auto obj4 = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/dexweapfin.utc"));

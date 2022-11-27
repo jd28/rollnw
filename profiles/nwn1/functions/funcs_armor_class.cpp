@@ -23,6 +23,11 @@ int calculate_ac_versus(const nw::ObjectBase* obj, const nw::ObjectBase* versus,
     int natural = 0;
     int dex = cre ? get_dex_modifier(cre) : 0;
     bool dexed = true;
+    nw::Versus vs;
+
+    if (versus) {
+        vs = versus->versus_me();
+    }
 
     if (cre) {
         result += cre->combat_info.size_ac_modifier; // Size
@@ -47,35 +52,35 @@ int calculate_ac_versus(const nw::ObjectBase* obj, const nw::ObjectBase* versus,
 
     int dodge_bon = 0;
     auto dodge_bon_adder = [&dodge_bon](int value) { dodge_bon += value; };
-    it_bon = nw::resolve_effects_of<int>(it_bon, end, effect_type_ac_increase, *ac_dodge,
+    it_bon = nw::resolve_effects_of<int>(it_bon, end, effect_type_ac_increase, *ac_dodge, vs,
         dodge_bon_adder, &nw::effect_extract_int0);
 
     int dodge_pen = 0;
     auto dodge_pen_adder = [&dodge_pen](int value) { dodge_pen += value; };
-    it_pen = nw::resolve_effects_of<int>(it_pen, end, effect_type_ac_decrease, *ac_dodge,
+    it_pen = nw::resolve_effects_of<int>(it_pen, end, effect_type_ac_decrease, *ac_dodge, vs,
         dodge_pen_adder, &nw::effect_extract_int0);
 
     if (is_touch_attack) {
         int bonus = 0;
         auto bonus_maxer = [&bonus](int value) { bonus = std::max(bonus, value); };
-        it_bon = nw::resolve_effects_of<int>(it_bon, end, effect_type_ac_increase, *ac_deflection,
+        it_bon = nw::resolve_effects_of<int>(it_bon, end, effect_type_ac_increase, *ac_deflection, vs,
             bonus_maxer, &nw::effect_extract_int0);
 
         int penalty = 0;
         auto penalty_maxer = [&penalty](int value) { penalty = std::max(penalty, value); };
-        it_pen = nw::resolve_effects_of<int>(it_pen, end, effect_type_ac_increase, *ac_deflection,
+        it_pen = nw::resolve_effects_of<int>(it_pen, end, effect_type_ac_increase, *ac_deflection, vs,
             penalty_maxer, &nw::effect_extract_int0);
         results[ac_deflection.idx()] = bonus - penalty;
     } else {
         for (auto type : {ac_natural, ac_armor, ac_shield, ac_deflection}) {
             int bonus = 0;
             auto bonus_maxer = [&bonus](int value) { bonus = std::max(bonus, value); };
-            it_bon = nw::resolve_effects_of<int>(it_bon, end, effect_type_ac_increase, *type,
+            it_bon = nw::resolve_effects_of<int>(it_bon, end, effect_type_ac_increase, *type, vs,
                 bonus_maxer, &nw::effect_extract_int0);
 
             int penalty = 0;
             auto penalty_maxer = [&penalty](int value) { penalty = std::max(penalty, value); };
-            it_pen = nw::resolve_effects_of<int>(it_pen, end, effect_type_ac_decrease, *type,
+            it_pen = nw::resolve_effects_of<int>(it_pen, end, effect_type_ac_decrease, *type, vs,
                 penalty_maxer, &nw::effect_extract_int0);
             results[type.idx()] = bonus - penalty;
         }

@@ -14,7 +14,7 @@ namespace nwn1 {
 int get_skill_rank(const nw::Creature* obj, nw::Skill skill, bool base)
 {
     if (!obj) { return 0; }
-
+    nw::Versus vs;
     int result = 0;
     auto adder = [&result](int value) { result += value; };
 
@@ -49,12 +49,12 @@ int get_skill_rank(const nw::Creature* obj, nw::Skill skill, bool base)
     auto callback = [&value](int mod) { value += mod; };
 
     auto it = nw::resolve_effects_of<int>(std::begin(obj->effects()), end,
-        effect_type_skill_increase, *skill, callback, &nw::effect_extract_int0);
+        effect_type_skill_increase, *skill, vs, callback, &nw::effect_extract_int0);
 
     int bonus = value;
     value = 0; // Reset value for penalties
 
-    nw::resolve_effects_of<int>(it, end, effect_type_skill_decrease, *skill,
+    nw::resolve_effects_of<int>(it, end, effect_type_skill_decrease, *skill, vs,
         callback, &nw::effect_extract_int0);
     int decrease = value;
 

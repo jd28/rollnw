@@ -78,19 +78,28 @@ int remove_effects_by(nw::ObjectBase* obj, nw::ObjectHandle creator);
  * @return Number of effects processed
  */
 template <typename T, typename It, typename CallBack, typename Extractor, typename Comp = std::greater<T>>
-It resolve_effects_of(It begin, It end, nw::EffectType type, int subtype,
+It resolve_effects_of(It begin, It end, nw::EffectType type, int subtype, Versus vs,
     CallBack cb, Extractor extractor, Comp comparator = std::greater<T>{}) noexcept
 {
     if (type == nw::EffectType::invalid()) { return end; }
     auto it = find_first_effect_of(begin, end, type, subtype);
 
     while (it != end && it->type == type && it->subtype == subtype) {
+        if (!it->effect->versus().match(vs)) {
+            ++it;
+            continue;
+        }
         if (it->creator.type == nw::ObjectType::item) {
             auto item = it->creator;
             T value = extractor(*it);
             while (it != end && it->type == type
                 && it->subtype == subtype
                 && it->creator == item) {
+                if (!it->effect->versus().match(vs)) {
+                    ++it;
+                    continue;
+                }
+
                 T next = extractor(*it);
                 value = comparator(value, next) ? value : next;
                 ++it;
@@ -102,6 +111,11 @@ It resolve_effects_of(It begin, It end, nw::EffectType type, int subtype,
             while (it != end && it->type == type
                 && it->subtype == subtype
                 && it->spell_id == spell) {
+                if (!it->effect->versus().match(vs)) {
+                    ++it;
+                    continue;
+                }
+
                 T next = extractor(*it);
                 value = comparator(value, next) ? value : next;
                 ++it;

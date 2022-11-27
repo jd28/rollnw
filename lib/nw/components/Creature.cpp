@@ -121,6 +121,13 @@ bool Creature::instantiate()
     return instantiated_;
 }
 
+Versus Creature::versus_me() const
+{
+    Versus result;
+    result.race = race;
+    return result;
+}
+
 bool Creature::deserialize(Creature* obj, const GffStruct& archive, SerializationProfile profile)
 {
     if (!obj) {

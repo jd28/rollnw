@@ -22,6 +22,9 @@ int attack_bonus(const nw::Creature* obj, nw::AttackType type, nw::ObjectBase* v
     int result = 0;
     if (!obj) { return result; }
 
+    nw::Versus vs;
+    if (versus) { vs = versus->versus_me(); }
+
     auto weapon = get_weapon_by_attack_type(obj, type);
     auto baseitem = nw::BaseItem::invalid();
     if (!weapon) {
@@ -55,19 +58,19 @@ int attack_bonus(const nw::Creature* obj, nw::AttackType type, nw::ObjectBase* v
     int bonus = 0;
     auto bonus_adder = [&bonus](int mod) { bonus += mod; };
 
-    auto it = nw::resolve_effects_of<int>(begin, end, effect_type_attack_increase, *attack_type_any,
+    auto it = nw::resolve_effects_of<int>(begin, end, effect_type_attack_increase, *attack_type_any, vs,
         bonus_adder, &nw::effect_extract_int0);
 
-    it = nw::resolve_effects_of<int>(it, end, effect_type_attack_increase, *type,
+    it = nw::resolve_effects_of<int>(it, end, effect_type_attack_increase, *type, vs,
         bonus_adder, &nw::effect_extract_int0);
 
     int decrease = 0;
     auto decrease_adder = [&decrease](int mod) { decrease += mod; };
 
-    it = nw::resolve_effects_of<int>(it, end, effect_type_attack_decrease, *attack_type_any,
+    it = nw::resolve_effects_of<int>(it, end, effect_type_attack_decrease, *attack_type_any, vs,
         decrease_adder, &nw::effect_extract_int0);
 
-    nw::resolve_effects_of<int>(it, end, effect_type_attack_decrease, *type,
+    nw::resolve_effects_of<int>(it, end, effect_type_attack_decrease, *type, vs,
         decrease_adder, &nw::effect_extract_int0);
 
     auto [min, max] = nw::kernel::rules().attack_effect_limits();
