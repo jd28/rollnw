@@ -27,6 +27,8 @@ env:
   MACOSX_DEPLOYMENT_TARGET: "10.15"
   CCACHE_DIR: "${{ github.workspace }}/ccache/"
   CCACHE_BASEDIR: "${{ github.workspace }}/ccache/"
+  SCCACHE_DIR: "${{ github.workspace }}/ccache/"
+  SCCACHE_BASEDIR: "${{ github.workspace }}/ccache/"
 
 jobs:
   build:
@@ -86,10 +88,10 @@ jobs:
       - name: windows - install dependencies
         if: matrix.os == 'windows-2019'
         run: |
-          choco install ccache
-          choco install ninja
+          choco install sccache ninja
 
       - name: Set up ccache
+        if: matrix.os != 'windows-2019'
         run: |
           ccache --set-config=cache_dir=${{ github.workspace }}/ccache
           ccache --set-config=max_size=500M
