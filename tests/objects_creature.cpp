@@ -313,19 +313,19 @@ TEST_CASE("creature: skills ", "[objects]")
     auto obj = nw::kernel::objects().load<nw::Creature>(fs::path("test_data/user/development/pl_agent_001.utc"));
     REQUIRE(obj);
 
-    REQUIRE(nwn1::get_skill_rank(obj, nwn1::skill_discipline, true) == 40);
+    REQUIRE(nwn1::get_skill_rank(obj, nwn1::skill_discipline, nullptr, true) == 40);
     obj->stats.add_feat(nwn1::feat_skill_focus_discipline);
-    REQUIRE(nwn1::get_skill_rank(obj, nwn1::skill_discipline, false) == 61);
+    REQUIRE(nwn1::get_skill_rank(obj, nwn1::skill_discipline) == 61);
     obj->stats.add_feat(nwn1::feat_epic_skill_focus_discipline);
-    REQUIRE(nwn1::get_skill_rank(obj, nwn1::skill_discipline, false) == 71);
+    REQUIRE(nwn1::get_skill_rank(obj, nwn1::skill_discipline) == 71);
 
     auto eff = nwn1::effect_skill_modifier(nwn1::skill_discipline, 5);
     REQUIRE(nw::apply_effect(obj, eff));
-    REQUIRE(nwn1::get_skill_rank(obj, nwn1::skill_discipline, false) == 76);
+    REQUIRE(nwn1::get_skill_rank(obj, nwn1::skill_discipline) == 76);
 
     auto eff2 = nwn1::effect_ability_modifier(nwn1::ability_strength, 5);
     REQUIRE(nw::apply_effect(obj, eff2));
-    REQUIRE(nwn1::get_skill_rank(obj, nwn1::skill_discipline, false) == 78);
+    REQUIRE(nwn1::get_skill_rank(obj, nwn1::skill_discipline) == 78);
 
     nwk::unload_module();
 }

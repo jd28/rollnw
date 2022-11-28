@@ -130,7 +130,7 @@ static void BM_creature_get_skill_rank(benchmark::State& state)
     ent->stats.add_feat(nwn1::feat_skill_focus_discipline);
     ent->stats.add_feat(nwn1::feat_epic_skill_focus_discipline);
     for (auto _ : state) {
-        auto out = nwn1::get_skill_rank(ent, nwn1::skill_discipline, false);
+        auto out = nwn1::get_skill_rank(ent, nwn1::skill_discipline);
         benchmark::DoNotOptimize(out);
     }
 }

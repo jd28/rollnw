@@ -11,10 +11,13 @@
 
 namespace nwn1 {
 
-int get_skill_rank(const nw::Creature* obj, nw::Skill skill, bool base)
+int get_skill_rank(const nw::Creature* obj, nw::Skill skill, nw::ObjectBase* versus, bool base)
 {
     if (!obj) { return 0; }
+
     nw::Versus vs;
+    if (versus) { vs = versus->versus_me(); }
+
     int result = 0;
     auto adder = [&result](int value) { result += value; };
 
