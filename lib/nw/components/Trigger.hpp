@@ -36,6 +36,7 @@ struct Trigger : public ObjectBase {
     virtual Trigger* as_trigger() override { return this; }
     virtual const Trigger* as_trigger() const override { return this; }
     virtual bool instantiate() override { return true; }
+    virtual Versus versus_me() const override;
 
     // Serialization
     static bool deserialize(Trigger* obj, const GffStruct& archive, SerializationProfile profile);

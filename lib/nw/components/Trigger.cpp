@@ -40,6 +40,13 @@ Trigger::Trigger()
     set_handle({object_invalid, ObjectType::trigger, 0});
 }
 
+Versus Trigger::versus_me() const
+{
+    Versus result;
+    result.trap = trap.is_trapped;
+    return result;
+}
+
 bool Trigger::deserialize(Trigger* obj, const GffStruct& archive, SerializationProfile profile)
 {
     if (!obj) return false;
