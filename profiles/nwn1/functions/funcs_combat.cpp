@@ -61,8 +61,10 @@ int attack_bonus(const nw::Creature* obj, nw::AttackType type, nw::ObjectBase* v
     auto it = nw::resolve_effects_of<int>(begin, end, effect_type_attack_increase, *attack_type_any, vs,
         bonus_adder, &nw::effect_extract_int0);
 
-    it = nw::resolve_effects_of<int>(it, end, effect_type_attack_increase, *type, vs,
-        bonus_adder, &nw::effect_extract_int0);
+    if (type != attack_type_any) {
+        it = nw::resolve_effects_of<int>(it, end, effect_type_attack_increase, *type, vs,
+            bonus_adder, &nw::effect_extract_int0);
+    }
 
     int decrease = 0;
     auto decrease_adder = [&decrease](int mod) { decrease += mod; };
@@ -70,8 +72,10 @@ int attack_bonus(const nw::Creature* obj, nw::AttackType type, nw::ObjectBase* v
     it = nw::resolve_effects_of<int>(it, end, effect_type_attack_decrease, *attack_type_any, vs,
         decrease_adder, &nw::effect_extract_int0);
 
-    nw::resolve_effects_of<int>(it, end, effect_type_attack_decrease, *type, vs,
-        decrease_adder, &nw::effect_extract_int0);
+    if (type != attack_type_any) {
+        nw::resolve_effects_of<int>(it, end, effect_type_attack_decrease, *type, vs,
+            decrease_adder, &nw::effect_extract_int0);
+    }
 
     auto [min, max] = nw::kernel::rules().attack_effect_limits();
     return result + modifier + std::clamp(bonus - decrease, min, max);

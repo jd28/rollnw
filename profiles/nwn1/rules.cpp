@@ -484,6 +484,7 @@ nw::ModifierResult ability_attack_bonus(const nw::ObjectBase* obj, int32_t subty
 
 nw::ModifierResult combat_mode_ab(const nw::ObjectBase* obj, int32_t subtype)
 {
+    if (!obj) { return 0; }
     auto cre = obj->as_creature();
     if (!cre) { return 0; }
     auto mode = nw::CombatMode::make(subtype);
