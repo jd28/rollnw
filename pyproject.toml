@@ -17,7 +17,7 @@ skip = "*-win32 *-manylinux_i686 pp* cp36-* cp37-* *-musllinux_*"
 
 [tool.cibuildwheel.linux]
 before-all = [
-  "yum install -y curl zip unzip tar ccache",
+  "yum --disablerepo=epel install -y curl zip unzip tar ccache",
 ]
 
 [tool.pytest.ini_options]
