@@ -40,8 +40,8 @@ bool SpellBook::from_gff(const GffStruct& gff)
             if (gff[k][j].get_to("Spell", temp)) {
                 s.spell = Spell::make(temp);
             }
-            gff[k][j].get_to("SpellFlags", s.flags);
-            gff[k][j].get_to("SpellMetaMagic", s.meta);
+            gff[k][j].get_to("SpellFlags", s.flags, false);
+            gff[k][j].get_to("SpellMetaMagic", s.meta, false);
             known_[i].push_back(s);
         }
 

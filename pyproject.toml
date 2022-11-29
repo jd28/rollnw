@@ -12,13 +12,11 @@ profile = "black"
 
 [tool.cibuildwheel]
 build-frontend = "build"
-environment = {VCPKG_ROOT = "vcpkg", MACOSX_DEPLOYMENT_TARGET = "10.15", CCACHE_DIR = "ccache"}
+environment = {VCPKG_ROOT = "vcpkg", MACOSX_DEPLOYMENT_TARGET = "10.15"}
 skip = "*-win32 *-manylinux_i686 pp* cp36-* cp37-* *-musllinux_*"
 
 [tool.cibuildwheel.linux]
-before-all = [
-  "yum --disablerepo=epel install -y curl zip unzip tar ccache",
-]
+before-all = []
 
 [tool.pytest.ini_options]
 norecursedirs = [

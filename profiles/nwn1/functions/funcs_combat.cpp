@@ -173,7 +173,7 @@ int number_of_attacks(const nw::Creature* obj, bool offhand)
     auto equip = offhand ? nw::EquipIndex::lefthand : nw::EquipIndex::lefthand;
     auto item = get_equipped_item(obj, equip);
     int iter = weapon_iteration(obj, item);
-    return ab / iter;
+    return iter > 0 ? ab / iter : 0;
 }
 
 bool weapon_is_finessable(const nw::Creature* obj, nw::Item* weapon)

@@ -5,8 +5,6 @@
 #include "functions.hpp"
 #include "functions/funcs_feat.hpp"
 
-#include "nw/rules/combat.hpp"
-#include "nw/rules/items.hpp"
 #include <nw/components/Common.hpp>
 #include <nw/components/Creature.hpp>
 #include <nw/kernel/Kernel.hpp>
@@ -14,7 +12,9 @@
 #include <nw/kernel/TwoDACache.hpp>
 #include <nw/log.hpp>
 #include <nw/rules/Class.hpp>
+#include <nw/rules/combat.hpp>
 #include <nw/rules/feats.hpp>
+#include <nw/rules/items.hpp>
 
 namespace nwn1 {
 
