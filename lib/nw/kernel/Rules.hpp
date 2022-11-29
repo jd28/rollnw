@@ -172,6 +172,7 @@ find_first_modifier_of(It begin, It end, const ModifierType type, int32_t subtyp
 {
     Modifier temp{type, {}, {}, ModifierSource::unknown, Requirement{}, {}, subtype};
     auto it = std::lower_bound(begin, end, temp);
+    if (it == end) { return end; }
     if (it->type != type) { return end; }
     return it;
 }
