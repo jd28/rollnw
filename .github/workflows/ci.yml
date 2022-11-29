@@ -96,6 +96,7 @@ jobs:
           ccache --set-config=cache_dir=${{ github.workspace }}/ccache
           ccache --set-config=max_size=500M
           ccache --set-config=compression=true
+          ccache --evict-older-than 14d
 
       # vcpkg
       - name: all - download vcpkg
