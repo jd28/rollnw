@@ -92,6 +92,7 @@
 <li class="toctree-l2"><a class="reference internal" href="nw__kernel__services.html">nw::kernel::services</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__kernel__strings.html">nw::kernel::strings</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__kernel__unload_module.html">nw::kernel::unload_module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__max_effects_of.html">nw::max_effects_of</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__move_file_safely.html">nw::move_file_safely</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__needs_quote.html">nw::needs_quote</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__operator_eq.html">nw::operator==</a></li>
@@ -116,6 +117,7 @@
 <li class="toctree-l2"><a class="reference internal" href="nw__string__startswith.html">nw::string::startswith</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__string__tolower.html">nw::string::tolower</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__string__trim_in_place.html">nw::string::trim_in_place</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__sum_effects_of.html">nw::sum_effects_of</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__to_base64.html">nw::to_base64</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__to_bool.html">nw::to_bool</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__to_json.html">nw::to_json</a></li>
@@ -225,13 +227,14 @@
 <li><p><strong>end</strong> – End range of effect handles </p></li>
 <li><p><strong>type</strong> – An effect_type_* constant </p></li>
 <li><p><strong>subtype</strong> – A effect subtype, if no subtype -1 should be passed </p></li>
+<li><p><strong>vs</strong> – <a class="reference internal" href="../struct/nw__Versus.html#structnw_1_1_versus"><span class="std std-ref">Versus</span></a> struct </p></li>
 <li><p><strong>cb</strong> – A user defined callback that will be passed an applicable effect’s value. </p></li>
 <li><p><strong>extractor</strong> – A function that extracts the value from a particular effect. </p></li>
 <li><p><strong>comparator</strong> – A function taking two <code class="docutils literal notranslate"><span class="pre">T</span></code> values and returns <code class="docutils literal notranslate"><span class="pre">true</span></code> if the first is greater (Default std::greater&lt;T&gt;) </p></li>
 </ul>
 </dd>
 <dt class="field-odd">Returns</dt>
-<dd class="field-odd"><p>Number of effects processed </p>
+<dd class="field-odd"><p>iterator to passed last processed effect </p>
 </dd>
 </dl>
 </dd></dl>
