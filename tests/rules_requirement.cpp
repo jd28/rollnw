@@ -1,6 +1,7 @@
 #include <catch2/catch_all.hpp>
 
 #include <nw/components/Creature.hpp>
+#include <nw/functions.hpp>
 #include <nw/kernel/Objects.hpp>
 #include <nw/kernel/Rules.hpp>
 #include <nw/rules/feats.hpp>
@@ -50,7 +51,7 @@ TEST_CASE("requirement: feats", "[rules]")
     auto ent = nw::kernel::objects().load<nw::Creature>(fs::path("test_data/user/development/pl_agent_001.utc"));
     REQUIRE(ent);
 
-    auto feats = nwn1::get_all_available_feats(ent);
+    auto feats = nw::get_all_available_feats(ent);
     REQUIRE(feats.size() > 0);
     nw::kernel::unload_module();
 }

@@ -2,7 +2,6 @@
 
 #include "../constants.hpp"
 #include "funcs_ability.hpp"
-#include "funcs_feat.hpp"
 
 #include <nw/components/Creature.hpp>
 #include <nw/functions.hpp>

@@ -3,10 +3,10 @@
 #include "constants.hpp"
 #include "constants/const_feat.hpp"
 #include "functions.hpp"
-#include "functions/funcs_feat.hpp"
 
 #include <nw/components/Common.hpp>
 #include <nw/components/Creature.hpp>
+#include <nw/functions.hpp>
 #include <nw/kernel/Kernel.hpp>
 #include <nw/kernel/Rules.hpp>
 #include <nw/kernel/TwoDACache.hpp>
@@ -408,7 +408,7 @@ nw::ModifierResult epic_great_ability(const nw::ObjectBase* obj, int32_t subtype
         break;
     }
 
-    auto nth = highest_feat_in_range(obj->as_creature(), start, stop);
+    auto nth = nw::highest_feat_in_range(obj->as_creature(), start, stop);
     if (nth == nw::Feat::invalid()) {
         return 0;
     }
@@ -515,12 +515,12 @@ nw::ModifierResult enchant_arrow_ab(const nw::ObjectBase* obj, int32_t subtype)
     if (!cre) { return 0; }
 
     if (baseitem == base_item_longbow || baseitem == base_item_shortbow) {
-        auto feat = highest_feat_in_range(cre, feat_prestige_enchant_arrow_6,
+        auto feat = nw::highest_feat_in_range(cre, feat_prestige_enchant_arrow_6,
             feat_prestige_enchant_arrow_20);
         if (feat != nw::Feat::invalid()) {
             result = (*feat - *feat_prestige_enchant_arrow_6) + 6;
         } else {
-            feat = highest_feat_in_range(cre, feat_prestige_enchant_arrow_1,
+            feat = nw::highest_feat_in_range(cre, feat_prestige_enchant_arrow_1,
                 feat_prestige_enchant_arrow_5);
             if (feat != nw::Feat::invalid()) {
                 result = (*feat - *feat_prestige_enchant_arrow_1) + 1;

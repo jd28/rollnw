@@ -9,7 +9,6 @@ add_library(nw-profiles STATIC
     nwn1/functions/funcs_armor_class.cpp
     nwn1/functions/funcs_class.cpp
     nwn1/functions/funcs_combat.cpp
-    nwn1/functions/funcs_feat.cpp
     nwn1/functions/funcs_skill.cpp
     nwn1/functions/rule_helper_funcs.cpp
 )

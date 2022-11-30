@@ -85,20 +85,20 @@ TEST_CASE("creature: feat search", "[objects]")
     auto ent = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/pl_agent_001.utc"));
     REQUIRE(ent);
 
-    REQUIRE(nwn1::knows_feat(ent, nwn1::feat_epic_toughness_2));
-    REQUIRE_FALSE(nwn1::knows_feat(ent, nwn1::feat_epic_toughness_1));
+    REQUIRE(nw::knows_feat(ent, nwn1::feat_epic_toughness_2));
+    REQUIRE_FALSE(nw::knows_feat(ent, nwn1::feat_epic_toughness_1));
 
-    auto [feat, nth] = nwn1::has_feat_successor(ent, nwn1::feat_epic_toughness_2);
+    auto [feat, nth] = nw::has_feat_successor(ent, nwn1::feat_epic_toughness_2);
     REQUIRE(nth);
     REQUIRE(feat == nwn1::feat_epic_toughness_4);
 
-    auto [feat2, nth2] = nwn1::has_feat_successor(ent, nwn1::feat_epic_great_wisdom_1);
+    auto [feat2, nth2] = nw::has_feat_successor(ent, nwn1::feat_epic_great_wisdom_1);
     REQUIRE(nth2 == 0);
 
-    auto feat3 = nwn1::highest_feat_in_range(ent, nwn1::feat_epic_toughness_1, nwn1::feat_epic_toughness_10);
+    auto feat3 = nw::highest_feat_in_range(ent, nwn1::feat_epic_toughness_1, nwn1::feat_epic_toughness_10);
     REQUIRE(feat3 == nwn1::feat_epic_toughness_4);
 
-    auto n = nwn1::count_feats_in_range(ent, nwn1::feat_epic_toughness_1, nwn1::feat_epic_toughness_10);
+    auto n = nw::count_feats_in_range(ent, nwn1::feat_epic_toughness_1, nwn1::feat_epic_toughness_10);
     REQUIRE(n == 3); // char doesn't have et1.
 
     nwk::unload_module();

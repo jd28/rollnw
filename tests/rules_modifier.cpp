@@ -1,6 +1,7 @@
 #include <catch2/catch_all.hpp>
 
 #include <nw/components/Creature.hpp>
+#include <nw/functions.hpp>
 #include <nw/kernel/Objects.hpp>
 #include <nw/kernel/Rules.hpp>
 #include <nw/rules/feats.hpp>
@@ -102,7 +103,7 @@ TEST_CASE("modifier kernel 2", "[rules]")
     ent->stats.add_feat(nwn1::feat_epic_toughness_2);
     ent->stats.add_feat(nwn1::feat_epic_toughness_3);
 
-    auto [highest, nth] = nwn1::has_feat_successor(ent, nwn1::feat_epic_toughness_1);
+    auto [highest, nth] = nw::has_feat_successor(ent, nwn1::feat_epic_toughness_1);
     REQUIRE(highest == nwn1::feat_epic_toughness_4);
     REQUIRE(nth == 4);
 
