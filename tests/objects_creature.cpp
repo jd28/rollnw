@@ -104,6 +104,80 @@ TEST_CASE("creature: feat search", "[objects]")
     nwk::unload_module();
 }
 
+TEST_CASE("creature: ability ", "[objects]")
+{
+    auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
+    REQUIRE(mod);
+
+    auto obj = nw::kernel::objects().load<nw::Creature>(fs::path("test_data/user/development/pl_agent_001.utc"));
+    REQUIRE(obj);
+    REQUIRE(obj->instantiate());
+
+    REQUIRE(nwn1::get_ability_score(obj, nwn1::ability_strength) == 40);
+    REQUIRE(nwn1::get_ability_modifier(obj, nwn1::ability_strength) == 15);
+
+    REQUIRE(nwn1::get_ability_score(obj, nwn1::ability_dexterity) == 17);
+    REQUIRE(nwn1::get_ability_modifier(obj, nwn1::ability_dexterity) == 3);
+
+    REQUIRE(nwn1::get_ability_score(obj, nwn1::ability_strength, false) == 40);
+    obj->stats.add_feat(nwn1::feat_epic_great_strength_1);
+    REQUIRE(nwn1::get_ability_score(obj, nwn1::ability_strength, false) == 41);
+    obj->stats.add_feat(nwn1::feat_epic_great_strength_2);
+    REQUIRE(nwn1::get_ability_score(obj, nwn1::ability_strength, false) == 42);
+
+    auto eff = nwn1::effect_ability_modifier(nwn1::ability_strength, 5);
+    REQUIRE(nw::apply_effect(obj, eff));
+    REQUIRE(obj->effects().size() > 0);
+    REQUIRE(nwn1::get_ability_score(obj, nwn1::ability_strength, false) == 47);
+
+    // Belt of Cloud Giant Strength
+    auto item = nwk::objects().load<nw::Item>("x2_it_mbelt001"sv);
+    REQUIRE(item);
+    REQUIRE(nwn1::equip_item(obj, item, nw::EquipIndex::belt));
+    REQUIRE(obj->effects().size() > 1);
+    REQUIRE(nwn1::get_ability_score(obj, nwn1::ability_strength, false) == 54);
+    REQUIRE(nwn1::unequip_item(obj, nw::EquipIndex::belt));
+    REQUIRE(nwn1::get_ability_score(obj, nwn1::ability_strength, false) == 47);
+
+    // Class stat gain
+    auto obj2 = nw::kernel::objects().load<nw::Creature>(fs::path("test_data/user/development/sorcrdd.utc"));
+    REQUIRE(obj2);
+    REQUIRE(obj2->instantiate());
+
+    REQUIRE(obj2->stats.get_ability_score(nwn1::ability_strength) == 15);
+    REQUIRE(nwn1::get_ability_score(obj2, nwn1::ability_strength) == 23);
+
+    REQUIRE(obj2->stats.get_ability_score(nwn1::ability_constitution) == 14);
+    REQUIRE(nwn1::get_ability_score(obj2, nwn1::ability_constitution) == 14); // This is an elf!
+
+    nwk::unload_module();
+}
+
+TEST_CASE("creature: skills ", "[objects]")
+{
+    auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
+    REQUIRE(mod);
+
+    auto obj = nw::kernel::objects().load<nw::Creature>(fs::path("test_data/user/development/pl_agent_001.utc"));
+    REQUIRE(obj);
+
+    REQUIRE(nwn1::get_skill_rank(obj, nwn1::skill_discipline, nullptr, true) == 40);
+    obj->stats.add_feat(nwn1::feat_skill_focus_discipline);
+    REQUIRE(nwn1::get_skill_rank(obj, nwn1::skill_discipline) == 61);
+    obj->stats.add_feat(nwn1::feat_epic_skill_focus_discipline);
+    REQUIRE(nwn1::get_skill_rank(obj, nwn1::skill_discipline) == 71);
+
+    auto eff = nwn1::effect_skill_modifier(nwn1::skill_discipline, 5);
+    REQUIRE(nw::apply_effect(obj, eff));
+    REQUIRE(nwn1::get_skill_rank(obj, nwn1::skill_discipline) == 76);
+
+    auto eff2 = nwn1::effect_ability_modifier(nwn1::ability_strength, 5);
+    REQUIRE(nw::apply_effect(obj, eff2));
+    REQUIRE(nwn1::get_skill_rank(obj, nwn1::skill_discipline) == 78);
+
+    nwk::unload_module();
+}
+
 TEST_CASE("creature: armor class", "[objects]")
 {
     auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
@@ -301,80 +375,6 @@ TEST_CASE("creature: attack bonus", "[objects]")
     REQUIRE(nwn1::get_ability_modifier(obj4, nwn1::ability_dexterity) == 11);
     REQUIRE(25 == nwn1::base_attack_bonus(obj4));
     REQUIRE(40 == nwn1::attack_bonus(obj4, nwn1::attack_type_onhand));
-
-    nwk::unload_module();
-}
-
-TEST_CASE("creature: skills ", "[objects]")
-{
-    auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
-    REQUIRE(mod);
-
-    auto obj = nw::kernel::objects().load<nw::Creature>(fs::path("test_data/user/development/pl_agent_001.utc"));
-    REQUIRE(obj);
-
-    REQUIRE(nwn1::get_skill_rank(obj, nwn1::skill_discipline, nullptr, true) == 40);
-    obj->stats.add_feat(nwn1::feat_skill_focus_discipline);
-    REQUIRE(nwn1::get_skill_rank(obj, nwn1::skill_discipline) == 61);
-    obj->stats.add_feat(nwn1::feat_epic_skill_focus_discipline);
-    REQUIRE(nwn1::get_skill_rank(obj, nwn1::skill_discipline) == 71);
-
-    auto eff = nwn1::effect_skill_modifier(nwn1::skill_discipline, 5);
-    REQUIRE(nw::apply_effect(obj, eff));
-    REQUIRE(nwn1::get_skill_rank(obj, nwn1::skill_discipline) == 76);
-
-    auto eff2 = nwn1::effect_ability_modifier(nwn1::ability_strength, 5);
-    REQUIRE(nw::apply_effect(obj, eff2));
-    REQUIRE(nwn1::get_skill_rank(obj, nwn1::skill_discipline) == 78);
-
-    nwk::unload_module();
-}
-
-TEST_CASE("creature: ability ", "[objects]")
-{
-    auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
-    REQUIRE(mod);
-
-    auto obj = nw::kernel::objects().load<nw::Creature>(fs::path("test_data/user/development/pl_agent_001.utc"));
-    REQUIRE(obj);
-    REQUIRE(obj->instantiate());
-
-    REQUIRE(nwn1::get_ability_score(obj, nwn1::ability_strength) == 40);
-    REQUIRE(nwn1::get_ability_modifier(obj, nwn1::ability_strength) == 15);
-
-    REQUIRE(nwn1::get_ability_score(obj, nwn1::ability_dexterity) == 17);
-    REQUIRE(nwn1::get_ability_modifier(obj, nwn1::ability_dexterity) == 3);
-
-    REQUIRE(nwn1::get_ability_score(obj, nwn1::ability_strength, false) == 40);
-    obj->stats.add_feat(nwn1::feat_epic_great_strength_1);
-    REQUIRE(nwn1::get_ability_score(obj, nwn1::ability_strength, false) == 41);
-    obj->stats.add_feat(nwn1::feat_epic_great_strength_2);
-    REQUIRE(nwn1::get_ability_score(obj, nwn1::ability_strength, false) == 42);
-
-    auto eff = nwn1::effect_ability_modifier(nwn1::ability_strength, 5);
-    REQUIRE(nw::apply_effect(obj, eff));
-    REQUIRE(obj->effects().size() > 0);
-    REQUIRE(nwn1::get_ability_score(obj, nwn1::ability_strength, false) == 47);
-
-    // Belt of Cloud Giant Strength
-    auto item = nwk::objects().load<nw::Item>("x2_it_mbelt001"sv);
-    REQUIRE(item);
-    REQUIRE(nwn1::equip_item(obj, item, nw::EquipIndex::belt));
-    REQUIRE(obj->effects().size() > 1);
-    REQUIRE(nwn1::get_ability_score(obj, nwn1::ability_strength, false) == 54);
-    REQUIRE(nwn1::unequip_item(obj, nw::EquipIndex::belt));
-    REQUIRE(nwn1::get_ability_score(obj, nwn1::ability_strength, false) == 47);
-
-    // Class stat gain
-    auto obj2 = nw::kernel::objects().load<nw::Creature>(fs::path("test_data/user/development/sorcrdd.utc"));
-    REQUIRE(obj2);
-    REQUIRE(obj2->instantiate());
-
-    REQUIRE(obj2->stats.get_ability_score(nwn1::ability_strength) == 15);
-    REQUIRE(nwn1::get_ability_score(obj2, nwn1::ability_strength) == 23);
-
-    REQUIRE(obj2->stats.get_ability_score(nwn1::ability_constitution) == 14);
-    REQUIRE(nwn1::get_ability_score(obj2, nwn1::ability_constitution) == 14); // This is an elf!
 
     nwk::unload_module();
 }

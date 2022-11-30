@@ -46,20 +46,14 @@ int get_skill_rank(const nw::Creature* obj, nw::Skill skill, nw::ObjectBase* ver
     nw::kernel::resolve_modifier(obj, mod_type_skill, skill, adder);
 
     // Effects
+    auto begin = std::begin(obj->effects());
     auto end = std::end(obj->effects());
-    int value = 0;
 
-    auto callback = [&value](int mod) { value += mod; };
+    auto [bonus, it] = nw::sum_effects_of<int>(begin, end,
+        effect_type_skill_increase, *skill);
 
-    auto it = nw::resolve_effects_of<int>(std::begin(obj->effects()), end,
-        effect_type_skill_increase, *skill, vs, callback, &nw::effect_extract_int0);
-
-    int bonus = value;
-    value = 0; // Reset value for penalties
-
-    nw::resolve_effects_of<int>(it, end, effect_type_skill_decrease, *skill, vs,
-        callback, &nw::effect_extract_int0);
-    int decrease = value;
+    auto [decrease, _] = nw::sum_effects_of<int>(begin, end,
+        effect_type_skill_decrease, *skill);
 
     return result + std::clamp(bonus - decrease, -50, 50);
 }
