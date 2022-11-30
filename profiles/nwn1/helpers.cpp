@@ -1,10 +1,10 @@
-#include "rule_helper_funcs.hpp"
+#include "helpers.hpp"
 
-#include "../constants.hpp"
-#include "nw/rules/combat.hpp"
-#include "nw/rules/items.hpp"
+#include "constants.hpp"
 
 #include <nw/kernel/Kernel.hpp>
+#include <nw/rules/combat.hpp>
+#include <nw/rules/items.hpp>
 
 namespace nwn1 {
 

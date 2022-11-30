@@ -14,6 +14,7 @@ struct Creature;
 struct ObjectBase;
 struct Feat;
 struct Item;
+struct ItemProperty;
 enum struct EquipIndex : uint32_t;
 
 // == Effects =================================================================
@@ -207,6 +208,9 @@ bool knows_feat(const nw::Creature* obj, nw::Feat feat);
 
 // == Item Properties =========================================================
 // ============================================================================
+
+/// Converts item property to in-game style string
+std::string itemprop_to_string(const nw::ItemProperty& ip);
 
 /// Processes item properties and applies resulting effects to creature
 int process_item_properties(nw::Creature* obj, const nw::Item* item, nw::EquipIndex index, bool remove);

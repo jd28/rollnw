@@ -1,7 +1,6 @@
-#include "funcs_combat.hpp"
+#include "combat.hpp"
 
-#include "../constants.hpp"
-#include "../functions.hpp"
+#include "functions.hpp"
 
 #include <nw/components/Creature.hpp>
 #include <nw/components/Equips.hpp>

@@ -1,5 +1,6 @@
 #include "rules.hpp"
 
+#include "combat.hpp"
 #include "constants.hpp"
 #include "constants/const_feat.hpp"
 #include "functions.hpp"

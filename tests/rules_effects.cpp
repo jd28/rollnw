@@ -4,6 +4,7 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include <nw/components/Creature.hpp>
+#include <nw/functions.hpp>
 #include <nw/kernel/EventSystem.hpp>
 #include <nw/kernel/Kernel.hpp>
 #include <nw/kernel/Objects.hpp>
@@ -40,11 +41,11 @@ TEST_CASE("item properties", "[rules]")
     REQUIRE(mod);
 
     auto ip = nwn1::itemprop_haste();
-    auto str = nwn1::itemprop_to_string(ip);
+    auto str = nw::itemprop_to_string(ip);
     REQUIRE(str == "Haste");
 
     auto ip2 = nwn1::itemprop_ability_modifier(nwn1::ability_strength, 6);
-    auto str2 = nwn1::itemprop_to_string(ip2);
+    auto str2 = nw::itemprop_to_string(ip2);
     REQUIRE(str2 == "Enhancement Bonus: Strength +6");
 
     nw::kernel::unload_module();

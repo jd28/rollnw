@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../constants.hpp"
+#include "constants.hpp"
 
 #include <nw/components/Equips.hpp>
 

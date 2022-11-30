@@ -1,5 +1,6 @@
 #include "effects.hpp"
 
+#include "combat.hpp"
 #include "constants.hpp"
 #include "functions.hpp"
 

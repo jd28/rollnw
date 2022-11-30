@@ -3,8 +3,7 @@
 #include "constants.hpp"
 #include "constants/const_feat.hpp"
 #include "effects.hpp"
-#include "functions/rule_helper_funcs.hpp"
-#include "nw/rules/system.hpp"
+#include "helpers.hpp"
 #include "rules.hpp"
 
 #include <nw/components/Creature.hpp>
@@ -14,6 +13,7 @@
 #include <nw/kernel/Rules.hpp>
 #include <nw/kernel/TwoDACache.hpp>
 #include <nw/rules/feats.hpp>
+#include <nw/rules/system.hpp>
 
 namespace nwn1 {
 

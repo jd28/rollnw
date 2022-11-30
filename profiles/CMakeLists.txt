@@ -1,16 +1,11 @@
 add_library(nw-profiles STATIC
+    nwn1/combat.cpp
     nwn1/constants.cpp
     nwn1/effects.cpp
     nwn1/functions.cpp
+    nwn1/helpers.cpp
     nwn1/Profile.cpp
     nwn1/rules.cpp
-
-    nwn1/functions/funcs_ability.cpp
-    nwn1/functions/funcs_armor_class.cpp
-    nwn1/functions/funcs_class.cpp
-    nwn1/functions/funcs_combat.cpp
-    nwn1/functions/funcs_skill.cpp
-    nwn1/functions/rule_helper_funcs.cpp
 )
 
 target_link_libraries(nw-profiles PRIVATE
