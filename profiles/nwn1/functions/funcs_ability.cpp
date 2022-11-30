@@ -41,7 +41,7 @@ int get_ability_score(const nw::Creature* obj, nw::Ability ability, bool base)
     auto [bonus, it] = nw::sum_effects_of<int>(begin, end,
         effect_type_ability_increase, *ability);
 
-    auto [decrease, _] = nw::sum_effects_of<int>(begin, end,
+    auto [decrease, _] = nw::sum_effects_of<int>(it, end,
         effect_type_ability_decrease, *ability);
 
     auto [min, max] = nw::kernel::rules().ability_effect_limits();

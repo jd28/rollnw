@@ -52,7 +52,7 @@ int get_skill_rank(const nw::Creature* obj, nw::Skill skill, nw::ObjectBase* ver
     auto [bonus, it] = nw::sum_effects_of<int>(begin, end,
         effect_type_skill_increase, *skill);
 
-    auto [decrease, _] = nw::sum_effects_of<int>(begin, end,
+    auto [decrease, _] = nw::sum_effects_of<int>(it, end,
         effect_type_skill_decrease, *skill);
 
     return result + std::clamp(bonus - decrease, -50, 50);
