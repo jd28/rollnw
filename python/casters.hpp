@@ -5,6 +5,7 @@
 #include <nw/rules/Class.hpp>
 #include <nw/rules/Spell.hpp>
 #include <nw/rules/attributes.hpp>
+#include <nw/rules/combat.hpp>
 #include <nw/rules/feats.hpp>
 #include <nw/util/ByteArray.hpp>
 #include <nw/util/InternedString.hpp>
@@ -97,6 +98,7 @@ public:
     };
 
 DEFINE_RULE_TYPE_CASTER(Ability)
+DEFINE_RULE_TYPE_CASTER(AttackType)
 DEFINE_RULE_TYPE_CASTER(Class)
 DEFINE_RULE_TYPE_CASTER(Feat)
 DEFINE_RULE_TYPE_CASTER(Skill)

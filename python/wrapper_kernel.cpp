@@ -180,7 +180,9 @@ void init_kernel(py::module& kernel)
     init_kernel_strings(kernel);
     init_kernel_twoda_cache(kernel);
 
-    kernel.def("load_module", &nw::kernel::load_module, py::return_value_policy::reference)
+    kernel.def("load_module", &nw::kernel::load_module,
+              py::arg("path"), py::arg("manifest") = "",
+              py::return_value_policy::reference)
         .def("unload_module", &nw::kernel::unload_module);
 
     kernel.def("start", []() {

@@ -24,9 +24,6 @@ int base_attack_bonus(const nw::Creature* obj);
 /// Converts an equip index to an attack type
 nw::AttackType equip_index_to_attack_type(nw::EquipIndex equip);
 
-/// Determines if weapon is ranged
-bool is_ranged_weapon(const nw::Item* item);
-
 /// Calculates number of attacks
 int number_of_attacks(const nw::Creature* obj, bool offhand = false);
 

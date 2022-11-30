@@ -139,13 +139,6 @@ nw::AttackType equip_index_to_attack_type(nw::EquipIndex equip)
     }
 }
 
-bool is_ranged_weapon(const nw::Item* item)
-{
-    if (!item) { return false; }
-    auto bi = nw::kernel::rules().baseitems.get(item->baseitem);
-    return bi ? bi->ranged : false;
-}
-
 nw::Item* get_weapon_by_attack_type(const nw::Creature* obj, nw::AttackType type)
 {
     switch (*type) {

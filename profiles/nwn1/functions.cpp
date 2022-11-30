@@ -243,6 +243,13 @@ nw::Item* get_equipped_item(const nw::Creature* obj, nw::EquipIndex slot)
     return result;
 }
 
+bool is_ranged_weapon(const nw::Item* item)
+{
+    if (!item) { return false; }
+    auto bi = nw::kernel::rules().baseitems.get(item->baseitem);
+    return bi ? bi->ranged : false;
+}
+
 bool is_shield(nw::BaseItem baseitem)
 {
     return baseitem == base_item_smallshield

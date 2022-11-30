@@ -20,6 +20,8 @@ void init_kernel(py::module& kernel);
 void init_model(py::module& nw);
 void init_script(py::module& nw);
 
+void init_nwn1(py::module& m);
+
 PYBIND11_MODULE(rollnw, nw)
 {
     nw.doc() = "rollnw python wrapper";
@@ -48,4 +50,6 @@ PYBIND11_MODULE(rollnw, nw)
     init_script(script);
     py::module model = nw.def_submodule("model");
     init_model(model);
+    py::module nwn1 = nw.def_submodule("nwn1");
+    init_nwn1(nwn1);
 }
