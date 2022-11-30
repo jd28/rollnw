@@ -70,6 +70,24 @@ bool effect_remove_is_creature(nw::ObjectBase* obj, const nw::Effect*)
     return !!obj->as_creature();
 }
 
+bool effect_haste_apply(nw::ObjectBase* obj, const nw::Effect*)
+{
+    if (auto cre = obj->as_creature()) {
+        ++cre->hasted;
+        return true;
+    }
+    return false;
+}
+
+bool effect_haste_remove(nw::ObjectBase* obj, const nw::Effect*)
+{
+    if (auto cre = obj->as_creature()) {
+        if (cre->hasted) { --cre->hasted; }
+        return true;
+    }
+    return false;
+}
+
 // == Effect Creation =========================================================
 // ============================================================================
 
@@ -100,7 +118,7 @@ nw::Effect* effect_armor_class_modifier(nw::ArmorClass type, int modifier)
 nw::Effect* effect_attack_modifier(nw::AttackType attack, int modifier)
 {
     if (modifier == 0) { return nullptr; }
-    auto eff = nw::kernel::effects().create(effect_type_haste);
+    auto eff = nw::kernel::effects().create(effect_type_attack_increase);
     eff->type = modifier > 0 ? effect_type_attack_increase : effect_type_attack_decrease;
     eff->subtype = *attack;
     eff->set_int(0, modifier);
@@ -122,24 +140,6 @@ nw::Effect* effect_skill_modifier(nw::Skill skill, int modifier)
     eff->subtype = *skill;
     eff->set_int(0, value);
     return eff;
-}
-
-bool effect_haste_apply(nw::ObjectBase* obj, const nw::Effect*)
-{
-    if (auto cre = obj->as_creature()) {
-        ++cre->hasted;
-        return true;
-    }
-    return false;
-}
-
-bool effect_haste_remove(nw::ObjectBase* obj, const nw::Effect*)
-{
-    if (auto cre = obj->as_creature()) {
-        if (cre->hasted) { --cre->hasted; }
-        return true;
-    }
-    return false;
 }
 
 // == Item Properties =========================================================
