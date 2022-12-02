@@ -13,6 +13,7 @@ void init_formats(py::module& nw);
 void init_i18n(py::module& nw);
 void init_objects(py::module& nw);
 void init_resources(py::module& nw);
+void init_rules(py::module& nw);
 void init_serialization(py::module& nw);
 void init_util(py::module& nw);
 
@@ -40,6 +41,7 @@ PYBIND11_MODULE(rollnw, nw)
     init_i18n(nw);
     init_objects(nw);
     init_resources(nw);
+    init_rules(nw);
     init_serialization(nw);
     init_util(nw);
     wrap_vmath(nw);

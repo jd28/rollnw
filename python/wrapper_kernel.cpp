@@ -10,6 +10,7 @@
 #include <nw/components/Store.hpp>
 #include <nw/components/Trigger.hpp>
 #include <nw/components/Waypoint.hpp>
+#include <nw/kernel/EffectSystem.hpp>
 #include <nw/kernel/Kernel.hpp>
 #include <nw/kernel/Objects.hpp>
 #include <nw/kernel/ParsedScriptCache.hpp>
@@ -65,6 +66,31 @@ void init_kernel_config(py::module& kernel)
         .def("options", &nw::kernel::Config::options)
         .def("resolve_alias", &nw::kernel::Config::resolve_alias)
         .def("userpatch_ini", &nw::kernel::Config::userpatch_ini);
+}
+
+void init_kernel_effects(py::module& kernel)
+{
+    py::class_<nw::kernel::EffectSystemStats>(kernel, "EffectSystemStats")
+        .def_readonly("free_list_size", &nw::kernel::EffectSystemStats::free_list_size)
+        .def_readonly("pool_size", &nw::kernel::EffectSystemStats::pool_size);
+
+    py::class_<nw::kernel::EffectSystem>(kernel, "EffectSystem")
+        // Unexposed:
+        // - Effect* generate(const ItemProperty& property, EquipIndex index, BaseItem baseitem) const;
+        // - virtual void initialize() override;
+        // - virtual void clear() override;
+        .def("add_effect", py::overload_cast<nw::EffectType, nw::kernel::EffectFunc, nw::kernel::EffectFunc>(&nw::kernel::EffectSystem::add))
+        .def("add_itemprop", py::overload_cast<nw::ItemPropertyType, nw::kernel::ItemPropFunc>(&nw::kernel::EffectSystem::add))
+        .def("apply", &nw::kernel::EffectSystem::apply)
+        .def("create", &nw::kernel::EffectSystem::create, py::return_value_policy::reference)
+        .def("destroy", &nw::kernel::EffectSystem::destroy)
+        .def("ip_cost_table", &nw::kernel::EffectSystem::ip_cost_table)
+        .def("ip_definition", &nw::kernel::EffectSystem::ip_definition)
+        .def("ip_param_table", &nw::kernel::EffectSystem::ip_param_table)
+        .def("remove", &nw::kernel::EffectSystem::remove)
+        .def("stats", &nw::kernel::EffectSystem::stats);
+
+    kernel.def("effects", &nw::kernel::effects, py::return_value_policy::reference);
 }
 
 template <typename T>
@@ -173,6 +199,7 @@ void init_kernel_twoda_cache(py::module& kernel)
 void init_kernel(py::module& kernel)
 {
     init_kernel_config(kernel);
+    init_kernel_effects(kernel);
     init_kernel_objects(kernel);
     init_kernel_resources(kernel);
     init_kernel_rules(kernel);

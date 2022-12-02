@@ -1816,5 +1816,84 @@ class Zip(Container):
 # Rules #######################################################################
 ###############################################################################
 
+
+class EffectCategory(enum.IntEnum):
+    """Effect category
+    """
+    magical = auto()
+    extraordinary = auto()
+    supernatural = auto()
+    item = auto()
+    innate = auto()
+
+
+class EffectID:
+    """Effect ID
+
+    Attributes:
+        version (int)
+        index (int)
+    """
+
+
+class EffectHandle:
+    """Effect Handle
+
+    Attributes:
+        type (int)
+        subtype (int)
+        creator (ObjectHandle)
+        spell_id (int)
+        category (EffectCategory)
+        effect (Effect)
+    """
+    pass
+
+
+class Effect:
+    def clear(self):
+        """Clears the effect such that it's as if default constructed"""
+        pass
+
+    def get_float(self, index):
+        """Gets a floating point value"""
+        pass
+
+    def get_int(self, index):
+        """Gets an integer point value"""
+        pass
+
+    def get_string(self, index):
+        """Gets a string value"""
+        pass
+
+    def handle(self):
+        """Gets the effect's handle"""
+        pass
+
+    def id(self):
+        """Gets the effect's ID"""
+        pass
+
+    def set_float(self, index, value):
+        """Sets a floating point value"""
+        pass
+
+    def set_int(self, index, value):
+        """Sets an integer point value"""
+        pass
+
+    def set_string(self, index, value):
+        """Sets a string value"""
+        pass
+
+    def set_versus(self, vs):
+        """Sets the versus value"""
+        pass
+
+    def versus(self):
+        """Gets the versus value"""
+        pass
+
 # Serialization ###############################################################
 ###############################################################################

@@ -15,6 +15,7 @@ pybind11_add_module(rollnw NO_EXTRAS
     wrapper_objects_components.cpp
     wrapper_objects.cpp
     wrapper_resources.cpp
+    wrapper_rules.cpp
     wrapper_script.cpp
     wrapper_serialization.cpp
     wrapper_util.cpp

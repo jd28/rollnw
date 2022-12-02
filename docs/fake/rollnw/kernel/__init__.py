@@ -1,5 +1,6 @@
 from .. import GameVersion, Module, PathAlias, Ini, Container, TwoDA, Resource
-from .. import ObjectHandle, Area, Creature, Door, Encounter, Placeable, Store, Trigger, Waypoint
+from .. import ObjectBase, ObjectHandle, Area, Creature, Door, Encounter, Placeable, Store, Trigger, Waypoint
+from .. import Effect
 from ..script import Script
 
 # Classes #####################################################################
@@ -54,6 +55,56 @@ class Config:
         """Gets parsed userpatch.ini
         """
         pass
+
+
+class EffectSystemStats:
+    """Effect system stat data
+
+    Attributes:
+        free_list_size (int)
+        pool_size (int)
+    """
+    pass
+
+
+class EffectSystem:
+    def add(self, type, apply, remove):
+        """Adds an effect type to the registry"""
+        pass
+
+    def add(self, type,  generator):
+        """Adds an item property type to the registry"""
+        pass
+
+    def apply(self, obj: ObjectBase, effect: Effect) -> bool:
+        """Applies an effect to an object"""
+        pass
+
+    def create(self, type) -> Effect:
+        """Creates an effect"""
+        pass
+
+    def destroy(self, effect: Effect) -> None:
+        """Destroys an effect"""
+
+    def ip_cost_table(self, table: int) -> TwoDA | None:
+        """Gets an item property cost table"""
+        pass
+
+    def ip_definition(self, type):
+        """Gets an item property definition"""
+        pass
+
+    def ip_param_table(self, table: int) -> TwoDA | None:
+        """Gets an item property param table"""
+        pass
+
+    def remove(self, obj: ObjectBase, effect: Effect) -> bool:
+        """Removes an effect to an object"""
+        pass
+
+    def stats(self) -> EffectSystemStats:
+        """Gets stats regarding the effect system"""
 
 
 class Objects:
@@ -152,6 +203,11 @@ def load_module(mod: str, manifest: str) -> Module:
         mod
         manifest (str): NWSynch manifest hash
     """
+    pass
+
+
+def effects():
+    """Gets effects service"""
     pass
 
 
