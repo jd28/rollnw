@@ -303,7 +303,7 @@ class LevelHistory:
     """Implements a creatures levelup history
 
     Attributes:
-        entries ([LevelHistoryEntry]): Entries for levels
+        entries ([LevelUp]): Entries for levels
     """
     pass
 
