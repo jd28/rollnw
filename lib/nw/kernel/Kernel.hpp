@@ -41,8 +41,10 @@ struct ServiceEntry {
 struct Services {
     Services();
 
+    /// Initializes kernel services
     void start();
 
+    /// Shutsdown kernel services
     void shutdown();
 
     /// Sets game profile

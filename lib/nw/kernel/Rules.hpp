@@ -350,4 +350,25 @@ T resolve_master_feat(const Creature* obj, U type, MasterFeat mfeat)
     return result;
 }
 
+/**
+ * @brief Sum master feat bonus
+ *
+ * @tparam T Return type
+ * @tparam U Rule type
+ * @tparam Args MasterFeat...
+ * @param obj Creature object
+ * @param type Rule value
+ * @param mfeats ``MasterFeat``s
+ */
+template <typename T, typename U, typename... MasterFeats>
+T sum_master_feats(const Creature* obj, U type, MasterFeats... mfeats)
+{
+    T result{};
+    resolve_master_feats<T>(
+        obj, type,
+        [&result](T val) { result += val; },
+        mfeats...);
+    return result;
+}
+
 } // namespace nw::kernel

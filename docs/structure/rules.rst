@@ -191,16 +191,27 @@ for all martial weapons.
 
     auto& mfr = nw::kernel::rules().master_feats;
     // Set up bonuses...
+    mfr->set_bonus(mfeat_weapon_focus, 1);
+    mfr->set_bonus(mfeat_weapon_focus_epic, 2);
+
+    // Register feats
     mfr.add(baseitem_longsword, mfeat_weapon_focus, feat_weapon_focus_longsword);
     mfr.add(baseitem_longsword, mfeat_weapon_focus, feat_weapon_focus_martial);
+    mfr.add(baseitem_longsword, mfeat_weapon_focus_epic, feat_epic_weapon_focus_longsword);
+    mfr.add(baseitem_longsword, mfeat_weapon_focus_epic, feat_epic_weapon_focus_martial);
 
+    // Process
     auto callback = [](int value) { /* do something with value */ };
     nw::kernel::resolve_master_feats<int>(cre, baseitem, callback,
        mfeat_weapon_focus, mfeat_weapon_focus_epic);
 
+    // Simple sums of master feat bonuses can be done as below.
+    int value = nw::kernel::sum_master_feats<int>(cre, baseitem,
+       mfeat_weapon_focus, mfeat_weapon_focus_epic);
+
     // If you are only interested in resolving one master feat you can get that result
     // directly:
-    int value = nw::kernel::resolve_master_feat<int>(cre, baseitem, mfeat_weapon_focus);
+    int value2 = nw::kernel::resolve_master_feat<int>(cre, baseitem, mfeat_weapon_focus);
 
 
 -------------------------------------------------------------------------------

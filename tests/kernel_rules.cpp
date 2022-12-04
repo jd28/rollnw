@@ -1,18 +1,15 @@
 #include <catch2/catch_all.hpp>
 
 #include <nw/kernel/Kernel.hpp>
+#include <nw/kernel/Objects.hpp>
 #include <nw/kernel/Rules.hpp>
-#include <nw/kernel/TwoDACache.hpp>
-#include <nw/rules/Class.hpp>
-#include <nw/rules/Spell.hpp>
-#include <nw/rules/attributes.hpp>
-#include <nw/rules/feats.hpp>
-#include <nw/rules/items.hpp>
+#include <nw/util/game_install.hpp>
 #include <nwn1/Profile.hpp>
 
-#include <nw/util/game_install.hpp>
+#include <filesystem>
 
 namespace nwk = nw::kernel;
+namespace fs = std::filesystem;
 
 TEST_CASE("rules system: class info", "[kernel]")
 {
@@ -53,5 +50,28 @@ TEST_CASE("rules system: class info", "[kernel]")
     auto req = nwk::rules().classes.get_requirement(nwn1::class_type_dwarven_defender);
     REQUIRE(req);
     REQUIRE(req->main.size() == 4);
+    nw::kernel::unload_module();
+}
+
+TEST_CASE("rules: master feats", "[kernel]")
+{
+    auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
+    REQUIRE(mod);
+
+    auto obj = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/drorry.utc"));
+    REQUIRE(obj);
+
+    int result = nw::kernel::sum_master_feats<int>(
+        obj, nwn1::base_item_scimitar,
+        nwn1::mfeat_weapon_focus, nwn1::mfeat_weapon_focus_epic);
+
+    REQUIRE(result == 3);
+
+    int result2 = nw::kernel::sum_master_feats<int>(
+        obj, nwn1::base_item_gloves,
+        nwn1::mfeat_weapon_focus, nwn1::mfeat_weapon_focus_epic);
+
+    REQUIRE(result2 == 0);
+
     nw::kernel::unload_module();
 }
