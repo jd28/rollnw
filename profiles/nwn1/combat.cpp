@@ -7,6 +7,7 @@
 #include <nw/components/Item.hpp>
 #include <nw/components/LevelStats.hpp>
 #include <nw/functions.hpp>
+#include <nw/kernel/EffectSystem.hpp>
 #include <nw/kernel/Rules.hpp>
 #include <nw/rules/Class.hpp>
 #include <nw/rules/combat.hpp>
@@ -76,7 +77,7 @@ int attack_bonus(const nw::Creature* obj, nw::AttackType type, nw::ObjectBase* v
             decrease_adder, &nw::effect_extract_int0);
     }
 
-    auto [min, max] = nw::kernel::rules().attack_effect_limits();
+    auto [min, max] = nw::kernel::effects().effect_limits_attack();
     return result + modifier + std::clamp(bonus - decrease, min, max);
 }
 

@@ -45,6 +45,18 @@ struct EffectSystem : public Service {
     /// Destroys an effect
     void destroy(Effect* effect);
 
+    /// Gets ability effect minimum and maximum
+    std::pair<int, int> effect_limits_ability() const noexcept;
+
+    /// Gets armor class effect minimum and maximum
+    std::pair<int, int> effect_limits_armor_class() const noexcept;
+
+    /// Gets attack effect minimum and maximum
+    std::pair<int, int> effect_limits_attack() const noexcept;
+
+    /// Gets skill effect minimum and maximum
+    std::pair<int, int> effect_limits_skill() const noexcept;
+
     /// Generates an effect from an item property
     Effect* generate(const ItemProperty& property, EquipIndex index, BaseItem baseitem) const;
 
@@ -63,6 +75,18 @@ struct EffectSystem : public Service {
     /// Removes an effect to an object
     bool remove(ObjectBase* obj, Effect* effect);
 
+    /// Sets ability effect minimum and maximum
+    void set_effect_limits_ability(int min, int max) noexcept;
+
+    /// Sets armor class effect minimum and maximum
+    void set_effect_limits_armor_class(int min, int max) noexcept;
+
+    /// Sets attack effect minimum and maximum
+    void set_effect_limits_attack(int min, int max) noexcept;
+
+    /// Sets skill effect minimum and maximum
+    void set_effect_limits_skill(int min, int max) noexcept;
+
     /// Gets stats regarding the effect system
     EffectSystemStats stats() const noexcept;
 
@@ -72,6 +96,10 @@ private:
     std::vector<ItemPropertyDefinition> ip_definitions_;
     std::vector<const TwoDA*> ip_cost_table_;
     std::vector<const TwoDA*> ip_param_table_;
+    std::pair<int, int> ability_effect_limits_{-12, 12};
+    std::pair<int, int> ac_effect_limits_{-20, 20};
+    std::pair<int, int> attack_effect_limits_{-20, 20};
+    std::pair<int, int> effect_limits_skill_{-50, 50};
 
     std::deque<Effect> pool_;
     std::stack<uint32_t> free_list_;

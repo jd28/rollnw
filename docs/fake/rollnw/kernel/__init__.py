@@ -87,6 +87,22 @@ class EffectSystem:
     def destroy(self, effect: Effect) -> None:
         """Destroys an effect"""
 
+    def effect_limits_ability(self) -> tuple[int, int]:
+        """Gets ability effect minimum and maximum"""
+        pass
+
+    def effect_limits_armor_class(self) -> tuple[int, int]:
+        """Gets armor class effect minimum and maximum"""
+        pass
+
+    def effect_limits_attack(self) -> tuple[int, int]:
+        """Gets attack effect minimum and maximum"""
+        pass
+
+    def effect_limits_skill(self) -> tuple[int, int]:
+        """Gets skill effect minimum and maximum"""
+        pass
+
     def ip_cost_table(self, table: int) -> TwoDA | None:
         """Gets an item property cost table"""
         pass
@@ -101,6 +117,22 @@ class EffectSystem:
 
     def remove(self, obj: ObjectBase, effect: Effect) -> bool:
         """Removes an effect to an object"""
+        pass
+
+    def set_effect_limits_ability(self, min: int,  max: int) -> None:
+        """Sets ability effect minimum and maximum"""
+        pass
+
+    def set_effect_limits_armor_class(self, min: int,  max: int) -> None:
+        """Sets armor class effect minimum and maximum"""
+        pass
+
+    def set_effect_limits_attack(self, min: int,  max: int) -> None:
+        """Sets attack effect minimum and maximum"""
+        pass
+
+    def set_effect_limits_skill(self, min: int,  max: int) -> None:
+        """Sets skill effect minimum and maximum"""
         pass
 
     def stats(self) -> EffectSystemStats:

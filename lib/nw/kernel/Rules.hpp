@@ -25,15 +25,6 @@ struct Rules : public Service {
 
     virtual ~Rules();
 
-    /// Gets ability effect minimum and maximum
-    std::pair<int, int> ability_effect_limits() const noexcept;
-
-    /// Gets armor class effect minimum and maximum
-    std::pair<int, int> armor_class_effect_limits() const noexcept;
-
-    /// Gets attack effect minimum and maximum
-    std::pair<int, int> attack_effect_limits() const noexcept;
-
     /// Initializes rules system
     virtual void initialize() override;
 
@@ -48,15 +39,6 @@ struct Rules : public Service {
 
     /// Select
     RuleValue select(const Selector&, const ObjectBase*) const;
-
-    /// Sets ability effect minimum and maximum
-    void set_ability_effect_limits(int min, int max) noexcept;
-
-    /// Sets armor class effect minimum and maximum
-    void set_armor_class_effect_limits(int min, int max) noexcept;
-
-    /// Sets attack effect minimum and maximum
-    void set_attack_effect_limits(int min, int max) noexcept;
 
     /// Set rules qualifier
     void set_qualifier(qualifier_type match);
@@ -74,9 +56,6 @@ struct Rules : public Service {
     ModifierRegistry modifiers;
 
 private:
-    std::pair<int, int> ability_effect_limits_{-12, 12};
-    std::pair<int, int> ac_effect_limits_{-20, 20};
-    std::pair<int, int> attack_effect_limits_{-20, 20};
     qualifier_type qualifier_;
     selector_type selector_;
 };

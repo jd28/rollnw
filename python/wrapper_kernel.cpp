@@ -84,10 +84,18 @@ void init_kernel_effects(py::module& kernel)
         .def("apply", &nw::kernel::EffectSystem::apply)
         .def("create", &nw::kernel::EffectSystem::create, py::return_value_policy::reference)
         .def("destroy", &nw::kernel::EffectSystem::destroy)
+        .def("effect_limits_ability", &nw::kernel::EffectSystem::effect_limits_ability)
+        .def("effect_limits_armor_class", &nw::kernel::EffectSystem::effect_limits_armor_class)
+        .def("effect_limits_attack", &nw::kernel::EffectSystem::effect_limits_attack)
+        .def("effect_limits_skill", &nw::kernel::EffectSystem::effect_limits_skill)
         .def("ip_cost_table", &nw::kernel::EffectSystem::ip_cost_table)
         .def("ip_definition", &nw::kernel::EffectSystem::ip_definition)
         .def("ip_param_table", &nw::kernel::EffectSystem::ip_param_table)
         .def("remove", &nw::kernel::EffectSystem::remove)
+        .def("set_effect_limits_ability", &nw::kernel::EffectSystem::set_effect_limits_ability)
+        .def("set_effect_limits_armor_class", &nw::kernel::EffectSystem::set_effect_limits_armor_class)
+        .def("set_effect_limits_attack", &nw::kernel::EffectSystem::set_effect_limits_attack)
+        .def("set_effect_limits_skill", &nw::kernel::EffectSystem::set_effect_limits_skill)
         .def("stats", &nw::kernel::EffectSystem::stats);
 
     kernel.def("effects", &nw::kernel::effects, py::return_value_policy::reference);
