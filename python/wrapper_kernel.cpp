@@ -98,7 +98,11 @@ void init_kernel_effects(py::module& kernel)
         .def("set_effect_limits_skill", &nw::kernel::EffectSystem::set_effect_limits_skill)
         .def("stats", &nw::kernel::EffectSystem::stats);
 
-    kernel.def("effects", &nw::kernel::effects, py::return_value_policy::reference);
+    kernel.def(
+        "effects", []() {
+            return &nw::kernel::effects();
+        },
+        py::return_value_policy::reference);
 }
 
 template <typename T>
@@ -139,7 +143,7 @@ void init_kernel_objects(py::module& kernel)
 
     kernel.def(
         "objects", []() {
-            return nw::kernel::services().get_mut<nw::kernel::ObjectSystem>();
+            return &nw::kernel::objects();
         },
         py::return_value_policy::reference);
 }
@@ -151,7 +155,7 @@ void init_kernel_resources(py::module& kernel)
 
     kernel.def(
         "resman", []() {
-            return nw::kernel::services().get_mut<nw::kernel::Resources>();
+            return &nw::kernel::resman();
         },
         py::return_value_policy::reference);
 }
@@ -161,7 +165,7 @@ void init_kernel_rules(py::module& kernel)
     py::class_<nw::kernel::Rules>(kernel, "Rules");
     kernel.def(
         "rules", []() {
-            return nw::kernel::services().get_mut<nw::kernel::Rules>();
+            return &nw::kernel::rules();
         },
         py::return_value_policy::reference);
 }
@@ -184,7 +188,7 @@ void init_kernel_strings(py::module& kernel)
     py::class_<nw::kernel::Strings>(kernel, "Strings");
     kernel.def(
         "strings", []() {
-            return nw::kernel::services().get_mut<nw::kernel::Strings>();
+            return &nw::kernel::strings();
         },
         py::return_value_policy::reference);
 }
@@ -199,7 +203,7 @@ void init_kernel_twoda_cache(py::module& kernel)
 
     kernel.def(
         "twodas", []() {
-            return nw::kernel::services().get_mut<nw::kernel::TwoDACache>();
+            return &nw::kernel::twodas();
         },
         py::return_value_policy::reference);
 }

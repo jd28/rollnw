@@ -2,6 +2,7 @@
 
 #include "../i18n/LocString.hpp"
 #include "../i18n/Tlk.hpp"
+#include "../log.hpp"
 #include "../util/InternedString.hpp"
 #include "Kernel.hpp"
 
@@ -80,8 +81,11 @@ private:
 
 inline Strings& strings()
 {
-    auto res = detail::s_services.get_mut<Strings>();
-    return res ? *res : *detail::s_services.add<Strings>();
+    auto res = detail::s_services.strings.get();
+    if (!res) {
+        LOG_F(FATAL, "kernel: unable to load strings service");
+    }
+    return *res;
 }
 
 } // namespace nw::kernel

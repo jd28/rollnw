@@ -35,8 +35,11 @@ private:
 
 inline TwoDACache& twodas()
 {
-    auto res = detail::s_services.get_mut<TwoDACache>();
-    return res ? *res : *detail::s_services.add<TwoDACache>();
+    auto res = detail::s_services.twoda_cache.get();
+    if (!res) {
+        LOG_F(FATAL, "kernel: unable to load twoda cache service");
+    }
+    return *res;
 }
 
 } // namespace nw::kernel

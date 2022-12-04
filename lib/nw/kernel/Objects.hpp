@@ -214,8 +214,11 @@ T* ObjectSystem::load(std::string_view resref)
 
 inline ObjectSystem& objects()
 {
-    auto res = detail::s_services.get_mut<ObjectSystem>();
-    return res ? *res : *detail::s_services.add<ObjectSystem>();
+    auto res = detail::s_services.objects.get();
+    if (!res) {
+        LOG_F(FATAL, "kernel: unable to load objects service");
+    }
+    return *res;
 }
 
 } // namespace nw::kernel

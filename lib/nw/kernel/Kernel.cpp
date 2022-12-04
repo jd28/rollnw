@@ -3,6 +3,7 @@
 #include "../components/Module.hpp"
 #include "../log.hpp"
 #include "EffectSystem.hpp"
+#include "EventSystem.hpp"
 #include "Objects.hpp"
 #include "ParsedScriptCache.hpp"
 #include "Resources.hpp"
@@ -18,15 +19,43 @@ Services s_services;
 } // namespace detail
 
 Services::Services()
+    : strings{new Strings}
+    , resources{new Resources}
+    , twoda_cache{new TwoDACache}
+    , rules{new Rules}
+    , effects{new EffectSystem}
+    , objects{new ObjectSystem}
+    , events{new EventSystem}
 {
     LOG_F(INFO, "kernel: initializing default services");
-    services().add<Strings>();
-    services().add<Resources>();
-    services().add<ObjectSystem>();
-    services().add<Rules>();
-    services().add<EffectSystem>();
-    services().add<ParsedScriptCache>();
-    services().add<TwoDACache>();
+}
+
+void Services::start()
+{
+    strings->initialize();
+    resources->initialize();
+    twoda_cache->initialize();
+    rules->initialize();
+    effects->initialize();
+    objects->initialize();
+    events->initialize();
+
+    for (auto& s : services_) {
+        s.service->initialize();
+    }
+}
+
+void Services::shutdown()
+{
+    events->clear();
+    objects->clear();
+    effects->clear();
+    rules->clear();
+    twoda_cache->clear();
+
+    for (auto& s : reverse(services_)) {
+        s.service->clear();
+    }
 }
 
 Config& config() { return detail::s_config; }
@@ -51,7 +80,6 @@ Module* load_module(const std::filesystem::path& path, std::string_view manifest
 
 void unload_module()
 {
-    objects().clear();
     resman().unload_module();
     strings().unload_custom_tlk();
 }

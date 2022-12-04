@@ -62,8 +62,11 @@ private:
 
 inline Rules& rules()
 {
-    auto res = detail::s_services.get_mut<Rules>();
-    return res ? *res : *detail::s_services.add<Rules>();
+    auto res = detail::s_services.rules.get();
+    if (!res) {
+        LOG_F(FATAL, "kernel: unable to load rules service");
+    }
+    return *res;
 }
 
 namespace detail {
@@ -157,6 +160,9 @@ find_first_modifier_of(It begin, It end, const ModifierType type, int32_t subtyp
 }
 
 } // namespace detail
+
+// == Modifiers ===============================================================
+// ============================================================================
 
 /**
  * @brief Calculates a modifier
@@ -263,6 +269,9 @@ bool resolve_modifier(const ObjectBase* obj, const ModifierType type, SubType su
     return resolve_modifier(obj, type, subtype, nullptr, cb);
 }
 
+// == Master Feats ============================================================
+// ============================================================================
+
 /**
  * @brief Resolves an arbitrary number of master feats
  *
@@ -293,7 +302,7 @@ void resolve_master_feats(const Creature* obj, U type, Callback cb, Args... mfea
     size_t i = 0;
 
     for (auto mf : mfs) {
-        MasterFeatEntry mfe{mf, static_cast<int32_t>(*type), Feat::invalid()};
+        MasterFeatEntry mfe{mf, *type, Feat::invalid()};
         const auto& mf_bonus = rules().master_feats.get_bonus(mf);
         if (mf_bonus.empty()) { continue; }
 

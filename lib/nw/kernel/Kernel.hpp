@@ -15,6 +15,14 @@ struct Module;
 
 namespace kernel {
 
+struct EffectSystem;
+struct EventSystem;
+struct ObjectSystem;
+struct Resources;
+struct Rules;
+struct Strings;
+struct TwoDACache;
+
 struct Service {
     virtual ~Service() { }
 
@@ -33,19 +41,9 @@ struct ServiceEntry {
 struct Services {
     Services();
 
-    void start()
-    {
-        for (auto& s : services_) {
-            s.service->initialize();
-        }
-    }
+    void start();
 
-    void shutdown()
-    {
-        for (auto& s : reverse(services_)) {
-            s.service->clear();
-        }
-    }
+    void shutdown();
 
     /// Sets game profile
     void set_profile(const GameProfile* profile)
@@ -72,6 +70,14 @@ struct Services {
     /// Gets a service as non-const
     template <typename T>
     T* get_mut();
+
+    std::unique_ptr<Strings> strings;
+    std::unique_ptr<Resources> resources;
+    std::unique_ptr<TwoDACache> twoda_cache;
+    std::unique_ptr<Rules> rules;
+    std::unique_ptr<EffectSystem> effects;
+    std::unique_ptr<ObjectSystem> objects;
+    std::unique_ptr<EventSystem> events;
 
 private:
     std::vector<ServiceEntry> services_;

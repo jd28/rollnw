@@ -47,8 +47,11 @@ struct EventSystem : public Service {
 
 inline EventSystem& events()
 {
-    auto res = detail::s_services.get_mut<EventSystem>();
-    return res ? *res : *detail::s_services.add<EventSystem>();
+    auto res = detail::s_services.events.get();
+    if (!res) {
+        LOG_F(FATAL, "kernel: unable to load events service");
+    }
+    return *res;
 }
 
 } // namespace nw::kernel

@@ -107,8 +107,11 @@ private:
 
 inline EffectSystem& effects()
 {
-    auto res = detail::s_services.get_mut<EffectSystem>();
-    return res ? *res : *detail::s_services.add<EffectSystem>();
+    auto res = detail::s_services.effects.get();
+    if (!res) {
+        LOG_F(FATAL, "kernel: unable to load effects service");
+    }
+    return *res;
 }
 
 } // namespace nw::kernel
