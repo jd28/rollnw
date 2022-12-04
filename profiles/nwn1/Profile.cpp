@@ -49,14 +49,14 @@ static inline bool load_master_feats()
     ADD_SKILL(spot);
     ADD_SKILL(taunt);
     ADD_SKILL(use_magic_device);
-    // ADD_SKILL(appraise);
+    ADD_SKILL(appraise);
     ADD_SKILL(tumble);
     ADD_SKILL(craft_trap);
     ADD_SKILL(bluff);
     ADD_SKILL(intimidate);
     ADD_SKILL(craft_armor);
     ADD_SKILL(craft_weapon);
-    // ADD_SKILL(ride);
+    // ADD_SKILL(ride); -- No feats
 
 #undef ADD_SKILL
 
