@@ -174,7 +174,7 @@ to that skill.
 
 .. code:: cpp
 
-    auto mfr = nw::kernel::world().get_mut<nw::MasterFeatRegistry>();
+    auto& mfr = nw::kernel::rules().master_feats();
     mfr->set_bonus(mfeat_skill_focus, 3);
     mfr->set_bonus(mfeat_skill_focus_epic, 10);
 
@@ -194,13 +194,13 @@ for all martial weapons.
     mfr.add(baseitem_longsword, mfeat_weapon_focus, feat_weapon_focus_longsword);
     mfr.add(baseitem_longsword, mfeat_weapon_focus, feat_weapon_focus_martial);
 
-    // Will return an array of length 2 containing the respective bonuses
     auto callback = [](int value) { /* do something with value */ };
-    mfr.resolve_n<int>(cre, baseitem, callback, mfeat_weapon_focus, mfeat_weapon_focus_epic);
+    nw::kernel::resolve_master_feats<int>(cre, baseitem, callback,
+       mfeat_weapon_focus, mfeat_weapon_focus_epic);
 
     // If you are only interested in resolving one master feat you can get that result
     // directly:
-    int value = mfr.resolve_n<int>(cre, baseitem, callback, mfeat_weapon_focus);
+    int value = nw::kernel::resolve_master_feat<int>(cre, baseitem, mfeat_weapon_focus);
 
 
 -------------------------------------------------------------------------------
