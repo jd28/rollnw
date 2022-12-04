@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>nwn1::effect_skill_modifier &mdash; rollNW  documentation</title>
+      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/tabs.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/doctools.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="nwn1::get_ability_modifier" href="nwn1__get_abiltiy_modifier.html" />
+    <link rel="prev" title="nwn1::effect_haste" href="nwn1__effect_haste.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../index.html" class="icon icon-home"> rollNW
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">getting started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../gs/building.html">building</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gs/using.html">using</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">structure</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../structure/formats.html">formats</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../structure/i18n.html">i18n</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../structure/kernel.html">kernel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../structure/model.html">model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../structure/objects.html">objects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../structure/resources.html">resources</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../structure/rules.html">rules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../structure/script.html">script</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../structure/serialization.html">serialization</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">c++ api</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../classlist.html">classes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../definelist.html">defines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../enumlist.html">enums</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../functionlist.html">functions</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="nw__alignment_axis_from_flags.html">nw::alignment_axis_from_flags</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__always_false.html">nw::always_false</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__count_feats_in_range.html">nw::count_feats_in_range</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__create_unique_tmp_path.html">nw::create_unique_tmp_path</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__decompress.html">nw::decompress</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__documents_path.html">nw::documents_path</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__equip_index_to_string.html">nw::equip_index_to_string</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__equip_slot_to_index.html">nw::equip_slot_to_index</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__expand_path.html">nw::expand_path</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__find_first_effect_of.html">nw::find_first_effect_of</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__from_base64.html">nw::from_base64</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__from_json.html">nw::from_json</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__from_utf8.html">nw::from_utf8</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__from_utf8_by_global_lang.html">nw::from_utf8_by_global_lang</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__from_utf8_by_langid.html">nw::from_utf8_by_langid</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__get_all_available_feats.html">nw::get_all_available_feats</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__gff_to_gffjson.html">nw::gff_to_gffjson</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__has_effect_applied.html">nw::has_effect_applied</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__has_feat_successor.html">nw::has_feat_successor</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__highest_feat_in_range.html">nw::highest_feat_in_range</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__home_path.html">nw::home_path</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__init_logger.html">nw::init_logger</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__istream_read.html">nw::istream_read</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__itemprop_to_string.html">nw::itemprop_to_string</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__kernel__config.html">nw::kernel::config</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__kernel__load_module.html">nw::kernel::load_module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__kernel__load_profile.html">nw::kernel::load_profile</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__kernel__objects.html">nw::kernel::objects</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__kernel__resman.html">nw::kernel::resman</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__kernel__resolve_master_feat.html">nw::kernel::resolve_master_feat</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__kernel__resolve_master_feats.html">nw::kernel::resolve_master_feats</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__kernel__resolve_modifier.html">nw::kernel::resolve_modifier</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__kernel__rules.html">nw::kernel::rules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__kernel__serial_id_to_obj_type.html">nw::kernel::serial_id_to_obj_type</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__kernel__services.html">nw::kernel::services</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__kernel__strings.html">nw::kernel::strings</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__kernel__unload_module.html">nw::kernel::unload_module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__knows_feat.html">nw::knows_feat</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__max_effects_of.html">nw::max_effects_of</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__move_file_safely.html">nw::move_file_safely</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__needs_quote.html">nw::needs_quote</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__operator_eq.html">nw::operator==</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__operator_lshift.html">nw::operator&lt;&lt;</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__operator_lt.html">nw::operator&lt;</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ostream_write.html">nw::ostream_write</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__probe_nwn_install.html">nw::probe_nwn_install</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__resolve_effects_of.html">nw::resolve_effects_of</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__reverse.html">nw::reverse</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__roll_dice.html">nw::roll_dice</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__roll_dice_explode.html">nw::roll_dice_explode</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__string__desanitize_colors.html">nw::string::desanitize_colors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__string__endswith.html">nw::string::endswith</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__string__from.html">nw::string::from</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__string__glob_to_regex.html">nw::string::glob_to_regex</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__string__icmp.html">nw::string::icmp</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__string__join.html">nw::string::join</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__string__ltrim_in_place.html">nw::string::ltrim_in_place</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__string__rtrim_in_place.html">nw::string::rtrim_in_place</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__string__sanitize_colors.html">nw::string::sanitize_colors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__string__split.html">nw::string::split</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__string__startswith.html">nw::string::startswith</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__string__tolower.html">nw::string::tolower</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__string__trim_in_place.html">nw::string::trim_in_place</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__sum_effects_of.html">nw::sum_effects_of</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__to_base64.html">nw::to_base64</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__to_bool.html">nw::to_bool</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__to_json.html">nw::to_json</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__to_underlying.html">nw::to_underlying</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__to_utf8.html">nw::to_utf8</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__to_utf8_by_global_lang.html">nw::to_utf8_by_global_lang</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__to_utf8_by_langid.html">nw::to_utf8_by_langid</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nwn1__attack_bonus.html">nwn1::attack_bonus</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nwn1__base_attack_bonus.html">nwn1::base_attack_bonus</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nwn1__effect_ability_modifier.html">nwn1::effect_ability_modifier</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nwn1__effect_armor_class_modifier.html">nwn1::effect_armor_class_modifier</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nwn1__effect_attack_modifier.html">nwn1::effect_attack_modifier</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nwn1__effect_haste.html">nwn1::effect_haste</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">nwn1::effect_skill_modifier</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nwn1__get_abiltiy_modifier.html">nwn1::get_ability_modifier</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nwn1__get_abiltiy_score.html">nwn1::get_ability_score</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nwn1__get_dex_mod.html">nwn1::get_dex_modifier</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nwn1__get_skill_rank.html">nwn1::get_skill_rank</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nwn1__get_weapon_by_attack_type.html">nwn1::get_weapon_by_attack_type</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nwn1__is_ranged_weapon.html">nwn1::is_ranged_weapon</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nwn1__is_shield.html">nwn1::is_shield</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nwn1__meets_requirements.html">nwn1::meets_requirements</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nwn1__number_of_attacks.html">nwn1::number_of_attacks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nwn1__qual__ability.html">nwn1::qual::ability</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nwn1__qual__alignment.html">nwn1::qual::alignment</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nwn1__qual__class_level.html">nwn1::qual::class_level</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nwn1__qual__feat.html">nwn1::qual::feat</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nwn1__qual__level.html">nwn1::qual::level</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nwn1__qual__race.html">nwn1::qual::race</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nwn1__qual__skill.html">nwn1::qual::skill</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nwn1__sel__ability.html">nwn1::sel::ability</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nwn1__sel__alignment.html">nwn1::sel::alignment</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nwn1__sel__class_level.html">nwn1::sel::class_level</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nwn1__sel__feat.html">nwn1::sel::feat</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nwn1__sel__level.html">nwn1::sel::level</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nwn1__sel__race.html">nwn1::sel::race</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nwn1__sel__skill.html">nwn1::sel::skill</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nwn1__selector.html">nwn1::selector</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nwn1__weapon_is_finessable.html">nwn1::weapon_is_finessable</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nwn1__weapon_iteration.html">nwn1::weapon_iteration</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../typedeflist.html">typedefs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">python api</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../api_python/rollnw.html">rollnw</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api_python/rollnw_kernel.html">rollnw.kernel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api_python/rollnw_model.html">rollnw.model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api_python/rollnw_script.html">rollnw.script</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">gff schemas</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/are.html">are</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/dlg.html">dlg</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/fac.html">fac</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/gic.html">gic</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/git.html">git</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/ifo.html">ifo</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/itp.html">itp</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/jrl.html">jrl</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/utc.html">utc</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/utd.html">utd</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/ute.html">ute</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/uti.html">uti</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/utm.html">utm</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/utp.html">utp</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/uts.html">uts</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/utt.html">utt</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/utw.html">utw</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/vartable.html">vartable</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">rollNW</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home"></a></li>
+          <li class="breadcrumb-item"><a href="../functionlist.html">functions</a></li>
+      <li class="breadcrumb-item active">nwn1::effect_skill_modifier</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/api/function/nwn1__effect_skill_modifier.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <div class="section" id="nwn1-effect-skill-modifier">
+<h1>nwn1::effect_skill_modifier<a class="headerlink" href="#nwn1-effect-skill-modifier" title="Permalink to this headline"></a></h1>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4nwn121effect_skill_modifierEN2nw5SkillEi">
+<span id="_CPPv3N4nwn121effect_skill_modifierEN2nw5SkillEi"></span><span id="_CPPv2N4nwn121effect_skill_modifierEN2nw5SkillEi"></span><span id="nwn1::effect_skill_modifier__nw::Skill.i"></span><span class="target" id="effects_8cpp_1aaa6fbee74df9d29b97a1ae73e67bf764"></span><span class="n"><span class="pre">nw</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../struct/nw__Effect.html#_CPPv4N2nw6EffectE" title="nw::Effect"><span class="n"><span class="pre">Effect</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-prename descclassname"><span class="n"><span class="pre">nwn1</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">effect_skill_modifier</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">nw</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../struct/nw__Skill.html#_CPPv4N2nw5SkillE" title="nw::Skill"><span class="n"><span class="pre">Skill</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">skill</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">modifier</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4nwn121effect_skill_modifierEN2nw5SkillEi" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Creates an skill modifier effect. </p>
+</dd></dl>
+
+</div>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="nwn1__effect_haste.html" class="btn btn-neutral float-left" title="nwn1::effect_haste" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="nwn1__get_abiltiy_modifier.html" class="btn btn-neutral float-right" title="nwn1::get_ability_modifier" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright .</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
