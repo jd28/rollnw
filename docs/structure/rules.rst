@@ -91,20 +91,19 @@ Definitions
 **Modifier Source**
    A modifier source indicates the attribute of an object that modifier is associated with.
 
-**Modifier Inputs**
-   Inputs are a vector of ``int``, ``float``, or ``ModifierFunction`` [2]_.  In the basic cases, the inputs
-   are passed directly without modification.  When a function is an input that function is called on
-   the object and its result passed as an output.
+**Modifier Input**
+   An input is an ``int``, ``float``, or a version of a ``ModifierFunction`` [2]_.
+   In the basic cases, the input is passed directly without modification.  When a
+   function is an input that function is called on the object and its result passed as an output.
 
    .. code:: cpp
 
       mod::ability(ability_strength, 2, { qual::race(racial_type_halforc) }, nw::ModifierSource::race);
 
-**Modifier Outputs**
-   Outputs are to a callback provided to ``nw::Rules::calculate``.  The meaning of these outputs are
-   determined by the modifier type.  The number of output parameters is the same as the input size,
-   so if there had been three ``int`` inputs there would have to be 3 ``int`` parameters in the callback.
-   They currently have to be integer or floating point types.
+**Modifier Output**
+   The output is passed to a callback provided to one of the ``nw::kernel::resolve_modifier`` function overloads.
+   The meaning of these outputs are determined by the modifier type.  The number of output parameters is limited
+   to one.  They currently have to be integer or floating point types.
 
    .. code:: cpp
 
