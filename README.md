@@ -14,13 +14,13 @@ rollNW is an homage to Neverwinter Nights in C++ and Python.  See the [docs](htt
 
 ## Features
 
-- An [ASCII Model Parser](https://rollnw.readthedocs.io/en/latest/structure/model.html)
+- The beginnings of a novel [Rules System](https://rollnw.readthedocs.io/en/latest/structure/rules.html) designed for easily adding, overriding, expanding, or removing any rule and reasonable performance
+- Objects (i.e. Creatures, Waypoints, etc) are implemented at a toolset level.  Or in other words their features cover blueprints, area instances, with support for effects and item properties.  They are still missing some new EE things.  Player Characters are read only, for now.
 - A recursive decent [NWScript Parser](https://rollnw.readthedocs.io/en/latest/structure/script.html)
 - Implementations of pretty much every [NWN File Format](https://rollnw.readthedocs.io/en/latest/structure/formats.html)
+- An [ASCII Model Parser](https://rollnw.readthedocs.io/en/latest/structure/model.html)
 - A Resource Manager that can load all NWN containers (e.g. erf, key, nwsync) and also Zip files.
 - An implementation of NWN's [Localization System](https://rollnw.readthedocs.io/en/latest/structure/i18n.html) focused on utf8 everywhere.
-- A [Serialization System](https://rollnw.readthedocs.io/en/latest/structure/serialization.html) that can transparently handle GFF or JSON.
-- The beginnings of a novel [Rules System](https://rollnw.readthedocs.io/en/latest/structure/rules.html) designed for easily adding, overriding, expanding, or removing any rule and reasonable performance
 
 ## Goals
 
