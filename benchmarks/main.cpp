@@ -9,6 +9,7 @@
 #include <nw/script/Nss.hpp>
 #include <nw/serialization/Gff.hpp>
 #include <nwn1/Profile.hpp>
+#include <nwn1/combat.hpp>
 #include <nwn1/functions.hpp>
 
 #include <benchmark/benchmark.h>
@@ -17,6 +18,9 @@
 #include <toml++/toml.hpp>
 
 #include <fstream>
+
+// Note the resources loaded here should be default NWN resources distributed in the game install
+// files.. for now.
 
 namespace fs = std::filesystem;
 namespace nwk = nw::kernel;
@@ -42,7 +46,7 @@ static void BM_parse_settings_tml(benchmark::State& state)
 static void BM_creature_from_gff(benchmark::State& state)
 {
     for (auto _ : state) {
-        auto ent = nwk::objects().load<nw::Creature>(fs::path("../tests/test_data/user/development/pl_agent_001.utc"));
+        auto ent = nwk::objects().load<nw::Creature>(fs::path("../tests/test_data/user/development/drorry.utc"));
         benchmark::DoNotOptimize(ent);
     }
 }
@@ -58,7 +62,7 @@ static void BM_creature_from_json(benchmark::State& state)
 
 static void BM_creature_to_json(benchmark::State& state)
 {
-    auto ent = nwk::objects().load<nw::Creature>(fs::path("../tests/test_data/user/development/pl_agent_001.utc"));
+    auto ent = nwk::objects().load<nw::Creature>(fs::path("../tests/test_data/user/development/drorry.utc"));
     for (auto _ : state) {
         nlohmann::json j;
         benchmark::DoNotOptimize(nw::Creature::serialize(ent, j, nw::SerializationProfile::instance));
@@ -67,7 +71,7 @@ static void BM_creature_to_json(benchmark::State& state)
 
 static void BM_creature_to_gff(benchmark::State& state)
 {
-    auto ent = nwk::objects().load<nw::Creature>(fs::path("../tests/test_data/user/development/pl_agent_001.utc"));
+    auto ent = nwk::objects().load<nw::Creature>(fs::path("../tests/test_data/user/development/drorry.utc"));
     for (auto _ : state) {
         auto out = nw::Creature::serialize(ent, nw::SerializationProfile::instance);
         benchmark::DoNotOptimize(out);
@@ -76,7 +80,7 @@ static void BM_creature_to_gff(benchmark::State& state)
 
 static void BM_creature_select(benchmark::State& state)
 {
-    auto ent = nwk::objects().load<nw::Creature>(fs::path("../tests/test_data/user/development/pl_agent_001.utc"));
+    auto ent = nwk::objects().load<nw::Creature>(fs::path("../tests/test_data/user/development/drorry.utc"));
     auto sel = nwn1::sel::ability(nwn1::ability_strength);
 
     for (auto _ : state) {
@@ -87,7 +91,7 @@ static void BM_creature_select(benchmark::State& state)
 
 static void BM_creature_select2(benchmark::State& state)
 {
-    auto ent = nwk::objects().load<nw::Creature>(fs::path("../tests/test_data/user/development/pl_agent_001.utc"));
+    auto ent = nwk::objects().load<nw::Creature>(fs::path("../tests/test_data/user/development/drorry.utc"));
     auto sel = nwn1::sel::ability(nwn1::ability_strength);
 
     for (auto _ : state) {
@@ -98,7 +102,7 @@ static void BM_creature_select2(benchmark::State& state)
 
 static void BM_creature_modifier_simple(benchmark::State& state)
 {
-    auto ent = nwk::objects().load<nw::Creature>(fs::path("../tests/test_data/user/development/pl_agent_001.utc"));
+    auto ent = nwk::objects().load<nw::Creature>(fs::path("../tests/test_data/user/development/drorry.utc"));
     ent->levels.entries[0].id = nwn1::class_type_pale_master;
     ent->levels.entries[1].id = nwn1::class_type_dragon_disciple;
 
@@ -112,7 +116,7 @@ static void BM_creature_modifier_simple(benchmark::State& state)
 
 static void BM_creature_modifier_complex(benchmark::State& state)
 {
-    auto ent = nwk::objects().load<nw::Creature>(fs::path("../tests/test_data/user/development/pl_agent_001.utc"));
+    auto ent = nwk::objects().load<nw::Creature>(fs::path("../tests/test_data/user/development/drorry.utc"));
     ent->levels.entries[0].id = nwn1::class_type_pale_master;
     ent->levels.entries[1].id = nwn1::class_type_dragon_disciple;
 
@@ -126,7 +130,7 @@ static void BM_creature_modifier_complex(benchmark::State& state)
 
 static void BM_creature_get_skill_rank(benchmark::State& state)
 {
-    auto ent = nwk::objects().load<nw::Creature>(fs::path("../tests/test_data/user/development/pl_agent_001.utc"));
+    auto ent = nwk::objects().load<nw::Creature>(fs::path("../tests/test_data/user/development/drorry.utc"));
     ent->stats.add_feat(nwn1::feat_skill_focus_discipline);
     ent->stats.add_feat(nwn1::feat_epic_skill_focus_discipline);
     for (auto _ : state) {
@@ -137,11 +141,31 @@ static void BM_creature_get_skill_rank(benchmark::State& state)
 
 static void BM_creature_ability_score(benchmark::State& state)
 {
-    auto ent = nwk::objects().load<nw::Creature>(fs::path("../tests/test_data/user/development/pl_agent_001.utc"));
+    auto ent = nwk::objects().load<nw::Creature>(fs::path("../tests/test_data/user/development/drorry.utc"));
     ent->stats.add_feat(nwn1::feat_epic_great_strength_1);
     ent->stats.add_feat(nwn1::feat_epic_great_strength_2);
     for (auto _ : state) {
         auto out = nwn1::get_ability_score(ent, nwn1::ability_strength, false);
+        benchmark::DoNotOptimize(out);
+    }
+}
+
+static void BM_creature_armor_class(benchmark::State& state)
+{
+    auto obj = nwk::objects().load<nw::Creature>(fs::path("../tests/test_data/user/development/drorry.utc"));
+    auto vs = nwk::objects().load<nw::Creature>(fs::path("../tests/test_data/user/development/drorry.utc"));
+    for (auto _ : state) {
+        auto out = nwn1::calculate_ac_versus(obj, vs, false);
+        benchmark::DoNotOptimize(out);
+    }
+}
+
+static void BM_creature_attack_bonus(benchmark::State& state)
+{
+    auto obj = nwk::objects().load<nw::Creature>(fs::path("../tests/test_data/user/development/drorry.utc"));
+    auto vs = nwk::objects().load<nw::Creature>(fs::path("../tests/test_data/user/development/drorry.utc"));
+    for (auto _ : state) {
+        auto out = nwn1::attack_bonus(obj, nwn1::attack_type_onhand, vs);
         benchmark::DoNotOptimize(out);
     }
 }
@@ -175,6 +199,8 @@ BENCHMARK(BM_creature_modifier_simple);
 BENCHMARK(BM_creature_modifier_complex);
 BENCHMARK(BM_creature_get_skill_rank);
 BENCHMARK(BM_creature_ability_score);
+BENCHMARK(BM_creature_armor_class);
+BENCHMARK(BM_creature_attack_bonus);
 
 BENCHMARK(BM_formats_nss);
 BENCHMARK(BM_model_parse);
