@@ -94,7 +94,7 @@ bool Item::deserialize(Item* obj, const GffStruct& archive, SerializationProfile
         archive.get_to("ArmorPart_RFArm", obj->model_parts[ItemModelParts::armor_rfarm]);
         archive.get_to("ArmorPart_RFoot", obj->model_parts[ItemModelParts::armor_rfoot]);
         archive.get_to("ArmorPart_RHand", obj->model_parts[ItemModelParts::armor_rhand]);
-        archive.get_to("ArmorPart_Robe", obj->model_parts[ItemModelParts::armor_robe]);
+        archive.get_to("ArmorPart_Robe", obj->model_parts[ItemModelParts::armor_robe], false);
         archive.get_to("ArmorPart_RShin", obj->model_parts[ItemModelParts::armor_rshin]);
         archive.get_to("ArmorPart_RShoul", obj->model_parts[ItemModelParts::armor_rshoul]);
         archive.get_to("ArmorPart_RThigh", obj->model_parts[ItemModelParts::armor_rthigh]);
