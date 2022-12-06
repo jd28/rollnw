@@ -2,8 +2,8 @@
 #include "opaque_types.hpp"
 #include "pybind11_json/pybind11_json.hpp"
 
-#include <nw/components/Creature.hpp>
-#include <nw/components/Item.hpp>
+#include <nw/objects/Creature.hpp>
+#include <nw/objects/Item.hpp>
 
 #include <nwn1/combat.hpp>
 #include <nwn1/effects.hpp>

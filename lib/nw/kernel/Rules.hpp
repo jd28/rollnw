@@ -1,9 +1,9 @@
 #pragma once
 
-#include "../components/Creature.hpp"
-#include "../components/ObjectBase.hpp"
 #include "../formats/TwoDA.hpp"
 #include "../log.hpp"
+#include "../objects/Creature.hpp"
+#include "../objects/ObjectBase.hpp"
 #include "../rules/Class.hpp"
 #include "../rules/Spell.hpp"
 #include "../rules/attributes.hpp"

@@ -1,7 +1,7 @@
 #include <catch2/catch_all.hpp>
 
-#include <nw/components/Waypoint.hpp>
 #include <nw/kernel/Objects.hpp>
+#include <nw/objects/Waypoint.hpp>
 #include <nw/serialization/Serialization.hpp>
 
 #include <nlohmann/json.hpp>

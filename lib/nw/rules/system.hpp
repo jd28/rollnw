@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../components/ObjectBase.hpp"
 #include "../kernel/Strings.hpp"
+#include "../objects/ObjectBase.hpp"
 #include "../util/Variant.hpp"
 #include "Versus.hpp"
 #include "attributes.hpp"

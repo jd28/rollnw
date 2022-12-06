@@ -2,7 +2,7 @@
 
 #include "functions.hpp"
 
-#include <nw/components/ObjectBase.hpp>
+#include <nw/objects/ObjectBase.hpp>
 #include <nw/rules/system.hpp>
 
 namespace nwn1 {

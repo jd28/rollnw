@@ -1,7 +1,7 @@
 #include <catch2/catch_all.hpp>
 
-#include <nw/components/Item.hpp>
 #include <nw/kernel/Objects.hpp>
+#include <nw/objects/Item.hpp>
 #include <nw/serialization/Serialization.hpp>
 #include <nwn1/functions.hpp>
 

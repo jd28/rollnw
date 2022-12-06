@@ -1,17 +1,17 @@
 #pragma once
 
-#include <nw/components/Area.hpp>
-#include <nw/components/Creature.hpp>
-#include <nw/components/Door.hpp>
-#include <nw/components/Encounter.hpp>
-#include <nw/components/Item.hpp>
-#include <nw/components/Module.hpp>
-#include <nw/components/ObjectBase.hpp>
-#include <nw/components/Placeable.hpp>
-#include <nw/components/Sound.hpp>
-#include <nw/components/Store.hpp>
-#include <nw/components/Trigger.hpp>
-#include <nw/components/Waypoint.hpp>
+#include <nw/objects/Area.hpp>
+#include <nw/objects/Creature.hpp>
+#include <nw/objects/Door.hpp>
+#include <nw/objects/Encounter.hpp>
+#include <nw/objects/Item.hpp>
+#include <nw/objects/Module.hpp>
+#include <nw/objects/ObjectBase.hpp>
+#include <nw/objects/Placeable.hpp>
+#include <nw/objects/Sound.hpp>
+#include <nw/objects/Store.hpp>
+#include <nw/objects/Trigger.hpp>
+#include <nw/objects/Waypoint.hpp>
 #include <nw/resources/ResourceDescriptor.hpp>
 #include <nw/resources/Resref.hpp>
 

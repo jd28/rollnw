@@ -1,6 +1,6 @@
 #include "opaque_types.hpp"
 
-#include <nw/components/Item.hpp>
+#include <nw/objects/Item.hpp>
 
 namespace py = pybind11;
 

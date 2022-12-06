@@ -5,13 +5,13 @@
 #include "constants/const_feat.hpp"
 #include "functions.hpp"
 
-#include <nw/components/Common.hpp>
-#include <nw/components/Creature.hpp>
 #include <nw/functions.hpp>
 #include <nw/kernel/Kernel.hpp>
 #include <nw/kernel/Rules.hpp>
 #include <nw/kernel/TwoDACache.hpp>
 #include <nw/log.hpp>
+#include <nw/objects/Common.hpp>
+#include <nw/objects/Creature.hpp>
 #include <nw/rules/Class.hpp>
 #include <nw/rules/combat.hpp>
 #include <nw/rules/feats.hpp>

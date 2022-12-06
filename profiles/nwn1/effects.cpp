@@ -5,10 +5,10 @@
 #include "functions.hpp"
 
 #include <algorithm>
-#include <nw/components/Creature.hpp>
 #include <nw/kernel/EffectSystem.hpp>
 #include <nw/kernel/Rules.hpp>
 #include <nw/kernel/Strings.hpp>
+#include <nw/objects/Creature.hpp>
 #include <nw/rules/Effect.hpp>
 #include <nw/rules/attributes.hpp>
 #include <nw/rules/items.hpp>

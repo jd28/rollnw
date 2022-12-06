@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../components/ObjectBase.hpp"
+#include "../objects/ObjectBase.hpp"
 #include "Kernel.hpp"
 
 #include <queue>

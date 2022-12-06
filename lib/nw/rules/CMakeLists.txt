@@ -13,5 +13,5 @@ add_library(nw-rules STATIC
 target_link_libraries(nw-rules PRIVATE
     nw-base
     nw-libraries
-    nw-components
+    nw-objects
 )

@@ -1,9 +1,9 @@
 #include <catch2/catch_all.hpp>
 
-#include <nw/components/Creature.hpp>
 #include <nw/functions.hpp>
 #include <nw/kernel/Objects.hpp>
 #include <nw/kernel/Rules.hpp>
+#include <nw/objects/Creature.hpp>
 #include <nw/rules/feats.hpp>
 #include <nw/rules/system.hpp>
 #include <nwn1/Profile.hpp>

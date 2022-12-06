@@ -1,20 +1,20 @@
 #include "casters.hpp"
 #include "opaque_types.hpp"
 
-#include <nw/components/Appearance.hpp>
-#include <nw/components/CombatInfo.hpp>
-#include <nw/components/Common.hpp>
-#include <nw/components/CreatureStats.hpp>
-#include <nw/components/Equips.hpp>
-#include <nw/components/Inventory.hpp>
-#include <nw/components/Item.hpp>
-#include <nw/components/LevelHistory.hpp>
-#include <nw/components/LevelStats.hpp>
-#include <nw/components/Location.hpp>
-#include <nw/components/Lock.hpp>
-#include <nw/components/Saves.hpp>
-#include <nw/components/SpellBook.hpp>
-#include <nw/components/Trap.hpp>
+#include <nw/objects/Appearance.hpp>
+#include <nw/objects/CombatInfo.hpp>
+#include <nw/objects/Common.hpp>
+#include <nw/objects/CreatureStats.hpp>
+#include <nw/objects/Equips.hpp>
+#include <nw/objects/Inventory.hpp>
+#include <nw/objects/Item.hpp>
+#include <nw/objects/LevelHistory.hpp>
+#include <nw/objects/LevelStats.hpp>
+#include <nw/objects/Location.hpp>
+#include <nw/objects/Lock.hpp>
+#include <nw/objects/Saves.hpp>
+#include <nw/objects/SpellBook.hpp>
+#include <nw/objects/Trap.hpp>
 
 #include <pybind11/pybind11.h>
 #include <pybind11_json/pybind11_json.hpp>

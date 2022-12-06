@@ -1,9 +1,9 @@
 #pragma once
 
-#include "../components/Area.hpp"
-#include "../components/Creature.hpp"
-#include "../components/Module.hpp"
-#include "../components/ObjectBase.hpp"
+#include "../objects/Area.hpp"
+#include "../objects/Creature.hpp"
+#include "../objects/Module.hpp"
+#include "../objects/ObjectBase.hpp"
 #include "../serialization/Archives.hpp"
 #include "../util/platform.hpp"
 #include "Kernel.hpp"

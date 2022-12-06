@@ -1,8 +1,8 @@
 #include "feats.hpp"
 
-#include "../components/CreatureStats.hpp"
 #include "../formats/TwoDA.hpp"
 #include "../kernel/Kernel.hpp"
+#include "../objects/CreatureStats.hpp"
 
 namespace nw {
 

@@ -1,10 +1,10 @@
 #include "nw/serialization/Serialization.hpp"
 #include <catch2/catch_all.hpp>
 
-#include <nw/components/Creature.hpp>
-#include <nw/components/Player.hpp>
 #include <nw/kernel/Objects.hpp>
 #include <nw/log.hpp>
+#include <nw/objects/Creature.hpp>
+#include <nw/objects/Player.hpp>
 #include <nwn1/Profile.hpp>
 
 #include <filesystem>

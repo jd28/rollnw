@@ -1,7 +1,7 @@
 #include "Kernel.hpp"
 
-#include "../components/Module.hpp"
 #include "../log.hpp"
+#include "../objects/Module.hpp"
 #include "EffectSystem.hpp"
 #include "EventSystem.hpp"
 #include "Objects.hpp"

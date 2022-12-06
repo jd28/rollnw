@@ -6,12 +6,12 @@
 #include "helpers.hpp"
 #include "rules.hpp"
 
-#include <nw/components/Creature.hpp>
 #include <nw/formats/TwoDA.hpp>
 #include <nw/kernel/EffectSystem.hpp>
 #include <nw/kernel/Resources.hpp>
 #include <nw/kernel/Rules.hpp>
 #include <nw/kernel/TwoDACache.hpp>
+#include <nw/objects/Creature.hpp>
 #include <nw/rules/feats.hpp>
 #include <nw/rules/system.hpp>
 

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../components/ObjectHandle.hpp"
+#include "../objects/ObjectHandle.hpp"
 #include "Spell.hpp"
 #include "Versus.hpp"
 #include "rule_type.hpp"

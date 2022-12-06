@@ -1,7 +1,7 @@
 #pragma once
 
 #include "constants.hpp"
-#include "nw/components/Equips.hpp"
+#include "nw/objects/Equips.hpp"
 #include "nw/rules/combat.hpp"
 
 namespace nw {

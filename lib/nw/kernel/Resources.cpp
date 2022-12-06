@@ -1,6 +1,6 @@
 #include "Resources.hpp"
 
-#include "../components/Module.hpp"
+#include "../objects/Module.hpp"
 #include "../util/game_install.hpp"
 #include "../util/platform.hpp"
 #include "../util/templates.hpp"

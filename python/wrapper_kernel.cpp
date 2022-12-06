@@ -1,21 +1,21 @@
 #include "casters.hpp"
 #include "opaque_types.hpp"
 
-#include <nw/components/Area.hpp>
-#include <nw/components/Creature.hpp>
-#include <nw/components/Door.hpp>
-#include <nw/components/Encounter.hpp>
-#include <nw/components/Module.hpp>
-#include <nw/components/Placeable.hpp>
-#include <nw/components/Store.hpp>
-#include <nw/components/Trigger.hpp>
-#include <nw/components/Waypoint.hpp>
 #include <nw/kernel/EffectSystem.hpp>
 #include <nw/kernel/Kernel.hpp>
 #include <nw/kernel/Objects.hpp>
 #include <nw/kernel/ParsedScriptCache.hpp>
 #include <nw/kernel/Rules.hpp>
 #include <nw/kernel/TwoDACache.hpp>
+#include <nw/objects/Area.hpp>
+#include <nw/objects/Creature.hpp>
+#include <nw/objects/Door.hpp>
+#include <nw/objects/Encounter.hpp>
+#include <nw/objects/Module.hpp>
+#include <nw/objects/Placeable.hpp>
+#include <nw/objects/Store.hpp>
+#include <nw/objects/Trigger.hpp>
+#include <nw/objects/Waypoint.hpp>
 #include <nwn1/Profile.hpp>
 
 #include <pybind11/pybind11.h>

@@ -1,8 +1,8 @@
 #include "functions.hpp"
 
-#include "components/Creature.hpp"
 #include "kernel/EffectSystem.hpp"
 #include "kernel/Rules.hpp"
+#include "objects/Creature.hpp"
 #include "rules/feats.hpp"
 
 namespace nw {

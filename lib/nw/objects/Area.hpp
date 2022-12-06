@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../components/Common.hpp"
-#include "../components/ObjectBase.hpp"
+#include "../objects/Common.hpp"
+#include "../objects/ObjectBase.hpp"
 #include "../serialization/Archives.hpp"
 #include "../util/enum_flags.hpp"
 

@@ -1,4 +1,4 @@
-add_library(nw-components STATIC
+add_library(nw-objects STATIC
     Area.cpp
     Creature.cpp
     Door.cpp
@@ -31,7 +31,7 @@ add_library(nw-components STATIC
     Trap.cpp
 )
 
-target_link_libraries(nw-components PRIVATE
+target_link_libraries(nw-objects PRIVATE
     nw-base
     nw-libraries
 )

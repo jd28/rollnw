@@ -2,13 +2,13 @@
 
 #include "functions.hpp"
 
-#include <nw/components/Creature.hpp>
-#include <nw/components/Equips.hpp>
-#include <nw/components/Item.hpp>
-#include <nw/components/LevelStats.hpp>
 #include <nw/functions.hpp>
 #include <nw/kernel/EffectSystem.hpp>
 #include <nw/kernel/Rules.hpp>
+#include <nw/objects/Creature.hpp>
+#include <nw/objects/Equips.hpp>
+#include <nw/objects/Item.hpp>
+#include <nw/objects/LevelStats.hpp>
 #include <nw/rules/Class.hpp>
 #include <nw/rules/combat.hpp>
 #include <nw/rules/items.hpp>

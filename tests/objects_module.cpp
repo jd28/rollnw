@@ -1,7 +1,7 @@
 #include <catch2/catch_all.hpp>
 
-#include <nw/components/Module.hpp>
 #include <nw/kernel/Objects.hpp>
+#include <nw/objects/Module.hpp>
 #include <nw/serialization/Archives.hpp>
 
 #include <nlohmann/json.hpp>

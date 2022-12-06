@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../components/Saves.hpp"
+#include "../objects/Saves.hpp"
 #include "../resources/Resource.hpp"
 #include "../util/InternedString.hpp"
 #include "rule_type.hpp"

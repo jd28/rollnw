@@ -2,7 +2,7 @@
 
 #include "helpers.hpp"
 
-#include <nw/components/Equips.hpp>
+#include <nw/objects/Equips.hpp>
 
 namespace nwn1 {
 

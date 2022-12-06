@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../components/Equips.hpp"
-#include "../components/ObjectBase.hpp"
+#include "../objects/Equips.hpp"
+#include "../objects/ObjectBase.hpp"
 #include "../rules/Effect.hpp"
 #include "../rules/items.hpp"
 #include "Kernel.hpp"

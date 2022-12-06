@@ -2,7 +2,7 @@
 
 #include "constants.hpp"
 
-#include <nw/components/Equips.hpp>
+#include <nw/objects/Equips.hpp>
 
 namespace nw {
 struct Creature;
