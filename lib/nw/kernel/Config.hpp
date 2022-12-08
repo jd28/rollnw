@@ -47,7 +47,6 @@ struct Config {
 
 private:
     ConfigOptions options_;
-    // Config
     Ini nwn_ini_;
     Ini nwnplayer_ini_;
     Ini userpatch_ini_;

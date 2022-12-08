@@ -187,6 +187,28 @@ static void BM_model_parse(benchmark::State& state)
     }
 }
 
+static void BM_rules_master_feat(benchmark::State& state)
+{
+    auto obj = nwk::objects().load<nw::Creature>(fs::path("../tests/test_data/user/development/drorry.utc"));
+    for (auto _ : state) {
+        int out = nw::kernel::sum_master_feats<int>(
+            obj, nwn1::base_item_scimitar,
+            nwn1::mfeat_weapon_focus, nwn1::mfeat_weapon_focus_epic);
+        benchmark::DoNotOptimize(out);
+    }
+}
+
+static void BM_rules_modifier(benchmark::State& state)
+{
+    auto obj = nwk::objects().load<nw::Creature>(fs::path("../tests/test_data/user/development/drorry.utc"));
+    for (auto _ : state) {
+        int modifier = 0;
+        nw::kernel::resolve_modifier(obj, nwn1::mod_type_attack_bonus, nwn1::attack_type_onhand, nullptr,
+            [&modifier](int value) { modifier += value; });
+        benchmark::DoNotOptimize(modifier);
+    }
+}
+
 BENCHMARK(BM_parse_feat_2da);
 BENCHMARK(BM_parse_settings_tml);
 BENCHMARK(BM_creature_from_gff);
@@ -204,6 +226,9 @@ BENCHMARK(BM_creature_attack_bonus);
 
 BENCHMARK(BM_formats_nss);
 BENCHMARK(BM_model_parse);
+
+BENCHMARK(BM_rules_master_feat);
+BENCHMARK(BM_rules_modifier);
 
 int main(int argc, char** argv)
 {
