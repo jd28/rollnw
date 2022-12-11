@@ -163,7 +163,7 @@ nw::Item* get_weapon_by_attack_type(const nw::Creature* obj, nw::AttackType type
 int number_of_attacks(const nw::Creature* obj, bool offhand)
 {
     int ab = base_attack_bonus(obj);
-    auto equip = offhand ? nw::EquipIndex::lefthand : nw::EquipIndex::lefthand;
+    auto equip = offhand ? nw::EquipIndex::lefthand : nw::EquipIndex::righthand;
     auto item = get_equipped_item(obj, equip);
     int iter = weapon_iteration(obj, item);
     return iter > 0 ? ab / iter : 0;
