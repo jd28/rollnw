@@ -36,6 +36,9 @@ std::pair<bool, int> can_use_monk_abilities(const nw::Creature* obj);
 // == Effects =================================================================
 // ============================================================================
 
+/// Determines if object has effect type applied
+bool has_effect_type_applied(nw::ObjectBase* obj, nw::EffectType type);
+
 /// Queues remove effect events by effect creator
 int queue_remove_effect_by(nw::ObjectBase* obj, nw::ObjectHandle creator);
 

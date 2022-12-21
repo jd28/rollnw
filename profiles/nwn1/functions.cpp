@@ -184,8 +184,18 @@ std::pair<bool, int> can_use_monk_abilities(const nw::Creature* obj)
 // == Effects =================================================================
 // ============================================================================
 
+bool has_effect_type_applied(nw::ObjectBase* obj, nw::EffectType type)
+{
+    if (!obj) { return false; }
+    for (const auto& it : obj->effects()) {
+        if (it.type == type) { return true; }
+    }
+    return false;
+}
+
 int queue_remove_effect_by(nw::ObjectBase* obj, nw::ObjectHandle creator)
 {
+    if (!obj) { return 0; }
     int processed = 0;
     for (const auto& handle : obj->effects()) {
         if (handle.effect->creator == creator) {
