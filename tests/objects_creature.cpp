@@ -380,6 +380,32 @@ TEST_CASE("creature: attack bonus", "[objects]")
     nwk::unload_module();
 }
 
+TEST_CASE("creature: concealment", "[objects]")
+{
+    auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
+    REQUIRE(mod);
+
+    auto obj = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/nw_chicken.utc"));
+    REQUIRE(obj);
+    obj->stats.add_feat(nwn1::feat_epic_self_concealment_30);
+    REQUIRE(nwn1::resolve_concealment(obj) == 30);
+
+    auto eff = nwn1::effect_concealment(25);
+    REQUIRE(eff);
+    REQUIRE(nw::apply_effect(obj, eff));
+    REQUIRE(obj->effects().size() > 0);
+    REQUIRE(*obj->effects().begin()->type == *nwn1::effect_type_concealment);
+    REQUIRE(nwn1::has_effect_type_applied(obj, nwn1::effect_type_concealment));
+    REQUIRE(nwn1::resolve_concealment(obj) == 30);
+
+    auto eff2 = nwn1::effect_miss_chance(35);
+    REQUIRE(eff2);
+    REQUIRE(nw::apply_effect(obj, eff2));
+    REQUIRE(obj->effects().size() > 1);
+    REQUIRE(nwn1::has_effect_type_applied(obj, nwn1::effect_type_miss_chance));
+    REQUIRE(nwn1::resolve_concealment(obj) == 35);
+}
+
 TEST_CASE("creature: to_json", "[objects]")
 {
     auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");

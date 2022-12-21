@@ -37,6 +37,9 @@ nw::ModifierResult target_state_ab(const nw::ObjectBase* obj, const nw::ObjectBa
 nw::ModifierResult weapon_feat_ab(const nw::ObjectBase* obj, int32_t subtype);
 nw::ModifierResult weapon_master_ab(const nw::ObjectBase* obj, int32_t subtype);
 
+// Concealment
+nw::ModifierResult epic_self_concealment(const nw::ObjectBase* obj);
+
 // Damage Resist
 nw::ModifierResult energy_resistance(const nw::ObjectBase* obj, int32_t subtype);
 

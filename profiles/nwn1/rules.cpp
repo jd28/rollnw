@@ -325,6 +325,12 @@ void load_modifiers()
         "dnd-3.0-weaponmaster-ab",
         nw::ModifierSource::class_));
 
+    // Concealment
+    rules.modifiers.add(mod::concealment(
+        epic_self_concealment,
+        "dnd-3.0-self-concealment",
+        nw::ModifierSource::feat));
+
     // Damage Resist
     rules.modifiers.add(mod::damage_resist(
         energy_resistance,
@@ -649,12 +655,22 @@ nw::ModifierResult weapon_master_ab(const nw::ObjectBase* obj, int32_t subtype)
     return result;
 }
 
+// Concealment
+nw::ModifierResult epic_self_concealment(const nw::ObjectBase* obj)
+{
+    if (!obj || !obj->as_creature()) { return {}; }
+    auto cre = obj->as_creature();
+    auto nth = highest_feat_in_range(cre, feat_epic_self_concealment_10, feat_epic_self_concealment_50);
+    if (nth != nw::Feat::invalid()) {
+        return (*nth - *feat_epic_self_concealment_10 + 1) * 10;
+    }
+    return {};
+}
+
 // Damage Resist
 nw::ModifierResult energy_resistance(const nw::ObjectBase* obj, int32_t subtype)
 {
-    if (!obj || !obj->as_creature()) {
-        return {};
-    }
+    if (!obj || !obj->as_creature()) { return {}; }
     auto cre = obj->as_creature();
     auto dmg_type = nw::Damage::make(subtype);
     nw::Feat feat_start, feat_end, resist;
@@ -694,6 +710,7 @@ nw::ModifierResult energy_resistance(const nw::ObjectBase* obj, int32_t subtype)
     return (*nth - *feat_start + 1) * 10;
 }
 
+// Hitpoints
 nw::ModifierResult toughness(const nw::ObjectBase* obj)
 {
     auto cre = obj->as_creature();
