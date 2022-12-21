@@ -30,8 +30,14 @@ nw::Effect* effect_armor_class_modifier(nw::ArmorClass type, int modifier);
 /// Creates an attack modifier effect
 nw::Effect* effect_attack_modifier(nw::AttackType attack, int modifier);
 
+/// Creates concealment effect
+nw::Effect* effect_concealment(int value, nw::MissChanceType type = miss_chance_type_normal);
+
 /// Creates a haste effect
 nw::Effect* effect_haste();
+
+/// Creates miss chance effect
+nw::Effect* effect_miss_chance(int value, nw::MissChanceType type = miss_chance_type_normal);
 
 /// Creates an skill modifier effect
 nw::Effect* effect_skill_modifier(nw::Skill skill, int modifier);

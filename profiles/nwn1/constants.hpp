@@ -520,6 +520,11 @@ constexpr nw::Skill skill_craft_armor = nw::Skill::make(25);
 constexpr nw::Skill skill_craft_weapon = nw::Skill::make(26);
 constexpr nw::Skill skill_ride = nw::Skill::make(27);
 
+constexpr nw::MissChanceType miss_chance_type_darkness = nw::MissChanceType::make(1);
+constexpr nw::MissChanceType miss_chance_type_melee = nw::MissChanceType::make(3);
+constexpr nw::MissChanceType miss_chance_type_normal = nw::MissChanceType::make(0);
+constexpr nw::MissChanceType miss_chance_type_ranged = nw::MissChanceType::make(2);
+
 constexpr nw::ModifierType mod_type_ability = nw::ModifierType::make(0);
 constexpr nw::ModifierType mod_type_armor_class = nw::ModifierType::make(1);
 constexpr nw::ModifierType mod_type_attack_bonus = nw::ModifierType::make(2);

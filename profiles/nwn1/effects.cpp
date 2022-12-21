@@ -36,7 +36,11 @@ void load_effects()
     ADD_IS_CREATURE_EFFECT(effect_type_attack_increase);
     ADD_IS_CREATURE_EFFECT(effect_type_attack_decrease);
 
+    ADD_IS_CREATURE_EFFECT(effect_type_concealment);
+
     nw::kernel::effects().add(effect_type_haste, effect_haste_apply, effect_haste_remove);
+
+    ADD_IS_CREATURE_EFFECT(effect_type_miss_chance);
 
     ADD_IS_CREATURE_EFFECT(effect_type_skill_increase);
     ADD_IS_CREATURE_EFFECT(effect_type_skill_decrease);
@@ -126,9 +130,27 @@ nw::Effect* effect_attack_modifier(nw::AttackType attack, int modifier)
     return eff;
 }
 
+nw::Effect* effect_concealment(int value, nw::MissChanceType type)
+{
+    if (value <= 0) { return nullptr; }
+    auto eff = nw::kernel::effects().create(effect_type_concealment);
+    eff->subtype = *type;
+    eff->set_int(0, value);
+    return eff;
+}
+
 nw::Effect* effect_haste()
 {
     return nw::kernel::effects().create(effect_type_haste);
+}
+
+nw::Effect* effect_miss_chance(int value, nw::MissChanceType type)
+{
+    if (value <= 0) { return nullptr; }
+    auto eff = nw::kernel::effects().create(effect_type_miss_chance);
+    eff->subtype = *type;
+    eff->set_int(0, value);
+    return eff;
 }
 
 nw::Effect* effect_skill_modifier(nw::Skill skill, int modifier)
