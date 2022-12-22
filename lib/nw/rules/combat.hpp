@@ -13,6 +13,60 @@ namespace nw {
 
 DECLARE_RULE_TYPE(AttackType);
 
+enum struct AttackResult {
+    hit_by_auto_success,
+    hit_by_critical,
+    hit_by_roll,
+    miss_by_auto_fail,
+    miss_by_concealment,
+    miss_by_miss_chance,
+    miss_by_roll,
+};
+
+constexpr bool is_attack_type_hit(AttackResult value)
+{
+    switch (value) {
+    default:
+        return false;
+    case AttackResult::hit_by_auto_success:
+        return true;
+    case AttackResult::hit_by_critical:
+        return true;
+    case AttackResult::hit_by_roll:
+        return true;
+    case AttackResult::miss_by_auto_fail:
+        return false;
+    case AttackResult::miss_by_concealment:
+        return false;
+    case AttackResult::miss_by_miss_chance:
+        return false;
+    case AttackResult::miss_by_roll:
+        return false;
+    }
+}
+
+constexpr bool is_attack_type_miss(AttackResult value)
+{
+    switch (value) {
+    default:
+        return false;
+    case AttackResult::hit_by_auto_success:
+        return false;
+    case AttackResult::hit_by_critical:
+        return false;
+    case AttackResult::hit_by_roll:
+        return false;
+    case AttackResult::miss_by_auto_fail:
+        return true;
+    case AttackResult::miss_by_concealment:
+        return true;
+    case AttackResult::miss_by_miss_chance:
+        return true;
+    case AttackResult::miss_by_roll:
+        return true;
+    }
+}
+
 // -- Damage ------------------------------------------------------------------
 // ----------------------------------------------------------------------------
 
