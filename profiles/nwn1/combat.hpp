@@ -31,7 +31,9 @@ int number_of_attacks(const nw::Creature* obj, bool offhand = false);
 nw::Item* get_weapon_by_attack_type(const nw::Creature* obj, nw::AttackType type);
 
 /// Resolves an concealment - i.e. the highest of concealment and miss chance
-int resolve_concealment(const nw::Creature* obj, bool vs_ranged = false);
+/// @return Concealment amount, bool that if ``true`` is from attacking creature i.e miss chance,
+/// if ``false`` from target object i.e. concealment
+std::pair<int, bool> resolve_concealment(const nw::Creature* obj, const nw::ObjectBase* target, bool vs_ranged = false);
 
 /// Determines if a weapon is finessable
 bool weapon_is_finessable(const nw::Creature* obj, nw::Item* weapon);

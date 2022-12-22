@@ -169,12 +169,9 @@ int number_of_attacks(const nw::Creature* obj, bool offhand)
     return iter > 0 ? ab / iter : 0;
 }
 
-int resolve_concealment(const nw::Creature* obj, bool vs_ranged)
+std::pair<int, bool> resolve_concealment(const nw::Creature* obj, const nw::ObjectBase* target, bool vs_ranged)
 {
-    if (!obj) { return 0; }
-    int conceal_mod = 0;
-    nw::kernel::resolve_modifier(obj, mod_type_concealment,
-        [&conceal_mod](int value) { conceal_mod = std::max(conceal_mod, value); });
+    if (!obj || !target) { return {0, false}; }
 
     auto end = std::end(obj->effects());
     int miss_chance_eff = 0;
@@ -192,21 +189,31 @@ int resolve_concealment(const nw::Creature* obj, bool vs_ranged)
         ++it;
     }
 
-    int conceal_eff = 0;
-    it = nw::find_first_effect_of(it, end, effect_type_concealment,
-        *miss_chance_type_normal);
+    int conceal_mod = 0;
+    nw::kernel::resolve_modifier(target, mod_type_concealment,
+        [&conceal_mod](int value) { conceal_mod = std::max(conceal_mod, value); });
 
-    while (it != end && it->type == effect_type_concealment) {
-        if (it->subtype == *miss_chance_type_normal
-            || (it->subtype == *miss_chance_type_melee && !vs_ranged)
-            || (it->subtype == *miss_chance_type_ranged && vs_ranged)) {
-            conceal_eff = std::max(conceal_eff, it->effect->get_int(0));
+    int conceal_eff = 0;
+    auto it2 = nw::find_first_effect_of(std::begin(target->effects()), end, effect_type_concealment,
+        *miss_chance_type_normal);
+    auto end2 = std::end(obj->effects());
+
+    while (it2 != end2 && it2->type == effect_type_concealment) {
+        if (it2->subtype == *miss_chance_type_normal
+            || (it2->subtype == *miss_chance_type_melee && !vs_ranged)
+            || (it2->subtype == *miss_chance_type_ranged && vs_ranged)) {
+            conceal_eff = std::max(conceal_eff, it2->effect->get_int(0));
             // [TODO] Darkness
         }
-        ++it;
+        ++it2;
     }
 
-    return std::max(miss_chance_eff, std::max(conceal_mod, conceal_eff));
+    auto conc = std::max(conceal_mod, conceal_eff);
+    if (miss_chance_eff > conc) {
+        return {miss_chance_eff, true};
+    } else {
+        return {conc, false};
+    }
 }
 
 bool weapon_is_finessable(const nw::Creature* obj, nw::Item* weapon)
