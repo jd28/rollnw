@@ -30,6 +30,9 @@ int number_of_attacks(const nw::Creature* obj, bool offhand = false);
 /// Gets an equipped weapon by attack type
 nw::Item* get_weapon_by_attack_type(const nw::Creature* obj, nw::AttackType type);
 
+/// Resolves an attack roll
+nw::AttackResult resolve_attack_roll(const nw::Creature* obj, nw::AttackType type, nw::ObjectBase* vs);
+
 /// Resolves an concealment - i.e. the highest of concealment and miss chance
 /// @return Concealment amount, bool that if ``true`` is from attacking creature i.e miss chance,
 /// if ``false`` from target object i.e. concealment

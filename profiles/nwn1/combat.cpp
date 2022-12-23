@@ -169,6 +169,47 @@ int number_of_attacks(const nw::Creature* obj, bool offhand)
     return iter > 0 ? ab / iter : 0;
 }
 
+nw::AttackResult resolve_attack_roll(const nw::Creature* obj, nw::AttackType type, nw::ObjectBase* vs)
+{
+    // [TODO], iteration, criticals, lots..
+
+    static constexpr nw::DiceRoll d20{1, 20, 0};
+    const auto roll = nw::roll_dice(d20);
+    if (roll == 1) { return nw::AttackResult::miss_by_auto_fail; }
+
+    auto weapon = get_weapon_by_attack_type(obj, type);
+    auto attack_result = nw::AttackResult::miss_by_roll;
+
+    if (roll == 20) {
+        attack_result = nw::AttackResult::hit_by_auto_success;
+    } else {
+        const auto iter = weapon_iteration(obj, weapon);
+        const auto ab = attack_bonus(obj, type, vs);
+        const auto ac = calculate_ac_versus(obj, vs, false);
+        if (ab + roll >= ac) {
+            attack_result = nw::AttackResult::hit_by_roll;
+        }
+    }
+
+    auto [conceal, source] = resolve_concealment(obj, vs);
+    if (conceal > 0 && !nw::is_attack_type_miss(attack_result)) {
+        nw::DiceRoll d100{1, 100};
+        auto conceal_check = nw::roll_dice(d100);
+        if (conceal_check <= conceal) {
+            if (obj->stats.has_feat(feat_blind_fight)) {
+                conceal_check = nw::roll_dice(d100);
+                if (conceal_check <= conceal) {
+                    attack_result = source ? nw::AttackResult::miss_by_miss_chance : nw::AttackResult::miss_by_concealment;
+                }
+            } else {
+                attack_result = source ? nw::AttackResult::miss_by_miss_chance : nw::AttackResult::miss_by_concealment;
+            }
+        }
+    }
+
+    return attack_result;
+}
+
 std::pair<int, bool> resolve_concealment(const nw::ObjectBase* obj, const nw::ObjectBase* target, bool vs_ranged)
 {
     if (!obj || !target) { return {0, false}; }

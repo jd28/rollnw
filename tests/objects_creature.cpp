@@ -380,6 +380,40 @@ TEST_CASE("creature: attack bonus", "[objects]")
     nwk::unload_module();
 }
 
+TEST_CASE("creature: attack roll", "[objects]")
+{
+    auto obj = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/drorry.utc"));
+    REQUIRE(obj);
+
+    auto target = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/nw_chicken.utc"));
+    REQUIRE(target);
+
+    REQUIRE(nwn1::attack_bonus(obj, nwn1::attack_type_onhand, target) == 45);
+    REQUIRE(nwn1::calculate_ac_versus(target, obj, false) == 11);
+
+    for (size_t i = 0; i < 100; ++i) {
+        auto result = nwn1::resolve_attack_roll(obj, nwn1::attack_type_onhand, target);
+        REQUIRE((result == nw::AttackResult::miss_by_auto_fail || nw::is_attack_type_hit(result)));
+    }
+
+    auto eff = nwn1::effect_concealment(100);
+    REQUIRE(eff);
+    REQUIRE(nw::apply_effect(target, eff));
+    for (size_t i = 0; i < 100; ++i) {
+        auto result = nwn1::resolve_attack_roll(obj, nwn1::attack_type_onhand, target);
+        REQUIRE((result == nw::AttackResult::miss_by_auto_fail || result == nw::AttackResult::miss_by_concealment));
+    }
+    nw::remove_effect(target, eff);
+
+    auto eff2 = nwn1::effect_miss_chance(100);
+    REQUIRE(eff2);
+    REQUIRE(nw::apply_effect(obj, eff2));
+    for (size_t i = 0; i < 100; ++i) {
+        auto result = nwn1::resolve_attack_roll(obj, nwn1::attack_type_onhand, target);
+        REQUIRE((result == nw::AttackResult::miss_by_auto_fail || result == nw::AttackResult::miss_by_miss_chance));
+    }
+}
+
 TEST_CASE("creature: concealment", "[objects]")
 {
     auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
