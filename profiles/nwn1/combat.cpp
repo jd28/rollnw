@@ -194,7 +194,7 @@ std::pair<int, bool> resolve_concealment(const nw::Creature* obj, const nw::Obje
         [&conceal_mod](int value) { conceal_mod = std::max(conceal_mod, value); });
 
     int conceal_eff = 0;
-    auto end2 = std::end(obj->effects());
+    auto end2 = std::end(target->effects());
     auto it2 = nw::find_first_effect_of(std::begin(target->effects()), end2, effect_type_concealment,
         *miss_chance_type_normal);
 
