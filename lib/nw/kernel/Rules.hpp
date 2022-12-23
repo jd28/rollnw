@@ -184,10 +184,7 @@ bool resolve_modifier(const ObjectBase* obj, const Modifier& mod, Callback cb,
     typename detail::function_traits<Callback>::tuple_type output;
     bool res = detail::calc_mod_input(std::get<0>(output), obj, versus, mod.input, subtype);
 
-    if (!res) {
-        LOG_F(ERROR, "Input/output size mismatch");
-        return false;
-    }
+    if (!res) { return false; }
 
     cb(std::get<0>(output));
     return true;

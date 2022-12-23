@@ -664,7 +664,7 @@ nw::ModifierResult epic_self_concealment(const nw::ObjectBase* obj)
     if (nth != nw::Feat::invalid()) {
         return (*nth - *feat_epic_self_concealment_10 + 1) * 10;
     }
-    return {};
+    return 0;
 }
 
 // Damage Resist
@@ -695,7 +695,7 @@ nw::ModifierResult energy_resistance(const nw::ObjectBase* obj, int32_t subtype)
         feat_start = feat_epic_energy_resistance_sonic_1;
         feat_end = feat_epic_energy_resistance_sonic_10;
     } else {
-        return {};
+        return 0;
     }
 
     auto nth = highest_feat_in_range(cre, feat_start, feat_end);
@@ -703,7 +703,7 @@ nw::ModifierResult energy_resistance(const nw::ObjectBase* obj, int32_t subtype)
         if (cre->stats.has_feat(resist)) {
             return 5;
         } else {
-            return {};
+            return 0;
         }
     }
 
