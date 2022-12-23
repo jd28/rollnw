@@ -162,7 +162,7 @@ std::string itemprop_to_string(const nw::ItemProperty& ip)
     if (ip.type == std::numeric_limits<uint16_t>::max()) { return result; }
     auto type = nw::ItemPropertyType::make(ip.type);
     auto def = nw::kernel::effects().ip_definition(type);
-    if (!def) { return nullptr; }
+    if (!def) { return result; }
 
     result = nw::kernel::strings().get(def->game_string);
 
