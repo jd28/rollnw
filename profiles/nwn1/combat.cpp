@@ -169,7 +169,7 @@ int number_of_attacks(const nw::Creature* obj, bool offhand)
     return iter > 0 ? ab / iter : 0;
 }
 
-std::pair<int, bool> resolve_concealment(const nw::Creature* obj, const nw::ObjectBase* target, bool vs_ranged)
+std::pair<int, bool> resolve_concealment(const nw::ObjectBase* obj, const nw::ObjectBase* target, bool vs_ranged)
 {
     if (!obj || !target) { return {0, false}; }
 
