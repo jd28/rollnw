@@ -43,8 +43,10 @@ int attack_bonus(const nw::Creature* obj, nw::AttackType type, nw::ObjectBase* v
     // Modifiers - abilities will be handled by the first modifier search.
     auto mod_adder = [&modifier](int value) { modifier += value; };
     nw::kernel::resolve_modifier(obj, mod_type_attack_bonus, type, versus, mod_adder);
-    // General modifiers, i.e. Epic Prowess
-    nw::kernel::resolve_modifier(obj, mod_type_attack_bonus, attack_type_any, versus, mod_adder);
+    if (type != attack_type_any) {
+        // General modifiers, i.e. Epic Prowess
+        nw::kernel::resolve_modifier(obj, mod_type_attack_bonus, attack_type_any, versus, mod_adder);
+    }
     // Weapon feats, weapon master type stuff occurs below.
     nw::kernel::resolve_modifier(obj, mod_type_attack_bonus_item, baseitem, versus, mod_adder);
     // Combat Modes
