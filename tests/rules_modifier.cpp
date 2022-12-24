@@ -56,9 +56,7 @@ TEST_CASE("modifier kernel", "[rules]")
     REQUIRE(ent);
     ent->levels.entries[0].id = nwn1::class_type_pale_master;
 
-    int res = 0;
-    nwk::resolve_modifier(ent, nwn1::mod_type_armor_class, nwn1::ac_natural,
-        [&res](int value) { res += value; });
+    int res = nwk::sum_modifier<int>(ent, nwn1::mod_type_armor_class, nwn1::ac_natural);
     REQUIRE(res == 6);
 
     auto pm_ac_nerf = [](const nw::ObjectBase* obj) -> nw::ModifierResult {
@@ -74,11 +72,7 @@ TEST_CASE("modifier kernel", "[rules]")
     REQUIRE(nwk::rules().modifiers.replace("dnd-3.0-palemaster-ac", nw::Requirement{}));
     // Set nerf
     REQUIRE(nwk::rules().modifiers.replace("dnd-3.0-palemaster-ac", pm_ac_nerf));
-    res = 0;
-    REQUIRE(nwk::resolve_modifier(ent, nwn1::mod_type_armor_class, nwn1::ac_natural,
-        [&res](int value) {
-            res += value;
-        }));
+    res = nwk::sum_modifier<int>(ent, nwn1::mod_type_armor_class, nwn1::ac_natural);
     REQUIRE(res == 3);
 
     REQUIRE(nwk::rules().modifiers.remove("dnd-3.0-palemaster-*"));

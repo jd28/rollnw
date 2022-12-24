@@ -230,9 +230,7 @@ std::pair<int, bool> resolve_concealment(const nw::ObjectBase* obj, const nw::Ob
         ++it;
     }
 
-    int conceal_mod = 0;
-    nw::kernel::resolve_modifier(target, mod_type_concealment,
-        [&conceal_mod](int value) { conceal_mod = std::max(conceal_mod, value); });
+    int conceal_mod = nw::kernel::sum_modifier<int>(target, mod_type_concealment);
 
     int conceal_eff = 0;
     auto end2 = std::end(target->effects());

@@ -266,6 +266,66 @@ bool resolve_modifier(const ObjectBase* obj, const ModifierType type, SubType su
     return resolve_modifier(obj, type, subtype, nullptr, cb);
 }
 
+/**
+ * @brief Sums all modifiers of `type` versus an object
+ * @overload sum_modifier(const ObjectBase* obj, const ModifierType type, const ObjectBase* versus)
+ * @tparam T
+ */
+template <typename T>
+T sum_modifier(const ObjectBase* obj, const ModifierType type,
+    const ObjectBase* versus)
+{
+    T result{};
+    auto cb = [&result](const T value) { result += value; };
+    resolve_modifier(obj, type, versus, cb);
+    return result;
+}
+
+/**
+ * @brief Sums all modifiers of `type`
+ * @overload sum_modifier(const ObjectBase* obj, const ModifierType type)
+ * @tparam T
+ */
+template <typename T>
+T sum_modifier(const ObjectBase* obj, const ModifierType type)
+{
+    T result{};
+    auto cb = [&result](const T value) { result += value; };
+    if (!resolve_modifier(obj, type, static_cast<const ObjectBase*>(nullptr), cb)) { return T{}; }
+    return result;
+}
+
+/**
+ * @brief Sums all modifiers of a `type` and `subtype` versus another object
+ * @overload sum_modifier(const ObjectBase* obj, const ModifierType type, SubType subtype, const ObjectBase* versus)
+ * @tparam T
+ * @tparam U is some rule subtype
+ */
+template <typename T, typename SubType>
+T sum_modifier(const ObjectBase* obj, const ModifierType type, SubType subtype,
+    const ObjectBase* versus)
+{
+    T result{};
+    auto cb = [&result](const T value) { result += value; };
+    if (!resolve_modifier(obj, type, versus, subtype, cb)) { return T{}; }
+    return result;
+}
+
+/**
+ * @brief Sums all modifiers of a `type` and `subtype`
+ * @overload sum_modifier(const ObjectBase* obj, const ModifierType type, SubType subtype)
+ * @tparam T
+ * @tparam U is some rule subtype
+ */
+template <typename T, typename SubType>
+T sum_modifier(const ObjectBase* obj, const ModifierType type, SubType subtype)
+{
+    T result{};
+    auto cb = [&result](const T value) { result += value; };
+    if (!resolve_modifier(obj, type, subtype, cb)) { return T{}; }
+    return result;
+}
+
 // == Master Feats ============================================================
 // ============================================================================
 
