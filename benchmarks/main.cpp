@@ -1,4 +1,5 @@
 #include <nw/formats/TwoDA.hpp>
+#include <nw/functions.hpp>
 #include <nw/i18n/Tlk.hpp>
 #include <nw/kernel/Objects.hpp>
 #include <nw/kernel/Resources.hpp>
@@ -10,6 +11,7 @@
 #include <nw/serialization/Gff.hpp>
 #include <nwn1/Profile.hpp>
 #include <nwn1/combat.hpp>
+#include <nwn1/effects.hpp>
 #include <nwn1/functions.hpp>
 
 #include <benchmark/benchmark.h>
@@ -170,6 +172,18 @@ static void BM_creature_attack_bonus(benchmark::State& state)
     }
 }
 
+static void BM_creature_attack_roll(benchmark::State& state)
+{
+    auto obj = nwk::objects().load<nw::Creature>(fs::path("../tests/test_data/user/development/drorry.utc"));
+    auto vs = nwk::objects().load<nw::Creature>(fs::path("../tests/test_data/user/development/drorry.utc"));
+    auto eff = nwn1::effect_concealment(20);
+    nw::apply_effect(vs, eff);
+    for (auto _ : state) {
+        auto out = nwn1::resolve_attack_roll(obj, nwn1::attack_type_onhand, vs);
+        benchmark::DoNotOptimize(out);
+    }
+}
+
 static void BM_formats_nss(benchmark::State& state)
 {
     for (auto _ : state) {
@@ -223,6 +237,7 @@ BENCHMARK(BM_creature_get_skill_rank);
 BENCHMARK(BM_creature_ability_score);
 BENCHMARK(BM_creature_armor_class);
 BENCHMARK(BM_creature_attack_bonus);
+BENCHMARK(BM_creature_attack_roll);
 
 BENCHMARK(BM_formats_nss);
 BENCHMARK(BM_model_parse);
