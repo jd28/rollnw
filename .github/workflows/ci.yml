@@ -183,7 +183,7 @@ jobs:
           Remove-Item ${{ github.workspace }}/build/CMakeFiles -Recurse
           Remove-Item ${{ github.workspace }}/build/CMakeCache.txt
 
-      - uses: pypa/cibuildwheel@v2.11.3
+      - uses: pypa/cibuildwheel@v2.11.4
 
       - uses: actions/upload-artifact@v3
         if: failure()
