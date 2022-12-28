@@ -2,7 +2,6 @@
 [![PyPI version](https://badge.fury.io/py/rollnw.svg)](https://badge.fury.io/py/rollnw)
 [![ci](https://github.com/jd28/rollnw/actions/workflows/ci.yml/badge.svg)](https://github.com/jd28/rollnw/actions?query=workflow%3Aci)
 [![CodeQL](https://github.com/jd28/rollnw/actions/workflows/codeql-analysis.yml/badge.svg)](https://github.com/jd28/rollnw/actions/workflows/codeql-analysis.yml)
-[![Language grade: C/C++](https://img.shields.io/lgtm/grade/cpp/g/jd28/rollnw.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/jd28/rollnw/context:cpp)
 [![codecov](https://codecov.io/gh/jd28/rollnw/branch/main/graph/badge.svg?token=79PNROEEUU)](https://codecov.io/gh/jd28/rollnw)
 [![Documentation Status](https://readthedocs.org/projects/rollnw/badge/?version=latest)](https://rollnw.readthedocs.io/en/latest/?badge=latest)
 
