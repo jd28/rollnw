@@ -1,5 +1,4 @@
-|License: MIT| |pypi| |ci| |CodeQL| |Language grade: C/C++| |codecov|
-|Documentation Status|
+|License: MIT| |pypi| |ci| |CodeQL| |codecov| |Documentation Status|
 
 rollNW
 ======
@@ -118,8 +117,6 @@ Credits
    :target: https://github.com/jd28/rollnw/actions?query=workflow%3Aci
 .. |pypi| image:: https://badge.fury.io/py/rollnw.svg
    :target: https://badge.fury.io/py/rollnw
-.. |Language grade: C/C++| image:: https://img.shields.io/lgtm/grade/cpp/g/jd28/rollnw.svg?logo=lgtm&logoWidth=18
-   :target: https://lgtm.com/projects/g/jd28/rollnw/context:cpp
 .. |CodeQL| image:: https://github.com/jd28/rollnw/actions/workflows/codeql-analysis.yml/badge.svg
    :target: https://github.com/jd28/rollnw/actions/workflows/codeql-analysis.yml
 .. |codecov| image:: https://codecov.io/gh/jd28/rollnw/branch/main/graph/badge.svg?token=79PNROEEUU
