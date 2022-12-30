@@ -24,11 +24,14 @@ int base_attack_bonus(const nw::Creature* obj);
 /// Converts an equip index to an attack type
 nw::AttackType equip_index_to_attack_type(nw::EquipIndex equip);
 
-/// Calculates number of attacks
-int number_of_attacks(const nw::Creature* obj, bool offhand = false);
-
 /// Gets an equipped weapon by attack type
 nw::Item* get_weapon_by_attack_type(const nw::Creature* obj, nw::AttackType type);
+
+/// Determine if creature is flanked by an attacker
+bool is_flanked(const nw::Creature* target, const nw::Creature* attacker);
+
+/// Calculates number of attacks
+int number_of_attacks(const nw::Creature* obj, bool offhand = false);
 
 /// Resolves an attack roll
 nw::AttackResult resolve_attack_roll(const nw::Creature* obj, nw::AttackType type, nw::ObjectBase* vs);
@@ -37,6 +40,9 @@ nw::AttackResult resolve_attack_roll(const nw::Creature* obj, nw::AttackType typ
 /// @return Concealment amount, bool that if ``true`` is from attacking creature i.e miss chance,
 /// if ``false`` from target object i.e. concealment
 std::pair<int, bool> resolve_concealment(const nw::ObjectBase* obj, const nw::ObjectBase* target, bool vs_ranged = false);
+
+/// Resolve target state
+nw::TargetState resolve_target_state(const nw::Creature* attacker, const nw::ObjectBase* target);
 
 /// Determines if a weapon is finessable
 bool weapon_is_finessable(const nw::Creature* obj, nw::Item* weapon);

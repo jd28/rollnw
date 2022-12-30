@@ -446,6 +446,33 @@ TEST_CASE("creature: concealment", "[objects]")
     REQUIRE(o3);
 }
 
+TEST_CASE("creature: target_state", "[objects]")
+{
+    nw::TargetState state = nw::TargetState::none;
+    state = nwn1::resolve_target_state(nullptr, nullptr);
+    REQUIRE(state == nw::TargetState::none);
+
+    auto obj = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/drorry.utc"));
+    REQUIRE(obj);
+    state = nwn1::resolve_target_state(obj, nullptr);
+    REQUIRE(state == nw::TargetState::none);
+
+    auto target = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/nw_chicken.utc"));
+    REQUIRE(target);
+
+    state = nwn1::resolve_target_state(obj, target);
+    REQUIRE(to_bool(state & nw::TargetState::flanked));
+
+    target->combat_info.target = obj;
+    state = nwn1::resolve_target_state(obj, target);
+    REQUIRE_FALSE(to_bool(state & nw::TargetState::flanked));
+
+    target->combat_info.target = nullptr;
+    obj->combat_info.target_distance_sq = 200.0f;
+    state = nwn1::resolve_target_state(obj, target);
+    REQUIRE_FALSE(to_bool(state & nw::TargetState::flanked));
+}
+
 TEST_CASE("creature: to_json", "[objects]")
 {
     auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");

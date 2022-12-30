@@ -23,7 +23,9 @@ int attack_bonus(const nw::Creature* obj, nw::AttackType type, nw::ObjectBase* v
     if (!obj) { return result; }
 
     nw::Versus vs;
-    if (versus) { vs = versus->versus_me(); }
+    if (versus) {
+        vs = versus->versus_me();
+    }
 
     auto weapon = get_weapon_by_attack_type(obj, type);
     auto baseitem = nw::BaseItem::invalid();
@@ -162,6 +164,15 @@ nw::Item* get_weapon_by_attack_type(const nw::Creature* obj, nw::AttackType type
     }
 }
 
+bool is_flanked(const nw::Creature* target, const nw::Creature* attacker)
+{
+    if (!target || !attacker) { return false; }
+    if (target->combat_info.target == attacker) { return false; }
+    if (attacker->combat_info.target_distance_sq > 10.0f * 10.0f) { return false; }
+    if (target->stats.has_feat(feat_prestige_defensive_awareness_2)) { return false; }
+    return true;
+}
+
 int number_of_attacks(const nw::Creature* obj, bool offhand)
 {
     int ab = base_attack_bonus(obj);
@@ -255,6 +266,18 @@ std::pair<int, bool> resolve_concealment(const nw::ObjectBase* obj, const nw::Ob
     } else {
         return {conc, false};
     }
+}
+
+nw::TargetState resolve_target_state(const nw::Creature* attacker, const nw::ObjectBase* target)
+{
+    nw::TargetState result = nw::TargetState::none;
+    if (!attacker || !target) { return result; }
+
+    if (is_flanked(target->as_creature(), attacker)) {
+        result |= nw::TargetState::flanked;
+    }
+
+    return result;
 }
 
 bool weapon_is_finessable(const nw::Creature* obj, nw::Item* weapon)

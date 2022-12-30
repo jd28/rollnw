@@ -6,6 +6,9 @@
 
 namespace nw {
 
+// Forward Decls
+struct ObjectBase;
+
 struct SpecialAbility {
     uint16_t spell;
     uint8_t level;
@@ -29,10 +32,15 @@ struct CombatInfo {
     int ac_natural_bonus = 0;
 
     // Transient
+
+    nw::ObjectBase* target = nullptr;
+    /// Distance to target squared
+    float target_distance_sq = 0.0f;
+    TargetState target_state = TargetState::none;
+
     int ac_armor_base = 0;
     int ac_shield_base = 0;
     CombatMode combat_mode = nw::CombatMode::invalid();
-    TargetState target_state = TargetState::none;
     int32_t size_ab_modifier = 0;
     int32_t size_ac_modifier = 0;
 
