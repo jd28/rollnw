@@ -117,50 +117,50 @@
              
   <div class="section" id="dlg">
 <h1>dlg<a class="headerlink" href="#dlg" title="Permalink to this headline"></a></h1>
-<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">all</span><span class="p">:</span><span class="w"></span>
-<span class="w">  </span><span class="nt">DelayEntry</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dword</span><span class="w"></span>
-<span class="w">  </span><span class="nt">DelayReply</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dword</span><span class="w"></span>
-<span class="w">  </span><span class="nt">EndConverAbort</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">resref</span><span class="w"></span>
-<span class="w">  </span><span class="nt">EndConversation</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">resref</span><span class="w"></span>
-<span class="w">  </span><span class="nt">EntryList</span><span class="p">:</span><span class="w"></span>
-<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">AnimLoop</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">byte</span><span class="w"></span>
-<span class="w">      </span><span class="nt">Animation</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dword</span><span class="w"></span>
-<span class="w">      </span><span class="nt">Comment</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">cexostr</span><span class="w"></span>
-<span class="w">      </span><span class="nt">Delay</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dword</span><span class="w"></span>
-<span class="w">      </span><span class="nt">Quest</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">cexostr</span><span class="w"></span>
-<span class="w">      </span><span class="nt">RepliesList</span><span class="p">:</span><span class="w"></span>
-<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">$struct_id</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">index</span><span class="w"></span>
-<span class="w">          </span><span class="nt">Active</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">resref</span><span class="w"></span>
-<span class="w">          </span><span class="nt">Index</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dword</span><span class="w"></span>
-<span class="w">          </span><span class="nt">IsChild</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">byte</span><span class="w"></span>
-<span class="w">          </span><span class="nt">LinkComment</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">cexostr</span><span class="w"></span>
-<span class="w">      </span><span class="nt">Script</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">resref</span><span class="w"></span>
-<span class="w">      </span><span class="nt">Sound</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">resref</span><span class="w"></span>
-<span class="w">      </span><span class="nt">Speaker</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">cexostr</span><span class="w"></span>
-<span class="w">      </span><span class="nt">Text</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">cexolocstr</span><span class="w"></span>
-<span class="w">  </span><span class="nt">NumWords</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dword</span><span class="w"></span>
-<span class="w">  </span><span class="nt">PreventZoomIn</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">byte</span><span class="w"></span>
-<span class="w">  </span><span class="nt">ReplyList</span><span class="p">:</span><span class="w"></span>
-<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">$struct_id</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">index</span><span class="w"></span>
-<span class="w">      </span><span class="nt">AnimLoop</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">byte</span><span class="w"></span>
-<span class="w">      </span><span class="nt">Animation</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dword</span><span class="w"></span>
-<span class="w">      </span><span class="nt">Comment</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">cexostr</span><span class="w"></span>
-<span class="w">      </span><span class="nt">Delay</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dword</span><span class="w"></span>
-<span class="w">      </span><span class="nt">EntriesList</span><span class="p">:</span><span class="w"></span>
-<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">$struct_id</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">index</span><span class="w"></span>
-<span class="w">          </span><span class="nt">Active</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">resref</span><span class="w"></span>
-<span class="w">          </span><span class="nt">Index</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dword</span><span class="w"></span>
-<span class="w">          </span><span class="nt">IsChild</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">byte</span><span class="w"></span>
-<span class="w">          </span><span class="nt">LinkComment</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">cexostr</span><span class="w"></span>
-<span class="w">      </span><span class="nt">Quest</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">cexostr</span><span class="w"></span>
-<span class="w">      </span><span class="nt">QuestEntry</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dword</span><span class="w"></span>
-<span class="w">      </span><span class="nt">Script</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">resref</span><span class="w"></span>
-<span class="w">      </span><span class="nt">Sound</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">resref</span><span class="w"></span>
-<span class="w">      </span><span class="nt">Text</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">cexolocstr</span><span class="w"></span>
-<span class="w">  </span><span class="nt">StartingList</span><span class="p">:</span><span class="w"></span>
-<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">$struct_id</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">index</span><span class="w"></span>
-<span class="w">      </span><span class="nt">Active</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">resref</span><span class="w"></span>
-<span class="w">      </span><span class="nt">Index</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dword</span><span class="w"></span>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">all</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">DelayEntry</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dword</span>
+<span class="w">  </span><span class="nt">DelayReply</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dword</span>
+<span class="w">  </span><span class="nt">EndConverAbort</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">resref</span>
+<span class="w">  </span><span class="nt">EndConversation</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">resref</span>
+<span class="w">  </span><span class="nt">EntryList</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">AnimLoop</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">byte</span>
+<span class="w">      </span><span class="nt">Animation</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dword</span>
+<span class="w">      </span><span class="nt">Comment</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">cexostr</span>
+<span class="w">      </span><span class="nt">Delay</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dword</span>
+<span class="w">      </span><span class="nt">Quest</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">cexostr</span>
+<span class="w">      </span><span class="nt">RepliesList</span><span class="p">:</span>
+<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">$struct_id</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">index</span>
+<span class="w">          </span><span class="nt">Active</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">resref</span>
+<span class="w">          </span><span class="nt">Index</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dword</span>
+<span class="w">          </span><span class="nt">IsChild</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">byte</span>
+<span class="w">          </span><span class="nt">LinkComment</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">cexostr</span>
+<span class="w">      </span><span class="nt">Script</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">resref</span>
+<span class="w">      </span><span class="nt">Sound</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">resref</span>
+<span class="w">      </span><span class="nt">Speaker</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">cexostr</span>
+<span class="w">      </span><span class="nt">Text</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">cexolocstr</span>
+<span class="w">  </span><span class="nt">NumWords</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dword</span>
+<span class="w">  </span><span class="nt">PreventZoomIn</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">byte</span>
+<span class="w">  </span><span class="nt">ReplyList</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">$struct_id</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">index</span>
+<span class="w">      </span><span class="nt">AnimLoop</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">byte</span>
+<span class="w">      </span><span class="nt">Animation</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dword</span>
+<span class="w">      </span><span class="nt">Comment</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">cexostr</span>
+<span class="w">      </span><span class="nt">Delay</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dword</span>
+<span class="w">      </span><span class="nt">EntriesList</span><span class="p">:</span>
+<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">$struct_id</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">index</span>
+<span class="w">          </span><span class="nt">Active</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">resref</span>
+<span class="w">          </span><span class="nt">Index</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dword</span>
+<span class="w">          </span><span class="nt">IsChild</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">byte</span>
+<span class="w">          </span><span class="nt">LinkComment</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">cexostr</span>
+<span class="w">      </span><span class="nt">Quest</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">cexostr</span>
+<span class="w">      </span><span class="nt">QuestEntry</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dword</span>
+<span class="w">      </span><span class="nt">Script</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">resref</span>
+<span class="w">      </span><span class="nt">Sound</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">resref</span>
+<span class="w">      </span><span class="nt">Text</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">cexolocstr</span>
+<span class="w">  </span><span class="nt">StartingList</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">$struct_id</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">index</span>
+<span class="w">      </span><span class="nt">Active</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">resref</span>
+<span class="w">      </span><span class="nt">Index</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dword</span>
 </pre></div>
 </div>
 </div>

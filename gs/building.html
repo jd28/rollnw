@@ -122,22 +122,22 @@
 <a class="reference external" href="https://cmake.org/cmake/help/latest/manual/cmake-presets.7.html">CMakePresets.json</a>.</p>
 <p>Install <a class="reference external" href="https://github.com/microsoft/vcpkg">vcpkg</a>. All vcpkg packages required will be built
 automatically.  Just export the vcpkg root path in an ENV var:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ <span class="nb">export</span> <span class="nv">VCPKG_ROOT</span><span class="o">=</span>path/to/vcpkg
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span><span class="nb">export</span><span class="w"> </span><span class="nv">VCPKG_ROOT</span><span class="o">=</span>path/to/vcpkg
 </pre></div>
 </div>
 <dl class="simple">
 <dt>In order to run all of the tests, you can help the library locate Neverwinter Nights installation</dt><dd><p>paths by exporting the following ENV vars:</p>
 </dd>
 </dl>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ <span class="nb">export</span> <span class="nv">NWN_ROOT</span><span class="o">=</span>path/to/game
-$ <span class="nb">export</span> <span class="nv">NWN_USER</span><span class="o">=</span>path/to/nwn-user-dir
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span><span class="nb">export</span><span class="w"> </span><span class="nv">NWN_ROOT</span><span class="o">=</span>path/to/game
+$<span class="w"> </span><span class="nb">export</span><span class="w"> </span><span class="nv">NWN_USER</span><span class="o">=</span>path/to/nwn-user-dir
 </pre></div>
 </div>
 <div class="sphinx-tabs docutils container">
-<div aria-label="Tabbed content" class="closeable" role="tablist"><button aria-controls="panel-0-0-0" aria-selected="true" class="sphinx-tabs-tab" id="tab-0-0-0" name="0-0" role="tab" tabindex="0">linux</button><button aria-controls="panel-0-0-1" aria-selected="false" class="sphinx-tabs-tab" id="tab-0-0-1" name="0-1" role="tab" tabindex="-1">macOS</button><button aria-controls="panel-0-0-2" aria-selected="false" class="sphinx-tabs-tab" id="tab-0-0-2" name="0-2" role="tab" tabindex="-1">windows</button></div><div aria-labelledby="tab-0-0-0" class="sphinx-tabs-panel" id="panel-0-0-0" name="0-0" role="tabpanel" tabindex="0"><div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ <span class="nb">cd</span> path/to/rollnw
-$ cmake --preset default-test
-$ cmake --build --preset default
-$ ctest --preset default
+<div aria-label="Tabbed content" class="closeable" role="tablist"><button aria-controls="panel-0-0-0" aria-selected="true" class="sphinx-tabs-tab" id="tab-0-0-0" name="0-0" role="tab" tabindex="0">linux</button><button aria-controls="panel-0-0-1" aria-selected="false" class="sphinx-tabs-tab" id="tab-0-0-1" name="0-1" role="tab" tabindex="-1">macOS</button><button aria-controls="panel-0-0-2" aria-selected="false" class="sphinx-tabs-tab" id="tab-0-0-2" name="0-2" role="tab" tabindex="-1">windows</button></div><div aria-labelledby="tab-0-0-0" class="sphinx-tabs-panel" id="panel-0-0-0" name="0-0" role="tabpanel" tabindex="0"><div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span><span class="nb">cd</span><span class="w"> </span>path/to/rollnw
+$<span class="w"> </span>cmake<span class="w"> </span>--preset<span class="w"> </span>default-test
+$<span class="w"> </span>cmake<span class="w"> </span>--build<span class="w"> </span>--preset<span class="w"> </span>default
+$<span class="w"> </span>ctest<span class="w"> </span>--preset<span class="w"> </span>default
 </pre></div>
 </div>
 </div><div aria-labelledby="tab-0-0-1" class="sphinx-tabs-panel" hidden="true" id="panel-0-0-1" name="0-1" role="tabpanel" tabindex="0"><div class="admonition note">
@@ -145,19 +145,19 @@ $ ctest --preset default
 <p>The deployment target is currently set to 10.15.  Only x86_64 builds are supported
 due to vcpkg.</p>
 </div>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ <span class="nb">cd</span> path/to/rollnw
-$ cmake --preset macos
-$ cmake --build --preset default
-$ ctest --preset default
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span><span class="nb">cd</span><span class="w"> </span>path/to/rollnw
+$<span class="w"> </span>cmake<span class="w"> </span>--preset<span class="w"> </span>macos
+$<span class="w"> </span>cmake<span class="w"> </span>--build<span class="w"> </span>--preset<span class="w"> </span>default
+$<span class="w"> </span>ctest<span class="w"> </span>--preset<span class="w"> </span>default
 </pre></div>
 </div>
 </div><div aria-labelledby="tab-0-0-2" class="sphinx-tabs-panel" hidden="true" id="panel-0-0-2" name="0-2" role="tabpanel" tabindex="0"><p>The windows build currently only has a preset for Visual Studio 2019 (Community Edition), but mingw-64,
 later versions of Visual Studio will added.  For now it’s probably easiest to open the Visual Studio
 Developer Command Prompt.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ <span class="nb">cd</span> path/to/rollnw
-$ cmake --preset windows
-$ cmake --build --preset default
-$ ctest --preset default
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span><span class="nb">cd</span><span class="w"> </span>path/to/rollnw
+$<span class="w"> </span>cmake<span class="w"> </span>--preset<span class="w"> </span>windows
+$<span class="w"> </span>cmake<span class="w"> </span>--build<span class="w"> </span>--preset<span class="w"> </span>default
+$<span class="w"> </span>ctest<span class="w"> </span>--preset<span class="w"> </span>default
 </pre></div>
 </div>
 </div></div>

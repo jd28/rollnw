@@ -161,10 +161,10 @@ library.</p>
 <p>The <cite>Strings</cite> kernel service provides access to dialog/custom TLKs and localized strings. It also provides a
 mechanism for interning commonly used strings.</p>
 <p><strong>Example - Intern a String</strong></p>
-<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="k">auto</span><span class="w"> </span><span class="n">str</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">nw</span><span class="o">::</span><span class="n">kernel</span><span class="o">::</span><span class="n">strings</span><span class="p">().</span><span class="n">intern</span><span class="p">(</span><span class="s">&quot;This is a Test&quot;</span><span class="p">);</span><span class="w"></span>
-<span class="k">if</span><span class="p">(</span><span class="n">str</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="s">&quot;This is a Test&quot;</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="k">auto</span><span class="w"> </span><span class="n">str</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">nw</span><span class="o">::</span><span class="n">kernel</span><span class="o">::</span><span class="n">strings</span><span class="p">().</span><span class="n">intern</span><span class="p">(</span><span class="s">&quot;This is a Test&quot;</span><span class="p">);</span>
+<span class="k">if</span><span class="p">(</span><span class="n">str</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="s">&quot;This is a Test&quot;</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
 <span class="w">   </span><span class="c1">// This will occur</span>
-<span class="p">}</span><span class="w"></span>
+<span class="p">}</span>
 </pre></div>
 </div>
 </div>

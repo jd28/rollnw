@@ -175,320 +175,320 @@ analogous to the C++ objects.</p></li>
 <div class="section" id="examples">
 <h2>Examples<a class="headerlink" href="#examples" title="Permalink to this headline"></a></h2>
 <p><strong>Example - How to build your own GFF</strong></p>
-<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">nw</span><span class="o">::</span><span class="n">GffBuilder</span><span class="w"> </span><span class="n">gff</span><span class="p">{</span><span class="s">&quot;GFF&quot;</span><span class="p">};</span><span class="w"></span>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">nw</span><span class="o">::</span><span class="n">GffBuilder</span><span class="w"> </span><span class="n">gff</span><span class="p">{</span><span class="s">&quot;GFF&quot;</span><span class="p">};</span>
 
 <span class="c1">// Add a field.  Note that the type of the field is determined by the value</span>
 <span class="c1">// passed.</span>
-<span class="n">gff</span><span class="p">.</span><span class="n">top</span><span class="p">.</span><span class="n">add_field</span><span class="p">(</span><span class="s">&quot;DATA&quot;</span><span class="p">,</span><span class="w"> </span><span class="mi">9</span><span class="p">);</span><span class="w"></span>
+<span class="n">gff</span><span class="p">.</span><span class="n">top</span><span class="p">.</span><span class="n">add_field</span><span class="p">(</span><span class="s">&quot;DATA&quot;</span><span class="p">,</span><span class="w"> </span><span class="mi">9</span><span class="p">);</span>
 
 <span class="c1">// Add a list.  Note that in the GFF format lists contain only structs</span>
-<span class="k">auto</span><span class="o">&amp;</span><span class="w"> </span><span class="n">xs</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">gff</span><span class="p">.</span><span class="n">top</span><span class="p">.</span><span class="n">add_list</span><span class="p">(</span><span class="s">&quot;LIST&quot;</span><span class="p">);</span><span class="w"></span>
+<span class="k">auto</span><span class="o">&amp;</span><span class="w"> </span><span class="n">xs</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">gff</span><span class="p">.</span><span class="n">top</span><span class="p">.</span><span class="n">add_list</span><span class="p">(</span><span class="s">&quot;LIST&quot;</span><span class="p">);</span>
 <span class="c1">// So when you push_back, you&#39;re creating a struct with a specific struct ID</span>
-<span class="k">auto</span><span class="o">&amp;</span><span class="w"> </span><span class="n">st</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">xs</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span><span class="mh">0xBEEF</span><span class="p">);</span><span class="w"></span>
+<span class="k">auto</span><span class="o">&amp;</span><span class="w"> </span><span class="n">st</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">xs</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span><span class="mh">0xBEEF</span><span class="p">);</span>
 <span class="c1">// Now you can add fields to the struct</span>
-<span class="n">st</span><span class="p">.</span><span class="n">add_field</span><span class="p">(</span><span class="s">&quot;A&quot;</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">)</span><span class="w"></span>
-<span class="w">    </span><span class="p">.</span><span class="n">add_field</span><span class="p">(</span><span class="s">&quot;B&quot;</span><span class="p">,</span><span class="w"> </span><span class="mi">12</span><span class="p">);</span><span class="w"></span>
+<span class="n">st</span><span class="p">.</span><span class="n">add_field</span><span class="p">(</span><span class="s">&quot;A&quot;</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">)</span>
+<span class="w">    </span><span class="p">.</span><span class="n">add_field</span><span class="p">(</span><span class="s">&quot;B&quot;</span><span class="p">,</span><span class="w"> </span><span class="mi">12</span><span class="p">);</span>
 
 <span class="c1">// Add a struct.  It&#39;s pretty rare that a gff field is a struct but if necessary</span>
 <span class="c1">// you can add a struct with it&#39;s struct ID, then add fields like above.</span>
-<span class="n">gff</span><span class="p">.</span><span class="n">top</span><span class="p">.</span><span class="n">add_struct</span><span class="p">(</span><span class="s">&quot;STRUCT&quot;</span><span class="p">,</span><span class="w"> </span><span class="mi">42</span><span class="p">)</span><span class="w"></span>
-<span class="w">    </span><span class="p">.</span><span class="n">add_field</span><span class="p">(</span><span class="s">&quot;A&quot;</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">)</span><span class="w"></span>
-<span class="w">    </span><span class="p">.</span><span class="n">add_field</span><span class="p">(</span><span class="s">&quot;B&quot;</span><span class="p">,</span><span class="w"> </span><span class="mi">12</span><span class="p">);</span><span class="w"></span>
+<span class="n">gff</span><span class="p">.</span><span class="n">top</span><span class="p">.</span><span class="n">add_struct</span><span class="p">(</span><span class="s">&quot;STRUCT&quot;</span><span class="p">,</span><span class="w"> </span><span class="mi">42</span><span class="p">)</span>
+<span class="w">    </span><span class="p">.</span><span class="n">add_field</span><span class="p">(</span><span class="s">&quot;A&quot;</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">)</span>
+<span class="w">    </span><span class="p">.</span><span class="n">add_field</span><span class="p">(</span><span class="s">&quot;B&quot;</span><span class="p">,</span><span class="w"> </span><span class="mi">12</span><span class="p">);</span>
 
 <span class="n">gff</span><span class="p">.</span><span class="n">build</span><span class="p">();</span><span class="w"> </span><span class="c1">// This must be called after all fields have been added.</span>
-<span class="n">gff</span><span class="p">.</span><span class="n">write_to</span><span class="p">(</span><span class="s">&quot;mygff.gff&quot;</span><span class="p">);</span><span class="w"></span>
+<span class="n">gff</span><span class="p">.</span><span class="n">write_to</span><span class="p">(</span><span class="s">&quot;mygff.gff&quot;</span><span class="p">);</span>
 </pre></div>
 </div>
 </div>
 <hr class="docutils" />
 <div class="section" id="sample-rollnw-json-serialization-format">
 <h2>Sample rollnw JSON serialization format<a class="headerlink" href="#sample-rollnw-json-serialization-format" title="Permalink to this headline"></a></h2>
-<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;$type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;UTC&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;$version&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;appearance&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
-<span class="w">        </span><span class="nt">&quot;body_parts&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
-<span class="w">            </span><span class="nt">&quot;belt&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"></span>
-<span class="w">            </span><span class="nt">&quot;bicep_left&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"></span>
-<span class="w">            </span><span class="nt">&quot;bicep_right&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"></span>
-<span class="w">            </span><span class="nt">&quot;foot_left&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"></span>
-<span class="w">            </span><span class="nt">&quot;foot_right&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"></span>
-<span class="w">            </span><span class="nt">&quot;forearm_left&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"></span>
-<span class="w">            </span><span class="nt">&quot;forearm_right&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"></span>
-<span class="w">            </span><span class="nt">&quot;hand_left&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"></span>
-<span class="w">            </span><span class="nt">&quot;hand_right&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"></span>
-<span class="w">            </span><span class="nt">&quot;head&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">119</span><span class="p">,</span><span class="w"></span>
-<span class="w">            </span><span class="nt">&quot;neck&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"></span>
-<span class="w">            </span><span class="nt">&quot;pelvis&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"></span>
-<span class="w">            </span><span class="nt">&quot;shin_left&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"></span>
-<span class="w">            </span><span class="nt">&quot;shin_right&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"></span>
-<span class="w">            </span><span class="nt">&quot;shoulder_left&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"></span>
-<span class="w">            </span><span class="nt">&quot;shoulder_right&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"></span>
-<span class="w">            </span><span class="nt">&quot;thigh_left&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"></span>
-<span class="w">            </span><span class="nt">&quot;thigh_right&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"></span>
-<span class="w">            </span><span class="nt">&quot;torso&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="w"></span>
-<span class="w">        </span><span class="p">},</span><span class="w"></span>
-<span class="w">        </span><span class="nt">&quot;hair&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">167</span><span class="p">,</span><span class="w"></span>
-<span class="w">        </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">6</span><span class="p">,</span><span class="w"></span>
-<span class="w">        </span><span class="nt">&quot;phenotype&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"></span>
-<span class="w">        </span><span class="nt">&quot;portrait_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">65</span><span class="p">,</span><span class="w"></span>
-<span class="w">        </span><span class="nt">&quot;skin&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">3</span><span class="p">,</span><span class="w"></span>
-<span class="w">        </span><span class="nt">&quot;tail&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"></span>
-<span class="w">        </span><span class="nt">&quot;tattoo1&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"></span>
-<span class="w">        </span><span class="nt">&quot;tattoo2&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"></span>
-<span class="w">        </span><span class="nt">&quot;wings&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="w"></span>
-<span class="w">    </span><span class="p">},</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;bodybag&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;chunk_death&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;combat_info&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
-<span class="w">        </span><span class="nt">&quot;ac_natural&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"></span>
-<span class="w">        </span><span class="nt">&quot;special_abilities&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="w"></span>
-<span class="w">            </span><span class="p">{</span><span class="w"></span>
-<span class="w">                </span><span class="nt">&quot;flags&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"></span>
-<span class="w">                </span><span class="nt">&quot;level&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">15</span><span class="p">,</span><span class="w"></span>
-<span class="w">                </span><span class="nt">&quot;spell&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">120</span><span class="w"></span>
-<span class="w">            </span><span class="p">}</span><span class="w"></span>
-<span class="w">        </span><span class="p">]</span><span class="w"></span>
-<span class="w">    </span><span class="p">},</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;common&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
-<span class="w">        </span><span class="nt">&quot;comment&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">        </span><span class="nt">&quot;locals&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
-<span class="w">            </span><span class="nt">&quot;DIPType&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
-<span class="w">                </span><span class="nt">&quot;integer&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">3</span><span class="w"></span>
-<span class="w">            </span><span class="p">},</span><span class="w"></span>
-<span class="w">            </span><span class="nt">&quot;DeflectionAC&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
-<span class="w">                </span><span class="nt">&quot;integer&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">6</span><span class="w"></span>
-<span class="w">            </span><span class="p">},</span><span class="w"></span>
-<span class="w">            </span><span class="nt">&quot;DodgeAC&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
-<span class="w">                </span><span class="nt">&quot;integer&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">6</span><span class="w"></span>
-<span class="w">            </span><span class="p">},</span><span class="w"></span>
-<span class="w">            </span><span class="nt">&quot;OtherImmunes&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
-<span class="w">                </span><span class="nt">&quot;integer&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1001945111</span><span class="w"></span>
-<span class="w">            </span><span class="p">},</span><span class="w"></span>
-<span class="w">            </span><span class="nt">&quot;Soak&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
-<span class="w">                </span><span class="nt">&quot;string&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;15+5&quot;</span><span class="w"></span>
-<span class="w">            </span><span class="p">},</span><span class="w"></span>
-<span class="w">            </span><span class="nt">&quot;VFXDur1&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
-<span class="w">                </span><span class="nt">&quot;integer&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">11</span><span class="w"></span>
-<span class="w">            </span><span class="p">},</span><span class="w"></span>
-<span class="w">            </span><span class="nt">&quot;rlgs_ss_1&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
-<span class="w">                </span><span class="nt">&quot;string&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;lt_agent_1&quot;</span><span class="w"></span>
-<span class="w">            </span><span class="p">}</span><span class="w"></span>
-<span class="w">        </span><span class="p">},</span><span class="w"></span>
-<span class="w">        </span><span class="nt">&quot;object_type&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">5</span><span class="p">,</span><span class="w"></span>
-<span class="w">        </span><span class="nt">&quot;palette_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"></span>
-<span class="w">        </span><span class="nt">&quot;resref&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;pl_agent_001&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">        </span><span class="nt">&quot;tag&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;pl_agent_001&quot;</span><span class="w"></span>
-<span class="w">    </span><span class="p">},</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;conversation&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;cr&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">38.0</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;cr_adjust&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">-36</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;decay_time&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">5000</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;deity&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;description&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
-<span class="w">        </span><span class="nt">&quot;strings&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span><span class="w"></span>
-<span class="w">        </span><span class="nt">&quot;strref&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">4294967295</span><span class="w"></span>
-<span class="w">    </span><span class="p">},</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;disarmable&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;equipment&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
-<span class="w">        </span><span class="nt">&quot;arms&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;handwish&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">        </span><span class="nt">&quot;chest&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;dk_agent_thread2&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">        </span><span class="nt">&quot;creature_left&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;pl_slam_1d2&quot;</span><span class="w"></span>
-<span class="w">    </span><span class="p">},</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;faction_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;gender&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;good_evil&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;hp&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">894</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;hp_current&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">894</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;hp_max&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1014</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;immortal&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;interruptable&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;inventory&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;lawful_chaotic&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">50</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;levels&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="w"></span>
-<span class="w">        </span><span class="p">{</span><span class="w"></span>
-<span class="w">            </span><span class="nt">&quot;class&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">4</span><span class="p">,</span><span class="w"></span>
-<span class="w">            </span><span class="nt">&quot;level&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">10</span><span class="p">,</span><span class="w"></span>
-<span class="w">            </span><span class="nt">&quot;spellbook&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
-<span class="w">                </span><span class="nt">&quot;known&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="w"></span>
-<span class="w">                    </span><span class="p">[],</span><span class="w"></span>
-<span class="w">                    </span><span class="p">[],</span><span class="w"></span>
-<span class="w">                    </span><span class="p">[],</span><span class="w"></span>
-<span class="w">                    </span><span class="p">[],</span><span class="w"></span>
-<span class="w">                    </span><span class="p">[],</span><span class="w"></span>
-<span class="w">                    </span><span class="p">[],</span><span class="w"></span>
-<span class="w">                    </span><span class="p">[],</span><span class="w"></span>
-<span class="w">                    </span><span class="p">[],</span><span class="w"></span>
-<span class="w">                    </span><span class="p">[],</span><span class="w"></span>
-<span class="w">                    </span><span class="p">[]</span><span class="w"></span>
-<span class="w">                </span><span class="p">],</span><span class="w"></span>
-<span class="w">                </span><span class="nt">&quot;memorized&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="w"></span>
-<span class="w">                    </span><span class="p">[],</span><span class="w"></span>
-<span class="w">                    </span><span class="p">[],</span><span class="w"></span>
-<span class="w">                    </span><span class="p">[],</span><span class="w"></span>
-<span class="w">                    </span><span class="p">[],</span><span class="w"></span>
-<span class="w">                    </span><span class="p">[],</span><span class="w"></span>
-<span class="w">                    </span><span class="p">[],</span><span class="w"></span>
-<span class="w">                    </span><span class="p">[],</span><span class="w"></span>
-<span class="w">                    </span><span class="p">[],</span><span class="w"></span>
-<span class="w">                    </span><span class="p">[],</span><span class="w"></span>
-<span class="w">                    </span><span class="p">[]</span><span class="w"></span>
-<span class="w">                </span><span class="p">]</span><span class="w"></span>
-<span class="w">            </span><span class="p">}</span><span class="w"></span>
-<span class="w">        </span><span class="p">},</span><span class="w"></span>
-<span class="w">        </span><span class="p">{</span><span class="w"></span>
-<span class="w">            </span><span class="nt">&quot;class&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">5</span><span class="p">,</span><span class="w"></span>
-<span class="w">            </span><span class="nt">&quot;level&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">30</span><span class="p">,</span><span class="w"></span>
-<span class="w">            </span><span class="nt">&quot;spellbook&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
-<span class="w">                </span><span class="nt">&quot;known&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="w"></span>
-<span class="w">                    </span><span class="p">[],</span><span class="w"></span>
-<span class="w">                    </span><span class="p">[],</span><span class="w"></span>
-<span class="w">                    </span><span class="p">[],</span><span class="w"></span>
-<span class="w">                    </span><span class="p">[],</span><span class="w"></span>
-<span class="w">                    </span><span class="p">[],</span><span class="w"></span>
-<span class="w">                    </span><span class="p">[],</span><span class="w"></span>
-<span class="w">                    </span><span class="p">[],</span><span class="w"></span>
-<span class="w">                    </span><span class="p">[],</span><span class="w"></span>
-<span class="w">                    </span><span class="p">[],</span><span class="w"></span>
-<span class="w">                    </span><span class="p">[]</span><span class="w"></span>
-<span class="w">                </span><span class="p">],</span><span class="w"></span>
-<span class="w">                </span><span class="nt">&quot;memorized&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="w"></span>
-<span class="w">                    </span><span class="p">[],</span><span class="w"></span>
-<span class="w">                    </span><span class="p">[],</span><span class="w"></span>
-<span class="w">                    </span><span class="p">[],</span><span class="w"></span>
-<span class="w">                    </span><span class="p">[],</span><span class="w"></span>
-<span class="w">                    </span><span class="p">[],</span><span class="w"></span>
-<span class="w">                    </span><span class="p">[],</span><span class="w"></span>
-<span class="w">                    </span><span class="p">[],</span><span class="w"></span>
-<span class="w">                    </span><span class="p">[],</span><span class="w"></span>
-<span class="w">                    </span><span class="p">[],</span><span class="w"></span>
-<span class="w">                    </span><span class="p">[]</span><span class="w"></span>
-<span class="w">                </span><span class="p">]</span><span class="w"></span>
-<span class="w">            </span><span class="p">}</span><span class="w"></span>
-<span class="w">        </span><span class="p">}</span><span class="w"></span>
-<span class="w">    </span><span class="p">],</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;lootable&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;name_first&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
-<span class="w">        </span><span class="nt">&quot;strings&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="w"></span>
-<span class="w">            </span><span class="p">{</span><span class="w"></span>
-<span class="w">                </span><span class="nt">&quot;lang&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"></span>
-<span class="w">                </span><span class="nt">&quot;string&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Agent&quot;</span><span class="w"></span>
-<span class="w">            </span><span class="p">}</span><span class="w"></span>
-<span class="w">        </span><span class="p">],</span><span class="w"></span>
-<span class="w">        </span><span class="nt">&quot;strref&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">4294967295</span><span class="w"></span>
-<span class="w">    </span><span class="p">},</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;name_last&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
-<span class="w">        </span><span class="nt">&quot;strings&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span><span class="w"></span>
-<span class="w">        </span><span class="nt">&quot;strref&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">4294967295</span><span class="w"></span>
-<span class="w">    </span><span class="p">},</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;pc&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;perception_range&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">11</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;plot&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;race&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">6</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;scripts&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
-<span class="w">        </span><span class="nt">&quot;on_attacked&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;mon_ai_5attacked&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">        </span><span class="nt">&quot;on_blocked&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;mon_ai_13blocked&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">        </span><span class="nt">&quot;on_conversation&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;mon_ai_4conv&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">        </span><span class="nt">&quot;on_damaged&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;mon_ai_6dmged&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">        </span><span class="nt">&quot;on_death&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;mon_ai_7death&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">        </span><span class="nt">&quot;on_disturbed&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;mon_ai_8disturb&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">        </span><span class="nt">&quot;on_endround&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;mon_ai_3ocre&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">        </span><span class="nt">&quot;on_heartbeat&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;mon_ai_1hb&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">        </span><span class="nt">&quot;on_perceived&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;mon_ai_2percep&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">        </span><span class="nt">&quot;on_rested&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;mon_ai_10rest&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">        </span><span class="nt">&quot;on_spawn&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;mon_ai_9spawn&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">        </span><span class="nt">&quot;on_spell_cast_at&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;mon_ai_11spcast&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">        </span><span class="nt">&quot;on_user_defined&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;mon_ai_12ud&quot;</span><span class="w"></span>
-<span class="w">    </span><span class="p">},</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;soundset&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">171</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;starting_package&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">4</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;stats&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
-<span class="w">        </span><span class="nt">&quot;abilities&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="w"></span>
-<span class="w">            </span><span class="mi">40</span><span class="p">,</span><span class="w"></span>
-<span class="w">            </span><span class="mi">13</span><span class="p">,</span><span class="w"></span>
-<span class="w">            </span><span class="mi">16</span><span class="p">,</span><span class="w"></span>
-<span class="w">            </span><span class="mi">10</span><span class="p">,</span><span class="w"></span>
-<span class="w">            </span><span class="mi">16</span><span class="p">,</span><span class="w"></span>
-<span class="w">            </span><span class="mi">9</span><span class="w"></span>
-<span class="w">        </span><span class="p">],</span><span class="w"></span>
-<span class="w">        </span><span class="nt">&quot;feats&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="w"></span>
-<span class="w">            </span><span class="mi">2</span><span class="p">,</span><span class="w"></span>
-<span class="w">            </span><span class="mi">3</span><span class="p">,</span><span class="w"></span>
-<span class="w">            </span><span class="mi">4</span><span class="p">,</span><span class="w"></span>
-<span class="w">            </span><span class="mi">6</span><span class="p">,</span><span class="w"></span>
-<span class="w">            </span><span class="mi">8</span><span class="p">,</span><span class="w"></span>
-<span class="w">            </span><span class="mi">10</span><span class="p">,</span><span class="w"></span>
-<span class="w">            </span><span class="mi">21</span><span class="p">,</span><span class="w"></span>
-<span class="w">            </span><span class="mi">26</span><span class="p">,</span><span class="w"></span>
-<span class="w">            </span><span class="mi">32</span><span class="p">,</span><span class="w"></span>
-<span class="w">            </span><span class="mi">41</span><span class="p">,</span><span class="w"></span>
-<span class="w">            </span><span class="mi">45</span><span class="p">,</span><span class="w"></span>
-<span class="w">            </span><span class="mi">46</span><span class="p">,</span><span class="w"></span>
-<span class="w">            </span><span class="mi">49</span><span class="p">,</span><span class="w"></span>
-<span class="w">            </span><span class="mi">206</span><span class="p">,</span><span class="w"></span>
-<span class="w">            </span><span class="mi">207</span><span class="p">,</span><span class="w"></span>
-<span class="w">            </span><span class="mi">208</span><span class="p">,</span><span class="w"></span>
-<span class="w">            </span><span class="mi">209</span><span class="p">,</span><span class="w"></span>
-<span class="w">            </span><span class="mi">211</span><span class="p">,</span><span class="w"></span>
-<span class="w">            </span><span class="mi">212</span><span class="p">,</span><span class="w"></span>
-<span class="w">            </span><span class="mi">214</span><span class="p">,</span><span class="w"></span>
-<span class="w">            </span><span class="mi">215</span><span class="p">,</span><span class="w"></span>
-<span class="w">            </span><span class="mi">216</span><span class="p">,</span><span class="w"></span>
-<span class="w">            </span><span class="mi">258</span><span class="p">,</span><span class="w"></span>
-<span class="w">            </span><span class="mi">260</span><span class="p">,</span><span class="w"></span>
-<span class="w">            </span><span class="mi">289</span><span class="p">,</span><span class="w"></span>
-<span class="w">            </span><span class="mi">290</span><span class="p">,</span><span class="w"></span>
-<span class="w">            </span><span class="mi">291</span><span class="p">,</span><span class="w"></span>
-<span class="w">            </span><span class="mi">292</span><span class="p">,</span><span class="w"></span>
-<span class="w">            </span><span class="mi">297</span><span class="p">,</span><span class="w"></span>
-<span class="w">            </span><span class="mi">391</span><span class="p">,</span><span class="w"></span>
-<span class="w">            </span><span class="mi">392</span><span class="p">,</span><span class="w"></span>
-<span class="w">            </span><span class="mi">408</span><span class="p">,</span><span class="w"></span>
-<span class="w">            </span><span class="mi">755</span><span class="p">,</span><span class="w"></span>
-<span class="w">            </span><span class="mi">756</span><span class="p">,</span><span class="w"></span>
-<span class="w">            </span><span class="mi">757</span><span class="p">,</span><span class="w"></span>
-<span class="w">            </span><span class="mi">971</span><span class="p">,</span><span class="w"></span>
-<span class="w">            </span><span class="mi">1089</span><span class="w"></span>
-<span class="w">        </span><span class="p">],</span><span class="w"></span>
-<span class="w">        </span><span class="nt">&quot;save_bonus&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
-<span class="w">            </span><span class="nt">&quot;fort&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">9</span><span class="p">,</span><span class="w"></span>
-<span class="w">            </span><span class="nt">&quot;reflex&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">15</span><span class="p">,</span><span class="w"></span>
-<span class="w">            </span><span class="nt">&quot;will&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">13</span><span class="w"></span>
-<span class="w">        </span><span class="p">},</span><span class="w"></span>
-<span class="w">        </span><span class="nt">&quot;skills&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="w"></span>
-<span class="w">            </span><span class="mi">0</span><span class="p">,</span><span class="w"></span>
-<span class="w">            </span><span class="mi">1</span><span class="p">,</span><span class="w"></span>
-<span class="w">            </span><span class="mi">0</span><span class="p">,</span><span class="w"></span>
-<span class="w">            </span><span class="mi">40</span><span class="p">,</span><span class="w"></span>
-<span class="w">            </span><span class="mi">11</span><span class="p">,</span><span class="w"></span>
-<span class="w">            </span><span class="mi">30</span><span class="p">,</span><span class="w"></span>
-<span class="w">            </span><span class="mi">30</span><span class="p">,</span><span class="w"></span>
-<span class="w">            </span><span class="mi">1</span><span class="p">,</span><span class="w"></span>
-<span class="w">            </span><span class="mi">30</span><span class="p">,</span><span class="w"></span>
-<span class="w">            </span><span class="mi">0</span><span class="p">,</span><span class="w"></span>
-<span class="w">            </span><span class="mi">20</span><span class="p">,</span><span class="w"></span>
-<span class="w">            </span><span class="mi">0</span><span class="p">,</span><span class="w"></span>
-<span class="w">            </span><span class="mi">30</span><span class="p">,</span><span class="w"></span>
-<span class="w">            </span><span class="mi">0</span><span class="p">,</span><span class="w"></span>
-<span class="w">            </span><span class="mi">0</span><span class="p">,</span><span class="w"></span>
-<span class="w">            </span><span class="mi">0</span><span class="p">,</span><span class="w"></span>
-<span class="w">            </span><span class="mi">0</span><span class="p">,</span><span class="w"></span>
-<span class="w">            </span><span class="mi">0</span><span class="p">,</span><span class="w"></span>
-<span class="w">            </span><span class="mi">0</span><span class="p">,</span><span class="w"></span>
-<span class="w">            </span><span class="mi">0</span><span class="p">,</span><span class="w"></span>
-<span class="w">            </span><span class="mi">0</span><span class="p">,</span><span class="w"></span>
-<span class="w">            </span><span class="mi">0</span><span class="p">,</span><span class="w"></span>
-<span class="w">            </span><span class="mi">1</span><span class="p">,</span><span class="w"></span>
-<span class="w">            </span><span class="mi">0</span><span class="p">,</span><span class="w"></span>
-<span class="w">            </span><span class="mi">0</span><span class="p">,</span><span class="w"></span>
-<span class="w">            </span><span class="mi">1</span><span class="p">,</span><span class="w"></span>
-<span class="w">            </span><span class="mi">2</span><span class="p">,</span><span class="w"></span>
-<span class="w">            </span><span class="mi">0</span><span class="w"></span>
-<span class="w">        </span><span class="p">]</span><span class="w"></span>
-<span class="w">    </span><span class="p">},</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;subrace&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;walkrate&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">4</span><span class="w"></span>
-<span class="p">}</span><span class="w"></span>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;$type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;UTC&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;$version&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;appearance&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;body_parts&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="nt">&quot;belt&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;bicep_left&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;bicep_right&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;foot_left&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;foot_right&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;forearm_left&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;forearm_right&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;hand_left&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;hand_right&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;head&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">119</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;neck&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;pelvis&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;shin_left&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;shin_right&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;shoulder_left&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;shoulder_right&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;thigh_left&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;thigh_right&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;torso&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span>
+<span class="w">        </span><span class="p">},</span>
+<span class="w">        </span><span class="nt">&quot;hair&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">167</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">6</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;phenotype&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;portrait_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">65</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;skin&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">3</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;tail&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;tattoo1&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;tattoo2&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;wings&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span>
+<span class="w">    </span><span class="p">},</span>
+<span class="w">    </span><span class="nt">&quot;bodybag&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;chunk_death&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;combat_info&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;ac_natural&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;special_abilities&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">            </span><span class="p">{</span>
+<span class="w">                </span><span class="nt">&quot;flags&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
+<span class="w">                </span><span class="nt">&quot;level&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">15</span><span class="p">,</span>
+<span class="w">                </span><span class="nt">&quot;spell&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">120</span>
+<span class="w">            </span><span class="p">}</span>
+<span class="w">        </span><span class="p">]</span>
+<span class="w">    </span><span class="p">},</span>
+<span class="w">    </span><span class="nt">&quot;common&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;comment&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;locals&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="nt">&quot;DIPType&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                </span><span class="nt">&quot;integer&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">3</span>
+<span class="w">            </span><span class="p">},</span>
+<span class="w">            </span><span class="nt">&quot;DeflectionAC&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                </span><span class="nt">&quot;integer&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">6</span>
+<span class="w">            </span><span class="p">},</span>
+<span class="w">            </span><span class="nt">&quot;DodgeAC&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                </span><span class="nt">&quot;integer&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">6</span>
+<span class="w">            </span><span class="p">},</span>
+<span class="w">            </span><span class="nt">&quot;OtherImmunes&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                </span><span class="nt">&quot;integer&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1001945111</span>
+<span class="w">            </span><span class="p">},</span>
+<span class="w">            </span><span class="nt">&quot;Soak&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                </span><span class="nt">&quot;string&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;15+5&quot;</span>
+<span class="w">            </span><span class="p">},</span>
+<span class="w">            </span><span class="nt">&quot;VFXDur1&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                </span><span class="nt">&quot;integer&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">11</span>
+<span class="w">            </span><span class="p">},</span>
+<span class="w">            </span><span class="nt">&quot;rlgs_ss_1&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                </span><span class="nt">&quot;string&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;lt_agent_1&quot;</span>
+<span class="w">            </span><span class="p">}</span>
+<span class="w">        </span><span class="p">},</span>
+<span class="w">        </span><span class="nt">&quot;object_type&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">5</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;palette_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;resref&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;pl_agent_001&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;tag&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;pl_agent_001&quot;</span>
+<span class="w">    </span><span class="p">},</span>
+<span class="w">    </span><span class="nt">&quot;conversation&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;cr&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">38.0</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;cr_adjust&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">-36</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;decay_time&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">5000</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;deity&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;description&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;strings&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">        </span><span class="nt">&quot;strref&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">4294967295</span>
+<span class="w">    </span><span class="p">},</span>
+<span class="w">    </span><span class="nt">&quot;disarmable&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;equipment&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;arms&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;handwish&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;chest&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;dk_agent_thread2&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;creature_left&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;pl_slam_1d2&quot;</span>
+<span class="w">    </span><span class="p">},</span>
+<span class="w">    </span><span class="nt">&quot;faction_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;gender&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;good_evil&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;hp&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">894</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;hp_current&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">894</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;hp_max&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1014</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;immortal&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;interruptable&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;inventory&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">    </span><span class="nt">&quot;lawful_chaotic&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">50</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;levels&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">        </span><span class="p">{</span>
+<span class="w">            </span><span class="nt">&quot;class&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">4</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;level&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">10</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;spellbook&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                </span><span class="nt">&quot;known&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">                    </span><span class="p">[],</span>
+<span class="w">                    </span><span class="p">[],</span>
+<span class="w">                    </span><span class="p">[],</span>
+<span class="w">                    </span><span class="p">[],</span>
+<span class="w">                    </span><span class="p">[],</span>
+<span class="w">                    </span><span class="p">[],</span>
+<span class="w">                    </span><span class="p">[],</span>
+<span class="w">                    </span><span class="p">[],</span>
+<span class="w">                    </span><span class="p">[],</span>
+<span class="w">                    </span><span class="p">[]</span>
+<span class="w">                </span><span class="p">],</span>
+<span class="w">                </span><span class="nt">&quot;memorized&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">                    </span><span class="p">[],</span>
+<span class="w">                    </span><span class="p">[],</span>
+<span class="w">                    </span><span class="p">[],</span>
+<span class="w">                    </span><span class="p">[],</span>
+<span class="w">                    </span><span class="p">[],</span>
+<span class="w">                    </span><span class="p">[],</span>
+<span class="w">                    </span><span class="p">[],</span>
+<span class="w">                    </span><span class="p">[],</span>
+<span class="w">                    </span><span class="p">[],</span>
+<span class="w">                    </span><span class="p">[]</span>
+<span class="w">                </span><span class="p">]</span>
+<span class="w">            </span><span class="p">}</span>
+<span class="w">        </span><span class="p">},</span>
+<span class="w">        </span><span class="p">{</span>
+<span class="w">            </span><span class="nt">&quot;class&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">5</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;level&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">30</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;spellbook&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                </span><span class="nt">&quot;known&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">                    </span><span class="p">[],</span>
+<span class="w">                    </span><span class="p">[],</span>
+<span class="w">                    </span><span class="p">[],</span>
+<span class="w">                    </span><span class="p">[],</span>
+<span class="w">                    </span><span class="p">[],</span>
+<span class="w">                    </span><span class="p">[],</span>
+<span class="w">                    </span><span class="p">[],</span>
+<span class="w">                    </span><span class="p">[],</span>
+<span class="w">                    </span><span class="p">[],</span>
+<span class="w">                    </span><span class="p">[]</span>
+<span class="w">                </span><span class="p">],</span>
+<span class="w">                </span><span class="nt">&quot;memorized&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">                    </span><span class="p">[],</span>
+<span class="w">                    </span><span class="p">[],</span>
+<span class="w">                    </span><span class="p">[],</span>
+<span class="w">                    </span><span class="p">[],</span>
+<span class="w">                    </span><span class="p">[],</span>
+<span class="w">                    </span><span class="p">[],</span>
+<span class="w">                    </span><span class="p">[],</span>
+<span class="w">                    </span><span class="p">[],</span>
+<span class="w">                    </span><span class="p">[],</span>
+<span class="w">                    </span><span class="p">[]</span>
+<span class="w">                </span><span class="p">]</span>
+<span class="w">            </span><span class="p">}</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">    </span><span class="p">],</span>
+<span class="w">    </span><span class="nt">&quot;lootable&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;name_first&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;strings&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">            </span><span class="p">{</span>
+<span class="w">                </span><span class="nt">&quot;lang&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">                </span><span class="nt">&quot;string&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Agent&quot;</span>
+<span class="w">            </span><span class="p">}</span>
+<span class="w">        </span><span class="p">],</span>
+<span class="w">        </span><span class="nt">&quot;strref&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">4294967295</span>
+<span class="w">    </span><span class="p">},</span>
+<span class="w">    </span><span class="nt">&quot;name_last&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;strings&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">        </span><span class="nt">&quot;strref&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">4294967295</span>
+<span class="w">    </span><span class="p">},</span>
+<span class="w">    </span><span class="nt">&quot;pc&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;perception_range&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">11</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;plot&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;race&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">6</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;scripts&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;on_attacked&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;mon_ai_5attacked&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;on_blocked&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;mon_ai_13blocked&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;on_conversation&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;mon_ai_4conv&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;on_damaged&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;mon_ai_6dmged&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;on_death&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;mon_ai_7death&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;on_disturbed&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;mon_ai_8disturb&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;on_endround&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;mon_ai_3ocre&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;on_heartbeat&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;mon_ai_1hb&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;on_perceived&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;mon_ai_2percep&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;on_rested&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;mon_ai_10rest&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;on_spawn&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;mon_ai_9spawn&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;on_spell_cast_at&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;mon_ai_11spcast&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;on_user_defined&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;mon_ai_12ud&quot;</span>
+<span class="w">    </span><span class="p">},</span>
+<span class="w">    </span><span class="nt">&quot;soundset&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">171</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;starting_package&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">4</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;stats&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;abilities&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">            </span><span class="mi">40</span><span class="p">,</span>
+<span class="w">            </span><span class="mi">13</span><span class="p">,</span>
+<span class="w">            </span><span class="mi">16</span><span class="p">,</span>
+<span class="w">            </span><span class="mi">10</span><span class="p">,</span>
+<span class="w">            </span><span class="mi">16</span><span class="p">,</span>
+<span class="w">            </span><span class="mi">9</span>
+<span class="w">        </span><span class="p">],</span>
+<span class="w">        </span><span class="nt">&quot;feats&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">            </span><span class="mi">2</span><span class="p">,</span>
+<span class="w">            </span><span class="mi">3</span><span class="p">,</span>
+<span class="w">            </span><span class="mi">4</span><span class="p">,</span>
+<span class="w">            </span><span class="mi">6</span><span class="p">,</span>
+<span class="w">            </span><span class="mi">8</span><span class="p">,</span>
+<span class="w">            </span><span class="mi">10</span><span class="p">,</span>
+<span class="w">            </span><span class="mi">21</span><span class="p">,</span>
+<span class="w">            </span><span class="mi">26</span><span class="p">,</span>
+<span class="w">            </span><span class="mi">32</span><span class="p">,</span>
+<span class="w">            </span><span class="mi">41</span><span class="p">,</span>
+<span class="w">            </span><span class="mi">45</span><span class="p">,</span>
+<span class="w">            </span><span class="mi">46</span><span class="p">,</span>
+<span class="w">            </span><span class="mi">49</span><span class="p">,</span>
+<span class="w">            </span><span class="mi">206</span><span class="p">,</span>
+<span class="w">            </span><span class="mi">207</span><span class="p">,</span>
+<span class="w">            </span><span class="mi">208</span><span class="p">,</span>
+<span class="w">            </span><span class="mi">209</span><span class="p">,</span>
+<span class="w">            </span><span class="mi">211</span><span class="p">,</span>
+<span class="w">            </span><span class="mi">212</span><span class="p">,</span>
+<span class="w">            </span><span class="mi">214</span><span class="p">,</span>
+<span class="w">            </span><span class="mi">215</span><span class="p">,</span>
+<span class="w">            </span><span class="mi">216</span><span class="p">,</span>
+<span class="w">            </span><span class="mi">258</span><span class="p">,</span>
+<span class="w">            </span><span class="mi">260</span><span class="p">,</span>
+<span class="w">            </span><span class="mi">289</span><span class="p">,</span>
+<span class="w">            </span><span class="mi">290</span><span class="p">,</span>
+<span class="w">            </span><span class="mi">291</span><span class="p">,</span>
+<span class="w">            </span><span class="mi">292</span><span class="p">,</span>
+<span class="w">            </span><span class="mi">297</span><span class="p">,</span>
+<span class="w">            </span><span class="mi">391</span><span class="p">,</span>
+<span class="w">            </span><span class="mi">392</span><span class="p">,</span>
+<span class="w">            </span><span class="mi">408</span><span class="p">,</span>
+<span class="w">            </span><span class="mi">755</span><span class="p">,</span>
+<span class="w">            </span><span class="mi">756</span><span class="p">,</span>
+<span class="w">            </span><span class="mi">757</span><span class="p">,</span>
+<span class="w">            </span><span class="mi">971</span><span class="p">,</span>
+<span class="w">            </span><span class="mi">1089</span>
+<span class="w">        </span><span class="p">],</span>
+<span class="w">        </span><span class="nt">&quot;save_bonus&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="nt">&quot;fort&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">9</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;reflex&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">15</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;will&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">13</span>
+<span class="w">        </span><span class="p">},</span>
+<span class="w">        </span><span class="nt">&quot;skills&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">            </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">            </span><span class="mi">1</span><span class="p">,</span>
+<span class="w">            </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">            </span><span class="mi">40</span><span class="p">,</span>
+<span class="w">            </span><span class="mi">11</span><span class="p">,</span>
+<span class="w">            </span><span class="mi">30</span><span class="p">,</span>
+<span class="w">            </span><span class="mi">30</span><span class="p">,</span>
+<span class="w">            </span><span class="mi">1</span><span class="p">,</span>
+<span class="w">            </span><span class="mi">30</span><span class="p">,</span>
+<span class="w">            </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">            </span><span class="mi">20</span><span class="p">,</span>
+<span class="w">            </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">            </span><span class="mi">30</span><span class="p">,</span>
+<span class="w">            </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">            </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">            </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">            </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">            </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">            </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">            </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">            </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">            </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">            </span><span class="mi">1</span><span class="p">,</span>
+<span class="w">            </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">            </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">            </span><span class="mi">1</span><span class="p">,</span>
+<span class="w">            </span><span class="mi">2</span><span class="p">,</span>
+<span class="w">            </span><span class="mi">0</span>
+<span class="w">        </span><span class="p">]</span>
+<span class="w">    </span><span class="p">},</span>
+<span class="w">    </span><span class="nt">&quot;subrace&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;walkrate&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">4</span>
+<span class="p">}</span>
 </pre></div>
 </div>
 </div>
