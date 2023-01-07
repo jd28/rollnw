@@ -184,7 +184,7 @@ int number_of_attacks(const nw::Creature* obj, bool offhand)
 
 nw::AttackResult resolve_attack_roll(const nw::Creature* obj, nw::AttackType type, nw::ObjectBase* vs)
 {
-    // [TODO], iteration, criticals, lots..
+    // [TODO], iteration, lots..
 
     static constexpr nw::DiceRoll d20{1, 20, 0};
     const auto roll = nw::roll_dice(d20);
@@ -193,33 +193,39 @@ nw::AttackResult resolve_attack_roll(const nw::Creature* obj, nw::AttackType typ
     auto weapon = get_weapon_by_attack_type(obj, type);
     auto attack_result = nw::AttackResult::miss_by_roll;
 
+    const auto iter = weapon_iteration(obj, weapon);
+    const auto ab = attack_bonus(obj, type, vs);
+    const auto ac = calculate_ac_versus(obj, vs, false);
+
     if (roll == 20) {
         attack_result = nw::AttackResult::hit_by_auto_success;
     } else {
-        const auto iter = weapon_iteration(obj, weapon);
-        const auto ab = attack_bonus(obj, type, vs);
-        const auto ac = calculate_ac_versus(obj, vs, false);
         if (ab + roll >= ac) {
             attack_result = nw::AttackResult::hit_by_roll;
         }
     }
 
-    if (nw::is_attack_type_hit(attack_result) && 21 - roll <= resolve_critical_threat(obj, type)) {
-        attack_result = nw::AttackResult::hit_by_critical;
-    }
+    if (nw::is_attack_type_hit(attack_result)) {
+        int crit_threat = resolve_critical_threat(obj, type);
+        if (21 - roll <= crit_threat && ab + nw::roll_dice(d20) >= ac) {
+            attack_result = nw::AttackResult::hit_by_critical;
+        }
 
-    auto [conceal, source] = resolve_concealment(obj, vs);
-    if (conceal > 0 && !nw::is_attack_type_miss(attack_result)) {
-        nw::DiceRoll d100{1, 100};
-        auto conceal_check = nw::roll_dice(d100);
-        if (conceal_check <= conceal) {
-            if (obj->stats.has_feat(feat_blind_fight)) {
-                conceal_check = nw::roll_dice(d100);
-                if (conceal_check <= conceal) {
-                    attack_result = source ? nw::AttackResult::miss_by_miss_chance : nw::AttackResult::miss_by_concealment;
+        auto [conceal, source] = resolve_concealment(obj, vs);
+        if (conceal > 0) {
+            nw::DiceRoll d100{1, 100};
+            auto conceal_check = nw::roll_dice(d100);
+            if (conceal_check <= conceal) {
+                if (obj->stats.has_feat(feat_blind_fight)) {
+                    conceal_check = nw::roll_dice(d100);
+                    if (conceal_check <= conceal) {
+                        attack_result = source ? nw::AttackResult::miss_by_miss_chance
+                                               : nw::AttackResult::miss_by_concealment;
+                    }
+                } else {
+                    attack_result = source ? nw::AttackResult::miss_by_miss_chance
+                                           : nw::AttackResult::miss_by_concealment;
                 }
-            } else {
-                attack_result = source ? nw::AttackResult::miss_by_miss_chance : nw::AttackResult::miss_by_concealment;
             }
         }
     }
