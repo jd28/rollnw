@@ -204,6 +204,10 @@ nw::AttackResult resolve_attack_roll(const nw::Creature* obj, nw::AttackType typ
         }
     }
 
+    if (nw::is_attack_type_hit(attack_result) && 21 - roll <= resolve_critical_threat(obj, type)) {
+        attack_result = nw::AttackResult::hit_by_critical;
+    }
+
     auto [conceal, source] = resolve_concealment(obj, vs);
     if (conceal > 0 && !nw::is_attack_type_miss(attack_result)) {
         nw::DiceRoll d100{1, 100};
@@ -266,6 +270,38 @@ std::pair<int, bool> resolve_concealment(const nw::ObjectBase* obj, const nw::Ob
     } else {
         return {conc, false};
     }
+}
+
+int resolve_critical_threat(const nw::Creature* obj, nw::AttackType type)
+{
+    int start = 1;
+    auto weapon = get_weapon_by_attack_type(obj, type);
+
+    if (!obj) { return start; }
+
+    auto base = nw::BaseItem::invalid();
+    if (weapon) {
+        auto baseitem = nw::kernel::rules().baseitems.get(weapon->baseitem);
+        if (!baseitem) { return start; }
+        start = baseitem->crit_threat;
+        base = weapon->baseitem;
+    }
+
+    int result = start;
+
+    if (nw::item_has_property(weapon, ip_keen)) {
+        result += start;
+    }
+
+    if (!!nw::kernel::resolve_master_feat<int>(obj, base, mfeat_improved_crit)) {
+        result += start;
+    }
+
+    if (obj->levels.level_by_class(class_type_weapon_master) >= 7) {
+        result += 2;
+    }
+
+    return result;
 }
 
 nw::TargetState resolve_target_state(const nw::Creature* attacker, const nw::ObjectBase* target)

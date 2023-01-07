@@ -446,6 +446,23 @@ TEST_CASE("creature: concealment", "[objects]")
     REQUIRE(o3);
 }
 
+TEST_CASE("creature: critical hit threat", "[objects]")
+{
+    auto obj = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/drorry.utc"));
+    REQUIRE(obj);
+
+    int threat = nwn1::resolve_critical_threat(obj, nwn1::attack_type_onhand);
+    REQUIRE(threat == 11);
+
+    auto obj2 = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/nw_chicken.utc"));
+    REQUIRE(obj2);
+    int threat2 = nwn1::resolve_critical_threat(obj2, nwn1::attack_type_onhand);
+    REQUIRE(threat2 == 1);
+    obj2->stats.add_feat(nwn1::feat_improved_critical_unarmed);
+    threat2 = nwn1::resolve_critical_threat(obj2, nwn1::attack_type_onhand);
+    REQUIRE(threat2 == 2);
+}
+
 TEST_CASE("creature: target_state", "[objects]")
 {
     nw::TargetState state = nw::TargetState::none;
