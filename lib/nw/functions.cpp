@@ -156,6 +156,17 @@ nw::Feat highest_feat_in_range(const nw::Creature* obj, nw::Feat start, nw::Feat
 // == Item Properties =========================================================
 // ============================================================================
 
+bool item_has_property(const Item* item, ItemPropertyType type, int32_t subtype)
+{
+    if (!item) { return false; }
+    for (const auto& ip : item->properties) {
+        if (ip.type == *type && (subtype == -1 || ip.subtype == subtype)) {
+            return true;
+        }
+    }
+    return false;
+}
+
 std::string itemprop_to_string(const nw::ItemProperty& ip)
 {
     std::string result;
