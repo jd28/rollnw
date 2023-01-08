@@ -38,13 +38,15 @@ void init_nwn1(py::module& m)
 
     // == Combat ==================================================================
     // ============================================================================
-    m.def("attack_bonus", &nwn1::attack_bonus,
-        py::arg("obj"), py::arg("type"), py::arg("versus") = nullptr);
     // m.def("attacks_per_second", &nwn1::attacks_per_second);
     m.def("base_attack_bonus", &nwn1::base_attack_bonus);
     m.def("equip_index_to_attack_type", &nwn1::equip_index_to_attack_type);
-    m.def("number_of_attacks", &nwn1::number_of_attacks,
-        py::arg("obj"), py::arg("offhand") = false);
+
+    m.def("resolve_attack_bonus", &nwn1::resolve_attack_bonus,
+        py::arg("obj"), py::arg("type"), py::arg("versus") = nullptr);
+    m.def("resolve_attack_type", &nwn1::resolve_attack_type);
+    m.def("resolve_number_of_attacks", &nwn1::resolve_number_of_attacks, py::arg("obj"));
+
     m.def("get_weapon_by_attack_type", &nwn1::get_weapon_by_attack_type);
     m.def("weapon_is_finessable", &nwn1::weapon_is_finessable);
     m.def("weapon_iteration", &nwn1::weapon_iteration);
