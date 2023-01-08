@@ -414,6 +414,19 @@ TEST_CASE("creature: attack roll", "[objects]")
     }
 }
 
+TEST_CASE("creature: attack type", "[objects]")
+{
+    auto obj = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/drorry.utc"));
+    REQUIRE(obj);
+    obj->combat_info.attacks_onhand = 4;
+    REQUIRE(nwn1::resolve_attack_type(obj) == nwn1::attack_type_onhand);
+
+    auto obj2 = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/nw_chicken.utc"));
+    REQUIRE(obj2);
+    obj2->combat_info.attacks_onhand = 1;
+    REQUIRE(nwn1::resolve_attack_type(obj2) == nwn1::attack_type_unarmed);
+}
+
 TEST_CASE("creature: concealment", "[objects]")
 {
     auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");

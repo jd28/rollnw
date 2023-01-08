@@ -224,6 +224,69 @@ nw::AttackResult resolve_attack_roll(const nw::Creature* obj, nw::AttackType typ
     return attack_result;
 }
 
+nw::AttackType resolve_attack_type(const nw::Creature* obj)
+{
+    static constexpr nw::DiceRoll d3{1, 3};
+    nw::AttackType result = nw::AttackType::invalid();
+    if (obj->combat_info.attack_current < obj->combat_info.attacks_onhand + obj->combat_info.attacks_offhand) {
+        auto weapon = get_weapon_by_attack_type(obj, attack_type_onhand);
+        if (weapon) {
+            result = attack_type_onhand;
+        } else {
+            result = attack_type_unarmed;
+        }
+
+        if (result == attack_type_unarmed) {
+            weapon = get_weapon_by_attack_type(obj, attack_type_unarmed);
+            if (!weapon) {
+                // look for creature attacks, try random first.
+                switch (nw::roll_dice(d3)) {
+                default:
+                    result = nw::AttackType::invalid();
+                case 1:
+                    if (get_weapon_by_attack_type(obj, attack_type_cweapon1)) {
+                        result = attack_type_cweapon1;
+                        weapon = get_weapon_by_attack_type(obj, attack_type_cweapon1);
+                    }
+                    break;
+                case 2:
+                    if (get_weapon_by_attack_type(obj, attack_type_cweapon2)) {
+                        result = attack_type_cweapon2;
+                        weapon = get_weapon_by_attack_type(obj, attack_type_cweapon2);
+                    }
+                    break;
+                case 3:
+                    if (get_weapon_by_attack_type(obj, attack_type_cweapon3)) {
+                        result = attack_type_cweapon3;
+                        weapon = get_weapon_by_attack_type(obj, attack_type_cweapon3);
+                    }
+                    break;
+                }
+            }
+
+            // If still nothing go in order until something is found.
+            if (!weapon) {
+                weapon = get_weapon_by_attack_type(obj, attack_type_cweapon1);
+                if (weapon) { result = attack_type_cweapon3; }
+            }
+
+            if (!weapon) {
+                weapon = get_weapon_by_attack_type(obj, attack_type_cweapon2);
+                if (weapon) { result = attack_type_cweapon3; }
+            }
+
+            if (!weapon) {
+                weapon = get_weapon_by_attack_type(obj, attack_type_cweapon3);
+                if (weapon) { result = attack_type_cweapon3; }
+            }
+        }
+    } else if (obj->combat_info.attacks_offhand > 0) {
+        result = attack_type_offhand;
+    }
+
+    return result;
+}
+
 std::pair<int, bool> resolve_concealment(const nw::ObjectBase* obj, const nw::ObjectBase* target, bool vs_ranged)
 {
     if (!obj || !target) { return {0, false}; }

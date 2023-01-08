@@ -34,6 +34,9 @@ int resolve_attack_bonus(const nw::Creature* obj, nw::AttackType type, nw::Objec
 /// Resolves an attack roll
 nw::AttackResult resolve_attack_roll(const nw::Creature* obj, nw::AttackType type, nw::ObjectBase* vs);
 
+/// Resolves attack type
+nw::AttackType resolve_attack_type(const nw::Creature* obj);
+
 /// Resolves an concealment - i.e. the highest of concealment and miss chance
 /// @return Concealment amount, bool that if ``true`` is from attacking creature i.e miss chance,
 /// if ``false`` from target object i.e. concealment

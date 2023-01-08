@@ -33,6 +33,13 @@ struct CombatInfo {
 
     // Transient
 
+    /// Current attack counter.
+    /// @note Invariant: attack_current <= attacks_onhand + attacks_offhand + attacks_extra
+    int attack_current = 0;
+    int attacks_onhand = 0;
+    int attacks_offhand = 0;
+    int attacks_extra = 0;
+
     nw::ObjectBase* target = nullptr;
     /// Distance to target squared
     float target_distance_sq = 0.0f;
