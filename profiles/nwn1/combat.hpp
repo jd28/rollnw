@@ -27,8 +27,6 @@ nw::Item* get_weapon_by_attack_type(const nw::Creature* obj, nw::AttackType type
 /// Determine if creature is flanked by an attacker
 bool is_flanked(const nw::Creature* target, const nw::Creature* attacker);
 
-/// Calculates number of attacks
-int number_of_attacks(const nw::Creature* obj, bool offhand = false);
 
 /// Resolves attack bonus
 int resolve_attack_bonus(const nw::Creature* obj, nw::AttackType type, nw::ObjectBase* versus = nullptr);
@@ -46,6 +44,9 @@ int resolve_critical_multiplier(const nw::Creature* obj, nw::AttackType type, nw
 
 /// Resolves critical threat range.
 int resolve_critical_threat(const nw::Creature* obj, nw::AttackType type);
+
+/// Resolves number of attacks
+std::pair<int, int> resolve_number_of_attacks(const nw::Creature* obj);
 
 /// Resolve target state
 nw::TargetState resolve_target_state(const nw::Creature* attacker, const nw::ObjectBase* target);

@@ -105,15 +105,6 @@ bool is_flanked(const nw::Creature* target, const nw::Creature* attacker)
     return true;
 }
 
-int number_of_attacks(const nw::Creature* obj, bool offhand)
-{
-    int ab = base_attack_bonus(obj);
-    auto equip = offhand ? nw::EquipIndex::lefthand : nw::EquipIndex::righthand;
-    auto item = get_equipped_item(obj, equip);
-    int iter = weapon_iteration(obj, item);
-    return iter > 0 ? ab / iter : 0;
-}
-
 int resolve_attack_bonus(const nw::Creature* obj, nw::AttackType type, nw::ObjectBase* versus)
 {
     int result = 0;
@@ -329,6 +320,32 @@ int resolve_critical_threat(const nw::Creature* obj, nw::AttackType type)
     }
 
     return result;
+}
+
+std::pair<int, int> resolve_number_of_attacks(const nw::Creature* obj)
+{
+    int onhand = 1, offhand = 0;
+    int ab = base_attack_bonus(obj);
+
+    auto item_on = get_equipped_item(obj, nw::EquipIndex::lefthand);
+    int iter = weapon_iteration(obj, item_on);
+    onhand = iter > 0 ? ab / iter : 0;
+    if (iter == 5) {
+        onhand = std::max(4, onhand);
+    } else if (iter == 3) {
+        onhand = std::max(6, onhand);
+    }
+
+    auto item_off = get_equipped_item(obj, nw::EquipIndex::righthand);
+    iter = weapon_iteration(obj, item_off);
+    if (iter > 0) {
+        offhand = 1;
+        if (obj->stats.has_feat(feat_improved_two_weapon_fighting)) {
+            ++offhand;
+        }
+    }
+
+    return {onhand, offhand};
 }
 
 nw::TargetState resolve_target_state(const nw::Creature* attacker, const nw::ObjectBase* target)
