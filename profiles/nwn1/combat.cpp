@@ -278,6 +278,27 @@ std::pair<int, bool> resolve_concealment(const nw::ObjectBase* obj, const nw::Ob
     }
 }
 
+int resolve_critical_multiplier(const nw::Creature* obj, nw::AttackType type, nw::ObjectBase*)
+{
+    int result = 2;
+    auto weapon = get_weapon_by_attack_type(obj, type);
+
+    if (!obj) { return result; }
+    auto base = nw::BaseItem::invalid();
+    if (weapon) {
+        auto baseitem = nw::kernel::rules().baseitems.get(weapon->baseitem);
+        if (!baseitem) { return result; }
+        result = baseitem->crit_multiplier;
+        base = weapon->baseitem;
+    }
+
+    if (obj->levels.level_by_class(class_type_weapon_master) >= 5) {
+        ++result;
+    }
+
+    return result;
+}
+
 int resolve_critical_threat(const nw::Creature* obj, nw::AttackType type)
 {
     int start = 1;

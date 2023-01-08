@@ -446,6 +446,20 @@ TEST_CASE("creature: concealment", "[objects]")
     REQUIRE(o3);
 }
 
+TEST_CASE("creature: critical hit multiplier", "[objects]")
+{
+    auto obj = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/drorry.utc"));
+    REQUIRE(obj);
+
+    int multiplier = nwn1::resolve_critical_multiplier(obj, nwn1::attack_type_onhand);
+    REQUIRE(multiplier == 3);
+
+    auto obj2 = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/nw_chicken.utc"));
+    REQUIRE(obj2);
+    int multiplier2 = nwn1::resolve_critical_multiplier(obj2, nwn1::attack_type_onhand);
+    REQUIRE(multiplier2 == 2);
+}
+
 TEST_CASE("creature: critical hit threat", "[objects]")
 {
     auto obj = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/drorry.utc"));

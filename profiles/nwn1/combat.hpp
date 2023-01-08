@@ -41,6 +41,9 @@ nw::AttackResult resolve_attack_roll(const nw::Creature* obj, nw::AttackType typ
 /// if ``false`` from target object i.e. concealment
 std::pair<int, bool> resolve_concealment(const nw::ObjectBase* obj, const nw::ObjectBase* target, bool vs_ranged = false);
 
+/// Resolves critical multiplier
+int resolve_critical_multiplier(const nw::Creature* obj, nw::AttackType type, nw::ObjectBase* vs = nullptr);
+
 /// Resolves critical threat range.
 int resolve_critical_threat(const nw::Creature* obj, nw::AttackType type);
 
