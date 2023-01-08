@@ -242,20 +242,20 @@ TEST_CASE("creature: base attack bonus", "[objects]")
     REQUIRE(obj);
 
     REQUIRE(27 == nwn1::base_attack_bonus(obj));
-    REQUIRE(47 == nwn1::attack_bonus(obj, nwn1::attack_type_unarmed));
+    REQUIRE(47 == nwn1::resolve_attack_bonus(obj, nwn1::attack_type_unarmed));
 
     REQUIRE_FALSE(obj->stats.has_feat(nwn1::feat_weapon_focus_unarmed));
     REQUIRE_FALSE(obj->stats.has_feat(nwn1::feat_epic_weapon_focus_unarmed));
     obj->stats.add_feat(nwn1::feat_weapon_focus_unarmed);
     obj->stats.add_feat(nwn1::feat_epic_weapon_focus_unarmed);
 
-    REQUIRE(50 == nwn1::attack_bonus(obj, nwn1::attack_type_unarmed));
+    REQUIRE(50 == nwn1::resolve_attack_bonus(obj, nwn1::attack_type_unarmed));
     auto eff1 = nwn1::effect_attack_modifier(nwn1::attack_type_any, 2);
     REQUIRE(nw::apply_effect(obj, eff1));
-    REQUIRE(52 == nwn1::attack_bonus(obj, nwn1::attack_type_unarmed));
+    REQUIRE(52 == nwn1::resolve_attack_bonus(obj, nwn1::attack_type_unarmed));
     auto eff2 = nwn1::effect_attack_modifier(nwn1::attack_type_unarmed, 3);
     REQUIRE(nw::apply_effect(obj, eff2));
-    REQUIRE(55 == nwn1::attack_bonus(obj, nwn1::attack_type_unarmed));
+    REQUIRE(55 == nwn1::resolve_attack_bonus(obj, nwn1::attack_type_unarmed));
 
     nwk::unload_module();
 }
@@ -289,25 +289,25 @@ TEST_CASE("creature: attack bonus", "[objects]")
     REQUIRE(nwn1::get_ability_modifier(obj, nwn1::ability_strength) == 3);
     REQUIRE(obj->combat_info.size_ab_modifier == 1);
     REQUIRE(29 == nwn1::base_attack_bonus(obj));
-    REQUIRE(45 == nwn1::attack_bonus(obj, nwn1::attack_type_onhand));
+    REQUIRE(45 == nwn1::resolve_attack_bonus(obj, nwn1::attack_type_onhand));
 
     obj->combat_info.combat_mode = nwn1::combat_mode_power_attack;
-    REQUIRE(40 == nwn1::attack_bonus(obj, nwn1::attack_type_onhand));
+    REQUIRE(40 == nwn1::resolve_attack_bonus(obj, nwn1::attack_type_onhand));
     obj->combat_info.combat_mode = nwn1::combat_mode_improved_power_attack;
-    REQUIRE(35 == nwn1::attack_bonus(obj, nwn1::attack_type_onhand));
+    REQUIRE(35 == nwn1::resolve_attack_bonus(obj, nwn1::attack_type_onhand));
 
     obj->combat_info.combat_mode = nwn1::combat_mode_expertise;
-    REQUIRE(40 == nwn1::attack_bonus(obj, nwn1::attack_type_onhand));
+    REQUIRE(40 == nwn1::resolve_attack_bonus(obj, nwn1::attack_type_onhand));
     obj->combat_info.combat_mode = nwn1::combat_mode_improved_expertise;
-    REQUIRE(35 == nwn1::attack_bonus(obj, nwn1::attack_type_onhand));
+    REQUIRE(35 == nwn1::resolve_attack_bonus(obj, nwn1::attack_type_onhand));
     obj->combat_info.combat_mode = nw::CombatMode::invalid();
-    REQUIRE(45 == nwn1::attack_bonus(obj, nwn1::attack_type_onhand));
+    REQUIRE(45 == nwn1::resolve_attack_bonus(obj, nwn1::attack_type_onhand));
 
     obj->stats.add_feat(nwn1::feat_epic_prowess);
-    REQUIRE(46 == nwn1::attack_bonus(obj, nwn1::attack_type_onhand));
+    REQUIRE(46 == nwn1::resolve_attack_bonus(obj, nwn1::attack_type_onhand));
 
     obj->combat_info.target_state = nw::TargetState::flanked;
-    REQUIRE(48 == nwn1::attack_bonus(obj, nwn1::attack_type_onhand, vs));
+    REQUIRE(48 == nwn1::resolve_attack_bonus(obj, nwn1::attack_type_onhand, vs));
     obj->combat_info.target_state = nw::TargetState::none;
 
     // Good aim
@@ -315,13 +315,13 @@ TEST_CASE("creature: attack bonus", "[objects]")
     auto sling = nwk::objects().load<nw::Item>("nw_wbwsl001"sv);
     REQUIRE(sling);
     nwn1::equip_item(obj, sling, nw::EquipIndex::righthand);
-    REQUIRE(34 == nwn1::attack_bonus(obj, nwn1::attack_type_onhand));
+    REQUIRE(34 == nwn1::resolve_attack_bonus(obj, nwn1::attack_type_onhand));
 
     REQUIRE(obj->stats.has_feat(nwn1::feat_good_aim));
     auto dart = nwk::objects().load<nw::Item>("nw_wthdt001"sv);
     REQUIRE(dart);
     nwn1::equip_item(obj, dart, nw::EquipIndex::righthand);
-    REQUIRE(34 == nwn1::attack_bonus(obj, nwn1::attack_type_onhand));
+    REQUIRE(34 == nwn1::resolve_attack_bonus(obj, nwn1::attack_type_onhand));
 
     // Zen Archery
     auto obj2 = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/lentiane.utc"));
@@ -334,7 +334,7 @@ TEST_CASE("creature: attack bonus", "[objects]")
     REQUIRE(nwn1::get_ability_modifier(obj2, nwn1::ability_wisdom) == 10);
     REQUIRE(nwn1::get_ability_modifier(obj2, nwn1::ability_dexterity) == 3);
     REQUIRE(26 == nwn1::base_attack_bonus(obj2));
-    REQUIRE(36 == nwn1::attack_bonus(obj2, nwn1::attack_type_onhand));
+    REQUIRE(36 == nwn1::resolve_attack_bonus(obj2, nwn1::attack_type_onhand));
 
     // Dex Archery
     auto obj3 = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/rangerdexranged.utc"));
@@ -352,9 +352,9 @@ TEST_CASE("creature: attack bonus", "[objects]")
     REQUIRE(nwn1::get_ability_modifier(obj3, nwn1::ability_strength) == 2);
     REQUIRE(nwn1::get_ability_modifier(obj3, nwn1::ability_dexterity) == 8);
     REQUIRE(30 == nwn1::base_attack_bonus(obj3));
-    REQUIRE(47 == nwn1::attack_bonus(obj3, nwn1::attack_type_onhand));
+    REQUIRE(47 == nwn1::resolve_attack_bonus(obj3, nwn1::attack_type_onhand));
     // Bane of enemies
-    REQUIRE(49 == nwn1::attack_bonus(obj3, nwn1::attack_type_onhand, vs1));
+    REQUIRE(49 == nwn1::resolve_attack_bonus(obj3, nwn1::attack_type_onhand, vs1));
 
     auto eff1 = nwn1::effect_attack_modifier(nwn1::attack_type_any, 3);
     eff1->set_versus(vs1->versus_me());
@@ -362,7 +362,7 @@ TEST_CASE("creature: attack bonus", "[objects]")
     auto eff2 = nwn1::effect_attack_modifier(nwn1::attack_type_any, 3);
     eff2->set_versus({nwn1::racial_type_halfling});
     nw::apply_effect(obj3, eff2);
-    REQUIRE(52 == nwn1::attack_bonus(obj3, nwn1::attack_type_onhand, vs1));
+    REQUIRE(52 == nwn1::resolve_attack_bonus(obj3, nwn1::attack_type_onhand, vs1));
 
     // Dex Weapon Finesse
     auto obj4 = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/dexweapfin.utc"));
@@ -375,7 +375,7 @@ TEST_CASE("creature: attack bonus", "[objects]")
     REQUIRE(nwn1::get_ability_modifier(obj4, nwn1::ability_strength) == 1);
     REQUIRE(nwn1::get_ability_modifier(obj4, nwn1::ability_dexterity) == 11);
     REQUIRE(25 == nwn1::base_attack_bonus(obj4));
-    REQUIRE(40 == nwn1::attack_bonus(obj4, nwn1::attack_type_onhand));
+    REQUIRE(40 == nwn1::resolve_attack_bonus(obj4, nwn1::attack_type_onhand));
 
     nwk::unload_module();
 }
@@ -388,7 +388,7 @@ TEST_CASE("creature: attack roll", "[objects]")
     auto target = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/nw_chicken.utc"));
     REQUIRE(target);
 
-    REQUIRE(nwn1::attack_bonus(obj, nwn1::attack_type_onhand, target) == 45);
+    REQUIRE(nwn1::resolve_attack_bonus(obj, nwn1::attack_type_onhand, target) == 45);
     REQUIRE(nwn1::calculate_ac_versus(target, obj, false) == 11);
 
     for (size_t i = 0; i < 100; ++i) {

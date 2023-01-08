@@ -12,9 +12,6 @@ struct ObjectBase;
 
 namespace nwn1 {
 
-/// Calculates attack bonus
-int attack_bonus(const nw::Creature* obj, nw::AttackType type, nw::ObjectBase* versus = nullptr);
-
 /// Number of attacks per second
 float attacks_per_second(const nw::Creature* obj, const nw::ObjectBase* vs);
 
@@ -32,6 +29,9 @@ bool is_flanked(const nw::Creature* target, const nw::Creature* attacker);
 
 /// Calculates number of attacks
 int number_of_attacks(const nw::Creature* obj, bool offhand = false);
+
+/// Resolves attack bonus
+int resolve_attack_bonus(const nw::Creature* obj, nw::AttackType type, nw::ObjectBase* versus = nullptr);
 
 /// Resolves an attack roll
 nw::AttackResult resolve_attack_roll(const nw::Creature* obj, nw::AttackType type, nw::ObjectBase* vs);

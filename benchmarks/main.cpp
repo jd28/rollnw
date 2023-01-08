@@ -167,7 +167,7 @@ static void BM_creature_attack_bonus(benchmark::State& state)
     auto obj = nwk::objects().load<nw::Creature>(fs::path("../tests/test_data/user/development/drorry.utc"));
     auto vs = nwk::objects().load<nw::Creature>(fs::path("../tests/test_data/user/development/drorry.utc"));
     for (auto _ : state) {
-        auto out = nwn1::attack_bonus(obj, nwn1::attack_type_onhand, vs);
+        auto out = nwn1::resolve_attack_bonus(obj, nwn1::attack_type_onhand, vs);
         benchmark::DoNotOptimize(out);
     }
 }

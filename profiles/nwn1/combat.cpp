@@ -17,74 +17,6 @@
 
 namespace nwn1 {
 
-int attack_bonus(const nw::Creature* obj, nw::AttackType type, nw::ObjectBase* versus)
-{
-    int result = 0;
-    if (!obj) { return result; }
-
-    nw::Versus vs;
-    if (versus) {
-        vs = versus->versus_me();
-    }
-
-    auto weapon = get_weapon_by_attack_type(obj, type);
-    auto baseitem = nw::BaseItem::invalid();
-    if (!weapon) {
-        // If there is no weapon, proceed as an unarmed attack.
-        type = attack_type_unarmed;
-    } else {
-        baseitem = weapon->baseitem;
-    }
-
-    // BAB
-    result = base_attack_bonus(obj);
-
-    // Size
-    int modifier = obj->combat_info.size_ab_modifier;
-
-    // Modifiers - abilities will be handled by the first modifier search.
-    auto mod_adder = [&modifier](int value) { modifier += value; };
-    nw::kernel::resolve_modifier(obj, mod_type_attack_bonus, type, versus, mod_adder);
-    if (type != attack_type_any) {
-        // General modifiers, i.e. Epic Prowess
-        nw::kernel::resolve_modifier(obj, mod_type_attack_bonus, attack_type_any, versus, mod_adder);
-    }
-    // Weapon feats, weapon master type stuff occurs below.
-    nw::kernel::resolve_modifier(obj, mod_type_attack_bonus_item, baseitem, versus, mod_adder);
-    // Combat Modes
-    nw::kernel::resolve_modifier(obj, mod_type_attack_bonus_mode, obj->combat_info.combat_mode, versus, mod_adder);
-
-    // Effects attack increase/decrease is a little more complicated due to needing to support
-    // an 'any' subtype.
-    auto begin = std::begin(obj->effects());
-    auto end = std::end(obj->effects());
-
-    int bonus = 0;
-    auto bonus_adder = [&bonus](int mod) { bonus += mod; };
-
-    auto it = nw::resolve_effects_of<int>(begin, end, effect_type_attack_increase, *attack_type_any, vs,
-        bonus_adder, &nw::effect_extract_int0);
-
-    if (type != attack_type_any) {
-        it = nw::resolve_effects_of<int>(it, end, effect_type_attack_increase, *type, vs,
-            bonus_adder, &nw::effect_extract_int0);
-    }
-
-    int decrease = 0;
-    auto decrease_adder = [&decrease](int mod) { decrease += mod; };
-
-    it = nw::resolve_effects_of<int>(it, end, effect_type_attack_decrease, *attack_type_any, vs,
-        decrease_adder, &nw::effect_extract_int0);
-
-    if (type != attack_type_any) {
-        nw::resolve_effects_of<int>(it, end, effect_type_attack_decrease, *type, vs,
-            decrease_adder, &nw::effect_extract_int0);
-    }
-
-    auto [min, max] = nw::kernel::effects().effect_limits_attack();
-    return result + modifier + std::clamp(bonus - decrease, min, max);
-}
-
 int base_attack_bonus(const nw::Creature* obj)
 {
     if (!obj) { return 0; }
@@ -182,6 +114,74 @@ int number_of_attacks(const nw::Creature* obj, bool offhand)
     return iter > 0 ? ab / iter : 0;
 }
 
+int resolve_attack_bonus(const nw::Creature* obj, nw::AttackType type, nw::ObjectBase* versus)
+{
+    int result = 0;
+    if (!obj) { return result; }
+
+    nw::Versus vs;
+    if (versus) {
+        vs = versus->versus_me();
+    }
+
+    auto weapon = get_weapon_by_attack_type(obj, type);
+    auto baseitem = nw::BaseItem::invalid();
+    if (!weapon) {
+        // If there is no weapon, proceed as an unarmed attack.
+        type = attack_type_unarmed;
+    } else {
+        baseitem = weapon->baseitem;
+    }
+
+    // BAB
+    result = base_attack_bonus(obj);
+
+    // Size
+    int modifier = obj->combat_info.size_ab_modifier;
+
+    // Modifiers - abilities will be handled by the first modifier search.
+    auto mod_adder = [&modifier](int value) { modifier += value; };
+    nw::kernel::resolve_modifier(obj, mod_type_attack_bonus, type, versus, mod_adder);
+    if (type != attack_type_any) {
+        // General modifiers, i.e. Epic Prowess
+        nw::kernel::resolve_modifier(obj, mod_type_attack_bonus, attack_type_any, versus, mod_adder);
+    }
+    // Weapon feats, weapon master type stuff occurs below.
+    nw::kernel::resolve_modifier(obj, mod_type_attack_bonus_item, baseitem, versus, mod_adder);
+    // Combat Modes
+    nw::kernel::resolve_modifier(obj, mod_type_attack_bonus_mode, obj->combat_info.combat_mode, versus, mod_adder);
+
+    // Effects attack increase/decrease is a little more complicated due to needing to support
+    // an 'any' subtype.
+    auto begin = std::begin(obj->effects());
+    auto end = std::end(obj->effects());
+
+    int bonus = 0;
+    auto bonus_adder = [&bonus](int mod) { bonus += mod; };
+
+    auto it = nw::resolve_effects_of<int>(begin, end, effect_type_attack_increase, *attack_type_any, vs,
+        bonus_adder, &nw::effect_extract_int0);
+
+    if (type != attack_type_any) {
+        it = nw::resolve_effects_of<int>(it, end, effect_type_attack_increase, *type, vs,
+            bonus_adder, &nw::effect_extract_int0);
+    }
+
+    int decrease = 0;
+    auto decrease_adder = [&decrease](int mod) { decrease += mod; };
+
+    it = nw::resolve_effects_of<int>(it, end, effect_type_attack_decrease, *attack_type_any, vs,
+        decrease_adder, &nw::effect_extract_int0);
+
+    if (type != attack_type_any) {
+        nw::resolve_effects_of<int>(it, end, effect_type_attack_decrease, *type, vs,
+            decrease_adder, &nw::effect_extract_int0);
+    }
+
+    auto [min, max] = nw::kernel::effects().effect_limits_attack();
+    return result + modifier + std::clamp(bonus - decrease, min, max);
+}
+
 nw::AttackResult resolve_attack_roll(const nw::Creature* obj, nw::AttackType type, nw::ObjectBase* vs)
 {
     // [TODO], iteration, lots..
@@ -194,7 +194,7 @@ nw::AttackResult resolve_attack_roll(const nw::Creature* obj, nw::AttackType typ
     auto attack_result = nw::AttackResult::miss_by_roll;
 
     const auto iter = weapon_iteration(obj, weapon);
-    const auto ab = attack_bonus(obj, type, vs);
+    const auto ab = resolve_attack_bonus(obj, type, vs);
     const auto ac = calculate_ac_versus(obj, vs, false);
 
     if (roll == 20) {
