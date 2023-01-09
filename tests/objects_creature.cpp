@@ -490,6 +490,20 @@ TEST_CASE("creature: critical hit threat", "[objects]")
     REQUIRE(threat2 == 2);
 }
 
+TEST_CASE("creature: iteration penalty", "[objects]")
+{
+    auto obj = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/drorry.utc"));
+    REQUIRE(obj);
+
+    REQUIRE(nwn1::resolve_iteration_penalty(obj, nwn1::attack_type_onhand) == 0);
+
+    obj->combat_info.attack_current = 2;
+    REQUIRE(nwn1::resolve_iteration_penalty(obj, nwn1::attack_type_onhand) == 10);
+
+    obj->combat_info.attacks_onhand = 1;
+    REQUIRE(nwn1::resolve_iteration_penalty(obj, nwn1::attack_type_offhand) == 5);
+}
+
 TEST_CASE("creature: target_state", "[objects]")
 {
     nw::TargetState state = nw::TargetState::none;

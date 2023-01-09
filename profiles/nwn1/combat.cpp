@@ -181,24 +181,23 @@ nw::AttackResult resolve_attack_roll(const nw::Creature* obj, nw::AttackType typ
     const auto roll = nw::roll_dice(d20);
     if (roll == 1) { return nw::AttackResult::miss_by_auto_fail; }
 
-    auto weapon = get_weapon_by_attack_type(obj, type);
     auto attack_result = nw::AttackResult::miss_by_roll;
 
-    const auto iter = weapon_iteration(obj, weapon);
     const auto ab = resolve_attack_bonus(obj, type, vs);
     const auto ac = calculate_ac_versus(obj, vs, false);
+    const auto iter = resolve_iteration_penalty(obj, type);
 
     if (roll == 20) {
         attack_result = nw::AttackResult::hit_by_auto_success;
     } else {
-        if (ab + roll >= ac) {
+        if (ab + roll - iter >= ac) {
             attack_result = nw::AttackResult::hit_by_roll;
         }
     }
 
     if (nw::is_attack_type_hit(attack_result)) {
         int crit_threat = resolve_critical_threat(obj, type);
-        if (21 - roll <= crit_threat && ab + nw::roll_dice(d20) >= ac) {
+        if (21 - roll <= crit_threat && ab + nw::roll_dice(d20) - iter >= ac) {
             attack_result = nw::AttackResult::hit_by_critical;
         }
 
@@ -330,6 +329,20 @@ std::pair<int, bool> resolve_concealment(const nw::ObjectBase* obj, const nw::Ob
     } else {
         return {conc, false};
     }
+}
+
+int resolve_iteration_penalty(const nw::Creature* attacker, nw::AttackType type)
+{
+    auto weapon = get_weapon_by_attack_type(attacker, attack_type_onhand);
+    int iter = weapon_iteration(attacker, weapon);
+
+    if (type == attack_type_offhand) {
+        iter = iter * (attacker->combat_info.attack_current - attacker->combat_info.attacks_onhand - attacker->combat_info.attacks_extra);
+    } else {
+        iter = iter * attacker->combat_info.attack_current;
+    }
+
+    return iter;
 }
 
 int resolve_critical_multiplier(const nw::Creature* obj, nw::AttackType type, nw::ObjectBase*)
