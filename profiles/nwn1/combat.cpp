@@ -228,7 +228,7 @@ nw::AttackType resolve_attack_type(const nw::Creature* obj)
 {
     static constexpr nw::DiceRoll d3{1, 3};
     nw::AttackType result = nw::AttackType::invalid();
-    if (obj->combat_info.attack_current < obj->combat_info.attacks_onhand + obj->combat_info.attacks_offhand) {
+    if (obj->combat_info.attack_current < obj->combat_info.attacks_onhand + obj->combat_info.attacks_extra) {
         auto weapon = get_weapon_by_attack_type(obj, attack_type_onhand);
         if (weapon) {
             result = attack_type_onhand;
