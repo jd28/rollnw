@@ -42,14 +42,14 @@ nw::AttackType resolve_attack_type(const nw::Creature* obj);
 /// if ``false`` from target object i.e. concealment
 std::pair<int, bool> resolve_concealment(const nw::ObjectBase* obj, const nw::ObjectBase* target, bool vs_ranged = false);
 
-/// Resolves iteration penalty
-int resolve_iteration_penalty(const nw::Creature* attacker, nw::AttackType type);
-
 /// Resolves critical multiplier
 int resolve_critical_multiplier(const nw::Creature* obj, nw::AttackType type, nw::ObjectBase* vs = nullptr);
 
 /// Resolves critical threat range.
 int resolve_critical_threat(const nw::Creature* obj, nw::AttackType type);
+
+/// Resolves iteration penalty
+int resolve_iteration_penalty(const nw::Creature* attacker, nw::AttackType type);
 
 /// Resolves number of attacks
 std::pair<int, int> resolve_number_of_attacks(const nw::Creature* obj);

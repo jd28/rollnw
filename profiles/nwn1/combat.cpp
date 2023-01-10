@@ -331,20 +331,6 @@ std::pair<int, bool> resolve_concealment(const nw::ObjectBase* obj, const nw::Ob
     }
 }
 
-int resolve_iteration_penalty(const nw::Creature* attacker, nw::AttackType type)
-{
-    auto weapon = get_weapon_by_attack_type(attacker, attack_type_onhand);
-    int iter = weapon_iteration(attacker, weapon);
-
-    if (type == attack_type_offhand) {
-        iter = iter * (attacker->combat_info.attack_current - attacker->combat_info.attacks_onhand - attacker->combat_info.attacks_extra);
-    } else {
-        iter = iter * attacker->combat_info.attack_current;
-    }
-
-    return iter;
-}
-
 int resolve_critical_multiplier(const nw::Creature* obj, nw::AttackType type, nw::ObjectBase*)
 {
     int result = 2;
@@ -396,6 +382,20 @@ int resolve_critical_threat(const nw::Creature* obj, nw::AttackType type)
     }
 
     return result;
+}
+
+int resolve_iteration_penalty(const nw::Creature* attacker, nw::AttackType type)
+{
+    auto weapon = get_weapon_by_attack_type(attacker, type);
+    int iter = weapon_iteration(attacker, weapon);
+
+    if (type == attack_type_offhand) {
+        iter = iter * (attacker->combat_info.attack_current - attacker->combat_info.attacks_onhand - attacker->combat_info.attacks_extra);
+    } else {
+        iter = iter * attacker->combat_info.attack_current;
+    }
+
+    return iter;
 }
 
 std::pair<int, int> resolve_number_of_attacks(const nw::Creature* obj)
