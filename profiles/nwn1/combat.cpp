@@ -105,7 +105,7 @@ bool is_flanked(const nw::Creature* target, const nw::Creature* attacker)
     return true;
 }
 
-int resolve_attack_bonus(const nw::Creature* obj, nw::AttackType type, nw::ObjectBase* versus)
+int resolve_attack_bonus(const nw::Creature* obj, nw::AttackType type, const nw::ObjectBase* versus)
 {
     int result = 0;
     if (!obj) { return result; }
@@ -173,10 +173,8 @@ int resolve_attack_bonus(const nw::Creature* obj, nw::AttackType type, nw::Objec
     return result + modifier + std::clamp(bonus - decrease, min, max);
 }
 
-nw::AttackResult resolve_attack_roll(const nw::Creature* obj, nw::AttackType type, nw::ObjectBase* vs)
+nw::AttackResult resolve_attack_roll(const nw::Creature* obj, nw::AttackType type, const nw::ObjectBase* vs, nw::AttackData* data)
 {
-    // [TODO], iteration, lots..
-
     static constexpr nw::DiceRoll d20{1, 20, 0};
     const auto roll = nw::roll_dice(d20);
     if (roll == 1) { return nw::AttackResult::miss_by_auto_fail; }
@@ -186,6 +184,11 @@ nw::AttackResult resolve_attack_roll(const nw::Creature* obj, nw::AttackType typ
     const auto ab = resolve_attack_bonus(obj, type, vs);
     const auto ac = calculate_ac_versus(obj, vs, false);
     const auto iter = resolve_iteration_penalty(obj, type);
+    if (data) {
+        data->attack_bonus = ab;
+        data->armor_class = ac;
+        data->iteration_penalty = iter;
+    }
 
     if (roll == 20) {
         attack_result = nw::AttackResult::hit_by_auto_success;
@@ -197,12 +200,15 @@ nw::AttackResult resolve_attack_roll(const nw::Creature* obj, nw::AttackType typ
 
     if (nw::is_attack_type_hit(attack_result)) {
         int crit_threat = resolve_critical_threat(obj, type);
+        if (data) { data->threat_range = crit_threat; }
         if (21 - roll <= crit_threat && ab + nw::roll_dice(d20) - iter >= ac) {
             attack_result = nw::AttackResult::hit_by_critical;
         }
 
         auto [conceal, source] = resolve_concealment(obj, vs);
         if (conceal > 0) {
+            if (data) { data->concealment = conceal; }
+
             nw::DiceRoll d100{1, 100};
             auto conceal_check = nw::roll_dice(d100);
             if (conceal_check <= conceal) {

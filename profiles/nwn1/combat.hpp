@@ -29,10 +29,10 @@ bool is_flanked(const nw::Creature* target, const nw::Creature* attacker);
 
 
 /// Resolves attack bonus
-int resolve_attack_bonus(const nw::Creature* obj, nw::AttackType type, nw::ObjectBase* versus = nullptr);
+int resolve_attack_bonus(const nw::Creature* obj, nw::AttackType type, const nw::ObjectBase* versus = nullptr);
 
 /// Resolves an attack roll
-nw::AttackResult resolve_attack_roll(const nw::Creature* obj, nw::AttackType type, nw::ObjectBase* vs);
+nw::AttackResult resolve_attack_roll(const nw::Creature* obj, nw::AttackType type, const nw::ObjectBase* vs, nw::AttackData* data = nullptr);
 
 /// Resolves attack type
 nw::AttackType resolve_attack_type(const nw::Creature* obj);
