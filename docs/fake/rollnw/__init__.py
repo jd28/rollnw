@@ -1817,6 +1817,42 @@ class Zip(Container):
 ###############################################################################
 
 
+class AttackData:
+    """Class aggregating attack data
+
+    Attributes:
+        attacker
+        target
+
+        type
+        result
+
+        target_is_creature
+        is_ranged_attack
+        nth_attack
+        attack_roll
+        attack_bonus
+        armor_class
+        iteration_penalty
+        multiplier
+        threat_range
+        concealment
+    """
+    pass
+
+
+class AttackResult(enum.IntEnum):
+    """Attack Result Type
+    """
+    hit_by_auto_success = auto()
+    hit_by_critical = auto()
+    hit_by_roll = auto()
+    miss_by_auto_fail = auto()
+    miss_by_concealment = auto()
+    miss_by_miss_chance = auto()
+    miss_by_roll = auto()
+
+
 class EffectCategory(enum.IntEnum):
     """Effect category
     """

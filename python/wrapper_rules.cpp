@@ -1,6 +1,8 @@
 #include "casters.hpp"
 
+#include <nw/objects/Creature.hpp>
 #include <nw/rules/Effect.hpp>
+#include <nw/rules/combat.hpp>
 
 #include <fmt/format.h>
 #include <pybind11/operators.h>
@@ -14,6 +16,31 @@ namespace py = pybind11;
 
 void init_rules(py::module& nw)
 {
+    py::enum_<nw::AttackResult>(nw, "AttackResult")
+        .value("hit_by_auto_success", nw::AttackResult::hit_by_auto_success)
+        .value("hit_by_critical", nw::AttackResult::hit_by_critical)
+        .value("hit_by_roll", nw::AttackResult::hit_by_roll)
+        .value("miss_by_auto_fail", nw::AttackResult::miss_by_auto_fail)
+        .value("miss_by_concealment", nw::AttackResult::miss_by_concealment)
+        .value("miss_by_miss_chance", nw::AttackResult::miss_by_miss_chance)
+        .value("miss_by_roll", nw::AttackResult::miss_by_roll);
+
+    py::class_<nw::AttackData>(nw, "AttackData")
+        .def_readwrite("attacker", &nw::AttackData::attacker)
+        .def_readwrite("target", &nw::AttackData::target)
+        .def_readwrite("type", &nw::AttackData::type)
+        .def_readwrite("result", &nw::AttackData::result)
+        .def_readwrite("target_is_creature", &nw::AttackData::target_is_creature)
+        .def_readwrite("is_ranged_attack", &nw::AttackData::is_ranged_attack)
+        .def_readwrite("nth_attack", &nw::AttackData::nth_attack)
+        .def_readwrite("attack_roll", &nw::AttackData::attack_roll)
+        .def_readwrite("attack_bonus", &nw::AttackData::attack_bonus)
+        .def_readwrite("armor_class", &nw::AttackData::armor_class)
+        .def_readwrite("iteration_penalty", &nw::AttackData::iteration_penalty)
+        .def_readwrite("multiplier", &nw::AttackData::multiplier)
+        .def_readwrite("threat_range", &nw::AttackData::threat_range)
+        .def_readwrite("concealment", &nw::AttackData::concealment);
+
     py::enum_<nw::EffectCategory>(nw, "EffectCategory")
         .value("magical", nw::EffectCategory::magical)
         .value("extraordinary", nw::EffectCategory::extraordinary)

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../objects/ObjectHandle.hpp"
 #include "../util/enum_flags.hpp"
 #include "Dice.hpp"
 #include "rule_type.hpp"
@@ -7,6 +8,9 @@
 #include <cstdint>
 
 namespace nw {
+
+struct Creature;
+struct ObjectBase;
 
 // -- Attack ------------------------------------------------------------------
 // ----------------------------------------------------------------------------
@@ -66,6 +70,26 @@ constexpr bool is_attack_type_miss(AttackResult value)
         return true;
     }
 }
+
+/// Structure for aggregating attack related data
+struct AttackData {
+    Creature* attacker = nullptr;
+    ObjectBase* target = nullptr;
+
+    AttackType type = AttackType::invalid();
+    AttackResult result = AttackResult::miss_by_roll;
+
+    bool target_is_creature = false;
+    bool is_ranged_attack = false;
+    int nth_attack = 0; ///< The nth attack in the 'round'
+    int attack_roll = 0;
+    int attack_bonus = 0;
+    int armor_class = 0;
+    int iteration_penalty = 0;
+    int multiplier = 0;
+    int threat_range = 0;
+    int concealment = 0;
+};
 
 // -- Damage ------------------------------------------------------------------
 // ----------------------------------------------------------------------------
