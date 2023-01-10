@@ -27,6 +27,8 @@ nw::Item* get_weapon_by_attack_type(const nw::Creature* obj, nw::AttackType type
 /// Determine if creature is flanked by an attacker
 bool is_flanked(const nw::Creature* target, const nw::Creature* attacker);
 
+/// Resolves an attack
+std::unique_ptr<nw::AttackData> resolve_attack(nw::Creature* attacker, nw::ObjectBase* target);
 
 /// Resolves attack bonus
 int resolve_attack_bonus(const nw::Creature* obj, nw::AttackType type, const nw::ObjectBase* versus = nullptr);

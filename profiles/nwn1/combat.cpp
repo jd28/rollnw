@@ -173,6 +173,50 @@ int resolve_attack_bonus(const nw::Creature* obj, nw::AttackType type, const nw:
     return result + modifier + std::clamp(bonus - decrease, min, max);
 }
 
+std::unique_ptr<nw::AttackData> resolve_attack(nw::Creature* attacker, nw::ObjectBase* target)
+{
+    if (!attacker || !target) { return {}; }
+
+    int total_attacks = attacker->combat_info.attacks_onhand
+        + attacker->combat_info.attacks_offhand
+        + attacker->combat_info.attacks_extra;
+
+    if (attacker->combat_info.attack_current >= total_attacks) {
+        attacker->combat_info.attack_current = 0;
+    }
+
+    std::unique_ptr<nw::AttackData> data = std::make_unique<nw::AttackData>();
+
+    data->attacker = attacker;
+    data->target = target;
+    data->type = resolve_attack_type(attacker);
+    data->target_is_creature = !!target->as_creature();
+    data->is_ranged_attack = is_ranged_weapon(get_weapon_by_attack_type(attacker, data->type));
+    data->nth_attack = attacker->combat_info.attack_current;
+
+    auto [onhand, offhand] = resolve_number_of_attacks(attacker);
+    attacker->combat_info.attacks_onhand = onhand;
+    attacker->combat_info.attacks_offhand = offhand;
+
+    data->result = resolve_attack_roll(attacker, data->type, target);
+
+    if (nw::is_attack_type_hit(data->result)) {
+        // Resolve Parry, Deflect Arrow, Epic Dodge
+
+        if (data->result == nw::AttackResult::hit_by_critical) {
+            data->multiplier = resolve_critical_multiplier(attacker, data->type);
+        } else {
+            data->multiplier = 1;
+        }
+
+        // Resolve Damage
+    }
+
+    ++attacker->combat_info.attack_current;
+
+    return data;
+}
+
 nw::AttackResult resolve_attack_roll(const nw::Creature* obj, nw::AttackType type, const nw::ObjectBase* vs, nw::AttackData* data)
 {
     static constexpr nw::DiceRoll d20{1, 20, 0};
