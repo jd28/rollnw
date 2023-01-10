@@ -28,6 +28,8 @@ nw::Item* get_weapon_by_attack_type(const nw::Creature* obj, nw::AttackType type
 bool is_flanked(const nw::Creature* target, const nw::Creature* attacker);
 
 /// Resolves an attack
+/// @note All transient book keeping is done at the toplevel of this function,
+/// any other that attacker and/or target are passed to, are passed as const.
 std::unique_ptr<nw::AttackData> resolve_attack(nw::Creature* attacker, nw::ObjectBase* target);
 
 /// Resolves attack bonus
@@ -45,7 +47,7 @@ nw::AttackType resolve_attack_type(const nw::Creature* obj);
 std::pair<int, bool> resolve_concealment(const nw::ObjectBase* obj, const nw::ObjectBase* target, bool vs_ranged = false);
 
 /// Resolves critical multiplier
-int resolve_critical_multiplier(const nw::Creature* obj, nw::AttackType type, nw::ObjectBase* vs = nullptr);
+int resolve_critical_multiplier(const nw::Creature* obj, nw::AttackType type, const nw::ObjectBase* vs = nullptr);
 
 /// Resolves critical threat range.
 int resolve_critical_threat(const nw::Creature* obj, nw::AttackType type);

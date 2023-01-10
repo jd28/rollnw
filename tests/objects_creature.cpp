@@ -497,9 +497,10 @@ TEST_CASE("creature: iteration penalty", "[objects]")
 
     REQUIRE(nwn1::resolve_iteration_penalty(obj, nwn1::attack_type_onhand) == 0);
 
-    obj->combat_info.attack_current = 2;
-    REQUIRE(nwn1::resolve_iteration_penalty(obj, nwn1::attack_type_onhand) == 10);
+    obj->combat_info.attack_current = 3;
+    REQUIRE(nwn1::resolve_iteration_penalty(obj, nwn1::attack_type_onhand) == 15);
 
+    // Note the guy is hasted
     obj->combat_info.attacks_onhand = 1;
     REQUIRE(nwn1::resolve_iteration_penalty(obj, nwn1::attack_type_offhand) == 5);
 }

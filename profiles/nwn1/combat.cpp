@@ -177,6 +177,12 @@ std::unique_ptr<nw::AttackData> resolve_attack(nw::Creature* attacker, nw::Objec
 {
     if (!attacker || !target) { return {}; }
 
+    // Every attack reset/update how many onhand and offhand attacks
+    // the attacker has.
+    auto [onhand, offhand] = resolve_number_of_attacks(attacker);
+    attacker->combat_info.attacks_onhand = onhand;
+    attacker->combat_info.attacks_offhand = offhand;
+
     int total_attacks = attacker->combat_info.attacks_onhand
         + attacker->combat_info.attacks_offhand
         + attacker->combat_info.attacks_extra;
@@ -193,10 +199,6 @@ std::unique_ptr<nw::AttackData> resolve_attack(nw::Creature* attacker, nw::Objec
     data->target_is_creature = !!target->as_creature();
     data->is_ranged_attack = is_ranged_weapon(get_weapon_by_attack_type(attacker, data->type));
     data->nth_attack = attacker->combat_info.attack_current;
-
-    auto [onhand, offhand] = resolve_number_of_attacks(attacker);
-    attacker->combat_info.attacks_onhand = onhand;
-    attacker->combat_info.attacks_offhand = offhand;
 
     data->result = resolve_attack_roll(attacker, data->type, target);
 
@@ -381,7 +383,7 @@ std::pair<int, bool> resolve_concealment(const nw::ObjectBase* obj, const nw::Ob
     }
 }
 
-int resolve_critical_multiplier(const nw::Creature* obj, nw::AttackType type, nw::ObjectBase*)
+int resolve_critical_multiplier(const nw::Creature* obj, nw::AttackType type, const nw::ObjectBase*)
 {
     int result = 2;
     auto weapon = get_weapon_by_attack_type(obj, type);

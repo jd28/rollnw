@@ -78,6 +78,7 @@ bool effect_remove_is_creature(nw::ObjectBase* obj, const nw::Effect*)
 bool effect_haste_apply(nw::ObjectBase* obj, const nw::Effect*)
 {
     if (auto cre = obj->as_creature()) {
+        if (!cre->hasted) { ++cre->combat_info.attacks_extra; }
         ++cre->hasted;
         return true;
     }
@@ -88,6 +89,7 @@ bool effect_haste_remove(nw::ObjectBase* obj, const nw::Effect*)
 {
     if (auto cre = obj->as_creature()) {
         if (cre->hasted) { --cre->hasted; }
+        if (!cre->hasted) { --cre->combat_info.attacks_extra; }
         return true;
     }
     return false;
