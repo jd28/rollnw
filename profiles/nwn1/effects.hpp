@@ -69,6 +69,9 @@ nw::ItemProperty itemprop_enhancement_modifier(int value);
 /// Creates haste item property
 nw::ItemProperty itemprop_haste();
 
+/// Creates keen item property
+nw::ItemProperty itemprop_keen();
+
 /// Creates skill modifier item property
 nw::ItemProperty itemprop_skill_modifier(nw::Skill skill, int modifier);
 

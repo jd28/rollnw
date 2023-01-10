@@ -299,6 +299,13 @@ nw::Effect* ip_gen_haste(const nw::ItemProperty&, nw::EquipIndex, nw::BaseItem)
     return effect_haste();
 }
 
+nw::ItemProperty itemprop_keen()
+{
+    nw::ItemProperty result;
+    result.type = *ip_keen;
+    return result;
+}
+
 nw::ItemProperty itemprop_skill_modifier(nw::Skill skill, int modifier)
 {
     nw::ItemProperty result;
