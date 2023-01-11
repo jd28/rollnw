@@ -546,6 +546,30 @@ constexpr nw::ModifierType mod_type_spell_resistance = nw::ModifierType::make(17
 constexpr nw::ModifierType mod_type_attack_bonus_item = nw::ModifierType::make(18);
 constexpr nw::ModifierType mod_type_attack_bonus_mode = nw::ModifierType::make(19);
 
+constexpr nw::Save saving_throw_fort = nw::Save::make(1);
+constexpr nw::Save saving_throw_reflex = nw::Save::make(2);
+constexpr nw::Save saving_throw_will = nw::Save::make(3);
+
+constexpr nw::SaveVersus saving_throw_vs_mind_spells = nw::SaveVersus::make(1);
+constexpr nw::SaveVersus saving_throw_vs_poison = nw::SaveVersus::make(2);
+constexpr nw::SaveVersus saving_throw_vs_disease = nw::SaveVersus::make(3);
+constexpr nw::SaveVersus saving_throw_vs_fear = nw::SaveVersus::make(4);
+constexpr nw::SaveVersus saving_throw_vs_sonic = nw::SaveVersus::make(5);
+constexpr nw::SaveVersus saving_throw_vs_acid = nw::SaveVersus::make(6);
+constexpr nw::SaveVersus saving_throw_vs_fire = nw::SaveVersus::make(7);
+constexpr nw::SaveVersus saving_throw_vs_electricity = nw::SaveVersus::make(8);
+constexpr nw::SaveVersus saving_throw_vs_positive = nw::SaveVersus::make(9);
+constexpr nw::SaveVersus saving_throw_vs_negative = nw::SaveVersus::make(10);
+constexpr nw::SaveVersus saving_throw_vs_death = nw::SaveVersus::make(11);
+constexpr nw::SaveVersus saving_throw_vs_cold = nw::SaveVersus::make(12);
+constexpr nw::SaveVersus saving_throw_vs_divine = nw::SaveVersus::make(13);
+constexpr nw::SaveVersus saving_throw_vs_trap = nw::SaveVersus::make(14);
+constexpr nw::SaveVersus saving_throw_vs_spell = nw::SaveVersus::make(15);
+constexpr nw::SaveVersus saving_throw_vs_good = nw::SaveVersus::make(16);
+constexpr nw::SaveVersus saving_throw_vs_evil = nw::SaveVersus::make(17);
+constexpr nw::SaveVersus saving_throw_vs_law = nw::SaveVersus::make(18);
+constexpr nw::SaveVersus saving_throw_vs_chaos = nw::SaveVersus::make(19);
+
 constexpr nw::SpecialAttack special_attack_aoo = nw::SpecialAttack::make(65002);
 constexpr nw::SpecialAttack special_attack_called_shot_arm = nw::SpecialAttack::make(65001);
 constexpr nw::SpecialAttack special_attack_called_shot_leg = nw::SpecialAttack::make(65000);
