@@ -1826,6 +1826,7 @@ class AttackData:
 
         type
         result
+        target_state
 
         target_is_creature
         is_ranged_attack
