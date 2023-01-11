@@ -40,6 +40,9 @@ nw::Effect* effect_haste();
 nw::Effect* effect_miss_chance(int value, nw::MissChanceType type = miss_chance_type_normal);
 
 /// Creates an skill modifier effect
+nw::Effect* effect_save_modifier(nw::Save save, int modifier, nw::SaveVersus vs = nw::SaveVersus::invalid());
+
+/// Creates an skill modifier effect
 nw::Effect* effect_skill_modifier(nw::Skill skill, int modifier);
 
 // == Effect Apply/Remove =====================================================
@@ -72,6 +75,12 @@ nw::ItemProperty itemprop_haste();
 /// Creates keen item property
 nw::ItemProperty itemprop_keen();
 
+/// Creates save modifier item property
+nw::ItemProperty itemprop_save_modifier(nw::Save type, int modifier);
+
+/// Creates save versus modifier item property
+nw::ItemProperty itemprop_save_vs_modifier(nw::SaveVersus type, int modifier);
+
 /// Creates skill modifier item property
 nw::ItemProperty itemprop_skill_modifier(nw::Skill skill, int modifier);
 
@@ -83,6 +92,8 @@ nw::Effect* ip_gen_ac_modifier(const nw::ItemProperty& ip, nw::EquipIndex, nw::B
 nw::Effect* ip_gen_attack_modifier(const nw::ItemProperty& ip, nw::EquipIndex, nw::BaseItem);
 nw::Effect* ip_gen_enhancement_modifier(const nw::ItemProperty& ip, nw::EquipIndex, nw::BaseItem);
 nw::Effect* ip_gen_haste(const nw::ItemProperty&, nw::EquipIndex, nw::BaseItem);
+nw::Effect* ip_gen_save_modifier(const nw::ItemProperty& ip, nw::EquipIndex, nw::BaseItem);
+nw::Effect* ip_gen_save_vs_modifier(const nw::ItemProperty& ip, nw::EquipIndex, nw::BaseItem);
 nw::Effect* ip_gen_skill_modifier(const nw::ItemProperty& ip, nw::EquipIndex, nw::BaseItem);
 
 } // namespace nwn1

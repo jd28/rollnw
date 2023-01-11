@@ -42,6 +42,9 @@ void load_effects()
 
     ADD_IS_CREATURE_EFFECT(effect_type_miss_chance);
 
+    ADD_IS_CREATURE_EFFECT(effect_type_saving_throw_increase);
+    ADD_IS_CREATURE_EFFECT(effect_type_saving_throw_decrease);
+
     ADD_IS_CREATURE_EFFECT(effect_type_skill_increase);
     ADD_IS_CREATURE_EFFECT(effect_type_skill_decrease);
 
@@ -58,6 +61,10 @@ void load_itemprop_generators()
     nw::kernel::effects().add(ip_enhancement_bonus, ip_gen_enhancement_modifier);
     nw::kernel::effects().add(ip_enhancement_penalty, ip_gen_enhancement_modifier);
     nw::kernel::effects().add(ip_haste, ip_gen_haste);
+    nw::kernel::effects().add(ip_saving_throw_bonus, ip_gen_save_modifier);
+    nw::kernel::effects().add(ip_decreased_saving_throws, ip_gen_save_modifier);
+    nw::kernel::effects().add(ip_saving_throw_bonus_specific, ip_gen_save_vs_modifier);
+    nw::kernel::effects().add(ip_decreased_saving_throws_specific, ip_gen_save_vs_modifier);
     nw::kernel::effects().add(ip_skill_bonus, ip_gen_skill_modifier);
     nw::kernel::effects().add(ip_decreased_skill_modifier, ip_gen_skill_modifier);
 }
@@ -152,6 +159,19 @@ nw::Effect* effect_miss_chance(int value, nw::MissChanceType type)
     auto eff = nw::kernel::effects().create(effect_type_miss_chance);
     eff->subtype = *type;
     eff->set_int(0, value);
+    return eff;
+}
+
+nw::Effect* effect_save_modifier(nw::Save save, int modifier, nw::SaveVersus vs)
+{
+    if (modifier == 0) { return nullptr; }
+    auto type = modifier > 0 ? effect_type_saving_throw_increase : effect_type_saving_throw_decrease;
+    int value = modifier > 0 ? modifier : -modifier;
+
+    auto eff = nw::kernel::effects().create(type);
+    eff->subtype = *save;
+    eff->set_int(0, value);
+    eff->set_int(1, *vs);
     return eff;
 }
 
@@ -306,6 +326,58 @@ nw::ItemProperty itemprop_keen()
     nw::ItemProperty result;
     result.type = *ip_keen;
     return result;
+}
+
+nw::ItemProperty itemprop_save_modifier(nw::Save type, int modifier)
+{
+    nw::ItemProperty result;
+    if (modifier == 0) { return result; }
+    result.type = modifier > 0 ? *ip_saving_throw_bonus : *ip_decreased_saving_throws;
+    result.subtype = uint16_t(*type);
+    result.cost_value = uint8_t(modifier);
+    return result;
+}
+
+nw::Effect* ip_gen_save_modifier(const nw::ItemProperty& ip, nw::EquipIndex, nw::BaseItem)
+{
+    auto type = nw::ItemPropertyType::make(ip.type);
+    auto save = nw::Save::make(ip.subtype);
+    const auto def = nw::kernel::effects().ip_definition(type);
+    if (!def) { return nullptr; }
+
+    if ((type == ip_saving_throw_bonus || type == ip_decreased_saving_throws) && def->cost_table) {
+        // Note: value will already be negative for decreased skill score.
+        if (auto value = def->cost_table->get<int>(ip.cost_value, "Value")) {
+            return effect_save_modifier(save, *value);
+        }
+    }
+    return nullptr;
+}
+
+nw::ItemProperty itemprop_save_vs_modifier(nw::SaveVersus type, int modifier)
+{
+    nw::ItemProperty result;
+    if (modifier == 0) { return result; }
+    result.type = modifier > 0 ? *ip_saving_throw_bonus_specific : *ip_decreased_saving_throws_specific;
+    result.subtype = uint16_t(*type);
+    result.cost_value = uint8_t(modifier);
+    return result;
+}
+
+nw::Effect* ip_gen_save_vs_modifier(const nw::ItemProperty& ip, nw::EquipIndex, nw::BaseItem)
+{
+    auto type = nw::ItemPropertyType::make(ip.type);
+    auto save = nw::SaveVersus::make(ip.subtype);
+    const auto def = nw::kernel::effects().ip_definition(type);
+    if (!def) { return nullptr; }
+
+    if ((type == ip_saving_throw_bonus_specific || type == ip_decreased_saving_throws_specific) && def->cost_table) {
+        // Note: value will already be negative for decreased skill score.
+        if (auto value = def->cost_table->get<int>(ip.cost_value, "Value")) {
+            return effect_save_modifier(nw::Save::invalid(), *value, save);
+        }
+    }
+    return nullptr;
 }
 
 nw::ItemProperty itemprop_skill_modifier(nw::Skill skill, int modifier)
