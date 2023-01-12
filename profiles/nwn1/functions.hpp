@@ -79,4 +79,7 @@ bool resolve_saving_throw(const nw::ObjectBase* obj, nw::Save type,
 int get_skill_rank(const nw::Creature* obj, nw::Skill skill,
     nw::ObjectBase* versus = nullptr, bool base = false);
 
+bool resolve_skill_check(const nw::Creature* obj, nw::Skill skill, int dc,
+    nw::ObjectBase* versus = nullptr);
+
 } // namespace nwn1

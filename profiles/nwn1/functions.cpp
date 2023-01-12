@@ -474,4 +474,13 @@ int get_skill_rank(const nw::Creature* obj, nw::Skill skill, nw::ObjectBase* ver
     return result + std::clamp(bonus - decrease, min, max);
 }
 
+bool resolve_skill_check(const nw::Creature* obj, nw::Skill skill, int dc, nw::ObjectBase* versus)
+{
+    static constexpr nw::DiceRoll d20{1, 20};
+    auto rank = get_skill_rank(obj, skill, versus);
+    if (rank + 20 < dc) { return false; }
+    if (rank + nw::roll_dice(d20) < dc) { return false; }
+    return true;
+}
+
 } // namespace nwn1
