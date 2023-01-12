@@ -63,6 +63,15 @@ bool is_shield(nw::BaseItem baseitem);
 /// Unequips an item
 nw::Item* unequip_item(nw::Creature* obj, nw::EquipIndex slot);
 
+// == Saves ====================================================================
+// =============================================================================
+
+int saving_throw(const nw::ObjectBase* obj, nw::Save type, nw::SaveVersus type_vs = nw::SaveVersus::invalid(),
+    const nw::ObjectBase* versus = nullptr);
+
+bool resolve_saving_throw(const nw::ObjectBase* obj, nw::Save type,
+    nw::SaveVersus type_vs = nw::SaveVersus::invalid(), const nw::ObjectBase* versus = nullptr);
+
 // == Skills ==================================================================
 // ============================================================================
 

@@ -505,6 +505,20 @@ TEST_CASE("creature: iteration penalty", "[objects]")
     REQUIRE(nwn1::resolve_iteration_penalty(obj, nwn1::attack_type_offhand) == 5);
 }
 
+TEST_CASE("creature: saving throws", "[objects]")
+{
+    auto obj = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/drorry.utc"));
+    REQUIRE(obj);
+    REQUIRE(nwn1::saving_throw(obj, nwn1::saving_throw_fort) == 20);
+    REQUIRE(nwn1::saving_throw(obj, nwn1::saving_throw_reflex) == 21);
+    REQUIRE(nwn1::saving_throw(obj, nwn1::saving_throw_will) == 13);
+
+    auto eff = nwn1::effect_save_modifier(nwn1::saving_throw_fort, 5);
+    REQUIRE(eff);
+    REQUIRE(nw::apply_effect(obj, eff));
+    REQUIRE(nwn1::saving_throw(obj, nwn1::saving_throw_fort) == 25);
+}
+
 TEST_CASE("creature: target_state", "[objects]")
 {
     nw::TargetState state = nw::TargetState::none;
