@@ -105,6 +105,83 @@ bool is_flanked(const nw::Creature* target, const nw::Creature* attacker)
     return true;
 }
 
+std::unique_ptr<nw::AttackData> resolve_attack(nw::Creature* attacker, nw::ObjectBase* target)
+{
+    if (!attacker || !target) { return {}; }
+    auto target_cre = target->as_creature();
+
+    // Every attack reset/update how many onhand and offhand attacks
+    // the attacker has.
+    auto [onhand, offhand] = resolve_number_of_attacks(attacker);
+    attacker->combat_info.attacks_onhand = onhand;
+    attacker->combat_info.attacks_offhand = offhand;
+
+    int total_attacks = attacker->combat_info.attacks_onhand
+        + attacker->combat_info.attacks_offhand
+        + attacker->combat_info.attacks_extra;
+
+    if (attacker->combat_info.attack_current >= total_attacks) {
+        attacker->combat_info.attack_current = 0;
+    }
+
+    std::unique_ptr<nw::AttackData> data = std::make_unique<nw::AttackData>();
+
+    data->attacker = attacker;
+    data->target = target;
+    data->type = resolve_attack_type(attacker);
+    data->target_state = resolve_target_state(attacker, target);
+    data->target_is_creature = !!target_cre;
+    data->is_ranged_attack = is_ranged_weapon(get_weapon_by_attack_type(attacker, data->type));
+    data->nth_attack = attacker->combat_info.attack_current;
+    data->result = resolve_attack_roll(attacker, data->type, target);
+
+    if (nw::is_attack_type_hit(data->result)) {
+        // Parry
+        if (data->result != nw::AttackResult::hit_by_auto_success
+            && target_cre
+            && target_cre->combat_info.combat_mode == combat_mode_parry) {
+            if (resolve_skill_check(target_cre, skill_parry, data->attack_roll + data->attack_bonus)) {
+                // Do something .. but only the number of attacks per round target has
+            }
+        }
+
+        // Deflect Arrows
+        // - Not be flat footed
+        // - No ranged weapons
+        // - Have a free hand. [TODO] Two-sided, two-handed]
+        // - Have a feat Deflect Arrows
+        // - Successful reflex save vs 20.
+        if (data->is_ranged_attack) {
+            auto item = get_equipped_item(target_cre, nw::EquipIndex::righthand);
+            if (!to_bool(data->target_state & nw::TargetState::flatfooted)
+                && !is_ranged_weapon(item)
+                && (!item || !get_equipped_item(target_cre, nw::EquipIndex::lefthand))
+                && target_cre->stats.has_feat(feat_deflect_arrows)) {
+                if (resolve_saving_throw(target_cre, saving_throw_reflex, 20,
+                        nw::SaveVersus::invalid(), attacker)) {
+                    // Do something .. but only once per round
+                }
+            }
+        }
+
+        // Check to make sure the hit hasn't be negated
+        if (nw::is_attack_type_hit(data->result)) {
+            if (data->result == nw::AttackResult::hit_by_critical) {
+                data->multiplier = resolve_critical_multiplier(attacker, data->type);
+            } else {
+                data->multiplier = 1;
+            }
+
+            // Resolve Damage
+            // Epic Dodge
+        }
+    }
+
+    ++attacker->combat_info.attack_current;
+
+    return data;
+}
+
 int resolve_attack_bonus(const nw::Creature* obj, nw::AttackType type, const nw::ObjectBase* versus)
 {
     int result = 0;
@@ -171,52 +248,6 @@ int resolve_attack_bonus(const nw::Creature* obj, nw::AttackType type, const nw:
 
     auto [min, max] = nw::kernel::effects().effect_limits_attack();
     return result + modifier + std::clamp(bonus - decrease, min, max);
-}
-
-std::unique_ptr<nw::AttackData> resolve_attack(nw::Creature* attacker, nw::ObjectBase* target)
-{
-    if (!attacker || !target) { return {}; }
-
-    // Every attack reset/update how many onhand and offhand attacks
-    // the attacker has.
-    auto [onhand, offhand] = resolve_number_of_attacks(attacker);
-    attacker->combat_info.attacks_onhand = onhand;
-    attacker->combat_info.attacks_offhand = offhand;
-
-    int total_attacks = attacker->combat_info.attacks_onhand
-        + attacker->combat_info.attacks_offhand
-        + attacker->combat_info.attacks_extra;
-
-    if (attacker->combat_info.attack_current >= total_attacks) {
-        attacker->combat_info.attack_current = 0;
-    }
-
-    std::unique_ptr<nw::AttackData> data = std::make_unique<nw::AttackData>();
-
-    data->attacker = attacker;
-    data->target = target;
-    data->type = resolve_attack_type(attacker);
-    data->target_is_creature = !!target->as_creature();
-    data->is_ranged_attack = is_ranged_weapon(get_weapon_by_attack_type(attacker, data->type));
-    data->nth_attack = attacker->combat_info.attack_current;
-
-    data->result = resolve_attack_roll(attacker, data->type, target);
-
-    if (nw::is_attack_type_hit(data->result)) {
-        // Resolve Parry, Deflect Arrow, Epic Dodge
-
-        if (data->result == nw::AttackResult::hit_by_critical) {
-            data->multiplier = resolve_critical_multiplier(attacker, data->type);
-        } else {
-            data->multiplier = 1;
-        }
-
-        // Resolve Damage
-    }
-
-    ++attacker->combat_info.attack_current;
-
-    return data;
 }
 
 nw::AttackResult resolve_attack_roll(const nw::Creature* obj, nw::AttackType type, const nw::ObjectBase* vs, nw::AttackData* data)

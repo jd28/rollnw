@@ -517,6 +517,11 @@ TEST_CASE("creature: saving throws", "[objects]")
     REQUIRE(eff);
     REQUIRE(nw::apply_effect(obj, eff));
     REQUIRE(nwn1::saving_throw(obj, nwn1::saving_throw_fort) == 25);
+
+    auto eff2 = nwn1::effect_save_modifier(nwn1::saving_throw_fort, -2);
+    REQUIRE(eff2);
+    REQUIRE(nw::apply_effect(obj, eff2));
+    REQUIRE(nwn1::saving_throw(obj, nwn1::saving_throw_fort) == 23);
 }
 
 TEST_CASE("creature: target_state", "[objects]")
