@@ -38,6 +38,9 @@ void load_effects()
 
     ADD_IS_CREATURE_EFFECT(effect_type_concealment);
 
+    ADD_IS_CREATURE_EFFECT(effect_type_damage_increase);
+    ADD_IS_CREATURE_EFFECT(effect_type_damage_decrease);
+
     nw::kernel::effects().add(effect_type_haste, effect_haste_apply, effect_haste_remove);
 
     ADD_IS_CREATURE_EFFECT(effect_type_miss_chance);
@@ -58,6 +61,7 @@ void load_itemprop_generators()
     nw::kernel::effects().add(ip_attack_bonus, ip_gen_attack_modifier);
     nw::kernel::effects().add(ip_attack_penalty, ip_gen_attack_modifier);
     nw::kernel::effects().add(ip_decreased_ability_score, ip_gen_ability_modifier);
+    nw::kernel::effects().add(ip_damage_bonus, ip_gen_damage_bonus);
     nw::kernel::effects().add(ip_enhancement_bonus, ip_gen_enhancement_modifier);
     nw::kernel::effects().add(ip_enhancement_penalty, ip_gen_enhancement_modifier);
     nw::kernel::effects().add(ip_haste, ip_gen_haste);
@@ -145,6 +149,28 @@ nw::Effect* effect_concealment(int value, nw::MissChanceType type)
     auto eff = nw::kernel::effects().create(effect_type_concealment);
     eff->subtype = *type;
     eff->set_int(0, value);
+    return eff;
+}
+
+nw::Effect* effect_damage_bonus(nw::Damage type, nw::DiceRoll dice)
+{
+    if (!dice) { return nullptr; }
+    auto eff = nw::kernel::effects().create(effect_type_damage_increase);
+    eff->subtype = *type;
+    eff->set_int(0, dice.dice);
+    eff->set_int(1, dice.sides);
+    eff->set_int(2, dice.bonus);
+    return eff;
+}
+
+nw::Effect* effect_damage_penalty(nw::Damage type, nw::DiceRoll dice)
+{
+    if (!dice) { return nullptr; }
+    auto eff = nw::kernel::effects().create(effect_type_damage_decrease);
+    eff->subtype = *type;
+    eff->set_int(0, dice.dice);
+    eff->set_int(1, dice.sides);
+    eff->set_int(2, dice.bonus);
     return eff;
 }
 
@@ -274,6 +300,38 @@ nw::Effect* ip_gen_attack_modifier(const nw::ItemProperty& ip, nw::EquipIndex eq
         // Note: value will already be negative for decreased ability score.
         if (auto value = def->cost_table->get<int>(ip.cost_value, "Value")) {
             return effect_attack_modifier(equip_index_to_attack_type(equip), *value);
+        }
+    }
+    return nullptr;
+}
+
+nw::ItemProperty itemprop_damage_bonus(nw::Damage type, int value)
+{
+    nw::ItemProperty result;
+    result.type = uint16_t(*ip_damage_bonus);
+    result.subtype = uint16_t(*type);
+    result.cost_value = uint16_t(value);
+    return result;
+}
+
+nw::Effect* ip_gen_damage_bonus(const nw::ItemProperty& ip, nw::EquipIndex, nw::BaseItem)
+{
+    LOG_F(INFO, "ip_gen_damage_bonus");
+    auto type = nw::ItemPropertyType::make(ip.type);
+    auto dmgtype = nw::Damage::make(ip.subtype);
+    const auto def = nw::kernel::effects().ip_definition(type);
+    if (!def) { return nullptr; }
+    LOG_F(INFO, "ip_gen_damage_bonus");
+    if ((type == ip_damage_bonus) && def->cost_table) {
+        // Note: value will already be negative for decreased ability score.
+        auto dice = def->cost_table->get<int>(ip.cost_value, "NumDice");
+        auto sides = def->cost_table->get<int>(ip.cost_value, "Die");
+        if (dice && sides) {
+            if (*dice > 0) {
+                return effect_damage_bonus(dmgtype, {*dice, *sides, 0});
+            } else if (*dice == 0) {
+                return effect_damage_bonus(dmgtype, {0, 0, *sides});
+            }
         }
     }
     return nullptr;

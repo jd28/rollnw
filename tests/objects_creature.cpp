@@ -490,6 +490,13 @@ TEST_CASE("creature: critical hit threat", "[objects]")
     REQUIRE(threat2 == 2);
 }
 
+TEST_CASE("creature: damage", "[objects]")
+{
+    auto obj = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/pl_agent_001.utc"));
+    REQUIRE(obj);
+    REQUIRE(nw::has_effect_applied(obj, nwn1::effect_type_damage_increase));
+}
+
 TEST_CASE("creature: iteration penalty", "[objects]")
 {
     auto obj = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/drorry.utc"));

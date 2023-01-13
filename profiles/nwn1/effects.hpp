@@ -33,6 +33,12 @@ nw::Effect* effect_attack_modifier(nw::AttackType attack, int modifier);
 /// Creates concealment effect
 nw::Effect* effect_concealment(int value, nw::MissChanceType type = miss_chance_type_normal);
 
+/// Creates an damage bonus effect
+nw::Effect* effect_damage_bonus(nw::Damage type, nw::DiceRoll dice);
+
+/// Creates an damage penalty effect
+nw::Effect* effect_damage_penalty(nw::Damage type, nw::DiceRoll dice);
+
 /// Creates a haste effect
 nw::Effect* effect_haste();
 
@@ -66,6 +72,9 @@ nw::ItemProperty itemprop_armor_class_modifier(int value);
 /// Creates attack modifier item property
 nw::ItemProperty itemprop_attack_modifier(int value);
 
+/// Creates damage bonus item property
+nw::ItemProperty itemprop_damage_bonus(int value);
+
 /// Creates enhancement modifier item property
 nw::ItemProperty itemprop_enhancement_modifier(int value);
 
@@ -90,6 +99,7 @@ nw::ItemProperty itemprop_skill_modifier(nw::Skill skill, int modifier);
 nw::Effect* ip_gen_ability_modifier(const nw::ItemProperty& ip, nw::EquipIndex, nw::BaseItem);
 nw::Effect* ip_gen_ac_modifier(const nw::ItemProperty& ip, nw::EquipIndex, nw::BaseItem baseitem);
 nw::Effect* ip_gen_attack_modifier(const nw::ItemProperty& ip, nw::EquipIndex, nw::BaseItem);
+nw::Effect* ip_gen_damage_bonus(const nw::ItemProperty& ip, nw::EquipIndex, nw::BaseItem);
 nw::Effect* ip_gen_enhancement_modifier(const nw::ItemProperty& ip, nw::EquipIndex, nw::BaseItem);
 nw::Effect* ip_gen_haste(const nw::ItemProperty&, nw::EquipIndex, nw::BaseItem);
 nw::Effect* ip_gen_save_modifier(const nw::ItemProperty& ip, nw::EquipIndex, nw::BaseItem);
