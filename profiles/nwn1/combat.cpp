@@ -519,6 +519,62 @@ nw::TargetState resolve_target_state(const nw::Creature* attacker, const nw::Obj
     return result;
 }
 
+int resolve_weapon_power(const nw::Creature* obj, const nw::Item* weapon)
+{
+    if (!obj) { return 0; }
+    int result = 0;
+
+    bool is_monk_or_null = !weapon;
+    auto [yes, level] = can_use_monk_abilities(obj);
+    if (weapon) {
+        auto baseitem = nw::kernel::rules().baseitems.get(weapon->baseitem);
+        is_monk_or_null = baseitem->is_monk_weapon;
+    }
+    if (yes && is_monk_or_null) {
+        LOG_F(INFO, "monk: {}, is_monk_or_null: {}", yes, is_monk_or_null);
+        if (obj->stats.has_feat(feat_epic_improved_ki_strike_5)) {
+            result = 5;
+        } else if (obj->stats.has_feat(feat_epic_improved_ki_strike_4)) {
+            result = 4;
+        } else if (obj->stats.has_feat(feat_ki_strike_3)) {
+            result = 3;
+        } else if (obj->stats.has_feat(feat_ki_strike_2)) {
+            result = 2;
+        } else if (obj->stats.has_feat(feat_ki_strike)) {
+            result = 1;
+        }
+    }
+
+    // If there's no weapon return
+    if (!weapon) { return result; }
+
+    // Item properties
+    for (const auto& ip : weapon->properties) {
+        if (ip.type == *ip_attack_bonus || ip.type == *ip_enhancement_bonus) {
+            result = std::max(result, int(ip.cost_value));
+        }
+    }
+
+    // Enchant Arrow
+    auto base = weapon->baseitem;
+    if (base == base_item_longbow || base == base_item_shortbow) {
+        int aa = 0;
+        auto feat = nw::highest_feat_in_range(obj, feat_prestige_enchant_arrow_6,
+            feat_prestige_enchant_arrow_20);
+        if (feat != nw::Feat::invalid()) {
+            aa = *feat - *feat_prestige_enchant_arrow_6 + 6;
+        } else {
+            feat = nw::highest_feat_in_range(obj, feat_prestige_enchant_arrow_1, feat_prestige_enchant_arrow_5);
+            if (feat != nw::Feat::invalid()) {
+                aa = *feat - *feat_prestige_enchant_arrow_1 + 1;
+            }
+        }
+        result = std::max(result, aa);
+    }
+
+    return result;
+}
+
 bool weapon_is_finessable(const nw::Creature* obj, nw::Item* weapon)
 {
     if (!obj) { return false; }
@@ -532,7 +588,7 @@ int weapon_iteration(const nw::Creature* obj, const nw::Item* weapon)
 {
     if (!obj) { return 0; }
 
-    bool is_monk_or_null = !!weapon;
+    bool is_monk_or_null = !weapon;
     if (weapon) {
         auto baseitem = nw::kernel::rules().baseitems.get(weapon->baseitem);
         is_monk_or_null = baseitem->is_monk_weapon;

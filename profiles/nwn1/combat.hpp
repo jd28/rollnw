@@ -61,6 +61,9 @@ std::pair<int, int> resolve_number_of_attacks(const nw::Creature* obj);
 /// Resolve target state
 nw::TargetState resolve_target_state(const nw::Creature* attacker, const nw::ObjectBase* target);
 
+/// Resolves weapon power
+int resolve_weapon_power(const nw::Creature* obj, const nw::Item* weapon);
+
 /// Determines if a weapon is finessable
 bool weapon_is_finessable(const nw::Creature* obj, nw::Item* weapon);
 

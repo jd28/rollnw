@@ -558,6 +558,24 @@ TEST_CASE("creature: target_state", "[objects]")
     REQUIRE_FALSE(to_bool(state & nw::TargetState::flanked));
 }
 
+TEST_CASE("creature: weapon power", "[objects]")
+{
+    auto obj = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/drorry.utc"));
+    REQUIRE(obj);
+    REQUIRE(nwn1::resolve_weapon_power(obj, nwn1::get_equipped_item(obj, nw::EquipIndex::righthand)) == 2);
+
+    auto obj2 = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/nw_chicken.utc"));
+    REQUIRE(obj2);
+    REQUIRE(nwn1::resolve_weapon_power(obj2, nullptr) == 0);
+
+    auto obj3 = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/pl_agent_001.utc"));
+    REQUIRE(obj3);
+    REQUIRE(nwn1::resolve_weapon_power(obj3, nwn1::get_equipped_item(obj3, nw::EquipIndex::arms)) == 5);
+
+    obj3->stats.add_feat(nwn1::feat_ki_strike);
+    REQUIRE(nwn1::resolve_weapon_power(obj3, nullptr) == 1);
+}
+
 TEST_CASE("creature: to_json", "[objects]")
 {
     auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
