@@ -316,12 +316,11 @@ nw::ItemProperty itemprop_damage_bonus(nw::Damage type, int value)
 
 nw::Effect* ip_gen_damage_bonus(const nw::ItemProperty& ip, nw::EquipIndex, nw::BaseItem)
 {
-    LOG_F(INFO, "ip_gen_damage_bonus");
     auto type = nw::ItemPropertyType::make(ip.type);
     auto dmgtype = nw::Damage::make(ip.subtype);
     const auto def = nw::kernel::effects().ip_definition(type);
     if (!def) { return nullptr; }
-    LOG_F(INFO, "ip_gen_damage_bonus");
+
     if ((type == ip_damage_bonus) && def->cost_table) {
         // Note: value will already be negative for decreased ability score.
         auto dice = def->cost_table->get<int>(ip.cost_value, "NumDice");
