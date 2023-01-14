@@ -1,4 +1,4 @@
-|License: MIT| |pypi| |ci| |CodeQL| |codecov| |Documentation Status|
+|License: MIT| |ci| |CodeQL| |codecov| |Documentation Status|
 
 rollNW
 ======
@@ -115,8 +115,6 @@ Credits
    :target: https://opensource.org/licenses/MIT
 .. |ci| image:: https://github.com/jd28/rollnw/actions/workflows/ci.yml/badge.svg
    :target: https://github.com/jd28/rollnw/actions?query=workflow%3Aci
-.. |pypi| image:: https://badge.fury.io/py/rollnw.svg
-   :target: https://badge.fury.io/py/rollnw
 .. |CodeQL| image:: https://github.com/jd28/rollnw/actions/workflows/codeql-analysis.yml/badge.svg
    :target: https://github.com/jd28/rollnw/actions/workflows/codeql-analysis.yml
 .. |codecov| image:: https://codecov.io/gh/jd28/rollnw/branch/main/graph/badge.svg?token=79PNROEEUU
@@ -156,15 +154,6 @@ Credits
   api/enumlist
   api/functionlist
   api/typedeflist
-
-.. toctree::
-  :caption: python api
-  :maxdepth: 1
-
-  api_python/rollnw
-  api_python/rollnw_kernel
-  api_python/rollnw_model
-  api_python/rollnw_script
 
 .. toctree::
   :caption: gff schemas

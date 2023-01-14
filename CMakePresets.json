@@ -24,18 +24,6 @@
             }
         },
         {
-            "name": "linux-python",
-            "inherits": "linux",
-            "displayName": "Default Config",
-            "description": "Default build using Ninja",
-            "cacheVariables": {
-                "ENABLE_PYTHON": {
-                    "type": "BOOL",
-                    "value": "ON"
-                }
-            }
-        },
-        {
             "name": "ci-codeql",
             "inherits": "linux",
             "displayName": "ci-codeql",
@@ -82,19 +70,6 @@
             }
         },
         {
-            "name": "ci-linux-python",
-            "inherits": "linux-python",
-            "generator": "Unix Makefiles",
-            "displayName": "Default Config",
-            "description": "CI Linux with python, makefies",
-            "cacheVariables": {
-                "ENABLE_TESTING": {
-                    "type": "BOOL",
-                    "value": "OFF"
-                }
-            }
-        },
-        {
             "name": "windows",
             "inherits": "linux",
             "generator": "Visual Studio 16 2019",
@@ -115,36 +90,11 @@
             }
         },
         {
-            "name": "windows-python",
-            "inherits": "windows",
-            "displayName": "windows python build",
-            "description": "windows python build",
-            "cacheVariables": {
-                "ENABLE_PYTHON": {
-                    "type": "BOOL",
-                    "value": "ON"
-                }
-            }
-        },
-        {
             "name": "ci-windows",
             "inherits": "windows",
             "generator": "Ninja",
             "displayName": "windows ci build",
             "description": "windows ci build"
-        },
-        {
-            "name": "ci-windows-python",
-            "inherits": "windows-python",
-            "generator": "Ninja",
-            "displayName": "windows ci build",
-            "description": "windows ci build",
-            "cacheVariables": {
-                "ENABLE_TESTING": {
-                    "type": "BOOL",
-                    "value": "OFF"
-                }
-            }
         },
         {
             "name": "macos",
@@ -157,28 +107,6 @@
             },
             "cacheVariables": {
                 "CMAKE_OSX_DEPLOYMENT_TARGET": "10.15"
-            }
-        },
-        {
-            "name": "macos-python",
-            "inherits": "macos",
-            "displayName": "macOS with python",
-            "cacheVariables": {
-                "ENABLE_PYTHON": {
-                    "type": "BOOL",
-                    "value": "ON"
-                }
-            }
-        },
-        {
-            "name": "ci-macos-python",
-            "inherits": "macos-python",
-            "displayName": "CI macOS with python",
-            "cacheVariables": {
-                "ENABLE_TESTING": {
-                    "type": "BOOL",
-                    "value": "OFF"
-                }
             }
         }
     ],

@@ -2,8 +2,6 @@ import os
 import subprocess
 import sys
 
-sys.path.insert(0, os.path.abspath("fake/"))
-
 
 def configureDoxyfile(input_dir, output_dir):
     with open('Doxyfile.in', 'r') as file:

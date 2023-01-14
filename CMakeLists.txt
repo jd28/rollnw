@@ -63,11 +63,6 @@ add_subdirectory(external/stb)
 add_subdirectory(lib/nw)
 add_subdirectory(profiles)
 
-if(ENABLE_PYTHON)
-add_subdirectory(external/pybind11)
-add_subdirectory(python)
-endif()
-
 if (ENABLE_TESTING)
 include(CTest)
 enable_testing()
