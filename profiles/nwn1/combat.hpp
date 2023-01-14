@@ -52,6 +52,9 @@ int resolve_critical_multiplier(const nw::Creature* obj, nw::AttackType type, co
 /// Resolves critical threat range.
 int resolve_critical_threat(const nw::Creature* obj, nw::AttackType type);
 
+/// Resolves dual-wield penalty
+std::pair<int, int> resolve_dual_wield_penalty(const nw::Creature* obj);
+
 /// Resolves iteration penalty
 int resolve_iteration_penalty(const nw::Creature* attacker, nw::AttackType type);
 

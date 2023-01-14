@@ -204,6 +204,14 @@ int resolve_attack_bonus(const nw::Creature* obj, nw::AttackType type, const nw:
     // BAB
     result = base_attack_bonus(obj);
 
+    // Resolve dual wield penalty
+    auto [on, off] = resolve_dual_wield_penalty(obj);
+    if (type == attack_type_onhand) {
+        result += on;
+    } else if (type == attack_type_offhand) {
+        result += off;
+    }
+
     // Size
     int modifier = obj->combat_info.size_ab_modifier;
 
@@ -261,6 +269,7 @@ nw::AttackResult resolve_attack_roll(const nw::Creature* obj, nw::AttackType typ
     const auto ab = resolve_attack_bonus(obj, type, vs);
     const auto ac = calculate_ac_versus(obj, vs, false);
     const auto iter = resolve_iteration_penalty(obj, type);
+
     if (data) {
         data->attack_bonus = ab;
         data->armor_class = ac;
@@ -465,6 +474,58 @@ int resolve_critical_threat(const nw::Creature* obj, nw::AttackType type)
     }
 
     return result;
+}
+
+std::pair<int, int> resolve_dual_wield_penalty(const nw::Creature* obj)
+{
+    if (!obj) { return {0, 0}; }
+    int on = 0;
+    int off = 0;
+    bool off_is_light = false;
+
+    // Make sure their is an onhand weapon
+    auto rh = get_equipped_item(obj, nw::EquipIndex::righthand);
+    if (!rh) { return {on, off}; }
+
+    auto rh_bi = nw::kernel::rules().baseitems.get(rh->baseitem);
+    if (!rh_bi || !rh_bi->weapon_type) { return {on, off}; }
+
+    if (!is_double_sided_weapon(rh)) {
+        // Make sure their is an offhand weapon
+        auto lh = get_equipped_item(obj, nw::EquipIndex::lefthand);
+        if (!lh) { return {on, off}; }
+
+        auto lh_bi = nw::kernel::rules().baseitems.get(lh->baseitem);
+        if (!lh_bi || !lh_bi->weapon_type) { return {on, off}; }
+
+        off_is_light = is_light_weapon(obj, lh);
+    } else {
+        off_is_light = true;
+    }
+
+    if (off_is_light) {
+        on = -4;
+        off = -8;
+    } else {
+        on = -6;
+        off = -10;
+    }
+
+    if (obj->combat_info.ac_armor_base <= 3 && obj->levels.level_by_class(class_type_ranger) > 0) {
+        on += 2;
+        off += 6;
+    } else {
+        if (obj->stats.has_feat(feat_two_weapon_fighting)) {
+            on += 2;
+            off += 2;
+        }
+
+        if (obj->stats.has_feat(feat_ambidexterity)) {
+            off += 4;
+        }
+    }
+
+    return {on, off};
 }
 
 int resolve_iteration_penalty(const nw::Creature* attacker, nw::AttackType type)
