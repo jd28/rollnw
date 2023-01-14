@@ -524,14 +524,9 @@ int resolve_weapon_power(const nw::Creature* obj, const nw::Item* weapon)
     if (!obj) { return 0; }
     int result = 0;
 
-    bool is_monk_or_null = !weapon;
+    bool is_monk_or_null = !weapon || is_monk_weapon(weapon);
     auto [yes, level] = can_use_monk_abilities(obj);
-    if (weapon) {
-        auto baseitem = nw::kernel::rules().baseitems.get(weapon->baseitem);
-        is_monk_or_null = baseitem->is_monk_weapon;
-    }
     if (yes && is_monk_or_null) {
-        LOG_F(INFO, "monk: {}, is_monk_or_null: {}", yes, is_monk_or_null);
         if (obj->stats.has_feat(feat_epic_improved_ki_strike_5)) {
             result = 5;
         } else if (obj->stats.has_feat(feat_epic_improved_ki_strike_4)) {
@@ -588,12 +583,7 @@ int weapon_iteration(const nw::Creature* obj, const nw::Item* weapon)
 {
     if (!obj) { return 0; }
 
-    bool is_monk_or_null = !weapon;
-    if (weapon) {
-        auto baseitem = nw::kernel::rules().baseitems.get(weapon->baseitem);
-        is_monk_or_null = baseitem->is_monk_weapon;
-    }
-
+    bool is_monk_or_null = !weapon || is_monk_weapon(weapon);
     auto [yes, level] = can_use_monk_abilities(obj);
     if (is_monk_or_null && yes) {
         return 3;

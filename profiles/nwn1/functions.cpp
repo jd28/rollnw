@@ -255,6 +255,32 @@ nw::Item* get_equipped_item(const nw::Creature* obj, nw::EquipIndex slot)
     return result;
 }
 
+int get_relative_weapon_size(const nw::Creature* obj, const nw::Item* item)
+{
+    if (!obj || !item) { return 0; }
+    auto bi = nw::kernel::rules().baseitems.get(item->baseitem);
+    return bi ? bi->weapon_size - obj->size : 0;
+}
+
+bool is_double_sided_weapon(const nw::Item* item)
+{
+    if (!item) { return false; }
+    auto bi = nw::kernel::rules().baseitems.get(item->baseitem);
+    return bi ? bi->weapon_wield == 8 : false;
+}
+
+bool is_light_weapon(nw::Creature* obj, const nw::Item* item)
+{
+    if (!obj || !item) { return false; }
+}
+
+bool is_monk_weapon(const nw::Item* item)
+{
+    if (!item) { return true; }
+    auto bi = nw::kernel::rules().baseitems.get(item->baseitem);
+    return bi ? bi->is_monk_weapon : false;
+}
+
 bool is_ranged_weapon(const nw::Item* item)
 {
     if (!item) { return false; }
@@ -267,6 +293,14 @@ bool is_shield(nw::BaseItem baseitem)
     return baseitem == base_item_smallshield
         || baseitem == base_item_largeshield
         || baseitem == base_item_towershield;
+}
+
+bool is_two_handed_weapon(nw::Creature* obj, const nw::Item* item)
+{
+    if (!obj || !item) { return false; }
+    auto bi = nw::kernel::rules().baseitems.get(item->baseitem);
+    if (!bi) { return false; }
+    return bi->weapon_size > obj->size;
 }
 
 nw::Item* unequip_item(nw::Creature* obj, nw::EquipIndex slot)

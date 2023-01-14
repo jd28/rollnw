@@ -54,11 +54,27 @@ bool equip_item(nw::Creature* obj, nw::Item* item, nw::EquipIndex slot);
 /// Gets an equipped item
 nw::Item* get_equipped_item(const nw::Creature* obj, nw::EquipIndex slot);
 
-/// Determines if weapon is ranged
+/// Gets relative weapon size
+/// @note May or may not be what the game does
+int get_relative_weapon_size(const nw::Creature* obj, const nw::Item* item);
+
+/// Determines if item is double sided weapon
+bool is_double_sided_weapon(const nw::Item* item);
+
+/// Determines if item is a light weapon
+bool is_light_weapon(nw::Creature* obj, const nw::Item* item);
+
+/// Determines if item is monk weapon
+bool is_monk_weapon(const nw::Item* item);
+
+/// Determines if item is ranged weapon
 bool is_ranged_weapon(const nw::Item* item);
 
 /// Determines if item is a shield
 bool is_shield(nw::BaseItem baseitem);
+
+/// Determines if item requires two hands to wield
+bool is_two_handed_weapon(nw::Creature* obj, const nw::Item* item);
 
 /// Unequips an item
 nw::Item* unequip_item(nw::Creature* obj, nw::EquipIndex slot);
