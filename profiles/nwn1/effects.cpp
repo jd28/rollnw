@@ -117,7 +117,7 @@ nw::Effect* effect_ability_modifier(nw::Ability ability, int modifier)
 
     auto eff = nw::kernel::effects().create(type);
     eff->subtype = *ability;
-    eff->set_int(0, value);
+    eff->set_int(0, std::abs(value));
     return eff;
 }
 
@@ -129,7 +129,7 @@ nw::Effect* effect_armor_class_modifier(nw::ArmorClass type, int modifier)
 
     auto eff = nw::kernel::effects().create(efftype);
     eff->subtype = *type;
-    eff->set_int(0, value);
+    eff->set_int(0, std::abs(value));
     return eff;
 }
 
@@ -139,7 +139,7 @@ nw::Effect* effect_attack_modifier(nw::AttackType attack, int modifier)
     auto eff = nw::kernel::effects().create(effect_type_attack_increase);
     eff->type = modifier > 0 ? effect_type_attack_increase : effect_type_attack_decrease;
     eff->subtype = *attack;
-    eff->set_int(0, modifier);
+    eff->set_int(0, std::abs(modifier));
     return eff;
 }
 
@@ -192,11 +192,9 @@ nw::Effect* effect_save_modifier(nw::Save save, int modifier, nw::SaveVersus vs)
 {
     if (modifier == 0) { return nullptr; }
     auto type = modifier > 0 ? effect_type_saving_throw_increase : effect_type_saving_throw_decrease;
-    int value = modifier > 0 ? modifier : -modifier;
-
     auto eff = nw::kernel::effects().create(type);
     eff->subtype = *save;
-    eff->set_int(0, value);
+    eff->set_int(0, std::abs(modifier));
     eff->set_int(1, *vs);
     return eff;
 }
@@ -222,7 +220,7 @@ nw::ItemProperty itemprop_ability_modifier(nw::Ability ability, int modifier)
     if (modifier == 0) { return result; }
     result.type = modifier > 0 ? *ip_ability_bonus : *ip_decreased_ability_score;
     result.subtype = uint16_t(*ability);
-    result.cost_value = uint8_t(modifier);
+    result.cost_value = uint16_t(std::abs(modifier));
     return result;
 }
 
@@ -253,6 +251,7 @@ nw::ItemProperty itemprop_armor_class_modifier(int value)
 
     result.type = uint16_t(*type);
     result.cost_value = uint16_t(value);
+    result.cost_value = uint16_t(std::abs(value));
     return result;
 }
 
@@ -286,7 +285,7 @@ nw::ItemProperty itemprop_attack_modifier(int value)
     value = std::clamp(value, 0, int(def->cost_table->rows()));
 
     result.type = uint16_t(*type);
-    result.cost_value = uint16_t(value);
+    result.cost_value = uint16_t(std::abs(value));
     return result;
 }
 
@@ -347,7 +346,7 @@ nw::ItemProperty itemprop_enhancement_modifier(int value)
     value = std::clamp(value, 0, int(def->cost_table->rows()));
 
     result.type = uint16_t(*type);
-    result.cost_value = uint16_t(value);
+    result.cost_value = uint16_t(std::abs(value));
     return result;
 }
 
@@ -391,7 +390,7 @@ nw::ItemProperty itemprop_save_modifier(nw::Save type, int modifier)
     if (modifier == 0) { return result; }
     result.type = modifier > 0 ? *ip_saving_throw_bonus : *ip_decreased_saving_throws;
     result.subtype = uint16_t(*type);
-    result.cost_value = uint8_t(modifier);
+    result.cost_value = uint16_t(std::abs(modifier));
     return result;
 }
 
@@ -417,7 +416,7 @@ nw::ItemProperty itemprop_save_vs_modifier(nw::SaveVersus type, int modifier)
     if (modifier == 0) { return result; }
     result.type = modifier > 0 ? *ip_saving_throw_bonus_specific : *ip_decreased_saving_throws_specific;
     result.subtype = uint16_t(*type);
-    result.cost_value = uint8_t(modifier);
+    result.cost_value = uint16_t(std::abs(modifier));
     return result;
 }
 
@@ -443,7 +442,7 @@ nw::ItemProperty itemprop_skill_modifier(nw::Skill skill, int modifier)
     if (modifier == 0) { return result; }
     result.type = modifier > 0 ? *ip_skill_bonus : *ip_decreased_skill_modifier;
     result.subtype = uint16_t(*skill);
-    result.cost_value = uint8_t(modifier);
+    result.cost_value = uint16_t(std::abs(modifier));
     return result;
 }
 

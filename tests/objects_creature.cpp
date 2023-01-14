@@ -131,14 +131,18 @@ TEST_CASE("creature: ability ", "[objects]")
     REQUIRE(obj->effects().size() > 0);
     REQUIRE(nwn1::get_ability_score(obj, nwn1::ability_strength, false) == 47);
 
+    auto eff2 = nwn1::effect_ability_modifier(nwn1::ability_strength, -3);
+    REQUIRE(nw::apply_effect(obj, eff2));
+    REQUIRE(nwn1::get_ability_score(obj, nwn1::ability_strength, false) == 44);
+
     // Belt of Cloud Giant Strength
     auto item = nwk::objects().load<nw::Item>("x2_it_mbelt001"sv);
     REQUIRE(item);
     REQUIRE(nwn1::equip_item(obj, item, nw::EquipIndex::belt));
     REQUIRE(obj->effects().size() > 1);
-    REQUIRE(nwn1::get_ability_score(obj, nwn1::ability_strength, false) == 54);
+    REQUIRE(nwn1::get_ability_score(obj, nwn1::ability_strength, false) == 52);
     REQUIRE(nwn1::unequip_item(obj, nw::EquipIndex::belt));
-    REQUIRE(nwn1::get_ability_score(obj, nwn1::ability_strength, false) == 47);
+    REQUIRE(nwn1::get_ability_score(obj, nwn1::ability_strength, false) == 44);
 
     // Class stat gain
     auto obj2 = nw::kernel::objects().load<nw::Creature>(fs::path("test_data/user/development/sorcrdd.utc"));
