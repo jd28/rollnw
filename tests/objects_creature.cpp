@@ -380,6 +380,15 @@ TEST_CASE("creature: attack bonus", "[objects]")
     // Dual Wield
     auto rh = nwn1::get_equipped_item(obj4, nw::EquipIndex::righthand);
     REQUIRE(nwn1::equip_item(obj4, rh, nw::EquipIndex::lefthand));
+    auto [on, off] = nwn1::resolve_number_of_attacks(obj4);
+    REQUIRE(on == 4);
+    REQUIRE(off == 1);
+
+    REQUIRE(obj4->stats.add_feat(nwn1::feat_improved_two_weapon_fighting));
+    auto [on2, off2] = nwn1::resolve_number_of_attacks(obj4);
+    REQUIRE(on2 == 4);
+    REQUIRE(off2 == 2);
+
     REQUIRE(38 == nwn1::resolve_attack_bonus(obj4, nwn1::attack_type_onhand));
     REQUIRE(38 == nwn1::resolve_attack_bonus(obj4, nwn1::attack_type_offhand));
 

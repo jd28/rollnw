@@ -547,22 +547,26 @@ std::pair<int, int> resolve_number_of_attacks(const nw::Creature* obj)
     int onhand = 1, offhand = 0;
     int ab = base_attack_bonus(obj);
 
-    auto item_on = get_equipped_item(obj, nw::EquipIndex::lefthand);
+    auto item_on = get_equipped_item(obj, nw::EquipIndex::righthand);
     int iter = weapon_iteration(obj, item_on);
     onhand = iter > 0 ? ab / iter : 0;
     if (iter == 5) {
-        onhand = std::max(4, onhand);
+        onhand = std::min(4, onhand);
     } else if (iter == 3) {
-        onhand = std::max(6, onhand);
+        onhand = std::min(6, onhand);
     }
 
-    auto item_off = get_equipped_item(obj, nw::EquipIndex::righthand);
-    iter = weapon_iteration(obj, item_off);
-    if (iter > 0) {
-        offhand = 1;
-        if (obj->stats.has_feat(feat_improved_two_weapon_fighting)) {
-            ++offhand;
-        }
+    auto item_off = get_equipped_item(obj, nw::EquipIndex::lefthand);
+    if (!item_off) { return {onhand, offhand}; }
+
+    auto item_off_bi = nw::kernel::rules().baseitems.get(item_off->baseitem);
+    if (!item_off_bi || item_off_bi->weapon_type == 0) { return {onhand, offhand}; }
+
+    offhand = 1;
+    if (obj->stats.has_feat(feat_improved_two_weapon_fighting)) {
+        ++offhand;
+    } else if (obj->combat_info.ac_armor_base <= 3 && obj->levels.level_by_class(class_type_ranger) >= 9) {
+        ++offhand;
     }
 
     return {onhand, offhand};
