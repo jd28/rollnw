@@ -269,9 +269,10 @@ bool is_double_sided_weapon(const nw::Item* item)
     return bi ? bi->weapon_wield == 8 : false;
 }
 
-bool is_light_weapon(nw::Creature* obj, const nw::Item* item)
+bool is_light_weapon(const nw::Creature* obj, const nw::Item* item)
 {
     if (!obj || !item) { return false; }
+    return get_relative_weapon_size(obj, item) < 0;
 }
 
 bool is_monk_weapon(const nw::Item* item)
@@ -295,7 +296,7 @@ bool is_shield(nw::BaseItem baseitem)
         || baseitem == base_item_towershield;
 }
 
-bool is_two_handed_weapon(nw::Creature* obj, const nw::Item* item)
+bool is_two_handed_weapon(const nw::Creature* obj, const nw::Item* item)
 {
     if (!obj || !item) { return false; }
     auto bi = nw::kernel::rules().baseitems.get(item->baseitem);
