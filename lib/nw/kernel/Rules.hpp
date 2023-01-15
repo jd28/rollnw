@@ -267,6 +267,66 @@ bool resolve_modifier(const ObjectBase* obj, const ModifierType type, SubType su
 }
 
 /**
+ * @brief Maxes all modifiers of `type` versus an object
+ * @overload max_modifier(const ObjectBase* obj, const ModifierType type, const ObjectBase* versus)
+ * @tparam T
+ */
+template <typename T>
+T max_modifier(const ObjectBase* obj, const ModifierType type,
+    const ObjectBase* versus)
+{
+    T result{};
+    auto cb = [&result](const T value) { result = std::max(result, value); };
+    resolve_modifier(obj, type, versus, cb);
+    return result;
+}
+
+/**
+ * @brief Maxes all modifiers of `type`
+ * @overload max_modifier(const ObjectBase* obj, const ModifierType type)
+ * @tparam T
+ */
+template <typename T>
+T max_modifier(const ObjectBase* obj, const ModifierType type)
+{
+    T result{};
+    auto cb = [&result](const T value) { result = std::max(result, value); };
+    if (!resolve_modifier(obj, type, static_cast<const ObjectBase*>(nullptr), cb)) { return T{}; }
+    return result;
+}
+
+/**
+ * @brief Maxes all modifiers of a `type` and `subtype` versus another object
+ * @overload max_modifier(const ObjectBase* obj, const ModifierType type, SubType subtype, const ObjectBase* versus)
+ * @tparam T
+ * @tparam U is some rule subtype
+ */
+template <typename T, typename SubType>
+T max_modifier(const ObjectBase* obj, const ModifierType type, SubType subtype,
+    const ObjectBase* versus)
+{
+    T result{};
+    auto cb = [&result](const T value) { result = std::max(result, value); };
+    if (!resolve_modifier(obj, type, subtype, versus, cb)) { return T{}; }
+    return result;
+}
+
+/**
+ * @brief Maxes all modifiers of a `type` and `subtype`
+ * @overload max_modifier(const ObjectBase* obj, const ModifierType type, SubType subtype)
+ * @tparam T
+ * @tparam U is some rule subtype
+ */
+template <typename T, typename SubType>
+T max_modifier(const ObjectBase* obj, const ModifierType type, SubType subtype)
+{
+    T result{};
+    auto cb = [&result](const T value) { result = std::max(result, value); };
+    if (!resolve_modifier(obj, type, subtype, cb)) { return T{}; }
+    return result;
+}
+
+/**
  * @brief Sums all modifiers of `type` versus an object
  * @overload sum_modifier(const ObjectBase* obj, const ModifierType type, const ObjectBase* versus)
  * @tparam T
@@ -307,7 +367,7 @@ T sum_modifier(const ObjectBase* obj, const ModifierType type, SubType subtype,
 {
     T result{};
     auto cb = [&result](const T value) { result += value; };
-    if (!resolve_modifier(obj, type, versus, subtype, cb)) { return T{}; }
+    if (!resolve_modifier(obj, type, subtype, versus, cb)) { return T{}; }
     return result;
 }
 
