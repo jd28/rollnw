@@ -180,6 +180,13 @@ constexpr nw::CombatMode combat_mode_defensive_casting = nw::CombatMode::make(9)
 constexpr nw::CombatMode combat_mode_dirty_fighting = nw::CombatMode::make(10);
 constexpr nw::CombatMode combat_mode_defensive_stance = nw::CombatMode::make(11);
 
+constexpr int creature_size_invalid = 0;
+constexpr int creature_size_tiny = 1;
+constexpr int creature_size_small = 2;
+constexpr int creature_size_medium = 3;
+constexpr int creature_size_large = 4;
+constexpr int creature_size_huge = 5;
+
 constexpr nw::Disease disease_blinding_sickness = nw::Disease::make(0);
 constexpr nw::Disease disease_cackle_fever = nw::Disease::make(1);
 constexpr nw::Disease disease_devil_chills = nw::Disease::make(2);
