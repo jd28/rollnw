@@ -34,7 +34,7 @@ nw::Effect* effect_attack_modifier(nw::AttackType attack, int modifier);
 nw::Effect* effect_concealment(int value, nw::MissChanceType type = miss_chance_type_normal);
 
 /// Creates an damage bonus effect
-nw::Effect* effect_damage_bonus(nw::Damage type, nw::DiceRoll dice);
+nw::Effect* effect_damage_bonus(nw::Damage type, nw::DiceRoll dice, nw::DamageCategory cat = nw::DamageCategory::none);
 
 /// Creates an damage immunity effect
 /// @note Negative values create a vulnerability

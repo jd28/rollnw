@@ -171,7 +171,7 @@ nw::Effect* effect_concealment(int value, nw::MissChanceType type)
     return eff;
 }
 
-nw::Effect* effect_damage_bonus(nw::Damage type, nw::DiceRoll dice)
+nw::Effect* effect_damage_bonus(nw::Damage type, nw::DiceRoll dice, nw::DamageCategory cat)
 {
     if (!dice) { return nullptr; }
     auto eff = nw::kernel::effects().create(effect_type_damage_increase);
@@ -179,6 +179,7 @@ nw::Effect* effect_damage_bonus(nw::Damage type, nw::DiceRoll dice)
     eff->set_int(0, dice.dice);
     eff->set_int(1, dice.sides);
     eff->set_int(2, dice.bonus);
+    eff->set_int(3, static_cast<int32_t>(cat));
     return eff;
 }
 
