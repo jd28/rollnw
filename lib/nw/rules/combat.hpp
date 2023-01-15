@@ -84,7 +84,7 @@ using DamageFlag = RuleFlag<Damage, 32>;
 
 DECLARE_RULE_TYPE(DamageModType);
 
-enum struct DamageCategory : uint64_t {
+enum struct DamageCategory : uint32_t {
     none = 0,
     penalty = 1 << 0,
     critical = 1 << 1,
@@ -94,7 +94,7 @@ enum struct DamageCategory : uint64_t {
 DEFINE_ENUM_FLAGS(DamageCategory)
 
 struct DamageRoll {
-    DamageFlag type;
+    Damage type = Damage::invalid();
     DiceRoll roll;
     DamageCategory flags = DamageCategory::none;
 };
