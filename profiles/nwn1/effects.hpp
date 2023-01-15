@@ -36,6 +36,10 @@ nw::Effect* effect_concealment(int value, nw::MissChanceType type = miss_chance_
 /// Creates an damage bonus effect
 nw::Effect* effect_damage_bonus(nw::Damage type, nw::DiceRoll dice);
 
+/// Creates an damage immunity effect
+/// @note Negative values create a vulnerability
+nw::Effect* effect_damage_immunity(nw::Damage type, int value);
+
 /// Creates an damage penalty effect
 nw::Effect* effect_damage_penalty(nw::Damage type, nw::DiceRoll dice);
 
@@ -56,6 +60,9 @@ nw::Effect* effect_skill_modifier(nw::Skill skill, int modifier);
 
 bool effect_apply_is_creature(nw::ObjectBase* obj, const nw::Effect*);
 bool effect_remove_is_creature(nw::ObjectBase* obj, const nw::Effect*);
+
+bool effect_apply_is_valid(nw::ObjectBase* obj, const nw::Effect*);
+bool effect_remove_is_valid(nw::ObjectBase* obj, const nw::Effect*);
 
 bool effect_haste_apply(nw::ObjectBase* obj, const nw::Effect*);
 bool effect_haste_remove(nw::ObjectBase* obj, const nw::Effect*);

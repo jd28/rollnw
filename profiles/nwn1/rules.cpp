@@ -331,6 +331,12 @@ void load_modifiers()
         "dnd-3.0-self-concealment",
         nw::ModifierSource::feat));
 
+    // Damage Immunity
+    rules.modifiers.add(mod::damage_immunity(
+        dragon_disciple_immunity,
+        "dnd-3.0-self-concealment",
+        nw::ModifierSource::class_));
+
     // Damage Resist
     rules.modifiers.add(mod::damage_resist(
         energy_resistance,
@@ -665,6 +671,19 @@ nw::ModifierResult epic_self_concealment(const nw::ObjectBase* obj)
         return (*nth - *feat_epic_self_concealment_10 + 1) * 10;
     }
     return 0;
+}
+
+// Damage Immunity
+nw::ModifierResult dragon_disciple_immunity(const nw::ObjectBase* obj, int32_t subtype)
+{
+    auto dmg_type = nw::Damage::make(subtype);
+    if (!obj || !obj->as_creature() || dmg_type != damage_type_fire) { return {}; }
+    auto cre = obj->as_creature();
+    if (cre->levels.level_by_class(class_type_dragon_disciple) >= 10) {
+        return 100;
+    }
+
+    return {};
 }
 
 // Damage Resist

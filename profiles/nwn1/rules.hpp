@@ -40,6 +40,9 @@ nw::ModifierResult weapon_master_ab(const nw::ObjectBase* obj, int32_t subtype);
 // Concealment
 nw::ModifierResult epic_self_concealment(const nw::ObjectBase* obj);
 
+// Damage Immunity
+nw::ModifierResult dragon_disciple_immunity(const nw::ObjectBase* obj, int32_t subtype);
+
 // Damage Resist
 nw::ModifierResult energy_resistance(const nw::ObjectBase* obj, int32_t subtype);
 

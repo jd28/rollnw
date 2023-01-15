@@ -476,6 +476,29 @@ int resolve_critical_threat(const nw::Creature* obj, nw::AttackType type)
     return result;
 }
 
+int resolve_damage_immunity(const nw::Creature* obj, nw::Damage type, const nw::ObjectBase* versus)
+{
+    if (!obj) { return 0; }
+    nw::Versus vs;
+    if (versus) {
+        vs = versus->versus_me();
+    }
+
+    int mod_bonus = nw::kernel::max_modifier<int>(obj, mod_type_dmg_immunity, type, versus);
+
+    auto begin = std::begin(obj->effects());
+    auto end = std::end(obj->effects());
+    auto [eff_bonus, it] = nw::sum_effects_of<int>(begin, end, effect_type_damage_immunity_increase,
+        *type, vs);
+
+    auto [eff_penalty, _] = nw::sum_effects_of<int>(begin, end, effect_type_damage_immunity_decrease,
+        *type, vs);
+
+    // [TODO] Check if this is actually right..
+    int result = std::max(mod_bonus, eff_bonus - eff_penalty);
+    return result;
+}
+
 std::pair<int, int> resolve_dual_wield_penalty(const nw::Creature* obj)
 {
     if (!obj) { return {0, 0}; }

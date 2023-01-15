@@ -27,6 +27,9 @@ void load_effects()
 #define ADD_IS_CREATURE_EFFECT(type) \
     nw::kernel::effects().add(type, effect_apply_is_creature, effect_remove_is_creature)
 
+#define ADD_IS_VALID_EFFECT(type) \
+    nw::kernel::effects().add(type, effect_apply_is_valid, effect_remove_is_valid)
+
     ADD_IS_CREATURE_EFFECT(effect_type_ability_increase);
     ADD_IS_CREATURE_EFFECT(effect_type_ability_decrease);
 
@@ -41,6 +44,8 @@ void load_effects()
     ADD_IS_CREATURE_EFFECT(effect_type_damage_increase);
     ADD_IS_CREATURE_EFFECT(effect_type_damage_decrease);
 
+    ADD_IS_VALID_EFFECT(effect_type_damage_immunity_increase);
+    ADD_IS_VALID_EFFECT(effect_type_damage_immunity_decrease);
     nw::kernel::effects().add(effect_type_haste, effect_haste_apply, effect_haste_remove);
 
     ADD_IS_CREATURE_EFFECT(effect_type_miss_chance);
@@ -52,6 +57,7 @@ void load_effects()
     ADD_IS_CREATURE_EFFECT(effect_type_skill_decrease);
 
 #undef ADD_IS_CREATURE_EFFECT
+#undef ADD_IS_VALID_EFFECT
 }
 
 void load_itemprop_generators()
@@ -84,6 +90,16 @@ bool effect_apply_is_creature(nw::ObjectBase* obj, const nw::Effect*)
 bool effect_remove_is_creature(nw::ObjectBase* obj, const nw::Effect*)
 {
     return !!obj->as_creature();
+}
+
+bool effect_apply_is_valid(nw::ObjectBase* obj, const nw::Effect*)
+{
+    return !!obj;
+}
+
+bool effect_remove_is_valid(nw::ObjectBase* obj, const nw::Effect*)
+{
+    return !!obj;
 }
 
 bool effect_haste_apply(nw::ObjectBase* obj, const nw::Effect*)
@@ -160,6 +176,17 @@ nw::Effect* effect_damage_bonus(nw::Damage type, nw::DiceRoll dice)
     eff->set_int(0, dice.dice);
     eff->set_int(1, dice.sides);
     eff->set_int(2, dice.bonus);
+    return eff;
+}
+
+nw::Effect* effect_damage_immunity(nw::Damage type, int value)
+{
+    if (value == 0) { return nullptr; }
+    value = std::clamp(value, -100, 100);
+    auto eff = nw::kernel::effects().create(effect_type_damage_immunity_increase);
+    eff->type = value > 0 ? effect_type_damage_immunity_increase : effect_type_damage_immunity_decrease;
+    eff->subtype = *type;
+    eff->set_int(0, std::abs(value));
     return eff;
 }
 

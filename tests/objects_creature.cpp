@@ -516,6 +516,27 @@ TEST_CASE("creature: damage", "[objects]")
     REQUIRE(nw::has_effect_applied(obj, nwn1::effect_type_damage_increase));
 }
 
+TEST_CASE("creature: damage immunity", "[objects]")
+{
+    auto obj = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/pl_agent_001.utc"));
+    REQUIRE(obj);
+
+    auto eff = nwn1::effect_damage_immunity(nwn1::damage_type_bludgeoning, 10);
+    REQUIRE(nw::apply_effect(obj, eff));
+    REQUIRE(nwn1::resolve_damage_immunity(obj, nwn1::damage_type_bludgeoning) == 10);
+
+    auto eff2 = nwn1::effect_damage_immunity(nwn1::damage_type_bludgeoning, -3);
+    REQUIRE(nw::apply_effect(obj, eff2));
+    REQUIRE(nwn1::resolve_damage_immunity(obj, nwn1::damage_type_bludgeoning) == 7);
+
+    // Fake RDD.
+    auto obj2 = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/nw_chicken.utc"));
+    REQUIRE(obj2);
+    obj2->levels.entries[0].id = nwn1::class_type_dragon_disciple;
+    obj2->levels.entries[0].level = 20;
+    REQUIRE(nwn1::resolve_damage_immunity(obj2, nwn1::damage_type_fire) == 100);
+}
+
 TEST_CASE("creature: iteration penalty", "[objects]")
 {
     auto obj = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/drorry.utc"));
