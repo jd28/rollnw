@@ -544,33 +544,33 @@ TEST_CASE("creature: damage reduction", "[objects]")
 
     auto eff = nwn1::effect_damage_reduction(30, 2);
     REQUIRE(nw::apply_effect(obj, eff));
-    REQUIRE(nwn1::resolve_damage_reduction(obj, 1) == 30);
-    REQUIRE(nwn1::resolve_damage_reduction(obj, 3) == 0);
+    REQUIRE(nwn1::resolve_damage_reduction(obj, 1).first == 30);
+    REQUIRE(nwn1::resolve_damage_reduction(obj, 3).first == 0);
 
     auto eff2 = nwn1::effect_damage_reduction(20, 4, 100);
     REQUIRE(nw::apply_effect(obj, eff2));
     auto eff3 = nwn1::effect_damage_reduction(20, 4, 50);
     REQUIRE(nw::apply_effect(obj, eff3));
-    REQUIRE(nwn1::resolve_damage_reduction(obj, 1) == 30);
-    REQUIRE(nwn1::resolve_damage_reduction(obj, 3) == 20);
-    REQUIRE(nwn1::resolve_damage_reduction(obj, 4) == 0);
+    REQUIRE(nwn1::resolve_damage_reduction(obj, 1).first == 30);
+    REQUIRE(nwn1::resolve_damage_reduction(obj, 3).first == 20);
+    REQUIRE(nwn1::resolve_damage_reduction(obj, 4).first == 0);
 
     // Fake DD.
     auto obj2 = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/nw_chicken.utc"));
     REQUIRE(obj2);
     obj2->levels.entries[0].id = nwn1::class_type_dwarven_defender;
     obj2->levels.entries[0].level = 20;
-    REQUIRE(nwn1::resolve_damage_reduction(obj2, 1) == 12);
+    REQUIRE(nwn1::resolve_damage_reduction(obj2, 1).first == 12);
 
     // Fake Barb.
     auto obj3 = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/nw_chicken.utc"));
     REQUIRE(obj3);
     obj3->levels.entries[0].id = nwn1::class_type_barbarian;
     obj3->levels.entries[0].level = 20;
-    REQUIRE(nwn1::resolve_damage_reduction(obj3, 1) == 4);
+    REQUIRE(nwn1::resolve_damage_reduction(obj3, 1).first == 4);
 
     obj3->stats.add_feat(nwn1::feat_epic_damage_reduction_6);
-    REQUIRE(nwn1::resolve_damage_reduction(obj3, 1) == 10);
+    REQUIRE(nwn1::resolve_damage_reduction(obj3, 1).first == 10);
 }
 
 TEST_CASE("creature: iteration penalty", "[objects]")
