@@ -81,6 +81,7 @@
 <li class="toctree-l2"><a class="reference internal" href="nw__Creature.html">nw::Creature</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__CreatureScripts.html">nw::CreatureScripts</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__CreatureStats.html">nw::CreatureStats</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__DamageResult.html">nw::DamageResult</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__DamageRoll.html">nw::DamageRoll</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Dialog.html">nw::Dialog</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__DialogNode.html">nw::DialogNode</a></li>
@@ -335,6 +336,35 @@
 <span id="_CPPv3N2nw10AttackDataE"></span><span id="_CPPv2N2nw10AttackDataE"></span><span id="nw::AttackData"></span><span class="target" id="structnw_1_1_attack_data"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">AttackData</span></span></span><a class="headerlink" href="#_CPPv4N2nw10AttackDataE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Structure for aggregating attack related data. </p>
 <div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-types">Public Types</p>
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw10AttackData11DamageArrayE">
+<span id="_CPPv3N2nw10AttackData11DamageArrayE"></span><span id="_CPPv2N2nw10AttackData11DamageArrayE"></span><span class="target" id="structnw_1_1_attack_data_1af95c5d6c2e5e660672fdd65b8b3bbeb6"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">DamageArray</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">absl</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">InlinedVector</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="nw__DamageResult.html#_CPPv4N2nw12DamageResultE" title="nw::DamageResult"><span class="n"><span class="pre">DamageResult</span></span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="m"><span class="pre">8</span></span><span class="p"><span class="pre">&gt;</span></span><a class="headerlink" href="#_CPPv4N2nw10AttackData11DamageArrayE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw10AttackData3addEN2nw6DamageEib">
+<span id="_CPPv3N2nw10AttackData3addEN2nw6DamageEib"></span><span id="_CPPv2N2nw10AttackData3addEN2nw6DamageEib"></span><span id="nw::AttackData::add__nw::Damage.i.b"></span><span class="target" id="structnw_1_1_attack_data_1a103e6cbffbfa632ee0e0d51f8315de23"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">add</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">nw</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">Damage</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">type_</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">amount</span></span>, <span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">unblockable</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">false</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw10AttackData3addEN2nw6DamageEib" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Adds damage to damage result. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw10AttackData7damagesEv">
+<span id="_CPPv3N2nw10AttackData7damagesEv"></span><span id="_CPPv2N2nw10AttackData7damagesEv"></span><span id="nw::AttackData::damages"></span><span class="target" id="structnw_1_1_attack_data_1a64218ca1b2f41492244bfe2fe2fcbce1"></span><a class="reference internal" href="#_CPPv4N2nw10AttackData11DamageArrayE" title="nw::AttackData::DamageArray"><span class="n"><span class="pre">DamageArray</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">damages</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw10AttackData7damagesEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Gets damage array. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK2nw10AttackData7damagesEv">
+<span id="_CPPv3NK2nw10AttackData7damagesEv"></span><span id="_CPPv2NK2nw10AttackData7damagesEv"></span><span id="nw::AttackData::damagesC"></span><span class="target" id="structnw_1_1_attack_data_1a5d33c029823ebf3e3e6c2aff80085b17"></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N2nw10AttackData11DamageArrayE" title="nw::AttackData::DamageArray"><span class="n"><span class="pre">DamageArray</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">damages</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK2nw10AttackData7damagesEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Gets damage array. </p>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw10AttackData8attackerE">
@@ -344,6 +374,11 @@
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw10AttackData6targetE">
 <span id="_CPPv3N2nw10AttackData6targetE"></span><span id="_CPPv2N2nw10AttackData6targetE"></span><span id="nw::AttackData::target__ObjectBaseP"></span><span class="target" id="structnw_1_1_attack_data_1a5ee9c6ee18b1c20eb04b0f64aedd043d"></span><span class="n"><span class="pre">ObjectBase</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">target</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">nullptr</span></span><a class="headerlink" href="#_CPPv4N2nw10AttackData6targetE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw10AttackData6weaponE">
+<span id="_CPPv3N2nw10AttackData6weaponE"></span><span id="_CPPv2N2nw10AttackData6weaponE"></span><span id="nw::AttackData::weapon__ItemP"></span><span class="target" id="structnw_1_1_attack_data_1af0358609d50aa0cd395cad1ef93c8a81"></span><a class="reference internal" href="nw__Item.html#_CPPv4N2nw4ItemE" title="nw::Item"><span class="n"><span class="pre">Item</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">weapon</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">nullptr</span></span><a class="headerlink" href="#_CPPv4N2nw10AttackData6weaponE" title="Permalink to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
@@ -411,6 +446,30 @@
 <dt class="sig sig-object cpp" id="_CPPv4N2nw10AttackData11concealmentE">
 <span id="_CPPv3N2nw10AttackData11concealmentE"></span><span id="_CPPv2N2nw10AttackData11concealmentE"></span><span id="nw::AttackData::concealment__i"></span><span class="target" id="structnw_1_1_attack_data_1aed8622da7a8131aabd4d21764c315271"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">concealment</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N2nw10AttackData11concealmentE" title="Permalink to this definition"></a><br /></dt>
 <dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw10AttackData11damage_baseE">
+<span id="_CPPv3N2nw10AttackData11damage_baseE"></span><span id="_CPPv2N2nw10AttackData11damage_baseE"></span><span id="nw::AttackData::damage_base__i"></span><span class="target" id="structnw_1_1_attack_data_1a645dee48e4c301badabd92eb2f5e6c6d"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">damage_base</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N2nw10AttackData11damage_baseE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Base weapon damage. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw10AttackData19damage_base_unblockE">
+<span id="_CPPv3N2nw10AttackData19damage_base_unblockE"></span><span id="_CPPv2N2nw10AttackData19damage_base_unblockE"></span><span id="nw::AttackData::damage_base_unblock__i"></span><span class="target" id="structnw_1_1_attack_data_1ab1363c271b7c5abf9900e46ff5fad660"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">damage_base_unblock</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N2nw10AttackData19damage_base_unblockE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Base weapon damage unblocked. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw10AttackData16effects_to_applyE">
+<span id="_CPPv3N2nw10AttackData16effects_to_applyE"></span><span id="_CPPv2N2nw10AttackData16effects_to_applyE"></span><span id="nw::AttackData::effects_to_apply__absl::InlinedVector:nw::EffectP.8:"></span><span class="target" id="structnw_1_1_attack_data_1a30aef2043095ae9256578aaa7261e42a"></span><span class="n"><span class="pre">absl</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">InlinedVector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">nw</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="nw__Effect.html#_CPPv4N2nw6EffectE" title="nw::Effect"><span class="n"><span class="pre">Effect</span></span></a><span class="p"><span class="pre">*</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="m"><span class="pre">8</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">effects_to_apply</span></span></span><a class="headerlink" href="#_CPPv4N2nw10AttackData16effects_to_applyE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Effects to apply to target. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw10AttackData17effects_to_removeE">
+<span id="_CPPv3N2nw10AttackData17effects_to_removeE"></span><span id="_CPPv2N2nw10AttackData17effects_to_removeE"></span><span id="nw::AttackData::effects_to_remove__absl::InlinedVector:nw::EffectHandle.8:"></span><span class="target" id="structnw_1_1_attack_data_1af00482519e383128a7c558b8850e3366"></span><span class="n"><span class="pre">absl</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">InlinedVector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">nw</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="nw__EffectHandle.html#_CPPv4N2nw12EffectHandleE" title="nw::EffectHandle"><span class="n"><span class="pre">EffectHandle</span></span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="m"><span class="pre">8</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">effects_to_remove</span></span></span><a class="headerlink" href="#_CPPv4N2nw10AttackData17effects_to_removeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Effects to remove from target. </p>
+</dd></dl>
 
 </div>
 </dd></dl>
