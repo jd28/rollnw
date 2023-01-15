@@ -46,6 +46,7 @@ void load_effects()
 
     ADD_IS_VALID_EFFECT(effect_type_damage_immunity_increase);
     ADD_IS_VALID_EFFECT(effect_type_damage_immunity_decrease);
+    ADD_IS_VALID_EFFECT(effect_type_damage_reduction);
     nw::kernel::effects().add(effect_type_haste, effect_haste_apply, effect_haste_remove);
 
     ADD_IS_CREATURE_EFFECT(effect_type_miss_chance);
@@ -198,6 +199,16 @@ nw::Effect* effect_damage_penalty(nw::Damage type, nw::DiceRoll dice)
     eff->set_int(0, dice.dice);
     eff->set_int(1, dice.sides);
     eff->set_int(2, dice.bonus);
+    return eff;
+}
+
+nw::Effect* effect_damage_reduction(int value, int power, int max)
+{
+    if (value == 0 || power <= 0) { return nullptr; }
+    auto eff = nw::kernel::effects().create(effect_type_damage_reduction);
+    eff->set_int(0, value);
+    eff->set_int(1, power);
+    eff->set_int(2, max);
     return eff;
 }
 

@@ -29,6 +29,7 @@ DECLARE_MOD(attack_bonus_mode);
 DECLARE_MOD(attack_bonus);
 DECLARE_MOD(concealment);
 DECLARE_MOD(damage_immunity);
+DECLARE_MOD(damage_reduction);
 DECLARE_MOD(damage_resist);
 DECLARE_MOD(hitpoints);
 DECLARE_MOD_WITH_SUBTYPE(ability, nw::Ability);

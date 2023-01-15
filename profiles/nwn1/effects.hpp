@@ -43,6 +43,9 @@ nw::Effect* effect_damage_immunity(nw::Damage type, int value);
 /// Creates an damage penalty effect
 nw::Effect* effect_damage_penalty(nw::Damage type, nw::DiceRoll dice);
 
+/// Creates an damage reduction effect
+nw::Effect* effect_damage_reduction(int value, int power, int max = 0);
+
 /// Creates a haste effect
 nw::Effect* effect_haste();
 

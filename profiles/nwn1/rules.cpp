@@ -337,6 +337,22 @@ void load_modifiers()
         "dnd-3.0-self-concealment",
         nw::ModifierSource::class_));
 
+    // Damage Reduction
+    rules.modifiers.add(mod::damage_reduction(
+        barbarian_dmg_reduction,
+        "dnd-3.0-barbarian-reduction",
+        nw::ModifierSource::feat));
+
+    rules.modifiers.add(mod::damage_reduction(
+        dwarven_defender_dmg_reduction,
+        "dnd-3.0-dwarven-defender-reduction",
+        nw::ModifierSource::class_));
+
+    rules.modifiers.add(mod::damage_reduction(
+        epic_dmg_reduction,
+        "dnd-3.0-epic-damage-reduction",
+        nw::ModifierSource::feat));
+
     // Damage Resist
     rules.modifiers.add(mod::damage_resist(
         energy_resistance,
@@ -664,7 +680,7 @@ nw::ModifierResult weapon_master_ab(const nw::ObjectBase* obj, int32_t subtype)
 // Concealment
 nw::ModifierResult epic_self_concealment(const nw::ObjectBase* obj)
 {
-    if (!obj || !obj->as_creature()) { return {}; }
+    if (!obj || !obj->as_creature()) { return 0; }
     auto cre = obj->as_creature();
     auto nth = highest_feat_in_range(cre, feat_epic_self_concealment_10, feat_epic_self_concealment_50);
     if (nth != nw::Feat::invalid()) {
@@ -677,13 +693,60 @@ nw::ModifierResult epic_self_concealment(const nw::ObjectBase* obj)
 nw::ModifierResult dragon_disciple_immunity(const nw::ObjectBase* obj, int32_t subtype)
 {
     auto dmg_type = nw::Damage::make(subtype);
-    if (!obj || !obj->as_creature() || dmg_type != damage_type_fire) { return {}; }
+    if (!obj || !obj->as_creature() || dmg_type != damage_type_fire) { return 0; }
     auto cre = obj->as_creature();
     if (cre->levels.level_by_class(class_type_dragon_disciple) >= 10) {
         return 100;
     }
 
-    return {};
+    return 0;
+}
+
+// Damage Reduction
+nw::ModifierResult barbarian_dmg_reduction(const nw::ObjectBase* obj)
+{
+    if (!obj || !obj->as_creature()) { return 0; }
+
+    auto cre = obj->as_creature();
+
+    int barb = cre->levels.level_by_class(class_type_barbarian);
+    if (barb > 10) {
+        return 1 + (barb - 10) / 3;
+    }
+
+    return 0;
+}
+
+nw::ModifierResult dwarven_defender_dmg_reduction(const nw::ObjectBase* obj)
+{
+    if (!obj || !obj->as_creature()) { return 0; }
+
+    auto cre = obj->as_creature();
+
+    int dd = cre->levels.level_by_class(class_type_dwarven_defender);
+    if (dd > 0) {
+        return 3 + ((dd - 6) / 4 * 3);
+    }
+
+    return 0;
+}
+
+nw::ModifierResult epic_dmg_reduction(const nw::ObjectBase* obj)
+{
+    if (!obj || !obj->as_creature()) { return 0; }
+
+    auto cre = obj->as_creature();
+    int result = 0;
+
+    if (cre->stats.has_feat(feat_epic_damage_reduction_9)) {
+        result = 9;
+    } else if (cre->stats.has_feat(feat_epic_damage_reduction_6)) {
+        result = 6;
+    } else if (cre->stats.has_feat(feat_epic_damage_reduction_3)) {
+        result = 3;
+    }
+
+    return result;
 }
 
 // Damage Resist

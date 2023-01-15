@@ -43,6 +43,11 @@ nw::ModifierResult epic_self_concealment(const nw::ObjectBase* obj);
 // Damage Immunity
 nw::ModifierResult dragon_disciple_immunity(const nw::ObjectBase* obj, int32_t subtype);
 
+// Damage Reduction
+nw::ModifierResult dwarven_defender_dmg_reduction(const nw::ObjectBase* obj);
+nw::ModifierResult barbarian_dmg_reduction(const nw::ObjectBase* obj);
+nw::ModifierResult epic_dmg_reduction(const nw::ObjectBase* obj);
+
 // Damage Resist
 nw::ModifierResult energy_resistance(const nw::ObjectBase* obj, int32_t subtype);
 
