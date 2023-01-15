@@ -129,6 +129,7 @@ std::unique_ptr<nw::AttackData> resolve_attack(nw::Creature* attacker, nw::Objec
     data->attacker = attacker;
     data->target = target;
     data->type = resolve_attack_type(attacker);
+    data->weapon = get_weapon_by_attack_type(attacker, data->type);
     data->target_state = resolve_target_state(attacker, target);
     data->target_is_creature = !!target_cre;
     data->is_ranged_attack = is_ranged_weapon(get_weapon_by_attack_type(attacker, data->type));

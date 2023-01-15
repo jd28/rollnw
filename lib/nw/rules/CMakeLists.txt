@@ -1,5 +1,6 @@
 add_library(nw-rules STATIC
     attributes.cpp
+    combat.cpp
     feats.cpp
     items.cpp
 

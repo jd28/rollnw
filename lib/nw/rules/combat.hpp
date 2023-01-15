@@ -3,34 +3,18 @@
 #include "../objects/ObjectHandle.hpp"
 #include "../util/enum_flags.hpp"
 #include "Dice.hpp"
+#include "Effect.hpp"
 #include "rule_type.hpp"
+
+#include <absl/container/inlined_vector.h>
 
 #include <cstdint>
 
 namespace nw {
 
 struct Creature;
+struct Item;
 struct ObjectBase;
-
-// -- Target State ------------------------------------------------------------
-// ----------------------------------------------------------------------------
-
-enum struct TargetState {
-    none = 0,
-    blind = 1,
-    attacker_invis = 2,
-    unseen = 4,
-    moving = 8,
-    prone = 16,
-    stunned = 32,
-    flanked = 64,
-    flatfooted = 128,
-    asleep = 256,
-    attacker_unseen = 512,
-    invis = 1024,
-};
-
-DEFINE_ENUM_FLAGS(TargetState);
 
 // -- Attack ------------------------------------------------------------------
 // ----------------------------------------------------------------------------
@@ -90,27 +74,6 @@ constexpr bool is_attack_type_miss(AttackResult value)
         return true;
     }
 }
-
-/// Structure for aggregating attack related data
-struct AttackData {
-    Creature* attacker = nullptr;
-    ObjectBase* target = nullptr;
-
-    AttackType type = AttackType::invalid();
-    AttackResult result = AttackResult::miss_by_roll;
-    TargetState target_state = TargetState::none;
-
-    bool target_is_creature = false;
-    bool is_ranged_attack = false;
-    int nth_attack = 0; ///< The nth attack in the 'round'
-    int attack_roll = 0;
-    int attack_bonus = 0;
-    int armor_class = 0;
-    int iteration_penalty = 0;
-    int multiplier = 0;
-    int threat_range = 0;
-    int concealment = 0;
-};
 
 // -- Damage ------------------------------------------------------------------
 // ----------------------------------------------------------------------------
@@ -174,5 +137,80 @@ using SituationFlag = RuleFlag<Situation, 64>;
 // ----------------------------------------------------------------------------
 
 DECLARE_RULE_TYPE(SpecialAttack);
+
+// -- Target State ------------------------------------------------------------
+// ----------------------------------------------------------------------------
+
+enum struct TargetState {
+    none = 0,
+    blind = 1,
+    attacker_invis = 2,
+    unseen = 4,
+    moving = 8,
+    prone = 16,
+    stunned = 32,
+    flanked = 64,
+    flatfooted = 128,
+    asleep = 256,
+    attacker_unseen = 512,
+    invis = 1024,
+};
+
+DEFINE_ENUM_FLAGS(TargetState);
+
+// -- Attack Data -------------------------------------------------------------
+// ----------------------------------------------------------------------------
+
+struct DamageResult {
+    nw::Damage type = nw::Damage::invalid();
+    int amount = 0;
+    int unblocked = 0;
+    int immunity = 0;
+    int reduction = 0;
+    int reduction_remaining = 0;
+    int resist = 0;
+    int resist_remaining = 0;
+};
+
+/// Structure for aggregating attack related data
+struct AttackData {
+    using DamageArray = absl::InlinedVector<DamageResult, 8>;
+
+    Creature* attacker = nullptr;
+    ObjectBase* target = nullptr;
+    Item* weapon = nullptr;
+
+    AttackType type = AttackType::invalid();
+    AttackResult result = AttackResult::miss_by_roll;
+    TargetState target_state = TargetState::none;
+
+    bool target_is_creature = false;
+    bool is_ranged_attack = false;
+    int nth_attack = 0; ///< The nth attack in the 'round'
+    int attack_roll = 0;
+    int attack_bonus = 0;
+    int armor_class = 0;
+    int iteration_penalty = 0;
+    int multiplier = 0;
+    int threat_range = 0;
+    int concealment = 0;
+
+    int damage_base = 0;                                        ///< Base weapon damage
+    int damage_base_unblock = 0;                                ///< Base weapon damage unblocked
+    absl::InlinedVector<nw::Effect*, 8> effects_to_apply;       ///< Effects to apply to target
+    absl::InlinedVector<nw::EffectHandle, 8> effects_to_remove; ///< Effects to remove from target
+
+    /// Adds damage to damage result
+    void add(nw::Damage type_, int amount, bool unblockable = false);
+
+    /// Gets damage array
+    DamageArray& damages();
+
+    /// Gets damage array
+    const DamageArray& damages() const;
+
+private:
+    DamageArray damage_;
+};
 
 } // namespace nw
