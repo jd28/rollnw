@@ -17,13 +17,16 @@ bool operator<(const DiceRoll& lhs, const DiceRoll& rhs)
     return std::tie(lhs.dice, lhs.sides, lhs.bonus) < std::tie(rhs.dice, rhs.sides, rhs.bonus);
 }
 
-int roll_dice(DiceRoll roll)
+int roll_dice(DiceRoll roll, int multiplier)
 {
-    int result = roll.bonus;
-    if (roll.sides > 0) {
-        std::uniform_int_distribution<int> dX(1, roll.sides);
-        for (int i = 0; i < roll.dice; ++i) {
-            result += dX(prng);
+    int result = 0;
+    for (int i = 0; i < multiplier; ++i) {
+        result += roll.bonus;
+        if (roll.sides > 0) {
+            std::uniform_int_distribution<int> dX(1, roll.sides);
+            for (int j = 0; j < roll.dice; ++j) {
+                result += dX(prng);
+            }
         }
     }
     return result;

@@ -15,7 +15,8 @@ bool operator<(const DiceRoll& lhs, const DiceRoll& rhs);
 
 /// Rolls a set of dice
 /// @param roll Dice to roll
-int roll_dice(DiceRoll roll);
+/// @param multiplier Roll dice n times
+int roll_dice(DiceRoll roll, int multiplier = 1);
 
 /// Rolls a set exploding of dice
 /// @param dice Dice to roll
