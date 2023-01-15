@@ -674,6 +674,74 @@ nw::TargetState resolve_target_state(const nw::Creature* attacker, const nw::Obj
     return result;
 }
 
+nw::DiceRoll resolve_unarmed_damage(const nw::Creature* attacker)
+{
+    nw::DiceRoll result;
+    if (!attacker) { return result; }
+    // Pick up all the specialization bonuses, actual roll is ignored
+    result = resolve_weapon_damage(attacker, base_item_gloves);
+    result.dice = 1;
+
+    bool big = attacker->size >= creature_size_medium;
+    auto [yes, level] = can_use_monk_abilities(attacker);
+    if (level > 0) {
+        if (level >= 16) {
+            if (big) {
+                result.dice = 1;
+                result.sides = 20;
+            } else {
+                result.dice = 2;
+                result.sides = 6;
+            }
+        } else if (level >= 12) {
+            result.sides = big ? 12 : 10;
+        } else if (level >= 10) {
+            result.sides = big ? 12 : 10;
+        } else if (level >= 8) {
+            result.sides = big ? 10 : 8;
+        } else if (level >= 4) {
+            result.sides = big ? 8 : 6;
+        } else {
+            result.sides = big ? 6 : 4;
+        }
+    } else {
+        result.sides = big ? 3 : 2;
+    }
+
+    return result;
+}
+
+nw::DiceRoll resolve_weapon_damage(const nw::Creature* attacker, nw::BaseItem item)
+{
+    nw::DiceRoll result;
+    if (!attacker) { return result; }
+    auto bi = nw::kernel::rules().baseitems.get(item);
+    if (bi) { result = bi->base_damage; }
+
+    if (!!nw::kernel::resolve_master_feat<int>(attacker, item, mfeat_weapon_spec_epic)) {
+        result.bonus += 8;
+    } else if (!!nw::kernel::resolve_master_feat<int>(attacker, item, mfeat_weapon_spec)) {
+        result.bonus += 4;
+    }
+
+    if (item == base_item_longbow || item == base_item_shortbow) {
+        int aa = 0;
+        auto feat = nw::highest_feat_in_range(attacker, feat_prestige_enchant_arrow_6,
+            feat_prestige_enchant_arrow_20);
+        if (feat != nw::Feat::invalid()) {
+            aa = *feat - *feat_prestige_enchant_arrow_6 + 6;
+        } else {
+            feat = nw::highest_feat_in_range(attacker, feat_prestige_enchant_arrow_1, feat_prestige_enchant_arrow_5);
+            if (feat != nw::Feat::invalid()) {
+                aa = *feat - *feat_prestige_enchant_arrow_1 + 1;
+            }
+        }
+        result.bonus += aa;
+    }
+
+    return result;
+}
+
 int resolve_weapon_power(const nw::Creature* obj, const nw::Item* weapon)
 {
     if (!obj) { return 0; }

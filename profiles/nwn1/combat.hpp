@@ -73,6 +73,13 @@ std::pair<int, int> resolve_number_of_attacks(const nw::Creature* obj);
 /// Resolve target state
 nw::TargetState resolve_target_state(const nw::Creature* attacker, const nw::ObjectBase* target);
 
+/// Resolve unarmed base damage
+nw::DiceRoll resolve_unarmed_damage(const nw::Creature* attacker);
+
+/// Resolve weapon base damage
+/// @note Includes specialization and arcane archer bonuses
+nw::DiceRoll resolve_weapon_damage(const nw::Creature* attacker, nw::BaseItem item);
+
 /// Resolves weapon power
 int resolve_weapon_power(const nw::Creature* obj, const nw::Item* weapon);
 

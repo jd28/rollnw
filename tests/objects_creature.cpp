@@ -516,6 +516,33 @@ TEST_CASE("creature: damage", "[objects]")
     REQUIRE(nw::has_effect_applied(obj, nwn1::effect_type_damage_increase));
 }
 
+TEST_CASE("creature: damage - base", "[objects]")
+{
+    auto obj = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/pl_agent_001.utc"));
+    REQUIRE(obj);
+    REQUIRE(obj->stats.add_feat(nwn1::feat_weapon_specialization_unarmed));
+    auto dice1 = nwn1::resolve_unarmed_damage(obj);
+    REQUIRE(dice1.dice == 1);
+    REQUIRE(dice1.sides == 20);
+    REQUIRE(dice1.bonus == 4);
+
+    auto obj2 = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/drorry.utc"));
+    REQUIRE(obj2);
+    REQUIRE(obj2->stats.add_feat(nwn1::feat_epic_weapon_specialization_scimitar));
+    auto weapon2 = nwn1::get_equipped_item(obj2, nw::EquipIndex::righthand);
+    REQUIRE(weapon2);
+    auto dice2 = nwn1::resolve_weapon_damage(obj2, weapon2->baseitem);
+    REQUIRE(dice2.dice == 1);
+    REQUIRE(dice2.sides == 6);
+    REQUIRE(dice2.bonus == 8);
+
+    auto obj3 = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/nw_chicken.utc"));
+    REQUIRE(obj3);
+    auto dice3 = nwn1::resolve_unarmed_damage(obj3);
+    REQUIRE(dice3.dice == 1);
+    REQUIRE(dice3.sides == 2);
+}
+
 TEST_CASE("creature: damage immunity", "[objects]")
 {
     auto obj = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/pl_agent_001.utc"));
