@@ -262,6 +262,15 @@ int get_relative_weapon_size(const nw::Creature* obj, const nw::Item* item)
     return bi ? bi->weapon_size - obj->size : 0;
 }
 
+bool is_creature_weapon(const nw::Item* item)
+{
+    if (!item) { return false; }
+    return item->baseitem == base_item_cbludgweapon
+        || item->baseitem == base_item_cpiercweapon
+        || item->baseitem == base_item_cslashweapon
+        || item->baseitem == base_item_cslshprcweap;
+}
+
 bool is_double_sided_weapon(const nw::Item* item)
 {
     if (!item) { return false; }
@@ -302,6 +311,13 @@ bool is_two_handed_weapon(const nw::Creature* obj, const nw::Item* item)
     auto bi = nw::kernel::rules().baseitems.get(item->baseitem);
     if (!bi) { return false; }
     return bi->weapon_size > obj->size;
+}
+
+bool is_unarmed_weapon(const nw::Item* item)
+{
+    if (!item) { return true; }
+    auto bi = item->baseitem;
+    return bi == base_item_gloves || bi == base_item_bracer || is_creature_weapon(item);
 }
 
 nw::Item* unequip_item(nw::Creature* obj, nw::EquipIndex slot)
