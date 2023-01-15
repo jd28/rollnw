@@ -35,8 +35,8 @@ BaseItemInfo::BaseItemInfo(const TwoDARowView& tda)
     // PrefAttackDist
     // MinRange
     // MaxRange
-    // NumDice
-    // DieToRoll
+    tda.get_to("NumDice", base_damage.dice);
+    tda.get_to("DieToRoll", base_damage.sides);
     tda.get_to("CritThreat", crit_threat);
     tda.get_to("CritHitMult", crit_multiplier);
     // Category

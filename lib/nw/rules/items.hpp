@@ -126,8 +126,7 @@ struct BaseItemInfo {
     // PrefAttackDist
     // MinRange
     // MaxRange
-    // NumDice
-    // DieToRoll
+    nw::DiceRoll base_damage;
     int crit_threat = 0;
     int crit_multiplier = 0;
     // Category
