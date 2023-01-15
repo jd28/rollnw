@@ -573,6 +573,22 @@ TEST_CASE("creature: damage reduction", "[objects]")
     REQUIRE(nwn1::resolve_damage_reduction(obj3, 1).first == 10);
 }
 
+TEST_CASE("creature: damage resistance", "[objects]")
+{
+    auto obj = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/pl_agent_001.utc"));
+    REQUIRE(obj);
+
+    auto eff = nwn1::effect_damage_resistance(nwn1::damage_type_acid, 10);
+    REQUIRE(nw::apply_effect(obj, eff));
+    REQUIRE(nwn1::resolve_damage_resistance(obj, nwn1::damage_type_acid).first == 10);
+    REQUIRE(nwn1::resolve_damage_resistance(obj, nwn1::damage_type_fire).first == 0);
+
+    auto obj3 = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/nw_chicken.utc"));
+    REQUIRE(obj3);
+    obj3->stats.add_feat(nwn1::feat_epic_energy_resistance_sonic_3);
+    REQUIRE(nwn1::resolve_damage_resistance(obj3, nwn1::damage_type_sonic).first == 30);
+}
+
 TEST_CASE("creature: iteration penalty", "[objects]")
 {
     auto obj = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/drorry.utc"));

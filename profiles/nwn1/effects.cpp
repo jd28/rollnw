@@ -47,6 +47,8 @@ void load_effects()
     ADD_IS_VALID_EFFECT(effect_type_damage_immunity_increase);
     ADD_IS_VALID_EFFECT(effect_type_damage_immunity_decrease);
     ADD_IS_VALID_EFFECT(effect_type_damage_reduction);
+    ADD_IS_VALID_EFFECT(effect_type_damage_resistance);
+
     nw::kernel::effects().add(effect_type_haste, effect_haste_apply, effect_haste_remove);
 
     ADD_IS_CREATURE_EFFECT(effect_type_miss_chance);
@@ -209,6 +211,16 @@ nw::Effect* effect_damage_reduction(int value, int power, int max)
     eff->set_int(0, value);
     eff->set_int(1, power);
     eff->set_int(2, max);
+    return eff;
+}
+
+nw::Effect* effect_damage_resistance(nw::Damage type, int value, int max)
+{
+    if (value <= 0) { return nullptr; }
+    auto eff = nw::kernel::effects().create(effect_type_damage_resistance);
+    eff->subtype = *type;
+    eff->set_int(0, value);
+    eff->set_int(1, max);
     return eff;
 }
 

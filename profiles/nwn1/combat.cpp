@@ -533,6 +533,38 @@ std::pair<int, nw::Effect*> resolve_damage_reduction(const nw::Creature* obj, in
     return {best, best_eff};
 }
 
+std::pair<int, nw::Effect*> resolve_damage_resistance(const nw::Creature* obj, nw::Damage type, const nw::ObjectBase* versus)
+{
+    if (!obj) { return {0, nullptr}; }
+
+    nw::Versus vs;
+    if (versus) { vs = versus->versus_me(); }
+
+    int mod_bonus = nw::kernel::max_modifier<int>(obj, mod_type_dmg_resistance, type, versus);
+
+    auto begin = std::begin(obj->effects());
+    auto end = std::end(obj->effects());
+    auto it = nw::find_first_effect_of(begin, end, effect_type_damage_resistance);
+    int best = 0, best_remain = 0;
+    nw::Effect* best_eff = nullptr;
+    while (it != end && it->type == effect_type_damage_resistance) {
+        if (it->effect->subtype == *type) {
+            if (it->effect->get_int(0) > best
+                || (it->effect->get_int(0) == best && it->effect->get_int(1) > best_remain)) {
+                best = it->effect->get_int(0);
+                best_eff = it->effect;
+                best_remain = it->effect->get_int(1);
+            }
+        }
+        ++it;
+    }
+
+    if (mod_bonus >= best) {
+        return {mod_bonus, nullptr};
+    }
+    return {best, best_eff};
+}
+
 std::pair<int, int> resolve_dual_wield_penalty(const nw::Creature* obj)
 {
     if (!obj) { return {0, 0}; }
