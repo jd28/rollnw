@@ -74,7 +74,7 @@ namespace detail {
 template <typename T>
 constexpr bool is_valid()
 {
-    return std::is_integral_v<T> || std::is_floating_point_v<T>;
+    return std::is_integral_v<T> || std::is_floating_point_v<T> || std::is_same_v<T, DamageRoll>;
 }
 
 template <typename T>

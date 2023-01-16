@@ -5,6 +5,7 @@
 #include "../util/Variant.hpp"
 #include "Versus.hpp"
 #include "attributes.hpp"
+#include "combat.hpp"
 #include "rule_type.hpp"
 #include "system.hpp"
 
@@ -88,7 +89,7 @@ enum struct ModifierSource {
     skill,
 };
 
-using ModifierResult = Variant<int, float>;
+using ModifierResult = Variant<int, float, DamageRoll>;
 using ModifierFunction = std::function<ModifierResult(const ObjectBase*)>;
 using ModifierSubFunction = std::function<ModifierResult(const ObjectBase*, int32_t)>;
 using ModifierVsFunction = std::function<ModifierResult(const ObjectBase*, const ObjectBase*)>;
@@ -97,6 +98,7 @@ using ModifierSubVsFunction = std::function<ModifierResult(const ObjectBase*, co
 using ModifierVariant = Variant<
     int,
     float,
+    DamageRoll,
     ModifierFunction,
     ModifierSubFunction,
     ModifierVsFunction,
