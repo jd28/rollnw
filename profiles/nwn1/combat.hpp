@@ -80,6 +80,9 @@ nw::DiceRoll resolve_unarmed_damage(const nw::Creature* attacker);
 /// @note Includes specialization and arcane archer bonuses
 nw::DiceRoll resolve_weapon_damage(const nw::Creature* attacker, nw::BaseItem item);
 
+/// Resolve weapon base damage flags
+nw::DamageFlag resolve_weapon_damage_flags(const nw::Item* weapon);
+
 /// Resolves weapon power
 int resolve_weapon_power(const nw::Creature* obj, const nw::Item* weapon);
 

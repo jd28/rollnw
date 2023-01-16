@@ -543,6 +543,21 @@ TEST_CASE("creature: damage - base", "[objects]")
     REQUIRE(dice3.sides == 2);
 }
 
+TEST_CASE("creature: damage - weapon flags", "[objects]")
+{
+    auto obj1 = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/drorry.utc"));
+    REQUIRE(obj1);
+    auto weapon1 = nwn1::get_equipped_item(obj1, nw::EquipIndex::righthand);
+    REQUIRE(weapon1);
+    REQUIRE(nwn1::resolve_weapon_damage_flags(weapon1).test(nwn1::damage_type_slashing));
+
+    auto obj2 = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/pl_agent_001.utc"));
+    REQUIRE(obj2);
+    auto weapon2 = nwn1::get_equipped_item(obj2, nw::EquipIndex::arms);
+    REQUIRE(weapon2);
+    REQUIRE(nwn1::resolve_weapon_damage_flags(weapon2).test(nwn1::damage_type_bludgeoning));
+}
+
 TEST_CASE("creature: damage immunity", "[objects]")
 {
     auto obj = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/pl_agent_001.utc"));

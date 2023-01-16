@@ -742,6 +742,39 @@ nw::DiceRoll resolve_weapon_damage(const nw::Creature* attacker, nw::BaseItem it
     return result;
 }
 
+nw::DamageFlag resolve_weapon_damage_flags(const nw::Item* weapon)
+{
+    nw::DamageFlag result;
+    if (!weapon) {
+        result.set(damage_type_bludgeoning);
+    } else {
+        auto bi = nw::kernel::rules().baseitems.get(weapon->baseitem);
+        if (!bi) { return result; }
+        switch (bi->weapon_type) {
+        default:
+            break;
+        case 1:
+            result.set(damage_type_piercing);
+            break;
+        case 2:
+            result.set(damage_type_bludgeoning);
+            break;
+        case 3:
+            result.set(damage_type_slashing);
+            break;
+        case 4:
+            result.set(damage_type_piercing);
+            result.set(damage_type_slashing);
+            break;
+        case 5:
+            result.set(damage_type_bludgeoning);
+            result.set(damage_type_piercing);
+            break;
+        }
+    }
+    return result;
+}
+
 int resolve_weapon_power(const nw::Creature* obj, const nw::Item* weapon)
 {
     if (!obj) { return 0; }
