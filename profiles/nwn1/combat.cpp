@@ -174,7 +174,7 @@ std::unique_ptr<nw::AttackData> resolve_attack(nw::Creature* attacker, nw::Objec
             }
 
             // Resolve Damage
-            int total = resolve_attack_damage(attacker, target, data.get());
+            data->damage_total = resolve_attack_damage(attacker, target, data.get());
 
             // Epic Dodge
         }
@@ -284,6 +284,7 @@ int resolve_attack_damage(const nw::Creature* obj, const nw::ObjectBase* versus,
         auto dice = nw::DiceRoll{it->effect->get_int(0), it->effect->get_int(1), it->effect->get_int(2)};
         auto unblock = to_bool(nw::DamageCategory::unblockable & static_cast<nw::DamageCategory>(it->effect->get_int(3)));
         data->add(dmg, nw::roll_dice(dice, data->multiplier), unblock);
+        ++it;
     }
 
     // Resolve damage modifiers

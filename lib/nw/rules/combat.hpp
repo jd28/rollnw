@@ -189,6 +189,7 @@ struct AttackData {
     int nth_attack = 0; ///< The nth attack in the 'round'
     int attack_roll = 0;
     int attack_bonus = 0;
+    int damage_total = 0;
     int armor_class = 0;
     int iteration_penalty = 0;
     int multiplier = 0;

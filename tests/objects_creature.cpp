@@ -514,6 +514,20 @@ TEST_CASE("creature: damage", "[objects]")
     auto obj = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/pl_agent_001.utc"));
     REQUIRE(obj);
     REQUIRE(nw::has_effect_applied(obj, nwn1::effect_type_damage_increase));
+
+    auto obj2 = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/nw_chicken.utc"));
+    REQUIRE(obj2);
+
+    for (size_t i = 0; i < 100; ++i) {
+        auto data1 = nwn1::resolve_attack(obj, obj2);
+        REQUIRE(data1);
+        REQUIRE(data1->type == nwn1::attack_type_unarmed);
+        if (nw::is_attack_type_hit(data1->result)) {
+            REQUIRE(data1->damage_total > 0);
+        } else {
+            REQUIRE(data1->damage_total == 0);
+        }
+    }
 }
 
 TEST_CASE("creature: damage - base", "[objects]")

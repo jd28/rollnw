@@ -19,6 +19,8 @@ bool operator<(const DiceRoll& lhs, const DiceRoll& rhs)
 
 int roll_dice(DiceRoll roll, int multiplier)
 {
+    if (!roll) { return 0; }
+    if (multiplier <= 0) { multiplier = 1; }
     int result = 0;
     for (int i = 0; i < multiplier; ++i) {
         result += roll.bonus;
