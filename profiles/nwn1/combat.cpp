@@ -477,7 +477,7 @@ int resolve_critical_threat(const nw::Creature* obj, nw::AttackType type)
     return result;
 }
 
-int resolve_damage_immunity(const nw::Creature* obj, nw::Damage type, const nw::ObjectBase* versus)
+int resolve_damage_immunity(const nw::ObjectBase* obj, nw::Damage type, const nw::ObjectBase* versus)
 {
     if (!obj) { return 0; }
     nw::Versus vs;
@@ -500,7 +500,7 @@ int resolve_damage_immunity(const nw::Creature* obj, nw::Damage type, const nw::
     return result;
 }
 
-std::pair<int, nw::Effect*> resolve_damage_reduction(const nw::Creature* obj, int power, const nw::ObjectBase* versus)
+std::pair<int, nw::Effect*> resolve_damage_reduction(const nw::ObjectBase* obj, int power, const nw::ObjectBase* versus)
 {
     if (!obj || power <= 0) { return {0, nullptr}; }
 
@@ -534,7 +534,7 @@ std::pair<int, nw::Effect*> resolve_damage_reduction(const nw::Creature* obj, in
     return {best, best_eff};
 }
 
-std::pair<int, nw::Effect*> resolve_damage_resistance(const nw::Creature* obj, nw::Damage type, const nw::ObjectBase* versus)
+std::pair<int, nw::Effect*> resolve_damage_resistance(const nw::ObjectBase* obj, nw::Damage type, const nw::ObjectBase* versus)
 {
     if (!obj) { return {0, nullptr}; }
 

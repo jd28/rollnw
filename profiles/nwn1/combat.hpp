@@ -53,13 +53,13 @@ int resolve_critical_multiplier(const nw::Creature* obj, nw::AttackType type, co
 int resolve_critical_threat(const nw::Creature* obj, nw::AttackType type);
 
 /// Resolves damage immunity
-int resolve_damage_immunity(const nw::Creature* obj, nw::Damage type, const nw::ObjectBase* versus = nullptr);
+int resolve_damage_immunity(const nw::ObjectBase* obj, nw::Damage type, const nw::ObjectBase* versus = nullptr);
 
 /// Resolves damage reduction
-std::pair<int, nw::Effect*> resolve_damage_reduction(const nw::Creature* obj, int power, const nw::ObjectBase* versus = nullptr);
+std::pair<int, nw::Effect*> resolve_damage_reduction(const nw::ObjectBase* obj, int power, const nw::ObjectBase* versus = nullptr);
 
 /// Resolves damage resistance
-std::pair<int, nw::Effect*> resolve_damage_resistance(const nw::Creature* obj, nw::Damage type, const nw::ObjectBase* versus = nullptr);
+std::pair<int, nw::Effect*> resolve_damage_resistance(const nw::ObjectBase* obj, nw::Damage type, const nw::ObjectBase* versus = nullptr);
 
 /// Resolves dual-wield penalty
 std::pair<int, int> resolve_dual_wield_penalty(const nw::Creature* obj);
