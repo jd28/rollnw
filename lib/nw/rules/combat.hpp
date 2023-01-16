@@ -195,8 +195,7 @@ struct AttackData {
     int threat_range = 0;
     int concealment = 0;
 
-    int damage_base = 0;                                        ///< Base weapon damage
-    int damage_base_unblock = 0;                                ///< Base weapon damage unblocked
+    DamageResult damage_base;                                   ///< Base weapon damage
     absl::InlinedVector<nw::Effect*, 8> effects_to_apply;       ///< Effects to apply to target
     absl::InlinedVector<nw::EffectHandle, 8> effects_to_remove; ///< Effects to remove from target
 

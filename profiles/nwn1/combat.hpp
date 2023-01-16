@@ -35,6 +35,10 @@ std::unique_ptr<nw::AttackData> resolve_attack(nw::Creature* attacker, nw::Objec
 /// Resolves attack bonus
 int resolve_attack_bonus(const nw::Creature* obj, nw::AttackType type, const nw::ObjectBase* versus = nullptr);
 
+/// Resolves damage from an attack
+/// @return Total damage, ``data`` holds individual damage totals
+int resolve_attack_damage(const nw::Creature* obj, const nw::ObjectBase* versus, nw::AttackData* data);
+
 /// Resolves an attack roll
 nw::AttackResult resolve_attack_roll(const nw::Creature* obj, nw::AttackType type, const nw::ObjectBase* vs, nw::AttackData* data = nullptr);
 
@@ -51,6 +55,9 @@ int resolve_critical_multiplier(const nw::Creature* obj, nw::AttackType type, co
 
 /// Resolves critical threat range.
 int resolve_critical_threat(const nw::Creature* obj, nw::AttackType type);
+
+/// Resolves damage modifiers - soak, resist, immunity
+void resolve_damage_modifiers(const nw::Creature* obj, const nw::ObjectBase* versus, nw::AttackData* data);
 
 /// Resolves damage immunity
 int resolve_damage_immunity(const nw::ObjectBase* obj, nw::Damage type, const nw::ObjectBase* versus = nullptr);

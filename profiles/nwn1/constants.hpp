@@ -552,6 +552,7 @@ constexpr nw::ModifierType mod_type_spell_immunity = nw::ModifierType::make(16);
 constexpr nw::ModifierType mod_type_spell_resistance = nw::ModifierType::make(17);
 constexpr nw::ModifierType mod_type_attack_bonus_item = nw::ModifierType::make(18);
 constexpr nw::ModifierType mod_type_attack_bonus_mode = nw::ModifierType::make(19);
+constexpr nw::ModifierType mod_type_damage = nw::ModifierType::make(20);
 
 constexpr nw::Save saving_throw_fort = nw::Save::make(1);
 constexpr nw::Save saving_throw_reflex = nw::Save::make(2);

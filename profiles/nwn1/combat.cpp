@@ -174,6 +174,8 @@ std::unique_ptr<nw::AttackData> resolve_attack(nw::Creature* attacker, nw::Objec
             }
 
             // Resolve Damage
+            int total = resolve_attack_damage(attacker, target, data.get());
+
             // Epic Dodge
         }
     }
@@ -257,6 +259,63 @@ int resolve_attack_bonus(const nw::Creature* obj, nw::AttackType type, const nw:
 
     auto [min, max] = nw::kernel::effects().effect_limits_attack();
     return result + modifier + std::clamp(bonus - decrease, min, max);
+}
+
+int resolve_attack_damage(const nw::Creature* obj, const nw::ObjectBase* versus, nw::AttackData* data)
+{
+    if (!obj || !versus || !data) { return 0; }
+    int result = 0;
+
+    // Resolve base weapon damage
+    nw::DiceRoll base_dice;
+    if (!is_unarmed_weapon(data->weapon)) {
+        base_dice = resolve_weapon_damage(obj, data->weapon->baseitem);
+    } else {
+        base_dice = resolve_unarmed_damage(obj);
+    }
+
+    data->damage_base.amount = nw::roll_dice(base_dice, data->multiplier);
+
+    // Resolve damage from effects
+    auto it = nw::find_first_effect_of(std::begin(obj->effects()), std::end(obj->effects()),
+        effect_type_damage_increase);
+    while (it != std::end(obj->effects()) && it->type == effect_type_damage_increase) {
+        auto dmg = nw::Damage::make(it->subtype);
+        auto dice = nw::DiceRoll{it->effect->get_int(0), it->effect->get_int(1), it->effect->get_int(2)};
+        auto unblock = to_bool(nw::DamageCategory::unblockable & static_cast<nw::DamageCategory>(it->effect->get_int(3)));
+        data->add(dmg, nw::roll_dice(dice, data->multiplier), unblock);
+    }
+
+    // Resolve damage modifiers
+    auto dmg_cb = [data](nw::DamageRoll roll) {
+        if (roll.type == nw::Damage::invalid()) { return; }
+        if (to_bool(nw::DamageCategory::critical & roll.flags) && data->multiplier <= 1) { return; }
+
+        auto unblock = to_bool(nw::DamageCategory::unblockable & roll.flags);
+        data->add(roll.type, nw::roll_dice(roll.roll, data->multiplier), unblock);
+    };
+    nw::kernel::resolve_modifier(obj, mod_type_damage, versus, dmg_cb);
+
+    // Compact all physical damages to base item type.
+    for (auto& dmg : data->damages()) {
+        if (dmg.type == damage_type_bludgeoning
+            || dmg.type == damage_type_piercing
+            || dmg.type == damage_type_slashing) {
+            data->damage_base.unblocked += dmg.unblocked;
+            data->damage_base.amount += dmg.amount;
+            dmg.unblocked = 0;
+            dmg.amount = 0;
+        }
+    }
+
+    // Resolve resist, reduction, immunity
+    resolve_damage_modifiers(obj, versus, data);
+
+    for (const auto& dmg : data->damages()) {
+        result += dmg.amount + dmg.unblocked;
+    }
+
+    return result + data->damage_base.amount + data->damage_base.unblocked;
 }
 
 nw::AttackResult resolve_attack_roll(const nw::Creature* obj, nw::AttackType type, const nw::ObjectBase* vs, nw::AttackData* data)
@@ -498,6 +557,109 @@ int resolve_damage_immunity(const nw::ObjectBase* obj, nw::Damage type, const nw
     // [TODO] Check if this is actually right..
     int result = std::max(mod_bonus, eff_bonus - eff_penalty);
     return result;
+}
+
+void resolve_damage_modifiers(const nw::Creature* obj, const nw::ObjectBase* versus, nw::AttackData* data)
+{
+    if (!obj || !versus || !data) { return; }
+
+    auto do_damage_resistance = [=](nw::DamageResult& dmg, int resist, nw::Effect* resist_eff) {
+        int resist_remaining = 0;
+        if (resist_eff) { resist_remaining = resist_eff->get_int(1); }
+
+        // The amount that can be resisted is the minimum of amount, the resistance, and the remaining
+        // resist amount.
+        int amount = std::min(dmg.amount, resist);
+        if (resist_remaining > 0) {
+            amount = std::min(amount, resist_remaining);
+        }
+
+        dmg.amount -= amount;
+        dmg.resist = amount;
+
+        if (resist_remaining > 0) {
+            dmg.resist_remaining = resist_remaining - amount;
+            if (dmg.resist_remaining == 0) {
+                data->effects_to_remove.push_back(resist_eff->handle());
+            } else {
+                resist_eff->set_int(1, dmg.resist_remaining);
+            }
+        }
+    };
+
+    auto do_damage_immunity = [=](nw::DamageResult& dmg, int imm) {
+        if (imm >= 100) {
+            dmg.immunity = dmg.amount;
+            dmg.amount = 0;
+        } else {
+            dmg.immunity = (imm * dmg.amount) / 100;
+            dmg.amount -= dmg.immunity;
+        }
+    };
+
+    // Do Resistance and Immunity for all non-physical weapon damage
+    for (auto& dmg : data->damages()) {
+        if (dmg.amount <= 0) { continue; }
+        auto [resist, resist_eff] = resolve_damage_resistance(versus, dmg.type, obj);
+        do_damage_resistance(dmg, resist, resist_eff);
+
+        if (dmg.amount > 0) {
+            auto imm = resolve_damage_immunity(versus, dmg.type, obj);
+            do_damage_immunity(dmg, imm);
+        }
+    }
+
+    // Do Resistance and Immunity for all non-physical weapon damage
+    // Resistance favors attacker, Immunity favors defender
+    const auto flags = resolve_weapon_damage_flags(data->weapon);
+
+    int least_resist = std::numeric_limits<int>::max();
+    nw::Effect* least_resist_eff = nullptr;
+    for (auto type : {damage_type_bludgeoning, damage_type_piercing, damage_type_slashing}) {
+        if (!flags.test(type)) { continue; }
+
+        auto [resist, resist_eff] = resolve_damage_resistance(versus, type, obj);
+        if (resist < least_resist) {
+            least_resist = resist;
+            least_resist_eff = resist_eff;
+        }
+    }
+    do_damage_resistance(data->damage_base, least_resist, least_resist_eff);
+
+    if (data->damage_base.amount > 0) {
+        int best_imm = 0;
+        for (auto type : {damage_type_bludgeoning, damage_type_piercing, damage_type_slashing}) {
+            if (!flags.test(type)) { continue; }
+
+            auto imm = resolve_damage_immunity(versus, type, obj);
+            best_imm = std::max(best_imm, imm);
+        }
+        do_damage_immunity(data->damage_base, best_imm);
+    }
+
+    if (data->damage_base.amount > 0) {
+        auto power = resolve_weapon_power(obj, data->weapon);
+        auto [red, red_eff] = resolve_damage_reduction(versus, power, obj);
+        int red_remaining = 0;
+        if (red_eff) { red_remaining = red_eff->get_int(2); }
+
+        int amount = std::min(data->damage_base.amount, red);
+        if (red_remaining > 0) {
+            amount = std::min(amount, red_remaining);
+        }
+
+        data->damage_base.amount -= amount;
+        data->damage_base.resist = amount;
+
+        if (red_remaining > 0) {
+            data->damage_base.reduction_remaining = red_remaining - amount;
+            if (data->damage_base.reduction_remaining == 0) {
+                data->effects_to_remove.push_back(red_eff->handle());
+            } else {
+                red_eff->set_int(2, data->damage_base.reduction_remaining);
+            }
+        }
+    }
 }
 
 std::pair<int, nw::Effect*> resolve_damage_reduction(const nw::ObjectBase* obj, int power, const nw::ObjectBase* versus)
