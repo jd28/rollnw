@@ -109,7 +109,7 @@ struct RuleFlag : private std::bitset<N> {
     {
         static_assert(is_rule_type<T>::value, "only rule types allowed");
         if (pos != T::invalid()) {
-            Base::flip(static_cast<size_t>(pos));
+            Base::flip(pos.idx());
         }
         return *this;
     }
@@ -118,7 +118,7 @@ struct RuleFlag : private std::bitset<N> {
     {
         static_assert(is_rule_type<T>::value, "only rule types allowed");
         if (pos != T::invalid()) {
-            Base::reset(static_cast<size_t>(pos));
+            Base::reset(pos.idx());
         }
         return *this;
     }
@@ -132,7 +132,7 @@ struct RuleFlag : private std::bitset<N> {
         return *this;
     }
 
-    bool test(T pos)
+    bool test(T pos) const
     {
         static_assert(is_rule_type<T>::value, "only rule types allowed");
         return T::invalid() != pos ? Base::test(pos.idx()) : false;
