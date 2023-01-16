@@ -237,7 +237,42 @@ TEST_CASE("creature: armor class", "[objects]")
     nwk::unload_module();
 }
 
-TEST_CASE("creature: base attack bonus", "[objects]")
+TEST_CASE("creature: attack", "[objects]")
+{
+    auto obj = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/pl_agent_001.utc"));
+    REQUIRE(obj);
+    REQUIRE(nw::has_effect_applied(obj, nwn1::effect_type_damage_increase));
+
+    auto obj2 = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/nw_chicken.utc"));
+    REQUIRE(obj2);
+
+    for (size_t i = 0; i < 100; ++i) {
+        auto data1 = nwn1::resolve_attack(obj, obj2);
+        REQUIRE(data1);
+        REQUIRE(data1->type == nwn1::attack_type_unarmed);
+        if (nw::is_attack_type_hit(data1->result)) {
+            REQUIRE(data1->damage_total > 0);
+        } else {
+            REQUIRE(data1->damage_total == 0);
+        }
+    }
+
+    auto obj3 = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/drorry.utc"));
+    REQUIRE(obj3);
+
+    for (size_t i = 0; i < 100; ++i) {
+        auto data1 = nwn1::resolve_attack(obj3, obj);
+        REQUIRE(data1);
+        REQUIRE(data1->type == nwn1::attack_type_onhand);
+        if (nw::is_attack_type_hit(data1->result)) {
+            REQUIRE(data1->damage_total > 0);
+        } else {
+            REQUIRE(data1->damage_total == 0);
+        }
+    }
+}
+
+TEST_CASE("creature: attack bonus - base", "[objects]")
 {
     auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
     REQUIRE(mod);
@@ -507,27 +542,6 @@ TEST_CASE("creature: critical hit threat", "[objects]")
     obj2->stats.add_feat(nwn1::feat_improved_critical_unarmed);
     threat2 = nwn1::resolve_critical_threat(obj2, nwn1::attack_type_onhand);
     REQUIRE(threat2 == 2);
-}
-
-TEST_CASE("creature: damage", "[objects]")
-{
-    auto obj = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/pl_agent_001.utc"));
-    REQUIRE(obj);
-    REQUIRE(nw::has_effect_applied(obj, nwn1::effect_type_damage_increase));
-
-    auto obj2 = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/nw_chicken.utc"));
-    REQUIRE(obj2);
-
-    for (size_t i = 0; i < 100; ++i) {
-        auto data1 = nwn1::resolve_attack(obj, obj2);
-        REQUIRE(data1);
-        REQUIRE(data1->type == nwn1::attack_type_unarmed);
-        if (nw::is_attack_type_hit(data1->result)) {
-            REQUIRE(data1->damage_total > 0);
-        } else {
-            REQUIRE(data1->damage_total == 0);
-        }
-    }
 }
 
 TEST_CASE("creature: damage - base", "[objects]")
