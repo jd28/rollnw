@@ -237,7 +237,7 @@ bool resolve_modifier(const ObjectBase* obj, const ModifierType type, SubType su
         while (it != end && it->type == type && it->subtype == -1) {
             // Modifier Variant can be applied to any invalid subtype iff it's a function that
             // takes a subtype.
-            if (it->input.is<ModifierSubFunction>() || it->input.is<ModifierSubFunction>()) {
+            if (it->input.is<ModifierSubFunction>() || it->input.is<ModifierSubVsFunction>()) {
                 if (!resolve_modifier(obj, *it, cb, versus, *subtype)) { return false; }
             }
             ++it;
