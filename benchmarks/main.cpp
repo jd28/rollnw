@@ -172,6 +172,26 @@ static void BM_creature_attack(benchmark::State& state)
     }
 }
 
+static void BM_creature_attack_2(benchmark::State& state)
+{
+    auto obj = nwk::objects().load<nw::Creature>(fs::path("../tests/test_data/user/development/rangerdexranged.utc"));
+    auto vs = nwk::objects().load<nw::Creature>("nw_drggreen003"sv);
+    for (auto _ : state) {
+        auto out = nwn1::resolve_attack(obj, vs);
+        benchmark::DoNotOptimize(out);
+    }
+}
+
+static void BM_creature_attack_3(benchmark::State& state)
+{
+    auto obj = nwk::objects().load<nw::Creature>(fs::path("../tests/test_data/user/development/dexweapfin.utc"));
+    auto vs = nwk::objects().load<nw::Creature>(fs::path("../tests/test_data/user/development/drorry.utc"));
+    for (auto _ : state) {
+        auto out = nwn1::resolve_attack(obj, vs);
+        benchmark::DoNotOptimize(out);
+    }
+}
+
 static void BM_creature_attack_bonus(benchmark::State& state)
 {
     auto obj = nwk::objects().load<nw::Creature>(fs::path("../tests/test_data/user/development/drorry.utc"));
@@ -247,6 +267,8 @@ BENCHMARK(BM_creature_get_skill_rank);
 BENCHMARK(BM_creature_ability_score);
 BENCHMARK(BM_creature_armor_class);
 BENCHMARK(BM_creature_attack);
+BENCHMARK(BM_creature_attack_2);
+BENCHMARK(BM_creature_attack_3);
 BENCHMARK(BM_creature_attack_bonus);
 BENCHMARK(BM_creature_attack_roll);
 

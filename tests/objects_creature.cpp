@@ -270,6 +270,22 @@ TEST_CASE("creature: attack", "[objects]")
             REQUIRE(data1->damage_total == 0);
         }
     }
+
+    auto obj4 = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/rangerdexranged.utc"));
+    REQUIRE(obj4);
+
+    auto vs4 = nwk::objects().load<nw::Creature>("nw_drggreen003"sv);
+    REQUIRE(vs4);
+    for (size_t i = 0; i < 100; ++i) {
+        auto data1 = nwn1::resolve_attack(obj4, vs4);
+        REQUIRE(data1);
+        REQUIRE(data1->type == nwn1::attack_type_onhand);
+        if (nw::is_attack_type_hit(data1->result)) {
+            REQUIRE(data1->damage_total > 0);
+        } else {
+            REQUIRE(data1->damage_total == 0);
+        }
+    }
 }
 
 TEST_CASE("creature: attack bonus - base", "[objects]")
