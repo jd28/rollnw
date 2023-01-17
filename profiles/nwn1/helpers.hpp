@@ -37,6 +37,7 @@ DECLARE_MOD_WITH_SUBTYPE(armor_class, nw::ArmorClass);
 DECLARE_MOD_WITH_SUBTYPE(attack_bonus_item, nw::BaseItem);
 DECLARE_MOD_WITH_SUBTYPE(attack_bonus_mode, nw::CombatMode);
 DECLARE_MOD_WITH_SUBTYPE(attack_bonus, nw::AttackType);
+DECLARE_MOD_WITH_SUBTYPE(damage_bonus, nw::AttackType);
 DECLARE_MOD_WITH_SUBTYPE(damage_resist, nw::Damage);
 DECLARE_MOD_WITH_SUBTYPE(skill, nw::Skill);
 

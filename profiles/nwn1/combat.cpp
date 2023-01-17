@@ -295,11 +295,13 @@ int resolve_attack_damage(const nw::Creature* obj, const nw::ObjectBase* versus,
         auto unblock = to_bool(nw::DamageCategory::unblockable & roll.flags);
         data->add(roll.type, nw::roll_dice(roll.roll, data->multiplier), unblock);
     };
-    nw::kernel::resolve_modifier(obj, mod_type_damage, versus, dmg_cb);
+    nw::kernel::resolve_modifier(obj, mod_type_damage, attack_type_any, versus, dmg_cb);
+    nw::kernel::resolve_modifier(obj, mod_type_damage, data->type, versus, dmg_cb);
 
     // Compact all physical damages to base item type.
     for (auto& dmg : data->damages()) {
-        if (dmg.type == damage_type_bludgeoning
+        if (dmg.type == damage_type_base_weapon
+            || dmg.type == damage_type_bludgeoning
             || dmg.type == damage_type_piercing
             || dmg.type == damage_type_slashing) {
             data->damage_base.unblocked += dmg.unblocked;

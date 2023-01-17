@@ -331,6 +331,13 @@ void load_modifiers()
         "dnd-3.0-self-concealment",
         nw::ModifierSource::feat));
 
+    // Damage Bonus
+    rules.modifiers.add(mod::damage_bonus(
+        attack_type_any,
+        favored_enemy_dmg,
+        "dnd-3.0-favored-enemy-dmg",
+        nw::ModifierSource::feat));
+
     // Damage Immunity
     rules.modifiers.add(mod::damage_immunity(
         dragon_disciple_immunity,
@@ -687,6 +694,32 @@ nw::ModifierResult epic_self_concealment(const nw::ObjectBase* obj)
         return (*nth - *feat_epic_self_concealment_10 + 1) * 10;
     }
     return 0;
+}
+
+// Damage bonus
+nw::ModifierResult favored_enemy_dmg(const nw::ObjectBase* obj, const nw::ObjectBase* vs, int32_t subtype)
+{
+    nw::DamageRoll result;
+    if (!obj) { return result; }
+    auto cre = obj->as_creature();
+    if (!cre || !vs) { return result; }
+    auto vs_cre = vs->as_creature();
+    if (!vs_cre) { return result; }
+
+    if (nw::AttackType::make(subtype) != attack_type_any) { return result; }
+    int ranger = cre->levels.level_by_class(class_type_ranger);
+    if (ranger == 0) { return result; }
+
+    if (!!nw::kernel::resolve_master_feat<int>(cre, vs_cre->race, mfeat_favored_enemy)) {
+        result.type = damage_type_base_weapon;
+        result.flags = nw::DamageCategory::critical;
+        result.roll.bonus = 1 + (ranger / 5);
+        if (cre->stats.has_feat(feat_epic_bane_of_enemies)) {
+            result.roll.dice = 2;
+            result.roll.sides = 6;
+        }
+    }
+    return result;
 }
 
 // Damage Immunity
