@@ -152,7 +152,7 @@ bool Creature::deserialize(Creature* obj, const GffStruct& archive, Serializatio
 
     archive.get_to("ChallengeRating", obj->cr);
     archive.get_to("CRAdjust", obj->cr_adjust);
-    archive.get_to("DecayTime", obj->decay_time);
+    archive.get_to("DecayTime", obj->decay_time, false);
     archive.get_to("WalkRate", obj->walkrate);
 
     archive.get_to("FactionID", obj->faction_id);
@@ -166,10 +166,10 @@ bool Creature::deserialize(Creature* obj, const GffStruct& archive, Serializatio
     archive.get_to("Disarmable", obj->disarmable);
     archive.get_to("Gender", obj->gender);
     archive.get_to("GoodEvil", obj->good_evil);
-    archive.get_to("IsImmortal", obj->immortal);
+    archive.get_to("IsImmortal", obj->immortal, false);
     archive.get_to("Interruptable", obj->interruptable);
     archive.get_to("LawfulChaotic", obj->lawful_chaotic);
-    archive.get_to("Lootable", obj->lootable);
+    archive.get_to("Lootable", obj->lootable, false);
     archive.get_to("IsPC", obj->pc);
     archive.get_to("PerceptionRange", obj->perception_range);
     archive.get_to("Plot", obj->plot);
@@ -179,7 +179,7 @@ bool Creature::deserialize(Creature* obj, const GffStruct& archive, Serializatio
         obj->race = Race::make(temp);
     }
 
-    archive.get_to("StartingPackage", obj->starting_package);
+    archive.get_to("StartingPackage", obj->starting_package, false);
 
     if (profile == nw::SerializationProfile::instance) {
         obj->instantiated_ = true;

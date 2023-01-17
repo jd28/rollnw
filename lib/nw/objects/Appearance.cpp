@@ -19,7 +19,7 @@ bool Appearance::from_gff(const GffStruct& archive)
 
     archive.get_to("Appearance_Type", id);
     archive.get_to("PortraitId", portrait_id);
-    archive.get_to("Appearance_Head", body_parts.head);
+    archive.get_to("Appearance_Head", body_parts.head, false); // Only in dynamic models
 
     archive.get_to("ArmorPart_RFoot", body_parts.foot_right, false);
     archive.get_to("BodyPart_Belt", body_parts.belt, false);
