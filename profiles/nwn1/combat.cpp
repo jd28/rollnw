@@ -298,6 +298,27 @@ int resolve_attack_damage(const nw::Creature* obj, const nw::ObjectBase* versus,
     nw::kernel::resolve_modifier(obj, mod_type_damage, attack_type_any, versus, dmg_cb);
     nw::kernel::resolve_modifier(obj, mod_type_damage, data->type, versus, dmg_cb);
 
+    // Massive Criticals - I don't think this is multiplied..?
+    if (data->weapon && data->result == nw::AttackResult::hit_by_critical) {
+        for (const auto& ip : data->weapon->properties) {
+            if (ip.type == *ip_massive_criticals) {
+                auto def = nw::kernel::effects().ip_definition(ip_massive_criticals);
+                if (def) {
+                    auto dice = def->cost_table->get<int>(ip.cost_value, "NumDice");
+                    auto sides = def->cost_table->get<int>(ip.cost_value, "Die");
+                    if (dice && sides) {
+                        if (*dice > 0) {
+                            data->add(damage_type_base_weapon, nw::roll_dice({*dice, *sides, 0}));
+                        } else if (*dice == 0) {
+                            data->add(damage_type_base_weapon, nw::roll_dice({0, 0, *sides}));
+                        }
+                    }
+                }
+                break;
+            }
+        }
+    }
+
     // Compact all physical damages to base item type.
     for (auto& dmg : data->damages()) {
         if (dmg.type == damage_type_base_weapon
