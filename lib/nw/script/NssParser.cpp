@@ -17,7 +17,14 @@ NssParser::NssParser(std::string_view view)
 
 NssToken NssParser::advance()
 {
-    if (!is_end()) ++current_;
+    if (!is_end()) { ++current_; }
+    while (!is_end()) {
+        if (tokens[current_].type == NssTokenType::COMMENT) {
+            ++current_;
+        } else {
+            break;
+        }
+    }
     return previous();
 }
 
@@ -697,6 +704,8 @@ Script NssParser::parse_program()
                 value = std::string(advance().id);
                 p.defines.push_back({name, value});
             }
+        } else if (match({NssTokenType::COMMENT})) {
+            continue;
         } else {
             p.decls.emplace_back(parse_decl_external());
         }

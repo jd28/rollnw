@@ -464,28 +464,42 @@ NssToken NssLexer::next()
             switch (get(pos_ + 1)) {
             case '/': // Comment
                 pos_ += 2;
+                start = pos_;
+                while (pos_ < buffer_.size()) {
+                    if (get(pos_) == '\r' || get(pos_) == '\n') {
+                        t = NssToken{NssTokenType::COMMENT,
+                            {&buffer_[start], pos_ - start},
+                            line_,
+                            start - last_line_pos_,
+                            pos_ - last_line_pos_};
+                        break;
+                    } else {
+                        ++pos_;
+                    }
+                }
+                break;
+            case '*': // Block Comment
+                start = pos_ + 2;
+                pos_ += 4;
                 while (pos_ < buffer_.size()) {
                     if (get(pos_) == '\n') {
                         ++line_;
+                        last_line_pos_ = pos_;
+                    } else if (get(pos_ - 1) == '*' && get(pos_) == '/') {
+                        t = NssToken{NssTokenType::COMMENT,
+                            {&buffer_[start], pos_ - 1 - start},
+                            line_,
+                            start - last_line_pos_,
+                            pos_ - last_line_pos_};
+                        ++pos_;
                         break;
                     }
                     ++pos_;
                 }
-                continue;
-            case '*': // Block Comment
-                pos_ += 4;
-                while (pos_ < buffer_.size()) {
-                    if (get(pos_) == '\n') { ++line_; }
-                    if (get(pos_ - 1) == '*' && get(pos_) == '/')
-                        break;
-                    ++pos_;
-                }
-                if (pos_ >= buffer_.size()) {
+                if (pos_ > buffer_.size()) {
                     throw std::runtime_error("Unterminated block quote");
-                } else {
-                    ++pos_;
                 }
-                continue;
+                break;
             case '=':
                 NSS_TOKEN(DIVEQ, 2);
                 break;

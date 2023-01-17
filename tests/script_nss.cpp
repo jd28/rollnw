@@ -124,7 +124,7 @@ TEST_CASE("NWScript lexer", "[formats]")
     REQUIRE_THROWS(lexer2.next());
 
     script::NssLexer lexer3{"/* this is comment */"};
-    REQUIRE(lexer2.next().type == script::NssTokenType::END); // comments are skipped currently
+    REQUIRE(lexer3.next().type == script::NssTokenType::COMMENT);
 
     script::NssLexer lexer4{"\"this is unterminated"};
     REQUIRE_THROWS(lexer4.next());

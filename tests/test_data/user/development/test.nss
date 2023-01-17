@@ -15,15 +15,16 @@ struct MyInt {
 struct ComplexType {
     int test;
     float f;
+    // Test
     itemproperty ip;
     struct MyInt myint;
 };
 
 struct ComplexType func(struct MyInt value);
 
-void main()
+void main() // test
 {
-    int a = 3, b, c = 1;
+    int a = 3, b, c = 1; // This is a test
     struct MyInt test;
     test2.myint.test = 1;
     effect e;
@@ -32,6 +33,8 @@ void main()
     ++thisisatest("hello", "world");
     --t++++;
 
+    /* Another
+       Test */
     int a = ~b;
 
     if(this || that) {
@@ -67,7 +70,7 @@ void main()
         i %= 3;
     } while (--x);
 
-    while(i > 0) {
+    while(i > 0) /* this shouldn't be a problem */ {
         IntToString(i);
     }
 

@@ -9,8 +9,8 @@ enum class NssTokenType {
     INVALID = -1,
     END = 0,
 
-    // Identifier
     IDENTIFIER,
+    COMMENT,
 
     // Punctuation
     LPAREN,    // (
