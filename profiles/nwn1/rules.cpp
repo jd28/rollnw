@@ -331,7 +331,16 @@ void load_modifiers()
         "dnd-3.0-self-concealment",
         nw::ModifierSource::feat));
 
-    // Damage Bonus
+    // == Damage Bonus ========================================================
+    // ========================================================================
+
+    // Ability Damage
+    rules.modifiers.add(mod::damage_bonus(
+        ability_damage,
+        "dnd-3.0-ability-dmg",
+        nw::ModifierSource::ability));
+
+    // Favored Enemy
     rules.modifiers.add(mod::damage_bonus(
         attack_type_any,
         favored_enemy_dmg,
@@ -697,6 +706,35 @@ nw::ModifierResult epic_self_concealment(const nw::ObjectBase* obj)
 }
 
 // Damage bonus
+nw::ModifierResult ability_damage(const nw::ObjectBase* obj, const nw::ObjectBase*, int32_t subtype)
+{
+    nw::DamageRoll roll;
+    roll.type = damage_type_base_weapon;
+    if (!obj) { return roll; }
+    auto cre = obj->as_creature();
+    if (!cre) { return roll; }
+
+    auto attack_type = nw::AttackType::make(subtype);
+    if (attack_type != attack_type_any) {
+        auto weapon = get_weapon_by_attack_type(cre, attack_type);
+        if (weapon && is_ranged_weapon(weapon)) {
+            for (const auto& ip : weapon->properties) {
+                if (ip.type == *ip_mighty) {
+                    roll.roll.bonus = std::min(int(ip.cost_value),
+                        get_ability_modifier(cre, ability_strength));
+                }
+            }
+        } else {
+            roll.roll.bonus = get_ability_modifier(cre, ability_strength);
+            if (weapon && get_relative_weapon_size(cre, weapon) > 0) { // I think this is right
+                roll.roll.bonus = int(roll.roll.bonus * 1.5);
+            }
+        }
+    }
+    if (roll.roll.bonus < 0) { roll.roll.bonus = 0; }
+    return roll;
+};
+
 nw::ModifierResult favored_enemy_dmg(const nw::ObjectBase* obj, const nw::ObjectBase* vs, int32_t subtype)
 {
     nw::DamageRoll result;

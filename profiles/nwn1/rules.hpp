@@ -41,6 +41,7 @@ nw::ModifierResult weapon_master_ab(const nw::ObjectBase* obj, int32_t subtype);
 nw::ModifierResult epic_self_concealment(const nw::ObjectBase* obj);
 
 // Damage Bonus
+nw::ModifierResult ability_damage(const nw::ObjectBase* obj, const nw::ObjectBase* vs, int32_t subtype);
 nw::ModifierResult favored_enemy_dmg(const nw::ObjectBase* obj, const nw::ObjectBase* vs, int32_t subtype);
 
 // Damage Immunity
