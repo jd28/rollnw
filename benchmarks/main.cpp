@@ -57,7 +57,7 @@ static void BM_creature_from_json(benchmark::State& state)
 {
     nlohmann::json j;
     for (auto _ : state) {
-        auto ent = nwk::objects().load<nw::Creature>(fs::path("../tests/test_data/user/development/pl_agent_001.utc.json"));
+        auto ent = nwk::objects().load<nw::Creature>(fs::path("../tests/test_data/user/development/drorry.utc.json"));
         benchmark::DoNotOptimize(ent);
     }
 }
