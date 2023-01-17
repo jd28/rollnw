@@ -299,7 +299,9 @@ int resolve_attack_damage(const nw::Creature* obj, const nw::ObjectBase* versus,
     nw::kernel::resolve_modifier(obj, mod_type_damage, attack_type_any, versus, dmg_cb);
     // Damage modifiers applicable to a specific weapon/attack type.  i.e. Strength/ability damage.
     nw::kernel::resolve_modifier(obj, mod_type_damage, data->type, versus, dmg_cb);
-    // [TODO] Combat Mode, Special Attacks
+    // Combat Modes
+    nw::kernel::resolve_modifier(obj, mod_type_damage_mode, obj->combat_info.combat_mode, versus, dmg_cb);
+    // [TODO] Special Attacks
 
     // Massive Criticals - I don't think this is multiplied..?
     if (data->weapon && data->result == nw::AttackResult::hit_by_critical) {

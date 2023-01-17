@@ -243,7 +243,8 @@ void load_modifiers()
 
     auto& rules = nw::kernel::rules();
 
-    // Ability
+    // == Ability =============================================================
+    // ========================================================================
     rules.modifiers.add(mod::ability(
         class_stat_gain,
         "nwn-ee-class-stat-gain",
@@ -254,7 +255,8 @@ void load_modifiers()
         "dnd-3.0-epic-great-ability",
         nw::ModifierSource::feat));
 
-    // Armor Class
+    // == Armor Class =========================================================
+    // ========================================================================
     rules.modifiers.add(mod::armor_class(
         dragon_disciple_ac,
         "dnd-3.0-dragon-disciple-ac",
@@ -276,7 +278,8 @@ void load_modifiers()
         "dnd-3.0-tumble-ac",
         nw::ModifierSource::skill));
 
-    // Attack Bonus
+    // == Attack Bonus ========================================================
+    // ========================================================================
     rules.modifiers.add(mod::attack_bonus(
         ability_attack_bonus,
         "dnd-3.0-ability-attack-bonus",
@@ -325,7 +328,8 @@ void load_modifiers()
         "dnd-3.0-weaponmaster-ab",
         nw::ModifierSource::class_));
 
-    // Concealment
+    // == Concealment =========================================================
+    // ========================================================================
     rules.modifiers.add(mod::concealment(
         epic_self_concealment,
         "dnd-3.0-self-concealment",
@@ -340,6 +344,12 @@ void load_modifiers()
         "dnd-3.0-ability-dmg",
         nw::ModifierSource::ability));
 
+    // Combat Mode
+    rules.modifiers.add(mod::damage_bonus_mode(
+        combat_mode_dmg,
+        "dnd-3.0-combat-mode-dmg",
+        nw::ModifierSource::combat_mode));
+
     // Favored Enemy
     rules.modifiers.add(mod::damage_bonus(
         attack_type_any,
@@ -347,13 +357,21 @@ void load_modifiers()
         "dnd-3.0-favored-enemy-dmg",
         nw::ModifierSource::feat));
 
-    // Damage Immunity
+    // Overwhelming Critical
+    rules.modifiers.add(mod::damage_bonus(
+        overwhelming_crit_dmg,
+        "dnd-3.0-overwhelming-crit-dmg",
+        nw::ModifierSource::feat));
+
+    // == Damage Immunity =====================================================
+    // ========================================================================
     rules.modifiers.add(mod::damage_immunity(
         dragon_disciple_immunity,
         "dnd-3.0-self-concealment",
         nw::ModifierSource::class_));
 
-    // Damage Reduction
+    // == Damage Reduction ====================================================
+    // ========================================================================
     rules.modifiers.add(mod::damage_reduction(
         barbarian_dmg_reduction,
         "dnd-3.0-barbarian-reduction",
@@ -369,13 +387,15 @@ void load_modifiers()
         "dnd-3.0-epic-damage-reduction",
         nw::ModifierSource::feat));
 
-    // Damage Resist
+    // == Damage Resist =======================================================
+    // ========================================================================
     rules.modifiers.add(mod::damage_resist(
         energy_resistance,
         "dnd-3.0-energy-resist-acid",
         nw::ModifierSource::feat));
 
-    // Hitpoints
+    // == Hitpoints ===========================================================
+    // ========================================================================
     rules.modifiers.add(mod::hitpoints(
         toughness,
         "dnd-3.0-toughness",
@@ -386,7 +406,8 @@ void load_modifiers()
         "dnd-3.0-epic-toughness",
         nw::ModifierSource::feat));
 
-    // Skills
+    // == Skills =============================================================
+    // ========================================================================
     rules.modifiers.add(mod::skill(
         skill_search,
         simple_feat_mod(feat_stonecunning, 2),
@@ -735,6 +756,24 @@ nw::ModifierResult ability_damage(const nw::ObjectBase* obj, const nw::ObjectBas
     return roll;
 };
 
+nw::ModifierResult combat_mode_dmg(const nw::ObjectBase*, int32_t subtype)
+{
+    nw::DamageRoll result;
+    result.type = damage_type_base_weapon;
+    auto mode = nw::CombatMode::make(subtype);
+
+    switch (*mode) {
+    default:
+        return result;
+    case *combat_mode_power_attack:
+        result.roll.bonus = 5;
+    case *combat_mode_improved_power_attack:
+        result.roll.bonus = 10;
+    }
+
+    return result;
+}
+
 nw::ModifierResult favored_enemy_dmg(const nw::ObjectBase* obj, const nw::ObjectBase* vs, int32_t subtype)
 {
     nw::DamageRoll result;
@@ -755,6 +794,30 @@ nw::ModifierResult favored_enemy_dmg(const nw::ObjectBase* obj, const nw::Object
         if (cre->stats.has_feat(feat_epic_bane_of_enemies)) {
             result.roll.dice = 2;
             result.roll.sides = 6;
+        }
+    }
+    return result;
+}
+
+nw::ModifierResult overwhelming_crit_dmg(const nw::ObjectBase* obj, const nw::ObjectBase* vs, int32_t subtype)
+{
+    nw::DamageRoll result;
+    result.flags = nw::DamageCategory::critical;
+    if (!obj || !obj->as_creature()) { return result; }
+    auto cre = obj->as_creature();
+    auto attack_type = nw::AttackType::make(subtype);
+    if (attack_type == attack_type_any) { return result; }
+    auto weapon = get_weapon_by_attack_type(cre, attack_type);
+    auto base = nw::BaseItem::invalid();
+    if (weapon) { base = weapon->baseitem; }
+    if (!!nw::kernel::resolve_master_feat<int>(cre, base, mfeat_overwhelming_crit)) {
+        auto mult = resolve_critical_multiplier(cre, attack_type, vs);
+
+        result.roll.dice = 1;
+        result.roll.sides = 6;
+        if (mult > 1) {
+            // Not technically how NWN does it, it might only factor base crit mult as well
+            result.roll.dice = mult - 1;
         }
     }
     return result;
