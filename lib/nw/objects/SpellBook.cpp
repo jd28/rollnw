@@ -33,29 +33,35 @@ bool SpellBook::from_gff(const GffStruct& gff)
 {
     for (size_t i = 0; i < 10; ++i) {
         auto k = fmt::format("KnownList{}", i);
-        size_t sz = gff[k].size();
-        for (size_t j = 0; j < sz; ++j) {
-            SpellEntry s;
-            uint16_t temp;
-            if (gff[k][j].get_to("Spell", temp)) {
-                s.spell = Spell::make(temp);
+        auto kfield = gff[k];
+        if (kfield.valid()) {
+            size_t sz = kfield.size();
+            for (size_t j = 0; j < sz; ++j) {
+                SpellEntry s;
+                uint16_t temp;
+                if (kfield[j].get_to("Spell", temp)) {
+                    s.spell = Spell::make(temp);
+                }
+                kfield[j].get_to("SpellFlags", s.flags, false);
+                kfield[j].get_to("SpellMetaMagic", s.meta, false);
+                known_[i].push_back(s);
             }
-            gff[k][j].get_to("SpellFlags", s.flags, false);
-            gff[k][j].get_to("SpellMetaMagic", s.meta, false);
-            known_[i].push_back(s);
         }
 
         auto m = fmt::format("MemorizedList{}", i);
-        sz = gff[m].size();
-        for (size_t j = 0; j < sz; ++j) {
-            SpellEntry s;
-            uint16_t temp;
-            if (gff[k][j].get_to("Spell", temp)) {
-                s.spell = Spell::make(temp);
+        auto mfield = gff[m];
+        if (mfield.valid()) {
+            size_t sz = mfield.size();
+            for (size_t j = 0; j < sz; ++j) {
+                SpellEntry s;
+                uint16_t temp;
+                if (mfield[j].get_to("Spell", temp)) {
+                    s.spell = Spell::make(temp);
+                }
+                mfield[j].get_to("SpellFlags", s.flags);
+                mfield[j].get_to("SpellMetaMagic", s.meta);
+                memorized_[i].push_back(s);
             }
-            gff[m][j].get_to("SpellFlags", s.flags);
-            gff[m][j].get_to("SpellMetaMagic", s.meta);
-            memorized_[i].push_back(s);
         }
     }
     return true;
@@ -179,14 +185,16 @@ SpellEntry SpellBook::get_memorized_spell(size_t level, size_t index) const
 void SpellBook::remove_known_spell(size_t level, SpellEntry entry)
 {
     if (level < known_.size()) {
-        std::remove(std::begin(known_[level]), std::end(known_[level]), entry);
+        known_[level].erase(std::remove(std::begin(known_[level]), std::end(known_[level]), entry),
+            std::end(known_[level]));
     }
 }
 
 void SpellBook::remove_memorized_spell(size_t level, SpellEntry entry)
 {
     if (level < memorized_.size()) {
-        std::remove(std::begin(memorized_[level]), std::end(memorized_[level]), entry);
+        memorized_[level].erase(std::remove(std::begin(memorized_[level]), std::end(memorized_[level]), entry),
+            std::end(memorized_[level]));
     }
 }
 
