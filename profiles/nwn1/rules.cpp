@@ -273,6 +273,11 @@ void load_modifiers()
         nw::ModifierSource::feat));
 
     rules.modifiers.add(mod::armor_class(
+        training_versus_ac,
+        "dnd-3.0-training-vs-ac",
+        nw::ModifierSource::feat));
+
+    rules.modifiers.add(mod::armor_class(
         ac_dodge,
         tumble_ac,
         "dnd-3.0-tumble-ac",
@@ -325,6 +330,12 @@ void load_modifiers()
         target_state_ab,
         "dnd-3.0-target-state",
         nw::ModifierSource::unknown));
+
+    rules.modifiers.add(mod::attack_bonus(
+        attack_type_any,
+        training_versus_ab,
+        "dnd-3.0-training-vs-ab",
+        nw::ModifierSource::feat));
 
     rules.modifiers.add(mod::attack_bonus(
         weapon_master_ab,
@@ -516,6 +527,20 @@ nw::ModifierResult pale_master_ac(const nw::ObjectBase* obj)
     return pm_level > 0 ? ((pm_level / 4) + 1) * 2 : 0;
 }
 
+nw::ModifierResult training_versus_ac(const nw::ObjectBase* obj, const nw::ObjectBase* target)
+{
+    if (!obj || !obj->as_creature() || !target || !target->as_creature()) { return 0; }
+    auto cre = obj->as_creature();
+    auto vs = target->as_creature();
+
+    if (vs->race == racial_type_giant
+        && cre->stats.has_feat(feat_battle_training_versus_giants)) {
+        return 4;
+    }
+
+    return 0;
+}
+
 nw::ModifierResult tumble_ac(const nw::ObjectBase* obj)
 {
     if (!obj) { return 0; }
@@ -686,6 +711,27 @@ nw::ModifierResult target_state_ab(const nw::ObjectBase* obj, const nw::ObjectBa
     // Target is moving. -2AB
     // Target is prone. -4AB
     // Target is within 3.5 meters of the attacker. -4AB (unless negated by point blank shot)
+
+    return result;
+}
+
+nw::ModifierResult training_versus_ab(const nw::ObjectBase* obj, const nw::ObjectBase* target)
+{
+    if (!obj || !obj->as_creature() || !target || !target->as_creature()) { return 0; }
+    auto cre = obj->as_creature();
+    auto vs = target->as_creature();
+    int result = 0;
+
+    if (vs->race == racial_type_humanoid_goblinoid
+        && cre->stats.has_feat(feat_battle_training_versus_goblins)) {
+        result = 1;
+    } else if (vs->race == racial_type_humanoid_orc
+        && cre->stats.has_feat(feat_battle_training_versus_orcs)) {
+        result = 1;
+    } else if (vs->race == racial_type_humanoid_reptilian
+        && cre->stats.has_feat(feat_battle_training_versus_reptilians)) {
+        result = 1;
+    }
 
     return result;
 }

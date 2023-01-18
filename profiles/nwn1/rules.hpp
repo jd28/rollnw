@@ -25,6 +25,7 @@ nw::ModifierResult epic_great_ability(const nw::ObjectBase* obj, int32_t subtype
 // Armor Class
 nw::ModifierResult dragon_disciple_ac(const nw::ObjectBase* obj);
 nw::ModifierResult pale_master_ac(const nw::ObjectBase* obj);
+nw::ModifierResult training_versus_ac(const nw::ObjectBase* obj, const nw::ObjectBase* target);
 nw::ModifierResult tumble_ac(const nw::ObjectBase* obj);
 
 // Attack Bonus
@@ -34,6 +35,7 @@ nw::ModifierResult enchant_arrow_ab(const nw::ObjectBase* obj, int32_t subtype);
 nw::ModifierResult favored_enemy_ab(const nw::ObjectBase* obj, const nw::ObjectBase* vs, int32_t subtype);
 nw::ModifierResult good_aim(const nw::ObjectBase* obj, int32_t subtype);
 nw::ModifierResult target_state_ab(const nw::ObjectBase* obj, const nw::ObjectBase* target);
+nw::ModifierResult training_versus_ab(const nw::ObjectBase* obj, const nw::ObjectBase* target);
 nw::ModifierResult weapon_feat_ab(const nw::ObjectBase* obj, int32_t subtype);
 nw::ModifierResult weapon_master_ab(const nw::ObjectBase* obj, int32_t subtype);
 
