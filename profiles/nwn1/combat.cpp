@@ -222,13 +222,11 @@ int resolve_attack_bonus(const nw::Creature* obj, nw::AttackType type, const nw:
     auto mod_adder = [&modifier](int value) { modifier += value; };
     nw::kernel::resolve_modifier(obj, mod_type_attack_bonus, type, versus, mod_adder);
     if (type != attack_type_any) {
-        // General modifiers, i.e. Epic Prowess
+        // General modifiers applicable to any attack i.e. Epic Prowess, combat modes
         nw::kernel::resolve_modifier(obj, mod_type_attack_bonus, attack_type_any, versus, mod_adder);
     }
     // Weapon feats, weapon master type stuff occurs below.
     nw::kernel::resolve_modifier(obj, mod_type_attack_bonus_item, baseitem, versus, mod_adder);
-    // Combat Modes
-    nw::kernel::resolve_modifier(obj, mod_type_attack_bonus_mode, obj->combat_info.combat_mode, versus, mod_adder);
 
     // Effects attack increase/decrease is a little more complicated due to needing to support
     // an 'any' subtype.
@@ -295,12 +293,10 @@ int resolve_attack_damage(const nw::Creature* obj, const nw::ObjectBase* versus,
         auto unblock = to_bool(nw::DamageCategory::unblockable & roll.flags);
         data->add(roll.type, nw::roll_dice(roll.roll, data->multiplier), unblock);
     };
-    // Damage modifiers applicable to any attack, i.e. favored enemy
+    // Damage modifiers applicable to any attack, i.e. favored enemy, combat modes, etc.
     nw::kernel::resolve_modifier(obj, mod_type_damage, attack_type_any, versus, dmg_cb);
     // Damage modifiers applicable to a specific weapon/attack type.  i.e. Strength/ability damage.
     nw::kernel::resolve_modifier(obj, mod_type_damage, data->type, versus, dmg_cb);
-    // Combat Modes
-    nw::kernel::resolve_modifier(obj, mod_type_damage_mode, obj->combat_info.combat_mode, versus, dmg_cb);
     // [TODO] Special Attacks
 
     // Massive Criticals - I don't think this is multiplied..?

@@ -29,7 +29,7 @@ nw::ModifierResult tumble_ac(const nw::ObjectBase* obj);
 
 // Attack Bonus
 nw::ModifierResult ability_attack_bonus(const nw::ObjectBase* obj, int32_t subtype);
-nw::ModifierResult combat_mode_ab(const nw::ObjectBase* obj, int32_t subtype);
+nw::ModifierResult combat_mode_ab(const nw::ObjectBase* obj);
 nw::ModifierResult enchant_arrow_ab(const nw::ObjectBase* obj, int32_t subtype);
 nw::ModifierResult favored_enemy_ab(const nw::ObjectBase* obj, const nw::ObjectBase* vs, int32_t subtype);
 nw::ModifierResult good_aim(const nw::ObjectBase* obj, int32_t subtype);
@@ -42,7 +42,7 @@ nw::ModifierResult epic_self_concealment(const nw::ObjectBase* obj);
 
 // Damage Bonus
 nw::ModifierResult ability_damage(const nw::ObjectBase* obj, const nw::ObjectBase* vs, int32_t subtype);
-nw::ModifierResult combat_mode_dmg(const nw::ObjectBase* obj, int32_t subtype);
+nw::ModifierResult combat_mode_dmg(const nw::ObjectBase* obj);
 nw::ModifierResult favored_enemy_dmg(const nw::ObjectBase* obj, const nw::ObjectBase* vs, int32_t subtype);
 nw::ModifierResult overwhelming_crit_dmg(const nw::ObjectBase* obj, const nw::ObjectBase* vs, int32_t subtype);
 

@@ -307,7 +307,8 @@ void load_modifiers()
         "dnd-3.0-favored-enemy",
         nw::ModifierSource::class_));
 
-    rules.modifiers.add(mod::attack_bonus_mode(
+    rules.modifiers.add(mod::attack_bonus(
+        attack_type_any,
         combat_mode_ab,
         "dnd-3.0-combat-mode",
         nw::ModifierSource::combat_mode));
@@ -345,7 +346,8 @@ void load_modifiers()
         nw::ModifierSource::ability));
 
     // Combat Mode
-    rules.modifiers.add(mod::damage_bonus_mode(
+    rules.modifiers.add(mod::damage_bonus(
+        attack_type_any,
         combat_mode_dmg,
         "dnd-3.0-combat-mode-dmg",
         nw::ModifierSource::combat_mode));
@@ -553,9 +555,8 @@ nw::ModifierResult combat_mode_ab(const nw::ObjectBase* obj, int32_t subtype)
     if (!obj) { return 0; }
     auto cre = obj->as_creature();
     if (!cre) { return 0; }
-    auto mode = nw::CombatMode::make(subtype);
 
-    switch (*mode) {
+    switch (*cre->combat_info.combat_mode) {
     default:
         return 0;
     case *combat_mode_expertise:
@@ -756,13 +757,15 @@ nw::ModifierResult ability_damage(const nw::ObjectBase* obj, const nw::ObjectBas
     return roll;
 };
 
-nw::ModifierResult combat_mode_dmg(const nw::ObjectBase*, int32_t subtype)
+nw::ModifierResult combat_mode_dmg(const nw::ObjectBase* obj, int32_t subtype)
 {
+    if (!obj || !obj->as_creature()) { return 0; }
+    auto cre = obj->as_creature();
+
     nw::DamageRoll result;
     result.type = damage_type_base_weapon;
-    auto mode = nw::CombatMode::make(subtype);
 
-    switch (*mode) {
+    switch (*cre->combat_info.combat_mode) {
     default:
         return result;
     case *combat_mode_power_attack:
