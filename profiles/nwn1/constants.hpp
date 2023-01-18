@@ -550,9 +550,8 @@ constexpr nw::ModifierType mod_type_save = nw::ModifierType::make(14);
 constexpr nw::ModifierType mod_type_skill = nw::ModifierType::make(15);
 constexpr nw::ModifierType mod_type_spell_immunity = nw::ModifierType::make(16);
 constexpr nw::ModifierType mod_type_spell_resistance = nw::ModifierType::make(17);
-constexpr nw::ModifierType mod_type_attack_bonus_item = nw::ModifierType::make(18);
-constexpr nw::ModifierType mod_type_damage = nw::ModifierType::make(19);
-constexpr nw::ModifierType mod_type_damage_special_attack = nw::ModifierType::make(20);
+constexpr nw::ModifierType mod_type_damage = nw::ModifierType::make(18);
+constexpr nw::ModifierType mod_type_damage_special_attack = nw::ModifierType::make(19);
 
 constexpr nw::Save saving_throw_fort = nw::Save::make(1);
 constexpr nw::Save saving_throw_reflex = nw::Save::make(2);

@@ -218,15 +218,15 @@ int resolve_attack_bonus(const nw::Creature* obj, nw::AttackType type, const nw:
     // Size
     int modifier = obj->combat_info.size_ab_modifier;
 
-    // Modifiers - abilities will be handled by the first modifier search.
+    // Modifiers tied to a specific item/attack type
+    // - abilities will be handled by the first modifier search.
+    // - Weapon feats, weapon master stuff.
     auto mod_adder = [&modifier](int value) { modifier += value; };
     nw::kernel::resolve_modifier(obj, mod_type_attack_bonus, type, versus, mod_adder);
     if (type != attack_type_any) {
         // General modifiers applicable to any attack i.e. Epic Prowess, combat modes
         nw::kernel::resolve_modifier(obj, mod_type_attack_bonus, attack_type_any, versus, mod_adder);
     }
-    // Weapon feats, weapon master type stuff occurs below.
-    nw::kernel::resolve_modifier(obj, mod_type_attack_bonus_item, baseitem, versus, mod_adder);
 
     // Effects attack increase/decrease is a little more complicated due to needing to support
     // an 'any' subtype.

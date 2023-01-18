@@ -41,7 +41,6 @@ namespace mod {
     }
 
 DEFINE_MOD(ability, mod_type_ability)
-DEFINE_MOD(attack_bonus_item, mod_type_attack_bonus_item)
 DEFINE_MOD(attack_bonus, mod_type_attack_bonus)
 DEFINE_MOD(concealment, mod_type_concealment)
 DEFINE_MOD(damage_bonus, mod_type_damage)
@@ -51,7 +50,6 @@ DEFINE_MOD(damage_resist, mod_type_dmg_resistance)
 DEFINE_MOD(hitpoints, mod_type_hitpoints)
 DEFINE_MOD_WITH_SUBTYPE(ability, nw::Ability, mod_type_ability)
 DEFINE_MOD_WITH_SUBTYPE(armor_class, nw::ArmorClass, mod_type_armor_class)
-DEFINE_MOD_WITH_SUBTYPE(attack_bonus_item, nw::BaseItem, mod_type_attack_bonus_item)
 DEFINE_MOD_WITH_SUBTYPE(attack_bonus, nw::AttackType, mod_type_attack_bonus)
 DEFINE_MOD_WITH_SUBTYPE(damage_bonus, nw::AttackType, mod_type_damage)
 DEFINE_MOD_WITH_SUBTYPE(damage_resist, nw::Damage, mod_type_dmg_resistance)

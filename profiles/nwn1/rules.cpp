@@ -285,12 +285,13 @@ void load_modifiers()
         "dnd-3.0-ability-attack-bonus",
         nw::ModifierSource::ability));
 
-    rules.modifiers.add(mod::attack_bonus_item(
+    rules.modifiers.add(mod::attack_bonus(
         weapon_feat_ab,
         "dnd-3.0-weapon-feats",
         nw::ModifierSource::feat));
 
-    rules.modifiers.add(mod::attack_bonus_item(
+    rules.modifiers.add(mod::attack_bonus(
+        attack_type_onhand,
         enchant_arrow_ab,
         "dnd-3.0-enchant-arrow",
         nw::ModifierSource::class_));
@@ -313,7 +314,8 @@ void load_modifiers()
         "dnd-3.0-combat-mode",
         nw::ModifierSource::combat_mode));
 
-    rules.modifiers.add(mod::attack_bonus_item(
+    rules.modifiers.add(mod::attack_bonus(
+        attack_type_onhand,
         good_aim,
         "dnd-3.0-good-aim",
         nw::ModifierSource::feat));
@@ -324,7 +326,7 @@ void load_modifiers()
         "dnd-3.0-target-state",
         nw::ModifierSource::unknown));
 
-    rules.modifiers.add(mod::attack_bonus_item(
+    rules.modifiers.add(mod::attack_bonus(
         weapon_master_ab,
         "dnd-3.0-weaponmaster-ab",
         nw::ModifierSource::class_));
@@ -550,7 +552,7 @@ nw::ModifierResult ability_attack_bonus(const nw::ObjectBase* obj, int32_t subty
     return modifier;
 }
 
-nw::ModifierResult combat_mode_ab(const nw::ObjectBase* obj, int32_t subtype)
+nw::ModifierResult combat_mode_ab(const nw::ObjectBase* obj)
 {
     if (!obj) { return 0; }
     auto cre = obj->as_creature();
@@ -576,10 +578,15 @@ nw::ModifierResult combat_mode_ab(const nw::ObjectBase* obj, int32_t subtype)
 
 nw::ModifierResult enchant_arrow_ab(const nw::ObjectBase* obj, int32_t subtype)
 {
-    auto baseitem = nw::BaseItem::make(subtype);
+    auto attack_type = nw::AttackType::make(subtype);
     int result = 0;
     auto cre = obj->as_creature();
     if (!cre) { return 0; }
+
+    auto baseitem = nw::BaseItem::invalid();
+    if (auto weapon = get_weapon_by_attack_type(cre, attack_type)) {
+        baseitem = weapon->baseitem;
+    }
 
     if (baseitem == base_item_longbow || baseitem == base_item_shortbow) {
         auto feat = nw::highest_feat_in_range(cre, feat_prestige_enchant_arrow_6,
@@ -618,11 +625,14 @@ nw::ModifierResult favored_enemy_ab(const nw::ObjectBase* obj, const nw::ObjectB
 
 nw::ModifierResult good_aim(const nw::ObjectBase* obj, int32_t subtype)
 {
-    if (!obj) { return 0; }
     auto cre = obj->as_creature();
     if (!cre) { return 0; }
 
-    auto baseitem = nw::BaseItem::make(subtype);
+    auto attack_type = nw::AttackType::make(subtype);
+    auto baseitem = nw::BaseItem::invalid();
+    if (auto weapon = get_weapon_by_attack_type(cre, attack_type)) {
+        baseitem = weapon->baseitem;
+    }
 
     if (cre->race == racial_type_halfling && baseitem == base_item_sling) {
         return 1;
@@ -682,10 +692,16 @@ nw::ModifierResult target_state_ab(const nw::ObjectBase* obj, const nw::ObjectBa
 
 nw::ModifierResult weapon_feat_ab(const nw::ObjectBase* obj, int32_t subtype)
 {
-    auto baseitem = nw::BaseItem::make(subtype);
+    auto attack_type = nw::AttackType::make(subtype);
+    if (attack_type == attack_type_any) { return 0; }
     auto cre = obj->as_creature();
     if (!cre) { return 0; }
     int result = 0;
+
+    auto baseitem = nw::BaseItem::invalid();
+    if (auto weapon = get_weapon_by_attack_type(cre, attack_type)) {
+        baseitem = weapon->baseitem;
+    }
 
     nw::kernel::resolve_master_feats<int>(
         cre, baseitem,
@@ -696,9 +712,14 @@ nw::ModifierResult weapon_feat_ab(const nw::ObjectBase* obj, int32_t subtype)
 
 nw::ModifierResult weapon_master_ab(const nw::ObjectBase* obj, int32_t subtype)
 {
-    auto baseitem = nw::BaseItem::make(subtype);
+    auto attack_type = nw::AttackType::make(subtype);
     auto cre = obj->as_creature();
     if (!cre) { return 0; }
+
+    auto baseitem = nw::BaseItem::invalid();
+    if (auto weapon = get_weapon_by_attack_type(cre, attack_type)) {
+        baseitem = weapon->baseitem;
+    }
 
     auto wm = cre->levels.level_by_class(nwn1::class_type_weapon_master);
     if (wm < 5) { return 0; }
@@ -757,7 +778,7 @@ nw::ModifierResult ability_damage(const nw::ObjectBase* obj, const nw::ObjectBas
     return roll;
 };
 
-nw::ModifierResult combat_mode_dmg(const nw::ObjectBase* obj, int32_t subtype)
+nw::ModifierResult combat_mode_dmg(const nw::ObjectBase* obj)
 {
     if (!obj || !obj->as_creature()) { return 0; }
     auto cre = obj->as_creature();
