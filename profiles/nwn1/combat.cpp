@@ -226,10 +226,12 @@ int resolve_attack_damage(const nw::Creature* obj, const nw::ObjectBase* versus,
 
     // Resolve base weapon damage
     nw::DiceRoll base_dice;
-    if (!is_unarmed_weapon(data->weapon)) {
-        base_dice = resolve_weapon_damage(obj, data->weapon->baseitem);
-    } else {
+    if (is_unarmed_weapon(data->weapon)) {
         base_dice = resolve_unarmed_damage(obj);
+    } else if (is_creature_weapon(data->weapon)) {
+        base_dice = resolve_creature_damage(obj, data->weapon);
+    } else {
+        base_dice = resolve_weapon_damage(obj, data->weapon->baseitem);
     }
 
     data->damage_base.amount = nw::roll_dice(base_dice, data->multiplier);

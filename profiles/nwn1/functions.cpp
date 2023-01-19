@@ -579,6 +579,29 @@ bool is_unarmed_weapon(const nw::Item* item)
     return bi == base_item_gloves || bi == base_item_bracer || is_creature_weapon(item);
 }
 
+nw::DiceRoll resolve_creature_damage(const nw::Creature* attacker, nw::Item* weapon)
+{
+    nw::DiceRoll result;
+    if (!attacker || !weapon || !is_creature_weapon(weapon)) { return result; }
+
+    for (const auto& ip : weapon->properties) {
+        if (ip.type == *ip_monster_damage) {
+            auto def = nw::kernel::effects().ip_definition(ip_monster_damage);
+            if (def && def->cost_table) {
+                auto dice = def->cost_table->get<int>(ip.cost_value, "NumDice");
+                auto sides = def->cost_table->get<int>(ip.cost_value, "Die");
+                if (dice && sides) {
+                    result.dice = *dice;
+                    result.sides = *sides;
+                }
+            }
+            break;
+        }
+    }
+
+    return result;
+}
+
 nw::DiceRoll resolve_unarmed_damage(const nw::Creature* attacker)
 {
     nw::DiceRoll result;

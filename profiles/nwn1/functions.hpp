@@ -113,6 +113,8 @@ bool is_unarmed_weapon(const nw::Item* item);
 /// Determines if item requires two hands to wield
 bool is_two_handed_weapon(const nw::Creature* obj, const nw::Item* item);
 
+/// Resolves creature weapon damage
+nw::DiceRoll resolve_creature_damage(const nw::Creature* attacker, nw::Item* weapon);
 
 /// Resolve unarmed base damage
 nw::DiceRoll resolve_unarmed_damage(const nw::Creature* attacker);
