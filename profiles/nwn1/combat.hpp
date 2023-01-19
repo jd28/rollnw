@@ -18,12 +18,6 @@ float attacks_per_second(const nw::Creature* obj, const nw::ObjectBase* vs);
 /// Calculates base attack bonus
 int base_attack_bonus(const nw::Creature* obj);
 
-/// Converts an equip index to an attack type
-nw::AttackType equip_index_to_attack_type(nw::EquipIndex equip);
-
-/// Gets an equipped weapon by attack type
-nw::Item* get_weapon_by_attack_type(const nw::Creature* obj, nw::AttackType type);
-
 /// Determine if creature is flanked by an attacker
 bool is_flanked(const nw::Creature* target, const nw::Creature* attacker);
 
@@ -79,13 +73,6 @@ std::pair<int, int> resolve_number_of_attacks(const nw::Creature* obj);
 
 /// Resolve target state
 nw::TargetState resolve_target_state(const nw::Creature* attacker, const nw::ObjectBase* target);
-
-/// Resolve unarmed base damage
-nw::DiceRoll resolve_unarmed_damage(const nw::Creature* attacker);
-
-/// Resolve weapon base damage
-/// @note Includes specialization and arcane archer bonuses
-nw::DiceRoll resolve_weapon_damage(const nw::Creature* attacker, nw::BaseItem item);
 
 /// Resolve weapon base damage flags
 nw::DamageFlag resolve_weapon_damage_flags(const nw::Item* weapon);

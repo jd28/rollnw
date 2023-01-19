@@ -255,71 +255,6 @@ nw::Item* get_equipped_item(const nw::Creature* obj, nw::EquipIndex slot)
     return result;
 }
 
-int get_relative_weapon_size(const nw::Creature* obj, const nw::Item* item)
-{
-    if (!obj || !item) { return 0; }
-    auto bi = nw::kernel::rules().baseitems.get(item->baseitem);
-    return bi ? bi->weapon_size - obj->size : 0;
-}
-
-bool is_creature_weapon(const nw::Item* item)
-{
-    if (!item) { return false; }
-    return item->baseitem == base_item_cbludgweapon
-        || item->baseitem == base_item_cpiercweapon
-        || item->baseitem == base_item_cslashweapon
-        || item->baseitem == base_item_cslshprcweap;
-}
-
-bool is_double_sided_weapon(const nw::Item* item)
-{
-    if (!item) { return false; }
-    auto bi = nw::kernel::rules().baseitems.get(item->baseitem);
-    return bi ? bi->weapon_wield == 8 : false;
-}
-
-bool is_light_weapon(const nw::Creature* obj, const nw::Item* item)
-{
-    if (!obj || !item) { return false; }
-    return get_relative_weapon_size(obj, item) < 0;
-}
-
-bool is_monk_weapon(const nw::Item* item)
-{
-    if (!item) { return true; }
-    auto bi = nw::kernel::rules().baseitems.get(item->baseitem);
-    return bi ? bi->is_monk_weapon : false;
-}
-
-bool is_ranged_weapon(const nw::Item* item)
-{
-    if (!item) { return false; }
-    auto bi = nw::kernel::rules().baseitems.get(item->baseitem);
-    return bi ? bi->ranged : false;
-}
-
-bool is_shield(nw::BaseItem baseitem)
-{
-    return baseitem == base_item_smallshield
-        || baseitem == base_item_largeshield
-        || baseitem == base_item_towershield;
-}
-
-bool is_two_handed_weapon(const nw::Creature* obj, const nw::Item* item)
-{
-    if (!obj || !item) { return false; }
-    auto bi = nw::kernel::rules().baseitems.get(item->baseitem);
-    if (!bi) { return false; }
-    return bi->weapon_size > obj->size;
-}
-
-bool is_unarmed_weapon(const nw::Item* item)
-{
-    if (!item) { return true; }
-    auto bi = item->baseitem;
-    return bi == base_item_gloves || bi == base_item_bracer || is_creature_weapon(item);
-}
-
 nw::Item* unequip_item(nw::Creature* obj, nw::EquipIndex slot)
 {
     nw::Item* result = nullptr;
@@ -339,6 +274,9 @@ nw::Item* unequip_item(nw::Creature* obj, nw::EquipIndex slot)
     }
     return result;
 }
+
+// == Saving Throws ===========================================================
+// ============================================================================
 
 int saving_throw(const nw::ObjectBase* obj, nw::Save type, nw::SaveVersus type_vs,
     const nw::ObjectBase* versus)
@@ -534,4 +472,178 @@ bool resolve_skill_check(const nw::Creature* obj, nw::Skill skill, int dc, nw::O
     return true;
 }
 
+// == Weapons =================================================================
+// ============================================================================
+
+nw::AttackType equip_index_to_attack_type(nw::EquipIndex equip)
+{
+    switch (equip) {
+    default:
+        return attack_type_any;
+    case nw::EquipIndex::righthand:
+        return attack_type_onhand;
+    case nw::EquipIndex::lefthand:
+        return attack_type_offhand;
+    case nw::EquipIndex::arms:
+        return attack_type_unarmed;
+    case nw::EquipIndex::creature_bite:
+        return attack_type_cweapon1;
+    case nw::EquipIndex::creature_left:
+        return attack_type_cweapon2;
+    case nw::EquipIndex::creature_right:
+        return attack_type_cweapon3;
+    }
+}
+
+int get_relative_weapon_size(const nw::Creature* obj, const nw::Item* item)
+{
+    if (!obj || !item) { return 0; }
+    auto bi = nw::kernel::rules().baseitems.get(item->baseitem);
+    return bi ? bi->weapon_size - obj->size : 0;
+}
+
+nw::Item* get_weapon_by_attack_type(const nw::Creature* obj, nw::AttackType type)
+{
+    switch (*type) {
+    default:
+        return nullptr;
+    case *attack_type_onhand:
+        return get_equipped_item(obj, nw::EquipIndex::righthand);
+    case *attack_type_offhand:
+        return get_equipped_item(obj, nw::EquipIndex::lefthand);
+    case *attack_type_unarmed:
+        return get_equipped_item(obj, nw::EquipIndex::arms);
+    case *attack_type_cweapon1:
+        return get_equipped_item(obj, nw::EquipIndex::creature_bite);
+    case *attack_type_cweapon2:
+        return get_equipped_item(obj, nw::EquipIndex::creature_left);
+    case *attack_type_cweapon3:
+        return get_equipped_item(obj, nw::EquipIndex::creature_right);
+    }
+}
+bool is_creature_weapon(const nw::Item* item)
+{
+    if (!item) { return false; }
+    return item->baseitem == base_item_cbludgweapon
+        || item->baseitem == base_item_cpiercweapon
+        || item->baseitem == base_item_cslashweapon
+        || item->baseitem == base_item_cslshprcweap;
+}
+
+bool is_double_sided_weapon(const nw::Item* item)
+{
+    if (!item) { return false; }
+    auto bi = nw::kernel::rules().baseitems.get(item->baseitem);
+    return bi ? bi->weapon_wield == 8 : false;
+}
+
+bool is_light_weapon(const nw::Creature* obj, const nw::Item* item)
+{
+    if (!obj || !item) { return false; }
+    return get_relative_weapon_size(obj, item) < 0;
+}
+
+bool is_monk_weapon(const nw::Item* item)
+{
+    if (!item) { return true; }
+    auto bi = nw::kernel::rules().baseitems.get(item->baseitem);
+    return bi ? bi->is_monk_weapon : false;
+}
+
+bool is_ranged_weapon(const nw::Item* item)
+{
+    if (!item) { return false; }
+    auto bi = nw::kernel::rules().baseitems.get(item->baseitem);
+    return bi ? bi->ranged : false;
+}
+
+bool is_shield(nw::BaseItem baseitem)
+{
+    return baseitem == base_item_smallshield
+        || baseitem == base_item_largeshield
+        || baseitem == base_item_towershield;
+}
+
+bool is_two_handed_weapon(const nw::Creature* obj, const nw::Item* item)
+{
+    if (!obj || !item) { return false; }
+    auto bi = nw::kernel::rules().baseitems.get(item->baseitem);
+    if (!bi) { return false; }
+    return bi->weapon_size > obj->size;
+}
+
+bool is_unarmed_weapon(const nw::Item* item)
+{
+    if (!item) { return true; }
+    auto bi = item->baseitem;
+    return bi == base_item_gloves || bi == base_item_bracer || is_creature_weapon(item);
+}
+
+nw::DiceRoll resolve_unarmed_damage(const nw::Creature* attacker)
+{
+    nw::DiceRoll result;
+    if (!attacker) { return result; }
+    // Pick up all the specialization bonuses, actual roll is ignored
+    result = resolve_weapon_damage(attacker, base_item_gloves);
+    result.dice = 1;
+
+    bool big = attacker->size >= creature_size_medium;
+    auto [yes, level] = can_use_monk_abilities(attacker);
+    if (level > 0) {
+        if (level >= 16) {
+            if (big) {
+                result.dice = 1;
+                result.sides = 20;
+            } else {
+                result.dice = 2;
+                result.sides = 6;
+            }
+        } else if (level >= 12) {
+            result.sides = big ? 12 : 10;
+        } else if (level >= 10) {
+            result.sides = big ? 12 : 10;
+        } else if (level >= 8) {
+            result.sides = big ? 10 : 8;
+        } else if (level >= 4) {
+            result.sides = big ? 8 : 6;
+        } else {
+            result.sides = big ? 6 : 4;
+        }
+    } else {
+        result.sides = big ? 3 : 2;
+    }
+
+    return result;
+}
+
+nw::DiceRoll resolve_weapon_damage(const nw::Creature* attacker, nw::BaseItem item)
+{
+    nw::DiceRoll result;
+    if (!attacker) { return result; }
+    auto bi = nw::kernel::rules().baseitems.get(item);
+    if (bi) { result = bi->base_damage; }
+
+    if (!!nw::kernel::resolve_master_feat<int>(attacker, item, mfeat_weapon_spec_epic)) {
+        result.bonus += 8;
+    } else if (!!nw::kernel::resolve_master_feat<int>(attacker, item, mfeat_weapon_spec)) {
+        result.bonus += 4;
+    }
+
+    if (item == base_item_longbow || item == base_item_shortbow) {
+        int aa = 0;
+        auto feat = nw::highest_feat_in_range(attacker, feat_prestige_enchant_arrow_6,
+            feat_prestige_enchant_arrow_20);
+        if (feat != nw::Feat::invalid()) {
+            aa = *feat - *feat_prestige_enchant_arrow_6 + 6;
+        } else {
+            feat = nw::highest_feat_in_range(attacker, feat_prestige_enchant_arrow_1, feat_prestige_enchant_arrow_5);
+            if (feat != nw::Feat::invalid()) {
+                aa = *feat - *feat_prestige_enchant_arrow_1 + 1;
+            }
+        }
+        result.bonus += aa;
+    }
+
+    return result;
+}
 } // namespace nwn1

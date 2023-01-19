@@ -54,33 +54,8 @@ bool equip_item(nw::Creature* obj, nw::Item* item, nw::EquipIndex slot);
 /// Gets an equipped item
 nw::Item* get_equipped_item(const nw::Creature* obj, nw::EquipIndex slot);
 
-/// Gets relative weapon size
-/// @note May or may not be what the game does
-int get_relative_weapon_size(const nw::Creature* obj, const nw::Item* item);
-
-/// Determines if item is creature weapon
-bool is_creature_weapon(const nw::Item* item);
-
-/// Determines if item is double sided weapon
-bool is_double_sided_weapon(const nw::Item* item);
-
-/// Determines if item is a light weapon
-bool is_light_weapon(const nw::Creature* obj, const nw::Item* item);
-
-/// Determines if item is monk weapon
-bool is_monk_weapon(const nw::Item* item);
-
-/// Determines if item is ranged weapon
-bool is_ranged_weapon(const nw::Item* item);
-
 /// Determines if item is a shield
 bool is_shield(nw::BaseItem baseitem);
-
-/// Determines if item is unarmed weapon
-bool is_unarmed_weapon(const nw::Item* item);
-
-/// Determines if item requires two hands to wield
-bool is_two_handed_weapon(const nw::Creature* obj, const nw::Item* item);
 
 /// Unequips an item
 nw::Item* unequip_item(nw::Creature* obj, nw::EquipIndex slot);
@@ -103,5 +78,47 @@ int get_skill_rank(const nw::Creature* obj, nw::Skill skill,
 
 bool resolve_skill_check(const nw::Creature* obj, nw::Skill skill, int dc,
     nw::ObjectBase* versus = nullptr);
+
+// == Weapons =================================================================
+// ============================================================================
+
+/// Converts an equip index to an attack type
+nw::AttackType equip_index_to_attack_type(nw::EquipIndex equip);
+
+/// Gets relative weapon size
+/// @note May or may not be what the game does
+int get_relative_weapon_size(const nw::Creature* obj, const nw::Item* item);
+
+/// Gets an equipped weapon by attack type
+nw::Item* get_weapon_by_attack_type(const nw::Creature* obj, nw::AttackType type);
+
+/// Determines if item is creature weapon
+bool is_creature_weapon(const nw::Item* item);
+
+/// Determines if item is double sided weapon
+bool is_double_sided_weapon(const nw::Item* item);
+
+/// Determines if item is a light weapon
+bool is_light_weapon(const nw::Creature* obj, const nw::Item* item);
+
+/// Determines if item is monk weapon
+bool is_monk_weapon(const nw::Item* item);
+
+/// Determines if item is ranged weapon
+bool is_ranged_weapon(const nw::Item* item);
+
+/// Determines if item is unarmed weapon
+bool is_unarmed_weapon(const nw::Item* item);
+
+/// Determines if item requires two hands to wield
+bool is_two_handed_weapon(const nw::Creature* obj, const nw::Item* item);
+
+
+/// Resolve unarmed base damage
+nw::DiceRoll resolve_unarmed_damage(const nw::Creature* attacker);
+
+/// Resolve weapon base damage
+/// @note Includes specialization and arcane archer bonuses
+nw::DiceRoll resolve_weapon_damage(const nw::Creature* attacker, nw::BaseItem item);
 
 } // namespace nwn1

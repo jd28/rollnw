@@ -56,46 +56,6 @@ int base_attack_bonus(const nw::Creature* obj)
     return int(result + epic);
 }
 
-nw::AttackType equip_index_to_attack_type(nw::EquipIndex equip)
-{
-    switch (equip) {
-    default:
-        return attack_type_any;
-    case nw::EquipIndex::righthand:
-        return attack_type_onhand;
-    case nw::EquipIndex::lefthand:
-        return attack_type_offhand;
-    case nw::EquipIndex::arms:
-        return attack_type_unarmed;
-    case nw::EquipIndex::creature_bite:
-        return attack_type_cweapon1;
-    case nw::EquipIndex::creature_left:
-        return attack_type_cweapon2;
-    case nw::EquipIndex::creature_right:
-        return attack_type_cweapon3;
-    }
-}
-
-nw::Item* get_weapon_by_attack_type(const nw::Creature* obj, nw::AttackType type)
-{
-    switch (*type) {
-    default:
-        return nullptr;
-    case *attack_type_onhand:
-        return get_equipped_item(obj, nw::EquipIndex::righthand);
-    case *attack_type_offhand:
-        return get_equipped_item(obj, nw::EquipIndex::lefthand);
-    case *attack_type_unarmed:
-        return get_equipped_item(obj, nw::EquipIndex::arms);
-    case *attack_type_cweapon1:
-        return get_equipped_item(obj, nw::EquipIndex::creature_bite);
-    case *attack_type_cweapon2:
-        return get_equipped_item(obj, nw::EquipIndex::creature_left);
-    case *attack_type_cweapon3:
-        return get_equipped_item(obj, nw::EquipIndex::creature_right);
-    }
-}
-
 bool is_flanked(const nw::Creature* target, const nw::Creature* attacker)
 {
     if (!target || !attacker) { return false; }
@@ -856,74 +816,6 @@ nw::TargetState resolve_target_state(const nw::Creature* attacker, const nw::Obj
 
     if (is_flanked(target->as_creature(), attacker)) {
         result |= nw::TargetState::flanked;
-    }
-
-    return result;
-}
-
-nw::DiceRoll resolve_unarmed_damage(const nw::Creature* attacker)
-{
-    nw::DiceRoll result;
-    if (!attacker) { return result; }
-    // Pick up all the specialization bonuses, actual roll is ignored
-    result = resolve_weapon_damage(attacker, base_item_gloves);
-    result.dice = 1;
-
-    bool big = attacker->size >= creature_size_medium;
-    auto [yes, level] = can_use_monk_abilities(attacker);
-    if (level > 0) {
-        if (level >= 16) {
-            if (big) {
-                result.dice = 1;
-                result.sides = 20;
-            } else {
-                result.dice = 2;
-                result.sides = 6;
-            }
-        } else if (level >= 12) {
-            result.sides = big ? 12 : 10;
-        } else if (level >= 10) {
-            result.sides = big ? 12 : 10;
-        } else if (level >= 8) {
-            result.sides = big ? 10 : 8;
-        } else if (level >= 4) {
-            result.sides = big ? 8 : 6;
-        } else {
-            result.sides = big ? 6 : 4;
-        }
-    } else {
-        result.sides = big ? 3 : 2;
-    }
-
-    return result;
-}
-
-nw::DiceRoll resolve_weapon_damage(const nw::Creature* attacker, nw::BaseItem item)
-{
-    nw::DiceRoll result;
-    if (!attacker) { return result; }
-    auto bi = nw::kernel::rules().baseitems.get(item);
-    if (bi) { result = bi->base_damage; }
-
-    if (!!nw::kernel::resolve_master_feat<int>(attacker, item, mfeat_weapon_spec_epic)) {
-        result.bonus += 8;
-    } else if (!!nw::kernel::resolve_master_feat<int>(attacker, item, mfeat_weapon_spec)) {
-        result.bonus += 4;
-    }
-
-    if (item == base_item_longbow || item == base_item_shortbow) {
-        int aa = 0;
-        auto feat = nw::highest_feat_in_range(attacker, feat_prestige_enchant_arrow_6,
-            feat_prestige_enchant_arrow_20);
-        if (feat != nw::Feat::invalid()) {
-            aa = *feat - *feat_prestige_enchant_arrow_6 + 6;
-        } else {
-            feat = nw::highest_feat_in_range(attacker, feat_prestige_enchant_arrow_1, feat_prestige_enchant_arrow_5);
-            if (feat != nw::Feat::invalid()) {
-                aa = *feat - *feat_prestige_enchant_arrow_1 + 1;
-            }
-        }
-        result.bonus += aa;
     }
 
     return result;
