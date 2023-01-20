@@ -170,15 +170,3 @@ jobs:
         run: |
           cmake --build --preset default
           ctest --preset default
-
-      - name: macOS|linux - delete cmakecache
-        if: matrix.os != 'windows-2019'
-        run: |
-          rm -rf ${{ github.workspace }}/build/CMakeFiles
-          rm ${{ github.workspace }}/build/CMakeCache.txt
-
-      - name: windows - delete cmakecache
-        if: matrix.os == 'windows-2019'
-        run: |
-          Remove-Item ${{ github.workspace }}/build/CMakeFiles -Recurse
-          Remove-Item ${{ github.workspace }}/build/CMakeCache.txt
