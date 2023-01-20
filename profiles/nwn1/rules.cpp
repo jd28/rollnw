@@ -837,8 +837,10 @@ nw::ModifierResult combat_mode_dmg(const nw::ObjectBase* obj)
         return result;
     case *combat_mode_power_attack:
         result.roll.bonus = 5;
+        break;
     case *combat_mode_improved_power_attack:
         result.roll.bonus = 10;
+        break;
     }
 
     return result;
