@@ -156,7 +156,7 @@ enum struct TargetState {
     invis = 1024,
 };
 
-DEFINE_ENUM_FLAGS(TargetState);
+DEFINE_ENUM_FLAGS(TargetState)
 
 // -- Attack Data -------------------------------------------------------------
 // ----------------------------------------------------------------------------
