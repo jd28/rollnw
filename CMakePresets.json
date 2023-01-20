@@ -20,6 +20,10 @@
                 "ENABLE_TESTING": {
                     "type": "BOOL",
                     "value": "ON"
+                },
+                "ENABLE_BENCHMARKS": {
+                    "type": "BOOL",
+                    "value": "ON"
                 }
             }
         },
