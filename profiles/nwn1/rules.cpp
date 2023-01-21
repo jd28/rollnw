@@ -815,7 +815,9 @@ nw::ModifierResult ability_damage(const nw::ObjectBase* obj, const nw::ObjectBas
             }
         } else {
             roll.roll.bonus = get_ability_modifier(cre, ability_strength);
-            if (weapon && get_relative_weapon_size(cre, weapon) > 0) { // I think this is right
+            if (attack_type == attack_type_offhand) {
+                roll.roll.bonus = int(roll.roll.bonus * 0.5);
+            } else if (weapon && get_relative_weapon_size(cre, weapon) > 0) { // I think this is right
                 roll.roll.bonus = int(roll.roll.bonus * 1.5);
             }
         }
