@@ -108,6 +108,7 @@ static inline bool load_master_feats()
     mfr.add(racial_type_undead, mfeat_favored_enemy, feat_favored_enemy_undead);
     mfr.add(racial_type_vermin, mfeat_favored_enemy, feat_favored_enemy_vermin);
 
+    LOG_F(INFO, "  ... {} master feat specializations loaded", mfr.entries().size());
     return true;
 }
 
