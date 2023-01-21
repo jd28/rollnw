@@ -4,20 +4,6 @@
 
 namespace nw {
 
-// == Selector ================================================================
-
-bool operator==(const Selector& lhs, const Selector& rhs)
-{
-    return std::tie(lhs.type, lhs.subtype) == std::tie(rhs.type, rhs.subtype);
-}
-
-bool operator<(const Selector& lhs, const Selector& rhs)
-{
-    return std::tie(lhs.type, lhs.subtype) < std::tie(rhs.type, rhs.subtype);
-}
-
-// == Qualifier ===============================================================
-
 // == Requirement =============================================================
 
 Requirement::Requirement(bool conjunction_)

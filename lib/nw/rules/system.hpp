@@ -48,9 +48,6 @@ struct Selector {
     RuleValue subtype;
 };
 
-bool operator==(const Selector& lhs, const Selector& rhs);
-bool operator<(const Selector& lhs, const Selector& rhs);
-
 // == Qualifier ===============================================================
 // ============================================================================
 
