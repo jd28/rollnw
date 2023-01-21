@@ -147,6 +147,7 @@
 <li class="toctree-l2"><a class="reference internal" href="nwn1__get_abiltiy_modifier.html">nwn1::get_ability_modifier</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nwn1__get_abiltiy_score.html">nwn1::get_ability_score</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nwn1__get_dex_mod.html">nwn1::get_dex_modifier</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nwn1__get_max_hitpoints.html">nwn1::get_max_hitpoints</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nwn1__get_skill_rank.html">nwn1::get_skill_rank</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nwn1__get_weapon_by_attack_type.html">nwn1::get_weapon_by_attack_type</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nwn1__has_effect_type_applied.html">nwn1::has_effect_type_applied</a></li>
@@ -256,17 +257,18 @@
 </dd></dl>
 
 <hr class="docutils" />
-<dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4I0EN2nw6kernel12sum_modifierE1TPK10ObjectBaseK12ModifierTypePK10ObjectBase">
-<span id="_CPPv3I0EN2nw6kernel12sum_modifierEPK10ObjectBaseK12ModifierTypePK10ObjectBase"></span><span id="_CPPv2I0EN2nw6kernel12sum_modifierEPK10ObjectBaseK12ModifierTypePK10ObjectBase"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">T</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="lib_2nw_2kernel_2_rules_8hpp_1ab2d6387eebf229c9db680a90999d4b7b"></span><a class="reference internal" href="#_CPPv4I0EN2nw6kernel12sum_modifierE1TPK10ObjectBaseK12ModifierTypePK10ObjectBase" title="nw::kernel::sum_modifier::T"><span class="n"><span class="pre">T</span></span></a><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">nw</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">kernel</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">sum_modifier</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">ObjectBase</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">obj</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="../struct/nw__ModifierType.html#_CPPv4N2nw12ModifierTypeE" title="nw::ModifierType"><span class="n"><span class="pre">ModifierType</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">type</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">ObjectBase</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">versus</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4I0EN2nw6kernel12sum_modifierE1TPK10ObjectBaseK12ModifierTypePK10ObjectBase" title="Permalink to this definition"></a><br /></dt>
-<dd><p>Sums all modifiers of <code class="docutils literal notranslate"><span class="pre">type</span></code> versus an object. </p>
-<dl class="field-list simple">
-<dt class="field-odd">Template Parameters</dt>
-<dd class="field-odd"><p><strong>T</strong> – </p>
-</dd>
-</dl>
-</dd></dl>
-
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>doxygenfunction: Unable to resolve function “sum_modifier” with arguments (const ObjectBase*, const ModifierType, const ObjectBase*) in doxygen xml output for project “rollNW” from directory: /home/runner/work/rollnw/rollnw/build/docs/doxygen/xml.
+Potential matches:
+</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">-</span> <span class="n">template</span><span class="o">&lt;</span><span class="n">typename</span> <span class="n">T</span><span class="p">,</span> <span class="n">typename</span> <span class="n">SubType</span><span class="o">&gt;</span> <span class="n">T</span> <span class="n">sum_modifier</span><span class="p">(</span><span class="n">const</span> <span class="n">ObjectBase</span> <span class="o">*</span><span class="n">obj</span><span class="p">,</span> <span class="n">const</span> <span class="n">ModifierType</span> <span class="nb">type</span><span class="p">,</span> <span class="n">SubType</span> <span class="n">subtype</span><span class="p">)</span>
+<span class="o">-</span> <span class="n">template</span><span class="o">&lt;</span><span class="n">typename</span> <span class="n">T</span><span class="p">,</span> <span class="n">typename</span> <span class="n">SubType</span><span class="o">&gt;</span> <span class="n">T</span> <span class="n">sum_modifier</span><span class="p">(</span><span class="n">const</span> <span class="n">ObjectBase</span> <span class="o">*</span><span class="n">obj</span><span class="p">,</span> <span class="n">const</span> <span class="n">ObjectBase</span> <span class="o">*</span><span class="n">versus</span><span class="p">,</span> <span class="n">const</span> <span class="n">ModifierType</span> <span class="nb">type</span><span class="p">,</span> <span class="n">SubType</span> <span class="n">subtype</span><span class="p">)</span>
+<span class="o">-</span> <span class="n">template</span><span class="o">&lt;</span><span class="n">typename</span> <span class="n">T</span><span class="o">&gt;</span> <span class="n">T</span> <span class="n">sum_modifier</span><span class="p">(</span><span class="n">const</span> <span class="n">ObjectBase</span> <span class="o">*</span><span class="n">obj</span><span class="p">,</span> <span class="n">const</span> <span class="n">ModifierType</span> <span class="nb">type</span><span class="p">)</span>
+<span class="o">-</span> <span class="n">template</span><span class="o">&lt;</span><span class="n">typename</span> <span class="n">T</span><span class="o">&gt;</span> <span class="n">T</span> <span class="n">sum_modifier</span><span class="p">(</span><span class="n">const</span> <span class="n">ObjectBase</span> <span class="o">*</span><span class="n">obj</span><span class="p">,</span> <span class="n">const</span> <span class="n">ObjectBase</span> <span class="o">*</span><span class="n">versus</span><span class="p">,</span> <span class="n">const</span> <span class="n">ModifierType</span> <span class="nb">type</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
 <hr class="docutils" />
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4I00EN2nw6kernel12sum_modifierE1TPK10ObjectBaseK12ModifierType7SubType">
@@ -283,20 +285,18 @@
 </dd></dl>
 
 <hr class="docutils" />
-<dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4I00EN2nw6kernel12sum_modifierE1TPK10ObjectBaseK12ModifierType7SubTypePK10ObjectBase">
-<span id="_CPPv3I00EN2nw6kernel12sum_modifierEPK10ObjectBaseK12ModifierType7SubTypePK10ObjectBase"></span><span id="_CPPv2I00EN2nw6kernel12sum_modifierEPK10ObjectBaseK12ModifierType7SubTypePK10ObjectBase"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">T</span></span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SubType</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="lib_2nw_2kernel_2_rules_8hpp_1aa04ab288737c1512317708a5624dca08"></span><a class="reference internal" href="#_CPPv4I00EN2nw6kernel12sum_modifierE1TPK10ObjectBaseK12ModifierType7SubTypePK10ObjectBase" title="nw::kernel::sum_modifier::T"><span class="n"><span class="pre">T</span></span></a><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">nw</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">kernel</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">sum_modifier</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">ObjectBase</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">obj</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="../struct/nw__ModifierType.html#_CPPv4N2nw12ModifierTypeE" title="nw::ModifierType"><span class="n"><span class="pre">ModifierType</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">type</span></span>, <a class="reference internal" href="#_CPPv4I00EN2nw6kernel12sum_modifierE1TPK10ObjectBaseK12ModifierType7SubTypePK10ObjectBase" title="nw::kernel::sum_modifier::SubType"><span class="n"><span class="pre">SubType</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">subtype</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">ObjectBase</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">versus</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4I00EN2nw6kernel12sum_modifierE1TPK10ObjectBaseK12ModifierType7SubTypePK10ObjectBase" title="Permalink to this definition"></a><br /></dt>
-<dd><p>Sums all modifiers of a <code class="docutils literal notranslate"><span class="pre">type</span></code> and <code class="docutils literal notranslate"><span class="pre">subtype</span></code> versus another object. </p>
-<dl class="field-list simple">
-<dt class="field-odd">Template Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>T</strong> – </p></li>
-<li><p><strong>U</strong> – is some rule subtype </p></li>
-</ul>
-</dd>
-</dl>
-</dd></dl>
-
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>doxygenfunction: Unable to resolve function “sum_modifier” with arguments (const ObjectBase*, const ModifierType, SubType, const ObjectBase*) in doxygen xml output for project “rollNW” from directory: /home/runner/work/rollnw/rollnw/build/docs/doxygen/xml.
+Potential matches:
+</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">-</span> <span class="n">template</span><span class="o">&lt;</span><span class="n">typename</span> <span class="n">T</span><span class="p">,</span> <span class="n">typename</span> <span class="n">SubType</span><span class="o">&gt;</span> <span class="n">T</span> <span class="n">sum_modifier</span><span class="p">(</span><span class="n">const</span> <span class="n">ObjectBase</span> <span class="o">*</span><span class="n">obj</span><span class="p">,</span> <span class="n">const</span> <span class="n">ModifierType</span> <span class="nb">type</span><span class="p">,</span> <span class="n">SubType</span> <span class="n">subtype</span><span class="p">)</span>
+<span class="o">-</span> <span class="n">template</span><span class="o">&lt;</span><span class="n">typename</span> <span class="n">T</span><span class="p">,</span> <span class="n">typename</span> <span class="n">SubType</span><span class="o">&gt;</span> <span class="n">T</span> <span class="n">sum_modifier</span><span class="p">(</span><span class="n">const</span> <span class="n">ObjectBase</span> <span class="o">*</span><span class="n">obj</span><span class="p">,</span> <span class="n">const</span> <span class="n">ObjectBase</span> <span class="o">*</span><span class="n">versus</span><span class="p">,</span> <span class="n">const</span> <span class="n">ModifierType</span> <span class="nb">type</span><span class="p">,</span> <span class="n">SubType</span> <span class="n">subtype</span><span class="p">)</span>
+<span class="o">-</span> <span class="n">template</span><span class="o">&lt;</span><span class="n">typename</span> <span class="n">T</span><span class="o">&gt;</span> <span class="n">T</span> <span class="n">sum_modifier</span><span class="p">(</span><span class="n">const</span> <span class="n">ObjectBase</span> <span class="o">*</span><span class="n">obj</span><span class="p">,</span> <span class="n">const</span> <span class="n">ModifierType</span> <span class="nb">type</span><span class="p">)</span>
+<span class="o">-</span> <span class="n">template</span><span class="o">&lt;</span><span class="n">typename</span> <span class="n">T</span><span class="o">&gt;</span> <span class="n">T</span> <span class="n">sum_modifier</span><span class="p">(</span><span class="n">const</span> <span class="n">ObjectBase</span> <span class="o">*</span><span class="n">obj</span><span class="p">,</span> <span class="n">const</span> <span class="n">ObjectBase</span> <span class="o">*</span><span class="n">versus</span><span class="p">,</span> <span class="n">const</span> <span class="n">ModifierType</span> <span class="nb">type</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
 </div>
 
 
