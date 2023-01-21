@@ -45,8 +45,11 @@ int queue_remove_effect_by(nw::ObjectBase* obj, nw::ObjectHandle creator);
 // == Hit Points ==============================================================
 // ============================================================================
 
+/// Gets objects current hitpoints
+int get_current_hitpoints(const nw::ObjectBase* obj);
+
 /// Gets objects maximum hit points.
-int get_max_hitpoints(const nw::ObjectBase* obj, const nw::ObjectBase* vs = nullptr);
+int get_max_hitpoints(const nw::ObjectBase* obj);
 
 // == Items ===================================================================
 // ============================================================================

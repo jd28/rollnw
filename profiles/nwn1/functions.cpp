@@ -211,8 +211,30 @@ int queue_remove_effect_by(nw::ObjectBase* obj, nw::ObjectHandle creator)
 // == Hit Points ==============================================================
 // ============================================================================
 
+int get_current_hitpoints(nw::ObjectBase* obj)
+{
+    if (!obj) { return 0; }
+    int result = 0;
+
+    switch (obj->handle().type) {
+    default:
+        break;
+    case nw::ObjectType::creature: {
+        result = obj->as_creature()->hp_current;
+    } break;
+    case nw::ObjectType::door: {
+        result = obj->as_door()->hp_current;
+    } break;
+    case nw::ObjectType::placeable: {
+        result = obj->as_placeable()->hp_current;
+    } break;
+    }
+
+    return result;
+}
+
 /// Gets objects maximum hit points.
-int get_max_hitpoints(const nw::ObjectBase* obj, const nw::ObjectBase* vs)
+int get_max_hitpoints(const nw::ObjectBase* obj)
 {
     if (!obj) { return 0; }
 
@@ -229,7 +251,7 @@ int get_max_hitpoints(const nw::ObjectBase* obj, const nw::ObjectBase* vs)
         auto cre = obj->as_creature();
         base = cre->hp;
         con = get_ability_modifier(cre, ability_constitution);
-        modifiers = nw::kernel::sum_modifier<int>(obj, vs, mod_type_hitpoints);
+        modifiers = nw::kernel::sum_modifier<int>(obj, mod_type_hitpoints);
         temp = cre->hp_temp;
     } break;
     case nw::ObjectType::door: {
