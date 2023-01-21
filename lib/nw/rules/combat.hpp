@@ -186,7 +186,8 @@ struct AttackData {
 
     bool target_is_creature = false;
     bool is_ranged_attack = false;
-    int nth_attack = 0; ///< The nth attack in the 'round'
+    bool is_killing_blow = false; ///< Is the attack enough to kill target
+    int nth_attack = 0;           ///< The nth attack in the 'round'
     int attack_roll = 0;
     int attack_bonus = 0;
     int damage_total = 0;
