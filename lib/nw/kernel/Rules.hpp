@@ -332,8 +332,7 @@ T max_modifier(const ObjectBase* obj, const ModifierType type, SubType subtype)
  * @tparam T
  */
 template <typename T>
-T sum_modifier(const ObjectBase* obj, const ModifierType type,
-    const ObjectBase* versus)
+T sum_modifier(const ObjectBase* obj, const ObjectBase* versus, const ModifierType type)
 {
     T result{};
     auto cb = [&result](const T value) { result += value; };
@@ -362,8 +361,7 @@ T sum_modifier(const ObjectBase* obj, const ModifierType type)
  * @tparam U is some rule subtype
  */
 template <typename T, typename SubType>
-T sum_modifier(const ObjectBase* obj, const ModifierType type, SubType subtype,
-    const ObjectBase* versus)
+T sum_modifier(const ObjectBase* obj, const ObjectBase* versus, const ModifierType type, SubType subtype)
 {
     T result{};
     auto cb = [&result](const T value) { result += value; };
