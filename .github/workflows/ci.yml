@@ -101,6 +101,10 @@ jobs:
       - name: all - download vcpkg
         run: |
           git clone https://github.com/microsoft/vcpkg ${{ github.workspace }}/vcpkg || true
+
+      - name: temporary workaround for windows build.. vcpkg issue
+        if: matrix.os != 'windows-2019'
+        run: |
           pushd vcpkg
           git checkout --force ${{ env.vcpkg-tag }}
           popd
