@@ -221,6 +221,7 @@ int get_max_hitpoints(nw::ObjectBase* obj, nw::ObjectBase* vs)
     int base = 0;
     int con = 0;
     int modifiers = 0;
+    int temp = 0;
     switch (obj->handle().type) {
     default:
         break;
@@ -229,6 +230,7 @@ int get_max_hitpoints(nw::ObjectBase* obj, nw::ObjectBase* vs)
         base = cre->hp;
         con = get_ability_modifier(cre, ability_constitution);
         modifiers = nw::kernel::sum_modifier<int>(obj, vs, mod_type_hitpoints);
+        temp = cre->hp_temp;
     } break;
     case nw::ObjectType::door: {
         base = obj->as_door()->hp;
@@ -239,7 +241,7 @@ int get_max_hitpoints(nw::ObjectBase* obj, nw::ObjectBase* vs)
     }
 
     // Max hitpoints must be 1 or greater for valid objects
-    return std::max(1, base + con + modifiers);
+    return std::max(1, base + con + modifiers + temp);
 }
 
 // == Items ===================================================================

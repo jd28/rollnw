@@ -52,6 +52,9 @@ nw::Effect* effect_damage_resistance(nw::Damage type, int value, int max = 0);
 /// Creates a haste effect
 nw::Effect* effect_haste();
 
+/// Creates temporary hitpoints effect
+nw::Effect* effect_hitpoints_temporary(int amount);
+
 /// Creates miss chance effect
 nw::Effect* effect_miss_chance(int value, nw::MissChanceType type = miss_chance_type_normal);
 
@@ -72,6 +75,9 @@ bool effect_remove_is_valid(nw::ObjectBase* obj, const nw::Effect*);
 
 bool effect_haste_apply(nw::ObjectBase* obj, const nw::Effect*);
 bool effect_haste_remove(nw::ObjectBase* obj, const nw::Effect*);
+
+bool effect_hitpoints_temp_apply(nw::ObjectBase* obj, const nw::Effect* effect);
+bool effect_hitpoints_temp_remove(nw::ObjectBase* obj, const nw::Effect* effect);
 
 // == Item Property Creation ==================================================
 // ============================================================================

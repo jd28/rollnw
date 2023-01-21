@@ -50,6 +50,8 @@ void load_effects()
     ADD_IS_VALID_EFFECT(effect_type_damage_resistance);
 
     nw::kernel::effects().add(effect_type_haste, effect_haste_apply, effect_haste_remove);
+    nw::kernel::effects().add(effect_type_temporary_hitpoints,
+        effect_hitpoints_temp_apply, effect_hitpoints_temp_remove);
 
     ADD_IS_CREATURE_EFFECT(effect_type_miss_chance);
 
@@ -123,6 +125,29 @@ bool effect_haste_remove(nw::ObjectBase* obj, const nw::Effect*)
         return true;
     }
     return false;
+}
+
+bool effect_hitpoints_temp_apply(nw::ObjectBase* obj, const nw::Effect* effect)
+{
+    if (!obj || !obj->as_creature()) { return false; }
+    auto cre = obj->as_creature();
+    cre->hp_current += effect->get_int(0);
+    cre->hp_temp += effect->get_int(0);
+    return true;
+}
+
+bool effect_hitpoints_temp_remove(nw::ObjectBase* obj, const nw::Effect* effect)
+{
+    if (!obj || !obj->as_creature()) { return false; }
+    auto cre = obj->as_creature();
+    if (effect->get_int(0) > 0) {
+        cre->hp_current -= effect->get_int(0);
+        cre->hp_temp -= effect->get_int(0);
+    }
+
+    // Death has to be considered here.. but not yet.
+
+    return true;
 }
 
 // == Effect Creation =========================================================
@@ -228,6 +253,14 @@ nw::Effect* effect_damage_resistance(nw::Damage type, int value, int max)
 nw::Effect* effect_haste()
 {
     return nw::kernel::effects().create(effect_type_haste);
+}
+
+nw::Effect* effect_hitpoints_temporary(int amount)
+{
+    if (amount <= 0) { return nullptr; }
+    auto eff = nw::kernel::effects().create(effect_type_temporary_hitpoints);
+    eff->set_int(0, amount);
+    return eff;
 }
 
 nw::Effect* effect_miss_chance(int value, nw::MissChanceType type)

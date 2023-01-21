@@ -685,6 +685,12 @@ TEST_CASE("creature: hitpoints", "[objects]")
     REQUIRE(nwn1::get_max_hitpoints(obj) == 5);
     obj->stats.add_feat(nwn1::feat_epic_toughness_5);
     REQUIRE(nwn1::get_max_hitpoints(obj) == 105);
+
+    auto eff = nwn1::effect_hitpoints_temporary(10);
+    REQUIRE(nw::apply_effect(obj, eff));
+    REQUIRE(nwn1::get_max_hitpoints(obj) == 115);
+    REQUIRE(nw::remove_effect(obj, eff));
+    REQUIRE(nwn1::get_max_hitpoints(obj) == 105);
 }
 
 TEST_CASE("creature: iteration penalty", "[objects]")

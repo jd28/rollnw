@@ -87,6 +87,7 @@ struct Creature : public ObjectBase {
     int16_t hp = 0;
     int16_t hp_current = 0;
     int16_t hp_max = 0;
+    int16_t hp_temp = 0;
     uint16_t soundset;
 
     // Transient
