@@ -208,6 +208,40 @@ int queue_remove_effect_by(nw::ObjectBase* obj, nw::ObjectHandle creator)
     return processed;
 }
 
+// == Hit Points ==============================================================
+// ============================================================================
+
+/// Gets objects maximum hit points.
+int get_max_hitpoints(nw::ObjectBase* obj, nw::ObjectBase* vs)
+{
+    if (!obj) { return 0; }
+
+    // Base hitpoints.. for a NPC, door, etc. whatever was set in the 'toolset'
+    // for a PC, whatever their level up rolls.. i.e. sum of LevelUp::hitpoints in level history.
+    int base = 0;
+    int con = 0;
+    int modifiers = 0;
+    switch (obj->handle().type) {
+    default:
+        break;
+    case nw::ObjectType::creature: {
+        auto cre = obj->as_creature();
+        base = cre->hp;
+        con = get_ability_modifier(cre, ability_constitution);
+        modifiers = nw::kernel::sum_modifier<int>(obj, vs, mod_type_hitpoints);
+    } break;
+    case nw::ObjectType::door: {
+        base = obj->as_door()->hp;
+    } break;
+    case nw::ObjectType::placeable: {
+        base = obj->as_placeable()->hp;
+    } break;
+    }
+
+    // Max hitpoints must be 1 or greater for valid objects
+    return std::max(1, base + con + modifiers);
+}
+
 // == Items ===================================================================
 // ============================================================================
 

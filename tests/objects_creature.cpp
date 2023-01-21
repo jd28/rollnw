@@ -675,6 +675,18 @@ TEST_CASE("creature: damage resistance", "[objects]")
     REQUIRE(nwn1::resolve_damage_resistance(obj3, nwn1::damage_type_sonic).first == 30);
 }
 
+TEST_CASE("creature: hitpoints", "[objects]")
+{
+    auto obj = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/nw_chicken.utc"));
+    REQUIRE(obj);
+
+    REQUIRE(nwn1::get_max_hitpoints(obj) == 4);
+    obj->stats.add_feat(nwn1::feat_toughness);
+    REQUIRE(nwn1::get_max_hitpoints(obj) == 5);
+    obj->stats.add_feat(nwn1::feat_epic_toughness_5);
+    REQUIRE(nwn1::get_max_hitpoints(obj) == 105);
+}
+
 TEST_CASE("creature: iteration penalty", "[objects]")
 {
     auto obj = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/drorry.utc"));

@@ -42,6 +42,12 @@ bool has_effect_type_applied(nw::ObjectBase* obj, nw::EffectType type);
 /// Queues remove effect events by effect creator
 int queue_remove_effect_by(nw::ObjectBase* obj, nw::ObjectHandle creator);
 
+// == Hit Points ==============================================================
+// ============================================================================
+
+/// Gets objects maximum hit points.
+int get_max_hitpoints(nw::ObjectBase* obj, nw::ObjectBase* vs = nullptr);
+
 // == Items ===================================================================
 // ============================================================================
 
