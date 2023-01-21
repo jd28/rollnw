@@ -5,6 +5,7 @@ add_library(nw-profiles STATIC
     nwn1/functions.cpp
     nwn1/helpers.cpp
     nwn1/Profile.cpp
+    nwn1/modifiers.cpp
     nwn1/rules.cpp
 )
 

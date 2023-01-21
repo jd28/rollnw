@@ -1,9 +1,9 @@
 #include "Profile.hpp"
 
 #include "constants.hpp"
-#include "constants/const_feat.hpp"
 #include "effects.hpp"
 #include "helpers.hpp"
+#include "modifiers.hpp"
 #include "rules.hpp"
 
 #include <nw/formats/TwoDA.hpp>
