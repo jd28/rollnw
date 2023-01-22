@@ -178,6 +178,8 @@ nw::RuleValue selector(const nw::Selector& selector, const nw::ObjectBase* obj)
 
         return cre->stats.has_feat(nw::Feat::make(selector.subtype.as<int32_t>()));
     }
+    case nw::SelectorType::hitpoints_max:
+        return get_max_hitpoints(obj);
     case nw::SelectorType::level: {
         auto cre = obj->as_creature();
         if (!cre) { return {}; }

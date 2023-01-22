@@ -1,6 +1,7 @@
 #include "Creature.hpp"
 
 #include "../functions.hpp"
+#include "../kernel/Rules.hpp"
 #include "../kernel/TwoDACache.hpp"
 
 #include <nlohmann/json.hpp>
@@ -108,6 +109,11 @@ bool Creature::instantiate()
                 cresize->get_to(size, "ACATTACKMOD", combat_info.size_ac_modifier);
             }
         }
+    }
+    auto max = nw::kernel::rules().select({nw::SelectorType::hitpoints_max}, this);
+    if (max.is<int32_t>()) {
+        hp_max = max.as<int32_t>();
+        hp_current = max.as<int32_t>();
     }
     instantiated_ = (inventory.instantiate() && equipment.instantiate());
     size_t i = 0;

@@ -35,6 +35,7 @@ enum struct SelectorType : uint32_t {
     caster_level,  ///< Subtype:
     class_level,   ///< Subtype: class_* constant
     feat,          ///< Subtype: feat_* constant
+    hitpoints_max, ///< Subtype: none
     level,         ///< Subtype: none
     local_var_int, ///< Subtype: local var name, eg. "X1_AllowArcher"
     local_var_str, ///< Subtype: local var name, eg. "some_var"
