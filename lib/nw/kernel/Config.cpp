@@ -103,14 +103,28 @@ void Config::initialize(ConfigOptions options)
     }
 
     if (options_.version == GameVersion::vEE) {
-        nwn_ini_ = Ini{options_.user / "nwn.ini"};
-        nwnplayer_ini_ = Ini{options_.user / "nwnplayer.ini"};
-        userpatch_ini_ = Ini{options_.user / "userpatch.ini"};
-        settings_tml_ = toml::parse_file(path_to_string(options_.user / "settings.tml"));
+        auto path = options_.user / "nwn.ini";
+        if (fs::exists(path)) { nwn_ini_ = Ini{path}; }
+
+        path = options_.user / "nwnplayer.ini";
+        if (fs::exists(path)) { nwnplayer_ini_ = Ini{path}; }
+
+        path = options_.user / "userpatch.ini";
+        if (fs::exists(path)) { userpatch_ini_ = Ini{path}; }
+
+        path = options_.user / "settings.tml";
+        if (fs::exists(path)) {
+            settings_tml_ = toml::parse_file(path_to_string(path));
+        }
     } else if (options_.version == GameVersion::v1_69) {
-        nwn_ini_ = Ini{options_.install / "nwn.ini"};
-        nwnplayer_ini_ = Ini{options_.install / "nwnplayer.ini"};
-        userpatch_ini_ = Ini{options_.install / "nwnpatch.ini"};
+        auto path = options_.user / "nwn.ini";
+        if (fs::exists(path)) { nwn_ini_ = Ini{path}; }
+
+        path = options_.user / "nwnplayer.ini";
+        if (fs::exists(path)) { nwnplayer_ini_ = Ini{path}; }
+
+        path = options_.user / "nwnpatch.ini";
+        if (fs::exists(path)) { userpatch_ini_ = Ini{path}; }
     }
 }
 
