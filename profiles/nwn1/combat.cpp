@@ -224,6 +224,11 @@ int resolve_attack_damage(const nw::Creature* obj, const nw::ObjectBase* versus,
     if (!obj || !versus || !data) { return 0; }
     int result = 0;
 
+    nw::Versus vs;
+    if (versus) {
+        vs = versus->versus_me();
+    }
+
     // Resolve base weapon damage
     nw::DiceRoll base_dice;
     if (is_unarmed_weapon(data->weapon)) {
@@ -239,12 +244,25 @@ int resolve_attack_damage(const nw::Creature* obj, const nw::ObjectBase* versus,
     // Resolve damage from effects
     auto it = nw::find_first_effect_of(std::begin(obj->effects()), std::end(obj->effects()),
         effect_type_damage_increase);
-    while (it != std::end(obj->effects()) && it->type == effect_type_damage_increase) {
+    for (; it != std::end(obj->effects()) && it->type == effect_type_damage_increase; ++it) {
+        if (it->effect->versus().match(vs)) { continue; }
+
         auto dmg = nw::Damage::make(it->subtype);
         auto dice = nw::DiceRoll{it->effect->get_int(0), it->effect->get_int(1), it->effect->get_int(2)};
-        auto unblock = to_bool(nw::DamageCategory::unblockable & static_cast<nw::DamageCategory>(it->effect->get_int(3)));
-        data->add(dmg, nw::roll_dice(dice, data->multiplier), unblock);
-        ++it;
+
+        auto cat = static_cast<nw::DamageCategory>(it->effect->get_int(3));
+        auto unblock = to_bool(nw::DamageCategory::unblockable & cat);
+
+        if (data->result != nw::AttackResult::hit_by_critical && to_bool(nw::DamageCategory::critical & cat)) {
+            continue;
+        }
+
+        auto amt = nw::roll_dice(dice, data->multiplier);
+        if (to_bool(nw::DamageCategory::penalty & cat)) {
+            amt = -amt;
+        }
+
+        data->add(dmg, amt, unblock);
     }
 
     // Resolve damage modifiers
@@ -253,8 +271,13 @@ int resolve_attack_damage(const nw::Creature* obj, const nw::ObjectBase* versus,
         if (to_bool(nw::DamageCategory::critical & roll.flags) && data->multiplier <= 1) { return; }
 
         auto unblock = to_bool(nw::DamageCategory::unblockable & roll.flags);
-        data->add(roll.type, nw::roll_dice(roll.roll, data->multiplier), unblock);
+        auto amt = nw::roll_dice(roll.roll, data->multiplier);
+        if (to_bool(nw::DamageCategory::penalty & roll.flags)) {
+            amt = -amt;
+        }
+        data->add(roll.type, amt, unblock);
     };
+
     // Damage modifiers applicable to any attack, i.e. favored enemy, combat modes, etc.
     nw::kernel::resolve_modifier(obj, mod_type_damage, attack_type_any, versus, dmg_cb);
     // Damage modifiers applicable to a specific weapon/attack type.  i.e. Strength/ability damage.
