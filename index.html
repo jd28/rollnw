@@ -132,6 +132,7 @@ nearing being able to simulate melee battles.</p></li>
 <li><p>A Resource Manager that can load all NWN containers (e.g. erf, key, nwsync) and also Zip files.</p></li>
 <li><p>An implementation of NWN’s <a class="reference external" href="https://rollnw.readthedocs.io/en/latest/structure/i18n.html">Localization System</a> focused
 on utf8 everywhere.</p></li>
+<li><p>The beginnings of runtime scripting with <a class="reference external" href="https://luau-lang.org/">Luau</a> the scripting language of Roblox.</p></li>
 </ul>
 </div>
 <hr class="docutils" />
@@ -185,27 +186,22 @@ plugins, scripting, and a built-in console.</p></li>
 <div class="section" id="credits">
 <h2>Credits<a class="headerlink" href="#credits" title="Permalink to this headline"></a></h2>
 <ul class="simple">
-<li><p><a class="reference external" href="https://bioware.com">Bioware</a>, <a class="reference external" href="https://beamdog.com">Beamdog</a>
-- The game itself</p></li>
+<li><p><a class="reference external" href="https://bioware.com">Bioware</a>, <a class="reference external" href="https://beamdog.com">Beamdog</a> - The game itself</p></li>
 <li><p><a class="reference external" href="https://github.com/microsoft/vcpkg">vcpkg</a> - Package Management</p></li>
 <li><p><a class="reference external" href="https://abseil.io/">abseil</a> - Foundational</p></li>
 <li><p><a class="reference external" href="https://github.com/catchorg/Catch2">Catch2</a> - Testing</p></li>
-<li><p><a class="reference external" href="https://github.com/SanderMertens/flecs">flecs</a> -
-Entity-Component-System</p></li>
+<li><p><a class="reference external" href="https://luau-lang.org/">Roblox</a> - The Luau scripting language</p></li>
 <li><p><a class="reference external" href="https://www.opengl.org/sdk/libs/GLM/">glm</a> - Mathematics</p></li>
 <li><p><a class="reference external" href="https://github.com/emilk/loguru">loguru</a>,
 <a class="reference external" href="https://github.com/fmtlib/fmt">fmt</a> - Logging</p></li>
 <li><p><a class="reference external" href="https://github.com/nothings/stb">stbi_image</a>,
 <a class="reference external" href="https://github.com/virusman/nwnexplorer">NWNExplorer</a>,
-<a class="reference external" href="https://github.com/SpartanJ/SOIL2/">SOIL2</a> - Image/Texture
-loading.</p></li>
+<a class="reference external" href="https://github.com/SpartanJ/SOIL2/">SOIL2</a> - Image/Texture loading.</p></li>
 <li><p><a class="reference external" href="https://github.com/benhoyt/inih">inih</a> - INI, SET parsing</p></li>
 <li><p><a class="reference external" href="https://github.com/nlohmann/json">nholmann_json</a> - JSON</p></li>
-<li><p><a class="reference external" href="https://github.com/marzer/tomlplusplus/">toml++</a> - For
-settings.tml</p></li>
+<li><p><a class="reference external" href="https://github.com/marzer/tomlplusplus/">toml++</a> - For settings.tml</p></li>
 <li><p><a class="reference external" href="https://www.gnu.org/software/libiconv/">libiconv</a>,
-<a class="reference external" href="https://github.com/boostorg/nowide">boost::nowide</a> - i18n, string
-conversion</p></li>
+<a class="reference external" href="https://github.com/boostorg/nowide">boost::nowide</a> - i18n, string conversion</p></li>
 <li><p><a class="reference external" href="https://doxygen.nl/">doxygen</a>, <a class="reference external" href="https://www.sphinx-doc.org/en/master/">sphinx</a>,
 <a class="reference external" href="https://breathe.readthedocs.io/en/latest/">breathe</a> - documentation</p></li>
 </ul>
