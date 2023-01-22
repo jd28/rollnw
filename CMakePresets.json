@@ -24,6 +24,14 @@
                 "ENABLE_BENCHMARKS": {
                     "type": "BOOL",
                     "value": "ON"
+                },
+                "CMAKE_RUNTIME_OUTPUT_DIRECTORY": {
+                    "value": "${sourceDir}/bin",
+                    "type": "FILEPATH"
+                },
+                "LUAU_BUILD_TESTS": {
+                    "type": "BOOL",
+                    "value": "OFF"
                 }
             }
         },

@@ -4,6 +4,7 @@ set (CMAKE_CXX_STANDARD 20)
 include(cmake/Cache.cmake)
 
 option(BUILD_DOCS "Build documentation" OFF)
+option(ROLLNW_BUILD_RUNTIME_SCRIPTING "Build Luau scripting language" ON)
 
 # Generate compile_commands.json to make it easier to work with clang based tools
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -75,4 +76,8 @@ endif()
 
 if(BUILD_DOCS)
 add_subdirectory(docs)
+endif()
+
+if(ROLLNW_BUILD_RUNTIME_SCRIPTING)
+add_subdirectory(external/luau)
 endif()
