@@ -8,6 +8,7 @@
 #include "ParsedScriptCache.hpp"
 #include "Resources.hpp"
 #include "Rules.hpp"
+#include "ScriptSystem.hpp"
 #include "Strings.hpp"
 #include "TwoDACache.hpp"
 
@@ -26,6 +27,7 @@ Services::Services()
     , effects{new EffectSystem}
     , objects{new ObjectSystem}
     , events{new EventSystem}
+    , scripts{new ScriptSystem}
 {
     LOG_F(INFO, "kernel: initializing default services");
 }
@@ -39,6 +41,7 @@ void Services::start()
     effects->initialize();
     objects->initialize();
     events->initialize();
+    scripts->initialize();
 
     for (auto& s : services_) {
         s.service->initialize();
@@ -47,6 +50,7 @@ void Services::start()
 
 void Services::shutdown()
 {
+    scripts->clear();
     events->clear();
     objects->clear();
     effects->clear();

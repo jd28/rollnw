@@ -8,11 +8,18 @@ file(GLOB_RECURSE COPY_FILES
 foreach(FILENAME ${COPY_FILES})
     set(SRC "${CMAKE_CURRENT_SOURCE_DIR}/${FILENAME}")
     set(DST "${CMAKE_CURRENT_BINARY_DIR}/${FILENAME}")
+    set(BIN "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${FILENAME}")
 
     add_custom_command(
         OUTPUT ${DST}
         DEPENDS ${SRC}
         COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC} ${DST}
+    )
+
+    add_custom_command(
+        OUTPUT ${BIN}
+        DEPENDS ${SRC}
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC} ${BIN}
     )
 endforeach(FILENAME)
 
@@ -43,6 +50,7 @@ add_executable(rollnw_test
     kernel_objects.cpp
     kernel_resources.cpp
     kernel_rules.cpp
+    kernel_scripts.cpp
     kernel_script_cache.cpp
     kernel_twoda_cache.cpp
     kernel_strings.cpp

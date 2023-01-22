@@ -7,6 +7,7 @@ add_library(nw-kernel STATIC
     Resources.cpp
     Rules.cpp
     ParsedScriptCache.cpp
+    ScriptSystem.cpp
     Strings.cpp
     TwoDACache.cpp
 )
@@ -17,4 +18,6 @@ target_link_libraries(nw-kernel PRIVATE
     nw-objects
     nw-formats
     nw-i18n
+
+    Luau.VM
 )

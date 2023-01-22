@@ -20,6 +20,7 @@ struct EventSystem;
 struct ObjectSystem;
 struct Resources;
 struct Rules;
+struct ScriptSystem;
 struct Strings;
 struct TwoDACache;
 
@@ -80,6 +81,7 @@ struct Services {
     std::unique_ptr<EffectSystem> effects;
     std::unique_ptr<ObjectSystem> objects;
     std::unique_ptr<EventSystem> events;
+    std::unique_ptr<ScriptSystem> scripts;
 
 private:
     std::vector<ServiceEntry> services_;
