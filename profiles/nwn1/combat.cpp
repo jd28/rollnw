@@ -404,6 +404,7 @@ nw::AttackType resolve_attack_type(const nw::Creature* obj)
                 switch (nw::roll_dice(d3)) {
                 default:
                     result = nw::AttackType::invalid();
+                    break;
                 case 1:
                     if (get_weapon_by_attack_type(obj, attack_type_cweapon1)) {
                         result = attack_type_cweapon1;
