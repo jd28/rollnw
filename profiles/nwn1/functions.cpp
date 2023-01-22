@@ -211,7 +211,7 @@ int queue_remove_effect_by(nw::ObjectBase* obj, nw::ObjectHandle creator)
 // == Hit Points ==============================================================
 // ============================================================================
 
-int get_current_hitpoints(nw::ObjectBase* obj)
+int get_current_hitpoints(const nw::ObjectBase* obj)
 {
     if (!obj) { return 0; }
     int result = 0;

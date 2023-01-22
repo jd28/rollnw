@@ -680,6 +680,7 @@ TEST_CASE("creature: hitpoints", "[objects]")
     auto obj = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/nw_chicken.utc"));
     REQUIRE(obj);
 
+    REQUIRE(nwn1::get_current_hitpoints(obj) == 4);
     REQUIRE(nwn1::get_max_hitpoints(obj) == 4);
     obj->stats.add_feat(nwn1::feat_toughness);
     REQUIRE(nwn1::get_max_hitpoints(obj) == 5);
