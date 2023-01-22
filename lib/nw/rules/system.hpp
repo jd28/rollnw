@@ -46,7 +46,7 @@ enum struct SelectorType : uint32_t {
 
 struct Selector {
     SelectorType type;
-    RuleValue subtype;
+    RuleValue subtype{};
 };
 
 // == Qualifier ===============================================================
