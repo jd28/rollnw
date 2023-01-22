@@ -174,3 +174,7 @@ jobs:
         run: |
           cmake --build --preset default
           ctest --preset default
+
+      - uses: actions/upload-artifact@v3
+        with:
+          path: ./bin/*
