@@ -199,25 +199,20 @@ and <a class="reference external" href="https://github.com/nwnxee/unified/tree/m
 </dd>
 <dt><strong>Modifier Source</strong></dt><dd><p>A modifier source indicates the attribute of an object that modifier is associated with.</p>
 </dd>
-<dt><strong>Modifier Input</strong></dt><dd><p>An input is an <code class="docutils literal notranslate"><span class="pre">int</span></code>, <code class="docutils literal notranslate"><span class="pre">float</span></code>, or a version of a <code class="docutils literal notranslate"><span class="pre">ModifierFunction</span></code> <a class="footnote-reference brackets" href="#id5" id="id3">2</a>.
-In the basic cases, the input is passed directly without modification.  When a
-function is an input that function is called on the object and its result passed as an output.</p>
-<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">mod</span><span class="o">::</span><span class="n">ability</span><span class="p">(</span><span class="n">ability_strength</span><span class="p">,</span><span class="w"> </span><span class="mi">2</span><span class="p">,</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">qual</span><span class="o">::</span><span class="n">race</span><span class="p">(</span><span class="n">racial_type_halforc</span><span class="p">)</span><span class="w"> </span><span class="p">},</span><span class="w"> </span><span class="n">nw</span><span class="o">::</span><span class="n">ModifierSource</span><span class="o">::</span><span class="n">race</span><span class="p">);</span>
-</pre></div>
-</div>
+<dt><strong>Modifier Input</strong></dt><dd><p>An input is an <code class="docutils literal notranslate"><span class="pre">int</span></code>, <code class="docutils literal notranslate"><span class="pre">float</span></code>, or a version of a <code class="xref cpp cpp-struct docutils literal notranslate"><span class="pre">ModifierFunction</span></code> <a class="footnote-reference brackets" href="#id5" id="id3">2</a>.</p>
 </dd>
-<dt><strong>Modifier Output</strong></dt><dd><p>The output is passed to a callback provided to one of the <code class="docutils literal notranslate"><span class="pre">nw::kernel::resolve_modifier</span></code> function overloads.
-The meaning of these outputs are determined by the modifier type.  The number of output parameters is limited
-to one.  They currently have to be integer or floating point types.</p>
-<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="kt">int</span><span class="w"> </span><span class="n">result</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
-<span class="n">nw</span><span class="o">::</span><span class="n">kernel</span><span class="o">::</span><span class="n">resolve_modifier</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span><span class="w"> </span><span class="n">mod_type_ability</span><span class="p">,</span><span class="w"> </span><span class="n">ability_strength</span><span class="p">,</span>
-<span class="w">    </span><span class="p">[</span><span class="o">&amp;</span><span class="n">result</span><span class="p">](</span><span class="kt">int</span><span class="w"> </span><span class="n">value</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">result</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="n">value</span><span class="p">;</span><span class="w"> </span><span class="p">});</span>
-</pre></div>
-</div>
+<dt><strong>Modifier Output</strong></dt><dd><p>In the basic cases, an output is the input passed directly without modification.  When a function
+is the modifier input, it is called and its result is the output</p>
+<p>The output is then passed to a callback provided to one of the <code class="docutils literal notranslate"><span class="pre">nw::kernel::resolve_modifier</span></code>
+function overloads.</p>
+<p>The meaning of these outputs are determined by the modifier type.  The number of output parameters is limited
+to one.  They currently have to be integer, floating point types, or <a class="reference internal" href="../api/struct/nw__DamageRoll.html#_CPPv4N2nw10DamageRollE" title="nw::DamageRoll"><code class="xref cpp cpp-struct docutils literal notranslate"><span class="pre">nw::DamageRoll</span></code></a>.</p>
+<p>In most cases using <code class="docutils literal notranslate"><span class="pre">nw::kernel::sum_modifier</span></code> or <code class="docutils literal notranslate"><span class="pre">nw::kernel::max_modifier</span></code> can avoid having to deal
+with passing callbacks.</p>
 </dd>
 </dl>
 <p><strong>Example - Adding a Modifier</strong>:</p>
-<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="c1">// This is just an example, one would most likely do all epic toughness modifiers together.</span>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="c1">// This is just an example, see &quot;profiles/nwn1/modifiers.[ch]pp for real implementations of rules.</span>
 <span class="k">auto</span><span class="w"> </span><span class="n">mod2</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">nwn1</span><span class="o">::</span><span class="n">mod</span><span class="o">::</span><span class="n">hitpoints</span><span class="p">(</span>
 <span class="w">   </span><span class="mi">20</span><span class="p">,</span><span class="w"> </span><span class="c1">// Modifier value, if the below requirement is met</span>
 <span class="w">   </span><span class="s">&quot;dnd-3.0-epic-toughness-01&quot;</span><span class="p">,</span>
@@ -248,7 +243,7 @@ to one.  They currently have to be integer or floating point types.</p>
 <span class="c1">// Get rid of any requirement</span>
 <span class="n">nwk</span><span class="o">::</span><span class="n">rules</span><span class="p">().</span><span class="n">modifiers</span><span class="p">.</span><span class="n">replace</span><span class="p">(</span><span class="s">&quot;dnd-3.0-palemaster-ac&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">nw</span><span class="o">::</span><span class="n">Requirement</span><span class="p">{});</span>
 <span class="c1">// Set nerf</span>
-<span class="n">nwk</span><span class="o">::</span><span class="n">rules</span><span class="p">().</span><span class="n">modifiers</span><span class="p">.</span><span class="n">replace</span><span class="p">(</span><span class="s">&quot;dnd-3.0-palemaster-ac&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">pm_ac_nerf</span><span class="p">));</span>
+<span class="n">nwk</span><span class="o">::</span><span class="n">rules</span><span class="p">().</span><span class="n">modifiers</span><span class="p">.</span><span class="n">replace</span><span class="p">(</span><span class="s">&quot;dnd-3.0-palemaster-ac&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">pm_ac_nerf</span><span class="p">);</span>
 <span class="n">res</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
 <span class="n">REQUIRE</span><span class="p">(</span><span class="n">nwk</span><span class="o">::</span><span class="n">resolve_modifier</span><span class="p">(</span><span class="n">ent</span><span class="p">,</span><span class="w"> </span><span class="n">nwn1</span><span class="o">::</span><span class="n">mod_type_armor_class</span><span class="p">,</span><span class="w"> </span><span class="n">nwn1</span><span class="o">::</span><span class="n">ac_natural</span><span class="p">,</span>
 <span class="w">   </span><span class="p">[</span><span class="o">&amp;</span><span class="n">res</span><span class="p">](</span><span class="kt">int</span><span class="w"> </span><span class="n">value</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">res</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="n">value</span><span class="p">;</span><span class="w"> </span><span class="p">}));</span>

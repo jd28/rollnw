@@ -92,31 +92,26 @@ Definitions
    A modifier source indicates the attribute of an object that modifier is associated with.
 
 **Modifier Input**
-   An input is an ``int``, ``float``, or a version of a ``ModifierFunction`` [2]_.
-   In the basic cases, the input is passed directly without modification.  When a
-   function is an input that function is called on the object and its result passed as an output.
-
-   .. code:: cpp
-
-      mod::ability(ability_strength, 2, { qual::race(racial_type_halforc) }, nw::ModifierSource::race);
+   An input is an ``int``, ``float``, or a version of a :cpp:struct:`ModifierFunction` [2]_.
 
 **Modifier Output**
-   The output is passed to a callback provided to one of the ``nw::kernel::resolve_modifier`` function overloads.
+   In the basic cases, an output is the input passed directly without modification.  When a function
+   is the modifier input, it is called and its result is the output
+
+   The output is then passed to a callback provided to one of the ``nw::kernel::resolve_modifier``
+   function overloads.
+
    The meaning of these outputs are determined by the modifier type.  The number of output parameters is limited
-   to one.  They currently have to be integer or floating point types.
+   to one.  They currently have to be integer, floating point types, or :cpp:struct:`nw::DamageRoll`.
 
-   .. code:: cpp
-
-      int result = 0;
-      nw::kernel::resolve_modifier(obj, mod_type_ability, ability_strength,
-          [&result](int value) { result += value; });
-
+   In most cases using ``nw::kernel::sum_modifier`` or ``nw::kernel::max_modifier`` can avoid having to deal
+   with passing callbacks.
 
 **Example - Adding a Modifier**:
 
 .. code:: cpp
 
-   // This is just an example, one would most likely do all epic toughness modifiers together.
+   // This is just an example, see "profiles/nwn1/modifiers.[ch]pp for real implementations of rules.
    auto mod2 = nwn1::mod::hitpoints(
       20, // Modifier value, if the below requirement is met
       "dnd-3.0-epic-toughness-01",
@@ -149,7 +144,7 @@ Definitions
    // Get rid of any requirement
    nwk::rules().modifiers.replace("dnd-3.0-palemaster-ac", nw::Requirement{});
    // Set nerf
-   nwk::rules().modifiers.replace("dnd-3.0-palemaster-ac", pm_ac_nerf));
+   nwk::rules().modifiers.replace("dnd-3.0-palemaster-ac", pm_ac_nerf);
    res = 0;
    REQUIRE(nwk::resolve_modifier(ent, nwn1::mod_type_armor_class, nwn1::ac_natural,
       [&res](int value) { res += value; }));
