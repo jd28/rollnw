@@ -20,6 +20,7 @@ rollNW is an homage to Neverwinter Nights in C++ and Python.  See the [docs](htt
 - An [ASCII Model Parser](https://rollnw.readthedocs.io/en/latest/structure/model.html)
 - A Resource Manager that can load all NWN containers (e.g. erf, key, nwsync) and also Zip files.
 - An implementation of NWN's [Localization System](https://rollnw.readthedocs.io/en/latest/structure/i18n.html) focused on utf8 everywhere.
+- The beginnings of runtime scripting with [Luau](https://luau-lang.org/) the scripting language of Roblox.
 
 ## Goals
 
@@ -57,6 +58,7 @@ You make ask yourself, why?  But, to paraphrase Tennyson, ours isn't to question
 - [vcpkg](https://github.com/microsoft/vcpkg) - Package Management
 - [abseil](https://abseil.io/) - Foundational
 - [Catch2](https://github.com/catchorg/Catch2) - Testing
+- [Roblox](https://luau-lang.org/) - The Luau scripting language
 - [glm](https://www.opengl.org/sdk/libs/GLM/) - Mathematics
 - [loguru](https://github.com/emilk/loguru), [fmt](https://github.com/fmtlib/fmt) - Logging
 - [stbi_image](https://github.com/nothings/stb), [NWNExplorer](https://github.com/virusman/nwnexplorer), [SOIL2](https://github.com/SpartanJ/SOIL2/) - Image/Texture loading.

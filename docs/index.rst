@@ -29,6 +29,7 @@ features
 - A Resource Manager that can load all NWN containers (e.g. erf, key, nwsync) and also Zip files.
 - An implementation of NWN's `Localization System <https://rollnw.readthedocs.io/en/latest/structure/i18n.html>`__ focused
   on utf8 everywhere.
+- The beginnings of runtime scripting with `Luau <https://luau-lang.org/>`__ the scripting language of Roblox.
 
 -----------------------------------------
 
@@ -88,27 +89,22 @@ library hopes to facilitate and that all fly in the face of “WHY?”.
 Credits
 -------
 
--  `Bioware <https://bioware.com>`__, `Beamdog <https://beamdog.com>`__
-   - The game itself
+-  `Bioware <https://bioware.com>`__, `Beamdog <https://beamdog.com>`__ - The game itself
 -  `vcpkg <https://github.com/microsoft/vcpkg>`__ - Package Management
 -  `abseil <https://abseil.io/>`__ - Foundational
 -  `Catch2 <https://github.com/catchorg/Catch2>`__ - Testing
--  `flecs <https://github.com/SanderMertens/flecs>`__ -
-   Entity-Component-System
+-  `Roblox <https://luau-lang.org/>`__ - The Luau scripting language
 -  `glm <https://www.opengl.org/sdk/libs/GLM/>`__ - Mathematics
 -  `loguru <https://github.com/emilk/loguru>`__,
    `fmt <https://github.com/fmtlib/fmt>`__ - Logging
 -  `stbi_image <https://github.com/nothings/stb>`__,
    `NWNExplorer <https://github.com/virusman/nwnexplorer>`__,
-   `SOIL2 <https://github.com/SpartanJ/SOIL2/>`__ - Image/Texture
-   loading.
+   `SOIL2 <https://github.com/SpartanJ/SOIL2/>`__ - Image/Texture loading.
 -  `inih <https://github.com/benhoyt/inih>`__ - INI, SET parsing
 -  `nholmann_json <https://github.com/nlohmann/json>`__ - JSON
--  `toml++ <https://github.com/marzer/tomlplusplus/>`__ - For
-   settings.tml
+-  `toml++ <https://github.com/marzer/tomlplusplus/>`__ - For settings.tml
 -  `libiconv <https://www.gnu.org/software/libiconv/>`__,
-   `boost::nowide <https://github.com/boostorg/nowide>`__ - i18n, string
-   conversion
+   `boost::nowide <https://github.com/boostorg/nowide>`__ - i18n, string conversion
 - `doxygen <https://doxygen.nl/>`__, `sphinx <https://www.sphinx-doc.org/en/master/>`__,
   `breathe <https://breathe.readthedocs.io/en/latest/>`__ - documentation
 

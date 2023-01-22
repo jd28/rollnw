@@ -50,6 +50,7 @@ add_executable(rollnw_test
     kernel_objects.cpp
     kernel_resources.cpp
     kernel_rules.cpp
+    kernel_scripts.cpp
     kernel_script_cache.cpp
     kernel_twoda_cache.cpp
     kernel_strings.cpp
