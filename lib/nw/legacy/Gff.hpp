@@ -104,8 +104,8 @@ private:
 
 struct Gff {
     Gff() = default;
-    explicit Gff(const std::filesystem::path& fileName);
-    explicit Gff(ByteArray bytes);
+    explicit Gff(const std::filesystem::path& file, nw::LanguageID lang = nw::LanguageID::english);
+    explicit Gff(ByteArray bytes, nw::LanguageID lang = nw::LanguageID::english);
 
     /// Get the toplevel struct
     GffStruct toplevel() const;
@@ -132,6 +132,7 @@ private:
 
     ByteArray bytes_;
     bool is_loaded_ = false;
+    nw::LanguageID lang_ = nw::LanguageID::english;
 
     bool parse();
 };
@@ -246,7 +247,7 @@ bool GffField::get_to(T& value) const
                 s.reserve(size + 12); // Reserve a little bit extra, in case of colors.
                 s.append(reinterpret_cast<const char*>(parent_->bytes_.data() + off), size);
                 value = string::sanitize_colors(std::move(s));
-                value = to_utf8_by_global_lang(value);
+                value = to_utf8_by_langid(value, parent_->lang_);
                 return true;
             } else if constexpr (std::is_same_v<T, LocString>) {
                 uint32_t size, strref, lang, strings;

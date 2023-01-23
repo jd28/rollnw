@@ -5,8 +5,6 @@
 #include <cstring>
 #include <filesystem>
 
-namespace fs = std::filesystem;
-
 namespace nw {
 
 // GffField -------------------------------------------------------------------
@@ -150,14 +148,16 @@ GffField GffStruct::operator[](size_t index) const
 
 // Gff ------------------------------------------------------------------------
 
-Gff::Gff(const std::filesystem::path& filename)
-    : bytes_{ByteArray::from_file(filename)}
+Gff::Gff(const std::filesystem::path& file, nw::LanguageID lang)
+    : bytes_{ByteArray::from_file(file)}
+    , lang_{lang}
 {
     is_loaded_ = parse();
 }
 
-Gff::Gff(ByteArray bytes)
+Gff::Gff(ByteArray bytes, nw::LanguageID lang)
     : bytes_{std::move(bytes)}
+    , lang_{lang}
 {
     is_loaded_ = parse();
 }
