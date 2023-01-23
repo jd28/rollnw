@@ -72,11 +72,11 @@ struct GffStruct {
     uint32_t id() const { return valid() ? entry_->type : 0; }
 
     /// Gets a value from a field in the struct
-    template <typename T, typename Underlying = T>
+    template <typename T>
     std::optional<T> get(std::string_view label, bool warn_missing = true) const;
 
     /// Gets a value from a field in the struct
-    template <typename T, typename Underlying = T>
+    template <typename T>
     bool get_to(std::string_view label, T& out, bool warn_missing = true) const;
 
     /// Number of fields in the struct.
@@ -137,16 +137,16 @@ private:
     bool parse();
 };
 
-template <typename T, typename Underlying>
+template <typename T>
 std::optional<T> GffStruct::get(std::string_view label, bool warn_missing) const
 {
     T temp;
-    return get_to<Underlying>(label, temp, warn_missing)
+    return get_to<T>(label, temp, warn_missing)
         ? std::optional<T>{std::move(temp)}
         : std::optional<T>{};
 }
 
-template <typename T, typename Underlying>
+template <typename T>
 bool GffStruct::get_to(std::string_view label, T& out, bool warn_missing) const
 {
     if (!valid()) {
@@ -159,19 +159,14 @@ bool GffStruct::get_to(std::string_view label, T& out, bool warn_missing) const
         }
         return false;
     }
-    Underlying temp;
+    T temp;
     if (!val.get_to(temp)) {
         if (warn_missing) {
             LOG_F(ERROR, "gff unable to read field '{}' value", label);
         }
         return false;
     }
-
-    if constexpr (!std::is_same_v<T, Underlying> && std::is_integral_v<T> && std::is_integral_v<Underlying>) {
-        out = static_cast<T>(temp);
-    } else {
-        out = std::move(temp);
-    }
+    out = std::move(temp);
     return true;
 }
 
@@ -215,9 +210,42 @@ bool GffField::get_to(T& value) const
         } else {
             return false;
         }
-
     } else {
         SerializationType::type type = SerializationType::id<T>();
+
+        if constexpr (std::is_integral_v<T>) {
+            int bytes = 0;
+            switch (entry_->type) {
+            case SerializationType::int8:
+            case SerializationType::uint8:
+                bytes = 1;
+                break;
+            case SerializationType::int16:
+            case SerializationType::uint16:
+                bytes = 2;
+                break;
+            case SerializationType::int32:
+            case SerializationType::uint32:
+                bytes = 4;
+                break;
+            }
+            // Only promote iff type is smaller or equal and if the signs are the same
+            if (bytes > 0 && entry_->type <= type && entry_->type % 2 == type % 2) {
+                // in case not doing it is ub..
+                if (entry_->type % 2) {
+                    int32_t temp = 0;
+                    memcpy(&temp, &entry_->data_or_offset, bytes);
+                    value = static_cast<T>(temp);
+                } else {
+                    uint32_t temp = 0;
+                    memcpy(&temp, &entry_->data_or_offset, bytes);
+                    value = static_cast<T>(temp);
+                }
+                return true;
+            }
+        }
+
+        // Check for exact match on all other types.
         if (entry_->type != type) {
             LOG_F(ERROR, "gff field '{}' types don't match {} != {}", name(), type, entry_->type);
             return false;

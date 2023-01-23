@@ -56,6 +56,25 @@ TEST_CASE("Gff Lists", "[serialization]")
     REQUIRE(top["ClassList"][0]["Class"].get_to(i32));
     REQUIRE(i32 == 12);
     REQUIRE(*top["ClassList"][0]["Class"].get<int32_t>() == 12);
+    REQUIRE(*top["ClassList"][0]["Class"].get<int64_t>() == 12);
+}
+
+TEST_CASE("Gff integer promotion", "[serialization]")
+{
+    nw::Gff g("test_data/user/development/nw_chicken.utc");
+    REQUIRE(g.valid());
+    auto top = g.toplevel();
+    REQUIRE(*top["Int"].get<uint8_t>() == 3);
+    REQUIRE_FALSE(top["Int"].get<int8_t>());
+    REQUIRE_FALSE(top["Int"].get<int32_t>());
+    REQUIRE(*top["Int"].get<uint64_t>() == 3);
+    REQUIRE(*top["Int"].get<uint16_t>() == 3);
+    REQUIRE(*top["Int"].get<bool>());
+    REQUIRE_FALSE(top["ClassList"][0]["Class"].get<uint8_t>());
+    REQUIRE_FALSE(top["ClassList"][0]["Class"].get<uint32_t>());
+    REQUIRE_FALSE(top["ClassList"][0]["Class"].get<int16_t>());
+    REQUIRE(top["ClassList"][0]["Class"].get<int32_t>());
+    REQUIRE(top["ClassList"][0]["Class"].get<int64_t>());
 }
 
 TEST_CASE("Gff Conversion", "[serialization]")
