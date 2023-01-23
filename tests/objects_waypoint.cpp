@@ -45,9 +45,9 @@ TEST_CASE("waypoint: gff round trip", "[ojbects]")
     auto ent = nw::kernel::objects().make<nw::Waypoint>();
     REQUIRE(ent);
 
-    REQUIRE(nw::Waypoint::deserialize(ent, g.toplevel(), nw::SerializationProfile::blueprint));
+    REQUIRE(deserialize(ent, g.toplevel(), nw::SerializationProfile::blueprint));
 
-    nw::GffBuilder oa = nw::Waypoint::serialize(ent, nw::SerializationProfile::blueprint);
+    nw::GffBuilder oa = serialize(ent, nw::SerializationProfile::blueprint);
     oa.write_to("tmp/wp_behexit001.utw");
 
     nw::Gff g2{"tmp/wp_behexit001.utw"};

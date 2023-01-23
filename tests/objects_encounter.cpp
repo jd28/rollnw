@@ -57,10 +57,10 @@ TEST_CASE("encount: gff round trip", "[ojbects]")
     REQUIRE(g.valid());
 
     nw::Encounter enc;
-    REQUIRE(nw::Encounter::deserialize(&enc, g.toplevel(),
+    REQUIRE(deserialize(&enc, g.toplevel(),
         nw::SerializationProfile::blueprint));
 
-    nw::GffBuilder oa = nw::Encounter::serialize(&enc, nw::SerializationProfile::blueprint);
+    nw::GffBuilder oa = serialize(&enc, nw::SerializationProfile::blueprint);
     oa.write_to("tmp/boundelementallo_2.ute");
     nw::Gff g2{"tmp/boundelementallo_2.ute"};
 

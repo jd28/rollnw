@@ -164,7 +164,7 @@ T* ObjectSystem::load(const std::filesystem::path& archive, SerializationProfile
             if (in.valid()) {
                 type = serial_id_to_obj_type(in.type());
                 if (type == T::object_type) {
-                    T::deserialize(obj, in.toplevel());
+                    deserialize(obj, in.toplevel());
                 }
             }
         }
@@ -174,7 +174,7 @@ T* ObjectSystem::load(const std::filesystem::path& archive, SerializationProfile
             if (in.valid()) {
                 type = serial_id_to_obj_type(in.type());
                 if (type == T::object_type) {
-                    T::deserialize(obj, in.toplevel(), profile);
+                    deserialize(obj, in.toplevel(), profile);
                 }
             }
         }
@@ -199,7 +199,7 @@ T* ObjectSystem::load(std::string_view resref)
     if (ba.size()) {
         Gff in{ba};
         if (in.valid()) {
-            T::deserialize(obj, in.toplevel(), SerializationProfile::blueprint);
+            deserialize(obj, in.toplevel(), SerializationProfile::blueprint);
         }
     }
 

@@ -49,6 +49,9 @@ add_subdirectory(formats)
 add_subdirectory(i18n)
 add_subdirectory(kernel)
 add_subdirectory(model)
+if(ROLLNW_ENABLE_LEGACY)
+add_subdirectory(legacy)
+endif()
 add_subdirectory(objects)
 add_subdirectory(resources)
 add_subdirectory(rules)
@@ -70,6 +73,12 @@ target_link_libraries(nw PUBLIC
     nw-serialization
     nw-util
 )
+
+if(ROLLNW_ENABLE_LEGACY)
+target_link_libraries(nw PUBLIC
+    nw-legacy
+)
+endif()
 
 include(../../cmake/ProjectSettings.cmake)
 

@@ -64,7 +64,7 @@ bool Equips::from_gff(const GffStruct& archive, SerializationProfile profile)
             equips[idx] = r;
         } else {
             auto item = kernel::objects().make<Item>();
-            Item::deserialize(item, st, profile);
+            deserialize(item, st, profile);
             equips[idx] = item;
         }
     }
@@ -110,7 +110,7 @@ bool Equips::to_gff(GffBuilderStruct& archive, SerializationProfile profile) con
                     std::get<Item*>(equip)->common.resref);
             }
         } else if (std::holds_alternative<Item*>(equip) && std::get<Item*>(equip)) {
-            Item::serialize(std::get<Item*>(equip), list.push_back(struct_id), profile);
+            serialize(std::get<Item*>(equip), list.push_back(struct_id), profile);
         }
         ++i;
     }

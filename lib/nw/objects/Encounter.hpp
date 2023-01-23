@@ -56,10 +56,7 @@ struct Encounter : public ObjectBase {
     virtual const Encounter* as_encounter() const override { return this; }
     virtual bool instantiate() override { return true; }
 
-    static bool deserialize(Encounter* obj, const GffStruct& archive, SerializationProfile profile);
     static bool deserialize(Encounter* obj, const nlohmann::json& archive, SerializationProfile profile);
-    static GffBuilder serialize(const Encounter* obj, SerializationProfile profile);
-    static bool serialize(const Encounter* obj, GffBuilderStruct& archive, SerializationProfile profile);
     static bool serialize(const Encounter* obj, nlohmann::json& archive, SerializationProfile profile);
 
     Common common;
@@ -83,5 +80,11 @@ struct Encounter : public ObjectBase {
 
     bool instantiated_ = false;
 };
+
+#ifdef ROLLNW_ENABLE_LEGACY
+bool deserialize(Encounter* obj, const GffStruct& archive, SerializationProfile profile);
+GffBuilder serialize(const Encounter* obj, SerializationProfile profile);
+bool serialize(const Encounter* obj, GffBuilderStruct& archive, SerializationProfile profile);
+#endif // ROLLNW_ENABLE_LEGACY
 
 } // namespace nw

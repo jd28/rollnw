@@ -17,6 +17,10 @@
                     "value": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
                     "type": "FILEPATH"
                 },
+                "CMAKE_RUNTIME_OUTPUT_DIRECTORY": {
+                    "value": "${sourceDir}/bin",
+                    "type": "FILEPATH"
+                },
                 "ENABLE_TESTING": {
                     "type": "BOOL",
                     "value": "ON"
@@ -24,10 +28,6 @@
                 "ENABLE_BENCHMARKS": {
                     "type": "BOOL",
                     "value": "ON"
-                },
-                "CMAKE_RUNTIME_OUTPUT_DIRECTORY": {
-                    "value": "${sourceDir}/bin",
-                    "type": "FILEPATH"
                 },
                 "LUAU_BUILD_TESTS": {
                     "type": "BOOL",

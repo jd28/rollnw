@@ -35,10 +35,8 @@ add_executable(rollnw_test
 
     formats_dialog.cpp
     formats_faction.cpp
-    formats_image.cpp
     formats_ini.cpp
     #formats_journal.cpp
-    formats_palette.cpp
     formats_twoda.cpp
 
     i18n_locstring.cpp
@@ -54,6 +52,9 @@ add_executable(rollnw_test
     kernel_script_cache.cpp
     kernel_twoda_cache.cpp
     kernel_strings.cpp
+
+    legacy_image.cpp
+    legacy_palette.cpp
 
     model_parse.cpp
 

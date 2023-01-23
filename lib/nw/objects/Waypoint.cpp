@@ -9,27 +9,7 @@ Waypoint::Waypoint()
     set_handle({object_invalid, ObjectType::waypoint, 0});
 }
 
-bool Waypoint::deserialize(Waypoint* obj, const GffStruct& archive, SerializationProfile profile)
-{
-    if (!obj) {
-        throw std::runtime_error("unable to serialize null object");
-    }
-
-    obj->common.from_gff(archive, profile, ObjectType::waypoint);
-
-    archive.get_to("Description", obj->description);
-    archive.get_to("LinkedTo", obj->linked_to);
-    archive.get_to("MapNote", obj->map_note);
-
-    archive.get_to("Appearance", obj->appearance);
-    archive.get_to("HasMapNote", obj->has_map_note);
-    archive.get_to("MapNoteEnabled", obj->map_note_enabled);
-
-    return true;
-}
-
-bool Waypoint::deserialize(Waypoint* obj, const nlohmann::json& archive,
-    SerializationProfile profile)
+bool Waypoint::deserialize(Waypoint* obj, const nlohmann::json& archive, SerializationProfile profile)
 {
     if (!obj) {
         throw std::runtime_error("unable to serialize null object");
@@ -52,7 +32,48 @@ bool Waypoint::deserialize(Waypoint* obj, const nlohmann::json& archive,
     return true;
 }
 
-bool Waypoint::serialize(const Waypoint* obj, GffBuilderStruct& archive,
+void Waypoint::serialize(const Waypoint* obj, nlohmann::json& archive,
+    SerializationProfile profile)
+{
+    if (!obj) {
+        throw std::runtime_error("unable to serialize null object");
+    }
+
+    archive["$type"] = "UTW";
+    archive["$version"] = Waypoint::json_archive_version;
+
+    archive["common"] = obj->common.to_json(profile, ObjectType::waypoint);
+    archive["description"] = obj->description;
+    archive["linked_to"] = obj->linked_to;
+    archive["map_note"] = obj->map_note;
+
+    archive["appearance"] = obj->appearance;
+    archive["has_map_note"] = obj->has_map_note;
+    archive["map_note_enabled"] = obj->map_note_enabled;
+}
+
+#ifdef ROLLNW_ENABLE_LEGACY
+
+bool deserialize(Waypoint* obj, const GffStruct& archive, SerializationProfile profile)
+{
+    if (!obj) {
+        throw std::runtime_error("unable to serialize null object");
+    }
+
+    obj->common.from_gff(archive, profile, ObjectType::waypoint);
+
+    archive.get_to("Description", obj->description);
+    archive.get_to("LinkedTo", obj->linked_to);
+    archive.get_to("MapNote", obj->map_note);
+
+    archive.get_to("Appearance", obj->appearance);
+    archive.get_to("HasMapNote", obj->has_map_note);
+    archive.get_to("MapNoteEnabled", obj->map_note_enabled);
+
+    return true;
+}
+
+bool serialize(const Waypoint* obj, GffBuilderStruct& archive,
     SerializationProfile profile)
 {
     if (!obj) {
@@ -88,36 +109,18 @@ bool Waypoint::serialize(const Waypoint* obj, GffBuilderStruct& archive,
     return true;
 }
 
-GffBuilder Waypoint::serialize(const Waypoint* obj, SerializationProfile profile)
+GffBuilder serialize(const Waypoint* obj, SerializationProfile profile)
 {
     GffBuilder out{"UTW"};
     if (!obj) {
         throw std::runtime_error("unable to serialize null object");
     }
 
-    Waypoint::serialize(obj, out.top, profile);
+    serialize(obj, out.top, profile);
     out.build();
     return out;
 }
 
-void Waypoint::serialize(const Waypoint* obj, nlohmann::json& archive,
-    SerializationProfile profile)
-{
-    if (!obj) {
-        throw std::runtime_error("unable to serialize null object");
-    }
-
-    archive["$type"] = "UTW";
-    archive["$version"] = Waypoint::json_archive_version;
-
-    archive["common"] = obj->common.to_json(profile, ObjectType::waypoint);
-    archive["description"] = obj->description;
-    archive["linked_to"] = obj->linked_to;
-    archive["map_note"] = obj->map_note;
-
-    archive["appearance"] = obj->appearance;
-    archive["has_map_note"] = obj->has_map_note;
-    archive["map_note_enabled"] = obj->map_note_enabled;
-}
+#endif // ROLLNW_ENABLE_LEGACY
 
 } // namespace nw

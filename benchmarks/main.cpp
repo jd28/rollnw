@@ -5,10 +5,10 @@
 #include <nw/kernel/Resources.hpp>
 #include <nw/kernel/Rules.hpp>
 #include <nw/kernel/Strings.hpp>
+#include <nw/legacy/Gff.hpp>
 #include <nw/model/Mdl.hpp>
 #include <nw/objects/Creature.hpp>
 #include <nw/script/Nss.hpp>
-#include <nw/serialization/Gff.hpp>
 #include <nwn1/Profile.hpp>
 #include <nwn1/combat.hpp>
 #include <nwn1/effects.hpp>
@@ -75,7 +75,7 @@ static void BM_creature_to_gff(benchmark::State& state)
 {
     auto ent = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/drorry.utc"));
     for (auto _ : state) {
-        auto out = nw::Creature::serialize(ent, nw::SerializationProfile::instance);
+        auto out = serialize(ent, nw::SerializationProfile::instance);
         benchmark::DoNotOptimize(out);
     }
 }

@@ -34,7 +34,106 @@ bool Item::instantiate()
     return instantiated_;
 }
 
-bool Item::deserialize(Item* obj, const GffStruct& archive, SerializationProfile profile)
+bool Item::deserialize(Item* obj, const nlohmann::json& archive, SerializationProfile profile)
+{
+    if (!obj) {
+        throw std::runtime_error("unable to serialize null object");
+    }
+
+    try {
+        obj->common.from_json(archive.at("common"), profile, ObjectType::item);
+        obj->inventory.from_json(archive.at("inventory"), profile);
+
+        archive.at("description").get_to(obj->description);
+        archive.at("description_id").get_to(obj->description_id);
+        const auto& ref = archive.at("properties");
+        obj->properties.reserve(ref.size());
+        for (size_t i = 0; i < ref.size(); ++i) {
+            ItemProperty ip;
+            ref[i].at("type").get_to(ip.type);
+            ref[i].at("subtype").get_to(ip.subtype);
+            ref[i].at("cost_table").get_to(ip.cost_table);
+            ref[i].at("cost_value").get_to(ip.cost_value);
+            ref[i].at("param_table").get_to(ip.param_table);
+            ref[i].at("param_value").get_to(ip.param_value);
+            obj->properties.push_back(ip);
+        }
+
+        archive.at("cost").get_to(obj->cost);
+        archive.at("additional_cost").get_to(obj->additional_cost);
+        archive.at("baseitem").get_to(obj->baseitem);
+
+        archive.at("stacksize").get_to(obj->stacksize);
+
+        archive.at("charges").get_to(obj->charges);
+        archive.at("cursed").get_to(obj->cursed);
+        archive.at("identified").get_to(obj->identified);
+        archive.at("plot").get_to(obj->plot);
+        archive.at("stolen").get_to(obj->stolen);
+        archive.at("model_type").get_to(obj->model_type);
+        archive.at("model_colors").get_to(obj->model_colors);
+        archive.at("model_parts").get_to(obj->model_parts);
+
+    } catch (const nlohmann::json::exception& e) {
+        LOG_F(ERROR, "Item::from_json exception: {}", e.what());
+        return false;
+    }
+
+    if (profile == nw::SerializationProfile::instance) {
+        obj->instantiated_ = true;
+    }
+
+    return true;
+}
+
+bool Item::serialize(const Item* obj, nlohmann::json& archive, SerializationProfile profile)
+{
+    if (!obj) {
+        throw std::runtime_error("unable to serialize null object");
+    }
+
+    archive["$type"] = "UTI";
+    archive["$version"] = json_archive_version;
+
+    archive["common"] = obj->common.to_json(profile, ObjectType::item);
+    archive["inventory"] = obj->inventory.to_json(profile);
+
+    archive["description"] = obj->description;
+    archive["description_id"] = obj->description_id;
+
+    archive["cost"] = obj->cost;
+    archive["additional_cost"] = obj->additional_cost;
+    archive["baseitem"] = obj->baseitem;
+
+    archive["stacksize"] = obj->stacksize;
+
+    archive["charges"] = obj->charges;
+    archive["cursed"] = obj->cursed;
+    archive["identified"] = obj->identified;
+    archive["plot"] = obj->plot;
+    archive["stolen"] = obj->stolen;
+    archive["model_type"] = obj->model_type;
+    archive["model_colors"] = obj->model_colors;
+    archive["model_parts"] = obj->model_parts;
+
+    auto& ref = archive["properties"] = nlohmann::json::array();
+    for (const auto& p : obj->properties) {
+        ref.push_back({
+            {"type", p.type},
+            {"subtype", p.subtype},
+            {"cost_table", p.cost_table},
+            {"cost_value", p.cost_value},
+            {"param_table", p.param_table},
+            {"param_value", p.param_value},
+        });
+    }
+
+    return true;
+}
+
+#ifdef ROLLNW_ENABLE_LEGACY
+
+bool deserialize(Item* obj, const GffStruct& archive, SerializationProfile profile)
 {
     if (!obj) {
         throw std::runtime_error("unable to serialize null object");
@@ -130,59 +229,7 @@ bool Item::deserialize(Item* obj, const GffStruct& archive, SerializationProfile
     return true;
 }
 
-bool Item::deserialize(Item* obj, const nlohmann::json& archive, SerializationProfile profile)
-{
-    if (!obj) {
-        throw std::runtime_error("unable to serialize null object");
-    }
-
-    try {
-        obj->common.from_json(archive.at("common"), profile, ObjectType::item);
-        obj->inventory.from_json(archive.at("inventory"), profile);
-
-        archive.at("description").get_to(obj->description);
-        archive.at("description_id").get_to(obj->description_id);
-        const auto& ref = archive.at("properties");
-        obj->properties.reserve(ref.size());
-        for (size_t i = 0; i < ref.size(); ++i) {
-            ItemProperty ip;
-            ref[i].at("type").get_to(ip.type);
-            ref[i].at("subtype").get_to(ip.subtype);
-            ref[i].at("cost_table").get_to(ip.cost_table);
-            ref[i].at("cost_value").get_to(ip.cost_value);
-            ref[i].at("param_table").get_to(ip.param_table);
-            ref[i].at("param_value").get_to(ip.param_value);
-            obj->properties.push_back(ip);
-        }
-
-        archive.at("cost").get_to(obj->cost);
-        archive.at("additional_cost").get_to(obj->additional_cost);
-        archive.at("baseitem").get_to(obj->baseitem);
-
-        archive.at("stacksize").get_to(obj->stacksize);
-
-        archive.at("charges").get_to(obj->charges);
-        archive.at("cursed").get_to(obj->cursed);
-        archive.at("identified").get_to(obj->identified);
-        archive.at("plot").get_to(obj->plot);
-        archive.at("stolen").get_to(obj->stolen);
-        archive.at("model_type").get_to(obj->model_type);
-        archive.at("model_colors").get_to(obj->model_colors);
-        archive.at("model_parts").get_to(obj->model_parts);
-
-    } catch (const nlohmann::json::exception& e) {
-        LOG_F(ERROR, "Item::from_json exception: {}", e.what());
-        return false;
-    }
-
-    if (profile == nw::SerializationProfile::instance) {
-        obj->instantiated_ = true;
-    }
-
-    return true;
-}
-
-bool Item::serialize(const Item* obj, GffBuilderStruct& archive, SerializationProfile profile)
+bool serialize(const Item* obj, GffBuilderStruct& archive, SerializationProfile profile)
 {
     if (!obj) {
         throw std::runtime_error("unable to serialize null object");
@@ -275,59 +322,16 @@ bool Item::serialize(const Item* obj, GffBuilderStruct& archive, SerializationPr
     return true;
 }
 
-GffBuilder Item::serialize(const Item* obj, SerializationProfile profile)
+GffBuilder serialize(const Item* obj, SerializationProfile profile)
 {
     GffBuilder out{"UTI"};
     if (!obj) return out;
 
-    Item::serialize(obj, out.top, profile);
+    serialize(obj, out.top, profile);
     out.build();
     return out;
 }
 
-bool Item::serialize(const Item* obj, nlohmann::json& archive, SerializationProfile profile)
-{
-    if (!obj) {
-        throw std::runtime_error("unable to serialize null object");
-    }
-
-    archive["$type"] = "UTI";
-    archive["$version"] = json_archive_version;
-
-    archive["common"] = obj->common.to_json(profile, ObjectType::item);
-    archive["inventory"] = obj->inventory.to_json(profile);
-
-    archive["description"] = obj->description;
-    archive["description_id"] = obj->description_id;
-
-    archive["cost"] = obj->cost;
-    archive["additional_cost"] = obj->additional_cost;
-    archive["baseitem"] = obj->baseitem;
-
-    archive["stacksize"] = obj->stacksize;
-
-    archive["charges"] = obj->charges;
-    archive["cursed"] = obj->cursed;
-    archive["identified"] = obj->identified;
-    archive["plot"] = obj->plot;
-    archive["stolen"] = obj->stolen;
-    archive["model_type"] = obj->model_type;
-    archive["model_colors"] = obj->model_colors;
-    archive["model_parts"] = obj->model_parts;
-
-    auto& ref = archive["properties"] = nlohmann::json::array();
-    for (const auto& p : obj->properties) {
-        ref.push_back({
-            {"type", p.type},
-            {"subtype", p.subtype},
-            {"cost_table", p.cost_table},
-            {"cost_value", p.cost_value},
-            {"param_table", p.param_table},
-            {"param_value", p.param_value},
-        });
-    }
-
-    return true;
-}
+#endif // ROLLNW_ENABLE_LEGACY
 
 } // namespace nw

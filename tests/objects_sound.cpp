@@ -2,7 +2,7 @@
 
 #include <nw/kernel/Objects.hpp>
 #include <nw/objects/Sound.hpp>
-#include <nw/serialization/Serialization.hpp>
+#include <nw/serialization/Archives.hpp>
 
 #include <nlohmann/json.hpp>
 
@@ -10,14 +10,6 @@
 #include <fstream>
 
 namespace fs = std::filesystem;
-
-TEST_CASE("sound: from_gff", "[objects]")
-{
-    auto ent = nw::kernel::objects().load<nw::Sound>(fs::path("test_data/user/development/blue_bell.uts"));
-    REQUIRE(ent);
-
-    REQUIRE(ent->common.resref == "blue_bell");
-}
 
 TEST_CASE("sound: json round trip", "[objects]")
 {
@@ -39,15 +31,25 @@ TEST_CASE("sound: json round trip", "[objects]")
     f << std::setw(4) << j;
 }
 
+#ifdef ROLLNW_ENABLE_LEGACY
+
+TEST_CASE("sound: from_gff", "[objects]")
+{
+    auto ent = nw::kernel::objects().load<nw::Sound>(fs::path("test_data/user/development/blue_bell.uts"));
+    REQUIRE(ent);
+
+    REQUIRE(ent->common.resref == "blue_bell");
+}
+
 TEST_CASE("sound: gff round trip", "[ojbects]")
 {
     nw::Gff g("test_data/user/development/blue_bell.uts");
     REQUIRE(g.valid());
 
     nw::Sound ent;
-    nw::Sound::deserialize(&ent, g.toplevel(), nw::SerializationProfile::blueprint);
+    deserialize(&ent, g.toplevel(), nw::SerializationProfile::blueprint);
 
-    nw::GffBuilder oa = nw::Sound::serialize(&ent, nw::SerializationProfile::blueprint);
+    nw::GffBuilder oa = serialize(&ent, nw::SerializationProfile::blueprint);
     oa.write_to("tmp/blue_bell.uts");
 
     nw::Gff g2("tmp/blue_bell.uts");
@@ -68,3 +70,5 @@ TEST_CASE("sound: gff round trip", "[ojbects]")
     REQUIRE(oa.header.list_idx_offset == g.head_->list_idx_offset);
     REQUIRE(oa.header.list_idx_count == g.head_->list_idx_count);
 }
+
+#endif // ROLLNW_ENABLE_LEGACY

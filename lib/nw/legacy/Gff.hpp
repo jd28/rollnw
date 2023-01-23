@@ -5,10 +5,10 @@
 #include "../i18n/conversion.hpp"
 #include "../log.hpp"
 #include "../resources/Resource.hpp"
+#include "../serialization//Serialization.hpp"
 #include "../util/ByteArray.hpp"
 #include "../util/macros.hpp"
 #include "../util/string.hpp"
-#include "Serialization.hpp"
 #include "gff_common.hpp"
 
 #include <array>

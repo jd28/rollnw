@@ -4,21 +4,6 @@
 
 namespace nw {
 
-bool Player::deserialize(Player* obj, const GffStruct& archive)
-{
-    obj->pc = true;
-    Creature::deserialize(obj, archive, SerializationProfile::instance);
-
-    auto level_stats = archive["LvlStatList"];
-    obj->history.entries.resize(level_stats.size());
-
-    for (size_t i = 0; i < level_stats.size(); ++i) {
-        obj->history.entries[i].from_gff(level_stats[i]);
-    }
-
-    return true;
-}
-
 bool Player::deserialize(Player* obj, const nlohmann::json& archive)
 {
     obj->pc = true;
@@ -50,5 +35,24 @@ bool Player::deserialize(Player* obj, const nlohmann::json& archive)
 //     archive["history"] = obj->history.entries;
 //     return true;
 // }
+
+#ifdef ROLLNW_ENABLE_LEGACY
+
+bool deserialize(Player* obj, const GffStruct& archive)
+{
+    obj->pc = true;
+    deserialize(obj->as_creature(), archive, SerializationProfile::instance);
+
+    auto level_stats = archive["LvlStatList"];
+    obj->history.entries.resize(level_stats.size());
+
+    for (size_t i = 0; i < level_stats.size(); ++i) {
+        obj->history.entries[i].from_gff(level_stats[i]);
+    }
+
+    return true;
+}
+
+#endif // ROLLNW_ENABLE_LEGACY
 
 } // namespace nw

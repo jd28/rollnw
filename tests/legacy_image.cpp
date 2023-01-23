@@ -1,6 +1,8 @@
+#ifdef ROLLNW_ENABLE_LEGACY
+
 #include <catch2/catch_all.hpp>
 
-#include <nw/formats/Image.hpp>
+#include <nw/legacy/Image.hpp>
 #include <nw/log.hpp>
 
 #include <filesystem>
@@ -37,3 +39,5 @@ TEST_CASE("Parse TGA", "[formats]")
     CHECK(tga.write_to("tmp/qfpp_001_L.tga"));
 #endif
 }
+
+#endif // #ifdef ROLLNW_ENABLE_LEGACY

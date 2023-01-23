@@ -47,7 +47,86 @@ Versus Trigger::versus_me() const
     return result;
 }
 
-bool Trigger::deserialize(Trigger* obj, const GffStruct& archive, SerializationProfile profile)
+bool Trigger::deserialize(Trigger* obj, const nlohmann::json& archive, SerializationProfile profile)
+{
+    if (!obj) return false;
+
+    try {
+        if (!obj->common.from_json(archive.at("common"), profile, ObjectType::trigger)
+            || !obj->scripts.from_json(archive.at("scripts"))
+            || !obj->trap.from_json(archive.at("trap"))) {
+            return false;
+        }
+
+        if (profile != SerializationProfile::blueprint) {
+            auto& ref = archive.at("geometry");
+            for (size_t i = 0; i < ref.size(); ++i) {
+                obj->geometry.emplace_back(ref[i][0].get<float>(), ref[i][1].get<float>(), ref[i][2].get<float>());
+            }
+        }
+
+        archive.at("linked_to").get_to(obj->linked_to);
+
+        archive.at("faction").get_to(obj->faction);
+        archive.at("highlight_height").get_to(obj->highlight_height);
+        archive.at("type").get_to(obj->type);
+
+        archive.at("loadscreen").get_to(obj->loadscreen);
+        archive.at("portrait").get_to(obj->portrait);
+
+        archive.at("cursor").get_to(obj->cursor);
+        archive.at("linked_to_flags").get_to(obj->linked_to_flags);
+
+    } catch (const nlohmann::json::exception& e) {
+        LOG_F(ERROR, "Trigger::from_json exception: {}", e.what());
+        return false;
+    }
+
+    if (profile == nw::SerializationProfile::instance) {
+        obj->instantiated_ = true;
+    }
+
+    return true;
+}
+
+bool Trigger::serialize(const Trigger* obj, nlohmann::json& archive, SerializationProfile profile)
+{
+    if (!obj) {
+        throw std::runtime_error("unable to serialize null object");
+    }
+
+    archive["$type"] = "UTT";
+    archive["$version"] = json_archive_version;
+
+    archive["common"] = obj->common.to_json(profile, ObjectType::trigger);
+    archive["scripts"] = obj->scripts.to_json();
+    archive["trap"] = obj->trap.to_json();
+
+    if (profile != SerializationProfile::blueprint) {
+        auto& ref = archive["geometry"] = nlohmann::json::array();
+        for (const auto& g : obj->geometry) {
+            ref.push_back({g.x, g.y, g.z});
+        }
+    }
+
+    archive["linked_to"] = obj->linked_to;
+
+    archive["faction"] = obj->faction;
+    archive["highlight_height"] = obj->highlight_height;
+    archive["type"] = obj->type;
+
+    archive["loadscreen"] = obj->loadscreen;
+    archive["portrait"] = obj->portrait;
+
+    archive["cursor"] = obj->cursor;
+    archive["linked_to_flags"] = obj->linked_to_flags;
+
+    return true;
+}
+
+#ifdef ROLLNW_ENABLE_LEGACY
+
+bool deserialize(Trigger* obj, const GffStruct& archive, SerializationProfile profile)
 {
     if (!obj) return false;
 
@@ -94,49 +173,7 @@ bool Trigger::deserialize(Trigger* obj, const GffStruct& archive, SerializationP
     return true;
 }
 
-bool Trigger::deserialize(Trigger* obj, const nlohmann::json& archive, SerializationProfile profile)
-{
-    if (!obj) return false;
-
-    try {
-        if (!obj->common.from_json(archive.at("common"), profile, ObjectType::trigger)
-            || !obj->scripts.from_json(archive.at("scripts"))
-            || !obj->trap.from_json(archive.at("trap"))) {
-            return false;
-        }
-
-        if (profile != SerializationProfile::blueprint) {
-            auto& ref = archive.at("geometry");
-            for (size_t i = 0; i < ref.size(); ++i) {
-                obj->geometry.emplace_back(ref[i][0].get<float>(), ref[i][1].get<float>(), ref[i][2].get<float>());
-            }
-        }
-
-        archive.at("linked_to").get_to(obj->linked_to);
-
-        archive.at("faction").get_to(obj->faction);
-        archive.at("highlight_height").get_to(obj->highlight_height);
-        archive.at("type").get_to(obj->type);
-
-        archive.at("loadscreen").get_to(obj->loadscreen);
-        archive.at("portrait").get_to(obj->portrait);
-
-        archive.at("cursor").get_to(obj->cursor);
-        archive.at("linked_to_flags").get_to(obj->linked_to_flags);
-
-    } catch (const nlohmann::json::exception& e) {
-        LOG_F(ERROR, "Trigger::from_json exception: {}", e.what());
-        return false;
-    }
-
-    if (profile == nw::SerializationProfile::instance) {
-        obj->instantiated_ = true;
-    }
-
-    return true;
-}
-
-bool Trigger::serialize(const Trigger* obj, GffBuilderStruct& archive, SerializationProfile profile)
+bool serialize(const Trigger* obj, GffBuilderStruct& archive, SerializationProfile profile)
 {
     if (!obj) return false;
 
@@ -192,51 +229,18 @@ bool Trigger::serialize(const Trigger* obj, GffBuilderStruct& archive, Serializa
     return true;
 }
 
-GffBuilder Trigger::serialize(const Trigger* obj, SerializationProfile profile)
+GffBuilder serialize(const Trigger* obj, SerializationProfile profile)
 {
     GffBuilder out{"UTT"};
     if (!obj) {
         throw std::runtime_error("unable to serialize null object");
     }
 
-    Trigger::serialize(obj, out.top, profile);
+    serialize(obj, out.top, profile);
     out.build();
     return out;
 }
 
-bool Trigger::serialize(const Trigger* obj, nlohmann::json& archive, SerializationProfile profile)
-{
-    if (!obj) {
-        throw std::runtime_error("unable to serialize null object");
-    }
-
-    archive["$type"] = "UTT";
-    archive["$version"] = json_archive_version;
-
-    archive["common"] = obj->common.to_json(profile, ObjectType::trigger);
-    archive["scripts"] = obj->scripts.to_json();
-    archive["trap"] = obj->trap.to_json();
-
-    if (profile != SerializationProfile::blueprint) {
-        auto& ref = archive["geometry"] = nlohmann::json::array();
-        for (const auto& g : obj->geometry) {
-            ref.push_back({g.x, g.y, g.z});
-        }
-    }
-
-    archive["linked_to"] = obj->linked_to;
-
-    archive["faction"] = obj->faction;
-    archive["highlight_height"] = obj->highlight_height;
-    archive["type"] = obj->type;
-
-    archive["loadscreen"] = obj->loadscreen;
-    archive["portrait"] = obj->portrait;
-
-    archive["cursor"] = obj->cursor;
-    archive["linked_to_flags"] = obj->linked_to_flags;
-
-    return true;
-}
+#endif // ROLLNW_ENABLE_LEGACY
 
 } // namespace nw

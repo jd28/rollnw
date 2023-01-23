@@ -38,6 +38,20 @@ TEST_CASE("player: level history", "[objects]")
     nwk::unload_module();
 }
 
+TEST_CASE("player: attack_bonus", "[objects]")
+{
+    auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
+    REQUIRE(mod);
+
+    auto pl = nwk::objects().load_player("CDKEY", "testbardrddpc1");
+    REQUIRE(pl);
+    REQUIRE(nwn1::base_attack_bonus(pl) == 10);
+
+    nwk::unload_module();
+}
+
+#ifdef ROLLNW_ENABLE_LEGACY
+
 TEST_CASE("player: to gffjson", "[objects]")
 {
     auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
@@ -54,14 +68,4 @@ TEST_CASE("player: to gffjson", "[objects]")
     nwk::unload_module();
 }
 
-TEST_CASE("player: attack_bonus", "[objects]")
-{
-    auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
-    REQUIRE(mod);
-
-    auto pl = nwk::objects().load_player("CDKEY", "testbardrddpc1");
-    REQUIRE(pl);
-    REQUIRE(nwn1::base_attack_bonus(pl) == 10);
-
-    nwk::unload_module();
-}
+#endif // ROLLNW_ENABLE_LEGACY

@@ -10,16 +10,6 @@
 
 namespace fs = std::filesystem;
 
-TEST_CASE("door: from_gff", "[objects]")
-{
-    auto door = nw::kernel::objects().load<nw::Door>(fs::path("test_data/user/development/door_ttr_002.utd"));
-
-    REQUIRE(door->common.resref == "door_ttr_002");
-    REQUIRE(door->appearance == 0);
-    REQUIRE(!door->plot);
-    REQUIRE(!door->lock.locked);
-}
-
 TEST_CASE("door: to_json", "[objects]")
 {
     auto door = nw::kernel::objects().load<nw::Door>(fs::path("test_data/user/development/door_ttr_002.utd"));
@@ -38,6 +28,18 @@ TEST_CASE("door: to_json", "[objects]")
     f << std::setw(4) << j;
 }
 
+#ifdef ROLLNW_ENABLE_LEGACY
+
+TEST_CASE("door: from_gff", "[objects]")
+{
+    auto door = nw::kernel::objects().load<nw::Door>(fs::path("test_data/user/development/door_ttr_002.utd"));
+
+    REQUIRE(door->common.resref == "door_ttr_002");
+    REQUIRE(door->appearance == 0);
+    REQUIRE(!door->plot);
+    REQUIRE(!door->lock.locked);
+}
+
 TEST_CASE("door: gff round trip", "[ojbects]")
 {
     nw::Gff g("test_data/user/development/door_ttr_002.utd");
@@ -45,7 +47,7 @@ TEST_CASE("door: gff round trip", "[ojbects]")
 
     auto door = nw::kernel::objects().load<nw::Door>(fs::path("test_data/user/development/door_ttr_002.utd"));
 
-    nw::GffBuilder oa = nw::Door::serialize(door, nw::SerializationProfile::blueprint);
+    nw::GffBuilder oa = serialize(door, nw::SerializationProfile::blueprint);
     oa.write_to("tmp/door_ttr_002.utd");
 
     nw::Gff g2("tmp/door_ttr_002.utd");
@@ -65,3 +67,5 @@ TEST_CASE("door: gff round trip", "[ojbects]")
     REQUIRE(oa.header.list_idx_offset == g.head_->list_idx_offset);
     REQUIRE(oa.header.list_idx_count == g.head_->list_idx_count);
 }
+
+#endif // ROLLNW_ENABLE_LEGACY

@@ -822,7 +822,7 @@ TEST_CASE("creature: gff round trip", "[ojbects]")
     REQUIRE(ent);
 
     nw::Gff g("test_data/user/development/pl_agent_001.utc");
-    nw::GffBuilder oa = nw::Creature::serialize(ent, nw::SerializationProfile::blueprint);
+    nw::GffBuilder oa = serialize(ent, nw::SerializationProfile::blueprint);
     oa.write_to("tmp/pl_agent_001_2.utc");
 
     // Note: the below will typically always fail because the toolset,

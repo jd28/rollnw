@@ -51,7 +51,7 @@ nw::Player* ObjectSystem::load_player(std::string_view cdkey, std::string_view r
 
     auto obj = make<nw::Player>();
     Gff in{std::move(ba)};
-    Player::deserialize(obj, in.toplevel());
+    deserialize(obj, in.toplevel());
 
     return obj;
 }
@@ -62,7 +62,7 @@ Area* ObjectSystem::make_area(Resref area)
     Gff git{resman().demand({area, ResourceType::git})};
     Gff gic{resman().demand({area, ResourceType::gic})};
     Area* obj = make<Area>();
-    Area::deserialize(obj, are.toplevel(), git.toplevel(), gic.toplevel());
+    deserialize(obj, are.toplevel(), git.toplevel(), gic.toplevel());
     return obj;
 }
 

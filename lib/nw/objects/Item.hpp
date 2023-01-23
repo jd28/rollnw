@@ -25,10 +25,7 @@ struct Item : public ObjectBase {
     virtual bool instantiate() override;
 
     // Serialization
-    static bool deserialize(Item* obj, const GffStruct& archive, SerializationProfile profile);
     static bool deserialize(Item* obj, const nlohmann::json& archive, SerializationProfile profile);
-    static GffBuilder serialize(const Item* obj, SerializationProfile profile);
-    static bool serialize(const Item* obj, GffBuilderStruct& archive, SerializationProfile profile);
     static bool serialize(const Item* obj, nlohmann::json& archive, SerializationProfile profile);
 
     Common common;
@@ -59,5 +56,11 @@ struct Item : public ObjectBase {
 
     bool instantiated_ = false;
 };
+
+#ifdef ROLLNW_ENABLE_LEGACY
+bool deserialize(Item* obj, const GffStruct& archive, SerializationProfile profile);
+GffBuilder serialize(const Item* obj, SerializationProfile profile);
+bool serialize(const Item* obj, GffBuilderStruct& archive, SerializationProfile profile);
+#endif // ROLLNW_ENABLE_LEGACY
 
 } // namespace nw

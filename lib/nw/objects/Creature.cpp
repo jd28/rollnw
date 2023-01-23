@@ -134,65 +134,6 @@ Versus Creature::versus_me() const
     return result;
 }
 
-bool Creature::deserialize(Creature* obj, const GffStruct& archive, SerializationProfile profile)
-{
-    if (!obj) {
-        throw std::runtime_error("unable to serialize null object");
-    }
-
-    obj->common.from_gff(archive, profile, ObjectType::creature);
-    obj->appearance.from_gff(archive);
-    obj->combat_info.from_gff(archive);
-    obj->equipment.from_gff(archive, profile);
-    obj->inventory.from_gff(archive, profile);
-    obj->levels.from_gff(archive);
-    obj->scripts.from_gff(archive);
-    obj->stats.from_gff(archive);
-
-    archive.get_to("Conversation", obj->conversation);
-    archive.get_to("Deity", obj->deity);
-    archive.get_to("Description", obj->description);
-    archive.get_to("FirstName", obj->name_first);
-    archive.get_to("LastName", obj->name_last);
-    archive.get_to("Subrace", obj->subrace);
-
-    archive.get_to("ChallengeRating", obj->cr);
-    archive.get_to("CRAdjust", obj->cr_adjust);
-    archive.get_to("DecayTime", obj->decay_time, false);
-    archive.get_to("WalkRate", obj->walkrate);
-
-    archive.get_to("FactionID", obj->faction_id);
-    archive.get_to("CurrentHitPoints", obj->hp_current);
-    archive.get_to("HitPoints", obj->hp);
-    archive.get_to("MaxHitPoints", obj->hp_max);
-    archive.get_to("SoundSetFile", obj->soundset);
-
-    archive.get_to("BodyBag", obj->bodybag);
-    archive.get_to("NoPermDeath", obj->chunk_death);
-    archive.get_to("Disarmable", obj->disarmable);
-    archive.get_to("Gender", obj->gender);
-    archive.get_to("GoodEvil", obj->good_evil);
-    archive.get_to("IsImmortal", obj->immortal, false);
-    archive.get_to("Interruptable", obj->interruptable);
-    archive.get_to("LawfulChaotic", obj->lawful_chaotic);
-    archive.get_to("Lootable", obj->lootable, false);
-    archive.get_to("IsPC", obj->pc);
-    archive.get_to("PerceptionRange", obj->perception_range);
-    archive.get_to("Plot", obj->plot);
-
-    uint8_t temp;
-    if (archive.get_to("Race", temp)) {
-        obj->race = Race::make(temp);
-    }
-
-    archive.get_to("StartingPackage", obj->starting_package, false);
-
-    if (profile == nw::SerializationProfile::instance) {
-        obj->instantiated_ = true;
-    }
-    return true;
-}
-
 bool Creature::deserialize(Creature* obj, const nlohmann::json& archive, SerializationProfile profile)
 {
     if (!obj) {
@@ -253,7 +194,120 @@ bool Creature::deserialize(Creature* obj, const nlohmann::json& archive, Seriali
     return true;
 }
 
-bool Creature::serialize(const Creature* obj, GffBuilderStruct& archive, SerializationProfile profile)
+bool Creature::serialize(const Creature* obj, nlohmann::json& archive,
+    SerializationProfile profile)
+{
+    if (!obj) {
+        throw std::runtime_error("unable to serialize null object");
+    }
+
+    archive["$type"] = "UTC";
+    archive["$version"] = json_archive_version;
+
+    archive["appearance"] = obj->appearance.to_json();
+    archive["combat_info"] = obj->combat_info.to_json();
+    archive["common"] = obj->common.to_json(profile, ObjectType::creature);
+    archive["equipment"] = obj->equipment.to_json(profile);
+    archive["inventory"] = obj->inventory.to_json(profile);
+    archive["levels"] = obj->levels.to_json();
+    archive["scripts"] = obj->scripts.to_json();
+    archive["stats"] = obj->stats.to_json();
+
+    archive["bodybag"] = obj->bodybag;
+    archive["chunk_death"] = obj->chunk_death;
+    archive["conversation"] = obj->conversation;
+    archive["cr_adjust"] = obj->cr_adjust;
+    archive["cr"] = obj->cr;
+    archive["decay_time"] = obj->decay_time;
+    archive["deity"] = obj->deity;
+    archive["description"] = obj->description;
+    archive["disarmable"] = obj->disarmable;
+    archive["faction_id"] = obj->faction_id;
+    archive["gender"] = obj->gender;
+    archive["good_evil"] = obj->good_evil;
+    archive["hp_current"] = obj->hp_current;
+    archive["hp_max"] = obj->hp_max;
+    archive["hp"] = obj->hp;
+    archive["immortal"] = obj->immortal;
+    archive["interruptable"] = obj->interruptable;
+    archive["lawful_chaotic"] = obj->lawful_chaotic;
+    archive["lootable"] = obj->lootable;
+    archive["name_first"] = obj->name_first;
+    archive["name_last"] = obj->name_last;
+    archive["pc"] = obj->pc;
+    archive["perception_range"] = obj->perception_range;
+    archive["plot"] = obj->plot;
+    archive["race"] = obj->race;
+    archive["soundset"] = obj->soundset;
+    archive["starting_package"] = obj->starting_package;
+    archive["subrace"] = obj->subrace;
+    archive["walkrate"] = obj->walkrate;
+
+    return true;
+}
+
+#ifdef ROLLNW_ENABLE_LEGACY
+
+bool deserialize(Creature* obj, const GffStruct& archive, SerializationProfile profile)
+{
+    if (!obj) {
+        throw std::runtime_error("unable to serialize null object");
+    }
+
+    obj->common.from_gff(archive, profile, ObjectType::creature);
+    obj->appearance.from_gff(archive);
+    obj->combat_info.from_gff(archive);
+    obj->equipment.from_gff(archive, profile);
+    obj->inventory.from_gff(archive, profile);
+    obj->levels.from_gff(archive);
+    obj->scripts.from_gff(archive);
+    obj->stats.from_gff(archive);
+
+    archive.get_to("Conversation", obj->conversation);
+    archive.get_to("Deity", obj->deity);
+    archive.get_to("Description", obj->description);
+    archive.get_to("FirstName", obj->name_first);
+    archive.get_to("LastName", obj->name_last);
+    archive.get_to("Subrace", obj->subrace);
+
+    archive.get_to("ChallengeRating", obj->cr);
+    archive.get_to("CRAdjust", obj->cr_adjust);
+    archive.get_to("DecayTime", obj->decay_time, false);
+    archive.get_to("WalkRate", obj->walkrate);
+
+    archive.get_to("FactionID", obj->faction_id);
+    archive.get_to("CurrentHitPoints", obj->hp_current);
+    archive.get_to("HitPoints", obj->hp);
+    archive.get_to("MaxHitPoints", obj->hp_max);
+    archive.get_to("SoundSetFile", obj->soundset);
+
+    archive.get_to("BodyBag", obj->bodybag);
+    archive.get_to("NoPermDeath", obj->chunk_death);
+    archive.get_to("Disarmable", obj->disarmable);
+    archive.get_to("Gender", obj->gender);
+    archive.get_to("GoodEvil", obj->good_evil);
+    archive.get_to("IsImmortal", obj->immortal, false);
+    archive.get_to("Interruptable", obj->interruptable);
+    archive.get_to("LawfulChaotic", obj->lawful_chaotic);
+    archive.get_to("Lootable", obj->lootable, false);
+    archive.get_to("IsPC", obj->pc);
+    archive.get_to("PerceptionRange", obj->perception_range);
+    archive.get_to("Plot", obj->plot);
+
+    uint8_t temp;
+    if (archive.get_to("Race", temp)) {
+        obj->race = Race::make(temp);
+    }
+
+    archive.get_to("StartingPackage", obj->starting_package, false);
+
+    if (profile == nw::SerializationProfile::instance) {
+        obj->instantiated_ = true;
+    }
+    return true;
+}
+
+bool serialize(const Creature* obj, GffBuilderStruct& archive, SerializationProfile profile)
 {
     if (!obj) {
         throw std::runtime_error("unable to serialize null object");
@@ -320,67 +374,17 @@ bool Creature::serialize(const Creature* obj, GffBuilderStruct& archive, Seriali
     return true;
 }
 
-GffBuilder Creature::serialize(const Creature* obj, SerializationProfile profile)
+GffBuilder serialize(const Creature* obj, SerializationProfile profile)
 {
     GffBuilder out{"UTC"};
     if (!obj) {
         throw std::runtime_error("unable to serialize null object");
     }
-    Creature::serialize(obj, out.top, profile);
+    serialize(obj, out.top, profile);
     out.build();
     return out;
 }
 
-bool Creature::serialize(const Creature* obj, nlohmann::json& archive,
-    SerializationProfile profile)
-{
-    if (!obj) {
-        throw std::runtime_error("unable to serialize null object");
-    }
-
-    archive["$type"] = "UTC";
-    archive["$version"] = json_archive_version;
-
-    archive["appearance"] = obj->appearance.to_json();
-    archive["combat_info"] = obj->combat_info.to_json();
-    archive["common"] = obj->common.to_json(profile, ObjectType::creature);
-    archive["equipment"] = obj->equipment.to_json(profile);
-    archive["inventory"] = obj->inventory.to_json(profile);
-    archive["levels"] = obj->levels.to_json();
-    archive["scripts"] = obj->scripts.to_json();
-    archive["stats"] = obj->stats.to_json();
-
-    archive["bodybag"] = obj->bodybag;
-    archive["chunk_death"] = obj->chunk_death;
-    archive["conversation"] = obj->conversation;
-    archive["cr_adjust"] = obj->cr_adjust;
-    archive["cr"] = obj->cr;
-    archive["decay_time"] = obj->decay_time;
-    archive["deity"] = obj->deity;
-    archive["description"] = obj->description;
-    archive["disarmable"] = obj->disarmable;
-    archive["faction_id"] = obj->faction_id;
-    archive["gender"] = obj->gender;
-    archive["good_evil"] = obj->good_evil;
-    archive["hp_current"] = obj->hp_current;
-    archive["hp_max"] = obj->hp_max;
-    archive["hp"] = obj->hp;
-    archive["immortal"] = obj->immortal;
-    archive["interruptable"] = obj->interruptable;
-    archive["lawful_chaotic"] = obj->lawful_chaotic;
-    archive["lootable"] = obj->lootable;
-    archive["name_first"] = obj->name_first;
-    archive["name_last"] = obj->name_last;
-    archive["pc"] = obj->pc;
-    archive["perception_range"] = obj->perception_range;
-    archive["plot"] = obj->plot;
-    archive["race"] = obj->race;
-    archive["soundset"] = obj->soundset;
-    archive["starting_package"] = obj->starting_package;
-    archive["subrace"] = obj->subrace;
-    archive["walkrate"] = obj->walkrate;
-
-    return true;
-}
+#endif // ROLLNW_ENABLE_LEGACY
 
 } // namespace nw

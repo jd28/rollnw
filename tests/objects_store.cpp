@@ -11,18 +11,6 @@
 
 namespace fs = std::filesystem;
 
-TEST_CASE("Loading store blueprint", "[objects]")
-{
-    auto ent = nw::kernel::objects().load<nw::Store>(fs::path("test_data/user/development/storethief002.utm"));
-    REQUIRE(ent);
-
-    REQUIRE(ent->common.resref == "storethief002");
-    REQUIRE(ent->blackmarket);
-    REQUIRE(ent->blackmarket_markdown == 25);
-    REQUIRE(ent->inventory.weapons.items.size() > 0);
-    REQUIRE(std::get<nw::Item*>(ent->inventory.weapons.items[0].item)->common.resref == "nw_wswdg001");
-}
-
 TEST_CASE("store: to_json", "[objects]")
 {
     auto ent = nw::kernel::objects().load<nw::Store>(fs::path("test_data/user/development/storethief002.utm"));
@@ -69,6 +57,20 @@ TEST_CASE("store: json to and from", "[objects]")
     REQUIRE(j == j2);
 }
 
+#ifdef ROLLNW_ENABLE_LEGACY
+
+TEST_CASE("Loading store blueprint", "[objects]")
+{
+    auto ent = nw::kernel::objects().load<nw::Store>(fs::path("test_data/user/development/storethief002.utm"));
+    REQUIRE(ent);
+
+    REQUIRE(ent->common.resref == "storethief002");
+    REQUIRE(ent->blackmarket);
+    REQUIRE(ent->blackmarket_markdown == 25);
+    REQUIRE(ent->inventory.weapons.items.size() > 0);
+    REQUIRE(std::get<nw::Item*>(ent->inventory.weapons.items[0].item)->common.resref == "nw_wswdg001");
+}
+
 TEST_CASE("store: gff round trip", "[ojbects]")
 {
     nw::Gff g("test_data/user/development/storethief002.utm");
@@ -76,9 +78,9 @@ TEST_CASE("store: gff round trip", "[ojbects]")
 
     auto ent = nw::kernel::objects().make<nw::Store>();
     REQUIRE(ent);
-    nw::Store::deserialize(ent, g.toplevel(), nw::SerializationProfile::blueprint);
+    deserialize(ent, g.toplevel(), nw::SerializationProfile::blueprint);
 
-    nw::GffBuilder oa = nw::Store::serialize(ent, nw::SerializationProfile::blueprint);
+    nw::GffBuilder oa = serialize(ent, nw::SerializationProfile::blueprint);
     oa.write_to("tmp/storethief002_2.utm");
 
     nw::Gff g2("tmp/storethief002_2.utm");
@@ -100,3 +102,5 @@ TEST_CASE("store: gff round trip", "[ojbects]")
     REQUIRE(oa.header.list_idx_offset == g.head_->list_idx_offset);
     REQUIRE(oa.header.list_idx_count == g.head_->list_idx_count);
 }
+
+#endif // ROLLNW_ENABLE_LEGACY

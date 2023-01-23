@@ -50,9 +50,9 @@ TEST_CASE("trigger: gff round trip", "[objects]")
 
     auto ent = nw::kernel::objects().make<nw::Trigger>();
     REQUIRE(ent);
-    REQUIRE(nw::Trigger::deserialize(ent, g.toplevel(), nw::SerializationProfile::blueprint));
+    REQUIRE(deserialize(ent, g.toplevel(), nw::SerializationProfile::blueprint));
 
-    nw::GffBuilder oa = nw::Trigger::serialize(ent, nw::SerializationProfile::blueprint);
+    nw::GffBuilder oa = serialize(ent, nw::SerializationProfile::blueprint);
     oa.write_to("tmp/pl_spray_sewage_2.utt");
 
     nw::Gff g2{"tmp/pl_spray_sewage_2.utt"};

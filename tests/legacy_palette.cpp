@@ -1,7 +1,9 @@
+#ifdef ROLLNW_ENABLE_LEGACY
+
 #include <catch2/catch_all.hpp>
 
-#include <nw/formats/Palette.hpp>
-#include <nw/serialization/Serialization.hpp>
+#include <nw/legacy/Palette.hpp>
+#include <nw/serialization/Archives.hpp>
 
 #include <nlohmann/json.hpp>
 
@@ -57,3 +59,5 @@ TEST_CASE("palette: to json")
     std::ofstream f2{"tmp/creaturepalstd.itp.json"};
     f2 << std::setw(4) << j2;
 }
+
+#endif // ROLLNW_ENABLE_LEGACY

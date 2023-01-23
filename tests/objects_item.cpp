@@ -120,7 +120,7 @@ TEST_CASE("item: gff round trip", "[objects]")
     nw::Gff g("test_data/user/development/cloth028.uti");
     REQUIRE(g.valid());
 
-    nw::GffBuilder oa = nw::Item::serialize(ent, nw::SerializationProfile::blueprint);
+    nw::GffBuilder oa = serialize(ent, nw::SerializationProfile::blueprint);
     oa.write_to("tmp/cloth028.uti");
 
     nw::Gff g2{"tmp/cloth028.uti"};

@@ -9,53 +9,6 @@ Sound::Sound()
     set_handle({object_invalid, ObjectType::sound, 0});
 }
 
-bool Sound::deserialize(Sound* obj, const GffStruct& archive, SerializationProfile profile)
-{
-    if (!obj) {
-        throw std::runtime_error("unable to serialize null object");
-    }
-
-    obj->common.from_gff(archive, profile, ObjectType::sound);
-
-    size_t sz = archive["Sounds"].size();
-    obj->sounds.resize(sz);
-    for (size_t i = 0; i < sz; ++i) {
-        archive["Sounds"][i].get_to("Sound", obj->sounds[i]);
-    }
-
-    archive.get_to("MaxDistance", obj->distance_max);
-    archive.get_to("MinDistance", obj->distance_min);
-    archive.get_to("Elevation", obj->elevation);
-
-    if (profile == SerializationProfile::instance) {
-        archive.get_to("GeneratedType", obj->generated_type);
-    }
-
-    archive.get_to("Hours", obj->hours);
-    archive.get_to("Interval", obj->interval);
-    archive.get_to("IntervalVrtn", obj->interval_variation);
-    archive.get_to("PitchVariation", obj->pitch_variation);
-    archive.get_to("RandomRangeX", obj->random_x);
-    archive.get_to("RandomRangeY", obj->random_y);
-
-    archive.get_to("Active", obj->active);
-    archive.get_to("Continuous", obj->continuous);
-    archive.get_to("Looping", obj->looping);
-    archive.get_to("Positional", obj->positional);
-    archive.get_to("Priority", obj->priority);
-    archive.get_to("Random", obj->random);
-    archive.get_to("RandomPosition", obj->random_position);
-    archive.get_to("Times", obj->times);
-    archive.get_to("Volume", obj->volume);
-    archive.get_to("VolumeVrtn", obj->volume_variation);
-
-    if (profile == nw::SerializationProfile::instance) {
-        obj->instantiated_ = true;
-    }
-
-    return true;
-}
-
 bool Sound::deserialize(Sound* obj, const nlohmann::json& archive, SerializationProfile profile)
 {
     if (!obj) {
@@ -104,7 +57,95 @@ bool Sound::deserialize(Sound* obj, const nlohmann::json& archive, Serialization
     return true;
 }
 
-bool Sound::serialize(const Sound* obj, GffBuilderStruct& archive, SerializationProfile profile)
+void Sound::serialize(const Sound* obj, nlohmann::json& archive, SerializationProfile profile)
+{
+    if (!obj) {
+        throw std::runtime_error("unable to serialize null object");
+    }
+
+    archive["$type"] = "UTS";
+    archive["$version"] = json_archive_version;
+
+    archive["common"] = obj->common.to_json(profile, ObjectType::sound);
+    archive["sounds"] = obj->sounds;
+
+    archive["distance_min"] = obj->distance_min;
+    archive["distance_max"] = obj->distance_max;
+    archive["elevation"] = obj->elevation;
+
+    if (profile == SerializationProfile::instance) {
+        archive["generated_type"] = obj->generated_type;
+    }
+
+    archive["hours"] = obj->hours;
+    archive["interval"] = obj->interval;
+    archive["interval_variation"] = obj->interval_variation;
+    archive["pitch_variation"] = obj->pitch_variation;
+    archive["random_x"] = obj->random_x;
+    archive["random_y"] = obj->random_y;
+
+    archive["active"] = obj->active;
+    archive["continuous"] = obj->continuous;
+    archive["looping"] = obj->looping;
+    archive["positional"] = obj->positional;
+    archive["priority"] = obj->priority;
+    archive["random"] = obj->random;
+    archive["random_position"] = obj->random_position;
+    archive["times"] = obj->times;
+    archive["volume"] = obj->volume;
+    archive["volume_variation"] = obj->volume_variation;
+}
+
+#ifdef ROLLNW_ENABLE_LEGACY
+
+bool deserialize(Sound* obj, const GffStruct& archive, SerializationProfile profile)
+{
+    if (!obj) {
+        throw std::runtime_error("unable to serialize null object");
+    }
+
+    obj->common.from_gff(archive, profile, ObjectType::sound);
+
+    size_t sz = archive["Sounds"].size();
+    obj->sounds.resize(sz);
+    for (size_t i = 0; i < sz; ++i) {
+        archive["Sounds"][i].get_to("Sound", obj->sounds[i]);
+    }
+
+    archive.get_to("MaxDistance", obj->distance_max);
+    archive.get_to("MinDistance", obj->distance_min);
+    archive.get_to("Elevation", obj->elevation);
+
+    if (profile == SerializationProfile::instance) {
+        archive.get_to("GeneratedType", obj->generated_type);
+    }
+
+    archive.get_to("Hours", obj->hours);
+    archive.get_to("Interval", obj->interval);
+    archive.get_to("IntervalVrtn", obj->interval_variation);
+    archive.get_to("PitchVariation", obj->pitch_variation);
+    archive.get_to("RandomRangeX", obj->random_x);
+    archive.get_to("RandomRangeY", obj->random_y);
+
+    archive.get_to("Active", obj->active);
+    archive.get_to("Continuous", obj->continuous);
+    archive.get_to("Looping", obj->looping);
+    archive.get_to("Positional", obj->positional);
+    archive.get_to("Priority", obj->priority);
+    archive.get_to("Random", obj->random);
+    archive.get_to("RandomPosition", obj->random_position);
+    archive.get_to("Times", obj->times);
+    archive.get_to("Volume", obj->volume);
+    archive.get_to("VolumeVrtn", obj->volume_variation);
+
+    if (profile == nw::SerializationProfile::instance) {
+        obj->instantiated_ = true;
+    }
+
+    return true;
+}
+
+bool serialize(const Sound* obj, GffBuilderStruct& archive, SerializationProfile profile)
 {
     if (!obj) {
         throw std::runtime_error("unable to serialize null object");
@@ -161,55 +202,18 @@ bool Sound::serialize(const Sound* obj, GffBuilderStruct& archive, Serialization
     return true;
 }
 
-GffBuilder Sound::serialize(const Sound* obj, SerializationProfile profile)
+GffBuilder serialize(const Sound* obj, SerializationProfile profile)
 {
     GffBuilder result{"UTS"};
     if (!obj) {
         throw std::runtime_error("unable to serialize null object");
     }
 
-    Sound::serialize(obj, result.top, profile);
+    serialize(obj, result.top, profile);
     result.build();
     return result;
 }
 
-void Sound::serialize(const Sound* obj, nlohmann::json& archive, SerializationProfile profile)
-{
-    if (!obj) {
-        throw std::runtime_error("unable to serialize null object");
-    }
-
-    archive["$type"] = "UTS";
-    archive["$version"] = json_archive_version;
-
-    archive["common"] = obj->common.to_json(profile, ObjectType::sound);
-    archive["sounds"] = obj->sounds;
-
-    archive["distance_min"] = obj->distance_min;
-    archive["distance_max"] = obj->distance_max;
-    archive["elevation"] = obj->elevation;
-
-    if (profile == SerializationProfile::instance) {
-        archive["generated_type"] = obj->generated_type;
-    }
-
-    archive["hours"] = obj->hours;
-    archive["interval"] = obj->interval;
-    archive["interval_variation"] = obj->interval_variation;
-    archive["pitch_variation"] = obj->pitch_variation;
-    archive["random_x"] = obj->random_x;
-    archive["random_y"] = obj->random_y;
-
-    archive["active"] = obj->active;
-    archive["continuous"] = obj->continuous;
-    archive["looping"] = obj->looping;
-    archive["positional"] = obj->positional;
-    archive["priority"] = obj->priority;
-    archive["random"] = obj->random;
-    archive["random_position"] = obj->random_position;
-    archive["times"] = obj->times;
-    archive["volume"] = obj->volume;
-    archive["volume_variation"] = obj->volume_variation;
-}
+#endif // ROLLNW_ENABLE_LEGACY
 
 } // namespace nw

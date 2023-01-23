@@ -20,7 +20,7 @@ TEST_CASE("area: from_gff", "[objects]")
     nw::Gff gic{"test_data/user/development/test_area.gic"};
     REQUIRE(gic.valid());
 
-    nw::Area::deserialize(ent, are.toplevel(), git.toplevel(), gic.toplevel());
+    deserialize(ent, are.toplevel(), git.toplevel(), gic.toplevel());
 
     REQUIRE(ent->tileset == "ttf02");
     REQUIRE(!(ent->flags & nw::AreaFlags::interior));
@@ -45,7 +45,7 @@ TEST_CASE("area: json roundtrip", "[objects]")
     nw::Gff gic{"test_data/user/development/test_area.gic"};
     REQUIRE(gic.valid());
 
-    nw::Area::deserialize(ent, are.toplevel(), git.toplevel(), gic.toplevel());
+    deserialize(ent, are.toplevel(), git.toplevel(), gic.toplevel());
 
     nlohmann::json j;
     nw::Area::serialize(ent, j);

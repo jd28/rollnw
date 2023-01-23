@@ -44,7 +44,7 @@ bool Inventory::from_gff(const GffStruct& archive, SerializationProfile profile)
             }
         } else if (SerializationProfile::instance == profile) {
             auto temp = kernel::objects().make<Item>();
-            Item::deserialize(temp, st, profile);
+            deserialize(temp, st, profile);
             ii.item = temp;
             if (!temp) {
                 valid_entry = false;
@@ -120,7 +120,7 @@ bool Inventory::to_gff(GffBuilderStruct& archive, SerializationProfile profile) 
                 str.add_field("InventoryRes", std::get<Item*>(it.item)->common.resref);
             }
         } else {
-            Item::serialize(std::get<Item*>(it.item), str, profile);
+            serialize(std::get<Item*>(it.item), str, profile);
         }
     }
     return true;

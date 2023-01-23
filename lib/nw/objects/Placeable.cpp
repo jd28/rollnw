@@ -102,7 +102,91 @@ bool Placeable::instantiate()
     return instantiated_ = inventory.instantiate();
 }
 
-bool Placeable::deserialize(Placeable* obj, const GffStruct& archive, SerializationProfile profile)
+bool Placeable::deserialize(Placeable* obj, const nlohmann::json& archive, SerializationProfile profile)
+{
+    if (!obj) {
+        throw std::runtime_error("unable to serialize null object");
+    }
+
+    try {
+        obj->common.from_json(archive.at("common"), profile, ObjectType::placeable);
+        obj->inventory.from_json(archive.at("inventory"), profile);
+        obj->lock.from_json(archive.at("lock"));
+        obj->scripts.from_json(archive.at("scripts"));
+        obj->trap.from_json(archive.at("trap"));
+
+        archive.at("conversation").get_to(obj->conversation);
+        archive.at("description").get_to(obj->description);
+        archive.at("saves").get_to(obj->saves);
+
+        archive.at("appearance").get_to(obj->appearance);
+        archive.at("faction").get_to(obj->faction);
+
+        archive.at("hp").get_to(obj->hp);
+        archive.at("hp_current").get_to(obj->hp_current);
+        archive.at("portrait_id").get_to(obj->portrait_id);
+
+        archive.at("animation_state").get_to(obj->animation_state);
+        archive.at("bodybag").get_to(obj->bodybag);
+        archive.at("has_inventory").get_to(obj->has_inventory);
+        archive.at("hardness").get_to(obj->hardness);
+        archive.at("interruptable").get_to(obj->interruptable);
+        archive.at("plot").get_to(obj->plot);
+        archive.at("static").get_to(obj->static_);
+        archive.at("useable").get_to(obj->useable);
+    } catch (const nlohmann::json::exception& e) {
+        LOG_F(ERROR, "Placeable::from_json exception {}", e.what());
+        return false;
+    }
+
+    if (profile == nw::SerializationProfile::instance) {
+        obj->instantiated_ = true;
+    }
+
+    return true;
+}
+
+bool Placeable::serialize(const Placeable* obj, nlohmann::json& archive, SerializationProfile profile)
+{
+    if (!obj) {
+        throw std::runtime_error("unable to serialize null object");
+    }
+
+    archive["$type"] = "UTP";
+    archive["$version"] = json_archive_version;
+
+    archive["common"] = obj->common.to_json(profile, ObjectType::placeable);
+    archive["inventory"] = obj->inventory.to_json(profile);
+    archive["lock"] = obj->lock.to_json();
+    archive["scripts"] = obj->scripts.to_json();
+    archive["trap"] = obj->trap.to_json();
+
+    archive["description"] = obj->description;
+    archive["conversation"] = obj->conversation;
+    archive["saves"] = obj->saves;
+
+    archive["appearance"] = obj->appearance;
+    archive["faction"] = obj->faction;
+
+    archive["hp"] = obj->hp;
+    archive["hp_current"] = obj->hp_current;
+    archive["portrait_id"] = obj->portrait_id;
+
+    archive["animation_state"] = obj->animation_state;
+    archive["bodybag"] = obj->bodybag;
+    archive["has_inventory"] = obj->has_inventory;
+    archive["useable"] = obj->useable;
+    archive["static"] = obj->static_;
+    archive["hardness"] = obj->hardness;
+    archive["interruptable"] = obj->interruptable;
+    archive["plot"] = obj->plot;
+
+    return true;
+}
+
+#ifdef ROLLNW_ENABLE_LEGACY
+
+bool deserialize(Placeable* obj, const GffStruct& archive, SerializationProfile profile)
 {
     if (!obj) {
         throw std::runtime_error("unable to serialize null object");
@@ -151,51 +235,7 @@ bool Placeable::deserialize(Placeable* obj, const GffStruct& archive, Serializat
     return true;
 }
 
-bool Placeable::deserialize(Placeable* obj, const nlohmann::json& archive, SerializationProfile profile)
-{
-    if (!obj) {
-        throw std::runtime_error("unable to serialize null object");
-    }
-
-    try {
-        obj->common.from_json(archive.at("common"), profile, ObjectType::placeable);
-        obj->inventory.from_json(archive.at("inventory"), profile);
-        obj->lock.from_json(archive.at("lock"));
-        obj->scripts.from_json(archive.at("scripts"));
-        obj->trap.from_json(archive.at("trap"));
-
-        archive.at("conversation").get_to(obj->conversation);
-        archive.at("description").get_to(obj->description);
-        archive.at("saves").get_to(obj->saves);
-
-        archive.at("appearance").get_to(obj->appearance);
-        archive.at("faction").get_to(obj->faction);
-
-        archive.at("hp").get_to(obj->hp);
-        archive.at("hp_current").get_to(obj->hp_current);
-        archive.at("portrait_id").get_to(obj->portrait_id);
-
-        archive.at("animation_state").get_to(obj->animation_state);
-        archive.at("bodybag").get_to(obj->bodybag);
-        archive.at("has_inventory").get_to(obj->has_inventory);
-        archive.at("hardness").get_to(obj->hardness);
-        archive.at("interruptable").get_to(obj->interruptable);
-        archive.at("plot").get_to(obj->plot);
-        archive.at("static").get_to(obj->static_);
-        archive.at("useable").get_to(obj->useable);
-    } catch (const nlohmann::json::exception& e) {
-        LOG_F(ERROR, "Placeable::from_json exception {}", e.what());
-        return false;
-    }
-
-    if (profile == nw::SerializationProfile::instance) {
-        obj->instantiated_ = true;
-    }
-
-    return true;
-}
-
-bool Placeable::serialize(const Placeable* obj, GffBuilderStruct& archive, SerializationProfile profile)
+bool serialize(const Placeable* obj, GffBuilderStruct& archive, SerializationProfile profile)
 {
     if (!obj) {
         throw std::runtime_error("unable to serialize null object");
@@ -253,54 +293,18 @@ bool Placeable::serialize(const Placeable* obj, GffBuilderStruct& archive, Seria
     return true;
 }
 
-GffBuilder Placeable::serialize(const Placeable* obj, SerializationProfile profile)
+GffBuilder serialize(const Placeable* obj, SerializationProfile profile)
 {
     GffBuilder out{"UTP"};
     if (!obj) {
         throw std::runtime_error("unable to serialize null object");
     }
 
-    Placeable::serialize(obj, out.top, profile);
+    serialize(obj, out.top, profile);
     out.build();
     return out;
 }
 
-bool Placeable::serialize(const Placeable* obj, nlohmann::json& archive, SerializationProfile profile)
-{
-    if (!obj) {
-        throw std::runtime_error("unable to serialize null object");
-    }
-
-    archive["$type"] = "UTP";
-    archive["$version"] = json_archive_version;
-
-    archive["common"] = obj->common.to_json(profile, ObjectType::placeable);
-    archive["inventory"] = obj->inventory.to_json(profile);
-    archive["lock"] = obj->lock.to_json();
-    archive["scripts"] = obj->scripts.to_json();
-    archive["trap"] = obj->trap.to_json();
-
-    archive["description"] = obj->description;
-    archive["conversation"] = obj->conversation;
-    archive["saves"] = obj->saves;
-
-    archive["appearance"] = obj->appearance;
-    archive["faction"] = obj->faction;
-
-    archive["hp"] = obj->hp;
-    archive["hp_current"] = obj->hp_current;
-    archive["portrait_id"] = obj->portrait_id;
-
-    archive["animation_state"] = obj->animation_state;
-    archive["bodybag"] = obj->bodybag;
-    archive["has_inventory"] = obj->has_inventory;
-    archive["useable"] = obj->useable;
-    archive["static"] = obj->static_;
-    archive["hardness"] = obj->hardness;
-    archive["interruptable"] = obj->interruptable;
-    archive["plot"] = obj->plot;
-
-    return true;
-}
+#endif // ROLLNW_ENABLE_LEGACY
 
 } // namespace nw

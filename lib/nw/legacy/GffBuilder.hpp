@@ -1,8 +1,8 @@
 #pragma once
 
 #include "../i18n/conversion.hpp"
+#include "../serialization/Serialization.hpp"
 #include "../util/templates.hpp"
-#include "Serialization.hpp"
 #include "gff_common.hpp"
 
 #include <cstdint>

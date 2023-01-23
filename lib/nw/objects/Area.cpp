@@ -191,74 +191,6 @@ Area::Area()
 
 bool Area::instantiate() { return true; }
 
-bool Area::deserialize(Area* obj, const GffStruct& are, const GffStruct& git, const GffStruct& gic)
-{
-    if (!obj) {
-        throw std::runtime_error("unable to serialize null object");
-    }
-    // [TODO] Load this..
-    ROLLNW_UNUSED(gic);
-
-    obj->common.from_gff(are, SerializationProfile::any, ObjectType::area);
-    obj->scripts.from_gff(are);
-    obj->weather.from_gff(are);
-
-#define GIT_LIST(name, holder, type)                                                \
-    do {                                                                            \
-        auto st = git[name];                                                        \
-        auto sz = st.size();                                                        \
-        holder.reserve(sz);                                                         \
-        for (size_t i = 0; i < sz; ++i) {                                           \
-            auto o = nw::kernel::objects().make<type>();                            \
-            if (o && type::deserialize(o, st[i], SerializationProfile::instance)) { \
-                holder.push_back(o);                                                \
-                holder.back()->instantiate();                                       \
-            } else {                                                                \
-                LOG_F(WARNING, "Something dreadfully wrong.");                      \
-            }                                                                       \
-        }                                                                           \
-    } while (0)
-
-    GIT_LIST("Creature List", obj->creatures, Creature);
-    GIT_LIST("Door List", obj->doors, Door);
-    GIT_LIST("Encounter List", obj->encounters, Encounter);
-    GIT_LIST("List", obj->items, Item);
-    GIT_LIST("Placeable List", obj->placeables, Placeable);
-    GIT_LIST("SoundList", obj->sounds, Sound);
-    GIT_LIST("StoreList", obj->stores, Store);
-    GIT_LIST("TriggerList", obj->triggers, Trigger);
-    GIT_LIST("WaypointList", obj->waypoints, Waypoint);
-
-#undef GIT_LIST
-
-    are.get_to("Name", obj->name);
-
-    auto st = are["Tile_List"];
-    size_t sz = st.size();
-    obj->tiles.resize(sz);
-    for (size_t i = 0; i < sz; ++i) {
-        obj->tiles[i].from_gff(st[i]);
-    }
-    are.get_to("Tileset", obj->tileset);
-
-    are.get_to("Flags", obj->flags);
-    are.get_to("Height", obj->height);
-    are.get_to("ID", obj->id);
-    are.get_to("ModListenCheck", obj->listen_check_mod);
-    are.get_to("ModSpotCheck", obj->spot_check_mod);
-    are.get_to("Version", obj->version);
-    are.get_to("Width", obj->width);
-
-    are.get_to("LoadScreenID", obj->loadscreen);
-
-    are.get_to("NoRest", obj->no_rest);
-    are.get_to("PlayerVsPlayer", obj->pvp);
-    are.get_to("ShadowOpacity", obj->shadow_opacity);
-    are.get_to("SkyBox", obj->skybox);
-
-    return true;
-}
-
 bool Area::deserialize(Area* obj, const nlohmann::json& caf)
 {
     if (!obj) {
@@ -402,5 +334,77 @@ void Area::serialize(const Area* obj, nlohmann::json& archive)
 }
 
 #undef OBJECT_LIST_TO_JSON
+
+#ifdef ROLLNW_ENABLE_LEGACY
+
+bool deserialize(Area* obj, const GffStruct& are, const GffStruct& git, const GffStruct& gic)
+{
+    if (!obj) {
+        throw std::runtime_error("unable to serialize null object");
+    }
+    // [TODO] Load this..
+    ROLLNW_UNUSED(gic);
+
+    obj->common.from_gff(are, SerializationProfile::any, ObjectType::area);
+    obj->scripts.from_gff(are);
+    obj->weather.from_gff(are);
+
+#define GIT_LIST(name, holder, type)                                          \
+    do {                                                                      \
+        auto st = git[name];                                                  \
+        auto sz = st.size();                                                  \
+        holder.reserve(sz);                                                   \
+        for (size_t i = 0; i < sz; ++i) {                                     \
+            auto o = nw::kernel::objects().make<type>();                      \
+            if (o && deserialize(o, st[i], SerializationProfile::instance)) { \
+                holder.push_back(o);                                          \
+                holder.back()->instantiate();                                 \
+            } else {                                                          \
+                LOG_F(WARNING, "Something dreadfully wrong.");                \
+            }                                                                 \
+        }                                                                     \
+    } while (0)
+
+    GIT_LIST("Creature List", obj->creatures, Creature);
+    GIT_LIST("Door List", obj->doors, Door);
+    GIT_LIST("Encounter List", obj->encounters, Encounter);
+    GIT_LIST("List", obj->items, Item);
+    GIT_LIST("Placeable List", obj->placeables, Placeable);
+    GIT_LIST("SoundList", obj->sounds, Sound);
+    GIT_LIST("StoreList", obj->stores, Store);
+    GIT_LIST("TriggerList", obj->triggers, Trigger);
+    GIT_LIST("WaypointList", obj->waypoints, Waypoint);
+
+#undef GIT_LIST
+
+    are.get_to("Name", obj->name);
+
+    auto st = are["Tile_List"];
+    size_t sz = st.size();
+    obj->tiles.resize(sz);
+    for (size_t i = 0; i < sz; ++i) {
+        obj->tiles[i].from_gff(st[i]);
+    }
+    are.get_to("Tileset", obj->tileset);
+
+    are.get_to("Flags", obj->flags);
+    are.get_to("Height", obj->height);
+    are.get_to("ID", obj->id);
+    are.get_to("ModListenCheck", obj->listen_check_mod);
+    are.get_to("ModSpotCheck", obj->spot_check_mod);
+    are.get_to("Version", obj->version);
+    are.get_to("Width", obj->width);
+
+    are.get_to("LoadScreenID", obj->loadscreen);
+
+    are.get_to("NoRest", obj->no_rest);
+    are.get_to("PlayerVsPlayer", obj->pvp);
+    are.get_to("ShadowOpacity", obj->shadow_opacity);
+    are.get_to("SkyBox", obj->skybox);
+
+    return true;
+}
+
+#endif // ROLLNW_ENABLE_LEGACY
 
 } // namespace nw

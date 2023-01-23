@@ -39,10 +39,7 @@ struct Trigger : public ObjectBase {
     virtual Versus versus_me() const override;
 
     // Serialization
-    static bool deserialize(Trigger* obj, const GffStruct& archive, SerializationProfile profile);
     static bool deserialize(Trigger* obj, const nlohmann::json& archive, SerializationProfile profile);
-    static GffBuilder serialize(const Trigger* obj, SerializationProfile profile);
-    static bool serialize(const Trigger* obj, GffBuilderStruct& archive, SerializationProfile profile);
     static bool serialize(const Trigger* obj, nlohmann::json& archive, SerializationProfile profile);
 
     Common common;
@@ -63,5 +60,11 @@ struct Trigger : public ObjectBase {
 
     bool instantiated_ = false;
 };
+
+#ifdef ROLLNW_ENABLE_LEGACY
+bool deserialize(Trigger* obj, const GffStruct& archive, SerializationProfile profile);
+GffBuilder serialize(const Trigger* obj, SerializationProfile profile);
+bool serialize(const Trigger* obj, GffBuilderStruct& archive, SerializationProfile profile);
+#endif // ROLLNW_ENABLE_LEGACY
 
 } // namespace nw

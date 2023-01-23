@@ -1,13 +1,9 @@
 #pragma once
 
-#include "Gff.hpp"
-#include "GffBuilder.hpp"
+#ifdef ROLLNW_ENABLE_LEGACY
+#include "../legacy/Gff.hpp"
+#include "../legacy/GffBuilder.hpp"
+#include "../legacy/gff_conversion.hpp"
+#endif // ROLLNW_ENABLE_LEGACY
 
 #include <nlohmann/json_fwd.hpp>
-
-namespace nw {
-
-/// Convert a Gff to JSON (nwn-lib/neverwinter.nim format, I think.)
-nlohmann::json gff_to_gffjson(const Gff& gff);
-
-} // namespace nw

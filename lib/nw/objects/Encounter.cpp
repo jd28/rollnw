@@ -119,7 +119,101 @@ Encounter::Encounter()
     set_handle({object_invalid, ObjectType::encounter, 0});
 }
 
-bool Encounter::deserialize(Encounter* obj, const GffStruct& archive, SerializationProfile profile)
+bool Encounter::deserialize(Encounter* obj, const nlohmann::json& archive, SerializationProfile profile)
+{
+    if (!obj) {
+        throw std::runtime_error("unable to serialize null object");
+    }
+
+    obj->common.from_json(archive.at("common"), profile, ObjectType::encounter);
+    obj->scripts.from_json(archive.at("scripts"));
+
+    auto& arr = archive.at("creatures");
+    obj->creatures.resize(arr.size());
+    for (size_t i = 0; i < arr.size(); ++i) {
+        obj->creatures[i].from_json(arr[i]);
+    }
+
+    if (profile == SerializationProfile::instance) {
+        const auto& g = archive.at("geometry");
+        for (const auto& geom : g) {
+            obj->geometry.emplace_back(geom[0].get<float>(), geom[1].get<float>(), geom[2].get<float>());
+        }
+
+        const auto& sp_list = archive.at("spawn_points");
+        obj->spawn_points.resize(sp_list.size());
+        for (size_t i = 0; i < sp_list.size(); ++i) {
+            obj->spawn_points[i].from_json(sp_list[i]);
+        }
+    }
+
+    archive.at("creatures_max").get_to(obj->creatures_max);
+    archive.at("creatures_recommended").get_to(obj->creatures_recommended);
+    archive.at("difficulty").get_to(obj->difficulty);
+    archive.at("difficulty_index").get_to(obj->difficulty_index);
+    archive.at("faction").get_to(obj->faction);
+    archive.at("reset_time").get_to(obj->reset_time);
+    archive.at("respawns").get_to(obj->respawns);
+    archive.at("spawn_option").get_to(obj->spawn_option);
+
+    archive.at("active").get_to(obj->active);
+    archive.at("player_only").get_to(obj->player_only);
+    archive.at("reset").get_to(obj->reset);
+
+    if (profile == nw::SerializationProfile::instance) {
+        obj->instantiated_ = true;
+    }
+    return true;
+}
+
+bool Encounter::serialize(const Encounter* obj, nlohmann::json& archive, SerializationProfile profile)
+{
+    if (!obj) {
+        throw std::runtime_error("unable to serialize null object");
+    }
+
+    archive["$type"] = "UTE";
+    archive["$version"] = json_archive_version;
+
+    archive["common"] = obj->common.to_json(profile, ObjectType::encounter);
+    archive["scripts"] = obj->scripts.to_json();
+
+    auto& arr = archive["creatures"] = nlohmann::json::array();
+    for (const auto& c : obj->creatures) {
+        arr.push_back(c.to_json());
+    }
+
+    if (profile == SerializationProfile::instance) {
+        auto& g = archive["geometry"] = nlohmann::json::array();
+        for (const auto& geom : obj->geometry) {
+            g.push_back({geom.x, geom.y, geom.z});
+        }
+
+        auto& sp = archive["spawn_points"] = nlohmann::json::array();
+        for (const auto& spawn : obj->spawn_points) {
+            sp.push_back(spawn.to_json());
+        }
+    }
+
+    archive["creatures_max"] = obj->creatures_max;
+    archive["creatures_recommended"] = obj->creatures_recommended;
+    archive["difficulty"] = obj->difficulty;
+    archive["difficulty_index"] = obj->difficulty_index;
+    archive["faction"] = obj->faction;
+    archive["reset_time"] = obj->reset_time;
+    archive["respawns"] = obj->respawns;
+    archive["spawn_option"] = obj->spawn_option;
+
+    archive["active"] = obj->active;
+    archive["player_only"] = obj->player_only;
+    archive["reset"] = obj->reset;
+
+    return true;
+}
+
+#ifdef ROLLNW_ENABLE_LEGACY
+
+bool deserialize(Encounter* obj, const GffStruct& archive, SerializationProfile profile)
 {
     if (!obj) {
         throw std::runtime_error("unable to serialize null object");
@@ -173,54 +267,7 @@ bool Encounter::deserialize(Encounter* obj, const GffStruct& archive, Serializat
     return true;
 }
 
-bool Encounter::deserialize(Encounter* obj, const nlohmann::json& archive, SerializationProfile profile)
-{
-    if (!obj) {
-        throw std::runtime_error("unable to serialize null object");
-    }
-
-    obj->common.from_json(archive.at("common"), profile, ObjectType::encounter);
-    obj->scripts.from_json(archive.at("scripts"));
-
-    auto& arr = archive.at("creatures");
-    obj->creatures.resize(arr.size());
-    for (size_t i = 0; i < arr.size(); ++i) {
-        obj->creatures[i].from_json(arr[i]);
-    }
-
-    if (profile == SerializationProfile::instance) {
-        const auto& g = archive.at("geometry");
-        for (const auto& geom : g) {
-            obj->geometry.emplace_back(geom[0].get<float>(), geom[1].get<float>(), geom[2].get<float>());
-        }
-
-        const auto& sp_list = archive.at("spawn_points");
-        obj->spawn_points.resize(sp_list.size());
-        for (size_t i = 0; i < sp_list.size(); ++i) {
-            obj->spawn_points[i].from_json(sp_list[i]);
-        }
-    }
-
-    archive.at("creatures_max").get_to(obj->creatures_max);
-    archive.at("creatures_recommended").get_to(obj->creatures_recommended);
-    archive.at("difficulty").get_to(obj->difficulty);
-    archive.at("difficulty_index").get_to(obj->difficulty_index);
-    archive.at("faction").get_to(obj->faction);
-    archive.at("reset_time").get_to(obj->reset_time);
-    archive.at("respawns").get_to(obj->respawns);
-    archive.at("spawn_option").get_to(obj->spawn_option);
-
-    archive.at("active").get_to(obj->active);
-    archive.at("player_only").get_to(obj->player_only);
-    archive.at("reset").get_to(obj->reset);
-
-    if (profile == nw::SerializationProfile::instance) {
-        obj->instantiated_ = true;
-    }
-    return true;
-}
-
-bool Encounter::serialize(const Encounter* obj, GffBuilderStruct& archive, SerializationProfile profile)
+bool serialize(const Encounter* obj, GffBuilderStruct& archive, SerializationProfile profile)
 {
     if (!obj) {
         throw std::runtime_error("unable to serialize null object");
@@ -291,61 +338,18 @@ bool Encounter::serialize(const Encounter* obj, GffBuilderStruct& archive, Seria
     return true;
 }
 
-GffBuilder Encounter::serialize(const Encounter* obj, SerializationProfile profile)
+GffBuilder serialize(const Encounter* obj, SerializationProfile profile)
 {
     GffBuilder out{"UTE"};
     if (!obj) {
         throw std::runtime_error("unable to serialize null object");
     }
 
-    Encounter::serialize(obj, out.top, profile);
+    serialize(obj, out.top, profile);
     out.build();
     return out;
 }
 
-bool Encounter::serialize(const Encounter* obj, nlohmann::json& archive, SerializationProfile profile)
-{
-    if (!obj) {
-        throw std::runtime_error("unable to serialize null object");
-    }
-
-    archive["$type"] = "UTE";
-    archive["$version"] = json_archive_version;
-
-    archive["common"] = obj->common.to_json(profile, ObjectType::encounter);
-    archive["scripts"] = obj->scripts.to_json();
-
-    auto& arr = archive["creatures"] = nlohmann::json::array();
-    for (const auto& c : obj->creatures) {
-        arr.push_back(c.to_json());
-    }
-
-    if (profile == SerializationProfile::instance) {
-        auto& g = archive["geometry"] = nlohmann::json::array();
-        for (const auto& geom : obj->geometry) {
-            g.push_back({geom.x, geom.y, geom.z});
-        }
-
-        auto& sp = archive["spawn_points"] = nlohmann::json::array();
-        for (const auto& spawn : obj->spawn_points) {
-            sp.push_back(spawn.to_json());
-        }
-    }
-
-    archive["creatures_max"] = obj->creatures_max;
-    archive["creatures_recommended"] = obj->creatures_recommended;
-    archive["difficulty"] = obj->difficulty;
-    archive["difficulty_index"] = obj->difficulty_index;
-    archive["faction"] = obj->faction;
-    archive["reset_time"] = obj->reset_time;
-    archive["respawns"] = obj->respawns;
-    archive["spawn_option"] = obj->spawn_option;
-
-    archive["active"] = obj->active;
-    archive["player_only"] = obj->player_only;
-    archive["reset"] = obj->reset;
-
-    return true;
-}
+#endif // ROLLNW_ENABLE_LEGACY
 
 } // namespace nw

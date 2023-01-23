@@ -53,11 +53,7 @@ struct Creature : public ObjectBase {
     virtual bool instantiate() override;
     virtual Versus versus_me() const override;
 
-    static bool deserialize(Creature* obj, const GffStruct& archive, SerializationProfile profile);
     static bool deserialize(Creature* obj, const nlohmann::json& archive, SerializationProfile profile);
-
-    static GffBuilder serialize(const Creature* obj, SerializationProfile profile);
-    static bool serialize(const Creature* obj, GffBuilderStruct& archive, SerializationProfile profile);
     static bool serialize(const Creature* obj, nlohmann::json& archive, SerializationProfile profile);
 
     Common common;
@@ -112,4 +108,11 @@ struct Creature : public ObjectBase {
     bool instantiated_ = false;
 };
 
+#ifdef ROLLNW_ENABLE_LEGACY
+
+bool deserialize(Creature* obj, const GffStruct& archive, SerializationProfile profile);
+GffBuilder serialize(const Creature* obj, SerializationProfile profile);
+bool serialize(const Creature* obj, GffBuilderStruct& archive, SerializationProfile profile);
+
+#endif // ROLLNW_ENABLE_LEGACY
 } // namespace nw

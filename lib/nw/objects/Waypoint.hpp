@@ -20,19 +20,8 @@ struct Waypoint : public ObjectBase {
     virtual const Waypoint* as_waypoint() const override { return this; }
     virtual bool instantiate() override { return true; }
 
-    /// Deserializes entity from GFF
-    static bool deserialize(Waypoint* obj, const GffStruct& archive,
-        SerializationProfile profile);
-
     /// Deserializes entity from JSON
     static bool deserialize(Waypoint* obj, const nlohmann::json& archive,
-        SerializationProfile profile);
-
-    /// Deserializes entity to GFF
-    static GffBuilder serialize(const Waypoint* obj, SerializationProfile profile);
-
-    /// Deserializes entity to GFF
-    static bool serialize(const Waypoint* obj, GffBuilderStruct& archive,
         SerializationProfile profile);
 
     /// Deserializes entity to JSON
@@ -61,5 +50,18 @@ struct Waypoint : public ObjectBase {
 
     bool instantiated_ = false;
 };
+
+#ifdef ROLLNW_ENABLE_LEGACY
+
+/// Deserializes entity from GFF
+bool deserialize(Waypoint* obj, const GffStruct& archive, SerializationProfile profile);
+
+/// Deserializes entity to GFF
+GffBuilder serialize(const Waypoint* obj, SerializationProfile profile);
+
+/// Deserializes entity to GFF
+bool serialize(const Waypoint* obj, GffBuilderStruct& archive, SerializationProfile profile);
+
+#endif // ROLLNW_ENABLE_LEGACY
 
 } // namespace nw

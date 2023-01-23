@@ -3,9 +3,7 @@ add_library(nw-formats STATIC
     Faction.cpp
     Ini.cpp
     Journal.cpp
-    Palette.cpp
     TwoDA.cpp
-    Image.cpp
 )
 
 target_link_libraries(nw-formats PRIVATE

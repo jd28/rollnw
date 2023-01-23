@@ -56,10 +56,7 @@ struct Placeable : public ObjectBase {
     virtual bool instantiate() override;
 
     // Serialization
-    static bool deserialize(Placeable* obj, const GffStruct& archive, SerializationProfile profile);
     static bool deserialize(Placeable* obj, const nlohmann::json& archive, SerializationProfile profile);
-    static GffBuilder serialize(const Placeable* obj, SerializationProfile profile);
-    static bool serialize(const Placeable* obj, GffBuilderStruct& archive, SerializationProfile profile);
     static bool serialize(const Placeable* obj, nlohmann::json& archive, SerializationProfile profile);
 
     Common common;
@@ -90,5 +87,11 @@ struct Placeable : public ObjectBase {
 
     bool instantiated_ = false;
 };
+
+#ifdef ROLLNW_ENABLE_LEGACY
+bool deserialize(Placeable* obj, const GffStruct& archive, SerializationProfile profile);
+GffBuilder serialize(const Placeable* obj, SerializationProfile profile);
+bool serialize(const Placeable* obj, GffBuilderStruct& archive, SerializationProfile profile);
+#endif // ROLLNW_ENABLE_LEGACY
 
 } // namespace nw

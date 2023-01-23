@@ -92,10 +92,6 @@ struct Area : public ObjectBase {
     virtual const Area* as_area() const override { return this; }
     virtual bool instantiate() override;
 
-    /// Deserialize from GFF
-    static bool deserialize(Area* obj, const GffStruct& are,
-        const GffStruct& git, const GffStruct& gic);
-
     /// Deserialize from JSON
     /// @note Note only supports does 'caf' style input/output, i.e. ARE + GIT + GIC.
     static bool deserialize(Area* obj, const nlohmann::json& caf);
@@ -141,5 +137,10 @@ struct Area : public ObjectBase {
     uint8_t shadow_opacity = 0;
     uint8_t skybox = 0;
 };
+
+#ifdef ROLLNW_ENABLE_LEGACY
+/// Deserialize from GFF
+bool deserialize(Area* obj, const GffStruct& are, const GffStruct& git, const GffStruct& gic);
+#endif // ROLLNW_ENABLE_LEGACY
 
 } // namespace nw

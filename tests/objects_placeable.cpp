@@ -49,9 +49,9 @@ TEST_CASE("placeable: gff round trip", "[ojbects]")
     REQUIRE(g.valid());
 
     nw::Placeable ent;
-    REQUIRE(nw::Placeable::deserialize(&ent, g.toplevel(), nw::SerializationProfile::blueprint));
+    REQUIRE(deserialize(&ent, g.toplevel(), nw::SerializationProfile::blueprint));
 
-    nw::GffBuilder oa = nw::Placeable::serialize(&ent, nw::SerializationProfile::blueprint);
+    nw::GffBuilder oa = serialize(&ent, nw::SerializationProfile::blueprint);
     oa.write_to("tmp/arrowcorpse001.utp");
 
     nw::Gff g2{"tmp/arrowcorpse001.utp"};
