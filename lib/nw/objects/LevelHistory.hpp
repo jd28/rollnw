@@ -9,8 +9,6 @@
 namespace nw {
 
 struct LevelUp {
-    bool from_gff(const GffStruct& archive);
-    bool to_gff(GffBuilderStruct& archive) const;
 
     bool epic = false;
     Class class_ = Class::invalid();
@@ -29,5 +27,10 @@ void to_json(nlohmann::json& json, const LevelUp& entry);
 struct LevelHistory {
     std::vector<LevelUp> entries;
 };
+
+#ifdef ROLLNW_ENABLE_LEGACY
+bool deserialize(LevelUp& self, const GffStruct& archive);
+bool serialize(const LevelUp& self, GffBuilderStruct& archive);
+#endif
 
 } // namespace nw

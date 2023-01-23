@@ -124,13 +124,16 @@ bool Trigger::serialize(const Trigger* obj, nlohmann::json& archive, Serializati
     return true;
 }
 
+// == Trigger - Serialization - Gff ===========================================
+// ============================================================================
+
 #ifdef ROLLNW_ENABLE_LEGACY
 
 bool deserialize(Trigger* obj, const GffStruct& archive, SerializationProfile profile)
 {
     if (!obj) return false;
 
-    obj->common.from_gff(archive, profile, ObjectType::trigger);
+    deserialize(obj->common, archive, profile, ObjectType::trigger);
 
     archive.get_to("OnClick", obj->scripts.on_click);
     archive.get_to("OnDisarm", obj->scripts.on_disarm);
@@ -140,7 +143,7 @@ bool deserialize(Trigger* obj, const GffStruct& archive, SerializationProfile pr
     archive.get_to("OnTrapTriggered", obj->scripts.on_trap_triggered);
     archive.get_to("ScriptUserDefine", obj->scripts.on_user_defined);
 
-    obj->trap.from_gff(archive);
+    deserialize(obj->trap, archive);
 
     if (profile != SerializationProfile::blueprint) {
         size_t sz = archive["Geometry"].size();
@@ -209,7 +212,7 @@ bool serialize(const Trigger* obj, GffBuilderStruct& archive, SerializationProfi
         .add_field("OnTrapTriggered", obj->scripts.on_trap_triggered)
         .add_field("ScriptUserDefine", obj->scripts.on_user_defined);
 
-    obj->trap.to_gff(archive);
+    serialize(obj->trap, archive);
 
     uint8_t zero = 0;
     std::string empty;

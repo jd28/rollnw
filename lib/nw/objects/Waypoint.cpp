@@ -52,6 +52,9 @@ void Waypoint::serialize(const Waypoint* obj, nlohmann::json& archive,
     archive["map_note_enabled"] = obj->map_note_enabled;
 }
 
+// == Waypoint - Serialization - Gff ==========================================
+// ============================================================================
+
 #ifdef ROLLNW_ENABLE_LEGACY
 
 bool deserialize(Waypoint* obj, const GffStruct& archive, SerializationProfile profile)
@@ -60,7 +63,7 @@ bool deserialize(Waypoint* obj, const GffStruct& archive, SerializationProfile p
         throw std::runtime_error("unable to serialize null object");
     }
 
-    obj->common.from_gff(archive, profile, ObjectType::waypoint);
+    deserialize(obj->common, archive, profile, ObjectType::waypoint);
 
     archive.get_to("Description", obj->description);
     archive.get_to("LinkedTo", obj->linked_to);
@@ -95,7 +98,7 @@ bool serialize(const Waypoint* obj, GffBuilderStruct& archive,
     }
 
     if (obj->common.locals.size()) {
-        obj->common.locals.to_gff(archive, profile);
+        serialize(obj->common.locals, archive, profile);
     }
 
     archive.add_field("Description", obj->description)

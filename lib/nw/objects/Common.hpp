@@ -13,7 +13,6 @@
 namespace nw {
 
 struct Common {
-    bool from_gff(const GffStruct& archive, SerializationProfile profile, ObjectType object_type);
     bool from_json(const nlohmann::json& archive, SerializationProfile profile, ObjectType object_type);
     nlohmann::json to_json(SerializationProfile profile, ObjectType object_type) const;
 
@@ -34,5 +33,9 @@ struct Common {
 protected:
     bool valid_ = false;
 };
+
+#ifdef ROLLNW_ENABLE_LEGACY
+bool deserialize(Common& self, const GffStruct& archive, SerializationProfile profile, ObjectType object_type);
+#endif
 
 } // namespace nw

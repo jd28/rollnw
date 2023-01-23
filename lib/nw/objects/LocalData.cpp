@@ -4,63 +4,6 @@
 
 namespace nw {
 
-bool LocalData::from_gff(const GffStruct& archive)
-{
-    auto st = archive["VarTable"];
-    if (!st.valid()) {
-        return false;
-    }
-    size_t sz = st.size();
-    std::string name;
-    uint32_t type, obj;
-
-    for (size_t i = 0; i < sz; ++i) {
-        if (!st[i].get_to("Name", name)
-            || !st[i].get_to("Type", type)) {
-            LOG_F(ERROR, "local data invalid local var at index {}", i);
-            break;
-        }
-
-        auto& payload = vars_[name];
-
-        switch (type) {
-        default:
-            LOG_F(ERROR, "local data invalid local var type at index {}", i);
-            vars_.clear();
-            return false;
-        case 1: // int
-            st[i].get_to("Value", payload.integer);
-            payload.flags.set(LocalVarType::integer);
-            break;
-        case 2: // float
-            st[i].get_to("Value", payload.float_);
-            payload.flags.set(LocalVarType::float_);
-            break;
-        case 3: // string
-            st[i].get_to("Value", payload.string);
-            payload.flags.set(LocalVarType::string);
-            break;
-        case 4: // object
-            st[i].get_to("Value", obj);
-            payload.object = static_cast<ObjectID>(obj);
-            payload.flags.set(LocalVarType::object);
-            break;
-        case 5: { // location
-            if (auto s = st[i].get<GffStruct>("Value")) {
-                payload.loc.from_gff(*s, SerializationProfile::any);
-                payload.flags.set(LocalVarType::location);
-            } else {
-                LOG_F(ERROR, "failed to read location struct");
-                vars_.clear();
-                return false;
-            }
-        } break;
-        }
-    }
-
-    return true;
-}
-
 void LocalData::delete_float(std::string_view var)
 {
     absl::string_view v{var.data(), var.size()};
@@ -231,15 +174,101 @@ bool LocalData::from_json(const nlohmann::json& archive)
     return true;
 }
 
-bool LocalData::to_gff(GffBuilderStruct& archive, SerializationProfile profile) const
+nlohmann::json LocalData::to_json(SerializationProfile profile) const
 {
-    if (vars_.empty()) {
+    nlohmann::json j = nlohmann::json::object();
+    for (const auto& [key, value] : vars_) {
+        if (!value.flags.any()) {
+            continue;
+        }
+        auto& payload = j[key] = nlohmann::json::object();
+
+        if (value.flags.test(LocalVarType::float_)) {
+            payload["float"] = value.float_;
+        } else if (value.flags.test(LocalVarType::integer)) {
+            payload["integer"] = value.integer;
+        } else if (value.flags.test(LocalVarType::string)) {
+            payload["string"] = value.string;
+        }
+        if (profile != SerializationProfile::blueprint) {
+
+            if (value.flags.test(LocalVarType::object)) {
+                payload["object"] = value.object;
+            } else if (value.flags.test(LocalVarType::location)) {
+                payload["location"] = value.loc;
+            }
+        }
+    }
+    return j;
+}
+
+#ifdef ROLLNW_ENABLE_LEGACY
+bool deserialize(LocalData& self, const GffStruct& archive)
+{
+    auto st = archive["VarTable"];
+    if (!st.valid()) {
+        return false;
+    }
+    size_t sz = st.size();
+    std::string name;
+    uint32_t type, obj;
+
+    for (size_t i = 0; i < sz; ++i) {
+        if (!st[i].get_to("Name", name)
+            || !st[i].get_to("Type", type)) {
+            LOG_F(ERROR, "local data invalid local var at index {}", i);
+            break;
+        }
+
+        auto& payload = self.vars_[name];
+
+        switch (type) {
+        default:
+            LOG_F(ERROR, "local data invalid local var type at index {}", i);
+            self.vars_.clear();
+            return false;
+        case 1: // int
+            st[i].get_to("Value", payload.integer);
+            payload.flags.set(LocalVarType::integer);
+            break;
+        case 2: // float
+            st[i].get_to("Value", payload.float_);
+            payload.flags.set(LocalVarType::float_);
+            break;
+        case 3: // string
+            st[i].get_to("Value", payload.string);
+            payload.flags.set(LocalVarType::string);
+            break;
+        case 4: // object
+            st[i].get_to("Value", obj);
+            payload.object = static_cast<ObjectID>(obj);
+            payload.flags.set(LocalVarType::object);
+            break;
+        case 5: { // location
+            if (auto s = st[i].get<GffStruct>("Value")) {
+                deserialize(payload.loc, *s, SerializationProfile::any);
+                payload.flags.set(LocalVarType::location);
+            } else {
+                LOG_F(ERROR, "failed to read location struct");
+                self.vars_.clear();
+                return false;
+            }
+        } break;
+        }
+    }
+
+    return true;
+}
+
+bool serialize(const LocalData& self, GffBuilderStruct& archive, SerializationProfile profile)
+{
+    if (self.vars_.empty()) {
         return true;
     }
 
     auto& list = archive.add_list("VarTable");
 
-    for (const auto& [key, value] : vars_) {
+    for (const auto& [key, value] : self.vars_) {
         if (!value.flags.any()) {
             continue;
         }
@@ -276,32 +305,6 @@ bool LocalData::to_gff(GffBuilderStruct& archive, SerializationProfile profile) 
     return true;
 }
 
-nlohmann::json LocalData::to_json(SerializationProfile profile) const
-{
-    nlohmann::json j = nlohmann::json::object();
-    for (const auto& [key, value] : vars_) {
-        if (!value.flags.any()) {
-            continue;
-        }
-        auto& payload = j[key] = nlohmann::json::object();
-
-        if (value.flags.test(LocalVarType::float_)) {
-            payload["float"] = value.float_;
-        } else if (value.flags.test(LocalVarType::integer)) {
-            payload["integer"] = value.integer;
-        } else if (value.flags.test(LocalVarType::string)) {
-            payload["string"] = value.string;
-        }
-        if (profile != SerializationProfile::blueprint) {
-
-            if (value.flags.test(LocalVarType::object)) {
-                payload["object"] = value.object;
-            } else if (value.flags.test(LocalVarType::location)) {
-                payload["location"] = value.loc;
-            }
-        }
-    }
-    return j;
-}
+#endif
 
 } // namespace nw

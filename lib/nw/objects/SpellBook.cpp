@@ -29,44 +29,6 @@ SpellBook::SpellBook()
     memorized_.resize(10);
 }
 
-bool SpellBook::from_gff(const GffStruct& gff)
-{
-    for (size_t i = 0; i < 10; ++i) {
-        auto k = fmt::format("KnownList{}", i);
-        auto kfield = gff[k];
-        if (kfield.valid()) {
-            size_t sz = kfield.size();
-            for (size_t j = 0; j < sz; ++j) {
-                SpellEntry s;
-                uint16_t temp;
-                if (kfield[j].get_to("Spell", temp)) {
-                    s.spell = Spell::make(temp);
-                }
-                kfield[j].get_to("SpellFlags", s.flags, false);
-                kfield[j].get_to("SpellMetaMagic", s.meta, false);
-                known_[i].push_back(s);
-            }
-        }
-
-        auto m = fmt::format("MemorizedList{}", i);
-        auto mfield = gff[m];
-        if (mfield.valid()) {
-            size_t sz = mfield.size();
-            for (size_t j = 0; j < sz; ++j) {
-                SpellEntry s;
-                uint16_t temp;
-                if (mfield[j].get_to("Spell", temp)) {
-                    s.spell = Spell::make(temp);
-                }
-                mfield[j].get_to("SpellFlags", s.flags);
-                mfield[j].get_to("SpellMetaMagic", s.meta);
-                memorized_[i].push_back(s);
-            }
-        }
-    }
-    return true;
-}
-
 bool SpellBook::from_json(const nlohmann::json& archive)
 {
     try {
@@ -76,39 +38,6 @@ bool SpellBook::from_json(const nlohmann::json& archive)
         LOG_F(ERROR, "SpellBook: json exception: {}", e.what());
         return false;
     }
-    return true;
-}
-
-bool SpellBook::to_gff(GffBuilderStruct& archive) const
-{
-    for (size_t i = 0; i < 10; ++i) {
-        if (known_[i].empty()) {
-            continue;
-        }
-        auto k = fmt::format("KnownList{}", i);
-        auto& klist = archive.add_list(k);
-        for (const auto& sp : known_[i]) {
-            klist.push_back(3)
-                .add_field("Spell", uint16_t(*sp.spell))
-                .add_field("SpellFlags", static_cast<uint8_t>(sp.flags))
-                .add_field("SpellMetaMagic", static_cast<uint8_t>(sp.meta));
-        }
-    }
-
-    for (size_t i = 0; i < 10; ++i) {
-        if (memorized_[i].empty()) {
-            continue;
-        }
-        auto m = fmt::format("MemorizedList{}", i);
-        auto& mlist = archive.add_list(m);
-        for (const auto& sp : memorized_[i]) {
-            mlist.push_back(3)
-                .add_field("Spell", uint16_t(*sp.spell))
-                .add_field("SpellFlags", static_cast<uint8_t>(sp.flags))
-                .add_field("SpellMetaMagic", static_cast<uint8_t>(sp.meta));
-        }
-    }
-
     return true;
 }
 
@@ -197,5 +126,79 @@ void SpellBook::remove_memorized_spell(size_t level, SpellEntry entry)
             std::end(memorized_[level]));
     }
 }
+
+#ifdef ROLLNW_ENABLE_LEGACY
+bool deserialize(SpellBook& self, const GffStruct& archive)
+{
+    for (size_t i = 0; i < 10; ++i) {
+        auto k = fmt::format("KnownList{}", i);
+        auto kfield = archive[k];
+        if (kfield.valid()) {
+            size_t sz = kfield.size();
+            for (size_t j = 0; j < sz; ++j) {
+                SpellEntry s;
+                uint16_t temp;
+                if (kfield[j].get_to("Spell", temp)) {
+                    s.spell = Spell::make(temp);
+                }
+                kfield[j].get_to("SpellFlags", s.flags, false);
+                kfield[j].get_to("SpellMetaMagic", s.meta, false);
+                self.known_[i].push_back(s);
+            }
+        }
+
+        auto m = fmt::format("MemorizedList{}", i);
+        auto mfield = archive[m];
+        if (mfield.valid()) {
+            size_t sz = mfield.size();
+            for (size_t j = 0; j < sz; ++j) {
+                SpellEntry s;
+                uint16_t temp;
+                if (mfield[j].get_to("Spell", temp)) {
+                    s.spell = Spell::make(temp);
+                }
+                mfield[j].get_to("SpellFlags", s.flags);
+                mfield[j].get_to("SpellMetaMagic", s.meta);
+                self.memorized_[i].push_back(s);
+            }
+        }
+    }
+    return true;
+}
+
+bool serialize(const SpellBook& self, GffBuilderStruct& archive)
+{
+    for (size_t i = 0; i < 10; ++i) {
+        if (self.known_[i].empty()) {
+            continue;
+        }
+        auto k = fmt::format("KnownList{}", i);
+        auto& klist = archive.add_list(k);
+        for (const auto& sp : self.known_[i]) {
+            klist.push_back(3)
+                .add_field("Spell", uint16_t(*sp.spell))
+                .add_field("SpellFlags", static_cast<uint8_t>(sp.flags))
+                .add_field("SpellMetaMagic", static_cast<uint8_t>(sp.meta));
+        }
+    }
+
+    for (size_t i = 0; i < 10; ++i) {
+        if (self.memorized_[i].empty()) {
+            continue;
+        }
+        auto m = fmt::format("MemorizedList{}", i);
+        auto& mlist = archive.add_list(m);
+        for (const auto& sp : self.memorized_[i]) {
+            mlist.push_back(3)
+                .add_field("Spell", uint16_t(*sp.spell))
+                .add_field("SpellFlags", static_cast<uint8_t>(sp.flags))
+                .add_field("SpellMetaMagic", static_cast<uint8_t>(sp.meta));
+        }
+    }
+
+    return true;
+}
+
+#endif // ROLLNW_ENABLE_LEGACY
 
 } // namespace nw

@@ -11,7 +11,7 @@
 
 namespace fs = std::filesystem;
 
-TEST_CASE("trigger: from_gff", "[objects]")
+TEST_CASE("trigger: deserialize", "[objects]")
 {
     auto ent = nw::kernel::objects().load<nw::Trigger>(fs::path("test_data/user/development/pl_spray_sewage.utt"));
     REQUIRE(ent);

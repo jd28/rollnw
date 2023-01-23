@@ -4,27 +4,6 @@
 
 namespace nw {
 
-bool PlaceableScripts::from_gff(const GffStruct& archive)
-{
-    archive.get_to("OnClick", on_click);
-    archive.get_to("OnClosed", on_closed);
-    archive.get_to("OnDamaged", on_damaged);
-    archive.get_to("OnDeath", on_death);
-    archive.get_to("OnDisarm", on_disarm);
-    archive.get_to("OnHeartbeat", on_heartbeat);
-    archive.get_to("OnInvDisturbed", on_inventory_disturbed);
-    archive.get_to("OnLock", on_lock);
-    archive.get_to("OnMeleeAttacked", on_melee_attacked);
-    archive.get_to("OnOpen", on_open);
-    archive.get_to("OnSpellCastAt", on_spell_cast_at);
-    archive.get_to("OnTrapTriggered", on_trap_triggered);
-    archive.get_to("OnUnlock", on_unlock);
-    archive.get_to("OnUsed", on_used);
-    archive.get_to("OnUserDefined", on_user_defined);
-
-    return true;
-}
-
 bool PlaceableScripts::from_json(const nlohmann::json& archive)
 {
     archive.at("on_click").get_to(on_click);
@@ -42,27 +21,6 @@ bool PlaceableScripts::from_json(const nlohmann::json& archive)
     archive.at("on_unlock").get_to(on_unlock);
     archive.at("on_used").get_to(on_used);
     archive.at("on_user_defined").get_to(on_user_defined);
-
-    return true;
-}
-
-bool PlaceableScripts::to_gff(GffBuilderStruct& archive) const
-{
-    archive.add_field("OnClick", on_click)
-        .add_field("OnClosed", on_closed)
-        .add_field("OnDamaged", on_damaged)
-        .add_field("OnDeath", on_death)
-        .add_field("OnDisarm", on_disarm)
-        .add_field("OnHeartbeat", on_heartbeat)
-        .add_field("OnInvDisturbed", on_inventory_disturbed)
-        .add_field("OnLock", on_lock)
-        .add_field("OnMeleeAttacked", on_melee_attacked)
-        .add_field("OnOpen", on_open)
-        .add_field("OnSpellCastAt", on_spell_cast_at)
-        .add_field("OnTrapTriggered", on_trap_triggered)
-        .add_field("OnUnlock", on_unlock)
-        .add_field("OnUsed", on_used)
-        .add_field("OnUserDefined", on_user_defined);
 
     return true;
 }
@@ -184,6 +142,9 @@ bool Placeable::serialize(const Placeable* obj, nlohmann::json& archive, Seriali
     return true;
 }
 
+// == Placeable - Serialization - Gff =========================================
+// ============================================================================
+
 #ifdef ROLLNW_ENABLE_LEGACY
 
 bool deserialize(Placeable* obj, const GffStruct& archive, SerializationProfile profile)
@@ -192,16 +153,17 @@ bool deserialize(Placeable* obj, const GffStruct& archive, SerializationProfile 
         throw std::runtime_error("unable to serialize null object");
     }
 
-    obj->common.from_gff(archive, profile, ObjectType::placeable);
+    deserialize(obj->common, archive, profile, ObjectType::placeable);
 
     archive.get_to("HasInventory", obj->has_inventory);
     if (obj->has_inventory) {
-        obj->inventory.from_gff(archive, profile);
+        deserialize(obj->inventory, archive, profile);
     }
 
-    obj->lock.from_gff(archive);
-    obj->scripts.from_gff(archive);
-    obj->trap.from_gff(archive);
+    deserialize(obj->lock, archive);
+    deserialize(obj->scripts, archive);
+    deserialize(obj->trap, archive);
+    deserialize(obj->inventory, archive, profile);
 
     archive.get_to("Conversation", obj->conversation);
     archive.get_to("Description", obj->description);
@@ -257,13 +219,13 @@ bool serialize(const Placeable* obj, GffBuilderStruct& archive, SerializationPro
     }
 
     if (obj->common.locals.size()) {
-        obj->common.locals.to_gff(archive, profile);
+        serialize(obj->common.locals, archive, profile);
     }
 
-    obj->inventory.to_gff(archive, profile);
-    obj->lock.to_gff(archive);
-    obj->scripts.to_gff(archive);
-    obj->trap.to_gff(archive);
+    serialize(obj->inventory, archive, profile);
+    serialize(obj->lock, archive);
+    serialize(obj->scripts, archive);
+    serialize(obj->trap, archive);
 
     archive.add_field("Conversation", obj->conversation)
         .add_field("Description", obj->description);
@@ -303,6 +265,48 @@ GffBuilder serialize(const Placeable* obj, SerializationProfile profile)
     serialize(obj, out.top, profile);
     out.build();
     return out;
+}
+
+bool deserialize(PlaceableScripts& self, const GffStruct& archive)
+{
+    archive.get_to("OnClick", self.on_click);
+    archive.get_to("OnClosed", self.on_closed);
+    archive.get_to("OnDamaged", self.on_damaged);
+    archive.get_to("OnDeath", self.on_death);
+    archive.get_to("OnDisarm", self.on_disarm);
+    archive.get_to("OnHeartbeat", self.on_heartbeat);
+    archive.get_to("OnInvDisturbed", self.on_inventory_disturbed);
+    archive.get_to("OnLock", self.on_lock);
+    archive.get_to("OnMeleeAttacked", self.on_melee_attacked);
+    archive.get_to("OnOpen", self.on_open);
+    archive.get_to("OnSpellCastAt", self.on_spell_cast_at);
+    archive.get_to("OnTrapTriggered", self.on_trap_triggered);
+    archive.get_to("OnUnlock", self.on_unlock);
+    archive.get_to("OnUsed", self.on_used);
+    archive.get_to("OnUserDefined", self.on_user_defined);
+
+    return true;
+}
+
+bool serialize(const PlaceableScripts& self, GffBuilderStruct& archive)
+{
+    archive.add_field("OnClick", self.on_click)
+        .add_field("OnClosed", self.on_closed)
+        .add_field("OnDamaged", self.on_damaged)
+        .add_field("OnDeath", self.on_death)
+        .add_field("OnDisarm", self.on_disarm)
+        .add_field("OnHeartbeat", self.on_heartbeat)
+        .add_field("OnInvDisturbed", self.on_inventory_disturbed)
+        .add_field("OnLock", self.on_lock)
+        .add_field("OnMeleeAttacked", self.on_melee_attacked)
+        .add_field("OnOpen", self.on_open)
+        .add_field("OnSpellCastAt", self.on_spell_cast_at)
+        .add_field("OnTrapTriggered", self.on_trap_triggered)
+        .add_field("OnUnlock", self.on_unlock)
+        .add_field("OnUsed", self.on_used)
+        .add_field("OnUserDefined", self.on_user_defined);
+
+    return true;
 }
 
 #endif // ROLLNW_ENABLE_LEGACY

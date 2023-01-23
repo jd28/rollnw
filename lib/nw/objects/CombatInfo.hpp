@@ -23,9 +23,7 @@ struct CombatInfo {
     CombatInfo& operator=(CombatInfo&) = delete;
     CombatInfo& operator=(CombatInfo&&) = default;
 
-    bool from_gff(const GffStruct& archive);
     bool from_json(const nlohmann::json& archive);
-    bool to_gff(GffBuilderStruct& archive) const;
     nlohmann::json to_json() const;
 
     // Serialized Blueprint
@@ -53,5 +51,10 @@ struct CombatInfo {
 
     std::vector<SpecialAbility> special_abilities;
 };
+
+#ifdef ROLLNW_ENABLE_LEGACY
+bool deserialize(CombatInfo& self, const GffStruct& archive);
+bool serialize(const CombatInfo& self, GffBuilderStruct& archive);
+#endif // ROLLNW_ENABLE_LEGACY
 
 } // namespace nw

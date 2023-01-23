@@ -104,7 +104,7 @@ bool deserialize(Sound* obj, const GffStruct& archive, SerializationProfile prof
         throw std::runtime_error("unable to serialize null object");
     }
 
-    obj->common.from_gff(archive, profile, ObjectType::sound);
+    deserialize(obj->common, archive, profile, ObjectType::sound);
 
     size_t sz = archive["Sounds"].size();
     obj->sounds.resize(sz);
@@ -165,7 +165,7 @@ bool serialize(const Sound* obj, GffBuilderStruct& archive, SerializationProfile
     }
 
     if (obj->common.locals.size()) {
-        obj->common.locals.to_gff(archive, profile);
+        serialize(obj->common.locals, archive, profile);
     }
 
     auto& list = archive.add_list("Sounds");

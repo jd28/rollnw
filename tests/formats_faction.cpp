@@ -3,7 +3,7 @@
 #include <nw/formats/Faction.hpp>
 #include <nw/serialization/Serialization.hpp>
 
-TEST_CASE("faction: from_gff", "[objects]")
+TEST_CASE("faction: deserialize", "[objects]")
 {
     nw::Gff g{"test_data/user/scratch/Repute.fac"};
     REQUIRE(g.valid());
@@ -21,7 +21,7 @@ TEST_CASE("faction: gff roundtrip", "[objects]")
     nw::Gff g{"test_data/user/scratch/Repute.fac"};
     REQUIRE(g.valid());
     nw::Faction f{g};
-    nw::GffBuilder out = f.to_gff();
+    nw::GffBuilder out = f.serialize();
 
     REQUIRE(out.header.struct_offset == g.head_->struct_offset);
     REQUIRE(out.header.struct_count == g.head_->struct_count);

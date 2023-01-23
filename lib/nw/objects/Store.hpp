@@ -63,6 +63,9 @@ struct Store : public ObjectBase {
     bool instantiated_ = false;
 };
 
+// == Store - Serialization - Gff =============================================
+// ============================================================================
+
 #ifdef ROLLNW_ENABLE_LEGACY
 bool deserialize(Store* obj, const GffStruct& archive, SerializationProfile profile);
 GffBuilder serialize(const Store* obj, SerializationProfile profile);

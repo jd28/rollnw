@@ -8,7 +8,7 @@
 
 namespace nw {
 
-bool CreatureScripts::from_gff(const GffStruct& archive)
+bool CreatureScripts::deserialize(const GffStruct& archive)
 {
     archive.get_to("ScriptAttacked", on_attacked);
     archive.get_to("ScriptDamaged", on_damaged);
@@ -50,7 +50,7 @@ bool CreatureScripts::from_json(const nlohmann::json& archive)
     return true;
 }
 
-bool CreatureScripts::to_gff(GffBuilderStruct& archive) const
+bool CreatureScripts::serialize(GffBuilderStruct& archive) const
 {
     archive.add_field("ScriptAttacked", on_attacked)
         .add_field("ScriptDamaged", on_damaged)
@@ -130,6 +130,7 @@ bool Creature::instantiate()
 Versus Creature::versus_me() const
 {
     Versus result;
+    // [TODO] - Alignment
     result.race = race;
     return result;
 }
@@ -246,6 +247,9 @@ bool Creature::serialize(const Creature* obj, nlohmann::json& archive,
     return true;
 }
 
+// == Creature - Serialization - Gff ==========================================
+// ============================================================================
+
 #ifdef ROLLNW_ENABLE_LEGACY
 
 bool deserialize(Creature* obj, const GffStruct& archive, SerializationProfile profile)
@@ -254,14 +258,14 @@ bool deserialize(Creature* obj, const GffStruct& archive, SerializationProfile p
         throw std::runtime_error("unable to serialize null object");
     }
 
-    obj->common.from_gff(archive, profile, ObjectType::creature);
-    obj->appearance.from_gff(archive);
-    obj->combat_info.from_gff(archive);
-    obj->equipment.from_gff(archive, profile);
-    obj->inventory.from_gff(archive, profile);
-    obj->levels.from_gff(archive);
-    obj->scripts.from_gff(archive);
-    obj->stats.from_gff(archive);
+    deserialize(obj->common, archive, profile, ObjectType::creature);
+    deserialize(obj->appearance, archive);
+    deserialize(obj->combat_info, archive);
+    deserialize(obj->equipment, archive, profile);
+    deserialize(obj->inventory, archive, profile);
+    deserialize(obj->levels, archive);
+    obj->scripts.deserialize(archive);
+    deserialize(obj->stats, archive);
 
     archive.get_to("Conversation", obj->conversation);
     archive.get_to("Deity", obj->deity);
@@ -327,14 +331,14 @@ bool serialize(const Creature* obj, GffBuilderStruct& archive, SerializationProf
             .add_field("OrientationY", obj->common.location.orientation.y);
     }
 
-    obj->common.locals.to_gff(archive, profile);
-    obj->appearance.to_gff(archive);
-    obj->combat_info.to_gff(archive);
-    obj->equipment.to_gff(archive, profile);
-    obj->inventory.to_gff(archive, profile);
-    obj->levels.to_gff(archive);
-    obj->scripts.to_gff(archive);
-    obj->stats.to_gff(archive);
+    serialize(obj->common.locals, archive, profile);
+    serialize(obj->appearance, archive);
+    serialize(obj->combat_info, archive);
+    serialize(obj->equipment, archive, profile);
+    serialize(obj->inventory, archive, profile);
+    serialize(obj->levels, archive);
+    obj->scripts.serialize(archive);
+    serialize(obj->stats, archive);
 
     archive.add_field("Conversation", obj->conversation);
     archive.add_field("Deity", obj->deity);

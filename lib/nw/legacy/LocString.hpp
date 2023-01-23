@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Language.hpp"
+#include "../i18n/Language.hpp"
 
 #include <nlohmann/json_fwd.hpp>
 

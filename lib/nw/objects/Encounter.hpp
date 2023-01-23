@@ -11,9 +11,7 @@
 namespace nw {
 
 struct EncounterScripts {
-    bool from_gff(const GffStruct& archive);
     bool from_json(const nlohmann::json& archive);
-    bool to_gff(GffBuilderStruct& archive) const;
     nlohmann::json to_json() const;
 
     Resref on_entered;
@@ -24,7 +22,6 @@ struct EncounterScripts {
 };
 
 struct SpawnCreature {
-    bool from_gff(const GffStruct& archive);
     bool from_json(const nlohmann::json& archive);
     nlohmann::json to_json() const;
 
@@ -35,7 +32,6 @@ struct SpawnCreature {
 };
 
 struct SpawnPoint {
-    bool from_gff(const GffStruct& archive);
     bool from_json(const nlohmann::json& archive);
     nlohmann::json to_json() const;
 
@@ -81,10 +77,20 @@ struct Encounter : public ObjectBase {
     bool instantiated_ = false;
 };
 
+// == Encounter - Serialization - Gff =========================================
+// ============================================================================
+
 #ifdef ROLLNW_ENABLE_LEGACY
 bool deserialize(Encounter* obj, const GffStruct& archive, SerializationProfile profile);
 GffBuilder serialize(const Encounter* obj, SerializationProfile profile);
 bool serialize(const Encounter* obj, GffBuilderStruct& archive, SerializationProfile profile);
+
+bool deserialize(EncounterScripts& self, const GffStruct& archive);
+bool serialize(const EncounterScripts& self, GffBuilderStruct& archive);
+
+bool deserialize(SpawnCreature& self, const GffStruct& archive);
+bool deserialize(SpawnPoint& self, const GffStruct& archive);
+
 #endif // ROLLNW_ENABLE_LEGACY
 
 } // namespace nw

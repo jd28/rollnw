@@ -41,9 +41,7 @@ void to_json(nlohmann::json& j, const SpellEntry& spell);
 struct SpellBook {
     SpellBook();
 
-    bool from_gff(const GffStruct& archive);
     bool from_json(const nlohmann::json& archive);
-    bool to_gff(GffBuilderStruct& archive) const;
     nlohmann::json to_json() const;
 
     /// Adds a known spell at level
@@ -70,5 +68,10 @@ struct SpellBook {
     std::vector<std::vector<SpellEntry>> known_;
     std::vector<std::vector<SpellEntry>> memorized_;
 };
+
+#ifdef ROLLNW_ENABLE_LEGACY
+bool deserialize(SpellBook& self, const GffStruct& archive);
+bool serialize(const SpellBook& self, GffBuilderStruct& archive);
+#endif // ROLLNW_ENABLE_LEGACY
 
 } // namespace nw

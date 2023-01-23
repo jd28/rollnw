@@ -50,6 +50,9 @@ struct Sound : public ObjectBase {
     bool instantiated_ = false;
 };
 
+// == Sound - Serialization - Gff =============================================
+// ============================================================================
+
 #ifdef ROLLNW_ENABLE_LEGACY
 bool deserialize(Sound* obj, const GffStruct& archive, SerializationProfile profile);
 bool serialize(const Sound* obj, GffBuilderStruct& archive, SerializationProfile profile);

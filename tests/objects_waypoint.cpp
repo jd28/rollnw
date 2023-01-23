@@ -10,12 +10,6 @@
 
 namespace fs = std::filesystem;
 
-TEST_CASE("waypoint: from_gff", "[objects]")
-{
-    auto obj = nw::kernel::objects().load<nw::Waypoint>(fs::path("test_data/user/development/wp_behexit001.utw"));
-    REQUIRE(obj);
-}
-
 TEST_CASE("waypoint: json round trip", "[objects]")
 {
     auto ent = nw::kernel::objects().load<nw::Waypoint>(fs::path("test_data/user/development/wp_behexit001.utw"));
@@ -35,6 +29,12 @@ TEST_CASE("waypoint: json round trip", "[objects]")
 
     std::ofstream f{"tmp/wp_behexit001.utw.json"};
     f << std::setw(4) << j;
+}
+
+TEST_CASE("waypoint: deserialize", "[objects]")
+{
+    auto obj = nw::kernel::objects().load<nw::Waypoint>(fs::path("test_data/user/development/wp_behexit001.utw"));
+    REQUIRE(obj);
 }
 
 TEST_CASE("waypoint: gff round trip", "[ojbects]")

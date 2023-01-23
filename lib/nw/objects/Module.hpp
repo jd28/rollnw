@@ -15,9 +15,7 @@ struct Area;
 struct ModuleScripts {
     ModuleScripts() = default;
 
-    bool from_gff(const GffStruct& archive);
     bool from_json(const nlohmann::json& archive);
-    bool to_gff(GffBuilderStruct& archive) const;
     nlohmann::json to_json() const;
 
     Resref on_client_enter;
@@ -55,10 +53,7 @@ struct Module : public ObjectBase {
     const Area* get_area(size_t index) const;
 
     // Serialization
-    static bool deserialize(Module* ent, const GffStruct& archive);
     static bool deserialize(Module* ent, const nlohmann::json& archive);
-    static GffBuilder serialize(const Module* ent);
-    static bool serialize(const Module* ent, GffBuilderStruct& archive);
     static bool serialize(const Module* ent, nlohmann::json& archive);
 
     LocalData locals;
@@ -93,5 +88,18 @@ struct Module : public ObjectBase {
 
     bool instantiated_ = false;
 };
+
+// == Module - Serialization - Gff ============================================
+// ============================================================================
+
+#ifdef ROLLNW_ENABLE_LEGACY
+bool deserialize(Module* ent, const GffStruct& archive);
+GffBuilder serialize(const Module* ent);
+bool serialize(const Module* ent, GffBuilderStruct& archive);
+
+bool deserialize(ModuleScripts& self, const GffStruct& archive);
+bool serialize(const ModuleScripts& self, GffBuilderStruct& archive);
+
+#endif
 
 } // namespace nw

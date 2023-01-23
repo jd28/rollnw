@@ -6,25 +6,8 @@
 
 namespace nw {
 
-bool DoorScripts::from_gff(const GffStruct& archive)
-{
-    archive.get_to("OnClick", on_click);
-    archive.get_to("OnClosed", on_closed);
-    archive.get_to("OnDamaged", on_damaged);
-    archive.get_to("OnDeath", on_death);
-    archive.get_to("OnDisarm", on_disarm);
-    archive.get_to("OnHeartbeat", on_heartbeat);
-    archive.get_to("OnLock", on_lock);
-    archive.get_to("OnMeleeAttacked", on_melee_attacked);
-    archive.get_to("OnOpen", on_open);
-    archive.get_to("OnFailToOpen", on_open_failure);
-    archive.get_to("OnSpellCastAt", on_spell_cast_at);
-    archive.get_to("OnTrapTriggered", on_trap_triggered);
-    archive.get_to("OnUnlock", on_unlock);
-    archive.get_to("OnUserDefined", on_user_defined);
-
-    return true;
-}
+// == DoorScripts =============================================================
+// ============================================================================
 
 bool DoorScripts::from_json(const nlohmann::json& archive)
 {
@@ -51,26 +34,6 @@ bool DoorScripts::from_json(const nlohmann::json& archive)
     return true;
 }
 
-bool DoorScripts::to_gff(GffBuilderStruct& archive) const
-{
-    archive.add_field("OnClick", on_click)
-        .add_field("OnClosed", on_closed)
-        .add_field("OnDamaged", on_damaged)
-        .add_field("OnDeath", on_death)
-        .add_field("OnDisarm", on_disarm)
-        .add_field("OnHeartbeat", on_heartbeat)
-        .add_field("OnLock", on_lock)
-        .add_field("OnMeleeAttacked", on_melee_attacked)
-        .add_field("OnOpen", on_open)
-        .add_field("OnFailToOpen", on_open_failure)
-        .add_field("OnSpellCastAt", on_spell_cast_at)
-        .add_field("OnTrapTriggered", on_trap_triggered)
-        .add_field("OnUnlock", on_unlock)
-        .add_field("OnUserDefined", on_user_defined);
-
-    return true;
-}
-
 nlohmann::json DoorScripts::to_json() const
 {
     nlohmann::json j;
@@ -92,6 +55,9 @@ nlohmann::json DoorScripts::to_json() const
 
     return j;
 }
+
+// == Door ====================================================================
+// ============================================================================
 
 Door::Door()
 {
@@ -177,7 +143,50 @@ bool Door::serialize(const Door* obj, nlohmann::json& archive, SerializationProf
     return true;
 }
 
+// == Door - Serialization - Gff ==============================================
+// ============================================================================
+
 #ifdef ROLLNW_ENABLE_LEGACY
+
+bool deserialize(DoorScripts& self, const GffStruct& archive)
+{
+    archive.get_to("OnClick", self.on_click);
+    archive.get_to("OnClosed", self.on_closed);
+    archive.get_to("OnDamaged", self.on_damaged);
+    archive.get_to("OnDeath", self.on_death);
+    archive.get_to("OnDisarm", self.on_disarm);
+    archive.get_to("OnHeartbeat", self.on_heartbeat);
+    archive.get_to("OnLock", self.on_lock);
+    archive.get_to("OnMeleeAttacked", self.on_melee_attacked);
+    archive.get_to("OnOpen", self.on_open);
+    archive.get_to("OnFailToOpen", self.on_open_failure);
+    archive.get_to("OnSpellCastAt", self.on_spell_cast_at);
+    archive.get_to("OnTrapTriggered", self.on_trap_triggered);
+    archive.get_to("OnUnlock", self.on_unlock);
+    archive.get_to("OnUserDefined", self.on_user_defined);
+
+    return true;
+}
+
+bool serialize(const DoorScripts& self, GffBuilderStruct& archive)
+{
+    archive.add_field("OnClick", self.on_click)
+        .add_field("OnClosed", self.on_closed)
+        .add_field("OnDamaged", self.on_damaged)
+        .add_field("OnDeath", self.on_death)
+        .add_field("OnDisarm", self.on_disarm)
+        .add_field("OnHeartbeat", self.on_heartbeat)
+        .add_field("OnLock", self.on_lock)
+        .add_field("OnMeleeAttacked", self.on_melee_attacked)
+        .add_field("OnOpen", self.on_open)
+        .add_field("OnFailToOpen", self.on_open_failure)
+        .add_field("OnSpellCastAt", self.on_spell_cast_at)
+        .add_field("OnTrapTriggered", self.on_trap_triggered)
+        .add_field("OnUnlock", self.on_unlock)
+        .add_field("OnUserDefined", self.on_user_defined);
+
+    return true;
+}
 
 bool deserialize(Door* obj, const GffStruct& archive, SerializationProfile profile)
 {
@@ -185,10 +194,10 @@ bool deserialize(Door* obj, const GffStruct& archive, SerializationProfile profi
         throw std::runtime_error("unable to serialize null object");
     }
 
-    obj->common.from_gff(archive, profile, ObjectType::door);
-    obj->lock.from_gff(archive);
-    obj->scripts.from_gff(archive);
-    obj->trap.from_gff(archive);
+    deserialize(obj->common, archive, profile, ObjectType::door);
+    deserialize(obj->lock, archive);
+    deserialize(obj->scripts, archive);
+    deserialize(obj->trap, archive);
 
     bool result = true;
     uint8_t save;
@@ -251,12 +260,12 @@ bool serialize(const Door* obj, GffBuilderStruct& archive, SerializationProfile 
     }
 
     if (obj->common.locals.size()) {
-        obj->common.locals.to_gff(archive, profile);
+        serialize(obj->common.locals, archive, profile);
     }
 
-    obj->lock.to_gff(archive);
-    obj->scripts.to_gff(archive);
-    obj->trap.to_gff(archive);
+    serialize(obj->lock, archive);
+    serialize(obj->scripts, archive);
+    serialize(obj->trap, archive);
 
     archive.add_field("Conversation", obj->conversation)
         .add_field("Description", obj->description)

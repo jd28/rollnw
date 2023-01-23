@@ -55,7 +55,7 @@ Faction::Faction(const nlohmann::json& archive)
     }
 }
 
-GffBuilder Faction::to_gff() const
+GffBuilder Faction::serialize() const
 {
     GffBuilder out{"FAC"};
     auto& top = out.top;

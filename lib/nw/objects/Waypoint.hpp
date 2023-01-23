@@ -51,6 +51,9 @@ struct Waypoint : public ObjectBase {
     bool instantiated_ = false;
 };
 
+// == Waypoint - Serialization - Gff ==========================================
+// ============================================================================
+
 #ifdef ROLLNW_ENABLE_LEGACY
 
 /// Deserializes entity from GFF

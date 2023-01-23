@@ -13,9 +13,7 @@ namespace nw {
 struct CreatureStats {
     CreatureStats() = default;
 
-    bool from_gff(const GffStruct& archive);
     bool from_json(const nlohmann::json& archive);
-    bool to_gff(GffBuilderStruct& archive) const;
     nlohmann::json to_json() const;
 
     /// Attempts to add a feat to a creature, returning true if successful
@@ -41,10 +39,18 @@ struct CreatureStats {
 
     Saves save_bonus;
 
+    friend bool deserialize(CreatureStats& self, const GffStruct& archive);
+    friend bool serialize(const CreatureStats& self, GffBuilderStruct& archive);
+
 private:
     std::array<uint8_t, 6> abilities_;
     std::vector<Feat> feats_;
     std::vector<uint8_t> skills_;
 };
+
+#ifdef ROLLNW_ENABLE_LEGACY
+bool deserialize(CreatureStats& self, const GffStruct& archive);
+bool serialize(const CreatureStats& self, GffBuilderStruct& archive);
+#endif // ROLLNW_ENABLE_LEGACY
 
 } // namespace nw

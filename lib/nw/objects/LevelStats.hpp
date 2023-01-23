@@ -20,9 +20,7 @@ struct LevelStats {
     static constexpr size_t max_classes = 8;
     static constexpr size_t npos = std::numeric_limits<size_t>::max();
 
-    bool from_gff(const GffStruct& archive);
     bool from_json(const nlohmann::json& archive);
-    bool to_gff(GffBuilderStruct& archive) const;
     nlohmann::json to_json() const;
 
     /// Determines total level
@@ -37,4 +35,8 @@ struct LevelStats {
     std::array<ClassEntry, max_classes> entries;
 };
 
+#ifdef ROLLNW_ENABLE_LEGACY
+bool deserialize(LevelStats& self, const GffStruct& archive);
+bool serialize(const LevelStats& self, GffBuilderStruct& archive);
+#endif
 } // namespace nw

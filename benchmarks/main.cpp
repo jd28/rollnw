@@ -1,11 +1,11 @@
 #include <nw/formats/TwoDA.hpp>
 #include <nw/functions.hpp>
-#include <nw/i18n/Tlk.hpp>
 #include <nw/kernel/Objects.hpp>
 #include <nw/kernel/Resources.hpp>
 #include <nw/kernel/Rules.hpp>
 #include <nw/kernel/Strings.hpp>
 #include <nw/legacy/Gff.hpp>
+#include <nw/legacy/Tlk.hpp>
 #include <nw/model/Mdl.hpp>
 #include <nw/objects/Creature.hpp>
 #include <nw/script/Nss.hpp>
@@ -45,7 +45,7 @@ static void BM_parse_settings_tml(benchmark::State& state)
     }
 }
 
-static void BM_creature_from_gff(benchmark::State& state)
+static void BM_creature_deserialize(benchmark::State& state)
 {
     for (auto _ : state) {
         auto ent = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/drorry.utc"));
@@ -71,7 +71,7 @@ static void BM_creature_to_json(benchmark::State& state)
     }
 }
 
-static void BM_creature_to_gff(benchmark::State& state)
+static void BM_creature_serialize(benchmark::State& state)
 {
     auto ent = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/drorry.utc"));
     for (auto _ : state) {
@@ -255,9 +255,9 @@ static void BM_rules_modifier(benchmark::State& state)
 
 BENCHMARK(BM_parse_feat_2da);
 BENCHMARK(BM_parse_settings_tml);
-BENCHMARK(BM_creature_from_gff);
+BENCHMARK(BM_creature_deserialize);
 BENCHMARK(BM_creature_from_json);
-BENCHMARK(BM_creature_to_gff);
+BENCHMARK(BM_creature_serialize);
 BENCHMARK(BM_creature_to_json);
 BENCHMARK(BM_creature_select);
 BENCHMARK(BM_creature_select2);

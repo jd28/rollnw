@@ -1,6 +1,6 @@
 #include <catch2/catch_all.hpp>
 
-#include <nw/i18n/LocString.hpp>
+#include <nw/legacy/LocString.hpp>
 #include <nw/log.hpp>
 
 #include <nlohmann/json.hpp>

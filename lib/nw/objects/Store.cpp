@@ -103,6 +103,9 @@ bool Store::serialize(const Store* obj, nlohmann::json& archive, SerializationPr
     return true;
 }
 
+// == Store - Serialization - Gff =============================================
+// ============================================================================
+
 #ifdef ROLLNW_ENABLE_LEGACY
 
 bool deserialize(Store* obj, const GffStruct& archive, SerializationProfile profile)
@@ -110,7 +113,7 @@ bool deserialize(Store* obj, const GffStruct& archive, SerializationProfile prof
     if (!obj) {
         return false;
     }
-    if (!obj->common.from_gff(archive, profile, ObjectType::store)) {
+    if (!deserialize(obj->common, archive, profile, ObjectType::store)) {
         return false;
     }
 
@@ -130,19 +133,19 @@ bool deserialize(Store* obj, const GffStruct& archive, SerializationProfile prof
                 LOG_F(ERROR, "store invalid store container id: {}", st.id());
                 break;
             case 0:
-                obj->inventory.armor.from_gff(st, profile);
+                deserialize(obj->inventory.armor, st, profile);
                 break;
             case 1:
-                obj->inventory.miscellaneous.from_gff(st, profile);
+                deserialize(obj->inventory.miscellaneous, st, profile);
                 break;
             case 2:
-                obj->inventory.potions.from_gff(st, profile);
+                deserialize(obj->inventory.potions, st, profile);
                 break;
             case 3:
-                obj->inventory.rings.from_gff(st, profile);
+                deserialize(obj->inventory.rings, st, profile);
                 break;
             case 4:
-                obj->inventory.weapons.from_gff(st, profile);
+                deserialize(obj->inventory.weapons, st, profile);
                 break;
             }
         }
@@ -209,15 +212,15 @@ bool serialize(const Store* obj, GffBuilderStruct& archive, SerializationProfile
     }
 
     if (obj->common.locals.size()) {
-        obj->common.locals.to_gff(archive, profile);
+        serialize(obj->common.locals, archive, profile);
     }
 
     auto& store_list = archive.add_list("StoreList");
-    obj->inventory.armor.to_gff(store_list.push_back(0), profile);
-    obj->inventory.miscellaneous.to_gff(store_list.push_back(1), profile);
-    obj->inventory.potions.to_gff(store_list.push_back(2), profile);
-    obj->inventory.rings.to_gff(store_list.push_back(3), profile);
-    obj->inventory.weapons.to_gff(store_list.push_back(4), profile);
+    serialize(obj->inventory.armor, store_list.push_back(0), profile);
+    serialize(obj->inventory.miscellaneous, store_list.push_back(1), profile);
+    serialize(obj->inventory.potions, store_list.push_back(2), profile);
+    serialize(obj->inventory.rings, store_list.push_back(3), profile);
+    serialize(obj->inventory.weapons, store_list.push_back(4), profile);
 
     auto& wnb_list = archive.add_list("WillNotBuy");
     for (const auto bi : obj->inventory.will_not_buy) {

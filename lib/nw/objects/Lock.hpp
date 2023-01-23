@@ -8,9 +8,7 @@ namespace nw {
 struct Lock {
     Lock() = default;
 
-    bool from_gff(const GffStruct& archive);
     bool from_json(const nlohmann::json& archive);
-    bool to_gff(GffBuilderStruct& archive) const;
     nlohmann::json to_json() const;
 
     std::string key_name;
@@ -21,5 +19,10 @@ struct Lock {
     uint8_t unlock_dc = 0;
     bool remove_key = false;
 };
+
+#ifdef ROLLNW_ENABLE_LEGACY
+bool deserialize(Lock& self, const GffStruct& archive);
+bool serialize(const Lock& self, GffBuilderStruct& archive);
+#endif
 
 } // namespace nw

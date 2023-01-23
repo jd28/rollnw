@@ -8,29 +8,6 @@
 
 namespace nw {
 
-bool ModuleScripts::from_gff(const GffStruct& archive)
-{
-    archive.get_to("Mod_OnClientEntr", on_client_enter);
-    archive.get_to("Mod_OnClientLeav", on_client_leave);
-    archive.get_to("Mod_OnCutsnAbort", on_cutsnabort);
-    archive.get_to("Mod_OnHeartbeat", on_heartbeat);
-    archive.get_to("Mod_OnAcquirItem", on_item_acquire);
-    archive.get_to("Mod_OnActvtItem", on_item_activate);
-    archive.get_to("Mod_OnUnAqreItem", on_item_unaquire);
-    archive.get_to("Mod_OnModLoad", on_load);
-    archive.get_to("Mod_OnPlrChat", on_player_chat);
-    archive.get_to("Mod_OnPlrDeath", on_player_death);
-    archive.get_to("Mod_OnPlrDying", on_player_dying);
-    archive.get_to("Mod_OnPlrEqItm", on_player_equip);
-    archive.get_to("Mod_OnPlrLvlUp", on_player_level_up);
-    archive.get_to("Mod_OnPlrRest", on_player_rest);
-    archive.get_to("Mod_OnPlrUnEqItm", on_player_uneqiup);
-    archive.get_to("Mod_OnSpawnBtnDn", on_spawnbtndn);
-    archive.get_to("Mod_OnModStart", on_start);
-    archive.get_to("Mod_OnUsrDefined", on_user_defined);
-    return true;
-}
-
 bool ModuleScripts::from_json(const nlohmann::json& archive)
 {
     try {
@@ -56,30 +33,6 @@ bool ModuleScripts::from_json(const nlohmann::json& archive)
         LOG_F(ERROR, "ModuleScripts::from_json exception: {}", e.what());
         return false;
     }
-    return true;
-}
-
-bool ModuleScripts::to_gff(GffBuilderStruct& archive) const
-{
-    archive.add_field("Mod_OnClientEntr", on_client_enter)
-        .add_field("Mod_OnClientLeav", on_client_leave)
-        .add_field("Mod_OnCutsnAbort", on_cutsnabort)
-        .add_field("Mod_OnHeartbeat", on_heartbeat)
-        .add_field("Mod_OnAcquirItem", on_item_acquire)
-        .add_field("Mod_OnActvtItem", on_item_activate)
-        .add_field("Mod_OnUnAqreItem", on_item_unaquire)
-        .add_field("Mod_OnModLoad", on_load)
-        .add_field("Mod_OnPlrChat", on_player_chat)
-        .add_field("Mod_OnPlrDeath", on_player_death)
-        .add_field("Mod_OnPlrDying", on_player_dying)
-        .add_field("Mod_OnPlrEqItm", on_player_equip)
-        .add_field("Mod_OnPlrLvlUp", on_player_level_up)
-        .add_field("Mod_OnPlrRest", on_player_rest)
-        .add_field("Mod_OnPlrUnEqItm", on_player_uneqiup)
-        .add_field("Mod_OnSpawnBtnDn", on_spawnbtndn)
-        .add_field("Mod_OnModStart", on_start)
-        .add_field("Mod_OnUsrDefined", on_user_defined);
-
     return true;
 }
 
@@ -151,14 +104,72 @@ bool Module::instantiate()
     return true;
 }
 
-bool Module::deserialize(Module* obj, const GffStruct& archive)
+bool Module::deserialize(Module* obj, const nlohmann::json& archive)
 {
     if (!obj) {
         throw std::runtime_error("unable to serialize null object");
     }
 
-    obj->locals.from_gff(archive);
-    obj->scripts.from_gff(archive);
+    try {
+        obj->locals.from_json(archive.at("locals"));
+        obj->scripts.from_json(archive.at("scripts"));
+
+        std::vector<Resref> area_list;
+        archive.at("areas").get_to(area_list);
+        obj->areas = std::move(area_list);
+
+        archive.at("description").get_to(obj->description);
+        obj->entry_orientation.x = archive.at("entry_orientation")[0].get<float>();
+        obj->entry_orientation.y = archive.at("entry_orientation")[1].get<float>();
+        // entry_orientation.z = archive.at("entry_orientation")[2].get<float>();
+        obj->entry_position.x = archive.at("entry_position")[0].get<float>();
+        obj->entry_position.y = archive.at("entry_position")[1].get<float>();
+        obj->entry_position.z = archive.at("entry_position")[2].get<float>();
+
+        archive.at("haks").get_to(obj->haks);
+        archive.at("id").get_to(obj->id);
+        archive.at("min_game_version").get_to(obj->min_game_version);
+        archive.at("name").get_to(obj->name);
+        archive.at("start_movie").get_to(obj->start_movie);
+        archive.at("tag").get_to(obj->tag);
+        archive.at("tlk").get_to(obj->tlk);
+
+        archive.at("creator").get_to(obj->creator);
+        archive.at("start_year").get_to(obj->start_year);
+        archive.at("version").get_to(obj->version);
+
+        archive.at("expansion_pack").get_to(obj->expansion_pack);
+
+        archive.at("dawn_hour").get_to(obj->dawn_hour);
+        archive.at("dusk_hour").get_to(obj->dusk_hour);
+        archive.at("entry_area").get_to(obj->entry_area);
+        archive.at("is_save_game").get_to(obj->is_save_game);
+        archive.at("minutes_per_hour").get_to(obj->minutes_per_hour);
+        archive.at("start_day").get_to(obj->start_day);
+        archive.at("start_hour").get_to(obj->start_hour);
+        archive.at("start_month").get_to(obj->start_month);
+        archive.at("xpscale").get_to(obj->xpscale);
+
+    } catch (const nlohmann::json::exception& e) {
+        LOG_F(ERROR, "Module::from_json exception: {}", e.what());
+        return false;
+    }
+
+    return true;
+}
+
+// == Module - Serialization - Gff ============================================
+// ============================================================================
+
+#ifdef ROLLNW_ENABLE_LEGACY
+bool deserialize(Module* obj, const GffStruct& archive)
+{
+    if (!obj) {
+        throw std::runtime_error("unable to serialize null object");
+    }
+
+    deserialize(obj->locals, archive);
+    deserialize(obj->scripts, archive);
 
     size_t sz = archive["Mod_Area_list"].size();
     auto st = archive["Mod_Area_list"];
@@ -220,134 +231,6 @@ bool Module::deserialize(Module* obj, const GffStruct& archive)
     return true;
 }
 
-bool Module::deserialize(Module* obj, const nlohmann::json& archive)
-{
-    if (!obj) {
-        throw std::runtime_error("unable to serialize null object");
-    }
-
-    try {
-        obj->locals.from_json(archive.at("locals"));
-        obj->scripts.from_json(archive.at("scripts"));
-
-        std::vector<Resref> area_list;
-        archive.at("areas").get_to(area_list);
-        obj->areas = std::move(area_list);
-
-        archive.at("description").get_to(obj->description);
-        obj->entry_orientation.x = archive.at("entry_orientation")[0].get<float>();
-        obj->entry_orientation.y = archive.at("entry_orientation")[1].get<float>();
-        // entry_orientation.z = archive.at("entry_orientation")[2].get<float>();
-        obj->entry_position.x = archive.at("entry_position")[0].get<float>();
-        obj->entry_position.y = archive.at("entry_position")[1].get<float>();
-        obj->entry_position.z = archive.at("entry_position")[2].get<float>();
-
-        archive.at("haks").get_to(obj->haks);
-        archive.at("id").get_to(obj->id);
-        archive.at("min_game_version").get_to(obj->min_game_version);
-        archive.at("name").get_to(obj->name);
-        archive.at("start_movie").get_to(obj->start_movie);
-        archive.at("tag").get_to(obj->tag);
-        archive.at("tlk").get_to(obj->tlk);
-
-        archive.at("creator").get_to(obj->creator);
-        archive.at("start_year").get_to(obj->start_year);
-        archive.at("version").get_to(obj->version);
-
-        archive.at("expansion_pack").get_to(obj->expansion_pack);
-
-        archive.at("dawn_hour").get_to(obj->dawn_hour);
-        archive.at("dusk_hour").get_to(obj->dusk_hour);
-        archive.at("entry_area").get_to(obj->entry_area);
-        archive.at("is_save_game").get_to(obj->is_save_game);
-        archive.at("minutes_per_hour").get_to(obj->minutes_per_hour);
-        archive.at("start_day").get_to(obj->start_day);
-        archive.at("start_hour").get_to(obj->start_hour);
-        archive.at("start_month").get_to(obj->start_month);
-        archive.at("xpscale").get_to(obj->xpscale);
-
-    } catch (const nlohmann::json::exception& e) {
-        LOG_F(ERROR, "Module::from_json exception: {}", e.what());
-        return false;
-    }
-
-    return true;
-}
-
-bool Module::serialize(const Module* obj, GffBuilderStruct& archive)
-{
-    if (!obj) {
-        throw std::runtime_error("unable to serialize null object");
-    }
-
-    obj->locals.to_gff(archive, SerializationProfile::any);
-    obj->scripts.to_gff(archive);
-
-    auto& area_list = archive.add_list("Mod_Area_list");
-    if (std::holds_alternative<std::vector<Resref>>(obj->areas)) {
-        for (const auto& area : std::get<std::vector<Resref>>(obj->areas)) {
-            area_list.push_back(6).add_field("Area_Name", area);
-        }
-    } else {
-        for (const auto& area : std::get<std::vector<Area*>>(obj->areas)) {
-            area_list.push_back(6).add_field("Area_Name", area->common.resref);
-        }
-    }
-
-    archive.add_field("Mod_Description", obj->description);
-
-    archive.add_field("Mod_Entry_Area", obj->entry_area)
-        .add_field("Mod_Entry_Dir_X", obj->entry_orientation.x)
-        .add_field("Mod_Entry_Dir_Y", obj->entry_orientation.y)
-        .add_field("Mod_Entry_X", obj->entry_position.x)
-        .add_field("Mod_Entry_Y", obj->entry_position.y)
-        .add_field("Mod_Entry_Z", obj->entry_position.z);
-
-    auto& hak_list = archive.add_list("Mod_HakList");
-    for (const auto& hak : obj->haks) {
-        hak_list.push_back(8).add_field("Mod_Hak", hak);
-    }
-
-    archive.add_field("Mod_ID", obj->id);
-    archive.add_field("Mod_MinGameVer", obj->min_game_version);
-    archive.add_field("Mod_Name", obj->name);
-    archive.add_field("Mod_StartMovie", obj->start_movie);
-    archive.add_field("Mod_Tag", obj->tag);
-    archive.add_field("Mod_CustomTlk", obj->tlk);
-
-    // Always empty, obsolete, but NWN as of 1.69, at least, kept them in the GFF.
-    archive.add_list("Mod_CutSceneList");
-    archive.add_list("Mod_Expan_List");
-    archive.add_list("Mod_GVar_List");
-
-    archive.add_field("Mod_Creator_ID", obj->creator)
-        .add_field("Mod_StartYear", obj->start_year)
-        .add_field("Mod_Version", obj->version);
-
-    archive.add_field("Expansion_Pack", obj->expansion_pack);
-
-    archive.add_field("Mod_DawnHour", obj->dawn_hour)
-        .add_field("Mod_DuskHour", obj->dusk_hour)
-        .add_field("Mod_IsSaveGame", obj->is_save_game)
-        .add_field("Mod_MinPerHour", obj->minutes_per_hour)
-        .add_field("Mod_StartDay", obj->start_day)
-        .add_field("Mod_StartHour", obj->start_hour)
-        .add_field("Mod_StartMonth", obj->start_month)
-        .add_field("Mod_XPScale", obj->xpscale);
-
-    return true;
-}
-
-GffBuilder Module::serialize(const Module* obj)
-{
-    GffBuilder out{"IFO"};
-    if (!obj) return out;
-
-    Module::serialize(obj, out.top);
-    out.build();
-    return out;
-}
-
 bool Module::serialize(const Module* obj, nlohmann::json& archive)
 {
     if (!obj) {
@@ -406,5 +289,128 @@ bool Module::serialize(const Module* obj, nlohmann::json& archive)
 
     return true;
 }
+
+bool serialize(const Module* obj, GffBuilderStruct& archive)
+{
+    if (!obj) {
+        throw std::runtime_error("unable to serialize null object");
+    }
+
+    serialize(obj->locals, archive, SerializationProfile::any);
+    serialize(obj->scripts, archive);
+
+    auto& area_list = archive.add_list("Mod_Area_list");
+    if (std::holds_alternative<std::vector<Resref>>(obj->areas)) {
+        for (const auto& area : std::get<std::vector<Resref>>(obj->areas)) {
+            area_list.push_back(6).add_field("Area_Name", area);
+        }
+    } else {
+        for (const auto& area : std::get<std::vector<Area*>>(obj->areas)) {
+            area_list.push_back(6).add_field("Area_Name", area->common.resref);
+        }
+    }
+
+    archive.add_field("Mod_Description", obj->description);
+
+    archive.add_field("Mod_Entry_Area", obj->entry_area)
+        .add_field("Mod_Entry_Dir_X", obj->entry_orientation.x)
+        .add_field("Mod_Entry_Dir_Y", obj->entry_orientation.y)
+        .add_field("Mod_Entry_X", obj->entry_position.x)
+        .add_field("Mod_Entry_Y", obj->entry_position.y)
+        .add_field("Mod_Entry_Z", obj->entry_position.z);
+
+    auto& hak_list = archive.add_list("Mod_HakList");
+    for (const auto& hak : obj->haks) {
+        hak_list.push_back(8).add_field("Mod_Hak", hak);
+    }
+
+    archive.add_field("Mod_ID", obj->id);
+    archive.add_field("Mod_MinGameVer", obj->min_game_version);
+    archive.add_field("Mod_Name", obj->name);
+    archive.add_field("Mod_StartMovie", obj->start_movie);
+    archive.add_field("Mod_Tag", obj->tag);
+    archive.add_field("Mod_CustomTlk", obj->tlk);
+
+    // Always empty, obsolete, but NWN as of 1.69, at least, kept them in the GFF.
+    archive.add_list("Mod_CutSceneList");
+    archive.add_list("Mod_Expan_List");
+    archive.add_list("Mod_GVar_List");
+
+    archive.add_field("Mod_Creator_ID", obj->creator)
+        .add_field("Mod_StartYear", obj->start_year)
+        .add_field("Mod_Version", obj->version);
+
+    archive.add_field("Expansion_Pack", obj->expansion_pack);
+
+    archive.add_field("Mod_DawnHour", obj->dawn_hour)
+        .add_field("Mod_DuskHour", obj->dusk_hour)
+        .add_field("Mod_IsSaveGame", obj->is_save_game)
+        .add_field("Mod_MinPerHour", obj->minutes_per_hour)
+        .add_field("Mod_StartDay", obj->start_day)
+        .add_field("Mod_StartHour", obj->start_hour)
+        .add_field("Mod_StartMonth", obj->start_month)
+        .add_field("Mod_XPScale", obj->xpscale);
+
+    return true;
+}
+
+GffBuilder serialize(const Module* obj)
+{
+    GffBuilder out{"IFO"};
+    if (!obj) return out;
+
+    serialize(obj, out.top);
+    out.build();
+    return out;
+}
+
+bool deserialize(ModuleScripts& self, const GffStruct& archive)
+{
+    archive.get_to("Mod_OnClientEntr", self.on_client_enter);
+    archive.get_to("Mod_OnClientLeav", self.on_client_leave);
+    archive.get_to("Mod_OnCutsnAbort", self.on_cutsnabort);
+    archive.get_to("Mod_OnHeartbeat", self.on_heartbeat);
+    archive.get_to("Mod_OnAcquirItem", self.on_item_acquire);
+    archive.get_to("Mod_OnActvtItem", self.on_item_activate);
+    archive.get_to("Mod_OnUnAqreItem", self.on_item_unaquire);
+    archive.get_to("Mod_OnModLoad", self.on_load);
+    archive.get_to("Mod_OnPlrChat", self.on_player_chat);
+    archive.get_to("Mod_OnPlrDeath", self.on_player_death);
+    archive.get_to("Mod_OnPlrDying", self.on_player_dying);
+    archive.get_to("Mod_OnPlrEqItm", self.on_player_equip);
+    archive.get_to("Mod_OnPlrLvlUp", self.on_player_level_up);
+    archive.get_to("Mod_OnPlrRest", self.on_player_rest);
+    archive.get_to("Mod_OnPlrUnEqItm", self.on_player_uneqiup);
+    archive.get_to("Mod_OnSpawnBtnDn", self.on_spawnbtndn);
+    archive.get_to("Mod_OnModStart", self.on_start);
+    archive.get_to("Mod_OnUsrDefined", self.on_user_defined);
+    return true;
+}
+
+bool serialize(const ModuleScripts& self, GffBuilderStruct& archive)
+{
+    archive.add_field("Mod_OnClientEntr", self.on_client_enter)
+        .add_field("Mod_OnClientLeav", self.on_client_leave)
+        .add_field("Mod_OnCutsnAbort", self.on_cutsnabort)
+        .add_field("Mod_OnHeartbeat", self.on_heartbeat)
+        .add_field("Mod_OnAcquirItem", self.on_item_acquire)
+        .add_field("Mod_OnActvtItem", self.on_item_activate)
+        .add_field("Mod_OnUnAqreItem", self.on_item_unaquire)
+        .add_field("Mod_OnModLoad", self.on_load)
+        .add_field("Mod_OnPlrChat", self.on_player_chat)
+        .add_field("Mod_OnPlrDeath", self.on_player_death)
+        .add_field("Mod_OnPlrDying", self.on_player_dying)
+        .add_field("Mod_OnPlrEqItm", self.on_player_equip)
+        .add_field("Mod_OnPlrLvlUp", self.on_player_level_up)
+        .add_field("Mod_OnPlrRest", self.on_player_rest)
+        .add_field("Mod_OnPlrUnEqItm", self.on_player_uneqiup)
+        .add_field("Mod_OnSpawnBtnDn", self.on_spawnbtndn)
+        .add_field("Mod_OnModStart", self.on_start)
+        .add_field("Mod_OnUsrDefined", self.on_user_defined);
+
+    return true;
+}
+
+#endif
 
 } // namespace nw

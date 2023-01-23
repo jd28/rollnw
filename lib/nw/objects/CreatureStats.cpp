@@ -6,40 +6,6 @@
 
 namespace nw {
 
-bool CreatureStats::from_gff(const GffStruct& archive)
-{
-    archive.get_to("Str", abilities_[0]);
-    archive.get_to("Dex", abilities_[1]);
-    archive.get_to("Con", abilities_[2]);
-    archive.get_to("Int", abilities_[3]);
-    archive.get_to("Wis", abilities_[4]);
-    archive.get_to("Cha", abilities_[5]);
-
-    auto skill_list = archive["SkillList"];
-    skills_.resize(skill_list.size(), 0);
-    for (size_t i = 0; i < skill_list.size(); ++i) {
-        skill_list[i].get_to("Rank", skills_[i]);
-    }
-
-    auto feat_list = archive["FeatList"];
-    size_t sz = feat_list.size();
-    feats_.resize(sz);
-    for (size_t i = 0; i < sz; ++i) {
-        uint16_t temp;
-        if (feat_list[i].get_to("Feat", temp)) {
-            feats_[i] = Feat::make(temp);
-        }
-    }
-
-    std::sort(std::begin(feats_), std::end(feats_));
-
-    archive.get_to("fortbonus", save_bonus.fort);
-    archive.get_to("refbonus", save_bonus.reflex);
-    archive.get_to("willbonus", save_bonus.will);
-
-    return false;
-}
-
 bool CreatureStats::from_json(const nlohmann::json& archive)
 {
     try {
@@ -53,31 +19,6 @@ bool CreatureStats::from_json(const nlohmann::json& archive)
     }
 
     std::sort(std::begin(feats_), std::end(feats_));
-
-    return true;
-}
-
-bool CreatureStats::to_gff(GffBuilderStruct& archive) const
-{
-    archive.add_field("Str", abilities_[0])
-        .add_field("Dex", abilities_[1])
-        .add_field("Con", abilities_[2])
-        .add_field("Int", abilities_[3])
-        .add_field("Wis", abilities_[4])
-        .add_field("Cha", abilities_[5])
-        .add_field("fortbonus", save_bonus.fort)
-        .add_field("refbonus", save_bonus.reflex)
-        .add_field("willbonus", save_bonus.will);
-
-    auto& ft_list = archive.add_list("FeatList");
-    for (auto ft : feats_) {
-        ft_list.push_back(1).add_field("Feat", static_cast<uint16_t>(*ft));
-    }
-
-    auto& sk_list = archive.add_list("SkillList");
-    for (uint8_t sk : skills_) {
-        sk_list.push_back(0).add_field("Rank", sk);
-    }
 
     return true;
 }
@@ -147,4 +88,65 @@ bool CreatureStats::set_skill_rank(Skill id, int value)
     return (skills_[id.idx()] = uint8_t(value));
 }
 
+#ifdef ROLLNW_ENABLE_LEGACY
+bool deserialize(CreatureStats& self, const GffStruct& archive)
+{
+    archive.get_to("Str", self.abilities_[0]);
+    archive.get_to("Dex", self.abilities_[1]);
+    archive.get_to("Con", self.abilities_[2]);
+    archive.get_to("Int", self.abilities_[3]);
+    archive.get_to("Wis", self.abilities_[4]);
+    archive.get_to("Cha", self.abilities_[5]);
+
+    auto skill_list = archive["SkillList"];
+    self.skills_.resize(skill_list.size(), 0);
+    for (size_t i = 0; i < skill_list.size(); ++i) {
+        skill_list[i].get_to("Rank", self.skills_[i]);
+    }
+
+    auto feat_list = archive["FeatList"];
+    size_t sz = feat_list.size();
+    self.feats_.resize(sz);
+    for (size_t i = 0; i < sz; ++i) {
+        uint16_t temp;
+        if (feat_list[i].get_to("Feat", temp)) {
+            self.feats_[i] = Feat::make(temp);
+        }
+    }
+
+    std::sort(std::begin(self.feats_), std::end(self.feats_));
+
+    archive.get_to("fortbonus", self.save_bonus.fort);
+    archive.get_to("refbonus", self.save_bonus.reflex);
+    archive.get_to("willbonus", self.save_bonus.will);
+
+    return false;
+}
+
+bool serialize(const CreatureStats& self, GffBuilderStruct& archive)
+{
+    archive.add_field("Str", self.abilities_[0])
+        .add_field("Dex", self.abilities_[1])
+        .add_field("Con", self.abilities_[2])
+        .add_field("Int", self.abilities_[3])
+        .add_field("Wis", self.abilities_[4])
+        .add_field("Cha", self.abilities_[5])
+        .add_field("fortbonus", self.save_bonus.fort)
+        .add_field("refbonus", self.save_bonus.reflex)
+        .add_field("willbonus", self.save_bonus.will);
+
+    auto& ft_list = archive.add_list("FeatList");
+    for (auto ft : self.feats_) {
+        ft_list.push_back(1).add_field("Feat", static_cast<uint16_t>(*ft));
+    }
+
+    auto& sk_list = archive.add_list("SkillList");
+    for (uint8_t sk : self.skills_) {
+        sk_list.push_back(0).add_field("Rank", sk);
+    }
+
+    return true;
+}
+
+#endif // ROLLNW_ENABLE_LEGACY
 } // namespace nw

@@ -4,19 +4,6 @@
 
 namespace nw {
 
-bool Trap::from_gff(const GffStruct& archive)
-{
-    archive.get_to("TrapFlag", is_trapped);
-    archive.get_to("TrapType", type);
-    archive.get_to("DisarmDC", disarm_dc);
-    archive.get_to("TrapDetectable", detectable);
-    archive.get_to("TrapDetectDC", detect_dc);
-    archive.get_to("TrapDisarmable", disarmable);
-    archive.get_to("TrapOneShot", one_shot);
-
-    return true;
-}
-
 bool Trap::from_json(const nlohmann::json& archive)
 {
     try {
@@ -35,19 +22,6 @@ bool Trap::from_json(const nlohmann::json& archive)
     return true;
 }
 
-bool Trap::to_gff(GffBuilderStruct& archive) const
-{
-    archive.add_field("TrapFlag", is_trapped)
-        .add_field("TrapType", type)
-        .add_field("DisarmDC", disarm_dc)
-        .add_field("TrapDetectable", detectable)
-        .add_field("TrapDetectDC", detect_dc)
-        .add_field("TrapDisarmable", disarmable)
-        .add_field("TrapOneShot", one_shot);
-
-    return true;
-}
-
 nlohmann::json Trap::to_json() const
 {
     nlohmann::json j;
@@ -62,5 +36,35 @@ nlohmann::json Trap::to_json() const
 
     return j;
 }
+
+#ifdef ROLLNW_ENABLE_LEGACY
+
+bool deserialize(Trap& self, const GffStruct& archive)
+{
+    archive.get_to("TrapFlag", self.is_trapped);
+    archive.get_to("TrapType", self.type);
+    archive.get_to("DisarmDC", self.disarm_dc);
+    archive.get_to("TrapDetectable", self.detectable);
+    archive.get_to("TrapDetectDC", self.detect_dc);
+    archive.get_to("TrapDisarmable", self.disarmable);
+    archive.get_to("TrapOneShot", self.one_shot);
+
+    return true;
+}
+
+bool serialize(const Trap& self, GffBuilderStruct& archive)
+{
+    archive.add_field("TrapFlag", self.is_trapped)
+        .add_field("TrapType", self.type)
+        .add_field("DisarmDC", self.disarm_dc)
+        .add_field("TrapDetectable", self.detectable)
+        .add_field("TrapDetectDC", self.detect_dc)
+        .add_field("TrapDisarmable", self.disarmable)
+        .add_field("TrapOneShot", self.one_shot);
+
+    return true;
+}
+
+#endif // ROLLNW_ENABLE_LEGACY
 
 } // namespace nw

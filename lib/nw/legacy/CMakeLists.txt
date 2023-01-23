@@ -4,7 +4,9 @@ add_library(nw-legacy STATIC
     Gff.cpp
     GffBuilder.cpp
     Image.cpp
+    LocString.cpp
     Palette.cpp
+    Tlk.cpp
 )
 
 target_link_libraries(nw-legacy PRIVATE

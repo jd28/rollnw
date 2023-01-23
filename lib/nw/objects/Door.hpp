@@ -15,9 +15,7 @@ enum struct DoorAnimationState : uint8_t {
 };
 
 struct DoorScripts {
-    bool from_gff(const GffStruct& archive);
     bool from_json(const nlohmann::json& archive);
-    bool to_gff(GffBuilderStruct& archive) const;
     nlohmann::json to_json() const;
 
     Resref on_click;
@@ -80,12 +78,15 @@ struct Door : public ObjectBase {
     bool instantiated_ = true;
 };
 
-#ifdef ROLLNW_ENABLE_LEGACY
+// == Door - Serialization - Gff ==============================================
+// ============================================================================
 
+#ifdef ROLLNW_ENABLE_LEGACY
 bool deserialize(Door* obj, const GffStruct& archive, SerializationProfile profile);
 bool serialize(const Door* obj, GffBuilderStruct& archive, SerializationProfile profile);
 GffBuilder serialize(const Door* obj, SerializationProfile profile);
-
+bool deserialize(DoorScripts& self, const GffStruct& archive);
+bool serialize(const DoorScripts& self, GffBuilderStruct& archive);
 #endif // ROLLNW_ENABLE_LEGACY
 
 } // namespace nw

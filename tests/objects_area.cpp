@@ -10,7 +10,7 @@
 
 #include <fstream>
 
-TEST_CASE("area: from_gff", "[objects]")
+TEST_CASE("area: deserialize", "[objects]")
 {
     auto ent = nw::kernel::objects().make<nw::Area>();
     nw::Gff are{"test_data/user/development/test_area.are"};

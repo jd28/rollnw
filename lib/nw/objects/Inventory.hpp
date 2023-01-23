@@ -33,13 +33,16 @@ struct Inventory {
 
     bool instantiate();
 
-    bool from_gff(const GffStruct& archive, SerializationProfile profile);
     bool from_json(const nlohmann::json& archive, SerializationProfile profile);
-    bool to_gff(GffBuilderStruct& archive, SerializationProfile profile) const;
     nlohmann::json to_json(SerializationProfile profile) const;
 
     ObjectBase* owner;
     std::vector<InventoryItem> items;
 };
+
+#ifdef ROLLNW_ENABLE_LEGACY
+bool deserialize(Inventory& self, const GffStruct& archive, SerializationProfile profile);
+bool serialize(const Inventory& self, GffBuilderStruct& archive, SerializationProfile profile);
+#endif
 
 } // namespace nw

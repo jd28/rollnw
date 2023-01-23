@@ -20,10 +20,7 @@ enum struct PlaceableAnimationState : uint8_t {
 };
 
 struct PlaceableScripts {
-
-    bool from_gff(const GffStruct& archive);
     bool from_json(const nlohmann::json& archive);
-    bool to_gff(GffBuilderStruct& archive) const;
     nlohmann::json to_json() const;
 
     Resref on_click;
@@ -88,10 +85,16 @@ struct Placeable : public ObjectBase {
     bool instantiated_ = false;
 };
 
+// == Placeable - Serialization - Gff =========================================
+// ============================================================================
+
 #ifdef ROLLNW_ENABLE_LEGACY
 bool deserialize(Placeable* obj, const GffStruct& archive, SerializationProfile profile);
 GffBuilder serialize(const Placeable* obj, SerializationProfile profile);
 bool serialize(const Placeable* obj, GffBuilderStruct& archive, SerializationProfile profile);
+
+bool deserialize(PlaceableScripts& self, const GffStruct& archive);
+bool serialize(const PlaceableScripts& self, GffBuilderStruct& archive);
 #endif // ROLLNW_ENABLE_LEGACY
 
 } // namespace nw

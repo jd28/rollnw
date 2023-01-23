@@ -4,19 +4,6 @@
 
 namespace nw {
 
-bool Lock::from_gff(const GffStruct& gff)
-{
-    gff.get_to("Lockable", lockable);
-    gff.get_to("KeyName", key_name);
-    gff.get_to("KeyRequired", key_required);
-    gff.get_to("AutoRemoveKey", remove_key);
-    gff.get_to("Locked", locked);
-    gff.get_to("CloseLockDC", lock_dc);
-    gff.get_to("OpenLockDC", unlock_dc);
-
-    return true;
-}
-
 bool Lock::from_json(const nlohmann::json& archive)
 {
     try {
@@ -34,19 +21,6 @@ bool Lock::from_json(const nlohmann::json& archive)
     return true;
 }
 
-bool Lock::to_gff(GffBuilderStruct& archive) const
-{
-    archive.add_field("KeyName", key_name)
-        .add_field("KeyRequired", key_required)
-        .add_field("Lockable", lockable)
-        .add_field("AutoRemoveKey", remove_key)
-        .add_field("Locked", locked)
-        .add_field("CloseLockDC", lock_dc)
-        .add_field("OpenLockDC", unlock_dc);
-
-    return true;
-}
-
 nlohmann::json Lock::to_json() const
 {
     nlohmann::json j;
@@ -60,5 +34,33 @@ nlohmann::json Lock::to_json() const
 
     return j;
 }
+
+#ifdef ROLLNW_ENABLE_LEGACY
+bool deserialize(Lock& self, const GffStruct& archive)
+{
+    archive.get_to("Lockable", self.lockable);
+    archive.get_to("KeyName", self.key_name);
+    archive.get_to("KeyRequired", self.key_required);
+    archive.get_to("AutoRemoveKey", self.remove_key);
+    archive.get_to("Locked", self.locked);
+    archive.get_to("CloseLockDC", self.lock_dc);
+    archive.get_to("OpenLockDC", self.unlock_dc);
+
+    return true;
+}
+
+bool serialize(const Lock& self, GffBuilderStruct& archive)
+{
+    archive.add_field("KeyName", self.key_name)
+        .add_field("KeyRequired", self.key_required)
+        .add_field("Lockable", self.lockable)
+        .add_field("AutoRemoveKey", self.remove_key)
+        .add_field("Locked", self.locked)
+        .add_field("CloseLockDC", self.lock_dc)
+        .add_field("OpenLockDC", self.unlock_dc);
+
+    return true;
+}
+#endif
 
 } // namespace nw

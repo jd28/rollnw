@@ -11,7 +11,7 @@
 
 namespace fs = std::filesystem;
 
-TEST_CASE("placeable: from_gff", "[objects]")
+TEST_CASE("placeable: deserialize", "[objects]")
 {
     auto ent = nw::kernel::objects().load<nw::Placeable>(fs::path("test_data/user/development/arrowcorpse001.utp"));
     REQUIRE(ent);

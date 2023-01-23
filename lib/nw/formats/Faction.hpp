@@ -25,7 +25,7 @@ struct Faction {
     static constexpr int json_archive_version = 1;
     static constexpr ResourceType::type restype = ResourceType::fac;
 
-    GffBuilder to_gff() const;
+    GffBuilder serialize() const;
     nlohmann::json to_json() const;
 
     std::vector<FactionInfo> factions;

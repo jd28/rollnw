@@ -32,9 +32,7 @@ using LocalVarTable = absl::flat_hash_map<std::string, LocalVar>;
 struct LocalData {
     LocalData() = default;
 
-    bool from_gff(const GffStruct& archive);
     bool from_json(const nlohmann::json& archive);
-    bool to_gff(GffBuilderStruct& archive, SerializationProfile profile) const;
     nlohmann::json to_json(SerializationProfile profile) const;
 
     void delete_float(std::string_view var);
@@ -57,10 +55,20 @@ struct LocalData {
 
     size_t size() const noexcept { return vars_.size(); }
 
+#ifdef ROLLNW_ENABLE_LEGACY
+    friend bool deserialize(LocalData& self, const GffStruct& archive);
+    friend bool serialize(const LocalData& self, GffBuilderStruct& archive, SerializationProfile profile);
+#endif
+
 private:
     LocalVarTable vars_;
 };
 
 // [TODO] NWNX:EE POS, Sqlite3
+
+#ifdef ROLLNW_ENABLE_LEGACY
+bool deserialize(LocalData& self, const GffStruct& archive);
+bool serialize(const LocalData& self, GffBuilderStruct& archive, SerializationProfile profile);
+#endif
 
 } // namespace nw

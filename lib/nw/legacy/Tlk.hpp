@@ -1,7 +1,7 @@
 #pragma once
 
+#include "../i18n/Language.hpp"
 #include "../util/ByteArray.hpp"
-#include "Language.hpp"
 
 #include <absl/container/flat_hash_map.h>
 

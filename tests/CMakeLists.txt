@@ -39,9 +39,6 @@ add_executable(rollnw_test
     #formats_journal.cpp
     formats_twoda.cpp
 
-    i18n_locstring.cpp
-    i18n_tlk.cpp
-
     kernel_config.cpp
     kernel_effect_system.cpp
     kernel_load_module.cpp
@@ -54,7 +51,9 @@ add_executable(rollnw_test
     kernel_strings.cpp
 
     legacy_image.cpp
+    legacy_locstring.cpp
     legacy_palette.cpp
+    legacy_tlk.cpp
 
     model_parse.cpp
 

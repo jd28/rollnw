@@ -153,13 +153,16 @@ struct Equips {
     ~Equips() = default;
 
     bool instantiate();
-    bool from_gff(const GffStruct& archive, SerializationProfile profile);
     bool from_json(const nlohmann::json& archive, SerializationProfile profile);
-    bool to_gff(GffBuilderStruct& archive, SerializationProfile profile) const;
     nlohmann::json to_json(SerializationProfile profile) const;
 
     nw::Creature* owner_ = nullptr;
     std::array<EquipItem, 18> equips;
 };
+
+#ifdef ROLLNW_ENABLE_LEGACY
+bool deserialize(Equips& self, const GffStruct& archive, SerializationProfile profile);
+bool serialize(const Equips& self, GffBuilderStruct& archive, SerializationProfile profile);
+#endif // ROLLNW_ENABLE_LEGACY
 
 } // namespace nw

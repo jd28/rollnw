@@ -30,7 +30,7 @@ TEST_CASE("door: to_json", "[objects]")
 
 #ifdef ROLLNW_ENABLE_LEGACY
 
-TEST_CASE("door: from_gff", "[objects]")
+TEST_CASE("door: deserialize", "[objects]")
 {
     auto door = nw::kernel::objects().load<nw::Door>(fs::path("test_data/user/development/door_ttr_002.utd"));
 

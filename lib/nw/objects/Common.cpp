@@ -4,34 +4,6 @@
 
 namespace nw {
 
-bool Common::from_gff(const GffStruct& archive, SerializationProfile profile, ObjectType object_type)
-{
-    location.from_gff(archive, profile);
-    locals.from_gff(archive);
-
-    if (!archive.get_to("TemplateResRef", resref, false)
-        && !archive.get_to("ResRef", resref, false)) { // Store blueprints do their own thing
-        LOG_F(ERROR, "invalid object no resref");
-        return false;
-    }
-
-    if (object_type != ObjectType::creature
-        && object_type != ObjectType::area
-        && !archive.get_to("LocalizedName", name, false)
-        && !archive.get_to("LocName", name, false)) {
-        LOG_F(WARNING, "object no localized name");
-    }
-
-    archive.get_to("Tag", tag);
-
-    if (profile == SerializationProfile::blueprint) {
-        archive.get_to("Comment", comment);
-        archive.get_to("PaletteID", palette_id);
-    }
-
-    return true;
-}
-
 bool Common::from_json(const nlohmann::json& archive, SerializationProfile profile, ObjectType object_type)
 {
 
@@ -82,5 +54,35 @@ nlohmann::json Common::to_json(SerializationProfile profile, ObjectType object_t
 
     return j;
 }
+
+#ifdef ROLLNW_ENABLE_LEGACY
+bool deserialize(Common& self, const GffStruct& archive, SerializationProfile profile, ObjectType object_type)
+{
+    deserialize(self.location, archive, profile);
+    deserialize(self.locals, archive);
+
+    if (!archive.get_to("TemplateResRef", self.resref, false)
+        && !archive.get_to("ResRef", self.resref, false)) { // Store blueprints do their own thing
+        LOG_F(ERROR, "invalid object no resref");
+        return false;
+    }
+
+    if (object_type != ObjectType::creature
+        && object_type != ObjectType::area
+        && !archive.get_to("LocalizedName", self.name, false)
+        && !archive.get_to("LocName", self.name, false)) {
+        LOG_F(WARNING, "object no localized name");
+    }
+
+    archive.get_to("Tag", self.tag);
+
+    if (profile == SerializationProfile::blueprint) {
+        archive.get_to("Comment", self.comment);
+        archive.get_to("PaletteID", self.palette_id);
+    }
+
+    return true;
+}
+#endif
 
 } // namespace nw

@@ -33,7 +33,7 @@ TEST_CASE("sound: json round trip", "[objects]")
 
 #ifdef ROLLNW_ENABLE_LEGACY
 
-TEST_CASE("sound: from_gff", "[objects]")
+TEST_CASE("sound: deserialize", "[objects]")
 {
     auto ent = nw::kernel::objects().load<nw::Sound>(fs::path("test_data/user/development/blue_bell.uts"));
     REQUIRE(ent);

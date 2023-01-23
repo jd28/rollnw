@@ -24,7 +24,7 @@ bool Player::deserialize(Player* obj, const nlohmann::json& archive)
 //     Creature::serialize(obj, archive, SerializationProfile::instance);
 //     auto list = archive.add_list("LvlStatList");
 //     for (auto it : obj->history.entries) {
-//         it.to_gff(list.push_back(0));
+//         it.serialize(list.push_back(0));
 //     }
 //     return true;
 // }
@@ -35,6 +35,9 @@ bool Player::deserialize(Player* obj, const nlohmann::json& archive)
 //     archive["history"] = obj->history.entries;
 //     return true;
 // }
+
+// == Player - Serialization - Gff ============================================
+// ============================================================================
 
 #ifdef ROLLNW_ENABLE_LEGACY
 
@@ -47,7 +50,7 @@ bool deserialize(Player* obj, const GffStruct& archive)
     obj->history.entries.resize(level_stats.size());
 
     for (size_t i = 0; i < level_stats.size(); ++i) {
-        obj->history.entries[i].from_gff(level_stats[i]);
+        deserialize(obj->history.entries[i], level_stats[i]);
     }
 
     return true;

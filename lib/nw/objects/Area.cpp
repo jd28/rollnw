@@ -17,14 +17,6 @@ namespace nw {
 
 // -- AreaScripts -------------------------------------------------------------
 
-bool AreaScripts::from_gff(const GffStruct& archive)
-{
-    return archive.get_to("OnEnter", on_enter)
-        && archive.get_to("OnExit", on_exit)
-        && archive.get_to("OnHeartbeat", on_heartbeat)
-        && archive.get_to("OnUserDefined", on_user_defined);
-}
-
 bool AreaScripts::from_json(const nlohmann::json& archive)
 {
     try {
@@ -50,31 +42,6 @@ nlohmann::json AreaScripts::to_json() const
 }
 
 // -- AreaWeather -------------------------------------------------------------
-
-bool AreaWeather::from_gff(const GffStruct& archive)
-{
-    archive.get_to("ChanceLightning", chance_lightning);
-    archive.get_to("ChanceRain", chance_rain);
-    archive.get_to("ChanceSnow", chance_snow);
-    archive.get_to("MoonAmbientColor", color_moon_ambient);
-    archive.get_to("MoonDiffuseColor", color_moon_diffuse);
-    archive.get_to("MoonFogColor", color_moon_fog);
-    archive.get_to("SunAmbientColor", color_sun_ambient);
-    archive.get_to("SunDiffuseColor", color_sun_diffuse);
-    archive.get_to("SunFogColor", color_sun_fog);
-    archive.get_to("FogClipDist", fog_clip_distance);
-    archive.get_to("WindPower", wind_power);
-
-    archive.get_to("DayNightCycle", day_night_cycle);
-    archive.get_to("IsNight", is_night);
-    archive.get_to("LightingScheme", lighting_scheme);
-    archive.get_to("MoonFogAmount", fog_moon_amount);
-    archive.get_to("MoonShadows", moon_shadows);
-    archive.get_to("SunFogAmount", fog_sun_amount);
-    archive.get_to("SunShadows", sun_shadows);
-
-    return true;
-}
 
 bool AreaWeather::from_json(const nlohmann::json& archive)
 {
@@ -131,20 +98,6 @@ nlohmann::json AreaWeather::to_json() const
 }
 
 // -- Tile --------------------------------------------------------------------
-
-bool Tile::from_gff(const GffStruct& archive)
-{
-    return archive.get_to("Tile_ID", id)
-        && archive.get_to("Tile_Height", height)
-        && archive.get_to("Tile_Orientation", orientation)
-        && archive.get_to("Tile_AnimLoop1", animloop1)
-        && archive.get_to("Tile_AnimLoop2", animloop2)
-        && archive.get_to("Tile_AnimLoop3", animloop3)
-        && archive.get_to("Tile_MainLight1", mainlight1)
-        && archive.get_to("Tile_MainLight2", mainlight2)
-        && archive.get_to("Tile_SrcLight1", srclight1)
-        && archive.get_to("Tile_SrcLight2", srclight2);
-}
 
 bool Tile::from_json(const nlohmann::json& archive)
 {
@@ -335,7 +288,57 @@ void Area::serialize(const Area* obj, nlohmann::json& archive)
 
 #undef OBJECT_LIST_TO_JSON
 
+// == Area - Serialization - Gff ==============================================
+// ============================================================================
+
 #ifdef ROLLNW_ENABLE_LEGACY
+
+bool deserialize(AreaScripts& self, const GffStruct& archive)
+{
+    return archive.get_to("OnEnter", self.on_enter)
+        && archive.get_to("OnExit", self.on_exit)
+        && archive.get_to("OnHeartbeat", self.on_heartbeat)
+        && archive.get_to("OnUserDefined", self.on_user_defined);
+}
+
+bool deserialize(AreaWeather& self, const GffStruct& archive)
+{
+    archive.get_to("ChanceLightning", self.chance_lightning);
+    archive.get_to("ChanceRain", self.chance_rain);
+    archive.get_to("ChanceSnow", self.chance_snow);
+    archive.get_to("MoonAmbientColor", self.color_moon_ambient);
+    archive.get_to("MoonDiffuseColor", self.color_moon_diffuse);
+    archive.get_to("MoonFogColor", self.color_moon_fog);
+    archive.get_to("SunAmbientColor", self.color_sun_ambient);
+    archive.get_to("SunDiffuseColor", self.color_sun_diffuse);
+    archive.get_to("SunFogColor", self.color_sun_fog);
+    archive.get_to("FogClipDist", self.fog_clip_distance);
+    archive.get_to("WindPower", self.wind_power);
+
+    archive.get_to("DayNightCycle", self.day_night_cycle);
+    archive.get_to("IsNight", self.is_night);
+    archive.get_to("LightingScheme", self.lighting_scheme);
+    archive.get_to("MoonFogAmount", self.fog_moon_amount);
+    archive.get_to("MoonShadows", self.moon_shadows);
+    archive.get_to("SunFogAmount", self.fog_sun_amount);
+    archive.get_to("SunShadows", self.sun_shadows);
+
+    return true;
+}
+
+bool deserialize(Tile& self, const GffStruct& archive)
+{
+    return archive.get_to("Tile_ID", self.id)
+        && archive.get_to("Tile_Height", self.height)
+        && archive.get_to("Tile_Orientation", self.orientation)
+        && archive.get_to("Tile_AnimLoop1", self.animloop1)
+        && archive.get_to("Tile_AnimLoop2", self.animloop2)
+        && archive.get_to("Tile_AnimLoop3", self.animloop3)
+        && archive.get_to("Tile_MainLight1", self.mainlight1)
+        && archive.get_to("Tile_MainLight2", self.mainlight2)
+        && archive.get_to("Tile_SrcLight1", self.srclight1)
+        && archive.get_to("Tile_SrcLight2", self.srclight2);
+}
 
 bool deserialize(Area* obj, const GffStruct& are, const GffStruct& git, const GffStruct& gic)
 {
@@ -345,9 +348,9 @@ bool deserialize(Area* obj, const GffStruct& are, const GffStruct& git, const Gf
     // [TODO] Load this..
     ROLLNW_UNUSED(gic);
 
-    obj->common.from_gff(are, SerializationProfile::any, ObjectType::area);
-    obj->scripts.from_gff(are);
-    obj->weather.from_gff(are);
+    deserialize(obj->common, are, SerializationProfile::any, ObjectType::area);
+    deserialize(obj->scripts, are);
+    deserialize(obj->weather, are);
 
 #define GIT_LIST(name, holder, type)                                          \
     do {                                                                      \
@@ -383,7 +386,7 @@ bool deserialize(Area* obj, const GffStruct& are, const GffStruct& git, const Gf
     size_t sz = st.size();
     obj->tiles.resize(sz);
     for (size_t i = 0; i < sz; ++i) {
-        obj->tiles[i].from_gff(st[i]);
+        deserialize(obj->tiles[i], st[i]);
     }
     are.get_to("Tileset", obj->tileset);
 

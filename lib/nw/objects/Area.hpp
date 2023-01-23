@@ -21,7 +21,6 @@ DEFINE_ENUM_FLAGS(AreaFlags)
 struct AreaScripts {
     AreaScripts() = default;
 
-    bool from_gff(const GffStruct& archive);
     bool from_json(const nlohmann::json& archive);
     nlohmann::json to_json() const;
 
@@ -34,7 +33,6 @@ struct AreaScripts {
 struct AreaWeather {
     AreaWeather() = default;
 
-    bool from_gff(const GffStruct& archive);
     bool from_json(const nlohmann::json& archive);
     nlohmann::json to_json() const;
 
@@ -62,7 +60,6 @@ struct AreaWeather {
 struct Tile {
     Tile() = default;
 
-    bool from_gff(const GffStruct& archive);
     bool from_json(const nlohmann::json& archive);
     nlohmann::json to_json() const;
 
@@ -138,9 +135,13 @@ struct Area : public ObjectBase {
     uint8_t skybox = 0;
 };
 
+// == Area - Serialization - Gff ==============================================
+// ============================================================================
+
 #ifdef ROLLNW_ENABLE_LEGACY
-/// Deserialize from GFF
+bool deserialize(AreaScripts& self, const GffStruct& archive);
 bool deserialize(Area* obj, const GffStruct& are, const GffStruct& git, const GffStruct& gic);
+bool deserialize(Tile& self, const GffStruct& archive);
 #endif // ROLLNW_ENABLE_LEGACY
 
 } // namespace nw

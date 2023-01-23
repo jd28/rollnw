@@ -20,6 +20,9 @@ struct Player : public Creature {
     // static bool serialize(const Player* obj, nlohmann::json& archive);
 };
 
+// == Player - Serialization - Gff ============================================
+// ============================================================================
+
 #ifdef ROLLNW_ENABLE_LEGACY
 bool deserialize(Player* obj, const GffStruct& archive);
 #endif // ROLLNW_ENABLE_LEGACY

@@ -20,9 +20,9 @@ namespace nw {
 struct CreatureScripts {
     CreatureScripts() = default;
 
-    bool from_gff(const GffStruct& archive);
+    bool deserialize(const GffStruct& archive);
     bool from_json(const nlohmann::json& archive);
-    bool to_gff(GffBuilderStruct& archive) const;
+    bool serialize(GffBuilderStruct& archive) const;
     nlohmann::json to_json() const;
 
     Resref on_attacked;
@@ -107,6 +107,9 @@ struct Creature : public ObjectBase {
 
     bool instantiated_ = false;
 };
+
+// == Creature - Serialization - Gff ==========================================
+// ============================================================================
 
 #ifdef ROLLNW_ENABLE_LEGACY
 

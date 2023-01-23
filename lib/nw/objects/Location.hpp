@@ -14,7 +14,6 @@ namespace nw {
 struct Location {
     Location();
 
-    bool from_gff(const GffStruct gff, SerializationProfile profile);
     operator bool() { return area != object_invalid; }
 
     ObjectID area;
@@ -24,5 +23,9 @@ struct Location {
 
 void from_json(const nlohmann::json& json, Location& loc);
 void to_json(nlohmann::json& json, const Location& loc);
+
+#ifdef ROLLNW_ENABLE_LEGACY
+bool deserialize(Location& self, const GffStruct gff, SerializationProfile profile);
+#endif
 
 } // namespace nw

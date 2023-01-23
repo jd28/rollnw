@@ -4,25 +4,6 @@
 
 namespace nw {
 
-bool CombatInfo::from_gff(const GffStruct& archive)
-{
-    uint8_t temp;
-    if (archive.get_to("NaturalAC", temp)) {
-        ac_natural_bonus = temp;
-    }
-
-    size_t sz = archive["SpecAbilityList"].size();
-    special_abilities.reserve(sz);
-    for (size_t i = 0; i < sz; ++i) {
-        SpecialAbility sa;
-        archive["SpecAbilityList"][i].get_to("Spell", sa.spell);
-        archive["SpecAbilityList"][i].get_to("SpellCasterLevel", sa.level);
-        archive["SpecAbilityList"][i].get_to("SpellFlags", sa.flags);
-        special_abilities.push_back(sa);
-    }
-    return true;
-}
-
 bool CombatInfo::from_json(const nlohmann::json& archive)
 {
     try {
@@ -42,20 +23,6 @@ bool CombatInfo::from_json(const nlohmann::json& archive)
     return true;
 }
 
-bool CombatInfo::to_gff(GffBuilderStruct& archive) const
-{
-    archive.add_field("NaturalAC", uint8_t(ac_natural_bonus));
-    auto& list = archive.add_list("SpecAbilityList");
-    for (const auto& spec : special_abilities) {
-        list.push_back(4)
-            .add_field("Spell", spec.spell)
-            .add_field("SpellCasterLevel", spec.level)
-            .add_field("SpellFlags", spec.flags);
-    }
-
-    return true;
-}
-
 nlohmann::json CombatInfo::to_json() const
 {
     nlohmann::json j;
@@ -72,5 +39,40 @@ nlohmann::json CombatInfo::to_json() const
 
     return j;
 }
+
+#ifdef ROLLNW_ENABLE_LEGACY
+bool deserialize(CombatInfo& self, const GffStruct& archive)
+{
+    uint8_t temp;
+    if (archive.get_to("NaturalAC", temp)) {
+        self.ac_natural_bonus = temp;
+    }
+
+    size_t sz = archive["SpecAbilityList"].size();
+    self.special_abilities.reserve(sz);
+    for (size_t i = 0; i < sz; ++i) {
+        SpecialAbility sa;
+        archive["SpecAbilityList"][i].get_to("Spell", sa.spell);
+        archive["SpecAbilityList"][i].get_to("SpellCasterLevel", sa.level);
+        archive["SpecAbilityList"][i].get_to("SpellFlags", sa.flags);
+        self.special_abilities.push_back(sa);
+    }
+    return true;
+}
+
+bool serialize(const CombatInfo& self, GffBuilderStruct& archive)
+{
+    archive.add_field("NaturalAC", uint8_t(self.ac_natural_bonus));
+    auto& list = archive.add_list("SpecAbilityList");
+    for (const auto& spec : self.special_abilities) {
+        list.push_back(4)
+            .add_field("Spell", spec.spell)
+            .add_field("SpellCasterLevel", spec.level)
+            .add_field("SpellFlags", spec.flags);
+    }
+
+    return true;
+}
+#endif // ROLLNW_ENABLE_LEGACY
 
 } // namespace nw

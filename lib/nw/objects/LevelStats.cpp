@@ -6,26 +6,6 @@
 
 namespace nw {
 
-bool LevelStats::from_gff(const GffStruct& archive)
-{
-    size_t sz = archive["ClassList"].size();
-    if (sz >= max_classes) {
-        LOG_F(ERROR, "level stats: attempting a creature with more than {} classes", max_classes);
-        return false;
-    }
-
-    for (size_t i = 0; i < sz; ++i) {
-        int32_t temp;
-        if (archive["ClassList"][i].get_to("Class", temp)) {
-            entries[i].id = Class::make(temp);
-        }
-        archive["ClassList"][i].get_to("ClassLevel", entries[i].level);
-        entries[i].spells.from_gff(archive["ClassList"][i]);
-    }
-
-    return true;
-}
-
 bool LevelStats::from_json(const nlohmann::json& archive)
 {
     try {
@@ -44,19 +24,6 @@ bool LevelStats::from_json(const nlohmann::json& archive)
     } catch (const nlohmann::json::exception& e) {
         LOG_F(ERROR, "LevelStats: json exception: {}", e.what());
         return false;
-    }
-
-    return true;
-}
-
-bool LevelStats::to_gff(GffBuilderStruct& archive) const
-{
-    auto& list = archive.add_list("ClassList");
-    for (const auto& cls : entries) {
-        if (cls.id == nw::Class::invalid()) { continue; }
-        cls.spells.to_gff(list.push_back(3)
-                              .add_field("Class", *cls.id)
-                              .add_field("ClassLevel", cls.level));
     }
 
     return true;
@@ -110,5 +77,41 @@ size_t LevelStats::position(Class id) const noexcept
 
     return npos;
 }
+
+#ifdef ROLLNW_ENABLE_LEGACY
+bool deserialize(LevelStats& self, const GffStruct& archive)
+{
+    size_t sz = archive["ClassList"].size();
+    if (sz >= LevelStats::max_classes) {
+        LOG_F(ERROR, "level stats: attempting a creature with more than {} classes", LevelStats::max_classes);
+        return false;
+    }
+
+    for (size_t i = 0; i < sz; ++i) {
+        int32_t temp;
+        if (archive["ClassList"][i].get_to("Class", temp)) {
+            self.entries[i].id = Class::make(temp);
+        }
+        archive["ClassList"][i].get_to("ClassLevel", self.entries[i].level);
+        deserialize(self.entries[i].spells, archive["ClassList"][i]);
+    }
+
+    return true;
+}
+
+bool serialize(const LevelStats& self, GffBuilderStruct& archive)
+{
+    auto& list = archive.add_list("ClassList");
+    for (const auto& cls : self.entries) {
+        if (cls.id == nw::Class::invalid()) { continue; }
+        serialize(cls.spells,
+            list.push_back(3)
+                .add_field("Class", *cls.id)
+                .add_field("ClassLevel", cls.level));
+    }
+
+    return true;
+}
+#endif
 
 } // namespace nw

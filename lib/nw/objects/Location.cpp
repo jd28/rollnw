@@ -14,52 +14,6 @@ Location::Location()
 {
 }
 
-bool Location::from_gff(const GffStruct gff, SerializationProfile profile)
-{
-    if (profile != SerializationProfile::any
-        && profile != SerializationProfile::instance) {
-        return false;
-    }
-
-    bool valid = true;
-
-    auto field = gff["Area"];
-    if (field.valid()) {
-        if (auto y = field.get<uint32_t>()) {
-            area = static_cast<ObjectID>(*y);
-        }
-    }
-
-    valid = (gff.get_to("PositionX", position[0], false)
-                && gff.get_to("PositionY", position[1], false)
-                && gff.get_to("PositionZ", position[2], false))
-        || (gff.get_to("XPosition", position[0], false)
-            && gff.get_to("YPosition", position[1], false)
-            && gff.get_to("ZPosition", position[2], false));
-
-    if (gff.has_field("Bearing")) {
-        float rad;
-        if (gff.get_to("Bearing", rad)) {
-            orientation = {std::cos(rad), std::sin(rad), 0.0f};
-        }
-    } else if (valid) {
-        valid = (gff.get_to("OrientationX", orientation[0], false)
-                    && gff.get_to("OrientationY", orientation[1], false))
-            || (gff.get_to("XOrientation", orientation[0], false)
-                && gff.get_to("YOrientation", orientation[1], false));
-
-        // No clue why there is an Z, maybe for camera?
-        // Not including it in validity check.
-        gff.get_to("OrientationZ", orientation[2], false);
-    }
-
-    if (!valid) {
-        area = object_invalid;
-    }
-
-    return area != object_invalid;
-}
-
 void from_json(const nlohmann::json& json, Location& loc)
 {
     loc.area = static_cast<ObjectID>(json.at("area").get<uint32_t>());
@@ -80,5 +34,55 @@ void to_json(nlohmann::json& json, const Location& loc)
         {"position", {loc.position.x, loc.position.y, loc.position.z}},
         {"orientation", {loc.orientation.x, loc.orientation.y, loc.orientation.z}}};
 }
+
+#ifdef ROLLNW_ENABLE_LEGACY
+
+bool deserialize(Location& self, const GffStruct gff, SerializationProfile profile)
+{
+    if (profile != SerializationProfile::any
+        && profile != SerializationProfile::instance) {
+        return false;
+    }
+
+    bool valid = true;
+
+    auto field = gff["Area"];
+    if (field.valid()) {
+        if (auto y = field.get<uint32_t>()) {
+            self.area = static_cast<ObjectID>(*y);
+        }
+    }
+
+    valid = (gff.get_to("PositionX", self.position[0], false)
+                && gff.get_to("PositionY", self.position[1], false)
+                && gff.get_to("PositionZ", self.position[2], false))
+        || (gff.get_to("XPosition", self.position[0], false)
+            && gff.get_to("YPosition", self.position[1], false)
+            && gff.get_to("ZPosition", self.position[2], false));
+
+    if (gff.has_field("Bearing")) {
+        float rad;
+        if (gff.get_to("Bearing", rad)) {
+            self.orientation = {std::cos(rad), std::sin(rad), 0.0f};
+        }
+    } else if (valid) {
+        valid = (gff.get_to("OrientationX", self.orientation[0], false)
+                    && gff.get_to("OrientationY", self.orientation[1], false))
+            || (gff.get_to("XOrientation", self.orientation[0], false)
+                && gff.get_to("YOrientation", self.orientation[1], false));
+
+        // No clue why there is an Z, maybe for camera?
+        // Not including it in validity check.
+        gff.get_to("OrientationZ", self.orientation[2], false);
+    }
+
+    if (!valid) {
+        self.area = object_invalid;
+    }
+
+    return self.area != object_invalid;
+}
+
+#endif // ROLLNW_ENABLE_LEGACY
 
 } // namespace nw

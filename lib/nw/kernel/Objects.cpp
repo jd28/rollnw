@@ -80,7 +80,7 @@ Module* ObjectSystem::make_module()
     if (ba.size() > 8 && memcmp(ba.data(), "IFO V3.2", 8) == 0) {
         Gff in{std::move(ba)};
         if (in.valid()) {
-            Module::deserialize(obj, in.toplevel());
+            deserialize(obj, in.toplevel());
         } else {
             delete obj;
             return nullptr;

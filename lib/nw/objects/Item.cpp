@@ -131,6 +131,9 @@ bool Item::serialize(const Item* obj, nlohmann::json& archive, SerializationProf
     return true;
 }
 
+// == Item - Serialization - Gff ==============================================
+// ============================================================================
+
 #ifdef ROLLNW_ENABLE_LEGACY
 
 bool deserialize(Item* obj, const GffStruct& archive, SerializationProfile profile)
@@ -139,8 +142,8 @@ bool deserialize(Item* obj, const GffStruct& archive, SerializationProfile profi
         throw std::runtime_error("unable to serialize null object");
     }
     int temp_int = 0;
-    obj->common.from_gff(archive, profile, ObjectType::item);
-    obj->inventory.from_gff(archive, profile);
+    deserialize(obj->common, archive, profile, ObjectType::item);
+    deserialize(obj->inventory, archive, profile);
 
     archive.get_to("Description", obj->description);
     archive.get_to("DescIdentified", obj->description_id);
@@ -250,8 +253,8 @@ bool serialize(const Item* obj, GffBuilderStruct& archive, SerializationProfile 
             .add_field("OrientationY", obj->common.location.orientation.y);
     }
 
-    obj->common.locals.to_gff(archive, profile);
-    obj->inventory.to_gff(archive, profile);
+    serialize(obj->common.locals, archive, profile);
+    serialize(obj->inventory, archive, profile);
 
     archive.add_field("Description", obj->description);
     archive.add_field("DescIdentified", obj->description_id);

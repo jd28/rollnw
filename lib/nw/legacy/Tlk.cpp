@@ -1,11 +1,11 @@
 #include "Tlk.hpp"
 
+#include "../i18n/Language.hpp"
+#include "../i18n/conversion.hpp"
 #include "../log.hpp"
 #include "../util/macros.hpp"
 #include "../util/platform.hpp"
 #include "../util/templates.hpp"
-#include "Language.hpp"
-#include "conversion.hpp"
 
 #include <fstream>
 

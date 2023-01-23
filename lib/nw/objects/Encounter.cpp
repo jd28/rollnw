@@ -4,16 +4,8 @@
 
 namespace nw {
 
-// -- EncounterScripts --------------------------------------------------------
-
-bool EncounterScripts::from_gff(const GffStruct& archive)
-{
-    return archive.get_to("OnEntered", on_entered)
-        && archive.get_to("OnExhausted", on_exhausted)
-        && archive.get_to("OnExit", on_exit)
-        && archive.get_to("OnHeartbeat", on_heartbeat)
-        && archive.get_to("OnUserDefined", on_user_defined);
-}
+// == EncounterScripts ========================================================
+// ============================================================================
 
 bool EncounterScripts::from_json(const nlohmann::json& archive)
 {
@@ -31,17 +23,6 @@ bool EncounterScripts::from_json(const nlohmann::json& archive)
     return true;
 }
 
-bool EncounterScripts::to_gff(GffBuilderStruct& archive) const
-{
-    archive.add_field("OnEntered", on_entered)
-        .add_field("OnExhausted", on_exhausted)
-        .add_field("OnExit", on_exit)
-        .add_field("OnHeartbeat", on_heartbeat)
-        .add_field("OnUserDefined", on_user_defined);
-
-    return true;
-}
-
 nlohmann::json EncounterScripts::to_json() const
 {
     return {
@@ -52,15 +33,8 @@ nlohmann::json EncounterScripts::to_json() const
         {"on_user_defined", on_user_defined}};
 }
 
-// -- SpawnCreature -----------------------------------------------------------
-
-bool SpawnCreature::from_gff(const GffStruct& archive)
-{
-    return archive.get_to("Appearance", appearance)
-        && archive.get_to("CR", cr)
-        && archive.get_to("ResRef", resref)
-        && archive.get_to("SingleSpawn", single_spawn);
-}
+// == SpawnCreature ===========================================================
+// ============================================================================
 
 bool SpawnCreature::from_json(const nlohmann::json& archive)
 {
@@ -86,16 +60,6 @@ nlohmann::json SpawnCreature::to_json() const
 }
 
 // -- SpawnPoint ---------------------------------------------------------------
-
-bool SpawnPoint::from_gff(const GffStruct& archive)
-{
-    archive.get_to("Orientation", orientation);
-    archive.get_to("X", position.x);
-    archive.get_to("Y", position.y);
-    archive.get_to("Z", position.z);
-
-    return true;
-}
 
 bool SpawnPoint::from_json(const nlohmann::json& archive)
 {
@@ -211,6 +175,9 @@ bool Encounter::serialize(const Encounter* obj, nlohmann::json& archive, Seriali
     return true;
 }
 
+// == Encounter - Serialization - Gff =========================================
+// ============================================================================
+
 #ifdef ROLLNW_ENABLE_LEGACY
 
 bool deserialize(Encounter* obj, const GffStruct& archive, SerializationProfile profile)
@@ -219,15 +186,15 @@ bool deserialize(Encounter* obj, const GffStruct& archive, SerializationProfile 
         throw std::runtime_error("unable to serialize null object");
     }
 
-    if (!obj->common.from_gff(archive, profile, ObjectType::encounter)) {
+    if (!deserialize(obj->common, archive, profile, ObjectType::encounter)) {
         return false;
     }
-    obj->scripts.from_gff(archive);
+    deserialize(obj->scripts, archive);
 
     size_t sz = archive["CreatureList"].size();
     obj->creatures.resize(sz);
     for (size_t i = 0; i < sz; ++i) {
-        obj->creatures[i].from_gff(archive["CreatureList"][i]);
+        deserialize(obj->creatures[i], archive["CreatureList"][i]);
     }
 
     if (profile == SerializationProfile::instance) {
@@ -244,7 +211,7 @@ bool deserialize(Encounter* obj, const GffStruct& archive, SerializationProfile 
         sz = archive["SpawnPointList"].size();
         obj->spawn_points.resize(sz);
         for (size_t i = 0; i < sz; ++i) {
-            obj->spawn_points[i].from_gff(archive["SpawnPointList"][i]);
+            deserialize(obj->spawn_points[i], archive["SpawnPointList"][i]);
         }
     }
 
@@ -289,10 +256,10 @@ bool serialize(const Encounter* obj, GffBuilderStruct& archive, SerializationPro
     }
 
     if (obj->common.locals.size()) {
-        obj->common.locals.to_gff(archive, profile);
+        serialize(obj->common.locals, archive, profile);
     }
 
-    obj->scripts.to_gff(archive);
+    serialize(obj->scripts, archive);
 
     auto& list = archive.add_list("CreatureList");
     for (const auto& c : obj->creatures) {
@@ -348,6 +315,44 @@ GffBuilder serialize(const Encounter* obj, SerializationProfile profile)
     serialize(obj, out.top, profile);
     out.build();
     return out;
+}
+
+bool deserialize(EncounterScripts& self, const GffStruct& archive)
+{
+    return archive.get_to("OnEntered", self.on_entered)
+        && archive.get_to("OnExhausted", self.on_exhausted)
+        && archive.get_to("OnExit", self.on_exit)
+        && archive.get_to("OnHeartbeat", self.on_heartbeat)
+        && archive.get_to("OnUserDefined", self.on_user_defined);
+}
+
+bool serialize(const EncounterScripts& self, GffBuilderStruct& archive)
+{
+    archive.add_field("OnEntered", self.on_entered)
+        .add_field("OnExhausted", self.on_exhausted)
+        .add_field("OnExit", self.on_exit)
+        .add_field("OnHeartbeat", self.on_heartbeat)
+        .add_field("OnUserDefined", self.on_user_defined);
+
+    return true;
+}
+
+bool deserialize(SpawnCreature& self, const GffStruct& archive)
+{
+    return archive.get_to("Appearance", self.appearance)
+        && archive.get_to("CR", self.cr)
+        && archive.get_to("ResRef", self.resref)
+        && archive.get_to("SingleSpawn", self.single_spawn);
+}
+
+bool deserialize(SpawnPoint& self, const GffStruct& archive)
+{
+    archive.get_to("Orientation", self.orientation);
+    archive.get_to("X", self.position.x);
+    archive.get_to("Y", self.position.y);
+    archive.get_to("Z", self.position.z);
+
+    return true;
 }
 
 #endif // ROLLNW_ENABLE_LEGACY

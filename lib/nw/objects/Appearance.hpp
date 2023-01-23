@@ -27,9 +27,7 @@ struct BodyParts {
 };
 
 struct Appearance {
-    bool from_gff(const GffStruct& archive);
     bool from_json(const nlohmann::json& archive);
-    bool to_gff(GffBuilderStruct& archive) const;
     nlohmann::json to_json() const;
 
     int32_t phenotype = 0;
@@ -45,5 +43,10 @@ struct Appearance {
     uint8_t tattoo1 = 0;
     uint8_t tattoo2 = 0;
 };
+
+#ifdef ROLLNW_ENABLE_LEGACY
+bool deserialize(Appearance& self, const GffStruct& archive);
+bool serialize(const Appearance& self, GffBuilderStruct& archive);
+#endif // ROLLNW_ENABLE_LEGACY
 
 } // namespace nw

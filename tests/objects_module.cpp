@@ -11,12 +11,12 @@
 
 namespace fs = std::filesystem;
 
-TEST_CASE("module: from_gff", "[objects]")
+TEST_CASE("module: deserialize", "[objects]")
 {
     auto mod = new nw::Module;
     nw::Gff g{"test_data/user/scratch/module.ifo"};
     REQUIRE(g.valid());
-    nw::Module::deserialize(mod, g.toplevel());
+    nw::deserialize(mod, g.toplevel());
 
     REQUIRE(mod->haks.size() == 0);
     REQUIRE(!mod->is_save_game);
@@ -29,7 +29,7 @@ TEST_CASE("module: json round trip", "[objects]")
     auto ent = new nw::Module;
     nw::Gff g{"test_data/user/scratch/module.ifo"};
     REQUIRE(g.valid());
-    nw::Module::deserialize(ent, g.toplevel());
+    nw::deserialize(ent, g.toplevel());
     REQUIRE(ent);
 
     nlohmann::json j;
@@ -54,9 +54,9 @@ TEST_CASE("module: gff round trip", "[ojbects]")
     REQUIRE(ent);
     nw::Gff g{"test_data/user/scratch/module.ifo"};
     REQUIRE(g.valid());
-    nw::Module::deserialize(ent, g.toplevel());
+    nw::deserialize(ent, g.toplevel());
 
-    nw::GffBuilder oa = nw::Module::serialize(ent);
+    nw::GffBuilder oa = nw::serialize(ent);
     oa.write_to("tmp/module_2.ifo");
 
     nw::Gff g2("tmp/module_2.ifo");

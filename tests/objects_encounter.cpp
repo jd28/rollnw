@@ -11,7 +11,7 @@
 
 namespace fs = std::filesystem;
 
-TEST_CASE("encounter: from_gff", "[objects]")
+TEST_CASE("encounter: deserialize", "[objects]")
 {
     auto enc = nw::kernel::objects().load<nw::Encounter>(fs::path("test_data/user/development/boundelementallo.ute"));
     REQUIRE(enc);

@@ -61,6 +61,9 @@ struct Trigger : public ObjectBase {
     bool instantiated_ = false;
 };
 
+// == Trigger - Serialization - Gff ===========================================
+// ============================================================================
+
 #ifdef ROLLNW_ENABLE_LEGACY
 bool deserialize(Trigger* obj, const GffStruct& archive, SerializationProfile profile);
 GffBuilder serialize(const Trigger* obj, SerializationProfile profile);
