@@ -12,4 +12,6 @@ add_library(nw-legacy STATIC
 target_link_libraries(nw-legacy PRIVATE
     nw-base
     nw-libraries
+    nw-i18n
+    nw-serialization
 )

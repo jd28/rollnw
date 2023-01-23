@@ -57,6 +57,9 @@ struct Item : public ObjectBase {
     bool instantiated_ = false;
 };
 
+// == Item - Serialization - Gff ==============================================
+// ============================================================================
+
 #ifdef ROLLNW_ENABLE_LEGACY
 bool deserialize(Item* obj, const GffStruct& archive, SerializationProfile profile);
 GffBuilder serialize(const Item* obj, SerializationProfile profile);
