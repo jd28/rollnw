@@ -3,20 +3,14 @@ project(rollNW VERSION 0.1.0 LANGUAGES CXX C)
 set (CMAKE_CXX_STANDARD 20)
 include(cmake/Cache.cmake)
 
-option(BUILD_DOCS "Build documentation" OFF)
+option(ROLLNW_BUILD_BENCHMARKS "Build benchmarks" OFF)
+option(ROLLNW_BUILD_DOCS "Build documentation" OFF)
 option(ROLLNW_BUILD_RUNTIME_SCRIPTING "Build Luau scripting language" ON)
+option(ROLLNW_BUILD_TESTS "Build tests" ON)
 option(ROLLNW_ENABLE_LEGACY "Build legacy NWN stuff" ON)
 
 # Generate compile_commands.json to make it easier to work with clang based tools
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-
-if(ENABLE_PYTHON)
-set(CMAKE_POSITION_INDEPENDENT_CODE ON)
-# AppleClang changes visibility to hidden
-if(CMAKE_CXX_COMPILER_ID MATCHES ".*Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-  add_compile_options(-fvisibility=hidden)
-endif()
-endif()
 
 if(MSVC)
     set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
@@ -69,17 +63,17 @@ add_subdirectory(external/stb)
 add_subdirectory(lib/nw)
 add_subdirectory(profiles)
 
-if (ENABLE_TESTING)
+if (ROLLNW_BUILD_TESTS)
 include(CTest)
 enable_testing()
 add_subdirectory(tests)
 endif()
 
-if (ENABLE_BENCHMARKS)
+if (ROLLNW_BUILD_BENCHMARKS)
 add_subdirectory(benchmarks)
 endif()
 
-if(BUILD_DOCS)
+if(ROLLNW_BUILD_DOCS)
 add_subdirectory(docs)
 endif()
 
