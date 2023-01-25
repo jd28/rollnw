@@ -18,6 +18,8 @@ target_link_libraries(nw-kernel PRIVATE
     nw-objects
     nw-formats
     nw-i18n
-
-    Luau.VM
 )
+
+if(ROLLNW_BUILD_RUNTIME_SCRIPTING)
+target_link_libraries(nw-kernel PRIVATE Luau.VM)
+endif()
