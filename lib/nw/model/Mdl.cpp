@@ -373,348 +373,348 @@ bool Mdl::valid() const
     return loaded_;
 }
 
-void write_out(std::ostream& out, const DanglymeshNode* node, bool is_anim)
-{
-    if (!is_anim) {
-        out << fmt::format("  displacement {}\n", node->displacement);
-        out << fmt::format("  period {}\n", node->period);
-        out << fmt::format("  tightness {}\n", node->tightness);
-        out << fmt::format("  tightness {}\n", node->tightness);
-        out << fmt::format("  constraints {}\n", node->constraints.size());
-        for (auto c : node->constraints) {
-            out << fmt::format("    {}\n", c);
-        }
-    }
-}
+// void write_out(std::ostream& out, const DanglymeshNode* node, bool is_anim)
+// {
+//     if (!is_anim) {
+//         out << fmt::format("  displacement {}\n", node->displacement);
+//         out << fmt::format("  period {}\n", node->period);
+//         out << fmt::format("  tightness {}\n", node->tightness);
+//         out << fmt::format("  tightness {}\n", node->tightness);
+//         out << fmt::format("  constraints {}\n", node->constraints.size());
+//         for (auto c : node->constraints) {
+//             out << fmt::format("    {}\n", c);
+//         }
+//     }
+// }
 
-void write_out(std::ostream& out, const EmitterNode* node, bool is_anim)
-{
-    if (!is_anim) {
-        out << fmt::format("  blastlength {}\n", node->blastlength);
-        out << fmt::format("  blastradius {}\n", node->blastradius);
-        out << fmt::format("  blend {}\n", node->blend);
-        out << fmt::format("  chunkname {}\n", node->chunkname);
-        out << fmt::format("  deadspace {}\n", node->deadspace);
-        out << fmt::format("  loop {}\n", node->loop);
-        out << fmt::format("  render {}\n", node->render);
-        out << fmt::format("  renderorder {}\n", node->renderorder);
-        out << fmt::format("  spawntype {}\n", node->spawntype);
-        out << fmt::format("  texture {}\n", node->texture);
-        out << fmt::format("  twosidedtex {}\n", node->twosidedtex);
-        out << fmt::format("  update {}\n", node->update);
-        out << fmt::format("  xgrid {}\n", node->xgrid);
-        out << fmt::format("  ygrid {}\n", node->ygrid);
-        out << fmt::format("  render_sel {}\n", node->render_sel);
-        out << fmt::format("  blend_sel {}\n", node->blend_sel);
-        out << fmt::format("  update_sel {}\n", node->update_sel);
-        out << fmt::format("  spawntype_sel {}\n", node->spawntype_sel);
-        out << fmt::format("  opacity {}\n", node->opacity);
-        out << fmt::format("  p2p_type {}\n", node->p2p_type);
+// void write_out(std::ostream& out, const EmitterNode* node, bool is_anim)
+// {
+//     if (!is_anim) {
+//         out << fmt::format("  blastlength {}\n", node->blastlength);
+//         out << fmt::format("  blastradius {}\n", node->blastradius);
+//         out << fmt::format("  blend {}\n", node->blend);
+//         out << fmt::format("  chunkname {}\n", node->chunkname);
+//         out << fmt::format("  deadspace {}\n", node->deadspace);
+//         out << fmt::format("  loop {}\n", node->loop);
+//         out << fmt::format("  render {}\n", node->render);
+//         out << fmt::format("  renderorder {}\n", node->renderorder);
+//         out << fmt::format("  spawntype {}\n", node->spawntype);
+//         out << fmt::format("  texture {}\n", node->texture);
+//         out << fmt::format("  twosidedtex {}\n", node->twosidedtex);
+//         out << fmt::format("  update {}\n", node->update);
+//         out << fmt::format("  xgrid {}\n", node->xgrid);
+//         out << fmt::format("  ygrid {}\n", node->ygrid);
+//         out << fmt::format("  render_sel {}\n", node->render_sel);
+//         out << fmt::format("  blend_sel {}\n", node->blend_sel);
+//         out << fmt::format("  update_sel {}\n", node->update_sel);
+//         out << fmt::format("  spawntype_sel {}\n", node->spawntype_sel);
+//         out << fmt::format("  opacity {}\n", node->opacity);
+//         out << fmt::format("  p2p_type {}\n", node->p2p_type);
 
-        out << fmt::format("  affectedByWind {}\n", node->flags & EmitterFlag::AffectedByWind ? 1 : 0);
-        out << fmt::format("  bounce {}\n", node->flags & EmitterFlag::Bounce ? 1 : 0);
-        out << fmt::format("  inherit {}\n", node->flags & EmitterFlag::Inherit ? 1 : 0);
-        out << fmt::format("  inherit_local {}\n", node->flags & EmitterFlag::InheritLocal ? 1 : 0);
-        out << fmt::format("  inherit_part {}\n", node->flags & EmitterFlag::InheritPart ? 1 : 0);
-        out << fmt::format("  inheritvel {}\n", node->flags & EmitterFlag::InheritVel ? 1 : 0);
-        out << fmt::format("  m_isTinted {}\n", node->flags & EmitterFlag::IsTinted ? 1 : 0);
-        out << fmt::format("  p2p {}\n", node->flags & EmitterFlag::P2P ? 1 : 0);
-        out << fmt::format("  p2p_sel {}\n", node->flags & EmitterFlag::P2PSel ? 1 : 0);
-        out << fmt::format("  random {}\n", node->flags & EmitterFlag::Random ? 1 : 0);
-        out << fmt::format("  splat {}\n", node->flags & EmitterFlag::Splat ? 1 : 0);
-    }
-    for (const auto& [k, v] : ControllerType::map) {
-        if (v.second == NodeFlags::emitter) {
-            auto [ckey, cdata] = node->get_controller(v.first);
-            if (!ckey || cdata.empty()) continue;
-            if (!is_anim && string::endswith(ckey->name.view(), "key")) {
-                continue;
-            }
-            out << fmt::format("         {} ", ckey->name);
-            if (ckey->columns > 0) {
-                for (size_t i = 0; i < size_t(ckey->rows); ++i) {
-                    out << "          ";
-                    size_t start = i * ckey->columns, stop = (i + 1) * ckey->columns;
-                    for (size_t j = start; j < stop; ++j) {
-                        out << fmt::format(" {: >8.5f}", cdata[j]);
-                    }
-                    out << '\n';
-                }
-            }
-            out << "         endlist";
-        }
-    }
-}
+//         out << fmt::format("  affectedByWind {}\n", node->flags & EmitterFlag::AffectedByWind ? 1 : 0);
+//         out << fmt::format("  bounce {}\n", node->flags & EmitterFlag::Bounce ? 1 : 0);
+//         out << fmt::format("  inherit {}\n", node->flags & EmitterFlag::Inherit ? 1 : 0);
+//         out << fmt::format("  inherit_local {}\n", node->flags & EmitterFlag::InheritLocal ? 1 : 0);
+//         out << fmt::format("  inherit_part {}\n", node->flags & EmitterFlag::InheritPart ? 1 : 0);
+//         out << fmt::format("  inheritvel {}\n", node->flags & EmitterFlag::InheritVel ? 1 : 0);
+//         out << fmt::format("  m_isTinted {}\n", node->flags & EmitterFlag::IsTinted ? 1 : 0);
+//         out << fmt::format("  p2p {}\n", node->flags & EmitterFlag::P2P ? 1 : 0);
+//         out << fmt::format("  p2p_sel {}\n", node->flags & EmitterFlag::P2PSel ? 1 : 0);
+//         out << fmt::format("  random {}\n", node->flags & EmitterFlag::Random ? 1 : 0);
+//         out << fmt::format("  splat {}\n", node->flags & EmitterFlag::Splat ? 1 : 0);
+//     }
+//     for (const auto& [k, v] : ControllerType::map) {
+//         if (v.second == NodeFlags::emitter) {
+//             auto [ckey, cdata] = node->get_controller(v.first);
+//             if (!ckey || cdata.empty()) continue;
+//             if (!is_anim && string::endswith(ckey->name.view(), "key")) {
+//                 continue;
+//             }
+//             out << fmt::format("         {} ", ckey->name);
+//             if (ckey->columns > 0) {
+//                 for (size_t i = 0; i < size_t(ckey->rows); ++i) {
+//                     out << "          ";
+//                     size_t start = i * ckey->columns, stop = (i + 1) * ckey->columns;
+//                     for (size_t j = start; j < stop; ++j) {
+//                         out << fmt::format(" {: >8.5f}", cdata[j]);
+//                     }
+//                     out << '\n';
+//                 }
+//             }
+//             out << "         endlist";
+//         }
+//     }
+// }
 
-void write_out(std::ostream& out, const LightNode* node, bool is_anim)
-{
-    if (!is_anim) {
-        out << fmt::format("  ambientonly {}\n", node->ambientonly);
-        out << fmt::format("  ndynamictype {}\n", int(node->dynamic));
-        out << fmt::format("  affectdynamic {}\n", node->affectdynamic);
-        out << fmt::format("  shadow {}\n", node->shadow);
-        out << fmt::format("  lightpriority {}\n", node->lightpriority);
-        out << fmt::format("  fadingLight {}\n", node->fadinglight);
-        out << fmt::format("  radius {}\n", node->flareradius);
-        out << fmt::format("  multiplier {}\n", node->multiplier);
-        out << fmt::format("  color {:3.2f} {:3.2f} {:3.2f}\n", node->color.x, node->color.y, node->color.z);
-    }
-    for (const auto& [k, v] : ControllerType::map) {
-        if (v.second == NodeFlags::light) {
-            auto [ckey, cdata] = node->get_controller(v.first);
-            if (!ckey || cdata.empty()) continue;
-            out << fmt::format("        {}\n", ckey->name);
-            if (ckey->columns > 0) {
-                for (size_t i = 0; i < size_t(ckey->rows); ++i) {
-                    out << "          ";
-                    size_t start = i * ckey->columns, stop = (i + 1) * ckey->columns;
-                    for (size_t j = start; j < stop; ++j) {
-                        out << fmt::format(" {: >8.5f}", cdata[j]);
-                    }
-                    out << '\n';
-                }
-            }
-            out << "        endlist\n";
-        }
-    }
-}
+// void write_out(std::ostream& out, const LightNode* node, bool is_anim)
+// {
+//     if (!is_anim) {
+//         out << fmt::format("  ambientonly {}\n", node->ambientonly);
+//         out << fmt::format("  ndynamictype {}\n", int(node->dynamic));
+//         out << fmt::format("  affectdynamic {}\n", node->affectdynamic);
+//         out << fmt::format("  shadow {}\n", node->shadow);
+//         out << fmt::format("  lightpriority {}\n", node->lightpriority);
+//         out << fmt::format("  fadingLight {}\n", node->fadinglight);
+//         out << fmt::format("  radius {}\n", node->flareradius);
+//         out << fmt::format("  multiplier {}\n", node->multiplier);
+//         out << fmt::format("  color {:3.2f} {:3.2f} {:3.2f}\n", node->color.x, node->color.y, node->color.z);
+//     }
+//     for (const auto& [k, v] : ControllerType::map) {
+//         if (v.second == NodeFlags::light) {
+//             auto [ckey, cdata] = node->get_controller(v.first);
+//             if (!ckey || cdata.empty()) continue;
+//             out << fmt::format("        {}\n", ckey->name);
+//             if (ckey->columns > 0) {
+//                 for (size_t i = 0; i < size_t(ckey->rows); ++i) {
+//                     out << "          ";
+//                     size_t start = i * ckey->columns, stop = (i + 1) * ckey->columns;
+//                     for (size_t j = start; j < stop; ++j) {
+//                         out << fmt::format(" {: >8.5f}", cdata[j]);
+//                     }
+//                     out << '\n';
+//                 }
+//             }
+//             out << "        endlist\n";
+//         }
+//     }
+// }
 
-void write_out(std::ostream& out, const SkinNode* node, bool is_anim)
-{
-    if (!is_anim) {
-        out << fmt::format("  weights {}\n", node->weights.size());
-        for (const auto& w : node->weights) {
-            for (size_t i = 0; i < 4; ++i) {
-                if (w.bones[i].empty()) break;
-                out << fmt::format("    {} {}", w.bones[i], w.weights[i]);
-            }
-        }
-    }
-}
+// void write_out(std::ostream& out, const SkinNode* node, bool is_anim)
+// {
+//     if (!is_anim) {
+//         out << fmt::format("  weights {}\n", node->weights.size());
+//         for (const auto& w : node->weights) {
+//             for (size_t i = 0; i < 4; ++i) {
+//                 if (w.bones[i].empty()) break;
+//                 out << fmt::format("    {} {}", w.bones[i], w.weights[i]);
+//             }
+//         }
+//     }
+// }
 
-void write_out(std::ostream& out, const TrimeshNode* node, ModelClass class_, bool is_anim)
-{
-    if (!is_anim) {
-        auto [alpha_key, alpha_data] = node->get_controller(ControllerType::Alpha);
-        auto [selfilum_key, selfilum_data] = node->get_controller(ControllerType::SelfIllumColor);
+// void write_out(std::ostream& out, const TrimeshNode* node, ModelClass class_, bool is_anim)
+// {
+//     if (!is_anim) {
+//         auto [alpha_key, alpha_data] = node->get_controller(ControllerType::Alpha);
+//         auto [selfilum_key, selfilum_data] = node->get_controller(ControllerType::SelfIllumColor);
 
-        if (alpha_key) {
-            out << fmt::format("  alpha {}\n", alpha_data[0]);
-        }
+//         if (alpha_key) {
+//             out << fmt::format("  alpha {}\n", alpha_data[0]);
+//         }
 
-        if (selfilum_key) {
-            out << fmt::format("  selfillumcolor {:.2f} {:.2f} {:.2f}\n", selfilum_data[0], selfilum_data[1], selfilum_data[2]);
-        }
+//         if (selfilum_key) {
+//             out << fmt::format("  selfillumcolor {:.2f} {:.2f} {:.2f}\n", selfilum_data[0], selfilum_data[1], selfilum_data[2]);
+//         }
 
-        out << fmt::format("  ambient {:.2f} {:.2f} {:.2f}\n", node->ambient.x, node->ambient.y, node->ambient.z);
-        out << fmt::format("  diffuse {:.2f} {:.2f} {:.2f}\n", node->diffuse.x, node->diffuse.y, node->diffuse.z);
-        out << fmt::format("  specular {:.2f} {:.2f} {:.2f}\n", node->specular.x, node->specular.y, node->specular.z);
+//         out << fmt::format("  ambient {:.2f} {:.2f} {:.2f}\n", node->ambient.x, node->ambient.y, node->ambient.z);
+//         out << fmt::format("  diffuse {:.2f} {:.2f} {:.2f}\n", node->diffuse.x, node->diffuse.y, node->diffuse.z);
+//         out << fmt::format("  specular {:.2f} {:.2f} {:.2f}\n", node->specular.x, node->specular.y, node->specular.z);
 
-        out << fmt::format("  bitmap {}\n", node->bitmap);
-        out << fmt::format("  shininess {}\n", node->shininess);
+//         out << fmt::format("  bitmap {}\n", node->bitmap);
+//         out << fmt::format("  shininess {}\n", node->shininess);
 
-        out << fmt::format("  render {}\n", int(node->render));
-        out << fmt::format("  shadow {}\n", int(node->shadow));
-        out << fmt::format("  beaming {}\n", int(node->beaming));
-        out << fmt::format("  transparencyhint {}\n", int(node->transparencyhint));
+//         out << fmt::format("  render {}\n", int(node->render));
+//         out << fmt::format("  shadow {}\n", int(node->shadow));
+//         out << fmt::format("  beaming {}\n", int(node->beaming));
+//         out << fmt::format("  transparencyhint {}\n", int(node->transparencyhint));
 
-        if (class_ == ModelClass::tile
-            || class_ == ModelClass::invalid
-            || class_ == ModelClass::character) {
-            out << fmt::format("  tilefade {}\n", node->tilefade);
-        }
+//         if (class_ == ModelClass::tile
+//             || class_ == ModelClass::invalid
+//             || class_ == ModelClass::character) {
+//             out << fmt::format("  tilefade {}\n", node->tilefade);
+//         }
 
-        if (class_ == ModelClass::tile) {
-            out << fmt::format("  rotatetexture {}\n", int(node->rotatetexture));
-        }
+//         if (class_ == ModelClass::tile) {
+//             out << fmt::format("  rotatetexture {}\n", int(node->rotatetexture));
+//         }
 
-        if (node->verts.size()) {
-            out << fmt::format("  verts {}\n", node->verts.size());
-            for (const auto v : node->verts) {
-                out << fmt::format("    {: >8.5f} {: >8.5f} {: >8.5f}\n", v.x, v.y, v.z);
-            }
-        }
+//         if (node->vertices.size()) {
+//             out << fmt::format("  verts {}\n", node->vertices.size());
+//             for (const auto& v : node->vertices) {
+//                 out << fmt::format("    {: >8.5f} {: >8.5f} {: >8.5f}\n", v.position.x, v.position.y, v.position.z);
+//             }
+//         }
 
-        if (node->colors.size()) {
-            out << fmt::format("  colors {}\n", node->colors.size());
-            for (const auto& c : node->colors) {
-                out << fmt::format("    {:.4f} {:.4f} {:.4f}\n", c.x, c.y, c.z);
-            }
-        }
+//         if (node->colors.size()) {
+//             out << fmt::format("  colors {}\n", node->colors.size());
+//             for (const auto& c : node->colors) {
+//                 out << fmt::format("    {:.4f} {:.4f} {:.4f}\n", c.x, c.y, c.z);
+//             }
+//         }
 
-        if (node->faces.size()) {
-            out << fmt::format("  faces {}\n", node->faces.size());
-            for (const auto& f : node->faces) {
-                out << fmt::format("    {: >3} {: >3} {: >3} {: >2}  {: >3} {: >3} {: >3} {}\n",
-                    f.vert_idx[0], f.vert_idx[1], f.vert_idx[2], f.shader_group_idx,
-                    f.tvert_idx[0], f.tvert_idx[1], f.tvert_idx[2], f.material_idx);
-            }
-        }
+//         if (node->indices.size()) {
+//             out << fmt::format("  faces {}\n", node->indices.size() / 3);
+//             for (size_t i = 0; i < node->indices.size(); i += 3) {
+//                 out << fmt::format("    {: >3} {: >3} {: >3} {: >2}  {: >3} {: >3} {: >3} {}\n",
+//                     node->indices[i], node->indices[i + 1], node->indices[i + 2], 1,
+//                     node->indices[i], node->indices[i + 1], node->indices[i + 2], 1);
+//             }
+//         }
 
-        if (node->tverts[0].size()) {
-            out << fmt::format("  tverts {}\n", node->tverts[0].size());
-            for (const auto v : node->tverts[0]) {
-                out << fmt::format("    {: >8.5f} {: >8.5f} 0\n", v.x, v.y, v.z);
-            }
-        }
-    } else {
-        for (const auto& [k, v] : ControllerType::map) {
-            if (v.second == NodeFlags::mesh) {
-                auto [ckey, cdata] = node->get_controller(v.first);
-                if (!ckey || cdata.empty()) continue;
-                out << fmt::format("        {}\n", ckey->name);
-                if (ckey->columns > 0) {
-                    for (size_t i = 0; i < size_t(ckey->rows); ++i) {
-                        out << "          ";
-                        size_t start = i * ckey->columns, stop = (i + 1) * ckey->columns;
-                        for (size_t j = start; j < stop; ++j) {
-                            out << fmt::format(" {: >8.5f}", cdata[j]);
-                        }
-                        out << '\n';
-                    }
-                }
-                out << "        endlist\n";
-            }
-        }
-    }
-}
+//         if (node->vertices.size()) {
+//             out << fmt::format("  tverts {}\n", node->vertices.size());
+//             for (const auto& v : node->vertices) {
+//                 out << fmt::format("    {: >8.5f} {: >8.5f} 0\n", v.tex_coords.x, v.tex_coords.y);
+//             }
+//         }
+//     } else {
+//         for (const auto& [k, v] : ControllerType::map) {
+//             if (v.second == NodeFlags::mesh) {
+//                 auto [ckey, cdata] = node->get_controller(v.first);
+//                 if (!ckey || cdata.empty()) continue;
+//                 out << fmt::format("        {}\n", ckey->name);
+//                 if (ckey->columns > 0) {
+//                     for (size_t i = 0; i < size_t(ckey->rows); ++i) {
+//                         out << "          ";
+//                         size_t start = i * ckey->columns, stop = (i + 1) * ckey->columns;
+//                         for (size_t j = start; j < stop; ++j) {
+//                             out << fmt::format(" {: >8.5f}", cdata[j]);
+//                         }
+//                         out << '\n';
+//                     }
+//                 }
+//                 out << "        endlist\n";
+//             }
+//         }
+//     }
+// }
 
-std::ostream& operator<<(std::ostream& out, const Mdl& mdl)
-{
-    out << "# Exported from rollnw\n"
-        << fmt::format("filedependancy {}\n",
-               mdl.model.file_dependency.size() ? mdl.model.file_dependency : "Unknown")
-        << fmt::format("newmodel {}\n", mdl.model.name)
-        << fmt::format("setsupermodel {} {}\n", mdl.model.name, mdl.model.supermodel_name)
-        << fmt::format("classification {}\n", model_class_to_string(mdl.model.classification))
-        << fmt::format("setanimationscale {:.2f}\n", mdl.model.animationscale)
-        << fmt::format("beginmodelgeom {}\n", mdl.model.name);
+// std::ostream& operator<<(std::ostream& out, const Mdl& mdl)
+// {
+//     out << "# Exported from rollnw\n"
+//         << fmt::format("filedependancy {}\n",
+//                mdl.model.file_dependency.size() ? mdl.model.file_dependency : "Unknown")
+//         << fmt::format("newmodel {}\n", mdl.model.name)
+//         << fmt::format("setsupermodel {} {}\n", mdl.model.name, mdl.model.supermodel_name)
+//         << fmt::format("classification {}\n", model_class_to_string(mdl.model.classification))
+//         << fmt::format("setanimationscale {:.2f}\n", mdl.model.animationscale)
+//         << fmt::format("beginmodelgeom {}\n", mdl.model.name);
 
-    for (const auto& node : mdl.model.nodes) {
-        out << fmt::format("node {} {}\n", NodeType::to_string(node->type), node->name);
+//     for (const auto& node : mdl.model.nodes) {
+//         out << fmt::format("node {} {}\n", NodeType::to_string(node->type), node->name);
 
-        auto [pos_key, pos_data] = node->get_controller(ControllerType::Position);
-        auto [ori_key, ori_data] = node->get_controller(ControllerType::Orientation);
-        auto [scale_key, scale_data] = node->get_controller(ControllerType::Scale);
-        auto [wire_key, wire_data] = node->get_controller(ControllerType::Wirecolor);
+//         auto [pos_key, pos_data] = node->get_controller(ControllerType::Position);
+//         auto [ori_key, ori_data] = node->get_controller(ControllerType::Orientation);
+//         auto [scale_key, scale_data] = node->get_controller(ControllerType::Scale);
+//         auto [wire_key, wire_data] = node->get_controller(ControllerType::Wirecolor);
 
-        out << fmt::format("  parent {}\n", node->parent ? node->parent->name : "null");
-        if (!node->parent) {
-            out << "endnode\n";
-            continue;
-        }
+//         out << fmt::format("  parent {}\n", node->parent ? node->parent->name : "null");
+//         if (!node->parent) {
+//             out << "endnode\n";
+//             continue;
+//         }
 
-        out << fmt::format("  position {: >8.5f} {: >8.5f} {: >8.5f}\n", pos_data[0], pos_data[1], pos_data[2]);
-        out << fmt::format("  orientation {: >8.5f} {: >8.5f} {: >8.5f} {: >8.5f}\n", ori_data[0], ori_data[1], ori_data[2], ori_data[3]);
-        out << fmt::format("  wirecolor {:.2f} {:.2f} {:.2f}\n", wire_data[0], wire_data[1], wire_data[2]);
+//         out << fmt::format("  position {: >8.5f} {: >8.5f} {: >8.5f}\n", pos_data[0], pos_data[1], pos_data[2]);
+//         out << fmt::format("  orientation {: >8.5f} {: >8.5f} {: >8.5f} {: >8.5f}\n", ori_data[0], ori_data[1], ori_data[2], ori_data[3]);
+//         out << fmt::format("  wirecolor {:.2f} {:.2f} {:.2f}\n", wire_data[0], wire_data[1], wire_data[2]);
 
-        if (scale_key) {
-            out << fmt::format("  scale {:.2f}\n", scale_data[0]);
-        }
+//         if (scale_key) {
+//             out << fmt::format("  scale {:.2f}\n", scale_data[0]);
+//         }
 
-        if (dynamic_cast<AABBNode*>(node.get())) {
-            auto n = static_cast<AABBNode*>(node.get());
-            write_out(out, static_cast<const TrimeshNode*>(n), mdl.model.classification, false);
-        } else if (dynamic_cast<AnimeshNode*>(node.get())) {
-            auto n = static_cast<AnimeshNode*>(node.get());
-            write_out(out, static_cast<const TrimeshNode*>(n), mdl.model.classification, false);
-        } else if (dynamic_cast<DanglymeshNode*>(node.get())) {
-            write_out(out, static_cast<const TrimeshNode*>(node.get()), mdl.model.classification, false);
-            write_out(out, static_cast<DanglymeshNode*>(node.get()), false);
-        } else if (dynamic_cast<EmitterNode*>(node.get())) {
-            write_out(out, static_cast<EmitterNode*>(node.get()), false);
-        } else if (dynamic_cast<LightNode*>(node.get())) {
-            write_out(out, static_cast<LightNode*>(node.get()), false);
-        } else if (dynamic_cast<ReferenceNode*>(node.get())) {
-            auto n = static_cast<ReferenceNode*>(node.get());
-            out << fmt::format("  refmodel {}\n", n->refmodel);
-            out << fmt::format("  reattachable {}\n", int(n->reattachable));
-        } else if (dynamic_cast<SkinNode*>(node.get())) {
-            auto n = static_cast<SkinNode*>(node.get());
-            write_out(out, static_cast<const TrimeshNode*>(n), mdl.model.classification, false);
-            write_out(out, static_cast<const SkinNode*>(n), false);
-        } else if (dynamic_cast<TrimeshNode*>(node.get())) {
-            auto n = static_cast<TrimeshNode*>(node.get());
-            write_out(out, n, mdl.model.classification, false);
-        }
+//         if (dynamic_cast<AABBNode*>(node.get())) {
+//             auto n = static_cast<AABBNode*>(node.get());
+//             write_out(out, static_cast<const TrimeshNode*>(n), mdl.model.classification, false);
+//         } else if (dynamic_cast<AnimeshNode*>(node.get())) {
+//             auto n = static_cast<AnimeshNode*>(node.get());
+//             write_out(out, static_cast<const TrimeshNode*>(n), mdl.model.classification, false);
+//         } else if (dynamic_cast<DanglymeshNode*>(node.get())) {
+//             write_out(out, static_cast<const TrimeshNode*>(node.get()), mdl.model.classification, false);
+//             write_out(out, static_cast<DanglymeshNode*>(node.get()), false);
+//         } else if (dynamic_cast<EmitterNode*>(node.get())) {
+//             write_out(out, static_cast<EmitterNode*>(node.get()), false);
+//         } else if (dynamic_cast<LightNode*>(node.get())) {
+//             write_out(out, static_cast<LightNode*>(node.get()), false);
+//         } else if (dynamic_cast<ReferenceNode*>(node.get())) {
+//             auto n = static_cast<ReferenceNode*>(node.get());
+//             out << fmt::format("  refmodel {}\n", n->refmodel);
+//             out << fmt::format("  reattachable {}\n", int(n->reattachable));
+//         } else if (dynamic_cast<SkinNode*>(node.get())) {
+//             auto n = static_cast<SkinNode*>(node.get());
+//             write_out(out, static_cast<const TrimeshNode*>(n), mdl.model.classification, false);
+//             write_out(out, static_cast<const SkinNode*>(n), false);
+//         } else if (dynamic_cast<TrimeshNode*>(node.get())) {
+//             auto n = static_cast<TrimeshNode*>(node.get());
+//             write_out(out, n, mdl.model.classification, false);
+//         }
 
-        out << "endnode\n";
-    }
+//         out << "endnode\n";
+//     }
 
-    out << fmt::format("endmodelgeom {}\n\n", mdl.model.name);
+//     out << fmt::format("endmodelgeom {}\n\n", mdl.model.name);
 
-    if (mdl.model.animations.size()) {
-        for (const auto& anim : mdl.model.animations) {
-            out << "#ANIM ASCII\n";
-            out << fmt::format("newanim {} {}\n", anim->name, mdl.model.name);
-            out << fmt::format("  length {}\n", anim->length);
-            out << fmt::format("  transtime {}\n", anim->transition_time);
-            out << fmt::format("  animroot {}\n", anim->anim_root);
+//     if (mdl.model.animations.size()) {
+//         for (const auto& anim : mdl.model.animations) {
+//             out << "#ANIM ASCII\n";
+//             out << fmt::format("newanim {} {}\n", anim->name, mdl.model.name);
+//             out << fmt::format("  length {}\n", anim->length);
+//             out << fmt::format("  transtime {}\n", anim->transition_time);
+//             out << fmt::format("  animroot {}\n", anim->anim_root);
 
-            for (const auto& ev : anim->events) {
-                out << fmt::format("  event {:8.5f} {}\n", ev.time, ev.name);
-            }
+//             for (const auto& ev : anim->events) {
+//                 out << fmt::format("  event {:8.5f} {}\n", ev.time, ev.name);
+//             }
 
-            for (const auto& node : anim->nodes) {
-                out << fmt::format("node {} {}\n", NodeType::to_string(node->type), node->name);
+//             for (const auto& node : anim->nodes) {
+//                 out << fmt::format("node {} {}\n", NodeType::to_string(node->type), node->name);
 
-                out << fmt::format("  parent {}\n", node->parent ? node->parent->name : "null");
-                if (!node->parent) {
-                    out << "endnode\n";
-                    continue;
-                }
+//                 out << fmt::format("  parent {}\n", node->parent ? node->parent->name : "null");
+//                 if (!node->parent) {
+//                     out << "endnode\n";
+//                     continue;
+//                 }
 
-                for (const auto& [k, v] : ControllerType::map) {
-                    if (v.second == NodeFlags::header) {
-                        auto [ckey, cdata] = node->get_controller(v.first);
-                        if (!ckey || cdata.empty()) continue;
-                        out << fmt::format("        {}\n", ckey->name);
-                        if (ckey->columns > 0) {
-                            for (size_t i = 0; i < size_t(ckey->rows); ++i) {
-                                out << "          ";
-                                size_t start = i * ckey->columns, stop = (i + 1) * ckey->columns;
-                                for (size_t j = start; j < stop; ++j) {
-                                    out << fmt::format(" {: >8.5f}", cdata[j]);
-                                }
-                                out << '\n';
-                            }
-                        }
-                        out << "        endlist\n";
-                    }
-                }
+//                 for (const auto& [k, v] : ControllerType::map) {
+//                     if (v.second == NodeFlags::header) {
+//                         auto [ckey, cdata] = node->get_controller(v.first);
+//                         if (!ckey || cdata.empty()) continue;
+//                         out << fmt::format("        {}\n", ckey->name);
+//                         if (ckey->columns > 0) {
+//                             for (size_t i = 0; i < size_t(ckey->rows); ++i) {
+//                                 out << "          ";
+//                                 size_t start = i * ckey->columns, stop = (i + 1) * ckey->columns;
+//                                 for (size_t j = start; j < stop; ++j) {
+//                                     out << fmt::format(" {: >8.5f}", cdata[j]);
+//                                 }
+//                                 out << '\n';
+//                             }
+//                         }
+//                         out << "        endlist\n";
+//                     }
+//                 }
 
-                if (dynamic_cast<AABBNode*>(node.get())) {
-                    auto n = static_cast<AABBNode*>(node.get());
-                    write_out(out, static_cast<const TrimeshNode*>(n), mdl.model.classification, true);
-                } else if (dynamic_cast<AnimeshNode*>(node.get())) {
-                    auto n = static_cast<AnimeshNode*>(node.get());
-                    write_out(out, static_cast<const TrimeshNode*>(n), mdl.model.classification, true);
-                } else if (dynamic_cast<DanglymeshNode*>(node.get())) {
-                    write_out(out, static_cast<const TrimeshNode*>(node.get()), mdl.model.classification, true);
-                    write_out(out, static_cast<DanglymeshNode*>(node.get()), true);
-                } else if (dynamic_cast<EmitterNode*>(node.get())) {
-                    write_out(out, static_cast<EmitterNode*>(node.get()), true);
-                } else if (dynamic_cast<LightNode*>(node.get())) {
-                    write_out(out, static_cast<LightNode*>(node.get()), true);
-                } else if (dynamic_cast<ReferenceNode*>(node.get())) {
-                    // auto n = static_cast<ReferenceNode*>(node.get());
-                } else if (dynamic_cast<SkinNode*>(node.get())) {
-                    auto n = static_cast<SkinNode*>(node.get());
-                    write_out(out, static_cast<const TrimeshNode*>(n), mdl.model.classification, true);
-                    write_out(out, static_cast<const SkinNode*>(n), true);
-                } else if (dynamic_cast<TrimeshNode*>(node.get())) {
-                    auto n = static_cast<TrimeshNode*>(node.get());
-                    write_out(out, n, mdl.model.classification, true);
-                }
-                out << "endnode\n";
-            }
-            out << fmt::format("doneanim {} {}\n\n", anim->name, mdl.model.name);
-        }
-    }
+//                 if (dynamic_cast<AABBNode*>(node.get())) {
+//                     auto n = static_cast<AABBNode*>(node.get());
+//                     write_out(out, static_cast<const TrimeshNode*>(n), mdl.model.classification, true);
+//                 } else if (dynamic_cast<AnimeshNode*>(node.get())) {
+//                     auto n = static_cast<AnimeshNode*>(node.get());
+//                     write_out(out, static_cast<const TrimeshNode*>(n), mdl.model.classification, true);
+//                 } else if (dynamic_cast<DanglymeshNode*>(node.get())) {
+//                     write_out(out, static_cast<const TrimeshNode*>(node.get()), mdl.model.classification, true);
+//                     write_out(out, static_cast<DanglymeshNode*>(node.get()), true);
+//                 } else if (dynamic_cast<EmitterNode*>(node.get())) {
+//                     write_out(out, static_cast<EmitterNode*>(node.get()), true);
+//                 } else if (dynamic_cast<LightNode*>(node.get())) {
+//                     write_out(out, static_cast<LightNode*>(node.get()), true);
+//                 } else if (dynamic_cast<ReferenceNode*>(node.get())) {
+//                     // auto n = static_cast<ReferenceNode*>(node.get());
+//                 } else if (dynamic_cast<SkinNode*>(node.get())) {
+//                     auto n = static_cast<SkinNode*>(node.get());
+//                     write_out(out, static_cast<const TrimeshNode*>(n), mdl.model.classification, true);
+//                     write_out(out, static_cast<const SkinNode*>(n), true);
+//                 } else if (dynamic_cast<TrimeshNode*>(node.get())) {
+//                     auto n = static_cast<TrimeshNode*>(node.get());
+//                     write_out(out, n, mdl.model.classification, true);
+//                 }
+//                 out << "endnode\n";
+//             }
+//             out << fmt::format("doneanim {} {}\n\n", anim->name, mdl.model.name);
+//         }
+//     }
 
-    out << fmt::format("donemodel {}\n", mdl.model.name);
+//     out << fmt::format("donemodel {}\n", mdl.model.name);
 
-    return out;
-}
+//     return out;
+// }
 
 } // namespace nw::model

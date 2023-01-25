@@ -367,6 +367,13 @@ struct ReferenceNode : public Node {
     bool reattachable;
 };
 
+struct Vertex {
+    glm::vec3 position{};
+    glm::vec2 tex_coords{};
+    glm::vec3 normal{};
+    glm::vec4 tangent{};
+};
+
 struct TrimeshNode : public Node {
     TrimeshNode(std::string name_, uint32_t type_ = NodeType::trimesh);
     virtual ~TrimeshNode() = default;
@@ -378,7 +385,6 @@ struct TrimeshNode : public Node {
     std::string bitmap;
     glm::vec3 center;
     glm::vec3 diffuse;
-    std::vector<Face> faces;
     std::string materialname;
     std::string gizmo;
     int danglymesh{0};
@@ -399,10 +405,9 @@ struct TrimeshNode : public Node {
     uint32_t lightmapped{0};
     std::vector<std::string> multimaterial;
     std::vector<glm::vec3> colors;
-    std::vector<glm::vec3> verts;
-    std::array<std::vector<glm::vec3>, 4> tverts;
-    std::vector<glm::vec3> normals;
-    std::vector<glm::vec4> tangents;
+
+    std::vector<Vertex> vertices;
+    std::vector<uint16_t> indices;
 };
 
 struct SkinWeight {
@@ -524,6 +529,6 @@ public:
     bool valid() const;
 };
 
-std::ostream& operator<<(std::ostream& out, const Mdl& model);
+// std::ostream& operator<<(std::ostream& out, const Mdl& model);
 
 } // namespace nw::model

@@ -132,11 +132,11 @@ TEST_CASE("model: parse ascii ee", "[model]")
     REQUIRE(mdl31.valid());
 }
 
-TEST_CASE("model: write to file", "[model]")
-{
-    nw::model::Mdl mdl{"test_data/user/development/alt_dfa19.mdl"};
-    REQUIRE(mdl.valid());
-    std::ofstream f{"tmp/alt_dfa19.mdl"};
-    f << mdl;
-    f.close();
-}
+// TEST_CASE("model: write to file", "[model]")
+// {
+//     nw::model::Mdl mdl{"test_data/user/development/alt_dfa19.mdl"};
+//     REQUIRE(mdl.valid());
+//     std::ofstream f{"tmp/alt_dfa19.mdl"};
+//     f << mdl;
+//     f.close();
+// }
