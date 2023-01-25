@@ -75,7 +75,7 @@
                     "type": "BOOL",
                     "value": true
                 },
-                "BUILD_DOCS": {
+                "ROLLNW_BUILD_DOCS": {
                     "type": "BOOL",
                     "value": true
                 }
