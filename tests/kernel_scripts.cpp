@@ -1,3 +1,5 @@
+#ifdef ROLLNW_BUILD_RUNTIME_SCRIPTING
+
 #include <catch2/catch_all.hpp>
 
 #include <nw/kernel/Kernel.hpp>
@@ -17,3 +19,5 @@ TEST_CASE("scripts: basic luau test", "[kernel]")
 
     nw::kernel::unload_module();
 }
+
+#endif // ROLLNW_BUILD_RUNTIME_SCRIPTING

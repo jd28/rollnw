@@ -1,3 +1,5 @@
+#ifdef ROLLNW_BUILD_RUNTIME_SCRIPTING
+
 #include "ScriptSystem.hpp"
 
 namespace nw::kernel {
@@ -16,3 +18,5 @@ lua_State* ScriptSystem::global_state()
 }
 
 } // namespace nw::kernel
+
+#endif // ROLLNW_BUILD_RUNTIME_SCRIPTING

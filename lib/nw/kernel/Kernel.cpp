@@ -27,7 +27,9 @@ Services::Services()
     , effects{new EffectSystem}
     , objects{new ObjectSystem}
     , events{new EventSystem}
+#ifdef ROLLNW_BUILD_RUNTIME_SCRIPTING
     , scripts{new ScriptSystem}
+#endif
 {
     LOG_F(INFO, "kernel: initializing default services");
 }
@@ -41,7 +43,9 @@ void Services::start()
     effects->initialize();
     objects->initialize();
     events->initialize();
+#ifdef ROLLNW_BUILD_RUNTIME_SCRIPTING
     scripts->initialize();
+#endif
 
     for (auto& s : services_) {
         s.service->initialize();
@@ -50,7 +54,9 @@ void Services::start()
 
 void Services::shutdown()
 {
+#ifdef ROLLNW_BUILD_RUNTIME_SCRIPTING
     scripts->clear();
+#endif
     events->clear();
     objects->clear();
     effects->clear();

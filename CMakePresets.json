@@ -21,13 +21,13 @@
                     "value": "${sourceDir}/bin",
                     "type": "FILEPATH"
                 },
-                "ENABLE_TESTING": {
+                "ROLLNW_BUILD_TESTS": {
                     "type": "BOOL",
                     "value": "ON"
                 },
-                "ENABLE_BENCHMARKS": {
+                "ROLLNW_BUILD_BENCHMARKS": {
                     "type": "BOOL",
-                    "value": "ON"
+                    "value": "OFF"
                 },
                 "LUAU_BUILD_TESTS": {
                     "type": "BOOL",

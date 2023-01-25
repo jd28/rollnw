@@ -1,5 +1,7 @@
 #pragma once
 
+#ifdef ROLLNW_BUILD_RUNTIME_SCRIPTING
+
 #include "../log.hpp"
 #include "Kernel.hpp"
 
@@ -33,3 +35,5 @@ inline ScriptSystem& scripts()
     return *res;
 }
 } // namespace nw::kernel
+
+#endif // ROLLNW_BUILD_RUNTIME_SCRIPTING
