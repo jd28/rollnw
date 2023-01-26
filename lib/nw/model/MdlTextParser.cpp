@@ -767,20 +767,26 @@ bool TextParser::parse_node(Geometry* geometry)
                 auto t2 = geomctx.faces[iface].tvert_idx[1];
                 auto t3 = geomctx.faces[iface].tvert_idx[2];
 
-                auto& v1 = n->vertices[i1];
-                auto& v2 = n->vertices[i2];
-                auto& v3 = n->vertices[i3];
+                auto& v1 = n->vertices.at(i1);
+                auto& v2 = n->vertices.at(i2);
+                auto& v3 = n->vertices.at(i3);
 
                 // Get tex coords
                 if (geomctx.tverts[0].size()) { // dummys don't have textures..
-                    auto ti = i1 == t1 || t1 == 0 ? i1 : t1;
-                    v1.tex_coords = glm::vec2{geomctx.tverts[0][ti].x, geomctx.tverts[0][ti].y};
+                    auto ti = i1 == t1 ? i1 : t1;
+                    if (ti < geomctx.tverts[0].size()) {
+                        v1.tex_coords = glm::vec2{geomctx.tverts[0].at(ti).x, geomctx.tverts[0].at(ti).y};
+                    }
 
-                    ti = i2 == t2 || t2 == 0 ? i2 : t2;
-                    v2.tex_coords = glm::vec2{geomctx.tverts[0][ti].x, geomctx.tverts[0][ti].y};
+                    ti = i2 == t2 ? i2 : t2;
+                    if (ti < geomctx.tverts[0].size()) {
+                        v2.tex_coords = glm::vec2{geomctx.tverts[0].at(ti).x, geomctx.tverts[0].at(ti).y};
+                    }
 
-                    ti = i3 == t3 || t3 == 0 ? i3 : t3;
-                    v3.tex_coords = glm::vec2{geomctx.tverts[0][ti].x, geomctx.tverts[0][ti].y};
+                    ti = i3 == t3 ? i3 : t3;
+                    if (ti < geomctx.tverts[0].size()) {
+                        v3.tex_coords = glm::vec2{geomctx.tverts[0].at(ti).x, geomctx.tverts[0].at(ti).y};
+                    }
                 }
 
                 // Tangents - Not sure if this is right.. just copy pasta from
@@ -827,19 +833,19 @@ bool TextParser::parse_node(Geometry* geometry)
                         glm::vec3 sum{0.0f, 0.0f, 0.0f};
                         for (size_t jface = iface; jface < geomctx.faces.size(); ++jface) {
                             if (contains_vert(geomctx.faces[jface], ivert)) {
-                                auto p1 = n->vertices[geomctx.faces[jface].vert_idx[0]].position;
-                                auto p2 = n->vertices[geomctx.faces[jface].vert_idx[1]].position;
-                                auto p3 = n->vertices[geomctx.faces[jface].vert_idx[2]].position;
+                                auto p1 = n->vertices.at(geomctx.faces[jface].vert_idx[0]).position;
+                                auto p2 = n->vertices.at(geomctx.faces[jface].vert_idx[1]).position;
+                                auto p3 = n->vertices.at(geomctx.faces[jface].vert_idx[2]).position;
                                 sum += glm::triangleNormal(p1, p2, p3);
                             }
                         }
                         n->vertices[ivert].normal = glm::normalize(sum);
                     } else {
-                        n->vertices[ivert].normal = geomctx.normals[ivert];
+                        n->vertices[ivert].normal = geomctx.normals.at(ivert);
                     }
 
                     if (ivert < geomctx.tangents.size()) {
-                        n->vertices[ivert].tangent = geomctx.tangents[ivert];
+                        n->vertices[ivert].tangent = geomctx.tangents.at(ivert);
                     }
 
                     visited_indices.insert(ivert);

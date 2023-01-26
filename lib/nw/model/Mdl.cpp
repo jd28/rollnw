@@ -327,8 +327,13 @@ Mdl::Mdl(const std::string& filename)
         // BinaryParser p{ByteView(bytes_.data(), bytes_.size()), this};
         // loaded_ = parse_binary();
     } else {
-        TextParser p{bytes_.string_view(), this};
-        loaded_ = p.parse();
+        try {
+            TextParser p{bytes_.string_view(), this};
+            loaded_ = p.parse();
+        } catch (std::exception& e) {
+            LOG_F(ERROR, "failed to parse model: {}", filename);
+            loaded_ = false;
+        }
     }
 }
 
