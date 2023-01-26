@@ -773,19 +773,16 @@ bool TextParser::parse_node(Geometry* geometry)
 
                 // Get tex coords
                 if (geomctx.tverts[0].size()) { // dummys don't have textures..
-                    auto ti = i1 == t1 ? i1 : t1;
-                    if (ti < geomctx.tverts[0].size()) {
-                        v1.tex_coords = glm::vec2{geomctx.tverts[0].at(ti).x, geomctx.tverts[0].at(ti).y};
+                    if (t1 < geomctx.tverts[0].size()) {
+                        v1.tex_coords = glm::vec2{geomctx.tverts[0].at(t1).x, geomctx.tverts[0].at(t1).y};
                     }
 
-                    ti = i2 == t2 ? i2 : t2;
-                    if (ti < geomctx.tverts[0].size()) {
-                        v2.tex_coords = glm::vec2{geomctx.tverts[0].at(ti).x, geomctx.tverts[0].at(ti).y};
+                    if (t2 < geomctx.tverts[0].size()) {
+                        v2.tex_coords = glm::vec2{geomctx.tverts[0].at(t2).x, geomctx.tverts[0].at(t2).y};
                     }
 
-                    ti = i3 == t3 ? i3 : t3;
-                    if (ti < geomctx.tverts[0].size()) {
-                        v3.tex_coords = glm::vec2{geomctx.tverts[0].at(ti).x, geomctx.tverts[0].at(ti).y};
+                    if (t3 < geomctx.tverts[0].size()) {
+                        v3.tex_coords = glm::vec2{geomctx.tverts[0].at(t3).x, geomctx.tverts[0].at(t3).y};
                     }
                 }
 

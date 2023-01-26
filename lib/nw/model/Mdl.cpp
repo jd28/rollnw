@@ -312,6 +312,21 @@ Model::Model()
 {
 }
 
+Node* Model::find(std::string_view needle)
+{
+    for (auto& node : nodes) {
+        if (string::icmp(needle, node->name)) {
+            return node.get();
+        }
+    }
+    return nullptr;
+}
+
+const Node* Model::find(std::string_view needle) const
+{
+    return const_cast<Model*>(this)->find(needle);
+}
+
 Animation::Animation(std::string name_)
     : Geometry(GeometryType::animation)
 {

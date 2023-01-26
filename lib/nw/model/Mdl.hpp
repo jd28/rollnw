@@ -499,6 +499,9 @@ struct Model : public Geometry {
 
     Model& operator=(Model&) = delete;
 
+    Node* find(std::string_view needle);
+    const Node* find(std::string_view needle) const;
+
     ModelClass classification;
     bool ignorefog;
     std::vector<std::unique_ptr<Animation>> animations;
