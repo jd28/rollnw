@@ -352,6 +352,23 @@ Mdl::Mdl(const std::string& filename)
     }
 }
 
+Mdl::Mdl(ByteArray bytes)
+    : bytes_{std::move(bytes)}
+{
+    if (bytes_[0] == 0) {
+        // BinaryParser p{ByteView(bytes_.data(), bytes_.size()), this};
+        // loaded_ = parse_binary();
+    } else {
+        try {
+            TextParser p{bytes_.string_view(), this};
+            loaded_ = p.parse();
+        } catch (std::exception& e) {
+            LOG_F(ERROR, "failed to parse model <unknown>");
+            loaded_ = false;
+        }
+    }
+}
+
 std::unique_ptr<Node> Mdl::make_node(uint32_t type, std::string_view name)
 {
     switch (type) {
@@ -385,7 +402,7 @@ std::unique_ptr<Node> Mdl::make_node(uint32_t type, std::string_view name)
 
 bool Mdl::parse_binary()
 {
-    return true;
+    return false;
 }
 
 bool Mdl::valid() const

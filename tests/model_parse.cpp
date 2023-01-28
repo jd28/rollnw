@@ -121,7 +121,7 @@ TEST_CASE("model: parse ascii ee", "[model]")
     nw::model::Mdl mdl28{"test_data/user/development/ttf02_j09_02.mdl"};
     REQUIRE(mdl28.valid());
 
-    nw::model::Mdl mdl29{"test_data/user/development/tts01_h02_03.mdl"};
+    nw::model::Mdl mdl29{nw::ByteArray::from_file("test_data/user/development/tts01_h02_03.mdl")};
     REQUIRE(mdl29.valid());
 
     // [TODO] Investigate whether all the controllers in here are obsolete

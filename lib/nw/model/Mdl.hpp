@@ -527,6 +527,7 @@ public:
     Model model;
 
     Mdl(const std::string& filename);
+    Mdl(ByteArray bytes);
 
     std::unique_ptr<Node> make_node(uint32_t type, std::string_view name);
     bool valid() const;
