@@ -4,6 +4,8 @@ model
 As mentioned elsewhere, the goal of this library is not to render graphics, but maybe?  Loading NWN models is
 for the purpose of conversion or in some other asset pipeline.
 
+See the `mudl <https://github.com/jd28/mudl>`__ model viewer side project for work on a NWN model viewer.
+
 ASCII Models
 ------------
 
@@ -15,7 +17,8 @@ in ~20s on 2015 MacBook Pro.
 Binary Models
 -------------
 
-Binary parsing will likely never be a feature.
+The beginnings of binary model parsing is in the library.
+It's hard to tell what's right and what's wrong until there is more rendering experience.
 
 Examples
 --------
