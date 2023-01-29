@@ -1,9 +1,13 @@
 #include <catch2/catch_all.hpp>
 
+#include <nw/kernel/Resources.hpp>
 #include <nw/log.hpp>
 #include <nw/model/Mdl.hpp>
 
 #include <fstream>
+
+using namespace std::literals;
+namespace nwk = nw::kernel;
 
 TEST_CASE("model: parse ascii", "[model]")
 {
@@ -27,6 +31,13 @@ TEST_CASE("model: parse ascii", "[model]")
     REQUIRE(mdl.model.animations[0]->name == "kdbck");
     REQUIRE(mdl.model.animations[0]->events.size() == 16);
     REQUIRE(mdl.model.animations[0]->anim_root == "rootdummy");
+}
+
+TEST_CASE("model: parse binary", "[model]")
+{
+    nw::model::Mdl mdl{nwk::resman().demand({"c_bodak"sv, nw::ResourceType::mdl})};
+    REQUIRE(mdl.valid());
+    REQUIRE(mdl.model.supermodel_name == "a_ba");
 }
 
 TEST_CASE("model: parse ascii ee", "[model]")

@@ -35,7 +35,6 @@ struct GeomCxt {
     std::array<std::vector<glm::vec3>, 4> tverts;
     std::vector<glm::vec3> normals;
     std::vector<glm::vec4> tangents;
-    std::array<int, 3> vert_normals_idx{-1, -1, -1};
 };
 
 inline bool is_newline(std::string_view tk)

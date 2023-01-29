@@ -17,7 +17,7 @@ rollNW is an homage to Neverwinter Nights in C++ and Python.  See the [docs](htt
 - Objects (i.e. Creatures, Waypoints, etc) are implemented at a toolset level.  Or in other words their features cover blueprints, area instances, with support for effects and item properties.  They are still missing some new EE things.  Player Characters are read only, for now.
 - A recursive decent [NWScript Parser](https://rollnw.readthedocs.io/en/latest/structure/script.html)
 - Implementations of pretty much every [NWN File Format](https://rollnw.readthedocs.io/en/latest/structure/formats.html)
-- An [ASCII Model Parser](https://rollnw.readthedocs.io/en/latest/structure/model.html)
+- An [Model Parser](https://rollnw.readthedocs.io/en/latest/structure/model.html).  See the [mudl](https://github.com/jd28/mudl) model viewer side project.
 - A Resource Manager that can load all NWN containers (e.g. erf, key, nwsync) and also Zip files.
 - An implementation of NWN's [Localization System](https://rollnw.readthedocs.io/en/latest/structure/i18n.html) focused on utf8 everywhere.
 - The beginnings of runtime scripting with [Luau](https://luau-lang.org/) the scripting language of Roblox.

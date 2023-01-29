@@ -4,6 +4,7 @@
 #include "../log.hpp"
 #include "../util/macros.hpp"
 #include "../util/string.hpp"
+#include "MdlBinaryParser.hpp"
 #include "MdlTextParser.hpp"
 
 namespace nw::model {
@@ -339,8 +340,8 @@ Mdl::Mdl(const std::string& filename)
     : bytes_{ByteArray::from_file(filename)}
 {
     if (bytes_[0] == 0) {
-        // BinaryParser p{ByteView(bytes_.data(), bytes_.size()), this};
-        // loaded_ = parse_binary();
+        BinaryParser p{std::span<uint8_t>(bytes_.data(), bytes_.size()), this};
+        loaded_ = p.parse();
     } else {
         try {
             TextParser p{bytes_.string_view(), this};
@@ -356,8 +357,8 @@ Mdl::Mdl(ByteArray bytes)
     : bytes_{std::move(bytes)}
 {
     if (bytes_[0] == 0) {
-        // BinaryParser p{ByteView(bytes_.data(), bytes_.size()), this};
-        // loaded_ = parse_binary();
+        BinaryParser p{std::span<uint8_t>(bytes_.data(), bytes_.size()), this};
+        loaded_ = p.parse();
     } else {
         try {
             TextParser p{bytes_.string_view(), this};
@@ -398,11 +399,6 @@ std::unique_ptr<Node> Mdl::make_node(uint32_t type, std::string_view name)
     case NodeType::camera:
         return std::make_unique<CameraNode>(std::string(name));
     }
-}
-
-bool Mdl::parse_binary()
-{
-    return false;
 }
 
 bool Mdl::valid() const

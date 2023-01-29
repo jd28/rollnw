@@ -483,7 +483,7 @@ struct AnimationEvent {
 };
 
 struct Animation : public Geometry {
-    Animation(std::string name__);
+    Animation(std::string name_);
     virtual ~Animation() = default;
 
     float length{1.0f};
@@ -520,8 +520,6 @@ struct Model : public Geometry {
 class Mdl {
     ByteArray bytes_;
     bool loaded_ = false;
-
-    bool parse_binary();
 
 public:
     Model model;
