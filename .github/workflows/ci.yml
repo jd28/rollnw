@@ -152,12 +152,12 @@ jobs:
       - name: macOS - configure
         if: matrix.os == 'macos-11'
         run: |
-          cmake --preset macos
+          cmake --preset ci-macos
 
       - name: linux - configure
         if: matrix.os == 'ubuntu-20.04'
         run: |
-          cmake --preset linux
+          cmake --preset ci-linux
 
       - name: windows - Visual Studio shell
         if: matrix.os == 'windows-2019'

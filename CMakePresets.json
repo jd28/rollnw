@@ -21,10 +21,6 @@
                     "value": "${sourceDir}/bin",
                     "type": "FILEPATH"
                 },
-                "ROLLNW_BUILD_TESTS": {
-                    "type": "BOOL",
-                    "value": "ON"
-                },
                 "ROLLNW_BUILD_BENCHMARKS": {
                     "type": "BOOL",
                     "value": "OFF"
@@ -44,18 +40,29 @@
                 "type": "equals",
                 "lhs": "${hostSystemName}",
                 "rhs": "Linux"
-            },
-            "cacheVariables": {
-                "ENABLE_TESTING": {
-                    "type": "BOOL",
-                    "value": "OFF"
-                }
             }
         },
         {
             "name": "ci-linux",
             "inherits": "linux",
             "displayName": "ci-linux",
+            "description": "Default build with tests and code coverage, no python",
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Linux"
+            },
+            "cacheVariables": {
+                "ROLLNW_BUILD_TESTS": {
+                    "type": "BOOL",
+                    "value": "ON"
+                }
+            }
+        },
+        {
+            "name": "ci-coverage-docs",
+            "inherits": "linux",
+            "displayName": "ci-coverage-docs",
             "description": "Default build with tests and code coverage, no python",
             "condition": {
                 "type": "equals",
@@ -78,6 +85,10 @@
                 "ROLLNW_BUILD_DOCS": {
                     "type": "BOOL",
                     "value": true
+                },
+                "ROLLNW_BUILD_TESTS": {
+                    "type": "BOOL",
+                    "value": "ON"
                 }
             }
         },
@@ -106,12 +117,18 @@
             "inherits": "windows",
             "generator": "Ninja",
             "displayName": "windows ci build",
-            "description": "windows ci build"
+            "description": "windows ci build",
+            "cacheVariables": {
+                "ENABLE_TESTING": {
+                    "type": "BOOL",
+                    "value": "ON"
+                }
+            }
         },
         {
             "name": "macos",
             "inherits": "linux",
-            "displayName": "macOS-only configuration",
+            "displayName": "macOS default configuration",
             "condition": {
                 "type": "equals",
                 "lhs": "${hostSystemName}",
@@ -119,6 +136,22 @@
             },
             "cacheVariables": {
                 "CMAKE_OSX_DEPLOYMENT_TARGET": "10.15"
+            }
+        },
+        {
+            "name": "ci-macos",
+            "inherits": "linux",
+            "displayName": "macOS CI configuration",
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Darwin"
+            },
+            "cacheVariables": {
+                "ENABLE_TESTING": {
+                    "type": "BOOL",
+                    "value": "ON"
+                }
             }
         }
     ],

@@ -99,7 +99,7 @@ jobs:
 
       - name: Configure
         run: |
-          cmake --preset ci-linux
+          cmake --preset ci-coverage-docs
 
       - name: Build
         run: |
