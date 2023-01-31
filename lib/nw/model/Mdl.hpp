@@ -22,6 +22,9 @@
 
 namespace nw::model {
 
+// -- Forward Decls
+class Mdl;
+
 // -- Constants ---------------------------------------------------------------
 
 struct NodeFlags {
@@ -505,7 +508,8 @@ struct Model : public Geometry {
     ModelClass classification;
     bool ignorefog;
     std::vector<std::unique_ptr<Animation>> animations;
-    Model* supermodel{nullptr};
+    // [TODO] Need to replace this with a mdl cache
+    std::unique_ptr<Mdl> supermodel;
     glm::vec3 bmin;
     glm::vec3 bmax;
     float radius;

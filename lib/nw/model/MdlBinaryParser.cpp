@@ -3,6 +3,8 @@
 #include "../log.hpp"
 #include "Mdl.hpp"
 
+#include <limits>
+
 namespace nw::model {
 
 namespace detail {
@@ -125,8 +127,7 @@ bool BinaryParser::parse_model(uint32_t offset)
 
 bool BinaryParser::parse_node(uint32_t offset, Geometry* geometry, Node* parent)
 {
-    static thread_local detail::GeomCxt ctx;
-    ctx.clear();
+    static thread_local detail::GeomCxt s_ctx;
 
     detail::MdlBinaryNodeHeader nodehead;
     memcpy(&nodehead, bytes_.data() + offset + 12, detail::MdlBinaryNodeHeader::s_sizeof);
@@ -191,33 +192,39 @@ bool BinaryParser::parse_node(uint32_t offset, Geometry* geometry, Node* parent)
 
         // node->colors
 
-        ctx.verts.resize(data.vertex_count);
-        memcpy(ctx.verts.data(), bytes_.data() + header.raw_data_offset + data.vertices + 12,
-            data.vertex_count * sizeof(glm::vec3));
+        if (data.vertices != std::numeric_limits<uint32_t>::max()) {
+            s_ctx.verts.resize(data.vertex_count);
+            memcpy(s_ctx.verts.data(), bytes_.data() + header.raw_data_offset + data.vertices + 12,
+                data.vertex_count * sizeof(glm::vec3));
+        }
 
-        ctx.tverts[0].resize(data.vertex_count);
-        memcpy(ctx.tverts[0].data(), bytes_.data() + header.raw_data_offset + data.texture0_vert_ptr + 12,
-            data.vertex_count * sizeof(glm::vec2));
+        if (data.texture0_vert_ptr != std::numeric_limits<uint32_t>::max()) {
+            s_ctx.tverts[0].resize(data.vertex_count);
+            memcpy(s_ctx.tverts[0].data(), bytes_.data() + header.raw_data_offset + data.texture0_vert_ptr + 12,
+                data.vertex_count * sizeof(glm::vec2));
+        }
 
-        ctx.normals.resize(data.vertex_count);
-        memcpy(ctx.normals.data(), bytes_.data() + header.raw_data_offset + data.vertex_normals_ptr + 12,
-            data.vertex_count * sizeof(glm::vec3));
+        if (data.vertex_normals_ptr != std::numeric_limits<uint32_t>::max()) {
+            s_ctx.normals.resize(data.vertex_count);
+            memcpy(s_ctx.normals.data(), bytes_.data() + header.raw_data_offset + data.vertex_normals_ptr + 12,
+                data.vertex_count * sizeof(glm::vec3));
+        }
 
         node->vertices.resize(data.vertex_count);
         for (size_t i = 0; i < data.vertex_count; ++i) {
-            node->vertices[i].position = ctx.verts[i];
-            node->vertices[i].normal = ctx.normals[i];
-            node->vertices[i].tex_coords = ctx.tverts[0][i];
+            node->vertices[i].position = s_ctx.verts[i];
+            node->vertices[i].normal = s_ctx.normals[i];
+            node->vertices[i].tex_coords = s_ctx.tverts[0][i];
         }
 
-        ctx.faces.resize(data.faces.length);
-        memcpy(ctx.faces.data(), bytes_.data() + data.faces.offset + 12, data.faces.length * sizeof(detail::MdlBinaryFace));
+        s_ctx.faces.resize(data.faces.length);
+        memcpy(s_ctx.faces.data(), bytes_.data() + data.faces.offset + 12, data.faces.length * sizeof(detail::MdlBinaryFace));
 
         node->indices.reserve(data.faces.length * 3);
         for (size_t i = 0; i < data.faces.length; ++i) {
-            node->indices.push_back(ctx.faces[i].vertex_indicies[0]);
-            node->indices.push_back(ctx.faces[i].vertex_indicies[1]);
-            node->indices.push_back(ctx.faces[i].vertex_indicies[2]);
+            node->indices.push_back(s_ctx.faces[i].vertex_indicies[0]);
+            node->indices.push_back(s_ctx.faces[i].vertex_indicies[1]);
+            node->indices.push_back(s_ctx.faces[i].vertex_indicies[2]);
         }
 
         return true;
@@ -284,6 +291,8 @@ bool BinaryParser::parse_node(uint32_t offset, Geometry* geometry, Node* parent)
     }
 
     geometry->nodes.push_back(std::move(node));
+
+    s_ctx.clear();
 
     return true;
 }

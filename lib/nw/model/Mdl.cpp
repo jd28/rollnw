@@ -1,5 +1,6 @@
 #include "Mdl.hpp"
 
+#include "../kernel/Resources.hpp"
 #include "../kernel/Strings.hpp"
 #include "../log.hpp"
 #include "../util/macros.hpp"
@@ -337,25 +338,17 @@ Animation::Animation(std::string name_)
 // --  -------------------------------------------------------------------
 
 Mdl::Mdl(const std::string& filename)
-    : bytes_{ByteArray::from_file(filename)}
+    : Mdl{ByteArray::from_file(filename)}
 {
-    if (bytes_[0] == 0) {
-        BinaryParser p{std::span<uint8_t>(bytes_.data(), bytes_.size()), this};
-        loaded_ = p.parse();
-    } else {
-        try {
-            TextParser p{bytes_.string_view(), this};
-            loaded_ = p.parse();
-        } catch (std::exception& e) {
-            LOG_F(ERROR, "failed to parse model: {}", filename);
-            loaded_ = false;
-        }
-    }
 }
 
 Mdl::Mdl(ByteArray bytes)
     : bytes_{std::move(bytes)}
 {
+    if (bytes_.size() == 0) {
+        LOG_F(ERROR, "[model] no data received");
+        return;
+    }
     if (bytes_[0] == 0) {
         BinaryParser p{std::span<uint8_t>(bytes_.data(), bytes_.size()), this};
         loaded_ = p.parse();
@@ -366,6 +359,14 @@ Mdl::Mdl(ByteArray bytes)
         } catch (std::exception& e) {
             LOG_F(ERROR, "failed to parse model <unknown>");
             loaded_ = false;
+        }
+    }
+
+    if (!model.supermodel_name.empty()) {
+        auto b = nw::kernel::resman().demand({model.supermodel_name, ResourceType::mdl});
+        if (b.size()) {
+            LOG_F(INFO, "[model] loading super model: {}", model.supermodel_name);
+            model.supermodel = std::make_unique<Mdl>(std::move(b));
         }
     }
 }
