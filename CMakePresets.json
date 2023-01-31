@@ -119,7 +119,7 @@
             "displayName": "windows ci build",
             "description": "windows ci build",
             "cacheVariables": {
-                "ENABLE_TESTING": {
+                "ROLLNW_BUILD_TESTS": {
                     "type": "BOOL",
                     "value": "ON"
                 }
@@ -148,7 +148,7 @@
                 "rhs": "Darwin"
             },
             "cacheVariables": {
-                "ENABLE_TESTING": {
+                "ROLLNW_BUILD_TESTS": {
                     "type": "BOOL",
                     "value": "ON"
                 }
