@@ -213,8 +213,12 @@ bool BinaryParser::parse_node(uint32_t offset, Geometry* geometry, Node* parent)
         node->vertices.resize(data.vertex_count);
         for (size_t i = 0; i < data.vertex_count; ++i) {
             node->vertices[i].position = s_ctx.verts[i];
-            node->vertices[i].normal = s_ctx.normals[i];
-            node->vertices[i].tex_coords = s_ctx.tverts[0][i];
+            if (!s_ctx.normals.empty()) {
+                node->vertices[i].normal = s_ctx.normals[i];
+            }
+            if (!s_ctx.tverts[0].empty()) {
+                node->vertices[i].tex_coords = s_ctx.tverts[0][i];
+            }
         }
 
         s_ctx.faces.resize(data.faces.length);
