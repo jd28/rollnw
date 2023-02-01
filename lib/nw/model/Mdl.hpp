@@ -502,8 +502,8 @@ struct Model : public Geometry {
 
     Model& operator=(Model&) = delete;
 
-    Node* find(std::string_view needle);
-    const Node* find(std::string_view needle) const;
+    Node* find(const std::regex& re);
+    const Node* find(const std::regex& re) const;
 
     ModelClass classification;
     bool ignorefog;

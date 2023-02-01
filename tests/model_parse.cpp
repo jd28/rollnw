@@ -47,9 +47,10 @@ TEST_CASE("model: parse ascii ee", "[model]")
     REQUIRE(mdl.valid());
     REQUIRE(mdl.model.supermodel_name == "null");
 
+    auto root_re = std::regex(".*rootdummy.*", std::regex_constants::icase);
     nw::model::Mdl mdl1{"test_data/user/development/c_mindflayer.mdl"};
     REQUIRE(mdl1.valid());
-    REQUIRE(mdl1.model.find("rootdummy"));
+    REQUIRE(mdl1.model.find(root_re));
 
     nw::model::Mdl mdl2{"test_data/user/development/dag_grifflag03.mdl"};
     REQUIRE(mdl2.valid());

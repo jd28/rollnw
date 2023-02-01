@@ -314,19 +314,19 @@ Model::Model()
 {
 }
 
-Node* Model::find(std::string_view needle)
+Node* Model::find(const std::regex& re)
 {
     for (auto& node : nodes) {
-        if (string::icmp(needle, node->name)) {
+        if (std::regex_match(node->name, re)) {
             return node.get();
         }
     }
     return nullptr;
 }
 
-const Node* Model::find(std::string_view needle) const
+const Node* Model::find(const std::regex& re) const
 {
-    return const_cast<Model*>(this)->find(needle);
+    return const_cast<Model*>(this)->find(re);
 }
 
 Animation::Animation(std::string name_)
