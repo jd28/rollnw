@@ -362,7 +362,7 @@ Mdl::Mdl(ByteArray bytes)
         }
     }
 
-    if (!model.supermodel_name.empty()) {
+    if (!model.supermodel_name.empty() && !string::icmp(model.supermodel_name, "null")) {
         auto b = nw::kernel::resman().demand({model.supermodel_name, ResourceType::mdl});
         if (b.size()) {
             LOG_F(INFO, "[model] loading super model: {}", model.supermodel_name);
