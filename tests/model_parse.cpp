@@ -31,6 +31,9 @@ TEST_CASE("model: parse ascii", "[model]")
     REQUIRE(mdl.model.animations[0]->name == "kdbck");
     REQUIRE(mdl.model.animations[0]->events.size() == 16);
     REQUIRE(mdl.model.animations[0]->anim_root == "rootdummy");
+
+    auto anim = mdl.model.find_animation(std::regex("kdbck"));
+    REQUIRE(anim);
 }
 
 TEST_CASE("model: parse binary", "[model]")

@@ -303,6 +303,21 @@ Geometry::Geometry(GeometryType type_)
 {
 }
 
+Node* Geometry::find(const std::regex& re)
+{
+    for (auto& node : nodes) {
+        if (std::regex_match(node->name, re)) {
+            return node.get();
+        }
+    }
+    return nullptr;
+}
+
+const Node* Geometry::find(const std::regex& re) const
+{
+    return const_cast<Geometry*>(this)->find(re);
+}
+
 Model::Model()
     : Geometry(GeometryType::model)
     , classification{ModelClass::invalid}
@@ -314,9 +329,9 @@ Model::Model()
 {
 }
 
-Node* Model::find(const std::regex& re)
+Animation* Model::find_animation(const std::regex& re)
 {
-    for (auto& node : nodes) {
+    for (auto& node : animations) {
         if (std::regex_match(node->name, re)) {
             return node.get();
         }
@@ -324,9 +339,9 @@ Node* Model::find(const std::regex& re)
     return nullptr;
 }
 
-const Node* Model::find(const std::regex& re) const
+const Animation* Model::find_animation(const std::regex& re) const
 {
-    return const_cast<Model*>(this)->find(re);
+    return const_cast<Model*>(this)->find_animation(re);
 }
 
 Animation::Animation(std::string name_)

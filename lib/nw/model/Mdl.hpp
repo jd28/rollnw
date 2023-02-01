@@ -474,6 +474,8 @@ struct Geometry {
     virtual ~Geometry() = default;
 
     Geometry& operator=(Geometry&) = delete;
+    Node* find(const std::regex& re);
+    const Node* find(const std::regex& re) const;
 
     std::string name;
     GeometryType type;
@@ -502,8 +504,8 @@ struct Model : public Geometry {
 
     Model& operator=(Model&) = delete;
 
-    Node* find(const std::regex& re);
-    const Node* find(const std::regex& re) const;
+    Animation* find_animation(const std::regex& re);
+    const Animation* find_animation(const std::regex& re) const;
 
     ModelClass classification;
     bool ignorefog;
