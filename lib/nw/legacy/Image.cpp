@@ -159,11 +159,17 @@ struct BiowareDdsHeader {
     uint32_t reserved[2];
 };
 
-static uint8_t DdsRound(double d);
-static void DecompressDdsDXT3AlphaBlock(const uint8_t* data, D3DCOLOR* dest, uint32_t x, uint32_t y, uint32_t width);
-static void DecompressDdsDXT5AlphaBlock(const uint8_t* data, D3DCOLOR* dest, uint32_t x, uint32_t y, uint32_t width);
-static void DecompressDdsColorBlock(const uint8_t* data, D3DCOLOR* dest, uint32_t x, uint32_t y, uint32_t width, uint32_t colors);
+void stbi_decode_DXT45_alpha_block(
+    unsigned char uncompressed[16 * 4],
+    unsigned char compressed[8]);
 
+void stbi_decode_DXT1_block(
+    unsigned char uncompressed[16 * 4],
+    unsigned char compressed[8]);
+
+void stbi_decode_DXT_color_block(
+    unsigned char uncompressed[16 * 4],
+    unsigned char compressed[8]);
 } // namespace detail
 
 bool Image::parse_dds()
@@ -192,28 +198,63 @@ bool Image::parse_bioware()
     if (channels_ != 3 && channels_ != 4)
         return false;
 
-    D3DCOLOR* pixels = reinterpret_cast<D3DCOLOR*>(malloc(sizeof(D3DCOLOR) * height_ * width_));
-    data_ = reinterpret_cast<uint8_t*>(pixels);
+    data_ = reinterpret_cast<uint8_t*>(malloc(4 * height_ * width_));
 
-    uint32_t x = 0, y = 0;
+    int block_pitch = (width_ + 3) >> 2;
+    int num_blocks = block_pitch * ((height_ + 3) >> 2);
+    stbi_uc block[16 * 4];
+    stbi_uc compressed[8];
 
-    while (y < height_) {
-        if (0) {
-            detail::DecompressDdsDXT3AlphaBlock(bytes_.data() + off, pixels, x, y, width_);
+    //	now read and decode all the blocks
+    for (int i = 0; i < num_blocks; ++i) {
+        //	where are we?
+        int bx, by, bw = 4, bh = 4;
+        int ref_x = 4 * (i % block_pitch);
+        int ref_y = 4 * (i / block_pitch);
+        //	get the next block's worth of compressed data, and decompress it
+
+        if (channels_ == 4) {
+            //	DXT4/5
+            memcpy(compressed, bytes_.data() + off, 8);
+            detail::stbi_decode_DXT45_alpha_block(block, compressed);
             off += 8;
-        } else if (channels_ == 4) {
-            detail::DecompressDdsDXT5AlphaBlock(bytes_.data() + off, pixels, x, y, width_);
+            memcpy(compressed, bytes_.data() + off, 8);
+            detail::stbi_decode_DXT_color_block(block, compressed);
+            off += 8;
+        } else {
+            memcpy(compressed, bytes_.data() + off, 8);
+            detail::stbi_decode_DXT1_block(block, compressed);
             off += 8;
         }
-
-        detail::DecompressDdsColorBlock(bytes_.data() + off, pixels, x, y, width_, channels_);
-        off += 8;
-
-        x += 4;
-        if (x >= width_) {
-            x = 0;
-            y += 4;
+        //	is this a partial block?
+        if (ref_x + 4 > int(width_)) {
+            bw = width_ - ref_x;
         }
+        if (ref_y + 4 > int(height_)) {
+            bh = height_ - ref_y;
+        }
+        //	now drop our decompressed data into the buffer
+        for (by = 0; by < bh; ++by) {
+            int idx = 4 * ((ref_y + by + 0 * width_) * width_ + ref_x);
+            for (bx = 0; bx < bw * 4; ++bx) {
+
+                data_[idx + bx] = block[by * 16 + bx];
+            }
+        }
+    }
+
+    if (channels_ == 3) { // Gotta switch format
+        auto good = reinterpret_cast<uint8_t*>(malloc(3 * height_ * width_));
+
+        for (size_t j = 0; j < height_ * width_; ++j) {
+            unsigned char* src = data_ + j * 4;
+            unsigned char* dest = good + j * 3;
+            dest[0] = src[0];
+            dest[1] = src[1];
+            dest[2] = src[2];
+        }
+        free(data_);
+        data_ = good;
     }
 
     return true;
@@ -240,169 +281,152 @@ bool Image::parse_dxt()
 
 namespace detail {
 
-static uint8_t DdsRound(double d)
+//	helper functions
+int stbi_convert_bit_range(int c, int from_bits, int to_bits)
 {
-    return static_cast<uint8_t>(d + 0.500001);
+    int b = (1 << (from_bits - 1)) + c * ((1 << to_bits) - 1);
+    return (b + (b >> from_bits)) >> from_bits;
 }
 
-static void DecompressDdsDXT3AlphaBlock(const uint8_t* data, D3DCOLOR* dest, uint32_t x, uint32_t y, uint32_t width)
+void stbi_rgb_888_from_565(unsigned int c, int* r, int* g, int* b)
 {
-    uint32_t i, j;
-    uint8_t c = 0;
-
-    for (i = 0; i < 4; i++) {
-        for (j = 0; j < 4; j++) {
-            if (j % 2)
-                c >>= 4;
-            else
-                c = *(data++);
-
-            dest[((y + i) * width) + (x + j)] = rgba_setalpha(dest[((y + i) * width) + (x + j)],
-                DdsRound(static_cast<double>(c & 0x0F) * 0xFF / 0x0F));
-        }
-    }
+    *r = stbi_convert_bit_range((c >> 11) & 31, 5, 8);
+    *g = stbi_convert_bit_range((c >> 05) & 63, 6, 8);
+    *b = stbi_convert_bit_range((c >> 00) & 31, 5, 8);
 }
 
-inline constexpr uint8_t dds_get_bit(const uint8_t* data, uint8_t x)
+void stbi_decode_DXT45_alpha_block(
+    unsigned char uncompressed[16 * 4],
+    unsigned char compressed[8])
 {
-    return static_cast<uint8_t>((data[x / 8] >> (x % 8)) & uint8_t(0x01));
+    int i, next_bit = 8 * 2;
+    unsigned char decode_alpha[8];
+    //	each alpha value gets 3 bits, and the 1st 2 bytes are the range
+    decode_alpha[0] = compressed[0];
+    decode_alpha[1] = compressed[1];
+    if (decode_alpha[0] > decode_alpha[1]) {
+        //	6 step intermediate
+        decode_alpha[2] = (6 * decode_alpha[0] + 1 * decode_alpha[1]) / 7;
+        decode_alpha[3] = (5 * decode_alpha[0] + 2 * decode_alpha[1]) / 7;
+        decode_alpha[4] = (4 * decode_alpha[0] + 3 * decode_alpha[1]) / 7;
+        decode_alpha[5] = (3 * decode_alpha[0] + 4 * decode_alpha[1]) / 7;
+        decode_alpha[6] = (2 * decode_alpha[0] + 5 * decode_alpha[1]) / 7;
+        decode_alpha[7] = (1 * decode_alpha[0] + 6 * decode_alpha[1]) / 7;
+    } else {
+        //	4 step intermediate, pluss full and none
+        decode_alpha[2] = (4 * decode_alpha[0] + 1 * decode_alpha[1]) / 5;
+        decode_alpha[3] = (3 * decode_alpha[0] + 2 * decode_alpha[1]) / 5;
+        decode_alpha[4] = (2 * decode_alpha[0] + 3 * decode_alpha[1]) / 5;
+        decode_alpha[5] = (1 * decode_alpha[0] + 4 * decode_alpha[1]) / 5;
+        decode_alpha[6] = 0;
+        decode_alpha[7] = 255;
+    }
+    for (i = 3; i < 16 * 4; i += 4) {
+        int idx = 0, bit;
+        bit = (compressed[next_bit >> 3] >> (next_bit & 7)) & 1;
+        idx += bit << 0;
+        ++next_bit;
+        bit = (compressed[next_bit >> 3] >> (next_bit & 7)) & 1;
+        idx += bit << 1;
+        ++next_bit;
+        bit = (compressed[next_bit >> 3] >> (next_bit & 7)) & 1;
+        idx += bit << 2;
+        ++next_bit;
+        uncompressed[i] = decode_alpha[idx & 7];
+    }
+    //	done
 }
 
-static void DecompressDdsDXT5AlphaBlock(const uint8_t* data, D3DCOLOR* dest, uint32_t x, uint32_t y, uint32_t width)
+void stbi_decode_DXT1_block(
+    unsigned char uncompressed[16 * 4],
+    unsigned char compressed[8])
 {
-    uint8_t a[8];
-    uint8_t alphaIndex;
-    uint8_t bitPos;
-    uint32_t i, j;
-
-    a[0] = *data;
-    a[1] = *(data + 1);
-
-    if (*data > *(data + 1)) {
-        a[2] = DdsRound(6.0 / 7 * a[0] + 1.0 / 7 * a[1]);
-        a[3] = DdsRound(5.0 / 7 * a[0] + 2.0 / 7 * a[1]);
-        a[4] = DdsRound(4.0 / 7 * a[0] + 3.0 / 7 * a[1]);
-        a[5] = DdsRound(3.0 / 7 * a[0] + 4.0 / 7 * a[1]);
-        a[6] = DdsRound(2.0 / 7 * a[0] + 5.0 / 7 * a[1]);
-        a[7] = DdsRound(1.0 / 7 * a[0] + 6.0 / 7 * a[1]);
+    int next_bit = 4 * 8;
+    int i, r, g, b;
+    int c0, c1;
+    unsigned char decode_colors[4 * 4];
+    //	find the 2 primary colors
+    c0 = compressed[0] + (compressed[1] << 8);
+    c1 = compressed[2] + (compressed[3] << 8);
+    stbi_rgb_888_from_565(c0, &r, &g, &b);
+    decode_colors[0] = uint8_t(r);
+    decode_colors[1] = uint8_t(g);
+    decode_colors[2] = uint8_t(b);
+    decode_colors[3] = 255;
+    stbi_rgb_888_from_565(c1, &r, &g, &b);
+    decode_colors[4] = uint8_t(r);
+    decode_colors[5] = uint8_t(g);
+    decode_colors[6] = uint8_t(b);
+    decode_colors[7] = 255;
+    if (c0 > c1) {
+        //	no alpha, 2 interpolated colors
+        decode_colors[8] = (2 * decode_colors[0] + decode_colors[4]) / 3;
+        decode_colors[9] = (2 * decode_colors[1] + decode_colors[5]) / 3;
+        decode_colors[10] = (2 * decode_colors[2] + decode_colors[6]) / 3;
+        decode_colors[11] = 255;
+        decode_colors[12] = (decode_colors[0] + 2 * decode_colors[4]) / 3;
+        decode_colors[13] = (decode_colors[1] + 2 * decode_colors[5]) / 3;
+        decode_colors[14] = (decode_colors[2] + 2 * decode_colors[6]) / 3;
+        decode_colors[15] = 255;
     } else {
-        a[2] = DdsRound(4.0 / 5 * a[1] + 1.0 / 5 * a[0]);
-        a[3] = DdsRound(3.0 / 5 * a[1] + 2.0 / 5 * a[0]);
-        a[4] = DdsRound(2.0 / 5 * a[1] + 3.0 / 5 * a[0]);
-        a[5] = DdsRound(1.0 / 5 * a[1] + 4.0 / 5 * a[0]);
-        a[6] = 0x00;
-        a[7] = 0xFF;
+        //	1 interpolated color, alpha
+        decode_colors[8] = (decode_colors[0] + decode_colors[4]) / 2;
+        decode_colors[9] = (decode_colors[1] + decode_colors[5]) / 2;
+        decode_colors[10] = (decode_colors[2] + decode_colors[6]) / 2;
+        decode_colors[11] = 255;
+        decode_colors[12] = 0;
+        decode_colors[13] = 0;
+        decode_colors[14] = 0;
+        decode_colors[15] = 0;
     }
-
-    data += 2;
-    bitPos = 0;
-
-    for (i = 0; i < 4; i++) {
-        for (j = 0; j < 4; j++) {
-            alphaIndex = static_cast<uint8_t>((dds_get_bit(data, bitPos + 2) << 2)
-                | (dds_get_bit(data, bitPos + 1) << 1)
-                | dds_get_bit(data, bitPos));
-
-            dest[((y + i) * width) + (x + j)] = rgba_setalpha(dest[((y + i) * width) + (x + j)], a[alphaIndex]);
-
-            bitPos += 3;
-        }
+    //	decode the block
+    for (i = 0; i < 16 * 4; i += 4) {
+        int idx = ((compressed[next_bit >> 3] >> (next_bit & 7)) & 3) * 4;
+        next_bit += 2;
+        uncompressed[i + 0] = decode_colors[idx + 0];
+        uncompressed[i + 1] = decode_colors[idx + 1];
+        uncompressed[i + 2] = decode_colors[idx + 2];
+        uncompressed[i + 3] = decode_colors[idx + 3];
     }
+    //	done
 }
 
-static void DecompressDdsColorBlock(const uint8_t* data, D3DCOLOR* dest, uint32_t x, uint32_t y, uint32_t width, uint32_t colors)
+void stbi_decode_DXT_color_block(
+    unsigned char uncompressed[16 * 4],
+    unsigned char compressed[8])
 {
-    uint32_t i, j, oneBitTrans;
-    uint8_t colorIndex;
-    uint16_t w, word1, word2;
-    const uint16_t* pData = reinterpret_cast<const uint16_t*>(data);
-
-    struct DDS_COLOR {
-        uint8_t r;
-        uint8_t g;
-        uint8_t b;
-    } c[4];
-    const uint8_t* alphas;
-
-    word1 = (*pData);
-    word2 = (*(pData + 1));
-    pData += 2;
-
-    if (word1 > word2) {
-        oneBitTrans = 0;
-    } else {
-        if (colors == 3)
-            oneBitTrans = 1;
-        else
-            oneBitTrans = 0;
+    int next_bit = 4 * 8;
+    int i, r, g, b;
+    int c0, c1;
+    unsigned char decode_colors[4 * 3];
+    //	find the 2 primary colors
+    c0 = compressed[0] + (compressed[1] << 8);
+    c1 = compressed[2] + (compressed[3] << 8);
+    stbi_rgb_888_from_565(c0, &r, &g, &b);
+    decode_colors[0] = uint8_t(r);
+    decode_colors[1] = uint8_t(g);
+    decode_colors[2] = uint8_t(b);
+    stbi_rgb_888_from_565(c1, &r, &g, &b);
+    decode_colors[3] = uint8_t(r);
+    decode_colors[4] = uint8_t(g);
+    decode_colors[5] = uint8_t(b);
+    //	Like DXT1, but no choicees:
+    //	no alpha, 2 interpolated colors
+    decode_colors[6] = (2 * decode_colors[0] + decode_colors[3]) / 3;
+    decode_colors[7] = (2 * decode_colors[1] + decode_colors[4]) / 3;
+    decode_colors[8] = (2 * decode_colors[2] + decode_colors[5]) / 3;
+    decode_colors[9] = (decode_colors[0] + 2 * decode_colors[3]) / 3;
+    decode_colors[10] = (decode_colors[1] + 2 * decode_colors[4]) / 3;
+    decode_colors[11] = (decode_colors[2] + 2 * decode_colors[5]) / 3;
+    //	decode the block
+    for (i = 0; i < 16 * 4; i += 4) {
+        int idx = ((compressed[next_bit >> 3] >> (next_bit & 7)) & 3) * 3;
+        next_bit += 2;
+        uncompressed[i + 0] = decode_colors[idx + 0];
+        uncompressed[i + 1] = decode_colors[idx + 1];
+        uncompressed[i + 2] = decode_colors[idx + 2];
     }
-
-    if (oneBitTrans)
-        alphas = reinterpret_cast<const uint8_t*>("\xff\xff\xff\x00");
-    else
-        alphas = reinterpret_cast<const uint8_t*>("\xff\xff\xff\xff");
-
-    c[0].r = uint8_t((word1 >> 11) & 0x1F);
-    c[0].r = DdsRound(static_cast<double>(c[0].r) * 0xFF / 0x1F);
-    c[0].g = (word1 >> 5) & 0x3F;
-    c[0].g = DdsRound(static_cast<double>(c[0].g) * 0xFF / 0x3F);
-    c[0].b = (word1)&0x1F;
-    c[0].b = DdsRound(static_cast<double>(c[0].b) * 0xFF / 0x1F);
-
-    c[1].r = uint8_t((word2 >> 11) & 0x1F);
-    c[1].r = DdsRound(static_cast<double>(c[1].r) * 0xFF / 0x1F);
-    c[1].g = (word2 >> 5) & 0x3F;
-    c[1].g = DdsRound(static_cast<double>(c[1].g) * 0xFF / 0x3F);
-    c[1].b = (word2)&0x1F;
-    c[1].b = DdsRound(static_cast<double>(c[1].b) * 0xFF / 0x1F);
-
-    if (oneBitTrans) {
-        c[2].r = DdsRound(0.5 * c[0].r + 0.5 * c[1].r);
-        c[2].g = DdsRound(0.5 * c[0].g + 0.5 * c[1].g);
-        c[2].b = DdsRound(0.5 * c[0].b + 0.5 * c[1].b);
-
-        c[3].r = 0;
-        c[3].g = 0;
-        c[3].b = 0;
-    } else {
-        c[2].r = DdsRound(2.0 / 3 * c[0].r + 1.0 / 3 * c[1].r);
-        c[2].g = DdsRound(2.0 / 3 * c[0].g + 1.0 / 3 * c[1].g);
-        c[2].b = DdsRound(2.0 / 3 * c[0].b + 1.0 / 3 * c[1].b);
-
-        c[3].r = DdsRound(1.0 / 3 * c[0].r + 2.0 / 3 * c[1].r);
-        c[3].g = DdsRound(1.0 / 3 * c[0].g + 2.0 / 3 * c[1].g);
-        c[3].b = DdsRound(1.0 / 3 * c[0].b + 2.0 / 3 * c[1].b);
-    }
-
-    w = (*pData++);
-
-    if (colors == 3) {
-        for (i = 0; i < 4; i++) {
-            if (i == 2)
-                w = (*pData++);
-
-            for (j = 0; j < 4; j++) {
-                colorIndex = w & 0x03;
-
-                dest[((y + i) * width) + (x + j)] = rgba_make(c[colorIndex].b, c[colorIndex].g, c[colorIndex].r, alphas[colorIndex]);
-
-                w >>= 2;
-            }
-        }
-    } else {
-        for (i = 0; i < 4; i++) {
-            if (i == 2)
-                w = (*pData++);
-
-            for (j = 0; j < 4; j++) {
-                colorIndex = w & 0x03;
-
-                dest[((y + i) * width) + (x + j)] = rgba_make(c[colorIndex].b, c[colorIndex].g, c[colorIndex].r,
-                    rgba_getalpha(dest[((y + i) * width) + (x + j)]));
-                w >>= 2;
-            }
-        }
-    }
+    //	done
 }
 
 } // namespace detail
