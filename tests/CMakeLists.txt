@@ -1,33 +1,8 @@
 find_package(Threads)
 find_package(Catch2 CONFIG REQUIRED)
 
-file(GLOB_RECURSE COPY_FILES
-                  RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
-                  test_data/*)
-
-foreach(FILENAME ${COPY_FILES})
-    set(SRC "${CMAKE_CURRENT_SOURCE_DIR}/${FILENAME}")
-    set(DST "${CMAKE_CURRENT_BINARY_DIR}/${FILENAME}")
-    set(BIN "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${FILENAME}")
-
-    add_custom_command(
-        OUTPUT ${DST}
-        DEPENDS ${SRC}
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC} ${DST}
-    )
-
-    add_custom_command(
-        OUTPUT ${BIN}
-        DEPENDS ${SRC}
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC} ${BIN}
-    )
-endforeach(FILENAME)
-
-add_custom_target(
-  export-test-files ALL
-  DEPENDS ${COPY_FILES}
-  COMMENT "Exporting files into build tree"
-)
+file(COPY test_data DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
+file(COPY test_data DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 
 # Need .cpp extension for ctest
 add_executable(rollnw_test
