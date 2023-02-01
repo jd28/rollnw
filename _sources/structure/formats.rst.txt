@@ -79,8 +79,7 @@ The library can do conversions between image formats and can do anything that st
 this has no goal of being any kind of useful conversion library.
 
 bmp, gif, jpg, png, tga are supported thanks to `stbi_image <https://github.com/nothings/stb>`__.
-dds (standard) is supported thanks to `SOIL2 <https://github.com/SpartanJ/SOIL2/>`__.
-dds (bioware) is supported by work based on Torlack's NWNExplorer.
+dds (standard & bioware) is supported thanks to `SOIL2 <https://github.com/SpartanJ/SOIL2/>`__.
 
 .. tabs::
 
