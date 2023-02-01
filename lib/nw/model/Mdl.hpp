@@ -244,11 +244,12 @@ struct ControllerType {
 
 struct ControllerKey {
     ControllerKey(InternedString name_, uint32_t type_, int rows_, int key_offset_,
-        int data_offset_, int columns_, bool is_key_)
+        int time_offset_, int data_offset_, int columns_, bool is_key_)
         : name{name_}
         , type{type_}
         , rows{rows_}
         , key_offset{key_offset_}
+        , time_offset{time_offset_}
         , data_offset{data_offset_}
         , columns{columns_}
         , is_key{is_key_}
@@ -259,6 +260,7 @@ struct ControllerKey {
     uint32_t type;
     int rows{0};
     int key_offset{0};
+    int time_offset{0};
     int data_offset{0};
     int columns{0};
     bool is_key{false};
@@ -270,6 +272,12 @@ struct ControllerKey {
     // If sRows > 1 && bColumns <= 0x10, then this is a keyed controller
     // If sRows > 1 && bColumns > 0x10, then this is a bezier keyed controller
     //
+};
+
+struct ControllerValue {
+    const ControllerKey* key = nullptr;
+    std::span<const float> time;
+    std::span<const float> data;
 };
 
 // -- Nodes -------------------------------------------------------------------
@@ -294,12 +302,11 @@ struct Node {
     std::vector<float> controller_data;
 
     /// Adds a controller to a model node
-    void add_controller_data(std::string_view name_, uint32_t type_, std::vector<float> data_,
-        int rows_, int columns_ = 1);
+    void add_controller_data(std::string_view name_, uint32_t type_, std::vector<float> times_,
+        std::vector<float> data_, int rows_, int columns_ = 1);
 
     /// Gets a controller to a model node
-    std::pair<const ControllerKey*, std::span<const float>>
-    get_controller(uint32_t type_, bool key = false) const;
+    ControllerValue get_controller(uint32_t type_, bool key = false) const;
 };
 
 struct DummyNode : public Node {

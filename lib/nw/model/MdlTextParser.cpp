@@ -260,6 +260,7 @@ bool TextParser::parse_controller(Node* node, std::string_view name, uint32_t ty
     while (is_newline(tk))
         tk = tokens_.next();
 
+    std::vector<float> time;
     std::vector<float> data;
     data.reserve(128);
 
@@ -272,7 +273,7 @@ bool TextParser::parse_controller(Node* node, std::string_view name, uint32_t ty
             tokens_.put_back(tk);
             tokens_.put_back("\n");
         }
-        node->add_controller_data(name, type, data, 1, -1);
+        node->add_controller_data(name, type, {}, data, 1, -1);
         return true;
     } else if (name == "detonatekey") {
         auto opt = string::from<float>(tk);
@@ -282,7 +283,7 @@ bool TextParser::parse_controller(Node* node, std::string_view name, uint32_t ty
         }
         data.push_back(*opt);
 
-        node->add_controller_data(name, type, data, 1, 1);
+        node->add_controller_data(name, type, {}, data, 1, 1);
         return true;
     }
 
@@ -297,7 +298,7 @@ bool TextParser::parse_controller(Node* node, std::string_view name, uint32_t ty
             data.push_back(*opt);
             tk = tokens_.next();
         }
-        node->add_controller_data(name, type, data, 1, int(data.size()));
+        node->add_controller_data(name, type, {}, data, 1, int(data.size()));
         return true;
     }
 
@@ -315,6 +316,7 @@ bool TextParser::parse_controller(Node* node, std::string_view name, uint32_t ty
     int colsize = -1;
     int rows = 0;
 
+    bool is_time = true;
     while (!tk.empty()) {
         if (is_newline(tk)) {
             if (colsize == -1) {
@@ -326,6 +328,7 @@ bool TextParser::parse_controller(Node* node, std::string_view name, uint32_t ty
                 return false;
             }
             ++rows;
+            is_time = true;
             if (max_rows > 0) { --max_rows; }
             while (is_newline(tk))
                 tk = tokens_.next();
@@ -337,10 +340,15 @@ bool TextParser::parse_controller(Node* node, std::string_view name, uint32_t ty
             LOG_F(ERROR, "{}: Failed to parse float: {}", name, tk);
             return false;
         }
-        data.push_back(*opt);
+        if (is_time) {
+            time.push_back(*opt);
+            is_time = false;
+        } else {
+            data.push_back(*opt);
+        }
         tk = tokens_.next();
     }
-    node->add_controller_data(name, type, data, rows, colsize);
+    node->add_controller_data(name, type, time, data, rows, colsize);
     // Some controller lists have both row count and 'endlist'..
     if (max_rows == 0 && tk != "endlist") { tokens_.put_back(tk); }
     return tk == "endlist" || max_rows == 0;
@@ -938,6 +946,7 @@ bool TextParser::parse_model()
 {
     std::string_view tk = tokens_.next();
     mdl_->model.name = std::string(tk);
+    LOG_F(INFO, "parsing: {}", mdl_->model.name);
 
     for (tk = tokens_.next(); !tk.empty(); tk = tokens_.next()) {
         if (is_newline(tk))

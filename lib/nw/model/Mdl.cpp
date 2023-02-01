@@ -205,8 +205,8 @@ Node::Node(std::string name_, uint32_t type_)
 {
 }
 
-void Node::add_controller_data(std::string_view name_, uint32_t type_, std::vector<float> data_,
-    int rows_, int columns_)
+void Node::add_controller_data(std::string_view name_, uint32_t type_, std::vector<float> times_,
+    std::vector<float> data_, int rows_, int columns_)
 {
     ControllerKey k{
         nw::kernel::strings().intern(name_),
@@ -214,29 +214,35 @@ void Node::add_controller_data(std::string_view name_, uint32_t type_, std::vect
         rows_,
         static_cast<int>(controller_keys.size()),
         static_cast<int>(controller_data.size()),
+        static_cast<int>(controller_data.size() + times_.size()),
         columns_,
         string::endswith(name_, "key"),
     };
 
     controller_keys.push_back(k);
 
+    for (float f : times_) {
+        controller_data.push_back(f);
+    }
+
     for (float f : data_) {
         controller_data.push_back(f);
     }
 }
 
-std::pair<const ControllerKey*, std::span<const float>>
-Node::get_controller(uint32_t type_, bool key) const
+ControllerValue Node::get_controller(uint32_t type_, bool key) const
 {
-    std::span<const float> result;
+    std::span<const float> time;
+    std::span<const float> data;
     for (const auto& c : controller_keys) {
         if (c.type == type_) {
             if ((key && !c.is_key) || c.columns == -1) { continue; }
-            result = {&controller_data[c.data_offset], static_cast<size_t>(c.rows * c.columns)};
-            return std::make_pair(&c, result);
+            time = {&controller_data[c.time_offset], static_cast<size_t>(c.rows)};
+            data = {&controller_data[c.data_offset], static_cast<size_t>(c.rows * c.columns)};
+            return {&c, time, data};
         }
     }
-    return std::make_pair(nullptr, result);
+    return {nullptr, time, data};
 }
 
 AABBNode::AABBNode(std::string name_)

@@ -19,13 +19,13 @@ TEST_CASE("model: parse ascii", "[model]")
     REQUIRE(mdl.model.nodes[0]->children.size() == 4);
     REQUIRE(mdl.model.nodes[0]->children[0]->name == "rootdummy");
 
-    auto [key, data] = mdl.model.nodes[0]->children[0]->get_controller(nw::model::ControllerType::Position);
-    REQUIRE(key);
-    REQUIRE(data.size() == 3);
+    auto val = mdl.model.nodes[0]->children[0]->get_controller(nw::model::ControllerType::Position);
+    REQUIRE(val.key);
+    REQUIRE(val.data.size() == 3);
 
-    auto [key2, data2] = mdl.model.nodes[0]->children[0]->get_controller(nw::model::ControllerType::Orientation);
-    REQUIRE(key2);
-    REQUIRE(data2.size() == 4);
+    auto val2 = mdl.model.nodes[0]->children[0]->get_controller(nw::model::ControllerType::Orientation);
+    REQUIRE(val2.key);
+    REQUIRE(val2.data.size() == 4);
 
     REQUIRE(mdl.model.animations.size() == 12);
     REQUIRE(mdl.model.animations[0]->name == "kdbck");
@@ -34,6 +34,14 @@ TEST_CASE("model: parse ascii", "[model]")
 
     auto anim = mdl.model.find_animation(std::regex("kdbck"));
     REQUIRE(anim);
+    auto root_re = std::regex(".*rootdummy.*", std::regex_constants::icase);
+    auto anode = anim->find(root_re);
+    REQUIRE(anode);
+    auto val3 = anode->get_controller(nw::model::ControllerType::Orientation, true);
+    REQUIRE(val3.key);
+    REQUIRE(val3.time[1] == 0.1f);
+    REQUIRE(size_t(val3.key->rows) == val3.time.size());
+    REQUIRE(val3.data.size() == size_t(val3.key->rows * val3.key->columns));
 }
 
 TEST_CASE("model: parse binary", "[model]")

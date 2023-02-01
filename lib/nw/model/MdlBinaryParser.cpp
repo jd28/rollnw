@@ -154,6 +154,7 @@ bool BinaryParser::parse_node(uint32_t offset, Geometry* geometry, Node* parent)
             static_cast<uint32_t>(old_c.type),
             old_c.rows,
             static_cast<int>(i),
+            old_c.time_index,
             old_c.data_index,
             old_c.columns,
             geometry->type == GeometryType::animation};
