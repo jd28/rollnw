@@ -7,6 +7,10 @@
 #include "Kernel.hpp"
 #include "Strings.hpp"
 
+#ifdef ROLLNW_ENABLE_LEGACY
+#include "../legacy/palette_textures.hpp"
+#endif
+
 #include <filesystem>
 #include <memory>
 
@@ -107,6 +111,9 @@ void Resources::initialize()
         }
     }
     update_container_search();
+#ifdef ROLLNW_ENABLE_LEGACY
+    load_palette_textures();
+#endif
 }
 
 bool Resources::load_module(std::filesystem::path path, std::string_view manifest)
@@ -293,6 +300,63 @@ ResourceDescriptor Resources::stat(const Resource& res) const
     }
     return rd;
 }
+
+#ifdef ROLLNW_ENABLE_LEGACY
+void Resources::load_palette_textures()
+{
+    // [TODO]: Fix all this with a image/texture cache at some point
+    palette_textures_[plt_layer_skin] = std::make_unique<Image>(demand(Resource("pal_skin01"sv, ResourceType::tga)));
+    palette_textures_[plt_layer_hair] = std::make_unique<Image>(demand(Resource("pal_hair01"sv, ResourceType::tga)));
+    palette_textures_[plt_layer_metal1] = std::make_unique<Image>(demand(Resource("pal_armor01"sv, ResourceType::tga)));
+    palette_textures_[plt_layer_metal2] = std::make_unique<Image>(demand(Resource("pal_armor02"sv, ResourceType::tga)));
+    palette_textures_[plt_layer_cloth1] = std::make_unique<Image>(demand(Resource("pal_cloth01"sv, ResourceType::tga)));
+    palette_textures_[plt_layer_cloth2] = std::make_unique<Image>(demand(Resource("pal_cloth01"sv, ResourceType::tga)));
+    palette_textures_[plt_layer_leather1] = std::make_unique<Image>(demand(Resource("pal_leath01"sv, ResourceType::tga)));
+    palette_textures_[plt_layer_leather2] = std::make_unique<Image>(demand(Resource("pal_leath01"sv, ResourceType::tga)));
+    palette_textures_[plt_layer_tattoo1] = std::make_unique<Image>(demand(Resource("pal_tattoo01"sv, ResourceType::tga)));
+    palette_textures_[plt_layer_tattoo2] = std::make_unique<Image>(demand(Resource("pal_tattoo01"sv, ResourceType::tga)));
+}
+
+Image* Resources::palette_texture(PltLayer layer)
+{
+    if (palette_textures_[layer] && palette_textures_[layer]->valid()) {
+        return palette_textures_[layer].get();
+    }
+    ByteArray bytes;
+    switch (layer) {
+    default:
+        return nullptr;
+    case plt_layer_skin:
+        bytes.append(pal_skin01_tga, pal_skin01_tga_len);
+        break;
+    case plt_layer_hair:
+        bytes.append(pal_hair01_tga, pal_hair01_tga_len);
+        break;
+    case plt_layer_metal1:
+        bytes.append(pal_armor01_tga, pal_armor01_tga_len);
+        break;
+    case plt_layer_metal2:
+        bytes.append(pal_armor02_tga, pal_armor02_tga_len);
+        break;
+    case plt_layer_cloth1:
+    case plt_layer_cloth2:
+        bytes.append(pal_armor02_tga, pal_armor02_tga_len);
+        break;
+    case plt_layer_leather1:
+    case plt_layer_leather2:
+        bytes.append(pal_armor02_tga, pal_armor02_tga_len);
+        break;
+    case plt_layer_tattoo1:
+    case plt_layer_tattoo2:
+        bytes.append(pal_armor02_tga, pal_armor02_tga_len);
+        break;
+    }
+
+    palette_textures_[layer] = std::make_unique<Image>(std::move(bytes));
+
+    return palette_textures_[layer]->valid() ? palette_textures_[layer].get() : nullptr;
+}
+#endif
 
 void Resources::update_container_search()
 {

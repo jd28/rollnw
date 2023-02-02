@@ -8,6 +8,11 @@
 #include "../resources/Zip.hpp"
 #include "Kernel.hpp"
 
+#ifdef ROLLNW_ENABLE_LEGACY
+#include "../legacy/Image.hpp"
+#include "../legacy/Plt.hpp"
+#endif
+
 #include <string_view>
 #include <variant>
 
@@ -55,7 +60,15 @@ struct Resources : public Container, public Service {
     std::pair<ByteArray, ResourceType::type>
     demand_in_order(Resref resref, std::initializer_list<ResourceType::type> restypes) const;
 
-    virtual std::vector<ResourceDescriptor> all() const override { return {}; }
+#ifdef ROLLNW_ENABLE_LEGACY
+    void load_palette_textures();
+    Image* palette_texture(PltLayer layer);
+#endif
+
+    virtual std::vector<ResourceDescriptor> all() const override
+    {
+        return {};
+    }
     virtual bool contains(Resource res) const override;
     virtual ByteArray demand(Resource res) const override;
     virtual int extract(const std::regex& pattern, const std::filesystem::path& output) const override;
@@ -97,6 +110,10 @@ private:
 
     std::vector<Erf> texture_packs_;
     std::vector<Key> keys_;
+
+#ifdef ROLLNW_ENABLE_LEGACY
+    std::array<std::unique_ptr<Image>, plt_layer_size> palette_textures_;
+#endif
 };
 
 inline Resources& resman()
