@@ -3,6 +3,7 @@
 
 #include <catch2/catch_all.hpp>
 
+#include <nw/kernel/Resources.hpp>
 #include <nw/legacy/Plt.hpp>
 #include <nw/log.hpp>
 
@@ -14,6 +15,12 @@ TEST_CASE("Parse plt", "[formats]")
     REQUIRE(plt.valid());
     REQUIRE(plt.height() == 256);
     REQUIRE(plt.width() == 256);
+
+    REQUIRE(nw::kernel::resman().palette_texture(nw::plt_layer_skin));
+    auto color = nw::decode_plt_color(plt, {0}, 0, 0);
+    REQUIRE(size_t(color[0]) == 139);
+    REQUIRE(size_t(color[1]) == 102);
+    REQUIRE(size_t(color[2]) == 81);
 }
 
 #endif // ROLLNW_ENABLE_LEGACY

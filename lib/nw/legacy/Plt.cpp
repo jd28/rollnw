@@ -1,5 +1,8 @@
 #include "Plt.hpp"
 
+#include "../kernel/Resources.hpp"
+#include "../log.hpp"
+
 #include <cstring>
 
 namespace nw {
@@ -28,5 +31,25 @@ const PltPixel* Plt::pixels() const
 }
 bool Plt::valid() const { return valid_; }
 uint32_t Plt::width() const { return width_; }
+
+std::array<uint8_t, 4> decode_plt_color(const Plt& plt, const PltColors& colors, uint32_t x, uint32_t y)
+{
+    std::array<uint8_t, 4> result{};
+    if (x >= plt.width() || y >= plt.height()) {
+        LOG_F(ERROR, "[plt] invalid coordinates ({}, {})", x, y);
+    }
+
+    auto pixel = plt.pixels()[y * plt.width() + x];
+    auto selected_color = colors.data[pixel.layer];
+    auto img = nw::kernel::resman().palette_texture(pixel.layer);
+    if (!img->valid()) {
+        LOG_F(ERROR, "[plt] invalid palette texture for layer {}", pixel.layer);
+        return result;
+    }
+
+    auto pal_data = img->data() + (selected_color * img->width() + pixel.color) * img->channels();
+
+    return {pal_data[0], pal_data[1], pal_data[2], img->channels() == 4 ? pal_data[3] : uint8_t(0xff)};
+}
 
 } // namespace nw

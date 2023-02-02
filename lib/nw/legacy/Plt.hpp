@@ -2,37 +2,56 @@
 
 #include "../util/ByteArray.hpp"
 
+#include <glm/glm.hpp>
+
+#include <array>
 #include <filesystem>
 
 namespace nw {
 
-struct PltLayer {
-    static constexpr size_t skin = 0;
-    static constexpr size_t hair = 1;
-    static constexpr size_t metal1 = 2;
-    static constexpr size_t metal2 = 3;
-    static constexpr size_t cloth1 = 4;
-    static constexpr size_t cloth2 = 5;
-    static constexpr size_t leather1 = 6;
-    static constexpr size_t leather2 = 7;
-    static constexpr size_t tattoo1 = 8;
-    static constexpr size_t tattoo2 = 9;
+/// Plt formats respective layers
+enum PltLayer : uint8_t {
+    plt_layer_skin = 0,
+    plt_layer_hair = 1,
+    plt_layer_metal1 = 2,
+    plt_layer_metal2 = 3,
+    plt_layer_cloth1 = 4,
+    plt_layer_cloth2 = 5,
+    plt_layer_leather1 = 6,
+    plt_layer_leather2 = 7,
+    plt_layer_tattoo1 = 8,
+    plt_layer_tattoo2 = 9,
 
-    static constexpr size_t size = 10;
+    plt_layer_size = 10,
 };
 
+/// Plt Pixel
 struct PltPixel {
     uint8_t color;
-    uint8_t layer;
+    PltLayer layer;
 };
 
+/// Plt Color Array
+/// @note This would be the colors that a player would select
+struct PltColors {
+    std::array<uint8_t, plt_layer_size> data{};
+};
+
+/// Implementation of Bioware's PLT file format
 struct Plt {
     Plt(std::filesystem::path file);
     Plt(ByteArray bytes);
 
+    /// Gets height
     uint32_t height() const;
+
+    /// Gets pixel array
     const PltPixel* pixels() const;
+
+    /// Determines if PLT was successfully parsed
     bool valid() const;
+
+    /// Gets width
     uint32_t width() const;
 
 private:
@@ -42,5 +61,8 @@ private:
     ByteArray bytes_;
     bool valid_ = false;
 };
+
+/// Decodes PLT and user selected colors to RBGA
+std::array<uint8_t, 4> decode_plt_color(const Plt& plt, const PltColors& colors, uint32_t x, uint32_t y);
 
 } // namespace nw
