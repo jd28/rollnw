@@ -8,8 +8,6 @@ add_library(nw-legacy STATIC
     Palette.cpp
     Plt.cpp
     Tlk.cpp
-
-    palette_textures.cpp
 )
 
 target_link_libraries(nw-legacy PRIVATE

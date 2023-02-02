@@ -1,7 +1,6 @@
 #pragma once
 
 #include "../util/ByteArray.hpp"
-#include "palette_textures.hpp"
 
 #include <filesystem>
 
