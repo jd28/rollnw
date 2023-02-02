@@ -4,8 +4,6 @@
 #include "../util/platform.hpp"
 #include "../util/string.hpp"
 
-#include "d3dtypes.h"
-
 #include <nowide/convert.hpp>
 #include <stb/image_DXT.h>
 #include <stb/stb_image.h>

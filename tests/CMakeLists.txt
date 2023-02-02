@@ -28,6 +28,7 @@ add_executable(rollnw_test
     legacy_image.cpp
     legacy_locstring.cpp
     legacy_palette.cpp
+    legacy_plt.cpp
     legacy_tlk.cpp
 
     model_parse.cpp

@@ -6,7 +6,10 @@ add_library(nw-legacy STATIC
     Image.cpp
     LocString.cpp
     Palette.cpp
+    Plt.cpp
     Tlk.cpp
+
+    palette_textures.cpp
 )
 
 target_link_libraries(nw-legacy PRIVATE
