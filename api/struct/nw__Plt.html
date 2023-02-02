@@ -18,7 +18,7 @@
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
-    <link rel="next" title="nw::Qualifier" href="nw__Qualifier.html" />
+    <link rel="next" title="nw::PltColors" href="nw__PltColors.html" />
     <link rel="prev" title="nw::Player" href="nw__Player.html" /> 
 </head>
 
@@ -152,6 +152,8 @@
 <li class="toctree-l2"><a class="reference internal" href="nw__PlaceableScripts.html">nw::PlaceableScripts</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Player.html">nw::Player</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">nw::Plt</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__PltColors.html">nw::PltColors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__PltPixel.html">nw::PltPixel</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Qualifier.html">nw::Qualifier</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Race.html">nw::Race</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__RaceInfo.html">nw::RaceInfo</a></li>
@@ -336,7 +338,8 @@
 <dl class="cpp struct">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw3PltE">
 <span id="_CPPv3N2nw3PltE"></span><span id="_CPPv2N2nw3PltE"></span><span id="nw::Plt"></span><span class="target" id="structnw_1_1_plt"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Plt</span></span></span><a class="headerlink" href="#_CPPv4N2nw3PltE" title="Permalink to this definition"></a><br /></dt>
-<dd><div class="breathe-sectiondef docutils container">
+<dd><p>Implementation of Bioware’s PLT file format. </p>
+<div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw3Plt3PltENSt10filesystem4pathE">
@@ -351,22 +354,26 @@
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4NK2nw3Plt6heightEv">
 <span id="_CPPv3NK2nw3Plt6heightEv"></span><span id="_CPPv2NK2nw3Plt6heightEv"></span><span id="nw::Plt::heightC"></span><span class="target" id="structnw_1_1_plt_1ae727c5867760998a9ea66d79770fdc86"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">height</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK2nw3Plt6heightEv" title="Permalink to this definition"></a><br /></dt>
-<dd></dd></dl>
+<dd><p>Gets height. </p>
+</dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4NK2nw3Plt6pixelsEv">
-<span id="_CPPv3NK2nw3Plt6pixelsEv"></span><span id="_CPPv2NK2nw3Plt6pixelsEv"></span><span id="nw::Plt::pixelsC"></span><span class="target" id="structnw_1_1_plt_1a2dd6ac08f86c38fdac725d3b0d4fa03b"></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">PltPixel</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">pixels</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK2nw3Plt6pixelsEv" title="Permalink to this definition"></a><br /></dt>
-<dd></dd></dl>
+<span id="_CPPv3NK2nw3Plt6pixelsEv"></span><span id="_CPPv2NK2nw3Plt6pixelsEv"></span><span id="nw::Plt::pixelsC"></span><span class="target" id="structnw_1_1_plt_1a2dd6ac08f86c38fdac725d3b0d4fa03b"></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="nw__PltPixel.html#_CPPv4N2nw8PltPixelE" title="nw::PltPixel"><span class="n"><span class="pre">PltPixel</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">pixels</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK2nw3Plt6pixelsEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Gets pixel array. </p>
+</dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4NK2nw3Plt5validEv">
 <span id="_CPPv3NK2nw3Plt5validEv"></span><span id="_CPPv2NK2nw3Plt5validEv"></span><span id="nw::Plt::validC"></span><span class="target" id="structnw_1_1_plt_1ab616f80378f6ccd246ab7da57f7def60"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">valid</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK2nw3Plt5validEv" title="Permalink to this definition"></a><br /></dt>
-<dd></dd></dl>
+<dd><p>Determines if PLT was successfully parsed. </p>
+</dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4NK2nw3Plt5widthEv">
 <span id="_CPPv3NK2nw3Plt5widthEv"></span><span id="_CPPv2NK2nw3Plt5widthEv"></span><span id="nw::Plt::widthC"></span><span class="target" id="structnw_1_1_plt_1a905dfe405dfefe4c7d6ed83e97b8d9e8"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">width</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK2nw3Plt5widthEv" title="Permalink to this definition"></a><br /></dt>
-<dd></dd></dl>
+<dd><p>Gets width. </p>
+</dd></dl>
 
 </div>
 </dd></dl>
@@ -378,7 +385,7 @@
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="nw__Player.html" class="btn btn-neutral float-left" title="nw::Player" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="nw__Qualifier.html" class="btn btn-neutral float-right" title="nw::Qualifier" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="nw__PltColors.html" class="btn btn-neutral float-right" title="nw::PltColors" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

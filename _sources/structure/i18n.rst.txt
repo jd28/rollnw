@@ -1,9 +1,8 @@
 i18n
 ====
 
-The **i18n** module provides support for internationalization, Tlk
-reading/writing, and conversions between default NWN encodings and UTF-8
-(see below).
+The **i18n** module provides support for internationalization, conversions between default NWN encodings
+and UTF-8 (see below).
 
 Philosophy
 ----------
@@ -22,8 +21,8 @@ in UTF-8. The only exception are:
 There is *no* caching or fixed caching policies at this layer of the
 library.
 
-Supported Languages
--------------------
+Neverwinter Nights Languages and Encodings
+------------------------------------------
 
 -  English (CP1252)
 -  French (CP1252)
