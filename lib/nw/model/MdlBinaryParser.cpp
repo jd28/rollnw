@@ -284,6 +284,8 @@ bool BinaryParser::parse_node(uint32_t offset, Geometry* geometry, Node* parent)
         if (!load_mesh_data(n, data.header)) { return false; }
     }
 
+    geometry->nodes.push_back(std::move(node));
+
     // Process all children
     off = nodehead.children.offset;
     for (size_t i = 0; i < nodehead.children.length; ++i) {
@@ -294,8 +296,6 @@ bool BinaryParser::parse_node(uint32_t offset, Geometry* geometry, Node* parent)
         }
         off += 4;
     }
-
-    geometry->nodes.push_back(std::move(node));
 
     s_ctx.clear();
 

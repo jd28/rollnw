@@ -148,7 +148,6 @@ bool Image::parse()
 }
 
 namespace detail {
-// The stuff in detail is from Torlack's NWNExplorer
 
 struct BiowareDdsHeader {
     uint32_t width;
@@ -185,6 +184,7 @@ bool Image::parse_dds()
 bool Image::parse_bioware()
 {
     detail::BiowareDdsHeader bioware_header;
+    // what's here is copy paste from stbi/soil2
 
     size_t off = 0;
     bytes_.read_at(off, &bioware_header, sizeof(detail::BiowareDdsHeader));
