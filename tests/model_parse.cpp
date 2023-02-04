@@ -49,6 +49,7 @@ TEST_CASE("model: parse binary", "[model]")
     nw::model::Mdl mdl{"test_data/user/development/c_bodak.mdl"};
     REQUIRE(mdl.valid());
     REQUIRE(mdl.model.supermodel_name == "a_ba");
+    REQUIRE(mdl.model.nodes[2]->children.size() == 1);
     // REQUIRE(mdl.model.supermodel);
 }
 

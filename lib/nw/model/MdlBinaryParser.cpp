@@ -291,7 +291,7 @@ bool BinaryParser::parse_node(uint32_t offset, Geometry* geometry, Node* parent)
     for (size_t i = 0; i < nodehead.children.length; ++i) {
         uint32_t ptr = 0;
         memcpy(&ptr, bytes_.data() + off + 12, 4);
-        if (!parse_node(ptr, geometry, node.get())) {
+        if (!parse_node(ptr, geometry, geometry->nodes.back().get())) {
             return false;
         }
         off += 4;
