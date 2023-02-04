@@ -285,16 +285,24 @@ bool BinaryParser::parse_node(uint32_t offset, Geometry* geometry, Node* parent)
     }
 
     geometry->nodes.push_back(std::move(node));
+    auto n = geometry->nodes.back().get();
 
     // Process all children
     off = nodehead.children.offset;
     for (size_t i = 0; i < nodehead.children.length; ++i) {
         uint32_t ptr = 0;
         memcpy(&ptr, bytes_.data() + off + 12, 4);
-        if (!parse_node(ptr, geometry, geometry->nodes.back().get())) {
+        if (!parse_node(ptr, geometry, n)) {
             return false;
         }
         off += 4;
+    }
+
+    if (n->children.size() != nodehead.children.length) {
+        LOG_F(ERROR, "child count mismatch {} != {}",
+            n->children.size(),
+            nodehead.children.length);
+        return false;
     }
 
     s_ctx.clear();
