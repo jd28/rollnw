@@ -173,7 +173,7 @@ bool GffStruct::get_to(std::string_view label, T& out, bool warn_missing) const
 template <typename T>
 std::optional<T> GffField::get() const
 {
-    T temp;
+    T temp{};
     return get_to(temp) ? std::optional<T>{std::move(temp)} : std::optional<T>{};
 }
 

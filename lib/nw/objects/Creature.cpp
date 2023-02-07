@@ -112,8 +112,8 @@ bool Creature::instantiate()
     }
     auto max = nw::kernel::rules().select({nw::SelectorType::hitpoints_max}, this);
     if (max.is<int32_t>()) {
-        hp_max = max.as<int32_t>();
-        hp_current = max.as<int32_t>();
+        hp_max = int16_t(max.as<int32_t>());
+        hp_current = int16_t(max.as<int32_t>());
     }
     instantiated_ = (inventory.instantiate() && equipment.instantiate());
     size_t i = 0;

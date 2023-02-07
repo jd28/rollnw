@@ -2,6 +2,7 @@
 
 #include "../log.hpp"
 #include "../util/ByteArray.hpp"
+#include "../util/platform.hpp"
 #include "../util/templates.hpp"
 
 #include <nowide/convert.hpp>
@@ -25,14 +26,8 @@ Directory::Directory(const fs::path& path)
     }
 
     path_ = fs::canonical(path);
-
-#ifdef _MSC_VER
-    path_string_ = nowide::narrow(path_.c_str());
-    name_ = nowide::narrow(path.parent_path().filename().c_str());
-#else
-    path_string_ = std::filesystem::canonical(path);
-    name_ = path.parent_path().filename();
-#endif
+    path_string_ = path_to_string(fs::canonical(path));
+    name_ = path_to_string(path.parent_path().filename());
 
     LOG_F(INFO, "{}: Loading...", path_string_);
     is_valid_ = true;

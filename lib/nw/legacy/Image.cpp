@@ -304,18 +304,18 @@ void stbi_decode_DXT45_alpha_block(
     decode_alpha[1] = compressed[1];
     if (decode_alpha[0] > decode_alpha[1]) {
         //	6 step intermediate
-        decode_alpha[2] = (6 * decode_alpha[0] + 1 * decode_alpha[1]) / 7;
-        decode_alpha[3] = (5 * decode_alpha[0] + 2 * decode_alpha[1]) / 7;
-        decode_alpha[4] = (4 * decode_alpha[0] + 3 * decode_alpha[1]) / 7;
-        decode_alpha[5] = (3 * decode_alpha[0] + 4 * decode_alpha[1]) / 7;
-        decode_alpha[6] = (2 * decode_alpha[0] + 5 * decode_alpha[1]) / 7;
-        decode_alpha[7] = (1 * decode_alpha[0] + 6 * decode_alpha[1]) / 7;
+        decode_alpha[2] = uint8_t((6 * decode_alpha[0] + 1 * decode_alpha[1]) / 7);
+        decode_alpha[3] = uint8_t((5 * decode_alpha[0] + 2 * decode_alpha[1]) / 7);
+        decode_alpha[4] = uint8_t((4 * decode_alpha[0] + 3 * decode_alpha[1]) / 7);
+        decode_alpha[5] = uint8_t((3 * decode_alpha[0] + 4 * decode_alpha[1]) / 7);
+        decode_alpha[6] = uint8_t((2 * decode_alpha[0] + 5 * decode_alpha[1]) / 7);
+        decode_alpha[7] = uint8_t((1 * decode_alpha[0] + 6 * decode_alpha[1]) / 7);
     } else {
         //	4 step intermediate, pluss full and none
-        decode_alpha[2] = (4 * decode_alpha[0] + 1 * decode_alpha[1]) / 5;
-        decode_alpha[3] = (3 * decode_alpha[0] + 2 * decode_alpha[1]) / 5;
-        decode_alpha[4] = (2 * decode_alpha[0] + 3 * decode_alpha[1]) / 5;
-        decode_alpha[5] = (1 * decode_alpha[0] + 4 * decode_alpha[1]) / 5;
+        decode_alpha[2] = uint8_t((4 * decode_alpha[0] + 1 * decode_alpha[1]) / 5);
+        decode_alpha[3] = uint8_t((3 * decode_alpha[0] + 2 * decode_alpha[1]) / 5);
+        decode_alpha[4] = uint8_t((2 * decode_alpha[0] + 3 * decode_alpha[1]) / 5);
+        decode_alpha[5] = uint8_t((1 * decode_alpha[0] + 4 * decode_alpha[1]) / 5);
         decode_alpha[6] = 0;
         decode_alpha[7] = 255;
     }
@@ -358,19 +358,19 @@ void stbi_decode_DXT1_block(
     decode_colors[7] = 255;
     if (c0 > c1) {
         //	no alpha, 2 interpolated colors
-        decode_colors[8] = (2 * decode_colors[0] + decode_colors[4]) / 3;
-        decode_colors[9] = (2 * decode_colors[1] + decode_colors[5]) / 3;
-        decode_colors[10] = (2 * decode_colors[2] + decode_colors[6]) / 3;
+        decode_colors[8] = uint8_t((2 * decode_colors[0] + decode_colors[4]) / 3);
+        decode_colors[9] = uint8_t((2 * decode_colors[1] + decode_colors[5]) / 3);
+        decode_colors[10] = uint8_t((2 * decode_colors[2] + decode_colors[6]) / 3);
         decode_colors[11] = 255;
-        decode_colors[12] = (decode_colors[0] + 2 * decode_colors[4]) / 3;
-        decode_colors[13] = (decode_colors[1] + 2 * decode_colors[5]) / 3;
-        decode_colors[14] = (decode_colors[2] + 2 * decode_colors[6]) / 3;
+        decode_colors[12] = uint8_t((decode_colors[0] + 2 * decode_colors[4]) / 3);
+        decode_colors[13] = uint8_t((decode_colors[1] + 2 * decode_colors[5]) / 3);
+        decode_colors[14] = uint8_t((decode_colors[2] + 2 * decode_colors[6]) / 3);
         decode_colors[15] = 255;
     } else {
         //	1 interpolated color, alpha
-        decode_colors[8] = (decode_colors[0] + decode_colors[4]) / 2;
-        decode_colors[9] = (decode_colors[1] + decode_colors[5]) / 2;
-        decode_colors[10] = (decode_colors[2] + decode_colors[6]) / 2;
+        decode_colors[8] = uint8_t((decode_colors[0] + decode_colors[4]) / 2);
+        decode_colors[9] = uint8_t((decode_colors[1] + decode_colors[5]) / 2);
+        decode_colors[10] = uint8_t((decode_colors[2] + decode_colors[6]) / 2);
         decode_colors[11] = 255;
         decode_colors[12] = 0;
         decode_colors[13] = 0;
@@ -410,12 +410,12 @@ void stbi_decode_DXT_color_block(
     decode_colors[5] = uint8_t(b);
     //	Like DXT1, but no choicees:
     //	no alpha, 2 interpolated colors
-    decode_colors[6] = (2 * decode_colors[0] + decode_colors[3]) / 3;
-    decode_colors[7] = (2 * decode_colors[1] + decode_colors[4]) / 3;
-    decode_colors[8] = (2 * decode_colors[2] + decode_colors[5]) / 3;
-    decode_colors[9] = (decode_colors[0] + 2 * decode_colors[3]) / 3;
-    decode_colors[10] = (decode_colors[1] + 2 * decode_colors[4]) / 3;
-    decode_colors[11] = (decode_colors[2] + 2 * decode_colors[5]) / 3;
+    decode_colors[6] = uint8_t((2 * decode_colors[0] + decode_colors[3]) / 3);
+    decode_colors[7] = uint8_t((2 * decode_colors[1] + decode_colors[4]) / 3);
+    decode_colors[8] = uint8_t((2 * decode_colors[2] + decode_colors[5]) / 3);
+    decode_colors[9] = uint8_t((decode_colors[0] + 2 * decode_colors[3]) / 3);
+    decode_colors[10] = uint8_t((decode_colors[1] + 2 * decode_colors[4]) / 3);
+    decode_colors[11] = uint8_t((decode_colors[2] + 2 * decode_colors[5]) / 3);
     //	decode the block
     for (i = 0; i < 16 * 4; i += 4) {
         int idx = ((compressed[next_bit >> 3] >> (next_bit & 7)) & 3) * 3;

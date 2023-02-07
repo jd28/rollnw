@@ -163,35 +163,35 @@ bool BinaryParser::parse_node(uint32_t offset, Geometry* geometry, Node* parent)
         off += sizeof(detail::MdlBinaryController);
     }
 
-    auto load_mesh_data = [this](TrimeshNode* node, const detail::MdlBinaryMeshHeader& data) {
-        node->ambient = data.ambient;
-        node->beaming = data.beaming;
-        node->bmin = data.bbmin;
-        node->bmax = data.bbmax;
-        node->bitmap = detail::to_string(data.texture0);
-        // node->center = data;
-        node->diffuse = data.diffuse;
-        node->materialname = detail::to_string(data.texture3);
-        // node->gizmo = data;
-        // node->danglymesh = data;
-        // node->period = data.per;
-        // node->tightness = data;
-        //  node->displacement = data;
-        node->render = data.render_flag;
-        // node->renderhint = data.render_hint; -- Need to change a type
-        node->rotatetexture = data.rotate_texture;
-        node->shadow = data.shadow;
-        node->shininess = data.shininess;
-        node->specular = data.specular;
-        // node->textures = data; -- Fix type
-        node->tilefade = data.tile_fade;
-        node->transparencyhint = data.transparency_hint;
-        // node->showdispl = data;
-        // node->displtype = data;
-        node->lightmapped = data.lightmapped;
-        // node->multimaterial = data.;
+    auto load_mesh_data = [this](TrimeshNode* mesh, const detail::MdlBinaryMeshHeader& data) {
+        mesh->ambient = data.ambient;
+        mesh->beaming = data.beaming;
+        mesh->bmin = data.bbmin;
+        mesh->bmax = data.bbmax;
+        mesh->bitmap = detail::to_string(data.texture0);
+        // mesh->center = data;
+        mesh->diffuse = data.diffuse;
+        mesh->materialname = detail::to_string(data.texture3);
+        // mesh->gizmo = data;
+        // mesh->danglymesh = data;
+        // mesh->period = data.per;
+        // mesh->tightness = data;
+        //  mesh->displacement = data;
+        mesh->render = data.render_flag;
+        // mesh->renderhint = data.render_hint; -- Need to change a type
+        mesh->rotatetexture = data.rotate_texture;
+        mesh->shadow = data.shadow;
+        mesh->shininess = data.shininess;
+        mesh->specular = data.specular;
+        // mesh->textures = data; -- Fix type
+        mesh->tilefade = data.tile_fade;
+        mesh->transparencyhint = data.transparency_hint;
+        // mesh->showdispl = data;
+        // mesh->displtype = data;
+        mesh->lightmapped = data.lightmapped;
+        // mesh->multimaterial = data.;
 
-        // node->colors
+        // mesh->colors
 
         if (data.vertices != std::numeric_limits<uint32_t>::max()) {
             s_ctx.verts.resize(data.vertex_count);
@@ -211,25 +211,25 @@ bool BinaryParser::parse_node(uint32_t offset, Geometry* geometry, Node* parent)
                 data.vertex_count * sizeof(glm::vec3));
         }
 
-        node->vertices.resize(data.vertex_count);
+        mesh->vertices.resize(data.vertex_count);
         for (size_t i = 0; i < data.vertex_count; ++i) {
-            node->vertices[i].position = s_ctx.verts[i];
+            mesh->vertices[i].position = s_ctx.verts[i];
             if (!s_ctx.normals.empty()) {
-                node->vertices[i].normal = s_ctx.normals[i];
+                mesh->vertices[i].normal = s_ctx.normals[i];
             }
             if (!s_ctx.tverts[0].empty()) {
-                node->vertices[i].tex_coords = s_ctx.tverts[0][i];
+                mesh->vertices[i].tex_coords = s_ctx.tverts[0][i];
             }
         }
 
         s_ctx.faces.resize(data.faces.length);
         memcpy(s_ctx.faces.data(), bytes_.data() + data.faces.offset + 12, data.faces.length * sizeof(detail::MdlBinaryFace));
 
-        node->indices.reserve(data.faces.length * 3);
+        mesh->indices.reserve(data.faces.length * 3);
         for (size_t i = 0; i < data.faces.length; ++i) {
-            node->indices.push_back(s_ctx.faces[i].vertex_indicies[0]);
-            node->indices.push_back(s_ctx.faces[i].vertex_indicies[1]);
-            node->indices.push_back(s_ctx.faces[i].vertex_indicies[2]);
+            mesh->indices.push_back(s_ctx.faces[i].vertex_indicies[0]);
+            mesh->indices.push_back(s_ctx.faces[i].vertex_indicies[1]);
+            mesh->indices.push_back(s_ctx.faces[i].vertex_indicies[2]);
         }
 
         return true;

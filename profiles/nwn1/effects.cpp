@@ -131,8 +131,8 @@ bool effect_hitpoints_temp_apply(nw::ObjectBase* obj, const nw::Effect* effect)
 {
     if (!obj || !obj->as_creature()) { return false; }
     auto cre = obj->as_creature();
-    cre->hp_current += effect->get_int(0);
-    cre->hp_temp += effect->get_int(0);
+    cre->hp_current += int16_t(effect->get_int(0));
+    cre->hp_temp += int16_t(effect->get_int(0));
     return true;
 }
 
@@ -141,8 +141,8 @@ bool effect_hitpoints_temp_remove(nw::ObjectBase* obj, const nw::Effect* effect)
     if (!obj || !obj->as_creature()) { return false; }
     auto cre = obj->as_creature();
     if (effect->get_int(0) > 0) {
-        cre->hp_current -= effect->get_int(0);
-        cre->hp_temp -= effect->get_int(0);
+        cre->hp_current -= int16_t(effect->get_int(0));
+        cre->hp_temp -= int16_t(effect->get_int(0));
     }
 
     // Death has to be considered here.. but not yet.
