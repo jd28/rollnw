@@ -40,49 +40,134 @@ if(NOT Iconv_IS_BUILT_IN)
     target_link_libraries(nw-libraries INTERFACE Iconv::Iconv)
 endif()
 
+if(ROLLNW_ENABLE_LEGACY)
+set(LEGACY_SRC
+    legacy/gff_common.cpp
+    legacy/gff_conversion.cpp
+    legacy/Gff.cpp
+    legacy/GffBuilder.cpp
+    legacy/Image.cpp
+    legacy/LocString.cpp
+    legacy/Palette.cpp
+    legacy/Plt.cpp
+    legacy/Tlk.cpp
+)
+else()
+set(LEGACY_SRC )
+endif()
+
 add_library(nw STATIC
     functions.cpp
     log.cpp
-)
 
-add_subdirectory(formats)
-add_subdirectory(i18n)
-add_subdirectory(kernel)
-add_subdirectory(model)
-if(ROLLNW_ENABLE_LEGACY)
-add_subdirectory(legacy)
-endif()
-add_subdirectory(objects)
-add_subdirectory(resources)
-add_subdirectory(rules)
-add_subdirectory(script)
-add_subdirectory(serialization)
-add_subdirectory(util)
+    formats/Dialog.cpp
+    formats/Faction.cpp
+    formats/Ini.cpp
+    formats/Journal.cpp
+    formats/TwoDA.cpp
+
+    i18n/conversion.cpp
+    i18n/Language.cpp
+
+    kernel/Kernel.cpp
+    kernel/Config.cpp
+    kernel/EffectSystem.cpp
+    kernel/EventSystem.cpp
+    kernel/Objects.cpp
+    kernel/Resources.cpp
+    kernel/Rules.cpp
+    kernel/ParsedScriptCache.cpp
+    kernel/ScriptSystem.cpp
+    kernel/Strings.cpp
+    kernel/TwoDACache.cpp
+
+    ${LEGACY_SRC}
+
+    model/Mdl.cpp
+    model/MdlTextParser.cpp
+    model/MdlBinaryParser.cpp
+
+    # Objects
+    objects/Area.cpp
+    objects/Creature.cpp
+    objects/Door.cpp
+    objects/Encounter.cpp
+    objects/Item.cpp
+    objects/Module.cpp
+    objects/ObjectBase.cpp
+    objects/ObjectHandle.cpp
+    objects/Placeable.cpp
+    objects/Player.cpp
+    objects/Sound.cpp
+    objects/Store.cpp
+    objects/Trigger.cpp
+    objects/Waypoint.cpp
+    # Components
+    objects/Appearance.cpp
+    objects/CombatInfo.cpp
+    objects/Common.cpp
+    objects/CreatureStats.cpp
+    objects/EffectArray.cpp
+    objects/Equips.cpp
+    objects/Inventory.cpp
+    objects/LevelHistory.cpp
+    objects/LevelStats.cpp
+    objects/LocalData.cpp
+    objects/Location.cpp
+    objects/Lock.cpp
+    objects/Saves.cpp
+    objects/SpellBook.cpp
+    objects/Trap.cpp
+
+    resources/Bif.cpp
+    resources/Container.cpp
+    resources/Directory.cpp
+    resources/Erf.cpp
+    resources/Key.cpp
+    resources/NWSync.cpp
+    resources/Resref.cpp
+    resources/Resource.cpp
+    resources/ResourceDescriptor.cpp
+    resources/Zip.cpp
+
+    rules/attributes.cpp
+    rules/Class.cpp
+    rules/combat.cpp
+    rules/Dice.cpp
+    rules/Effect.cpp
+    rules/feats.cpp
+    rules/items.cpp
+    rules/Spell.cpp
+    rules/system.cpp
+
+    script/Nss.cpp
+    script/NssLexer.cpp
+    script/NssParser.cpp
+
+    serialization/Serialization.cpp
+
+    util/base64.cpp
+    util/ByteArray.cpp
+    util/compression.cpp
+    util/game_install.cpp
+    util/platform.cpp
+    util/string.cpp
+    util/Tokenizer.cpp
+
+)
 
 target_link_libraries(nw PUBLIC
     nw-base
     nw-libraries
-    nw-formats
-    nw-i18n
-    nw-kernel
-    nw-objects
-    nw-model
-    nw-resources
-    nw-rules
-    nw-script
-    nw-serialization
-    nw-util
 )
 
-if(ROLLNW_ENABLE_LEGACY)
+if(ROLLNW_BUILD_RUNTIME_SCRIPTING)
 target_link_libraries(nw PUBLIC
-    nw-legacy
+    Luau.VM
 )
 endif()
 
 include(../../cmake/ProjectSettings.cmake)
-
-target_compile_features(nw-base INTERFACE cxx_std_17)
 
 include(../../cmake/CompilerWarnings.cmake)
 set_project_warnings(nw-base)
