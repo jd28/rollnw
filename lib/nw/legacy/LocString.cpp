@@ -71,9 +71,10 @@ std::string LocString::get(LanguageID language, bool feminine) const
 void LocString::remove(LanguageID language, bool feminine)
 {
     uint32_t needle = Language::to_runtime_id(language, feminine);
-    std::remove_if(begin(), end(), [needle](const LocStringPair& value) {
+    auto it = std::remove_if(begin(), end(), [needle](const LocStringPair& value) {
         return value.first == needle;
     });
+    strings_.erase(it, std::end(strings_));
 }
 
 size_t LocString::size() const

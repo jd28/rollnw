@@ -378,7 +378,7 @@ Mdl::Mdl(ByteArray bytes)
             TextParser p{bytes_.string_view(), this};
             loaded_ = p.parse();
         } catch (std::exception& e) {
-            LOG_F(ERROR, "failed to parse model <unknown>");
+            LOG_F(ERROR, "failed to parse model <unknown>: {}", e.what());
             loaded_ = false;
         }
     }

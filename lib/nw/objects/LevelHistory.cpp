@@ -76,7 +76,7 @@ bool deserialize(LevelUp& self, const GffStruct& archive)
         auto known = archive[key];
         for (size_t j = 0; j < known.size(); ++j) {
             if (known[j].get_to("Spell", word)) {
-                self.known_spells.emplace_back(i, nw::Spell::make(word));
+                self.known_spells.emplace_back(int32_t(i), nw::Spell::make(word));
             }
         }
     }

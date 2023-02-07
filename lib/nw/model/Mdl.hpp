@@ -527,9 +527,8 @@ struct Model : public Geometry {
     std::string file_dependency;
 };
 
-/// Implements  file format
-/// @warning This is highly untested.
-/// @note This only supports reading ASCII models (and probably not even all of those).. for now.
+/// Implements  Bioware MDL file format
+/// @warning This is still incomplete
 class Mdl {
     ByteArray bytes_;
     bool loaded_ = false;
