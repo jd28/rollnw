@@ -10,36 +10,6 @@ find_package(unofficial-sqlite3 CONFIG REQUIRED)
 find_package(zstd CONFIG REQUIRED)
 find_package(ZLIB REQUIRED)
 
-add_library(nw-libraries INTERFACE)
-target_link_libraries(nw-libraries INTERFACE
-    fmt::fmt
-    absl::base
-    absl::flat_hash_map
-    absl::hash
-    absl::span
-    absl::utility
-    absl::strings
-    glm::glm
-    minizip::minizip
-    nlohmann_json nlohmann_json::nlohmann_json
-    nowide::nowide
-    ZLIB::ZLIB
-    zstd::libzstd_static
-    unofficial::sqlite3::sqlite3
-    Threads::Threads
-
-    stb_image
-    inih
-
-    coverage_config
-)
-
-add_library(nw-base INTERFACE)
-
-if(NOT Iconv_IS_BUILT_IN)
-    target_link_libraries(nw-libraries INTERFACE Iconv::Iconv)
-endif()
-
 if(ROLLNW_ENABLE_LEGACY)
 set(LEGACY_SRC
     legacy/gff_common.cpp
@@ -157,8 +127,26 @@ add_library(nw STATIC
 )
 
 target_link_libraries(nw PUBLIC
-    nw-base
-    nw-libraries
+    fmt::fmt
+    absl::base
+    absl::flat_hash_map
+    absl::hash
+    absl::span
+    absl::utility
+    absl::strings
+    glm::glm
+    minizip::minizip
+    nlohmann_json nlohmann_json::nlohmann_json
+    nowide::nowide
+    ZLIB::ZLIB
+    zstd::libzstd_static
+    unofficial::sqlite3::sqlite3
+    Threads::Threads
+
+    stb_image
+    inih
+
+    coverage_config
 )
 
 if(ROLLNW_BUILD_RUNTIME_SCRIPTING)
@@ -167,10 +155,14 @@ target_link_libraries(nw PUBLIC
 )
 endif()
 
+if(NOT Iconv_IS_BUILT_IN)
+    target_link_libraries(nw PRIVATE Iconv::Iconv)
+endif()
+
 include(../../cmake/ProjectSettings.cmake)
 
 include(../../cmake/CompilerWarnings.cmake)
-set_project_warnings(nw-base)
+set_project_warnings(nw)
 
 include(../../cmake/Sanitizers.cmake)
-enable_sanitizers(nw-base)
+enable_sanitizers(nw)
