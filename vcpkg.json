@@ -10,7 +10,6 @@
         "sqlite3",
         "minizip",
         "nlohmann-json",
-        "nowide",
         {
             "name": "libiconv",
             "platform": "windows"
