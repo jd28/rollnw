@@ -1,6 +1,5 @@
 find_package(Threads)
 
-file(COPY test_data DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
 file(COPY test_data DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 
 add_definitions(-DCATCH_AMALGAMATED_CUSTOM_MAIN)
