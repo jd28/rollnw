@@ -1,7 +1,4 @@
-#include "nw/rules/attributes.hpp"
-#include "nwn1/constants.hpp"
-#include "nwn1/effects.hpp"
-#include <catch2/catch_test_macros.hpp>
+#include <catch2/catch.hpp>
 
 #include <nw/functions.hpp>
 #include <nw/kernel/EventSystem.hpp>
@@ -9,9 +6,12 @@
 #include <nw/kernel/Objects.hpp>
 #include <nw/objects/Creature.hpp>
 #include <nw/rules/Effect.hpp>
+#include <nw/rules/attributes.hpp>
 #include <nw/rules/feats.hpp>
 #include <nw/serialization/Archives.hpp>
 #include <nwn1/Profile.hpp>
+#include <nwn1/constants.hpp>
+#include <nwn1/effects.hpp>
 #include <nwn1/functions.hpp>
 
 #include <nlohmann/json.hpp>

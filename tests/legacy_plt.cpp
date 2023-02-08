@@ -1,7 +1,7 @@
 
 #ifdef ROLLNW_ENABLE_LEGACY
 
-#include <catch2/catch_all.hpp>
+#include <catch2/catch.hpp>
 
 #include <nw/kernel/Resources.hpp>
 #include <nw/legacy/Plt.hpp>

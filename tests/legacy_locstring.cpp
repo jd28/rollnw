@@ -1,4 +1,4 @@
-#include <catch2/catch_all.hpp>
+#include <catch2/catch.hpp>
 
 #include <nw/legacy/LocString.hpp>
 #include <nw/log.hpp>

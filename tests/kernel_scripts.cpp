@@ -1,6 +1,6 @@
 #ifdef ROLLNW_BUILD_RUNTIME_SCRIPTING
 
-#include <catch2/catch_all.hpp>
+#include <catch2/catch.hpp>
 
 #include <nw/kernel/Kernel.hpp>
 #include <nw/kernel/ScriptSystem.hpp>

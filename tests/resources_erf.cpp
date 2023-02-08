@@ -1,4 +1,4 @@
-#include <catch2/catch_all.hpp>
+#include <catch2/catch.hpp>
 
 #include <nw/log.hpp>
 #include <nw/resources/Erf.hpp>

@@ -1,4 +1,4 @@
-#include <catch2/catch_all.hpp>
+#include <catch2/catch.hpp>
 
 #include <nw/objects/Journal.hpp>
 #include <nw/serialization/Serialization.hpp>

@@ -1,8 +1,9 @@
 find_package(Threads)
-find_package(Catch2 CONFIG REQUIRED)
 
 file(COPY test_data DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
 file(COPY test_data DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+
+add_definitions(-DCATCH_AMALGAMATED_CUSTOM_MAIN)
 
 # Need .cpp extension for ctest
 add_executable(rollnw_test
@@ -78,11 +79,11 @@ target_link_libraries(rollnw_test PRIVATE
     nw
     nw-profiles
     Threads::Threads
-    Catch2::Catch2)
+    catch2)
 
 if(CMAKE_HOST_UNIX)
     target_link_libraries(rollnw_test PRIVATE dl)
 endif()
 
-include(Catch)
+include(../external/catch2/Catch.cmake)
 catch_discover_tests(rollnw_test)

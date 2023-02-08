@@ -1,6 +1,6 @@
 #ifdef ROLLNW_ENABLE_LEGACY
 
-#include <catch2/catch_all.hpp>
+#include <catch2/catch.hpp>
 
 #include <nw/legacy/Image.hpp>
 #include <nw/log.hpp>

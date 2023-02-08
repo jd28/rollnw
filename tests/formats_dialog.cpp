@@ -1,4 +1,4 @@
-#include <catch2/catch_all.hpp>
+#include <catch2/catch.hpp>
 
 #include <nw/formats/Dialog.hpp>
 #include <nw/serialization/Archives.hpp>

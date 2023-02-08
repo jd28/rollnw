@@ -1,5 +1,5 @@
 #include "nw/serialization/Serialization.hpp"
-#include <catch2/catch_all.hpp>
+#include <catch2/catch.hpp>
 
 #include <nw/kernel/Objects.hpp>
 #include <nw/log.hpp>

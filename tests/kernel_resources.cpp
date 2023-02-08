@@ -1,5 +1,5 @@
 #include "nw/kernel/Kernel.hpp"
-#include <catch2/catch_all.hpp>
+#include <catch2/catch.hpp>
 
 #include <nw/kernel/Resources.hpp>
 #include <nw/log.hpp>
