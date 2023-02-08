@@ -17,15 +17,15 @@
                     "value": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
                     "type": "FILEPATH"
                 },
-                "CMAKE_RUNTIME_OUTPUT_DIRECTORY": {
-                    "value": "${sourceDir}/bin",
-                    "type": "FILEPATH"
-                },
                 "ROLLNW_BUILD_BENCHMARKS": {
                     "type": "BOOL",
                     "value": "OFF"
                 },
                 "LUAU_BUILD_TESTS": {
+                    "type": "BOOL",
+                    "value": "OFF"
+                },
+                "BUILD_TESTING": {
                     "type": "BOOL",
                     "value": "OFF"
                 }
