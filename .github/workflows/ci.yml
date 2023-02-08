@@ -35,18 +35,18 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-11, ubuntu-20.04, windows-2019]
+        os: [macos-11, ubuntu-20.04, windows-latest]
     runs-on: ${{ matrix.os }}
     name: Build ${{ matrix.os }}
 
     steps:
       - name: Get current date
-        if: matrix.os != 'windows-2019'
+        if: matrix.os != 'windows-latest'
         run: |
           echo "DATE=$(date +'%Y-%m-%d')" >> $GITHUB_ENV
 
       - name: Get current date
-        if: matrix.os == 'windows-2019'
+        if: matrix.os == 'windows-latest'
         run: |
           echo "DATE=$(Get-Date -Format yyyy-MM-dd)" | Out-File -FilePath $env:GITHUB_ENV -Append
 
@@ -86,12 +86,12 @@ jobs:
 
       # Windows dependencies
       - name: windows - install dependencies
-        if: matrix.os == 'windows-2019'
+        if: matrix.os == 'windows-latest'
         run: |
           choco install sccache ninja
 
       - name: Set up ccache
-        if: matrix.os != 'windows-2019'
+        if: matrix.os != 'windows-latest'
         run: |
           ccache --set-config=cache_dir=${{ github.workspace }}/ccache
           ccache --set-config=max_size=500M
@@ -103,7 +103,7 @@ jobs:
           git clone https://github.com/microsoft/vcpkg ${{ github.workspace }}/vcpkg || true
 
       - name: temporary workaround for windows build.. vcpkg issue
-        if: matrix.os != 'windows-2019'
+        if: matrix.os != 'windows-latest'
         run: |
           pushd vcpkg
           git checkout --force ${{ env.vcpkg-tag }}
@@ -121,13 +121,13 @@ jobs:
             ${{ runner.os }}-build-
 
       - name: macOS|linux - bootstrap vcpkg
-        if: matrix.os != 'windows-2019'  && steps.cache-vcpkg.outputs.cache-hit != 'true'
+        if: matrix.os != 'windows-latest'  && steps.cache-vcpkg.outputs.cache-hit != 'true'
         run: |
           mkdir -p vcpkg/.cache
           vcpkg/bootstrap-vcpkg.sh
 
       - name: windows - bootstrap vcpkg
-        if: matrix.os == 'windows-2019' && steps.cache-vcpkg.outputs.cache-hit != 'true'
+        if: matrix.os == 'windows-latest' && steps.cache-vcpkg.outputs.cache-hit != 'true'
         run:  |
           md vcpkg/.cache -ea 0
           vcpkg/bootstrap-vcpkg.bat
@@ -160,13 +160,13 @@ jobs:
           cmake --preset ci-linux
 
       - name: windows - Visual Studio shell
-        if: matrix.os == 'windows-2019'
+        if: matrix.os == 'windows-latest'
         uses: egor-tensin/vs-shell@v2
         with:
           arch: x64
 
       - name: windows - configure
-        if: matrix.os == 'windows-2019'
+        if: matrix.os == 'windows-latest'
         run: |
           cmake --preset ci-windows
 
