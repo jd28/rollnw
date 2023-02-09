@@ -25,23 +25,17 @@ int main(int argc, char* argv[])
 
     nw::init_logger(argc, argv);
 
-    if (probe) {
-        auto info = nw::probe_nwn_install();
-        nw::kernel::config().initialize({
-            info.version,
-            info.install,
-            "test_data/user/",
-        });
-    } else if (nowide::getenv("CI_GITHUB_ACTIONS")) {
+    if (nowide::getenv("CI_GITHUB_ACTIONS")) {
         nw::kernel::config().initialize({
             nw::GameVersion::vEE,
             nowide::getenv("NWN_ROOT"),
             "test_data/user/",
         });
     } else {
+        auto info = nw::probe_nwn_install();
         nw::kernel::config().initialize({
-            nw::GameVersion::vEE,
-            "test_data/root/",
+            info.version,
+            info.install,
             "test_data/user/",
         });
     }
