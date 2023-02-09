@@ -1,4 +1,4 @@
-#include <catch2/catch.hpp>
+#include <gtest/gtest.h>
 
 #include <nw/formats/Dialog.hpp>
 #include <nw/serialization/Archives.hpp>
@@ -7,18 +7,18 @@
 
 #include <iostream>
 
-TEST_CASE("dialog: from gff", "[objects]")
+TEST(Dialog, GffDeserialize)
 {
     nw::Gff g{"test_data/user/development/alue_ranger.dlg"};
     nw::Dialog dlg{g.toplevel()};
-
-    REQUIRE(dlg.valid());
-    REQUIRE(dlg.starts.size() > 0);
-    REQUIRE(dlg.starts[0].is_start);
-    REQUIRE(dlg.starts[0].node()->text.get(nw::LanguageID::english) == "Have you managed to get rid of the Bandit Leader?");
+    EXPECT_TRUE(dlg.valid());
+    EXPECT_GT(dlg.starts.size(), 0);
+    EXPECT_TRUE(dlg.starts[0].is_start);
+    EXPECT_EQ(dlg.starts[0].node()->text.get(nw::LanguageID::english),
+        "Have you managed to get rid of the Bandit Leader?");
 }
 
-TEST_CASE("dialog: to json", "[objects]")
+TEST(Dialog, JsonSerialize)
 {
     nw::Gff g{"test_data/user/development/alue_ranger.dlg"};
     nw::Dialog dlg{g.toplevel()};

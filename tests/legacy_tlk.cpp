@@ -1,48 +1,48 @@
-#include <catch2/catch.hpp>
+#include <gtest/gtest.h>
 
 #include <nw/kernel/Kernel.hpp>
 #include <nw/legacy/Tlk.hpp>
 #include <nw/log.hpp>
 
-TEST_CASE("Tlk", "[formats]")
+TEST(Tlk, LoadEnglish)
 {
     nw::Tlk t = nw::Tlk("test_data/root/lang/en/data/dialog.tlk");
-    REQUIRE(t.valid());
-    REQUIRE(t.size() > 0);
-    REQUIRE(t.get(1000) == "Silence");
-    REQUIRE(t.get(0xFFFFFFFF) == "");
+    EXPECT_TRUE(t.valid());
+    EXPECT_GT(t.size(), 0);
+    EXPECT_EQ(t.get(1000), "Silence");
+    EXPECT_EQ(t.get(0xFFFFFFFF), "");
 }
 
-TEST_CASE("tlk: load languages")
+TEST(Tlk, LoadGerman)
 {
     auto install_path = nw::kernel::config().options().install;
     nw::Tlk de{"test_data/root/lang/de/data/dialog.tlk"};
-    REQUIRE(de.valid());
-    REQUIRE(de.get(10) == "Mönch");
+    EXPECT_TRUE(de.valid());
+    EXPECT_EQ(de.get(10), "Mönch");
     de.save_as("tmp/dialog.tlk");
     nw::Tlk t2 = nw::Tlk{"tmp/dialog.tlk"};
-    REQUIRE(t2.valid());
-    REQUIRE(de.get(10) == "Mönch");
+    EXPECT_TRUE(t2.valid());
+    EXPECT_EQ(de.get(10), "Mönch");
 }
 
-TEST_CASE("tlk: set", "[i18n]")
+TEST(Tlk, Set)
 {
     nw::Tlk t = nw::Tlk("test_data/root/lang/en/data/dialog.tlk");
-    REQUIRE(t.valid());
+    EXPECT_TRUE(t.valid());
     t.set(1, "Hello World");
-    REQUIRE(t.get(1) == "Hello World");
+    EXPECT_EQ(t.get(1), "Hello World");
 }
 
-TEST_CASE("tlk: save_as", "[i18n]")
+TEST(Tlk, Save)
 {
     nw::Tlk t = nw::Tlk("test_data/root/lang/en/data/dialog.tlk");
-    REQUIRE(t.valid());
+    EXPECT_TRUE(t.valid());
     t.set(1, "Hello World");
     t.save_as("tmp/dialog.tlk");
     nw::Tlk t2 = nw::Tlk{"tmp/dialog.tlk"};
-    REQUIRE(t2.valid());
-    REQUIRE(t2.size() > 0);
-    REQUIRE(t2.get(1) == "Hello World");
-    REQUIRE(t2.get(1000) == "Silence");
-    REQUIRE(t2.get(0xFFFFFFFF) == "");
+    EXPECT_TRUE(t2.valid());
+    EXPECT_TRUE(t2.size() > 0);
+    EXPECT_EQ(t2.get(1), "Hello World");
+    EXPECT_EQ(t2.get(1000), "Silence");
+    EXPECT_EQ(t2.get(0xFFFFFFFF), "");
 }

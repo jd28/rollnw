@@ -1,4 +1,4 @@
-#include <catch2/catch.hpp>
+#include <gtest/gtest.h>
 
 #include <nw/functions.hpp>
 #include <nw/kernel/Objects.hpp>
@@ -11,13 +11,13 @@
 namespace fs = std::filesystem;
 namespace nwk = nw::kernel;
 
-TEST_CASE("requirement", "[rules]")
+TEST(Requirement, Basic)
 {
     auto mod = nw::kernel::load_module("test_data/user/modules/DockerDemo.mod");
-    REQUIRE(mod);
+    EXPECT_TRUE(mod);
 
     auto ent = nw::kernel::objects().load<nw::Creature>(fs::path("test_data/user/development/pl_agent_001.utc"));
-    REQUIRE(ent);
+    EXPECT_TRUE(ent);
 
     nw::Requirement req{{
         nwn1::qual::ability(nwn1::ability_strength, 0, 20),
@@ -25,33 +25,33 @@ TEST_CASE("requirement", "[rules]")
         nwn1::qual::skill(nwn1::skill_discipline, 35),
     }};
 
-    REQUIRE_FALSE(nwk::rules().meets_requirement(req, ent));
+    EXPECT_FALSE(nwk::rules().meets_requirement(req, ent));
 
     nw::Requirement req2{{
         nwn1::qual::ability(nwn1::ability_constitution, 15, 20),
         nwn1::qual::skill(nwn1::skill_discipline, 35),
     }};
 
-    REQUIRE(nwk::rules().meets_requirement(req2, ent));
+    EXPECT_TRUE(nwk::rules().meets_requirement(req2, ent));
 
     nw::Requirement req3{{nwn1::qual::ability(nwn1::ability_constitution, 15, 20),
                              nwn1::qual::ability(nwn1::ability_strength, 0, 20),
                              nwn1::qual::skill(nwn1::skill_discipline, 35)},
         false};
 
-    REQUIRE(nwk::rules().meets_requirement(req3, ent));
+    EXPECT_TRUE(nwk::rules().meets_requirement(req3, ent));
     nw::kernel::unload_module();
 }
 
-TEST_CASE("requirement: feats", "[rules]")
+TEST(Requirement, Feat)
 {
     auto mod = nw::kernel::load_module("test_data/user/modules/DockerDemo.mod");
-    REQUIRE(mod);
+    EXPECT_TRUE(mod);
 
     auto ent = nw::kernel::objects().load<nw::Creature>(fs::path("test_data/user/development/pl_agent_001.utc"));
-    REQUIRE(ent);
+    EXPECT_TRUE(ent);
 
     auto feats = nw::get_all_available_feats(ent);
-    REQUIRE(feats.size() > 0);
+    EXPECT_TRUE(feats.size() > 0);
     nw::kernel::unload_module();
 }

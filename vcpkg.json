@@ -15,6 +15,7 @@
         },
         "glm",
         "benchmark",
-        "stduuid"
+        "stduuid",
+        "gtest"
     ]
 }

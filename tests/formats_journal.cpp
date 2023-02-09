@@ -1,4 +1,4 @@
-#include <catch2/catch.hpp>
+#include <gtest/gtest.h>
 
 #include <nw/objects/Journal.hpp>
 #include <nw/serialization/Serialization.hpp>

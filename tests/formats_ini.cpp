@@ -1,14 +1,14 @@
-#include <catch2/catch.hpp>
+#include <gtest/gtest.h>
 
 #include <nw/formats/Ini.hpp>
 
-TEST_CASE("Parse INI", "[formats]")
+TEST(Ini, Parse)
 {
     nw::Ini i{"test_data/user/nwnplayer.ini"};
-    REQUIRE(i.valid());
+    EXPECT_TRUE(i.valid());
     int server_down_timer = 0;
-    REQUIRE(i.get_to("Server Options/ServerDownTimer", server_down_timer));
-    REQUIRE(i.get<int>("Server Options/CD Banned Behavior"));
+    EXPECT_TRUE(i.get_to("Server Options/ServerDownTimer", server_down_timer));
+    EXPECT_TRUE(i.get<int>("Server Options/CD Banned Behavior"));
 
-    REQUIRE(server_down_timer == 180);
+    EXPECT_EQ(server_down_timer, 180);
 }

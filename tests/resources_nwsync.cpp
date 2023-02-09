@@ -1,4 +1,4 @@
-#include <catch2/catch.hpp>
+#include <gtest/gtest.h>
 
 #include <nw/kernel/Kernel.hpp>
 #include <nw/log.hpp>
@@ -8,25 +8,25 @@
 namespace fs = std::filesystem;
 using namespace std::literals;
 
-TEST_CASE("nwsync", "[containers]")
+TEST(NWSync, Construction)
 {
     auto path = nw::kernel::config().alias_path(nw::PathAlias::nwsync);
     auto n = nw::NWSync(path);
-    REQUIRE(n.is_loaded());
-    REQUIRE(n.shard_count() == 1);
+    EXPECT_TRUE(n.is_loaded());
+    EXPECT_TRUE(n.shard_count() == 1);
 
     auto manifests = n.manifests();
     if (manifests.size() > 0) {
         auto manifest = n.get(manifests[0]);
         auto resource = manifest->all();
-        REQUIRE(resource.size() > 0);
+        EXPECT_TRUE(resource.size() > 0);
 
-        REQUIRE(manifest->contains(resource[0].name));
+        EXPECT_TRUE(manifest->contains(resource[0].name));
         auto ba = manifest->demand(resource[0].name);
-        REQUIRE(ba.size());
-        REQUIRE(manifest->extract(std::regex(resource[0].name.filename()), "tmp/"));
+        EXPECT_TRUE(ba.size());
+        EXPECT_TRUE(manifest->extract(std::regex(resource[0].name.filename()), "tmp/"));
 
         auto rd = manifest->stat(resource[0].name);
-        REQUIRE(rd.mtime == 1648999682);
+        EXPECT_TRUE(rd.mtime == 1648999682);
     }
 }

@@ -1,15 +1,15 @@
-#include <catch2/catch.hpp>
+#include <gtest/gtest.h>
 
 #include <nw/rules/Dice.hpp>
 
 namespace fs = std::filesystem;
 
-TEST_CASE("dice explode", "[rules]")
+TEST(Dice, explode)
 {
     nw::DiceRoll dr1{1, 6};
     auto roll1 = nw::roll_dice_explode(dr1, 6, 1);
-    REQUIRE(roll1 <= 12);
+    EXPECT_LE(roll1, 12);
 
     auto roll2 = nw::roll_dice_explode(dr1, 1, 2);
-    REQUIRE(roll2 <= 18);
+    EXPECT_LE(roll2, 18);
 }

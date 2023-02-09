@@ -1,4 +1,4 @@
-#include <catch2/catch.hpp>
+#include <gtest/gtest.h>
 
 #include <nw/kernel/Kernel.hpp>
 #include <nw/log.hpp>
@@ -10,16 +10,16 @@
 namespace fs = std::filesystem;
 using namespace std::literals;
 
-TEST_CASE("Load Key", "[resources]")
+TEST(Key, Construction)
 {
     auto install_path = nw::kernel::config().options().install;
     if (fs::exists(install_path / "data/nwn_base.key")) {
         nw::Key k{install_path / "data/nwn_base.key"};
-        REQUIRE(k.size() > 0);
-        REQUIRE(k.all().size() > 0);
+        EXPECT_GT(k.size(), 0);
+        EXPECT_GT(k.all().size(), 0);
 
         nw::ByteArray ba = k.demand({"nwscript"sv, nw::ResourceType::nss});
-        REQUIRE(ba.size());
-        REQUIRE(k.extract(std::regex("nwscript\\.nss"), "tmp/") == 1);
+        EXPECT_TRUE(ba.size());
+        EXPECT_EQ(k.extract(std::regex("nwscript\\.nss"), "tmp/"), 1);
     }
 }

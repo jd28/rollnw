@@ -1,5 +1,4 @@
-#define CATCH_CONFIG_RUNNER
-#include <catch2/catch.hpp>
+#include <gtest/gtest.h>
 
 #include <nw/kernel/Kernel.hpp>
 #include <nw/kernel/Objects.hpp>
@@ -43,22 +42,9 @@ int main(int argc, char* argv[])
     nw::kernel::services().start();
     nw::kernel::load_profile(new nwn1::Profile);
 
-    Catch::Session session; // There must be exactly one instance
-
-    // writing to session.configData() here sets defaults
-    // this is the preferred way to set them
-
-    int returnCode = session.applyCommandLine(argc, argv);
-    if (returnCode != 0) // Indicates a command line error
-        return returnCode;
-
-    // writing to session.configData() or session.Config() here
-    // overrides command line args
-    // only do this if you know you need to
-
-    int numFailed = session.run();
-
+    ::testing::InitGoogleTest(&argc, argv);
+    int failed = RUN_ALL_TESTS();
     // Not necessary, but best to make sure it doesn't fault.
     nw::kernel::services().shutdown();
-    return numFailed;
+    return failed;
 }
