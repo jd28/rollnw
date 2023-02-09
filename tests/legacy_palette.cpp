@@ -1,6 +1,6 @@
 #ifdef ROLLNW_ENABLE_LEGACY
 
-#include <catch2/catch.hpp>
+#include <gtest/gtest.h>
 
 #include <nw/legacy/Palette.hpp>
 #include <nw/serialization/Archives.hpp>
@@ -9,46 +9,46 @@
 
 #include <fstream>
 
-TEST_CASE("palette: load creature", "[objects]")
+TEST(Palette, LoadCreature)
 {
     nw::Gff g{"test_data/user/scratch/creaturepalstd.itp"};
     nw::Palette c{g};
-    REQUIRE(c.root.children.size() > 0);
+    EXPECT_TRUE(c.root.children.size() > 0);
     auto node = c.root.children[0];
 
-    REQUIRE(node.type == nw::PaletteNodeType::branch);
-    REQUIRE(node.strref != std::numeric_limits<uint32_t>::max());
-    REQUIRE(node.children.size() > 0);
+    EXPECT_EQ(node.type, nw::PaletteNodeType::branch);
+    EXPECT_TRUE(node.strref != std::numeric_limits<uint32_t>::max());
+    EXPECT_TRUE(node.children.size() > 0);
 
     auto catnode = node.children[0];
-    REQUIRE(catnode.type == nw::PaletteNodeType::category);
-    REQUIRE(catnode.children.size() > 0);
+    EXPECT_EQ(catnode.type, nw::PaletteNodeType::category);
+    EXPECT_TRUE(catnode.children.size() > 0);
 
     auto bluenode = catnode.children[0];
-    REQUIRE(bluenode.type == nw::PaletteNodeType::blueprint);
-    REQUIRE(bluenode.resref == "nw_battdevour");
-    REQUIRE(bluenode.cr >= 11.0f);
-    REQUIRE(bluenode.faction == "Hostile");
+    EXPECT_EQ(bluenode.type, nw::PaletteNodeType::blueprint);
+    EXPECT_EQ(bluenode.resref, "nw_battdevour");
+    EXPECT_TRUE(bluenode.cr >= 11.0f);
+    EXPECT_EQ(bluenode.faction, "Hostile");
 
     nw::Gff g2{"test_data/user/scratch/creaturepal.itp"};
     nw::Palette p2{g2};
-    REQUIRE(p2.valid());
-    REQUIRE(p2.resource_type == nw::ResourceType::utc);
+    EXPECT_TRUE(p2.valid());
+    EXPECT_EQ(p2.resource_type, nw::ResourceType::utc);
 }
 
-TEST_CASE("palette: load tileset", "[objects]")
+TEST(Palette, LoadTileset)
 {
     nw::Gff g{"test_data/user/scratch/tde01palstd.itp"};
     nw::Palette c{g};
-    REQUIRE(c.valid());
-    REQUIRE(c.root.children.size() > 0);
+    EXPECT_TRUE(c.valid());
+    EXPECT_TRUE(c.root.children.size() > 0);
 }
 
-TEST_CASE("palette: to json")
+TEST(Palette, JsonConversion)
 {
     nw::Gff g{"test_data/user/scratch/tde01palstd.itp"};
     nw::Palette c{g};
-    REQUIRE(c.valid());
+    EXPECT_TRUE(c.valid());
     auto j = c.to_json(nw::ResourceType::set);
     std::ofstream f{"tmp/tde01palstd.itp.json"};
     f << std::setw(4) << j;

@@ -1,4 +1,4 @@
-#include <catch2/catch.hpp>
+#include <gtest/gtest.h>
 
 #include <nw/kernel/EffectSystem.hpp>
 #include <nw/kernel/EventSystem.hpp>
@@ -25,41 +25,41 @@
 namespace fs = std::filesystem;
 namespace nwk = nw::kernel;
 
-TEST_CASE("player: level history", "[objects]")
+TEST(Player, LevelHistory)
 {
     auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
-    REQUIRE(mod);
+    EXPECT_TRUE(mod);
 
     auto pl = nwk::objects().load_player("CDKEY", "testsorcpc1");
-    REQUIRE(pl);
-    REQUIRE(pl->history.entries.size() == 15);
-    REQUIRE(pl->history.entries[0].known_spells.size() == 6);
+    EXPECT_TRUE(pl);
+    EXPECT_EQ(pl->history.entries.size(), 15);
+    EXPECT_EQ(pl->history.entries[0].known_spells.size(), 6);
 
     nwk::unload_module();
 }
 
-TEST_CASE("player: attack_bonus", "[objects]")
+TEST(Player, AttackBonus)
 {
     auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
-    REQUIRE(mod);
+    EXPECT_TRUE(mod);
 
     auto pl = nwk::objects().load_player("CDKEY", "testbardrddpc1");
-    REQUIRE(pl);
-    REQUIRE(nwn1::base_attack_bonus(pl) == 10);
+    EXPECT_TRUE(pl);
+    EXPECT_EQ(nwn1::base_attack_bonus(pl), 10);
 
     nwk::unload_module();
 }
 
 #ifdef ROLLNW_ENABLE_LEGACY
 
-TEST_CASE("player: to gffjson", "[objects]")
+TEST(Player, GffJsonSerialize)
 {
     auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
-    REQUIRE(mod);
+    EXPECT_TRUE(mod);
 
     auto ba = nwk::resman().demand_server_vault("CDKEY", "testwizardpc1");
     nw::Gff g{std::move(ba)};
-    REQUIRE(g.valid());
+    EXPECT_TRUE(g.valid());
 
     auto j = nw::gff_to_gffjson(g);
     std::ofstream out{"tmp/testwizardpc1.bic.gffjson"};

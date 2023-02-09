@@ -1,4 +1,4 @@
-#include <catch2/catch.hpp>
+#include <gtest/gtest.h>
 
 #include <nw/kernel/Objects.hpp>
 #include <nw/objects/Item.hpp>
@@ -12,81 +12,81 @@
 
 namespace fs = std::filesystem;
 
-TEST_CASE("item: load armor item", "[objects]")
+TEST(Item, GffDeserializeArmor)
 {
     auto mod = nw::kernel::load_module("test_data/user/modules/DockerDemo.mod");
-    REQUIRE(mod);
+    EXPECT_TRUE(mod);
 
     auto ent = nw::kernel::objects().load<nw::Item>(fs::path("test_data/user/development/cloth028.uti"));
-    REQUIRE(ent);
+    EXPECT_TRUE(ent);
     auto light = nw::kernel::objects().load<nw::Item>("nw_maarcl004"sv);
-    REQUIRE(light);
+    EXPECT_TRUE(light);
     auto medium = nw::kernel::objects().load<nw::Item>("nw_maarcl040"sv);
-    REQUIRE(medium);
+    EXPECT_TRUE(medium);
     auto heavy1 = nw::kernel::objects().load<nw::Item>("x2_mdrowar030"sv);
-    REQUIRE(heavy1);
+    EXPECT_TRUE(heavy1);
     auto heavy2 = nw::kernel::objects().load<nw::Item>("x2_it_adaplate"sv);
-    REQUIRE(heavy2);
+    EXPECT_TRUE(heavy2);
 
-    REQUIRE(ent->common.resref == "cloth028");
-    REQUIRE(ent->properties.size() > 0);
-    REQUIRE(ent->model_type == nw::ItemModelType::armor);
+    EXPECT_EQ(ent->common.resref, "cloth028");
+    EXPECT_TRUE(ent->properties.size() > 0);
+    EXPECT_EQ(ent->model_type, nw::ItemModelType::armor);
 
-    REQUIRE(nwn1::calculate_item_ac(ent) == 0);
-    REQUIRE(nwn1::calculate_item_ac(light) == 1);
-    REQUIRE(nwn1::calculate_item_ac(medium) == 5);
-    REQUIRE(nwn1::calculate_item_ac(heavy1) == 7);
-    REQUIRE(nwn1::calculate_item_ac(heavy2) == 8);
+    EXPECT_EQ(nwn1::calculate_item_ac(ent), 0);
+    EXPECT_EQ(nwn1::calculate_item_ac(light), 1);
+    EXPECT_EQ(nwn1::calculate_item_ac(medium), 5);
+    EXPECT_EQ(nwn1::calculate_item_ac(heavy1), 7);
+    EXPECT_EQ(nwn1::calculate_item_ac(heavy2), 8);
 
     nw::kernel::unload_module();
 }
 
-TEST_CASE("item: local vars", "[objects]")
+TEST(Item, LocalVariables)
 {
     auto mod = nw::kernel::load_module("test_data/user/modules/DockerDemo.mod");
-    REQUIRE(mod);
+    EXPECT_TRUE(mod);
 
     auto ent = nw::kernel::objects().load<nw::Item>(fs::path("test_data/user/development/cloth028.uti"));
-    REQUIRE(ent);
-    REQUIRE(ent->common.locals.size() > 0);
-    REQUIRE(ent->common.locals.get_float("test1") == 1.5f);
-    REQUIRE(ent->common.locals.get_float("doesn't have") == 0.0f);
-    REQUIRE(ent->common.locals.get_string("stringtest") == "0");
+    EXPECT_TRUE(ent);
+    EXPECT_GT(ent->common.locals.size(), 0);
+    EXPECT_EQ(ent->common.locals.get_float("test1"), 1.5f);
+    EXPECT_EQ(ent->common.locals.get_float("doesn't have"), 0.0f);
+    EXPECT_EQ(ent->common.locals.get_string("stringtest"), "0");
     ent->common.locals.delete_string("stringtest");
-    REQUIRE(ent->common.locals.get_string("stringtest") == "");
+    EXPECT_EQ(ent->common.locals.get_string("stringtest"), "");
 
     ent->common.locals.set_string("test", "1");
-    REQUIRE(ent->common.locals.get_string("test") == "1");
+    EXPECT_EQ(ent->common.locals.get_string("test"), "1");
     ent->common.locals.set_int("test", 1);
-    REQUIRE(ent->common.locals.get_int("test") == 1);
+    EXPECT_EQ(ent->common.locals.get_int("test"), 1);
     ent->common.locals.set_float("test", 1.0);
-    REQUIRE(ent->common.locals.get_float("test") == 1.0f);
+    EXPECT_EQ(ent->common.locals.get_float("test"), 1.0f);
 }
 
-TEST_CASE("item: load layered item", "[objects]")
+TEST(Item, GffDeserializeLayered)
 {
     auto ent = nw::kernel::objects().load<nw::Item>(fs::path("test_data/user/development/wduersc004.uti"));
-    REQUIRE(ent);
+    EXPECT_TRUE(ent);
 
-    REQUIRE(ent->common.resref == "wduersc004");
-    REQUIRE(ent->properties.size() > 0);
-    REQUIRE(ent->model_type == nw::ItemModelType::composite);
+    EXPECT_EQ(ent->common.resref, "wduersc004");
+    EXPECT_GT(ent->properties.size(), 0);
+    EXPECT_EQ(ent->model_type, nw::ItemModelType::composite);
 }
 
-TEST_CASE("item: load simple item", "[objects]")
+TEST(Item, GffDeserializeSimple)
 {
     auto ent = nw::kernel::objects().load<nw::Item>(fs::path("test_data/user/development/pl_aleu_shuriken.uti"));
-    REQUIRE(ent);
+    EXPECT_TRUE(ent);
 
-    REQUIRE(ent->common.resref == "pl_aleu_shuriken");
-    REQUIRE(ent->properties.size() > 0);
-    REQUIRE(ent->model_type == nw::ItemModelType::simple);
+    EXPECT_EQ(ent->common.resref, "pl_aleu_shuriken");
+    EXPECT_GT(ent->properties.size(), 0);
+    EXPECT_EQ(ent->model_type, nw::ItemModelType::simple);
 }
 
-TEST_CASE("item: to_json", "[objects]")
+TEST(Item, JsonSerialize)
 {
     auto ent = nw::kernel::objects().load<nw::Item>(fs::path("test_data/user/development/cloth028.uti"));
-    REQUIRE(ent);
+    EXPECT_TRUE(ent);
 
     nlohmann::json j;
     nw::Item::serialize(ent, j, nw::SerializationProfile::blueprint);
@@ -95,50 +95,50 @@ TEST_CASE("item: to_json", "[objects]")
     f << std::setw(4) << j;
 }
 
-TEST_CASE("item: json to and from", "[objects]")
+TEST(Item, JsonRoundTrip)
 {
     auto ent = nw::kernel::objects().load<nw::Item>(fs::path("test_data/user/development/cloth028.uti"));
-    REQUIRE(ent);
+    EXPECT_TRUE(ent);
 
     nlohmann::json j;
     nw::Item::serialize(ent, j, nw::SerializationProfile::blueprint);
 
     nw::Item ent2;
-    REQUIRE(nw::Item::deserialize(&ent2, j, nw::SerializationProfile::blueprint));
+    EXPECT_TRUE(nw::Item::deserialize(&ent2, j, nw::SerializationProfile::blueprint));
 
     nlohmann::json j2;
     nw::Item::serialize(&ent2, j2, nw::SerializationProfile::blueprint);
 
-    REQUIRE(j == j2);
+    EXPECT_EQ(j, j2);
 }
 
-TEST_CASE("item: gff round trip", "[objects]")
+TEST(Item, GffRoundTrip)
 {
     auto ent = nw::kernel::objects().load<nw::Item>(fs::path("test_data/user/development/cloth028.uti"));
-    REQUIRE(ent);
+    EXPECT_TRUE(ent);
 
     nw::Gff g("test_data/user/development/cloth028.uti");
-    REQUIRE(g.valid());
+    EXPECT_TRUE(g.valid());
 
     nw::GffBuilder oa = serialize(ent, nw::SerializationProfile::blueprint);
     oa.write_to("tmp/cloth028.uti");
 
     nw::Gff g2{"tmp/cloth028.uti"};
-    REQUIRE(g2.valid());
+    EXPECT_TRUE(g2.valid());
 
     // Problem: local vars arent always saved in same order
-    // REQUIRE(nw::gff_to_gffjson(g) == nw::gff_to_gffjson(g2));
+    // EXPEEQRUE(nw::gff_to_gffjson(g) , nw::gff_to_gffjson(g2));
 
-    REQUIRE(oa.header.struct_offset == g.head_->struct_offset);
-    REQUIRE(oa.header.struct_count == g.head_->struct_count);
-    REQUIRE(oa.header.field_offset == g.head_->field_offset);
-    REQUIRE(oa.header.field_count == g.head_->field_count);
-    REQUIRE(oa.header.label_offset == g.head_->label_offset);
-    REQUIRE(oa.header.label_count == g.head_->label_count);
-    REQUIRE(oa.header.field_data_offset == g.head_->field_data_offset);
-    REQUIRE(oa.header.field_data_count == g.head_->field_data_count);
-    REQUIRE(oa.header.field_idx_offset == g.head_->field_idx_offset);
-    REQUIRE(oa.header.field_idx_count == g.head_->field_idx_count);
-    REQUIRE(oa.header.list_idx_offset == g.head_->list_idx_offset);
-    REQUIRE(oa.header.list_idx_count == g.head_->list_idx_count);
+    EXPECT_EQ(oa.header.struct_offset, g.head_->struct_offset);
+    EXPECT_EQ(oa.header.struct_count, g.head_->struct_count);
+    EXPECT_EQ(oa.header.field_offset, g.head_->field_offset);
+    EXPECT_EQ(oa.header.field_count, g.head_->field_count);
+    EXPECT_EQ(oa.header.label_offset, g.head_->label_offset);
+    EXPECT_EQ(oa.header.label_count, g.head_->label_count);
+    EXPECT_EQ(oa.header.field_data_offset, g.head_->field_data_offset);
+    EXPECT_EQ(oa.header.field_data_count, g.head_->field_data_count);
+    EXPECT_EQ(oa.header.field_idx_offset, g.head_->field_idx_offset);
+    EXPECT_EQ(oa.header.field_idx_count, g.head_->field_idx_count);
+    EXPECT_EQ(oa.header.list_idx_offset, g.head_->list_idx_offset);
+    EXPECT_EQ(oa.header.list_idx_count, g.head_->list_idx_count);
 }

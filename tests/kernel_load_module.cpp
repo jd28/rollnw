@@ -1,4 +1,4 @@
-#include <catch2/catch.hpp>
+#include <gtest/gtest.h>
 
 #include <nw/kernel/Objects.hpp>
 #include <nw/log.hpp>
@@ -10,43 +10,43 @@
 
 using namespace std::literals;
 
-TEST_CASE("load module from .mod", "[kernel]")
+TEST(Kernel, LoadModuleErf)
 {
     auto mod = nw::kernel::load_module("test_data/user/modules/DockerDemo.mod");
-    REQUIRE(mod);
-    REQUIRE(mod->area_count() == 1);
+    EXPECT_TRUE(mod);
+    EXPECT_TRUE(mod->area_count() == 1);
     auto area = mod->get_area(0);
-    REQUIRE(area);
-    REQUIRE(area->common.resref == "start");
+    EXPECT_TRUE(area);
+    EXPECT_TRUE(area->common.resref == "start");
     nw::kernel::unload_module();
 }
 
-TEST_CASE("load module from directory", "[kernel]")
+TEST(Kernel, LoadModuleDirectory)
 {
     auto mod = nw::kernel::load_module("test_data/user/modules/module_as_dir/");
-    REQUIRE(mod);
-    REQUIRE(mod->area_count() == 1);
+    EXPECT_TRUE(mod);
+    EXPECT_EQ(mod->area_count(), 1);
     auto area = mod->get_area(0);
-    REQUIRE(area->common.resref == "test_area");
-    REQUIRE(area->creatures.size() > 0);
-    REQUIRE(area->creatures[0]->hp_max == 110);
+    EXPECT_EQ(area->common.resref, "test_area");
+    EXPECT_TRUE(area->creatures.size() > 0);
+    EXPECT_EQ(area->creatures[0]->hp_max, 110);
     auto cre = nw::kernel::objects().load<nw::Creature>("test_creature"sv);
-    REQUIRE(cre);
+    EXPECT_TRUE(cre);
 
     nw::kernel::unload_module();
 }
 
-TEST_CASE("load module from .zip", "[kernel]")
+TEST(Kernel, LoadModuleZip)
 {
     auto mod = nw::kernel::load_module("test_data/user/modules/module_as_zip.zip");
-    REQUIRE(mod);
-    REQUIRE(mod->area_count() == 1);
+    EXPECT_TRUE(mod);
+    EXPECT_EQ(mod->area_count(), 1);
     auto area = mod->get_area(0);
-    REQUIRE(area->common.resref == "test_area");
-    REQUIRE(area->creatures.size() > 0);
-    REQUIRE(area->creatures[0]->hp_max == 110);
+    EXPECT_EQ(area->common.resref, "test_area");
+    EXPECT_TRUE(area->creatures.size() > 0);
+    EXPECT_EQ(area->creatures[0]->hp_max, 110);
     auto cre = nw::kernel::objects().load<nw::Creature>("test_creature"sv);
-    REQUIRE(cre);
+    EXPECT_TRUE(cre);
 
     nw::kernel::unload_module();
 }

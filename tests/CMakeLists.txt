@@ -1,8 +1,7 @@
 find_package(Threads)
+find_package(GTest CONFIG REQUIRED)
 
 file(COPY test_data DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
-
-add_definitions(-DCATCH_AMALGAMATED_CUSTOM_MAIN)
 
 # Need .cpp extension for ctest
 add_executable(rollnw_test
@@ -22,8 +21,8 @@ add_executable(rollnw_test
     kernel_rules.cpp
     kernel_scripts.cpp
     kernel_script_cache.cpp
-    kernel_twoda_cache.cpp
     kernel_strings.cpp
+    kernel_twoda_cache.cpp
 
     legacy_image.cpp
     legacy_locstring.cpp
@@ -78,11 +77,11 @@ target_link_libraries(rollnw_test PRIVATE
     nw
     nw-profiles
     Threads::Threads
-    catch2)
+    GTest::gtest)
 
 if(CMAKE_HOST_UNIX)
     target_link_libraries(rollnw_test PRIVATE dl)
 endif()
 
-include(../external/catch2/Catch.cmake)
-catch_discover_tests(rollnw_test)
+include(GoogleTest)
+gtest_discover_tests(rollnw_test)

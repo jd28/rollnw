@@ -72,7 +72,6 @@ add_subdirectory(lib/nw)
 add_subdirectory(profiles)
 
 if (ROLLNW_BUILD_TESTS)
-add_subdirectory(external/catch2)
 include(CTest)
 enable_testing()
 add_subdirectory(tests)

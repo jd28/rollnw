@@ -1,11 +1,11 @@
-#include <catch2/catch.hpp>
+#include <gtest/gtest.h>
 
 #include <nw/legacy/LocString.hpp>
 #include <nw/log.hpp>
 
 #include <nlohmann/json.hpp>
 
-TEST_CASE("locstring: to/from_json", "[i18n]")
+TEST(LocString, JsonConversion)
 {
     nw::LocString l{1};
     l.add(nw::LanguageID::english, "test");
@@ -19,8 +19,8 @@ TEST_CASE("locstring: to/from_json", "[i18n]")
 
     nlohmann::json locjson = l;
 
-    REQUIRE(locjson == j);
+    EXPECT_TRUE(locjson == j);
 
     nw::LocString l2 = locjson.get<nw::LocString>();
-    REQUIRE(l2 == l);
+    EXPECT_TRUE(l2 == l);
 }

@@ -1,7 +1,7 @@
 
 #ifdef ROLLNW_ENABLE_LEGACY
 
-#include <catch2/catch.hpp>
+#include <gtest/gtest.h>
 
 #include <nw/kernel/Resources.hpp>
 #include <nw/legacy/Plt.hpp>
@@ -9,18 +9,18 @@
 
 #include <filesystem>
 
-TEST_CASE("Parse plt", "[formats]")
+TEST(Plt, Load)
 {
     nw::Plt plt{"test_data/user/development/pmh0_head001.plt"};
-    REQUIRE(plt.valid());
-    REQUIRE(plt.height() == 256);
-    REQUIRE(plt.width() == 256);
+    EXPECT_TRUE(plt.valid());
+    EXPECT_EQ(plt.height(), 256);
+    EXPECT_EQ(plt.width(), 256);
 
-    REQUIRE(nw::kernel::resman().palette_texture(nw::plt_layer_skin));
+    EXPECT_TRUE(nw::kernel::resman().palette_texture(nw::plt_layer_skin));
     auto color = nw::decode_plt_color(plt, {0}, 0, 0);
-    REQUIRE(size_t(color[0]) == 139);
-    REQUIRE(size_t(color[1]) == 102);
-    REQUIRE(size_t(color[2]) == 81);
+    EXPECT_EQ(size_t(color[0]), 139);
+    EXPECT_EQ(size_t(color[1]), 102);
+    EXPECT_EQ(size_t(color[2]), 81);
 }
 
 #endif // ROLLNW_ENABLE_LEGACY
