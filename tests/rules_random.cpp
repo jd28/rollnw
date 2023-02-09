@@ -2,8 +2,6 @@
 
 #include <nw/rules/Dice.hpp>
 
-namespace fs = std::filesystem;
-
 TEST(Dice, explode)
 {
     nw::DiceRoll dr1{1, 6};
