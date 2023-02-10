@@ -31,7 +31,7 @@ Services::Services()
     , scripts{new ScriptSystem}
 #endif
 {
-    LOG_F(INFO, "kernel: initializing default services");
+    //LOG_F(INFO, "kernel: initializing default services");
 }
 
 void Services::start()
