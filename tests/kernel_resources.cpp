@@ -18,6 +18,7 @@ TEST(KernelResources, AddContainer)
     EXPECT_TRUE(rm->add_container(&e, false));
     EXPECT_TRUE(rm->contains({"module"sv, nw::ResourceType::ifo}));
     EXPECT_EQ(rm->size(), sz + e.size());
+    delete rm;
 }
 
 TEST(KernelResources, Extract)
@@ -31,6 +32,7 @@ TEST(KernelResources, Extract)
     EXPECT_EQ(rm->extract(std::regex(".*"), "tmp"), 37);
     rm->clear_containers();
     EXPECT_FALSE(rm->contains({"test_area"sv, nw::ResourceType::are}));
+    delete rm;
 }
 
 TEST(KernelResources, LoadModule)
@@ -48,6 +50,7 @@ TEST(KernelResources, LoadModule)
         EXPECT_TRUE(rm->load_module("test_data/user/modules/DockerDemo.mod"));
         rm->unload_module();
     }
+    delete rm;
 }
 
 TEST(KernelResources, LoadPlayerCharacter)
@@ -65,4 +68,22 @@ TEST(KernelResources, LoadPlayerCharacter)
     EXPECT_FALSE(ba.size());
 
     nwk::unload_module();
+}
+
+TEST(KernelResources, visit)
+{
+    auto rm = new nw::kernel::Resources;
+    auto sz = rm->size();
+    nw::Erf e("test_data/user/modules/DockerDemo.mod");
+    EXPECT_TRUE(rm->add_container(&e, false));
+    EXPECT_TRUE(rm->contains({"module"sv, nw::ResourceType::ifo}));
+
+    size_t count = 0;
+    auto visitor = [&count](const nw::Resource&) {
+        ++count;
+    };
+
+    rm->visit(visitor);
+    EXPECT_EQ(rm->size(), sz + e.size());
+    delete rm;
 }

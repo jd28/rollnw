@@ -103,3 +103,16 @@ TEST(Erf, save_as)
     EXPECT_EQ(ba3, ba4);
     e2.extract_by_glob("build.txt", "tmp/");
 }
+
+TEST(Erf, visit)
+{
+    Erf e("test_data/user/modules/DockerDemo.mod");
+    EXPECT_TRUE(e.valid());
+    EXPECT_EQ(e.name(), "DockerDemo.mod");
+    size_t count = 0;
+    auto visitor = [&count](const nw::Resource&) {
+        ++count;
+    };
+    e.visit(visitor);
+    EXPECT_EQ(e.size(), count);
+}

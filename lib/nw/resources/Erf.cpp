@@ -290,6 +290,13 @@ ResourceDescriptor Erf::stat(const Resource& res) const
     return result;
 }
 
+void Erf::visit(std::function<void(const Resource&)> callback) const noexcept
+{
+    for (auto it : elements_) {
+        callback(it.first);
+    }
+}
+
 // ---- Private ---------------------------------------------------------------
 
 #define CHECK_OFFSET(offset)                                 \

@@ -181,6 +181,30 @@ ResourceDescriptor NWSyncManifest::stat(const Resource& res) const
     return result;
 }
 
+void NWSyncManifest::visit(std::function<void(const Resource&)> callback) const noexcept
+{
+    sqlite3_stmt* stmt = nullptr;
+    const char* tail = nullptr;
+    SCOPE_EXIT([stmt] { sqlite3_finalize(stmt); });
+    const char sql[] = "SELECT resref, restype from manifest_resrefs where manifest_sha1 = ?";
+
+    if (SQLITE_OK != sqlite3_prepare_v2(parent_->meta(), sql, sizeof(sql), &stmt, &tail)) {
+        LOG_F(ERROR, "sqlite3 error: {}", sqlite3_errmsg(parent_->meta()));
+        return;
+    }
+
+    if (SQLITE_OK != sqlite3_bind_text(stmt, 1, manifest_.c_str(), static_cast<int>(manifest_.size()), nullptr)) {
+        LOG_F(ERROR, "sqlite3 error: {}", sqlite3_errmsg(parent_->meta()));
+        return;
+    }
+
+    while (sqlite3_step(stmt) == SQLITE_ROW) {
+        callback(Resource{std::string_view(reinterpret_cast<const char*>(sqlite3_column_text(stmt, 0))),
+            static_cast<ResourceType::type>(sqlite3_column_int(stmt, 1))});
+    }
+}
+
+// == NWSync ==================================================================
 NWSync::NWSync()
     : meta_{nullptr, detail::sqlite3_deleter}
 {

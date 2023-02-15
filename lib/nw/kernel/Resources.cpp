@@ -303,6 +303,13 @@ ResourceDescriptor Resources::stat(const Resource& res) const
     return rd;
 }
 
+void Resources::visit(std::function<void(const Resource&)> callback) const noexcept
+{
+    for (auto [cont, type, user] : search_) {
+        cont->visit(callback);
+    }
+}
+
 #ifdef ROLLNW_ENABLE_LEGACY
 void Resources::load_palette_textures()
 {

@@ -26,3 +26,18 @@ TEST(Directory, Construction)
     auto rd = d.stat(Resource{"test"sv, ResourceType::nss});
     EXPECT_EQ(ba.size(), rd.size);
 }
+
+TEST(Directory, visit)
+{
+    std::filesystem::path p{"./test_data/user/development/"};
+    Directory d(p);
+    EXPECT_TRUE(d.valid());
+
+    size_t count = 0;
+    auto visitor = [&count](const nw::Resource&) {
+        ++count;
+    };
+
+    d.visit(visitor);
+    EXPECT_EQ(d.size(), count);
+}

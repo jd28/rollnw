@@ -45,6 +45,9 @@ struct Container {
     /// Return true if loaded, false if not.
     virtual bool valid() const noexcept = 0;
 
+    /// Visits all resources in a container
+    virtual void visit(std::function<void(const Resource&)> callback) const noexcept = 0;
+
     /// Get container working directory
     const std::filesystem::path& working_directory() const;
 

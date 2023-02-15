@@ -127,6 +127,13 @@ ResourceDescriptor Zip::stat(const Resource& res) const
     return rd;
 }
 
+void Zip::visit(std::function<void(const Resource&)> callback) const noexcept
+{
+    for (const auto& it : elements_) {
+        callback(it.resref);
+    }
+}
+
 bool Zip::load()
 {
     file_ = unzOpen(path_.c_str());

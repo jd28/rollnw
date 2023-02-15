@@ -19,3 +19,17 @@ TEST(Zip, Construction)
 
     EXPECT_THROW(nw::Zip{"test_data/user/development/non-extant.zip"}, std::runtime_error);
 }
+
+TEST(Zip, visit)
+{
+    nw::Zip z{"test_data/user/modules/module_as_zip.zip"};
+    EXPECT_TRUE(z.valid());
+
+    size_t count = 0;
+    auto visitor = [&count](const nw::Resource&) {
+        ++count;
+    };
+
+    z.visit(visitor);
+    EXPECT_EQ(z.size(), count);
+}

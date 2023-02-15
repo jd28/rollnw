@@ -22,8 +22,10 @@ struct Directory : public Container {
     virtual int extract(const std::regex& pattern, const std::filesystem::path& output) const override;
     virtual const std::string& name() const override { return name_; };
     virtual const std::string& path() const override { return path_string_; };
+    virtual size_t size() const override;
     virtual ResourceDescriptor stat(const Resource& res) const override;
     virtual bool valid() const noexcept override { return is_valid_; }
+    virtual void visit(std::function<void(const Resource&)> callback) const noexcept override;
 
 private:
     std::filesystem::path path_;

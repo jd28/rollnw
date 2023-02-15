@@ -117,6 +117,25 @@ int Directory::extract(const std::regex& pattern, const fs::path& output) const
     return count;
 }
 
+size_t Directory::size() const
+{
+    size_t result = 0;
+    for (auto it : fs::directory_iterator{path_}) {
+        if (!it.is_regular_file()) { continue; }
+
+        auto fn = it.path().filename();
+
+        ResourceType::type t = ResourceType::from_extension(fn.extension().string());
+        if (t == ResourceType::invalid) { continue; }
+
+        auto s = fn.stem().string();
+        if (s.length() > 16) { continue; }
+        ++result;
+    }
+
+    return result;
+}
+
 ResourceDescriptor Directory::stat(const Resource& res) const
 {
     ResourceDescriptor result;
@@ -128,6 +147,23 @@ ResourceDescriptor Directory::stat(const Resource& res) const
         result.size = fs::file_size(p);
     }
     return result;
+}
+
+void Directory::visit(std::function<void(const Resource&)> callback) const noexcept
+{
+    for (auto it : fs::directory_iterator{path_}) {
+        if (!it.is_regular_file()) { continue; }
+
+        auto fn = it.path().filename();
+
+        ResourceType::type t = ResourceType::from_extension(fn.extension().string());
+        if (t == ResourceType::invalid) { continue; }
+
+        auto s = fn.stem().string();
+        if (s.length() > 16) { continue; }
+
+        callback(Resource{s, t});
+    }
 }
 
 } // namespace nw

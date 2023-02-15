@@ -23,3 +23,19 @@ TEST(Key, Construction)
         EXPECT_EQ(k.extract(std::regex("nwscript\\.nss"), "tmp/"), 1);
     }
 }
+
+TEST(Key, visit)
+{
+
+    auto install_path = nw::kernel::config().options().install;
+    if (fs::exists(install_path / "data/nwn_base.key")) {
+        nw::Key k{install_path / "data/nwn_base.key"};
+
+        size_t count = 0;
+        auto visitor = [&count](const nw::Resource&) {
+            ++count;
+        };
+        k.visit(visitor);
+        EXPECT_EQ(k.size(), count);
+    }
+}
