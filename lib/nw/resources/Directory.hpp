@@ -6,8 +6,6 @@
 
 namespace nw {
 
-namespace fs = std::filesystem;
-
 // Note that in the actual game, until the advent of the DEVELOPMENT folder, when a
 // directory container was instantiated, the directory would be walked, and a static
 // view of it would be created.  This only works, so far, as the DEVELOPMENT folder:

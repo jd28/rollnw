@@ -14,6 +14,8 @@
 #include <filesystem>
 #include <memory>
 
+namespace fs = std::filesystem;
+
 namespace nw::kernel {
 
 inline const Container* get_container(const LocatorVariant& var)

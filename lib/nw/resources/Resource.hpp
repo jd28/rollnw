@@ -15,7 +15,7 @@ namespace nw {
 
 /**
  * @brief A ``nw::Resource`` consists of a ``nw::Resref`` and a ``nw::ResourceType``.
- * Since NWN1/EE doesn't have any notion of hierarchical originzation (paths, etc),
+ * Since NWN1/EE doesn't have any notion of hierarchical organization (paths, etc),
  * it represents a fully-qualified resource identifier.
  */
 struct Resource {
