@@ -119,7 +119,7 @@ bool BinaryParser::parse_model(uint32_t offset)
             return false;
         }
 
-        offset += 4;
+        off += 4;
     }
 
     return true;

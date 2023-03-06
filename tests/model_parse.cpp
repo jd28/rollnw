@@ -158,6 +158,24 @@ TEST(Mdl, ParseASCII2)
     EXPECT_TRUE(mdl31.valid());
 }
 
+TEST(Model, Animations)
+{
+    nw::model::Mdl mdl{"test_data/user/development/a_ba.mdl"};
+    EXPECT_TRUE(mdl.valid());
+    EXPECT_EQ(mdl.model.animations[0]->name, "walk");
+    EXPECT_EQ(mdl.model.animations[1]->name, "walk_shieldl");
+
+    nw::model::Mdl mdl1{"test_data/user/development/c_bodak.mdl"};
+    EXPECT_TRUE(mdl1.valid());
+    EXPECT_TRUE(mdl1.model.supermodel);
+
+    std::set<std::string> animation_names;
+    for (const auto& it : mdl1.model.supermodel->model.animations) {
+        animation_names.insert(it->name);
+    }
+    EXPECT_EQ(animation_names.size(), mdl1.model.supermodel->model.animations.size());
+}
+
 // TEST("model: write to file", "[model]")
 // {
 //     nw::model::Mdl mdl{"test_data/user/development/alt_dfa19.mdl"};
