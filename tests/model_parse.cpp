@@ -32,7 +32,7 @@ TEST(Mdl, ParseASCII)
     EXPECT_EQ(mdl.model.animations[0]->events.size(), 16);
     EXPECT_EQ(mdl.model.animations[0]->anim_root, "rootdummy");
 
-    auto anim = mdl.model.find_animation(std::regex("kdbck"));
+    auto anim = mdl.model.find_animation("kdbck");
     EXPECT_TRUE(anim);
     auto root_re = std::regex(".*rootdummy.*", std::regex_constants::icase);
     auto anode = anim->find(root_re);

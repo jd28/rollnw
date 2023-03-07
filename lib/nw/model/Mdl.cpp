@@ -335,19 +335,19 @@ Model::Model()
 {
 }
 
-Animation* Model::find_animation(const std::regex& re)
+Animation* Model::find_animation(std::string_view name)
 {
     for (auto& node : animations) {
-        if (std::regex_match(node->name, re)) {
+        if (string::icmp(node->name, name)) {
             return node.get();
         }
     }
     return nullptr;
 }
 
-const Animation* Model::find_animation(const std::regex& re) const
+const Animation* Model::find_animation(std::string_view name) const
 {
-    return const_cast<Model*>(this)->find_animation(re);
+    return const_cast<Model*>(this)->find_animation(name);
 }
 
 Animation::Animation(std::string name_)

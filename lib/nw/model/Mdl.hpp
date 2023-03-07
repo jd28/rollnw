@@ -511,8 +511,8 @@ struct Model : public Geometry {
 
     Model& operator=(Model&) = delete;
 
-    Animation* find_animation(const std::regex& re);
-    const Animation* find_animation(const std::regex& re) const;
+    Animation* find_animation(std::string_view name);
+    const Animation* find_animation(std::string_view name) const;
 
     ModelClass classification;
     bool ignorefog;
