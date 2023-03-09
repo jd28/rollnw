@@ -174,6 +174,16 @@ TEST(Model, Animations)
         animation_names.insert(it->name);
     }
     EXPECT_EQ(animation_names.size(), mdl1.model.supermodel->model.animations.size());
+
+    nw::model::Mdl mdl2{"test_data/user/development/a_fa.mdl"};
+    EXPECT_TRUE(mdl2.valid());
+    EXPECT_GT(mdl.model.animations.size(), 0);
+    auto walk = mdl.model.find_animation("walk");
+    EXPECT_TRUE(walk);
+    auto node = walk->find(std::regex("torso_g"));
+    EXPECT_TRUE(node);
+    auto cont = node->get_controller(nw::model::ControllerType::Orientation, true);
+    EXPECT_NEAR(cont.data[0], -0.0916844, 0.0001);
 }
 
 // TEST("model: write to file", "[model]")

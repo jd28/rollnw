@@ -225,8 +225,19 @@ void Node::add_controller_data(std::string_view name_, uint32_t type_, std::vect
         controller_data.push_back(f);
     }
 
-    for (float f : data_) {
-        controller_data.push_back(f);
+    // Four columns is an axis-angle (in radians) rotation, convert to quaternion
+    if (columns_ == 4) {
+        for (size_t i = 0; i < data_.size(); i += 4) {
+            auto quat = glm::angleAxis(data_[i + 3], glm::vec3{data_[i + 0], data_[i + 1], data_[i + 2]});
+            controller_data.push_back(quat.x);
+            controller_data.push_back(quat.y);
+            controller_data.push_back(quat.z);
+            controller_data.push_back(quat.w);
+        }
+    } else {
+        for (float f : data_) {
+            controller_data.push_back(f);
+        }
     }
 }
 
