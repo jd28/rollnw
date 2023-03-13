@@ -122,13 +122,13 @@ TEST(Mdl, ParseASCII2)
     EXPECT_TRUE(mdl20.valid());
 
     nw::model::Mdl mdl21{"test_data/user/development/tbw01_c09_01.mdl"};
-    EXPECT_TRUE(mdl21.valid());
+    EXPECT_FALSE(mdl21.valid()); // Weird bitmap value
 
     nw::model::Mdl mdl22{"test_data/user/development/fx_lanshard3.mdl"};
     EXPECT_TRUE(mdl22.valid());
 
     nw::model::Mdl mdl23{"test_data/user/development/c_orcus.mdl"};
-    EXPECT_TRUE(mdl23.valid());
+    EXPECT_FALSE(mdl23.valid()); // Diffuse and ambient with vec4 values
 
     nw::model::Mdl mdl24{"test_data/user/development/tno01_b90_03.mdl"};
     EXPECT_TRUE(mdl24.valid());

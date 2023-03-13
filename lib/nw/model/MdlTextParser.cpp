@@ -565,6 +565,7 @@ bool TextParser::parse_node(Geometry* geometry)
                     return false;
                 }
 
+                tk = tokens_.next();
                 for (uint32_t i = 0; i < *rows; ++i) {
                     while (is_newline(tk))
                         tk = tokens_.next();
@@ -576,8 +577,8 @@ bool TextParser::parse_node(Geometry* geometry)
                     }
                     n->multimaterial.push_back(current);
                 }
+                continue;
             }
-            continue;
         }
 
         if (node->type & NodeFlags::reference) {
