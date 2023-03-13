@@ -19,6 +19,8 @@ struct GeomCxt {
         verts.clear();
         normals.clear();
         tangents.clear();
+        bones.clear();
+        weights.clear();
     }
 
     std::vector<detail::MdlBinaryFace> faces;
@@ -26,6 +28,8 @@ struct GeomCxt {
     std::array<std::vector<glm::vec2>, 4> tverts;
     std::vector<glm::vec3> normals;
     std::vector<glm::vec4> tangents;
+    std::vector<std::array<uint16_t, 4>> bones;
+    std::vector<glm::vec4> weights;
 };
 
 template <size_t N>
@@ -213,6 +217,13 @@ bool BinaryParser::parse_node(uint32_t offset, Geometry* geometry, Node* parent)
                 data.vertex_count * sizeof(glm::vec3));
         }
 
+        s_ctx.faces.resize(data.faces.length);
+        memcpy(s_ctx.faces.data(), bytes_.data() + data.faces.offset + 12, data.faces.length * sizeof(detail::MdlBinaryFace));
+
+        return true;
+    };
+
+    auto load_mesh_vertices = [this](TrimeshNode* mesh, const detail::MdlBinaryMeshHeader& data) {
         mesh->vertices.resize(data.vertex_count);
         for (size_t i = 0; i < data.vertex_count; ++i) {
             mesh->vertices[i].position = s_ctx.verts[i];
@@ -223,9 +234,6 @@ bool BinaryParser::parse_node(uint32_t offset, Geometry* geometry, Node* parent)
                 mesh->vertices[i].tex_coords = s_ctx.tverts[0][i];
             }
         }
-
-        s_ctx.faces.resize(data.faces.length);
-        memcpy(s_ctx.faces.data(), bytes_.data() + data.faces.offset + 12, data.faces.length * sizeof(detail::MdlBinaryFace));
 
         mesh->indices.reserve(data.faces.length * 3);
         for (size_t i = 0; i < data.faces.length; ++i) {
@@ -242,7 +250,7 @@ bool BinaryParser::parse_node(uint32_t offset, Geometry* geometry, Node* parent)
         memcpy(&data, bytes_.data() + offset + 12, detail::MdlBinaryTrimeshNode::s_sizeof);
 
         auto n = static_cast<TrimeshNode*>(node.get());
-        if (!load_mesh_data(n, data.header)) { return false; }
+        if (!load_mesh_data(n, data.header) || !load_mesh_vertices(n, data.header)) { return false; }
     } else if (node->type == NodeType::reference) {
         detail::MdlBinaryReferenceNode data;
         memcpy(&data, bytes_.data() + offset + 12, detail::MdlBinaryReferenceNode::s_sizeof);
@@ -255,7 +263,7 @@ bool BinaryParser::parse_node(uint32_t offset, Geometry* geometry, Node* parent)
         memcpy(&data, bytes_.data() + offset + 12, detail::MdlBinaryDanglymeshNode::s_sizeof);
 
         auto n = static_cast<DanglymeshNode*>(node.get());
-        if (!load_mesh_data(n, data.header)) { return false; }
+        if (!load_mesh_data(n, data.header) || !load_mesh_vertices(n, data.header)) { return false; }
     } else if (node->type == NodeType::emitter) {
         detail::MdlBinaryEmitterNode data;
         memcpy(&data, bytes_.data() + offset + 12, detail::MdlBinaryEmitterNode::s_sizeof);
@@ -271,13 +279,71 @@ bool BinaryParser::parse_node(uint32_t offset, Geometry* geometry, Node* parent)
         memcpy(&data, bytes_.data() + offset + 12, detail::MdlBinaryAABBNode::s_sizeof);
 
         auto n = static_cast<AABBNode*>(node.get());
-        if (!load_mesh_data(n, data.header)) { return false; }
+        if (!load_mesh_data(n, data.header) || !load_mesh_vertices(n, data.header)) { return false; }
     } else if (node->type == NodeType::skin) {
         detail::MdlBinarySkinNode data;
         memcpy(&data, bytes_.data() + offset + 12, detail::MdlBinarySkinNode::s_sizeof);
-
         auto n = static_cast<SkinNode*>(node.get());
-        if (!load_mesh_data(n, data.header)) { return false; }
+
+        if (!load_mesh_data(n, data.header)) {
+            LOG_F(INFO, "[model] skin node: failed to parse mesh header");
+            return false;
+        }
+
+        for (auto bparts : data.bone_to_nodes) {
+            if (bparts < mdl_->model.nodes.size()) {
+                LOG_F(INFO, "{}", mdl_->model.nodes[bparts]->name);
+            }
+        }
+
+        size_t off = header.raw_data_offset + data.bones_ptr + 12;
+        for (size_t i = 0; i < s_ctx.verts.size(); ++i) {
+            std::array<uint16_t, 4> bones;
+            memcpy(bones.data(), bytes_.data() + off, sizeof(uint16_t) * 4);
+            off += sizeof(uint16_t) * 4;
+            s_ctx.bones.push_back(bones);
+        }
+
+        off = header.raw_data_offset + data.weights_ptr + 12;
+        for (size_t i = 0; i < s_ctx.verts.size(); ++i) {
+            glm::vec4 weights;
+            memcpy(&weights.x, bytes_.data() + off, sizeof(float) * 4);
+            off += sizeof(float) * 4;
+            s_ctx.weights.push_back(weights);
+        }
+
+        n->vertices.resize(data.header.vertex_count);
+        for (size_t i = 0; i < data.header.vertex_count; ++i) {
+            n->vertices[i].position = s_ctx.verts[i];
+            if (!s_ctx.normals.empty()) {
+                n->vertices[i].normal = s_ctx.normals[i];
+            }
+
+            if (!s_ctx.tverts[0].empty()) {
+                n->vertices[i].tex_coords = s_ctx.tverts[0][i];
+            }
+
+            if (!s_ctx.weights.empty()) {
+                n->vertices[i].weights = s_ctx.weights[i];
+            }
+
+            if (!s_ctx.bones.empty()) {
+                const auto& bones = s_ctx.bones.at(i);
+                n->vertices[i].bones = glm::ivec4{-1};
+                for (size_t j = 0; j < 4; ++j) {
+                    if (bones[j] == std::numeric_limits<uint16_t>::max()) { break; }
+                    n->vertices[i].bones[j] = data.bone_to_nodes[bones[j]];
+                }
+            }
+        }
+
+        n->indices.reserve(data.header.faces.length * 3);
+        for (size_t i = 0; i < data.header.faces.length; ++i) {
+            n->indices.push_back(s_ctx.faces[i].vertex_indicies[0]);
+            n->indices.push_back(s_ctx.faces[i].vertex_indicies[1]);
+            n->indices.push_back(s_ctx.faces[i].vertex_indicies[2]);
+        }
+
     } else if (node->type == NodeType::animmesh) {
         detail::MdlBinaryAnimmeshNode data;
         memcpy(&data, bytes_.data() + offset + 12, detail::MdlBinaryAnimmeshNode::s_sizeof);

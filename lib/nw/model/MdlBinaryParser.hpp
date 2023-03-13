@@ -244,15 +244,15 @@ struct MdlBinarySkinNode {
     static constexpr uint32_t s_sizeof = 0x02D4;
 
     MdlBinaryMeshHeader header;
-    MdlBinaryArray weight_array;
-    uint32_t compiled_weight_ptr;      ///< Raw vec4 data
-    uint32_t bone_index_reference_ptr; ///< Raw uint16[4] data
-    uint32_t bone_ref_mapping_ptr;     ///< Raw uint16 data
+    MdlBinaryArray weight_array;   // Ignore
+    uint32_t weights_ptr;          ///< Raw vec4 data
+    uint32_t bones_ptr;            ///< Raw uint16[4] data
+    uint32_t bone_ref_mapping_ptr; ///< Raw uint16 data
     uint32_t mapping_count;
     MdlBinaryArray qbone_ref_inv;         ///< quaternion
     MdlBinaryArray tbone_ref_inv;         ///< vec3
     MdlBinaryArray bone_constant_indices; ///< uint32
-    std::array<uint16_t, 17> bone_parts;
+    std::array<uint16_t, 17> bone_to_nodes;
     uint16_t pad0;
 };
 STATIC_ASSERT_SIZE(MdlBinarySkinNode);

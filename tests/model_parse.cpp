@@ -204,6 +204,25 @@ TEST(Model, Skin)
     EXPECT_NEAR(skin->vertices[2].weights[2], 0.0f, 0.0001);
     EXPECT_EQ(skin->vertices[2].bones[3], -1);
     EXPECT_NEAR(skin->vertices[2].weights[3], 0.0f, 0.0001);
+
+    nw::model::Mdl mdl2{"test_data/user/development/c_satyrarcher.mdl"};
+    EXPECT_TRUE(mdl2.valid());
+    auto node2 = mdl2.model.find(std::regex("bodymesh_g", std::regex_constants::icase));
+    EXPECT_TRUE(node2);
+    auto skin2 = static_cast<nw::model::SkinNode*>(node2);
+
+    EXPECT_GT(skin2->vertices.size(), 0);
+    EXPECT_EQ(skin2->vertices[340].bones[0], 16);
+    EXPECT_TRUE(nw::string::icmp("Lbicep_g", mdl1.model.nodes[skin2->vertices[340].bones[0]]->name));
+    EXPECT_NEAR(skin2->vertices[340].weights[0], 0.696788013f, 0.0001);
+    EXPECT_EQ(skin2->vertices[340].bones[1], 10);
+    EXPECT_TRUE(nw::string::icmp("torso_g", mdl1.model.nodes[skin2->vertices[340].bones[1]]->name));
+    EXPECT_NEAR(skin2->vertices[340].weights[1], 0.188104004f, 0.0001);
+    EXPECT_EQ(skin2->vertices[340].bones[2], 17);
+    EXPECT_TRUE(nw::string::icmp("Lforearm_g", mdl1.model.nodes[skin2->vertices[340].bones[2]]->name));
+    EXPECT_NEAR(skin2->vertices[340].weights[2], 0.115108997f, 0.0001);
+    EXPECT_EQ(skin2->vertices[340].bones[3], -1);
+    EXPECT_NEAR(skin2->vertices[340].weights[3], 0.0f, 0.0001);
 }
 
 // TEST("model: write to file", "[model]")
