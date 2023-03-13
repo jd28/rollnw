@@ -425,7 +425,7 @@ struct SkinVertex {
     glm::vec2 tex_coords{};
     glm::vec3 normal{};
     glm::vec4 tangent{};
-    glm::ivec4 bones{};
+    glm::i16vec4 bones{};
     glm::vec4 weights{};
 };
 
