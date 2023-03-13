@@ -186,6 +186,26 @@ TEST(Model, Animations)
     EXPECT_NEAR(cont.data[0], -0.0916844, 0.0001);
 }
 
+TEST(Model, Skin)
+{
+    nw::model::Mdl mdl1{"test_data/user/development/c_satyr.mdl"};
+    EXPECT_TRUE(mdl1.valid());
+    auto node = mdl1.model.find(std::regex("bodymesh_g", std::regex_constants::icase));
+    EXPECT_TRUE(node);
+    auto skin = static_cast<nw::model::SkinNode*>(node);
+    EXPECT_GT(skin->vertices.size(), 0);
+    EXPECT_EQ(skin->vertices[2].bones[0], 22);
+    EXPECT_TRUE(nw::string::icmp("head_g", mdl1.model.nodes[skin->vertices[2].bones[0]]->name));
+    EXPECT_NEAR(skin->vertices[2].weights[0], 0.649999976f, 0.0001);
+    EXPECT_EQ(skin->vertices[2].bones[1], 21);
+    EXPECT_TRUE(nw::string::icmp("neck_g", mdl1.model.nodes[skin->vertices[2].bones[1]]->name));
+    EXPECT_NEAR(skin->vertices[2].weights[1], 0.349999994f, 0.0001);
+    EXPECT_EQ(skin->vertices[2].bones[2], -1);
+    EXPECT_NEAR(skin->vertices[2].weights[2], 0.0f, 0.0001);
+    EXPECT_EQ(skin->vertices[2].bones[3], -1);
+    EXPECT_NEAR(skin->vertices[2].weights[3], 0.0f, 0.0001);
+}
+
 // TEST("model: write to file", "[model]")
 // {
 //     nw::model::Mdl mdl{"test_data/user/development/alt_dfa19.mdl"};

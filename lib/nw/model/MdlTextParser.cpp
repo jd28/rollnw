@@ -28,6 +28,8 @@ struct GeomCxt {
         verts.clear();
         normals.clear();
         tangents.clear();
+        bones.clear();
+        weights.clear();
     }
 
     std::vector<Face> faces;
@@ -35,6 +37,8 @@ struct GeomCxt {
     std::array<std::vector<glm::vec3>, 4> tverts;
     std::vector<glm::vec3> normals;
     std::vector<glm::vec4> tangents;
+    std::vector<std::array<std::string, 4>> bones;
+    std::vector<glm::vec4> weights;
 };
 
 inline bool is_newline(std::string_view tk)
@@ -186,30 +190,6 @@ bool parse_tokens(Tokenizer& tokens, std::string_view name, Face& out)
     return true;
 }
 
-bool parse_tokens(Tokenizer& tokens, std::string_view name, SkinWeight& out)
-{
-    std::string bone;
-    float value = 0.0f;
-    for (size_t i = 0; i < 4; ++i) {
-        if (parse_tokens(tokens, "weight: bone", bone)
-            && parse_tokens(tokens, "weight: value", value)) {
-            out.bones[i] = std::move(bone);
-            out.weights[i] = value;
-        } else {
-            LOG_F(ERROR, "Failed to parse skin weight {}, line: {}", name, tokens.line());
-            return false;
-        }
-        auto tk = tokens.next();
-        if (is_newline(tk)) {
-            tokens.put_back(tk);
-            break;
-        }
-        tokens.put_back(tk);
-    }
-
-    return true;
-}
-
 bool parse_tokens(Tokenizer& tokens, std::string_view name, AABBNode* node)
 {
     // Will have to create the tree structure later.
@@ -251,6 +231,168 @@ bool parse_tokens(Tokenizer& tokens, std::string_view name, std::vector<T>& out)
     auto tk = tokens.next();
     if (!icmp(tk, "endlist")) { tokens.put_back(tk); }
     return true;
+}
+
+template <typename T, typename VertType>
+void cleanup_geometry(Model* model, T* n, const GeomCxt& geomctx)
+{
+    if (geomctx.verts.size()) {
+        // Create vertex buffer
+        n->vertices.reserve(geomctx.verts.size());
+        for (auto v : geomctx.verts) {
+            VertType nv;
+            nv.position = v;
+            n->vertices.push_back(nv);
+        }
+
+        n->indices.reserve(geomctx.faces.size() * 3);
+
+        absl::flat_hash_set<size_t> visited_indices;
+        auto contains_vert = [](const Face& face, uint32_t idx) {
+            for (auto i : face.vert_idx) {
+                if (i == idx) { return true; }
+            }
+            return false;
+        };
+
+        // Tangents..
+        glm::vec3* tan1 = nullptr;
+        glm::vec3* tan2 = nullptr;
+
+        if (geomctx.tangents.empty()) {
+            tan1 = new glm::vec3[n->vertices.size() * 2];
+            tan2 = tan1 + n->vertices.size();
+            std::memset(tan1, 0, n->vertices.size() * sizeof(glm::vec3) * 2);
+        }
+
+        for (size_t iface = 0; iface < geomctx.faces.size(); ++iface) {
+            // Gollect texture coordinates
+            auto i1 = geomctx.faces[iface].vert_idx[0];
+            auto i2 = geomctx.faces[iface].vert_idx[1];
+            auto i3 = geomctx.faces[iface].vert_idx[2];
+
+            auto t1 = geomctx.faces[iface].tvert_idx[0];
+            auto t2 = geomctx.faces[iface].tvert_idx[1];
+            auto t3 = geomctx.faces[iface].tvert_idx[2];
+
+            auto& v1 = n->vertices.at(i1);
+            auto& v2 = n->vertices.at(i2);
+            auto& v3 = n->vertices.at(i3);
+
+            // Get tex coords
+            if (geomctx.tverts[0].size()) { // dummys don't have textures..
+                if (t1 < geomctx.tverts[0].size()) {
+                    v1.tex_coords = glm::vec2{geomctx.tverts[0].at(t1).x, geomctx.tverts[0].at(t1).y};
+                }
+
+                if (t2 < geomctx.tverts[0].size()) {
+                    v2.tex_coords = glm::vec2{geomctx.tverts[0].at(t2).x, geomctx.tverts[0].at(t2).y};
+                }
+
+                if (t3 < geomctx.tverts[0].size()) {
+                    v3.tex_coords = glm::vec2{geomctx.tverts[0].at(t3).x, geomctx.tverts[0].at(t3).y};
+                }
+            }
+
+            // Tangents - Not sure if this is right.. just copy pasta from
+            // https://gamedev.stackexchange.com/questions/68612/how-to-compute-tangent-and-bitangent-vectors
+            if (geomctx.tangents.empty()) {
+                float x1 = v2.position.x - v1.position.x;
+                float x2 = v3.position.x - v1.position.x;
+                float y1 = v2.position.y - v1.position.y;
+                float y2 = v3.position.y - v1.position.y;
+                float z1 = v2.position.z - v1.position.z;
+                float z2 = v3.position.z - v1.position.z;
+
+                float s1 = v2.tex_coords.x - v1.tex_coords.x;
+                float s2 = v3.tex_coords.x - v1.tex_coords.x;
+                float tn1 = v2.tex_coords.y - v1.tex_coords.y;
+                float tn2 = v3.tex_coords.y - v1.tex_coords.y;
+
+                float r = 1.0f / (s1 * tn2 - s2 * tn1);
+                glm::vec3 sdir((tn2 * x1 - tn1 * x2) * r, (tn2 * y1 - tn1 * y2) * r,
+                    (tn2 * z1 - tn1 * z2) * r);
+                glm::vec3 tdir((s1 * x2 - s2 * x1) * r, (s1 * y2 - s2 * y1) * r,
+                    (s1 * z2 - s2 * z1) * r);
+
+                tan1[i1] += sdir;
+                tan1[i2] += sdir;
+                tan1[i3] += sdir;
+
+                tan2[i1] += tdir;
+                tan2[i2] += tdir;
+                tan2[i3] += tdir;
+            }
+
+            for (auto ivert : geomctx.faces[iface].vert_idx) {
+                // Create indices
+                n->indices.push_back(uint16_t(ivert));
+
+                // Everything else should be done if it's been visited once.
+                if (visited_indices.contains(ivert)) { continue; }
+
+                // Generate vertex normals - Code here is basically what is in nwnexplorer..
+                // not sure if it's right or not.. and there are different ways of calculating vertex
+                // normals.
+                if (ivert >= geomctx.normals.size()) {
+                    glm::vec3 sum{0.0f, 0.0f, 0.0f};
+                    for (size_t jface = iface; jface < geomctx.faces.size(); ++jface) {
+                        if (contains_vert(geomctx.faces[jface], ivert)) {
+                            auto p1 = n->vertices.at(geomctx.faces[jface].vert_idx[0]).position;
+                            auto p2 = n->vertices.at(geomctx.faces[jface].vert_idx[1]).position;
+                            auto p3 = n->vertices.at(geomctx.faces[jface].vert_idx[2]).position;
+                            sum += glm::triangleNormal(p1, p2, p3);
+                        }
+                    }
+                    n->vertices[ivert].normal = glm::normalize(sum);
+                } else {
+                    n->vertices[ivert].normal = geomctx.normals.at(ivert);
+                }
+
+                if (ivert < geomctx.tangents.size()) {
+                    n->vertices[ivert].tangent = geomctx.tangents.at(ivert);
+                }
+
+                if constexpr (std::is_same_v<T, SkinNode>) {
+                    n->vertices[ivert].weights = geomctx.weights.at(ivert);
+
+                    const auto& bones = geomctx.bones.at(ivert);
+                    n->vertices[ivert].bones = glm::ivec4{-1};
+                    for (size_t i = 0; i < 4; ++i) {
+                        if (bones[i].empty()) { break; }
+                        for (size_t j = 0; j < model->nodes.size(); ++j) {
+                            if (string::icmp(model->nodes[j]->name, bones[i])) {
+                                n->vertices[ivert].bones[i] = int(j);
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                visited_indices.insert(ivert);
+            }
+        }
+
+        // More tangent crap..
+        if (geomctx.tangents.empty()) {
+            for (size_t i = 0; i < n->vertices.size(); ++i) {
+                auto& vert = n->vertices[i];
+                const auto& t = tan1[i];
+
+                // Gram-Schmidt orthogonalize
+                auto temp = glm::normalize(t - vert.normal * glm::dot(vert.normal, t));
+                vert.tangent.x = temp.x;
+                vert.tangent.y = temp.y;
+                vert.tangent.z = temp.z;
+
+                // Calculate handedness
+                vert.tangent.w = (glm::dot(glm::cross(vert.normal, t), tan2[i]) < 0.0f)
+                    ? -1.0f
+                    : 1.0f;
+            }
+            delete[] tan1;
+        }
+    }
 }
 
 bool TextParser::parse_controller(Node* node, std::string_view name, uint32_t type)
@@ -711,7 +853,33 @@ bool TextParser::parse_node(Geometry* geometry)
 
         if (node->type & NodeFlags::skin) {
             SkinNode* n = static_cast<SkinNode*>(node.get());
-            PARSE_DATA(weights, n)
+            if (icmp(tk, "weights")) {
+                uint32_t size;
+                if (!parse_tokens(tokens_, "weights: size", size)) { return false; }
+                tokens_.next(); // drop new line.
+                for (uint32_t i = 0; i < size; ++i) {
+                    std::array<std::string, 4> bones;
+                    glm::vec4 weights{};
+                    for (uint32_t j = 0; j < 4; ++j) {
+                        if (!parse_tokens(tokens_, "weight: bone", bones[j])
+                            || !parse_tokens(tokens_, "weight: value", weights[j])) {
+                            LOG_F(ERROR, "Failed to parse skin weight {}, line: {}", i, tokens_.line());
+                            return false;
+                        }
+                        tk = tokens_.next();
+                        if (is_newline(tk)) {
+                            geomctx.bones.push_back(bones);
+                            geomctx.weights.push_back(weights);
+                            break;
+                        } else {
+                            tokens_.put_back(tk);
+                        }
+                    }
+                }
+                auto tk = tokens_.next();
+                if (!icmp(tk, "endlist")) { tokens_.put_back(tk); }
+                continue;
+            }
         }
 
         if (node->type & NodeFlags::anim) {
@@ -734,149 +902,12 @@ bool TextParser::parse_node(Geometry* geometry)
     }
 
     // Cleanup geometry data
-    if (node->type & NodeFlags::mesh) {
+    if (node->type & NodeFlags::skin) {
+        SkinNode* n = static_cast<SkinNode*>(node.get());
+        cleanup_geometry<SkinNode, SkinVertex>(&mdl_->model, n, geomctx);
+    } else if (node->type & NodeFlags::mesh) {
         TrimeshNode* n = static_cast<TrimeshNode*>(node.get());
-        if (geomctx.verts.size()) {
-            // Create vertex buffer
-            n->vertices.reserve(geomctx.verts.size());
-            for (auto v : geomctx.verts) {
-                Vertex nv;
-                nv.position = v;
-                n->vertices.push_back(nv);
-            }
-
-            n->indices.reserve(geomctx.faces.size() * 3);
-
-            absl::flat_hash_set<size_t> visited_indices;
-            auto contains_vert = [](const Face& face, uint32_t idx) {
-                for (auto i : face.vert_idx) {
-                    if (i == idx) { return true; }
-                }
-                return false;
-            };
-
-            // Tangents..
-            glm::vec3* tan1 = nullptr;
-            glm::vec3* tan2 = nullptr;
-
-            if (geomctx.tangents.empty()) {
-                tan1 = new glm::vec3[n->vertices.size() * 2];
-                tan2 = tan1 + n->vertices.size();
-                std::memset(tan1, 0, n->vertices.size() * sizeof(glm::vec3) * 2);
-            }
-
-            for (size_t iface = 0; iface < geomctx.faces.size(); ++iface) {
-                // Gollect texture coordinates
-                auto i1 = geomctx.faces[iface].vert_idx[0];
-                auto i2 = geomctx.faces[iface].vert_idx[1];
-                auto i3 = geomctx.faces[iface].vert_idx[2];
-
-                auto t1 = geomctx.faces[iface].tvert_idx[0];
-                auto t2 = geomctx.faces[iface].tvert_idx[1];
-                auto t3 = geomctx.faces[iface].tvert_idx[2];
-
-                auto& v1 = n->vertices.at(i1);
-                auto& v2 = n->vertices.at(i2);
-                auto& v3 = n->vertices.at(i3);
-
-                // Get tex coords
-                if (geomctx.tverts[0].size()) { // dummys don't have textures..
-                    if (t1 < geomctx.tverts[0].size()) {
-                        v1.tex_coords = glm::vec2{geomctx.tverts[0].at(t1).x, geomctx.tverts[0].at(t1).y};
-                    }
-
-                    if (t2 < geomctx.tverts[0].size()) {
-                        v2.tex_coords = glm::vec2{geomctx.tverts[0].at(t2).x, geomctx.tverts[0].at(t2).y};
-                    }
-
-                    if (t3 < geomctx.tverts[0].size()) {
-                        v3.tex_coords = glm::vec2{geomctx.tverts[0].at(t3).x, geomctx.tverts[0].at(t3).y};
-                    }
-                }
-
-                // Tangents - Not sure if this is right.. just copy pasta from
-                // https://gamedev.stackexchange.com/questions/68612/how-to-compute-tangent-and-bitangent-vectors
-                if (geomctx.tangents.empty()) {
-                    float x1 = v2.position.x - v1.position.x;
-                    float x2 = v3.position.x - v1.position.x;
-                    float y1 = v2.position.y - v1.position.y;
-                    float y2 = v3.position.y - v1.position.y;
-                    float z1 = v2.position.z - v1.position.z;
-                    float z2 = v3.position.z - v1.position.z;
-
-                    float s1 = v2.tex_coords.x - v1.tex_coords.x;
-                    float s2 = v3.tex_coords.x - v1.tex_coords.x;
-                    float tn1 = v2.tex_coords.y - v1.tex_coords.y;
-                    float tn2 = v3.tex_coords.y - v1.tex_coords.y;
-
-                    float r = 1.0f / (s1 * tn2 - s2 * tn1);
-                    glm::vec3 sdir((tn2 * x1 - tn1 * x2) * r, (tn2 * y1 - tn1 * y2) * r,
-                        (tn2 * z1 - tn1 * z2) * r);
-                    glm::vec3 tdir((s1 * x2 - s2 * x1) * r, (s1 * y2 - s2 * y1) * r,
-                        (s1 * z2 - s2 * z1) * r);
-
-                    tan1[i1] += sdir;
-                    tan1[i2] += sdir;
-                    tan1[i3] += sdir;
-
-                    tan2[i1] += tdir;
-                    tan2[i2] += tdir;
-                    tan2[i3] += tdir;
-                }
-
-                for (auto ivert : geomctx.faces[iface].vert_idx) {
-                    // Create indices
-                    n->indices.push_back(uint16_t(ivert));
-
-                    // Everything else should be done if it's been visited once.
-                    if (visited_indices.contains(ivert)) { continue; }
-
-                    // Generate vertex normals - Code here is basically what is in nwnexplorer..
-                    // not sure if it's right or not.. and there are different ways of calculating vertex
-                    // normals.
-                    if (ivert >= geomctx.normals.size()) {
-                        glm::vec3 sum{0.0f, 0.0f, 0.0f};
-                        for (size_t jface = iface; jface < geomctx.faces.size(); ++jface) {
-                            if (contains_vert(geomctx.faces[jface], ivert)) {
-                                auto p1 = n->vertices.at(geomctx.faces[jface].vert_idx[0]).position;
-                                auto p2 = n->vertices.at(geomctx.faces[jface].vert_idx[1]).position;
-                                auto p3 = n->vertices.at(geomctx.faces[jface].vert_idx[2]).position;
-                                sum += glm::triangleNormal(p1, p2, p3);
-                            }
-                        }
-                        n->vertices[ivert].normal = glm::normalize(sum);
-                    } else {
-                        n->vertices[ivert].normal = geomctx.normals.at(ivert);
-                    }
-
-                    if (ivert < geomctx.tangents.size()) {
-                        n->vertices[ivert].tangent = geomctx.tangents.at(ivert);
-                    }
-
-                    visited_indices.insert(ivert);
-                }
-            }
-
-            // More tangent crap..
-            if (geomctx.tangents.empty()) {
-                for (size_t i = 0; i < n->vertices.size(); ++i) {
-                    auto& vert = n->vertices[i];
-                    const auto& t = tan1[i];
-
-                    // Gram-Schmidt orthogonalize
-                    auto temp = glm::normalize(t - vert.normal * glm::dot(vert.normal, t));
-                    vert.tangent.x = temp.x;
-                    vert.tangent.y = temp.y;
-                    vert.tangent.z = temp.z;
-
-                    // Calculate handedness
-                    vert.tangent.w = (glm::dot(glm::cross(vert.normal, t), tan2[i]) < 0.0f)
-                        ? -1.0f
-                        : 1.0f;
-                }
-                delete[] tan1;
-            }
-        }
+        cleanup_geometry<TrimeshNode, Vertex>(&mdl_->model, n, geomctx);
     }
 
     geometry->nodes.push_back(std::move(node));

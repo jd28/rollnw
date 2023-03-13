@@ -420,15 +420,19 @@ struct TrimeshNode : public Node {
     std::vector<uint16_t> indices;
 };
 
-struct SkinWeight {
-    std::array<std::string, 4> bones;
-    std::array<float, 4> weights;
+struct SkinVertex {
+    glm::vec3 position{};
+    glm::vec2 tex_coords{};
+    glm::vec3 normal{};
+    glm::vec4 tangent{};
+    glm::ivec4 bones{};
+    glm::vec4 weights{};
 };
 
 struct SkinNode : public TrimeshNode {
     SkinNode(std::string name_);
 
-    std::vector<SkinWeight> weights;
+    std::vector<SkinVertex> vertices;
 };
 
 struct AnimeshNode : public TrimeshNode {
