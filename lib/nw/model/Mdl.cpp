@@ -305,6 +305,9 @@ ReferenceNode::ReferenceNode(std::string name_)
 SkinNode::SkinNode(std::string name_)
     : TrimeshNode(std::move(name_), NodeType::skin)
 {
+    for (size_t i = 0; i < 64; ++i) {
+        bone_nodes[i] = -1;
+    }
 }
 
 TrimeshNode::TrimeshNode(std::string name_, uint32_t type_)

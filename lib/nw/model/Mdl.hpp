@@ -433,6 +433,7 @@ struct SkinNode : public TrimeshNode {
     SkinNode(std::string name_);
 
     std::vector<SkinVertex> vertices;
+    std::array<int16_t, 64> bone_nodes;
 };
 
 struct AnimeshNode : public TrimeshNode {

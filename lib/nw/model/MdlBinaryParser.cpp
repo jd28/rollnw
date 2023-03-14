@@ -290,10 +290,8 @@ bool BinaryParser::parse_node(uint32_t offset, Geometry* geometry, Node* parent)
             return false;
         }
 
-        for (auto bparts : data.bone_to_nodes) {
-            if (bparts < mdl_->model.nodes.size()) {
-                LOG_F(INFO, "{}", mdl_->model.nodes[bparts]->name);
-            }
+        for (size_t i = 0; i < 16; ++i) {
+            n->bone_nodes[i] = int16_t(data.bone_to_nodes[i]);
         }
 
         size_t off = header.raw_data_offset + data.bones_ptr + 12;
@@ -332,7 +330,7 @@ bool BinaryParser::parse_node(uint32_t offset, Geometry* geometry, Node* parent)
                 n->vertices[i].bones = glm::ivec4{-1};
                 for (size_t j = 0; j < 4; ++j) {
                     if (bones[j] == std::numeric_limits<uint16_t>::max()) { break; }
-                    n->vertices[i].bones[j] = data.bone_to_nodes[bones[j]];
+                    n->vertices[i].bones[j] = bones[j];
                 }
             }
         }

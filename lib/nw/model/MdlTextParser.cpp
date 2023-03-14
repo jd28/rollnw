@@ -357,12 +357,20 @@ void cleanup_geometry(Model* model, T* n, const GeomCxt& geomctx)
                     n->vertices[ivert].weights = geomctx.weights.at(ivert);
 
                     const auto& bones = geomctx.bones.at(ivert);
-                    n->vertices[ivert].bones = glm::ivec4{-1};
+                    n->vertices[ivert].bones = glm::ivec4{0};
                     for (size_t i = 0; i < 4; ++i) {
                         if (bones[i].empty()) { break; }
                         for (size_t j = 0; j < model->nodes.size(); ++j) {
                             if (string::icmp(model->nodes[j]->name, bones[i])) {
-                                n->vertices[ivert].bones[i] = int(j);
+                                for (size_t k = 0; k < 64; ++k) {
+                                    if (n->bone_nodes[k] == int16_t(j)) {
+                                        n->vertices[ivert].bones[i] = k;
+                                        break;
+                                    } else if (n->bone_nodes[k] == -1) {
+                                        n->vertices[ivert].bones[i] = n->bone_nodes[k] = int16_t(j);
+                                        break;
+                                    }
+                                }
                                 break;
                             }
                         }
