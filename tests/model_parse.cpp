@@ -194,15 +194,15 @@ TEST(Model, Skin)
     EXPECT_TRUE(node);
     auto skin = static_cast<nw::model::SkinNode*>(node);
     EXPECT_GT(skin->vertices.size(), 0);
-    EXPECT_EQ(skin->vertices[2].bones[0], 22);
-    EXPECT_TRUE(nw::string::icmp("head_g", mdl1.model.nodes[skin->vertices[2].bones[0]]->name));
+    EXPECT_EQ(skin->bone_nodes[skin->vertices[2].bones[0]], 22);
+    EXPECT_TRUE(nw::string::icmp("head_g", mdl1.model.nodes[skin->bone_nodes[skin->vertices[2].bones[0]]]->name));
     EXPECT_NEAR(skin->vertices[2].weights[0], 0.649999976f, 0.0001);
-    EXPECT_EQ(skin->vertices[2].bones[1], 21);
-    EXPECT_TRUE(nw::string::icmp("neck_g", mdl1.model.nodes[skin->vertices[2].bones[1]]->name));
+    EXPECT_EQ(skin->bone_nodes[skin->vertices[2].bones[1]], 21);
+    EXPECT_TRUE(nw::string::icmp("neck_g", mdl1.model.nodes[skin->bone_nodes[skin->vertices[2].bones[1]]]->name));
     EXPECT_NEAR(skin->vertices[2].weights[1], 0.349999994f, 0.0001);
-    EXPECT_EQ(skin->vertices[2].bones[2], -1);
+    EXPECT_EQ(skin->vertices[2].bones[2], 0);
     EXPECT_NEAR(skin->vertices[2].weights[2], 0.0f, 0.0001);
-    EXPECT_EQ(skin->vertices[2].bones[3], -1);
+    EXPECT_EQ(skin->vertices[2].bones[3], 0);
     EXPECT_NEAR(skin->vertices[2].weights[3], 0.0f, 0.0001);
 
     nw::model::Mdl mdl2{"test_data/user/development/c_satyrarcher.mdl"};
@@ -212,14 +212,14 @@ TEST(Model, Skin)
     auto skin2 = static_cast<nw::model::SkinNode*>(node2);
 
     EXPECT_GT(skin2->vertices.size(), 0);
-    EXPECT_EQ(skin2->vertices[340].bones[0], 16);
-    EXPECT_TRUE(nw::string::icmp("Lbicep_g", mdl1.model.nodes[skin2->vertices[340].bones[0]]->name));
+    EXPECT_EQ(skin2->vertices[340].bones[0], 8);
+    EXPECT_TRUE(nw::string::icmp("Lbicep_g", mdl1.model.nodes[skin2->bone_nodes[skin2->vertices[340].bones[0]]]->name));
     EXPECT_NEAR(skin2->vertices[340].weights[0], 0.696788013f, 0.0001);
-    EXPECT_EQ(skin2->vertices[340].bones[1], 10);
-    EXPECT_TRUE(nw::string::icmp("torso_g", mdl1.model.nodes[skin2->vertices[340].bones[1]]->name));
+    EXPECT_EQ(skin2->vertices[340].bones[1], 3);
+    EXPECT_TRUE(nw::string::icmp("torso_g", mdl1.model.nodes[skin2->bone_nodes[skin2->vertices[340].bones[1]]]->name));
     EXPECT_NEAR(skin2->vertices[340].weights[1], 0.188104004f, 0.0001);
-    EXPECT_EQ(skin2->vertices[340].bones[2], 17);
-    EXPECT_TRUE(nw::string::icmp("Lforearm_g", mdl1.model.nodes[skin2->vertices[340].bones[2]]->name));
+    EXPECT_EQ(skin2->vertices[340].bones[2], 9);
+    EXPECT_TRUE(nw::string::icmp("Lforearm_g", mdl1.model.nodes[skin2->bone_nodes[skin2->vertices[340].bones[2]]]->name));
     EXPECT_NEAR(skin2->vertices[340].weights[2], 0.115108997f, 0.0001);
     EXPECT_EQ(skin2->vertices[340].bones[3], -1);
     EXPECT_NEAR(skin2->vertices[340].weights[3], 0.0f, 0.0001);
