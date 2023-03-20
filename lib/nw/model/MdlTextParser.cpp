@@ -83,6 +83,7 @@ bool parse_tokens(Tokenizer& tokens, std::string_view name, std::string& out)
         return true;
     } else if (!tk.empty()) {
         out = std::string(tk);
+        string::tolower(&out);
         return true;
     }
     LOG_F(ERROR, "{}: Failed to parse string, line: {}", name, tokens.line());

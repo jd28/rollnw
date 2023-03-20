@@ -35,10 +35,13 @@ struct GeomCxt {
 template <size_t N>
 std::string to_string(const std::array<char, N>& in)
 {
-    for (size_t i = 0; i < N; ++i) {
-        if (!in[i]) { return {in.data(), i}; }
+    size_t len = 0;
+    while (in[len] && len < N) {
+        ++len;
     }
-    return {in.data(), N};
+    std::string out{in.data(), len};
+    string::tolower(&out);
+    return out;
 }
 
 } // namespace detail

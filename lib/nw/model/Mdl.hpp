@@ -401,7 +401,7 @@ struct TrimeshNode : public Node {
     float period{0.0};
     float tightness{0.0};
     float displacement{0.0};
-    bool render;
+    bool render{true};
     std::string renderhint;
     bool rotatetexture{false};
     bool shadow{false};
