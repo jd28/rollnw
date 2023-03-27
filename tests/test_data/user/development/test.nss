@@ -66,6 +66,14 @@ void main() // test
         case 4: break;
     }
 
+    switch(i) {
+        default:
+        break;
+        case "This": break;
+        case "Is a": break;
+        case "Test": break;
+    }
+
     do {
         i %= 3;
     } while (--x);

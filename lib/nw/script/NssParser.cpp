@@ -569,12 +569,12 @@ std::unique_ptr<LabelStatement> NssParser::parse_stmt_label()
     auto s = std::make_unique<LabelStatement>();
     s->type = previous();
     if (s->type.type == NssTokenType::CASE) {
-        s->expr = parse_expr();
-        // [TODO] to do this got check if it's a const variable, maybe this
-        // needs to be relegated to the next pass?
-        // if (!dynamic_cast<LiteralExpression*>(s->expr.get())) {
-        //     error("Expected literal expression");
-        // }
+        if (match({NssTokenType::INTEGER_CONST, NssTokenType::STRING_CONST})) {
+            auto lit = new LiteralExpression(previous());
+            s->expr = std::unique_ptr<Expression>(lit);
+        } else {
+            error("Expected constant literal integer or string expression");
+        }
     }
     consume(NssTokenType::COLON, "Expected ':'.");
     return s;
