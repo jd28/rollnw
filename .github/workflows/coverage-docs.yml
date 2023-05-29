@@ -118,7 +118,7 @@ jobs:
 
       - name: deploy docs to github pages
         if: github.event_name == 'push'
-        uses: JamesIves/github-pages-deploy-action@v4.4.1
+        uses: JamesIves/github-pages-deploy-action@v4.4.2
         with:
           branch: gh-pages
           folder: "${{ github.workspace }}/build/docs/sphinx"
