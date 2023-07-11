@@ -26,7 +26,8 @@ void main() // test
 {
     int a = 3, b, c = 1; // This is a test
     struct MyInt test;
-    test2.myint.test = 1;
+    test2.myint.test = +1;
+    a + b;
     effect e;
     int t = 1;
     func(test).myint;
