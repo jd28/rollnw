@@ -38,8 +38,8 @@ TEST(Nss, Preprocessor)
     EXPECT_TRUE(script.defines[0].first == "ENGINE_NUM_STRUCTURES");
     EXPECT_TRUE(script.defines[0].second == "5");
 
-    EXPECT_TRUE(script.includes.size() == 1);
-    EXPECT_TRUE(script.includes[0] == "constants");
+    EXPECT_TRUE(script.include_resrefs.size() == 1);
+    EXPECT_TRUE(script.include_resrefs[0] == "constants");
 }
 
 TEST(Nss, ParseNwscript)

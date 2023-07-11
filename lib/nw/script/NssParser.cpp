@@ -689,11 +689,11 @@ Script NssParser::parse_program()
 {
     Script p;
     while (!is_end()) {
-        if (match({NssTokenType::POUND})) {
+        if (match({NssTokenType::POUND})) { // Only at top level
             if (peek().id == "include") {
                 consume(NssTokenType::IDENTIFIER, "Expected 'IDENTIFIER'."); // include
                 if (match({NssTokenType::STRING_CONST})) {
-                    p.includes.push_back(std::string(previous().id));
+                    p.include_resrefs.push_back(std::string(previous().id));
                 } else {
                     error("Expected string literal");
                     throw parser_error("Expected string literal");

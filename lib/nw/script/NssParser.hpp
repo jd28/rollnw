@@ -409,7 +409,7 @@ struct Script {
     Script& operator=(Script&&) = default;
 
     std::vector<std::unique_ptr<Statement>> decls;
-    std::vector<std::string> includes;
+    std::vector<std::string> include_resrefs;
     std::vector<std::pair<std::string, std::string>> defines;
 
     void accept(BaseVisitor* visitor)
