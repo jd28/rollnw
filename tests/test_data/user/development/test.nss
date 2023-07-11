@@ -38,6 +38,8 @@ void main() // test
        Test */
     int a = ~b;
 
+    int a = x * (b + c);
+
     if(this || that) {
         dosometing();
     }

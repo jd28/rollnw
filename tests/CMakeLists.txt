@@ -1,7 +1,17 @@
 find_package(Threads)
 find_package(GTest CONFIG REQUIRED)
 
-file(COPY test_data DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+add_custom_target(copy-files ALL
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+    ${CMAKE_CURRENT_SOURCE_DIR}/test_data
+    ${PROJECT_SOURCE_DIR}/bin/test_data
+)
+
+add_custom_target(copy-files2 ALL
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+    ${CMAKE_CURRENT_SOURCE_DIR}/test_data
+    ${CMAKE_CURRENT_BINARY_DIR}/test_data
+)
 
 # Need .cpp extension for ctest
 add_executable(rollnw_test
