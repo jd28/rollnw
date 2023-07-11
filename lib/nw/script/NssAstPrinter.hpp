@@ -191,7 +191,7 @@ struct NssAstPrinter : BaseVisitor {
     {
         ss << '\n'
            << std::string(static_cast<size_t>(depth * 2), ' ')
-           << "(vector " << expr->x << ", " << expr->y << ", " << expr->z << ")";
+           << "(vector " << expr->x.id << ", " << expr->y.id << ", " << expr->z.id << ")";
     }
 
     virtual void visit(LogicalExpression* expr) override
