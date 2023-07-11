@@ -100,7 +100,8 @@ bool Erf::merge(const Container* container)
     auto all = container->all();
     bool result = true;
     for (const auto& a : all) {
-        result &= add(a.name, container->demand(a.name));
+        auto data = container->demand(a.name);
+        result &= add(data.name, data.bytes);
     }
     return result;
 }
@@ -206,10 +207,10 @@ bool Erf::save_as(const std::filesystem::path& path) const
     ostream_write(f, entry_keys.data(), entry_keys.size() * sizeof(ErfKey));
     ostream_write(f, entry_info.data(), entry_info.size() * sizeof(ErfElementInfo));
 
-    ByteArray ba;
+    ResourceData data;
     for (const auto& e : entries) {
-        ba = demand(e);
-        ostream_write(f, ba.data(), ba.size());
+        data = demand(e);
+        ostream_write(f, data.bytes.data(), data.bytes.size());
     }
     f.close();
     return move_file_safely(temp_path, path);
@@ -230,7 +231,7 @@ bool Erf::contains(Resource res) const
     return elements_.find(res) != std::end(elements_);
 }
 
-ByteArray Erf::demand(Resource res) const
+ResourceData Erf::demand(Resource res) const
 {
     if (!is_loaded_) {
         return {};
@@ -239,7 +240,10 @@ ByteArray Erf::demand(Resource res) const
     if (it == elements_.end()) {
         return {};
     }
-    return read(it->second);
+
+    auto result = read(it->second);
+    result.name = res;
+    return result;
 }
 
 int Erf::extract(const std::regex& re, const std::filesystem::path& output) const
@@ -252,15 +256,15 @@ int Erf::extract(const std::regex& re, const std::filesystem::path& output) cons
 
     int count = 0;
     std::string fname;
-    ByteArray ba;
+    ResourceData data;
     for (const auto& [k, v] : elements_) {
         fname = k.filename();
         if (std::regex_match(fname, re)) {
-            ba = read(v);
-            if (ba.size()) {
+            data = read(v);
+            if (data.bytes.size()) {
                 ++count;
                 std::ofstream out{output / fs::path(fname), std::ios_base::binary};
-                ostream_write(out, ba.data(), ba.size());
+                ostream_write(out, data.bytes.data(), data.bytes.size());
             }
         }
     }
@@ -392,12 +396,12 @@ bool Erf::load(const fs::path& path)
 
 #undef CHECK_OFFSET
 
-ByteArray Erf::read(const ErfElement& e) const
+ResourceData Erf::read(const ErfElement& e) const
 {
-    ByteArray ba;
+    ResourceData data;
 
     if (std::holds_alternative<std::filesystem::path>(e)) {
-        return ByteArray::from_file(std::get<std::filesystem::path>(e));
+        return ResourceData::from_file(std::get<std::filesystem::path>(e));
     } else {
         auto& ele = std::get<ErfElementInfo>(e);
         if (ele.offset == std::numeric_limits<uint32_t>::max()) {
@@ -405,12 +409,12 @@ ByteArray Erf::read(const ErfElement& e) const
         } else if (ele.offset + ele.size > fsize_) {
             LOG_F(ERROR, "{}: Out of bounds.", path_);
         } else {
-            ba.resize(ele.size);
+            data.bytes.resize(ele.size);
             file_.seekg(ele.offset, file_.beg);
-            istream_read(file_, ba.data(), ele.size);
+            istream_read(file_, data.bytes.data(), ele.size);
         }
     }
-    return ba;
+    return data;
 }
 
 } // namespace nw

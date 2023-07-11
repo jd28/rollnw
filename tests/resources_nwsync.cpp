@@ -22,8 +22,8 @@ TEST(NWSync, Construction)
         EXPECT_TRUE(resource.size() > 0);
 
         EXPECT_TRUE(manifest->contains(resource[0].name));
-        auto ba = manifest->demand(resource[0].name);
-        EXPECT_TRUE(ba.size());
+        auto data = manifest->demand(resource[0].name);
+        EXPECT_TRUE(data.bytes.size());
         EXPECT_TRUE(manifest->extract(std::regex(resource[0].name.filename()), "tmp/"));
 
         auto rd = manifest->stat(resource[0].name);

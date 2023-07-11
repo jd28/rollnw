@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../log.hpp"
-#include "../util/ByteArray.hpp"
+#include "../resources/ResourceData.hpp"
 #include "../util/string.hpp"
 
 #include <span>
@@ -85,7 +85,7 @@ struct TwoDA {
     explicit TwoDA(const std::filesystem::path& filename);
 
     /// Constructs TwoDA object from an array of bytes
-    explicit TwoDA(ByteArray bytes);
+    explicit TwoDA(ResourceData data);
 
     /// Finds the index of a column, or -1
     size_t column_index(std::string_view column) const;
@@ -132,7 +132,7 @@ struct TwoDA {
 private:
     friend std::ostream& operator<<(std::ostream& out, const TwoDA& tda);
 
-    ByteArray bytes_;
+    ResourceData data_;
     bool is_loaded_ = false;
 
     std::string default_;

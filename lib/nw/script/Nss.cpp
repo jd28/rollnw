@@ -7,8 +7,8 @@
 namespace nw::script {
 
 Nss::Nss(const std::filesystem::path& filename)
-    : bytes_{ByteArray::from_file(filename)}
-    , parser_{bytes_.string_view()}
+    : data_{ResourceData::from_file(filename)}
+    , parser_{data_.bytes.string_view()}
 {
 }
 
@@ -17,9 +17,9 @@ Nss::Nss(std::string_view script)
 {
 }
 
-Nss::Nss(ByteArray bytes)
-    : bytes_{std::move(bytes)}
-    , parser_{bytes_.string_view()}
+Nss::Nss(ResourceData data)
+    : data_{std::move(data)}
+    , parser_{data_.bytes.string_view()}
 {
 }
 
@@ -44,6 +44,6 @@ const NssParser& Nss::parser() const { return parser_; }
 Script& Nss::script() { return script_; }
 const Script& Nss::script() const { return script_; }
 
-std::string_view Nss::text() const noexcept { return bytes_.string_view(); }
+std::string_view Nss::text() const noexcept { return data_.bytes.string_view(); }
 
 } // namespace nw::script

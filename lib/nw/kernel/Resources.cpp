@@ -200,28 +200,27 @@ bool Resources::contains(Resource res) const
     return false;
 }
 
-ByteArray Resources::demand(Resource res) const
+ResourceData Resources::demand(Resource res) const
 {
-    ByteArray result;
+    ResourceData result;
     for (auto [cont, type, user] : search_) {
         if (type != ResourceType::invalid && !ResourceType::check_category(type, res.type)) {
             continue;
         }
         result = cont->demand(res);
-        if (result.size()) {
+        if (result.bytes.size()) {
             break;
         }
     }
-    if (result.size() == 0) {
+    if (result.bytes.size() == 0) {
         LOG_F(WARNING, "Failed to find '{}'", res.filename());
     }
     return result;
 }
 
-std::pair<ByteArray, ResourceType::type>
-Resources::demand_any(Resref resref, std::initializer_list<ResourceType::type> restypes) const
+ResourceData Resources::demand_any(Resref resref, std::initializer_list<ResourceType::type> restypes) const
 {
-    ByteArray result;
+    ResourceData result;
     for (auto [cont, type, user] : search_) {
         for (auto rt : restypes) {
             Resource res{resref, rt};
@@ -229,18 +228,17 @@ Resources::demand_any(Resref resref, std::initializer_list<ResourceType::type> r
                 continue;
             }
             result = cont->demand(res);
-            if (result.size()) {
-                return {result, rt};
+            if (result.bytes.size()) {
+                return result;
             }
         }
     }
-    return {result, nw::ResourceType::invalid};
+    return {};
 }
 
-std::pair<ByteArray, ResourceType::type>
-Resources::demand_in_order(Resref resref, std::initializer_list<ResourceType::type> restypes) const
+ResourceData Resources::demand_in_order(Resref resref, std::initializer_list<ResourceType::type> restypes) const
 {
-    ByteArray result;
+    ResourceData result;
     for (auto rt : restypes) {
         Resource res{resref, rt};
         for (auto [cont, type, user] : search_) {
@@ -248,17 +246,17 @@ Resources::demand_in_order(Resref resref, std::initializer_list<ResourceType::ty
                 continue;
             }
             result = cont->demand(res);
-            if (result.size()) {
-                return {result, rt};
+            if (result.bytes.size()) {
+                return result;
             }
         }
     }
-    return {result, nw::ResourceType::invalid};
+    return {};
 }
 
-ByteArray Resources::demand_server_vault(std::string_view cdkey, std::string_view resref)
+ResourceData Resources::demand_server_vault(std::string_view cdkey, std::string_view resref)
 {
-    ByteArray result;
+    ResourceData result;
     auto vault_path = config().alias_path(PathAlias::servervault);
     if (!fs::exists(vault_path)) { return result; }
 
@@ -268,7 +266,7 @@ ByteArray Resources::demand_server_vault(std::string_view cdkey, std::string_vie
     Resource res{resref, ResourceType::bic};
     vault_path /= res.filename();
     if (!fs::exists(vault_path)) { return result; }
-    result = ByteArray::from_file(vault_path);
+    result = ResourceData::from_file(vault_path);
 
     return result;
 }
@@ -331,37 +329,38 @@ Image* Resources::palette_texture(PltLayer layer)
     if (palette_textures_[layer] && palette_textures_[layer]->valid()) {
         return palette_textures_[layer].get();
     }
-    ByteArray bytes;
+    ResourceData data;
+    data.name = Resource{"<plttex>"sv, ResourceType::tga};
     switch (layer) {
     default:
         return nullptr;
     case plt_layer_skin:
-        bytes.append(pal_skin01_tga, pal_skin01_tga_len);
+        data.bytes.append(pal_skin01_tga, pal_skin01_tga_len);
         break;
     case plt_layer_hair:
-        bytes.append(pal_hair01_tga, pal_hair01_tga_len);
+        data.bytes.append(pal_hair01_tga, pal_hair01_tga_len);
         break;
     case plt_layer_metal1:
-        bytes.append(pal_armor01_tga, pal_armor01_tga_len);
+        data.bytes.append(pal_armor01_tga, pal_armor01_tga_len);
         break;
     case plt_layer_metal2:
-        bytes.append(pal_armor02_tga, pal_armor02_tga_len);
+        data.bytes.append(pal_armor02_tga, pal_armor02_tga_len);
         break;
     case plt_layer_cloth1:
     case plt_layer_cloth2:
-        bytes.append(pal_armor02_tga, pal_armor02_tga_len);
+        data.bytes.append(pal_armor02_tga, pal_armor02_tga_len);
         break;
     case plt_layer_leather1:
     case plt_layer_leather2:
-        bytes.append(pal_armor02_tga, pal_armor02_tga_len);
+        data.bytes.append(pal_armor02_tga, pal_armor02_tga_len);
         break;
     case plt_layer_tattoo1:
     case plt_layer_tattoo2:
-        bytes.append(pal_armor02_tga, pal_armor02_tga_len);
+        data.bytes.append(pal_armor02_tga, pal_armor02_tga_len);
         break;
     }
 
-    palette_textures_[layer] = std::make_unique<Image>(std::move(bytes));
+    palette_textures_[layer] = std::make_unique<Image>(std::move(data));
 
     return palette_textures_[layer]->valid() ? palette_textures_[layer].get() : nullptr;
 }

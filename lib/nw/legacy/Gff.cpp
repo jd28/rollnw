@@ -149,14 +149,14 @@ GffField GffStruct::operator[](size_t index) const
 // Gff ------------------------------------------------------------------------
 
 Gff::Gff(const std::filesystem::path& file, nw::LanguageID lang)
-    : bytes_{ByteArray::from_file(file)}
+    : data_{ResourceData::from_file(file)}
     , lang_{lang}
 {
     is_loaded_ = parse();
 }
 
-Gff::Gff(ByteArray bytes, nw::LanguageID lang)
-    : bytes_{std::move(bytes)}
+Gff::Gff(ResourceData data, nw::LanguageID lang)
+    : data_{std::move(data)}
     , lang_{lang}
 {
     is_loaded_ = parse();
@@ -183,24 +183,24 @@ bool Gff::valid() const
 bool Gff::parse()
 {
     // Order is how file is laid out.
-    CHECK_OFF(sizeof(GffHeader) < bytes_.size());
-    head_ = reinterpret_cast<GffHeader*>(bytes_.data());
-    CHECK_OFF(head_->label_offset < bytes_.size() && head_->label_offset + head_->label_count * sizeof(Resref) < bytes_.size());
-    labels_ = reinterpret_cast<GffLabel*>(bytes_.data() + head_->label_offset);
-    CHECK_OFF(head_->struct_offset < bytes_.size() && head_->struct_offset + head_->struct_count * sizeof(GffStructEntry) < bytes_.size());
-    structs_ = reinterpret_cast<GffStructEntry*>(bytes_.data() + head_->struct_offset);
-    CHECK_OFF(head_->field_offset < bytes_.size() && head_->field_offset + head_->field_count * sizeof(GffFieldEntry) < bytes_.size());
-    fields_ = reinterpret_cast<GffFieldEntry*>(bytes_.data() + head_->field_offset);
-    CHECK_OFF(head_->field_data_offset < bytes_.size() && head_->field_data_offset + head_->field_data_count < bytes_.size());
-    CHECK_OFF(head_->field_idx_offset < bytes_.size() && head_->field_idx_offset + head_->field_idx_count <= bytes_.size());
-    field_indices_ = reinterpret_cast<uint32_t*>(bytes_.data() + head_->field_idx_offset);
+    CHECK_OFF(sizeof(GffHeader) < data_.bytes.size());
+    head_ = reinterpret_cast<GffHeader*>(data_.bytes.data());
+    CHECK_OFF(head_->label_offset < data_.bytes.size() && head_->label_offset + head_->label_count * sizeof(Resref) < data_.bytes.size());
+    labels_ = reinterpret_cast<GffLabel*>(data_.bytes.data() + head_->label_offset);
+    CHECK_OFF(head_->struct_offset < data_.bytes.size() && head_->struct_offset + head_->struct_count * sizeof(GffStructEntry) < data_.bytes.size());
+    structs_ = reinterpret_cast<GffStructEntry*>(data_.bytes.data() + head_->struct_offset);
+    CHECK_OFF(head_->field_offset < data_.bytes.size() && head_->field_offset + head_->field_count * sizeof(GffFieldEntry) < data_.bytes.size());
+    fields_ = reinterpret_cast<GffFieldEntry*>(data_.bytes.data() + head_->field_offset);
+    CHECK_OFF(head_->field_data_offset < data_.bytes.size() && head_->field_data_offset + head_->field_data_count < data_.bytes.size());
+    CHECK_OFF(head_->field_idx_offset < data_.bytes.size() && head_->field_idx_offset + head_->field_idx_count <= data_.bytes.size());
+    field_indices_ = reinterpret_cast<uint32_t*>(data_.bytes.data() + head_->field_idx_offset);
 
     // If there are no list indexes.. offset will be the size of file, but no data will
     // be there.
-    CHECK_OFF(head_->list_idx_offset <= bytes_.size());
+    CHECK_OFF(head_->list_idx_offset <= data_.bytes.size());
     if (head_->list_idx_count > 0) {
-        CHECK_OFF(head_->list_idx_offset + head_->list_idx_count <= bytes_.size());
-        list_indices_ = reinterpret_cast<uint32_t*>(bytes_.data() + head_->list_idx_offset);
+        CHECK_OFF(head_->list_idx_offset + head_->list_idx_count <= data_.bytes.size());
+        list_indices_ = reinterpret_cast<uint32_t*>(data_.bytes.data() + head_->list_idx_offset);
     } else {
         list_indices_ = nullptr;
     }

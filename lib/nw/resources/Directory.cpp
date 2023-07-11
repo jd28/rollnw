@@ -66,31 +66,33 @@ bool Directory::contains(Resource res) const
     return fs::exists(p) && fs::is_regular_file(p);
 }
 
-ByteArray Directory::demand(Resource res) const
+ResourceData Directory::demand(Resource res) const
 {
     fs::path p = path_ / res.filename();
 
-    ByteArray ba;
+    ResourceData data;
+    data.name = res;
+
     if (!fs::exists(p) || !fs::is_regular_file(p)) {
-        return ba;
+        return data;
     }
 
     std::ifstream f{p, std::ios_base::binary};
 
     if (!f.is_open()) {
         LOG_F(INFO, "Skip - Unable to open file: {}", p);
-        return ba;
+        return data;
     }
 
     if (size_t size = fs::file_size(p)) {
-        ba.resize(size);
-        if (!istream_read(f, ba.data(), size)) {
+        data.bytes.resize(size);
+        if (!istream_read(f, data.bytes.data(), size)) {
             LOG_F(INFO, "Skip - Error reading file: {}", p);
-            ba.clear(); // Free the memory
+            data.bytes.clear(); // Free the memory
         }
     }
 
-    return ba;
+    return data;
 }
 
 int Directory::extract(const std::regex& pattern, const fs::path& output) const

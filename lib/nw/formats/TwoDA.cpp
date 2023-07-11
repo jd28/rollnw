@@ -83,12 +83,12 @@ struct TwoDATokenizer {
 } // namespace detail
 
 TwoDA::TwoDA(const std::filesystem::path& filename)
-    : TwoDA(ByteArray::from_file(filename))
+    : TwoDA(ResourceData::from_file(filename))
 {
 }
 
-TwoDA::TwoDA(ByteArray bytes)
-    : bytes_{std::move(bytes)}
+TwoDA::TwoDA(ResourceData data)
+    : data_{std::move(data)}
 {
     is_loaded_ = parse();
 }
@@ -127,10 +127,10 @@ inline bool needs_quote(std::string_view str)
 
 bool TwoDA::parse()
 {
-    if (bytes_.size() == 0) {
+    if (data_.bytes.size() == 0) {
         return false;
     }
-    detail::TwoDATokenizer tknz{bytes_.string_view()};
+    detail::TwoDATokenizer tknz{data_.bytes.string_view()};
     std::string_view tk;
 
     if (tknz.next() != "2DA" || tknz.next() != "V2.0") {

@@ -4,9 +4,8 @@
 #include "../i18n/conversion.hpp"
 #include "../legacy/LocString.hpp"
 #include "../log.hpp"
-#include "../resources/Resource.hpp"
+#include "../resources/ResourceData.hpp"
 #include "../serialization/Serialization.hpp"
-#include "../util/ByteArray.hpp"
 #include "../util/macros.hpp"
 #include "../util/string.hpp"
 #include "gff_common.hpp"
@@ -105,7 +104,7 @@ private:
 struct Gff {
     Gff() = default;
     explicit Gff(const std::filesystem::path& file, nw::LanguageID lang = nw::LanguageID::english);
-    explicit Gff(ByteArray bytes, nw::LanguageID lang = nw::LanguageID::english);
+    explicit Gff(ResourceData data, nw::LanguageID lang = nw::LanguageID::english);
 
     /// Get the toplevel struct
     GffStruct toplevel() const;
@@ -130,7 +129,7 @@ private:
     friend struct GffField;
     friend struct GffStruct;
 
-    ByteArray bytes_;
+    ResourceData data_;
     bool is_loaded_ = false;
     nw::LanguageID lang_ = nw::LanguageID::english;
 
@@ -256,45 +255,45 @@ bool GffField::get_to(T& value) const
             return true;
         } else {
             size_t off = entry_->data_or_offset + parent_->head_->field_data_offset;
-            CHECK_OFF(off < parent_->bytes_.size());
+            CHECK_OFF(off < parent_->data_.bytes.size());
 
             if constexpr (std::is_same_v<T, Resref>) {
                 char buffer[17] = {0};
                 uint8_t size = 0;
-                CHECK_OFF(parent_->bytes_.read_at(off, &size, 1));
+                CHECK_OFF(parent_->data_.bytes.read_at(off, &size, 1));
                 off += 1;
-                CHECK_OFF(parent_->bytes_.read_at(off, buffer, size));
+                CHECK_OFF(parent_->data_.bytes.read_at(off, buffer, size));
                 value = Resref(buffer);
                 return true;
             } else if constexpr (std::is_same_v<T, std::string>) {
                 uint32_t size;
-                CHECK_OFF(parent_->bytes_.read_at(off, &size, 4));
+                CHECK_OFF(parent_->data_.bytes.read_at(off, &size, 4));
                 off += 4;
-                CHECK_OFF(off + size < parent_->bytes_.size());
+                CHECK_OFF(off + size < parent_->data_.bytes.size());
                 std::string s{};
                 s.reserve(size + 12); // Reserve a little bit extra, in case of colors.
-                s.append(reinterpret_cast<const char*>(parent_->bytes_.data() + off), size);
+                s.append(reinterpret_cast<const char*>(parent_->data_.bytes.data() + off), size);
                 value = string::sanitize_colors(std::move(s));
                 value = to_utf8_by_langid(value, parent_->lang_);
                 return true;
             } else if constexpr (std::is_same_v<T, LocString>) {
                 uint32_t size, strref, lang, strings;
-                CHECK_OFF(parent_->bytes_.read_at(off, &size, 4));
+                CHECK_OFF(parent_->data_.bytes.read_at(off, &size, 4));
                 off += 4;
-                CHECK_OFF(parent_->bytes_.read_at(off, &strref, 4));
+                CHECK_OFF(parent_->data_.bytes.read_at(off, &strref, 4));
                 off += 4;
-                CHECK_OFF(parent_->bytes_.read_at(off, &strings, 4));
+                CHECK_OFF(parent_->data_.bytes.read_at(off, &strings, 4));
                 off += 4;
 
                 LocString ls{strref};
 
                 for (uint32_t i = 0; i < strings; ++i) {
-                    CHECK_OFF(parent_->bytes_.read_at(off, &lang, 4));
+                    CHECK_OFF(parent_->data_.bytes.read_at(off, &lang, 4));
                     off += 4;
-                    CHECK_OFF(parent_->bytes_.read_at(off, &size, 4));
+                    CHECK_OFF(parent_->data_.bytes.read_at(off, &size, 4));
                     off += 4;
-                    CHECK_OFF(off + size < parent_->bytes_.size());
-                    std::string s{reinterpret_cast<const char*>(parent_->bytes_.data() + off), size};
+                    CHECK_OFF(off + size < parent_->data_.bytes.size());
+                    std::string s{reinterpret_cast<const char*>(parent_->data_.bytes.data() + off), size};
                     s = string::sanitize_colors(std::move(s));
                     auto base_lang = Language::to_base_id(lang);
                     s = to_utf8_by_langid(s, base_lang.first);
@@ -305,10 +304,10 @@ bool GffField::get_to(T& value) const
                 return true;
             } else if constexpr (std::is_same_v<T, ByteArray>) {
                 uint32_t size;
-                parent_->bytes_.read_at(off, &size, 4);
+                parent_->data_.bytes.read_at(off, &size, 4);
                 off += 4;
-                CHECK_OFF(off + size < parent_->bytes_.size());
-                value = ByteArray(parent_->bytes_.data() + off, size);
+                CHECK_OFF(off + size < parent_->data_.bytes.size());
+                value = ByteArray(parent_->data_.bytes.data() + off, size);
                 return true;
             } else if constexpr (std::is_same_v<T, GffStruct>) {
                 if (entry_->data_or_offset < parent_->head_->struct_count) {
@@ -320,7 +319,7 @@ bool GffField::get_to(T& value) const
                 return true;
             } else {
                 T temp;
-                CHECK_OFF(parent_->bytes_.read_at(off, &temp, sizeof(T)));
+                CHECK_OFF(parent_->data_.bytes.read_at(off, &temp, sizeof(T)));
                 return true;
             }
         }

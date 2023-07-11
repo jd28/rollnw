@@ -58,14 +58,14 @@ TEST(KernelResources, LoadPlayerCharacter)
     auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
     EXPECT_TRUE(mod);
 
-    auto ba = nwk::resman().demand_server_vault("CDKEY", "testsorcpc1");
-    EXPECT_TRUE(ba.size());
+    auto data = nwk::resman().demand_server_vault("CDKEY", "testsorcpc1");
+    EXPECT_TRUE(data.bytes.size());
 
-    ba = nwk::resman().demand_server_vault("WRONGKEY", "testsorcpc1");
-    EXPECT_FALSE(ba.size());
+    data = nwk::resman().demand_server_vault("WRONGKEY", "testsorcpc1");
+    EXPECT_FALSE(data.bytes.size());
 
-    ba = nwk::resman().demand_server_vault("CDKEY", "WRONGNAME");
-    EXPECT_FALSE(ba.size());
+    data = nwk::resman().demand_server_vault("CDKEY", "WRONGNAME");
+    EXPECT_FALSE(data.bytes.size());
 
     nwk::unload_module();
 }

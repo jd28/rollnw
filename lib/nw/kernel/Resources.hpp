@@ -50,15 +50,13 @@ struct Resources : public Container, public Service {
     void unload_module();
 
     /// Demands a player character file
-    ByteArray demand_server_vault(std::string_view cdkey, std::string_view resref);
+    ResourceData demand_server_vault(std::string_view cdkey, std::string_view resref);
 
     /// Attempts to locate first matching resource type by container priority
-    std::pair<ByteArray, ResourceType::type>
-    demand_any(Resref resref, std::initializer_list<ResourceType::type> restypes) const;
+    ResourceData demand_any(Resref resref, std::initializer_list<ResourceType::type> restypes) const;
 
     /// Attempts to locate first matching resource by resource type priority
-    std::pair<ByteArray, ResourceType::type>
-    demand_in_order(Resref resref, std::initializer_list<ResourceType::type> restypes) const;
+    ResourceData demand_in_order(Resref resref, std::initializer_list<ResourceType::type> restypes) const;
 
 #ifdef ROLLNW_ENABLE_LEGACY
     void load_palette_textures();
@@ -70,7 +68,7 @@ struct Resources : public Container, public Service {
         return {};
     }
     virtual bool contains(Resource res) const override;
-    virtual ByteArray demand(Resource res) const override;
+    virtual ResourceData demand(Resource res) const override;
     virtual int extract(const std::regex& pattern, const std::filesystem::path& output) const override;
     virtual const std::string& name() const override { return name_; }
     virtual const std::string& path() const override { return name_; }

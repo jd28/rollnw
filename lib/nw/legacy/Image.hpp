@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../util/ByteArray.hpp"
+#include "../resources/ResourceData.hpp"
 
 #include <memory>
 #include <string>
@@ -20,7 +20,7 @@ namespace nw {
  */
 struct Image {
     explicit Image(const std::filesystem::path& filename);
-    explicit Image(ByteArray bytes, bool is_dds = false);
+    explicit Image(ResourceData data);
 
     Image(Image&& other);
     Image(const Image& other) = delete;
@@ -47,9 +47,9 @@ struct Image {
     bool write_to(const std::filesystem::path& filename) const;
 
 private:
-    ByteArray bytes_;
+    ResourceData data_;
     bool is_loaded_ = false;
-    uint8_t* data_ = nullptr;
+    uint8_t* bytes_ = nullptr;
     size_t size_ = 0;
     uint32_t channels_ = 0;
     uint32_t height_ = 0;

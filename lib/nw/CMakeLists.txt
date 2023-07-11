@@ -96,6 +96,7 @@ add_library(nw STATIC
     resources/NWSync.cpp
     resources/Resref.cpp
     resources/Resource.cpp
+    resources/ResourceData.cpp
     resources/ResourceDescriptor.cpp
     resources/Zip.cpp
 

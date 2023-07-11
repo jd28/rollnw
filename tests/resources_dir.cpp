@@ -15,16 +15,16 @@ TEST(Directory, Construction)
     EXPECT_EQ(d.path(), std::filesystem::canonical(p));
 
     EXPECT_TRUE(d.contains(Resource{"test"sv, ResourceType::nss}));
-    auto ba = d.demand(Resource{"test"sv, ResourceType::nss});
-    EXPECT_TRUE(ba.size());
-    EXPECT_EQ(ba.size(), std::filesystem::file_size("./test_data/user/development/test.nss"));
+    auto data = d.demand(Resource{"test"sv, ResourceType::nss});
+    EXPECT_TRUE(data.bytes.size());
+    EXPECT_EQ(data.bytes.size(), std::filesystem::file_size("./test_data/user/development/test.nss"));
     EXPECT_GT(d.all().size(), 0);
 
     EXPECT_FALSE(Directory{"./test_data/user/development/test.nss"}.valid());
     EXPECT_FALSE(Directory{"./doesnotexist"}.valid());
 
     auto rd = d.stat(Resource{"test"sv, ResourceType::nss});
-    EXPECT_EQ(ba.size(), rd.size);
+    EXPECT_EQ(data.bytes.size(), rd.size);
 }
 
 TEST(Directory, visit)

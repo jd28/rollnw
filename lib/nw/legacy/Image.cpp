@@ -16,25 +16,25 @@ namespace fs = std::filesystem;
 namespace nw {
 
 Image::Image(const std::filesystem::path& filename)
-    : bytes_{ByteArray::from_file(filename)}
-    , data_{nullptr}
+    : data_{ResourceData::from_file(filename)}
+    , bytes_{nullptr}
 {
-    is_dds_ = string::icmp(filename.extension().string(), ".dds");
+    is_dds_ = data_.name.type == ResourceType::dds;
     is_loaded_ = parse();
 }
 
-Image::Image(ByteArray bytes, bool is_dds)
-    : bytes_{std::move(bytes)}
-    , data_{nullptr}
-    , is_dds_(is_dds)
+Image::Image(ResourceData data)
+    : data_{std::move(data)}
+    , bytes_{nullptr}
+    , is_dds_(data_.name.type == ResourceType::dds)
 {
     is_loaded_ = parse();
 }
 
 Image::Image(Image&& other)
-    : bytes_{std::move(other.bytes_)}
+    : data_{std::move(other.data_)}
     , is_loaded_{other.is_loaded_}
-    , data_{other.data_}
+    , bytes_{std::move(other.bytes_)}
     , size_{other.size_}
     , channels_{other.channels_}
     , height_{other.height_}
@@ -42,16 +42,16 @@ Image::Image(Image&& other)
     , is_dds_{other.is_dds_}
 {
     other.is_loaded_ = false;
-    other.data_ = nullptr;
+    other.bytes_ = nullptr;
     other.size_ = 0;
 }
 
 Image& Image::operator=(Image&& other)
 {
     if (this != &other) {
-        bytes_ = std::move(other.bytes_);
+        data_ = std::move(other.data_);
         is_loaded_ = other.is_loaded_;
-        data_ = other.data_;
+        bytes_ = other.bytes_;
         size_ = other.size_;
         channels_ = other.channels_;
         height_ = other.height_;
@@ -59,7 +59,7 @@ Image& Image::operator=(Image&& other)
         is_dds_ = other.is_dds_;
 
         other.is_loaded_ = false;
-        other.data_ = nullptr;
+        other.bytes_ = nullptr;
         other.size_ = 0;
     }
     return *this;
@@ -67,12 +67,12 @@ Image& Image::operator=(Image&& other)
 
 Image::~Image()
 {
-    if (data_) { free(data_); }
+    if (bytes_) { free(bytes_); }
 }
 
 uint32_t Image::channels() const noexcept { return channels_; }
 
-uint8_t* Image::data() { return data_; }
+uint8_t* Image::data() { return bytes_; }
 
 uint32_t Image::height() const noexcept { return height_; }
 
@@ -82,7 +82,7 @@ bool Image::valid() const { return is_loaded_; }
 
 bool Image::write_to(const std::filesystem::path& filename) const
 {
-    if (!data_) return false;
+    if (!bytes_) return false;
 
     fs::path temp = fs::temp_directory_path() / filename.filename();
     std::string ext = filename.extension().string();
@@ -97,17 +97,17 @@ bool Image::write_to(const std::filesystem::path& filename) const
     int channels = static_cast<int>(channels_);
 
     if (string::icmp(ext, ".dds")) {
-        if (!save_image_as_DDS(temp_path, width, height, channels, data_)) {
+        if (!save_image_as_DDS(temp_path, width, height, channels, bytes_)) {
             LOG_F(INFO, "Failed to write DDS");
             return false;
         }
     } else if (string::icmp(ext, ".png")) {
-        if (!stbi_write_png(temp_path, width, height, channels, data_, 0)) {
+        if (!stbi_write_png(temp_path, width, height, channels, bytes_, 0)) {
             LOG_F(INFO, "Failed to write PNG");
             return false;
         }
     } else if (string::icmp(ext, ".tga")) {
-        if (!stbi_write_tga(temp_path, width, height, channels, data_)) {
+        if (!stbi_write_tga(temp_path, width, height, channels, bytes_)) {
             LOG_F(INFO, "Failed to write TGA");
             return false;
         }
@@ -123,17 +123,17 @@ bool Image::write_to(const std::filesystem::path& filename) const
 
 bool Image::parse()
 {
-    if (bytes_.size() == 0) { return false; }
+    if (data_.bytes.size() == 0) { return false; }
     bool result = false;
     if (is_dds_) {
         result = parse_dds();
     } else { // Defer to stb_image
         int width, height, channels;
 
-        data_ = stbi_load_from_memory(bytes_.data(), static_cast<int>(bytes_.size()),
+        bytes_ = stbi_load_from_memory(data_.bytes.data(), static_cast<int>(data_.bytes.size()),
             &width, &height, &channels, 0);
 
-        if (!data_) {
+        if (!bytes_) {
             LOG_F(ERROR, "Failed to load image: {}", stbi_failure_reason());
             result = false;
         } else {
@@ -143,7 +143,7 @@ bool Image::parse()
             result = true;
         }
     }
-    bytes_.clear(); // If we have bytes we're done with them.
+    data_.bytes.clear(); // If we have bytes we're done with them.
     return result;
 }
 
@@ -172,7 +172,7 @@ void stbi_decode_DXT_color_block(
 bool Image::parse_dds()
 {
     uint32_t magic;
-    bytes_.read_at(0, &magic, 4);
+    data_.bytes.read_at(0, &magic, 4);
 
     if (magic != 0x20534444) {
         return parse_bioware();
@@ -187,7 +187,7 @@ bool Image::parse_bioware()
     // what's here is copy paste from stbi/soil2
 
     size_t off = 0;
-    bytes_.read_at(off, &bioware_header, sizeof(detail::BiowareDdsHeader));
+    data_.bytes.read_at(off, &bioware_header, sizeof(detail::BiowareDdsHeader));
     channels_ = bioware_header.colors;
     width_ = bioware_header.width;
     height_ = bioware_header.height;
@@ -196,7 +196,7 @@ bool Image::parse_bioware()
     if (channels_ != 3 && channels_ != 4)
         return false;
 
-    data_ = reinterpret_cast<uint8_t*>(malloc(4 * height_ * width_));
+    bytes_ = reinterpret_cast<uint8_t*>(malloc(4 * height_ * width_));
 
     int block_pitch = (width_ + 3) >> 2;
     int num_blocks = block_pitch * ((height_ + 3) >> 2);
@@ -213,14 +213,14 @@ bool Image::parse_bioware()
 
         if (channels_ == 4) {
             //	DXT4/5
-            memcpy(compressed, bytes_.data() + off, 8);
+            memcpy(compressed, data_.bytes.data() + off, 8);
             detail::stbi_decode_DXT45_alpha_block(block, compressed);
             off += 8;
-            memcpy(compressed, bytes_.data() + off, 8);
+            memcpy(compressed, data_.bytes.data() + off, 8);
             detail::stbi_decode_DXT_color_block(block, compressed);
             off += 8;
         } else {
-            memcpy(compressed, bytes_.data() + off, 8);
+            memcpy(compressed, data_.bytes.data() + off, 8);
             detail::stbi_decode_DXT1_block(block, compressed);
             off += 8;
         }
@@ -236,7 +236,7 @@ bool Image::parse_bioware()
             int idx = 4 * ((ref_y + by + 0 * width_) * width_ + ref_x);
             for (bx = 0; bx < bw * 4; ++bx) {
 
-                data_[idx + bx] = block[by * 16 + bx];
+                bytes_[idx + bx] = block[by * 16 + bx];
             }
         }
     }
@@ -245,14 +245,14 @@ bool Image::parse_bioware()
         auto good = reinterpret_cast<uint8_t*>(malloc(3 * height_ * width_));
 
         for (size_t j = 0; j < height_ * width_; ++j) {
-            unsigned char* src = data_ + j * 4;
+            unsigned char* src = bytes_ + j * 4;
             unsigned char* dest = good + j * 3;
             dest[0] = src[0];
             dest[1] = src[1];
             dest[2] = src[2];
         }
-        free(data_);
-        data_ = good;
+        free(bytes_);
+        bytes_ = good;
     }
 
     return true;
@@ -262,10 +262,10 @@ bool Image::parse_dxt()
 {
     int width, height, channels;
 
-    data_ = stbi_load_from_memory(bytes_.data(), static_cast<int>(bytes_.size()),
+    bytes_ = stbi_load_from_memory(data_.bytes.data(), static_cast<int>(data_.bytes.size()),
         &height, &width, &channels, 0);
 
-    if (data_ == nullptr) {
+    if (bytes_ == nullptr) {
         LOG_F(INFO, "Failed to load DDS: {}", stbi_failure_reason());
         return false;
     }

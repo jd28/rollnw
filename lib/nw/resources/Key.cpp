@@ -71,22 +71,24 @@ bool Key::contains(Resource res) const
     return elements_.find(res) != std::end(elements_);
 }
 
-ByteArray Key::demand(Resource res) const
+ResourceData Key::demand(Resource res) const
 {
-    ByteArray ba;
+    ResourceData data;
     if (!is_loaded_) {
-        return ba;
+        return data;
     }
 
     auto it = elements_.find(res);
 
     if (it == std::end(elements_)) {
-        return ba;
+        return data;
     } else if (it->second.bif >= bifs_.size() || it->second.index >= bifs_[it->second.bif].elements.size()) {
-        return ba;
+        return data;
     }
 
-    return bifs_[it->second.bif].demand(it->second.index);
+    data.name = res;
+    data.bytes = bifs_[it->second.bif].demand(it->second.index);
+    return data;
 }
 
 int Key::extract(const std::regex& pattern, const std::filesystem::path& output) const

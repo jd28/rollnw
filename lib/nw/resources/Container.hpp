@@ -2,6 +2,7 @@
 
 #include "../util/ByteArray.hpp"
 #include "Resource.hpp"
+#include "ResourceData.hpp"
 #include "ResourceDescriptor.hpp"
 
 #include <filesystem>
@@ -21,8 +22,8 @@ struct Container {
     /// Get if container contains resource
     virtual bool contains(Resource res) const = 0;
 
-    /// Reads resourece data, empty ByteArray if no match.
-    virtual ByteArray demand(Resource res) const = 0;
+    /// Reads resource data, empty ResourceData if no match.
+    virtual ResourceData demand(Resource res) const = 0;
 
     /// Extract elements from a container by glob pattern
     virtual int extract_by_glob(std::string_view glob, const std::filesystem::path& output) const;

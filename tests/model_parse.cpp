@@ -146,7 +146,7 @@ TEST(Mdl, ParseASCII2)
     nw::model::Mdl mdl28{"test_data/user/development/ttf02_j09_02.mdl"};
     EXPECT_TRUE(mdl28.valid());
 
-    nw::model::Mdl mdl29{nw::ByteArray::from_file("test_data/user/development/tts01_h02_03.mdl")};
+    nw::model::Mdl mdl29{nw::ResourceData::from_file("test_data/user/development/tts01_h02_03.mdl")};
     EXPECT_TRUE(mdl29.valid());
 
     // [TODO] Investigate whether all the controllers in here are obsolete

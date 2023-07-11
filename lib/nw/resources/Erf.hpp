@@ -70,7 +70,7 @@ public:
 
     virtual std::vector<ResourceDescriptor> all() const override;
     virtual bool contains(Resource res) const override;
-    virtual ByteArray demand(Resource res) const override;
+    virtual ResourceData demand(Resource res) const override;
     virtual int extract(const std::regex& pattern, const std::filesystem::path& output) const override;
     virtual const std::string& name() const override { return name_; };
     virtual const std::string& path() const override { return path_; };
@@ -98,7 +98,7 @@ private:
     absl::flat_hash_map<Resource, ErfElement> elements_;
 
     bool load(const std::filesystem::path& path);
-    ByteArray read(const ErfElement& element) const;
+    ResourceData read(const ErfElement& element) const;
 };
 
 } // namespace nw

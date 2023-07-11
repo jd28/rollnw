@@ -52,9 +52,11 @@ bool Zip::contains(Resource res) const
     return !!stat(res);
 }
 
-ByteArray Zip::demand(Resource resref) const
+ResourceData Zip::demand(Resource resref) const
 {
-    ByteArray ba;
+    ResourceData data;
+    data.name = resref;
+
     char fname[64] = {0};
 
     std::string fn = resref.filename();
@@ -63,13 +65,13 @@ ByteArray Zip::demand(Resource resref) const
         unzOpenCurrentFile(file_);
         unz_file_info info;
         unzGetCurrentFileInfo(file_, &info, fname, 64, nullptr, 0, nullptr, 0);
-        ba.resize(info.uncompressed_size);
-        if (unzReadCurrentFile(file_, ba.data(), static_cast<uint32_t>(info.uncompressed_size)) == 0) {
+        data.bytes.resize(info.uncompressed_size);
+        if (unzReadCurrentFile(file_, data.bytes.data(), static_cast<uint32_t>(info.uncompressed_size)) == 0) {
             // Not sure about the return here..
         }
         unzCloseCurrentFile(file_);
     }
-    return ba;
+    return data;
 }
 
 int Zip::extract(const std::regex& pattern, const std::filesystem::path& output) const
@@ -90,10 +92,10 @@ int Zip::extract(const std::regex& pattern, const std::filesystem::path& output)
         if (dot && static_cast<size_t>(dot - fname) <= 16) {
             Resource r(std::string_view(fname, static_cast<size_t>(dot - fname)), ResourceType::from_extension(dot + 1));
             if (r.valid() && std::regex_match(fname, pattern)) {
-                auto ba = demand(r);
-                if (ba.size() > 0) {
+                auto data = demand(r);
+                if (data.bytes.size() > 0) {
                     nowide::ofstream out{(output / r.filename()).string(), std::ios_base::binary};
-                    ostream_write(out, ba.data(), ba.size());
+                    ostream_write(out, data.bytes.data(), data.bytes.size());
                     ++extracted;
                 }
             }

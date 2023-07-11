@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../util/ByteArray.hpp"
+#include "../resources/ResourceData.hpp"
 
 #include <glm/glm.hpp>
 
@@ -40,7 +40,7 @@ struct PltColors {
 /// Implementation of Bioware's PLT file format
 struct Plt {
     Plt(std::filesystem::path file);
-    Plt(ByteArray bytes);
+    Plt(ResourceData data);
 
     /// Gets height
     uint32_t height() const;
@@ -58,7 +58,7 @@ private:
     uint32_t width_ = 0;
     uint32_t height_ = 0;
 
-    ByteArray bytes_;
+    ResourceData data_;
     bool valid_ = false;
 };
 

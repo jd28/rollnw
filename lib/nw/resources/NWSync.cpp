@@ -63,9 +63,9 @@ bool NWSyncManifest::contains(Resource res) const
     return !!stat(res);
 }
 
-ByteArray NWSyncManifest::demand(Resource res) const
+ResourceData NWSyncManifest::demand(Resource res) const
 {
-    ByteArray result;
+    ResourceData result;
 
     sqlite3_stmt* stmt = nullptr;
     const char* tail = nullptr;
@@ -101,8 +101,9 @@ ByteArray NWSyncManifest::demand(Resource res) const
         }
 
         if (sqlite3_step(data_stmt) == SQLITE_ROW) {
-            result = decompress({reinterpret_cast<const uint8_t*>(sqlite3_column_blob(data_stmt, 0)),
-                                    static_cast<uint32_t>(sqlite3_column_bytes(data_stmt, 0))},
+            result.name = res;
+            result.bytes = decompress({reinterpret_cast<const uint8_t*>(sqlite3_column_blob(data_stmt, 0)),
+                                          static_cast<uint32_t>(sqlite3_column_bytes(data_stmt, 0))},
                 "NSYC");
             return result;
         }
@@ -141,11 +142,11 @@ int NWSyncManifest::extract(const std::regex& pattern, const std::filesystem::pa
             static_cast<ResourceType::type>(sqlite3_column_int(stmt, 1)));
         auto fname = r.filename();
         if (std::regex_match(fname, pattern)) {
-            auto ba = demand(r);
-            if (ba.size()) {
+            auto data = demand(r);
+            if (data.bytes.size()) {
                 ++count;
                 std::ofstream out{output / fs::path(fname), std::ios_base::binary};
-                ostream_write(out, ba.data(), ba.size());
+                ostream_write(out, data.bytes.data(), data.bytes.size());
             }
         }
     }

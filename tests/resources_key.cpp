@@ -18,8 +18,8 @@ TEST(Key, Construction)
         EXPECT_GT(k.size(), 0);
         EXPECT_GT(k.all().size(), 0);
 
-        nw::ByteArray ba = k.demand({"nwscript"sv, nw::ResourceType::nss});
-        EXPECT_TRUE(ba.size());
+        nw::ResourceData data = k.demand({"nwscript"sv, nw::ResourceType::nss});
+        EXPECT_TRUE(data.bytes.size());
         EXPECT_EQ(k.extract(std::regex("nwscript\\.nss"), "tmp/"), 1);
     }
 }

@@ -13,12 +13,12 @@ script::Script* ParsedScriptCache::get(Resref resref)
     }
 
     script::Script* result = nullptr;
-    auto ba = kernel::resman().demand(res);
-    if (ba.size() == 0) {
+    auto data = kernel::resman().demand(res);
+    if (data.bytes.size() == 0) {
         return result;
     }
 
-    auto nss = new script::Nss{std::move(ba)};
+    auto nss = new script::Nss{std::move(data)};
     nss->parse();
     cache_.emplace(res, nss);
 

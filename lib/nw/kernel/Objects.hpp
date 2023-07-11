@@ -160,7 +160,7 @@ T* ObjectSystem::load(const std::filesystem::path& archive, SerializationProfile
         }
     } else if (restype == ResourceType::bic) {
         if constexpr (std::is_same_v<T, nw::Player>) {
-            Gff in{ByteArray::from_file(archive)};
+            Gff in{ResourceData::from_file(archive)};
             if (in.valid()) {
                 type = serial_id_to_obj_type(in.type());
                 if (type == T::object_type) {
@@ -170,7 +170,7 @@ T* ObjectSystem::load(const std::filesystem::path& archive, SerializationProfile
         }
     } else if (ResourceType::check_category(ResourceType::gff_archive, restype)) {
         if constexpr (!std::is_same_v<T, nw::Player>) {
-            Gff in{ByteArray::from_file(archive)};
+            Gff in{ResourceData::from_file(archive)};
             if (in.valid()) {
                 type = serial_id_to_obj_type(in.type());
                 if (type == T::object_type) {
@@ -195,9 +195,9 @@ template <typename T>
 T* ObjectSystem::load(std::string_view resref)
 {
     T* obj = make<T>();
-    ByteArray ba = resman().demand({resref, T::restype});
-    if (ba.size()) {
-        Gff in{ba};
+    ResourceData data = resman().demand({resref, T::restype});
+    if (data.bytes.size()) {
+        Gff in{std::move(data)};
         if (in.valid()) {
             deserialize(obj, in.toplevel(), SerializationProfile::blueprint);
         }

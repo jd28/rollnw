@@ -25,17 +25,17 @@ TEST(Erf, demand)
 {
     Erf e("test_data/user/modules/DockerDemo.mod");
     EXPECT_TRUE(e.valid());
-    auto ba = e.demand({"module"sv, ResourceType::ifo});
-    EXPECT_TRUE(ba.size() > 0);
+    auto data = e.demand({"module"sv, ResourceType::ifo});
+    EXPECT_TRUE(data.bytes.size() > 0);
 }
 
 TEST(Erf, extract)
 {
     Erf e("test_data/user/modules/DockerDemo.mod");
     EXPECT_TRUE(e.valid());
-    auto ba = e.demand({"module"sv, ResourceType::ifo});
+    auto data = e.demand({"module"sv, ResourceType::ifo});
     EXPECT_EQ(e.extract(std::regex("module.ifo"), "tmp/"), 1);
-    EXPECT_EQ(ba.size(), std::filesystem::file_size("tmp/module.ifo"));
+    EXPECT_EQ(data.bytes.size(), std::filesystem::file_size("tmp/module.ifo"));
 }
 
 TEST(Erf, add)
@@ -47,9 +47,9 @@ TEST(Erf, add)
     EXPECT_EQ(rd.name, r);
     EXPECT_EQ(rd.size, 1969);
 
-    nw::ByteArray ba = nw::ByteArray::from_file(u8"test_data/user/development/cloth028.uti");
-    auto ba2 = e.demand(r);
-    EXPECT_EQ(ba, ba2);
+    nw::ResourceData data = nw::ResourceData::from_file(u8"test_data/user/development/cloth028.uti");
+    auto data2 = e.demand(r);
+    EXPECT_EQ(data, data2);
 
     EXPECT_FALSE(e.add("this_is_invalid_path_to_resource.xxxx"));
 }
@@ -78,8 +78,8 @@ TEST(Erf, save)
     EXPECT_TRUE(e.save());
     EXPECT_TRUE(e.reload());
     Resource r2{"build"sv, nw::ResourceType::txt};
-    auto ba = e.demand(r2);
-    EXPECT_TRUE(ba.size() > 0);
+    auto data = e.demand(r2);
+    EXPECT_TRUE(data.bytes.size() > 0);
 }
 
 TEST(Erf, save_as)
@@ -87,20 +87,20 @@ TEST(Erf, save_as)
     Erf e{"test_data/user/hak/hak_with_description.hak"};
     EXPECT_TRUE(e.valid());
     Resource r2{"build"sv, nw::ResourceType::txt};
-    auto ba = e.demand(r2);
+    auto data = e.demand(r2);
 
     Resource r{"cloth028"sv, nw::ResourceType::uti};
     e.add("test_data/user/development/cloth028.uti");
     EXPECT_TRUE(e.save_as(fs::path("tmp/hak_with_description.hak")));
     Erf e2{"tmp/hak_with_description.hak"};
-    auto ba2 = e2.demand(r2);
+    auto data2 = e2.demand(r2);
 
-    EXPECT_EQ(ba, ba2);
+    EXPECT_EQ(data, data2);
     EXPECT_EQ(e2.size(), 2);
 
-    auto ba3 = ByteArray::from_file("test_data/user/development/cloth028.uti");
-    auto ba4 = e2.demand(r);
-    EXPECT_EQ(ba3, ba4);
+    auto data3 = ResourceData::from_file("test_data/user/development/cloth028.uti");
+    auto data4 = e2.demand(r);
+    EXPECT_EQ(data3, data4);
     e2.extract_by_glob("build.txt", "tmp/");
 }
 

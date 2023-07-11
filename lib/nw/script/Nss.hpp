@@ -3,6 +3,7 @@
 #include "NssLexer.hpp"
 #include "NssParser.hpp"
 
+#include "../resources/ResourceData.hpp"
 #include "../util/ByteArray.hpp"
 
 #include <filesystem>
@@ -15,7 +16,7 @@ namespace nw::script {
 struct Nss {
     explicit Nss(const std::filesystem::path& filename);
     explicit Nss(std::string_view script);
-    explicit Nss(ByteArray bytes);
+    explicit Nss(ResourceData data);
 
     /// Returns how many errors were found during parsing
     size_t errors() const noexcept;
@@ -42,7 +43,7 @@ struct Nss {
     size_t warnings() const noexcept;
 
 private:
-    ByteArray bytes_;
+    ResourceData data_;
     NssParser parser_;
     Script script_;
 };

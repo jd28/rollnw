@@ -3,7 +3,7 @@
 // Huge credit here to Torlack
 
 #include "../log.hpp"
-#include "../util/ByteArray.hpp"
+#include "../resources/ResourceData.hpp"
 #include "../util/InternedString.hpp"
 #include "../util/string.hpp"
 
@@ -535,14 +535,14 @@ struct Model : public Geometry {
 /// Implements  Bioware MDL file format
 /// @warning This is still incomplete
 class Mdl {
-    ByteArray bytes_;
+    ResourceData data_;
     bool loaded_ = false;
 
 public:
     Model model;
 
-    Mdl(const std::string& filename);
-    Mdl(ByteArray bytes);
+    Mdl(const std::filesystem::path& filename);
+    Mdl(ResourceData data);
 
     std::unique_ptr<Node> make_node(uint32_t type, std::string_view name);
     bool valid() const;

@@ -372,24 +372,24 @@ Animation::Animation(std::string name_)
 
 // --  -------------------------------------------------------------------
 
-Mdl::Mdl(const std::string& filename)
-    : Mdl{ByteArray::from_file(filename)}
+Mdl::Mdl(const std::filesystem::path& filename)
+    : Mdl{ResourceData::from_file(filename)}
 {
 }
 
-Mdl::Mdl(ByteArray bytes)
-    : bytes_{std::move(bytes)}
+Mdl::Mdl(ResourceData data)
+    : data_{std::move(data)}
 {
-    if (bytes_.size() == 0) {
+    if (data_.bytes.size() == 0) {
         LOG_F(ERROR, "[model] no data received");
         return;
     }
-    if (bytes_[0] == 0) {
-        BinaryParser p{std::span<uint8_t>(bytes_.data(), bytes_.size()), this};
+    if (data_.bytes[0] == 0) {
+        BinaryParser p{std::span<uint8_t>(data_.bytes.data(), data_.bytes.size()), this};
         loaded_ = p.parse();
     } else {
         try {
-            TextParser p{bytes_.string_view(), this};
+            TextParser p{data_.bytes.string_view(), this};
             loaded_ = p.parse();
         } catch (std::exception& e) {
             LOG_F(ERROR, "failed to parse model <unknown>: {}", e.what());
@@ -399,7 +399,7 @@ Mdl::Mdl(ByteArray bytes)
 
     if (!model.supermodel_name.empty() && !string::icmp(model.supermodel_name, "null")) {
         auto b = nw::kernel::resman().demand({model.supermodel_name, ResourceType::mdl});
-        if (b.size()) {
+        if (b.bytes.size()) {
             LOG_F(INFO, "[model] loading super model: {}", model.supermodel_name);
             model.supermodel = std::make_unique<Mdl>(std::move(b));
         }
