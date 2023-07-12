@@ -18,6 +18,7 @@ struct ResourceData {
     ByteArray bytes;
 
     bool operator==(const ResourceData& other) const = default;
+    ResourceData copy() const;
 
     static ResourceData from_file(const std::filesystem::path& path);
 };

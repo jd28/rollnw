@@ -2,6 +2,14 @@
 
 namespace nw {
 
+ResourceData ResourceData::copy() const
+{
+    ResourceData result;
+    result.name = name;
+    result.bytes = bytes;
+    return result;
+}
+
 ResourceData ResourceData::from_file(const std::filesystem::path& path)
 {
     ResourceData result;
