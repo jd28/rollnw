@@ -29,9 +29,9 @@ namespace nwk = nw::kernel;
 
 static void BM_parse_feat_2da(benchmark::State& state)
 {
-    nw::ByteArray ba = nw::ByteArray::from_file("test_data/user/development/feat.2da");
+    nw::ResourceData data = nw::ResourceData::from_file("test_data/user/development/feat.2da");
     for (auto _ : state) {
-        nw::TwoDA tda{ba};
+        nw::TwoDA tda{data.copy()};
         benchmark::DoNotOptimize(tda);
     }
 }
@@ -216,8 +216,10 @@ static void BM_creature_attack_roll(benchmark::State& state)
 
 static void BM_formats_nss(benchmark::State& state)
 {
+    nw::ResourceData data = nw::ResourceData::from_file("test_data/user/scratch/nwscript.nss");
+
     for (auto _ : state) {
-        nw::script::Nss nss(fs::path("test_data/user/scratch/nwscript.nss"));
+        nw::script::Nss nss(data.copy());
         nss.parse();
         benchmark::DoNotOptimize(nss);
     }
