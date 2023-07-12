@@ -3,7 +3,7 @@ find_package(absl CONFIG REQUIRED)
 find_package(fmt CONFIG REQUIRED)
 find_package(glm CONFIG REQUIRED)
 find_package(Iconv REQUIRED)
-find_package(minizip CONFIG REQUIRED)
+find_package(unofficial-minizip CONFIG REQUIRED)
 find_package(nlohmann_json CONFIG REQUIRED)
 find_package(unofficial-sqlite3 CONFIG REQUIRED)
 find_package(zstd CONFIG REQUIRED)
@@ -135,7 +135,7 @@ target_link_libraries(nw PUBLIC
     absl::utility
     absl::strings
     glm::glm
-    minizip::minizip
+    unofficial::minizip::minizip
     nlohmann_json nlohmann_json::nlohmann_json
     nowide::nowide
     ZLIB::ZLIB

@@ -15,7 +15,7 @@ jobs:
   build:
     env:
       buildDir: "${{ github.workspace }}/build/"
-      vcpkg-tag: "2022.09.27"
+      vcpkg-tag: "2023.06.20"
       VCPKG_ROOT: "${{ github.workspace }}/vcpkg/"
       VCPKG_DEFAULT_BINARY_CACHE: "${{ github.workspace }}/vcpkg/.cache"
       ASAN_OPTIONS: "detect_leaks=0" # Not read for this yet..

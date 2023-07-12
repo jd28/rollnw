@@ -135,7 +135,7 @@
                 "rhs": "Darwin"
             },
             "cacheVariables": {
-                "CMAKE_OSX_DEPLOYMENT_TARGET": "10.15"
+                "CMAKE_OSX_DEPLOYMENT_TARGET": "11"
             }
         },
         {
