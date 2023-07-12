@@ -43,7 +43,7 @@ std::array<uint8_t, 4> decode_plt_color(const Plt& plt, const PltColors& colors,
     auto selected_color = colors.data[pixel.layer];
     auto img = nw::kernel::resman().palette_texture(pixel.layer);
     if (!img->valid()) {
-        LOG_F(ERROR, "[plt] invalid palette texture for layer {}", pixel.layer);
+        LOG_F(ERROR, "[plt] invalid palette texture for layer {}", uint8_t(pixel.layer));
         return result;
     }
 

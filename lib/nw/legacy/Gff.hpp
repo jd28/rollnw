@@ -246,7 +246,7 @@ bool GffField::get_to(T& value) const
 
         // Check for exact match on all other types.
         if (entry_->type != type) {
-            LOG_F(ERROR, "gff field '{}' types don't match {} != {}", name(), type, entry_->type);
+            LOG_F(ERROR, "gff field '{}' types don't match {} != {}", name(), uint32_t(type), entry_->type);
             return false;
         }
 
