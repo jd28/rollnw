@@ -161,3 +161,24 @@ TEST(Nss, ErrorCallback)
     nss3.parse();
     EXPECT_EQ(nss3.warnings(), warnings.size());
 }
+
+TEST(Nss, Includes)
+{
+    script::Nss nss(fs::path("test_data/user/development/circinc1.nss"));
+    EXPECT_NO_THROW(nss.parse());
+    EXPECT_EQ(nss.errors(), 0);
+    EXPECT_EQ(nss.script().include_resrefs.size(), 1);
+    EXPECT_THROW(nss.process_includes(), std::runtime_error); // Recursive
+
+    script::Nss nss2(fs::path("test_data/user/development/script_preprocessor.nss"));
+    EXPECT_NO_THROW(nss2.parse());
+    EXPECT_TRUE(nss2.errors() == 0);
+    EXPECT_THROW(nss2.process_includes(), std::runtime_error); // Non-extant
+
+    script::Nss nss3(fs::path("test_data/user/development/test_inc.nss"));
+    EXPECT_NO_THROW(nss3.parse());
+    EXPECT_EQ(nss3.script().include_resrefs.size(), 1);
+    EXPECT_TRUE(nss3.errors() == 0);
+    EXPECT_NO_THROW(nss3.process_includes());
+    EXPECT_EQ(nss.script().includes.size(), 1);
+}

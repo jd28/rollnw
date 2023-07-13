@@ -6,12 +6,24 @@
 #include "../resources/ResourceData.hpp"
 #include "../util/ByteArray.hpp"
 
+#include <absl/container/flat_hash_map.h>
+
 #include <filesystem>
 #include <functional>
 #include <iostream>
 #include <string>
+#include <vector>
 
 namespace nw::script {
+
+struct Nss;
+
+struct ScriptContext {
+    Nss* get(Resref resref);
+
+    absl::flat_hash_map<Resource, std::unique_ptr<Nss>> scripts;
+    std::vector<std::string> include_stack;
+};
 
 struct Nss {
     explicit Nss(const std::filesystem::path& filename);
@@ -30,6 +42,8 @@ struct Nss {
     /// Gets parser
     const NssParser& parser() const;
 
+    bool process_includes(Nss* parent = nullptr);
+
     /// Gets parsed script
     Script& script();
 
@@ -43,6 +57,7 @@ struct Nss {
     size_t warnings() const noexcept;
 
 private:
+    ScriptContext ctx_;
     ResourceData data_;
     NssParser parser_;
     Script script_;

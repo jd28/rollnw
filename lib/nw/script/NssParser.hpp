@@ -19,6 +19,7 @@ struct parser_error : public std::runtime_error {
     }
 };
 
+struct Nss;
 struct Script;
 
 struct FunctionDecl;
@@ -410,6 +411,7 @@ struct Script {
 
     std::vector<std::unique_ptr<Statement>> decls;
     std::vector<std::string> include_resrefs;
+    std::vector<Nss*> includes;
     std::vector<std::pair<std::string, std::string>> defines;
 
     void accept(BaseVisitor* visitor)
