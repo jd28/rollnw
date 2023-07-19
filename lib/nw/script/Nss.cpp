@@ -44,6 +44,16 @@ Nss::Nss(ResourceData data)
 {
 }
 
+std::set<std::string> Nss::dependencies() const
+{
+    std::set<std::string> result;
+    for (const auto& [key, _] : ctx_.scripts) {
+        if (key == data_.name) { continue; }
+        result.emplace(key.resref.view());
+    }
+    return result;
+}
+
 size_t Nss::errors() const noexcept
 {
     return parser_.errors_;

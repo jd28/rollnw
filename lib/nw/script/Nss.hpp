@@ -11,6 +11,7 @@
 #include <filesystem>
 #include <functional>
 #include <iostream>
+#include <set>
 #include <string>
 #include <vector>
 
@@ -29,6 +30,9 @@ struct Nss {
     explicit Nss(const std::filesystem::path& filename);
     explicit Nss(std::string_view script);
     explicit Nss(ResourceData data);
+
+    /// Returns all transitive dependencies
+    std::set<std::string> dependencies() const;
 
     /// Returns how many errors were found during parsing
     size_t errors() const noexcept;

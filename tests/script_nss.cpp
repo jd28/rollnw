@@ -181,4 +181,8 @@ TEST(Nss, Includes)
     EXPECT_TRUE(nss3.errors() == 0);
     EXPECT_NO_THROW(nss3.process_includes());
     EXPECT_EQ(nss.script().includes.size(), 1);
+
+    auto deps3 = nss3.dependencies();
+    EXPECT_EQ(deps3.size(), 1);
+    EXPECT_NE(deps3.find("test_inc_i"), std::end(deps3));
 }
