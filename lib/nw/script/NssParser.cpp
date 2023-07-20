@@ -685,9 +685,9 @@ std::unique_ptr<StructDecl> NssParser::parse_decl_struct()
 }
 
 // program -> external_declaration* EOF
-Script NssParser::parse_program()
+Ast NssParser::parse_program()
 {
-    Script p;
+    Ast p;
     while (!is_end()) {
         if (match({NssTokenType::POUND})) { // Only at top level
             if (peek().id == "include") {

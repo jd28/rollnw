@@ -66,7 +66,7 @@ size_t Nss::warnings() const noexcept
 
 void Nss::parse()
 {
-    script_ = parser_.parse_program();
+    ast_ = parser_.parse_program();
 }
 
 NssParser& Nss::parser() { return parser_; }
@@ -78,8 +78,8 @@ bool Nss::process_includes(Nss* parent)
 
     parent->ctx_.include_stack.push_back(data_.name.resref.string());
 
-    script_.includes.reserve(script_.include_resrefs.size());
-    for (const auto& include : script_.include_resrefs) {
+    ast_.includes.reserve(ast_.include_resrefs.size());
+    for (const auto& include : ast_.include_resrefs) {
         for (const auto& entry : parent->ctx_.include_stack) {
             if (include == entry) {
                 throw std::runtime_error(fmt::format("[script] recursive includes: {}",
@@ -92,7 +92,7 @@ bool Nss::process_includes(Nss* parent)
             throw std::runtime_error(fmt::format("[script] unable to locate include file: {}", include));
         }
 
-        script_.includes.push_back(script);
+        ast_.includes.push_back(script);
         script->process_includes(parent);
     }
 
@@ -101,8 +101,8 @@ bool Nss::process_includes(Nss* parent)
     return true;
 }
 
-Script& Nss::script() { return script_; }
-const Script& Nss::script() const { return script_; }
+Ast& Nss::ast() { return ast_; }
+const Ast& Nss::ast() const { return ast_; }
 
 std::string_view Nss::text() const noexcept { return data_.bytes.string_view(); }
 

@@ -18,7 +18,7 @@ struct ParsedScriptCache : public kernel::Service {
     ParsedScriptCache& operator=(const ParsedScriptCache&) = delete;
     ParsedScriptCache& operator=(ParsedScriptCache&&) = default;
 
-    script::Script* get(Resref resref);
+    script::Ast* get(Resref resref);
 
     virtual void clear() override;
     virtual void initialize() override;

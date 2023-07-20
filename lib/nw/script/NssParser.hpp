@@ -20,7 +20,7 @@ struct parser_error : public std::runtime_error {
 };
 
 struct Nss;
-struct Script;
+struct Ast;
 
 struct FunctionDecl;
 struct FunctionDefinition;
@@ -55,7 +55,7 @@ struct WhileStatement;
 struct BaseVisitor {
     virtual ~BaseVisitor() = default;
 
-    virtual void visit(Script* script) = 0;
+    virtual void visit(Ast* script) = 0;
 
     // Decls
     virtual void visit(FunctionDecl* decl) = 0;
@@ -402,12 +402,12 @@ struct VarDecl : public Declaration {
     DEFINE_ACCEPT_VISITOR
 };
 
-struct Script {
-    Script() = default;
-    Script(const Script&) = delete;
-    Script(Script&&) = default;
-    Script& operator=(const Script&) = delete;
-    Script& operator=(Script&&) = default;
+struct Ast {
+    Ast() = default;
+    Ast(const Ast&) = delete;
+    Ast(Ast&&) = default;
+    Ast& operator=(const Ast&) = delete;
+    Ast& operator=(Ast&&) = default;
 
     std::vector<std::unique_ptr<Statement>> decls;
     std::vector<std::string> include_resrefs;
@@ -524,7 +524,7 @@ struct NssParser {
     std::unique_ptr<Statement> parse_decl_global_var();
 
     /// Parses script
-    Script parse_program();
+    Ast parse_program();
 };
 
 } // namespace nw::script

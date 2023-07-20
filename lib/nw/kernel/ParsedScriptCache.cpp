@@ -4,15 +4,15 @@
 
 namespace nw::kernel {
 
-script::Script* ParsedScriptCache::get(Resref resref)
+script::Ast* ParsedScriptCache::get(Resref resref)
 {
     auto res = Resource{resref, ResourceType::nss};
     auto it = cache_.find(res);
     if (it != std::end(cache_)) {
-        return &it->second.get()->script();
+        return &it->second.get()->ast();
     }
 
-    script::Script* result = nullptr;
+    script::Ast* result = nullptr;
     auto data = kernel::resman().demand(res);
     if (data.bytes.size() == 0) {
         return result;
@@ -22,7 +22,7 @@ script::Script* ParsedScriptCache::get(Resref resref)
     nss->parse();
     cache_.emplace(res, nss);
 
-    return &nss->script();
+    return &nss->ast();
 }
 
 void ParsedScriptCache::clear()

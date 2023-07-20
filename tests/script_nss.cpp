@@ -20,7 +20,7 @@ TEST(Nss, Parse)
     EXPECT_NO_THROW(nss.parse());
     EXPECT_TRUE(nss.errors() == 0);
     script::NssAstPrinter p;
-    nss.script().accept(&p);
+    nss.ast().accept(&p);
     LOG_F(INFO, "{}", p.ss.str());
 
     script::Nss n2(fs::path("test_data/user/development/nw_s0_raisdead.nss"));
@@ -33,7 +33,7 @@ TEST(Nss, Preprocessor)
     script::Nss nss(fs::path("test_data/user/development/script_preprocessor.nss"));
     EXPECT_NO_THROW(nss.parse());
     EXPECT_TRUE(nss.errors() == 0);
-    const script::Script& script = nss.script();
+    const script::Ast& script = nss.ast();
     EXPECT_TRUE(script.defines.size() == 6);
     EXPECT_TRUE(script.defines[0].first == "ENGINE_NUM_STRUCTURES");
     EXPECT_TRUE(script.defines[0].second == "5");
@@ -53,7 +53,7 @@ TEST(Nss, Variables)
 {
     script::Nss nss1("int a = 3, b, c = 1;"sv);
     nss1.parse();
-    const script::Script& s1 = nss1.script();
+    const script::Ast& s1 = nss1.ast();
     auto decl1 = dynamic_cast<script::DeclStatement*>(s1.decls[0].get());
     EXPECT_TRUE(decl1);
     EXPECT_EQ(decl1->decls.size(), 3);
@@ -74,7 +74,7 @@ TEST(Nss, Functions)
     script::Nss nss("void test_function(string s, int b);"sv);
     EXPECT_NO_THROW(nss.parse());
     EXPECT_EQ(nss.errors(), 0);
-    const script::Script& s = nss.script();
+    const script::Ast& s = nss.ast();
     EXPECT_TRUE(s.decls.size() > 0);
     auto fd = dynamic_cast<script::FunctionDecl*>(s.decls[0].get());
     EXPECT_TRUE(fd);
@@ -85,7 +85,7 @@ TEST(Nss, Functions)
     script::Nss nss2("void test_function(string s, int b) { s + IntToString(b); }"sv);
     EXPECT_NO_THROW(nss2.parse());
     EXPECT_EQ(nss2.errors(), 0);
-    const script::Script& s2 = nss2.script();
+    const script::Ast& s2 = nss2.ast();
     EXPECT_TRUE(s2.decls.size() > 0);
     auto fd2 = dynamic_cast<script::FunctionDefinition*>(s2.decls[0].get());
     EXPECT_TRUE(fd2);
@@ -100,7 +100,7 @@ TEST(Nss, Functions)
     script::Nss nss4("void test_function(int b) { s + IntToString(b); }"sv);
     EXPECT_NO_THROW(nss4.parse());
     EXPECT_EQ(nss4.errors(), 0);
-    const script::Script& s4 = nss4.script();
+    const script::Ast& s4 = nss4.ast();
     EXPECT_GT(s4.decls.size(), 0);
     auto fd4 = dynamic_cast<script::FunctionDefinition*>(s4.decls[0].get());
     EXPECT_TRUE(fd4);
@@ -167,7 +167,7 @@ TEST(Nss, Includes)
     script::Nss nss(fs::path("test_data/user/development/circinc1.nss"));
     EXPECT_NO_THROW(nss.parse());
     EXPECT_EQ(nss.errors(), 0);
-    EXPECT_EQ(nss.script().include_resrefs.size(), 1);
+    EXPECT_EQ(nss.ast().include_resrefs.size(), 1);
     EXPECT_THROW(nss.process_includes(), std::runtime_error); // Recursive
 
     script::Nss nss2(fs::path("test_data/user/development/script_preprocessor.nss"));
@@ -177,10 +177,10 @@ TEST(Nss, Includes)
 
     script::Nss nss3(fs::path("test_data/user/development/test_inc.nss"));
     EXPECT_NO_THROW(nss3.parse());
-    EXPECT_EQ(nss3.script().include_resrefs.size(), 1);
+    EXPECT_EQ(nss3.ast().include_resrefs.size(), 1);
     EXPECT_TRUE(nss3.errors() == 0);
     EXPECT_NO_THROW(nss3.process_includes());
-    EXPECT_EQ(nss.script().includes.size(), 1);
+    EXPECT_EQ(nss.ast().includes.size(), 1);
 
     auto deps3 = nss3.dependencies();
     EXPECT_EQ(deps3.size(), 1);

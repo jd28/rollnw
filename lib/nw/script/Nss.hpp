@@ -48,11 +48,11 @@ struct Nss {
 
     bool process_includes(Nss* parent = nullptr);
 
-    /// Gets parsed script
-    Script& script();
+    /// Gets parsed AST
+    Ast& ast();
 
-    /// Gets parsed script
-    const Script& script() const;
+    /// Gets parsed ast
+    const Ast& ast() const;
 
     /// Gets text of script
     std::string_view text() const noexcept;
@@ -64,7 +64,7 @@ private:
     ScriptContext ctx_;
     ResourceData data_;
     NssParser parser_;
-    Script script_;
+    Ast ast_;
 };
 
 } // namespace nw::script

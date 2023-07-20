@@ -14,7 +14,7 @@ struct NssAstPrinter : BaseVisitor {
     std::stringstream ss;
     int depth = 0;
 
-    virtual void visit(Script* script) override
+    virtual void visit(Ast* script) override
     {
         ss << '\n'
            << "(script ";
