@@ -1,8 +1,8 @@
 #include <gtest/gtest.h>
 
 #include <nw/log.hpp>
+#include <nw/script/AstPrinter.hpp>
 #include <nw/script/Nss.hpp>
-#include <nw/script/NssAstPrinter.hpp>
 #include <nw/script/NssLexer.hpp>
 
 #include <filesystem>
@@ -19,7 +19,7 @@ TEST(Nss, Parse)
     script::Nss nss(fs::path("test_data/user/development/test.nss"));
     EXPECT_NO_THROW(nss.parse());
     EXPECT_TRUE(nss.errors() == 0);
-    script::NssAstPrinter p;
+    script::AstPrinter p;
     nss.ast().accept(&p);
     LOG_F(INFO, "{}", p.ss.str());
 

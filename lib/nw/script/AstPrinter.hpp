@@ -9,8 +9,8 @@
 
 namespace nw::script {
 
-struct NssAstPrinter : BaseVisitor {
-    ~NssAstPrinter() = default;
+struct AstPrinter : BaseVisitor {
+    ~AstPrinter() = default;
     std::stringstream ss;
     int depth = 0;
 
