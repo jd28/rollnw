@@ -30,14 +30,14 @@ struct AstPrinter : BaseVisitor {
     virtual void visit(FunctionDecl* decl) override
     {
         ss << '\n'
-           << std::string(static_cast<size_t>(depth * 2), ' ') << "(decl " << decl->identifier.id << " : ";
+           << std::string(static_cast<size_t>(depth * 2), ' ') << "(decl " << decl->identifier.loc.view << " : ";
 
-        if (decl->type.type_qualifier.id.size()) {
-            ss << decl->type.type_qualifier.id << " ";
+        if (decl->type.type_qualifier.loc.view.size()) {
+            ss << decl->type.type_qualifier.loc.view << " ";
         }
-        ss << decl->type.type_specifier.id;
+        ss << decl->type.type_specifier.loc.view;
         if (decl->type.type_specifier.type == NssTokenType::STRUCT) {
-            ss << " " << decl->type.struct_id.id;
+            ss << " " << decl->type.struct_id.loc.view;
         }
 
         ++depth;
@@ -65,7 +65,7 @@ struct AstPrinter : BaseVisitor {
     virtual void visit(StructDecl* decl) override
     {
         ss << '\n'
-           << std::string(static_cast<size_t>(depth * 2), ' ') << "(struct " << decl->type.struct_id.id;
+           << std::string(static_cast<size_t>(depth * 2), ' ') << "(struct " << decl->type.struct_id.loc.view;
         ++depth;
         for (const auto& d : decl->decls) {
             d->accept(this);
@@ -77,13 +77,13 @@ struct AstPrinter : BaseVisitor {
     virtual void visit(VarDecl* decl) override
     {
         ss << '\n'
-           << std::string(static_cast<size_t>(depth * 2), ' ') << "(decl " << decl->identifier.id << " : ";
-        if (decl->type.type_qualifier.id.size()) {
-            ss << decl->type.type_qualifier.id << " ";
+           << std::string(static_cast<size_t>(depth * 2), ' ') << "(decl " << decl->identifier.loc.view << " : ";
+        if (decl->type.type_qualifier.loc.view.size()) {
+            ss << decl->type.type_qualifier.loc.view << " ";
         }
-        ss << decl->type.type_specifier.id;
+        ss << decl->type.type_specifier.loc.view;
         if (decl->type.type_specifier.type == NssTokenType::STRUCT) {
-            ss << " " << decl->type.struct_id.id;
+            ss << " " << decl->type.struct_id.loc.view;
         }
 
         if (decl->init) {
@@ -100,7 +100,7 @@ struct AstPrinter : BaseVisitor {
     virtual void visit(AssignExpression* expr) override
     {
         ss << '\n'
-           << std::string(static_cast<size_t>(depth * 2), ' ') << "(assign " << expr->op.id;
+           << std::string(static_cast<size_t>(depth * 2), ' ') << "(assign " << expr->op.loc.view;
         ++depth;
         expr->lhs->accept(this);
         expr->rhs->accept(this);
@@ -111,7 +111,7 @@ struct AstPrinter : BaseVisitor {
     virtual void visit(BinaryExpression* expr) override
     {
         ss << '\n'
-           << std::string(static_cast<size_t>(depth * 2), ' ') << "(binary " << expr->op.id;
+           << std::string(static_cast<size_t>(depth * 2), ' ') << "(binary " << expr->op.loc.view;
         ++depth;
         expr->lhs->accept(this);
         expr->rhs->accept(this);
@@ -184,20 +184,20 @@ struct AstPrinter : BaseVisitor {
     virtual void visit(LiteralExpression* expr) override
     {
         ss << '\n'
-           << std::string(static_cast<size_t>(depth * 2), ' ') << "(literal " << expr->literal.id << ")";
+           << std::string(static_cast<size_t>(depth * 2), ' ') << "(literal " << expr->literal.loc.view << ")";
     }
 
     virtual void visit(LiteralVectorExpression* expr) override
     {
         ss << '\n'
            << std::string(static_cast<size_t>(depth * 2), ' ')
-           << "(vector " << expr->x.id << ", " << expr->y.id << ", " << expr->z.id << ")";
+           << "(vector " << expr->x.loc.view << ", " << expr->y.loc.view << ", " << expr->z.loc.view << ")";
     }
 
     virtual void visit(LogicalExpression* expr) override
     {
         ss << '\n'
-           << std::string(static_cast<size_t>(depth * 2), ' ') << "(logical " << expr->op.id << " ";
+           << std::string(static_cast<size_t>(depth * 2), ' ') << "(logical " << expr->op.loc.view << " ";
         ++depth;
         expr->lhs->accept(this);
         ss << " ";
@@ -209,7 +209,7 @@ struct AstPrinter : BaseVisitor {
     virtual void visit(PostfixExpression* expr) override
     {
         ss << '\n'
-           << std::string(static_cast<size_t>(depth * 2), ' ') << "(postfix " << expr->op.id;
+           << std::string(static_cast<size_t>(depth * 2), ' ') << "(postfix " << expr->op.loc.view;
         ++depth;
         if (expr->lhs) expr->lhs->accept(this);
         --depth;
@@ -219,7 +219,7 @@ struct AstPrinter : BaseVisitor {
     virtual void visit(UnaryExpression* expr) override
     {
         ss << '\n'
-           << std::string(static_cast<size_t>(depth * 2), ' ') << "(unary " << expr->op.id;
+           << std::string(static_cast<size_t>(depth * 2), ' ') << "(unary " << expr->op.loc.view;
         ++depth;
         expr->rhs->accept(this);
         --depth;
@@ -231,7 +231,7 @@ struct AstPrinter : BaseVisitor {
         ss << '\n'
            << std::string(static_cast<size_t>(depth * 2), ' ')
            << "(var "
-           << expr->var.id
+           << expr->var.loc.view
            << ")";
     }
 
@@ -362,7 +362,7 @@ struct AstPrinter : BaseVisitor {
     virtual void visit(JumpStatement* stmt) override
     {
         ss << '\n'
-           << std::string(static_cast<size_t>(depth * 2), ' ') << "(" << stmt->op.id;
+           << std::string(static_cast<size_t>(depth * 2), ' ') << "(" << stmt->op.loc.view;
         ++depth;
         if (stmt->expr) {
             stmt->expr->accept(this);
@@ -374,7 +374,7 @@ struct AstPrinter : BaseVisitor {
     virtual void visit(LabelStatement* stmt) override
     {
         ss << '\n'
-           << std::string(static_cast<size_t>(depth * 2), ' ') << "(" << stmt->type.id;
+           << std::string(static_cast<size_t>(depth * 2), ' ') << "(" << stmt->type.loc.view;
         ++depth;
         if (stmt->expr) {
             stmt->expr->accept(this);

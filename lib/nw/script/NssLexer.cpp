@@ -11,10 +11,7 @@ namespace nw::script {
 
 NssToken::NssToken(NssTokenType type_, std::string_view id_, size_t line_, size_t start_, size_t end_)
     : type{type_}
-    , id{id_}
-    , line{line_}
-    , start{start_}
-    , end{end_}
+    , loc{id_, line_, start_}
 {
 }
 
@@ -40,109 +37,109 @@ char NssLexer::get(size_t pos) const
 
 inline NssTokenType check_keyword(const NssToken& tk)
 {
-    switch (tk.id[0]) {
+    switch (tk.loc.view[0]) {
     default:
         return NssTokenType::IDENTIFIER;
         // Keywords
     case 'a':
-        if (tk.id == "action") {
+        if (tk.loc.view == "action") {
             return NssTokenType::ACTION;
         }
         break;
     case 'b':
-        if (tk.id == "break") {
+        if (tk.loc.view == "break") {
             return NssTokenType::BREAK;
         }
         break;
     case 'c':
-        if (tk.id == "case") {
+        if (tk.loc.view == "case") {
             return NssTokenType::CASE;
             // CASE
-        } else if (tk.id == "cassowary") {
+        } else if (tk.loc.view == "cassowary") {
             return NssTokenType::CASSOWARY;
-        } else if (tk.id == "const") {
+        } else if (tk.loc.view == "const") {
             return NssTokenType::CONST_;
-        } else if (tk.id == "continue") {
+        } else if (tk.loc.view == "continue") {
             return NssTokenType::CONTINUE;
         }
         break;
     case 'd':
-        if (tk.id == "default") {
+        if (tk.loc.view == "default") {
             return NssTokenType::DEFAULT;
-        } else if (tk.id == "do") {
+        } else if (tk.loc.view == "do") {
             return NssTokenType::DO;
         }
         break;
     case 'e':
-        if (tk.id == "effect") {
+        if (tk.loc.view == "effect") {
             return NssTokenType::EFFECT;
-        } else if (tk.id == "else") {
+        } else if (tk.loc.view == "else") {
             return NssTokenType::ELSE;
-        } else if (tk.id == "event") {
+        } else if (tk.loc.view == "event") {
             return NssTokenType::EVENT;
         }
         break;
     case 'f':
-        if (tk.id == "float") {
+        if (tk.loc.view == "float") {
             return NssTokenType::FLOAT;
-        } else if (tk.id == "for") {
+        } else if (tk.loc.view == "for") {
             return NssTokenType::FOR;
         }
         break;
     case 'i':
-        if (tk.id == "if") {
+        if (tk.loc.view == "if") {
             return NssTokenType::IF;
-        } else if (tk.id == "int") {
+        } else if (tk.loc.view == "int") {
             return NssTokenType::INT;
-        } else if (tk.id == "itemproperty") {
+        } else if (tk.loc.view == "itemproperty") {
             return NssTokenType::ITEMPROPERTY;
         }
         break;
     case 'j':
-        if (tk.id == "json") {
+        if (tk.loc.view == "json") {
             return NssTokenType::JSON;
         }
         break;
     case 'l':
-        if (tk.id == "location") {
+        if (tk.loc.view == "location") {
             return NssTokenType::LOCATION;
         }
         break;
     case 'o':
-        if (tk.id == "object") {
+        if (tk.loc.view == "object") {
             return NssTokenType::OBJECT;
         }
         break;
     case 'r':
-        if (tk.id == "return") {
+        if (tk.loc.view == "return") {
             return NssTokenType::RETURN;
         }
         break;
     case 's':
-        if (tk.id == "string") {
+        if (tk.loc.view == "string") {
             return NssTokenType::STRING;
-        } else if (tk.id == "struct") {
+        } else if (tk.loc.view == "struct") {
             return NssTokenType::STRUCT;
-        } else if (tk.id == "switch") {
+        } else if (tk.loc.view == "switch") {
             return NssTokenType::SWITCH;
-        } else if (tk.id == "sqlquery") {
+        } else if (tk.loc.view == "sqlquery") {
             return NssTokenType::SQLQUERY;
         }
         break;
     case 't':
-        if (tk.id == "talent") {
+        if (tk.loc.view == "talent") {
             return NssTokenType::TALENT;
         }
         break;
     case 'v':
-        if (tk.id == "vector") {
+        if (tk.loc.view == "vector") {
             return NssTokenType::VECTOR;
-        } else if (tk.id == "void") {
+        } else if (tk.loc.view == "void") {
             return NssTokenType::VOID_;
         }
         break;
     case 'w':
-        if (tk.id == "while") {
+        if (tk.loc.view == "while") {
             return NssTokenType::WHILE;
         }
         break;

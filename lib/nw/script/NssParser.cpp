@@ -47,7 +47,8 @@ void NssParser::error(std::string_view msg)
         LOG_F(ERROR, out.c_str());
         throw parser_error(out);
     } else {
-        auto out = fmt::format("{}, Token: '{}', {}:{}", msg, peek().id, peek().line, peek().start);
+        auto out = fmt::format("{}, Token: '{}', {}:{}", msg, peek().loc.view,
+            peek().loc.line, peek().loc.column);
         if (error_callback_) { error_callback_(out, peek()); }
         LOG_F(ERROR, out.c_str());
         throw parser_error(out);
@@ -62,7 +63,8 @@ void NssParser::warn(std::string_view msg)
         if (warning_callback_) { warning_callback_(out, peek()); }
         LOG_F(WARNING, out.c_str());
     } else {
-        auto out = fmt::format("{}, Token: '{}', {}:{}", msg, peek().id, peek().line, peek().start);
+        auto out = fmt::format("{}, Token: '{}', {}:{}", msg, peek().loc.view,
+            peek().loc.line, peek().loc.column);
         if (warning_callback_) { warning_callback_(out, peek()); }
         LOG_F(WARNING, out.c_str());
     }
@@ -690,24 +692,24 @@ Ast NssParser::parse_program()
     Ast p;
     while (!is_end()) {
         if (match({NssTokenType::POUND})) { // Only at top level
-            if (peek().id == "include") {
+            if (peek().loc.view == "include") {
                 consume(NssTokenType::IDENTIFIER, "Expected 'IDENTIFIER'."); // include
                 if (match({NssTokenType::STRING_CONST})) {
-                    p.include_resrefs.push_back(std::string(previous().id));
+                    p.include_resrefs.push_back(std::string(previous().loc.view));
                 } else {
                     error("Expected string literal");
                     throw parser_error("Expected string literal");
                 }
-            } else if (peek().id == "define") {
+            } else if (peek().loc.view == "define") {
                 consume(NssTokenType::IDENTIFIER, "Expected 'IDENTIFIER'."); // define
                 std::string name, value;
                 if (match({NssTokenType::IDENTIFIER})) {
-                    name = std::string(previous().id);
+                    name = std::string(previous().loc.view);
                 } else {
                     error("Expected identifier");
                     throw parser_error("Expected identifier");
                 }
-                value = std::string(advance().id);
+                value = std::string(advance().loc.view);
                 p.defines.push_back({name, value});
             }
         } else if (match({NssTokenType::COMMENT})) {

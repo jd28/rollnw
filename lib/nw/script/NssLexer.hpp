@@ -101,12 +101,17 @@ enum class NssTokenType {
     WHILE,        // while
 };
 
+struct SourceLocation {
+    std::string_view view;
+    size_t line = 0;
+    size_t column = 0;
+};
+
 struct NssToken {
     NssToken() = default;
     NssToken(NssTokenType type_, std::string_view id_, size_t line_, size_t start_, size_t end_);
     NssTokenType type = NssTokenType::INVALID;
-    std::string_view id;
-    size_t line = 0, start = 0, end = 0;
+    SourceLocation loc;
 };
 
 struct NssLexer {
@@ -131,13 +136,11 @@ private:
 inline std::ostream& operator<<(std::ostream& out, const nw::script::NssToken& token)
 {
     out << "<'";
-    out << token.id;
+    out << token.loc.view;
     out << "', ";
-    out << token.line;
+    out << token.loc.line;
     out << ":";
-    out << token.start;
-    out << ":";
-    out << token.end;
+    out << token.loc.column;
     out << ">";
 
     return out;
