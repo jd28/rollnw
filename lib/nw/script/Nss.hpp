@@ -37,6 +37,9 @@ struct Nss {
     /// Returns how many errors were found during parsing
     size_t errors() const noexcept;
 
+    /// Script name
+    std::string_view name() const noexcept;
+
     /// Parses script file
     void parse();
 
