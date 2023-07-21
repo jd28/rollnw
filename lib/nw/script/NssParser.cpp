@@ -339,6 +339,10 @@ std::unique_ptr<Expression> NssParser::parse_expr_postfix()
         }
 
         if (previous().type == NssTokenType::LPAREN) {
+            if (!dynamic_cast<VariableExpression*>(expr.get())) {
+                error("expression cannot be used as a function", previous());
+            }
+
             auto e = std::make_unique<CallExpression>(std::move(expr));
             while (!is_end() && !check({NssTokenType::RPAREN})) {
                 e->args.emplace_back(parse_expr());

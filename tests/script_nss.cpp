@@ -113,6 +113,21 @@ TEST(Nss, Functions)
     EXPECT_EQ(nss5.errors(), 0);
 }
 
+TEST(Nss, FunctionCall)
+{
+    script::Nss nss1("void main() { test_function(b); }"sv);
+    EXPECT_NO_THROW(nss1.parse());
+    EXPECT_EQ(nss1.errors(), 0);
+
+    script::Nss nss2("void main() { 423(b); }"sv);
+    EXPECT_NO_THROW(nss2.parse());
+    EXPECT_EQ(nss2.errors(), 1);
+
+    script::Nss nss3("void main() { str.test(b); }"sv);
+    EXPECT_NO_THROW(nss3.parse());
+    EXPECT_EQ(nss3.errors(), 1);
+}
+
 TEST(Nss, Lexer)
 {
     script::NssLexer lexer{"x /= y"};
