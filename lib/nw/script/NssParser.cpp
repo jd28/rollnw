@@ -353,8 +353,11 @@ std::unique_ptr<Expression> NssParser::parse_expr_postfix()
         }
 
         if (previous().type == NssTokenType::DOT) {
-
             auto right = parse_expr_postfix();
+            if (!dynamic_cast<VariableExpression*>(right.get())
+                && !dynamic_cast<DotExpression*>(right.get())) {
+                error("expression cannot be used as a struct index", previous());
+            }
             expr = std::make_unique<DotExpression>(std::move(expr), std::move(right));
         }
     }

@@ -69,7 +69,7 @@ TEST(Nss, Variables)
     EXPECT_EQ(nss3.warnings(), 1);
 }
 
-TEST(Nss, Functions)
+TEST(Nss, FunctionDecl)
 {
     script::Nss nss("void test_function(string s, int b);"sv);
     EXPECT_NO_THROW(nss.parse());
@@ -108,7 +108,7 @@ TEST(Nss, Functions)
     EXPECT_TRUE(fd4->block);
     EXPECT_EQ(fd4->block->nodes.size(), 1);
 
-    script::Nss nss5("int test_function(int a, int b) { return a % b; }"sv);
+    script::Nss nss5("int test_function(int a, int b) { return a % (b + x); }"sv);
     EXPECT_NO_THROW(nss5.parse());
     EXPECT_EQ(nss5.errors(), 0);
 }
@@ -126,6 +126,25 @@ TEST(Nss, FunctionCall)
     script::Nss nss3("void main() { str.test(b); }"sv);
     EXPECT_NO_THROW(nss3.parse());
     EXPECT_EQ(nss3.errors(), 1);
+}
+
+TEST(Nss, DotOperator)
+{
+    script::Nss nss1("void main() { str.test; }"sv);
+    EXPECT_NO_THROW(nss1.parse());
+    EXPECT_EQ(nss1.errors(), 0);
+
+    script::Nss nss2("void main() { str.test.nested; }"sv);
+    EXPECT_NO_THROW(nss2.parse());
+    EXPECT_EQ(nss2.errors(), 0);
+
+    script::Nss nss3("void main() { str().test.nested; }"sv);
+    EXPECT_NO_THROW(nss3.parse());
+    EXPECT_EQ(nss3.errors(), 0);
+
+    script::Nss nss4("void main() { str.test.call_expr(); }"sv);
+    EXPECT_NO_THROW(nss4.parse());
+    EXPECT_EQ(nss4.errors(), 1);
 }
 
 TEST(Nss, Lexer)
