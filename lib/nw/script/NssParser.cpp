@@ -38,34 +38,34 @@ bool NssParser::check(std::initializer_list<NssTokenType> types) const
     return false;
 }
 
-void NssParser::error(std::string_view msg)
+void NssParser::error(std::string_view msg, NssToken token)
 {
     ++errors_;
     if (is_end()) {
         auto out = fmt::format("{}, EOF", msg);
-        if (error_callback_) { error_callback_(out, peek()); }
+        if (error_callback_) { error_callback_(out, token); }
         LOG_F(ERROR, out.c_str());
         throw parser_error(out);
     } else {
-        auto out = fmt::format("{}, Token: '{}', {}:{}", msg, peek().loc.view,
-            peek().loc.line, peek().loc.column);
-        if (error_callback_) { error_callback_(out, peek()); }
+        auto out = fmt::format("{}, Token: '{}', {}:{}", msg, token.loc.view,
+            token.loc.line, token.loc.column);
+        if (error_callback_) { error_callback_(out, token); }
         LOG_F(ERROR, out.c_str());
         throw parser_error(out);
     }
 }
 
-void NssParser::warn(std::string_view msg)
+void NssParser::warn(std::string_view msg, NssToken token)
 {
     ++warnings_;
     if (is_end()) {
         auto out = fmt::format("{}, EOF", msg);
-        if (warning_callback_) { warning_callback_(out, peek()); }
+        if (warning_callback_) { warning_callback_(out, token); }
         LOG_F(WARNING, out.c_str());
     } else {
-        auto out = fmt::format("{}, Token: '{}', {}:{}", msg, peek().loc.view,
-            peek().loc.line, peek().loc.column);
-        if (warning_callback_) { warning_callback_(out, peek()); }
+        auto out = fmt::format("{}, Token: '{}', {}:{}", msg, token.loc.view,
+            token.loc.line, token.loc.column);
+        if (warning_callback_) { warning_callback_(out, token); }
         LOG_F(WARNING, out.c_str());
     }
 }
@@ -79,7 +79,7 @@ NssToken NssParser::consume(NssTokenType type, std::string_view message)
 {
     if (check({type})) return advance();
 
-    error(message);
+    error(message, peek());
     throw parser_error(message);
 }
 
@@ -200,7 +200,7 @@ std::unique_ptr<Expression> NssParser::parse_expr_assign()
             return std::make_unique<AssignExpression>(std::move(expr), equals, std::move(value));
         }
 
-        error("Invalid assignment target.");
+        error("Invalid assignment target.", peek());
     }
 
     return expr;
@@ -389,7 +389,7 @@ std::unique_ptr<Expression> NssParser::parse_expr_primary()
         return std::make_unique<GroupingExpression>(std::move(expr));
     }
 
-    error("Expected expression");
+    error("Expected expression", peek());
     throw parser_error("Expected expression");
 }
 
@@ -427,7 +427,7 @@ Type NssParser::parse_type()
             t.struct_id = previous();
         }
     } else {
-        error("Expected type specifier");
+        error("Expected type specifier", peek());
         throw parser_error("Expected type specifier");
     }
 
@@ -581,7 +581,7 @@ std::unique_ptr<LabelStatement> NssParser::parse_stmt_label()
             auto lit = new LiteralExpression(previous());
             s->expr = std::unique_ptr<Expression>(lit);
         } else {
-            error("Expected constant literal integer or string expression");
+            error("Expected constant literal integer or string expression", peek());
         }
     }
     consume(NssTokenType::COLON, "Expected ':'.");
@@ -697,7 +697,7 @@ Ast NssParser::parse_program()
                 if (match({NssTokenType::STRING_CONST})) {
                     p.include_resrefs.push_back(std::string(previous().loc.view));
                 } else {
-                    error("Expected string literal");
+                    error("Expected string literal", peek());
                     throw parser_error("Expected string literal");
                 }
             } else if (peek().loc.view == "define") {
@@ -706,7 +706,7 @@ Ast NssParser::parse_program()
                 if (match({NssTokenType::IDENTIFIER})) {
                     name = std::string(previous().loc.view);
                 } else {
-                    error("Expected identifier");
+                    error("Expected identifier", peek());
                     throw parser_error("Expected identifier");
                 }
                 value = std::string(advance().loc.view);
@@ -728,7 +728,7 @@ Ast NssParser::parse_program()
 std::unique_ptr<Statement> NssParser::parse_decl_external()
 {
     if (match({NssTokenType::SEMICOLON})) {
-        warn("spurious ';'");
+        warn("spurious ';'", previous());
         return std::make_unique<EmptyStatement>();
     }
 
@@ -766,7 +766,7 @@ std::unique_ptr<Statement> NssParser::parse_decl_external()
         return fd;
     }
 
-    error("Expected function definition/declaration, struct declaration, or global variable declaration");
+    error("Expected function definition/declaration, struct declaration, or global variable declaration", peek());
     throw parser_error("Expected function definition/declaration, struct declaration, or variable declaration");
 }
 

@@ -450,11 +450,11 @@ struct NssParser {
 
     /// Log / Throw error
     /// @param msg Error message to report
-    void error(std::string_view msg);
+    void error(std::string_view msg, NssToken token);
 
     /// Log warning
     /// @param msg Warning message to report
-    void warn(std::string_view msg);
+    void warn(std::string_view msg, NssToken token);
 
     /// Checks if at end of token stream
     bool is_end() const;
