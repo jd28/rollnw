@@ -9,12 +9,6 @@
 
 namespace nw::script {
 
-NssToken::NssToken(NssTokenType type_, std::string_view id_, size_t line_, size_t start_, size_t end_)
-    : type{type_}
-    , loc{id_, line_, start_}
-{
-}
-
 NssLexer::NssLexer(std::string_view buffer)
     : buffer_{buffer}
 {
@@ -159,8 +153,7 @@ NssToken NssLexer::handle_identifier()
     auto t = NssToken{NssTokenType::IDENTIFIER,
         {buffer_.data() + start, pos_ - start},
         line_,
-        start - last_line_pos_,
-        pos_ - last_line_pos_};
+        start - last_line_pos_};
     t.type = check_keyword(t);
     return t;
 }
@@ -197,15 +190,15 @@ NssToken NssLexer::handle_number()
     }
 
     auto type = is_float ? NssTokenType::FLOAT_CONST : NssTokenType::INTEGER_CONST;
-    return NssToken{type, {buffer_.data() + start, pos_ - start}, line_, start - last_line_pos_, pos_ - last_line_pos_};
+    return NssToken{type, {buffer_.data() + start, pos_ - start}, line_, start - last_line_pos_};
 }
 
 NssToken NssLexer::next()
 {
-#define NSS_TOKEN(type, size)                                                                                          \
-    do {                                                                                                               \
-        t = NssToken{NssTokenType::type, {data(), size}, line_, start - last_line_pos_, pos_ + size - last_line_pos_}; \
-        pos_ += size;                                                                                                  \
+#define NSS_TOKEN(type, size)                                                            \
+    do {                                                                                 \
+        t = NssToken{NssTokenType::type, {data(), size}, line_, start - last_line_pos_}; \
+        pos_ += size;                                                                    \
     } while (0)
 
     while (pos_ < buffer_.size()) {
@@ -295,8 +288,7 @@ NssToken NssLexer::next()
             t = NssToken{NssTokenType::STRING_CONST,
                 {&buffer_[start], pos_ - start},
                 line_,
-                start - last_line_pos_,
-                pos_ - last_line_pos_};
+                start - last_line_pos_};
             ++pos_;
 
             break;
@@ -467,8 +459,7 @@ NssToken NssLexer::next()
                         t = NssToken{NssTokenType::COMMENT,
                             {&buffer_[start], pos_ - start},
                             line_,
-                            start - last_line_pos_,
-                            pos_ - last_line_pos_};
+                            start - last_line_pos_};
                         break;
                     } else {
                         ++pos_;
@@ -486,8 +477,7 @@ NssToken NssLexer::next()
                         t = NssToken{NssTokenType::COMMENT,
                             {&buffer_[start], pos_ - 1 - start},
                             line_,
-                            start - last_line_pos_,
-                            pos_ - last_line_pos_};
+                            start - last_line_pos_};
                         ++pos_;
                         break;
                     }
@@ -510,10 +500,10 @@ NssToken NssLexer::next()
         if (t.type != NssTokenType::INVALID) {
             return current_ = t;
         } else {
-            return current_ = NssToken{NssTokenType::END, {}, line_, pos_, pos_};
+            return current_ = NssToken{NssTokenType::END, {}, line_, pos_};
         }
     }
-    return current_ = NssToken{NssTokenType::END, {}, line_, pos_, pos_};
+    return current_ = NssToken{NssTokenType::END, {}, line_, pos_};
 }
 
 } // namespace nw::script
