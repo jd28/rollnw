@@ -94,6 +94,9 @@ struct BaseVisitor {
 struct AstNode {
     virtual ~AstNode() = default;
     virtual void accept(BaseVisitor* visitor) = 0;
+
+    size_t type_id_ = 0;
+    bool is_const_ = false;
 };
 
 #define DEFINE_ACCEPT_VISITOR                          \
@@ -421,12 +424,14 @@ struct Ast {
 };
 
 struct NssParser {
-    explicit NssParser(std::string_view view);
+    explicit NssParser(std::string_view view,
+        std::shared_ptr<Context> ctx = std::make_shared<Context>(),
+        Nss* parent = nullptr);
 
+    std::shared_ptr<Context> ctx_;
+    Nss* parent_ = nullptr;
     std::string_view view_;
     NssLexer lexer_;
-    std::function<void(std::string_view, NssToken)> error_callback_;
-    std::function<void(std::string_view, NssToken)> warning_callback_;
 
     std::vector<NssToken> tokens;
     size_t current_ = 0;
@@ -474,12 +479,6 @@ struct NssParser {
 
     /// Previous token in the token stream
     NssToken previous();
-
-    /// Sets a callback when an error is encounter
-    void set_error_callback(std::function<void(std::string_view message, NssToken)> cb);
-
-    /// Sets a callback when an warning is encounter
-    void set_warning_callback(std::function<void(std::string_view message, NssToken)> cb);
 
     /// Advances token stream after an error
     void synchronize();

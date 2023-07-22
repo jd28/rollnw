@@ -4,9 +4,11 @@
 
 namespace nw::script {
 
-NssParser::NssParser(std::string_view view)
-    : view_{view}
-    , lexer_{view_}
+NssParser::NssParser(std::string_view view, std::shared_ptr<Context> ctx, Nss* parent)
+    : ctx_{ctx}
+    , parent_{parent}
+    , view_{view}
+    , lexer_{view_, ctx_}
 {
     NssToken tok = lexer_.next();
     while (tok.type != NssTokenType::END) {
@@ -41,33 +43,13 @@ bool NssParser::check(std::initializer_list<NssTokenType> types) const
 void NssParser::error(std::string_view msg, NssToken token)
 {
     ++errors_;
-    if (is_end()) {
-        auto out = fmt::format("{}, EOF", msg);
-        if (error_callback_) { error_callback_(out, token); }
-        LOG_F(ERROR, out.c_str());
-        throw parser_error(out);
-    } else {
-        auto out = fmt::format("{}, Token: '{}', {}:{}", msg, token.loc.view,
-            token.loc.line, token.loc.column);
-        if (error_callback_) { error_callback_(out, token); }
-        LOG_F(ERROR, out.c_str());
-        throw parser_error(out);
-    }
+    ctx_->parse_error(parent_, msg, token);
 }
 
 void NssParser::warn(std::string_view msg, NssToken token)
 {
     ++warnings_;
-    if (is_end()) {
-        auto out = fmt::format("{}, EOF", msg);
-        if (warning_callback_) { warning_callback_(out, token); }
-        LOG_F(WARNING, out.c_str());
-    } else {
-        auto out = fmt::format("{}, Token: '{}', {}:{}", msg, token.loc.view,
-            token.loc.line, token.loc.column);
-        if (warning_callback_) { warning_callback_(out, token); }
-        LOG_F(WARNING, out.c_str());
-    }
+    ctx_->parse_warning(parent_, msg, token);
 }
 
 bool NssParser::is_end() const
@@ -118,16 +100,6 @@ NssToken NssParser::previous()
         return {};
     }
     return tokens[current_ - 1];
-}
-
-void NssParser::set_error_callback(std::function<void(std::string_view message, NssToken)> cb)
-{
-    error_callback_ = std::move(cb);
-}
-
-void NssParser::set_warning_callback(std::function<void(std::string_view message, NssToken)> cb)
-{
-    warning_callback_ = std::move(cb);
 }
 
 void NssParser::synchronize()

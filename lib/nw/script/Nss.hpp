@@ -5,6 +5,7 @@
 
 #include "../resources/ResourceData.hpp"
 #include "../util/ByteArray.hpp"
+#include "Context.hpp"
 
 #include <absl/container/flat_hash_map.h>
 
@@ -19,17 +20,16 @@ namespace nw::script {
 
 struct Nss;
 
-struct ScriptContext {
-    Nss* get(Resref resref);
-
-    absl::flat_hash_map<Resource, std::unique_ptr<Nss>> scripts;
-    std::vector<std::string> include_stack;
-};
-
 struct Nss {
-    explicit Nss(const std::filesystem::path& filename);
-    explicit Nss(std::string_view script);
-    explicit Nss(ResourceData data);
+    explicit Nss(const std::filesystem::path& filename,
+        std::shared_ptr<Context> ctx = std::make_shared<Context>());
+    explicit Nss(std::string_view script,
+        std::shared_ptr<Context> ctx = std::make_shared<Context>());
+    explicit Nss(ResourceData data,
+        std::shared_ptr<Context> ctx = std::make_shared<Context>());
+
+    // Script context
+    std::shared_ptr<Context> ctx() const;
 
     /// Returns all transitive dependencies
     std::set<std::string> dependencies() const;
@@ -64,7 +64,7 @@ struct Nss {
     size_t warnings() const noexcept;
 
 private:
-    ScriptContext ctx_;
+    std::shared_ptr<Context> ctx_;
     ResourceData data_;
     NssParser parser_;
     Ast ast_;

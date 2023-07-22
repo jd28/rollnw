@@ -8,46 +8,35 @@
 
 namespace nw::script {
 
-Nss* ScriptContext::get(Resref resref)
-{
-    Resource res{resref, ResourceType::nss};
-    auto it = scripts.find(res);
-    if (it != std::end(scripts)) {
-        return it->second.get();
-    }
-
-    auto data = nw::kernel::resman().demand(res);
-    if (data.bytes.size()) {
-        auto nss = std::make_unique<Nss>(std::move(data));
-        nss->parse();
-        auto it = scripts.insert({res, std::move(nss)});
-        return it.first->second.get();
-    }
-
-    return nullptr;
-}
-
-Nss::Nss(const std::filesystem::path& filename)
-    : data_{ResourceData::from_file(filename)}
-    , parser_{data_.bytes.string_view()}
+Nss::Nss(const std::filesystem::path& filename, std::shared_ptr<Context> ctx)
+    : ctx_{ctx}
+    , data_{ResourceData::from_file(filename)}
+    , parser_{data_.bytes.string_view(), ctx_, this}
 {
 }
 
-Nss::Nss(std::string_view script)
-    : parser_{script}
+Nss::Nss(std::string_view script, std::shared_ptr<Context> ctx)
+    : ctx_{ctx}
+    , parser_{script, ctx_, this}
 {
 }
 
-Nss::Nss(ResourceData data)
-    : data_{std::move(data)}
-    , parser_{data_.bytes.string_view()}
+Nss::Nss(ResourceData data, std::shared_ptr<Context> ctx)
+    : ctx_{ctx}
+    , data_{std::move(data)}
+    , parser_{data_.bytes.string_view(), ctx_, this}
 {
+}
+
+std::shared_ptr<Context> Nss::ctx() const
+{
+    return ctx_;
 }
 
 std::set<std::string> Nss::dependencies() const
 {
     std::set<std::string> result;
-    for (const auto& [key, _] : ctx_.scripts) {
+    for (const auto& [key, _] : ctx_->dependencies_) {
         if (key == data_.name) { continue; }
         result.emplace(key.resref.view());
     }
@@ -85,18 +74,18 @@ bool Nss::process_includes(Nss* parent)
 {
     if (!parent) { parent = this; }
 
-    parent->ctx_.include_stack.push_back(data_.name.resref.string());
+    parent->ctx_->include_stack_.push_back(data_.name.resref.string());
 
     ast_.includes.reserve(ast_.include_resrefs.size());
     for (const auto& include : ast_.include_resrefs) {
-        for (const auto& entry : parent->ctx_.include_stack) {
+        for (const auto& entry : parent->ctx_->include_stack_) {
             if (include == entry) {
                 throw std::runtime_error(fmt::format("[script] recursive includes: {}",
-                    string::join(parent->ctx_.include_stack, ", ")));
+                    string::join(parent->ctx_->include_stack_, ", ")));
             }
         }
 
-        auto script = ctx_.get({include});
+        auto script = ctx_->get({include}, ctx_);
         if (!script) {
             throw std::runtime_error(fmt::format("[script] unable to locate include file: {}", include));
         }
@@ -105,7 +94,7 @@ bool Nss::process_includes(Nss* parent)
         script->process_includes(parent);
     }
 
-    parent->ctx_.include_stack.pop_back();
+    parent->ctx_->include_stack_.pop_back();
 
     return true;
 }

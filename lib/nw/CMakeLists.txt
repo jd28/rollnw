@@ -110,6 +110,7 @@ add_library(nw STATIC
     rules/Spell.cpp
     rules/system.cpp
 
+    script/Context.cpp
     script/Nss.cpp
     script/NssLexer.cpp
     script/NssParser.cpp

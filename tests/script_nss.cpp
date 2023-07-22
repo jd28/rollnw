@@ -177,25 +177,6 @@ TEST(Nss, Lexer)
     EXPECT_EQ(lexer8.next().type, script::NssTokenType::END);
 }
 
-TEST(Nss, ErrorCallback)
-{
-    script::Nss nss("int forgot_semicolon"sv);
-    std::vector<std::string> errors;
-    nss.parser().set_error_callback([&errors](std::string_view message, script::NssToken) {
-        errors.emplace_back(message);
-    });
-    EXPECT_THROW(nss.parse(), std::runtime_error);
-    EXPECT_EQ(nss.errors(), errors.size());
-
-    script::Nss nss3("int a;;"sv);
-    std::vector<std::string> warnings;
-    nss3.parser().set_warning_callback([&warnings](std::string_view message, script::NssToken) {
-        warnings.emplace_back(message);
-    });
-    nss3.parse();
-    EXPECT_EQ(nss3.warnings(), warnings.size());
-}
-
 TEST(Nss, Includes)
 {
     script::Nss nss(fs::path("test_data/user/development/circinc1.nss"));

@@ -9,8 +9,10 @@
 
 namespace nw::script {
 
-NssLexer::NssLexer(std::string_view buffer)
-    : buffer_{buffer}
+NssLexer::NssLexer(std::string_view buffer, std::shared_ptr<Context> ctx, Nss* parent)
+    : ctx_{ctx}
+    , parent_{parent}
+    , buffer_{buffer}
 {
 }
 
@@ -212,7 +214,11 @@ NssToken NssLexer::next()
             } else if (std::isdigit(get(pos_))) {
                 t = handle_number();
             } else {
-                LOG_F(WARNING, "Unrecognized character '{}', line: {}", get(pos_), line_);
+                ctx_->lexical_warning(parent_, fmt::format("Unrecognized character '{}'", get(pos_)),
+                    {{&buffer_[start], pos_ - start},
+                        line_,
+                        start - last_line_pos_});
+
                 ++pos_;
                 continue;
             }
@@ -282,8 +288,12 @@ NssToken NssLexer::next()
                 }
                 ++pos_;
             }
-            if (pos_ == buffer_.size() || get(pos_) != '"')
-                throw std::runtime_error("Unterminated quote.");
+            if (pos_ == buffer_.size() || get(pos_) != '"') {
+                ctx_->lexical_error(parent_, "Unterminated quote",
+                    {{&buffer_[start], pos_ + 1 - start},
+                        line_,
+                        start - last_line_pos_});
+            }
 
             t = NssToken{NssTokenType::STRING_CONST,
                 {&buffer_[start], pos_ - start},
@@ -432,7 +442,10 @@ NssToken NssLexer::next()
         case '*': // TIMES
             switch (get(pos_ + 1)) {
             case '/': // Uh oh
-                throw std::runtime_error("Mismatched block quote");
+                ctx_->lexical_error(parent_, "Mismatched block quote",
+                    {{&buffer_[start], pos_ + 1 - start},
+                        line_,
+                        start - last_line_pos_});
                 break;
             case '=':
                 NSS_TOKEN(TIMESEQ, 2);
@@ -445,7 +458,10 @@ NssToken NssLexer::next()
         case '\\': // Escape character
             // A couple scripts have escaped new lines (for no reason)
             if (get(pos_ + 1) != '\r' && get(pos_ + 1) != '\n') {
-                LOG_F(WARNING, "Unrecognized character '{}', line: {}", get(pos_), line_);
+                ctx_->lexical_warning(parent_, fmt::format("Unrecognized character '{}'", get(pos_)),
+                    {{&buffer_[start], pos_ + 1 - start},
+                        line_,
+                        start - last_line_pos_});
             }
             ++pos_;
             continue;
@@ -484,7 +500,10 @@ NssToken NssLexer::next()
                     ++pos_;
                 }
                 if (pos_ > buffer_.size()) {
-                    throw std::runtime_error("Unterminated block quote");
+                    ctx_->lexical_error(parent_, "Unterminated block quote",
+                        {{&buffer_[start], pos_ - start},
+                            line_,
+                            start - last_line_pos_});
                 }
                 break;
             case '=':
