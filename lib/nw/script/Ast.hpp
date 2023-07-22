@@ -1,7 +1,11 @@
 #pragma once
 
+#include "../util/Variant.hpp"
 #include "Token.hpp"
 
+#include <glm/glm.hpp>
+
+#include <string>
 #include <vector>
 
 namespace nw::script {
@@ -194,6 +198,7 @@ struct LiteralExpression : Expression {
     }
 
     NssToken literal;
+    Variant<int32_t, float, std::string> data;
 
     DEFINE_ACCEPT_VISITOR
 };
@@ -207,6 +212,7 @@ struct LiteralVectorExpression : Expression {
     }
 
     NssToken x, y, z;
+    glm::vec3 data;
 
     DEFINE_ACCEPT_VISITOR
 };

@@ -341,7 +341,29 @@ std::unique_ptr<Expression> NssParser::parse_expr_postfix()
 std::unique_ptr<Expression> NssParser::parse_expr_primary()
 {
     if (match({NssTokenType::STRING_CONST, NssTokenType::INTEGER_CONST, NssTokenType::FLOAT_CONST})) {
-        return std::make_unique<LiteralExpression>(previous());
+        auto expr = std::make_unique<LiteralExpression>(previous());
+
+        if (expr->literal.type == NssTokenType::STRING_CONST) {
+            // Probably need to process the string..
+            expr->data = std::string(expr->literal.loc.view);
+        } else if (expr->literal.type == NssTokenType::INTEGER_CONST) {
+            if (auto val = string::from<int32_t>(expr->literal.loc.view)) {
+                expr->data = *val;
+            } else {
+                ctx_->parse_error(parent_,
+                    fmt::format("unable to parse integer literal '{}'", expr->literal.loc.view),
+                    expr->literal);
+            }
+        } else if (expr->literal.type == NssTokenType::FLOAT_CONST) {
+            if (auto val = string::from<float>(expr->literal.loc.view)) {
+                expr->data = *val;
+            } else {
+                ctx_->parse_error(parent_,
+                    fmt::format("unable to parse float literal '{}'", expr->literal.loc.view),
+                    expr->literal);
+            }
+        }
+        return expr;
     }
 
     if (match({NssTokenType::IDENTIFIER})) {
@@ -359,7 +381,34 @@ std::unique_ptr<Expression> NssParser::parse_expr_primary()
         consume(NssTokenType::FLOAT_CONST, "Expected floating point literal");
         z = previous();
         consume(NssTokenType::RBRACKET, "Expected ']'");
-        return std::make_unique<LiteralVectorExpression>(x, y, z);
+
+        auto expr = std::make_unique<LiteralVectorExpression>(x, y, z);
+
+        if (auto val = string::from<float>(expr->x.loc.view)) {
+            expr->data.x = *val;
+        } else {
+            ctx_->parse_error(parent_,
+                fmt::format("unable to parse vector literal '{}'", expr->x.loc.view),
+                expr->x);
+        }
+
+        if (auto val = string::from<float>(expr->y.loc.view)) {
+            expr->data.y = *val;
+        } else {
+            ctx_->parse_error(parent_,
+                fmt::format("unable to parse vector literal '{}'", expr->y.loc.view),
+                expr->y);
+        }
+
+        if (auto val = string::from<float>(expr->z.loc.view)) {
+            expr->data.z = *val;
+        } else {
+            ctx_->parse_error(parent_,
+                fmt::format("unable to parse vector literal '{}'", expr->z.loc.view),
+                expr->z);
+        }
+
+        return expr;
     }
 
     if (match({NssTokenType::LPAREN})) {
@@ -368,8 +417,8 @@ std::unique_ptr<Expression> NssParser::parse_expr_primary()
         return std::make_unique<GroupingExpression>(std::move(expr));
     }
 
-    error("Expected expression", peek());
-    throw parser_error("Expected expression");
+    error("expected primary expression", peek());
+    throw parser_error("expected primary expression");
 }
 
 // ---- Statements ------------------------------------------------------------

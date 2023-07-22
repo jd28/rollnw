@@ -201,3 +201,38 @@ TEST(Nss, Includes)
     EXPECT_EQ(deps3.size(), 1);
     EXPECT_NE(deps3.find("test_inc_i"), std::end(deps3));
 }
+
+TEST(Nss, Literals)
+{
+    script::Nss nss1("void main() { float f = 0.314; }"sv);
+    EXPECT_NO_THROW(nss1.parse());
+    EXPECT_EQ(nss1.errors(), 0);
+
+    script::Nss nss2("void main() { float f = 0.314f; }"sv);
+    EXPECT_NO_THROW(nss2.parse());
+    EXPECT_EQ(nss2.errors(), 0);
+
+    script::Nss nss3("void main() { float f = 2.; }"sv);
+    EXPECT_NO_THROW(nss3.parse());
+    EXPECT_EQ(nss3.errors(), 0);
+
+    script::Nss nss4("void main() { float f = 2.f; }"sv);
+    EXPECT_NO_THROW(nss4.parse());
+    EXPECT_EQ(nss4.errors(), 0);
+
+    script::Nss nss5("void main() { float f = 2; }"sv);
+    EXPECT_NO_THROW(nss5.parse());
+    EXPECT_EQ(nss5.errors(), 0);
+
+    script::Nss nss6("void main() { int i = 2; }"sv);
+    EXPECT_NO_THROW(nss6.parse());
+    EXPECT_EQ(nss6.errors(), 0);
+
+    script::Nss nss7("void main() { int i = 0x123456789abcdef; }"sv);
+    EXPECT_NO_THROW(nss7.parse());
+    EXPECT_EQ(nss7.errors(), 0);
+
+    script::Nss nss8("void main() { vector v = [1.0, 0.0f, 0.]; }"sv);
+    EXPECT_NO_THROW(nss8.parse());
+    EXPECT_EQ(nss8.errors(), 0);
+}
