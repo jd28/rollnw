@@ -34,8 +34,6 @@ struct NssParser {
 
     std::vector<NssToken> tokens;
     size_t current_ = 0;
-    size_t errors_ = 0;
-    size_t warnings_ = 0;
 
     /// Advances the token stream
     NssToken advance();

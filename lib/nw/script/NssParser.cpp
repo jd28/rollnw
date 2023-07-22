@@ -42,13 +42,11 @@ bool NssParser::check(std::initializer_list<NssTokenType> types) const
 
 void NssParser::error(std::string_view msg, NssToken token)
 {
-    ++errors_;
     ctx_->parse_error(parent_, msg, token);
 }
 
 void NssParser::warn(std::string_view msg, NssToken token)
 {
-    ++warnings_;
     ctx_->parse_warning(parent_, msg, token);
 }
 

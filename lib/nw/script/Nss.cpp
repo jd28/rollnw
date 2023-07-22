@@ -43,11 +43,6 @@ std::set<std::string> Nss::dependencies() const
     return result;
 }
 
-size_t Nss::errors() const noexcept
-{
-    return parser_.errors_;
-}
-
 std::string_view Nss::name() const noexcept
 {
     if (data_.name.resref.empty()) {
@@ -55,11 +50,6 @@ std::string_view Nss::name() const noexcept
     } else {
         return data_.name.resref.view();
     }
-}
-
-size_t Nss::warnings() const noexcept
-{
-    return parser_.warnings_;
 }
 
 void Nss::parse()
