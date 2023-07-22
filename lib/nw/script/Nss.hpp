@@ -28,6 +28,9 @@ struct Nss {
     explicit Nss(ResourceData data,
         std::shared_ptr<Context> ctx = std::make_shared<Context>());
 
+    /// Add export
+    void add_export(std::string_view name, Declaration* decl);
+
     /// Script context
     std::shared_ptr<Context> ctx() const;
 
@@ -43,6 +46,9 @@ struct Nss {
     /// Increments warning count
     void increment_warnings() noexcept { ++warnings_; }
 
+    /// Locate export
+    /// @note This function is not recursive
+    Declaration* locate_export(std::string_view name);
 
     /// Script name
     std::string_view name() const noexcept;
@@ -76,6 +82,7 @@ private:
     ResourceData data_;
     NssParser parser_;
     Ast ast_;
+    absl::flat_hash_map<std::string, Declaration*> exports_;
     size_t errors_ = 0;
     size_t warnings_ = 0;
 };

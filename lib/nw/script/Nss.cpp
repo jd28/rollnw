@@ -28,6 +28,22 @@ Nss::Nss(ResourceData data, std::shared_ptr<Context> ctx)
 {
 }
 
+void Nss::add_export(std::string_view name, Declaration* decl)
+{
+    absl::string_view n{name.data(), name.size()};
+    auto it = exports_.find(n);
+    if (it == std::end(exports_)) {
+        exports_.insert({std::string(name), decl});
+    } else {
+        if (dynamic_cast<FunctionDecl*>(it->second) && dynamic_cast<FunctionDefinition*>(decl)) {
+            it->second = decl;
+        } else {
+            // Should be impossible since the resolver will resolve dupes
+            throw std::runtime_error("Duplicate export");
+        }
+    }
+}
+
 std::shared_ptr<Context> Nss::ctx() const
 {
     return ctx_;
@@ -41,6 +57,16 @@ std::set<std::string> Nss::dependencies() const
         result.emplace(key.resref.view());
     }
     return result;
+}
+
+Declaration* Nss::locate_export(std::string_view name)
+{
+    absl::string_view n{name.data(), name.size()};
+    auto it = exports_.find(n);
+    if (it != std::end(exports_)) {
+        return it->second;
+    }
+    return nullptr;
 }
 
 std::string_view Nss::name() const noexcept
