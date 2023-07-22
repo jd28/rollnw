@@ -5,6 +5,7 @@
 
 #include <glm/glm.hpp>
 
+#include <limits>
 #include <string>
 #include <vector>
 
@@ -82,11 +83,13 @@ struct BaseVisitor {
     virtual void visit(WhileStatement* stmt) = 0;
 };
 
+constexpr size_t invalid_type_id = std::numeric_limits<size_t>::max();
+
 struct AstNode {
     virtual ~AstNode() = default;
     virtual void accept(BaseVisitor* visitor) = 0;
 
-    size_t type_id_ = 0;
+    size_t type_id_ = invalid_type_id;
     bool is_const_ = false;
 };
 
