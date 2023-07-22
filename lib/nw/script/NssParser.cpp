@@ -605,12 +605,8 @@ std::unique_ptr<LabelStatement> NssParser::parse_stmt_label()
     auto s = std::make_unique<LabelStatement>();
     s->type = previous();
     if (s->type.type == NssTokenType::CASE) {
-        if (match({NssTokenType::INTEGER_CONST, NssTokenType::STRING_CONST})) {
-            auto lit = new LiteralExpression(previous());
-            s->expr = std::unique_ptr<Expression>(lit);
-        } else {
-            error("Expected constant literal integer or string expression", peek());
-        }
+        // [TODO] check here or in resolver for incorrect types.
+        s->expr = parse_expr_primary();
     }
     consume(NssTokenType::COLON, "Expected ':'.");
     return s;
