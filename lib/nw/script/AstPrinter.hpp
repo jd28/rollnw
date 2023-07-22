@@ -1,8 +1,7 @@
 #pragma once
 
-#include "NssParser.hpp"
-
 #include "../log.hpp"
+#include "Ast.hpp"
 
 #include <sstream>
 #include <string>
