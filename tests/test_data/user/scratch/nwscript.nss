@@ -8115,7 +8115,7 @@ void SoundObjectSetPosition(object oSound, vector vPosition);
 // - sDialogResRef
 // - oTokenTarget: This must be specified if there are creature-specific tokens
 //   in the string.
-void SpeakOneLinerConversation(string sDialogResRef="", object oTokenTarget=OBJECT_TYPE_INVALID);
+void SpeakOneLinerConversation(string sDialogResRef="", object oTokenTarget=OBJECT_INVALID);
 
 // Get the amount of gold possessed by oTarget.
 int GetGold(object oTarget=OBJECT_SELF);
