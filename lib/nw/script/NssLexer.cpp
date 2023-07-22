@@ -106,6 +106,13 @@ inline NssTokenType check_keyword(const NssToken& tk)
             return NssTokenType::OBJECT;
         }
         break;
+    case 'O':
+        if (tk.loc.view == "OBJECT_INVALID") {
+            return NssTokenType::OBJECT_INVALID_CONST;
+        } else if (tk.loc.view == "OBJECT_SELF") {
+            return NssTokenType::OBJECT_SELF_CONST;
+        }
+        break;
     case 'r':
         if (tk.loc.view == "return") {
             return NssTokenType::RETURN;

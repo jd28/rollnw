@@ -340,7 +340,8 @@ std::unique_ptr<Expression> NssParser::parse_expr_postfix()
 // INT | FLOAT | STRING | "(" expression ")" | IDENTIFIER
 std::unique_ptr<Expression> NssParser::parse_expr_primary()
 {
-    if (match({NssTokenType::STRING_CONST, NssTokenType::INTEGER_CONST, NssTokenType::FLOAT_CONST})) {
+    if (match({NssTokenType::STRING_CONST, NssTokenType::INTEGER_CONST, NssTokenType::FLOAT_CONST,
+            NssTokenType::OBJECT_INVALID_CONST, NssTokenType::OBJECT_SELF_CONST})) {
         auto expr = std::make_unique<LiteralExpression>(previous());
 
         if (expr->literal.type == NssTokenType::STRING_CONST) {
