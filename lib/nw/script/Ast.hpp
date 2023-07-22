@@ -389,7 +389,7 @@ struct FunctionDefinition : public Declaration {
 };
 
 struct StructDecl : public Declaration {
-    std::vector<std::unique_ptr<Declaration>> decls;
+    std::vector<std::unique_ptr<VarDecl>> decls;
 
     DEFINE_ACCEPT_VISITOR
 };

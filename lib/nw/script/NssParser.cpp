@@ -687,7 +687,7 @@ std::unique_ptr<Statement> NssParser::parse_decl()
     }
 }
 
-std::unique_ptr<Declaration> NssParser::parse_decl_struct_member()
+std::unique_ptr<VarDecl> NssParser::parse_decl_struct_member()
 {
     Type t = parse_type();
     auto d = std::make_unique<VarDecl>();
