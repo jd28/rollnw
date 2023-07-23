@@ -94,36 +94,36 @@ void Context::lexical_warning(Nss* script, std::string_view msg, SourceLocation 
     LOG_F(WARNING, "{}", out);
 }
 
-void Context::parse_error(Nss* script, std::string_view msg, NssToken token)
+void Context::parse_error(Nss* script, std::string_view msg, SourceLocation loc)
 {
     if (script) { script->increment_errors(); }
     auto out = fmt::format("{}:{}:{} error: {}", script ? script->name() : "<source>",
-        token.loc.line, token.loc.column, msg);
+        loc.line, loc.column, msg);
     LOG_F(ERROR, "{}", out);
     throw parser_error(out);
 }
 
-void Context::parse_warning(Nss* script, std::string_view msg, NssToken token)
+void Context::parse_warning(Nss* script, std::string_view msg, SourceLocation loc)
 {
     if (script) { script->increment_warnings(); }
     auto out = fmt::format("{}:{}:{} warning: {}", script ? script->name() : "<source>",
-        token.loc.line, token.loc.column, msg);
+        loc.line, loc.column, msg);
     LOG_F(WARNING, "{}", out);
 }
 
-void Context::semantic_error(Nss* script, std::string_view msg, NssToken token)
+void Context::semantic_error(Nss* script, std::string_view msg, SourceLocation loc)
 {
     if (script) { script->increment_errors(); }
     auto out = fmt::format("{}:{}:{} error: {}", script ? script->name() : "<source>",
-        token.loc.line, token.loc.column, msg);
+        loc.line, loc.column, msg);
     LOG_F(ERROR, "{}", out);
 }
 
-void Context::semantic_warning(Nss* script, std::string_view msg, NssToken token)
+void Context::semantic_warning(Nss* script, std::string_view msg, SourceLocation loc)
 {
     if (script) { script->increment_warnings(); }
     auto out = fmt::format("{}:{}:{} warning: {}", script ? script->name() : "<source>",
-        token.loc.line, token.loc.column, msg);
+        loc.line, loc.column, msg);
     LOG_F(WARNING, "{}", out);
 }
 

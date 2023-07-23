@@ -35,11 +35,11 @@ struct Context {
     virtual void lexical_error(Nss* script, std::string_view msg, SourceLocation loc);
     virtual void lexical_warning(Nss* script, std::string_view msg, SourceLocation loc);
 
-    virtual void parse_error(Nss* script, std::string_view msg, NssToken token = {});
-    virtual void parse_warning(Nss* script, std::string_view msg, NssToken token = {});
+    virtual void parse_error(Nss* script, std::string_view msg, SourceLocation loc = {});
+    virtual void parse_warning(Nss* script, std::string_view msg, SourceLocation loc = {});
 
-    virtual void semantic_error(Nss* script, std::string_view msg, NssToken token = {});
-    virtual void semantic_warning(Nss* script, std::string_view msg, NssToken token = {});
+    virtual void semantic_error(Nss* script, std::string_view msg, SourceLocation loc = {});
+    virtual void semantic_warning(Nss* script, std::string_view msg, SourceLocation loc = {});
 };
 
 } // nw::script

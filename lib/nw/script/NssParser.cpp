@@ -42,12 +42,12 @@ bool NssParser::check(std::initializer_list<NssTokenType> types) const
 
 void NssParser::error(std::string_view msg, NssToken token)
 {
-    ctx_->parse_error(parent_, msg, token);
+    ctx_->parse_error(parent_, msg, token.loc);
 }
 
 void NssParser::warn(std::string_view msg, NssToken token)
 {
-    ctx_->parse_warning(parent_, msg, token);
+    ctx_->parse_warning(parent_, msg, token.loc);
 }
 
 bool NssParser::is_end() const
@@ -351,7 +351,7 @@ std::unique_ptr<Expression> NssParser::parse_expr_primary()
             } else {
                 ctx_->parse_error(parent_,
                     fmt::format("unable to parse integer literal '{}'", expr->literal.loc.view),
-                    expr->literal);
+                    expr->literal.loc);
             }
         } else if (expr->literal.type == NssTokenType::FLOAT_CONST) {
             if (auto val = string::from<float>(expr->literal.loc.view)) {
@@ -359,7 +359,7 @@ std::unique_ptr<Expression> NssParser::parse_expr_primary()
             } else {
                 ctx_->parse_error(parent_,
                     fmt::format("unable to parse float literal '{}'", expr->literal.loc.view),
-                    expr->literal);
+                    expr->literal.loc);
             }
         }
         return expr;
@@ -388,7 +388,7 @@ std::unique_ptr<Expression> NssParser::parse_expr_primary()
         } else {
             ctx_->parse_error(parent_,
                 fmt::format("unable to parse vector literal '{}'", expr->x.loc.view),
-                expr->x);
+                expr->x.loc);
         }
 
         if (auto val = string::from<float>(expr->y.loc.view)) {
@@ -396,7 +396,7 @@ std::unique_ptr<Expression> NssParser::parse_expr_primary()
         } else {
             ctx_->parse_error(parent_,
                 fmt::format("unable to parse vector literal '{}'", expr->y.loc.view),
-                expr->y);
+                expr->y.loc);
         }
 
         if (auto val = string::from<float>(expr->z.loc.view)) {
@@ -404,7 +404,7 @@ std::unique_ptr<Expression> NssParser::parse_expr_primary()
         } else {
             ctx_->parse_error(parent_,
                 fmt::format("unable to parse vector literal '{}'", expr->z.loc.view),
-                expr->z);
+                expr->z.loc);
         }
 
         return expr;
