@@ -50,9 +50,6 @@ jobs:
         if: matrix.os == 'windows-latest'
         run: |
           echo "DATE=$(Get-Date -Format yyyy-MM-dd)" | Out-File -FilePath $env:GITHUB_ENV -Append
-          echo "VCPKG_ROOT=${{env.VCPKG_ROOT}}" | Out-File -FilePath $env:GITHUB_ENV -Append
-          echo "CMAKE_TOOLCHAIN_FILE=${{env.CMAKE_TOOLCHAIN_FILE}}" | Out-File -FilePath $env:GITHUB_ENV -Append
-          echo "VCPKG_DEFAULT_BINARY_CACHE=${{env.VCPKG_DEFAULT_BINARY_CACHE}}" | Out-File -FilePath $env:GITHUB_ENV -Append
 
       - uses: actions/checkout@v3
         with:
@@ -155,6 +152,19 @@ jobs:
         if: matrix.os == 'ubuntu-20.04'
         run: |
           cmake --preset ci-linux
+
+      - name: windows - Visual Studio shell
+        if: matrix.os == 'windows-latest'
+        uses: egor-tensin/vs-shell@v2
+        with:
+          arch: x64
+
+      - name: Reset vcpkg env vars.
+        if: matrix.os == 'windows-latest'
+        run: |
+          echo "VCPKG_ROOT=${{ github.workspace }}/vcpkg/" | Out-File -FilePath $env:GITHUB_ENV -Append
+          echo "CMAKE_TOOLCHAIN_FILE=${{env.CMAKE_TOOLCHAIN_FILE}}" | Out-File -FilePath $env:GITHUB_ENV -Append
+          echo "VCPKG_DEFAULT_BINARY_CACHE=${{env.VCPKG_DEFAULT_BINARY_CACHE}}" | Out-File -FilePath $env:GITHUB_ENV -Append
 
       - name: windows - configure
         if: matrix.os == 'windows-latest'
