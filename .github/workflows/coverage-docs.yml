@@ -33,8 +33,8 @@ jobs:
 
       - uses: actions/setup-python@v4
         with:
-          python-version: '3.x' # Version range or exact version of a Python version to use, using SemVer's version range syntax
-          architecture: 'x64' # optional x64 or x86. Defaults to x64 if not specified
+          python-version: "3.x" # Version range or exact version of a Python version to use, using SemVer's version range syntax
+          architecture: "x64" # optional x64 or x86. Defaults to x64 if not specified
 
       - name: Install breathe
         run: python -m pip install breathe sphinx_rtd_theme sphinx-tabs enum-tools==0.9.0.post1 sphinx-toolbox==2.18.1
@@ -63,7 +63,6 @@ jobs:
         run: |
           git clone https://github.com/microsoft/vcpkg ${{ github.workspace }}/vcpkg || true
           pushd vcpkg
-          git checkout --force ${{ env.vcpkg-tag }}
           ./bootstrap-vcpkg.sh
           popd
 

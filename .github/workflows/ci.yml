@@ -19,7 +19,7 @@ on:
 
 env:
   buildDir: "${{ github.workspace }}/build/"
-  vcpkg-tag: "2023.06.20"
+  vcpkg-tag: "master"
   VCPKG_ROOT: "${{ github.workspace }}/vcpkg/"
   VCPKG_DEFAULT_BINARY_CACHE: "${{ github.workspace }}/vcpkg/.cache"
   NWN_ROOT: "${{ github.workspace }}/nwn/"
@@ -101,9 +101,6 @@ jobs:
       - name: all - download vcpkg
         run: |
           git clone https://github.com/microsoft/vcpkg ${{ github.workspace }}/vcpkg || true
-          pushd vcpkg
-          git checkout --force ${{ env.vcpkg-tag }}
-          popd
 
       - name: all - cache vcpkg
         id: cache-vcpkg
@@ -124,7 +121,7 @@ jobs:
 
       - name: windows - bootstrap vcpkg
         if: matrix.os == 'windows-latest' && steps.cache-vcpkg.outputs.cache-hit != 'true'
-        run:  |
+        run: |
           md vcpkg/.cache -ea 0
           vcpkg/bootstrap-vcpkg.bat
 

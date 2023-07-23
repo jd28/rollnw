@@ -88,7 +88,6 @@ jobs:
         run: |
           git clone https://github.com/microsoft/vcpkg ${{ github.workspace }}/vcpkg || true
           pushd vcpkg
-          git checkout --force ${{ env.vcpkg-tag }}
           ./bootstrap-vcpkg.sh
           popd
 
