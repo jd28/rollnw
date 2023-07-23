@@ -74,14 +74,6 @@
                     "type": "BOOL",
                     "value": "ON"
                 },
-                "ENABLE_SANITIZER_ADDRESS": {
-                    "type": "BOOL",
-                    "value": true
-                },
-                "ENABLE_SANITIZER_UNDEFINED_BEHAVIOR": {
-                    "type": "BOOL",
-                    "value": true
-                },
                 "ROLLNW_BUILD_DOCS": {
                     "type": "BOOL",
                     "value": true

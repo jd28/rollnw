@@ -29,6 +29,7 @@ env:
   CCACHE_BASEDIR: "${{ github.workspace }}/ccache/"
   SCCACHE_DIR: "${{ github.workspace }}/ccache/"
   SCCACHE_BASEDIR: "${{ github.workspace }}/ccache/"
+  CMAKE_TOOLCHAIN_FILE: "${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake"
 
 jobs:
   build:
