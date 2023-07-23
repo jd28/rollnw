@@ -6,6 +6,7 @@
 #include <glm/glm.hpp>
 
 #include <limits>
+#include <memory>
 #include <string>
 #include <vector>
 
