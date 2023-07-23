@@ -11,6 +11,7 @@
 namespace nw::script {
 
 struct Nss;
+struct StructDecl;
 struct Type;
 
 struct Context {
@@ -25,6 +26,7 @@ struct Context {
     // Type Tracking
     absl::flat_hash_map<std::string, size_t> type_map_;
     std::vector<std::string> type_array_;
+    std::vector<StructDecl*> struct_stack_;
 
     virtual void register_default_types();
     size_t type_id(std::string_view type_name);

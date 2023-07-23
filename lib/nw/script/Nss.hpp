@@ -71,6 +71,9 @@ struct Nss {
     /// Gets parsed ast
     const Ast& ast() const;
 
+    /// Resolves and type checks the Ast
+    void resolve();
+
     /// Gets text of script
     std::string_view text() const noexcept;
 
@@ -85,6 +88,7 @@ private:
     absl::flat_hash_map<std::string, Declaration*> exports_;
     size_t errors_ = 0;
     size_t warnings_ = 0;
+    bool resolved_ = false;
 };
 
 } // namespace nw::script

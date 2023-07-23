@@ -1,6 +1,7 @@
 #include "Nss.hpp"
 
 #include "../kernel/Resources.hpp"
+#include "AstResolver.hpp"
 
 #include <cstring>
 #include <fstream>
@@ -113,6 +114,19 @@ bool Nss::process_includes(Nss* parent)
     parent->ctx_->include_stack_.pop_back();
 
     return true;
+}
+
+void Nss::resolve()
+{
+    if (resolved_) { return; }
+
+    for (const auto& it : ast_.includes) {
+        it->resolve();
+    }
+
+    AstResolver resolver{this, ctx_};
+    resolver.visit(&ast_);
+    resolved_ = true;
 }
 
 Ast& Nss::ast() { return ast_; }
