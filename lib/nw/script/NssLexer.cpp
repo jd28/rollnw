@@ -1,6 +1,7 @@
 #include "NssLexer.hpp"
 
 #include "../log.hpp"
+#include "Nss.hpp"
 
 #include <cctype>
 #include <cstring>

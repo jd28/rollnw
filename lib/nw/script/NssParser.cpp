@@ -1,6 +1,7 @@
 #include "NssParser.hpp"
 
 #include "../log.hpp"
+#include "Nss.hpp"
 
 namespace nw::script {
 

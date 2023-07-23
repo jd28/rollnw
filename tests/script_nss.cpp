@@ -51,10 +51,10 @@ TEST(Nss, ParseNwscript)
     auto decl = nss.locate_export("IntToString");
     EXPECT_NE(decl, nullptr);
     auto d = dynamic_cast<nw::script::FunctionDecl*>(decl);
-    EXPECT_TRUE(d);
-    EXPECT_EQ(d->identifier.loc.view, "IntToString");
-    EXPECT_EQ(d->type_id_, nss.ctx()->type_id("string"));
-
+    if (d) {
+        EXPECT_EQ(d->identifier.loc.view, "IntToString");
+        EXPECT_EQ(d->type_id_, nss.ctx()->type_id("string"));
+    }
     script::Nss nss2("string test_function(string s, int b) { return IntToString(b); }"sv);
     EXPECT_NO_THROW(nss2.parse());
     EXPECT_NO_THROW(nss2.resolve());
@@ -110,9 +110,11 @@ TEST(Nss, FunctionDecl)
     EXPECT_TRUE(s.decls.size() > 0);
     auto fd = dynamic_cast<script::FunctionDecl*>(s.decls[0].get());
     EXPECT_TRUE(fd);
-    EXPECT_EQ(fd->type.type_specifier.loc.view, "void");
-    EXPECT_EQ(fd->params.size(), 2);
-    EXPECT_EQ(fd->params[0]->type.type_specifier.loc.view, "string");
+    if (fd) {
+        EXPECT_EQ(fd->type.type_specifier.loc.view, "void");
+        EXPECT_EQ(fd->params.size(), 2);
+        EXPECT_EQ(fd->params[0]->type.type_specifier.loc.view, "string");
+    }
 
     script::Nss nss2("void test_function(string s, int b) { s + IntToString(b); }"sv);
     EXPECT_NO_THROW(nss2.parse());
@@ -121,9 +123,11 @@ TEST(Nss, FunctionDecl)
     EXPECT_TRUE(s2.decls.size() > 0);
     auto fd2 = dynamic_cast<script::FunctionDefinition*>(s2.decls[0].get());
     EXPECT_TRUE(fd2);
-    EXPECT_TRUE(fd2->decl);
-    EXPECT_TRUE(fd2->block);
-    EXPECT_EQ(fd2->block->nodes.size(), 1);
+    if (fd2) {
+        EXPECT_TRUE(fd2->decl);
+        EXPECT_TRUE(fd2->block);
+        EXPECT_EQ(fd2->block->nodes.size(), 1);
+    }
 
     script::Nss nss3("void test_function(string s, int b) { s; IntToString(b) +; int x = 2+2;}"sv);
     nss3.parse();
@@ -135,10 +139,12 @@ TEST(Nss, FunctionDecl)
     const script::Ast& s4 = nss4.ast();
     EXPECT_GT(s4.decls.size(), 0);
     auto fd4 = dynamic_cast<script::FunctionDefinition*>(s4.decls[0].get());
-    EXPECT_TRUE(fd4);
-    EXPECT_TRUE(fd4->decl);
-    EXPECT_TRUE(fd4->block);
-    EXPECT_EQ(fd4->block->nodes.size(), 1);
+    if (fd4) {
+        EXPECT_TRUE(fd4);
+        EXPECT_TRUE(fd4->decl);
+        EXPECT_TRUE(fd4->block);
+        EXPECT_EQ(fd4->block->nodes.size(), 1);
+    }
 
     script::Nss nss5("int test_function(int a, int b) { return a % (b + x); }"sv);
     EXPECT_NO_THROW(nss5.parse());
