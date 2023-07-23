@@ -87,7 +87,7 @@
         {
             "name": "windows",
             "inherits": "linux",
-            "generator": "Visual Studio 16 2019",
+            "generator": "Visual Studio 17 2022",
             "displayName": "Windows-only configuration",
             "description": "This build is only available on Windows",
             "condition": {
@@ -103,6 +103,11 @@
                 "VCPKG_TARGET_TRIPLET": "x64-windows-static",
                 "VCPKG_HOST_TRIPLET": "x64-windows-static"
             }
+        },
+        {
+            "name": "windows-2019",
+            "inherits": "windows",
+            "generator": "Visual Studio 16 2019"
         },
         {
             "name": "ci-windows",
