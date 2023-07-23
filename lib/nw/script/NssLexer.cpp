@@ -298,9 +298,9 @@ NssToken NssLexer::next()
             }
             if (pos_ == buffer_.size() || get(pos_) != '"') {
                 ctx_->lexical_error(parent_, "Unterminated quote",
-                    {{&buffer_[start], pos_ + 1 - start},
+                    {{&buffer_[start - 1], pos_ - start},
                         line_,
-                        start - last_line_pos_});
+                        start - 1 - last_line_pos_});
             }
 
             t = NssToken{NssTokenType::STRING_CONST,

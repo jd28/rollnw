@@ -265,6 +265,9 @@ TEST(Nss, Lexer)
     script::NssLexer lexer8{R"x(    \
     )x"};
     EXPECT_EQ(lexer8.next().type, script::NssTokenType::END);
+
+    script::NssLexer lexer9{"\""};
+    EXPECT_THROW(lexer9.next(), std::runtime_error);
 }
 
 TEST(Nss, Includes)
