@@ -107,7 +107,7 @@
         {
             "name": "ci-windows",
             "inherits": "windows",
-            "generator": "Ninja",
+            "generator": "NMake Makefiles",
             "displayName": "windows ci build",
             "description": "windows ci build",
             "cacheVariables": {
