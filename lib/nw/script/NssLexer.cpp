@@ -509,7 +509,7 @@ NssToken NssLexer::next()
                 }
                 if (pos_ > buffer_.size()) {
                     ctx_->lexical_error(parent_, "Unterminated block quote",
-                        {{&buffer_[start], pos_ - start},
+                        {{&buffer_[start-2], 2},
                             line_,
                             start - last_line_pos_});
                 }
