@@ -246,12 +246,16 @@
 <li class="toctree-l2"><a class="reference internal" href="nw__model__TriangleMode.html">nw::model::TriangleMode</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__model__TrimeshNode.html">nw::model::TrimeshNode</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__AssignExpression.html">nw::script::AssignExpression</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__Ast.html">nw::script::Ast</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__AstNode.html">nw::script::AstNode</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__AstPrinter.html">nw::script::AstPrinter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__AstResolver.html">nw::script::AstResolver</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__BaseVisitor.html">nw::script::BaseVisitor</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__BinaryExpression.html">nw::script::BinaryExpression</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__BlockStatement.html">nw::script::BlockStatement</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__CallExpression.html">nw::script::CallExpression</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__ConditionalExpression.html">nw::script::ConditionalExpression</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__Context.html">nw::script::Context</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__Declaration.html">nw::script::Declaration</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__DoStatement.html">nw::script::DoStatement</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__DotExpression.html">nw::script::DotExpression</a></li>
@@ -268,12 +272,10 @@
 <li class="toctree-l2"><a class="reference internal" href="nw__script__LiteralVectorExpression.html">nw::script::LiteralVectorExpression</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__LogicalExpression.html">nw::script::LogicalExpression</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__Nss.html">nw::script::Nss</a></li>
-<li class="toctree-l2"><a class="reference internal" href="nw__script__NssAstPrinter.html">nw::script::NssAstPrinter</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__NssLexer.html">nw::script::NssLexer</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__NssParser.html">nw::script::NssParser</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__NssToken.html">nw::script::NssToken</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__PostfixExpression.html">nw::script::PostfixExpression</a></li>
-<li class="toctree-l2"><a class="reference internal" href="nw__script__Script.html">nw::script::Script</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__Statement.html">nw::script::Statement</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__StructDecl.html">nw::script::StructDecl</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__SwitchStatement.html">nw::script::SwitchStatement</a></li>
@@ -350,13 +352,13 @@
 <div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N2nw5model3Mdl3MdlERKNSt6stringE">
-<span id="_CPPv3N2nw5model3Mdl3MdlERKNSt6stringE"></span><span id="_CPPv2N2nw5model3Mdl3MdlERKNSt6stringE"></span><span id="nw::model::Mdl::Mdl__ssCR"></span><span class="target" id="classnw_1_1model_1_1_mdl_1acea57772c3027a1c4cddf37d993f4396"></span><span class="sig-name descname"><span class="n"><span class="pre">Mdl</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">filename</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw5model3Mdl3MdlERKNSt6stringE" title="Permalink to this definition"></a><br /></dt>
+<dt class="sig sig-object cpp" id="_CPPv4N2nw5model3Mdl3MdlERKNSt10filesystem4pathE">
+<span id="_CPPv3N2nw5model3Mdl3MdlERKNSt10filesystem4pathE"></span><span id="_CPPv2N2nw5model3Mdl3MdlERKNSt10filesystem4pathE"></span><span id="nw::model::Mdl::Mdl__std::filesystem::pathCR"></span><span class="target" id="classnw_1_1model_1_1_mdl_1a330844066957417b706b1b679642d9fe"></span><span class="sig-name descname"><span class="n"><span class="pre">Mdl</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">filesystem</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">path</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">filename</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw5model3Mdl3MdlERKNSt10filesystem4pathE" title="Permalink to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N2nw5model3Mdl3MdlE9ByteArray">
-<span id="_CPPv3N2nw5model3Mdl3MdlE9ByteArray"></span><span id="_CPPv2N2nw5model3Mdl3MdlE9ByteArray"></span><span id="nw::model::Mdl::Mdl__ByteArray"></span><span class="target" id="classnw_1_1model_1_1_mdl_1af52c7c437eb943d7ff63d0eb9450a19e"></span><span class="sig-name descname"><span class="n"><span class="pre">Mdl</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="nw__ByteArray.html#_CPPv4N2nw9ByteArrayE" title="nw::ByteArray"><span class="n"><span class="pre">ByteArray</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">bytes</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw5model3Mdl3MdlE9ByteArray" title="Permalink to this definition"></a><br /></dt>
+<dt class="sig sig-object cpp" id="_CPPv4N2nw5model3Mdl3MdlE12ResourceData">
+<span id="_CPPv3N2nw5model3Mdl3MdlE12ResourceData"></span><span id="_CPPv2N2nw5model3Mdl3MdlE12ResourceData"></span><span id="nw::model::Mdl::Mdl__ResourceData"></span><span class="target" id="classnw_1_1model_1_1_mdl_1ae53bcade1d32f3fcde5e6b5b51231b07"></span><span class="sig-name descname"><span class="n"><span class="pre">Mdl</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">ResourceData</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">data</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw5model3Mdl3MdlE12ResourceData" title="Permalink to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp function">

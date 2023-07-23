@@ -246,12 +246,16 @@
 <li class="toctree-l2"><a class="reference internal" href="nw__model__TriangleMode.html">nw::model::TriangleMode</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__model__TrimeshNode.html">nw::model::TrimeshNode</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__AssignExpression.html">nw::script::AssignExpression</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__Ast.html">nw::script::Ast</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__AstNode.html">nw::script::AstNode</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__AstPrinter.html">nw::script::AstPrinter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__AstResolver.html">nw::script::AstResolver</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__BaseVisitor.html">nw::script::BaseVisitor</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__BinaryExpression.html">nw::script::BinaryExpression</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__BlockStatement.html">nw::script::BlockStatement</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__CallExpression.html">nw::script::CallExpression</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__ConditionalExpression.html">nw::script::ConditionalExpression</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__Context.html">nw::script::Context</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__Declaration.html">nw::script::Declaration</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__DoStatement.html">nw::script::DoStatement</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__DotExpression.html">nw::script::DotExpression</a></li>
@@ -268,12 +272,10 @@
 <li class="toctree-l2"><a class="reference internal" href="nw__script__LiteralVectorExpression.html">nw::script::LiteralVectorExpression</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__LogicalExpression.html">nw::script::LogicalExpression</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__Nss.html">nw::script::Nss</a></li>
-<li class="toctree-l2"><a class="reference internal" href="nw__script__NssAstPrinter.html">nw::script::NssAstPrinter</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__NssLexer.html">nw::script::NssLexer</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__NssParser.html">nw::script::NssParser</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">nw::script::NssToken</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__PostfixExpression.html">nw::script::PostfixExpression</a></li>
-<li class="toctree-l2"><a class="reference internal" href="nw__script__Script.html">nw::script::Script</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__Statement.html">nw::script::Statement</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__StructDecl.html">nw::script::StructDecl</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__SwitchStatement.html">nw::script::SwitchStatement</a></li>
@@ -350,8 +352,8 @@
 <dd></dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N2nw6script8NssToken8NssTokenE12NssTokenTypeNSt11string_viewE6size_t6size_t6size_t">
-<span id="_CPPv3N2nw6script8NssToken8NssTokenE12NssTokenTypeNSt11string_viewE6size_t6size_t6size_t"></span><span id="_CPPv2N2nw6script8NssToken8NssTokenE12NssTokenTypeNSt11string_viewE6size_t6size_t6size_t"></span><span id="nw::script::NssToken::NssToken__NssTokenType.std::string_view.s.s.s"></span><span class="target" id="structnw_1_1script_1_1_nss_token_1a8ac0522af1a8f64994f6e0168e2d1cad"></span><span class="sig-name descname"><span class="n"><span class="pre">NssToken</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="../enum/nw__script__NssTokenType.html#_CPPv4N2nw6script12NssTokenTypeE" title="nw::script::NssTokenType"><span class="n"><span class="pre">NssTokenType</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">type_</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">id_</span></span>, <span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">line_</span></span>, <span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">start_</span></span>, <span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">end_</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6script8NssToken8NssTokenE12NssTokenTypeNSt11string_viewE6size_t6size_t6size_t" title="Permalink to this definition"></a><br /></dt>
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script8NssToken8NssTokenE12NssTokenTypeNSt11string_viewE6size_t6size_t">
+<span id="_CPPv3N2nw6script8NssToken8NssTokenE12NssTokenTypeNSt11string_viewE6size_t6size_t"></span><span id="_CPPv2N2nw6script8NssToken8NssTokenE12NssTokenTypeNSt11string_viewE6size_t6size_t"></span><span id="nw::script::NssToken::NssToken__NssTokenType.std::string_view.s.s"></span><span class="target" id="structnw_1_1script_1_1_nss_token_1a5d65de9761bf3ac98f028179ee09772d"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">NssToken</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="../enum/nw__script__NssTokenType.html#_CPPv4N2nw6script12NssTokenTypeE" title="nw::script::NssTokenType"><span class="n"><span class="pre">NssTokenType</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">type_</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">id_</span></span>, <span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">line_</span></span>, <span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">start_</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6script8NssToken8NssTokenE12NssTokenTypeNSt11string_viewE6size_t6size_t" title="Permalink to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 </div>
@@ -363,23 +365,8 @@
 <dd></dd></dl>
 
 <dl class="cpp var">
-<dt class="sig sig-object cpp" id="_CPPv4N2nw6script8NssToken2idE">
-<span id="_CPPv3N2nw6script8NssToken2idE"></span><span id="_CPPv2N2nw6script8NssToken2idE"></span><span id="nw::script::NssToken::id__std::string_view"></span><span class="target" id="structnw_1_1script_1_1_nss_token_1a13ec8f3c8236c3155da36a0ac20b5e63"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">id</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script8NssToken2idE" title="Permalink to this definition"></a><br /></dt>
-<dd></dd></dl>
-
-<dl class="cpp var">
-<dt class="sig sig-object cpp" id="_CPPv4N2nw6script8NssToken4lineE">
-<span id="_CPPv3N2nw6script8NssToken4lineE"></span><span id="_CPPv2N2nw6script8NssToken4lineE"></span><span id="nw::script::NssToken::line__s"></span><span class="target" id="structnw_1_1script_1_1_nss_token_1a392850c761dd8d62359a01eb90ecaf1b"></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">line</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N2nw6script8NssToken4lineE" title="Permalink to this definition"></a><br /></dt>
-<dd></dd></dl>
-
-<dl class="cpp var">
-<dt class="sig sig-object cpp" id="_CPPv4N2nw6script8NssToken5startE">
-<span id="_CPPv3N2nw6script8NssToken5startE"></span><span id="_CPPv2N2nw6script8NssToken5startE"></span><span id="nw::script::NssToken::start__s"></span><span class="target" id="structnw_1_1script_1_1_nss_token_1aa5fce42563f3883e359229d867b93f8f"></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">start</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N2nw6script8NssToken5startE" title="Permalink to this definition"></a><br /></dt>
-<dd></dd></dl>
-
-<dl class="cpp var">
-<dt class="sig sig-object cpp" id="_CPPv4N2nw6script8NssToken3endE">
-<span id="_CPPv3N2nw6script8NssToken3endE"></span><span id="_CPPv2N2nw6script8NssToken3endE"></span><span id="nw::script::NssToken::end__s"></span><span class="target" id="structnw_1_1script_1_1_nss_token_1a40a9255e187a9978af02895087f079a6"></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">end</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N2nw6script8NssToken3endE" title="Permalink to this definition"></a><br /></dt>
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script8NssToken3locE">
+<span id="_CPPv3N2nw6script8NssToken3locE"></span><span id="_CPPv2N2nw6script8NssToken3locE"></span><span id="nw::script::NssToken::loc__SourceLocation"></span><span class="target" id="structnw_1_1script_1_1_nss_token_1ae3257db0cd16f16a3bcf47fb1d184d4b"></span><span class="n"><span class="pre">SourceLocation</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">loc</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script8NssToken3locE" title="Permalink to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 </div>

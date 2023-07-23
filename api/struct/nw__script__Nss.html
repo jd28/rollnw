@@ -18,7 +18,7 @@
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
-    <link rel="next" title="nw::script::NssAstPrinter" href="nw__script__NssAstPrinter.html" />
+    <link rel="next" title="nw::script::NssLexer" href="nw__script__NssLexer.html" />
     <link rel="prev" title="nw::script::LogicalExpression" href="nw__script__LogicalExpression.html" /> 
 </head>
 
@@ -246,12 +246,16 @@
 <li class="toctree-l2"><a class="reference internal" href="nw__model__TriangleMode.html">nw::model::TriangleMode</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__model__TrimeshNode.html">nw::model::TrimeshNode</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__AssignExpression.html">nw::script::AssignExpression</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__Ast.html">nw::script::Ast</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__AstNode.html">nw::script::AstNode</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__AstPrinter.html">nw::script::AstPrinter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__AstResolver.html">nw::script::AstResolver</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__BaseVisitor.html">nw::script::BaseVisitor</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__BinaryExpression.html">nw::script::BinaryExpression</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__BlockStatement.html">nw::script::BlockStatement</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__CallExpression.html">nw::script::CallExpression</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__ConditionalExpression.html">nw::script::ConditionalExpression</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__Context.html">nw::script::Context</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__Declaration.html">nw::script::Declaration</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__DoStatement.html">nw::script::DoStatement</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__DotExpression.html">nw::script::DotExpression</a></li>
@@ -268,12 +272,10 @@
 <li class="toctree-l2"><a class="reference internal" href="nw__script__LiteralVectorExpression.html">nw::script::LiteralVectorExpression</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__LogicalExpression.html">nw::script::LogicalExpression</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">nw::script::Nss</a></li>
-<li class="toctree-l2"><a class="reference internal" href="nw__script__NssAstPrinter.html">nw::script::NssAstPrinter</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__NssLexer.html">nw::script::NssLexer</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__NssParser.html">nw::script::NssParser</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__NssToken.html">nw::script::NssToken</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__PostfixExpression.html">nw::script::PostfixExpression</a></li>
-<li class="toctree-l2"><a class="reference internal" href="nw__script__Script.html">nw::script::Script</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__Statement.html">nw::script::Statement</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__StructDecl.html">nw::script::StructDecl</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__SwitchStatement.html">nw::script::SwitchStatement</a></li>
@@ -345,24 +347,70 @@
 <dd><div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N2nw6script3Nss3NssERKNSt10filesystem4pathE">
-<span id="_CPPv3N2nw6script3Nss3NssERKNSt10filesystem4pathE"></span><span id="_CPPv2N2nw6script3Nss3NssERKNSt10filesystem4pathE"></span><span id="nw::script::Nss::Nss__std::filesystem::pathCR"></span><span class="target" id="structnw_1_1script_1_1_nss_1a5448db4b4526531e379696767e800b15"></span><span class="k"><span class="pre">explicit</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Nss</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">filesystem</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">path</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">filename</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6script3Nss3NssERKNSt10filesystem4pathE" title="Permalink to this definition"></a><br /></dt>
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script3Nss3NssERKNSt10filesystem4pathENSt10shared_ptrI7ContextEE">
+<span id="_CPPv3N2nw6script3Nss3NssERKNSt10filesystem4pathENSt10shared_ptrI7ContextEE"></span><span id="_CPPv2N2nw6script3Nss3NssERKNSt10filesystem4pathENSt10shared_ptrI7ContextEE"></span><span id="nw::script::Nss::Nss__std::filesystem::pathCR.std::shared_ptr:Context:"></span><span class="target" id="structnw_1_1script_1_1_nss_1ad3e2365f2683bbf34636d842e1c5d040"></span><span class="k"><span class="pre">explicit</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Nss</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">filesystem</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">path</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">filename</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">shared_ptr</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="nw__script__Context.html#_CPPv4N2nw6script7ContextE" title="nw::script::Context"><span class="n"><span class="pre">Context</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">ctx</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">make_shared</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="nw__script__Context.html#_CPPv4N2nw6script7ContextE" title="nw::script::Context"><span class="n"><span class="pre">Context</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">(</span></span><span class="p"><span class="pre">)</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6script3Nss3NssERKNSt10filesystem4pathENSt10shared_ptrI7ContextEE" title="Permalink to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N2nw6script3Nss3NssENSt11string_viewE">
-<span id="_CPPv3N2nw6script3Nss3NssENSt11string_viewE"></span><span id="_CPPv2N2nw6script3Nss3NssENSt11string_viewE"></span><span id="nw::script::Nss::Nss__std::string_view"></span><span class="target" id="structnw_1_1script_1_1_nss_1a4fcc529eaca59df3fc3c93fce3c1acc3"></span><span class="k"><span class="pre">explicit</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Nss</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">script</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6script3Nss3NssENSt11string_viewE" title="Permalink to this definition"></a><br /></dt>
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script3Nss3NssENSt11string_viewENSt10shared_ptrI7ContextEE">
+<span id="_CPPv3N2nw6script3Nss3NssENSt11string_viewENSt10shared_ptrI7ContextEE"></span><span id="_CPPv2N2nw6script3Nss3NssENSt11string_viewENSt10shared_ptrI7ContextEE"></span><span id="nw::script::Nss::Nss__std::string_view.std::shared_ptr:Context:"></span><span class="target" id="structnw_1_1script_1_1_nss_1a0bc6e63fac15a4e3316d86f2f7bbea78"></span><span class="k"><span class="pre">explicit</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Nss</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">script</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">shared_ptr</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="nw__script__Context.html#_CPPv4N2nw6script7ContextE" title="nw::script::Context"><span class="n"><span class="pre">Context</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">ctx</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">make_shared</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="nw__script__Context.html#_CPPv4N2nw6script7ContextE" title="nw::script::Context"><span class="n"><span class="pre">Context</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">(</span></span><span class="p"><span class="pre">)</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6script3Nss3NssENSt11string_viewENSt10shared_ptrI7ContextEE" title="Permalink to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N2nw6script3Nss3NssE9ByteArray">
-<span id="_CPPv3N2nw6script3Nss3NssE9ByteArray"></span><span id="_CPPv2N2nw6script3Nss3NssE9ByteArray"></span><span id="nw::script::Nss::Nss__ByteArray"></span><span class="target" id="structnw_1_1script_1_1_nss_1a5de85146bb12b8dbbaa9bb254f668765"></span><span class="k"><span class="pre">explicit</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Nss</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="nw__ByteArray.html#_CPPv4N2nw9ByteArrayE" title="nw::ByteArray"><span class="n"><span class="pre">ByteArray</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">bytes</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6script3Nss3NssE9ByteArray" title="Permalink to this definition"></a><br /></dt>
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script3Nss3NssE12ResourceDataNSt10shared_ptrI7ContextEE">
+<span id="_CPPv3N2nw6script3Nss3NssE12ResourceDataNSt10shared_ptrI7ContextEE"></span><span id="_CPPv2N2nw6script3Nss3NssE12ResourceDataNSt10shared_ptrI7ContextEE"></span><span id="nw::script::Nss::Nss__ResourceData.std::shared_ptr:Context:"></span><span class="target" id="structnw_1_1script_1_1_nss_1a139ef6626fe5031d7b4d51b3a9090c8b"></span><span class="k"><span class="pre">explicit</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Nss</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">ResourceData</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">data</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">shared_ptr</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="nw__script__Context.html#_CPPv4N2nw6script7ContextE" title="nw::script::Context"><span class="n"><span class="pre">Context</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">ctx</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">make_shared</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="nw__script__Context.html#_CPPv4N2nw6script7ContextE" title="nw::script::Context"><span class="n"><span class="pre">Context</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">(</span></span><span class="p"><span class="pre">)</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6script3Nss3NssE12ResourceDataNSt10shared_ptrI7ContextEE" title="Permalink to this definition"></a><br /></dt>
 <dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script3Nss10add_exportENSt11string_viewEP11Declaration">
+<span id="_CPPv3N2nw6script3Nss10add_exportENSt11string_viewEP11Declaration"></span><span id="_CPPv2N2nw6script3Nss10add_exportENSt11string_viewEP11Declaration"></span><span id="nw::script::Nss::add_export__std::string_view.DeclarationP"></span><span class="target" id="structnw_1_1script_1_1_nss_1a3483c5c0047d716dabb3c6aee089937c"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">add_export</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">name</span></span>, <a class="reference internal" href="nw__script__Declaration.html#_CPPv4N2nw6script11DeclarationE" title="nw::script::Declaration"><span class="n"><span class="pre">Declaration</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">decl</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6script3Nss10add_exportENSt11string_viewEP11Declaration" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Add export. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK2nw6script3Nss3ctxEv">
+<span id="_CPPv3NK2nw6script3Nss3ctxEv"></span><span id="_CPPv2NK2nw6script3Nss3ctxEv"></span><span id="nw::script::Nss::ctxC"></span><span class="target" id="structnw_1_1script_1_1_nss_1a6f1fd8ae6bea3167597dd9fd04126f5e"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">shared_ptr</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="nw__script__Context.html#_CPPv4N2nw6script7ContextE" title="nw::script::Context"><span class="n"><span class="pre">Context</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ctx</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK2nw6script3Nss3ctxEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Script context. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK2nw6script3Nss12dependenciesEv">
+<span id="_CPPv3NK2nw6script3Nss12dependenciesEv"></span><span id="_CPPv2NK2nw6script3Nss12dependenciesEv"></span><span id="nw::script::Nss::dependenciesC"></span><span class="target" id="structnw_1_1script_1_1_nss_1a5d091277505105a8eb84c1fa84b180a0"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">set</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">dependencies</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK2nw6script3Nss12dependenciesEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Returns all transitive dependencies. </p>
+</dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4NK2nw6script3Nss6errorsEv">
-<span id="_CPPv3NK2nw6script3Nss6errorsEv"></span><span id="_CPPv2NK2nw6script3Nss6errorsEv"></span><span id="nw::script::Nss::errorsC"></span><span class="target" id="structnw_1_1script_1_1_nss_1aa84f7c0aae15449e28361decca7c1413"></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">errors</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="k"><span class="pre">noexcept</span></span><a class="headerlink" href="#_CPPv4NK2nw6script3Nss6errorsEv" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3NK2nw6script3Nss6errorsEv"></span><span id="_CPPv2NK2nw6script3Nss6errorsEv"></span><span id="nw::script::Nss::errorsC"></span><span class="target" id="structnw_1_1script_1_1_nss_1aa84f7c0aae15449e28361decca7c1413"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">errors</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="k"><span class="pre">noexcept</span></span><a class="headerlink" href="#_CPPv4NK2nw6script3Nss6errorsEv" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Returns how many errors were found during parsing. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script3Nss16increment_errorsEv">
+<span id="_CPPv3N2nw6script3Nss16increment_errorsEv"></span><span id="_CPPv2N2nw6script3Nss16increment_errorsEv"></span><span id="nw::script::Nss::increment_errors"></span><span class="target" id="structnw_1_1script_1_1_nss_1aa6659ba282a40c7327479be1bb132c4e"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">increment_errors</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">noexcept</span></span><a class="headerlink" href="#_CPPv4N2nw6script3Nss16increment_errorsEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Increments error count. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script3Nss18increment_warningsEv">
+<span id="_CPPv3N2nw6script3Nss18increment_warningsEv"></span><span id="_CPPv2N2nw6script3Nss18increment_warningsEv"></span><span id="nw::script::Nss::increment_warnings"></span><span class="target" id="structnw_1_1script_1_1_nss_1a838feacb215bda1071617c7d419ed221"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">increment_warnings</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">noexcept</span></span><a class="headerlink" href="#_CPPv4N2nw6script3Nss18increment_warningsEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Increments warning count. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script3Nss13locate_exportENSt11string_viewE">
+<span id="_CPPv3N2nw6script3Nss13locate_exportENSt11string_viewE"></span><span id="_CPPv2N2nw6script3Nss13locate_exportENSt11string_viewE"></span><span id="nw::script::Nss::locate_export__std::string_view"></span><span class="target" id="structnw_1_1script_1_1_nss_1aecaefb292515319a9146071b1b55721f"></span><a class="reference internal" href="nw__script__Declaration.html#_CPPv4N2nw6script11DeclarationE" title="nw::script::Declaration"><span class="n"><span class="pre">Declaration</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">locate_export</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">name</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6script3Nss13locate_exportENSt11string_viewE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Locate export </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function is not recursive </p>
+</div>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK2nw6script3Nss4nameEv">
+<span id="_CPPv3NK2nw6script3Nss4nameEv"></span><span id="_CPPv2NK2nw6script3Nss4nameEv"></span><span id="nw::script::Nss::nameC"></span><span class="target" id="structnw_1_1script_1_1_nss_1aebcbdab8991fc1b0edb26223301db529"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">name</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="k"><span class="pre">noexcept</span></span><a class="headerlink" href="#_CPPv4NK2nw6script3Nss4nameEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Script name. </p>
 </dd></dl>
 
 <dl class="cpp function">
@@ -384,15 +432,27 @@
 </dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N2nw6script3Nss6scriptEv">
-<span id="_CPPv3N2nw6script3Nss6scriptEv"></span><span id="_CPPv2N2nw6script3Nss6scriptEv"></span><span id="nw::script::Nss::script"></span><span class="target" id="structnw_1_1script_1_1_nss_1a556960c02287bb155bc49b286205cba1"></span><a class="reference internal" href="nw__script__Script.html#_CPPv4N2nw6script6ScriptE" title="nw::script::Script"><span class="n"><span class="pre">Script</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">script</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6script3Nss6scriptEv" title="Permalink to this definition"></a><br /></dt>
-<dd><p>Gets parsed script. </p>
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script3Nss16process_includesEP3Nss">
+<span id="_CPPv3N2nw6script3Nss16process_includesEP3Nss"></span><span id="_CPPv2N2nw6script3Nss16process_includesEP3Nss"></span><span id="nw::script::Nss::process_includes__NssP"></span><span class="target" id="structnw_1_1script_1_1_nss_1aaefa5c74d7afc6de7524690a0befcfcc"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">process_includes</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N2nw6script3NssE" title="nw::script::Nss"><span class="n"><span class="pre">Nss</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">parent</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">nullptr</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6script3Nss16process_includesEP3Nss" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Process includes recursively. </p>
 </dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4NK2nw6script3Nss6scriptEv">
-<span id="_CPPv3NK2nw6script3Nss6scriptEv"></span><span id="_CPPv2NK2nw6script3Nss6scriptEv"></span><span id="nw::script::Nss::scriptC"></span><span class="target" id="structnw_1_1script_1_1_nss_1aac5ed8f2b0f5bb0cd8b54faeb30fd995"></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="nw__script__Script.html#_CPPv4N2nw6script6ScriptE" title="nw::script::Script"><span class="n"><span class="pre">Script</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">script</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK2nw6script3Nss6scriptEv" title="Permalink to this definition"></a><br /></dt>
-<dd><p>Gets parsed script. </p>
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script3Nss3astEv">
+<span id="_CPPv3N2nw6script3Nss3astEv"></span><span id="_CPPv2N2nw6script3Nss3astEv"></span><span id="nw::script::Nss::ast"></span><span class="target" id="structnw_1_1script_1_1_nss_1ae298b64f16532d02f4bac9a9c7e6425f"></span><a class="reference internal" href="nw__script__Ast.html#_CPPv4N2nw6script3AstE" title="nw::script::Ast"><span class="n"><span class="pre">Ast</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">ast</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6script3Nss3astEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Gets parsed AST. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK2nw6script3Nss3astEv">
+<span id="_CPPv3NK2nw6script3Nss3astEv"></span><span id="_CPPv2NK2nw6script3Nss3astEv"></span><span id="nw::script::Nss::astC"></span><span class="target" id="structnw_1_1script_1_1_nss_1a05e504858f31cee4dfeab3cb769d6768"></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="nw__script__Ast.html#_CPPv4N2nw6script3AstE" title="nw::script::Ast"><span class="n"><span class="pre">Ast</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">ast</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK2nw6script3Nss3astEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Gets parsed ast. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script3Nss7resolveEv">
+<span id="_CPPv3N2nw6script3Nss7resolveEv"></span><span id="_CPPv2N2nw6script3Nss7resolveEv"></span><span id="nw::script::Nss::resolve"></span><span class="target" id="structnw_1_1script_1_1_nss_1aa8dc3d81175f6d97540bcd24b88663ff"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">resolve</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6script3Nss7resolveEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Resolves and type checks the <a class="reference internal" href="nw__script__Ast.html#structnw_1_1script_1_1_ast"><span class="std std-ref">Ast</span></a>. </p>
 </dd></dl>
 
 <dl class="cpp function">
@@ -403,7 +463,7 @@
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4NK2nw6script3Nss8warningsEv">
-<span id="_CPPv3NK2nw6script3Nss8warningsEv"></span><span id="_CPPv2NK2nw6script3Nss8warningsEv"></span><span id="nw::script::Nss::warningsC"></span><span class="target" id="structnw_1_1script_1_1_nss_1a9730f4a414bd60bf4004e52b5dbfff95"></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">warnings</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="k"><span class="pre">noexcept</span></span><a class="headerlink" href="#_CPPv4NK2nw6script3Nss8warningsEv" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3NK2nw6script3Nss8warningsEv"></span><span id="_CPPv2NK2nw6script3Nss8warningsEv"></span><span id="nw::script::Nss::warningsC"></span><span class="target" id="structnw_1_1script_1_1_nss_1a9730f4a414bd60bf4004e52b5dbfff95"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">warnings</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="k"><span class="pre">noexcept</span></span><a class="headerlink" href="#_CPPv4NK2nw6script3Nss8warningsEv" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Returns how many warnings were found during parsing. </p>
 </dd></dl>
 
@@ -417,7 +477,7 @@
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="nw__script__LogicalExpression.html" class="btn btn-neutral float-left" title="nw::script::LogicalExpression" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="nw__script__NssAstPrinter.html" class="btn btn-neutral float-right" title="nw::script::NssAstPrinter" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="nw__script__NssLexer.html" class="btn btn-neutral float-right" title="nw::script::NssLexer" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

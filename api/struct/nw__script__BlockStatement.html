@@ -246,12 +246,16 @@
 <li class="toctree-l2"><a class="reference internal" href="nw__model__TriangleMode.html">nw::model::TriangleMode</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__model__TrimeshNode.html">nw::model::TrimeshNode</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__AssignExpression.html">nw::script::AssignExpression</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__Ast.html">nw::script::Ast</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__AstNode.html">nw::script::AstNode</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__AstPrinter.html">nw::script::AstPrinter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__AstResolver.html">nw::script::AstResolver</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__BaseVisitor.html">nw::script::BaseVisitor</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__BinaryExpression.html">nw::script::BinaryExpression</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">nw::script::BlockStatement</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__CallExpression.html">nw::script::CallExpression</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__ConditionalExpression.html">nw::script::ConditionalExpression</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__Context.html">nw::script::Context</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__Declaration.html">nw::script::Declaration</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__DoStatement.html">nw::script::DoStatement</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__DotExpression.html">nw::script::DotExpression</a></li>
@@ -268,12 +272,10 @@
 <li class="toctree-l2"><a class="reference internal" href="nw__script__LiteralVectorExpression.html">nw::script::LiteralVectorExpression</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__LogicalExpression.html">nw::script::LogicalExpression</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__Nss.html">nw::script::Nss</a></li>
-<li class="toctree-l2"><a class="reference internal" href="nw__script__NssAstPrinter.html">nw::script::NssAstPrinter</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__NssLexer.html">nw::script::NssLexer</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__NssParser.html">nw::script::NssParser</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__NssToken.html">nw::script::NssToken</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__PostfixExpression.html">nw::script::PostfixExpression</a></li>
-<li class="toctree-l2"><a class="reference internal" href="nw__script__Script.html">nw::script::Script</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__Statement.html">nw::script::Statement</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__StructDecl.html">nw::script::StructDecl</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__SwitchStatement.html">nw::script::SwitchStatement</a></li>
@@ -370,6 +372,16 @@
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw6script14BlockStatement5nodesE">
 <span id="_CPPv3N2nw6script14BlockStatement5nodesE"></span><span id="_CPPv2N2nw6script14BlockStatement5nodesE"></span><span id="nw::script::BlockStatement::nodes__std::vector:std::unique_ptr:Statement::"></span><span class="target" id="structnw_1_1script_1_1_block_statement_1ac042f13f5dc10dd741c407f6da9c6405"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">unique_ptr</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="nw__script__Statement.html#_CPPv4N2nw6script9StatementE" title="nw::script::Statement"><span class="n"><span class="pre">Statement</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">nodes</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script14BlockStatement5nodesE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script14BlockStatement8type_id_E">
+<span id="_CPPv3N2nw6script14BlockStatement8type_id_E"></span><span id="_CPPv2N2nw6script14BlockStatement8type_id_E"></span><span id="nw::script::BlockStatement::type_id___s"></span><span class="target" id="structnw_1_1script_1_1_ast_node_1a07886868acfadde4f026ed578bbfd815"></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">type_id_</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">invalid_type_id</span></span><a class="headerlink" href="#_CPPv4N2nw6script14BlockStatement8type_id_E" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script14BlockStatement9is_const_E">
+<span id="_CPPv3N2nw6script14BlockStatement9is_const_E"></span><span id="_CPPv2N2nw6script14BlockStatement9is_const_E"></span><span id="nw::script::BlockStatement::is_const___b"></span><span class="target" id="structnw_1_1script_1_1_ast_node_1aa95db5951179ffcdcbc82a859d640a55"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">is_const_</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">false</span></span><a class="headerlink" href="#_CPPv4N2nw6script14BlockStatement9is_const_E" title="Permalink to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 </div>

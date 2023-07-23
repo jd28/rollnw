@@ -246,12 +246,16 @@
 <li class="toctree-l2"><a class="reference internal" href="nw__model__TriangleMode.html">nw::model::TriangleMode</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__model__TrimeshNode.html">nw::model::TrimeshNode</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__AssignExpression.html">nw::script::AssignExpression</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__Ast.html">nw::script::Ast</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__AstNode.html">nw::script::AstNode</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__AstPrinter.html">nw::script::AstPrinter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__AstResolver.html">nw::script::AstResolver</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__BaseVisitor.html">nw::script::BaseVisitor</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__BinaryExpression.html">nw::script::BinaryExpression</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__BlockStatement.html">nw::script::BlockStatement</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__CallExpression.html">nw::script::CallExpression</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__ConditionalExpression.html">nw::script::ConditionalExpression</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__Context.html">nw::script::Context</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__Declaration.html">nw::script::Declaration</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__DoStatement.html">nw::script::DoStatement</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__DotExpression.html">nw::script::DotExpression</a></li>
@@ -268,12 +272,10 @@
 <li class="toctree-l2"><a class="reference internal" href="nw__script__LiteralVectorExpression.html">nw::script::LiteralVectorExpression</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__LogicalExpression.html">nw::script::LogicalExpression</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__Nss.html">nw::script::Nss</a></li>
-<li class="toctree-l2"><a class="reference internal" href="nw__script__NssAstPrinter.html">nw::script::NssAstPrinter</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__NssLexer.html">nw::script::NssLexer</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__NssParser.html">nw::script::NssParser</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__NssToken.html">nw::script::NssToken</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__PostfixExpression.html">nw::script::PostfixExpression</a></li>
-<li class="toctree-l2"><a class="reference internal" href="nw__script__Script.html">nw::script::Script</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__Statement.html">nw::script::Statement</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__StructDecl.html">nw::script::StructDecl</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__SwitchStatement.html">nw::script::SwitchStatement</a></li>
@@ -384,8 +386,8 @@
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4NK2nw3Key6demandE8Resource">
-<span id="_CPPv3NK2nw3Key6demandE8Resource"></span><span id="_CPPv2NK2nw3Key6demandE8Resource"></span><span id="nw::Key::demand__ResourceC"></span><span class="target" id="structnw_1_1_key_1af6f24b68428a2ccc8703133f7b0ecc94"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><a class="reference internal" href="nw__ByteArray.html#_CPPv4N2nw9ByteArrayE" title="nw::ByteArray"><span class="n"><span class="pre">ByteArray</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">demand</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="nw__Resource.html#_CPPv4N2nw8ResourceE" title="nw::Resource"><span class="n"><span class="pre">Resource</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">res</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="k"><span class="pre">override</span></span><a class="headerlink" href="#_CPPv4NK2nw3Key6demandE8Resource" title="Permalink to this definition"></a><br /></dt>
-<dd><p>Reads resourece data, empty <a class="reference internal" href="nw__ByteArray.html#structnw_1_1_byte_array"><span class="std std-ref">ByteArray</span></a> if no match. </p>
+<span id="_CPPv3NK2nw3Key6demandE8Resource"></span><span id="_CPPv2NK2nw3Key6demandE8Resource"></span><span id="nw::Key::demand__ResourceC"></span><span class="target" id="structnw_1_1_key_1acd648dbe59a2643d8af87ff7cf9828d6"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="n"><span class="pre">ResourceData</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">demand</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="nw__Resource.html#_CPPv4N2nw8ResourceE" title="nw::Resource"><span class="n"><span class="pre">Resource</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">res</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="k"><span class="pre">override</span></span><a class="headerlink" href="#_CPPv4NK2nw3Key6demandE8Resource" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Reads resource data, empty ResourceData if no match. </p>
 </dd></dl>
 
 <dl class="cpp function">
