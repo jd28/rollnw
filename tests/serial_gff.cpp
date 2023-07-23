@@ -142,8 +142,8 @@ TEST(Gff, ListsNested)
     list3.push_back(3).add_field("test3", temp);
 
     out.build();
-    EXPECT_EQ(out.struct_entries[0].field_count, 2);
-    EXPECT_EQ(out.struct_entries.size(), 4);
+    EXPECT_EQ(out.struct_entries[0].field_count, 2u);
+    EXPECT_EQ(out.struct_entries.size(), 4u);
 
     out.write_to("tmp/test.gff");
 

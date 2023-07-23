@@ -17,7 +17,7 @@ TEST(Placeable, GffDeserialize)
     EXPECT_TRUE(ent);
 
     EXPECT_EQ(ent->common.resref, "arrowcorpse001");
-    EXPECT_EQ(ent->appearance, 109);
+    EXPECT_EQ(ent->appearance, 109u);
     EXPECT_TRUE(!ent->plot);
     EXPECT_TRUE(ent->static_);
     EXPECT_TRUE(!ent->useable);

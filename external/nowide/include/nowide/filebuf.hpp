@@ -60,8 +60,8 @@ namespace nowide {
 
     public:
 #ifdef NOWIDE_MSVC
-#pragma warning(push)
-#pragma warning(disable : 4351) // new behavior : elements of array will be default initialized
+// #pragma warning(push)
+// #pragma warning(disable : 4351) // new behavior : elements of array will be default initialized
 #endif
         ///
         /// Creates new filebuf
@@ -74,7 +74,7 @@ namespace nowide {
             setp(nullptr, nullptr);
         }
 #ifdef NOWIDE_MSVC
-#pragma warning(pop)
+// #pragma warning(pop)
 #endif
         basic_filebuf(const basic_filebuf&) = delete;
         basic_filebuf& operator=(const basic_filebuf&) = delete;

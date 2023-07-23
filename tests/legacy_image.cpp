@@ -19,7 +19,7 @@ TEST(Image, BiowareDDS)
 
     nw::Image dds2{"test_data/user/development/tno01_wtcliff01.dds"};
     EXPECT_TRUE(dds2.valid());
-    EXPECT_EQ(dds2.channels(), 3);
+    EXPECT_EQ(dds2.channels(), 3u);
 #ifndef _WIN32
     EXPECT_TRUE(dds2.write_to("tmp/tno01_wtcliff01.dds"));
     EXPECT_TRUE(dds2.write_to("tmp/tno01_wtcliff01.png"));

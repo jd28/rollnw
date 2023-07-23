@@ -102,7 +102,7 @@ bool Nss::process_includes(Nss* parent)
             }
         }
 
-        auto script = ctx_->get({include}, ctx_);
+        auto script = ctx_->get(Resref{include}, ctx_);
         if (!script) {
             throw std::runtime_error(fmt::format("[script] unable to locate include file: {}", include));
         }

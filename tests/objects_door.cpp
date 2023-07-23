@@ -35,7 +35,7 @@ TEST(Door, GffDeserialize)
     auto door = nw::kernel::objects().load<nw::Door>(fs::path("test_data/user/development/door_ttr_002.utd"));
 
     EXPECT_EQ(door->common.resref, "door_ttr_002");
-    EXPECT_EQ(door->appearance, 0);
+    EXPECT_EQ(door->appearance, 0u);
     EXPECT_TRUE(!door->plot);
     EXPECT_TRUE(!door->lock.locked);
 }
