@@ -794,7 +794,7 @@ std::unique_ptr<Statement> NssParser::parse_decl_external()
     throw parser_error("Expected function definition/declaration, struct declaration, or variable declaration");
 }
 
-std::unique_ptr<Declaration> NssParser::parse_decl_param()
+std::unique_ptr<VarDecl> NssParser::parse_decl_param()
 {
     auto vd = std::make_unique<VarDecl>();
 

@@ -377,7 +377,7 @@ struct FunctionDecl : public Declaration {
     FunctionDecl& operator=(const FunctionDecl&) = delete;
 
     NssToken identifier;
-    std::vector<std::unique_ptr<Declaration>> params;
+    std::vector<std::unique_ptr<VarDecl>> params;
 
     DEFINE_ACCEPT_VISITOR
 };

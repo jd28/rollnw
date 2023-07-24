@@ -112,7 +112,7 @@ struct NssParser {
     Type parse_type();
     std::unique_ptr<Statement> parse_decl();
     std::unique_ptr<Statement> parse_decl_external();
-    std::unique_ptr<Declaration> parse_decl_param();
+    std::unique_ptr<VarDecl> parse_decl_param();
     std::unique_ptr<StructDecl> parse_decl_struct();
     std::unique_ptr<VarDecl> parse_decl_struct_member();
     std::unique_ptr<FunctionDecl> parse_decl_function();
