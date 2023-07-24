@@ -27,8 +27,6 @@ env:
   MACOSX_DEPLOYMENT_TARGET: "10.15"
   CCACHE_DIR: "${{ github.workspace }}/ccache/"
   CCACHE_BASEDIR: "${{ github.workspace }}/ccache/"
-  SCCACHE_DIR: "${{ github.workspace }}/ccache/"
-  SCCACHE_BASEDIR: "${{ github.workspace }}/ccache/"
   CMAKE_TOOLCHAIN_FILE: "${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake"
 
 jobs:
@@ -89,7 +87,7 @@ jobs:
       - name: windows - install dependencies
         if: matrix.os == 'windows-latest'
         run: |
-          choco install sccache ninja
+          choco install ccache ninja
 
       - name: Set up ccache
         if: matrix.os != 'windows-latest'
