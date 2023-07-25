@@ -294,6 +294,41 @@ std::unique_ptr<Expression> NssParser::parse_expr_unary()
             NssTokenType::TILDE})) {
         auto op = previous();
         auto right = parse_expr_unary();
+
+        // Constant fold unary expressions cause this will cause problems later
+        // to avoid the AST having (unary - (literal 1)) instead of (literal -1) etc
+        if (auto lit = dynamic_cast<LiteralExpression*>(right.get())) {
+            if (op.type == NssTokenType::PLUS
+                && (lit->literal.type == NssTokenType::INTEGER_CONST
+                    || lit->literal.type == NssTokenType::FLOAT_CONST)) {
+                // If plus and a literal throw away the plus if it's an int or a float
+                lit->literal.loc = merge_source_location(op.loc, lit->literal.loc);
+                return right;
+            } else if (op.type == NssTokenType::MINUS) {
+                if (lit->literal.type == NssTokenType::INTEGER_CONST) {
+                    lit->data = -lit->data.as<int32_t>();
+                    lit->literal.loc = merge_source_location(op.loc, lit->literal.loc);
+                    return right;
+                } else if (lit->literal.type == NssTokenType::FLOAT_CONST) {
+                    lit->data = -lit->data.as<float>();
+                    lit->literal.loc = merge_source_location(op.loc, lit->literal.loc);
+                    return right;
+                }
+            } else if (op.type == NssTokenType::TILDE) {
+                if (lit->literal.type == NssTokenType::INTEGER_CONST) {
+                    lit->data = ~lit->data.as<int32_t>();
+                    lit->literal.loc = merge_source_location(op.loc, lit->literal.loc);
+                    return right;
+                }
+            } else if (op.type == NssTokenType::NOT) {
+                if (lit->literal.type == NssTokenType::INTEGER_CONST) {
+                    lit->data = !lit->data.as<int32_t>();
+                    lit->literal.loc = merge_source_location(op.loc, lit->literal.loc);
+                    return right;
+                }
+            }
+            // Leave everything else for errors later
+        }
         return std::make_unique<UnaryExpression>(op, std::move(right));
     }
     return parse_expr_postfix();

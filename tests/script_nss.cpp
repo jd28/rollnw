@@ -335,6 +335,17 @@ TEST(Nss, Literals)
     script::Nss nss8("void main() { vector v = [1.0, 0.0f, 0.]; }"sv);
     EXPECT_NO_THROW(nss8.parse());
     EXPECT_EQ(nss8.errors(), 0);
+
+    script::Nss nss9("int test(int x = -1, float y = -1.0f, int z = ~0x10, int x = !1);"sv);
+    EXPECT_NO_THROW(nss9.parse());
+    EXPECT_EQ(nss9.errors(), 0);
+    auto fd = dynamic_cast<script::FunctionDecl*>(nss9.ast().decls[0].get());
+    EXPECT_NE(fd, nullptr);
+    if (fd) {
+        for (const auto& p : fd->params) {
+            EXPECT_TRUE(dynamic_cast<script::LiteralExpression*>(p->init.get()));
+        }
+    }
 }
 
 TEST(Nss, Switch)
