@@ -113,10 +113,12 @@ struct AstResolver : BaseVisitor {
             if (auto decl = locate(token, it)) { return decl; }
         }
 
-        auto nwscript = ctx_->get({"nwscript"}, ctx_);
-        if (nwscript) {
-            nwscript->resolve();
-            return nwscript->locate_export(token);
+        if (parent_->name() != "nwscript") {
+            auto nwscript = ctx_->get({"nwscript"}, ctx_);
+            if (nwscript) {
+                nwscript->resolve();
+                return nwscript->locate_export(token);
+            }
         }
 
         return nullptr;
