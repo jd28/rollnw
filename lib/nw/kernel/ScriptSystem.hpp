@@ -28,7 +28,7 @@ private:
 
 inline ScriptSystem& scripts()
 {
-    auto res = detail::s_services.scripts.get();
+    auto res = services().scripts.get();
     if (!res) {
         LOG_F(FATAL, "kernel: unable to load scripts service");
     }

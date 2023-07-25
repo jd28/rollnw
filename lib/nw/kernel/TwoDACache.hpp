@@ -35,7 +35,7 @@ private:
 
 inline TwoDACache& twodas()
 {
-    auto res = detail::s_services.twoda_cache.get();
+    auto res = services().twoda_cache.get();
     if (!res) {
         LOG_F(FATAL, "kernel: unable to load twoda cache service");
     }

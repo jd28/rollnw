@@ -117,7 +117,7 @@ private:
 
 inline Resources& resman()
 {
-    auto res = detail::s_services.resources.get();
+    auto res = services().resources.get();
     if (!res) {
         LOG_F(FATAL, "kernel: unable to load resources service");
     }

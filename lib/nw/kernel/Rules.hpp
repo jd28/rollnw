@@ -62,7 +62,7 @@ private:
 
 inline Rules& rules()
 {
-    auto res = detail::s_services.rules.get();
+    auto res = services().rules.get();
     if (!res) {
         LOG_F(FATAL, "kernel: unable to load rules service");
     }

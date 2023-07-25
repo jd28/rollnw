@@ -29,8 +29,8 @@ private:
 
 inline ParsedScriptCache& parsed_scripts()
 {
-    auto res = detail::s_services.get_mut<ParsedScriptCache>();
-    return res ? *res : *detail::s_services.add<ParsedScriptCache>();
+    auto res = services().get_mut<ParsedScriptCache>();
+    return res ? *res : *services().add<ParsedScriptCache>();
 }
 
 } // namespace kernel

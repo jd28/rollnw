@@ -107,7 +107,7 @@ private:
 
 inline EffectSystem& effects()
 {
-    auto res = detail::s_services.effects.get();
+    auto res = services().effects.get();
     if (!res) {
         LOG_F(FATAL, "kernel: unable to load effects service");
     }

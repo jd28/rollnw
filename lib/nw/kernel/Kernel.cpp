@@ -14,11 +14,6 @@
 
 namespace nw::kernel {
 
-namespace detail {
-Config s_config;
-Services s_services;
-} // namespace detail
-
 Services::Services()
     : strings{new Strings}
     , resources{new Resources}
@@ -31,7 +26,7 @@ Services::Services()
     , scripts{new ScriptSystem}
 #endif
 {
-    //LOG_F(INFO, "kernel: initializing default services");
+    // LOG_F(INFO, "kernel: initializing default services");
 }
 
 void Services::start()
@@ -68,12 +63,21 @@ void Services::shutdown()
     }
 }
 
-Config& config() { return detail::s_config; }
-Services& services() { return detail::s_services; }
+Config& config()
+{
+    static Config s_config;
+    return s_config;
+}
+
+Services& services()
+{
+    static Services s_services;
+    return s_services;
+}
 
 void load_profile(const GameProfile* profile)
 {
-    detail::s_services.set_profile(profile);
+    services().set_profile(profile);
 }
 
 Module* load_module(const std::filesystem::path& path, std::string_view manifest)

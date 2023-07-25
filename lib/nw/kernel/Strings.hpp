@@ -81,7 +81,7 @@ private:
 
 inline Strings& strings()
 {
-    auto res = detail::s_services.strings.get();
+    auto res = services().strings.get();
     if (!res) {
         LOG_F(FATAL, "kernel: unable to load strings service");
     }

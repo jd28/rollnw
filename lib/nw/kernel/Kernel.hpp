@@ -125,11 +125,6 @@ T* Services::get_mut()
     return nullptr;
 }
 
-namespace detail {
-extern Config s_config;
-extern Services s_services;
-} // namespace detail
-
 /// Gets configuration options
 Config& config();
 

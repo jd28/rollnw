@@ -214,7 +214,7 @@ T* ObjectSystem::load(std::string_view resref)
 
 inline ObjectSystem& objects()
 {
-    auto res = detail::s_services.objects.get();
+    auto res = services().objects.get();
     if (!res) {
         LOG_F(FATAL, "kernel: unable to load objects service");
     }
