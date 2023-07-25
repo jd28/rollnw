@@ -153,6 +153,56 @@ TEST(Nss, FunctionDecl)
     script::Nss nss6("int test_function(int a = -1, float x = 1.234) { return a; }"sv);
     EXPECT_NO_THROW(nss6.parse());
     EXPECT_EQ(nss6.errors(), 0);
+
+    // == Bad =================================================================
+
+    script::Nss nss7(R"(
+        int test_function(int a);
+        int test_function(int a, int b) { return a % b; }
+    )"sv);
+    EXPECT_NO_THROW(nss7.parse());
+    EXPECT_NO_THROW(nss7.resolve());
+    EXPECT_EQ(nss7.errors(), 1);
+
+    script::Nss nss8(R"(
+        int test_function(int a);
+        int test_function(int a);
+    )"sv);
+    EXPECT_NO_THROW(nss8.parse());
+    EXPECT_NO_THROW(nss8.resolve());
+    EXPECT_EQ(nss8.errors(), 1);
+
+    script::Nss nss9(R"(
+        int test_function(int a);
+        int test_function(const int a = 1) { return a; }
+    )"sv);
+    EXPECT_NO_THROW(nss9.parse());
+    EXPECT_NO_THROW(nss9.resolve());
+    EXPECT_EQ(nss9.errors(), 1);
+
+    script::Nss nss10(R"(
+        int test_function(int a);
+        int test_function(int b) { return b; }
+    )"sv);
+    EXPECT_NO_THROW(nss10.parse());
+    EXPECT_NO_THROW(nss10.resolve());
+    EXPECT_EQ(nss10.errors(), 1);
+
+    script::Nss nss11(R"(
+        int test_function(float b);
+        int test_function(int b) { return b; }
+    )"sv);
+    EXPECT_NO_THROW(nss11.parse());
+    EXPECT_NO_THROW(nss11.resolve());
+    EXPECT_EQ(nss11.errors(), 1);
+
+    script::Nss nss12(R"(
+        int test_function(int b = 1);
+        int test_function(int b = -1) { return b; }
+    )"sv);
+    EXPECT_NO_THROW(nss12.parse());
+    EXPECT_NO_THROW(nss12.resolve());
+    EXPECT_EQ(nss12.errors(), 1);
 }
 
 TEST(Nss, FunctionCall)

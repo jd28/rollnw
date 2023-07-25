@@ -147,8 +147,68 @@ struct AstResolver : BaseVisitor {
     }
 
     // Decls
+
+    void match_function_decls(FunctionDecl* decl, FunctionDecl* def)
+    {
+        if (!decl || !def) { return; }
+
+        // If there's a function declaration, try to match
+        bool mismatch = false;
+        std::string reason;
+
+        if (def->type_id_ != decl->type_id_) {
+            reason = fmt::format("function declared with return type '{}', defined with return type '{}'",
+                ctx_->type_name(decl->type_id_), ctx_->type_name(def->type_id_));
+            mismatch = true;
+        }
+
+        if (decl->params.size() != def->params.size()) {
+            reason = fmt::format("function declared with parameter count '{}', defined with parameter count '{}'",
+                decl->params.size(), def->params.size());
+            mismatch = true;
+        } else {
+            for (size_t i = 0; i < decl->params.size(); ++i) {
+                if (decl->params[i]->type_id_ != def->params[i]->type_id_) {
+                    reason = fmt::format("function parameter declared with type '{}', defined with type '{}'",
+                        ctx_->type_name(decl->params[i]->type_id_), ctx_->type_name(def->params[i]->type_id_));
+                    mismatch = true;
+                } else if (decl->params[i]->identifier.loc.view() != def->params[i]->identifier.loc.view()) {
+                    reason = fmt::format("function parameter declared with identifier '{}', defined with return type '{}'",
+                        decl->params[i]->identifier.loc.view(), def->params[i]->identifier.loc.view());
+                    mismatch = true;
+                } else if (decl->params[i]->is_const_ != def->params[i]->is_const_) {
+                    reason = fmt::format("function parameter const mistmatch",
+                        ctx_->type_name(decl->params[i]->type_id_), ctx_->type_name(def->params[i]->type_id_));
+                    mismatch = true;
+                } else if (decl->params[i]->init && def->params[i]->init) {
+                    // [TODO] Probably need to have some sort of constant folding or tree walking interpreter
+                    // to ensure the values of initializers are the same.
+                    auto lit1 = dynamic_cast<LiteralExpression*>(decl->params[i]->init.get());
+                    auto lit2 = dynamic_cast<LiteralExpression*>(def->params[i]->init.get());
+                    if (lit1 && lit2 && lit1->data != lit2->data) {
+                        reason = "mismatch parameter initializers";
+                        mismatch = true;
+                    } else {
+                        auto vlit1 = dynamic_cast<LiteralVectorExpression*>(decl->params[i]->init.get());
+                        auto vlit2 = dynamic_cast<LiteralVectorExpression*>(def->params[i]->init.get());
+                        if (vlit1 && vlit2 && vlit1->data != vlit2->data) {
+                            reason = "mismatch parameter initializers";
+                            mismatch = true;
+                        }
+                    }
+                }
+            }
+        }
+        if (mismatch) {
+            ctx_->semantic_error(parent_, reason);
+        }
+    }
+
     virtual void visit(FunctionDecl* decl) override
     {
+        // Check to see if there's been a function definition, if so got to match.
+        auto fd = resolve(decl->identifier.loc.view(), decl->identifier.loc);
+
         decl->type_id_ = ctx_->type_id(decl->type);
         declare(decl->identifier, decl);
         define(decl->identifier);
@@ -156,8 +216,13 @@ struct AstResolver : BaseVisitor {
         begin_scope();
         for (auto& p : decl->params) {
             p->accept(this);
+            if (p->init && !p->init->is_const_) {
+                ctx_->semantic_error(parent_, "initializing parameter a with non-constant expression",
+                    p->identifier.loc);
+            }
         }
         end_scope();
+        match_function_decls(decl, dynamic_cast<FunctionDecl*>(fd));
     }
 
     virtual void visit(FunctionDefinition* decl) override
@@ -172,7 +237,14 @@ struct AstResolver : BaseVisitor {
         begin_scope();
         for (auto& p : decl->decl->params) {
             p->accept(this);
+            if (p->init && !p->init->is_const_) {
+                ctx_->semantic_error(parent_, "initializing parameter a with non-constant expression",
+                    p->identifier.loc);
+            }
         }
+
+        match_function_decls(dynamic_cast<FunctionDecl*>(fd), decl->decl.get());
+
         decl->block->accept(this);
         end_scope();
     }
