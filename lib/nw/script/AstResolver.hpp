@@ -131,6 +131,7 @@ struct AstResolver : BaseVisitor {
         for (const auto& decl : script->decls) {
             decl->accept(this);
             if (auto d = dynamic_cast<VarDecl*>(decl.get())) {
+                d->is_const_ = true; // All top level var decls are constant.  Only thing that makes sense.
                 parent_->add_export(std::string(d->identifier.loc.view()), d);
             } else if (auto d = dynamic_cast<StructDecl*>(decl.get())) {
                 parent_->add_export(std::string(d->type.struct_id.loc.view()), d);
