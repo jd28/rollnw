@@ -223,7 +223,7 @@ NssToken NssLexer::next()
                 t = handle_number();
             } else {
                 ctx_->lexical_warning(parent_, fmt::format("Unrecognized character '{}'", get(pos_)),
-                    {&buffer_[start], &buffer_[pos_],
+                    {&buffer_[start], buffer_.data() + start + 1,
                         line_,
                         start - last_line_pos_});
 
@@ -298,7 +298,7 @@ NssToken NssLexer::next()
             }
             if (pos_ == buffer_.size() || get(pos_) != '"') {
                 ctx_->lexical_error(parent_, "Unterminated quote",
-                    {&buffer_[start - 1], &buffer_[pos_],
+                    {&buffer_[start - 1], buffer_.data() + start,
                         line_,
                         start - 1 - last_line_pos_});
             }
@@ -509,9 +509,9 @@ NssToken NssLexer::next()
                 }
                 if (pos_ > buffer_.size()) {
                     ctx_->lexical_error(parent_, "Unterminated block quote",
-                        {&buffer_[start], &buffer_[start + 2],
+                        {&buffer_[start - 2], buffer_.data() + start,
                             line_,
-                            start - last_line_pos_});
+                            start - 2 - last_line_pos_});
                 }
                 break;
             case '=':

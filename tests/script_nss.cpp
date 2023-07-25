@@ -325,6 +325,9 @@ TEST(Nss, Lexer)
 
     script::NssLexer lexer9{"\""};
     EXPECT_THROW(lexer9.next(), std::runtime_error);
+
+    script::NssLexer lexer10{"`"};
+    EXPECT_NO_THROW(lexer10.next()); // Unrecognized character is only a warning
 }
 
 TEST(Nss, Includes)
