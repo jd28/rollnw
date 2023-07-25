@@ -39,8 +39,11 @@ void Nss::add_export(std::string_view name, Declaration* decl)
         if (dynamic_cast<FunctionDecl*>(it->second) && dynamic_cast<FunctionDefinition*>(decl)) {
             it->second = decl;
         } else {
-            // Should be impossible since the resolver will resolve dupes
-            throw std::runtime_error("Duplicate export");
+            // [TODO] This will get flagged in the AstResolver as an error, if outside of that context,
+            // throw I guess
+            if (errors_ == 0) {
+                throw std::runtime_error(fmt::format("duplicate export: {}", name));
+            }
         }
     }
 }
