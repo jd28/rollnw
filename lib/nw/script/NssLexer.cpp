@@ -34,116 +34,116 @@ char NssLexer::get(size_t pos) const
 
 inline NssTokenType check_keyword(const NssToken& tk)
 {
-    switch (tk.loc.view[0]) {
+    switch (tk.loc.view()[0]) {
     default:
         return NssTokenType::IDENTIFIER;
         // Keywords
     case 'a':
-        if (tk.loc.view == "action") {
+        if (tk.loc.view() == "action") {
             return NssTokenType::ACTION;
         }
         break;
     case 'b':
-        if (tk.loc.view == "break") {
+        if (tk.loc.view() == "break") {
             return NssTokenType::BREAK;
         }
         break;
     case 'c':
-        if (tk.loc.view == "case") {
+        if (tk.loc.view() == "case") {
             return NssTokenType::CASE;
             // CASE
-        } else if (tk.loc.view == "cassowary") {
+        } else if (tk.loc.view() == "cassowary") {
             return NssTokenType::CASSOWARY;
-        } else if (tk.loc.view == "const") {
+        } else if (tk.loc.view() == "const") {
             return NssTokenType::CONST_;
-        } else if (tk.loc.view == "continue") {
+        } else if (tk.loc.view() == "continue") {
             return NssTokenType::CONTINUE;
         }
         break;
     case 'd':
-        if (tk.loc.view == "default") {
+        if (tk.loc.view() == "default") {
             return NssTokenType::DEFAULT;
-        } else if (tk.loc.view == "do") {
+        } else if (tk.loc.view() == "do") {
             return NssTokenType::DO;
         }
         break;
     case 'e':
-        if (tk.loc.view == "effect") {
+        if (tk.loc.view() == "effect") {
             return NssTokenType::EFFECT;
-        } else if (tk.loc.view == "else") {
+        } else if (tk.loc.view() == "else") {
             return NssTokenType::ELSE;
-        } else if (tk.loc.view == "event") {
+        } else if (tk.loc.view() == "event") {
             return NssTokenType::EVENT;
         }
         break;
     case 'f':
-        if (tk.loc.view == "float") {
+        if (tk.loc.view() == "float") {
             return NssTokenType::FLOAT;
-        } else if (tk.loc.view == "for") {
+        } else if (tk.loc.view() == "for") {
             return NssTokenType::FOR;
         }
         break;
     case 'i':
-        if (tk.loc.view == "if") {
+        if (tk.loc.view() == "if") {
             return NssTokenType::IF;
-        } else if (tk.loc.view == "int") {
+        } else if (tk.loc.view() == "int") {
             return NssTokenType::INT;
-        } else if (tk.loc.view == "itemproperty") {
+        } else if (tk.loc.view() == "itemproperty") {
             return NssTokenType::ITEMPROPERTY;
         }
         break;
     case 'j':
-        if (tk.loc.view == "json") {
+        if (tk.loc.view() == "json") {
             return NssTokenType::JSON;
         }
         break;
     case 'l':
-        if (tk.loc.view == "location") {
+        if (tk.loc.view() == "location") {
             return NssTokenType::LOCATION;
         }
         break;
     case 'o':
-        if (tk.loc.view == "object") {
+        if (tk.loc.view() == "object") {
             return NssTokenType::OBJECT;
         }
         break;
     case 'O':
-        if (tk.loc.view == "OBJECT_INVALID") {
+        if (tk.loc.view() == "OBJECT_INVALID") {
             return NssTokenType::OBJECT_INVALID_CONST;
-        } else if (tk.loc.view == "OBJECT_SELF") {
+        } else if (tk.loc.view() == "OBJECT_SELF") {
             return NssTokenType::OBJECT_SELF_CONST;
         }
         break;
     case 'r':
-        if (tk.loc.view == "return") {
+        if (tk.loc.view() == "return") {
             return NssTokenType::RETURN;
         }
         break;
     case 's':
-        if (tk.loc.view == "string") {
+        if (tk.loc.view() == "string") {
             return NssTokenType::STRING;
-        } else if (tk.loc.view == "struct") {
+        } else if (tk.loc.view() == "struct") {
             return NssTokenType::STRUCT;
-        } else if (tk.loc.view == "switch") {
+        } else if (tk.loc.view() == "switch") {
             return NssTokenType::SWITCH;
-        } else if (tk.loc.view == "sqlquery") {
+        } else if (tk.loc.view() == "sqlquery") {
             return NssTokenType::SQLQUERY;
         }
         break;
     case 't':
-        if (tk.loc.view == "talent") {
+        if (tk.loc.view() == "talent") {
             return NssTokenType::TALENT;
         }
         break;
     case 'v':
-        if (tk.loc.view == "vector") {
+        if (tk.loc.view() == "vector") {
             return NssTokenType::VECTOR;
-        } else if (tk.loc.view == "void") {
+        } else if (tk.loc.view() == "void") {
             return NssTokenType::VOID_;
         }
         break;
     case 'w':
-        if (tk.loc.view == "while") {
+        if (tk.loc.view() == "while") {
             return NssTokenType::WHILE;
         }
         break;
@@ -223,7 +223,7 @@ NssToken NssLexer::next()
                 t = handle_number();
             } else {
                 ctx_->lexical_warning(parent_, fmt::format("Unrecognized character '{}'", get(pos_)),
-                    {{&buffer_[start], pos_ - start},
+                    {&buffer_[start], &buffer_[pos_],
                         line_,
                         start - last_line_pos_});
 
@@ -298,7 +298,7 @@ NssToken NssLexer::next()
             }
             if (pos_ == buffer_.size() || get(pos_) != '"') {
                 ctx_->lexical_error(parent_, "Unterminated quote",
-                    {{&buffer_[start - 1], pos_ - start},
+                    {&buffer_[start - 1], &buffer_[pos_],
                         line_,
                         start - 1 - last_line_pos_});
             }
@@ -451,7 +451,7 @@ NssToken NssLexer::next()
             switch (get(pos_ + 1)) {
             case '/': // Uh oh
                 ctx_->lexical_error(parent_, "Mismatched block quote",
-                    {{&buffer_[start], pos_ + 1 - start},
+                    {&buffer_[start], &buffer_[pos_ + 1],
                         line_,
                         start - last_line_pos_});
                 break;
@@ -467,7 +467,7 @@ NssToken NssLexer::next()
             // A couple scripts have escaped new lines (for no reason)
             if (get(pos_ + 1) != '\r' && get(pos_ + 1) != '\n') {
                 ctx_->lexical_warning(parent_, fmt::format("Unrecognized character '{}'", get(pos_)),
-                    {{&buffer_[start], pos_ + 1 - start},
+                    {&buffer_[start], &buffer_[pos_ + 1],
                         line_,
                         start - last_line_pos_});
             }
@@ -509,7 +509,7 @@ NssToken NssLexer::next()
                 }
                 if (pos_ > buffer_.size()) {
                     ctx_->lexical_error(parent_, "Unterminated block quote",
-                        {{&buffer_[start-2], 2},
+                        {&buffer_[start], &buffer_[start + 2],
                             line_,
                             start - last_line_pos_});
                 }

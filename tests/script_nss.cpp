@@ -52,7 +52,7 @@ TEST(Nss, ParseNwscript)
     EXPECT_NE(decl, nullptr);
     auto d = dynamic_cast<nw::script::FunctionDecl*>(decl);
     if (d) {
-        EXPECT_EQ(d->identifier.loc.view, "IntToString");
+        EXPECT_EQ(d->identifier.loc.view(), "IntToString");
         EXPECT_EQ(d->type_id_, nss.ctx()->type_id("string"));
     }
     script::Nss nss2("string test_function(string s, int b) { return IntToString(b); }"sv);
@@ -111,9 +111,9 @@ TEST(Nss, FunctionDecl)
     auto fd = dynamic_cast<script::FunctionDecl*>(s.decls[0].get());
     EXPECT_TRUE(fd);
     if (fd) {
-        EXPECT_EQ(fd->type.type_specifier.loc.view, "void");
+        EXPECT_EQ(fd->type.type_specifier.loc.view(), "void");
         EXPECT_EQ(fd->params.size(), 2);
-        EXPECT_EQ(fd->params[0]->type.type_specifier.loc.view, "string");
+        EXPECT_EQ(fd->params[0]->type.type_specifier.loc.view(), "string");
     }
 
     script::Nss nss2("void test_function(string s, int b) { s + IntToString(b); }"sv);
@@ -149,6 +149,10 @@ TEST(Nss, FunctionDecl)
     script::Nss nss5("int test_function(int a, int b) { return a % (b + x); }"sv);
     EXPECT_NO_THROW(nss5.parse());
     EXPECT_EQ(nss5.errors(), 0);
+
+    script::Nss nss6("int test_function(int a = -1, float x = 1.234) { return a; }"sv);
+    EXPECT_NO_THROW(nss6.parse());
+    EXPECT_EQ(nss6.errors(), 0);
 }
 
 TEST(Nss, FunctionCall)
@@ -240,9 +244,12 @@ TEST(Nss, Struct)
 TEST(Nss, Lexer)
 {
     script::NssLexer lexer{"x /= y"};
-    EXPECT_EQ(lexer.next().loc.view, "x");
-    EXPECT_EQ(lexer.next().loc.view, "/=");
-    EXPECT_EQ(lexer.next().loc.view, "y");
+    auto t1 = lexer.next();
+    EXPECT_EQ(t1.loc.view(), "x");
+    EXPECT_EQ(lexer.next().loc.view(), "/=");
+    auto t2 = lexer.next();
+    EXPECT_EQ(t2.loc.view(), "y");
+    EXPECT_EQ(script::merge_source_location(t1.loc, t2.loc).view(), "x /= y");
 
     script::NssLexer lexer2{"/*"};
     EXPECT_THROW(lexer2.next(), std::runtime_error);
@@ -254,7 +261,7 @@ TEST(Nss, Lexer)
     EXPECT_THROW(lexer4.next(), std::runtime_error);
 
     script::NssLexer lexer5{"\"Hello World\""};
-    EXPECT_EQ(lexer5.next().loc.view, "Hello World");
+    EXPECT_EQ(lexer5.next().loc.view(), "Hello World");
 
     script::NssLexer lexer6{"0x123456789abCdEf"};
     EXPECT_EQ(lexer6.next().type, script::NssTokenType::INTEGER_CONST);

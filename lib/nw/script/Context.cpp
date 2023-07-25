@@ -65,9 +65,9 @@ size_t Context::type_id(std::string_view type_name)
 size_t Context::type_id(Type type_name)
 {
     if (type_name.type_specifier.type == NssTokenType::STRUCT) {
-        return type_id(type_name.struct_id.loc.view);
+        return type_id(type_name.struct_id.loc.view());
     } else {
-        return type_id(type_name.type_specifier.loc.view);
+        return type_id(type_name.type_specifier.loc.view());
     }
 }
 

@@ -44,7 +44,7 @@ struct AstResolver : BaseVisitor {
 
     void declare(NssToken token, Declaration* decl)
     {
-        auto s = std::string(token.loc.view);
+        auto s = std::string(token.loc.view());
         auto it = scope_stack_.back().find(s);
         if (it != std::end(scope_stack_.back())) {
             if (dynamic_cast<FunctionDecl*>(it->second.decl)
@@ -52,7 +52,7 @@ struct AstResolver : BaseVisitor {
                 it->second.decl = decl;
             } else {
                 ctx_->semantic_error(parent_,
-                    fmt::format("declaring '{}' in the same scope twice", token.loc.view),
+                    fmt::format("declaring '{}' in the same scope twice", token.loc.view()),
                     token.loc);
                 return;
             }
@@ -63,11 +63,11 @@ struct AstResolver : BaseVisitor {
 
     void define(NssToken token)
     {
-        auto s = std::string(token.loc.view);
+        auto s = std::string(token.loc.view());
         auto it = scope_stack_.back().find(s);
         if (it == std::end(scope_stack_.back())) {
             ctx_->semantic_error(parent_,
-                fmt::format("defining unknown variable '{}'", token.loc.view),
+                fmt::format("defining unknown variable '{}'", token.loc.view()),
                 token.loc);
         }
         it->second.ready = true;
@@ -131,13 +131,13 @@ struct AstResolver : BaseVisitor {
         for (const auto& decl : script->decls) {
             decl->accept(this);
             if (auto d = dynamic_cast<VarDecl*>(decl.get())) {
-                parent_->add_export(std::string(d->identifier.loc.view), d);
+                parent_->add_export(std::string(d->identifier.loc.view()), d);
             } else if (auto d = dynamic_cast<StructDecl*>(decl.get())) {
-                parent_->add_export(std::string(d->type.struct_id.loc.view), d);
+                parent_->add_export(std::string(d->type.struct_id.loc.view()), d);
             } else if (auto d = dynamic_cast<FunctionDecl*>(decl.get())) {
-                parent_->add_export(std::string(d->identifier.loc.view), d);
+                parent_->add_export(std::string(d->identifier.loc.view()), d);
             } else if (auto d = dynamic_cast<FunctionDefinition*>(decl.get())) {
-                parent_->add_export(std::string(d->decl->identifier.loc.view), d);
+                parent_->add_export(std::string(d->decl->identifier.loc.view()), d);
             }
         }
         end_scope();
@@ -160,7 +160,7 @@ struct AstResolver : BaseVisitor {
     virtual void visit(FunctionDefinition* decl) override
     {
         // Check to see if there's been a function declaration, if so got to match.
-        auto fd = resolve(decl->decl->identifier.loc.view, decl->decl->identifier.loc);
+        auto fd = resolve(decl->decl->identifier.loc.view(), decl->decl->identifier.loc);
 
         decl->decl->type_id_ = ctx_->type_id(decl->decl->type);
         declare(decl->decl->identifier, decl);
@@ -262,7 +262,7 @@ struct AstResolver : BaseVisitor {
     {
         auto resolve_struct_member = [this](VariableExpression* var, StructDecl* str) {
             for (const auto& it : str->decls) {
-                if (it->identifier.loc.view == var->var.loc.view) {
+                if (it->identifier.loc.view() == var->var.loc.view()) {
                     var->type_id_ = it->type_id_;
                     var->is_const_ = it->is_const_;
                     return true;
@@ -290,7 +290,7 @@ struct AstResolver : BaseVisitor {
             if (!found) {
                 ctx_->semantic_error(parent_,
                     fmt::format("'{}' is not a member of struct '{}'",
-                        ex_lhs->var.loc.view, struct_decl->type.struct_id.loc.view),
+                        ex_lhs->var.loc.view(), struct_decl->type.struct_id.loc.view()),
                     ex_lhs->var.loc);
             }
 
@@ -315,7 +315,7 @@ struct AstResolver : BaseVisitor {
             if (!found) {
                 ctx_->semantic_error(parent_,
                     fmt::format("'{}' is not a member of struct '{}'",
-                        ex_rhs->var.loc.view, struct_decl->type.struct_id.loc.view),
+                        ex_rhs->var.loc.view(), struct_decl->type.struct_id.loc.view()),
                     ex_rhs->var.loc);
             }
         }
@@ -383,13 +383,13 @@ struct AstResolver : BaseVisitor {
 
     virtual void visit(VariableExpression* expr) override
     {
-        auto decl = resolve(expr->var.loc.view, expr->var.loc);
+        auto decl = resolve(expr->var.loc.view(), expr->var.loc);
         if (decl) {
             expr->type_id_ = decl->type_id_;
             expr->is_const_ = decl->is_const_;
         } else {
             ctx_->semantic_error(parent_,
-                fmt::format("unable to resolve identifier '{}'", expr->var.loc.view),
+                fmt::format("unable to resolve identifier '{}'", expr->var.loc.view()),
                 expr->var.loc);
         }
     }

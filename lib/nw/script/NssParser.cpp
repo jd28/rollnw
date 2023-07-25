@@ -345,21 +345,21 @@ std::unique_ptr<Expression> NssParser::parse_expr_primary()
 
         if (expr->literal.type == NssTokenType::STRING_CONST) {
             // Probably need to process the string..
-            expr->data = std::string(expr->literal.loc.view);
+            expr->data = std::string(expr->literal.loc.view());
         } else if (expr->literal.type == NssTokenType::INTEGER_CONST) {
-            if (auto val = string::from<int32_t>(expr->literal.loc.view)) {
+            if (auto val = string::from<int32_t>(expr->literal.loc.view())) {
                 expr->data = *val;
             } else {
                 ctx_->parse_error(parent_,
-                    fmt::format("unable to parse integer literal '{}'", expr->literal.loc.view),
+                    fmt::format("unable to parse integer literal '{}'", expr->literal.loc.view()),
                     expr->literal.loc);
             }
         } else if (expr->literal.type == NssTokenType::FLOAT_CONST) {
-            if (auto val = string::from<float>(expr->literal.loc.view)) {
+            if (auto val = string::from<float>(expr->literal.loc.view())) {
                 expr->data = *val;
             } else {
                 ctx_->parse_error(parent_,
-                    fmt::format("unable to parse float literal '{}'", expr->literal.loc.view),
+                    fmt::format("unable to parse float literal '{}'", expr->literal.loc.view()),
                     expr->literal.loc);
             }
         }
@@ -384,27 +384,27 @@ std::unique_ptr<Expression> NssParser::parse_expr_primary()
 
         auto expr = std::make_unique<LiteralVectorExpression>(x, y, z);
 
-        if (auto val = string::from<float>(expr->x.loc.view)) {
+        if (auto val = string::from<float>(expr->x.loc.view())) {
             expr->data.x = *val;
         } else {
             ctx_->parse_error(parent_,
-                fmt::format("unable to parse vector literal '{}'", expr->x.loc.view),
+                fmt::format("unable to parse vector literal '{}'", expr->x.loc.view()),
                 expr->x.loc);
         }
 
-        if (auto val = string::from<float>(expr->y.loc.view)) {
+        if (auto val = string::from<float>(expr->y.loc.view())) {
             expr->data.y = *val;
         } else {
             ctx_->parse_error(parent_,
-                fmt::format("unable to parse vector literal '{}'", expr->y.loc.view),
+                fmt::format("unable to parse vector literal '{}'", expr->y.loc.view()),
                 expr->y.loc);
         }
 
-        if (auto val = string::from<float>(expr->z.loc.view)) {
+        if (auto val = string::from<float>(expr->z.loc.view())) {
             expr->data.z = *val;
         } else {
             ctx_->parse_error(parent_,
-                fmt::format("unable to parse vector literal '{}'", expr->z.loc.view),
+                fmt::format("unable to parse vector literal '{}'", expr->z.loc.view()),
                 expr->z.loc);
         }
 
@@ -716,24 +716,24 @@ Ast NssParser::parse_program()
     Ast p;
     while (!is_end()) {
         if (match({NssTokenType::POUND})) { // Only at top level
-            if (peek().loc.view == "include") {
+            if (peek().loc.view() == "include") {
                 consume(NssTokenType::IDENTIFIER, "Expected 'IDENTIFIER'."); // include
                 if (match({NssTokenType::STRING_CONST})) {
-                    p.include_resrefs.push_back(std::string(previous().loc.view));
+                    p.include_resrefs.push_back(std::string(previous().loc.view()));
                 } else {
                     error("Expected string literal", peek());
                     throw parser_error("Expected string literal");
                 }
-            } else if (peek().loc.view == "define") {
+            } else if (peek().loc.view() == "define") {
                 consume(NssTokenType::IDENTIFIER, "Expected 'IDENTIFIER'."); // define
                 std::string name, value;
                 if (match({NssTokenType::IDENTIFIER})) {
-                    name = std::string(previous().loc.view);
+                    name = std::string(previous().loc.view());
                 } else {
                     error("Expected identifier", peek());
                     throw parser_error("Expected identifier");
                 }
-                value = std::string(advance().loc.view);
+                value = std::string(advance().loc.view());
                 p.defines.push_back({name, value});
             }
         } else if (match({NssTokenType::COMMENT})) {
