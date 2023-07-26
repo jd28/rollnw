@@ -172,13 +172,16 @@ struct ConditionalExpression : Expression {
 struct DotExpression : Expression {
     DotExpression(
         std::unique_ptr<Expression> lhs_,
+        NssToken token,
         std::unique_ptr<Expression> rhs_)
         : lhs{std::move(lhs_)}
+        , dot{token}
         , rhs{std::move(rhs_)}
     {
     }
 
     std::unique_ptr<Expression> lhs;
+    NssToken dot;
     std::unique_ptr<Expression> rhs;
 
     DEFINE_ACCEPT_VISITOR
