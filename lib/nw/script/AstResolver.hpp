@@ -289,7 +289,7 @@ struct AstResolver : BaseVisitor {
         if (expr->lhs->type_id_ != expr->rhs->type_id_) {
             ctx_->semantic_error(parent_,
                 fmt::format("attempting to assign a value of type '{}' to a variable of type '{}'",
-                    ctx_->type_name(expr->lhs->type_id_), ctx_->type_name(expr->rhs->type_id_)),
+                    ctx_->type_name(expr->rhs->type_id_), ctx_->type_name(expr->lhs->type_id_)),
                 expr->op.loc);
         }
         expr->type_id_ = expr->lhs->type_id_;
