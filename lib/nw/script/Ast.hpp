@@ -104,6 +104,8 @@ struct AstNode {
 
 struct Expression : public AstNode {
     virtual ~Expression() = default;
+
+    virtual SourceLocation extent() const = 0;
 };
 
 struct AssignExpression : Expression {
@@ -117,6 +119,11 @@ struct AssignExpression : Expression {
     std::unique_ptr<Expression> lhs;
     NssToken op;
     std::unique_ptr<Expression> rhs;
+
+    virtual SourceLocation extent() const override
+    {
+        return merge_source_location(lhs->extent(), rhs->extent());
+    };
 
     DEFINE_ACCEPT_VISITOR
 };
@@ -136,6 +143,11 @@ struct BinaryExpression : Expression {
     NssToken op;
     std::unique_ptr<Expression> rhs;
 
+    virtual SourceLocation extent() const override
+    {
+        return merge_source_location(lhs->extent(), rhs->extent());
+    };
+
     DEFINE_ACCEPT_VISITOR
 };
 
@@ -147,6 +159,8 @@ struct CallExpression : Expression {
 
     std::unique_ptr<Expression> expr;
     std::vector<std::unique_ptr<Expression>> args;
+
+    virtual SourceLocation extent() const override { return expr->extent(); };
 
     DEFINE_ACCEPT_VISITOR
 };
@@ -166,6 +180,11 @@ struct ConditionalExpression : Expression {
     std::unique_ptr<Expression> true_branch;
     std::unique_ptr<Expression> false_branch;
 
+    virtual SourceLocation extent() const override
+    {
+        return merge_source_location(test->extent(), merge_source_location(true_branch->extent(), false_branch->extent()));
+    };
+
     DEFINE_ACCEPT_VISITOR
 };
 
@@ -184,6 +203,8 @@ struct DotExpression : Expression {
     NssToken dot;
     std::unique_ptr<Expression> rhs;
 
+    virtual SourceLocation extent() const override { return dot.loc; };
+
     DEFINE_ACCEPT_VISITOR
 };
 
@@ -194,6 +215,8 @@ struct GroupingExpression : Expression {
     }
 
     std::unique_ptr<Expression> expr;
+
+    virtual SourceLocation extent() const override { return expr->extent(); };
 
     DEFINE_ACCEPT_VISITOR
 };
@@ -206,6 +229,8 @@ struct LiteralExpression : Expression {
 
     NssToken literal;
     Variant<int32_t, float, std::string> data;
+
+    virtual SourceLocation extent() const override { return literal.loc; };
 
     DEFINE_ACCEPT_VISITOR
 };
@@ -220,6 +245,11 @@ struct LiteralVectorExpression : Expression {
 
     NssToken x, y, z;
     glm::vec3 data;
+
+    virtual SourceLocation extent() const override
+    {
+        return merge_source_location(x.loc, merge_source_location(y.loc, z.loc));
+    };
 
     DEFINE_ACCEPT_VISITOR
 };
@@ -239,6 +269,8 @@ struct LogicalExpression : Expression {
     NssToken op;
     std::unique_ptr<Expression> rhs;
 
+    virtual SourceLocation extent() const override { return op.loc; };
+
     DEFINE_ACCEPT_VISITOR
 };
 
@@ -251,6 +283,8 @@ struct PostfixExpression : Expression {
 
     std::unique_ptr<Expression> lhs;
     NssToken op;
+
+    virtual SourceLocation extent() const override { return op.loc; };
 
     DEFINE_ACCEPT_VISITOR
 };
@@ -265,6 +299,8 @@ struct UnaryExpression : Expression {
     NssToken op;
     std::unique_ptr<Expression> rhs;
 
+    virtual SourceLocation extent() const override { return op.loc; };
+
     DEFINE_ACCEPT_VISITOR
 };
 
@@ -275,6 +311,8 @@ struct VariableExpression : Expression {
     }
 
     NssToken var;
+
+    virtual SourceLocation extent() const override { return var.loc; };
 
     DEFINE_ACCEPT_VISITOR
 };
