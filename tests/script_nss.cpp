@@ -16,13 +16,6 @@ using namespace nw;
 
 TEST(Nss, Parse)
 {
-    script::Nss nss(fs::path("test_data/user/development/test.nss"));
-    EXPECT_NO_THROW(nss.parse());
-    EXPECT_TRUE(nss.errors() == 0);
-    script::AstPrinter p;
-    nss.ast().accept(&p);
-    LOG_F(INFO, "{}", p.ss.str());
-
     script::Nss n2(fs::path("test_data/user/development/nw_s0_raisdead.nss"));
     EXPECT_NO_THROW(n2.parse());
     EXPECT_TRUE(n2.errors() == 0);

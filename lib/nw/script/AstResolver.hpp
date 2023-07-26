@@ -174,7 +174,7 @@ struct AstResolver : BaseVisitor {
                         ctx_->type_name(decl->params[i]->type_id_), ctx_->type_name(def->params[i]->type_id_));
                     mismatch = true;
                 } else if (decl->params[i]->identifier.loc.view() != def->params[i]->identifier.loc.view()) {
-                    reason = fmt::format("function parameter declared with identifier '{}', defined with return type '{}'",
+                    reason = fmt::format("function parameter declared with identifier '{}', defined with identifier '{}'",
                         decl->params[i]->identifier.loc.view(), def->params[i]->identifier.loc.view());
                     mismatch = true;
                 } else if (decl->params[i]->is_const_ != def->params[i]->is_const_) {
