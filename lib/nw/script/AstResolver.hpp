@@ -320,6 +320,22 @@ struct AstResolver : BaseVisitor {
         }
     }
 
+    virtual void visit(ComparisonExpression* expr) override
+    {
+        expr->lhs->accept(this);
+        expr->rhs->accept(this);
+
+        expr->is_const_ = expr->lhs->is_const_ && expr->rhs->is_const_;
+
+        if (expr->lhs->type_id_ != expr->rhs->type_id_) {
+            ctx_->semantic_error(parent_,
+                fmt::format("mismatched types in binary-expression '{}' != '{}', {}",
+                    ctx_->type_name(expr->lhs->type_id_), ctx_->type_name(expr->rhs->type_id_), expr->extent().view()),
+                expr->extent());
+        }
+        expr->type_id_ = ctx_->type_id("int");
+    }
+
     virtual void visit(ConditionalExpression* expr) override
     {
         expr->test->accept(this);

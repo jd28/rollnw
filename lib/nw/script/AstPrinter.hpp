@@ -139,6 +139,17 @@ struct AstPrinter : BaseVisitor {
         --depth;
     }
 
+    virtual void visit(ComparisonExpression* expr) override
+    {
+        ss << '\n'
+           << std::string(size_t(depth * 2), ' ') << "(binary " << expr->op.loc.view();
+        ++depth;
+        expr->lhs->accept(this);
+        expr->rhs->accept(this);
+        ss << ")";
+        --depth;
+    }
+
     virtual void visit(ConditionalExpression* expr) override
     {
         ss << '\n'

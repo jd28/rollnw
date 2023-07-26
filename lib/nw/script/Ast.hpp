@@ -23,6 +23,7 @@ struct VarDecl;
 struct AssignExpression;
 struct BinaryExpression;
 struct CallExpression;
+struct ComparisonExpression;
 struct ConditionalExpression;
 struct DotExpression;
 struct GroupingExpression;
@@ -60,6 +61,7 @@ struct BaseVisitor {
     virtual void visit(AssignExpression* expr) = 0;
     virtual void visit(BinaryExpression* expr) = 0;
     virtual void visit(CallExpression* expr) = 0;
+    virtual void visit(ComparisonExpression* expr) = 0;
     virtual void visit(ConditionalExpression* expr) = 0;
     virtual void visit(DotExpression* expr) = 0;
     virtual void visit(GroupingExpression* expr) = 0;
@@ -161,6 +163,29 @@ struct CallExpression : Expression {
     std::vector<std::unique_ptr<Expression>> args;
 
     virtual SourceLocation extent() const override { return expr->extent(); };
+
+    DEFINE_ACCEPT_VISITOR
+};
+
+struct ComparisonExpression : Expression {
+    ComparisonExpression(
+        std::unique_ptr<Expression> lhs_,
+        NssToken token,
+        std::unique_ptr<Expression> rhs_)
+        : lhs{std::move(lhs_)}
+        , op{token}
+        , rhs{std::move(rhs_)}
+    {
+    }
+
+    std::unique_ptr<Expression> lhs;
+    NssToken op;
+    std::unique_ptr<Expression> rhs;
+
+    virtual SourceLocation extent() const override
+    {
+        return merge_source_location(lhs->extent(), rhs->extent());
+    };
 
     DEFINE_ACCEPT_VISITOR
 };

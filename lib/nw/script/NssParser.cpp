@@ -231,7 +231,7 @@ std::unique_ptr<Expression> NssParser::parse_expr_equality()
     while (match({NssTokenType::NOTEQ, NssTokenType::EQEQ})) {
         auto op = previous();
         auto right = parse_expr_relational();
-        expr = std::make_unique<BinaryExpression>(std::move(expr), op, std::move(right));
+        expr = std::make_unique<ComparisonExpression>(std::move(expr), op, std::move(right));
     }
     return expr;
 }
@@ -242,7 +242,7 @@ std::unique_ptr<Expression> NssParser::parse_expr_relational()
     while (match({NssTokenType::GT, NssTokenType::GTEQ, NssTokenType::LT, NssTokenType::LTEQ})) {
         auto op = previous();
         auto right = parse_expr_shift();
-        expr = std::make_unique<BinaryExpression>(std::move(expr), op, std::move(right));
+        expr = std::make_unique<ComparisonExpression>(std::move(expr), op, std::move(right));
     }
     return expr;
 }
