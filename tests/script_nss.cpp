@@ -275,6 +275,19 @@ TEST(Nss, Struct)
     EXPECT_NO_THROW(nss2.resolve());
     EXPECT_EQ(nss2.errors(), 0);
 
+    script::Nss nss4(R"(
+        struct a { int test1; };
+
+        void main() {
+            struct a s;
+            s.test1++;
+        }
+    )"sv);
+
+    EXPECT_NO_THROW(nss4.parse());
+    EXPECT_NO_THROW(nss4.resolve());
+    EXPECT_EQ(nss4.errors(), 0);
+
     // == Bad =================================================================
 
     script::Nss nss3(R"(

@@ -346,59 +346,39 @@ struct AstResolver : BaseVisitor {
             return false;
         };
 
+        auto ex_rhs = dynamic_cast<VariableExpression*>(expr->rhs.get());
+        if (!ex_rhs) {
+            ctx_->semantic_error(parent_,
+                "struct member must be a variable expression",
+                expr->dot.loc);
+            return;
+        }
+
         StructDecl* struct_decl = nullptr;
-
-        auto ex_lhs = dynamic_cast<VariableExpression*>(expr->lhs.get());
-
-        if (ctx_->struct_stack_.size() == 0) {
-            ex_lhs->accept(this);
-            if (!ex_lhs) {
-                ctx_->semantic_error(parent_, "ill-formed dot operator", ex_lhs->var.loc);
-                return;
-            }
-
-            auto st_decl = resolve(ctx_->type_name(ex_lhs->type_id_), ex_lhs->var.loc);
-            struct_decl = dynamic_cast<StructDecl*>(st_decl);
-        } else {
-            struct_decl = ctx_->struct_stack_.back();
-            bool found = resolve_struct_member(ex_lhs, struct_decl);
-            if (!found) {
-                ctx_->semantic_error(parent_,
-                    fmt::format("'{}' is not a member of struct '{}'",
-                        ex_lhs->var.loc.view(), struct_decl->type.struct_id.loc.view()),
-                    ex_lhs->var.loc);
-            }
-
-            auto st_decl = resolve(ctx_->type_name(ex_lhs->type_id_), ex_lhs->var.loc);
-            struct_decl = dynamic_cast<StructDecl*>(st_decl);
+        std::string_view struct_type;
+        if (auto de = dynamic_cast<DotExpression*>(expr->lhs.get())) {
+            expr->lhs->accept(this);
+            struct_type = ctx_->type_name(expr->lhs->type_id_);
+            struct_decl = struct_decl = dynamic_cast<StructDecl*>(resolve(struct_type, expr->dot.loc));
+        } else if (auto ve = dynamic_cast<VariableExpression*>(expr->lhs.get())) {
+            ve->accept(this);
+            struct_type = ctx_->type_name(ve->type_id_); // ve->var.loc.view();
+            struct_decl = dynamic_cast<StructDecl*>(resolve(ctx_->type_name(ve->type_id_), ve->var.loc));
         }
 
         if (!struct_decl) {
             ctx_->semantic_error(parent_,
-                fmt::format("dot operator on non-struct type, '{}'", ex_lhs->type_id_),
-                ex_lhs->var.loc);
-            return;
-        }
-
-        ctx_->struct_stack_.push_back(struct_decl);
-
-        if (dynamic_cast<DotExpression*>(expr->rhs.get())) {
-            expr->rhs->accept(this);
-        } else {
-            auto ex_rhs = dynamic_cast<VariableExpression*>(expr->rhs.get());
-            bool found = resolve_struct_member(ex_rhs, struct_decl);
-            if (!found) {
-                ctx_->semantic_error(parent_,
-                    fmt::format("'{}' is not a member of struct '{}'",
-                        ex_rhs->var.loc.view(), struct_decl->type.struct_id.loc.view()),
-                    ex_rhs->var.loc);
-            }
+                fmt::format("request for member '{}' in '{}', which is of non-struct type",
+                    ex_rhs->var.loc.view(), struct_type),
+                expr->dot.loc);
+        } else if (!resolve_struct_member(ex_rhs, struct_decl)) {
+            ctx_->semantic_error(parent_,
+                fmt::format("request for member '{}', which is not in struct of type '{}'",
+                    ex_rhs->var.loc.view(), struct_type),
+                expr->dot.loc);
         }
 
         expr->type_id_ = expr->rhs->type_id_;
-        expr->is_const_ = expr->rhs->is_const_;
-
-        ctx_->struct_stack_.pop_back();
     }
 
     virtual void visit(GroupingExpression* expr) override
