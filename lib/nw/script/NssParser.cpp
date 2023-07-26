@@ -554,7 +554,10 @@ std::unique_ptr<BlockStatement> NssParser::parse_stmt_block()
 {
     auto s = std::make_unique<BlockStatement>();
     while (!is_end() && !check({NssTokenType::RBRACE})) {
-        s->nodes.emplace_back(parse_decl());
+        auto n = parse_decl();
+        if (n) {
+            s->nodes.emplace_back(std::move(n));
+        }
     }
     consume(NssTokenType::RBRACE, "Expected '}'.");
     return s;

@@ -525,9 +525,13 @@ struct AstResolver : BaseVisitor {
                 fmt::format("could not convert value to integer bool"));
         }
 
+        begin_scope();
         stmt->if_branch->accept(this);
+        end_scope();
         if (stmt->else_branch) {
+            begin_scope();
             stmt->else_branch->accept(this);
+            end_scope();
         }
     }
 
@@ -569,8 +573,12 @@ struct AstResolver : BaseVisitor {
         if (stmt->type.type == NssTokenType::CASE && switch_stack_ == 0) {
             ctx_->semantic_error(parent_, "case statement not within switch", stmt->type.loc);
         }
-        stmt->expr->accept(this);
 
+        if (stmt->type.type == NssTokenType::DEFAULT) {
+            return; // No expr..
+        }
+
+        stmt->expr->accept(this);
         if (stmt->expr->type_id_ != ctx_->type_id("int")
             && stmt->expr->type_id_ != ctx_->type_id("string")) {
             ctx_->semantic_error(parent_,
