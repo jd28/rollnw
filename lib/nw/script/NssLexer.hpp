@@ -24,7 +24,7 @@ private:
     std::shared_ptr<Context> ctx_;
     Nss* parent_ = nullptr;
     std::string_view buffer_;
-    size_t pos_ = 0, line_ = 0, last_line_pos_ = 0;
+    size_t pos_ = 0, line_ = 1, last_line_pos_ = 0;
     NssToken current_;
 };
 

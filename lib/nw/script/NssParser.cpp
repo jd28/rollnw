@@ -13,7 +13,9 @@ NssParser::NssParser(std::string_view view, std::shared_ptr<Context> ctx, Nss* p
 {
     NssToken tok = lexer_.next();
     while (tok.type != NssTokenType::END) {
-        tokens.push_back(tok);
+        if (tok.type != NssTokenType::COMMENT) {
+            tokens.push_back(tok);
+        }
         tok = lexer_.next();
     }
 }
@@ -638,7 +640,7 @@ std::unique_ptr<LabelStatement> NssParser::parse_stmt_label()
     s->type = previous();
     if (s->type.type == NssTokenType::CASE) {
         // [TODO] check here or in resolver for incorrect types.
-        s->expr = parse_expr_primary();
+        s->expr = parse_expr();
     }
     consume(NssTokenType::COLON, "Expected ':'.");
     return s;
@@ -751,7 +753,11 @@ Ast NssParser::parse_program()
             if (peek().loc.view() == "include") {
                 consume(NssTokenType::IDENTIFIER, "Expected 'IDENTIFIER'."); // include
                 if (match({NssTokenType::STRING_CONST})) {
-                    p.include_resrefs.push_back(std::string(previous().loc.view()));
+                    if (previous().loc.view().size() <= nw::Resref::max_size) {
+                        p.include_resrefs.push_back(std::string(previous().loc.view()));
+                    } else {
+                        error(fmt::format("invalid include resref '{}'", previous().loc.view()), previous());
+                    }
                 } else {
                     error("Expected string literal", peek());
                     throw parser_error("Expected string literal");

@@ -33,6 +33,7 @@ struct AstResolver : BaseVisitor {
     ScopeStack scope_stack_;
     int loop_stack_ = 0;
     int switch_stack_ = 0;
+    int func_def_stack_ = 0;
 
     // == Resolver Helpers ====================================================
     // ========================================================================
@@ -227,10 +228,12 @@ struct AstResolver : BaseVisitor {
 
     virtual void visit(FunctionDefinition* decl) override
     {
+        ++func_def_stack_;
         // Check to see if there's been a function declaration, if so got to match.
         auto fd = resolve(decl->decl->identifier.loc.view(), decl->decl->identifier.loc);
 
-        decl->decl->type_id_ = ctx_->type_id(decl->decl->type);
+        decl->type_id_ = decl->decl->type_id_ = ctx_->type_id(decl->decl->type);
+
         declare(decl->decl->identifier, decl);
         define(decl->decl->identifier);
 
@@ -247,6 +250,7 @@ struct AstResolver : BaseVisitor {
 
         decl->block->accept(this);
         end_scope();
+        --func_def_stack_;
     }
 
     virtual void visit(StructDecl* decl) override
@@ -331,6 +335,8 @@ struct AstResolver : BaseVisitor {
             ctx_->semantic_error(parent_,
                 fmt::format("conditional expression mismatched types"));
         }
+
+        expr->type_id_ = expr->true_branch->type_id_;
     }
 
     virtual void visit(DotExpression* expr) override
@@ -418,7 +424,7 @@ struct AstResolver : BaseVisitor {
             ctx_->semantic_error(parent_, "mismatched types", {});
         }
 
-        expr->type_id_ = expr->lhs->type_id_;
+        expr->type_id_ = ctx_->type_id("int");
         expr->is_const_ = expr->lhs->is_const_ && expr->rhs->is_const_;
     }
 
@@ -534,9 +540,9 @@ struct AstResolver : BaseVisitor {
             && loop_stack_ == 0) {
             ctx_->semantic_error(parent_, "continue statement not within a loop", stmt->op.loc);
         } else if (stmt->op.type == NssTokenType::BREAK
-            && (loop_stack_ == 0 || switch_stack_ == 0)) {
+            && (loop_stack_ == 0 && switch_stack_ == 0)) {
             ctx_->semantic_error(parent_, "break statement not within loop or switch", stmt->op.loc);
-
+        } else if (stmt->op.type == NssTokenType::RETURN && func_def_stack_ == 0) {
             // This shouldn't even be possible and would be a parser error
             ctx_->semantic_error(parent_, "return statement not within function definition", stmt->op.loc);
         }
