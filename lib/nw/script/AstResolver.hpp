@@ -435,6 +435,16 @@ struct AstResolver : BaseVisitor {
             struct_decl = struct_decl = dynamic_cast<StructDecl*>(resolve(struct_type, expr->dot.loc));
         } else if (auto ve = dynamic_cast<VariableExpression*>(expr->lhs.get())) {
             ve->accept(this);
+
+            // special case vector lookup here for now
+            if (ve->type_id_ == ctx_->type_id("vector")
+                && (ex_rhs->var.loc.view() == "x"
+                    || ex_rhs->var.loc.view() == "y"
+                    || ex_rhs->var.loc.view() == "z")) {
+                expr->type_id_ = ctx_->type_id("float");
+                return;
+            }
+
             struct_type = ctx_->type_name(ve->type_id_); // ve->var.loc.view();
             struct_decl = dynamic_cast<StructDecl*>(resolve(ctx_->type_name(ve->type_id_), ve->var.loc));
         }
