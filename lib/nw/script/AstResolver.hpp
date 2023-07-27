@@ -278,8 +278,17 @@ struct AstResolver : BaseVisitor {
         declare(decl->identifier, decl);
         if (decl->init) {
             decl->init->accept(this);
-            if (decl->type_id_ != decl->init->type_id_) {
-                ctx_->semantic_error(parent_, "mismatched types in variable initializer", decl->identifier.loc);
+
+            if (decl->type_id_ == ctx_->type_id("float")
+                && decl->init->type_id_ == ctx_->type_id("int")) {
+                // This is fine
+            } else if (decl->type_id_ != decl->init->type_id_) {
+                ctx_->semantic_error(parent_,
+                    fmt::format("initializing variable '{}' of type '{}' with value of type '{}'",
+                        decl->identifier.loc.view(),
+                        ctx_->type_name(decl->type_id_),
+                        ctx_->type_name(decl->init->type_id_)),
+                    decl->identifier.loc);
             }
         }
         define(decl->identifier);
@@ -307,9 +316,11 @@ struct AstResolver : BaseVisitor {
             return;
         }
 
-        if (expr->lhs->type_id_ != expr->rhs->type_id_) {
+        if (expr->lhs->type_id_ == ctx_->type_id("float") && expr->rhs->type_id_ == ctx_->type_id("int")) {
+            // this is fine.
+        } else if (expr->lhs->type_id_ != expr->rhs->type_id_) {
             ctx_->semantic_error(parent_,
-                fmt::format("attempting to assign a value of type '{}' to a variable of type '{}'",
+                fmt::format("assigning a value of type '{}' to a variable of type '{}'",
                     ctx_->type_name(expr->rhs->type_id_), ctx_->type_name(expr->lhs->type_id_)),
                 expr->op.loc);
         }
@@ -339,8 +350,15 @@ struct AstResolver : BaseVisitor {
             return;
         }
 
-        if (expr->lhs->type_id_ != expr->rhs->type_id_) {
-            ctx_->semantic_error(parent_, "mismatched types in binary-expression", expr->op.loc);
+        expr->type_id_ = expr->lhs->type_id_;
+        if ((expr->lhs->type_id_ == ctx_->type_id("float") && expr->rhs->type_id_ == ctx_->type_id("int"))
+            || expr->lhs->type_id_ == ctx_->type_id("int") && expr->rhs->type_id_ == ctx_->type_id("float")) {
+            expr->type_id_ = ctx_->type_id("float"); // this is fine.
+        } else if (expr->lhs->type_id_ != expr->rhs->type_id_) {
+            ctx_->semantic_error(parent_,
+                fmt::format("mismatched types in binary-expression '{}' != '{}', {}",
+                    ctx_->type_name(expr->lhs->type_id_), ctx_->type_name(expr->rhs->type_id_), expr->extent().view()),
+                expr->extent());
         }
     }
 

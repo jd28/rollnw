@@ -494,4 +494,22 @@ TEST(Nss, BinaryExpressions)
     EXPECT_NO_THROW(nss1.parse());
     EXPECT_NO_THROW(nss1.resolve());
     EXPECT_EQ(nss1.errors(), 6);
+
+    script::Nss nss2(R"(
+    void main() {
+        int x = 1;
+        float y = 1.0;
+
+        float z = 1; // OK
+        y += x;      // OK
+        x + y;       // OK
+        y - x;       // OK
+        x * y;       // OK
+        y / x;       // OK
+
+        x /= y; // Not OK
+    })"sv);
+    EXPECT_NO_THROW(nss2.parse());
+    EXPECT_NO_THROW(nss2.resolve());
+    EXPECT_EQ(nss2.errors(), 1);
 }
