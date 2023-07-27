@@ -75,6 +75,7 @@ if (ROLLNW_BUILD_TESTS)
 include(CTest)
 enable_testing()
 add_subdirectory(tests)
+add_subdirectory(tests_ext)
 endif()
 
 if (ROLLNW_BUILD_BENCHMARKS)

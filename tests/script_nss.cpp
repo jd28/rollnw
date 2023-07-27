@@ -179,7 +179,7 @@ TEST(Nss, FunctionDecl)
     )"sv);
     EXPECT_NO_THROW(nss10.parse());
     EXPECT_NO_THROW(nss10.resolve());
-    EXPECT_EQ(nss10.errors(), 1);
+    EXPECT_EQ(nss10.warnings(), 1);
 
     script::Nss nss11(R"(
         int test_function(float b);
