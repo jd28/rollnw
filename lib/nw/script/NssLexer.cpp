@@ -500,30 +500,32 @@ NssToken NssLexer::next()
                     }
                 }
                 break;
-            case '*': // Block Comment
+            case '*': { // Block Comment
+                bool matched = false;
                 start = pos_ + 2;
-                pos_ += 4;
+                pos_ += 2;
                 while (pos_ < buffer_.size()) {
                     if (get(pos_) == '\n') {
                         ++line_;
                         last_line_pos_ = pos_;
-                    } else if (get(pos_ - 1) == '*' && get(pos_) == '/') {
+                    } else if (pos_ != start && get(pos_ - 1) == '*' && get(pos_) == '/') {
                         t = NssToken{NssTokenType::COMMENT,
                             {&buffer_[start], pos_ - 1 - start},
                             line_,
                             start - last_line_pos_};
                         ++pos_;
+                        matched = true;
                         break;
                     }
                     ++pos_;
                 }
-                if (pos_ > buffer_.size()) {
+                if (!matched) {
                     ctx_->lexical_error(parent_, "Unterminated block quote",
                         {&buffer_[start - 2], buffer_.data() + start,
                             line_,
                             start - 2 - last_line_pos_});
                 }
-                break;
+            } break;
             case '=':
                 NSS_TOKEN(DIVEQ, 2);
                 break;

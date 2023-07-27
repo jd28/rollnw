@@ -310,6 +310,12 @@ TEST(Nss, Lexer)
     script::NssLexer lexer2{"/*"};
     EXPECT_THROW(lexer2.next(), std::runtime_error);
 
+    script::NssLexer lexer14{"/*/"};
+    EXPECT_THROW(lexer14.next(), std::runtime_error);
+
+    script::NssLexer lexer15{"/**/"};
+    EXPECT_NO_THROW(lexer15.next());
+
     script::NssLexer lexer3{"/* this is comment */"};
     EXPECT_EQ(lexer3.next().type, script::NssTokenType::COMMENT);
 
@@ -334,6 +340,43 @@ TEST(Nss, Lexer)
 
     script::NssLexer lexer10{"`"};
     EXPECT_NO_THROW(lexer10.next()); // Unrecognized character is only a warning
+
+    script::NssLexer lexer12{R"(
+        //::///////////////////////////////////////////////
+        //:: Name
+        //:: Copyright
+        //:://////////////////////////////////////////////
+        /*
+            description
+        */
+        //:://////////////////////////////////////////////
+        //:: Created By:
+        //:: Created On:
+        //:://////////////////////////////////////////////
+
+        // comment
+        // comment
+        // comment
+
+        int this;
+
+        /* block-comment
+            block-comment
+            block-comment
+            block-comment
+            */
+
+        float int_to_float(int val);
+    )"};
+
+    size_t line = 0;
+    script::NssToken tok = lexer12.next();
+    while (tok.type != script::NssTokenType::END) {
+        line = tok.loc.line;
+        tok = lexer12.next();
+    }
+
+    EXPECT_EQ(line, 26);
 
     script::NssLexer lexer13{">>> >>>="};
     EXPECT_EQ(int(lexer13.next().type), int(script::NssTokenType::USR));
