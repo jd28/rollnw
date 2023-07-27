@@ -365,6 +365,16 @@ NssToken NssLexer::next()
                 case '=':
                     NSS_TOKEN(SREQ, 3);
                     break;
+                case '>':
+                    switch (get(pos_ + 3)) {
+                    case '=':
+                        NSS_TOKEN(USREQ, 4);
+                        break;
+                    default:
+                        NSS_TOKEN(USR, 3);
+                        break;
+                    }
+                    break;
                 default:
                     NSS_TOKEN(SR, 2);
                     break;

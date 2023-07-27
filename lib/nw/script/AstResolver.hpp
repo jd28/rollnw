@@ -290,6 +290,23 @@ struct AstResolver : BaseVisitor {
     {
         expr->lhs->accept(this);
         expr->rhs->accept(this);
+
+        if (expr->op.type == NssTokenType::SLEQ
+            || expr->op.type == NssTokenType::SREQ
+            || expr->op.type == NssTokenType::USREQ) {
+            if (expr->lhs->type_id_ != ctx_->type_id("int")
+                || expr->rhs->type_id_ != ctx_->type_id("int")) {
+                ctx_->semantic_error(parent_,
+                    fmt::format("invalid operands of types '{}' and '{}' to assignment operator '{}'",
+                        ctx_->type_name(expr->lhs->type_id_),
+                        ctx_->type_name(expr->rhs->type_id_),
+                        expr->op.loc.view()),
+                    expr->op.loc);
+            }
+            expr->type_id_ = ctx_->type_id("int");
+            return;
+        }
+
         if (expr->lhs->type_id_ != expr->rhs->type_id_) {
             ctx_->semantic_error(parent_,
                 fmt::format("attempting to assign a value of type '{}' to a variable of type '{}'",
@@ -305,6 +322,22 @@ struct AstResolver : BaseVisitor {
         expr->rhs->accept(this);
 
         expr->is_const_ = expr->lhs->is_const_ && expr->rhs->is_const_;
+
+        if (expr->op.type == NssTokenType::SL
+            || expr->op.type == NssTokenType::SR
+            || expr->op.type == NssTokenType::USR) {
+            expr->type_id_ = ctx_->type_id("int");
+            if (expr->lhs->type_id_ != ctx_->type_id("int")
+                || expr->rhs->type_id_ != ctx_->type_id("int")) {
+                ctx_->semantic_error(parent_,
+                    fmt::format("invalid operands of types '{}' and '{}' to binary operator '{}'",
+                        ctx_->type_name(expr->lhs->type_id_),
+                        ctx_->type_name(expr->rhs->type_id_),
+                        expr->op.loc.view()),
+                    expr->op.loc);
+            }
+            return;
+        }
 
         if (expr->lhs->type_id_ != expr->rhs->type_id_) {
             ctx_->semantic_error(parent_, "mismatched types in binary-expression", expr->op.loc);

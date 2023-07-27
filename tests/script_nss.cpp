@@ -334,6 +334,10 @@ TEST(Nss, Lexer)
 
     script::NssLexer lexer10{"`"};
     EXPECT_NO_THROW(lexer10.next()); // Unrecognized character is only a warning
+
+    script::NssLexer lexer13{">>> >>>="};
+    EXPECT_EQ(int(lexer13.next().type), int(script::NssTokenType::USR));
+    EXPECT_EQ(int(lexer13.next().type), int(script::NssTokenType::USREQ));
 }
 
 TEST(Nss, Includes)
@@ -467,4 +471,27 @@ TEST(Nss, Switch)
     EXPECT_NO_THROW(nss5.parse());
     EXPECT_NO_THROW(nss5.resolve());
     EXPECT_EQ(nss5.errors(), 0);
+}
+
+TEST(Nss, BinaryExpressions)
+{
+    script::Nss nss1(R"(
+    void main() {
+        int x = 1;
+        float y = 1.0;
+
+        x << x;
+        x >> x;
+        x >>> x;
+
+        x << y;
+        y << x;
+        x >> y;
+        y >> x;
+        x >>> y;
+        y >>> x;
+    })"sv);
+    EXPECT_NO_THROW(nss1.parse());
+    EXPECT_NO_THROW(nss1.resolve());
+    EXPECT_EQ(nss1.errors(), 6);
 }
