@@ -154,33 +154,42 @@ struct AstResolver : BaseVisitor {
         if (!decl || !def) { return; }
 
         // If there's a function declaration, try to match
-        bool mismatch = false;
-        std::string reason;
-
         if (def->type_id_ != decl->type_id_) {
-            reason = fmt::format("function declared with return type '{}', defined with return type '{}'",
-                ctx_->type_name(decl->type_id_), ctx_->type_name(def->type_id_));
-            mismatch = true;
+            ctx_->semantic_error(parent_,
+                fmt::format("function declared with return type '{}', defined with return type '{}'",
+                    ctx_->type_name(decl->type_id_),
+                    ctx_->type_name(def->type_id_)));
         }
 
         if (decl->params.size() != def->params.size()) {
-            reason = fmt::format("function declared with parameter count '{}', defined with parameter count '{}'",
-                decl->params.size(), def->params.size());
-            mismatch = true;
+            ctx_->semantic_error(parent_,
+                fmt::format("function declared with parameter count '{}', defined with parameter count '{}'",
+                    decl->params.size(),
+                    def->params.size()));
         } else {
+            std::string reason;
+
             for (size_t i = 0; i < decl->params.size(); ++i) {
+                SourceLocation loc;
+                bool mismatch = false;
+                bool warning = false;
+
                 if (decl->params[i]->type_id_ != def->params[i]->type_id_) {
                     reason = fmt::format("function parameter declared with type '{}', defined with type '{}'",
                         ctx_->type_name(decl->params[i]->type_id_), ctx_->type_name(def->params[i]->type_id_));
                     mismatch = true;
+                    loc = decl->params[i]->identifier.loc;
                 } else if (decl->params[i]->identifier.loc.view() != def->params[i]->identifier.loc.view()) {
                     reason = fmt::format("function parameter declared with identifier '{}', defined with identifier '{}'",
                         decl->params[i]->identifier.loc.view(), def->params[i]->identifier.loc.view());
                     mismatch = true;
+                    warning = true;
+                    loc = decl->params[i]->identifier.loc;
                 } else if (decl->params[i]->is_const_ != def->params[i]->is_const_) {
                     reason = fmt::format("function parameter const mistmatch",
                         ctx_->type_name(decl->params[i]->type_id_), ctx_->type_name(def->params[i]->type_id_));
                     mismatch = true;
+                    loc = decl->params[i]->identifier.loc;
                 } else if (decl->params[i]->init && def->params[i]->init) {
                     // [TODO] Probably need to have some sort of constant folding or tree walking interpreter
                     // to ensure the values of initializers are the same.
@@ -189,19 +198,25 @@ struct AstResolver : BaseVisitor {
                     if (lit1 && lit2 && lit1->data != lit2->data) {
                         reason = "mismatch parameter initializers";
                         mismatch = true;
+                        loc = decl->params[i]->identifier.loc;
                     } else {
                         auto vlit1 = dynamic_cast<LiteralVectorExpression*>(decl->params[i]->init.get());
                         auto vlit2 = dynamic_cast<LiteralVectorExpression*>(def->params[i]->init.get());
                         if (vlit1 && vlit2 && vlit1->data != vlit2->data) {
                             reason = "mismatch parameter initializers";
                             mismatch = true;
+                            loc = decl->params[i]->identifier.loc;
                         }
                     }
                 }
+                if (mismatch) {
+                    if (warning) {
+                        ctx_->semantic_warning(parent_, reason, loc);
+                    } else {
+                        ctx_->semantic_error(parent_, reason, loc);
+                    }
+                }
             }
-        }
-        if (mismatch) {
-            ctx_->semantic_error(parent_, reason);
         }
     }
 
