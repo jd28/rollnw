@@ -379,10 +379,48 @@ struct AstResolver : BaseVisitor {
 
     virtual void visit(CallExpression* expr) override
     {
-        expr->expr->accept(this);
-        expr->type_id_ = expr->expr->type_id_;
-        for (const auto& arg : expr->args) {
-            arg->accept(this);
+        auto ve = dynamic_cast<VariableExpression*>(expr->expr.get());
+        if (!ve) {
+            // Parser already handles this case
+            ctx_->semantic_error(parent_, "call expressions identifier is not variable expression");
+            return;
+        }
+
+        FunctionDecl* func_decl = nullptr;
+        auto decl = resolve(ve->var.loc.view(), ve->var.loc);
+        if (auto fd = dynamic_cast<FunctionDecl*>(decl)) {
+            func_decl = fd;
+        } else if (auto fd = dynamic_cast<FunctionDefinition*>(decl)) {
+            func_decl = fd->decl.get();
+        } else {
+            ctx_->semantic_error(parent_,
+                fmt::format("unable to resolve identifier '{}'", ve->var.loc.view()),
+                ve->extent());
+            return;
+        }
+
+        expr->type_id_ = func_decl->type_id_;
+
+        if (expr->args.size() != func_decl->params.size()) {
+            ctx_->semantic_error(parent_,
+                fmt::format("no matching function call '{}'", expr->extent().view()),
+                expr->extent());
+            return;
+        }
+
+        for (size_t i = 0; i < func_decl->params.size(); ++i) {
+            expr->args[i]->accept(this);
+
+            if (func_decl->params[i]->type_id_ == ctx_->type_id("float")
+                && expr->args[i]->type_id_ == ctx_->type_id("int")) {
+                // This is fine
+            } else if (func_decl->params[i]->type_id_ != expr->args[i]->type_id_) {
+                ctx_->semantic_error(parent_,
+                    fmt::format("no matching function call '{}' expected parameter type '{}'",
+                        expr->extent().view(),
+                        ctx_->type_name(func_decl->params[i]->type_id_)),
+                    expr->extent());
+            }
         }
     }
 

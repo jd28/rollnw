@@ -212,6 +212,28 @@ TEST(Nss, FunctionCall)
     EXPECT_NO_THROW(nss1.parse());
     EXPECT_EQ(nss1.errors(), 0);
 
+    script::Nss nss4(R"(
+        int test_function(int b);
+        void main() {
+            int a = 1;
+            int c = test_function(a);
+        }
+    )"sv);
+    EXPECT_NO_THROW(nss4.parse());
+    EXPECT_NO_THROW(nss4.resolve());
+    EXPECT_EQ(nss4.errors(), 0);
+
+    script::Nss nss5(R"(
+        int test_function(float b);
+        void main() {
+            int a = 1;
+            int c = test_function(a);
+        }
+    )"sv);
+    EXPECT_NO_THROW(nss5.parse());
+    EXPECT_NO_THROW(nss5.resolve());
+    EXPECT_EQ(nss5.errors(), 0);
+
     // == Bad =================================================================
 
     script::Nss nss2("void main() { 423(b); }"sv);
@@ -221,6 +243,28 @@ TEST(Nss, FunctionCall)
     script::Nss nss3("void main() { str.test(b); }"sv);
     EXPECT_NO_THROW(nss3.parse());
     EXPECT_EQ(nss3.errors(), 1);
+
+    script::Nss nss6(R"(
+        int test_function(int b);
+        void main() {
+            string a = "";
+            int c = test_function(a);
+        }
+    )"sv);
+    EXPECT_NO_THROW(nss6.parse());
+    EXPECT_NO_THROW(nss6.resolve());
+    EXPECT_EQ(nss6.errors(), 1);
+
+    script::Nss nss7(R"(
+        int test_function(int b);
+        void main() {
+            int a = 1;
+            string c = test_function(a);
+        }
+    )"sv);
+    EXPECT_NO_THROW(nss7.parse());
+    EXPECT_NO_THROW(nss7.resolve());
+    EXPECT_EQ(nss7.errors(), 1);
 }
 
 TEST(Nss, DotOperator)
