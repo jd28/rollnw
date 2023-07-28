@@ -196,6 +196,14 @@ TEST(Nss, FunctionDecl)
     EXPECT_NO_THROW(nss12.parse());
     EXPECT_NO_THROW(nss12.resolve());
     EXPECT_EQ(nss12.errors(), 1);
+
+    script::Nss nss13(R"(
+        int test_function(int a);
+        void test_function(int a) { a++; }
+    )"sv);
+    EXPECT_NO_THROW(nss13.parse());
+    EXPECT_NO_THROW(nss13.resolve());
+    EXPECT_EQ(nss13.errors(), 1);
 }
 
 TEST(Nss, FunctionCall)
@@ -402,9 +410,10 @@ TEST(Nss, Includes)
     EXPECT_TRUE(nss3.errors() == 0);
     EXPECT_NO_THROW(nss3.process_includes());
     EXPECT_EQ(nss.ast().includes.size(), 1);
+    EXPECT_NO_THROW(nss3.resolve());
 
     auto deps3 = nss3.dependencies();
-    EXPECT_EQ(deps3.size(), 1);
+    EXPECT_EQ(deps3.size(), 2);
     EXPECT_NE(deps3.find("test_inc_i"), std::end(deps3));
 }
 
@@ -555,4 +564,83 @@ TEST(Nss, BinaryExpressions)
     EXPECT_NO_THROW(nss2.parse());
     EXPECT_NO_THROW(nss2.resolve());
     EXPECT_EQ(nss2.errors(), 1);
+}
+
+TEST(Nss, Conditional)
+{
+
+    // == Good ================================================================
+
+    // non-integer bool test
+    script::Nss nss3(R"(
+        void main() {
+            string s = 1 ? "Hi" : "Bye";
+        }
+    )"sv);
+    EXPECT_NO_THROW(nss3.parse());
+    EXPECT_NO_THROW(nss3.resolve());
+    EXPECT_EQ(nss3.errors(), 0);
+
+    // == Bad =================================================================
+
+    // non-integer bool test
+    script::Nss nss1(R"(
+        void main() {
+            string s = "oops" ? "Hi" : "Bye";
+        }
+    )"sv);
+    EXPECT_NO_THROW(nss1.parse());
+    EXPECT_NO_THROW(nss1.resolve());
+    EXPECT_EQ(nss1.errors(), 1);
+
+    // mismatched true/false branch types
+    script::Nss nss2(R"(
+        void main() {
+            string s = "oops" ? "Hi" : 3;
+        }
+    )"sv);
+    EXPECT_NO_THROW(nss2.parse());
+    EXPECT_NO_THROW(nss2.resolve());
+    EXPECT_EQ(nss2.errors(), 2);
+}
+
+TEST(Nss, If)
+{
+    // == Bad =================================================================
+
+    // non-integer bool test
+    script::Nss nss1(R"(
+        void main() {
+            string s = "Hello World";
+            if(s) { s += "!"; }
+        }
+    )"sv);
+    EXPECT_NO_THROW(nss1.parse());
+    EXPECT_NO_THROW(nss1.resolve());
+    EXPECT_EQ(nss1.errors(), 1);
+
+    // == Good ================================================================
+
+    script::Nss nss2(R"(
+        void main() {
+            if(1)
+                ;
+            else
+                ;
+        }
+    )"sv);
+    EXPECT_NO_THROW(nss2.parse());
+    EXPECT_NO_THROW(nss2.resolve());
+    EXPECT_EQ(nss2.errors(), 0);
+
+    script::Nss nss3(R"(
+        void main() {
+            if(1){ }
+            else if (2) { }
+            else { }
+        }
+    )"sv);
+    EXPECT_NO_THROW(nss3.parse());
+    EXPECT_NO_THROW(nss3.resolve());
+    EXPECT_EQ(nss3.errors(), 0);
 }

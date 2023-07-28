@@ -407,7 +407,9 @@ struct AstResolver : BaseVisitor {
         expr->test->accept(this);
         if (expr->test->type_id_ != ctx_->type_id("int")) {
             ctx_->semantic_error(parent_,
-                fmt::format("could not convert value to integer bool"));
+                fmt::format("could not convert value of type '{}' to integer bool",
+                    ctx_->type_name(expr->test->type_id_)),
+                expr->test->extent());
         }
 
         expr->true_branch->accept(this);
@@ -415,7 +417,10 @@ struct AstResolver : BaseVisitor {
 
         if (expr->true_branch->type_id_ != expr->false_branch->type_id_) {
             ctx_->semantic_error(parent_,
-                fmt::format("conditional expression mismatched types"));
+                fmt::format("operands of operator ?: have different types '{}' and '{}'",
+                    ctx_->type_name(expr->true_branch->type_id_),
+                    ctx_->type_name(expr->false_branch->type_id_)),
+                expr->extent());
         }
 
         expr->type_id_ = expr->true_branch->type_id_;
@@ -543,7 +548,7 @@ struct AstResolver : BaseVisitor {
         } else {
             ctx_->semantic_error(parent_,
                 fmt::format("unable to resolve identifier '{}'", expr->var.loc.view()),
-                expr->var.loc);
+                expr->extent());
         }
     }
 
@@ -598,7 +603,9 @@ struct AstResolver : BaseVisitor {
 
         if (stmt->expr->type_id_ != ctx_->type_id("int")) {
             ctx_->semantic_error(parent_,
-                fmt::format("could not convert value to integer bool"));
+                fmt::format("could not convert value of type '{}' to integer bool",
+                    ctx_->type_name(stmt->expr->type_id_)),
+                stmt->expr->extent());
         }
 
         begin_scope();
@@ -675,7 +682,8 @@ struct AstResolver : BaseVisitor {
         // I could tell.
         if (stmt->target->type_id_ != ctx_->type_id("int")) {
             ctx_->semantic_error(parent_,
-                fmt::format("could not convert value to integer"));
+                fmt::format("switch quantity not an integer"),
+                stmt->target->extent());
         }
 
         begin_scope();
