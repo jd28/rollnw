@@ -620,7 +620,15 @@ struct AstResolver : BaseVisitor {
         begin_scope();
         stmt->block->accept(this);
         end_scope();
+
         stmt->expr->accept(this);
+        if (stmt->expr->type_id_ != ctx_->type_id("int")) {
+            ctx_->semantic_error(parent_,
+                fmt::format("could not convert value of type '{}' to integer bool",
+                    ctx_->type_name(stmt->expr->type_id_)),
+                stmt->expr->extent());
+        }
+
         --loop_stack_;
     }
 
@@ -660,9 +668,25 @@ struct AstResolver : BaseVisitor {
     {
         ++loop_stack_;
         begin_scope();
-        stmt->init->accept(this);
-        stmt->check->accept(this);
-        stmt->inc->accept(this);
+
+        if (stmt->init) {
+            stmt->init->accept(this);
+        }
+
+        if (stmt->check) {
+            stmt->check->accept(this);
+            if (stmt->check->type_id_ != ctx_->type_id("int")) {
+                ctx_->semantic_error(parent_,
+                    fmt::format("could not convert value of type '{}' to integer bool",
+                        ctx_->type_name(stmt->check->type_id_)),
+                    stmt->check->extent());
+            }
+        }
+
+        if (stmt->inc) {
+            stmt->inc->accept(this);
+        }
+
         stmt->block->accept(this);
         end_scope();
         --loop_stack_;
@@ -734,7 +758,14 @@ struct AstResolver : BaseVisitor {
     {
         stmt->type_id_ = ctx_->type_id("void");
         ++loop_stack_;
+
         stmt->check->accept(this);
+        if (stmt->check->type_id_ != ctx_->type_id("int")) {
+            ctx_->semantic_error(parent_,
+                fmt::format("could not convert value of type '{}' to integer bool",
+                    ctx_->type_name(stmt->check->type_id_)),
+                stmt->check->extent());
+        }
 
         begin_scope();
         stmt->block->accept(this);

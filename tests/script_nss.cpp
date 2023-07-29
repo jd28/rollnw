@@ -206,6 +206,13 @@ TEST(Nss, FunctionDecl)
     EXPECT_EQ(nss13.errors(), 1);
 }
 
+TEST(Nss, FunctionDef)
+{
+    script::Nss nss("void test_function(string s, int b) {}"sv);
+    EXPECT_NO_THROW(nss.parse());
+    EXPECT_EQ(nss.errors(), 0);
+}
+
 TEST(Nss, FunctionCall)
 {
     script::Nss nss1("void main() { test_function(b); }"sv);
@@ -687,4 +694,69 @@ TEST(Nss, If)
     EXPECT_NO_THROW(nss3.parse());
     EXPECT_NO_THROW(nss3.resolve());
     EXPECT_EQ(nss3.errors(), 0);
+}
+
+TEST(Nss, Do)
+{
+    // == Bad =================================================================
+
+    // non-integer bool test
+    script::Nss nss1(R"(
+        void main() {
+            string s = "Hello World";
+            do {
+
+            } while(s);
+        }
+    )"sv);
+    EXPECT_NO_THROW(nss1.parse());
+    EXPECT_NO_THROW(nss1.resolve());
+    EXPECT_EQ(nss1.errors(), 1);
+}
+
+TEST(Nss, For)
+{
+    // == Bad =================================================================
+
+    // non-integer bool test
+    script::Nss nss1(R"(
+        void main() {
+            int i;
+            string s = "Hello World";
+            for(i = 0; s; ++i) { }
+        }
+    )"sv);
+    EXPECT_NO_THROW(nss1.parse());
+    EXPECT_NO_THROW(nss1.resolve());
+    EXPECT_EQ(nss1.errors(), 1);
+
+    // == Good ================================================================
+
+    // empty
+    script::Nss nss2(R"(
+        void main() {
+            for(;;) {
+            }
+        }
+    )"sv);
+    EXPECT_NO_THROW(nss2.parse());
+    EXPECT_NO_THROW(nss2.resolve());
+    EXPECT_EQ(nss2.errors(), 0);
+}
+
+TEST(Nss, While)
+{
+    // == Bad =================================================================
+
+    // non-integer bool test
+    script::Nss nss1(R"(
+        void main() {
+            string s = "Hello World";
+            while(s)
+                ;
+        }
+    )"sv);
+    EXPECT_NO_THROW(nss1.parse());
+    EXPECT_NO_THROW(nss1.resolve());
+    EXPECT_EQ(nss1.errors(), 1);
 }

@@ -617,7 +617,7 @@ std::unique_ptr<ForStatement> NssParser::parse_stmt_for()
     }
     consume(NssTokenType::SEMICOLON, "Expected ';'.");
 
-    if (!check({NssTokenType::SEMICOLON})) {
+    if (!check({NssTokenType::RPAREN})) {
         s->inc = parse_expr();
     }
     consume(NssTokenType::RPAREN, "Expected ')'.");
