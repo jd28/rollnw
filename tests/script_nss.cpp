@@ -615,6 +615,47 @@ TEST(Nss, BinaryExpressions)
     EXPECT_NO_THROW(nss2.parse());
     EXPECT_NO_THROW(nss2.resolve());
     EXPECT_EQ(nss2.errors(), 1);
+
+    script::Nss nss3(R"(
+    void main() {
+        int x = 1;
+        int y = 2;
+
+        x == y;
+        x != y;
+        x > y;
+        x >= y;
+        x < y;
+        x <= y;
+    })"sv);
+    EXPECT_NO_THROW(nss3.parse());
+    EXPECT_NO_THROW(nss3.resolve());
+    EXPECT_EQ(nss3.errors(), 0);
+
+    script::Nss nss4(R"(
+    void main() {
+        int x = 1;
+        int y = 2;
+
+        x = x || y;
+        x = x && y;
+        x = !y;
+    })"sv);
+    EXPECT_NO_THROW(nss4.parse());
+    EXPECT_NO_THROW(nss4.resolve());
+    EXPECT_EQ(nss4.errors(), 0);
+}
+
+TEST(Nss, Group)
+{
+    script::Nss nss1(R"(
+        void main() {
+            int x = 2 * (4 + 2);
+        }
+    )"sv);
+    EXPECT_NO_THROW(nss1.parse());
+    EXPECT_NO_THROW(nss1.resolve());
+    EXPECT_EQ(nss1.errors(), 0);
 }
 
 TEST(Nss, Conditional)
