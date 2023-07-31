@@ -46,7 +46,6 @@ add_library(nw STATIC
     kernel/Resources.cpp
     kernel/Rules.cpp
     kernel/ParsedScriptCache.cpp
-    kernel/ScriptSystem.cpp
     kernel/Strings.cpp
     kernel/TwoDACache.cpp
 
@@ -149,12 +148,6 @@ target_link_libraries(nw PUBLIC
 
     coverage_config
 )
-
-if(ROLLNW_BUILD_RUNTIME_SCRIPTING)
-target_link_libraries(nw PUBLIC
-    Luau.VM
-)
-endif()
 
 if(NOT Iconv_IS_BUILT_IN)
     target_link_libraries(nw PRIVATE Iconv::Iconv)

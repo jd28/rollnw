@@ -63,11 +63,6 @@ if(ROLLNW_ENABLE_LEGACY)
 add_definitions(-DROLLNW_ENABLE_LEGACY)
 endif()
 
-if(ROLLNW_BUILD_RUNTIME_SCRIPTING)
-add_definitions(-DROLLNW_BUILD_RUNTIME_SCRIPTING)
-add_subdirectory(external/luau)
-endif()
-
 include_directories(SYSTEM external)
 include_directories(SYSTEM external/nowide/include)
 add_subdirectory(external/inih)

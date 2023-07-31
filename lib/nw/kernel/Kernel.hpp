@@ -81,9 +81,6 @@ struct Services {
     std::unique_ptr<EffectSystem> effects;
     std::unique_ptr<ObjectSystem> objects;
     std::unique_ptr<EventSystem> events;
-#ifdef ROLLNW_BUILD_RUNTIME_SCRIPTING
-    std::unique_ptr<ScriptSystem> scripts;
-#endif
 
 private:
     std::vector<ServiceEntry> services_;
