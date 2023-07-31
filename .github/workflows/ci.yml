@@ -193,6 +193,54 @@ jobs:
           cmake --build --preset default
           ctest --preset default
 
+      - name: Build wheels
+        uses: pypa/cibuildwheel@v2.14.1
+
+      - name: Download Cache from Docker (linux only)
+        if: ${{ runner.os == 'Linux' }}
+        run: |
+          env
+          ccache -s
+          HOST_CCACHE_DIR="$(ccache -k cache_dir)"
+          rm -rf $HOST_CCACHE_DIR
+          mv ./wheelhouse/.ccache $HOST_CCACHE_DIR
+          ls -la $HOST_CCACHE_DIR
+          ccache -s
+
+      - uses: actions/upload-artifact@v2
+        with:
+          path: ./wheelhouse/*.whl
+
       - name: ccache stats
         run: |
           ccache -s
+
+  build_sdist:
+    name: Build source distribution
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: true
+
+      - name: Build sdist
+        run: pipx run build --sdist
+
+      - uses: actions/upload-artifact@v3
+        with:
+          path: dist/*.tar.gz
+
+  upload_pypi:
+    needs: [build, build_sdist]
+    runs-on: ubuntu-20.04
+    if: github.event_name == 'release' && github.event.action == 'published'
+    steps:
+      - uses: actions/download-artifact@v3
+        with:
+          name: artifact
+          path: dist
+
+      - uses: pypa/gh-action-pypi-publish@v1.8.8
+        with:
+          user: __token__
+          password: ${{ secrets.PYPI_API_TOKEN }}

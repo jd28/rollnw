@@ -1,0 +1,15 @@
+include README.md LICENSE
+graft cmake
+graft external
+graft lib
+graft profiles
+graft rollnw-py
+graft rollnw-stubs
+graft tests
+global-include CMakeLists.txt CMakePresets.json *.cmake vcpkg.json
+prune **/__pycache__
+prune **/rollnw-egg.info
+global-exclude .DS_Store
+global-exclude *.py[cod]
+prune .venv
+prune venv

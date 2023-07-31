@@ -8,9 +8,16 @@ option(ROLLNW_BUILD_DOCS "Build documentation" OFF)
 option(ROLLNW_BUILD_RUNTIME_SCRIPTING "Build Luau scripting language" ON)
 option(ROLLNW_BUILD_TESTS "Build tests" OFF)
 option(ROLLNW_ENABLE_LEGACY "Build legacy NWN stuff" ON)
+option(ROLLNW_BUILD_PYTHON "Build python bindings" OFF)
 
 # Generate compile_commands.json to make it easier to work with clang based tools
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+# AppleClang changes visibility to hidden
+if(CMAKE_CXX_COMPILER_ID MATCHES ".*Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+  add_compile_options(-fvisibility=hidden)
+endif()
 
 if(MSVC)
     set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
@@ -83,4 +90,10 @@ endif()
 
 if(ROLLNW_BUILD_DOCS)
 add_subdirectory(docs)
+endif()
+
+if(ROLLNW_BUILD_PYTHON)
+include_directories(profiles/)
+add_subdirectory(external/pybind11)
+add_subdirectory(rollnw-py)
 endif()

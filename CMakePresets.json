@@ -56,6 +56,10 @@
                 "ROLLNW_BUILD_TESTS": {
                     "type": "BOOL",
                     "value": "ON"
+                },
+                "ROLLNW_BUILD_PYTHON": {
+                    "type": "BOOL",
+                    "value": "ON"
                 }
             }
         },
@@ -120,6 +124,10 @@
                 "ROLLNW_BUILD_TESTS": {
                     "type": "BOOL",
                     "value": "ON"
+                },
+                "ROLLNW_BUILD_PYTHON": {
+                    "type": "BOOL",
+                    "value": "ON"
                 }
             }
         },
@@ -147,6 +155,10 @@
             },
             "cacheVariables": {
                 "ROLLNW_BUILD_TESTS": {
+                    "type": "BOOL",
+                    "value": "ON"
+                },
+                "ROLLNW_BUILD_PYTHON": {
                     "type": "BOOL",
                     "value": "ON"
                 }
