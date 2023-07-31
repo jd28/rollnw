@@ -47,6 +47,12 @@ jobs:
         run: |
           echo "DATE=$(Get-Date -Format yyyy-MM-dd)" | Out-File -FilePath $env:GITHUB_ENV -Append
 
+      # Windows dependencies
+      - name: windows - install dependencies
+        if: matrix.os == 'windows-latest'
+        run: |
+          choco upgrade ccache ninja
+
       # macOS Dependencies
       - name: macOS - install non-vcpkg dependencies
         if: matrix.os == 'macos-11'
@@ -73,27 +79,6 @@ jobs:
           sudo apt install gcc-11 g++-11 ccache
           sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-11 110 --slave /usr/bin/g++ g++ /usr/bin/g++-11 --slave /usr/bin/gcov gcov /usr/bin/gcov-11
 
-      - name: ccache
-        uses: hendrikmuhs/ccache-action@v1.2
-        with:
-          key: ${{ matrix.os }}  # Make cache specific to OS
-          max-size: "5G"
-
-      - name: Install dependencies
-        if: ${{ runner.os != 'Windows' }}
-        run: |
-          env
-          export PATH="/usr/lib/ccache:/usr/local/opt/ccache/libexec:$PATH"
-          echo "/usr/lib/ccache:/usr/local/opt/ccache/libexec" >> $GITHUB_PATH
-          HOST_CCACHE_DIR="$(ccache -k cache_dir)"
-          mkdir -p $HOST_CCACHE_DIR
-
-      - name: make ccache dir
-        if: ${{ runner.os == 'Windows' }}
-        run: |
-          $env:HOST_CCACHE_DIR="$(ccache -k cache_dir)"
-          md $env:HOST_CCACHE_DIR -ea 0
-
       - uses: actions/checkout@v3
         with:
           submodules: true
@@ -115,6 +100,15 @@ jobs:
           key: ${{ runner.os }}-build-${{ env.vcpkg-tag }}-${{ env.DATE }}-${{ hashFiles('vcpkg.json') }}
           restore-keys: |
             ${{ runner.os }}-build-
+
+      - name: all - cache ccache
+        uses: actions/cache@v3
+        with:
+          path: |
+            ${{ github.workspace }}/.ccache/
+          key: ${{ runner.os }}-ccache-${{ env.DATE }}-${{ hashFiles('vcpkg.json') }}
+          restore-keys: |
+            ${{ runner.os }}-ccache-
 
       - name: macOS|linux - bootstrap vcpkg
         if: matrix.os != 'windows-latest'  && steps.cache-vcpkg.outputs.cache-hit != 'true'
@@ -145,16 +139,6 @@ jobs:
           ls -l ${{ github.workspace }}/nwn/
 
       # build the normal libraries
-      - name: macOS - configure
-        if: matrix.os == 'macos-11'
-        run: |
-          cmake --preset ci-macos
-
-      - name: linux - configure
-        if: matrix.os == 'ubuntu-20.04'
-        run: |
-          cmake --preset ci-linux
-
       - name: windows - Visual Studio shell
         if: matrix.os == 'windows-latest'
         uses: egor-tensin/vs-shell@v2
@@ -168,10 +152,41 @@ jobs:
           echo "CMAKE_TOOLCHAIN_FILE=${{env.CMAKE_TOOLCHAIN_FILE}}" | Out-File -FilePath $env:GITHUB_ENV -Append
           echo "VCPKG_DEFAULT_BINARY_CACHE=${{env.VCPKG_DEFAULT_BINARY_CACHE}}" | Out-File -FilePath $env:GITHUB_ENV -Append
 
+      - name: setup ccache
+        run: |
+          ccache --set-config=cache_dir=${{ github.workspace }}/.ccache
+          ccache --set-config=max_size=5G
+          ccache --set-config=compression=true
+
+      - name: ccache - setenv
+        if: ${{ runner.os != 'Windows' }}
+        run: |
+          env
+          export PATH="/usr/lib/ccache:/usr/local/opt/ccache/libexec:$PATH"
+          echo "/usr/lib/ccache:/usr/local/opt/ccache/libexec" >> $GITHUB_PATH
+          HOST_CCACHE_DIR="$(ccache -k cache_dir)"
+          mkdir -p $HOST_CCACHE_DIR
+
+      - name: ccache - setenv
+        if: ${{ runner.os == 'Windows' }}
+        run: |
+          $env:HOST_CCACHE_DIR="$(ccache -k cache_dir)"
+          md $env:HOST_CCACHE_DIR -ea 0
+
       - name: windows - configure
         if: matrix.os == 'windows-latest'
         run: |
           cmake --preset ci-windows
+
+      - name: macOS - configure
+        if: matrix.os == 'macos-11'
+        run: |
+          cmake --preset ci-macos
+
+      - name: linux - configure
+        if: matrix.os == 'ubuntu-20.04'
+        run: |
+          cmake --preset ci-linux
 
       - name: all - build & test
         run: |
@@ -179,11 +194,5 @@ jobs:
           ctest --preset default
 
       - name: ccache stats
-        if: ${{ runner.os != 'Windows' }}
         run: |
           ccache -s
-
-      - name: ccache stats
-        if: ${{ runner.os == 'Windows' }}
-        run: |
-          sccache -s

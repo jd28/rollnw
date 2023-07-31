@@ -112,10 +112,11 @@
         {
             "name": "ci-windows",
             "inherits": "windows",
-            "generator": "NMake Makefiles",
+            "generator": "Ninja",
             "displayName": "windows ci build",
             "description": "windows ci build",
             "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release",
                 "ROLLNW_BUILD_TESTS": {
                     "type": "BOOL",
                     "value": "ON"
