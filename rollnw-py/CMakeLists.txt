@@ -21,6 +21,10 @@ pybind11_add_module(rollnw NO_EXTRAS
     wrapper_util.cpp
 )
 
+if(MSVC)
+target_compile_options(rollnw PRIVATE /bigobj)
+endif()
+
 target_link_libraries(rollnw PRIVATE
     nw
     nw-profiles

@@ -23,7 +23,6 @@ if(MSVC)
     set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
     add_definitions(
-        /bigobj
         -D_CRT_SECURE_NO_WARNINGS
         -DUNICODE
         -D_UNICODE
