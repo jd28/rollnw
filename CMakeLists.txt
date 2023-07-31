@@ -17,7 +17,6 @@ if(MSVC)
 
     add_definitions(
         /bigobj
-        /Zc:hiddenFriend- # catch2 - vs2019
         -D_CRT_SECURE_NO_WARNINGS
         -DUNICODE
         -D_UNICODE
