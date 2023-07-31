@@ -24,9 +24,7 @@ env:
   VCPKG_DEFAULT_BINARY_CACHE: "${{ github.workspace }}/vcpkg/.cache"
   NWN_ROOT: "${{ github.workspace }}/nwn/"
   CI_GITHUB_ACTIONS: "1"
-  MACOSX_DEPLOYMENT_TARGET: "10.15"
-  CCACHE_DIR: "${{ github.workspace }}/ccache/"
-  CCACHE_BASEDIR: "${{ github.workspace }}/ccache/"
+  MACOSX_DEPLOYMENT_TARGET: "11"
   CMAKE_TOOLCHAIN_FILE: "${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake"
 
 jobs:
@@ -40,7 +38,7 @@ jobs:
 
     steps:
       - name: Get current date
-        if: matrix.os != 'windows-latest'
+        if: ${{ runner.os != 'Windows' }}
         run: |
           echo "DATE=$(date +'%Y-%m-%d')" >> $GITHUB_ENV
 
@@ -48,13 +46,6 @@ jobs:
         if: matrix.os == 'windows-latest'
         run: |
           echo "DATE=$(Get-Date -Format yyyy-MM-dd)" | Out-File -FilePath $env:GITHUB_ENV -Append
-
-      - uses: actions/checkout@v3
-        with:
-          submodules: true
-
-      # Install latest CMake.
-      - uses: lukka/get-cmake@latest
 
       # macOS Dependencies
       - name: macOS - install non-vcpkg dependencies
@@ -68,7 +59,6 @@ jobs:
           brew install pkg-config automake ninja libtool zlib llvm ccache
           echo "CC=$(brew --prefix llvm)/bin/clang" >> $GITHUB_ENV
           echo "CXX=$(brew --prefix llvm)/bin/clang++" >> $GITHUB_ENV
-          echo "PATH=/usr/local/opt/ccache/libexec:$PATH" >> $GITHUB_ENV
 
       - name: macOS - check clang version
         if: matrix.os == 'macos-11'
@@ -76,25 +66,44 @@ jobs:
 
       # Linux dependencies
       - name: linux - install gcc
-        if: matrix.os == 'ubuntu-20.04'
+        if: ${{ runner.os == 'Linux' }}
         run: |
           sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
           sudo apt update
           sudo apt install gcc-11 g++-11 ccache
           sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-11 110 --slave /usr/bin/g++ g++ /usr/bin/g++-11 --slave /usr/bin/gcov gcov /usr/bin/gcov-11
 
-      # Windows dependencies
-      - name: windows - install dependencies
-        if: matrix.os == 'windows-latest'
-        run: |
-          choco install ccache ninja
 
-      - name: Set up ccache
-        if: matrix.os != 'windows-latest'
+      - name: ccache
+        if: ${{ runner.os != 'Windows' }}
+        uses: hendrikmuhs/ccache-action@v1.2
+        with:
+          key: ${{ matrix.os }}  # Make cache specific to OS
+          max-size: "5G"
+
+      - name: Install dependencies
+        if: ${{ runner.os != 'Windows' }}
         run: |
-          ccache --set-config=cache_dir=${{ github.workspace }}/ccache
-          ccache --set-config=max_size=500M
-          ccache --set-config=compression=true
+          env
+          export PATH="/usr/lib/ccache:/usr/local/opt/ccache/libexec:$PATH"
+          echo "/usr/lib/ccache:/usr/local/opt/ccache/libexec" >> $GITHUB_PATH
+          HOST_CCACHE_DIR="$(ccache -k cache_dir)"
+          mkdir -p $HOST_CCACHE_DIR
+
+      - name: ccache
+        if: ${{ runner.os == 'Windows' }}
+        uses: hendrikmuhs/ccache-action@v1.2
+        with:
+          key: ${{ matrix.os }}  # Make cache specific to OS
+          max-size: "5G"
+          variant: sccache
+
+      - uses: actions/checkout@v3
+        with:
+          submodules: true
+
+      # Install latest CMake.
+      - uses: lukka/get-cmake@latest
 
       # vcpkg
       - name: all - download vcpkg
@@ -107,7 +116,6 @@ jobs:
         with:
           path: |
             ${{ github.workspace }}/vcpkg/.cache
-            ${{ github.workspace }}/ccache
           key: ${{ runner.os }}-build-${{ env.vcpkg-tag }}-${{ env.DATE }}-${{ hashFiles('vcpkg.json') }}
           restore-keys: |
             ${{ runner.os }}-build-
@@ -173,3 +181,13 @@ jobs:
         run: |
           cmake --build --preset default
           ctest --preset default
+
+      - name: ccache stats
+        if: ${{ runner.os != 'Windows' }}
+        run: |
+          ccache -s
+
+      - name: ccache stats
+        if: ${{ runner.os == 'Windows' }}
+        run: |
+          sccache -s
