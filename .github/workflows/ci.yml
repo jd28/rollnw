@@ -73,9 +73,7 @@ jobs:
           sudo apt install gcc-11 g++-11 ccache
           sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-11 110 --slave /usr/bin/g++ g++ /usr/bin/g++-11 --slave /usr/bin/gcov gcov /usr/bin/gcov-11
 
-
       - name: ccache
-        if: ${{ runner.os != 'Windows' }}
         uses: hendrikmuhs/ccache-action@v1.2
         with:
           key: ${{ matrix.os }}  # Make cache specific to OS
@@ -90,13 +88,11 @@ jobs:
           HOST_CCACHE_DIR="$(ccache -k cache_dir)"
           mkdir -p $HOST_CCACHE_DIR
 
-      - name: ccache
+      - name: make ccache dir
         if: ${{ runner.os == 'Windows' }}
-        uses: hendrikmuhs/ccache-action@v1.2
-        with:
-          key: ${{ matrix.os }}  # Make cache specific to OS
-          max-size: "5G"
-          variant: sccache
+        run: |
+          $env:HOST_CCACHE_DIR="$(ccache -k cache_dir)"
+          md $env:HOST_CCACHE_DIR -ea 0
 
       - uses: actions/checkout@v3
         with:
