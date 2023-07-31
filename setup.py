@@ -30,7 +30,8 @@ class CMakeBuild(build_ext):
             f"-DCMAKE_LIBRARY_OUTPUT_DIRECTORY={extdir}",
             f"-DPYTHON_EXECUTABLE={sys.executable}",
             f"-DVERSION_INFO={self.distribution.get_version()}",
-            "-DROLLNW_BUILD_PYTHON=ON"
+            "-DROLLNW_BUILD_PYTHON=ON",
+            "-DROLLNW_BUILD_TESTS=OFF"
         ]
 
         if self.compiler.compiler_type == "msvc":
