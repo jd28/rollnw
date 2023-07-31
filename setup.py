@@ -42,7 +42,7 @@ class CMakeBuild(build_ext):
             preset = "macos"
 
         if os.environ.get("CIBUILDWHEEL", "0") == "1":
-            preset = "ci-" + preset
+            preset = "cibuildwheel-" + preset
 
         subprocess.check_call(["cmake", f"--preset {preset}"] + cmake_args)
         subprocess.check_call(["cmake", "--build", "--preset", "default"])

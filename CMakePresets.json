@@ -60,6 +60,24 @@
             }
         },
         {
+            "name": "cibuildwheel-linux",
+            "inherits": "linux",
+            "generator": "Unix Makefiles",
+            "displayName": "cibuildwheel-linux",
+            "description": "linux build, no tests, python, unix makefiles",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release",
+                "ROLLNW_BUILD_TESTS": {
+                    "type": "BOOL",
+                    "value": "OFF"
+                },
+                "ROLLNW_BUILD_PYTHON": {
+                    "type": "BOOL",
+                    "value": "ON"
+                }
+            }
+        },
+        {
             "name": "ci-coverage-docs",
             "inherits": "linux",
             "displayName": "ci-coverage-docs",
@@ -124,6 +142,21 @@
             }
         },
         {
+            "name": "cibuildwheel-windows",
+            "inherits": "ci-windows",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release",
+                "ROLLNW_BUILD_TESTS": {
+                    "type": "BOOL",
+                    "value": "OFF"
+                },
+                "ROLLNW_BUILD_PYTHON": {
+                    "type": "BOOL",
+                    "value": "ON"
+                }
+            }
+        },
+        {
             "name": "macos",
             "inherits": "linux",
             "displayName": "macOS default configuration",
@@ -147,6 +180,22 @@
             },
             "cacheVariables": {
                 "ROLLNW_BUILD_TESTS": {
+                    "type": "BOOL",
+                    "value": "ON"
+                }
+            }
+        },
+        {
+            "name": "cibuildwheel-macos",
+            "inherits": "ci-macos",
+            "displayName": "macOS CI configuration",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release",
+                "ROLLNW_BUILD_TESTS": {
+                    "type": "BOOL",
+                    "value": "OFF"
+                },
+                "ROLLNW_BUILD_PYTHON": {
                     "type": "BOOL",
                     "value": "ON"
                 }
