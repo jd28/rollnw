@@ -21,6 +21,7 @@ skip = "*-win32 *-manylinux_i686 pp* cp36-* cp37-* *-musllinux_*"
 before-all = [
   "source {project}/scripts/docker_prepare.sh",
   "{project}/vcpkg/bootstrap-vcpkg.sh",
+  "rm {project}/build/CMakeCache.txt"
 ]
 
 [tool.pytest.ini_options]
