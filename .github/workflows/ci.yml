@@ -106,7 +106,7 @@ jobs:
         with:
           path: |
             ${{ github.workspace }}/.ccache/
-          key: ${{ runner.os }}-ccache-${{ env.DATE }}-${{ hashFiles('vcpkg.json') }}
+          key: ${{ runner.os }}-ccache-${{ env.DATE }}
           restore-keys: |
             ${{ runner.os }}-ccache-
 
