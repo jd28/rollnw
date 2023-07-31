@@ -8,7 +8,7 @@ set -xe
 if [[ -f "/etc/centos-release" ]]; then
     # sometimes the epel server is down. retry 5 times
     for i in $(seq 1 5); do
-        yum install -y zlib-devel curl-devel expat-devel libpng-devel ccache && s=0 && break || s=$? && sleep 15;
+        yum install -y zlib-devel curl-devel expat-devel libpng-devel ccache curl zip unzip tar && s=0 && break || s=$? && sleep 15;
     done
 
     [ $s -eq 0 ] || exit $s
@@ -30,7 +30,7 @@ if [[ -f "/etc/centos-release" ]]; then
 elif [[ -f "/etc/alpine-release" ]]; then
     # musllinux prep
     # ccache already present
-    apk add curl-dev expat-dev zlib-dev libpng-dev ccache
+    apk add curl-dev expat-dev zlib-dev libpng-dev ccache zip unzip tar
     export PATH="/usr/lib/ccache/bin:$PATH"
 fi
 
