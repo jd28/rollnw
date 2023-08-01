@@ -12,6 +12,7 @@ option(ROLLNW_BUILD_PYTHON "Build python bindings" OFF)
 
 # Generate compile_commands.json to make it easier to work with clang based tools
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin)
 
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 # AppleClang changes visibility to hidden
