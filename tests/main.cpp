@@ -13,14 +13,14 @@
 
 int main(int argc, char* argv[])
 {
-    std::filesystem::create_directory("tmp");
-    bool probe = false;
-    const char* var = nowide::getenv("ROLLNW_TEST_PROBE_INSTALL");
-    if (var) {
-        if (auto val = nw::string::from<bool>(var)) {
-            probe = *val;
+    bool list_tests = false;
+    for(int i = 0; i < argc; ++i) {
+        if(nw::string::icmp("--gtest_list_tests", argv[i])) {
+            list_tests = true;
         }
     }
+
+    std::filesystem::create_directory("tmp");
 
     nw::init_logger(argc, argv);
 
@@ -39,12 +39,18 @@ int main(int argc, char* argv[])
         });
     }
 
-    nw::kernel::services().start();
-    nw::kernel::load_profile(new nwn1::Profile);
+    if(!list_tests) {
+        nw::kernel::services().start();
+        nw::kernel::load_profile(new nwn1::Profile);
+    }
 
     ::testing::InitGoogleTest(&argc, argv);
     int failed = RUN_ALL_TESTS();
-    // Not necessary, but best to make sure it doesn't fault.
-    nw::kernel::services().shutdown();
+
+    if(!list_tests) {
+        // Not necessary, but best to make sure it doesn't fault.
+        nw::kernel::services().shutdown();
+    }
+
     return failed;
 }
