@@ -77,6 +77,90 @@ std::string_view Context::type_name(size_t type_id)
     return type_array_[type_id];
 }
 
+bool Context::type_check_binary_op(NssToken op, size_t lhs, size_t rhs)
+{
+    size_t int_ = type_id("int");
+    size_t float_ = type_id("float");
+    size_t string_ = type_id("string");
+    size_t vector_ = type_id("vector");
+
+    bool is_good = false;
+    bool is_eq = false;
+
+    switch (op.type) {
+    default:
+        return false;
+
+    case NssTokenType::EQ:
+        return is_type_convertible(lhs, rhs);
+    case NssTokenType::MODEQ:
+    case NssTokenType::MOD:
+        return lhs == int_ && rhs == int_;
+    case NssTokenType::PLUS:
+    case NssTokenType::PLUSEQ:
+        is_eq = op.type == NssTokenType::PLUSEQ;
+        if ((lhs == int_ || lhs == float_) && (rhs == int_ || rhs == float_)) {
+            is_good = true;
+        } else if (lhs == vector_ && rhs == vector_) {
+            is_good = true;
+        } else if (lhs == string_ && rhs == string_) {
+            is_good = true;
+        } else if ((lhs == vector_ || lhs == float_) && (rhs == vector_ || rhs == float_)) {
+            // x3_inc_horse
+            is_good = true;
+        }
+        break;
+    case NssTokenType::MINUS:
+    case NssTokenType::MINUSEQ:
+        is_eq = op.type == NssTokenType::MINUSEQ;
+        if ((lhs == int_ || lhs == float_) && (rhs == int_ || rhs == float_)) {
+            is_good = true;
+        } else if (lhs == vector_ && rhs == vector_) {
+            is_good = true;
+        }
+        break;
+    case NssTokenType::TIMES:
+    case NssTokenType::TIMESEQ:
+        is_eq = op.type == NssTokenType::TIMESEQ;
+        if ((lhs == int_ || lhs == float_) && (rhs == int_ || rhs == float_)) {
+            is_good = true;
+        } else if ((lhs == vector_ || lhs == float_) && (rhs == vector_ || rhs == float_)) {
+            is_good = true;
+        }
+        break;
+    case NssTokenType::DIV:
+    case NssTokenType::DIVEQ:
+        is_eq = op.type == NssTokenType::DIVEQ;
+        if ((lhs == int_ || lhs == float_) && (rhs == int_ || rhs == float_)) {
+            is_good = true;
+        } else if (lhs == vector_ && rhs == float_) {
+            is_good = true;
+        }
+        break;
+    case NssTokenType::SL:
+    case NssTokenType::SR:
+    case NssTokenType::USR:
+    case NssTokenType::SLEQ:
+    case NssTokenType::SREQ:
+    case NssTokenType::USREQ:
+    case NssTokenType::OR:
+    case NssTokenType::OREQ:
+    case NssTokenType::AND:
+    case NssTokenType::ANDEQ:
+        return lhs == int_ && rhs == int_;
+    }
+
+    return is_eq ? (is_good && is_type_convertible(lhs, rhs)) : is_good;
+}
+
+bool Context::is_type_convertible(size_t lhs, size_t rhs)
+{
+    size_t int_ = type_id("int");
+    size_t float_ = type_id("float");
+
+    return lhs == rhs || (lhs == float_ && rhs == int_);
+}
+
 void Context::lexical_error(Nss* script, std::string_view msg, SourceLocation loc)
 {
     if (script) { script->increment_errors(); }

@@ -315,30 +315,16 @@ struct AstResolver : BaseVisitor {
         expr->lhs->accept(this);
         expr->rhs->accept(this);
 
-        if (expr->op.type == NssTokenType::SLEQ
-            || expr->op.type == NssTokenType::SREQ
-            || expr->op.type == NssTokenType::USREQ) {
-            if (expr->lhs->type_id_ != ctx_->type_id("int")
-                || expr->rhs->type_id_ != ctx_->type_id("int")) {
-                ctx_->semantic_error(parent_,
-                    fmt::format("invalid operands of types '{}' and '{}' to assignment operator '{}'",
-                        ctx_->type_name(expr->lhs->type_id_),
-                        ctx_->type_name(expr->rhs->type_id_),
-                        expr->op.loc.view()),
-                    expr->op.loc);
-            }
-            expr->type_id_ = ctx_->type_id("int");
+        if (!ctx_->type_check_binary_op(expr->op, expr->lhs->type_id_, expr->rhs->type_id_)) {
+            ctx_->semantic_error(parent_,
+                fmt::format("invalid operands of types '{}' and '{}' to binary operator '{}'",
+                    ctx_->type_name(expr->lhs->type_id_),
+                    ctx_->type_name(expr->rhs->type_id_),
+                    expr->op.loc.view()),
+                expr->op.loc);
             return;
         }
 
-        if (expr->lhs->type_id_ == ctx_->type_id("float") && expr->rhs->type_id_ == ctx_->type_id("int")) {
-            // this is fine.
-        } else if (expr->lhs->type_id_ != expr->rhs->type_id_) {
-            ctx_->semantic_error(parent_,
-                fmt::format("assigning a value of type '{}' to a variable of type '{}'",
-                    ctx_->type_name(expr->rhs->type_id_), ctx_->type_name(expr->lhs->type_id_)),
-                expr->op.loc);
-        }
         expr->type_id_ = expr->lhs->type_id_;
     }
 
@@ -349,32 +335,16 @@ struct AstResolver : BaseVisitor {
 
         expr->is_const_ = expr->lhs->is_const_ && expr->rhs->is_const_;
 
-        if (expr->op.type == NssTokenType::SL
-            || expr->op.type == NssTokenType::SR
-            || expr->op.type == NssTokenType::USR) {
-            expr->type_id_ = ctx_->type_id("int");
-            if (expr->lhs->type_id_ != ctx_->type_id("int")
-                || expr->rhs->type_id_ != ctx_->type_id("int")) {
-                ctx_->semantic_error(parent_,
-                    fmt::format("invalid operands of types '{}' and '{}' to binary operator '{}'",
-                        ctx_->type_name(expr->lhs->type_id_),
-                        ctx_->type_name(expr->rhs->type_id_),
-                        expr->op.loc.view()),
-                    expr->op.loc);
-            }
+        if (!ctx_->type_check_binary_op(expr->op, expr->lhs->type_id_, expr->rhs->type_id_)) {
+            ctx_->semantic_error(parent_,
+                fmt::format("invalid operands of types '{}' and '{}' to binary operator '{}'",
+                    ctx_->type_name(expr->lhs->type_id_),
+                    ctx_->type_name(expr->rhs->type_id_),
+                    expr->op.loc.view()),
+                expr->op.loc);
             return;
         }
-
         expr->type_id_ = expr->lhs->type_id_;
-        if ((expr->lhs->type_id_ == ctx_->type_id("float") && expr->rhs->type_id_ == ctx_->type_id("int"))
-            || expr->lhs->type_id_ == ctx_->type_id("int") && expr->rhs->type_id_ == ctx_->type_id("float")) {
-            expr->type_id_ = ctx_->type_id("float"); // this is fine.
-        } else if (expr->lhs->type_id_ != expr->rhs->type_id_) {
-            ctx_->semantic_error(parent_,
-                fmt::format("mismatched types in binary-expression '{}' != '{}', {}",
-                    ctx_->type_name(expr->lhs->type_id_), ctx_->type_name(expr->rhs->type_id_), expr->extent().view()),
-                expr->extent());
-        }
     }
 
     virtual void visit(CallExpression* expr) override
@@ -440,7 +410,9 @@ struct AstResolver : BaseVisitor {
 
         expr->is_const_ = expr->lhs->is_const_ && expr->rhs->is_const_;
 
-        if (expr->lhs->type_id_ != expr->rhs->type_id_) {
+        if (expr->lhs->type_id_ != expr->rhs->type_id_
+            && !ctx_->is_type_convertible(expr->lhs->type_id_, expr->rhs->type_id_)
+            && !ctx_->is_type_convertible(expr->rhs->type_id_, expr->lhs->type_id_)) {
             ctx_->semantic_error(parent_,
                 fmt::format("mismatched types in binary-expression '{}' != '{}', {}",
                     ctx_->type_name(expr->lhs->type_id_), ctx_->type_name(expr->rhs->type_id_), expr->extent().view()),
