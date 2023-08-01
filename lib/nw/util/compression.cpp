@@ -2,7 +2,6 @@
 
 #include "../log.hpp"
 
-#include <zlib.h>
 #include <zstd.h>
 
 #include <array>
@@ -36,40 +35,6 @@ struct ZstdHeader {
     uint32_t version;
     uint32_t dictionary;
 };
-
-// Untested since zlib is deprecated and not worth spinning to test it.. for now.
-inline ByteArray zlib_decompress(std::span<const uint8_t> span, uint32_t uncompressed_size)
-{
-    ByteArray result;
-    std::size_t hdr_sz = sizeof(ZlibHeader);
-    if (span.size() < hdr_sz) {
-        LOG_F(ERROR, "Invalid Zlib Header");
-        return result;
-    }
-    ZlibHeader hdr;
-    memcpy(&hdr, span.data(), hdr_sz);
-    switch (hdr.version) {
-    default:
-        LOG_F(ERROR, "Invalid Zlib version: {}", hdr.version);
-        break;
-    case 1: {
-        result.resize(uncompressed_size);
-        uLongf dst_len = 0;
-        auto src = const_cast<Bytef*>(reinterpret_cast<const Bytef*>(span.data()));
-        auto err = uncompress(reinterpret_cast<Bytef*>(result.data()), &dst_len,
-            src + hdr_sz, static_cast<uLongf>(span.size() - hdr_sz));
-
-        if (err != Z_OK) {
-            LOG_F(ERROR, "Zlib failed to decompress");
-            result.clear();
-        } else if (dst_len != uncompressed_size) {
-            LOG_F(ERROR, "Zlib failed to decompress");
-            result.clear();
-        }
-    } break;
-    }
-    return result;
-}
 
 inline ByteArray zstd_decompress(std::span<const uint8_t> span, uint32_t uncompressed_size)
 {
@@ -132,7 +97,7 @@ ByteArray decompress(std::span<const uint8_t> span, const char* magic)
         result = {span.data(), span.size()};
         break;
     case 1: // Zlib
-        result = zlib_decompress(span, hdr.uncompressed_size);
+        LOG_F(ERROR, "zlib is unsupported.");
         break;
     case 2: // Zstd
         result = zstd_decompress(span, hdr.uncompressed_size);

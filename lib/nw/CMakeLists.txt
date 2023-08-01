@@ -138,7 +138,6 @@ target_link_libraries(nw PUBLIC
     unofficial::minizip::minizip
     nlohmann_json nlohmann_json::nlohmann_json
     nowide::nowide
-    ZLIB::ZLIB
     zstd::libzstd_static
     unofficial::sqlite3::sqlite3
     Threads::Threads

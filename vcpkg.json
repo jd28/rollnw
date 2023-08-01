@@ -5,7 +5,6 @@
     "fmt",
     "abseil",
     "zstd",
-    "zlib",
     "sqlite3",
     "minizip",
     "nlohmann-json",
