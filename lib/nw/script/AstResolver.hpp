@@ -401,18 +401,27 @@ struct AstResolver : BaseVisitor {
 
         expr->type_id_ = func_decl->type_id_;
 
-        if (expr->args.size() != func_decl->params.size()) {
+        size_t req = 0;
+        for (const auto& p : func_decl->params) {
+            if (p->init) { break; }
+            ++req;
+        }
+
+        if (expr->args.size() < req || expr->args.size() > func_decl->params.size()) {
             ctx_->semantic_error(parent_,
-                fmt::format("no matching function call '{}'", expr->extent().view()),
+                fmt::format("no matching function call '{}' expected {} parameters", expr->extent().view(), req),
                 expr->extent());
             return;
         }
 
-        for (size_t i = 0; i < func_decl->params.size(); ++i) {
+        for (size_t i = 0; i < expr->args.size(); ++i) {
             expr->args[i]->accept(this);
 
             if (func_decl->params[i]->type_id_ == ctx_->type_id("float")
                 && expr->args[i]->type_id_ == ctx_->type_id("int")) {
+                // This is fine
+            } else if (func_decl->params[i]->type_id_ == ctx_->type_id("action")
+                && dynamic_cast<CallExpression*>(expr->args[i].get())) {
                 // This is fine
             } else if (func_decl->params[i]->type_id_ != expr->args[i]->type_id_) {
                 ctx_->semantic_error(parent_,

@@ -241,6 +241,16 @@ TEST(Nss, FunctionCall)
     EXPECT_NO_THROW(nss5.resolve());
     EXPECT_EQ(nss5.errors(), 0);
 
+    script::Nss nss10(R"(
+        int test_function(int b = 1);
+        void main() {
+            int c = test_function();
+        }
+    )"sv);
+    EXPECT_NO_THROW(nss10.parse());
+    EXPECT_NO_THROW(nss10.resolve());
+    EXPECT_EQ(nss10.errors(), 0);
+
     // == Bad =================================================================
 
     script::Nss nss2("void main() { 423(b); }"sv);
@@ -272,6 +282,26 @@ TEST(Nss, FunctionCall)
     EXPECT_NO_THROW(nss7.parse());
     EXPECT_NO_THROW(nss7.resolve());
     EXPECT_EQ(nss7.errors(), 1);
+
+    script::Nss nss8(R"(
+        int test_function(int b);
+        void main() {
+            int c = test_function();
+        }
+    )"sv);
+    EXPECT_NO_THROW(nss8.parse());
+    EXPECT_NO_THROW(nss8.resolve());
+    EXPECT_EQ(nss8.errors(), 1);
+
+    script::Nss nss9(R"(
+        int test_function(int b);
+        void main() {
+            int c = test_function(1, 3);
+        }
+    )"sv);
+    EXPECT_NO_THROW(nss9.parse());
+    EXPECT_NO_THROW(nss9.resolve());
+    EXPECT_EQ(nss9.errors(), 1);
 }
 
 TEST(Nss, DotOperator)
