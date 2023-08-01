@@ -207,6 +207,14 @@ jobs:
           ls -la $HOST_CCACHE_DIR
           ccache -s
 
+      - name: Download vcpkg Cache from Docker (linux only)
+        if: ${{ runner.os == 'Linux' }}
+        run: |
+          env
+          rm -rf $VCPKG_DEFAULT_BINARY_CACHE
+          mv ./wheelhouse/.vcpkg_cache $VCPKG_DEFAULT_BINARY_CACHE
+          ls -la $VCPKG_DEFAULT_BINARY_CACHE
+
       - uses: actions/upload-artifact@v2
         with:
           path: ./wheelhouse/*.whl
