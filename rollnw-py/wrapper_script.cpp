@@ -1,5 +1,6 @@
 #include "opaque_types.hpp"
 
+#include <nw/kernel/Resources.hpp>
 #include <nw/script/Nss.hpp>
 #include <nw/script/NssLexer.hpp>
 #include <nw/script/Token.hpp>
@@ -134,16 +135,16 @@ void init_script(py::module& nw)
                 return &self.ast();
             },
             py::return_value_policy::reference_internal)
+        .def("dependencies", &nws::Nss::dependencies)
         .def("errors", &nws::Nss::errors)
         .def("locate_export", &nws::Nss::locate_export, py::return_value_policy::reference_internal)
-        .def(
-            "parse", [](nws::Nss& self) {
-                self.parse();
-                return &self.ast();
-            },
-            py::return_value_policy::reference_internal)
+        .def("parse", &nws::Nss::parse)
         .def("process_includes", &nws::Nss::process_includes, py::arg("parent") = nullptr)
         .def("resolve", &nws::Nss::resolve)
+        .def("type_name", [](const nws::Nss& self, const nws::AstNode* node) {
+            if (!node) { return ""sv; }
+            return self.ctx() ? self.ctx()->type_name(node->type_id_) : ""sv;
+        })
         .def("warnings", &nws::Nss::warnings)
         .def_static("from_string", [](std::string_view str) {
             return new nws::Nss(str);
@@ -165,7 +166,15 @@ void init_script(py::module& nw)
             return py::iter(pylist);
         })
         .def_readonly("defines", &nws::Ast::defines)
-        .def_readonly("includes", &nws::Ast::includes);
+        .def("includes", [](const nws::Ast& self) {
+            auto pylist = py::list();
+            for (auto& ptr : self.includes) {
+                auto pyobj = py::cast(ptr, py::return_value_policy::reference);
+                pylist.append(pyobj);
+            }
+            return pylist;
+        })
+        .def_readonly("include_resrefs", &nws::Ast::include_resrefs);
 
     py::class_<nws::AstNode>(nw, "AstNode")
         .def("accept", &nws::AstNode::accept);
@@ -368,4 +377,12 @@ void init_script(py::module& nw)
         .def_property_readonly(
             "init", [](nws::VarDecl& self) { return self.init.get(); },
             py::return_value_policy::reference_internal);
+
+    nw.def("load", [](std::string_view script) {
+        auto res = new nws::Nss{nw::kernel::resman().demand({script, nw::ResourceType::nss})};
+        res->parse();
+        res->process_includes();
+        res->resolve();
+        return res;
+    });
 }
