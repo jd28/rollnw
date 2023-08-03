@@ -826,7 +826,7 @@ std::unique_ptr<Statement> NssParser::parse_decl_external()
         if (auto decl = dynamic_cast<FunctionDecl*>(fd.get())) {
             decl->type = t;
         } else if (auto def = dynamic_cast<FunctionDefinition*>(fd.get())) {
-            def->decl->type = t;
+            def->decl_inline->type = t;
         }
         return fd;
     }
@@ -870,7 +870,7 @@ std::unique_ptr<Declaration> NssParser::parse_decl_function_def()
         return decl;
     }
     auto def = std::make_unique<FunctionDefinition>();
-    def->decl = std::move(decl);
+    def->decl_inline = std::move(decl);
     consume(NssTokenType::LBRACE, "Expected '{'.");
     def->block = parse_stmt_block();
     return def;

@@ -141,7 +141,7 @@ struct AstResolver : BaseVisitor {
             } else if (auto d = dynamic_cast<FunctionDecl*>(decl.get())) {
                 parent_->add_export(std::string(d->identifier.loc.view()), d);
             } else if (auto d = dynamic_cast<FunctionDefinition*>(decl.get())) {
-                parent_->add_export(std::string(d->decl->identifier.loc.view()), d);
+                parent_->add_export(std::string(d->decl_inline->identifier.loc.view()), d);
             }
         }
         end_scope();
@@ -245,15 +245,16 @@ struct AstResolver : BaseVisitor {
     {
         ++func_def_stack_;
         // Check to see if there's been a function declaration, if so got to match.
-        auto fd = resolve(decl->decl->identifier.loc.view(), decl->decl->identifier.loc);
+        auto fd = resolve(decl->decl_inline->identifier.loc.view(), decl->decl_inline->identifier.loc);
+        decl->decl_external = dynamic_cast<FunctionDecl*>(fd);
 
-        decl->type_id_ = decl->decl->type_id_ = ctx_->type_id(decl->decl->type);
+        decl->type_id_ = decl->decl_inline->type_id_ = ctx_->type_id(decl->decl_inline->type);
 
-        declare(decl->decl->identifier, decl);
-        define(decl->decl->identifier);
+        declare(decl->decl_inline->identifier, decl);
+        define(decl->decl_inline->identifier);
 
         begin_scope();
-        for (auto& p : decl->decl->params) {
+        for (auto& p : decl->decl_inline->params) {
             p->accept(this);
             if (p->init && !p->init->is_const_) {
                 ctx_->semantic_error(parent_, "initializing parameter a with non-constant expression",
@@ -261,7 +262,7 @@ struct AstResolver : BaseVisitor {
             }
         }
 
-        match_function_decls(dynamic_cast<FunctionDecl*>(fd), decl->decl.get());
+        match_function_decls(decl->decl_external, decl->decl_inline.get());
 
         decl->block->accept(this);
         end_scope();
@@ -357,11 +358,13 @@ struct AstResolver : BaseVisitor {
         }
 
         FunctionDecl* func_decl = nullptr;
+        FunctionDecl* orig_decl = nullptr;
         auto decl = resolve(ve->var.loc.view(), ve->var.loc);
         if (auto fd = dynamic_cast<FunctionDecl*>(decl)) {
             func_decl = fd;
         } else if (auto fd = dynamic_cast<FunctionDefinition*>(decl)) {
-            func_decl = fd->decl.get();
+            func_decl = fd->decl_inline.get();
+            orig_decl = fd->decl_external;
         } else {
             ctx_->semantic_error(parent_,
                 fmt::format("unable to resolve identifier '{}'", ve->var.loc.view()),
@@ -372,8 +375,8 @@ struct AstResolver : BaseVisitor {
         expr->type_id_ = func_decl->type_id_;
 
         size_t req = 0;
-        for (const auto& p : func_decl->params) {
-            if (p->init) { break; }
+        for (size_t i = 0; i < func_decl->params.size(); ++i) {
+            if (func_decl->params[i]->init || (orig_decl && orig_decl->params[i]->init)) { break; }
             ++req;
         }
 

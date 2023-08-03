@@ -53,7 +53,7 @@ struct AstPrinter : BaseVisitor {
            << std::string(size_t(depth * 2), ' ') << "(fun ";
 
         ++depth;
-        decl->decl->accept(this);
+        decl->decl_inline->accept(this);
         if (decl->block)
             decl->block->accept(this);
         --depth;

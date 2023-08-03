@@ -449,8 +449,9 @@ struct FunctionDecl : public Declaration {
 };
 
 struct FunctionDefinition : public Declaration {
-    std::unique_ptr<FunctionDecl> decl;
+    std::unique_ptr<FunctionDecl> decl_inline;
     std::unique_ptr<BlockStatement> block;
+    FunctionDecl* decl_external = nullptr;
 
     DEFINE_ACCEPT_VISITOR
 };

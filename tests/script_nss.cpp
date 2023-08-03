@@ -117,7 +117,7 @@ TEST(Nss, FunctionDecl)
     auto fd2 = dynamic_cast<script::FunctionDefinition*>(s2.decls[0].get());
     EXPECT_TRUE(fd2);
     if (fd2) {
-        EXPECT_TRUE(fd2->decl);
+        EXPECT_TRUE(fd2->decl_inline);
         EXPECT_TRUE(fd2->block);
         EXPECT_EQ(fd2->block->nodes.size(), 1);
     }
@@ -134,7 +134,7 @@ TEST(Nss, FunctionDecl)
     auto fd4 = dynamic_cast<script::FunctionDefinition*>(s4.decls[0].get());
     if (fd4) {
         EXPECT_TRUE(fd4);
-        EXPECT_TRUE(fd4->decl);
+        EXPECT_TRUE(fd4->decl_inline);
         EXPECT_TRUE(fd4->block);
         EXPECT_EQ(fd4->block->nodes.size(), 1);
     }
@@ -211,6 +211,19 @@ TEST(Nss, FunctionDef)
     script::Nss nss("void test_function(string s, int b) {}"sv);
     EXPECT_NO_THROW(nss.parse());
     EXPECT_EQ(nss.errors(), 0);
+
+    script::Nss nss2(R"(
+        void Something(object oID = OBJECT_INVALID);
+
+        void Something(object oID) { /* ... */ }
+
+        void main() {
+            Something();
+        }
+    )"sv);
+    EXPECT_NO_THROW(nss2.parse());
+    EXPECT_NO_THROW(nss2.resolve());
+    EXPECT_EQ(nss2.errors(), 0);
 }
 
 TEST(Nss, FunctionCall)

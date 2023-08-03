@@ -359,7 +359,7 @@ void init_script(py::module& nw)
 
     py::class_<nws::FunctionDefinition, nws::Declaration>(nw, "FunctionDefinition")
         .def_property_readonly(
-            "decl", [](nws::FunctionDefinition& self) { return self.decl.get(); },
+            "decl", [](nws::FunctionDefinition& self) { return self.decl_inline.get(); },
             py::return_value_policy::reference_internal)
         .def_property_readonly(
             "block", [](nws::FunctionDefinition& self) { return self.block.get(); },
