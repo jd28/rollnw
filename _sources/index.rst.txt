@@ -1,4 +1,4 @@
-|License: MIT| |ci| |CodeQL| |codecov| |Documentation Status|
+|License: MIT| |ci| |CodeQL| |codecov| |Documentation Status||pypi|
 
 rollNW
 ======
@@ -121,6 +121,8 @@ Credits
    :target: https://gitpod.io/#https://github.com/jd28/rollnw
 .. |Documentation Status| image:: https://readthedocs.org/projects/rollnw/badge/?version=latest
     :target: https://rollnw.readthedocs.io/en/latest/?badge=latest
+.. |pypi| image:: https://badge.fury.io/py/rollnw.svg
+    :target: https://badge.fury.io/py/rollnw
 
 .. toctree::
   :caption: getting started
@@ -152,6 +154,16 @@ Credits
   api/enumlist
   api/functionlist
   api/typedeflist
+
+.. toctree::
+  :caption: python api
+  :maxdepth: 1
+
+  api_python/rollnw
+  api_python/rollnw_kernel
+  api_python/rollnw_model
+  api_python/rollnw_nwn1
+  api_python/rollnw_script
 
 .. toctree::
   :caption: gff schemas

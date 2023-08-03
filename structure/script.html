@@ -58,6 +58,7 @@
 <li class="toctree-l1 current"><a class="current reference internal" href="#">script</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#examples">examples</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#performance">performance</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#todos">TODOs</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#credits">credits</a></li>
 </ul>
 </li>
@@ -70,6 +71,14 @@
 <li class="toctree-l1"><a class="reference internal" href="../api/enumlist.html">enums</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api/functionlist.html">functions</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api/typedeflist.html">typedefs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">python api</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../api_python/rollnw.html">rollnw</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api_python/rollnw_kernel.html">rollnw.kernel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api_python/rollnw_model.html">rollnw.model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api_python/rollnw_nwn1.html">rollnw.nwn1</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api_python/rollnw_script.html">rollnw.script</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">gff schemas</span></p>
 <ul>
@@ -119,29 +128,61 @@
              
   <div class="section" id="script">
 <h1>script<a class="headerlink" href="#script" title="Permalink to this headline"></a></h1>
-<p>A lexer and recursive decent parser, as is. It can create a parse tree, no type checking, no
-real AST.. yet.</p>
-<p>Currently it can parse almost all default nwscripts.</p>
+<p>The script module provides a lexer, recursive decent parser, and type-checker for NWScript.</p>
 <div class="section" id="examples">
 <h2>examples<a class="headerlink" href="#examples" title="Permalink to this headline"></a></h2>
+<p><strong>Basic Loading</strong></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">rollnw.script</span> <span class="kn">import</span> <span class="n">Nss</span>
+
+<span class="c1"># Load</span>
+<span class="n">nss</span> <span class="o">=</span> <span class="n">Nss</span><span class="p">(</span><span class="s2">&quot;nwscript.nss&quot;</span><span class="p">)</span>
+
+<span class="c1"># Parse</span>
+<span class="n">nss</span><span class="o">.</span><span class="n">parse</span><span class="p">()</span>
+
+<span class="c1"># Preprocessing</span>
+<span class="n">nss</span><span class="o">.</span><span class="n">process_includes</span><span class="p">()</span>
+<span class="c1"># Now all dependencies are available</span>
+<span class="n">deps</span> <span class="o">=</span> <span class="n">nss</span><span class="o">.</span><span class="n">dependencies</span><span class="p">()</span>
+
+<span class="c1"># Ast resolution and type-checking</span>
+<span class="n">nss</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span>
+
+<span class="c1"># To simplify this process, the ``load`` function will call all the above</span>
+<span class="n">raise_dead</span> <span class="o">=</span> <span class="n">rollnw</span><span class="o">.</span><span class="n">script</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s2">&quot;nw_s0_raisdead&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<hr class="docutils" />
+<p><strong>Iterating Top-Level Declarations</strong></p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">rollnw.script</span> <span class="kn">import</span> <span class="n">Nss</span><span class="p">,</span> <span class="n">FunctionDecl</span>
 
 <span class="c1"># Load</span>
 <span class="n">nss</span> <span class="o">=</span> <span class="n">Nss</span><span class="p">(</span><span class="s2">&quot;nwscript.nss&quot;</span><span class="p">)</span>
 <span class="c1"># Parse</span>
-<span class="n">script</span> <span class="o">=</span> <span class="n">nss</span><span class="o">.</span><span class="n">parse</span><span class="p">()</span>
+<span class="n">nss</span><span class="o">.</span><span class="n">parse</span><span class="p">()</span>
 <span class="c1"># Iterate toplevel declarations and look for function declarations</span>
 <span class="c1"># This is all functions WITHOUT bodies.</span>
-<span class="k">for</span> <span class="n">decl</span> <span class="ow">in</span> <span class="n">script</span><span class="p">:</span>
+<span class="k">for</span> <span class="n">decl</span> <span class="ow">in</span> <span class="n">nss</span><span class="o">.</span><span class="n">ast</span><span class="p">():</span>
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">decl</span><span class="p">,</span> <span class="n">FunctionDecl</span><span class="p">):</span>
             <span class="c1"># the identifier is token for now..</span>
-            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;function &#39;</span><span class="si">{</span><span class="n">decl</span><span class="o">.</span><span class="n">identifier</span><span class="o">.</span><span class="n">id</span><span class="si">}</span><span class="s2">&#39; has </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">decl</span><span class="p">)</span><span class="si">}</span><span class="s2"> parameter(s)&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;function &#39;</span><span class="si">{</span><span class="n">decl</span><span class="o">.</span><span class="n">identifier</span><span class="o">.</span><span class="n">loc</span><span class="o">.</span><span class="n">view</span><span class="p">()</span><span class="si">}</span><span class="s2">&#39; has </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">decl</span><span class="p">)</span><span class="si">}</span><span class="s2"> parameter(s)&quot;</span><span class="p">)</span>
+
+<span class="c1"># Or if you know what you&#39;re looking for..</span>
+<span class="n">int_to_string</span> <span class="o">=</span> <span class="n">nss</span><span class="o">.</span><span class="n">locate_export</span><span class="p">(</span><span class="s2">&quot;IntToString&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
 <div class="section" id="performance">
 <h2>performance<a class="headerlink" href="#performance" title="Permalink to this headline"></a></h2>
 <p>The parser currently parses at &gt;100MBps on a 2015 MacBook Pro.</p>
+</div>
+<div class="section" id="todos">
+<h2>TODOs<a class="headerlink" href="#todos" title="Permalink to this headline"></a></h2>
+<ul class="simple">
+<li><p>Decide how much to track NWN:EE NWScript changes</p></li>
+<li><p>Make the library more useful for NWScript successors (i.e Dragon Age or KoTOR)</p></li>
+<li><p>Whether to do optimizations or anything further than performance/usability improvements</p></li>
+</ul>
 </div>
 <div class="section" id="credits">
 <h2>credits<a class="headerlink" href="#credits" title="Permalink to this headline"></a></h2>
