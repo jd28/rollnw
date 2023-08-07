@@ -167,27 +167,24 @@ class NssLexer:
         """Gets next token"""
 
 
+class SourceLocation:
+    """Nss source location
+
+    Attributes:
+        column (int): Starting column
+        line (int): Starting line
+        view (str): String view of the location
+    """
+
+
 class NssToken:
     """Nss token
 
     Attributes:
-        type
-        id
-        line
-        start
-        end
+        type (NssTokenType)
+        loc (SourceLocation)
     """
     pass
-
-
-class Type:
-    """A NWScript type
-
-    Attributes:
-        type_qualifier (NssToken)
-        type_specifier (NssToken)
-        struct_id (NssToken)
-    """
 
 
 class AstNode:

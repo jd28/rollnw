@@ -2,8 +2,8 @@
 [![ci](https://github.com/jd28/rollnw/actions/workflows/ci.yml/badge.svg)](https://github.com/jd28/rollnw/actions?query=workflow%3Aci)
 [![CodeQL](https://github.com/jd28/rollnw/actions/workflows/codeql-analysis.yml/badge.svg)](https://github.com/jd28/rollnw/actions/workflows/codeql-analysis.yml)
 [![codecov](https://codecov.io/gh/jd28/rollnw/branch/main/graph/badge.svg?token=79PNROEEUU)](https://codecov.io/gh/jd28/rollnw)
-[![PyPI version](https://badge.fury.io/py/rollnw.svg)](https://badge.fury.io/py/rollnw)
 [![Documentation Status](https://readthedocs.org/projects/rollnw/badge/?version=latest)](https://rollnw.readthedocs.io/en/latest/?badge=latest)
+[![PyPI version](https://badge.fury.io/py/rollnw.svg)](https://badge.fury.io/py/rollnw)
 
 # rollNW
 
@@ -21,7 +21,6 @@ rollNW is an homage to Neverwinter Nights in C++ and Python.  See the [docs](htt
 - An [Model Parser](https://rollnw.readthedocs.io/en/latest/structure/model.html).  See the [mudl](https://github.com/jd28/mudl) model viewer side project.
 - A Resource Manager that can load all NWN containers (e.g. erf, key, nwsync) and also Zip files.
 - An implementation of NWN's [Localization System](https://rollnw.readthedocs.io/en/latest/structure/i18n.html) focused on utf8 everywhere.
-- The beginnings of runtime scripting with [Luau](https://luau-lang.org/) the scripting language of Roblox.
 
 ## Goals
 
@@ -41,21 +40,12 @@ rollNW is an homage to Neverwinter Nights in C++ and Python.  See the [docs](htt
 
 A lot of what's here was written in the 2011-2015 range as part of personal minimalist toolset, modernized and with new EE stuff added.  In some sense, it's a work of historical fiction -- it's what I'd have suggested at the start of NWN:EE: get the game and the community on the same set of libraries.  Similarly to an older project that asked ["what if Bioware had stuck with Lua?"](https://solstice.readthedocs.io/en/latest/).  The answer to that was pretty positive: a decade ahead, at least, of nwscript.
 
-## Moonshots
-
-You make ask yourself, why?  But, to paraphrase Tennyson, ours isn't to question why, it's but to do and die and learn and maybe make neat things.  In that spirit, here is a list of crazy projects that this library hopes to facilitate and that all fly in the face of "WHY?".
-
-* A nwscript [Language Server](https://en.wikipedia.org/wiki/Language_Server_Protocol)
-* A modern, cross-platform nwexplorer.
-* And, of course, the ever elusive open source NWN Toolset, with plugins, scripting, and a built-in console.
-
 ## Credits
 
 - [Bioware](https://bioware.com), [Beamdog](https://beamdog.com) - The game itself
 - [vcpkg](https://github.com/microsoft/vcpkg) - Package Management
 - [abseil](https://abseil.io/) - Foundational
 - [Catch2](https://github.com/catchorg/Catch2) - Testing
-- [Roblox](https://luau-lang.org/) - The Luau scripting language
 - [glm](https://www.opengl.org/sdk/libs/GLM/) - Mathematics
 - [loguru](https://github.com/emilk/loguru), [fmt](https://github.com/fmtlib/fmt) - Logging
 - [stbi_image](https://github.com/nothings/stb), [NWNExplorer](https://github.com/virusman/nwnexplorer), [SOIL2](https://github.com/SpartanJ/SOIL2/) - Image/Texture loading.

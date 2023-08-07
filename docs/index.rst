@@ -1,4 +1,4 @@
-|License: MIT| |ci| |CodeQL| |codecov| |Documentation Status||pypi|
+|License: MIT| |ci| |CodeQL| |codecov| |Documentation Status| |pypi|
 
 rollNW
 ======
@@ -29,7 +29,6 @@ features
 - A Resource Manager that can load all NWN containers (e.g. erf, key, nwsync) and also Zip files.
 - An implementation of NWN's `Localization System <https://rollnw.readthedocs.io/en/latest/structure/i18n.html>`__ focused
   on utf8 everywhere.
-- The beginnings of runtime scripting with `Luau <https://luau-lang.org/>`__ the scripting language of Roblox.
 
 -----------------------------------------
 
@@ -93,7 +92,6 @@ Credits
 -  `vcpkg <https://github.com/microsoft/vcpkg>`__ - Package Management
 -  `abseil <https://abseil.io/>`__ - Foundational
 -  `Catch2 <https://github.com/catchorg/Catch2>`__ - Testing
--  `Roblox <https://luau-lang.org/>`__ - The Luau scripting language
 -  `glm <https://www.opengl.org/sdk/libs/GLM/>`__ - Mathematics
 -  `loguru <https://github.com/emilk/loguru>`__,
    `fmt <https://github.com/fmtlib/fmt>`__ - Logging
@@ -170,6 +168,7 @@ Credits
   :maxdepth: 1
 
   gff_schema/are
+  gff_schema/bic
   gff_schema/dlg
   gff_schema/fac
   gff_schema/gic
