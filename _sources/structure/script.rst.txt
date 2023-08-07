@@ -8,26 +8,47 @@ examples
 
 **Basic Loading**
 
-.. code:: python
+.. tabs::
 
-    from rollnw.script import Nss
+    .. code-tab:: python
 
-    # Load
-    nss = Nss("nwscript.nss")
+        from rollnw.script import Nss
 
-    # Parse
-    nss.parse()
+        # Load
+        nss = Nss("path/to/nwscript.nss")
 
-    # Preprocessing
-    nss.process_includes()
-    # Now all dependencies are available
-    deps = nss.dependencies()
+        # Parse
+        nss.parse()
 
-    # Ast resolution and type-checking
-    nss.resolve()
+        # Preprocessing
+        nss.process_includes()
+        # Now all dependencies are available
+        deps = nss.dependencies()
 
-    # To simplify this process, the ``load`` function will call all the above
-    raise_dead = rollnw.script.load("nw_s0_raisdead")
+        # Ast resolution and type-checking
+        nss.resolve()
+
+        # To simplify this process for assets in the resource manager,
+        # the ``load`` function will call all the above
+        raise_dead = rollnw.script.load("nw_s0_raisdead")
+
+    .. code-tab:: c++
+
+        #include <nw/script/Nss.hpp>
+
+        nw::script::Nss nss{nw::kerne::resman().demand({"nwscript"sv, nw::ResourceType::nss)};
+
+        // Parse
+        nss.parse();
+
+        // Preprocessing
+        nss.process_includes()
+        // Now all dependencies are available
+        auto deps = nss.dependencies()
+
+        // Ast resolution and type-checking
+        nss.resolve()
+
 
 -------------------------------------------------------------------------------
 
@@ -38,9 +59,8 @@ examples
     from rollnw.script import Nss, FunctionDecl
 
     # Load
-    nss = Nss("nwscript.nss")
-    # Parse
-    nss.parse()
+    nss = rollnw.script.load("nwscript")
+
     # Iterate toplevel declarations and look for function declarations
     # This is all functions WITHOUT bodies.
     for decl in nss.ast():
@@ -66,5 +86,4 @@ TODOs
 credits
 -------
 
-Robert Nystrom's wonderful book `Crafting Interpreters <https://craftinginterpreters.com/>`__
-was huge source of inspiration.
+- `Crafting Interpreters <https://craftinginterpreters.com/>`__

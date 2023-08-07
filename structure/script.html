@@ -15,6 +15,7 @@
         <script src="../_static/jquery.js"></script>
         <script src="../_static/underscore.js"></script>
         <script src="../_static/doctools.js"></script>
+        <script src="../_static/tabs.js"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
@@ -83,6 +84,7 @@
 <p class="caption" role="heading"><span class="caption-text">gff schemas</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../gff_schema/are.html">are</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../gff_schema/bic.html">bic</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../gff_schema/dlg.html">dlg</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../gff_schema/fac.html">fac</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../gff_schema/gic.html">gic</a></li>
@@ -132,10 +134,11 @@
 <div class="section" id="examples">
 <h2>examples<a class="headerlink" href="#examples" title="Permalink to this headline"></a></h2>
 <p><strong>Basic Loading</strong></p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">rollnw.script</span> <span class="kn">import</span> <span class="n">Nss</span>
+<div class="sphinx-tabs docutils container">
+<div aria-label="Tabbed content" class="closeable" role="tablist"><button aria-controls="panel-0-UHl0aG9u" aria-selected="true" class="sphinx-tabs-tab code-tab group-tab" id="tab-0-UHl0aG9u" name="UHl0aG9u" role="tab" tabindex="0">Python</button><button aria-controls="panel-0-Qysr" aria-selected="false" class="sphinx-tabs-tab code-tab group-tab" id="tab-0-Qysr" name="Qysr" role="tab" tabindex="-1">C++</button></div><div aria-labelledby="tab-0-UHl0aG9u" class="sphinx-tabs-panel code-tab group-tab" id="panel-0-UHl0aG9u" name="UHl0aG9u" role="tabpanel" tabindex="0"><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">rollnw.script</span> <span class="kn">import</span> <span class="n">Nss</span>
 
 <span class="c1"># Load</span>
-<span class="n">nss</span> <span class="o">=</span> <span class="n">Nss</span><span class="p">(</span><span class="s2">&quot;nwscript.nss&quot;</span><span class="p">)</span>
+<span class="n">nss</span> <span class="o">=</span> <span class="n">Nss</span><span class="p">(</span><span class="s2">&quot;path/to/nwscript.nss&quot;</span><span class="p">)</span>
 
 <span class="c1"># Parse</span>
 <span class="n">nss</span><span class="o">.</span><span class="n">parse</span><span class="p">()</span>
@@ -148,18 +151,35 @@
 <span class="c1"># Ast resolution and type-checking</span>
 <span class="n">nss</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span>
 
-<span class="c1"># To simplify this process, the ``load`` function will call all the above</span>
+<span class="c1"># To simplify this process for assets in the resource manager,</span>
+<span class="c1"># the ``load`` function will call all the above</span>
 <span class="n">raise_dead</span> <span class="o">=</span> <span class="n">rollnw</span><span class="o">.</span><span class="n">script</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s2">&quot;nw_s0_raisdead&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
+</div><div aria-labelledby="tab-0-Qysr" class="sphinx-tabs-panel code-tab group-tab" hidden="true" id="panel-0-Qysr" name="Qysr" role="tabpanel" tabindex="0"><div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;nw/script/Nss.hpp&gt;</span>
+
+<span class="n">nw</span><span class="o">::</span><span class="n">script</span><span class="o">::</span><span class="n">Nss</span><span class="w"> </span><span class="n">nss</span><span class="p">{</span><span class="n">nw</span><span class="o">::</span><span class="n">kerne</span><span class="o">::</span><span class="n">resman</span><span class="p">().</span><span class="n">demand</span><span class="p">({</span><span class="s">&quot;nwscript&quot;</span><span class="n">sv</span><span class="p">,</span><span class="w"> </span><span class="n">nw</span><span class="o">::</span><span class="n">ResourceType</span><span class="o">::</span><span class="n">nss</span><span class="p">)};</span>
+
+<span class="c1">// Parse</span>
+<span class="n">nss</span><span class="p">.</span><span class="n">parse</span><span class="p">();</span>
+
+<span class="c1">// Preprocessing</span>
+<span class="n">nss</span><span class="p">.</span><span class="n">process_includes</span><span class="p">()</span>
+<span class="c1">// Now all dependencies are available</span>
+<span class="k">auto</span><span class="w"> </span><span class="n">deps</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">nss</span><span class="p">.</span><span class="n">dependencies</span><span class="p">()</span>
+
+<span class="c1">// Ast resolution and type-checking</span>
+<span class="n">nss</span><span class="p">.</span><span class="n">resolve</span><span class="p">()</span>
+</pre></div>
+</div>
+</div></div>
 <hr class="docutils" />
 <p><strong>Iterating Top-Level Declarations</strong></p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">rollnw.script</span> <span class="kn">import</span> <span class="n">Nss</span><span class="p">,</span> <span class="n">FunctionDecl</span>
 
 <span class="c1"># Load</span>
-<span class="n">nss</span> <span class="o">=</span> <span class="n">Nss</span><span class="p">(</span><span class="s2">&quot;nwscript.nss&quot;</span><span class="p">)</span>
-<span class="c1"># Parse</span>
-<span class="n">nss</span><span class="o">.</span><span class="n">parse</span><span class="p">()</span>
+<span class="n">nss</span> <span class="o">=</span> <span class="n">rollnw</span><span class="o">.</span><span class="n">script</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s2">&quot;nwscript&quot;</span><span class="p">)</span>
+
 <span class="c1"># Iterate toplevel declarations and look for function declarations</span>
 <span class="c1"># This is all functions WITHOUT bodies.</span>
 <span class="k">for</span> <span class="n">decl</span> <span class="ow">in</span> <span class="n">nss</span><span class="o">.</span><span class="n">ast</span><span class="p">():</span>
@@ -186,8 +206,9 @@
 </div>
 <div class="section" id="credits">
 <h2>credits<a class="headerlink" href="#credits" title="Permalink to this headline"></a></h2>
-<p>Robert Nystrom’s wonderful book <a class="reference external" href="https://craftinginterpreters.com/">Crafting Interpreters</a>
-was huge source of inspiration.</p>
+<ul class="simple">
+<li><p><a class="reference external" href="https://craftinginterpreters.com/">Crafting Interpreters</a></p></li>
+</ul>
 </div>
 </div>
 
