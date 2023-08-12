@@ -506,6 +506,12 @@ bool TextParser::parse_controller(Node* node, std::string_view name, uint32_t ty
     return tk == "endlist" || max_rows == 0;
 }
 
+#define DROP_DATA(name)                     \
+    if (icmp(tk, ROLLNW_STRINGIFY(name))) { \
+        tokens_.next();                     \
+        continue;                           \
+    }
+
 #define PARSE_DATA(name, node)                        \
     if (icmp(tk, ROLLNW_STRINGIFY(name))) {           \
         if (!parse_tokens(tokens_, tk, node->name)) { \
@@ -632,11 +638,11 @@ bool TextParser::parse_node(Geometry* geometry)
             PARSE_DATA(diffuse, n)
             PARSE_DATA(inheritcolor, n)
             PARSE_DATA(materialname, n)
-            PARSE_DATA(gizmo, n)
-            PARSE_DATA(danglymesh, n)
-            PARSE_DATA(period, n)
-            PARSE_DATA(tightness, n)
-            PARSE_DATA(displacement, n)
+            DROP_DATA(gizmo)
+            DROP_DATA(danglymesh)
+            DROP_DATA(period)
+            DROP_DATA(tightness)
+            DROP_DATA(displacement)
             PARSE_DATA(render, n)
             PARSE_DATA(renderhint, n)
             PARSE_DATA(rotatetexture, n)

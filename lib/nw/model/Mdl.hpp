@@ -396,11 +396,6 @@ struct TrimeshNode : public Node {
     glm::vec3 center;
     glm::vec3 diffuse;
     std::string materialname;
-    std::string gizmo;
-    int danglymesh{0};
-    float period{0.0};
-    float tightness{0.0};
-    float displacement{0.0};
     bool render{true};
     std::string renderhint;
     bool rotatetexture{false};
