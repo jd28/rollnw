@@ -429,6 +429,8 @@ struct SkinNode : public TrimeshNode {
 
     std::vector<SkinVertex> vertices;
     std::array<int16_t, 64> bone_nodes;
+    std::vector<glm::vec3> bone_translation_inv;
+    std::vector<glm::quat> bone_rotation_inv;
 };
 
 struct AnimeshNode : public TrimeshNode {

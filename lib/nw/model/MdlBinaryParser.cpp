@@ -345,6 +345,20 @@ bool BinaryParser::parse_node(uint32_t offset, Geometry* geometry, Node* parent)
             n->indices.push_back(s_ctx.faces[i].vertex_indicies[2]);
         }
 
+        n->bone_rotation_inv.resize(data.qbone_ref_inv.length);
+        memcpy(n->bone_rotation_inv.data(),
+            bytes_.data() + 12 + data.qbone_ref_inv.offset,
+            sizeof(glm::quat) * data.qbone_ref_inv.length);
+
+        for (auto& q : n->bone_rotation_inv) {
+            std::swap(q.x, q.w); // Bioware stores [w, x, y, z]
+        }
+
+        n->bone_translation_inv.resize(data.tbone_ref_inv.length);
+        memcpy(n->bone_translation_inv.data(),
+            bytes_.data() + 12 + data.tbone_ref_inv.offset,
+            sizeof(glm::vec3) * data.tbone_ref_inv.length);
+
     } else if (node->type == NodeType::animmesh) {
         detail::MdlBinaryAnimmeshNode data;
         memcpy(&data, bytes_.data() + offset + 12, detail::MdlBinaryAnimmeshNode::s_sizeof);
