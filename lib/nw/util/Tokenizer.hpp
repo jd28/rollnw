@@ -22,7 +22,7 @@ struct Tokenizer {
 private:
     std::string_view current_;
     std::stack<std::string_view> stack_;
-    size_t pos_ = 0, start_ = 0, end_ = 0, line_count_ = 0;
+    size_t pos_ = 0, start_ = 0, end_ = 0, line_count_ = 1;
     std::string_view buffer_;
     std::string_view comment_;
     bool skip_newline_ = true;
