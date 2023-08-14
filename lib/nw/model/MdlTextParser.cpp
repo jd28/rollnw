@@ -619,7 +619,6 @@ bool TextParser::parse_node(Geometry* geometry)
         if (node->type & NodeFlags::mesh) {
             TrimeshNode* n = static_cast<TrimeshNode*>(node.get());
 
-            PARSE_DATA(ambient, n)
             PARSE_DATA(beaming, n)
             PARSE_DATA(bitmap, n)
             PARSE_DATA(bmax, n)
@@ -638,21 +637,25 @@ bool TextParser::parse_node(Geometry* geometry)
             if (icmp(tk, "diffuse")) {
                 if (!parse_tokens(tokens_, tk, n->diffuse)) {
                     return false;
-                } else {
-                    auto t = tokens_.next();
-                    if (is_newline(t)) { tokens_.put_back(t); }
-                    continue;
                 }
+                tokens_.next();
+                continue;
             }
 
             if (icmp(tk, "specular")) {
                 if (!parse_tokens(tokens_, tk, n->specular)) {
                     return false;
-                } else {
-                    auto t = tokens_.next();
-                    if (is_newline(t)) { tokens_.put_back(t); }
-                    continue;
                 }
+                tokens_.next();
+                continue;
+            }
+
+            if (icmp(tk, "ambient")) {
+                if (!parse_tokens(tokens_, tk, n->specular)) {
+                    return false;
+                }
+                tokens_.next();
+                continue;
             }
 
             PARSE_DATA(colors, n)

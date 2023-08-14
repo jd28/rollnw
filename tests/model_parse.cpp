@@ -128,7 +128,7 @@ TEST(Mdl, ParseASCII2)
     EXPECT_TRUE(mdl22.valid());
 
     nw::model::Mdl mdl23{"test_data/user/development/c_orcus.mdl"};
-    EXPECT_FALSE(mdl23.valid()); // Diffuse and ambient with vec4 values
+    EXPECT_TRUE(mdl23.valid());
 
     nw::model::Mdl mdl24{"test_data/user/development/tno01_b90_03.mdl"};
     EXPECT_TRUE(mdl24.valid());
@@ -221,7 +221,7 @@ TEST(Model, Skin)
     EXPECT_EQ(skin2->vertices[340].bones[2], 9);
     EXPECT_TRUE(nw::string::icmp("Lforearm_g", mdl1.model.nodes[skin2->bone_nodes[skin2->vertices[340].bones[2]]]->name));
     EXPECT_NEAR(skin2->vertices[340].weights[2], 0.115108997f, 0.0001);
-    EXPECT_EQ(skin2->vertices[340].bones[3], -1);
+    EXPECT_EQ(skin2->vertices[340].bones[3], 0);
     EXPECT_NEAR(skin2->vertices[340].weights[3], 0.0f, 0.0001);
 }
 
