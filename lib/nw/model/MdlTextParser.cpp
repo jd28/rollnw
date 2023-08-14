@@ -634,8 +634,28 @@ bool TextParser::parse_node(Geometry* geometry)
                 continue;
             }
 
+            // An ascii exporter "NWNUnity" has 4 floats for diffuse and specular
+            if (icmp(tk, "diffuse")) {
+                if (!parse_tokens(tokens_, tk, n->diffuse)) {
+                    return false;
+                } else {
+                    auto t = tokens_.next();
+                    if (is_newline(t)) { tokens_.put_back(t); }
+                    continue;
+                }
+            }
+
+            if (icmp(tk, "specular")) {
+                if (!parse_tokens(tokens_, tk, n->specular)) {
+                    return false;
+                } else {
+                    auto t = tokens_.next();
+                    if (is_newline(t)) { tokens_.put_back(t); }
+                    continue;
+                }
+            }
+
             PARSE_DATA(colors, n)
-            PARSE_DATA(diffuse, n)
             PARSE_DATA(inheritcolor, n)
             PARSE_DATA(materialname, n)
             DROP_DATA(gizmo)
@@ -648,7 +668,6 @@ bool TextParser::parse_node(Geometry* geometry)
             PARSE_DATA(rotatetexture, n)
             PARSE_DATA(shadow, n)
             PARSE_DATA(shininess, n)
-            PARSE_DATA(specular, n)
             PARSE_DATA_TO(texture0, n, textures[0])
             PARSE_DATA_TO(texture1, n, textures[1])
             PARSE_DATA_TO(texture2, n, textures[2])
