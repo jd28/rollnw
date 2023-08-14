@@ -14,8 +14,8 @@
 int main(int argc, char* argv[])
 {
     bool list_tests = false;
-    for(int i = 0; i < argc; ++i) {
-        if(nw::string::icmp("--gtest_list_tests", argv[i])) {
+    for (int i = 0; i < argc; ++i) {
+        if (nw::string::icmp("--gtest_list_tests", argv[i])) {
             list_tests = true;
         }
     }
@@ -39,7 +39,7 @@ int main(int argc, char* argv[])
         });
     }
 
-    if(!list_tests) {
+    if (!list_tests) {
         nw::kernel::services().start();
         nw::kernel::load_profile(new nwn1::Profile);
     }
@@ -47,7 +47,7 @@ int main(int argc, char* argv[])
     ::testing::InitGoogleTest(&argc, argv);
     int failed = RUN_ALL_TESTS();
 
-    if(!list_tests) {
+    if (!list_tests) {
         // Not necessary, but best to make sure it doesn't fault.
         nw::kernel::services().shutdown();
     }

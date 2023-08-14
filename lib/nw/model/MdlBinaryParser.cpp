@@ -181,11 +181,6 @@ bool BinaryParser::parse_node(uint32_t offset, Geometry* geometry, Node* parent)
         // mesh->center = data;
         mesh->diffuse = data.diffuse;
         mesh->materialname = detail::to_string(data.texture3);
-        // mesh->gizmo = data;
-        // mesh->danglymesh = data;
-        // mesh->period = data.per;
-        // mesh->tightness = data;
-        //  mesh->displacement = data;
         mesh->render = data.render_flag;
         // mesh->renderhint = data.render_hint; -- Need to change a type
         mesh->rotatetexture = data.rotate_texture;
@@ -267,6 +262,17 @@ bool BinaryParser::parse_node(uint32_t offset, Geometry* geometry, Node* parent)
 
         auto n = static_cast<DanglymeshNode*>(node.get());
         if (!load_mesh_data(n, data.header) || !load_mesh_vertices(n, data.header)) { return false; }
+
+        if (data.vert_constraints.length) {
+            n->constraints.resize(data.vert_constraints.length);
+            memcpy(n->constraints.data(),
+                bytes_.data() + data.vert_constraints.offset + 12,
+                sizeof(uint32_t) * data.vert_constraints.length);
+        }
+        n->displacement = data.displacement;
+        n->period = data.period;
+        n->tightness = data.tightness;
+
     } else if (node->type == NodeType::emitter) {
         detail::MdlBinaryEmitterNode data;
         memcpy(&data, bytes_.data() + offset + 12, detail::MdlBinaryEmitterNode::s_sizeof);
@@ -313,6 +319,13 @@ bool BinaryParser::parse_node(uint32_t offset, Geometry* geometry, Node* parent)
             s_ctx.weights.push_back(weights);
         }
 
+        for (size_t i = 0; i < s_ctx.verts.size(); ++i) {
+            glm::vec4 weights;
+            memcpy(&weights.x, bytes_.data() + off, sizeof(float) * 4);
+            off += sizeof(float) * 4;
+            s_ctx.weights.push_back(weights);
+        }
+
         n->vertices.resize(data.header.vertex_count);
         for (size_t i = 0; i < data.header.vertex_count; ++i) {
             n->vertices[i].position = s_ctx.verts[i];
@@ -330,7 +343,7 @@ bool BinaryParser::parse_node(uint32_t offset, Geometry* geometry, Node* parent)
 
             if (!s_ctx.bones.empty()) {
                 const auto& bones = s_ctx.bones.at(i);
-                n->vertices[i].bones = glm::ivec4{-1};
+                n->vertices[i].bones = glm::ivec4{0};
                 for (size_t j = 0; j < 4; ++j) {
                     if (bones[j] == std::numeric_limits<uint16_t>::max()) { break; }
                     n->vertices[i].bones[j] = bones[j];
