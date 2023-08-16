@@ -37,6 +37,7 @@ std::array<uint8_t, 4> decode_plt_color(const Plt& plt, const PltColors& colors,
     std::array<uint8_t, 4> result{};
     if (x >= plt.width() || y >= plt.height()) {
         LOG_F(ERROR, "[plt] invalid coordinates ({}, {})", x, y);
+        return result;
     }
 
     auto pixel = plt.pixels()[y * plt.width() + x];

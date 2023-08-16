@@ -299,7 +299,7 @@ bool BinaryParser::parse_node(uint32_t offset, Geometry* geometry, Node* parent)
             return false;
         }
 
-        for (size_t i = 0; i < 16; ++i) {
+        for (size_t i = 0; i < 17; ++i) {
             n->bone_nodes[i] = int16_t(data.bone_to_nodes[i]);
         }
 

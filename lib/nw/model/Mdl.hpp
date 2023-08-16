@@ -448,7 +448,7 @@ struct AnimeshNode : public TrimeshNode {
 struct DanglymeshNode : public TrimeshNode {
     DanglymeshNode(std::string name_);
 
-    std::vector<uint32_t> constraints;
+    std::vector<float> constraints;
     float displacement;
     float period;
     float tightness;
