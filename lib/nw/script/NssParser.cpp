@@ -630,11 +630,20 @@ std::unique_ptr<ForStatement> NssParser::parse_stmt_for()
 {
     auto s = std::make_unique<ForStatement>();
     consume(NssTokenType::LPAREN, "Expected '('.");
+    bool semi_taken = false;
 
     if (!check({NssTokenType::SEMICOLON})) {
-        s->init = parse_expr();
+        if (check_is_type()) {
+            s->init = parse_decl();
+            semi_taken = true;
+        } else {
+            s->init = parse_expr();
+        }
     }
-    consume(NssTokenType::SEMICOLON, "Expected ';'.");
+
+    if (!semi_taken) {
+        consume(NssTokenType::SEMICOLON, "Expected ';'.");
+    }
 
     if (!check({NssTokenType::SEMICOLON})) {
         s->check = parse_expr();

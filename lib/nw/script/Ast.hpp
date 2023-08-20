@@ -391,7 +391,7 @@ struct IfStatement : public Statement {
 };
 
 struct ForStatement : public Statement {
-    std::unique_ptr<Expression> init = nullptr;
+    std::unique_ptr<AstNode> init = nullptr;
     std::unique_ptr<Expression> check = nullptr;
     std::unique_ptr<Expression> inc = nullptr;
     std::unique_ptr<Statement> block = nullptr;

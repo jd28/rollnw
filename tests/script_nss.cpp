@@ -847,6 +847,17 @@ TEST(Nss, For)
     EXPECT_NO_THROW(nss2.parse());
     EXPECT_NO_THROW(nss2.resolve());
     EXPECT_EQ(nss2.errors(), 0);
+
+    // decl in init
+    script::Nss nss3(R"(
+        void main() {
+            for(int i = 0; i < 10; ++i) {
+            }
+        }
+    )"sv);
+    EXPECT_NO_THROW(nss3.parse());
+    EXPECT_NO_THROW(nss3.resolve());
+    EXPECT_EQ(nss3.errors(), 0);
 }
 
 TEST(Nss, While)
