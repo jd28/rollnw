@@ -92,6 +92,12 @@ TEST(Nss, Variables)
     EXPECT_NO_THROW(nss6.parse());
     EXPECT_NO_THROW(nss6.resolve());
     EXPECT_EQ(nss6.errors(), 1);
+
+    // var with void type
+    script::Nss nss7("void main() { void v; }"sv);
+    EXPECT_NO_THROW(nss7.parse());
+    EXPECT_NO_THROW(nss7.resolve());
+    EXPECT_EQ(nss7.errors(), 1);
 }
 
 TEST(Nss, FunctionDecl)

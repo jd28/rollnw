@@ -43,6 +43,30 @@ bool NssParser::check(std::initializer_list<NssTokenType> types) const
     return false;
 }
 
+bool NssParser::check_is_type(bool allow_void) const
+{
+    if (check({NssTokenType::CONST_,
+            NssTokenType::ACTION,
+            NssTokenType::CASSOWARY,
+            NssTokenType::EFFECT,
+            NssTokenType::EVENT,
+            NssTokenType::FLOAT,
+            NssTokenType::INT,
+            NssTokenType::ITEMPROPERTY,
+            NssTokenType::JSON,
+            NssTokenType::LOCATION,
+            NssTokenType::OBJECT,
+            NssTokenType::SQLQUERY,
+            NssTokenType::STRING,
+            NssTokenType::STRUCT,
+            NssTokenType::TALENT,
+            NssTokenType::VECTOR})) {
+        return true;
+    }
+
+    return allow_void && check({NssTokenType::VOID_});
+}
+
 void NssParser::error(std::string_view msg, NssToken token)
 {
     ctx_->parse_error(parent_, msg, token.loc);
@@ -676,23 +700,7 @@ std::unique_ptr<WhileStatement> NssParser::parse_stmt_while()
 std::unique_ptr<Statement> NssParser::parse_decl()
 {
     try {
-        if (check({NssTokenType::CONST_,
-                NssTokenType::ACTION,
-                NssTokenType::CASSOWARY,
-                NssTokenType::EFFECT,
-                NssTokenType::EVENT,
-                NssTokenType::FLOAT,
-                NssTokenType::INT,
-                NssTokenType::ITEMPROPERTY,
-                NssTokenType::JSON,
-                NssTokenType::LOCATION,
-                NssTokenType::OBJECT,
-                NssTokenType::SQLQUERY,
-                NssTokenType::STRING,
-                NssTokenType::STRUCT,
-                NssTokenType::TALENT,
-                NssTokenType::VECTOR,
-                NssTokenType::VOID_})) {
+        if (check_is_type(false)) {
             auto decls = std::make_unique<DeclStatement>();
             Type t = parse_type();
 
