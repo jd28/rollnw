@@ -817,6 +817,10 @@ std::unique_ptr<Statement> NssParser::parse_decl_external()
     if (lookahead(0).type == NssTokenType::EQ
         || lookahead(0).type == NssTokenType::SEMICOLON
         || lookahead(0).type == NssTokenType::COMMA) {
+        if (t.type_specifier.type == NssTokenType::VOID_) {
+            error("variable declaration cannot be of type void", t.type_specifier);
+            throw parser_error("variable declaration cannot be of type void");
+        }
         auto gvd = parse_decl_global_var();
         if (auto ds = dynamic_cast<DeclStatement*>(gvd.get())) {
             for (auto& d : ds->decls) {
