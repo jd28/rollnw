@@ -287,6 +287,10 @@ struct AstResolver : BaseVisitor {
         decl->is_const_ = decl->type.type_qualifier.type == NssTokenType::CONST_;
         decl->type_id_ = ctx_->type_id(decl->type);
 
+        if (decl->type_id_ == ctx_->type_id("void")) {
+            ctx_->semantic_error(parent_, "variable declared with void type");
+        }
+
         if (decl->is_const_ && !decl->init) {
             ctx_->semantic_error(parent_, "constant variable declaration with no initializer");
         }

@@ -101,7 +101,7 @@ TEST(Nss, Variables)
 
     // var with void type
     script::Nss nss8("void variable;"sv);
-    EXPECT_THROW(nss8.parse(), nw::script::parser_error);
+    EXPECT_NO_THROW(nss8.parse());
     EXPECT_NO_THROW(nss8.resolve());
     EXPECT_EQ(nss8.errors(), 1);
 }

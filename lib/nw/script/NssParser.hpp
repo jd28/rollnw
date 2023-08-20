@@ -45,10 +45,9 @@ struct NssParser {
     bool check(std::initializer_list<NssTokenType> types) const;
 
     /// @brief Checks if next token matches a particular type
-    /// @param allow_void If true matches void as well. (Default: true)
     /// @return True if there is a match
     /// @note **Does not** advance the token stream
-    bool check_is_type(bool allow_void = true) const;
+    bool check_is_type() const;
 
     /// @brief Consumes a token
     /// @param type Type of token to consume
