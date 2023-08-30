@@ -258,10 +258,14 @@ bool GffField::get_to(T& value) const
             CHECK_OFF(off < parent_->data_.bytes.size());
 
             if constexpr (std::is_same_v<T, Resref>) {
-                char buffer[17] = {0};
+                char buffer[Resref::max_size + 1] = {0};
                 uint8_t size = 0;
                 CHECK_OFF(parent_->data_.bytes.read_at(off, &size, 1));
                 off += 1;
+                if (size > Resref::max_size) {
+                    LOG_F(ERROR, "gff invalid resref size '{}'", int(size));
+                    return false;
+                }
                 CHECK_OFF(parent_->data_.bytes.read_at(off, buffer, size));
                 value = Resref(buffer);
                 return true;

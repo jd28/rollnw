@@ -185,7 +185,7 @@ bool Gff::parse()
     // Order is how file is laid out.
     CHECK_OFF(sizeof(GffHeader) < data_.bytes.size());
     head_ = reinterpret_cast<GffHeader*>(data_.bytes.data());
-    CHECK_OFF(head_->label_offset < data_.bytes.size() && head_->label_offset + head_->label_count * sizeof(Resref) < data_.bytes.size());
+    CHECK_OFF(head_->label_offset < data_.bytes.size() && head_->label_offset + head_->label_count * sizeof(GffLabel) < data_.bytes.size());
     labels_ = reinterpret_cast<GffLabel*>(data_.bytes.data() + head_->label_offset);
     CHECK_OFF(head_->struct_offset < data_.bytes.size() && head_->struct_offset + head_->struct_count * sizeof(GffStructEntry) < data_.bytes.size());
     structs_ = reinterpret_cast<GffStructEntry*>(data_.bytes.data() + head_->struct_offset);
