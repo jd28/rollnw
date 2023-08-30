@@ -41,8 +41,9 @@ struct ErfHeader {
 };
 
 /// @private
+template <size_t N>
 struct ErfKey {
-    std::array<char, 16> resref;
+    std::array<char, N> resref;
     uint32_t id;
     ResourceType::type type;
     int16_t unused;
@@ -68,6 +69,15 @@ Erf::Erf(const std::filesystem::path& path)
 
 bool Erf::add(Resource res, const ByteArray& bytes)
 {
+    if (!res.valid()) {
+        LOG_F(ERROR, "erf: attempting to add resource with invalid name.");
+        return false;
+    } else if (version == ErfVersion::v1_0 && res.resref.length() > 16) {
+        LOG_F(ERROR, "erf: attempting to add resource with name too long for Erf v1.0 '{}'.",
+            res.resref.view());
+        return false;
+    }
+
     auto p = working_directory() / fs::path(res.filename());
     bytes.write_to(p);
     elements_[res] = p;
@@ -80,7 +90,12 @@ bool Erf::add(const std::filesystem::path& path)
     if (!res.valid()) {
         LOG_F(ERROR, "erf: attempting to add resource with invalid name '{}'.", path);
         return false;
+    } else if (version == ErfVersion::v1_0 && res.resref.length() > 16) {
+        LOG_F(ERROR, "erf: attempting to add resource with name too long for Erf v1.0 '{}'.",
+            res.resref.view());
+        return false;
     }
+
     auto p = working_directory() / fs::path(res.filename());
     fs::copy_file(path, working_directory() / fs::path(res.filename()), fs::copy_options::overwrite_existing);
     elements_[res] = p;
@@ -140,7 +155,11 @@ bool Erf::save_as(const std::filesystem::path& path) const
     }
 
     // Set version
-    memcpy(header.version, "V1.0", 4);
+    if (version == ErfVersion::v1_0) {
+        memcpy(header.version, "V1.0", 4);
+    } else if (version == ErfVersion::v1_1) {
+        memcpy(header.version, "V1.1", 4);
+    }
 
     // Set some easy stuff that requires no calculations
     header.entry_count = static_cast<uint32_t>(elements_.size());
@@ -172,14 +191,25 @@ bool Erf::save_as(const std::filesystem::path& path) const
     // Calculate up the offsets
     header.offset_locstring = sizeof(ErfHeader);
     header.offset_keys = header.offset_locstring + header.locstring_size;
-    header.offset_res = header.offset_keys + static_cast<uint32_t>(header.entry_count * sizeof(ErfKey));
+
+    if (version == ErfVersion::v1_0) {
+        header.offset_res = header.offset_keys + static_cast<uint32_t>(header.entry_count * sizeof(ErfKey<16>));
+    } else if (version == ErfVersion::v1_1) {
+        header.offset_res = header.offset_keys + static_cast<uint32_t>(header.entry_count * sizeof(ErfKey<32>));
+    }
+
     uint32_t data_offset = header.offset_res + static_cast<uint32_t>(header.entry_count * sizeof(ErfElementInfo));
 
     std::vector<Resource> entries;
-    std::vector<ErfKey> entry_keys;
+    std::vector<ErfKey<16>> entry_keys16;
+    std::vector<ErfKey<32>> entry_keys32;
     std::vector<ErfElementInfo> entry_info;
     entries.reserve(elements_.size());
-    entry_keys.reserve(elements_.size());
+    if (version == ErfVersion::v1_0) {
+        entry_keys16.reserve(elements_.size());
+    } else {
+        entry_keys32.reserve(elements_.size());
+    }
     entry_info.reserve(elements_.size());
 
     for (auto& [k, v] : elements_) {
@@ -191,7 +221,13 @@ bool Erf::save_as(const std::filesystem::path& path) const
     uint32_t id = 0;
     for (const auto& e : entries) {
         auto rd = stat(e);
-        entry_keys.push_back({e.resref.data(), id++, e.type, 0});
+        if (version == ErfVersion::v1_0) {
+            std::array<char, 16> name;
+            memcpy(name.data(), e.resref.data().data(), 16);
+            entry_keys16.push_back({name, id++, e.type, 0});
+        } else if (version == ErfVersion::v1_1) {
+            entry_keys32.push_back({e.resref.data(), id++, e.type, 0});
+        }
         entry_info.push_back({data_offset, static_cast<uint32_t>(rd.size)});
         data_offset += static_cast<uint32_t>(rd.size);
     }
@@ -204,7 +240,13 @@ bool Erf::save_as(const std::filesystem::path& path) const
 
     ostream_write(f, &header, sizeof(ErfHeader));
     ostream_write(f, locstrings.data(), locstrings.size());
-    ostream_write(f, entry_keys.data(), entry_keys.size() * sizeof(ErfKey));
+
+    if (version == ErfVersion::v1_0) {
+        ostream_write(f, entry_keys16.data(), entry_keys16.size() * sizeof(ErfKey<16>));
+    } else if (version == ErfVersion::v1_1) {
+        ostream_write(f, entry_keys32.data(), entry_keys32.size() * sizeof(ErfKey<32>));
+    }
+
     ostream_write(f, entry_info.data(), entry_info.size() * sizeof(ErfElementInfo));
 
     ResourceData data;
@@ -327,9 +369,6 @@ bool Erf::load(const fs::path& path)
     ErfHeader header;
     istream_read(file_, &header, sizeof(ErfHeader));
 
-    CHECK_OFFSET(header.offset_keys + header.entry_count * sizeof(ErfKey));
-    CHECK_OFFSET(header.offset_res + header.entry_count * sizeof(ErfElementInfo));
-
     if (strncmp(header.type, "MOD", 3) == 0) {
         type = ErfType::mod;
     } else if (strncmp(header.type, "HAK", 3) == 0) {
@@ -345,10 +384,20 @@ bool Erf::load(const fs::path& path)
 
     if (strncmp(header.version, "V1.0", 4) == 0) {
         version = ErfVersion::v1_0;
+    } else if (strncmp(header.version, "V1.1", 4) == 0) {
+        version = ErfVersion::v1_1;
     } else {
         LOG_F(ERROR, "{}: Invalid version type '{}'.", path, std::string_view{header.version, 4});
         return false;
     }
+
+    if (version == ErfVersion::v1_0) {
+        CHECK_OFFSET(header.offset_keys + header.entry_count * sizeof(ErfKey<16>));
+    } else if (version == ErfVersion::v1_1) {
+        CHECK_OFFSET(header.offset_keys + header.entry_count * sizeof(ErfKey<32>));
+    }
+
+    CHECK_OFFSET(header.offset_res + header.entry_count * sizeof(ErfElementInfo));
 
     // It's not totally clear if `nwhak.exe` can have anything but English in the description.
     // The ERF file format saves LocStrings uniquely, and differently between types.
@@ -376,18 +425,34 @@ bool Erf::load(const fs::path& path)
 
     elements_.reserve(header.entry_count);
 
-    std::vector<ErfKey> keys;
-    keys.resize(header.entry_count);
-    file_.seekg(header.offset_keys, std::ios_base::beg);
-    istream_read(file_, keys.data(), sizeof(ErfKey) * header.entry_count);
+    if (version == ErfVersion::v1_0) {
+        std::vector<ErfKey<16>> keys;
+        keys.resize(header.entry_count);
+        file_.seekg(header.offset_keys, std::ios_base::beg);
+        istream_read(file_, keys.data(), sizeof(ErfKey<16>) * header.entry_count);
 
-    std::vector<ErfElementInfo> info;
-    info.resize(header.entry_count);
-    file_.seekg(header.offset_res, std::ios_base::beg);
-    istream_read(file_, info.data(), sizeof(ErfElementInfo) * header.entry_count);
+        std::vector<ErfElementInfo> info;
+        info.resize(header.entry_count);
+        file_.seekg(header.offset_res, std::ios_base::beg);
+        istream_read(file_, info.data(), sizeof(ErfElementInfo) * header.entry_count);
 
-    for (size_t i = 0; i < header.entry_count; ++i) {
-        elements_.emplace(Resource{keys[i].resref, keys[i].type}, info[i]);
+        for (size_t i = 0; i < header.entry_count; ++i) {
+            elements_.emplace(Resource{Resref{keys[i].resref}, keys[i].type}, info[i]);
+        }
+    } else if (version == ErfVersion::v1_1) {
+        std::vector<ErfKey<32>> keys;
+        keys.resize(header.entry_count);
+        file_.seekg(header.offset_keys, std::ios_base::beg);
+        istream_read(file_, keys.data(), sizeof(ErfKey<32>) * header.entry_count);
+
+        std::vector<ErfElementInfo> info;
+        info.resize(header.entry_count);
+        file_.seekg(header.offset_res, std::ios_base::beg);
+        istream_read(file_, info.data(), sizeof(ErfElementInfo) * header.entry_count);
+
+        for (size_t i = 0; i < header.entry_count; ++i) {
+            elements_.emplace(Resource{keys[i].resref, keys[i].type}, info[i]);
+        }
     }
 
     LOG_F(INFO, "{}: {} resources loaded.", path, elements_.size());

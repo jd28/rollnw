@@ -116,3 +116,11 @@ TEST(Erf, visit)
     e.visit(visitor);
     EXPECT_EQ(e.size(), count);
 }
+
+TEST(Erf, v1_1)
+{
+    Erf e("test_data/user/hak/westgate2.hak");
+    EXPECT_TRUE(e.valid());
+    EXPECT_EQ(e.name(), "westgate2.hak");
+    EXPECT_EQ(e.version, nw::ErfVersion::v1_1);
+}

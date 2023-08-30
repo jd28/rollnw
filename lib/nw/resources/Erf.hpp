@@ -33,6 +33,7 @@ enum struct ErfType {
 
 enum struct ErfVersion {
     v1_0,
+    v1_1
 };
 
 struct Erf : public Container {
