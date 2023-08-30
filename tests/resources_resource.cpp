@@ -28,7 +28,7 @@ TEST(Resource, FromPath)
     auto r5 = Resource::from_path(p5);
     EXPECT_TRUE(r5.valid());
 
-    std::filesystem::path p6{"test/test_this_is_too_long_for_resref.ini"};
+    std::filesystem::path p6{"test/test_this_is_too_long_for_resref_of_32_chars.ini"};
     auto r6 = Resource::from_path(p6);
     EXPECT_FALSE(r6.valid());
 }
@@ -51,7 +51,7 @@ TEST(Resource, FromFilename)
     auto r4 = Resource::from_filename(p4);
     EXPECT_FALSE(r4.valid());
 
-    std::string p6{"test_this_is_too_long_for_resref.ini"};
+    std::string p6{"test_this_is_too_long_for_resref_of_32_chars.ini"};
     auto r6 = Resource::from_filename(p6);
     EXPECT_FALSE(r6.valid());
 }

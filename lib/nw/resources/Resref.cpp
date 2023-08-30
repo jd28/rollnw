@@ -14,12 +14,6 @@ Resref::Resref()
     data_.fill(0);
 }
 
-Resref::Resref(Storage data) noexcept
-    : data_{data}
-{
-    std::transform(data_.begin(), data_.end(), data_.begin(), ::tolower);
-}
-
 Resref::Resref(const char* string) noexcept
     : Resref(std::string_view(string))
 {

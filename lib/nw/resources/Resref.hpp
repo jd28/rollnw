@@ -21,14 +21,17 @@ namespace nw {
  * Currently only the NWN1/EE variety is supported.
  */
 struct Resref {
-    static constexpr size_t max_size = 16;
+    static constexpr size_t max_size = 32;
     using Storage = std::array<char, max_size>;
     using value_type = typename Storage::value_type;
     using size_type = typename Storage::size_type;
 
     Resref();
     Resref(const Resref&) = default;
-    Resref(Storage data) noexcept;
+
+    template <size_t N>
+    Resref(std::array<char, N>& string) noexcept;
+
     Resref(const char* string) noexcept;
     Resref(std::string_view string) noexcept;
 
@@ -52,6 +55,14 @@ struct Resref {
 private:
     Storage data_;
 };
+
+template <size_t N>
+Resref::Resref(std::array<char, N>& string) noexcept
+{
+    static_assert(N <= Resref::max_size);
+    memcpy(data_.data(), string.data(), N);
+    std::transform(data_.begin(), data_.end(), data_.begin(), ::tolower);
+}
 
 inline bool operator==(const Resref& lhs, const Resref& rhs)
 {
