@@ -4,7 +4,6 @@
 
 #include <nlohmann/json.hpp>
 
-#include <algorithm>
 #include <ostream>
 
 namespace nw {

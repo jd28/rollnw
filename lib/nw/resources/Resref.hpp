@@ -3,6 +3,7 @@
 #include <fmt/format.h>
 #include <nlohmann/json_fwd.hpp>
 
+#include <algorithm>
 #include <array>
 #include <cctype>
 #include <string>
