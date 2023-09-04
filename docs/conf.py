@@ -28,9 +28,7 @@ breathe_default_project = "rollNW"
 
 # Check if we're running on Read the Docs' servers
 read_the_docs_build = os.environ.get('READTHEDOCS', None) == 'True'
-
-if not read_the_docs_build:
-    html_theme = "sphinx_rtd_theme"
+html_theme = "sphinx_rtd_theme"
 
 breathe_projects = {}
 
