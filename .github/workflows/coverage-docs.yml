@@ -52,7 +52,7 @@ jobs:
           ccache --set-config=max_size=500M
           ccache --set-config=compression=true
 
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           submodules: true
 
