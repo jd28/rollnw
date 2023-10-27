@@ -3,12 +3,10 @@
 #include "Ast.hpp"
 #include "NssLexer.hpp"
 
-#include <exception>
-#include <functional>
 #include <memory>
+#include <stdexcept>
 #include <string>
 #include <string_view>
-#include <unordered_map>
 #include <vector>
 
 namespace nw::script {

@@ -4,17 +4,13 @@
 #include "NssParser.hpp"
 
 #include "../resources/ResourceData.hpp"
-#include "../util/ByteArray.hpp"
 #include "Context.hpp"
 
 #include <absl/container/flat_hash_map.h>
 
 #include <filesystem>
-#include <functional>
-#include <iostream>
 #include <set>
 #include <string>
-#include <vector>
 
 namespace nw::script {
 

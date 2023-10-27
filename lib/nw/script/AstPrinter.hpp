@@ -1,6 +1,5 @@
 #pragma once
 
-#include "../log.hpp"
 #include "Ast.hpp"
 
 #include <sstream>

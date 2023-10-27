@@ -1,11 +1,9 @@
 #include "NssLexer.hpp"
 
-#include "../log.hpp"
 #include "Nss.hpp"
 
 #include <cctype>
 #include <cstring>
-#include <stdexcept>
 #include <string_view>
 
 namespace nw::script {
