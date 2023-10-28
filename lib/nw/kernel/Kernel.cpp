@@ -5,7 +5,6 @@
 #include "EffectSystem.hpp"
 #include "EventSystem.hpp"
 #include "Objects.hpp"
-#include "ParsedScriptCache.hpp"
 #include "Resources.hpp"
 #include "Rules.hpp"
 #include "Strings.hpp"

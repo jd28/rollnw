@@ -45,7 +45,6 @@ add_library(nw STATIC
     kernel/Objects.cpp
     kernel/Resources.cpp
     kernel/Rules.cpp
-    kernel/ParsedScriptCache.cpp
     kernel/Strings.cpp
     kernel/TwoDACache.cpp
 

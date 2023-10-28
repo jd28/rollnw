@@ -4,7 +4,6 @@
 #include <nw/kernel/EffectSystem.hpp>
 #include <nw/kernel/Kernel.hpp>
 #include <nw/kernel/Objects.hpp>
-#include <nw/kernel/ParsedScriptCache.hpp>
 #include <nw/kernel/Rules.hpp>
 #include <nw/kernel/TwoDACache.hpp>
 #include <nw/objects/Area.hpp>
@@ -170,19 +169,6 @@ void init_kernel_rules(py::module& kernel)
         py::return_value_policy::reference);
 }
 
-void init_kernel_script_cache(py::module& kernel)
-{
-    py::class_<nw::kernel::ParsedScriptCache>(kernel, "ParsedScriptCache")
-        .def("get", &nw::kernel::ParsedScriptCache::get,
-            py::return_value_policy::reference_internal);
-
-    kernel.def(
-        "parsed_scripts", []() {
-            return nw::kernel::services().get_mut<nw::kernel::ParsedScriptCache>();
-        },
-        py::return_value_policy::reference);
-}
-
 void init_kernel_strings(py::module& kernel)
 {
     py::class_<nw::kernel::Strings>(kernel, "Strings");
@@ -215,7 +201,6 @@ void init_kernel(py::module& kernel)
     init_kernel_objects(kernel);
     init_kernel_resources(kernel);
     init_kernel_rules(kernel);
-    init_kernel_script_cache(kernel);
     init_kernel_strings(kernel);
     init_kernel_twoda_cache(kernel);
 
