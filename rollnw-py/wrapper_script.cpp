@@ -19,6 +19,10 @@ namespace nws = nw::script;
 
 void init_script(py::module& nw)
 {
+    py::class_<nws::Context>(nw, "Context")
+        .def(py::init<>())
+        .def(py::init<std::string>());
+
     py::enum_<nws::NssTokenType>(nw, "NssTokenType")
         .value("INVALID", nws::NssTokenType::INVALID)
         .value("END", nws::NssTokenType::END)
@@ -124,12 +128,14 @@ void init_script(py::module& nw)
         .def_readonly("loc", &nws::NssToken::loc);
 
     py::class_<nws::NssLexer>(nw, "NssLexer")
-        .def(py::init<std::string_view>())
+        .def(py::init<std::string_view, nws::Context*>(),
+            py::keep_alive<1, 3>())
         .def("next", &nws::NssLexer::next)
         .def("current", &nws::NssLexer::current);
 
     py::class_<nws::Nss>(nw, "Nss")
-        .def(py::init<std::filesystem::path>())
+        .def(py::init<std::filesystem::path, nws::Context*>(),
+            py::keep_alive<1, 3>())
         .def(
             "ast", [](nws::Nss& self) {
                 return &self.ast();
@@ -146,9 +152,11 @@ void init_script(py::module& nw)
             return self.ctx() ? self.ctx()->type_name(node->type_id_) : ""sv;
         })
         .def("warnings", &nws::Nss::warnings)
-        .def_static("from_string", [](std::string_view str) {
-            return new nws::Nss(str);
-        });
+        .def_static(
+            "from_string", [](std::string_view str, nws::Context* ctx) {
+                return new nws::Nss(str, ctx);
+            },
+            py::keep_alive<0, 2>());
 
     py::class_<nws::Ast>(nw, "Ast")
         .def(
@@ -378,11 +386,13 @@ void init_script(py::module& nw)
             "init", [](nws::VarDecl& self) { return self.init.get(); },
             py::return_value_policy::reference_internal);
 
-    nw.def("load", [](std::string_view script) {
-        auto res = new nws::Nss{nw::kernel::resman().demand({script, nw::ResourceType::nss})};
-        res->parse();
-        res->process_includes();
-        res->resolve();
-        return res;
-    });
+    nw.def(
+        "load", [](std::string_view script, nws::Context* ctx) {
+            auto res = new nws::Nss{nw::kernel::resman().demand({script, nw::ResourceType::nss}), ctx};
+            res->parse();
+            res->process_includes();
+            res->resolve();
+            return res;
+        },
+        py::keep_alive<0, 2>());
 }

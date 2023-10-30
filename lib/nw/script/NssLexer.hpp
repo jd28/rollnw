@@ -8,9 +8,7 @@ namespace nw::script {
 struct Nss;
 
 struct NssLexer {
-    explicit NssLexer(std::string_view buffer,
-        std::shared_ptr<Context> ctx = std::make_shared<Context>(),
-        Nss* parent = nullptr);
+    explicit NssLexer(std::string_view buffer, Context* ctx, Nss* parent = nullptr);
 
     NssToken next();
     const NssToken& current() const;
@@ -21,7 +19,7 @@ private:
     NssToken handle_identifier();
     NssToken handle_number();
 
-    std::shared_ptr<Context> ctx_;
+    Context* ctx_ = nullptr;
     Nss* parent_ = nullptr;
     std::string_view buffer_;
     size_t pos_ = 0, line_ = 1, last_line_pos_ = 0;

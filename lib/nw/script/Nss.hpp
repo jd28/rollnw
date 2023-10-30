@@ -17,18 +17,15 @@ namespace nw::script {
 struct Nss;
 
 struct Nss {
-    explicit Nss(const std::filesystem::path& filename,
-        std::shared_ptr<Context> ctx = std::make_shared<Context>());
-    explicit Nss(std::string_view script,
-        std::shared_ptr<Context> ctx = std::make_shared<Context>());
-    explicit Nss(ResourceData data,
-        std::shared_ptr<Context> ctx = std::make_shared<Context>());
+    explicit Nss(const std::filesystem::path& filename, Context* ctx);
+    explicit Nss(std::string_view script, Context* ctx);
+    explicit Nss(ResourceData data, Context* ctx);
 
     /// Add export
     void add_export(std::string_view name, Declaration* decl);
 
     /// Script context
-    std::shared_ptr<Context> ctx() const;
+    Context* ctx() const;
 
     /// Returns all transitive dependencies
     std::set<std::string> dependencies() const;
@@ -77,7 +74,7 @@ struct Nss {
     size_t warnings() const noexcept { return warnings_; }
 
 private:
-    std::shared_ptr<Context> ctx_;
+    Context* ctx_ = nullptr;
     ResourceData data_;
     NssParser parser_;
     Ast ast_;

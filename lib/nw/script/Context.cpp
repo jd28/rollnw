@@ -5,12 +5,17 @@
 
 namespace nw::script {
 
-Context::Context()
+Context::Context(std::string command_script)
+    : dependencies_{}
+    , command_script_name_{std::move(command_script)}
+    , type_map_{}
 {
+    command_script_ = get(Resref{command_script_name_});
     register_default_types();
+    // register_engine_types
 }
 
-Nss* Context::get(Resref resref, std::shared_ptr<Context> ctx)
+Nss* Context::get(Resref resref)
 {
     Resource res{resref, ResourceType::nss};
     auto it = dependencies_.find(res);
@@ -20,7 +25,7 @@ Nss* Context::get(Resref resref, std::shared_ptr<Context> ctx)
 
     auto data = nw::kernel::resman().demand(res);
     if (data.bytes.size()) {
-        auto nss = std::make_unique<Nss>(std::move(data), ctx);
+        auto nss = std::make_unique<Nss>(std::move(data), this);
         nss->parse();
         auto it = dependencies_.insert({res, std::move(nss)});
         return it.first->second.get();
@@ -31,21 +36,24 @@ Nss* Context::get(Resref resref, std::shared_ptr<Context> ctx)
 
 void Context::register_default_types()
 {
+    // Basic Types
     type_id("action");
+    type_id("float");
+    type_id("int");
+    type_id("object");
+    type_id("string");
+    type_id("vector");
+    type_id("void");
+
+    // Engine Types
     type_id("cassowary");
     type_id("effect");
     type_id("event");
-    type_id("float");
-    type_id("int");
     type_id("itemproperty");
     type_id("json");
     type_id("location");
-    type_id("object");
     type_id("sqlquery");
-    type_id("string");
     type_id("talent");
-    type_id("vector");
-    type_id("void");
 }
 
 size_t Context::type_id(std::string_view type_name)

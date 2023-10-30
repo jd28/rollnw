@@ -15,13 +15,17 @@ struct StructDecl;
 struct Type;
 
 struct Context {
-    Context();
+    Context(std::string command_script = "nwscript");
     virtual ~Context() = default;
 
     // Dependency Tracking
     absl::flat_hash_map<Resource, std::unique_ptr<Nss>> dependencies_;
     std::vector<std::string> include_stack_;
-    Nss* get(Resref resref, std::shared_ptr<Context> ctx);
+    Nss* get(Resref resref);
+
+    // Spec
+    std::string command_script_name_;
+    Nss* command_script_ = nullptr;
 
     // Type Tracking
     absl::flat_hash_map<std::string, size_t> type_map_;

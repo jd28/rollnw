@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../log.hpp"
 #include "../util/templates.hpp"
 #include "Context.hpp"
 #include "Nss.hpp"
@@ -15,10 +16,11 @@ struct ScopeDecl {
 };
 
 struct AstResolver : BaseVisitor {
-    AstResolver(Nss* parent, std::shared_ptr<Context> ctx)
+    AstResolver(Nss* parent, Context* ctx)
         : parent_{parent}
         , ctx_{ctx}
     {
+        CHECK_F(!!ctx_, "[script] invalid script context");
     }
 
     virtual ~AstResolver() = default;
@@ -27,7 +29,7 @@ struct AstResolver : BaseVisitor {
     using ScopeStack = std::vector<ScopeMap>;
 
     Nss* parent_ = nullptr;
-    std::shared_ptr<Context> ctx_;
+    Context* ctx_ = nullptr;
     ScopeStack scope_stack_;
     int loop_stack_ = 0;
     int switch_stack_ = 0;
@@ -113,7 +115,7 @@ struct AstResolver : BaseVisitor {
         }
 
         if (parent_->name() != "nwscript") {
-            auto nwscript = ctx_->get({"nwscript"}, ctx_);
+            auto nwscript = ctx_->get({"nwscript"});
             if (nwscript) {
                 nwscript->resolve();
                 return nwscript->locate_export(token);

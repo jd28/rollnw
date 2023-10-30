@@ -6,7 +6,6 @@
 #include <nw/script/NssLexer.hpp>
 
 #include <filesystem>
-#include <iostream>
 #include <string_view>
 
 using namespace std::literals;
@@ -16,14 +15,16 @@ using namespace nw;
 
 TEST(Nss, Parse)
 {
-    script::Nss n2(fs::path("test_data/user/development/nw_s0_raisdead.nss"));
+    script::Context ctx{};
+    script::Nss n2(fs::path("test_data/user/development/nw_s0_raisdead.nss"), &ctx);
     EXPECT_NO_THROW(n2.parse());
     EXPECT_TRUE(n2.errors() == 0);
 }
 
 TEST(Nss, Preprocessor)
 {
-    script::Nss nss(fs::path("test_data/user/development/script_preprocessor.nss"));
+    auto ctx = std::make_unique<script::Context>();
+    script::Nss nss(fs::path("test_data/user/development/script_preprocessor.nss"), ctx.get());
     EXPECT_NO_THROW(nss.parse());
     EXPECT_TRUE(nss.errors() == 0);
     const script::Ast& script = nss.ast();
@@ -37,7 +38,8 @@ TEST(Nss, Preprocessor)
 
 TEST(Nss, ParseNwscript)
 {
-    script::Nss nss(fs::path("test_data/user/scratch/nwscript.nss"));
+    auto ctx = std::make_unique<script::Context>();
+    script::Nss nss(fs::path("test_data/user/scratch/nwscript.nss"), ctx.get());
     EXPECT_NO_THROW(nss.parse());
     EXPECT_NO_THROW(nss.resolve());
     EXPECT_TRUE(nss.errors() == 0);
@@ -48,7 +50,7 @@ TEST(Nss, ParseNwscript)
         EXPECT_EQ(d->identifier.loc.view(), "IntToString");
         EXPECT_EQ(d->type_id_, nss.ctx()->type_id("string"));
     }
-    script::Nss nss2("string test_function(string s, int b) { return IntToString(b); }"sv);
+    script::Nss nss2("string test_function(string s, int b) { return IntToString(b); }"sv, ctx.get());
     EXPECT_NO_THROW(nss2.parse());
     EXPECT_NO_THROW(nss2.resolve());
     EXPECT_EQ(nss2.errors(), 0);
@@ -56,7 +58,8 @@ TEST(Nss, ParseNwscript)
 
 TEST(Nss, Variables)
 {
-    script::Nss nss1("int a = 3, b, c = 1;"sv);
+    auto ctx = std::make_unique<script::Context>();
+    script::Nss nss1("int a = 3, b, c = 1;"sv, ctx.get());
     nss1.parse();
     const script::Ast& s1 = nss1.ast();
     auto decl1 = dynamic_cast<script::DeclStatement*>(s1.decls[0].get());
@@ -64,43 +67,43 @@ TEST(Nss, Variables)
     EXPECT_EQ(decl1->decls.size(), 3);
 
     // Empty statement..
-    script::Nss nss2("void test_function(string s, int b) { int a;; }"sv);
+    script::Nss nss2("void test_function(string s, int b) { int a;; }"sv, ctx.get());
     nss2.parse();
     EXPECT_EQ(nss2.errors(), 0);
 
     // Empty statement..
-    script::Nss nss3("int a;;"sv);
+    script::Nss nss3("int a;;"sv, ctx.get());
     nss3.parse();
     EXPECT_EQ(nss3.warnings(), 1);
 
     // == Bad =================================================================
 
     // const without initializer
-    script::Nss nss4("const int VARIABLE;"sv);
+    script::Nss nss4("const int VARIABLE;"sv, ctx.get());
     EXPECT_NO_THROW(nss4.parse());
     EXPECT_NO_THROW(nss4.resolve());
     EXPECT_EQ(nss4.errors(), 1);
 
     // using declared var in initializer
-    script::Nss nss5("int VARIABLE = VARIABLE;"sv);
+    script::Nss nss5("int VARIABLE = VARIABLE;"sv, ctx.get());
     EXPECT_NO_THROW(nss5.parse());
     EXPECT_NO_THROW(nss5.resolve());
     EXPECT_EQ(nss5.errors(), 1);
 
     // init with wrong type
-    script::Nss nss6("int VARIABLE = OBJECT_INVALID;"sv);
+    script::Nss nss6("int VARIABLE = OBJECT_INVALID;"sv, ctx.get());
     EXPECT_NO_THROW(nss6.parse());
     EXPECT_NO_THROW(nss6.resolve());
     EXPECT_EQ(nss6.errors(), 1);
 
     // var with void type
-    script::Nss nss7("void main() { void v; }"sv);
+    script::Nss nss7("void main() { void v; }"sv, ctx.get());
     EXPECT_NO_THROW(nss7.parse());
     EXPECT_NO_THROW(nss7.resolve());
     EXPECT_EQ(nss7.errors(), 1);
 
     // var with void type
-    script::Nss nss8("void variable;"sv);
+    script::Nss nss8("void variable;"sv, ctx.get());
     EXPECT_NO_THROW(nss8.parse());
     EXPECT_NO_THROW(nss8.resolve());
     EXPECT_EQ(nss8.errors(), 1);
@@ -108,7 +111,8 @@ TEST(Nss, Variables)
 
 TEST(Nss, FunctionDecl)
 {
-    script::Nss nss("void test_function(string s, int b);"sv);
+    auto ctx = std::make_unique<script::Context>();
+    script::Nss nss("void test_function(string s, int b);"sv, ctx.get());
     EXPECT_NO_THROW(nss.parse());
     EXPECT_EQ(nss.errors(), 0);
     const script::Ast& s = nss.ast();
@@ -121,7 +125,7 @@ TEST(Nss, FunctionDecl)
         EXPECT_EQ(fd->params[0]->type.type_specifier.loc.view(), "string");
     }
 
-    script::Nss nss2("void test_function(string s, int b) { s + IntToString(b); }"sv);
+    script::Nss nss2("void test_function(string s, int b) { s + IntToString(b); }"sv, ctx.get());
     EXPECT_NO_THROW(nss2.parse());
     EXPECT_EQ(nss2.errors(), 0);
     const script::Ast& s2 = nss2.ast();
@@ -134,11 +138,11 @@ TEST(Nss, FunctionDecl)
         EXPECT_EQ(fd2->block->nodes.size(), 1);
     }
 
-    script::Nss nss3("void test_function(string s, int b) { s; IntToString(b) +; int x = 2+2;}"sv);
+    script::Nss nss3("void test_function(string s, int b) { s; IntToString(b) +; int x = 2+2;}"sv, ctx.get());
     nss3.parse();
     EXPECT_EQ(nss3.errors(), 1);
 
-    script::Nss nss4("void test_function(int b) { s + IntToString(b); }"sv);
+    script::Nss nss4("void test_function(int b) { s + IntToString(b); }"sv, ctx.get());
     EXPECT_NO_THROW(nss4.parse());
     EXPECT_EQ(nss4.errors(), 0);
     const script::Ast& s4 = nss4.ast();
@@ -151,11 +155,11 @@ TEST(Nss, FunctionDecl)
         EXPECT_EQ(fd4->block->nodes.size(), 1);
     }
 
-    script::Nss nss5("int test_function(int a, int b) { return a % (b + x); }"sv);
+    script::Nss nss5("int test_function(int a, int b) { return a % (b + x); }"sv, ctx.get());
     EXPECT_NO_THROW(nss5.parse());
     EXPECT_EQ(nss5.errors(), 0);
 
-    script::Nss nss6("int test_function(int a = -1, float x = 1.234) { return a; }"sv);
+    script::Nss nss6("int test_function(int a = -1, float x = 1.234) { return a; }"sv, ctx.get());
     EXPECT_NO_THROW(nss6.parse());
     EXPECT_EQ(nss6.errors(), 0);
 
@@ -164,7 +168,8 @@ TEST(Nss, FunctionDecl)
     script::Nss nss7(R"(
         int test_function(int a);
         int test_function(int a, int b) { return a % b; }
-    )"sv);
+    )"sv,
+        ctx.get());
     EXPECT_NO_THROW(nss7.parse());
     EXPECT_NO_THROW(nss7.resolve());
     EXPECT_EQ(nss7.errors(), 1);
@@ -172,7 +177,8 @@ TEST(Nss, FunctionDecl)
     script::Nss nss8(R"(
         int test_function(int a);
         int test_function(int a);
-    )"sv);
+    )"sv,
+        ctx.get());
     EXPECT_NO_THROW(nss8.parse());
     EXPECT_NO_THROW(nss8.resolve());
     EXPECT_EQ(nss8.errors(), 1);
@@ -180,7 +186,8 @@ TEST(Nss, FunctionDecl)
     script::Nss nss9(R"(
         int test_function(int a);
         int test_function(const int a = 1) { return a; }
-    )"sv);
+    )"sv,
+        ctx.get());
     EXPECT_NO_THROW(nss9.parse());
     EXPECT_NO_THROW(nss9.resolve());
     EXPECT_EQ(nss9.errors(), 1);
@@ -188,7 +195,8 @@ TEST(Nss, FunctionDecl)
     script::Nss nss10(R"(
         int test_function(int a);
         int test_function(int b) { return b; }
-    )"sv);
+    )"sv,
+        ctx.get());
     EXPECT_NO_THROW(nss10.parse());
     EXPECT_NO_THROW(nss10.resolve());
     EXPECT_EQ(nss10.warnings(), 1);
@@ -196,7 +204,8 @@ TEST(Nss, FunctionDecl)
     script::Nss nss11(R"(
         int test_function(float b);
         int test_function(int b) { return b; }
-    )"sv);
+    )"sv,
+        ctx.get());
     EXPECT_NO_THROW(nss11.parse());
     EXPECT_NO_THROW(nss11.resolve());
     EXPECT_EQ(nss11.errors(), 1);
@@ -204,7 +213,8 @@ TEST(Nss, FunctionDecl)
     script::Nss nss12(R"(
         int test_function(int b = 1);
         int test_function(int b = -1) { return b; }
-    )"sv);
+    )"sv,
+        ctx.get());
     EXPECT_NO_THROW(nss12.parse());
     EXPECT_NO_THROW(nss12.resolve());
     EXPECT_EQ(nss12.errors(), 1);
@@ -212,7 +222,8 @@ TEST(Nss, FunctionDecl)
     script::Nss nss13(R"(
         int test_function(int a);
         void test_function(int a) { a++; }
-    )"sv);
+    )"sv,
+        ctx.get());
     EXPECT_NO_THROW(nss13.parse());
     EXPECT_NO_THROW(nss13.resolve());
     EXPECT_EQ(nss13.errors(), 1);
@@ -220,7 +231,8 @@ TEST(Nss, FunctionDecl)
 
 TEST(Nss, FunctionDef)
 {
-    script::Nss nss("void test_function(string s, int b) {}"sv);
+    auto ctx = std::make_unique<script::Context>();
+    script::Nss nss("void test_function(string s, int b) {}"sv, ctx.get());
     EXPECT_NO_THROW(nss.parse());
     EXPECT_EQ(nss.errors(), 0);
 
@@ -232,7 +244,8 @@ TEST(Nss, FunctionDef)
         void main() {
             Something();
         }
-    )"sv);
+    )"sv,
+        ctx.get());
     EXPECT_NO_THROW(nss2.parse());
     EXPECT_NO_THROW(nss2.resolve());
     EXPECT_EQ(nss2.errors(), 0);
@@ -240,7 +253,8 @@ TEST(Nss, FunctionDef)
 
 TEST(Nss, FunctionCall)
 {
-    script::Nss nss1("void main() { test_function(b); }"sv);
+    auto ctx = std::make_unique<script::Context>();
+    script::Nss nss1("void main() { test_function(b); }"sv, ctx.get());
     EXPECT_NO_THROW(nss1.parse());
     EXPECT_EQ(nss1.errors(), 0);
 
@@ -250,7 +264,8 @@ TEST(Nss, FunctionCall)
             int a = 1;
             int c = test_function(a);
         }
-    )"sv);
+    )"sv,
+        ctx.get());
     EXPECT_NO_THROW(nss4.parse());
     EXPECT_NO_THROW(nss4.resolve());
     EXPECT_EQ(nss4.errors(), 0);
@@ -261,7 +276,8 @@ TEST(Nss, FunctionCall)
             int a = 1;
             int c = test_function(a);
         }
-    )"sv);
+    )"sv,
+        ctx.get());
     EXPECT_NO_THROW(nss5.parse());
     EXPECT_NO_THROW(nss5.resolve());
     EXPECT_EQ(nss5.errors(), 0);
@@ -271,18 +287,19 @@ TEST(Nss, FunctionCall)
         void main() {
             int c = test_function();
         }
-    )"sv);
+    )"sv,
+        ctx.get());
     EXPECT_NO_THROW(nss10.parse());
     EXPECT_NO_THROW(nss10.resolve());
     EXPECT_EQ(nss10.errors(), 0);
 
     // == Bad =================================================================
 
-    script::Nss nss2("void main() { 423(b); }"sv);
+    script::Nss nss2("void main() { 423(b); }"sv, ctx.get());
     EXPECT_NO_THROW(nss2.parse());
     EXPECT_EQ(nss2.errors(), 1);
 
-    script::Nss nss3("void main() { str.test(b); }"sv);
+    script::Nss nss3("void main() { str.test(b); }"sv, ctx.get());
     EXPECT_NO_THROW(nss3.parse());
     EXPECT_EQ(nss3.errors(), 1);
 
@@ -292,7 +309,8 @@ TEST(Nss, FunctionCall)
             string a = "";
             int c = test_function(a);
         }
-    )"sv);
+    )"sv,
+        ctx.get());
     EXPECT_NO_THROW(nss6.parse());
     EXPECT_NO_THROW(nss6.resolve());
     EXPECT_EQ(nss6.errors(), 1);
@@ -303,7 +321,8 @@ TEST(Nss, FunctionCall)
             int a = 1;
             string c = test_function(a);
         }
-    )"sv);
+    )"sv,
+        ctx.get());
     EXPECT_NO_THROW(nss7.parse());
     EXPECT_NO_THROW(nss7.resolve());
     EXPECT_EQ(nss7.errors(), 1);
@@ -313,7 +332,8 @@ TEST(Nss, FunctionCall)
         void main() {
             int c = test_function();
         }
-    )"sv);
+    )"sv,
+        ctx.get());
     EXPECT_NO_THROW(nss8.parse());
     EXPECT_NO_THROW(nss8.resolve());
     EXPECT_EQ(nss8.errors(), 1);
@@ -323,7 +343,8 @@ TEST(Nss, FunctionCall)
         void main() {
             int c = test_function(1, 3);
         }
-    )"sv);
+    )"sv,
+        ctx.get());
     EXPECT_NO_THROW(nss9.parse());
     EXPECT_NO_THROW(nss9.resolve());
     EXPECT_EQ(nss9.errors(), 1);
@@ -331,29 +352,33 @@ TEST(Nss, FunctionCall)
 
 TEST(Nss, DotOperator)
 {
+    auto ctx = std::make_unique<script::Context>();
+
     // == Good Parse ==========================================================
-    script::Nss nss1("void main() { str.test; }"sv);
+    script::Nss nss1("void main() { str.test; }"sv, ctx.get());
     EXPECT_NO_THROW(nss1.parse());
     EXPECT_EQ(nss1.errors(), 0);
 
-    script::Nss nss2("void main() { str.test.nested; }"sv);
+    script::Nss nss2("void main() { str.test.nested; }"sv, ctx.get());
     EXPECT_NO_THROW(nss2.parse());
     EXPECT_EQ(nss2.errors(), 0);
 
-    script::Nss nss3("void main() { str().test.nested; }"sv);
+    script::Nss nss3("void main() { str().test.nested; }"sv, ctx.get());
     EXPECT_NO_THROW(nss3.parse());
     EXPECT_EQ(nss3.errors(), 0);
 
     // == Bad Parse ============================================================
 
     // Only variable decl or chained dot operator
-    script::Nss nss4("void main() { str.test.call_expr(); }"sv);
+    script::Nss nss4("void main() { str.test.call_expr(); }"sv, ctx.get());
     EXPECT_NO_THROW(nss4.parse());
     EXPECT_EQ(nss4.errors(), 1);
 }
 
 TEST(Nss, Struct)
 {
+    auto ctx = std::make_unique<script::Context>();
+
     // == Good =================================================================
 
     script::Nss nss1(R"(
@@ -363,7 +388,8 @@ TEST(Nss, Struct)
             struct str s;
             s.test;
         }
-    )"sv);
+    )"sv,
+        ctx.get());
     EXPECT_NO_THROW(nss1.parse());
     EXPECT_NO_THROW(nss1.resolve());
     EXPECT_EQ(nss1.errors(), 0);
@@ -376,7 +402,8 @@ TEST(Nss, Struct)
             struct b s;
             s.test2.test1 = 1;
         }
-    )"sv);
+    )"sv,
+        ctx.get());
 
     EXPECT_NO_THROW(nss2.parse());
     EXPECT_NO_THROW(nss2.resolve());
@@ -389,7 +416,8 @@ TEST(Nss, Struct)
             struct a s;
             s.test1++;
         }
-    )"sv);
+    )"sv,
+        ctx.get());
 
     EXPECT_NO_THROW(nss4.parse());
     EXPECT_NO_THROW(nss4.resolve());
@@ -404,7 +432,8 @@ TEST(Nss, Struct)
             struct a s;
             s.test2;
         }
-    )"sv);
+    )"sv,
+        ctx.get());
 
     EXPECT_NO_THROW(nss3.parse());
     EXPECT_NO_THROW(nss3.resolve());
@@ -413,7 +442,9 @@ TEST(Nss, Struct)
 
 TEST(Nss, Lexer)
 {
-    script::NssLexer lexer{"x /= y"};
+    auto ctx = std::make_unique<script::Context>();
+
+    script::NssLexer lexer{"x /= y", ctx.get()};
     auto t1 = lexer.next();
     EXPECT_EQ(t1.loc.view(), "x");
     EXPECT_EQ(lexer.next().loc.view(), "/=");
@@ -421,38 +452,39 @@ TEST(Nss, Lexer)
     EXPECT_EQ(t2.loc.view(), "y");
     EXPECT_EQ(script::merge_source_location(t1.loc, t2.loc).view(), "x /= y");
 
-    script::NssLexer lexer2{"/*"};
+    script::NssLexer lexer2{"/*", ctx.get()};
     EXPECT_THROW(lexer2.next(), std::runtime_error);
 
-    script::NssLexer lexer14{"/*/"};
+    script::NssLexer lexer14{"/*/", ctx.get()};
     EXPECT_THROW(lexer14.next(), std::runtime_error);
 
-    script::NssLexer lexer15{"/**/"};
+    script::NssLexer lexer15{"/**/", ctx.get()};
     EXPECT_NO_THROW(lexer15.next());
 
-    script::NssLexer lexer3{"/* this is comment */"};
+    script::NssLexer lexer3{"/* this is comment */", ctx.get()};
     EXPECT_EQ(lexer3.next().type, script::NssTokenType::COMMENT);
 
-    script::NssLexer lexer4{"\"this is unterminated"};
+    script::NssLexer lexer4{"\"this is unterminated", ctx.get()};
     EXPECT_THROW(lexer4.next(), std::runtime_error);
 
-    script::NssLexer lexer5{"\"Hello World\""};
+    script::NssLexer lexer5{"\"Hello World\"", ctx.get()};
     EXPECT_EQ(lexer5.next().loc.view(), "Hello World");
 
-    script::NssLexer lexer6{"0x123456789abCdEf"};
+    script::NssLexer lexer6{"0x123456789abCdEf", ctx.get()};
     EXPECT_EQ(lexer6.next().type, script::NssTokenType::INTEGER_CONST);
 
-    script::NssLexer lexer7{"~value"};
+    script::NssLexer lexer7{"~value", ctx.get()};
     EXPECT_EQ(lexer7.next().type, script::NssTokenType::TILDE);
 
     script::NssLexer lexer8{R"x(    \
-    )x"};
+    )x",
+        ctx.get()};
     EXPECT_EQ(lexer8.next().type, script::NssTokenType::END);
 
-    script::NssLexer lexer9{"\""};
+    script::NssLexer lexer9{"\"", ctx.get()};
     EXPECT_THROW(lexer9.next(), std::runtime_error);
 
-    script::NssLexer lexer10{"`"};
+    script::NssLexer lexer10{"`", ctx.get()};
     EXPECT_NO_THROW(lexer10.next()); // Unrecognized character is only a warning
 
     script::NssLexer lexer12{R"(
@@ -481,7 +513,8 @@ TEST(Nss, Lexer)
             */
 
         float int_to_float(int val);
-    )"};
+    )",
+        ctx.get()};
 
     size_t line = 0;
     script::NssToken tok = lexer12.next();
@@ -492,25 +525,28 @@ TEST(Nss, Lexer)
 
     EXPECT_EQ(line, 26);
 
-    script::NssLexer lexer13{">>> >>>="};
+    script::NssLexer lexer13{">>> >>>=", ctx.get()};
     EXPECT_EQ(int(lexer13.next().type), int(script::NssTokenType::USR));
     EXPECT_EQ(int(lexer13.next().type), int(script::NssTokenType::USREQ));
 }
 
 TEST(Nss, Includes)
 {
-    script::Nss nss(fs::path("test_data/user/development/circinc1.nss"));
+    auto ctx = std::make_unique<script::Context>();
+    script::Nss nss(fs::path("test_data/user/development/circinc1.nss"), ctx.get());
     EXPECT_NO_THROW(nss.parse());
     EXPECT_EQ(nss.errors(), 0);
     EXPECT_EQ(nss.ast().include_resrefs.size(), 1);
     EXPECT_THROW(nss.process_includes(), std::runtime_error); // Recursive
 
-    script::Nss nss2(fs::path("test_data/user/development/script_preprocessor.nss"));
+    auto ctx2 = std::make_unique<script::Context>();
+    script::Nss nss2(fs::path("test_data/user/development/script_preprocessor.nss"), ctx2.get());
     EXPECT_NO_THROW(nss2.parse());
     EXPECT_TRUE(nss2.errors() == 0);
     EXPECT_THROW(nss2.process_includes(), std::runtime_error); // Non-extant
 
-    script::Nss nss3(fs::path("test_data/user/development/test_inc.nss"));
+    auto ctx3 = std::make_unique<script::Context>();
+    script::Nss nss3(fs::path("test_data/user/development/test_inc.nss"), ctx3.get());
     EXPECT_NO_THROW(nss3.parse());
     EXPECT_EQ(nss3.ast().include_resrefs.size(), 1);
     EXPECT_TRUE(nss3.errors() == 0);
@@ -525,39 +561,41 @@ TEST(Nss, Includes)
 
 TEST(Nss, Literals)
 {
-    script::Nss nss1("void main() { float f = 0.314; }"sv);
+    auto ctx = std::make_unique<script::Context>();
+
+    script::Nss nss1("void main() { float f = 0.314; }"sv, ctx.get());
     EXPECT_NO_THROW(nss1.parse());
     EXPECT_EQ(nss1.errors(), 0);
 
-    script::Nss nss2("void main() { float f = 0.314f; }"sv);
+    script::Nss nss2("void main() { float f = 0.314f; }"sv, ctx.get());
     EXPECT_NO_THROW(nss2.parse());
     EXPECT_EQ(nss2.errors(), 0);
 
-    script::Nss nss3("void main() { float f = 2.; }"sv);
+    script::Nss nss3("void main() { float f = 2.; }"sv, ctx.get());
     EXPECT_NO_THROW(nss3.parse());
     EXPECT_EQ(nss3.errors(), 0);
 
-    script::Nss nss4("void main() { float f = 2.f; }"sv);
+    script::Nss nss4("void main() { float f = 2.f; }"sv, ctx.get());
     EXPECT_NO_THROW(nss4.parse());
     EXPECT_EQ(nss4.errors(), 0);
 
-    script::Nss nss5("void main() { float f = 2; }"sv);
+    script::Nss nss5("void main() { float f = 2; }"sv, ctx.get());
     EXPECT_NO_THROW(nss5.parse());
     EXPECT_EQ(nss5.errors(), 0);
 
-    script::Nss nss6("void main() { int i = 2; }"sv);
+    script::Nss nss6("void main() { int i = 2; }"sv, ctx.get());
     EXPECT_NO_THROW(nss6.parse());
     EXPECT_EQ(nss6.errors(), 0);
 
-    script::Nss nss7("void main() { int i = 0x123456789abcdef; }"sv);
+    script::Nss nss7("void main() { int i = 0x123456789abcdef; }"sv, ctx.get());
     EXPECT_NO_THROW(nss7.parse());
     EXPECT_EQ(nss7.errors(), 0);
 
-    script::Nss nss8("void main() { vector v = [1.0, 0.0f, 0.]; }"sv);
+    script::Nss nss8("void main() { vector v = [1.0, 0.0f, 0.]; }"sv, ctx.get());
     EXPECT_NO_THROW(nss8.parse());
     EXPECT_EQ(nss8.errors(), 0);
 
-    script::Nss nss9("int test(int x = -1, float y = -1.0f, int z = ~0x10, int x = !1);"sv);
+    script::Nss nss9("int test(int x = -1, float y = -1.0f, int z = ~0x10, int x = !1);"sv, ctx.get());
     EXPECT_NO_THROW(nss9.parse());
     EXPECT_EQ(nss9.errors(), 0);
     auto fd = dynamic_cast<script::FunctionDecl*>(nss9.ast().decls[0].get());
@@ -571,10 +609,12 @@ TEST(Nss, Literals)
 
 TEST(Nss, Switch)
 {
+    auto ctx = std::make_unique<script::Context>();
+
     // == Bad =================================================================
 
     // case outside of switch
-    script::Nss nss1("void main() { case 1: ; }"sv);
+    script::Nss nss1("void main() { case 1: ; }"sv, ctx.get());
     EXPECT_NO_THROW(nss1.parse());
     EXPECT_NO_THROW(nss1.resolve());
     EXPECT_EQ(nss1.errors(), 1);
@@ -585,7 +625,8 @@ TEST(Nss, Switch)
         switch(1) {
             case x: ++x;
         }; }
-        )"sv);
+        )"sv,
+        ctx.get());
     EXPECT_NO_THROW(nss2.parse());
     EXPECT_NO_THROW(nss2.resolve());
     EXPECT_EQ(nss2.errors(), 1);
@@ -597,7 +638,8 @@ TEST(Nss, Switch)
         switch(y) {
             case 1: ++x;
         }; }
-        )"sv);
+        )"sv,
+        ctx.get());
     EXPECT_NO_THROW(nss3.parse());
     EXPECT_NO_THROW(nss3.resolve());
     EXPECT_EQ(nss3.errors(), 1);
@@ -609,7 +651,8 @@ TEST(Nss, Switch)
         switch(x) {
             case 0.0f: ++x;
         }; }
-        )"sv);
+        )"sv,
+        ctx.get());
     EXPECT_NO_THROW(nss4.parse());
     EXPECT_NO_THROW(nss4.resolve());
     EXPECT_EQ(nss4.errors(), 1);
@@ -625,7 +668,8 @@ TEST(Nss, Switch)
         switch(1) {
             case x: y = OBJECT_SELF;
         }; }
-        )"sv);
+        )"sv,
+        ctx.get());
     EXPECT_NO_THROW(nss5.parse());
     EXPECT_NO_THROW(nss5.resolve());
     EXPECT_EQ(nss5.errors(), 0);
@@ -633,6 +677,8 @@ TEST(Nss, Switch)
 
 TEST(Nss, BinaryExpressions)
 {
+    auto ctx = std::make_unique<script::Context>();
+
     script::Nss nss1(R"(
     void main() {
         int x = 1;
@@ -648,7 +694,8 @@ TEST(Nss, BinaryExpressions)
         y >> x;
         x >>> y;
         y >>> x;
-    })"sv);
+    })"sv,
+        ctx.get());
     EXPECT_NO_THROW(nss1.parse());
     EXPECT_NO_THROW(nss1.resolve());
     EXPECT_EQ(nss1.errors(), 6);
@@ -675,7 +722,8 @@ TEST(Nss, BinaryExpressions)
         x /= y;      // Not OK
         x | y;       // Not OK
         x & y;       // Not OK
-    })"sv);
+    })"sv,
+        ctx.get());
     EXPECT_NO_THROW(nss2.parse());
     EXPECT_NO_THROW(nss2.resolve());
     EXPECT_EQ(nss2.errors(), 4);
@@ -691,7 +739,8 @@ TEST(Nss, BinaryExpressions)
         x >= y;
         x < y;
         x <= y;
-    })"sv);
+    })"sv,
+        ctx.get());
     EXPECT_NO_THROW(nss3.parse());
     EXPECT_NO_THROW(nss3.resolve());
     EXPECT_EQ(nss3.errors(), 0);
@@ -704,7 +753,8 @@ TEST(Nss, BinaryExpressions)
         x = x || y;
         x = x && y;
         x = !y;
-    })"sv);
+    })"sv,
+        ctx.get());
     EXPECT_NO_THROW(nss4.parse());
     EXPECT_NO_THROW(nss4.resolve());
     EXPECT_EQ(nss4.errors(), 0);
@@ -712,11 +762,14 @@ TEST(Nss, BinaryExpressions)
 
 TEST(Nss, Group)
 {
+    auto ctx = std::make_unique<script::Context>();
+
     script::Nss nss1(R"(
         void main() {
             int x = 2 * (4 + 2);
         }
-    )"sv);
+    )"sv,
+        ctx.get());
     EXPECT_NO_THROW(nss1.parse());
     EXPECT_NO_THROW(nss1.resolve());
     EXPECT_EQ(nss1.errors(), 0);
@@ -724,6 +777,7 @@ TEST(Nss, Group)
 
 TEST(Nss, Conditional)
 {
+    auto ctx = std::make_unique<script::Context>();
 
     // == Good ================================================================
 
@@ -732,7 +786,8 @@ TEST(Nss, Conditional)
         void main() {
             string s = 1 ? "Hi" : "Bye";
         }
-    )"sv);
+    )"sv,
+        ctx.get());
     EXPECT_NO_THROW(nss3.parse());
     EXPECT_NO_THROW(nss3.resolve());
     EXPECT_EQ(nss3.errors(), 0);
@@ -744,7 +799,8 @@ TEST(Nss, Conditional)
         void main() {
             string s = "oops" ? "Hi" : "Bye";
         }
-    )"sv);
+    )"sv,
+        ctx.get());
     EXPECT_NO_THROW(nss1.parse());
     EXPECT_NO_THROW(nss1.resolve());
     EXPECT_EQ(nss1.errors(), 1);
@@ -754,7 +810,8 @@ TEST(Nss, Conditional)
         void main() {
             string s = "oops" ? "Hi" : 3;
         }
-    )"sv);
+    )"sv,
+        ctx.get());
     EXPECT_NO_THROW(nss2.parse());
     EXPECT_NO_THROW(nss2.resolve());
     EXPECT_EQ(nss2.errors(), 2);
@@ -762,6 +819,8 @@ TEST(Nss, Conditional)
 
 TEST(Nss, If)
 {
+    auto ctx = std::make_unique<script::Context>();
+
     // == Bad =================================================================
 
     // non-integer bool test
@@ -770,7 +829,8 @@ TEST(Nss, If)
             string s = "Hello World";
             if(s) { s += "!"; }
         }
-    )"sv);
+    )"sv,
+        ctx.get());
     EXPECT_NO_THROW(nss1.parse());
     EXPECT_NO_THROW(nss1.resolve());
     EXPECT_EQ(nss1.errors(), 1);
@@ -784,7 +844,8 @@ TEST(Nss, If)
             else
                 ;
         }
-    )"sv);
+    )"sv,
+        ctx.get());
     EXPECT_NO_THROW(nss2.parse());
     EXPECT_NO_THROW(nss2.resolve());
     EXPECT_EQ(nss2.errors(), 0);
@@ -795,7 +856,8 @@ TEST(Nss, If)
             else if (2) { }
             else { }
         }
-    )"sv);
+    )"sv,
+        ctx.get());
     EXPECT_NO_THROW(nss3.parse());
     EXPECT_NO_THROW(nss3.resolve());
     EXPECT_EQ(nss3.errors(), 0);
@@ -803,6 +865,8 @@ TEST(Nss, If)
 
 TEST(Nss, Do)
 {
+    auto ctx = std::make_unique<script::Context>();
+
     // == Bad =================================================================
 
     // non-integer bool test
@@ -813,7 +877,8 @@ TEST(Nss, Do)
 
             } while(s);
         }
-    )"sv);
+    )"sv,
+        ctx.get());
     EXPECT_NO_THROW(nss1.parse());
     EXPECT_NO_THROW(nss1.resolve());
     EXPECT_EQ(nss1.errors(), 1);
@@ -821,6 +886,8 @@ TEST(Nss, Do)
 
 TEST(Nss, For)
 {
+    auto ctx = std::make_unique<script::Context>();
+
     // == Bad =================================================================
 
     // non-integer bool test
@@ -830,7 +897,8 @@ TEST(Nss, For)
             string s = "Hello World";
             for(i = 0; s; ++i) { }
         }
-    )"sv);
+    )"sv,
+        ctx.get());
     EXPECT_NO_THROW(nss1.parse());
     EXPECT_NO_THROW(nss1.resolve());
     EXPECT_EQ(nss1.errors(), 1);
@@ -843,7 +911,8 @@ TEST(Nss, For)
             for(;;) {
             }
         }
-    )"sv);
+    )"sv,
+        ctx.get());
     EXPECT_NO_THROW(nss2.parse());
     EXPECT_NO_THROW(nss2.resolve());
     EXPECT_EQ(nss2.errors(), 0);
@@ -854,7 +923,8 @@ TEST(Nss, For)
             for(int i = 0; i < 10; ++i) {
             }
         }
-    )"sv);
+    )"sv,
+        ctx.get());
     EXPECT_NO_THROW(nss3.parse());
     EXPECT_NO_THROW(nss3.resolve());
     EXPECT_EQ(nss3.errors(), 0);
@@ -862,6 +932,8 @@ TEST(Nss, For)
 
 TEST(Nss, While)
 {
+    auto ctx = std::make_unique<script::Context>();
+
     // == Bad =================================================================
 
     // non-integer bool test
@@ -871,7 +943,8 @@ TEST(Nss, While)
             while(s)
                 ;
         }
-    )"sv);
+    )"sv,
+        ctx.get());
     EXPECT_NO_THROW(nss1.parse());
     EXPECT_NO_THROW(nss1.resolve());
     EXPECT_EQ(nss1.errors(), 1);

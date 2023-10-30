@@ -21,11 +21,9 @@ struct parser_error : public std::runtime_error {
 struct Nss;
 
 struct NssParser {
-    explicit NssParser(std::string_view view,
-        std::shared_ptr<Context> ctx = std::make_shared<Context>(),
-        Nss* parent = nullptr);
+    explicit NssParser(std::string_view view, Context* ctx, Nss* parent = nullptr);
 
-    std::shared_ptr<Context> ctx_;
+    Context* ctx_ = nullptr;
     Nss* parent_ = nullptr;
     std::string_view view_;
     NssLexer lexer_;

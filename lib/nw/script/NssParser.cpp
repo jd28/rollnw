@@ -5,12 +5,14 @@
 
 namespace nw::script {
 
-NssParser::NssParser(std::string_view view, std::shared_ptr<Context> ctx, Nss* parent)
+NssParser::NssParser(std::string_view view, Context* ctx, Nss* parent)
     : ctx_{ctx}
     , parent_{parent}
     , view_{view}
     , lexer_{view_, ctx_}
 {
+    CHECK_F(!!ctx_, "[script] invalid script context");
+
     NssToken tok = lexer_.next();
     while (tok.type != NssTokenType::END) {
         if (tok.type != NssTokenType::COMMENT) {

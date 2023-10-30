@@ -1,6 +1,8 @@
 #include "NssLexer.hpp"
 
+#include "../log.hpp"
 #include "Nss.hpp"
+
 
 #include <cctype>
 #include <cstring>
@@ -8,11 +10,12 @@
 
 namespace nw::script {
 
-NssLexer::NssLexer(std::string_view buffer, std::shared_ptr<Context> ctx, Nss* parent)
+NssLexer::NssLexer(std::string_view buffer, Context* ctx, Nss* parent)
     : ctx_{ctx}
     , parent_{parent}
     , buffer_{buffer}
 {
+    CHECK_F(!!ctx_, "[script] invalid script context");
 }
 
 const NssToken& NssLexer::current() const

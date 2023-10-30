@@ -9,24 +9,27 @@
 
 namespace nw::script {
 
-Nss::Nss(const std::filesystem::path& filename, std::shared_ptr<Context> ctx)
+Nss::Nss(const std::filesystem::path& filename, Context* ctx)
     : ctx_{ctx}
     , data_{ResourceData::from_file(filename)}
     , parser_{data_.bytes.string_view(), ctx_, this}
 {
+    CHECK_F(!!ctx_, "[script] invalid script context");
 }
 
-Nss::Nss(std::string_view script, std::shared_ptr<Context> ctx)
+Nss::Nss(std::string_view script, Context* ctx)
     : ctx_{ctx}
     , parser_{script, ctx_, this}
 {
+    CHECK_F(!!ctx_, "[script] invalid script context");
 }
 
-Nss::Nss(ResourceData data, std::shared_ptr<Context> ctx)
+Nss::Nss(ResourceData data, Context* ctx)
     : ctx_{ctx}
     , data_{std::move(data)}
     , parser_{data_.bytes.string_view(), ctx_, this}
 {
+    CHECK_F(!!ctx_, "[script] invalid script context");
 }
 
 void Nss::add_export(std::string_view name, Declaration* decl)
@@ -48,7 +51,7 @@ void Nss::add_export(std::string_view name, Declaration* decl)
     }
 }
 
-std::shared_ptr<Context> Nss::ctx() const
+Context* Nss::ctx() const
 {
     return ctx_;
 }
@@ -105,7 +108,7 @@ bool Nss::process_includes(Nss* parent)
             }
         }
 
-        auto script = ctx_->get(Resref{include}, ctx_);
+        auto script = ctx_->get(Resref{include});
         if (!script) {
             throw std::runtime_error(fmt::format("[script] unable to locate include file: {}", include));
         }
