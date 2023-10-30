@@ -87,7 +87,9 @@ std::string_view Nss::name() const noexcept
 
 void Nss::parse()
 {
+    if (parsed_) { return; }
     ast_ = parser_.parse_program();
+    parsed_ = true;
 }
 
 NssParser& Nss::parser() { return parser_; }

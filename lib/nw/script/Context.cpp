@@ -10,8 +10,11 @@ Context::Context(std::string command_script)
     , command_script_name_{std::move(command_script)}
     , type_map_{}
 {
-    command_script_ = get(Resref{command_script_name_});
     register_default_types();
+
+    command_script_ = get(Resref{command_script_name_});
+    CHECK_F(!!command_script_, "[script] unable to load command script '{}'", command_script_name_);
+    command_script_->resolve();
     // register_engine_types
 }
 

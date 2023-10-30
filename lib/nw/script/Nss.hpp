@@ -82,6 +82,7 @@ private:
     size_t errors_ = 0;
     size_t warnings_ = 0;
     bool resolved_ = false;
+    bool parsed_ = false;
 };
 
 } // namespace nw::script
