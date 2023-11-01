@@ -40,30 +40,31 @@ Nss* Context::get(Resref resref)
 void Context::register_default_types()
 {
     // Basic Types
-    type_id("action");
-    type_id("float");
-    type_id("int");
-    type_id("object");
-    type_id("string");
-    type_id("vector");
-    type_id("void");
+    type_id("action", true);
+    type_id("float", true);
+    type_id("int", true);
+    type_id("object", true);
+    type_id("string", true);
+    type_id("vector", true);
+    type_id("void", true);
 
     // Engine Types
-    type_id("cassowary");
-    type_id("effect");
-    type_id("event");
-    type_id("itemproperty");
-    type_id("json");
-    type_id("location");
-    type_id("sqlquery");
-    type_id("talent");
+    type_id("cassowary", true);
+    type_id("effect", true);
+    type_id("event", true);
+    type_id("itemproperty", true);
+    type_id("json", true);
+    type_id("location", true);
+    type_id("sqlquery", true);
+    type_id("talent", true);
 }
 
-size_t Context::type_id(std::string_view type_name)
+size_t Context::type_id(std::string_view type_name, bool define)
 {
     absl::string_view tn{type_name.data(), type_name.size()};
     auto it = type_map_.find(tn);
     if (it == std::end(type_map_)) {
+        if (!define) { return invalid_type_id; }
         size_t new_id = type_array_.size();
         type_array_.emplace_back(type_name);
         type_map_.emplace(type_name, new_id);
@@ -73,12 +74,12 @@ size_t Context::type_id(std::string_view type_name)
     }
 }
 
-size_t Context::type_id(Type type_name)
+size_t Context::type_id(Type type_name, bool define)
 {
     if (type_name.type_specifier.type == NssTokenType::STRUCT) {
-        return type_id(type_name.struct_id.loc.view());
+        return type_id(type_name.struct_id.loc.view(), define);
     } else {
-        return type_id(type_name.type_specifier.loc.view());
+        return type_id(type_name.type_specifier.loc.view(), define);
     }
 }
 

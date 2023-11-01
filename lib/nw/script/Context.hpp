@@ -33,8 +33,8 @@ struct Context {
     std::vector<StructDecl*> struct_stack_;
 
     virtual void register_default_types();
-    size_t type_id(std::string_view type_name);
-    size_t type_id(Type type_name);
+    size_t type_id(std::string_view type_name, bool define = false);
+    size_t type_id(Type type_name, bool define = false);
     std::string_view type_name(size_t type_id);
     virtual bool type_check_binary_op(NssToken op, size_t lhs, size_t rhs);
     virtual bool is_type_convertible(size_t lhs, size_t rhs);

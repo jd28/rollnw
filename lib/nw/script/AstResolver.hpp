@@ -264,7 +264,7 @@ struct AstResolver : BaseVisitor {
     virtual void visit(StructDecl* decl) override
     {
         declare(decl->type.struct_id, decl);
-        decl->type_id_ = ctx_->type_id(decl->type);
+        decl->type_id_ = ctx_->type_id(decl->type, true);
         begin_scope();
         for (auto& it : decl->decls) {
             it->accept(this);
