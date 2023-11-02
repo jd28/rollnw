@@ -11,8 +11,10 @@
 namespace nw::script {
 
 struct ScopeDecl {
-    bool ready = false;
+    bool decl_ready = false;
+    bool struct_decl_ready = false;
     Declaration* decl = nullptr;
+    StructDecl* struct_decl = nullptr;
 };
 
 struct AstResolver : BaseVisitor {
@@ -43,26 +45,41 @@ struct AstResolver : BaseVisitor {
         scope_stack_.push_back(ScopeMap{});
     }
 
-    void declare(NssToken token, Declaration* decl)
+    void declare(NssToken token, Declaration* decl, bool is_type = false)
     {
         auto s = std::string(token.loc.view());
         auto it = scope_stack_.back().find(s);
         if (it != std::end(scope_stack_.back())) {
-            if (dynamic_cast<FunctionDecl*>(it->second.decl)
-                && dynamic_cast<FunctionDefinition*>(decl)) {
-                it->second.decl = decl;
+            if (is_type) {
+                if (it->second.struct_decl) {
+                    ctx_->semantic_error(parent_,
+                        fmt::format("declaring '{}' in the same scope twice", token.loc.view()),
+                        token.loc);
+                } else {
+                    it->second.struct_decl = dynamic_cast<StructDecl*>(decl);
+                }
             } else {
-                ctx_->semantic_error(parent_,
-                    fmt::format("declaring '{}' in the same scope twice", token.loc.view()),
-                    token.loc);
-                return;
+                if (!it->second.decl) {
+                    it->second.decl = decl;
+                } else if (dynamic_cast<FunctionDecl*>(it->second.decl)
+                    && dynamic_cast<FunctionDefinition*>(decl)) {
+                    it->second.decl = decl;
+                } else {
+                    ctx_->semantic_error(parent_,
+                        fmt::format("declaring '{}' in the same scope twice", token.loc.view()),
+                        token.loc);
+                }
             }
         } else {
-            scope_stack_.back().insert({s, {false, decl}});
+            if (is_type) {
+                scope_stack_.back().insert({s, {false, false, nullptr, dynamic_cast<StructDecl*>(decl)}});
+            } else {
+                scope_stack_.back().insert({s, {false, false, decl, nullptr}});
+            }
         }
     }
 
-    void define(NssToken token)
+    void define(NssToken token, bool is_type = false)
     {
         auto s = std::string(token.loc.view());
         auto it = scope_stack_.back().find(s);
@@ -71,7 +88,11 @@ struct AstResolver : BaseVisitor {
                 fmt::format("defining unknown variable '{}'", token.loc.view()),
                 token.loc);
         }
-        it->second.ready = true;
+        if (is_type) {
+            it->second.struct_decl_ready = true;
+        } else {
+            it->second.decl_ready = true;
+        }
     }
 
     void end_scope()
@@ -79,13 +100,13 @@ struct AstResolver : BaseVisitor {
         scope_stack_.pop_back();
     }
 
-    Declaration* locate(std::string_view token, Nss* script)
+    Declaration* locate(std::string_view token, Nss* script, bool is_type)
     {
-        if (auto decl = script->locate_export(token)) {
+        if (auto decl = script->locate_export(token, is_type)) {
             return decl;
         } else {
             for (auto& it : reverse(script->ast().includes)) {
-                if (auto decl = locate(token, it)) {
+                if (auto decl = locate(token, it, is_type)) {
                     return decl;
                 }
             }
@@ -93,7 +114,7 @@ struct AstResolver : BaseVisitor {
         return nullptr;
     }
 
-    Declaration* resolve(std::string_view token, SourceLocation loc)
+    Declaration* resolve(std::string_view token, SourceLocation loc, bool is_type)
     {
         auto s = std::string(token);
 
@@ -101,20 +122,29 @@ struct AstResolver : BaseVisitor {
         for (const auto& map : reverse(scope_stack_)) {
             auto it = map.find(s);
             if (it == std::end(map)) { continue; }
-            if (!it->second.ready) {
-                ctx_->semantic_error(parent_,
-                    fmt::format("using declared variable '{}' in init", token),
-                    loc);
+            if (is_type) {
+                if (!it->second.struct_decl_ready) {
+                    ctx_->semantic_error(parent_,
+                        fmt::format("recursive use of struct '{}' in declaration", token),
+                        loc);
+                }
+                return it->second.struct_decl;
+            } else {
+                if (it->second.decl && !it->second.decl_ready) {
+                    ctx_->semantic_error(parent_,
+                        fmt::format("using declared variable '{}' in init", token),
+                        loc);
+                }
+                return it->second.decl;
             }
-            return it->second.decl;
         }
 
         // Next look through all dependencies
         for (auto it : reverse(parent_->ast().includes)) {
-            if (auto decl = locate(token, it)) { return decl; }
+            if (auto decl = locate(token, it, is_type)) { return decl; }
         }
 
-        return ctx_->command_script_->locate_export(token);
+        return ctx_->command_script_->locate_export(token, is_type);
     }
 
     // == Visitor =============================================================
@@ -215,7 +245,7 @@ struct AstResolver : BaseVisitor {
     virtual void visit(FunctionDecl* decl) override
     {
         // Check to see if there's been a function definition, if so got to match.
-        auto fd = resolve(decl->identifier.loc.view(), decl->identifier.loc);
+        auto fd = resolve(decl->identifier.loc.view(), decl->identifier.loc, false);
 
         decl->type_id_ = ctx_->type_id(decl->type);
         declare(decl->identifier, decl);
@@ -237,7 +267,7 @@ struct AstResolver : BaseVisitor {
     {
         ++func_def_stack_;
         // Check to see if there's been a function declaration, if so got to match.
-        auto fd = resolve(decl->decl_inline->identifier.loc.view(), decl->decl_inline->identifier.loc);
+        auto fd = resolve(decl->decl_inline->identifier.loc.view(), decl->decl_inline->identifier.loc, false);
         decl->decl_external = dynamic_cast<FunctionDecl*>(fd);
 
         decl->type_id_ = decl->decl_inline->type_id_ = ctx_->type_id(decl->decl_inline->type);
@@ -263,7 +293,7 @@ struct AstResolver : BaseVisitor {
 
     virtual void visit(StructDecl* decl) override
     {
-        declare(decl->type.struct_id, decl);
+        declare(decl->type.struct_id, decl, true);
         decl->type_id_ = ctx_->type_id(decl->type, true);
         begin_scope();
         for (auto& it : decl->decls) {
@@ -271,7 +301,7 @@ struct AstResolver : BaseVisitor {
         }
         end_scope();
         // Define down here so there's no recursive elements
-        define(decl->type.struct_id);
+        define(decl->type.struct_id, true);
     }
 
     virtual void visit(VarDecl* decl) override
@@ -355,7 +385,7 @@ struct AstResolver : BaseVisitor {
 
         FunctionDecl* func_decl = nullptr;
         FunctionDecl* orig_decl = nullptr;
-        auto decl = resolve(ve->var.loc.view(), ve->var.loc);
+        auto decl = resolve(ve->var.loc.view(), ve->var.loc, false);
         if (auto fd = dynamic_cast<FunctionDecl*>(decl)) {
             func_decl = fd;
         } else if (auto fd = dynamic_cast<FunctionDefinition*>(decl)) {
@@ -470,7 +500,7 @@ struct AstResolver : BaseVisitor {
         if (auto de = dynamic_cast<DotExpression*>(expr->lhs.get())) {
             expr->lhs->accept(this);
             struct_type = ctx_->type_name(expr->lhs->type_id_);
-            struct_decl = struct_decl = dynamic_cast<StructDecl*>(resolve(struct_type, expr->dot.loc));
+            struct_decl = struct_decl = dynamic_cast<StructDecl*>(resolve(struct_type, expr->dot.loc, true));
         } else if (auto ve = dynamic_cast<VariableExpression*>(expr->lhs.get())) {
             ve->accept(this);
 
@@ -483,8 +513,8 @@ struct AstResolver : BaseVisitor {
                 return;
             }
 
-            struct_type = ctx_->type_name(ve->type_id_); // ve->var.loc.view();
-            struct_decl = dynamic_cast<StructDecl*>(resolve(ctx_->type_name(ve->type_id_), ve->var.loc));
+            struct_type = ctx_->type_name(ve->type_id_);
+            struct_decl = dynamic_cast<StructDecl*>(resolve(ctx_->type_name(ve->type_id_), ve->var.loc, true));
         }
 
         if (!struct_decl) {
@@ -559,7 +589,7 @@ struct AstResolver : BaseVisitor {
 
     virtual void visit(VariableExpression* expr) override
     {
-        auto decl = resolve(expr->var.loc.view(), expr->var.loc);
+        auto decl = resolve(expr->var.loc.view(), expr->var.loc, false);
         if (decl) {
             expr->type_id_ = decl->type_id_;
             expr->is_const_ = decl->is_const_;

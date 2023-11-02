@@ -35,17 +35,27 @@ Nss::Nss(ResourceData data, Context* ctx)
 void Nss::add_export(std::string_view name, Declaration* decl)
 {
     absl::string_view n{name.data(), name.size()};
-    auto it = exports_.find(n);
-    if (it == std::end(exports_)) {
-        exports_.insert({std::string(name), decl});
-    } else {
-        if (dynamic_cast<FunctionDecl*>(it->second) && dynamic_cast<FunctionDefinition*>(decl)) {
-            it->second = decl;
+
+    if (dynamic_cast<StructDecl*>(decl)) {
+        auto it = type_exports_.find(n);
+        if (it == std::end(type_exports_)) {
+            type_exports_.insert({std::string(name), decl});
         } else {
-            // [TODO] This will get flagged in the AstResolver as an error, if outside of that context,
-            // throw I guess
-            if (errors_ == 0) {
-                throw std::runtime_error(fmt::format("duplicate export: {}", name));
+            throw std::runtime_error(fmt::format("duplicate export: {}", name));
+        }
+    } else {
+        auto it = exports_.find(n);
+        if (it == std::end(exports_)) {
+            exports_.insert({std::string(name), decl});
+        } else {
+            if (dynamic_cast<FunctionDecl*>(it->second) && dynamic_cast<FunctionDefinition*>(decl)) {
+                it->second = decl;
+            } else {
+                // [TODO] This will get flagged in the AstResolver as an error, if outside of that context,
+                // throw I guess
+                if (errors_ == 0) {
+                    throw std::runtime_error(fmt::format("duplicate export: {}", name));
+                }
             }
         }
     }
@@ -66,12 +76,19 @@ std::set<std::string> Nss::dependencies() const
     return result;
 }
 
-Declaration* Nss::locate_export(std::string_view name)
+Declaration* Nss::locate_export(std::string_view name, bool is_type)
 {
     absl::string_view n{name.data(), name.size()};
-    auto it = exports_.find(n);
-    if (it != std::end(exports_)) {
-        return it->second;
+    if (is_type) {
+        auto it = type_exports_.find(n);
+        if (it != std::end(type_exports_)) {
+            return it->second;
+        }
+    } else {
+        auto it = exports_.find(n);
+        if (it != std::end(exports_)) {
+            return it->second;
+        }
     }
     return nullptr;
 }

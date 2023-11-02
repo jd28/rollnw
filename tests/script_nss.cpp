@@ -43,7 +43,7 @@ TEST(Nss, ParseNwscript)
     EXPECT_NO_THROW(nss.parse());
     EXPECT_NO_THROW(nss.resolve());
     EXPECT_TRUE(nss.errors() == 0);
-    auto decl = nss.locate_export("IntToString");
+    auto decl = nss.locate_export("IntToString", false);
     EXPECT_NE(decl, nullptr);
     auto d = dynamic_cast<nw::script::FunctionDecl*>(decl);
     if (d) {
@@ -422,6 +422,19 @@ TEST(Nss, Struct)
     EXPECT_NO_THROW(nss4.parse());
     EXPECT_NO_THROW(nss4.resolve());
     EXPECT_EQ(nss4.errors(), 0);
+
+    // Struct is separate namespace
+    script::Nss nss5(R"(
+        struct MyStruct { int test1; };
+        int MyStruct() { return 42; }
+
+        void main() { }
+    )"sv,
+        ctx.get());
+
+    EXPECT_NO_THROW(nss5.parse());
+    EXPECT_NO_THROW(nss5.resolve());
+    EXPECT_EQ(nss5.errors(), 0);
 
     // == Bad =================================================================
 
