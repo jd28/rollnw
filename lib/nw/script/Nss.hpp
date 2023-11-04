@@ -14,7 +14,12 @@
 
 namespace nw::script {
 
-struct Nss;
+/// Any exported symbol from an NWScript file
+struct Export {
+    Declaration* decl = nullptr; ///< Variable or function
+    StructDecl* type = nullptr;  ///< Struct
+    int command_id = -1;         ///< Command ID for command script, i.e. 'nwscript'
+};
 
 struct Nss {
     explicit Nss(const std::filesystem::path& filename, Context* ctx);
@@ -78,8 +83,7 @@ private:
     ResourceData data_;
     NssParser parser_;
     Ast ast_;
-    absl::flat_hash_map<std::string, Declaration*> exports_;
-    absl::flat_hash_map<std::string, Declaration*> type_exports_;
+    absl::flat_hash_map<std::string, Export> exports_;
     size_t errors_ = 0;
     size_t warnings_ = 0;
     bool resolved_ = false;

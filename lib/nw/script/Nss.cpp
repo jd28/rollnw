@@ -1,10 +1,7 @@
 #include "Nss.hpp"
 
-#include "../kernel/Resources.hpp"
 #include "AstResolver.hpp"
 
-#include <cstring>
-#include <fstream>
 #include <string_view>
 
 namespace nw::script {
@@ -34,29 +31,39 @@ Nss::Nss(ResourceData data, Context* ctx)
 
 void Nss::add_export(std::string_view name, Declaration* decl)
 {
+    bool is_dupe = false;
     absl::string_view n{name.data(), name.size()};
-
-    if (dynamic_cast<StructDecl*>(decl)) {
-        auto it = type_exports_.find(n);
-        if (it == std::end(type_exports_)) {
-            type_exports_.insert({std::string(name), decl});
+    auto it = exports_.find(n);
+    if (it == std::end(exports_)) {
+        if (auto s = dynamic_cast<StructDecl*>(decl)) {
+            exports_.insert({std::string(name), {nullptr, s}});
         } else {
-            throw std::runtime_error(fmt::format("duplicate export: {}", name));
+            exports_.insert({std::string(name), {decl, nullptr}});
         }
     } else {
-        auto it = exports_.find(n);
-        if (it == std::end(exports_)) {
-            exports_.insert({std::string(name), decl});
-        } else {
-            if (dynamic_cast<FunctionDecl*>(it->second) && dynamic_cast<FunctionDefinition*>(decl)) {
-                it->second = decl;
+        if (auto s = dynamic_cast<StructDecl*>(decl)) {
+            if (!it->second.type) {
+                it->second.type = s;
             } else {
-                // [TODO] This will get flagged in the AstResolver as an error, if outside of that context,
-                // throw I guess
-                if (errors_ == 0) {
-                    throw std::runtime_error(fmt::format("duplicate export: {}", name));
-                }
+                is_dupe = true;
             }
+        } else {
+            if (!it->second.decl) {
+                it->second.decl = decl;
+            } else if (dynamic_cast<FunctionDecl*>(it->second.decl) && dynamic_cast<FunctionDefinition*>(decl)) {
+                // Superseding function declaration with function definition seems reasonable.  If both exists
+                // resolver ensures compat.
+                it->second.decl = decl;
+            } else {
+                is_dupe = true;
+            }
+        }
+    }
+
+    if (is_dupe) {
+        // [TODO] This will get flagged in the AstResolver as an error, if outside of that context, throw I guess..
+        if (errors_ == 0) {
+            throw std::runtime_error(fmt::format("duplicate export: {}", name));
         }
     }
 }
@@ -79,18 +86,9 @@ std::set<std::string> Nss::dependencies() const
 Declaration* Nss::locate_export(std::string_view name, bool is_type)
 {
     absl::string_view n{name.data(), name.size()};
-    if (is_type) {
-        auto it = type_exports_.find(n);
-        if (it != std::end(type_exports_)) {
-            return it->second;
-        }
-    } else {
-        auto it = exports_.find(n);
-        if (it != std::end(exports_)) {
-            return it->second;
-        }
-    }
-    return nullptr;
+    auto it = exports_.find(n);
+    if (it == std::end(exports_)) { return nullptr; }
+    return is_type ? it->second.type : it->second.decl;
 }
 
 std::string_view Nss::name() const noexcept
