@@ -217,9 +217,9 @@ static void BM_creature_attack_roll(benchmark::State& state)
 static void BM_formats_nss(benchmark::State& state)
 {
     nw::ResourceData data = nw::ResourceData::from_file("test_data/user/scratch/nwscript.nss");
-
+    auto ctx = new nw::script::Context;
     for (auto _ : state) {
-        nw::script::Nss nss(data.copy());
+        nw::script::Nss nss(data.copy(), ctx);
         nss.parse();
         benchmark::DoNotOptimize(nss);
     }
