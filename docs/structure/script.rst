@@ -12,10 +12,11 @@ examples
 
     .. code-tab:: python
 
-        from rollnw.script import Nss
+        from rollnw.script import Nss, Context
 
-        # Load
-        nss = Nss("path/to/nwscript.nss")
+        # Create a context and load a script
+        ctx = Context()
+        nss = Nss("path/to/myscript.nss", ctx)
 
         # Parse
         nss.parse()
@@ -30,13 +31,14 @@ examples
 
         # To simplify this process for assets in the resource manager,
         # the ``load`` function will call all the above
-        raise_dead = rollnw.script.load("nw_s0_raisdead")
+        raise_dead = rollnw.script.load("nw_s0_raisdead", Context())
 
     .. code-tab:: c++
 
         #include <nw/script/Nss.hpp>
 
-        nw::script::Nss nss{nw::kerne::resman().demand({"nwscript"sv, nw::ResourceType::nss)};
+        auto ctx = std::make_unique<nw::script::Context>();
+        nw::script::Nss nss{nw::kerne::resman().demand({"nwscript"sv, nw::ResourceType::nss), ctx.get()};
 
         // Parse
         nss.parse();
@@ -56,10 +58,11 @@ examples
 
 .. code:: python
 
-    from rollnw.script import Nss, FunctionDecl
+    from rollnw.script import Nss, FunctionDecl, Context
 
     # Load
-    nss = rollnw.script.load("nwscript")
+    ctx = Context()
+    nss = rollnw.script.load("nwscript", ctx)
 
     # Iterate toplevel declarations and look for function declarations
     # This is all functions WITHOUT bodies.

@@ -93,7 +93,14 @@ class NssTokenType(enum.IntEnum):
     TALENT = auto()         # talent
     VECTOR = auto()         # vector
     VOID = auto()           # void
-    WHILE = auto()         # while
+    WHILE = auto()          # while
+
+
+class Context:
+    """Provides a context for parsing a NWScript file"""
+
+    def __init__(self, command_script: str = "nwscript"):
+        pass
 
 
 class Nss:
