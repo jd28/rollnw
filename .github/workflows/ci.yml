@@ -24,7 +24,7 @@ env:
   VCPKG_DEFAULT_BINARY_CACHE: "${{ github.workspace }}/vcpkg/.cache"
   NWN_ROOT: "${{ github.workspace }}/nwn/"
   CI_GITHUB_ACTIONS: "1"
-  MACOSX_DEPLOYMENT_TARGET: "11"
+  MACOSX_DEPLOYMENT_TARGET: "12"
   CMAKE_TOOLCHAIN_FILE: "${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake"
 
 jobs:
@@ -32,7 +32,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-11, ubuntu-20.04, windows-latest]
+        os: [macos-12, ubuntu-20.04, windows-latest]
     runs-on: ${{ matrix.os }}
     name: Build ${{ matrix.os }}
 
@@ -55,7 +55,7 @@ jobs:
 
       # macOS Dependencies
       - name: macOS - install non-vcpkg dependencies
-        if: matrix.os == 'macos-11'
+        if: matrix.os == 'macos-12'
         env:
           HOMEBREW_NO_ANALYTICS: "ON"
           HOMEBREW_NO_AUTO_UPDATE: "ON"
@@ -67,7 +67,7 @@ jobs:
           echo "CXX=$(brew --prefix llvm)/bin/clang++" >> $GITHUB_ENV
 
       - name: macOS - check clang version
-        if: matrix.os == 'macos-11'
+        if: matrix.os == 'macos-12'
         run: $CC --version
 
       # Linux dependencies
@@ -179,7 +179,7 @@ jobs:
           cmake --preset ci-windows
 
       - name: macOS - configure
-        if: matrix.os == 'macos-11'
+        if: matrix.os == 'macos-12'
         run: |
           cmake --preset ci-macos
 
