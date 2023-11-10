@@ -142,6 +142,7 @@ target_link_libraries(nw PUBLIC
     Threads::Threads
 
     stb_image
+    fzy
     inih
 
     coverage_config

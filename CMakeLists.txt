@@ -66,6 +66,7 @@ endif()
 
 include_directories(SYSTEM external)
 include_directories(SYSTEM external/nowide/include)
+add_subdirectory(external/fzy)
 add_subdirectory(external/inih)
 add_subdirectory(external/nowide)
 add_subdirectory(external/stb)
