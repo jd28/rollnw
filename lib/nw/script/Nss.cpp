@@ -2,6 +2,10 @@
 
 #include "AstResolver.hpp"
 
+extern "C" {
+#include <fzy/match.h>
+}
+
 #include <string_view>
 
 namespace nw::script {
@@ -66,6 +70,17 @@ void Nss::add_export(std::string_view name, Declaration* decl)
             throw std::runtime_error(fmt::format("duplicate export: {}", name));
         }
     }
+}
+
+std::vector<std::string> Nss::complete(const std::string& needle)
+{
+    std::vector<std::string> result;
+    for (const auto& [name, _] : exports_) {
+        if (has_match(needle.c_str(), name.c_str())) {
+            result.push_back(name);
+        }
+    }
+    return result;
 }
 
 Context* Nss::ctx() const

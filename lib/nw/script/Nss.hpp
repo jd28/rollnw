@@ -11,6 +11,7 @@
 #include <filesystem>
 #include <set>
 #include <string>
+#include <vector>
 
 namespace nw::script {
 
@@ -28,6 +29,10 @@ struct Nss {
 
     /// Add export
     void add_export(std::string_view name, Declaration* decl);
+
+    /// Generates a list of potential completions from exports
+    /// @note This is just a baby step.
+    std::vector<std::string> complete(const std::string& needle);
 
     /// Script context
     Context* ctx() const;

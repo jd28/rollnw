@@ -50,6 +50,14 @@ TEST(Nss, ParseNwscript)
         EXPECT_EQ(d->identifier.loc.view(), "IntToString");
         EXPECT_EQ(d->type_id_, nss.ctx()->type_id("string"));
     }
+
+    // Completion
+    auto completions = nss.complete("IntToString");
+    EXPECT_EQ(completions.size(), 2);
+    EXPECT_EQ(completions[0], "IntToHexString");
+    EXPECT_EQ(completions[1], "IntToString");
+
+    // Command Script Resolution..
     script::Nss nss2("string test_function(string s, int b) { return IntToString(b); }"sv, ctx.get());
     EXPECT_NO_THROW(nss2.parse());
     EXPECT_NO_THROW(nss2.resolve());
