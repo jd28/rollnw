@@ -135,10 +135,11 @@
 <h2>examples<a class="headerlink" href="#examples" title="Permalink to this headline"></a></h2>
 <p><strong>Basic Loading</strong></p>
 <div class="sphinx-tabs docutils container">
-<div aria-label="Tabbed content" class="closeable" role="tablist"><button aria-controls="panel-0-UHl0aG9u" aria-selected="true" class="sphinx-tabs-tab code-tab group-tab" id="tab-0-UHl0aG9u" name="UHl0aG9u" role="tab" tabindex="0">Python</button><button aria-controls="panel-0-Qysr" aria-selected="false" class="sphinx-tabs-tab code-tab group-tab" id="tab-0-Qysr" name="Qysr" role="tab" tabindex="-1">C++</button></div><div aria-labelledby="tab-0-UHl0aG9u" class="sphinx-tabs-panel code-tab group-tab" id="panel-0-UHl0aG9u" name="UHl0aG9u" role="tabpanel" tabindex="0"><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">rollnw.script</span> <span class="kn">import</span> <span class="n">Nss</span>
+<div aria-label="Tabbed content" class="closeable" role="tablist"><button aria-controls="panel-0-UHl0aG9u" aria-selected="true" class="sphinx-tabs-tab code-tab group-tab" id="tab-0-UHl0aG9u" name="UHl0aG9u" role="tab" tabindex="0">Python</button><button aria-controls="panel-0-Qysr" aria-selected="false" class="sphinx-tabs-tab code-tab group-tab" id="tab-0-Qysr" name="Qysr" role="tab" tabindex="-1">C++</button></div><div aria-labelledby="tab-0-UHl0aG9u" class="sphinx-tabs-panel code-tab group-tab" id="panel-0-UHl0aG9u" name="UHl0aG9u" role="tabpanel" tabindex="0"><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">rollnw.script</span> <span class="kn">import</span> <span class="n">Nss</span><span class="p">,</span> <span class="n">Context</span>
 
-<span class="c1"># Load</span>
-<span class="n">nss</span> <span class="o">=</span> <span class="n">Nss</span><span class="p">(</span><span class="s2">&quot;path/to/nwscript.nss&quot;</span><span class="p">)</span>
+<span class="c1"># Create a context and load a script</span>
+<span class="n">ctx</span> <span class="o">=</span> <span class="n">Context</span><span class="p">()</span>
+<span class="n">nss</span> <span class="o">=</span> <span class="n">Nss</span><span class="p">(</span><span class="s2">&quot;path/to/myscript.nss&quot;</span><span class="p">,</span> <span class="n">ctx</span><span class="p">)</span>
 
 <span class="c1"># Parse</span>
 <span class="n">nss</span><span class="o">.</span><span class="n">parse</span><span class="p">()</span>
@@ -153,12 +154,13 @@
 
 <span class="c1"># To simplify this process for assets in the resource manager,</span>
 <span class="c1"># the ``load`` function will call all the above</span>
-<span class="n">raise_dead</span> <span class="o">=</span> <span class="n">rollnw</span><span class="o">.</span><span class="n">script</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s2">&quot;nw_s0_raisdead&quot;</span><span class="p">)</span>
+<span class="n">raise_dead</span> <span class="o">=</span> <span class="n">rollnw</span><span class="o">.</span><span class="n">script</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s2">&quot;nw_s0_raisdead&quot;</span><span class="p">,</span> <span class="n">Context</span><span class="p">())</span>
 </pre></div>
 </div>
 </div><div aria-labelledby="tab-0-Qysr" class="sphinx-tabs-panel code-tab group-tab" hidden="true" id="panel-0-Qysr" name="Qysr" role="tabpanel" tabindex="0"><div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;nw/script/Nss.hpp&gt;</span>
 
-<span class="n">nw</span><span class="o">::</span><span class="n">script</span><span class="o">::</span><span class="n">Nss</span><span class="w"> </span><span class="n">nss</span><span class="p">{</span><span class="n">nw</span><span class="o">::</span><span class="n">kerne</span><span class="o">::</span><span class="n">resman</span><span class="p">().</span><span class="n">demand</span><span class="p">({</span><span class="s">&quot;nwscript&quot;</span><span class="n">sv</span><span class="p">,</span><span class="w"> </span><span class="n">nw</span><span class="o">::</span><span class="n">ResourceType</span><span class="o">::</span><span class="n">nss</span><span class="p">)};</span>
+<span class="k">auto</span><span class="w"> </span><span class="n">ctx</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">make_unique</span><span class="o">&lt;</span><span class="n">nw</span><span class="o">::</span><span class="n">script</span><span class="o">::</span><span class="n">Context</span><span class="o">&gt;</span><span class="p">();</span>
+<span class="n">nw</span><span class="o">::</span><span class="n">script</span><span class="o">::</span><span class="n">Nss</span><span class="w"> </span><span class="n">nss</span><span class="p">{</span><span class="n">nw</span><span class="o">::</span><span class="n">kerne</span><span class="o">::</span><span class="n">resman</span><span class="p">().</span><span class="n">demand</span><span class="p">({</span><span class="s">&quot;nwscript&quot;</span><span class="n">sv</span><span class="p">,</span><span class="w"> </span><span class="n">nw</span><span class="o">::</span><span class="n">ResourceType</span><span class="o">::</span><span class="n">nss</span><span class="p">),</span><span class="w"> </span><span class="n">ctx</span><span class="p">.</span><span class="n">get</span><span class="p">()};</span>
 
 <span class="c1">// Parse</span>
 <span class="n">nss</span><span class="p">.</span><span class="n">parse</span><span class="p">();</span>
@@ -175,10 +177,11 @@
 </div></div>
 <hr class="docutils" />
 <p><strong>Iterating Top-Level Declarations</strong></p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">rollnw.script</span> <span class="kn">import</span> <span class="n">Nss</span><span class="p">,</span> <span class="n">FunctionDecl</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">rollnw.script</span> <span class="kn">import</span> <span class="n">Nss</span><span class="p">,</span> <span class="n">FunctionDecl</span><span class="p">,</span> <span class="n">Context</span>
 
 <span class="c1"># Load</span>
-<span class="n">nss</span> <span class="o">=</span> <span class="n">rollnw</span><span class="o">.</span><span class="n">script</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s2">&quot;nwscript&quot;</span><span class="p">)</span>
+<span class="n">ctx</span> <span class="o">=</span> <span class="n">Context</span><span class="p">()</span>
+<span class="n">nss</span> <span class="o">=</span> <span class="n">rollnw</span><span class="o">.</span><span class="n">script</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s2">&quot;nwscript&quot;</span><span class="p">,</span> <span class="n">ctx</span><span class="p">)</span>
 
 <span class="c1"># Iterate toplevel declarations and look for function declarations</span>
 <span class="c1"># This is all functions WITHOUT bodies.</span>
