@@ -53,6 +53,7 @@ TEST(Nss, ParseNwscript)
 
     // Completion
     auto completions = nss.complete("IntToString");
+    std::sort(std::begin(completions), std::end(completions));
     EXPECT_EQ(completions.size(), 2);
     EXPECT_EQ(completions[0], "IntToHexString");
     EXPECT_EQ(completions[1], "IntToString");
