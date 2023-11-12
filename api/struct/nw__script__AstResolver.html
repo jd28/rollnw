@@ -365,6 +365,11 @@
 <span id="_CPPv3N2nw6script11AstResolver10ScopeStackE"></span><span id="_CPPv2N2nw6script11AstResolver10ScopeStackE"></span><span class="target" id="structnw_1_1script_1_1_ast_resolver_1a0c8e2525585b3ac4c0c8337427fe8ccf"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ScopeStack</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4N2nw6script11AstResolver8ScopeMapE" title="nw::script::AstResolver::ScopeMap"><span class="n"><span class="pre">ScopeMap</span></span></a><span class="p"><span class="pre">&gt;</span></span><a class="headerlink" href="#_CPPv4N2nw6script11AstResolver10ScopeStackE" title="Permalink to this definition"></a><br /></dt>
 <dd></dd></dl>
 
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script11AstResolver8EnvStackE">
+<span id="_CPPv3N2nw6script11AstResolver8EnvStackE"></span><span id="_CPPv2N2nw6script11AstResolver8EnvStackE"></span><span class="target" id="structnw_1_1script_1_1_ast_resolver_1a4cf3799ec1832150fe83c50cf6dfa3cd"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">EnvStack</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">immer</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">map</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">Export</span></span><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">&gt;</span></span><a class="headerlink" href="#_CPPv4N2nw6script11AstResolver8EnvStackE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
 </div>
 <div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
@@ -379,8 +384,8 @@
 <dd></dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N2nw6script11AstResolver11begin_scopeEv">
-<span id="_CPPv3N2nw6script11AstResolver11begin_scopeEv"></span><span id="_CPPv2N2nw6script11AstResolver11begin_scopeEv"></span><span id="nw::script::AstResolver::begin_scope"></span><span class="target" id="structnw_1_1script_1_1_ast_resolver_1a1ebe224b0d0c479ec70a4a8e7bdc2c5e"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">begin_scope</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6script11AstResolver11begin_scopeEv" title="Permalink to this definition"></a><br /></dt>
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script11AstResolver11begin_scopeEb">
+<span id="_CPPv3N2nw6script11AstResolver11begin_scopeEb"></span><span id="_CPPv2N2nw6script11AstResolver11begin_scopeEb"></span><span id="nw::script::AstResolver::begin_scope__b"></span><span class="target" id="structnw_1_1script_1_1_ast_resolver_1ac370f74ce2023c9a271dd492f4e7177c"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">begin_scope</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">global</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">false</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6script11AstResolver11begin_scopeEb" title="Permalink to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp function">
@@ -394,8 +399,13 @@
 <dd></dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N2nw6script11AstResolver9end_scopeEv">
-<span id="_CPPv3N2nw6script11AstResolver9end_scopeEv"></span><span id="_CPPv2N2nw6script11AstResolver9end_scopeEv"></span><span id="nw::script::AstResolver::end_scope"></span><span class="target" id="structnw_1_1script_1_1_ast_resolver_1a7e653ed3066ea2594a4602d1a73452ff"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">end_scope</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6script11AstResolver9end_scopeEv" title="Permalink to this definition"></a><br /></dt>
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script11AstResolver9end_scopeEb">
+<span id="_CPPv3N2nw6script11AstResolver9end_scopeEb"></span><span id="_CPPv2N2nw6script11AstResolver9end_scopeEb"></span><span id="nw::script::AstResolver::end_scope__b"></span><span class="target" id="structnw_1_1script_1_1_ast_resolver_1adbaa65f32376b5de5926626a00cef4bb"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">end_scope</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">global</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">false</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6script11AstResolver9end_scopeEb" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK2nw6script11AstResolver12symbol_tableEv">
+<span id="_CPPv3NK2nw6script11AstResolver12symbol_tableEv"></span><span id="_CPPv2NK2nw6script11AstResolver12symbol_tableEv"></span><span id="nw::script::AstResolver::symbol_tableC"></span><span class="target" id="structnw_1_1script_1_1_ast_resolver_1a43fda310b25a5e898293e2b6b3d88133"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">immer</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">map</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">Export</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">symbol_table</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK2nw6script11AstResolver12symbol_tableEv" title="Permalink to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp function">
@@ -574,6 +584,11 @@
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw6script11AstResolver12scope_stack_E">
 <span id="_CPPv3N2nw6script11AstResolver12scope_stack_E"></span><span id="_CPPv2N2nw6script11AstResolver12scope_stack_E"></span><span id="nw::script::AstResolver::scope_stack___ScopeStack"></span><span class="target" id="structnw_1_1script_1_1_ast_resolver_1a5021e4b1b795614f01bdd0a11e498044"></span><a class="reference internal" href="#_CPPv4N2nw6script11AstResolver10ScopeStackE" title="nw::script::AstResolver::ScopeStack"><span class="n"><span class="pre">ScopeStack</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">scope_stack_</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script11AstResolver12scope_stack_E" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script11AstResolver10env_stack_E">
+<span id="_CPPv3N2nw6script11AstResolver10env_stack_E"></span><span id="_CPPv2N2nw6script11AstResolver10env_stack_E"></span><span id="nw::script::AstResolver::env_stack___EnvStack"></span><span class="target" id="structnw_1_1script_1_1_ast_resolver_1a5a4c43992997208cda6f63675b936d19"></span><a class="reference internal" href="#_CPPv4N2nw6script11AstResolver8EnvStackE" title="nw::script::AstResolver::EnvStack"><span class="n"><span class="pre">EnvStack</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">env_stack_</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script11AstResolver10env_stack_E" title="Permalink to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
