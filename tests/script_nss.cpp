@@ -63,6 +63,35 @@ TEST(Nss, ParseNwscript)
     EXPECT_NO_THROW(nss2.parse());
     EXPECT_NO_THROW(nss2.resolve());
     EXPECT_EQ(nss2.errors(), 0);
+
+    // Env
+    auto decl2 = nss.locate_export("TRUE", false);
+    EXPECT_NE(decl2, nullptr);
+    auto d2 = dynamic_cast<nw::script::VarDecl*>(decl2);
+    if (d2) {
+        EXPECT_EQ(d2->env.size(), 1);
+    }
+
+    auto decl3 = nss.locate_export("GetFirstObjectInShape", false);
+    EXPECT_NE(decl3, nullptr);
+    auto d3 = dynamic_cast<nw::script::FunctionDecl*>(decl3);
+    EXPECT_NE(d3, nullptr);
+    auto completions2 = nw::script::completer("OBJECT_type_", d3->env);
+    std::sort(std::begin(completions2), std::end(completions2));
+    std::vector<std::string> expect2{
+        "OBJECT_TYPE_ALL",
+        "OBJECT_TYPE_AREA_OF_EFFECT",
+        "OBJECT_TYPE_CREATURE",
+        "OBJECT_TYPE_DOOR",
+        "OBJECT_TYPE_ENCOUNTER",
+        "OBJECT_TYPE_INVALID",
+        "OBJECT_TYPE_ITEM",
+        "OBJECT_TYPE_PLACEABLE",
+        "OBJECT_TYPE_STORE",
+        "OBJECT_TYPE_TRIGGER",
+        "OBJECT_TYPE_WAYPOINT",
+    };
+    EXPECT_EQ(completions2, expect2);
 }
 
 TEST(Nss, Variables)

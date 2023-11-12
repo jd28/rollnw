@@ -135,4 +135,15 @@ const Ast& Nss::ast() const { return ast_; }
 
 std::string_view Nss::text() const noexcept { return data_.bytes.string_view(); }
 
+std::vector<std::string> completer(const std::string& needle, immer::map<std::string, Export> haystack)
+{
+    std::vector<std::string> result;
+    for (const auto& [name, _] : haystack) {
+        if (has_match(needle.c_str(), name.c_str())) {
+            result.push_back(name);
+        }
+    }
+    return result;
+}
+
 } // namespace nw::script
