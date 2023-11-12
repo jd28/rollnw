@@ -4,6 +4,7 @@
 #include "Token.hpp"
 
 #include <glm/glm.hpp>
+#include <immer/map.hpp>
 
 #include <limits>
 #include <memory>
@@ -14,6 +15,7 @@ namespace nw::script {
 
 struct Nss;
 struct Ast;
+struct Export;
 
 struct FunctionDecl;
 struct FunctionDefinition;
@@ -94,6 +96,7 @@ struct AstNode {
 
     size_t type_id_ = invalid_type_id;
     bool is_const_ = false;
+    immer::map<std::string, Export> env;
 };
 
 #define DEFINE_ACCEPT_VISITOR                          \

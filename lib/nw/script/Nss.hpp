@@ -7,6 +7,7 @@
 #include "Context.hpp"
 
 #include <absl/container/flat_hash_map.h>
+#include <immer/map.hpp>
 
 #include <filesystem>
 #include <set>
@@ -27,9 +28,6 @@ struct Nss {
     explicit Nss(std::string_view script, Context* ctx);
     explicit Nss(ResourceData data, Context* ctx);
 
-    /// Add export
-    void add_export(std::string_view name, Declaration* decl);
-
     /// Generates a list of potential completions from exports
     /// @note This is just a baby step.
     std::vector<std::string> complete(const std::string& needle);
@@ -43,6 +41,8 @@ struct Nss {
     /// Returns how many errors were found during parsing
     size_t errors() const noexcept { return errors_; }
 
+    size_t export_count() const noexcept { return symbol_table_.size(); }
+
     /// Increments error count
     void increment_errors() noexcept { ++errors_; }
 
@@ -51,7 +51,7 @@ struct Nss {
 
     /// Locate export
     /// @note This function is not recursive
-    Declaration* locate_export(std::string_view name, bool is_type);
+    Declaration* locate_export(const std::string& name, bool is_type);
 
     /// Script name
     std::string_view name() const noexcept;
@@ -88,7 +88,7 @@ private:
     ResourceData data_;
     NssParser parser_;
     Ast ast_;
-    absl::flat_hash_map<std::string, Export> exports_;
+    immer::map<std::string, Export> symbol_table_;
     size_t errors_ = 0;
     size_t warnings_ = 0;
     bool resolved_ = false;

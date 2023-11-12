@@ -33,49 +33,10 @@ Nss::Nss(ResourceData data, Context* ctx)
     CHECK_F(!!ctx_, "[script] invalid script context");
 }
 
-void Nss::add_export(std::string_view name, Declaration* decl)
-{
-    bool is_dupe = false;
-    absl::string_view n{name.data(), name.size()};
-    auto it = exports_.find(n);
-    if (it == std::end(exports_)) {
-        if (auto s = dynamic_cast<StructDecl*>(decl)) {
-            exports_.insert({std::string(name), {nullptr, s}});
-        } else {
-            exports_.insert({std::string(name), {decl, nullptr}});
-        }
-    } else {
-        if (auto s = dynamic_cast<StructDecl*>(decl)) {
-            if (!it->second.type) {
-                it->second.type = s;
-            } else {
-                is_dupe = true;
-            }
-        } else {
-            if (!it->second.decl) {
-                it->second.decl = decl;
-            } else if (dynamic_cast<FunctionDecl*>(it->second.decl) && dynamic_cast<FunctionDefinition*>(decl)) {
-                // Superseding function declaration with function definition seems reasonable.  If both exists
-                // resolver ensures compat.
-                it->second.decl = decl;
-            } else {
-                is_dupe = true;
-            }
-        }
-    }
-
-    if (is_dupe) {
-        // [TODO] This will get flagged in the AstResolver as an error, if outside of that context, throw I guess..
-        if (errors_ == 0) {
-            throw std::runtime_error(fmt::format("duplicate export: {}", name));
-        }
-    }
-}
-
 std::vector<std::string> Nss::complete(const std::string& needle)
 {
     std::vector<std::string> result;
-    for (const auto& [name, _] : exports_) {
+    for (const auto& [name, _] : symbol_table_) {
         if (has_match(needle.c_str(), name.c_str())) {
             result.push_back(name);
         }
@@ -98,12 +59,13 @@ std::set<std::string> Nss::dependencies() const
     return result;
 }
 
-Declaration* Nss::locate_export(std::string_view name, bool is_type)
+Declaration* Nss::locate_export(const std::string& name, bool is_type)
 {
-    absl::string_view n{name.data(), name.size()};
-    auto it = exports_.find(n);
-    if (it == std::end(exports_)) { return nullptr; }
-    return is_type ? it->second.type : it->second.decl;
+    auto sym = symbol_table_.find(name);
+    if (sym) {
+        return is_type ? sym->type : sym->decl;
+    }
+    return nullptr;
 }
 
 std::string_view Nss::name() const noexcept
@@ -164,6 +126,7 @@ void Nss::resolve()
 
     AstResolver resolver{this, ctx_};
     resolver.visit(&ast_);
+    symbol_table_ = resolver.symbol_table();
     resolved_ = true;
 }
 
