@@ -94,6 +94,10 @@ struct AstNode {
     virtual ~AstNode() = default;
     virtual void accept(BaseVisitor* visitor) = 0;
 
+    /// Find completions for this Ast Node
+    /// @note This function does not traverse dependencies
+    virtual std::vector<std::string> complete(const std::string& needle) const;
+
     size_t type_id_ = invalid_type_id;
     bool is_const_ = false;
     immer::map<std::string, Export> env;

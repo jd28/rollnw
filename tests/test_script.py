@@ -29,10 +29,11 @@ def test_function_decl():
 
 def test_var_decl():
     ctx = Context("nwscript")
-    nss = Nss.from_string("const int MY_GLOBAL = 1;", ctx)
+    nss = Nss.from_string("int TRUE = 1; const int MY_GLOBAL = 1;", ctx)
     nss.parse()
     nss.resolve()
     script = nss.ast()
-    assert isinstance(script[0], VarDecl)
-    decl = script[0]
+    assert isinstance(script[1], VarDecl)
+    decl = script[1]
     assert isinstance(decl.init, LiteralExpression)
+    assert decl.complete("TRUE")[0] == "TRUE"

@@ -76,7 +76,7 @@ TEST(Nss, ParseNwscript)
     EXPECT_NE(decl3, nullptr);
     auto d3 = dynamic_cast<nw::script::FunctionDecl*>(decl3);
     EXPECT_NE(d3, nullptr);
-    auto completions2 = nw::script::completer("OBJECT_type_", d3->env);
+    auto completions2 = d3->complete("OBJECT_type_");
     std::sort(std::begin(completions2), std::end(completions2));
     std::vector<std::string> expect2{
         "OBJECT_TYPE_ALL",

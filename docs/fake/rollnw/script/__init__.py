@@ -1,5 +1,6 @@
 import enum
 from enum import auto
+from typing import List
 
 # Script ######################################################################
 ###############################################################################
@@ -195,8 +196,14 @@ class NssToken:
 
 
 class AstNode:
-    """Base Ast class"""
-    pass
+    """Base Ast Node class"""
+
+    def complete(self, needle: str) -> List[str]:
+        """Find completions for any Ast Node
+
+        @note This function does not traverse dependencies
+        """
+        return []
 
 
 class Expression(AstNode):

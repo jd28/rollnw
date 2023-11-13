@@ -95,6 +95,4 @@ private:
     bool parsed_ = false;
 };
 
-std::vector<std::string> completer(const std::string& needle, immer::map<std::string, Export> haystack);
-
 } // namespace nw::script

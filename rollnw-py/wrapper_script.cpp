@@ -185,7 +185,8 @@ void init_script(py::module& nw)
         .def_readonly("include_resrefs", &nws::Ast::include_resrefs);
 
     py::class_<nws::AstNode>(nw, "AstNode")
-        .def("accept", &nws::AstNode::accept);
+        .def("accept", &nws::AstNode::accept)
+        .def("complete", &nws::AstNode::complete);
 
     py::class_<nws::Expression, nws::AstNode>(nw, "Expression");
 
