@@ -91,7 +91,6 @@ add_subdirectory(docs)
 endif()
 
 if(ROLLNW_BUILD_PYTHON)
-find_package(Python3 REQUIRED COMPONENTS Interpreter Development.Module)
 include_directories(profiles/)
 add_subdirectory(external/pybind11)
 add_subdirectory(rollnw-py)
