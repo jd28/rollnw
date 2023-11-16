@@ -3,6 +3,8 @@ from .. import ObjectBase, ObjectHandle, Area, Creature, Door, Encounter, Placea
 from .. import Effect
 from ..script import Script
 
+from typing import Optional
+
 # Classes #####################################################################
 ###############################################################################
 
@@ -21,7 +23,8 @@ class ConfigOptions:
         include_install (bool): If true, load base game data.  (Default True)
         include_nwsync (bool): If true, load NWSync data.  (Default True)
     """
-    def __init__(probe: bool = True, version: GameVersion = GameVersion.vEE):
+
+    def __init__(self, probe: bool = True, version: GameVersion = GameVersion.vEE):
         pass
 
 
@@ -46,6 +49,7 @@ class Config:
     def options(self) -> ConfigOptions:
         """Gets config options
         """
+        pass
 
     def resolve_alias(self, alias_path: str) -> str:
         """Resolves alias path"""
@@ -183,7 +187,9 @@ class Objects:
 class Resources(Container):
     """Resources service
     """
-    pass
+
+    def __init__(self, parent: Optional["Resources"]):
+        pass
 
 
 class Rules:
@@ -248,7 +254,7 @@ def objects():
     pass
 
 
-def resman():
+def resman() -> Resources:
     """Gets resman service"""
     pass
 

@@ -18,6 +18,10 @@ TEST(KernelResources, AddContainer)
     EXPECT_TRUE(rm->add_container(&e, false));
     EXPECT_TRUE(rm->contains({"module"sv, nw::ResourceType::ifo}));
     EXPECT_EQ(rm->size(), sz + e.size());
+
+    nw::kernel::Resources rm2{rm};
+    EXPECT_TRUE(rm2.contains({"module"sv, nw::ResourceType::ifo}));
+
     delete rm;
 }
 
@@ -32,6 +36,7 @@ TEST(KernelResources, Extract)
     EXPECT_EQ(rm->extract(std::regex(".*"), "tmp"), 37);
     rm->clear_containers();
     EXPECT_FALSE(rm->contains({"test_area"sv, nw::ResourceType::are}));
+
     delete rm;
 }
 

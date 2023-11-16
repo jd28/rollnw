@@ -25,7 +25,7 @@ namespace kernel {
 using LocatorVariant = std::variant<Container*, unique_container>;
 
 struct Resources : public Container, public Service {
-    Resources() = default;
+    Resources(const Resources* parent = nullptr);
     virtual ~Resources() = default;
 
     using SearchVector = std::vector<std::tuple<const Container*, ResourceType::type, bool>>;
@@ -81,6 +81,7 @@ private:
     void update_container_search();
 
     const std::string name_{"resman"};
+    const Resources* parent_ = nullptr;
 
     NWSync nwsync_;
 

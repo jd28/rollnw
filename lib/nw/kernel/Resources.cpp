@@ -41,6 +41,11 @@ inline Container* resolve_container(const std::filesystem::path& p, const std::s
     return nullptr;
 }
 
+Resources::Resources(const Resources* parent)
+    : parent_(parent)
+{
+}
+
 void Resources::initialize()
 {
     LOG_F(INFO, "kernel: initializing resource system");
@@ -193,10 +198,13 @@ bool Resources::contains(Resource res) const
         if (type != ResourceType::invalid && !ResourceType::check_category(type, res.type)) {
             continue;
         }
-        if (cont->contains(res)) {
-            return true;
-        }
+        if (cont->contains(res)) { return true; }
     }
+
+    if (parent_ && parent_->contains(res)) {
+        return true;
+    }
+
     return false;
 }
 
@@ -212,6 +220,9 @@ ResourceData Resources::demand(Resource res) const
             break;
         }
     }
+
+    if (result.bytes.size() == 0 && parent_) { result = parent_->demand(res); }
+
     if (result.bytes.size() == 0) {
         LOG_F(WARNING, "Failed to find '{}'", res.filename());
     }
@@ -233,7 +244,7 @@ ResourceData Resources::demand_any(Resref resref, std::initializer_list<Resource
             }
         }
     }
-    return {};
+    return parent_ ? parent_->demand_any(resref, restypes) : ResourceData{};
 }
 
 ResourceData Resources::demand_in_order(Resref resref, std::initializer_list<ResourceType::type> restypes) const
@@ -251,7 +262,7 @@ ResourceData Resources::demand_in_order(Resref resref, std::initializer_list<Res
             }
         }
     }
-    return {};
+    return parent_ ? parent_->demand_in_order(resref, restypes) : ResourceData{};
 }
 
 ResourceData Resources::demand_server_vault(std::string_view cdkey, std::string_view resref)
@@ -276,6 +287,10 @@ int Resources::extract(const std::regex& pattern, const std::filesystem::path& o
     int result = 0;
     for (auto [cont, type, user] : reverse(search_)) {
         result += cont->extract(pattern, output);
+    }
+
+    if (parent_) {
+        result += parent_->extract(pattern, output);
     }
     return result;
 }
