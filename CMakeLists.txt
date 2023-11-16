@@ -92,6 +92,7 @@ endif()
 
 if(ROLLNW_BUILD_PYTHON)
 include_directories(profiles/)
+find_package(Python3 COMPONENTS Interpreter Development.Module REQUIRED)
 add_subdirectory(external/pybind11)
 add_subdirectory(rollnw-py)
 endif()
