@@ -52,28 +52,34 @@ void Resources::initialize()
     LOG_F(INFO, "kernel: root directory: {}", config().options().install);
     LOG_F(INFO, "kernel: user directory: {}", config().options().user);
 
-    ambient_user_ = Directory{config().alias_path(PathAlias::ambient)};
-    dmvault_user_ = Directory{config().alias_path(PathAlias::dmvault)};
-    localvault_user_ = Directory{config().alias_path(PathAlias::localvault)};
-    music_user_ = Directory{config().alias_path(PathAlias::music)};
-    override_user_ = Directory{config().alias_path(PathAlias::override)};
-    portraits_user_ = Directory{config().alias_path(PathAlias::portraits)};
-    servervault_user_ = Directory{config().alias_path(PathAlias::servervault)};
-
-    if (config().options().version == GameVersion::vEE) {
-        if (config().options().include_nwsync) {
-            nwsync_ = NWSync{config().alias_path(PathAlias::nwsync)};
-        }
-        development_ = Directory{config().alias_path(PathAlias::development)};
+    if (config().options().include_user) {
+        ambient_user_ = Directory{config().alias_path(PathAlias::ambient)};
+        dmvault_user_ = Directory{config().alias_path(PathAlias::dmvault)};
+        localvault_user_ = Directory{config().alias_path(PathAlias::localvault)};
+        music_user_ = Directory{config().alias_path(PathAlias::music)};
+        override_user_ = Directory{config().alias_path(PathAlias::override)};
+        portraits_user_ = Directory{config().alias_path(PathAlias::portraits)};
+        servervault_user_ = Directory{config().alias_path(PathAlias::servervault)};
     }
 
-    if (config().userpatch_ini().valid()) {
-        int i = 0;
-        std::string file;
-        while (config().userpatch_ini().get_to(fmt::format("Patch/PatchFile{:03d}", i++), file)) {
-            auto c = resolve_container(config().alias_path(PathAlias::patch), file);
-            if (c) {
-                patches_.emplace_back(c);
+    if (config().options().include_user) {
+        if (config().options().version == GameVersion::vEE) {
+            if (config().options().include_nwsync) {
+                nwsync_ = NWSync{config().alias_path(PathAlias::nwsync)};
+            }
+            development_ = Directory{config().alias_path(PathAlias::development)};
+        }
+    }
+
+    if (config().options().include_user) {
+        if (config().userpatch_ini().valid()) {
+            int i = 0;
+            std::string file;
+            while (config().userpatch_ini().get_to(fmt::format("Patch/PatchFile{:03d}", i++), file)) {
+                auto c = resolve_container(config().alias_path(PathAlias::patch), file);
+                if (c) {
+                    patches_.emplace_back(c);
+                }
             }
         }
     }

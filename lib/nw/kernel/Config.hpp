@@ -8,11 +8,12 @@ namespace nw {
 
 /// Configuration options, maybe there will be an actual config file.. someday.
 struct ConfigOptions {
-    GameVersion version;
-    std::filesystem::path install;
-    std::filesystem::path user;
-    bool include_install = true;
-    bool include_nwsync = true;
+    GameVersion version;           ///< Game version
+    std::filesystem::path install; ///< Path to Game installation directory
+    std::filesystem::path user;    ///< Path to User directory
+    bool include_install = true;   ///< Load Game install files
+    bool include_nwsync = true;    ///< Load NWSync files
+    bool include_user = true;      ///< Load User files, note: if false, value overrides ``include_nwsync``
 };
 
 namespace kernel {
