@@ -822,6 +822,8 @@
 </li>
       <li><a href="api/struct/nw__ConfigOptions.html#_CPPv4N2nw13ConfigOptions14include_nwsyncE">nw::ConfigOptions::include_nwsync (C++ member)</a>
 </li>
+      <li><a href="api/struct/nw__ConfigOptions.html#_CPPv4N2nw13ConfigOptions12include_userE">nw::ConfigOptions::include_user (C++ member)</a>
+</li>
       <li><a href="api/struct/nw__ConfigOptions.html#_CPPv4N2nw13ConfigOptions7installE">nw::ConfigOptions::install (C++ member)</a>
 </li>
       <li><a href="api/struct/nw__ConfigOptions.html#_CPPv4N2nw13ConfigOptions4userE">nw::ConfigOptions::user (C++ member)</a>
@@ -3572,14 +3574,14 @@
 </li>
       <li><a href="api/struct/nw__model__NodeFlags.html#_CPPv4N2nw5model9NodeFlags4skinE">nw::model::NodeFlags::skin (C++ member)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/struct/nw__model__NodeTypes.html#_CPPv4N2nw5model8NodeTypeE">nw::model::NodeType (C++ struct)</a>
 </li>
       <li><a href="api/struct/nw__model__NodeTypes.html#_CPPv4N2nw5model8NodeType4aabbE">nw::model::NodeType::aabb (C++ member)</a>
 </li>
       <li><a href="api/struct/nw__model__NodeTypes.html#_CPPv4N2nw5model8NodeType8animmeshE">nw::model::NodeType::animmesh (C++ member)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/struct/nw__model__NodeTypes.html#_CPPv4N2nw5model8NodeType6cameraE">nw::model::NodeType::camera (C++ member)</a>
 </li>
       <li><a href="api/struct/nw__model__NodeTypes.html#_CPPv4N2nw5model8NodeType10danglymeshE">nw::model::NodeType::danglymesh (C++ member)</a>
@@ -5180,19 +5182,13 @@
 </li>
       <li><a href="api/struct/nw__script__Context.html#_CPPv4N2nw6script7Context19is_type_convertibleE6size_t6size_t">nw::script::Context::is_type_convertible (C++ function)</a>
 </li>
-      <li><a href="api/struct/nw__script__Context.html#_CPPv4N2nw6script7Context13lexical_errorEP3NssNSt11string_viewE14SourceLocation">nw::script::Context::lexical_error (C++ function)</a>
+      <li><a href="api/struct/nw__script__Context.html#_CPPv4N2nw6script7Context18lexical_diagnosticEP3NssNSt11string_viewEb14SourceLocation">nw::script::Context::lexical_diagnostic (C++ function)</a>
 </li>
-      <li><a href="api/struct/nw__script__Context.html#_CPPv4N2nw6script7Context15lexical_warningEP3NssNSt11string_viewE14SourceLocation">nw::script::Context::lexical_warning (C++ function)</a>
-</li>
-      <li><a href="api/struct/nw__script__Context.html#_CPPv4N2nw6script7Context11parse_errorEP3NssNSt11string_viewE14SourceLocation">nw::script::Context::parse_error (C++ function)</a>
-</li>
-      <li><a href="api/struct/nw__script__Context.html#_CPPv4N2nw6script7Context13parse_warningEP3NssNSt11string_viewE14SourceLocation">nw::script::Context::parse_warning (C++ function)</a>
+      <li><a href="api/struct/nw__script__Context.html#_CPPv4N2nw6script7Context16parse_diagnosticEP3NssNSt11string_viewEb14SourceLocation">nw::script::Context::parse_diagnostic (C++ function)</a>
 </li>
       <li><a href="api/struct/nw__script__Context.html#_CPPv4N2nw6script7Context22register_default_typesEv">nw::script::Context::register_default_types (C++ function)</a>
 </li>
-      <li><a href="api/struct/nw__script__Context.html#_CPPv4N2nw6script7Context14semantic_errorEP3NssNSt11string_viewE14SourceLocation">nw::script::Context::semantic_error (C++ function)</a>
-</li>
-      <li><a href="api/struct/nw__script__Context.html#_CPPv4N2nw6script7Context16semantic_warningEP3NssNSt11string_viewE14SourceLocation">nw::script::Context::semantic_warning (C++ function)</a>
+      <li><a href="api/struct/nw__script__Context.html#_CPPv4N2nw6script7Context19semantic_diagnosticEP3NssNSt11string_viewEb14SourceLocation">nw::script::Context::semantic_diagnostic (C++ function)</a>
 </li>
       <li><a href="api/struct/nw__script__Context.html#_CPPv4N2nw6script7Context13struct_stack_E">nw::script::Context::struct_stack_ (C++ member)</a>
 </li>
@@ -5546,7 +5542,7 @@
 </li>
       <li><a href="api/struct/nw__script__NssParser.html#_CPPv4N2nw6script9NssParser8current_E">nw::script::NssParser::current_ (C++ member)</a>
 </li>
-      <li><a href="api/struct/nw__script__NssParser.html#_CPPv4N2nw6script9NssParser5errorENSt11string_viewE8NssToken">nw::script::NssParser::error (C++ function)</a>
+      <li><a href="api/struct/nw__script__NssParser.html#_CPPv4N2nw6script9NssParser10diagnosticENSt11string_viewE8NssTokenb">nw::script::NssParser::diagnostic (C++ function)</a>
 </li>
       <li><a href="api/struct/nw__script__NssParser.html#_CPPv4NK2nw6script9NssParser6is_endEv">nw::script::NssParser::is_end (C++ function)</a>
 </li>
@@ -5639,8 +5635,6 @@
       <li><a href="api/struct/nw__script__NssParser.html#_CPPv4N2nw6script9NssParser6tokensE">nw::script::NssParser::tokens (C++ member)</a>
 </li>
       <li><a href="api/struct/nw__script__NssParser.html#_CPPv4N2nw6script9NssParser5view_E">nw::script::NssParser::view_ (C++ member)</a>
-</li>
-      <li><a href="api/struct/nw__script__NssParser.html#_CPPv4N2nw6script9NssParser4warnENSt11string_viewE8NssToken">nw::script::NssParser::warn (C++ function)</a>
 </li>
       <li><a href="api/struct/nw__script__NssToken.html#_CPPv4N2nw6script8NssTokenE">nw::script::NssToken (C++ struct)</a>
 </li>
