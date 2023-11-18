@@ -70,14 +70,9 @@ bool NssParser::check_is_type() const
     return false;
 }
 
-void NssParser::error(std::string_view msg, NssToken token)
+void NssParser::diagnostic(std::string_view msg, NssToken token, bool is_warning)
 {
-    ctx_->parse_error(parent_, msg, token.loc);
-}
-
-void NssParser::warn(std::string_view msg, NssToken token)
-{
-    ctx_->parse_warning(parent_, msg, token.loc);
+    ctx_->parse_diagnostic(parent_, msg, is_warning, token.loc);
 }
 
 bool NssParser::is_end() const
@@ -89,7 +84,7 @@ NssToken NssParser::consume(NssTokenType type, std::string_view message)
 {
     if (check({type})) return advance();
 
-    error(message, peek());
+    diagnostic(message, peek());
     throw parser_error(message);
 }
 
@@ -200,7 +195,7 @@ std::unique_ptr<Expression> NssParser::parse_expr_assign()
             return std::make_unique<AssignExpression>(std::move(expr), equals, std::move(value));
         }
 
-        error("Invalid assignment target.", peek());
+        diagnostic("Invalid assignment target.", peek());
     }
 
     return expr;
@@ -375,7 +370,7 @@ std::unique_ptr<Expression> NssParser::parse_expr_postfix()
 
         if (previous().type == NssTokenType::LPAREN) {
             if (!dynamic_cast<VariableExpression*>(expr.get())) {
-                error("expression cannot be used as a function", previous());
+                diagnostic("expression cannot be used as a function", previous());
             }
 
             auto e = std::make_unique<CallExpression>(std::move(expr));
@@ -411,16 +406,18 @@ std::unique_ptr<Expression> NssParser::parse_expr_primary()
             if (auto val = string::from<int32_t>(expr->literal.loc.view())) {
                 expr->data = *val;
             } else {
-                ctx_->parse_error(parent_,
+                ctx_->parse_diagnostic(parent_,
                     fmt::format("unable to parse integer literal '{}'", expr->literal.loc.view()),
+                    false,
                     expr->literal.loc);
             }
         } else if (expr->literal.type == NssTokenType::FLOAT_CONST) {
             if (auto val = string::from<float>(expr->literal.loc.view())) {
                 expr->data = *val;
             } else {
-                ctx_->parse_error(parent_,
+                ctx_->parse_diagnostic(parent_,
                     fmt::format("unable to parse float literal '{}'", expr->literal.loc.view()),
+                    false,
                     expr->literal.loc);
             }
         }
@@ -448,24 +445,27 @@ std::unique_ptr<Expression> NssParser::parse_expr_primary()
         if (auto val = string::from<float>(expr->x.loc.view())) {
             expr->data.x = *val;
         } else {
-            ctx_->parse_error(parent_,
+            ctx_->parse_diagnostic(parent_,
                 fmt::format("unable to parse vector literal '{}'", expr->x.loc.view()),
+                false,
                 expr->x.loc);
         }
 
         if (auto val = string::from<float>(expr->y.loc.view())) {
             expr->data.y = *val;
         } else {
-            ctx_->parse_error(parent_,
+            ctx_->parse_diagnostic(parent_,
                 fmt::format("unable to parse vector literal '{}'", expr->y.loc.view()),
+                false,
                 expr->y.loc);
         }
 
         if (auto val = string::from<float>(expr->z.loc.view())) {
             expr->data.z = *val;
         } else {
-            ctx_->parse_error(parent_,
+            ctx_->parse_diagnostic(parent_,
                 fmt::format("unable to parse vector literal '{}'", expr->z.loc.view()),
+                false,
                 expr->z.loc);
         }
 
@@ -478,7 +478,7 @@ std::unique_ptr<Expression> NssParser::parse_expr_primary()
         return std::make_unique<GroupingExpression>(std::move(expr));
     }
 
-    error("expected primary expression", peek());
+    diagnostic("expected primary expression", peek());
     throw parser_error("expected primary expression");
 }
 
@@ -516,7 +516,7 @@ Type NssParser::parse_type()
             t.struct_id = previous();
         }
     } else {
-        error("Expected type specifier", peek());
+        diagnostic("Expected type specifier", peek());
         throw parser_error("Expected type specifier");
     }
 
@@ -779,10 +779,10 @@ Ast NssParser::parse_program()
                     if (previous().loc.view().size() <= nw::Resref::max_size) {
                         p.include_resrefs.push_back(std::string(previous().loc.view()));
                     } else {
-                        error(fmt::format("invalid include resref '{}'", previous().loc.view()), previous());
+                        diagnostic(fmt::format("invalid include resref '{}'", previous().loc.view()), previous());
                     }
                 } else {
-                    error("Expected string literal", peek());
+                    diagnostic("Expected string literal", peek());
                     throw parser_error("Expected string literal");
                 }
             } else if (peek().loc.view() == "define") {
@@ -791,7 +791,7 @@ Ast NssParser::parse_program()
                 if (match({NssTokenType::IDENTIFIER})) {
                     name = std::string(previous().loc.view());
                 } else {
-                    error("Expected identifier", peek());
+                    diagnostic("Expected identifier", peek());
                     throw parser_error("Expected identifier");
                 }
                 value = std::string(advance().loc.view());
@@ -813,7 +813,7 @@ Ast NssParser::parse_program()
 std::unique_ptr<Statement> NssParser::parse_decl_external()
 {
     if (match({NssTokenType::SEMICOLON})) {
-        warn("spurious ';'", previous());
+        diagnostic("spurious ';'", previous(), true);
         return std::make_unique<EmptyStatement>();
     }
 
@@ -851,7 +851,7 @@ std::unique_ptr<Statement> NssParser::parse_decl_external()
         return fd;
     }
 
-    error("Expected function definition/declaration, struct declaration, or global variable declaration", peek());
+    diagnostic("Expected function definition/declaration, struct declaration, or global variable declaration", peek());
     throw parser_error("Expected function definition/declaration, struct declaration, or variable declaration");
 }
 

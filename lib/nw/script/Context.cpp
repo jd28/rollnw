@@ -173,54 +173,63 @@ bool Context::is_type_convertible(size_t lhs, size_t rhs)
     return lhs == rhs || (lhs == float_ && rhs == int_);
 }
 
-void Context::lexical_error(Nss* script, std::string_view msg, SourceLocation loc)
+void Context::lexical_diagnostic(Nss* script, std::string_view msg, bool is_warning, SourceLocation loc)
 {
-    if (script) { script->increment_errors(); }
-    auto out = fmt::format("{}:{}:{} error: {}", script ? script->name() : "<source>",
-        loc.line, loc.column, msg);
-    LOG_F(ERROR, "{}", out);
-    throw std::runtime_error(out);
+    if (script) {
+        if (is_warning) {
+            script->increment_warnings();
+        } else {
+            script->increment_errors();
+        }
+    }
+
+    auto out = fmt::format("{}:{}:{} {}: {}", script ? script->name() : "<source>",
+        loc.line, loc.column, is_warning ? "warning" : "error", msg);
+    if (is_warning) {
+        LOG_F(WARNING, "{}", out);
+    } else {
+        LOG_F(ERROR, "{}", out);
+        throw std::runtime_error(out);
+    }
 }
 
-void Context::lexical_warning(Nss* script, std::string_view msg, SourceLocation loc)
+void Context::parse_diagnostic(Nss* script, std::string_view msg, bool is_warning, SourceLocation loc)
 {
-    if (script) { script->increment_warnings(); }
-    auto out = fmt::format("{}:{}:{} warning: {}", script ? script->name() : "<source>",
-        loc.line, loc.column, msg);
-    LOG_F(WARNING, "{}", out);
+    if (script) {
+        if (is_warning) {
+            script->increment_warnings();
+        } else {
+            script->increment_errors();
+        }
+    }
+
+    auto out = fmt::format("{}:{}:{} {}: {}", script ? script->name() : "<source>",
+        loc.line, loc.column, is_warning ? "warning" : "error", msg);
+    if (is_warning) {
+        LOG_F(WARNING, "{}", out);
+    } else {
+        LOG_F(ERROR, "{}", out);
+        throw parser_error(out);
+    }
 }
 
-void Context::parse_error(Nss* script, std::string_view msg, SourceLocation loc)
+void Context::semantic_diagnostic(Nss* script, std::string_view msg, bool is_warning, SourceLocation loc)
 {
-    if (script) { script->increment_errors(); }
-    auto out = fmt::format("{}:{}:{} error: {}", script ? script->name() : "<source>",
-        loc.line, loc.column, msg);
-    LOG_F(ERROR, "{}", out);
-    throw parser_error(out);
-}
+    if (script) {
+        if (is_warning) {
+            script->increment_warnings();
+        } else {
+            script->increment_errors();
+        }
+    }
 
-void Context::parse_warning(Nss* script, std::string_view msg, SourceLocation loc)
-{
-    if (script) { script->increment_warnings(); }
-    auto out = fmt::format("{}:{}:{} warning: {}", script ? script->name() : "<source>",
-        loc.line, loc.column, msg);
-    LOG_F(WARNING, "{}", out);
-}
-
-void Context::semantic_error(Nss* script, std::string_view msg, SourceLocation loc)
-{
-    if (script) { script->increment_errors(); }
-    auto out = fmt::format("{}:{}:{} error: {}", script ? script->name() : "<source>",
-        loc.line, loc.column, msg);
-    LOG_F(ERROR, "{}", out);
-}
-
-void Context::semantic_warning(Nss* script, std::string_view msg, SourceLocation loc)
-{
-    if (script) { script->increment_warnings(); }
-    auto out = fmt::format("{}:{}:{} warning: {}", script ? script->name() : "<source>",
-        loc.line, loc.column, msg);
-    LOG_F(WARNING, "{}", out);
+    auto out = fmt::format("{}:{}:{} {}: {}", script ? script->name() : "<source>",
+        loc.line, loc.column, is_warning ? "warning" : "error", msg);
+    if (is_warning) {
+        LOG_F(WARNING, "{}", out);
+    } else {
+        LOG_F(ERROR, "{}", out);
+    }
 }
 
 } // nw::script

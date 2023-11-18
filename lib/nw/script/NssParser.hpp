@@ -51,13 +51,9 @@ struct NssParser {
     /// @return Matched token
     NssToken consume(NssTokenType type, std::string_view error);
 
-    /// Log / Throw error
-    /// @param msg Error message to report
-    void error(std::string_view msg, NssToken token);
-
-    /// Log warning
-    /// @param msg Warning message to report
-    void warn(std::string_view msg, NssToken token);
+    /// Report diagnostic
+    /// @param msg Message to report
+    void diagnostic(std::string_view msg, NssToken token, bool is_warning = false);
 
     /// Checks if at end of token stream
     bool is_end() const;

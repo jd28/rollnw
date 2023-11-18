@@ -40,14 +40,9 @@ struct Context {
     virtual bool is_type_convertible(size_t lhs, size_t rhs);
 
     // Error/Warning Tracking
-    virtual void lexical_error(Nss* script, std::string_view msg, SourceLocation loc);
-    virtual void lexical_warning(Nss* script, std::string_view msg, SourceLocation loc);
-
-    virtual void parse_error(Nss* script, std::string_view msg, SourceLocation loc = {});
-    virtual void parse_warning(Nss* script, std::string_view msg, SourceLocation loc = {});
-
-    virtual void semantic_error(Nss* script, std::string_view msg, SourceLocation loc = {});
-    virtual void semantic_warning(Nss* script, std::string_view msg, SourceLocation loc = {});
+    virtual void lexical_diagnostic(Nss* script, std::string_view msg, bool is_warning, SourceLocation loc);
+    virtual void parse_diagnostic(Nss* script, std::string_view msg, bool is_warning, SourceLocation loc);
+    virtual void semantic_diagnostic(Nss* script, std::string_view msg, bool is_warning, SourceLocation loc);
 };
 
 } // nw::script

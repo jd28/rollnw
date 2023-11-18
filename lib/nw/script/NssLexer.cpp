@@ -3,7 +3,6 @@
 #include "../log.hpp"
 #include "Nss.hpp"
 
-
 #include <cctype>
 #include <cstring>
 #include <string_view>
@@ -223,7 +222,8 @@ NssToken NssLexer::next()
             } else if (std::isdigit(get(pos_))) {
                 t = handle_number();
             } else {
-                ctx_->lexical_warning(parent_, fmt::format("Unrecognized character '{}'", get(pos_)),
+                ctx_->lexical_diagnostic(parent_, fmt::format("Unrecognized character '{}'", get(pos_)),
+                    true,
                     {&buffer_[start], buffer_.data() + start + 1,
                         line_,
                         start - last_line_pos_});
@@ -298,7 +298,7 @@ NssToken NssLexer::next()
                 ++pos_;
             }
             if (pos_ == buffer_.size() || get(pos_) != '"') {
-                ctx_->lexical_error(parent_, "Unterminated quote",
+                ctx_->lexical_diagnostic(parent_, "Unterminated quote", false,
                     {&buffer_[start - 1], buffer_.data() + start,
                         line_,
                         start - 1 - last_line_pos_});
@@ -461,7 +461,8 @@ NssToken NssLexer::next()
         case '*': // TIMES
             switch (get(pos_ + 1)) {
             case '/': // Uh oh
-                ctx_->lexical_error(parent_, "Mismatched block quote",
+                ctx_->lexical_diagnostic(parent_, "Mismatched block quote",
+                    false,
                     {&buffer_[start], &buffer_[pos_ + 1],
                         line_,
                         start - last_line_pos_});
@@ -477,7 +478,8 @@ NssToken NssLexer::next()
         case '\\': // Escape character
             // A couple scripts have escaped new lines (for no reason)
             if (get(pos_ + 1) != '\r' && get(pos_ + 1) != '\n') {
-                ctx_->lexical_warning(parent_, fmt::format("Unrecognized character '{}'", get(pos_)),
+                ctx_->lexical_diagnostic(parent_, fmt::format("Unrecognized character '{}'", get(pos_)),
+                    true,
                     {&buffer_[start], &buffer_[pos_ + 1],
                         line_,
                         start - last_line_pos_});
@@ -521,7 +523,7 @@ NssToken NssLexer::next()
                     ++pos_;
                 }
                 if (!matched) {
-                    ctx_->lexical_error(parent_, "Unterminated block quote",
+                    ctx_->lexical_diagnostic(parent_, "Unterminated block quote", false,
                         {&buffer_[start - 2], buffer_.data() + start,
                             line_,
                             start - 2 - last_line_pos_});
