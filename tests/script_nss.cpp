@@ -1018,7 +1018,7 @@ TEST(Nss, LspContext)
 
     EXPECT_NO_THROW(nss3.parse());
     EXPECT_NO_THROW(nss3.resolve());
-    EXPECT_EQ(ctx->diagnostics().size(), 1);
-    EXPECT_EQ(ctx->diagnostics()[0].type, nw::script::DiagnosticType::semantic);
-    EXPECT_EQ(ctx->diagnostics()[0].level, nw::script::DiagnosticLevel::error);
+    EXPECT_EQ(nss3.diagnostics().size(), 1);
+    EXPECT_EQ(nss3.diagnostics()[0].type, nw::script::DiagnosticType::semantic);
+    EXPECT_EQ(nss3.diagnostics()[0].level, nw::script::DiagnosticLevel::error);
 }

@@ -176,6 +176,14 @@ bool Context::is_type_convertible(size_t lhs, size_t rhs)
 void Context::lexical_diagnostic(Nss* script, std::string_view msg, bool is_warning, SourceLocation loc)
 {
     if (script) {
+        Diagnostic result;
+        result.type = DiagnosticType::lexical;
+        result.level = is_warning ? DiagnosticLevel::warning : DiagnosticLevel::error;
+        result.script = script ? script->name() : "<source>";
+        result.message = std::string(msg);
+        result.location = loc;
+        script->add_diagnostic(std::move(result));
+
         if (is_warning) {
             script->increment_warnings();
         } else {
@@ -196,6 +204,14 @@ void Context::lexical_diagnostic(Nss* script, std::string_view msg, bool is_warn
 void Context::parse_diagnostic(Nss* script, std::string_view msg, bool is_warning, SourceLocation loc)
 {
     if (script) {
+        Diagnostic result;
+        result.type = DiagnosticType::parse;
+        result.level = is_warning ? DiagnosticLevel::warning : DiagnosticLevel::error;
+        result.script = script ? script->name() : "<source>";
+        result.message = std::string(msg);
+        result.location = loc;
+        script->add_diagnostic(std::move(result));
+
         if (is_warning) {
             script->increment_warnings();
         } else {
@@ -216,6 +232,14 @@ void Context::parse_diagnostic(Nss* script, std::string_view msg, bool is_warnin
 void Context::semantic_diagnostic(Nss* script, std::string_view msg, bool is_warning, SourceLocation loc)
 {
     if (script) {
+        Diagnostic result;
+        result.type = DiagnosticType::semantic;
+        result.level = is_warning ? DiagnosticLevel::warning : DiagnosticLevel::error;
+        result.script = script ? script->name() : "<source>";
+        result.message = std::string(msg);
+        result.location = loc;
+        script->add_diagnostic(std::move(result));
+
         if (is_warning) {
             script->increment_warnings();
         } else {

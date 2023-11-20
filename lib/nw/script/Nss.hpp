@@ -5,6 +5,7 @@
 
 #include "../resources/ResourceData.hpp"
 #include "Context.hpp"
+#include "Diagnostic.hpp"
 
 #include <absl/container/flat_hash_map.h>
 #include <immer/map.hpp>
@@ -28,6 +29,9 @@ struct Nss {
     explicit Nss(std::string_view script, Context* ctx);
     explicit Nss(ResourceData data, Context* ctx);
 
+    /// Add diagnostic to script
+    void add_diagnostic(Diagnostic diagnostic);
+
     /// Generates a list of potential completions from exports
     /// @note This is just a baby step.
     std::vector<std::string> complete(const std::string& needle);
@@ -37,6 +41,9 @@ struct Nss {
 
     /// Returns all transitive dependencies
     std::set<std::string> dependencies() const;
+
+    /// Gets script diagnostics
+    const std::vector<Diagnostic>& diagnostics() const noexcept;
 
     /// Returns how many errors were found during parsing
     size_t errors() const noexcept { return errors_; }
@@ -89,6 +96,7 @@ private:
     NssParser parser_;
     Ast ast_;
     immer::map<std::string, Export> symbol_table_;
+    std::vector<Diagnostic> diagnostics_;
     size_t errors_ = 0;
     size_t warnings_ = 0;
     bool resolved_ = false;

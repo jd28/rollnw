@@ -33,6 +33,11 @@ Nss::Nss(ResourceData data, Context* ctx)
     CHECK_F(!!ctx_, "[script] invalid script context");
 }
 
+void Nss::add_diagnostic(Diagnostic diagnostic)
+{
+    diagnostics_.push_back(std::move(diagnostic));
+}
+
 std::vector<std::string> Nss::complete(const std::string& needle)
 {
     std::vector<std::string> result;
@@ -57,6 +62,11 @@ std::set<std::string> Nss::dependencies() const
         result.emplace(key.resref.view());
     }
     return result;
+}
+
+const std::vector<Diagnostic>& Nss::diagnostics() const noexcept
+{
+    return diagnostics_;
 }
 
 Declaration* Nss::locate_export(const std::string& name, bool is_type)

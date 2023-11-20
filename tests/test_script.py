@@ -35,7 +35,7 @@ def test_function_decl2():
     except:
         pass
     nss.resolve()
-    assert len(ctx.diagnostics()) == 1
+    assert len(nss.diagnostics()) == 1
 
 
 def test_var_decl():

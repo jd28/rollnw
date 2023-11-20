@@ -132,9 +132,6 @@ class LspContext:
     def __init__(self, command_script: str = "nwscript"):
         pass
 
-    def diagnostics(self) -> List[Diagnostic]:
-        return []
-
 
 class Nss:
     """Implementation of nwscript"""
@@ -146,6 +143,9 @@ class Nss:
     def ast(self):
         """Gets the parsed script"""
         pass
+
+    def diagnostics(self) -> List[Diagnostic]:
+        return []
 
     def errors(self):
         """Gets number of errors encountered while parsing"""

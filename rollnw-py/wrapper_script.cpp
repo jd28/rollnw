@@ -42,8 +42,7 @@ void init_script(py::module& nw)
 
     py::class_<nws::LspContext, nws::Context>(nw, "LspContext")
         .def(py::init<>())
-        .def(py::init<std::string>())
-        .def("diagnostics", &nws::LspContext::diagnostics);
+        .def(py::init<std::string>());
 
     py::enum_<nws::NssTokenType>(nw, "NssTokenType")
         .value("INVALID", nws::NssTokenType::INVALID)
@@ -164,6 +163,7 @@ void init_script(py::module& nw)
             },
             py::return_value_policy::reference_internal)
         .def("dependencies", &nws::Nss::dependencies)
+        .def("diagnostics", &nws::Nss::diagnostics)
         .def("errors", &nws::Nss::errors)
         .def("locate_export", &nws::Nss::locate_export, py::return_value_policy::reference_internal)
         .def("parse", &nws::Nss::parse)
