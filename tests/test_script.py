@@ -27,6 +27,17 @@ def test_function_decl():
     assert isinstance(decl[0], VarDecl)
 
 
+def test_function_decl2():
+    ctx = LspContext("nwscript")
+    nss = Nss.from_string("void test_function(string s, int b)", ctx)
+    try:
+        nss.parse()
+    except:
+        pass
+    nss.resolve()
+    assert len(ctx.diagnostics()) == 1
+
+
 def test_var_decl():
     ctx = Context("nwscript")
     nss = Nss.from_string("int TRUE = 1; const int MY_GLOBAL = 1;", ctx)

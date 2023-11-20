@@ -1,6 +1,7 @@
 #include "opaque_types.hpp"
 
 #include <nw/kernel/Resources.hpp>
+#include <nw/script/LspContext.hpp>
 #include <nw/script/Nss.hpp>
 #include <nw/script/NssLexer.hpp>
 #include <nw/script/Token.hpp>
@@ -22,6 +23,27 @@ void init_script(py::module& nw)
     py::class_<nws::Context>(nw, "Context")
         .def(py::init<>())
         .def(py::init<std::string>());
+
+    py::enum_<nw::script::DiagnosticType>(nw, "DiagnosticType")
+        .value("lexical", nws::DiagnosticType::lexical)
+        .value("parse", nws::DiagnosticType::parse)
+        .value("semantic", nws::DiagnosticType::semantic);
+
+    py::enum_<nw::script::DiagnosticLevel>(nw, "DiagnosticLevel")
+        .value("warning", nws::DiagnosticLevel::warning)
+        .value("error", nws::DiagnosticLevel::error);
+
+    py::class_<nws::Diagnostic>(nw, "Diagnostic")
+        .def_readonly("type", &nws::Diagnostic::type)
+        .def_readonly("level", &nws::Diagnostic::level)
+        .def_readonly("script", &nws::Diagnostic::script)
+        .def_readonly("message", &nws::Diagnostic::message)
+        .def_readonly("location", &nws::Diagnostic::location);
+
+    py::class_<nws::LspContext, nws::Context>(nw, "LspContext")
+        .def(py::init<>())
+        .def(py::init<std::string>())
+        .def("diagnostics", &nws::LspContext::diagnostics);
 
     py::enum_<nws::NssTokenType>(nw, "NssTokenType")
         .value("INVALID", nws::NssTokenType::INVALID)

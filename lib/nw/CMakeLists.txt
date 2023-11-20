@@ -110,6 +110,7 @@ add_library(nw STATIC
 
     script/Ast.cpp
     script/Context.cpp
+    script/LspContext.cpp
     script/Nss.cpp
     script/NssLexer.cpp
     script/NssParser.cpp

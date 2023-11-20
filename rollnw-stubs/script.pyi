@@ -7,6 +7,32 @@ class Context:
     def __init__(self, command_script: str = "nwscript") -> None: ...
 
 
+class DiagnosticType:
+    __members__: ClassVar[dict] = ...  # read-only
+    lexical: ClassVar[NssTokenType] = ...
+    parse: ClassVar[NssTokenType] = ...
+    semantic: ClassVar[NssTokenType] = ...
+
+
+class DiagnosticLevel:
+    __members__: ClassVar[dict] = ...  # read-only
+    warning: ClassVar[NssTokenType] = ...
+    error: ClassVar[NssTokenType] = ...
+
+
+class Diagnostic:
+    type: DiagnosticType
+    level: DiagnosticLevel
+    script: str
+    message: str
+    location: SourceLocation
+
+
+class LspContext(Context):
+    def __init__(self, command_script: str = "nwscript") -> None: ...
+    def diagnostics(self) -> List[Diagnostic]: ...
+
+
 class AssignExpression(Expression):
     def __init__(self, *args, **kwargs) -> None: ...
     @property

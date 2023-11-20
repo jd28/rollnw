@@ -104,6 +104,38 @@ class Context:
         pass
 
 
+class DiagnosticType(enum.IntEnum):
+    lexical = auto()
+    parse = auto()
+    semantic = auto()
+
+
+class DiagnosticLevel(enum.IntEnum):
+    warning = auto()
+    error = auto()
+
+
+class Diagnostic:
+    """Parsed script Diagnostic
+
+    Attributes:
+        type (DiagnosticType)
+        level (DiagnosticLevel)
+        script (str)
+        message (str)
+        location (SourceLocation)"""
+
+
+class LspContext:
+    """Provides a context built around providing diagnostics to a language server"""
+
+    def __init__(self, command_script: str = "nwscript"):
+        pass
+
+    def diagnostics(self) -> List[Diagnostic]:
+        return []
+
+
 class Nss:
     """Implementation of nwscript"""
 

@@ -1,3 +1,4 @@
+#include "nw/script/LspContext.hpp"
 #include <gtest/gtest.h>
 
 #include <nw/log.hpp>
@@ -999,4 +1000,25 @@ TEST(Nss, While)
     EXPECT_NO_THROW(nss1.parse());
     EXPECT_NO_THROW(nss1.resolve());
     EXPECT_EQ(nss1.errors(), 1);
+}
+
+TEST(Nss, LspContext)
+{
+    auto ctx = std::make_unique<nw::script::LspContext>();
+
+    script::Nss nss3(R"(
+        struct a { int test1; };
+
+        void main() {
+            struct a s;
+            s.test2;
+        }
+    )"sv,
+        ctx.get());
+
+    EXPECT_NO_THROW(nss3.parse());
+    EXPECT_NO_THROW(nss3.resolve());
+    EXPECT_EQ(ctx->diagnostics().size(), 1);
+    EXPECT_EQ(ctx->diagnostics()[0].type, nw::script::DiagnosticType::semantic);
+    EXPECT_EQ(ctx->diagnostics()[0].level, nw::script::DiagnosticLevel::error);
 }
