@@ -30,6 +30,7 @@ struct NssParser {
 
     std::vector<NssToken> tokens;
     size_t current_ = 0;
+    bool lexed_ = false;
 
     /// Advances the token stream
     NssToken advance();
@@ -63,6 +64,9 @@ struct NssParser {
     /// @return True if there is a match
     /// @note Advances the token stream
     bool match(std::initializer_list<NssTokenType> types);
+
+    /// Lexes the file
+    void lex();
 
     /// Looks ahead in the token stream
     /// @param index Index to look ahead to, from current token

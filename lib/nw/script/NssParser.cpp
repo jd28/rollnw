@@ -12,14 +12,6 @@ NssParser::NssParser(std::string_view view, Context* ctx, Nss* parent)
     , lexer_{view_, ctx_, parent}
 {
     CHECK_F(!!ctx_, "[script] invalid script context");
-
-    NssToken tok = lexer_.next();
-    while (tok.type != NssTokenType::END) {
-        if (tok.type != NssTokenType::COMMENT) {
-            tokens.push_back(tok);
-        }
-        tok = lexer_.next();
-    }
 }
 
 NssToken NssParser::advance()
@@ -86,6 +78,24 @@ NssToken NssParser::consume(NssTokenType type, std::string_view message)
 
     diagnostic(message, peek());
     throw parser_error(message);
+}
+
+void NssParser::lex()
+{
+    if (lexed_) { return; }
+    try {
+        NssToken tok = lexer_.next();
+        while (tok.type != NssTokenType::END) {
+            if (tok.type != NssTokenType::COMMENT) {
+                tokens.push_back(tok);
+            }
+            tok = lexer_.next();
+        }
+    } catch (const lexical_error& error) {
+        ctx_->lexical_diagnostic(parent_, error.what(), false, error.location);
+        tokens.clear();
+    }
+    lexed_ = true;
 }
 
 NssToken NssParser::lookahead(size_t index) const
@@ -765,6 +775,8 @@ std::unique_ptr<StructDecl> NssParser::parse_decl_struct()
 // program -> external_declaration* EOF
 Ast NssParser::parse_program()
 {
+    lex();
+
     Ast p;
     while (!is_end()) {
         try {
