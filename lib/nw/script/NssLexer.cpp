@@ -289,19 +289,24 @@ NssToken NssLexer::next()
             break;
 
         // String constants
-        case '"': // String constant
+        case '"':
             start = ++pos_;
             while (pos_ < buffer_.size()) {
                 if (get(pos_) == '"' && buffer_[pos_ - 1] != '\\') {
                     break;
+                } else if (get(pos_) == '\r' || get(pos_) == '\n') {
+                    break;
                 }
                 ++pos_;
             }
+
             if (pos_ == buffer_.size() || get(pos_) != '"') {
-                ctx_->lexical_diagnostic(parent_, "Unterminated quote", false,
-                    {&buffer_[start - 1], buffer_.data() + start,
-                        line_,
-                        start - 1 - last_line_pos_});
+                SourceLocation loc;
+                loc.start = &buffer_[start - 1];
+                loc.end = buffer_.data() + start;
+                loc.line = line_;
+                loc.column = start - 1 - last_line_pos_;
+                throw lexical_error("Unterminated string", loc);
             }
 
             t = NssToken{NssTokenType::STRING_CONST,
@@ -309,7 +314,6 @@ NssToken NssLexer::next()
                 line_,
                 start - last_line_pos_};
             ++pos_;
-
             break;
 
         // Operators
@@ -460,13 +464,14 @@ NssToken NssLexer::next()
             break;
         case '*': // TIMES
             switch (get(pos_ + 1)) {
-            case '/': // Uh oh
-                ctx_->lexical_diagnostic(parent_, "Mismatched block quote",
-                    false,
-                    {&buffer_[start], &buffer_[pos_ + 1],
-                        line_,
-                        start - last_line_pos_});
-                break;
+            case '/': { // Uh oh
+                SourceLocation loc;
+                loc.start = &buffer_[start - 1];
+                loc.end = &buffer_[pos_ + 1];
+                loc.line = line_;
+                loc.column = start - last_line_pos_;
+                throw lexical_error("Mismatched block quote", loc);
+            } break;
             case '=':
                 NSS_TOKEN(TIMESEQ, 2);
                 break;
@@ -523,10 +528,12 @@ NssToken NssLexer::next()
                     ++pos_;
                 }
                 if (!matched) {
-                    ctx_->lexical_diagnostic(parent_, "Unterminated block quote", false,
-                        {&buffer_[start - 2], buffer_.data() + start,
-                            line_,
-                            start - 2 - last_line_pos_});
+                    SourceLocation loc;
+                    loc.start = &buffer_[start - 2];
+                    loc.end = buffer_.data() + start;
+                    loc.line = line_;
+                    loc.column = start - 2 - last_line_pos_;
+                    throw lexical_error("Unterminated block quote", loc);
                 }
             } break;
             case '=':

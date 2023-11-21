@@ -505,10 +505,10 @@ TEST(Nss, Lexer)
     EXPECT_EQ(script::merge_source_location(t1.loc, t2.loc).view(), "x /= y");
 
     script::NssLexer lexer2{"/*", ctx.get()};
-    EXPECT_THROW(lexer2.next(), std::runtime_error);
+    EXPECT_THROW(lexer2.next(), nw::script::lexical_error);
 
     script::NssLexer lexer14{"/*/", ctx.get()};
-    EXPECT_THROW(lexer14.next(), std::runtime_error);
+    EXPECT_THROW(lexer14.next(), nw::script::lexical_error);
 
     script::NssLexer lexer15{"/**/", ctx.get()};
     EXPECT_NO_THROW(lexer15.next());
@@ -517,7 +517,7 @@ TEST(Nss, Lexer)
     EXPECT_EQ(lexer3.next().type, script::NssTokenType::COMMENT);
 
     script::NssLexer lexer4{"\"this is unterminated", ctx.get()};
-    EXPECT_THROW(lexer4.next(), std::runtime_error);
+    EXPECT_THROW(lexer4.next(), nw::script::lexical_error);
 
     script::NssLexer lexer5{"\"Hello World\"", ctx.get()};
     EXPECT_EQ(lexer5.next().loc.view(), "Hello World");
@@ -534,7 +534,7 @@ TEST(Nss, Lexer)
     EXPECT_EQ(lexer8.next().type, script::NssTokenType::END);
 
     script::NssLexer lexer9{"\"", ctx.get()};
-    EXPECT_THROW(lexer9.next(), std::runtime_error);
+    EXPECT_THROW(lexer9.next(), nw::script::lexical_error);
 
     script::NssLexer lexer10{"`", ctx.get()};
     EXPECT_NO_THROW(lexer10.next()); // Unrecognized character is only a warning
@@ -580,6 +580,11 @@ TEST(Nss, Lexer)
     script::NssLexer lexer13{">>> >>>=", ctx.get()};
     EXPECT_EQ(int(lexer13.next().type), int(script::NssTokenType::USR));
     EXPECT_EQ(int(lexer13.next().type), int(script::NssTokenType::USREQ));
+
+    script::Nss nss1("void main() { string test = \"; }"sv, ctx.get());
+    EXPECT_NO_THROW(nss1.parse());
+    EXPECT_NO_THROW(nss1.resolve());
+    EXPECT_EQ(nss1.errors(), 1);
 }
 
 TEST(Nss, Includes)
