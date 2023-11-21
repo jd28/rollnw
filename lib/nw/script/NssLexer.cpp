@@ -510,6 +510,8 @@ NssToken NssLexer::next()
                 break;
             case '*': { // Block Comment
                 bool matched = false;
+                size_t original_last_line = last_line_pos_;
+                size_t start_line = line_;
                 start = pos_ + 2;
                 pos_ += 2;
                 while (pos_ < buffer_.size()) {
@@ -531,8 +533,9 @@ NssToken NssLexer::next()
                     SourceLocation loc;
                     loc.start = &buffer_[start - 2];
                     loc.end = buffer_.data() + start;
-                    loc.line = line_;
-                    loc.column = start - 2 - last_line_pos_;
+                    loc.line = start_line;
+                    loc.column = start - 2 - original_last_line;
+                    LOG_F(INFO, "Unterminated block quote: {}, {}, {}", start, loc.line, loc.column);
                     throw lexical_error("Unterminated block quote", loc);
                 }
             } break;
