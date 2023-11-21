@@ -9,7 +9,7 @@ NssParser::NssParser(std::string_view view, Context* ctx, Nss* parent)
     : ctx_{ctx}
     , parent_{parent}
     , view_{view}
-    , lexer_{view_, ctx_}
+    , lexer_{view_, ctx_, parent}
 {
     CHECK_F(!!ctx_, "[script] invalid script context");
 
