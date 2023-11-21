@@ -7,6 +7,16 @@ namespace nw::script {
 
 struct Nss;
 
+struct lexical_error : public std::runtime_error {
+    lexical_error(std::string what_, SourceLocation location_)
+        : std::runtime_error{std::move(what_)}
+        , location{location_}
+    {
+    }
+
+    SourceLocation location;
+};
+
 struct NssLexer {
     explicit NssLexer(std::string_view buffer, Context* ctx, Nss* parent = nullptr);
 
