@@ -711,38 +711,33 @@ std::unique_ptr<WhileStatement> NssParser::parse_stmt_while()
 //             | statement ";"
 std::unique_ptr<Statement> NssParser::parse_decl()
 {
-    try {
-        if (check_is_type()) {
-            auto decls = std::make_unique<DeclStatement>();
-            Type t = parse_type();
+    if (check_is_type()) {
+        auto decls = std::make_unique<DeclStatement>();
+        Type t = parse_type();
 
-            while (true) {
-                auto vd = std::make_unique<VarDecl>();
-                vd->type = t;
+        while (true) {
+            auto vd = std::make_unique<VarDecl>();
+            vd->type = t;
 
-                consume(NssTokenType::IDENTIFIER, "Expected 'IDENTIFIER'.");
-                vd->identifier = previous();
-                if (match({NssTokenType::EQ})) {
-                    vd->init = parse_expr();
-                }
-                decls->decls.push_back(std::move(vd));
-                if (!match({NssTokenType::COMMA})) { break; }
+            consume(NssTokenType::IDENTIFIER, "Expected 'IDENTIFIER'.");
+            vd->identifier = previous();
+            if (match({NssTokenType::EQ})) {
+                vd->init = parse_expr();
             }
-            consume(NssTokenType::SEMICOLON, "Expected ';'.");
-
-            if (decls->decls.size() == 1) {
-                return std::move(decls->decls[0]);
-            } else {
-                return decls;
-            }
+            decls->decls.push_back(std::move(vd));
+            if (!match({NssTokenType::COMMA})) { break; }
         }
-        auto s = parse_stmt();
-        // consume(NssTokenType::SEMICOLON, "Expected ';'.");
-        return s;
-    } catch (const parser_error& err) {
-        synchronize();
-        return {};
+        consume(NssTokenType::SEMICOLON, "Expected ';'.");
+
+        if (decls->decls.size() == 1) {
+            return std::move(decls->decls[0]);
+        } else {
+            return decls;
+        }
     }
+    auto s = parse_stmt();
+    // consume(NssTokenType::SEMICOLON, "Expected ';'.");
+    return s;
 }
 
 std::unique_ptr<VarDecl> NssParser::parse_decl_struct_member()
@@ -772,35 +767,40 @@ Ast NssParser::parse_program()
 {
     Ast p;
     while (!is_end()) {
-        if (match({NssTokenType::POUND})) { // Only at top level
-            if (peek().loc.view() == "include") {
-                consume(NssTokenType::IDENTIFIER, "Expected 'IDENTIFIER'."); // include
-                if (match({NssTokenType::STRING_CONST})) {
-                    if (previous().loc.view().size() <= nw::Resref::max_size) {
-                        p.include_resrefs.push_back(std::string(previous().loc.view()));
+        try {
+            if (match({NssTokenType::POUND})) { // Only at top level
+                if (peek().loc.view() == "include") {
+                    consume(NssTokenType::IDENTIFIER, "Expected 'IDENTIFIER'."); // include
+                    if (match({NssTokenType::STRING_CONST})) {
+                        if (previous().loc.view().size() <= nw::Resref::max_size) {
+                            p.include_resrefs.push_back(std::string(previous().loc.view()));
+                        } else {
+                            diagnostic(fmt::format("invalid include resref '{}'", previous().loc.view()), previous());
+                        }
                     } else {
-                        diagnostic(fmt::format("invalid include resref '{}'", previous().loc.view()), previous());
+                        diagnostic("Expected string literal", peek());
+                        throw parser_error("Expected string literal");
                     }
-                } else {
-                    diagnostic("Expected string literal", peek());
-                    throw parser_error("Expected string literal");
+                } else if (peek().loc.view() == "define") {
+                    consume(NssTokenType::IDENTIFIER, "Expected 'IDENTIFIER'."); // define
+                    std::string name, value;
+                    if (match({NssTokenType::IDENTIFIER})) {
+                        name = std::string(previous().loc.view());
+                    } else {
+                        diagnostic("Expected identifier", peek());
+                        throw parser_error("Expected identifier");
+                    }
+                    value = std::string(advance().loc.view());
+                    p.defines.push_back({name, value});
                 }
-            } else if (peek().loc.view() == "define") {
-                consume(NssTokenType::IDENTIFIER, "Expected 'IDENTIFIER'."); // define
-                std::string name, value;
-                if (match({NssTokenType::IDENTIFIER})) {
-                    name = std::string(previous().loc.view());
-                } else {
-                    diagnostic("Expected identifier", peek());
-                    throw parser_error("Expected identifier");
-                }
-                value = std::string(advance().loc.view());
-                p.defines.push_back({name, value});
+            } else if (match({NssTokenType::COMMENT})) {
+                continue;
+            } else {
+                p.decls.emplace_back(parse_decl_external());
             }
-        } else if (match({NssTokenType::COMMENT})) {
-            continue;
-        } else {
-            p.decls.emplace_back(parse_decl_external());
+        } catch (const parser_error& err) {
+            synchronize();
+            return {};
         }
     }
     return p;
