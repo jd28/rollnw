@@ -197,7 +197,6 @@ void Context::lexical_diagnostic(Nss* script, std::string_view msg, bool is_warn
         LOG_F(WARNING, "{}", out);
     } else {
         LOG_F(ERROR, "{}", out);
-        throw std::runtime_error(out);
     }
 }
 
@@ -225,7 +224,6 @@ void Context::parse_diagnostic(Nss* script, std::string_view msg, bool is_warnin
         LOG_F(WARNING, "{}", out);
     } else {
         LOG_F(ERROR, "{}", out);
-        throw parser_error(out);
     }
 }
 
