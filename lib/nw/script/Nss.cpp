@@ -112,6 +112,7 @@ void Nss::process_includes(Nss* parent)
                         string::join(parent->ctx_->include_stack_, ", ")),
                     false,
                     include.location);
+                return;
             }
         }
 
