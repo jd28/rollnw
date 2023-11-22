@@ -48,6 +48,10 @@ struct Nss {
     /// Returns how many errors were found during parsing
     size_t errors() const noexcept { return errors_; }
 
+    /// Table of symbols exported from script
+    immer::map<std::string, Export> exports() const noexcept { return symbol_table_; }
+
+    /// Count of symbols exported from script
     size_t export_count() const noexcept { return symbol_table_.size(); }
 
     /// Increments error count

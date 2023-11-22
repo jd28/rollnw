@@ -139,6 +139,11 @@ void init_script(py::module& nw)
         .def_readonly("line", &nws::SourceLocation::line)
         .def_readonly("start", &nws::SourceLocation::column);
 
+    py::class_<nws::Type>(nw, "Type")
+        .def_readonly("type_qualifier", &nws::Type::type_qualifier)
+        .def_readonly("type_specifier", &nws::Type::type_specifier)
+        .def_readonly("struct_id", &nws::Type::struct_id);
+
     py::class_<nws::NssToken>(nw, "NssToken")
         .def("__repr__", [](const nws::NssToken& tk) {
             std::stringstream ss;
@@ -154,6 +159,15 @@ void init_script(py::module& nw)
         .def("next", &nws::NssLexer::next)
         .def("current", &nws::NssLexer::current);
 
+    py::class_<nws::Export>(nw, "Export")
+        .def_property_readonly(
+            "decl", [](const nws::Export& self) { return self.decl; },
+            py::return_value_policy::reference_internal)
+        .def_property_readonly(
+            "type", [](const nws::Export& self) { return static_cast<nws::Declaration*>(self.type); },
+            py::return_value_policy::reference_internal)
+        .def_readonly("command_id", &nws::Export::command_id);
+
     py::class_<nws::Nss>(nw, "Nss")
         .def(py::init<std::filesystem::path, nws::Context*>(),
             py::keep_alive<1, 3>())
@@ -165,6 +179,15 @@ void init_script(py::module& nw)
         .def("dependencies", &nws::Nss::dependencies)
         .def("diagnostics", &nws::Nss::diagnostics)
         .def("errors", &nws::Nss::errors)
+        .def(
+            "exports", [](const nws::Nss& self) {
+                std::vector<std::pair<std::string, nws::Export>> result;
+                for (const auto& [key, exp] : self.exports()) {
+                    result.emplace_back(key, exp);
+                }
+                return result;
+            },
+            py::return_value_policy::reference_internal)
         .def("locate_export", &nws::Nss::locate_export, py::return_value_policy::reference_internal)
         .def("parse", &nws::Nss::parse)
         .def("process_includes", &nws::Nss::process_includes, py::arg("parent") = nullptr)
