@@ -97,33 +97,36 @@ void Nss::parse()
 NssParser& Nss::parser() { return parser_; }
 const NssParser& Nss::parser() const { return parser_; }
 
-bool Nss::process_includes(Nss* parent)
+void Nss::process_includes(Nss* parent)
 {
     if (!parent) { parent = this; }
 
     parent->ctx_->include_stack_.push_back(data_.name.resref.string());
 
-    ast_.includes.reserve(ast_.include_resrefs.size());
-    for (const auto& include : ast_.include_resrefs) {
+    ast_.includes.reserve(ast_.includes.size());
+    for (auto& include : ast_.includes) {
         for (const auto& entry : parent->ctx_->include_stack_) {
-            if (include == entry) {
-                throw std::runtime_error(fmt::format("[script] recursive includes: {}",
-                    string::join(parent->ctx_->include_stack_, ", ")));
+            if (include.resref == entry) {
+                ctx_->semantic_diagnostic(parent,
+                    fmt::format("recursive includes: {}",
+                        string::join(parent->ctx_->include_stack_, ", ")),
+                    false,
+                    include.location);
             }
         }
 
-        auto script = ctx_->get(Resref{include});
-        if (!script) {
-            throw std::runtime_error(fmt::format("[script] unable to locate include file: {}", include));
+        include.script = ctx_->get(Resref{include.resref});
+        if (!include.script) {
+            ctx_->semantic_diagnostic(parent,
+                fmt::format("unable to locate include file: {}", include.resref),
+                false,
+                include.location);
+        } else {
+            include.script->process_includes(parent);
         }
-
-        ast_.includes.push_back(script);
-        script->process_includes(parent);
     }
 
     parent->ctx_->include_stack_.pop_back();
-
-    return true;
 }
 
 void Nss::resolve()
@@ -131,7 +134,7 @@ void Nss::resolve()
     if (resolved_) { return; }
 
     for (const auto& it : ast_.includes) {
-        it->resolve();
+        if (it.script) { it.script->resolve(); }
     }
 
     AstResolver resolver{this, ctx_};

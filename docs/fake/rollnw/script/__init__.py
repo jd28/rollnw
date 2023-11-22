@@ -133,6 +133,38 @@ class LspContext:
         pass
 
 
+class Include:
+    """
+    Attributes:
+        resref (str): Resref of included script
+        location (SourceLocation): Source location in script
+        script (Nss): Loaded script
+        used (int): Number of times include is used in script file
+    """
+    pass
+
+
+class Ast:
+    """Class containing a parsed ast
+
+    Attributes:
+        defines ([str])
+        includes ([str])
+    """
+
+    def __getitem__(self, index):
+        """Gets a toplevel declaration"""
+        pass
+
+    def __iter__(self):
+        """Gets an iterator of toplevel declarations"""
+        pass
+
+    def __len__(self):
+        """Gets number of toplevel declarations"""
+        pass
+
+
 class Nss:
     """Implementation of nwscript"""
 
@@ -140,7 +172,7 @@ class Nss:
         """Constructs Nss object"""
         pass
 
-    def ast(self):
+    def ast(self) -> Ast:
         """Gets the parsed script"""
         pass
 
@@ -170,27 +202,6 @@ class Nss:
     @staticmethod
     def from_string(string: str):
         """Loads Nss from string"""
-        pass
-
-
-class Script:
-    """Class containing a parsed script
-
-    Attributes:
-        defines ([str])
-        includes ([str])
-    """
-
-    def __getitem__(self, index):
-        """Gets a toplevel declaration"""
-        pass
-
-    def __iter__(self):
-        """Gets an iterator of toplevel declarations"""
-        pass
-
-    def __len__(self):
-        """Gets number of toplevel declarations"""
         pass
 
 

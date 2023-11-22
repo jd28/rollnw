@@ -135,7 +135,8 @@ struct AstResolver : BaseVisitor {
             return decl;
         } else {
             for (auto& it : reverse(script->ast().includes)) {
-                if (auto decl = locate(token, it, is_type)) {
+                if (!it.script) { continue; }
+                if (auto decl = locate(token, it.script, is_type)) {
                     return decl;
                 }
             }
@@ -172,7 +173,8 @@ struct AstResolver : BaseVisitor {
 
         // Next look through all dependencies
         for (auto it : reverse(parent_->ast().includes)) {
-            if (auto decl = locate(token, it, is_type)) { return decl; }
+            if (!it.script) { continue; }
+            if (auto decl = locate(token, it.script, is_type)) { return decl; }
         }
 
         return ctx_->command_script_->locate_export(s, is_type);

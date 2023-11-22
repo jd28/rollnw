@@ -33,8 +33,8 @@ TEST(Nss, Preprocessor)
     EXPECT_TRUE(script.defines[0].first == "ENGINE_NUM_STRUCTURES");
     EXPECT_TRUE(script.defines[0].second == "5");
 
-    EXPECT_TRUE(script.include_resrefs.size() == 1);
-    EXPECT_TRUE(script.include_resrefs[0] == "constants");
+    EXPECT_TRUE(script.includes.size() == 1);
+    EXPECT_TRUE(script.includes[0].resref == "constants");
 }
 
 TEST(Nss, ParseNwscript)
@@ -593,21 +593,23 @@ TEST(Nss, Includes)
     script::Nss nss(fs::path("test_data/user/development/circinc1.nss"), ctx.get());
     EXPECT_NO_THROW(nss.parse());
     EXPECT_EQ(nss.errors(), 0);
-    EXPECT_EQ(nss.ast().include_resrefs.size(), 1);
-    EXPECT_THROW(nss.process_includes(), std::runtime_error); // Recursive
+    EXPECT_EQ(nss.ast().includes.size(), 1);
+    nss.process_includes(); // Recursive
+    EXPECT_EQ(nss.errors(), 1);
 
     auto ctx2 = std::make_unique<script::Context>();
     script::Nss nss2(fs::path("test_data/user/development/script_preprocessor.nss"), ctx2.get());
     EXPECT_NO_THROW(nss2.parse());
     EXPECT_TRUE(nss2.errors() == 0);
-    EXPECT_THROW(nss2.process_includes(), std::runtime_error); // Non-extant
+    nss2.process_includes(); // Non-extant
+    EXPECT_EQ(nss2.errors(), 1);
 
     auto ctx3 = std::make_unique<script::Context>();
     script::Nss nss3(fs::path("test_data/user/development/test_inc.nss"), ctx3.get());
     EXPECT_NO_THROW(nss3.parse());
-    EXPECT_EQ(nss3.ast().include_resrefs.size(), 1);
+    EXPECT_EQ(nss3.ast().includes.size(), 1);
     EXPECT_TRUE(nss3.errors() == 0);
-    EXPECT_NO_THROW(nss3.process_includes());
+    nss3.process_includes();
     EXPECT_EQ(nss.ast().includes.size(), 1);
     EXPECT_NO_THROW(nss3.resolve());
 

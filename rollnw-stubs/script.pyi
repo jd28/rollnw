@@ -356,6 +356,13 @@ class PostfixExpression(Expression):
     def operator(self) -> NssToken: ...
 
 
+class Include:
+    resref: str
+    location: SourceLocation
+    script: Nss
+    used: int
+
+
 class Ast:
     def __init__(self, *args, **kwargs) -> None: ...
     def __getitem__(self, index: int) -> AstNode: ...
@@ -364,9 +371,7 @@ class Ast:
     @property
     def defines(self) -> List[Tuple[str, str]]: ...
     @property
-    def includes(self) -> List[Nss]: ...
-    @property
-    def include_resrefs(self) -> StringVector: ...
+    def includes(self) -> List[Include]: ...
 
 
 class Statement(AstNode):

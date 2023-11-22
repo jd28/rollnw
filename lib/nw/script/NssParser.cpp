@@ -785,7 +785,10 @@ Ast NssParser::parse_program()
                     consume(NssTokenType::IDENTIFIER, "Expected 'IDENTIFIER'."); // include
                     if (match({NssTokenType::STRING_CONST})) {
                         if (previous().loc.view().size() <= nw::Resref::max_size) {
-                            p.include_resrefs.push_back(std::string(previous().loc.view()));
+                            p.includes.push_back({
+                                std::string(previous().loc.view()),
+                                previous().loc,
+                            });
                         } else {
                             diagnostic(fmt::format("invalid include resref '{}'", previous().loc.view()), previous());
                         }

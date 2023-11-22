@@ -180,6 +180,12 @@ void init_script(py::module& nw)
             },
             py::keep_alive<0, 2>());
 
+    py::class_<nws::Include>(nw, "Include")
+        .def_readonly("resref", &nws::Include::resref)
+        .def_readonly("location", &nws::Include::location)
+        .def_readonly("script", &nws::Include::script)
+        .def_readonly("used", &nws::Include::used);
+
     py::class_<nws::Ast>(nw, "Ast")
         .def(
             "__getitem__", [](const nws::Ast& self, size_t index) {
@@ -204,7 +210,7 @@ void init_script(py::module& nw)
             }
             return pylist;
         })
-        .def_readonly("include_resrefs", &nws::Ast::include_resrefs);
+        .def_readonly("includes", &nws::Ast::includes);
 
     py::class_<nws::AstNode>(nw, "AstNode")
         .def("accept", &nws::AstNode::accept)

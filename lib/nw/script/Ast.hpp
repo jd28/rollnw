@@ -476,6 +476,14 @@ struct VarDecl : public Declaration {
     DEFINE_ACCEPT_VISITOR
 };
 
+/// Abstracts an script include
+struct Include {
+    std::string resref;      ///< Resref of included script
+    SourceLocation location; ///< Source location in script
+    Nss* script = nullptr;   ///< Loaded script
+    int used = 0;            ///< Number of times include is used in script file
+};
+
 struct Ast {
     Ast() = default;
     Ast(const Ast&) = delete;
@@ -484,8 +492,7 @@ struct Ast {
     Ast& operator=(Ast&&) = default;
 
     std::vector<std::unique_ptr<Statement>> decls;
-    std::vector<std::string> include_resrefs;
-    std::vector<Nss*> includes;
+    std::vector<Include> includes;
     std::vector<std::pair<std::string, std::string>> defines;
 
     void accept(BaseVisitor* visitor)

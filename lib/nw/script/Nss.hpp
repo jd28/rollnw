@@ -73,7 +73,7 @@ struct Nss {
     const NssParser& parser() const;
 
     /// Process includes recursively
-    bool process_includes(Nss* parent = nullptr);
+    void process_includes(Nss* parent = nullptr);
 
     /// Gets parsed AST
     Ast& ast();
