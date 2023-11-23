@@ -416,7 +416,9 @@ void init_script(py::module& nw)
             py::return_value_policy::reference_internal);
 
     py::class_<nws::Declaration, nws::Statement>(nw, "Declaration")
-        .def_readonly("type", &nws::Declaration::type);
+        .def_readonly("type", &nws::Declaration::type)
+        .def("range", &nws::Declaration::range)
+        .def("selection_range", &nws::Declaration::selection_range);
 
     py::class_<nws::FunctionDecl, nws::Declaration>(nw, "FunctionDecl")
         .def_readonly("identifier", &nws::FunctionDecl::identifier,

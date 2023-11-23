@@ -2,6 +2,7 @@
 
 #include "../log.hpp"
 #include "Nss.hpp"
+#include "SourceLocation.hpp"
 
 namespace nw::script {
 
@@ -769,6 +770,8 @@ std::unique_ptr<StructDecl> NssParser::parse_decl_struct()
     }
     consume(NssTokenType::RBRACE, "Expected '}'.");
     consume(NssTokenType::SEMICOLON, "Expected ';'.");
+    decl->range_.end = previous().loc.position;
+
     return decl;
 }
 
@@ -838,6 +841,13 @@ std::unique_ptr<Statement> NssParser::parse_decl_external()
     if (match({NssTokenType::LBRACE})) {
         auto sd = parse_decl_struct();
         sd->type = t;
+
+        // Note range end is already determined
+        sd->range_.start = sd->type.type_specifier.loc.position;
+        sd->range_selection_.start = sd->type.struct_id.loc.position;
+        sd->range_selection_.end = SourcePosition{sd->type.struct_id.loc.position.line,
+            sd->type.struct_id.loc.position.column + sd->type.struct_id.loc.length()};
+
         return sd;
     }
 
@@ -848,10 +858,27 @@ std::unique_ptr<Statement> NssParser::parse_decl_external()
         if (auto ds = dynamic_cast<DeclStatement*>(gvd.get())) {
             for (auto& d : ds->decls) {
                 d->type = t;
+                if (t.type_qualifier.type == NssTokenType::INVALID) {
+                    d->range_.start = t.type_specifier.loc.position;
+                } else {
+                    d->range_.start = t.type_qualifier.loc.position;
+                }
+                d->range_selection_.start = d->identifier.loc.position;
+                d->range_selection_.end = SourcePosition{d->identifier.loc.position.line,
+                    d->identifier.loc.position.column + d->identifier.loc.length()};
             }
         } else {
             auto vd = static_cast<VarDecl*>(gvd.get());
             vd->type = t;
+            // Note range end is already determined
+            if (t.type_qualifier.type == NssTokenType::INVALID) {
+                vd->range_.start = t.type_specifier.loc.position;
+            } else {
+                vd->range_.start = t.type_qualifier.loc.position;
+            }
+            vd->range_selection_.start = vd->identifier.loc.position;
+            vd->range_selection_.end = SourcePosition{vd->identifier.loc.position.line,
+                vd->identifier.loc.position.column + vd->identifier.loc.length()};
         }
         return gvd;
     }
@@ -860,9 +887,22 @@ std::unique_ptr<Statement> NssParser::parse_decl_external()
         auto fd = parse_decl_function_def();
         if (auto decl = dynamic_cast<FunctionDecl*>(fd.get())) {
             decl->type = t;
+            decl->range_selection_.start = decl->identifier.loc.position;
+            decl->range_selection_.end = SourcePosition{decl->identifier.loc.position.line,
+                decl->identifier.loc.position.column + decl->identifier.loc.length()};
         } else if (auto def = dynamic_cast<FunctionDefinition*>(fd.get())) {
             def->decl_inline->type = t;
+            def->range_selection_.start = def->decl_inline->identifier.loc.position;
+            def->range_selection_.end = SourcePosition{def->decl_inline->identifier.loc.position.line,
+                def->decl_inline->identifier.loc.position.column + def->decl_inline->identifier.loc.length()};
         }
+
+        if (t.type_qualifier.type == NssTokenType::INVALID) {
+            fd->range_.start = t.type_specifier.loc.position;
+        } else {
+            fd->range_.start = t.type_qualifier.loc.position;
+        }
+
         return fd;
     }
 
@@ -902,12 +942,14 @@ std::unique_ptr<Declaration> NssParser::parse_decl_function_def()
 {
     auto decl = parse_decl_function();
     if (match({NssTokenType::SEMICOLON})) {
+        decl->range_.end = previous().loc.position;
         return decl;
     }
     auto def = std::make_unique<FunctionDefinition>();
     def->decl_inline = std::move(decl);
     consume(NssTokenType::LBRACE, "Expected '{'.");
     def->block = parse_stmt_block();
+    def->range_.end = previous().loc.position;
     return def;
 }
 
@@ -923,9 +965,14 @@ std::unique_ptr<Statement> NssParser::parse_decl_global_var()
             ret->init = parse_expr();
         }
         decls->decls.push_back(std::move(ret));
-        if (!match({NssTokenType::COMMA})) { break; }
+        if (!match({NssTokenType::COMMA})) {
+            break;
+        } else {
+            decls->decls.back()->range_.end = previous().loc.position;
+        }
     }
     consume(NssTokenType::SEMICOLON, "Expected ';'.");
+    decls->decls.back()->range_.end = previous().loc.position;
 
     if (decls->decls.size() == 1) {
         return std::move(decls->decls[0]);

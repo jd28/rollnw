@@ -19,4 +19,14 @@ std::vector<std::string> AstNode::complete(const std::string& needle) const
     return result;
 }
 
+SourceRange Declaration::range() const noexcept
+{
+    return range_;
+}
+
+SourceRange Declaration::selection_range() const noexcept
+{
+    return range_selection_;
+}
+
 } // namespace nw::script

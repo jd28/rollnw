@@ -442,6 +442,11 @@ struct Type {
 
 struct Declaration : public Statement {
     Type type;
+    SourceRange range_;
+    SourceRange range_selection_;
+
+    virtual SourceRange range() const noexcept;
+    virtual SourceRange selection_range() const noexcept;
 };
 
 struct FunctionDecl : public Declaration {
