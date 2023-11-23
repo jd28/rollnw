@@ -218,14 +218,40 @@ class NssLexer:
         """Gets next token"""
 
 
-class SourceLocation:
-    """Nss source location
+class SourcePosition:
+    """Position in source code
 
     Attributes:
         column (int): Starting column
         line (int): Starting line
-        view (str): String view of the location
     """
+
+
+class SourceRange:
+    """Range into the source code
+
+    Attributes:
+        start (SourcePosition): Start
+        end (SourcePosition): End
+    """
+    pass
+
+
+class SourceLocation:
+    """Nss source location
+
+    Attributes:
+        position (SourcePosition): Position in source code
+    """
+
+    def length(self) -> int:
+        """Length of the source location"""
+        return 0
+
+    def view(self) -> str:
+        """String view of the location
+        """
+        return ""
 
 
 class NssToken:

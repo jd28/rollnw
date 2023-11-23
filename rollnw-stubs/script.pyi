@@ -3,6 +3,24 @@ from typing import Any, Callable, ClassVar, Iterator, List, Tuple, Set
 from . import Path, StringVector
 
 
+class SourcePosition:
+    line: int
+    column: int
+
+
+class SourceRange:
+    start: SourcePosition
+    end: SourcePosition
+
+
+class SourceLocation:
+    position: SourcePosition
+
+    def __init__(self, *args, **kwargs) -> None: ...
+    def length(self) -> int: ...
+    def view(self) -> str: ...
+
+
 class Context:
     def __init__(self, command_script: str = "nwscript") -> None: ...
 
@@ -230,15 +248,6 @@ class NssLexer:
     def __init__(self, script: str, ctx: Context) -> None: ...
     def current(self) -> NssToken: ...
     def next(self) -> NssToken: ...
-
-
-class SourceLocation:
-    def __init__(self, *args, **kwargs) -> None: ...
-    def view(self) -> str: ...
-    @property
-    def line(self) -> int: ...
-    @property
-    def column(self) -> int: ...
 
 
 class NssToken:

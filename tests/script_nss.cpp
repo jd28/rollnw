@@ -571,7 +571,7 @@ TEST(Nss, Lexer)
     size_t line = 0;
     script::NssToken tok = lexer12.next();
     while (tok.type != script::NssTokenType::END) {
-        line = tok.loc.line;
+        line = tok.loc.position.line;
         tok = lexer12.next();
     }
 

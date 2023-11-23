@@ -20,6 +20,20 @@ namespace nws = nw::script;
 
 void init_script(py::module& nw)
 {
+
+    py::class_<nws::SourcePosition>(nw, "SourcePosition")
+        .def_readonly("line", &nws::SourcePosition::line)
+        .def_readonly("column", &nws::SourcePosition::column);
+
+    py::class_<nws::SourceRange>(nw, "SourceRange")
+        .def_readonly("start", &nws::SourceRange::start)
+        .def_readonly("end", &nws::SourceRange::end);
+
+    py::class_<nws::SourceLocation>(nw, "SourceLocation")
+        .def("length", &nws::SourceLocation::length)
+        .def("view", &nws::SourceLocation::view)
+        .def_readonly("position", &nws::SourceLocation::position);
+
     py::class_<nws::Context>(nw, "Context")
         .def(py::init<>())
         .def(py::init<std::string>());
@@ -133,11 +147,6 @@ void init_script(py::module& nw)
         .value("VECTOR", nws::NssTokenType::VECTOR)             // vector
         .value("VOID", nws::NssTokenType::VOID_)                // void
         .value("WHILE", nws::NssTokenType::WHILE);              // while
-
-    py::class_<nws::SourceLocation>(nw, "SourceLocation")
-        .def("view", &nws::SourceLocation::view)
-        .def_readonly("line", &nws::SourceLocation::line)
-        .def_readonly("start", &nws::SourceLocation::column);
 
     py::class_<nws::Type>(nw, "Type")
         .def_readonly("type_qualifier", &nws::Type::type_qualifier)

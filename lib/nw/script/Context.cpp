@@ -192,7 +192,7 @@ void Context::lexical_diagnostic(Nss* script, std::string_view msg, bool is_warn
     }
 
     auto out = fmt::format("{}:{}:{} {}: {}", script ? script->name() : "<source>",
-        loc.line, loc.column, is_warning ? "warning" : "error", msg);
+        loc.position.line, loc.position.column, is_warning ? "warning" : "error", msg);
     if (is_warning) {
         LOG_F(WARNING, "{}", out);
     } else {
@@ -219,7 +219,7 @@ void Context::parse_diagnostic(Nss* script, std::string_view msg, bool is_warnin
     }
 
     auto out = fmt::format("{}:{}:{} {}: {}", script ? script->name() : "<source>",
-        loc.line, loc.column, is_warning ? "warning" : "error", msg);
+        loc.position.line, loc.position.column, is_warning ? "warning" : "error", msg);
     if (is_warning) {
         LOG_F(WARNING, "{}", out);
     } else {
@@ -246,7 +246,7 @@ void Context::semantic_diagnostic(Nss* script, std::string_view msg, bool is_war
     }
 
     auto out = fmt::format("{}:{}:{} {}: {}", script ? script->name() : "<source>",
-        loc.line, loc.column, is_warning ? "warning" : "error", msg);
+        loc.position.line, loc.position.column, is_warning ? "warning" : "error", msg);
     if (is_warning) {
         LOG_F(WARNING, "{}", out);
     } else {

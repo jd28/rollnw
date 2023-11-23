@@ -1,7 +1,8 @@
 #pragma once
 
+#include "SourceLocation.hpp"
+
 #include <iostream>
-#include <string_view>
 
 namespace nw::script {
 
@@ -101,22 +102,9 @@ enum class NssTokenType {
     WHILE,        // while
 };
 
-struct SourceLocation {
-    const char* start = nullptr;
-    const char* end = nullptr;
-    size_t line = 0;
-    size_t column = 0;
-
-    std::string_view view() const
-    {
-        if (!start || !end) { return {}; }
-        return std::string_view{start, size_t(end - start)};
-    }
-};
-
 inline SourceLocation merge_source_location(SourceLocation lhs, SourceLocation rhs)
 {
-    return {lhs.start, rhs.end, lhs.line, lhs.column};
+    return {lhs.start, rhs.end, lhs.position.line, lhs.position.column};
 }
 
 struct NssToken {
@@ -138,9 +126,9 @@ inline std::ostream& operator<<(std::ostream& out, const nw::script::NssToken& t
     out << "<'";
     out << token.loc.view();
     out << "', ";
-    out << token.loc.line;
+    out << token.loc.position.line;
     out << ":";
-    out << token.loc.column;
+    out << token.loc.position.column;
     out << ">";
 
     return out;
