@@ -214,13 +214,37 @@ static void BM_creature_attack_roll(benchmark::State& state)
     }
 }
 
-static void BM_formats_nss(benchmark::State& state)
+static void BM_script_lex(benchmark::State& state)
 {
     nw::ResourceData data = nw::ResourceData::from_file("test_data/user/scratch/nwscript.nss");
     auto ctx = new nw::script::Context;
     for (auto _ : state) {
-        nw::script::Nss nss(data.copy(), ctx);
+        nw::script::NssLexer lexer{data.bytes.string_view(), ctx};
+        while (lexer.next().type != nw::script::NssTokenType::END)
+            ;
+        benchmark::DoNotOptimize(lexer);
+    }
+}
+
+static void BM_script_parse(benchmark::State& state)
+{
+    nw::ResourceData data = nw::ResourceData::from_file("test_data/user/scratch/nwscript.nss");
+    auto ctx = new nw::script::Context;
+    for (auto _ : state) {
+        nw::script::Nss nss(data.bytes.string_view(), ctx);
         nss.parse();
+        benchmark::DoNotOptimize(nss);
+    }
+}
+
+static void BM_script_resolve(benchmark::State& state)
+{
+    nw::ResourceData data = nw::ResourceData::from_file("test_data/user/scratch/nwscript.nss");
+    auto ctx = new nw::script::Context;
+    for (auto _ : state) {
+        nw::script::Nss nss(data.bytes.string_view(), ctx);
+        nss.parse();
+        nss.resolve();
         benchmark::DoNotOptimize(nss);
     }
 }
@@ -274,7 +298,10 @@ BENCHMARK(BM_creature_attack_3);
 BENCHMARK(BM_creature_attack_bonus);
 BENCHMARK(BM_creature_attack_roll);
 
-BENCHMARK(BM_formats_nss);
+BENCHMARK(BM_script_lex);
+BENCHMARK(BM_script_parse);
+BENCHMARK(BM_script_resolve);
+
 BENCHMARK(BM_model_parse);
 
 BENCHMARK(BM_rules_master_feat);
