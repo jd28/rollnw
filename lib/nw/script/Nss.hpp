@@ -25,9 +25,9 @@ struct Export {
 };
 
 struct Nss {
-    explicit Nss(const std::filesystem::path& filename, Context* ctx);
-    explicit Nss(std::string_view script, Context* ctx);
-    explicit Nss(ResourceData data, Context* ctx);
+    explicit Nss(const std::filesystem::path& filename, Context* ctx, bool command_script = false);
+    explicit Nss(std::string_view script, Context* ctx, bool command_script = false);
+    explicit Nss(ResourceData data, Context* ctx, bool command_script = false);
 
     /// Add diagnostic to script
     void add_diagnostic(Diagnostic diagnostic);
@@ -105,6 +105,7 @@ private:
     size_t warnings_ = 0;
     bool resolved_ = false;
     bool parsed_ = false;
+    bool is_command_script_ = false;
 };
 
 } // namespace nw::script

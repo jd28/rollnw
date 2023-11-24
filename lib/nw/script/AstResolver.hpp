@@ -20,9 +20,10 @@ struct ScopeDecl {
 };
 
 struct AstResolver : BaseVisitor {
-    AstResolver(Nss* parent, Context* ctx)
+    AstResolver(Nss* parent, Context* ctx, bool command_script = false)
         : parent_{parent}
         , ctx_{ctx}
+        , is_command_script_{command_script}
     {
         CHECK_F(!!ctx_, "[script] invalid script context");
         env_stack_.push_back({});
@@ -41,6 +42,7 @@ struct AstResolver : BaseVisitor {
     int loop_stack_ = 0;
     int switch_stack_ = 0;
     int func_def_stack_ = 0;
+    bool is_command_script_ = false;
 
     // == Resolver Helpers ====================================================
     // ========================================================================

@@ -178,7 +178,7 @@ void init_script(py::module& nw)
         .def_readonly("command_id", &nws::Export::command_id);
 
     py::class_<nws::Nss>(nw, "Nss")
-        .def(py::init<std::filesystem::path, nws::Context*>(),
+        .def(py::init<std::filesystem::path, nws::Context*, bool>(),
             py::keep_alive<1, 3>())
         .def(
             "ast", [](nws::Nss& self) {
@@ -207,8 +207,8 @@ void init_script(py::module& nw)
         })
         .def("warnings", &nws::Nss::warnings)
         .def_static(
-            "from_string", [](std::string_view str, nws::Context* ctx) {
-                return new nws::Nss(str, ctx);
+            "from_string", [](std::string_view str, nws::Context* ctx, bool command_script) {
+                return new nws::Nss(str, ctx, command_script);
             },
             py::keep_alive<0, 2>());
 
@@ -450,8 +450,8 @@ void init_script(py::module& nw)
             py::return_value_policy::reference_internal);
 
     nw.def(
-        "load", [](std::string_view script, nws::Context* ctx) {
-            auto res = new nws::Nss{nw::kernel::resman().demand({script, nw::ResourceType::nss}), ctx};
+        "load", [](std::string_view script, nws::Context* ctx, bool command_script) {
+            auto res = new nws::Nss{nw::kernel::resman().demand({script, nw::ResourceType::nss}), ctx, command_script};
             res->parse();
             res->process_includes();
             res->resolve();

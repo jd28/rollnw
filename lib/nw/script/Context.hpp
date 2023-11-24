@@ -21,7 +21,7 @@ struct Context {
     // Dependency Tracking
     absl::flat_hash_map<Resource, std::unique_ptr<Nss>> dependencies_;
     std::vector<std::string> include_stack_;
-    Nss* get(Resref resref);
+    Nss* get(Resref resref, bool command_script = false);
 
     // Spec
     std::string command_script_name_;

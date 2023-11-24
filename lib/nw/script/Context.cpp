@@ -12,13 +12,13 @@ Context::Context(std::string command_script)
 {
     register_default_types();
 
-    command_script_ = get(Resref{command_script_name_});
+    command_script_ = get(Resref{command_script_name_}, true);
     CHECK_F(!!command_script_, "[script] unable to load command script '{}'", command_script_name_);
     command_script_->resolve();
     // register_engine_types
 }
 
-Nss* Context::get(Resref resref)
+Nss* Context::get(Resref resref, bool command_script)
 {
     Resource res{resref, ResourceType::nss};
     auto it = dependencies_.find(res);
@@ -28,7 +28,7 @@ Nss* Context::get(Resref resref)
 
     auto data = nw::kernel::resman().demand(res);
     if (data.bytes.size()) {
-        auto nss = std::make_unique<Nss>(std::move(data), this);
+        auto nss = std::make_unique<Nss>(std::move(data), this, command_script);
         nss->parse();
         auto it = dependencies_.insert({res, std::move(nss)});
         return it.first->second.get();

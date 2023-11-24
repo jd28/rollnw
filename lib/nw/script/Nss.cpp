@@ -10,25 +10,28 @@ extern "C" {
 
 namespace nw::script {
 
-Nss::Nss(const std::filesystem::path& filename, Context* ctx)
+Nss::Nss(const std::filesystem::path& filename, Context* ctx, bool command_script)
     : ctx_{ctx}
     , data_{ResourceData::from_file(filename)}
     , parser_{data_.bytes.string_view(), ctx_, this}
+    , is_command_script_{command_script}
 {
     CHECK_F(!!ctx_, "[script] invalid script context");
 }
 
-Nss::Nss(std::string_view script, Context* ctx)
+Nss::Nss(std::string_view script, Context* ctx, bool command_script)
     : ctx_{ctx}
     , parser_{script, ctx_, this}
+    , is_command_script_{command_script}
 {
     CHECK_F(!!ctx_, "[script] invalid script context");
 }
 
-Nss::Nss(ResourceData data, Context* ctx)
+Nss::Nss(ResourceData data, Context* ctx, bool command_script)
     : ctx_{ctx}
     , data_{std::move(data)}
     , parser_{data_.bytes.string_view(), ctx_, this}
+    , is_command_script_{command_script}
 {
     CHECK_F(!!ctx_, "[script] invalid script context");
 }
@@ -138,7 +141,7 @@ void Nss::resolve()
         if (it.script) { it.script->resolve(); }
     }
 
-    AstResolver resolver{this, ctx_};
+    AstResolver resolver{this, ctx_, is_command_script_};
     resolver.visit(&ast_);
     symbol_table_ = resolver.symbol_table();
     resolved_ = true;

@@ -40,7 +40,7 @@ TEST(Nss, Preprocessor)
 TEST(Nss, ParseNwscript)
 {
     auto ctx = std::make_unique<script::Context>();
-    script::Nss nss(fs::path("test_data/user/scratch/nwscript.nss"), ctx.get());
+    script::Nss nss(fs::path("test_data/user/scratch/nwscript.nss"), ctx.get(), true);
     EXPECT_NO_THROW(nss.parse());
     EXPECT_NO_THROW(nss.resolve());
     EXPECT_TRUE(nss.errors() == 0);
