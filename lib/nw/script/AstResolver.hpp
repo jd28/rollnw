@@ -815,8 +815,10 @@ struct AstResolver : BaseVisitor {
     {
         stmt->env = env_stack_.back();
 
-        if (stmt->type.type == NssTokenType::CASE && switch_stack_ == 0) {
-            ctx_->semantic_diagnostic(parent_, "case statement not within switch", false, stmt->type.loc);
+        if ((stmt->type.type == NssTokenType::CASE
+                || stmt->type.type == NssTokenType::DEFAULT)
+            && switch_stack_ == 0) {
+            ctx_->semantic_diagnostic(parent_, "label statement not within switch", false, stmt->type.loc);
         }
 
         if (stmt->type.type == NssTokenType::DEFAULT) {
