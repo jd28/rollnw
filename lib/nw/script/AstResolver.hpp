@@ -41,7 +41,7 @@ struct AstResolver : BaseVisitor {
     EnvStack env_stack_;
     int loop_stack_ = 0;
     int switch_stack_ = 0;
-    int func_def_stack_ = 0;
+    FunctionDefinition* func_def_stack_ = nullptr;
     bool is_command_script_ = false;
 
     // == Resolver Helpers ====================================================
@@ -329,7 +329,7 @@ struct AstResolver : BaseVisitor {
     virtual void visit(FunctionDefinition* decl) override
     {
         decl->env = env_stack_.back();
-        ++func_def_stack_;
+        func_def_stack_ = decl;
         // Check to see if there's been a function declaration, if so got to match.
         auto fd = resolve(decl->decl_inline->identifier.loc.view(), decl->decl_inline->identifier.loc, false);
         decl->decl_external = dynamic_cast<FunctionDecl*>(fd);
@@ -353,7 +353,7 @@ struct AstResolver : BaseVisitor {
 
         decl->block->accept(this);
         end_scope();
-        --func_def_stack_;
+        func_def_stack_ = nullptr;
     }
 
     virtual void visit(StructDecl* decl) override
@@ -838,9 +838,18 @@ struct AstResolver : BaseVisitor {
             && (loop_stack_ == 0 && switch_stack_ == 0)) {
             ctx_->semantic_diagnostic(parent_, "break statement not within loop or switch", false, stmt->op.loc);
 
-        } else if (stmt->op.type == NssTokenType::RETURN && func_def_stack_ == 0) {
-            // This shouldn't even be possible and would be a parser error
-            ctx_->semantic_diagnostic(parent_, "return statement not within function definition", false, stmt->op.loc);
+        } else if (stmt->op.type == NssTokenType::RETURN) {
+            if (!func_def_stack_) {
+                // This shouldn't even be possible and would be a parser error
+                ctx_->semantic_diagnostic(parent_, "return statement not within function definition", false, stmt->op.loc);
+            } else if (func_def_stack_->type_id_ != stmt->type_id_
+                && !ctx_->is_type_convertible(func_def_stack_->type_id_, stmt->type_id_)) {
+                ctx_->semantic_diagnostic(parent_,
+                    fmt::format("returning type '{}' expected '{}'", ctx_->type_name(stmt->type_id_),
+                        ctx_->type_name(func_def_stack_->type_id_)),
+                    false,
+                    stmt->op.loc);
+            }
         }
     }
 
