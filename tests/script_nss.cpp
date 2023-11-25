@@ -989,6 +989,100 @@ TEST(Nss, For)
     EXPECT_EQ(nss3.errors(), 0);
 }
 
+TEST(Nss, Return)
+{
+
+    auto ctx = std::make_unique<script::Context>();
+
+    // == Good ================================================================
+
+    script::Nss nss1(R"(
+    int test(){
+        if(TRUE)
+            return 1;
+        else
+            return 0;
+    }
+
+    void main()
+    {
+        int i = test();
+    })"sv,
+        ctx.get());
+    EXPECT_NO_THROW(nss1.parse());
+    EXPECT_NO_THROW(nss1.resolve());
+    EXPECT_EQ(nss1.errors(), 0);
+
+    // == Bad =================================================================
+
+    // Some of these aren't great examples.. the game seems likewise fairly basic
+
+    script::Nss nss2(R"(
+    int test(){
+        int i = 0;
+        while(TRUE) {
+            if(i > 10) { return 1; }
+            ++i;
+        }
+    }
+
+    void main()
+    {
+        int i = test();
+    })"sv,
+        ctx.get());
+    EXPECT_NO_THROW(nss2.parse());
+    EXPECT_NO_THROW(nss2.resolve());
+    EXPECT_EQ(nss2.errors(), 1);
+
+    script::Nss nss3(R"(
+    int test(){
+        if(TRUE)
+            return 1;
+    }
+
+    void main()
+    {
+        int i = test();
+    })"sv,
+        ctx.get());
+    EXPECT_NO_THROW(nss3.parse());
+    EXPECT_NO_THROW(nss3.resolve());
+    EXPECT_EQ(nss3.errors(), 1);
+
+    script::Nss nss4(R"(
+    int test(){
+        if(TRUE){
+            if(TRUE) { return 1; }
+        } else {
+            ;
+        }
+    }
+
+    void main()
+    {
+        int i = test();
+    })"sv,
+        ctx.get());
+    EXPECT_NO_THROW(nss4.parse());
+    EXPECT_NO_THROW(nss4.resolve());
+    EXPECT_EQ(nss4.errors(), 1);
+
+    script::Nss nss5(R"(
+    int test(){
+        int i = 0;
+        while(TRUE) {
+            if(i > 10) { return 1; }
+            ++i;
+        }
+        return "";
+    })"sv,
+        ctx.get());
+    EXPECT_NO_THROW(nss5.parse());
+    EXPECT_NO_THROW(nss5.resolve());
+    EXPECT_EQ(nss5.errors(), 1);
+}
+
 TEST(Nss, While)
 {
     auto ctx = std::make_unique<script::Context>();

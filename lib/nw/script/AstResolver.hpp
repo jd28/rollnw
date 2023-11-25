@@ -297,6 +297,37 @@ struct AstResolver : BaseVisitor {
         }
     }
 
+    bool all_control_flow_paths_return(const AstNode* node)
+    {
+        if (!node) { return false; }
+
+        bool has_returned = false;
+        if (auto block = dynamic_cast<const BlockStatement*>(node)) {
+            for (const auto& decl : block->nodes) {
+                if (all_control_flow_paths_return(decl.get())) {
+                    return true;
+                }
+            }
+        } else if (auto jump = dynamic_cast<const JumpStatement*>(node)) {
+            if (jump->op.type == NssTokenType::RETURN) {
+                return true;
+            }
+        } else if (auto ifs = dynamic_cast<const IfStatement*>(node)) {
+            // Both if and else must be present and both
+            if (ifs->if_branch && ifs->else_branch
+                && all_control_flow_paths_return(ifs->if_branch.get())
+                && all_control_flow_paths_return(ifs->else_branch.get())) {
+                return true;
+            }
+        } else if (auto ifs = dynamic_cast<const SwitchStatement*>(node)) {
+            // [TODO] - Fix this
+            // Every block most return - the game seems really stupid about this
+            // So do nothing for now.
+        }
+
+        return false;
+    }
+
     virtual void visit(FunctionDecl* decl) override
     {
         decl->env = env_stack_.back();
@@ -352,6 +383,12 @@ struct AstResolver : BaseVisitor {
         match_function_decls(decl->decl_external, decl->decl_inline.get());
 
         decl->block->accept(this);
+        if (decl->type_id_ != ctx_->type_id("void") && !all_control_flow_paths_return(decl->block.get())) {
+            ctx_->semantic_diagnostic(parent_, "not all control flow paths return",
+                false,
+                decl->decl_inline->identifier.loc);
+        }
+
         end_scope();
         func_def_stack_ = nullptr;
     }
@@ -848,7 +885,7 @@ struct AstResolver : BaseVisitor {
                     fmt::format("returning type '{}' expected '{}'", ctx_->type_name(stmt->type_id_),
                         ctx_->type_name(func_def_stack_->type_id_)),
                     false,
-                    stmt->op.loc);
+                    stmt->expr->extent());
             }
         }
     }
