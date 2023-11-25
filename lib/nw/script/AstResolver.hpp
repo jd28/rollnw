@@ -246,7 +246,7 @@ struct AstResolver : BaseVisitor {
                     decl->params.size(),
                     def->params.size()),
                 false,
-                def->type.type_specifier.loc); // [TODO] expand this
+                def->identifier.loc); // [TODO] expand this
         } else {
             std::string reason;
 
@@ -259,15 +259,15 @@ struct AstResolver : BaseVisitor {
                     reason = fmt::format("function parameter declared with type '{}', defined with type '{}'",
                         ctx_->type_name(decl->params[i]->type_id_), ctx_->type_name(def->params[i]->type_id_));
                     mismatch = true;
-                    loc = decl->params[i]->identifier.loc;
+                    loc = def->params[i]->type.type_specifier.loc;
                 } else if (decl->params[i]->identifier.loc.view() != def->params[i]->identifier.loc.view()) {
                     reason = fmt::format("function parameter declared with identifier '{}', defined with identifier '{}'",
                         decl->params[i]->identifier.loc.view(), def->params[i]->identifier.loc.view());
                     mismatch = true;
                     warning = true;
-                    loc = decl->params[i]->identifier.loc;
+                    loc = def->params[i]->identifier.loc;
                 } else if (decl->params[i]->is_const_ != def->params[i]->is_const_) {
-                    reason = fmt::format("function parameter const mistmatch",
+                    reason = fmt::format("function parameter const mismatch",
                         ctx_->type_name(decl->params[i]->type_id_), ctx_->type_name(def->params[i]->type_id_));
                     mismatch = true;
                     loc = decl->params[i]->identifier.loc;
@@ -307,6 +307,9 @@ struct AstResolver : BaseVisitor {
         declare(decl->identifier, decl);
         define(decl->identifier);
 
+        // Multiple declarations...
+        if (auto d = dynamic_cast<FunctionDecl*>(fd)) { return; }
+
         begin_scope();
         for (auto& p : decl->params) {
             p->accept(this);
@@ -317,7 +320,10 @@ struct AstResolver : BaseVisitor {
             }
         }
         end_scope();
-        match_function_decls(decl, dynamic_cast<FunctionDecl*>(fd));
+
+        if (auto d = dynamic_cast<FunctionDefinition*>(fd)) {
+            match_function_decls(decl, d->decl_inline.get());
+        }
     }
 
     virtual void visit(FunctionDefinition* decl) override
