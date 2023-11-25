@@ -31,6 +31,7 @@ int main(int argc, char* argv[])
 
     auto callback = [&](const nw::Resource& res) {
         if (res.type != nw::ResourceType::nss) { return; }
+        if (res.resref == "nwscript") { return; }
 
         try {
             auto start = std::chrono::high_resolution_clock::now();
