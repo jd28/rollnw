@@ -58,6 +58,30 @@ struct AstResolver : BaseVisitor {
     void declare(NssToken token, Declaration* decl, bool is_type = false)
     {
         auto s = std::string(token.loc.view());
+
+        if (scope_stack_.size() == 1) { // global scope
+            bool redecl = false;
+            std::string msg;
+
+            for (auto& it : reverse(parent_->ast().includes)) {
+                if (!it.script) { continue; }
+                if (auto decl = locate(s, it.script, is_type)) {
+                    redecl = true;
+                    msg = fmt::format("redeclaration of '{}' imported declaration", token.loc.view());
+                    break;
+                }
+            }
+
+            if (!redecl && !is_command_script_ && ctx_->command_script_->locate_export(s, is_type)) {
+                redecl = true;
+                msg = fmt::format("redeclaration of '{}' command script declaration", token.loc.view());
+            }
+
+            if (redecl) {
+                ctx_->semantic_diagnostic(parent_, msg, false, token.loc);
+            }
+        }
+
         auto it = scope_stack_.back().find(s);
         if (it != std::end(scope_stack_.back())) {
             if (is_type) {
@@ -131,9 +155,11 @@ struct AstResolver : BaseVisitor {
         return env_stack_[0];
     }
 
-    Declaration* locate(std::string_view token, Nss* script, bool is_type)
+    // Locate decl in script or dependencies
+    // Note: does not check command script
+    Declaration* locate(const std::string& token, Nss* script, bool is_type)
     {
-        if (auto decl = script->locate_export(std::string(token), is_type)) {
+        if (auto decl = script->locate_export(token, is_type)) {
             return decl;
         } else {
             for (auto& it : reverse(script->ast().includes)) {
@@ -146,6 +172,7 @@ struct AstResolver : BaseVisitor {
         return nullptr;
     }
 
+    // Resolve symbol to original decl
     Declaration* resolve(std::string_view token, SourceLocation loc, bool is_type)
     {
         auto s = std::string(token);
@@ -176,7 +203,7 @@ struct AstResolver : BaseVisitor {
         // Next look through all dependencies
         for (auto it : reverse(parent_->ast().includes)) {
             if (!it.script) { continue; }
-            if (auto decl = locate(token, it.script, is_type)) { return decl; }
+            if (auto decl = locate(s, it.script, is_type)) { return decl; }
         }
 
         return ctx_->command_script_->locate_export(s, is_type);
