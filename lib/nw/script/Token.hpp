@@ -104,7 +104,7 @@ enum class NssTokenType {
 
 inline SourceLocation merge_source_location(SourceLocation lhs, SourceLocation rhs)
 {
-    return {lhs.start, rhs.end, lhs.range.start, rhs.range.end};
+    return {lhs.start, rhs.end, {lhs.range.start, rhs.range.end}};
 }
 
 struct NssToken {
@@ -117,7 +117,7 @@ struct NssToken {
 
     NssToken(NssTokenType type_, std::string_view id_, SourcePosition start, SourcePosition end)
         : type{type_}
-        , loc{id_.data(), id_.data() + id_.size(), start, end}
+        , loc{id_.data(), id_.data() + id_.size(), {start, end}}
     {
     }
 

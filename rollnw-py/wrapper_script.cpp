@@ -202,7 +202,6 @@ void init_script(py::module& nw)
         .def("parse", &nws::Nss::parse)
         .def("process_includes", &nws::Nss::process_includes, py::arg("parent") = nullptr)
         .def("resolve", &nws::Nss::resolve)
-        .def("set_name", &nw::script::Nss::set_name)
         .def("type_name", [](const nws::Nss& self, const nws::AstNode* node) {
             if (!node) { return ""sv; }
             return self.ctx() ? self.ctx()->type_name(node->type_id_) : ""sv;
