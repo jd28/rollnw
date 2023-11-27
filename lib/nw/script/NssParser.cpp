@@ -176,12 +176,12 @@ void NssParser::synchronize()
 
 // ---- Expressions -----------------------------------------------------------
 
-std::unique_ptr<Expression> NssParser::parse_expr()
+Expression* NssParser::parse_expr()
 {
     return parse_expr_assign();
 }
 
-std::unique_ptr<Expression> NssParser::parse_expr_assign()
+Expression* NssParser::parse_expr_assign()
 {
     auto expr = parse_expr_conditional();
 
@@ -200,10 +200,10 @@ std::unique_ptr<Expression> NssParser::parse_expr_assign()
         auto equals = previous();
         auto value = parse_expr_assign();
 
-        if (dynamic_cast<VariableExpression*>(expr.get())) {
-            return std::make_unique<AssignExpression>(std::move(expr), equals, std::move(value));
-        } else if (dynamic_cast<DotExpression*>(expr.get())) {
-            return std::make_unique<AssignExpression>(std::move(expr), equals, std::move(value));
+        if (dynamic_cast<VariableExpression*>(expr)) {
+            return ast_.create_node<AssignExpression>(expr, equals, value);
+        } else if (dynamic_cast<DotExpression*>(expr)) {
+            return ast_.create_node<AssignExpression>(expr, equals, value);
         }
 
         diagnostic("Invalid assignment target.", peek());
@@ -212,112 +212,112 @@ std::unique_ptr<Expression> NssParser::parse_expr_assign()
     return expr;
 }
 
-std::unique_ptr<Expression> NssParser::parse_expr_conditional()
+Expression* NssParser::parse_expr_conditional()
 {
     auto expr = parse_expr_or();
     if (match({NssTokenType::QUESTION})) {
         auto tbranch = parse_expr();
         consume(NssTokenType::COLON, "Expected ':'.");
         auto fbranch = parse_expr_conditional();
-        expr = std::make_unique<ConditionalExpression>(std::move(expr), std::move(tbranch), std::move(fbranch));
+        expr = ast_.create_node<ConditionalExpression>(std::move(expr), std::move(tbranch), std::move(fbranch));
     }
 
     return expr;
 }
 
-std::unique_ptr<Expression> NssParser::parse_expr_or()
+Expression* NssParser::parse_expr_or()
 {
     auto expr = parse_expr_and();
     while (match({NssTokenType::OROR})) {
         auto op = previous();
         auto right = parse_expr_and();
-        expr = std::make_unique<LogicalExpression>(std::move(expr), op, std::move(right));
+        expr = ast_.create_node<LogicalExpression>(std::move(expr), op, std::move(right));
     }
     return expr;
 }
 
-std::unique_ptr<Expression> NssParser::parse_expr_and()
+Expression* NssParser::parse_expr_and()
 {
     auto expr = parse_expr_bitwise();
     while (match({NssTokenType::ANDAND})) {
         auto op = previous();
         auto right = parse_expr_bitwise();
-        expr = std::make_unique<LogicalExpression>(std::move(expr), op, std::move(right));
+        expr = ast_.create_node<LogicalExpression>(std::move(expr), op, std::move(right));
     }
     return expr;
 }
 
-std::unique_ptr<Expression> NssParser::parse_expr_bitwise()
+Expression* NssParser::parse_expr_bitwise()
 {
     auto expr = parse_expr_equality();
     while (match({NssTokenType::AND, NssTokenType::OR, NssTokenType::XOR})) {
         auto op = previous();
         auto right = parse_expr_equality();
-        expr = std::make_unique<BinaryExpression>(std::move(expr), op, std::move(right));
+        expr = ast_.create_node<BinaryExpression>(std::move(expr), op, std::move(right));
     }
     return expr;
 }
 
-std::unique_ptr<Expression> NssParser::parse_expr_equality()
+Expression* NssParser::parse_expr_equality()
 {
     auto expr = parse_expr_relational();
     while (match({NssTokenType::NOTEQ, NssTokenType::EQEQ})) {
         auto op = previous();
         auto right = parse_expr_relational();
-        expr = std::make_unique<ComparisonExpression>(std::move(expr), op, std::move(right));
+        expr = ast_.create_node<ComparisonExpression>(std::move(expr), op, std::move(right));
     }
     return expr;
 }
 
-std::unique_ptr<Expression> NssParser::parse_expr_relational()
+Expression* NssParser::parse_expr_relational()
 {
     auto expr = parse_expr_shift();
     while (match({NssTokenType::GT, NssTokenType::GTEQ, NssTokenType::LT, NssTokenType::LTEQ})) {
         auto op = previous();
         auto right = parse_expr_shift();
-        expr = std::make_unique<ComparisonExpression>(std::move(expr), op, std::move(right));
+        expr = ast_.create_node<ComparisonExpression>(std::move(expr), op, std::move(right));
     }
     return expr;
 }
 
-std::unique_ptr<Expression> NssParser::parse_expr_shift()
+Expression* NssParser::parse_expr_shift()
 {
     auto expr = parse_expr_additive();
     while (match({NssTokenType::SR, NssTokenType::SL, NssTokenType::USR})) {
         auto op = previous();
         auto right = parse_expr_additive();
-        expr = std::make_unique<BinaryExpression>(std::move(expr), op, std::move(right));
+        expr = ast_.create_node<BinaryExpression>(std::move(expr), op, std::move(right));
     }
     return expr;
 }
 
-std::unique_ptr<Expression> NssParser::parse_expr_additive()
+Expression* NssParser::parse_expr_additive()
 {
     auto expr = parse_expr_multiplicative();
 
     while (match({NssTokenType::MINUS, NssTokenType::PLUS})) {
         auto op = previous();
         auto right = parse_expr_multiplicative();
-        expr = std::make_unique<BinaryExpression>(std::move(expr), op, std::move(right));
+        expr = ast_.create_node<BinaryExpression>(std::move(expr), op, std::move(right));
     }
 
     return expr;
 }
 
-std::unique_ptr<Expression> NssParser::parse_expr_multiplicative()
+Expression* NssParser::parse_expr_multiplicative()
 {
     auto expr = parse_expr_unary();
 
     while (match({NssTokenType::DIV, NssTokenType::TIMES, NssTokenType::MOD})) {
         auto op = previous();
         auto right = parse_expr_unary();
-        expr = std::make_unique<BinaryExpression>(std::move(expr), op, std::move(right));
+        expr = ast_.create_node<BinaryExpression>(std::move(expr), op, std::move(right));
     }
 
     return expr;
 }
 
-std::unique_ptr<Expression> NssParser::parse_expr_unary()
+Expression* NssParser::parse_expr_unary()
 {
     // In the lexing stage -- and ++ will be prioritized over multiple
     // unary - and +.
@@ -332,7 +332,7 @@ std::unique_ptr<Expression> NssParser::parse_expr_unary()
 
         // Constant fold unary expressions cause this will cause problems later
         // to avoid the AST having (unary - (literal 1)) instead of (literal -1) etc
-        if (auto lit = dynamic_cast<LiteralExpression*>(right.get())) {
+        if (auto lit = dynamic_cast<LiteralExpression*>(right)) {
             if (op.type == NssTokenType::PLUS
                 && (lit->literal.type == NssTokenType::INTEGER_CONST
                     || lit->literal.type == NssTokenType::FLOAT_CONST)) {
@@ -364,27 +364,27 @@ std::unique_ptr<Expression> NssParser::parse_expr_unary()
             }
             // Leave everything else for errors later
         }
-        return std::make_unique<UnaryExpression>(op, std::move(right));
+        return ast_.create_node<UnaryExpression>(op, std::move(right));
     }
     return parse_expr_postfix();
 }
 
-std::unique_ptr<Expression> NssParser::parse_expr_postfix()
+Expression* NssParser::parse_expr_postfix()
 {
     auto expr = parse_expr_primary();
 
     while (match({NssTokenType::PLUSPLUS, NssTokenType::MINUSMINUS, NssTokenType::LPAREN, NssTokenType::DOT})) {
         if (previous().type == NssTokenType::PLUSPLUS || previous().type == NssTokenType::MINUSMINUS) {
             auto op = previous();
-            expr = std::make_unique<PostfixExpression>(std::move(expr), op);
+            expr = ast_.create_node<PostfixExpression>(std::move(expr), op);
         }
 
         if (previous().type == NssTokenType::LPAREN) {
-            if (!dynamic_cast<VariableExpression*>(expr.get())) {
+            if (!dynamic_cast<VariableExpression*>(expr)) {
                 diagnostic("expression cannot be used as a function", previous());
             }
 
-            auto e = std::make_unique<CallExpression>(std::move(expr));
+            auto e = ast_.create_node<CallExpression>(std::move(expr));
             while (!is_end() && !check({NssTokenType::RPAREN})) {
                 e->args.emplace_back(parse_expr());
                 match({NssTokenType::COMMA});
@@ -396,7 +396,7 @@ std::unique_ptr<Expression> NssParser::parse_expr_postfix()
         if (previous().type == NssTokenType::DOT) {
             auto dot = previous();
             auto right = parse_expr_primary();
-            expr = std::make_unique<DotExpression>(std::move(expr), dot, std::move(right));
+            expr = ast_.create_node<DotExpression>(std::move(expr), dot, std::move(right));
         }
     }
 
@@ -404,11 +404,11 @@ std::unique_ptr<Expression> NssParser::parse_expr_postfix()
 }
 
 // INT | FLOAT | STRING | "(" expression ")" | IDENTIFIER
-std::unique_ptr<Expression> NssParser::parse_expr_primary()
+Expression* NssParser::parse_expr_primary()
 {
     if (match({NssTokenType::STRING_CONST, NssTokenType::INTEGER_CONST, NssTokenType::FLOAT_CONST,
             NssTokenType::OBJECT_INVALID_CONST, NssTokenType::OBJECT_SELF_CONST})) {
-        auto expr = std::make_unique<LiteralExpression>(previous());
+        auto expr = ast_.create_node<LiteralExpression>(previous());
 
         if (expr->literal.type == NssTokenType::STRING_CONST) {
             // Probably need to process the string..
@@ -436,7 +436,7 @@ std::unique_ptr<Expression> NssParser::parse_expr_primary()
     }
 
     if (match({NssTokenType::IDENTIFIER})) {
-        return std::make_unique<VariableExpression>(previous());
+        return ast_.create_node<VariableExpression>(previous());
     }
 
     if (match({NssTokenType::LBRACKET})) {
@@ -451,7 +451,7 @@ std::unique_ptr<Expression> NssParser::parse_expr_primary()
         z = previous();
         consume(NssTokenType::RBRACKET, "Expected ']'");
 
-        auto expr = std::make_unique<LiteralVectorExpression>(x, y, z);
+        auto expr = ast_.create_node<LiteralVectorExpression>(x, y, z);
 
         if (auto val = string::from<float>(expr->x.loc.view())) {
             expr->data.x = *val;
@@ -486,7 +486,7 @@ std::unique_ptr<Expression> NssParser::parse_expr_primary()
     if (match({NssTokenType::LPAREN})) {
         auto expr = parse_expr();
         consume(NssTokenType::RPAREN, "Expected ')' after expression.");
-        return std::make_unique<GroupingExpression>(std::move(expr));
+        return ast_.create_node<GroupingExpression>(std::move(expr));
     }
 
     diagnostic("expected primary expression", peek());
@@ -542,7 +542,7 @@ Type NssParser::parse_type()
 //           | switchStmt
 //           | whileStmt
 //           | block
-std::unique_ptr<Statement> NssParser::parse_stmt()
+Statement* NssParser::parse_stmt()
 {
     if (match({NssTokenType::DO})) {
         return parse_stmt_do();
@@ -577,10 +577,10 @@ std::unique_ptr<Statement> NssParser::parse_stmt()
     }
 
     if (match({NssTokenType::SEMICOLON})) {
-        return std::make_unique<EmptyStatement>();
+        return ast_.create_node<EmptyStatement>();
     }
 
-    auto s = std::make_unique<ExprStatement>();
+    auto s = ast_.create_node<ExprStatement>();
     s->expr = parse_expr();
     consume(NssTokenType::SEMICOLON, "Expected ';'.");
 
@@ -588,9 +588,9 @@ std::unique_ptr<Statement> NssParser::parse_stmt()
 }
 
 // block -> "{" declaration* "}"
-std::unique_ptr<BlockStatement> NssParser::parse_stmt_block()
+BlockStatement* NssParser::parse_stmt_block()
 {
-    auto s = std::make_unique<BlockStatement>();
+    auto s = ast_.create_node<BlockStatement>();
     while (!is_end() && !check({NssTokenType::RBRACE})) {
         auto n = parse_decl();
         if (n) {
@@ -602,9 +602,9 @@ std::unique_ptr<BlockStatement> NssParser::parse_stmt_block()
 }
 
 // doStmt -> do statement while "(" expression ")" ";"
-std::unique_ptr<DoStatement> NssParser::parse_stmt_do()
+DoStatement* NssParser::parse_stmt_do()
 {
-    auto s = std::make_unique<DoStatement>();
+    auto s = ast_.create_node<DoStatement>();
     consume(NssTokenType::LBRACE, "Expected '{'.");
     s->block = parse_stmt_block();
     consume(NssTokenType::WHILE, "Expected 'while'.");
@@ -616,18 +616,18 @@ std::unique_ptr<DoStatement> NssParser::parse_stmt_do()
 }
 
 // exprStmt -> expression ";"
-std::unique_ptr<ExprStatement> NssParser::parse_stmt_expr()
+ExprStatement* NssParser::parse_stmt_expr()
 {
-    auto s = std::make_unique<ExprStatement>();
+    auto s = ast_.create_node<ExprStatement>();
     s->expr = parse_expr();
     consume(NssTokenType::SEMICOLON, "Expected ';'.");
     return s;
 }
 
 // ifStmt -> if "(" expression ")" statement ( else statement )?
-std::unique_ptr<IfStatement> NssParser::parse_stmt_if()
+IfStatement* NssParser::parse_stmt_if()
 {
-    auto s = std::make_unique<IfStatement>();
+    auto s = ast_.create_node<IfStatement>();
     consume(NssTokenType::LPAREN, "Expected '('.");
     s->expr = parse_expr();
     consume(NssTokenType::RPAREN, "Expected ')'.");
@@ -640,9 +640,9 @@ std::unique_ptr<IfStatement> NssParser::parse_stmt_if()
 }
 
 // forStmt -> for ( expression? ; expression? ; expression? ) statement
-std::unique_ptr<ForStatement> NssParser::parse_stmt_for()
+ForStatement* NssParser::parse_stmt_for()
 {
-    auto s = std::make_unique<ForStatement>();
+    auto s = ast_.create_node<ForStatement>();
     consume(NssTokenType::LPAREN, "Expected '('.");
     bool semi_taken = false;
 
@@ -673,9 +673,9 @@ std::unique_ptr<ForStatement> NssParser::parse_stmt_for()
 }
 
 // returnStmt -> return expression? ;
-std::unique_ptr<JumpStatement> NssParser::parse_stmt_jump()
+JumpStatement* NssParser::parse_stmt_jump()
 {
-    auto s = std::make_unique<JumpStatement>();
+    auto s = ast_.create_node<JumpStatement>();
     s->op = previous();
     if (s->op.type == NssTokenType::RETURN && !check({NssTokenType::SEMICOLON})) {
         s->expr = parse_expr();
@@ -684,9 +684,9 @@ std::unique_ptr<JumpStatement> NssParser::parse_stmt_jump()
     return s;
 }
 
-std::unique_ptr<LabelStatement> NssParser::parse_stmt_label()
+LabelStatement* NssParser::parse_stmt_label()
 {
-    auto s = std::make_unique<LabelStatement>();
+    auto s = ast_.create_node<LabelStatement>();
     s->type = previous();
     if (s->type.type == NssTokenType::CASE) {
         // [TODO] check here or in resolver for incorrect types.
@@ -696,9 +696,9 @@ std::unique_ptr<LabelStatement> NssParser::parse_stmt_label()
     return s;
 }
 
-std::unique_ptr<SwitchStatement> NssParser::parse_stmt_switch()
+SwitchStatement* NssParser::parse_stmt_switch()
 {
-    auto s = std::make_unique<SwitchStatement>();
+    auto s = ast_.create_node<SwitchStatement>();
     consume(NssTokenType::LPAREN, "Expected '('.");
     s->target = parse_expr();
     consume(NssTokenType::RPAREN, "Expected ')'.");
@@ -708,9 +708,9 @@ std::unique_ptr<SwitchStatement> NssParser::parse_stmt_switch()
 }
 
 // whileStmt -> while "(" expression ")" statement
-std::unique_ptr<WhileStatement> NssParser::parse_stmt_while()
+WhileStatement* NssParser::parse_stmt_while()
 {
-    auto s = std::make_unique<WhileStatement>();
+    auto s = ast_.create_node<WhileStatement>();
     consume(NssTokenType::LPAREN, "Expected '('.");
     s->check = parse_expr();
     consume(NssTokenType::RPAREN, "Expected ')'.");
@@ -720,14 +720,14 @@ std::unique_ptr<WhileStatement> NssParser::parse_stmt_while()
 
 // declaration -> var_decl
 //             | statement ";"
-std::unique_ptr<Statement> NssParser::parse_decl()
+Statement* NssParser::parse_decl()
 {
     if (check_is_type()) {
-        auto decls = std::make_unique<DeclStatement>();
+        auto decls = ast_.create_node<DeclStatement>();
         Type t = parse_type();
 
         while (true) {
-            auto vd = std::make_unique<VarDecl>();
+            auto vd = ast_.create_node<VarDecl>();
             vd->type = t;
 
             consume(NssTokenType::IDENTIFIER, "Expected 'IDENTIFIER'.");
@@ -751,10 +751,10 @@ std::unique_ptr<Statement> NssParser::parse_decl()
     return s;
 }
 
-std::unique_ptr<VarDecl> NssParser::parse_decl_struct_member()
+VarDecl* NssParser::parse_decl_struct_member()
 {
     Type t = parse_type();
-    auto d = std::make_unique<VarDecl>();
+    auto d = ast_.create_node<VarDecl>();
     d->type = t;
     consume(NssTokenType::IDENTIFIER, "Expected 'IDENTIFIER'.");
     d->identifier = previous();
@@ -762,9 +762,9 @@ std::unique_ptr<VarDecl> NssParser::parse_decl_struct_member()
     return d;
 }
 
-std::unique_ptr<StructDecl> NssParser::parse_decl_struct()
+StructDecl* NssParser::parse_decl_struct()
 {
-    auto decl = std::make_unique<StructDecl>();
+    auto decl = ast_.create_node<StructDecl>();
     while (!is_end() && !check({NssTokenType::RBRACE})) {
         decl->decls.emplace_back(parse_decl_struct_member());
     }
@@ -780,7 +780,6 @@ Ast NssParser::parse_program()
 {
     lex();
 
-    Ast p;
     while (!is_end()) {
         try {
             if (match({NssTokenType::POUND})) { // Only at top level
@@ -788,7 +787,7 @@ Ast NssParser::parse_program()
                     consume(NssTokenType::IDENTIFIER, "Expected 'IDENTIFIER'."); // include
                     if (match({NssTokenType::STRING_CONST})) {
                         if (previous().loc.view().size() <= nw::Resref::max_size) {
-                            p.includes.push_back({
+                            ast_.includes.push_back({
                                 std::string(previous().loc.view()),
                                 previous().loc,
                             });
@@ -809,30 +808,30 @@ Ast NssParser::parse_program()
                         throw parser_error("Expected identifier");
                     }
                     value = std::string(advance().loc.view());
-                    p.defines.push_back({name, value});
+                    ast_.defines.push_back({name, value});
                 }
             } else if (match({NssTokenType::COMMENT})) {
                 continue;
             } else {
-                p.decls.emplace_back(parse_decl_external());
+                ast_.decls.emplace_back(parse_decl_external());
             }
         } catch (const parser_error& err) {
             synchronize();
             return {};
         }
     }
-    return p;
+    return std::move(ast_);
 }
 
 // const? TYPE IDENTIFIER (= primary )? ;
 // const? TYPE IDENTIFIER(PARAMETER*);
 // const? TYPE IDENTIFIER(PARAMETER*) block
 // struct IDENTIFIER { declaration+ }
-std::unique_ptr<Statement> NssParser::parse_decl_external()
+Statement* NssParser::parse_decl_external()
 {
     if (match({NssTokenType::SEMICOLON})) {
         diagnostic("spurious ';'", previous(), true);
-        return std::make_unique<EmptyStatement>();
+        return ast_.create_node<EmptyStatement>();
     }
 
     Type t = parse_type();
@@ -855,7 +854,7 @@ std::unique_ptr<Statement> NssParser::parse_decl_external()
         || lookahead(0).type == NssTokenType::SEMICOLON
         || lookahead(0).type == NssTokenType::COMMA) {
         auto gvd = parse_decl_global_var();
-        if (auto ds = dynamic_cast<DeclStatement*>(gvd.get())) {
+        if (auto ds = dynamic_cast<DeclStatement*>(gvd)) {
             for (auto& d : ds->decls) {
                 d->type = t;
                 if (t.type_qualifier.type == NssTokenType::INVALID) {
@@ -868,7 +867,7 @@ std::unique_ptr<Statement> NssParser::parse_decl_external()
                     d->identifier.loc.position.column + d->identifier.loc.length()};
             }
         } else {
-            auto vd = static_cast<VarDecl*>(gvd.get());
+            auto vd = static_cast<VarDecl*>(gvd);
             vd->type = t;
             // Note range end is already determined
             if (t.type_qualifier.type == NssTokenType::INVALID) {
@@ -885,12 +884,12 @@ std::unique_ptr<Statement> NssParser::parse_decl_external()
 
     if (lookahead(0).type == NssTokenType::LPAREN) {
         auto fd = parse_decl_function_def();
-        if (auto decl = dynamic_cast<FunctionDecl*>(fd.get())) {
+        if (auto decl = dynamic_cast<FunctionDecl*>(fd)) {
             decl->type = t;
             decl->range_selection_.start = decl->identifier.loc.position;
             decl->range_selection_.end = SourcePosition{decl->identifier.loc.position.line,
                 decl->identifier.loc.position.column + decl->identifier.loc.length()};
-        } else if (auto def = dynamic_cast<FunctionDefinition*>(fd.get())) {
+        } else if (auto def = dynamic_cast<FunctionDefinition*>(fd)) {
             def->decl_inline->type = t;
             def->range_selection_.start = def->decl_inline->identifier.loc.position;
             def->range_selection_.end = SourcePosition{def->decl_inline->identifier.loc.position.line,
@@ -910,9 +909,9 @@ std::unique_ptr<Statement> NssParser::parse_decl_external()
     throw parser_error("Expected function definition/declaration, struct declaration, or variable declaration");
 }
 
-std::unique_ptr<VarDecl> NssParser::parse_decl_param()
+VarDecl* NssParser::parse_decl_param()
 {
-    auto vd = std::make_unique<VarDecl>();
+    auto vd = ast_.create_node<VarDecl>();
 
     Type t = parse_type();
     vd->type = t;
@@ -924,9 +923,9 @@ std::unique_ptr<VarDecl> NssParser::parse_decl_param()
     return vd;
 }
 
-std::unique_ptr<FunctionDecl> NssParser::parse_decl_function()
+FunctionDecl* NssParser::parse_decl_function()
 {
-    auto fd = std::make_unique<FunctionDecl>();
+    auto fd = ast_.create_node<FunctionDecl>();
     consume(NssTokenType::IDENTIFIER, "Expected 'IDENTIFIER'.");
     fd->identifier = previous();
     consume(NssTokenType::LPAREN, "Expected '('.");
@@ -938,14 +937,14 @@ std::unique_ptr<FunctionDecl> NssParser::parse_decl_function()
     return fd;
 }
 
-std::unique_ptr<Declaration> NssParser::parse_decl_function_def()
+Declaration* NssParser::parse_decl_function_def()
 {
     auto decl = parse_decl_function();
     if (match({NssTokenType::SEMICOLON})) {
         decl->range_.end = previous().loc.position;
         return decl;
     }
-    auto def = std::make_unique<FunctionDefinition>();
+    auto def = ast_.create_node<FunctionDefinition>();
     def->decl_inline = std::move(decl);
     consume(NssTokenType::LBRACE, "Expected '{'.");
     def->block = parse_stmt_block();
@@ -953,11 +952,11 @@ std::unique_ptr<Declaration> NssParser::parse_decl_function_def()
     return def;
 }
 
-std::unique_ptr<Statement> NssParser::parse_decl_global_var()
+Statement* NssParser::parse_decl_global_var()
 {
-    auto decls = std::make_unique<DeclStatement>();
+    auto decls = ast_.create_node<DeclStatement>();
     while (true) {
-        auto ret = std::make_unique<VarDecl>();
+        auto ret = ast_.create_node<VarDecl>();
         consume(NssTokenType::IDENTIFIER, "Expected 'IDENTIFIER'.");
         ret->identifier = previous();
         if (match({NssTokenType::EQ})) {

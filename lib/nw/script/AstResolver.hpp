@@ -217,7 +217,7 @@ struct AstResolver : BaseVisitor {
         begin_scope(true);
         for (const auto& decl : script->decls) {
             decl->accept(this);
-            if (auto d = dynamic_cast<VarDecl*>(decl.get())) {
+            if (auto d = dynamic_cast<VarDecl*>(decl)) {
                 d->is_const_ = true; // All top level var decls are constant.  Probably wrong??
             }
         }
@@ -274,15 +274,15 @@ struct AstResolver : BaseVisitor {
                 } else if (decl->params[i]->init && def->params[i]->init) {
                     // [TODO] Probably need to have some sort of constant folding or tree walking interpreter
                     // to ensure the values of initializers are the same.
-                    auto lit1 = dynamic_cast<LiteralExpression*>(decl->params[i]->init.get());
-                    auto lit2 = dynamic_cast<LiteralExpression*>(def->params[i]->init.get());
+                    auto lit1 = dynamic_cast<LiteralExpression*>(decl->params[i]->init);
+                    auto lit2 = dynamic_cast<LiteralExpression*>(def->params[i]->init);
                     if (lit1 && lit2 && lit1->data != lit2->data) {
                         reason = "mismatch parameter initializers";
                         mismatch = true;
                         loc = decl->params[i]->identifier.loc;
                     } else {
-                        auto vlit1 = dynamic_cast<LiteralVectorExpression*>(decl->params[i]->init.get());
-                        auto vlit2 = dynamic_cast<LiteralVectorExpression*>(def->params[i]->init.get());
+                        auto vlit1 = dynamic_cast<LiteralVectorExpression*>(decl->params[i]->init);
+                        auto vlit2 = dynamic_cast<LiteralVectorExpression*>(def->params[i]->init);
                         if (vlit1 && vlit2 && vlit1->data != vlit2->data) {
                             reason = "mismatch parameter initializers";
                             mismatch = true;
@@ -304,7 +304,7 @@ struct AstResolver : BaseVisitor {
         bool has_returned = false;
         if (auto block = dynamic_cast<const BlockStatement*>(node)) {
             for (const auto& decl : block->nodes) {
-                if (all_control_flow_paths_return(decl.get())) {
+                if (all_control_flow_paths_return(decl)) {
                     return true;
                 }
             }
@@ -315,8 +315,8 @@ struct AstResolver : BaseVisitor {
         } else if (auto ifs = dynamic_cast<const IfStatement*>(node)) {
             // Both if and else must be present and both
             if (ifs->if_branch && ifs->else_branch
-                && all_control_flow_paths_return(ifs->if_branch.get())
-                && all_control_flow_paths_return(ifs->else_branch.get())) {
+                && all_control_flow_paths_return(ifs->if_branch)
+                && all_control_flow_paths_return(ifs->else_branch)) {
                 return true;
             }
         } else if (auto ifs = dynamic_cast<const SwitchStatement*>(node)) {
@@ -353,7 +353,7 @@ struct AstResolver : BaseVisitor {
         end_scope();
 
         if (auto d = dynamic_cast<FunctionDefinition*>(fd)) {
-            match_function_decls(decl, d->decl_inline.get());
+            match_function_decls(decl, d->decl_inline);
         }
     }
 
@@ -380,10 +380,10 @@ struct AstResolver : BaseVisitor {
             }
         }
 
-        match_function_decls(decl->decl_external, decl->decl_inline.get());
+        match_function_decls(decl->decl_external, decl->decl_inline);
 
         decl->block->accept(this);
-        if (decl->type_id_ != ctx_->type_id("void") && !all_control_flow_paths_return(decl->block.get())) {
+        if (decl->type_id_ != ctx_->type_id("void") && !all_control_flow_paths_return(decl->block)) {
             ctx_->semantic_diagnostic(parent_, "not all control flow paths return",
                 false,
                 decl->decl_inline->identifier.loc);
@@ -491,7 +491,7 @@ struct AstResolver : BaseVisitor {
     {
         expr->env = env_stack_.back();
 
-        auto ve = dynamic_cast<VariableExpression*>(expr->expr.get());
+        auto ve = dynamic_cast<VariableExpression*>(expr->expr);
         if (!ve) {
             // Parser already handles this case
             ctx_->semantic_diagnostic(parent_, "call expressions identifier is not variable expression",
@@ -506,7 +506,7 @@ struct AstResolver : BaseVisitor {
         if (auto fd = dynamic_cast<FunctionDecl*>(decl)) {
             func_decl = fd;
         } else if (auto fd = dynamic_cast<FunctionDefinition*>(decl)) {
-            func_decl = fd->decl_inline.get();
+            func_decl = fd->decl_inline;
             orig_decl = fd->decl_external;
         } else {
             ctx_->semantic_diagnostic(parent_,
@@ -540,7 +540,7 @@ struct AstResolver : BaseVisitor {
                 && expr->args[i]->type_id_ == ctx_->type_id("int")) {
                 // This is fine
             } else if (func_decl->params[i]->type_id_ == ctx_->type_id("action")
-                && dynamic_cast<CallExpression*>(expr->args[i].get())) {
+                && dynamic_cast<CallExpression*>(expr->args[i])) {
                 // This is fine
             } else if (func_decl->params[i]->type_id_ != expr->args[i]->type_id_) {
                 ctx_->semantic_diagnostic(parent_,
@@ -618,7 +618,7 @@ struct AstResolver : BaseVisitor {
             return false;
         };
 
-        auto ex_rhs = dynamic_cast<VariableExpression*>(expr->rhs.get());
+        auto ex_rhs = dynamic_cast<VariableExpression*>(expr->rhs);
         if (!ex_rhs) {
             ctx_->semantic_diagnostic(parent_,
                 "struct member must be a variable expression",
@@ -629,11 +629,11 @@ struct AstResolver : BaseVisitor {
 
         StructDecl* struct_decl = nullptr;
         std::string_view struct_type;
-        if (auto de = dynamic_cast<DotExpression*>(expr->lhs.get())) {
+        if (auto de = dynamic_cast<DotExpression*>(expr->lhs)) {
             expr->lhs->accept(this);
             struct_type = ctx_->type_name(expr->lhs->type_id_);
             struct_decl = struct_decl = dynamic_cast<StructDecl*>(resolve(struct_type, expr->dot.loc, true));
-        } else if (auto ve = dynamic_cast<VariableExpression*>(expr->lhs.get())) {
+        } else if (auto ve = dynamic_cast<VariableExpression*>(expr->lhs)) {
             ve->accept(this);
 
             // special case vector lookup here for now

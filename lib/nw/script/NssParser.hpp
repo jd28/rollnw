@@ -27,6 +27,7 @@ struct NssParser {
     Nss* parent_ = nullptr;
     std::string_view view_;
     NssLexer lexer_;
+    Ast ast_;
 
     std::vector<NssToken> tokens;
     size_t current_ = 0;
@@ -83,42 +84,42 @@ struct NssParser {
 
     // Expression functions are basically listed from lowest precedence
     // to highest
-    std::unique_ptr<Expression> parse_expr();
-    std::unique_ptr<Expression> parse_expr_assign();
-    std::unique_ptr<Expression> parse_expr_conditional();
-    std::unique_ptr<Expression> parse_expr_or();
-    std::unique_ptr<Expression> parse_expr_and();
-    std::unique_ptr<Expression> parse_expr_bitwise();
-    std::unique_ptr<Expression> parse_expr_equality();
-    std::unique_ptr<Expression> parse_expr_relational();
-    std::unique_ptr<Expression> parse_expr_shift();
-    std::unique_ptr<Expression> parse_expr_additive();
-    std::unique_ptr<Expression> parse_expr_multiplicative();
-    std::unique_ptr<Expression> parse_expr_unary();
-    std::unique_ptr<Expression> parse_expr_postfix();
-    std::unique_ptr<Expression> parse_expr_primary();
-    std::unique_ptr<Expression> parse_expr_group();
+    Expression* parse_expr();
+    Expression* parse_expr_assign();
+    Expression* parse_expr_conditional();
+    Expression* parse_expr_or();
+    Expression* parse_expr_and();
+    Expression* parse_expr_bitwise();
+    Expression* parse_expr_equality();
+    Expression* parse_expr_relational();
+    Expression* parse_expr_shift();
+    Expression* parse_expr_additive();
+    Expression* parse_expr_multiplicative();
+    Expression* parse_expr_unary();
+    Expression* parse_expr_postfix();
+    Expression* parse_expr_primary();
+    Expression* parse_expr_group();
 
-    std::unique_ptr<Statement> parse_stmt();
-    std::unique_ptr<BlockStatement> parse_stmt_block();
-    std::unique_ptr<DoStatement> parse_stmt_do();
-    std::unique_ptr<ExprStatement> parse_stmt_expr();
-    std::unique_ptr<IfStatement> parse_stmt_if();
-    std::unique_ptr<ForStatement> parse_stmt_for();
-    std::unique_ptr<LabelStatement> parse_stmt_label();
-    std::unique_ptr<JumpStatement> parse_stmt_jump();
-    std::unique_ptr<SwitchStatement> parse_stmt_switch();
-    std::unique_ptr<WhileStatement> parse_stmt_while();
+    Statement* parse_stmt();
+    BlockStatement* parse_stmt_block();
+    DoStatement* parse_stmt_do();
+    ExprStatement* parse_stmt_expr();
+    IfStatement* parse_stmt_if();
+    ForStatement* parse_stmt_for();
+    LabelStatement* parse_stmt_label();
+    JumpStatement* parse_stmt_jump();
+    SwitchStatement* parse_stmt_switch();
+    WhileStatement* parse_stmt_while();
 
     Type parse_type();
-    std::unique_ptr<Statement> parse_decl();
-    std::unique_ptr<Statement> parse_decl_external();
-    std::unique_ptr<VarDecl> parse_decl_param();
-    std::unique_ptr<StructDecl> parse_decl_struct();
-    std::unique_ptr<VarDecl> parse_decl_struct_member();
-    std::unique_ptr<FunctionDecl> parse_decl_function();
-    std::unique_ptr<Declaration> parse_decl_function_def();
-    std::unique_ptr<Statement> parse_decl_global_var();
+    Statement* parse_decl();
+    Statement* parse_decl_external();
+    VarDecl* parse_decl_param();
+    StructDecl* parse_decl_struct();
+    VarDecl* parse_decl_struct_member();
+    FunctionDecl* parse_decl_function();
+    Declaration* parse_decl_function_def();
+    Statement* parse_decl_global_var();
 
     /// Parses script
     Ast parse_program();

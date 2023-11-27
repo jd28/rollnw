@@ -201,6 +201,7 @@ void init_script(py::module& nw)
         .def("parse", &nws::Nss::parse)
         .def("process_includes", &nws::Nss::process_includes, py::arg("parent") = nullptr)
         .def("resolve", &nws::Nss::resolve)
+        .def("set_name", &nw::script::Nss::set_name)
         .def("type_name", [](const nws::Nss& self, const nws::AstNode* node) {
             if (!node) { return ""sv; }
             return self.ctx() ? self.ctx()->type_name(node->type_id_) : ""sv;
@@ -221,7 +222,7 @@ void init_script(py::module& nw)
     py::class_<nws::Ast>(nw, "Ast")
         .def(
             "__getitem__", [](const nws::Ast& self, size_t index) {
-                return self.decls[index].get();
+                return self.decls[index];
             },
             py::return_value_policy::reference_internal)
         .def("__len__", [](const nws::Ast& self) { return self.decls.size(); })
@@ -253,52 +254,52 @@ void init_script(py::module& nw)
     py::class_<nws::AssignExpression, nws::Expression>(nw, "AssignExpression")
         .def_readonly("operator", &nws::AssignExpression::op)
         .def_property_readonly(
-            "lhs", [](nws::AssignExpression& self) { return self.lhs.get(); },
+            "lhs", [](nws::AssignExpression& self) { return self.lhs; },
             py::return_value_policy::reference_internal)
         .def_property_readonly(
-            "rhs", [](nws::AssignExpression& self) { return self.rhs.get(); },
+            "rhs", [](nws::AssignExpression& self) { return self.rhs; },
             py::return_value_policy::reference_internal);
 
     py::class_<nws::BinaryExpression, nws::Expression>(nw, "BinaryExpression")
         .def_readonly("operator", &nws::BinaryExpression::op)
         .def_property_readonly(
-            "lhs", [](nws::BinaryExpression& self) { return self.lhs.get(); },
+            "lhs", [](nws::BinaryExpression& self) { return self.lhs; },
             py::return_value_policy::reference_internal)
         .def_property_readonly(
-            "rhs", [](nws::BinaryExpression& self) { return self.rhs.get(); },
+            "rhs", [](nws::BinaryExpression& self) { return self.rhs; },
             py::return_value_policy::reference_internal);
 
     py::class_<nws::CallExpression, nws::Expression>(nw, "CallExpression")
         .def_property_readonly(
-            "expr", [](nws::CallExpression& expr) { return expr.expr.get(); },
+            "expr", [](nws::CallExpression& expr) { return expr.expr; },
             py::return_value_policy::reference_internal)
         .def("__len__", [](nws::CallExpression& self) { return self.args.size(); })
         .def(
-            "__getitem__", [](nws::CallExpression& self, size_t idx) { return self.args[idx].get(); },
+            "__getitem__", [](nws::CallExpression& self, size_t idx) { return self.args[idx]; },
             py::return_value_policy::reference_internal);
 
     py::class_<nws::ConditionalExpression, nws::Expression>(nw, "ConditionalExpression")
         .def_property_readonly(
-            "test", [](nws::ConditionalExpression& self) { return self.test.get(); },
+            "test", [](nws::ConditionalExpression& self) { return self.test; },
             py::return_value_policy::reference_internal)
         .def_property_readonly(
-            "true_branch", [](nws::ConditionalExpression& self) { return self.true_branch.get(); },
+            "true_branch", [](nws::ConditionalExpression& self) { return self.true_branch; },
             py::return_value_policy::reference_internal)
         .def_property_readonly(
-            "false_branch", [](nws::ConditionalExpression& self) { return self.false_branch.get(); },
+            "false_branch", [](nws::ConditionalExpression& self) { return self.false_branch; },
             py::return_value_policy::reference_internal);
 
     py::class_<nws::DotExpression, nws::Expression>(nw, "DotExpression")
         .def_property_readonly(
-            "lhs", [](nws::DotExpression& self) { return self.lhs.get(); },
+            "lhs", [](nws::DotExpression& self) { return self.lhs; },
             py::return_value_policy::reference_internal)
         .def_property_readonly(
-            "rhs", [](nws::DotExpression& self) { return self.rhs.get(); },
+            "rhs", [](nws::DotExpression& self) { return self.rhs; },
             py::return_value_policy::reference_internal);
 
     py::class_<nws::GroupingExpression, nws::Expression>(nw, "GroupingExpression")
         .def_property_readonly(
-            "expr", [](nws::GroupingExpression& self) { return self.expr.get(); },
+            "expr", [](nws::GroupingExpression& self) { return self.expr; },
             py::return_value_policy::reference_internal);
 
     py::class_<nws::LiteralExpression, nws::Expression>(nw, "LiteralExpression")
@@ -312,22 +313,22 @@ void init_script(py::module& nw)
     py::class_<nws::LogicalExpression, nws::Expression>(nw, "LogicalExpression")
         .def_readonly("operator", &nws::LogicalExpression::op)
         .def_property_readonly(
-            "lhs", [](nws::LogicalExpression& self) { return self.lhs.get(); },
+            "lhs", [](nws::LogicalExpression& self) { return self.lhs; },
             py::return_value_policy::reference_internal)
         .def_property_readonly(
-            "rhs", [](nws::LogicalExpression& self) { return self.rhs.get(); },
+            "rhs", [](nws::LogicalExpression& self) { return self.rhs; },
             py::return_value_policy::reference_internal);
 
     py::class_<nws::PostfixExpression, nws::Expression>(nw, "PostfixExpression")
         .def_readonly("operator", &nws::PostfixExpression::op)
         .def_property_readonly(
-            "lhs", [](nws::PostfixExpression& self) { return self.lhs.get(); },
+            "lhs", [](nws::PostfixExpression& self) { return self.lhs; },
             py::return_value_policy::reference_internal);
 
     py::class_<nws::UnaryExpression, nws::Expression>(nw, "UnaryExpression")
         .def_readonly("operator", &nws::UnaryExpression::op)
         .def_property_readonly(
-            "rhs", [](nws::UnaryExpression& self) { return self.rhs.get(); },
+            "rhs", [](nws::UnaryExpression& self) { return self.rhs; },
             py::return_value_policy::reference_internal);
 
     py::class_<nws::VariableExpression, nws::Expression>(nw, "VariableExpression")
@@ -338,81 +339,81 @@ void init_script(py::module& nw)
     py::class_<nws::BlockStatement, nws::Statement>(nw, "BlockStatement")
         .def("__len__", [](nws::BlockStatement& self) { return self.nodes.size(); })
         .def(
-            "__getitem__", [](nws::BlockStatement& self, size_t idx) { return self.nodes[idx].get(); },
+            "__getitem__", [](nws::BlockStatement& self, size_t idx) { return self.nodes[idx]; },
             py::return_value_policy::reference_internal);
 
     py::class_<nws::DeclStatement, nws::Statement>(nw, "DeclStatement")
         .def("__len__", [](nws::DeclStatement& self) { return self.decls.size(); })
         .def(
-            "__getitem__", [](nws::DeclStatement& self, size_t idx) { return self.decls[idx].get(); },
+            "__getitem__", [](nws::DeclStatement& self, size_t idx) { return self.decls[idx]; },
             py::return_value_policy::reference_internal);
 
     py::class_<nws::DoStatement, nws::Statement>(nw, "DoStatement")
         .def_property_readonly(
-            "block", [](nws::DoStatement& self) { return self.block.get(); },
+            "block", [](nws::DoStatement& self) { return self.block; },
             py::return_value_policy::reference_internal)
         .def_property_readonly(
-            "test", [](nws::DoStatement& self) { return self.expr.get(); },
+            "test", [](nws::DoStatement& self) { return self.expr; },
             py::return_value_policy::reference_internal);
 
     py::class_<nws::EmptyStatement, nws::Statement>(nw, "EmptyStatement");
 
     py::class_<nws::ExprStatement, nws::Statement>(nw, "ExprStatement")
         .def_property_readonly(
-            "expr", [](nws::LabelStatement& self) { return self.expr.get(); },
+            "expr", [](nws::LabelStatement& self) { return self.expr; },
             py::return_value_policy::reference_internal);
 
     py::class_<nws::IfStatement, nws::Statement>(nw, "IfStatement")
         .def_property_readonly(
-            "test", [](nws::IfStatement& self) { return self.expr.get(); },
+            "test", [](nws::IfStatement& self) { return self.expr; },
             py::return_value_policy::reference_internal)
         .def_property_readonly(
-            "true_branch", [](nws::IfStatement& self) { return self.if_branch.get(); },
+            "true_branch", [](nws::IfStatement& self) { return self.if_branch; },
             py::return_value_policy::reference_internal)
         .def_property_readonly(
-            "false_branch", [](nws::IfStatement& self) { return self.else_branch.get(); },
+            "false_branch", [](nws::IfStatement& self) { return self.else_branch; },
             py::return_value_policy::reference_internal);
 
     py::class_<nws::ForStatement, nws::Statement>(nw, "ForStatement")
         .def_property_readonly(
-            "init", [](nws::ForStatement& self) { return self.init.get(); },
+            "init", [](nws::ForStatement& self) { return self.init; },
             py::return_value_policy::reference_internal)
         .def_property_readonly(
-            "test", [](nws::ForStatement& self) { return self.check.get(); },
+            "test", [](nws::ForStatement& self) { return self.check; },
             py::return_value_policy::reference_internal)
         .def_property_readonly(
-            "increment", [](nws::ForStatement& self) { return self.inc.get(); },
+            "increment", [](nws::ForStatement& self) { return self.inc; },
             py::return_value_policy::reference_internal)
         .def_property_readonly(
-            "block", [](nws::ForStatement& self) { return self.block.get(); },
+            "block", [](nws::ForStatement& self) { return self.block; },
             py::return_value_policy::reference_internal);
 
     py::class_<nws::JumpStatement, nws::Statement>(nw, "JumpStatement")
         .def_readonly("operator", &nws::JumpStatement::op)
         .def_property_readonly(
-            "expr", [](nws::JumpStatement& self) { return self.expr.get(); },
+            "expr", [](nws::JumpStatement& self) { return self.expr; },
             py::return_value_policy::reference_internal);
 
     py::class_<nws::LabelStatement, nws::Statement>(nw, "LabelStatement")
         .def_readonly("label", &nws::LabelStatement::type)
         .def_property_readonly(
-            "expr", [](nws::LabelStatement& self) { return self.expr.get(); },
+            "expr", [](nws::LabelStatement& self) { return self.expr; },
             py::return_value_policy::reference_internal);
 
     py::class_<nws::SwitchStatement, nws::Statement>(nw, "SwitchStatement")
         .def_property_readonly(
-            "block", [](nws::SwitchStatement& self) { return self.block.get(); },
+            "block", [](nws::SwitchStatement& self) { return self.block; },
             py::return_value_policy::reference_internal)
         .def_property_readonly(
-            "target", [](nws::SwitchStatement& self) { return self.target.get(); },
+            "target", [](nws::SwitchStatement& self) { return self.target; },
             py::return_value_policy::reference_internal);
 
     py::class_<nws::WhileStatement, nws::Statement>(nw, "WhileStatement")
         .def_property_readonly(
-            "block", [](nws::WhileStatement& self) { return self.block.get(); },
+            "block", [](nws::WhileStatement& self) { return self.block; },
             py::return_value_policy::reference_internal)
         .def_property_readonly(
-            "test", [](nws::WhileStatement& self) { return self.check.get(); },
+            "test", [](nws::WhileStatement& self) { return self.check; },
             py::return_value_policy::reference_internal);
 
     py::class_<nws::Declaration, nws::Statement>(nw, "Declaration")
@@ -425,28 +426,28 @@ void init_script(py::module& nw)
             "Gets the declarations identifier")
         .def("__len__", [](nws::FunctionDecl& self) { return self.params.size(); })
         .def(
-            "__getitem__", [](nws::FunctionDecl& self, size_t idx) { return self.params[idx].get(); },
+            "__getitem__", [](nws::FunctionDecl& self, size_t idx) { return self.params[idx]; },
             py::return_value_policy::reference_internal);
 
     py::class_<nws::FunctionDefinition, nws::Declaration>(nw, "FunctionDefinition")
         .def_property_readonly(
-            "decl", [](nws::FunctionDefinition& self) { return self.decl_inline.get(); },
+            "decl", [](nws::FunctionDefinition& self) { return self.decl_inline; },
             py::return_value_policy::reference_internal)
         .def_property_readonly(
-            "block", [](nws::FunctionDefinition& self) { return self.block.get(); },
+            "block", [](nws::FunctionDefinition& self) { return self.block; },
             py::return_value_policy::reference_internal);
 
     py::class_<nws::StructDecl, nws::Declaration>(nw, "StructDecl")
         .def("__len__", [](nws::StructDecl& self) { return self.decls.size(); })
         .def(
-            "__getitem__", [](nws::StructDecl& self, size_t idx) { return self.decls[idx].get(); },
+            "__getitem__", [](nws::StructDecl& self, size_t idx) { return self.decls[idx]; },
             py::return_value_policy::reference_internal);
 
     py::class_<nws::VarDecl, nws::Declaration>(nw, "VarDecl")
         .def_readonly("identifier", &nws::VarDecl::identifier,
             "Gets the declarations identifier")
         .def_property_readonly(
-            "init", [](nws::VarDecl& self) { return self.init.get(); },
+            "init", [](nws::VarDecl& self) { return self.init; },
             py::return_value_policy::reference_internal);
 
     nw.def(

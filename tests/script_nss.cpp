@@ -101,7 +101,7 @@ TEST(Nss, Variables)
     script::Nss nss1("int a = 3, b, c = 1;"sv, ctx.get());
     nss1.parse();
     const script::Ast& s1 = nss1.ast();
-    auto decl1 = dynamic_cast<script::DeclStatement*>(s1.decls[0].get());
+    auto decl1 = dynamic_cast<script::DeclStatement*>(s1.decls[0]);
     EXPECT_TRUE(decl1);
     EXPECT_EQ(decl1->decls.size(), 3);
 
@@ -156,7 +156,7 @@ TEST(Nss, FunctionDecl)
     EXPECT_EQ(nss.errors(), 0);
     const script::Ast& s = nss.ast();
     EXPECT_TRUE(s.decls.size() > 0);
-    auto fd = dynamic_cast<script::FunctionDecl*>(s.decls[0].get());
+    auto fd = dynamic_cast<script::FunctionDecl*>(s.decls[0]);
     EXPECT_TRUE(fd);
     if (fd) {
         EXPECT_EQ(fd->type.type_specifier.loc.view(), "void");
@@ -169,7 +169,7 @@ TEST(Nss, FunctionDecl)
     EXPECT_EQ(nss2.errors(), 0);
     const script::Ast& s2 = nss2.ast();
     EXPECT_TRUE(s2.decls.size() > 0);
-    auto fd2 = dynamic_cast<script::FunctionDefinition*>(s2.decls[0].get());
+    auto fd2 = dynamic_cast<script::FunctionDefinition*>(s2.decls[0]);
     EXPECT_TRUE(fd2);
     if (fd2) {
         EXPECT_TRUE(fd2->decl_inline);
@@ -186,7 +186,7 @@ TEST(Nss, FunctionDecl)
     EXPECT_EQ(nss4.errors(), 0);
     const script::Ast& s4 = nss4.ast();
     EXPECT_GT(s4.decls.size(), 0);
-    auto fd4 = dynamic_cast<script::FunctionDefinition*>(s4.decls[0].get());
+    auto fd4 = dynamic_cast<script::FunctionDefinition*>(s4.decls[0]);
     if (fd4) {
         EXPECT_TRUE(fd4);
         EXPECT_TRUE(fd4->decl_inline);
@@ -657,11 +657,11 @@ TEST(Nss, Literals)
     script::Nss nss9("int test(int x = -1, float y = -1.0f, int z = ~0x10, int x = !1);"sv, ctx.get());
     EXPECT_NO_THROW(nss9.parse());
     EXPECT_EQ(nss9.errors(), 0);
-    auto fd = dynamic_cast<script::FunctionDecl*>(nss9.ast().decls[0].get());
+    auto fd = dynamic_cast<script::FunctionDecl*>(nss9.ast().decls[0]);
     EXPECT_NE(fd, nullptr);
     if (fd) {
         for (const auto& p : fd->params) {
-            EXPECT_TRUE(dynamic_cast<script::LiteralExpression*>(p->init.get()));
+            EXPECT_TRUE(dynamic_cast<script::LiteralExpression*>(p->init));
         }
     }
 }

@@ -118,16 +118,16 @@ struct Expression : public AstNode {
 };
 
 struct AssignExpression : Expression {
-    AssignExpression(std::unique_ptr<Expression> lhs_, NssToken token, std::unique_ptr<Expression> rhs_)
-        : lhs{std::move(lhs_)}
+    AssignExpression(Expression* lhs_, NssToken token, Expression* rhs_)
+        : lhs{lhs_}
         , op{token}
-        , rhs{std::move(rhs_)}
+        , rhs{rhs_}
     {
     }
 
-    std::unique_ptr<Expression> lhs;
+    Expression* lhs = nullptr;
     NssToken op;
-    std::unique_ptr<Expression> rhs;
+    Expression* rhs = nullptr;
 
     virtual SourceLocation extent() const override
     {
@@ -139,18 +139,18 @@ struct AssignExpression : Expression {
 
 struct BinaryExpression : Expression {
     BinaryExpression(
-        std::unique_ptr<Expression> lhs_,
+        Expression* lhs_,
         NssToken token,
-        std::unique_ptr<Expression> rhs_)
-        : lhs{std::move(lhs_)}
+        Expression* rhs_)
+        : lhs{lhs_}
         , op{token}
-        , rhs{std::move(rhs_)}
+        , rhs{rhs_}
     {
     }
 
-    std::unique_ptr<Expression> lhs;
+    Expression* lhs = nullptr;
     NssToken op;
-    std::unique_ptr<Expression> rhs;
+    Expression* rhs = nullptr;
 
     virtual SourceLocation extent() const override
     {
@@ -161,13 +161,13 @@ struct BinaryExpression : Expression {
 };
 
 struct CallExpression : Expression {
-    explicit CallExpression(std::unique_ptr<Expression> expr_)
-        : expr{std::move(expr_)}
+    explicit CallExpression(Expression* expr_)
+        : expr{expr_}
     {
     }
 
-    std::unique_ptr<Expression> expr;
-    std::vector<std::unique_ptr<Expression>> args;
+    Expression* expr = nullptr;
+    std::vector<Expression*> args;
 
     virtual SourceLocation extent() const override { return expr->extent(); };
 
@@ -176,18 +176,18 @@ struct CallExpression : Expression {
 
 struct ComparisonExpression : Expression {
     ComparisonExpression(
-        std::unique_ptr<Expression> lhs_,
+        Expression* lhs_,
         NssToken token,
-        std::unique_ptr<Expression> rhs_)
-        : lhs{std::move(lhs_)}
+        Expression* rhs_)
+        : lhs{lhs_}
         , op{token}
-        , rhs{std::move(rhs_)}
+        , rhs{rhs_}
     {
     }
 
-    std::unique_ptr<Expression> lhs;
+    Expression* lhs = nullptr;
     NssToken op;
-    std::unique_ptr<Expression> rhs;
+    Expression* rhs = nullptr;
 
     virtual SourceLocation extent() const override
     {
@@ -199,18 +199,18 @@ struct ComparisonExpression : Expression {
 
 struct ConditionalExpression : Expression {
     ConditionalExpression(
-        std::unique_ptr<Expression> expr_,
-        std::unique_ptr<Expression> true_branch_,
-        std::unique_ptr<Expression> false_branch_)
-        : test{std::move(expr_)}
-        , true_branch{std::move(true_branch_)}
-        , false_branch{std::move(false_branch_)}
+        Expression* expr_,
+        Expression* true_branch_,
+        Expression* false_branch_)
+        : test{expr_}
+        , true_branch{true_branch_}
+        , false_branch{false_branch_}
     {
     }
 
-    std::unique_ptr<Expression> test;
-    std::unique_ptr<Expression> true_branch;
-    std::unique_ptr<Expression> false_branch;
+    Expression* test = nullptr;
+    Expression* true_branch = nullptr;
+    Expression* false_branch = nullptr;
 
     virtual SourceLocation extent() const override
     {
@@ -222,18 +222,18 @@ struct ConditionalExpression : Expression {
 
 struct DotExpression : Expression {
     DotExpression(
-        std::unique_ptr<Expression> lhs_,
+        Expression* lhs_,
         NssToken token,
-        std::unique_ptr<Expression> rhs_)
-        : lhs{std::move(lhs_)}
+        Expression* rhs_)
+        : lhs{lhs_}
         , dot{token}
-        , rhs{std::move(rhs_)}
+        , rhs{rhs_}
     {
     }
 
-    std::unique_ptr<Expression> lhs;
+    Expression* lhs = nullptr;
     NssToken dot;
-    std::unique_ptr<Expression> rhs;
+    Expression* rhs = nullptr;
 
     virtual SourceLocation extent() const override { return dot.loc; };
 
@@ -241,12 +241,12 @@ struct DotExpression : Expression {
 };
 
 struct GroupingExpression : Expression {
-    explicit GroupingExpression(std::unique_ptr<Expression> expr_)
-        : expr{std::move(expr_)}
+    explicit GroupingExpression(Expression* expr_)
+        : expr{expr_}
     {
     }
 
-    std::unique_ptr<Expression> expr;
+    Expression* expr = nullptr;
 
     virtual SourceLocation extent() const override { return expr->extent(); };
 
@@ -288,18 +288,18 @@ struct LiteralVectorExpression : Expression {
 
 struct LogicalExpression : Expression {
     LogicalExpression(
-        std::unique_ptr<Expression> lhs_,
+        Expression* lhs_,
         NssToken token,
-        std::unique_ptr<Expression> rhs_)
-        : lhs{std::move(lhs_)}
+        Expression* rhs_)
+        : lhs{lhs_}
         , op{token}
-        , rhs{std::move(rhs_)}
+        , rhs{rhs_}
     {
     }
 
-    std::unique_ptr<Expression> lhs;
+    Expression* lhs = nullptr;
     NssToken op;
-    std::unique_ptr<Expression> rhs;
+    Expression* rhs = nullptr;
 
     virtual SourceLocation extent() const override { return op.loc; };
 
@@ -307,13 +307,13 @@ struct LogicalExpression : Expression {
 };
 
 struct PostfixExpression : Expression {
-    PostfixExpression(std::unique_ptr<Expression> lhs_, NssToken token)
-        : lhs{std::move(lhs_)}
+    PostfixExpression(Expression* lhs_, NssToken token)
+        : lhs{lhs_}
         , op{token}
     {
     }
 
-    std::unique_ptr<Expression> lhs;
+    Expression* lhs = nullptr;
     NssToken op;
 
     virtual SourceLocation extent() const override { return op.loc; };
@@ -322,14 +322,14 @@ struct PostfixExpression : Expression {
 };
 
 struct UnaryExpression : Expression {
-    UnaryExpression(NssToken token, std::unique_ptr<Expression> rhs_)
+    UnaryExpression(NssToken token, Expression* rhs_)
         : op{token}
-        , rhs{std::move(rhs_)}
+        , rhs{rhs_}
     {
     }
 
     NssToken op;
-    std::unique_ptr<Expression> rhs;
+    Expression* rhs = nullptr;
 
     virtual SourceLocation extent() const override { return op.loc; };
 
@@ -360,21 +360,21 @@ struct BlockStatement : public Statement {
     BlockStatement(BlockStatement&) = delete;
     BlockStatement& operator=(const BlockStatement&) = delete;
 
-    std::vector<std::unique_ptr<Statement>> nodes;
+    std::vector<Statement*> nodes;
 
     DEFINE_ACCEPT_VISITOR
 };
 
 /// @brief
 struct DeclStatement : public Statement {
-    std::vector<std::unique_ptr<VarDecl>> decls;
+    std::vector<VarDecl*> decls;
 
     DEFINE_ACCEPT_VISITOR
 };
 
 struct DoStatement : public Statement {
-    std::unique_ptr<BlockStatement> block;
-    std::unique_ptr<Expression> expr;
+    BlockStatement* block = nullptr;
+    Expression* expr = nullptr;
 
     DEFINE_ACCEPT_VISITOR
 };
@@ -384,52 +384,52 @@ struct EmptyStatement : public Statement {
 };
 
 struct ExprStatement : public Statement {
-    std::unique_ptr<Expression> expr;
+    Expression* expr = nullptr;
 
     DEFINE_ACCEPT_VISITOR
 };
 
 struct IfStatement : public Statement {
-    std::unique_ptr<Expression> expr;
-    std::unique_ptr<Statement> if_branch;
-    std::unique_ptr<Statement> else_branch = nullptr;
+    Expression* expr = nullptr;
+    Statement* if_branch = nullptr;
+    Statement* else_branch = nullptr;
 
     DEFINE_ACCEPT_VISITOR
 };
 
 struct ForStatement : public Statement {
-    std::unique_ptr<AstNode> init = nullptr;
-    std::unique_ptr<Expression> check = nullptr;
-    std::unique_ptr<Expression> inc = nullptr;
-    std::unique_ptr<Statement> block = nullptr;
+    AstNode* init = nullptr;
+    Expression* check = nullptr;
+    Expression* inc = nullptr;
+    Statement* block = nullptr;
 
     DEFINE_ACCEPT_VISITOR
 };
 
 struct JumpStatement : public Statement {
     NssToken op;
-    std::unique_ptr<Expression> expr = nullptr;
+    Expression* expr = nullptr;
 
     DEFINE_ACCEPT_VISITOR
 };
 
 struct LabelStatement : public Statement {
     NssToken type;
-    std::unique_ptr<Expression> expr = nullptr;
+    Expression* expr = nullptr;
 
     DEFINE_ACCEPT_VISITOR
 };
 
 struct SwitchStatement : public Statement {
-    std::unique_ptr<Expression> target;
-    std::unique_ptr<Statement> block = nullptr;
+    Expression* target;
+    Statement* block = nullptr;
 
     DEFINE_ACCEPT_VISITOR
 };
 
 struct WhileStatement : public Statement {
-    std::unique_ptr<Expression> check = nullptr;
-    std::unique_ptr<Statement> block = nullptr;
+    Expression* check = nullptr;
+    Statement* block = nullptr;
 
     DEFINE_ACCEPT_VISITOR
 };
@@ -455,28 +455,28 @@ struct FunctionDecl : public Declaration {
     FunctionDecl& operator=(const FunctionDecl&) = delete;
 
     NssToken identifier;
-    std::vector<std::unique_ptr<VarDecl>> params;
+    std::vector<VarDecl*> params;
 
     DEFINE_ACCEPT_VISITOR
 };
 
 struct FunctionDefinition : public Declaration {
-    std::unique_ptr<FunctionDecl> decl_inline;
-    std::unique_ptr<BlockStatement> block;
+    FunctionDecl* decl_inline = nullptr;
+    BlockStatement* block = nullptr;
     FunctionDecl* decl_external = nullptr;
 
     DEFINE_ACCEPT_VISITOR
 };
 
 struct StructDecl : public Declaration {
-    std::vector<std::unique_ptr<VarDecl>> decls;
+    std::vector<VarDecl*> decls;
 
     DEFINE_ACCEPT_VISITOR
 };
 
 struct VarDecl : public Declaration {
     NssToken identifier;
-    std::unique_ptr<Expression> init = nullptr;
+    Expression* init = nullptr;
 
     DEFINE_ACCEPT_VISITOR
 };
@@ -496,9 +496,21 @@ struct Ast {
     Ast& operator=(const Ast&) = delete;
     Ast& operator=(Ast&&) = default;
 
-    std::vector<std::unique_ptr<Statement>> decls;
+    std::vector<Statement*> decls;
     std::vector<Include> includes;
     std::vector<std::pair<std::string, std::string>> defines;
+
+    std::vector<std::unique_ptr<AstNode>> nodes_;
+
+    template <typename T, typename... Args>
+    T* create_node(Args&&... args)
+    {
+        // [NOTE] This is to abstract the ownership and allocation of AST nodes,
+        // such that it could be replaced by say a slab allocator or something else
+        // later.  This is just the most basic way of doing this.
+        nodes_.push_back(std::make_unique<T>(std::forward<Args>(args)...));
+        return static_cast<T*>(nodes_.back().get());
+    }
 
     void accept(BaseVisitor* visitor)
     {
