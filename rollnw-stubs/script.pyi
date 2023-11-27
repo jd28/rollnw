@@ -14,7 +14,7 @@ class SourceRange:
 
 
 class SourceLocation:
-    position: SourcePosition
+    range: SourceRange
 
     def __init__(self, *args, **kwargs) -> None: ...
     def length(self) -> int: ...

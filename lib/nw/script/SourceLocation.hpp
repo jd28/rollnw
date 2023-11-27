@@ -20,7 +20,7 @@ struct SourceRange {
 struct SourceLocation {
     const char* start = nullptr; ///< Pointer to start of source code
     const char* end = nullptr;   ///< Pointer to end of source code
-    SourcePosition position;     ///< Position
+    SourceRange range;           ///< Source range
 
     /// Gets the length of source code covered
     size_t length() const noexcept

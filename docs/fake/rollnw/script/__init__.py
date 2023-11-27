@@ -253,7 +253,7 @@ class SourceLocation:
     """Nss source location
 
     Attributes:
-        position (SourcePosition): Position in source code
+        range (SourceRange): Range in source code
     """
 
     def length(self) -> int:

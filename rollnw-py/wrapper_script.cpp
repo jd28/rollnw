@@ -32,7 +32,7 @@ void init_script(py::module& nw)
     py::class_<nws::SourceLocation>(nw, "SourceLocation")
         .def("length", &nws::SourceLocation::length)
         .def("view", &nws::SourceLocation::view)
-        .def_readonly("position", &nws::SourceLocation::position);
+        .def_readonly("range", &nws::SourceLocation::range);
 
     py::class_<nws::Context>(nw, "Context")
         .def(py::init<>())

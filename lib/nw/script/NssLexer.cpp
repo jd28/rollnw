@@ -154,16 +154,20 @@ inline NssTokenType check_keyword(const NssToken& tk)
 NssToken NssLexer::handle_identifier()
 {
     size_t start = pos_;
+    SourcePosition start_pos{line_, start - last_line_pos_};
+
     while (pos_ < buffer_.size()) {
         if (!std::isalnum(get(pos_)) && get(pos_) != '_') {
             break;
         }
         ++pos_;
     }
-    auto t = NssToken{NssTokenType::IDENTIFIER,
+    auto t = NssToken{
+        NssTokenType::IDENTIFIER,
         {buffer_.data() + start, pos_ - start},
-        line_,
-        start - last_line_pos_};
+        start_pos,
+        SourcePosition{line_, pos_ - last_line_pos_},
+    };
     t.type = check_keyword(t);
     return t;
 }
@@ -171,6 +175,8 @@ NssToken NssLexer::handle_identifier()
 NssToken NssLexer::handle_number()
 {
     size_t start = pos_;
+    SourcePosition start_pos{line_, start - last_line_pos_};
+
     bool is_float = false;
     bool is_hex = get(pos_) == '0' && (get(pos_ + 1) == 'x' || get(pos_ + 1) == 'X');
     if (is_hex) { pos_ += 2; }
@@ -200,19 +206,27 @@ NssToken NssLexer::handle_number()
     }
 
     auto type = is_float ? NssTokenType::FLOAT_CONST : NssTokenType::INTEGER_CONST;
-    return NssToken{type, {buffer_.data() + start, pos_ - start}, line_, start - last_line_pos_};
+    return NssToken{
+        type,
+        {buffer_.data() + start, pos_ - start},
+        start_pos,
+        SourcePosition{line_, pos_ - last_line_pos_},
+    };
 }
 
 NssToken NssLexer::next()
 {
-#define NSS_TOKEN(type, size)                                                            \
-    do {                                                                                 \
-        t = NssToken{NssTokenType::type, {data(), size}, line_, start - last_line_pos_}; \
-        pos_ += size;                                                                    \
+#define NSS_TOKEN(type, size)                                           \
+    do {                                                                \
+        t = NssToken{NssTokenType::type, {data(), size}};               \
+        t.loc.range.start = start_pos;                                  \
+        pos_ += size;                                                   \
+        t.loc.range.end = SourcePosition{line_, pos_ - last_line_pos_}; \
     } while (0)
 
     while (pos_ < buffer_.size()) {
         size_t start = pos_;
+        SourcePosition start_pos{line_, start - last_line_pos_};
         NssToken t;
 
         switch (get(pos_)) {
@@ -222,12 +236,13 @@ NssToken NssLexer::next()
             } else if (std::isdigit(get(pos_))) {
                 t = handle_number();
             } else {
+                SourceLocation loc;
                 ctx_->lexical_diagnostic(parent_, fmt::format("Unrecognized character '{}'", get(pos_)),
-                    true,
-                    {&buffer_[start], buffer_.data() + start + 1,
-                        line_,
-                        start - last_line_pos_});
-
+                    true, {
+                              buffer_.data() + start,
+                              buffer_.data() + start + 1,
+                              {start_pos, SourcePosition{line_, pos_ - last_line_pos_}},
+                          });
                 ++pos_;
                 continue;
             }
@@ -304,15 +319,15 @@ NssToken NssLexer::next()
                 SourceLocation loc;
                 loc.start = &buffer_[start - 1];
                 loc.end = buffer_.data() + start;
-                loc.position.line = line_;
-                loc.position.column = start - 1 - last_line_pos_;
+                loc.range.start = start_pos;
+                loc.range.end = SourcePosition{start_pos.line, start_pos.column + 1};
                 throw lexical_error("Unterminated string", loc);
             }
 
             t = NssToken{NssTokenType::STRING_CONST,
                 {&buffer_[start], pos_ - start},
-                line_,
-                start - last_line_pos_};
+                start_pos,
+                SourcePosition{line_, pos_ + 1 - last_line_pos_}};
             ++pos_;
             break;
 
@@ -465,11 +480,11 @@ NssToken NssLexer::next()
         case '*': // TIMES
             switch (get(pos_ + 1)) {
             case '/': { // Uh oh
-                SourceLocation loc;
-                loc.start = &buffer_[start - 1];
-                loc.end = &buffer_[pos_ + 1];
-                loc.position.line = line_;
-                loc.position.column = start - last_line_pos_;
+                SourceLocation loc{
+                    buffer_.data() + start - 1,
+                    buffer_.data() + pos_ + 1,
+                    {start_pos, SourcePosition{line_, pos_ + 1 - last_line_pos_}},
+                };
                 throw lexical_error("Mismatched block quote", loc);
             } break;
             case '=':
@@ -498,10 +513,12 @@ NssToken NssLexer::next()
                 start = pos_;
                 while (pos_ < buffer_.size()) {
                     if (get(pos_) == '\r' || get(pos_) == '\n') {
-                        t = NssToken{NssTokenType::COMMENT,
-                            {&buffer_[start], pos_ - start},
-                            line_,
-                            start - last_line_pos_};
+                        t = NssToken{
+                            NssTokenType::COMMENT,
+                            {buffer_.data() + start, pos_ - start},
+                            start_pos,
+                            SourcePosition{line_, pos_ - last_line_pos_},
+                        };
                         break;
                     } else {
                         ++pos_;
@@ -519,10 +536,12 @@ NssToken NssLexer::next()
                         ++line_;
                         last_line_pos_ = pos_;
                     } else if (pos_ != start && get(pos_ - 1) == '*' && get(pos_) == '/') {
-                        t = NssToken{NssTokenType::COMMENT,
-                            {&buffer_[start], pos_ - 1 - start},
-                            line_,
-                            start - last_line_pos_};
+                        t = NssToken{
+                            NssTokenType::COMMENT,
+                            {buffer_.data() + start, pos_ - 1 - start},
+                            start_pos,
+                            SourcePosition{line_, pos_ - last_line_pos_},
+                        };
                         ++pos_;
                         matched = true;
                         break;
@@ -533,8 +552,8 @@ NssToken NssLexer::next()
                     SourceLocation loc;
                     loc.start = &buffer_[start - 2];
                     loc.end = buffer_.data() + start;
-                    loc.position.line = start_line;
-                    loc.position.column = start - 2 - original_last_line;
+                    loc.range.start = start_pos;
+                    loc.range.end = SourcePosition{start_pos.line, start_pos.column + 2};
                     throw lexical_error("Unterminated block quote", loc);
                 }
             } break;
@@ -551,10 +570,15 @@ NssToken NssLexer::next()
         if (t.type != NssTokenType::INVALID) {
             return current_ = t;
         } else {
-            return current_ = NssToken{NssTokenType::END, {}, line_, pos_};
+            return current_ = NssToken{NssTokenType::END, {}, {}, {}};
         }
     }
-    return current_ = NssToken{NssTokenType::END, {}, line_, pos_};
+    return current_ = NssToken{
+               NssTokenType::END,
+               {},
+               SourcePosition{line_, pos_ - last_line_pos_},
+               SourcePosition{line_, pos_ - last_line_pos_},
+           };
 }
 
 } // namespace nw::script

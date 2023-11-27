@@ -104,14 +104,20 @@ enum class NssTokenType {
 
 inline SourceLocation merge_source_location(SourceLocation lhs, SourceLocation rhs)
 {
-    return {lhs.start, rhs.end, lhs.position.line, lhs.position.column};
+    return {lhs.start, rhs.end, lhs.range.start, rhs.range.end};
 }
 
 struct NssToken {
     NssToken() = default;
-    NssToken(NssTokenType type_, std::string_view id_, size_t line_, size_t start_)
+    NssToken(NssTokenType type_, std::string_view id_)
         : type{type_}
-        , loc{id_.data(), id_.data() + id_.size(), line_, start_}
+        , loc{id_.data(), id_.data() + id_.size()}
+    {
+    }
+
+    NssToken(NssTokenType type_, std::string_view id_, SourcePosition start, SourcePosition end)
+        : type{type_}
+        , loc{id_.data(), id_.data() + id_.size(), start, end}
     {
     }
 
@@ -126,9 +132,9 @@ inline std::ostream& operator<<(std::ostream& out, const nw::script::NssToken& t
     out << "<'";
     out << token.loc.view();
     out << "', ";
-    out << token.loc.position.line;
+    out << token.loc.range.start.line;
     out << ":";
-    out << token.loc.position.column;
+    out << token.loc.range.start.column;
     out << ">";
 
     return out;
