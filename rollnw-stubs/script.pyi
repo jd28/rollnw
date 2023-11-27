@@ -1,4 +1,4 @@
-from typing import Any, Callable, ClassVar, Iterator, List, Tuple, Set
+from typing import Any, Callable, ClassVar, Iterator, List, Tuple, Set, Sequence
 
 from . import Path, StringVector
 
@@ -372,6 +372,10 @@ class Include:
     used: int
 
 
+class Comment:
+    def __str__(self) -> str: ...
+
+
 class Ast:
     def __init__(self, *args, **kwargs) -> None: ...
     def __getitem__(self, index: int) -> AstNode: ...
@@ -381,6 +385,7 @@ class Ast:
     def defines(self) -> List[Tuple[str, str]]: ...
     @property
     def includes(self) -> List[Include]: ...
+    def comments(self) -> Sequence[Comment]: ...
 
 
 class Statement(AstNode):

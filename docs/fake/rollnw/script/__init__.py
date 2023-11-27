@@ -1,6 +1,6 @@
 import enum
 from enum import auto
-from typing import List
+from typing import List, Sequence
 
 # Script ######################################################################
 ###############################################################################
@@ -144,6 +144,14 @@ class Include:
     pass
 
 
+class Comment:
+    """Abstracts Comment
+    """
+
+    def __str__(self) -> str:
+        return ""
+
+
 class Ast:
     """Class containing a parsed ast
 
@@ -163,6 +171,10 @@ class Ast:
     def __len__(self):
         """Gets number of toplevel declarations"""
         pass
+
+    def comments(self) -> Sequence[Comment]:
+        """Gets all comments in Ast"""
+        return []
 
 
 class Nss:

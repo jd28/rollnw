@@ -84,13 +84,29 @@ NssToken NssParser::consume(NssTokenType type, std::string_view message)
 void NssParser::lex()
 {
     if (lexed_) { return; }
+    size_t last_comment_line = std::string::npos;
+    Comment current_comment;
     try {
         NssToken tok = lexer_.next();
         while (tok.type != NssTokenType::END) {
-            if (tok.type != NssTokenType::COMMENT) {
+            if (tok.type == NssTokenType::COMMENT) {
+                // Append all comments that on adjacent rows
+                if (last_comment_line == std::string::npos
+                    || last_comment_line + 1 == tok.loc.position.line) {
+                    current_comment.append(tok.loc.view(), tok.loc.position.line);
+                    last_comment_line = tok.loc.position.line;
+                } else if (!current_comment.comment_.empty()) {
+                    ast_.comments.push_back(std::move(current_comment));
+                    last_comment_line = tok.loc.position.line;
+                    current_comment.append(tok.loc.view(), tok.loc.position.line);
+                }
+            } else {
                 tokens.push_back(tok);
             }
             tok = lexer_.next();
+        }
+        if (!current_comment.comment_.empty()) {
+            ast_.comments.push_back(std::move(current_comment));
         }
     } catch (const lexical_error& error) {
         ctx_->lexical_diagnostic(parent_, error.what(), false, error.location);

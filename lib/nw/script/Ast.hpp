@@ -3,6 +3,7 @@
 #include "../util/Variant.hpp"
 #include "Token.hpp"
 
+#include <fmt/format.h>
 #include <glm/glm.hpp>
 #include <immer/map.hpp>
 
@@ -489,6 +490,24 @@ struct Include {
     int used = 0;            ///< Number of times include is used in script file
 };
 
+/// Abstracts a comment
+struct Comment {
+
+    void append(std::string_view comment, size_t line)
+    {
+        if (comment_.empty()) {
+            comment_ = std::string(comment);
+            last_line_ = line;
+        } else {
+            comment_ = fmt::format("{}\n{}", comment_, comment);
+            last_line_ = line;
+        }
+    }
+
+    size_t last_line_ = std::string::npos;
+    std::string comment_;
+};
+
 struct Ast {
     Ast() = default;
     Ast(const Ast&) = delete;
@@ -499,6 +518,7 @@ struct Ast {
     std::vector<Statement*> decls;
     std::vector<Include> includes;
     std::vector<std::pair<std::string, std::string>> defines;
+    std::vector<Comment> comments;
 
     std::vector<std::unique_ptr<AstNode>> nodes_;
 

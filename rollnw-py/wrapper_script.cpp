@@ -219,6 +219,9 @@ void init_script(py::module& nw)
         .def_readonly("script", &nws::Include::script)
         .def_readonly("used", &nws::Include::used);
 
+    py::class_<nws::Comment>(nw, "Comment")
+        .def("__str__", [](const nws::Comment& self) { return self.comment_; });
+
     py::class_<nws::Ast>(nw, "Ast")
         .def(
             "__getitem__", [](const nws::Ast& self, size_t index) {
@@ -243,7 +246,8 @@ void init_script(py::module& nw)
             }
             return pylist;
         })
-        .def_readonly("includes", &nws::Ast::includes);
+        .def_readonly("includes", &nws::Ast::includes)
+        .def_readonly("comments", &nws::Ast::comments);
 
     py::class_<nws::AstNode>(nw, "AstNode")
         .def("accept", &nws::AstNode::accept)

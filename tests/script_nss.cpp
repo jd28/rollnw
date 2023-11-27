@@ -1123,3 +1123,40 @@ TEST(Nss, LspContext)
     EXPECT_EQ(nss3.diagnostics()[0].type, nw::script::DiagnosticType::semantic);
     EXPECT_EQ(nss3.diagnostics()[0].level, nw::script::DiagnosticLevel::error);
 }
+
+TEST(Nss, Comment)
+{
+    auto ctx = std::make_unique<nw::script::LspContext>();
+
+    script::Nss nss1(R"(
+        // This is a comment
+    )"sv,
+        ctx.get());
+
+    EXPECT_NO_THROW(nss1.parse());
+    EXPECT_EQ(nss1.ast().comments.size(), 1);
+
+    script::Nss nss2(R"(
+        // This is a comment
+        int test;
+        /* Followed by a block comment */
+    )"sv,
+        ctx.get());
+
+    EXPECT_NO_THROW(nss2.parse());
+    EXPECT_EQ(nss2.ast().comments.size(), 2);
+
+    script::Nss nss3(R"(
+        // This is a comment
+        /* Followed by a block comment*/
+        // Followed by another comment that, since adjacent, should be merged.
+    )"sv,
+        ctx.get());
+
+    EXPECT_NO_THROW(nss3.parse());
+    EXPECT_EQ(nss3.ast().comments.size(), 1);
+    EXPECT_EQ(nss3.ast().comments[0].comment_,
+        R"( This is a comment
+ Followed by a block comment
+ Followed by another comment that, since adjacent, should be merged.)");
+}
