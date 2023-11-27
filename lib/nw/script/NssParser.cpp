@@ -93,12 +93,12 @@ void NssParser::lex()
                 // Append all comments that on adjacent rows
                 if (last_comment_line == std::string::npos
                     || last_comment_line + 1 == tok.loc.range.end.line) {
-                    current_comment.append(tok.loc.view(), tok.loc.range.end.line);
+                    current_comment.append(tok.loc.view(), tok.loc);
                     last_comment_line = tok.loc.range.end.line;
                 } else if (!current_comment.comment_.empty()) {
                     ast_.comments.push_back(std::move(current_comment));
                     last_comment_line = tok.loc.range.end.line;
-                    current_comment.append(tok.loc.view(), tok.loc.range.end.line);
+                    current_comment.append(tok.loc.view(), tok.loc);
                 }
             } else {
                 tokens.push_back(tok);

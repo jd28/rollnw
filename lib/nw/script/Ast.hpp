@@ -493,18 +493,18 @@ struct Include {
 /// Abstracts a comment
 struct Comment {
 
-    void append(std::string_view comment, size_t line)
+    void append(std::string_view comment, SourceLocation range)
     {
         if (comment_.empty()) {
             comment_ = std::string(comment);
-            last_line_ = line;
+            range_ = merge_source_location(range_, range);
         } else {
             comment_ = fmt::format("{}\n{}", comment_, comment);
-            last_line_ = line;
+            range_ = merge_source_location(range_, range);
         }
     }
 
-    size_t last_line_ = std::string::npos;
+    SourceLocation range_;
     std::string comment_;
 };
 
