@@ -54,6 +54,9 @@ struct Nss {
     /// Count of symbols exported from script
     size_t export_count() const noexcept { return symbol_table_.size(); }
 
+    /// Finds first comment that the source range of which ends on ``line`` or ``line`` - 1
+    std::string_view find_comment(size_t line) const noexcept;
+
     /// Increments error count
     void increment_errors() noexcept { ++errors_; }
 

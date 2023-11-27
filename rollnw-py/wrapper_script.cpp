@@ -197,6 +197,7 @@ void init_script(py::module& nw)
                 return result;
             },
             py::return_value_policy::reference_internal)
+        .def("find_comment", &nws::Nss::find_comment)
         .def("locate_export", &nws::Nss::locate_export, py::return_value_policy::reference_internal)
         .def("parse", &nws::Nss::parse)
         .def("process_includes", &nws::Nss::process_includes, py::arg("parent") = nullptr)
