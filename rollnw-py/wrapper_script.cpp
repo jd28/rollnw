@@ -197,7 +197,6 @@ void init_script(py::module& nw)
                 return result;
             },
             py::return_value_policy::reference_internal)
-        .def("find_comment", &nws::Nss::find_comment)
         .def("locate_export", &nws::Nss::locate_export, py::return_value_policy::reference_internal)
         .def("parse", &nws::Nss::parse)
         .def("process_includes", &nws::Nss::process_includes, py::arg("parent") = nullptr)
@@ -247,7 +246,8 @@ void init_script(py::module& nw)
             return pylist;
         })
         .def_readonly("includes", &nws::Ast::includes)
-        .def_readonly("comments", &nws::Ast::comments);
+        .def_readonly("comments", &nws::Ast::comments)
+        .def("find_comment", &nws::Ast::find_comment);
 
     py::class_<nws::AstNode>(nw, "AstNode")
         .def("accept", &nws::AstNode::accept)
