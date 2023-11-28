@@ -344,7 +344,8 @@ void init_script(py::module& nw)
         .def("__len__", [](nws::BlockStatement& self) { return self.nodes.size(); })
         .def(
             "__getitem__", [](nws::BlockStatement& self, size_t idx) { return self.nodes[idx]; },
-            py::return_value_policy::reference_internal);
+            py::return_value_policy::reference_internal)
+        .def_readonly("range", &nws::BlockStatement::range);
 
     py::class_<nws::DeclStatement, nws::Statement>(nw, "DeclStatement")
         .def("__len__", [](nws::DeclStatement& self) { return self.decls.size(); })

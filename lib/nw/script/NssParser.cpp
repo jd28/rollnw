@@ -607,6 +607,7 @@ Statement* NssParser::parse_stmt()
 BlockStatement* NssParser::parse_stmt_block()
 {
     auto s = ast_.create_node<BlockStatement>();
+    s->range.start = previous().loc.range.end; // Don't include the braces in the range.. for now.
     while (!is_end() && !check({NssTokenType::RBRACE})) {
         try {
             auto n = parse_decl();
@@ -618,6 +619,7 @@ BlockStatement* NssParser::parse_stmt_block()
         }
     }
     consume(NssTokenType::RBRACE, "Expected '}'.");
+    s->range.end = previous().loc.range.start;
     return s;
 }
 

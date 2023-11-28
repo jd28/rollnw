@@ -361,6 +361,7 @@ struct BlockStatement : public Statement {
     BlockStatement(BlockStatement&) = delete;
     BlockStatement& operator=(const BlockStatement&) = delete;
 
+    SourceRange range;
     std::vector<Statement*> nodes;
 
     DEFINE_ACCEPT_VISITOR

@@ -430,7 +430,11 @@ class Statement(AstNode):
 
 
 class BlockStatement (Statement):
-    """Block statement"""
+    """Block statement
+
+    Attributes:
+        range (SourceRange): Range in source code
+    """
     pass
 
     def __len__(self):
