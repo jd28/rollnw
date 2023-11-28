@@ -176,6 +176,10 @@ class Ast:
         """Gets all comments in Ast"""
         return []
 
+    def find_comment(self, line) -> str:
+        """Finds first comment that the source range of which ends on ``line`` or ``line`` - 1
+        """
+        return ""
 
 class Nss:
     """Implementation of nwscript"""
@@ -194,11 +198,6 @@ class Nss:
     def errors(self):
         """Gets number of errors encountered while parsing"""
         pass
-
-    def find_comment(self, line) -> str:
-        """Finds first comment that the source range of which ends on ``line`` or ``line`` - 1
-        """
-        return ""
 
     def parse(self):
         """Parses the script"""

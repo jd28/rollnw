@@ -1161,10 +1161,10 @@ TEST(Nss, Comment)
  Followed by a block comment
  Followed by another comment that, since adjacent, should be merged.)");
 
-    EXPECT_EQ(nss3.find_comment(4),
+    EXPECT_EQ(nss3.ast().find_comment(4),
         R"( This is a comment
  Followed by a block comment
  Followed by another comment that, since adjacent, should be merged.)");
 
-    EXPECT_EQ(nss3.find_comment(30), "");
+    EXPECT_EQ(nss3.ast().find_comment(30), "");
 }

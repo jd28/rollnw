@@ -72,16 +72,6 @@ const std::vector<Diagnostic>& Nss::diagnostics() const noexcept
     return diagnostics_;
 }
 
-std::string_view Nss::find_comment(size_t line) const noexcept
-{
-    for (const auto& comment : ast_.comments) {
-        if (line == comment.range_.range.end.line) {
-            return comment.comment_;
-        }
-    }
-    return {};
-}
-
 Declaration* Nss::locate_export(const std::string& name, bool is_type)
 {
     auto sym = symbol_table_.find(name);
