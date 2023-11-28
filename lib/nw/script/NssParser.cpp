@@ -154,8 +154,6 @@ NssToken NssParser::previous()
 
 void NssParser::synchronize()
 {
-    advance();
-
     while (!is_end()) {
         if (previous().type == NssTokenType::SEMICOLON) return;
 
@@ -183,6 +181,7 @@ void NssParser::synchronize()
         case NssTokenType::IF:
         case NssTokenType::WHILE:
         case NssTokenType::RETURN:
+        case NssTokenType::RBRACE:
             return;
         }
 
