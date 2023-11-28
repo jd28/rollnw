@@ -608,9 +608,13 @@ BlockStatement* NssParser::parse_stmt_block()
 {
     auto s = ast_.create_node<BlockStatement>();
     while (!is_end() && !check({NssTokenType::RBRACE})) {
-        auto n = parse_decl();
-        if (n) {
-            s->nodes.emplace_back(std::move(n));
+        try {
+            auto n = parse_decl();
+            if (n) {
+                s->nodes.emplace_back(std::move(n));
+            }
+        } catch (const parser_error&) {
+            synchronize();
         }
     }
     consume(NssTokenType::RBRACE, "Expected '}'.");
@@ -833,7 +837,6 @@ Ast NssParser::parse_program()
             }
         } catch (const parser_error& err) {
             synchronize();
-            return {};
         }
     }
     return std::move(ast_);
