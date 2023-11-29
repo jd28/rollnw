@@ -66,13 +66,25 @@ void Nss::complete_at(const std::string& needle, size_t line, size_t character, 
         node->complete(needle, out);
     }
 
-    // [TODO] Exhaustivise this
-    if (auto d = dynamic_cast<const VarDecl*>(node)) {
-        if (d->range_.start.line < line) { // Skip if on the same line
-            std::string identifier{d->identifier.loc.view()};
-            if (has_match(needle.c_str(), identifier.c_str())) {
-                out.push_back(identifier);
+    if (node->range_.start.line < line) { // Skip if on the same line
+        std::string identifier;
+        if (auto d = dynamic_cast<const VarDecl*>(node)) {
+            identifier = std::string{d->identifier.loc.view()};
+        } else if (auto d = dynamic_cast<const FunctionDecl*>(node)) {
+            identifier = std::string{d->identifier.loc.view()};
+        } else if (auto d = dynamic_cast<const FunctionDefinition*>(node)) {
+            identifier = std::string{d->decl_inline->identifier.loc.view()};
+        } else if (auto d = dynamic_cast<const DeclList*>(node)) {
+            for (const auto decl : d->decls) {
+                std::string id{decl->identifier.loc.view()};
+                if (has_match(needle.c_str(), id.c_str())) {
+                    out.push_back(identifier);
+                }
             }
+        }
+
+        if (!identifier.empty() && has_match(needle.c_str(), identifier.c_str())) {
+            out.push_back(identifier);
         }
     }
 
