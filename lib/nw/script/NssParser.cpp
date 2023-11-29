@@ -234,7 +234,7 @@ Expression* NssParser::parse_expr_conditional()
         auto tbranch = parse_expr();
         consume(NssTokenType::COLON, "Expected ':'.");
         auto fbranch = parse_expr_conditional();
-        expr = ast_.create_node<ConditionalExpression>(std::move(expr), std::move(tbranch), std::move(fbranch));
+        expr = ast_.create_node<ConditionalExpression>(expr, tbranch, fbranch);
     }
 
     return expr;
@@ -246,7 +246,7 @@ Expression* NssParser::parse_expr_or()
     while (match({NssTokenType::OROR})) {
         auto op = previous();
         auto right = parse_expr_and();
-        expr = ast_.create_node<LogicalExpression>(std::move(expr), op, std::move(right));
+        expr = ast_.create_node<LogicalExpression>(expr, op, right);
     }
     return expr;
 }
@@ -257,7 +257,7 @@ Expression* NssParser::parse_expr_and()
     while (match({NssTokenType::ANDAND})) {
         auto op = previous();
         auto right = parse_expr_bitwise();
-        expr = ast_.create_node<LogicalExpression>(std::move(expr), op, std::move(right));
+        expr = ast_.create_node<LogicalExpression>(expr, op, right);
     }
     return expr;
 }
@@ -268,7 +268,7 @@ Expression* NssParser::parse_expr_bitwise()
     while (match({NssTokenType::AND, NssTokenType::OR, NssTokenType::XOR})) {
         auto op = previous();
         auto right = parse_expr_equality();
-        expr = ast_.create_node<BinaryExpression>(std::move(expr), op, std::move(right));
+        expr = ast_.create_node<BinaryExpression>(expr, op, right);
     }
     return expr;
 }
@@ -279,7 +279,7 @@ Expression* NssParser::parse_expr_equality()
     while (match({NssTokenType::NOTEQ, NssTokenType::EQEQ})) {
         auto op = previous();
         auto right = parse_expr_relational();
-        expr = ast_.create_node<ComparisonExpression>(std::move(expr), op, std::move(right));
+        expr = ast_.create_node<ComparisonExpression>(expr, op, right);
     }
     return expr;
 }
@@ -290,7 +290,7 @@ Expression* NssParser::parse_expr_relational()
     while (match({NssTokenType::GT, NssTokenType::GTEQ, NssTokenType::LT, NssTokenType::LTEQ})) {
         auto op = previous();
         auto right = parse_expr_shift();
-        expr = ast_.create_node<ComparisonExpression>(std::move(expr), op, std::move(right));
+        expr = ast_.create_node<ComparisonExpression>(expr, op, right);
     }
     return expr;
 }
@@ -301,7 +301,7 @@ Expression* NssParser::parse_expr_shift()
     while (match({NssTokenType::SR, NssTokenType::SL, NssTokenType::USR})) {
         auto op = previous();
         auto right = parse_expr_additive();
-        expr = ast_.create_node<BinaryExpression>(std::move(expr), op, std::move(right));
+        expr = ast_.create_node<BinaryExpression>(expr, op, right);
     }
     return expr;
 }
@@ -313,7 +313,7 @@ Expression* NssParser::parse_expr_additive()
     while (match({NssTokenType::MINUS, NssTokenType::PLUS})) {
         auto op = previous();
         auto right = parse_expr_multiplicative();
-        expr = ast_.create_node<BinaryExpression>(std::move(expr), op, std::move(right));
+        expr = ast_.create_node<BinaryExpression>(expr, op, right);
     }
 
     return expr;
@@ -326,7 +326,7 @@ Expression* NssParser::parse_expr_multiplicative()
     while (match({NssTokenType::DIV, NssTokenType::TIMES, NssTokenType::MOD})) {
         auto op = previous();
         auto right = parse_expr_unary();
-        expr = ast_.create_node<BinaryExpression>(std::move(expr), op, std::move(right));
+        expr = ast_.create_node<BinaryExpression>(expr, op, right);
     }
 
     return expr;
@@ -379,7 +379,7 @@ Expression* NssParser::parse_expr_unary()
             }
             // Leave everything else for errors later
         }
-        return ast_.create_node<UnaryExpression>(op, std::move(right));
+        return ast_.create_node<UnaryExpression>(op, right);
     }
     return parse_expr_postfix();
 }
@@ -391,7 +391,7 @@ Expression* NssParser::parse_expr_postfix()
     while (match({NssTokenType::PLUSPLUS, NssTokenType::MINUSMINUS, NssTokenType::LPAREN, NssTokenType::DOT})) {
         if (previous().type == NssTokenType::PLUSPLUS || previous().type == NssTokenType::MINUSMINUS) {
             auto op = previous();
-            expr = ast_.create_node<PostfixExpression>(std::move(expr), op);
+            expr = ast_.create_node<PostfixExpression>(expr, op);
         }
 
         if (previous().type == NssTokenType::LPAREN) {
@@ -399,19 +399,19 @@ Expression* NssParser::parse_expr_postfix()
                 diagnostic("expression cannot be used as a function", previous());
             }
 
-            auto e = ast_.create_node<CallExpression>(std::move(expr));
+            auto e = ast_.create_node<CallExpression>(expr);
             while (!is_end() && !check({NssTokenType::RPAREN})) {
                 e->args.emplace_back(parse_expr());
                 match({NssTokenType::COMMA});
             }
             consume(NssTokenType::RPAREN, "Expected ')'.");
-            expr = std::move(e);
+            expr = e;
         }
 
         if (previous().type == NssTokenType::DOT) {
             auto dot = previous();
             auto right = parse_expr_primary();
-            expr = ast_.create_node<DotExpression>(std::move(expr), dot, std::move(right));
+            expr = ast_.create_node<DotExpression>(expr, dot, right);
         }
     }
 
@@ -501,7 +501,7 @@ Expression* NssParser::parse_expr_primary()
     if (match({NssTokenType::LPAREN})) {
         auto expr = parse_expr();
         consume(NssTokenType::RPAREN, "Expected ')' after expression.");
-        return ast_.create_node<GroupingExpression>(std::move(expr));
+        return ast_.create_node<GroupingExpression>(expr);
     }
 
     diagnostic("expected primary expression", peek());
@@ -611,7 +611,7 @@ BlockStatement* NssParser::parse_stmt_block()
         try {
             auto n = parse_decl();
             if (n) {
-                s->nodes.emplace_back(std::move(n));
+                s->nodes.emplace_back(n);
             }
         } catch (const parser_error&) {
             synchronize();
@@ -756,13 +756,13 @@ Statement* NssParser::parse_decl()
             if (match({NssTokenType::EQ})) {
                 vd->init = parse_expr();
             }
-            decls->decls.push_back(std::move(vd));
+            decls->decls.push_back(vd);
             if (!match({NssTokenType::COMMA})) { break; }
         }
         consume(NssTokenType::SEMICOLON, "Expected ';'.");
 
         if (decls->decls.size() == 1) {
-            return std::move(decls->decls[0]);
+            return decls->decls[0];
         } else {
             return decls;
         }
@@ -960,7 +960,7 @@ Declaration* NssParser::parse_decl_function_def()
         return decl;
     }
     auto def = ast_.create_node<FunctionDefinition>();
-    def->decl_inline = std::move(decl);
+    def->decl_inline = decl;
     consume(NssTokenType::LBRACE, "Expected '{'.");
     def->block = parse_stmt_block();
     def->range_.end = previous().loc.range.end;
@@ -978,7 +978,7 @@ Statement* NssParser::parse_decl_global_var()
             // [TODO] Parse is going to need to error on non constant expressions
             ret->init = parse_expr();
         }
-        decls->decls.push_back(std::move(ret));
+        decls->decls.push_back(ret);
         if (!match({NssTokenType::COMMA})) {
             break;
         } else {
@@ -989,7 +989,7 @@ Statement* NssParser::parse_decl_global_var()
     decls->decls.back()->range_.end = previous().loc.range.end;
 
     if (decls->decls.size() == 1) {
-        return std::move(decls->decls[0]);
+        return decls->decls[0];
     } else {
         return decls;
     }
