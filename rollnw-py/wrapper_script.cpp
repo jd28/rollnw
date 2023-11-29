@@ -357,10 +357,10 @@ void init_script(py::module& nw)
             py::return_value_policy::reference_internal)
         .def_readonly("range", &nws::BlockStatement::range);
 
-    py::class_<nws::DeclStatement, nws::Statement>(nw, "DeclStatement")
-        .def("__len__", [](nws::DeclStatement& self) { return self.decls.size(); })
+    py::class_<nws::DeclList, nws::Statement>(nw, "DeclList")
+        .def("__len__", [](nws::DeclList& self) { return self.decls.size(); })
         .def(
-            "__getitem__", [](nws::DeclStatement& self, size_t idx) { return self.decls[idx]; },
+            "__getitem__", [](nws::DeclList& self, size_t idx) { return self.decls[idx]; },
             py::return_value_policy::reference_internal);
 
     py::class_<nws::DoStatement, nws::Statement>(nw, "DoStatement")

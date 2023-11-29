@@ -38,7 +38,7 @@ struct UnaryExpression;
 struct VariableExpression;
 
 struct BlockStatement;
-struct DeclStatement;
+struct DeclList;
 struct DoStatement;
 struct EmptyStatement;
 struct ExprStatement;
@@ -77,7 +77,7 @@ struct BaseVisitor {
 
     // Statements
     virtual void visit(BlockStatement* stmt) = 0;
-    virtual void visit(DeclStatement* stmt) = 0;
+    virtual void visit(DeclList* stmt) = 0;
     virtual void visit(DoStatement* stmt) = 0;
     virtual void visit(EmptyStatement* stmt) = 0;
     virtual void visit(ExprStatement* stmt) = 0;
@@ -367,13 +367,6 @@ struct BlockStatement : public Statement {
     DEFINE_ACCEPT_VISITOR
 };
 
-/// @brief
-struct DeclStatement : public Statement {
-    std::vector<VarDecl*> decls;
-
-    DEFINE_ACCEPT_VISITOR
-};
-
 struct DoStatement : public Statement {
     BlockStatement* block = nullptr;
     Expression* expr = nullptr;
@@ -479,6 +472,13 @@ struct StructDecl : public Declaration {
 struct VarDecl : public Declaration {
     NssToken identifier;
     Expression* init = nullptr;
+
+    DEFINE_ACCEPT_VISITOR
+};
+
+/// List of comma separated declarations
+struct DeclList : public Declaration {
+    std::vector<VarDecl*> decls;
 
     DEFINE_ACCEPT_VISITOR
 };

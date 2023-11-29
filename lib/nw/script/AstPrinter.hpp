@@ -259,7 +259,7 @@ struct AstPrinter : BaseVisitor {
         ss << ")";
     }
 
-    virtual void visit(DeclStatement* stmt) override
+    virtual void visit(DeclList* stmt) override
     {
         ss << '\n'
            << std::string(size_t(depth * 2), ' ')

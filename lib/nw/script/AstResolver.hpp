@@ -754,7 +754,7 @@ struct AstResolver : BaseVisitor {
         }
     }
 
-    virtual void visit(DeclStatement* stmt) override
+    virtual void visit(DeclList* stmt) override
     {
         stmt->env = env_stack_.back();
         size_t ti = invalid_type_id;

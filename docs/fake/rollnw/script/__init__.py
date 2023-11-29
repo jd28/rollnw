@@ -462,16 +462,6 @@ class BlockStatement (Statement):
         pass
 
 
-class DeclStatement (Statement):
-    def __len__(self):
-        """Gets the number of declarations"""
-        pass
-
-    def __getitem__(self, idx: int):
-        """Gets a declaration"""
-        pass
-
-
 class DoStatement (Statement):
     """If statement
 
@@ -615,3 +605,13 @@ class VarDecl (Declaration):
         init
     """
     pass
+
+
+class DeclList (Declaration):
+    def __len__(self):
+        """Gets the number of declarations"""
+        pass
+
+    def __getitem__(self, idx: int):
+        """Gets a declaration"""
+        pass

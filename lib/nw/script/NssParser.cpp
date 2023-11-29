@@ -744,7 +744,7 @@ WhileStatement* NssParser::parse_stmt_while()
 Statement* NssParser::parse_decl()
 {
     if (check_is_type()) {
-        auto decls = ast_.create_node<DeclStatement>();
+        auto decls = ast_.create_node<DeclList>();
         Type t = parse_type();
 
         while (true) {
@@ -873,7 +873,7 @@ Statement* NssParser::parse_decl_external()
         || lookahead(0).type == NssTokenType::SEMICOLON
         || lookahead(0).type == NssTokenType::COMMA) {
         auto gvd = parse_decl_global_var();
-        if (auto ds = dynamic_cast<DeclStatement*>(gvd)) {
+        if (auto ds = dynamic_cast<DeclList*>(gvd)) {
             for (auto& d : ds->decls) {
                 d->type = t;
                 if (t.type_qualifier.type == NssTokenType::INVALID) {
@@ -969,7 +969,7 @@ Declaration* NssParser::parse_decl_function_def()
 
 Statement* NssParser::parse_decl_global_var()
 {
-    auto decls = ast_.create_node<DeclStatement>();
+    auto decls = ast_.create_node<DeclList>();
     while (true) {
         auto ret = ast_.create_node<VarDecl>();
         consume(NssTokenType::IDENTIFIER, "Expected 'IDENTIFIER'.");

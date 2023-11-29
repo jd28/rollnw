@@ -103,7 +103,7 @@ TEST(Nss, Variables)
     script::Nss nss1("int a = 3, b, c = 1;"sv, ctx.get());
     nss1.parse();
     const script::Ast& s1 = nss1.ast();
-    auto decl1 = dynamic_cast<script::DeclStatement*>(s1.decls[0]);
+    auto decl1 = dynamic_cast<script::DeclList*>(s1.decls[0]);
     EXPECT_TRUE(decl1);
     EXPECT_EQ(decl1->decls.size(), 3);
 
