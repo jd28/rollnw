@@ -118,12 +118,22 @@ const std::vector<Diagnostic>& Nss::diagnostics() const noexcept
     return diagnostics_;
 }
 
-Declaration* Nss::locate_export(const std::string& name, bool is_type)
+Declaration* Nss::locate_export(const std::string& name, bool is_type, bool search_dependencies)
 {
     auto sym = symbol_table_.find(name);
+    Declaration* decl = nullptr;
     if (sym) {
-        return is_type ? sym->type : sym->decl;
+        decl = is_type ? sym->type : sym->decl;
     }
+
+    if (decl || !search_dependencies) { return decl; }
+
+    for (const auto it : ast_.includes) {
+        if ((decl = it.script->locate_export(name, is_type, search_dependencies))) {
+            return decl;
+        }
+    }
+
     return nullptr;
 }
 

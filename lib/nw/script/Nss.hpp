@@ -63,8 +63,7 @@ struct Nss {
     void increment_warnings() noexcept { ++warnings_; }
 
     /// Locate export
-    /// @note This function is not recursive
-    Declaration* locate_export(const std::string& name, bool is_type);
+    Declaration* locate_export(const std::string& name, bool is_type, bool search_dependencies = false);
 
     /// Script name
     std::string_view name() const noexcept;
