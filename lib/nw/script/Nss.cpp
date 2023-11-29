@@ -41,15 +41,49 @@ void Nss::add_diagnostic(Diagnostic diagnostic)
     diagnostics_.push_back(std::move(diagnostic));
 }
 
-std::vector<std::string> Nss::complete(const std::string& needle)
+void Nss::complete(const std::string& needle, std::vector<std::string>& out) const
 {
-    std::vector<std::string> result;
     for (const auto& [name, _] : symbol_table_) {
         if (has_match(needle.c_str(), name.c_str())) {
-            result.push_back(name);
+            out.push_back(name);
         }
     }
-    return result;
+}
+
+inline void complete_includes(const Nss* script, const std::string& needle, std::vector<std::string>& out)
+{
+    script->complete(needle, out);
+    for (const auto& it : script->ast().includes) {
+        if (!it.script) { continue; }
+        complete_includes(it.script, needle, out);
+    }
+}
+
+void Nss::complete_at(const std::string& needle, size_t line, size_t character, std::vector<std::string>& out) const
+{
+    auto node = ast_.find_last_declaration(line, character);
+    if (node) {
+        node->complete(needle, out);
+    }
+
+    // [TODO] Exhaustivise this
+    if (auto d = dynamic_cast<const VarDecl*>(node)) {
+        if (d->range_.start.line < line) { // Skip if on the same line
+            std::string identifier{d->identifier.loc.view()};
+            if (has_match(needle.c_str(), identifier.c_str())) {
+                out.push_back(identifier);
+            }
+        }
+    }
+
+    for (const auto& it : ast_.includes) {
+        if (!it.script) { continue; }
+        complete_includes(it.script, needle, out);
+    }
+
+    if (!is_command_script_) {
+        ctx_->command_script_->complete(needle, out);
+    }
 }
 
 Context* Nss::ctx() const

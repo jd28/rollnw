@@ -198,6 +198,16 @@ class Nss:
         """Gets the parsed script"""
         pass
 
+    def complete(self, needle: str) -> Sequence[str]:
+        """Generates a list of potential completions (excluding dependencies)
+        """
+        return []
+
+    def complete_at(self, needle: str, line: int, character: int) -> Sequence[str]:
+        """Get all completions (including dependencies)
+        """
+        return []
+
     def diagnostics(self) -> List[Diagnostic]:
         return []
 

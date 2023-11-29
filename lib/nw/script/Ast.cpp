@@ -1,6 +1,5 @@
 #include "Ast.hpp"
 
-#include "../log.hpp"
 #include "Nss.hpp"
 
 extern "C" {
@@ -9,15 +8,13 @@ extern "C" {
 
 namespace nw::script {
 
-std::vector<std::string> AstNode::complete(const std::string& needle) const
+void AstNode::complete(const std::string& needle, std::vector<std::string>& out) const
 {
-    std::vector<std::string> result;
     for (const auto& [name, _] : env) {
         if (has_match(needle.c_str(), name.c_str())) {
-            result.push_back(name);
+            out.push_back(name);
         }
     }
-    return result;
 }
 
 SourceRange Declaration::range() const noexcept

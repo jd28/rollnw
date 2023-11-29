@@ -53,7 +53,8 @@ TEST(Nss, ParseNwscript)
     }
 
     // Completion
-    auto completions = nss.complete("IntToString");
+    std::vector<std::string> completions;
+    nss.complete("IntToString", completions);
     std::sort(std::begin(completions), std::end(completions));
     EXPECT_EQ(completions.size(), 2);
     EXPECT_EQ(completions[0], "IntToHexString");
@@ -77,7 +78,8 @@ TEST(Nss, ParseNwscript)
     EXPECT_NE(decl3, nullptr);
     auto d3 = dynamic_cast<nw::script::FunctionDecl*>(decl3);
     EXPECT_NE(d3, nullptr);
-    auto completions2 = d3->complete("OBJECT_type_");
+    std::vector<std::string> completions2;
+    d3->complete("OBJECT_type_", completions2);
     std::sort(std::begin(completions2), std::end(completions2));
     std::vector<std::string> expect2{
         "OBJECT_TYPE_ALL",
@@ -1207,7 +1209,9 @@ TEST(Nss, Location)
     auto vd3 = dynamic_cast<const nw::script::VarDecl*>(decl3);
     EXPECT_TRUE(vd3);
     EXPECT_EQ(vd3->identifier.loc.view(), "s");
-    EXPECT_EQ(vd3->complete("te").size(), 1);
+    std::vector<std::string> out3;
+    vd3->complete("te", out3);
+    EXPECT_EQ(out3.size(), 1);
 
     script::Nss nss4(R"(
         int test = 1;
@@ -1218,7 +1222,7 @@ TEST(Nss, Location)
             for(int index = 0; index < 10; ++index) {
                 int count = 0;
                 // ...
-                in
+                ind
             }
         }
     )"sv,
@@ -1226,10 +1230,12 @@ TEST(Nss, Location)
 
     EXPECT_NO_THROW(nss4.parse());
     EXPECT_NO_THROW(nss4.resolve());
-    auto decl4 = nss4.ast().find_last_declaration(10, 19);
+    auto decl4 = nss4.ast().find_last_declaration(10, 20);
     EXPECT_TRUE(decl4);
     auto vd4 = dynamic_cast<const nw::script::VarDecl*>(decl4);
     EXPECT_TRUE(vd4);
     EXPECT_EQ(vd4->identifier.loc.view(), "count");
-    EXPECT_EQ(vd4->complete("ind").size(), 1);
+    std::vector<std::string> out4;
+    vd4->complete("ind", out4);
+    EXPECT_EQ(out4.size(), 1);
 }

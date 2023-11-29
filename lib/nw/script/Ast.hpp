@@ -97,7 +97,7 @@ struct AstNode {
 
     /// Find completions for this Ast Node
     /// @note This function does not traverse dependencies
-    virtual std::vector<std::string> complete(const std::string& needle) const;
+    virtual void complete(const std::string& needle, std::vector<std::string>& out) const;
 
     size_t type_id_ = invalid_type_id;
     bool is_const_ = false;

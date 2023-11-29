@@ -32,9 +32,11 @@ struct Nss {
     /// Add diagnostic to script
     void add_diagnostic(Diagnostic diagnostic);
 
-    /// Generates a list of potential completions from exports
-    /// @note This is just a baby step.
-    std::vector<std::string> complete(const std::string& needle);
+    /// Generates a list of potential completions (excluding dependencies)
+    void complete(const std::string& needle, std::vector<std::string>& out) const;
+
+    /// Get all completions (including dependencies)
+    void complete_at(const std::string& needle, size_t line, size_t character, std::vector<std::string>& out) const;
 
     /// Script context
     Context* ctx() const;
