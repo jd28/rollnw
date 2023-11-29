@@ -750,16 +750,27 @@ Statement* NssParser::parse_decl()
         while (true) {
             auto vd = ast_.create_node<VarDecl>();
             vd->type = t;
-
             consume(NssTokenType::IDENTIFIER, "Expected 'IDENTIFIER'.");
             vd->identifier = previous();
             if (match({NssTokenType::EQ})) {
                 vd->init = parse_expr();
             }
+
+            if (t.type_qualifier.type == NssTokenType::INVALID) {
+                vd->range_.start = t.type_specifier.loc.range.start;
+            } else {
+                vd->range_.start = t.type_qualifier.loc.range.start;
+            }
+            vd->range_selection_.start = vd->identifier.loc.range.start;
+            vd->range_selection_.end = vd->identifier.loc.range.end;
+
             decls->decls.push_back(vd);
             if (!match({NssTokenType::COMMA})) { break; }
         }
         consume(NssTokenType::SEMICOLON, "Expected ';'.");
+        for (auto decl : decls->decls) {
+            decl->range_.end = previous().loc.range.start;
+        }
 
         if (decls->decls.size() == 1) {
             return decls->decls[0];
