@@ -1168,3 +1168,68 @@ TEST(Nss, Comment)
 
     EXPECT_EQ(nss3.ast().find_comment(30), "");
 }
+
+TEST(Nss, Location)
+{
+    auto ctx = std::make_unique<nw::script::LspContext>();
+
+    script::Nss nss1(R"(
+        int test = 1;
+        float f = 2.9;
+    )"sv,
+        ctx.get());
+
+    EXPECT_NO_THROW(nss1.parse());
+    auto decl1 = nss1.ast().find_last_declaration(4, 4);
+    EXPECT_TRUE(decl1);
+    auto vd1 = dynamic_cast<const nw::script::VarDecl*>(decl1);
+    EXPECT_TRUE(vd1);
+    EXPECT_EQ(vd1->identifier.loc.view(), "f");
+
+    auto decl2 = nss1.ast().find_last_declaration(0, 0);
+    EXPECT_FALSE(decl2);
+
+    script::Nss nss3(R"(
+        int test = 1;
+        float f = 2.9;
+
+        void main() {
+            string s = "Hello World";
+            asefds
+        }
+    )"sv,
+        ctx.get());
+
+    EXPECT_NO_THROW(nss3.parse());
+    EXPECT_NO_THROW(nss3.resolve());
+    auto decl3 = nss3.ast().find_last_declaration(7, 19);
+    EXPECT_TRUE(decl3);
+    auto vd3 = dynamic_cast<const nw::script::VarDecl*>(decl3);
+    EXPECT_TRUE(vd3);
+    EXPECT_EQ(vd3->identifier.loc.view(), "s");
+    EXPECT_EQ(vd3->complete("te").size(), 1);
+
+    script::Nss nss4(R"(
+        int test = 1;
+        float f = 2.9;
+
+        void main() {
+            string s = "Hello World";
+            for(int index = 0; index < 10; ++index) {
+                int count = 0;
+                // ...
+                in
+            }
+        }
+    )"sv,
+        ctx.get());
+
+    EXPECT_NO_THROW(nss4.parse());
+    EXPECT_NO_THROW(nss4.resolve());
+    auto decl4 = nss4.ast().find_last_declaration(10, 19);
+    EXPECT_TRUE(decl4);
+    auto vd4 = dynamic_cast<const nw::script::VarDecl*>(decl4);
+    EXPECT_TRUE(vd4);
+    EXPECT_EQ(vd4->identifier.loc.view(), "count");
+    EXPECT_EQ(vd4->complete("ind").size(), 1);
+}

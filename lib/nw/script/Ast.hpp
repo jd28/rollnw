@@ -540,6 +540,9 @@ struct Ast {
 
     /// Finds first comment that the source range of which ends on ``line`` or ``line`` - 1
     std::string_view find_comment(size_t line) const noexcept;
+
+    /// Find last declaration before the specified position
+    const Declaration* find_last_declaration(size_t line, size_t character) const;
 };
 
 } // namespace nw::script

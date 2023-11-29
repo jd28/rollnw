@@ -1,4 +1,4 @@
-from typing import Any, Callable, ClassVar, Iterator, List, Tuple, Set, Sequence
+from typing import Any, Callable, ClassVar, Iterator, List, Tuple, Set, Sequence, Optional
 
 from . import Path, StringVector
 
@@ -387,6 +387,8 @@ class Ast:
     def includes(self) -> List[Include]: ...
     def comments(self) -> Sequence[Comment]: ...
     def find_comment(self, line: int) -> str: ...
+    def find_last_declaration(
+        self, line: int, character: int) -> Optional[Declaration]: ...
 
 
 class Statement(AstNode):

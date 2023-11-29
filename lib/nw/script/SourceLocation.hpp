@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string_view>
+#include <tuple>
 
 namespace nw::script {
 
@@ -8,7 +9,14 @@ namespace nw::script {
 struct SourcePosition {
     size_t line = 0;   ///< Starting line
     size_t column = 0; ///< Starting column
+
+    bool operator==(const SourcePosition& rhs) const = default;
 };
+
+inline bool operator<(const SourcePosition lhs, const SourcePosition rhs)
+{
+    return std::tie(lhs.line, lhs.column) < std::tie(rhs.line, rhs.column);
+}
 
 /// Range of source code
 struct SourceRange {
@@ -36,5 +44,11 @@ struct SourceLocation {
         return std::string_view{start, length()};
     }
 };
+
+inline bool contains_position(SourceRange haystack, SourcePosition needle)
+{
+    return std::tie(haystack.start.line, haystack.start.column) <= std::tie(needle.line, needle.column)
+        && std::tie(haystack.end.line, haystack.end.column) >= std::tie(needle.line, needle.column);
+}
 
 } // namespace nw::script

@@ -1,6 +1,6 @@
 import enum
 from enum import auto
-from typing import List, Sequence
+from typing import List, Sequence, Optional
 
 # Script ######################################################################
 ###############################################################################
@@ -180,6 +180,12 @@ class Ast:
         """Finds first comment that the source range of which ends on ``line`` or ``line`` - 1
         """
         return ""
+
+    def find_last_declaration(self, line: int, character: int) -> Optional["Declaration"]:
+        """Find last declaration before the specified position
+        """
+        return None
+
 
 class Nss:
     """Implementation of nwscript"""
