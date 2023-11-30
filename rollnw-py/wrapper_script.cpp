@@ -220,6 +220,7 @@ void init_script(py::module& nw)
             },
             py::return_value_policy::reference_internal)
         .def("locate_export", &nws::Nss::locate_export, py::return_value_policy::reference_internal)
+        .def("locate_symbol", &nws::Nss::locate_symbol, py::return_value_policy::reference_internal)
         .def("parse", &nws::Nss::parse)
         .def("process_includes", &nws::Nss::process_includes, py::arg("parent") = nullptr)
         .def("resolve", &nws::Nss::resolve)

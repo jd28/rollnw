@@ -1,5 +1,6 @@
 #include "Nss.hpp"
 
+#include "AstLocator.hpp"
 #include "AstResolver.hpp"
 
 extern "C" {
@@ -151,16 +152,26 @@ Symbol Nss::locate_export(const std::string& symbol, bool is_type, bool search_d
 
     if (result.decl || !search_dependencies) { return result; }
 
-    for (const auto it : ast_.includes) {
-        result = it.script->locate_export(symbol, is_type, search_dependencies);
-        if (result.decl) { return result; }
+    if (!is_command_script_ && ctx_->command_script_) {
+        result = ctx_->command_script_->locate_export(symbol, is_type);
     }
 
-    if (!is_command_script_ && ctx_->command_script_) {
-        return ctx_->command_script_->locate_export(symbol, is_type);
+    if (!result.decl) {
+        for (const auto it : ast_.includes) {
+            if (!it.script) { continue; }
+            result = it.script->locate_export(symbol, is_type, search_dependencies);
+            if (result.decl) { return result; }
+        }
     }
 
     return result;
+}
+
+Symbol Nss::locate_symbol(const std::string& symbol, size_t line, size_t character)
+{
+    AstLocator locator{this, symbol, line, character};
+    locator.visit(&ast_);
+    return locator.result_;
 }
 
 std::string_view Nss::name() const noexcept

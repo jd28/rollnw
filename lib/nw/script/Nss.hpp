@@ -38,8 +38,6 @@ struct Symbol {
     std::string type;            ///< Type of the symbol
     SymbolKind kind;             ///< The kind of symbol
     std::string provider;        ///< What script this symbol is from, i.e. "nwscript"
-
-    operator bool() { return !!decl; }
 };
 
 struct Nss {
@@ -80,8 +78,14 @@ struct Nss {
     /// Increments warning count
     void increment_warnings() noexcept { ++warnings_; }
 
+    /// Is script a command script
+    bool is_command_script() const noexcept { return is_command_script_; }
+
     /// Locate export, i.e. a top level symbols
     Symbol locate_export(const std::string& symbol, bool is_type, bool search_dependencies = false);
+
+    /// Locate symbol in source file
+    Symbol locate_symbol(const std::string& symbol, size_t line, size_t character);
 
     /// Script name
     std::string_view name() const noexcept;

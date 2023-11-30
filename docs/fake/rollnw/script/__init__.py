@@ -219,6 +219,11 @@ class Nss:
                       search_dependencies: bool) -> "Symbol":
         """Locate export, i.e. a top level symbols"""
         return Symbol()
+
+    def locate_symbol(self, symbol: str, line: int, character: int) -> "Symbol":
+        """Locate symbol in source file"""
+        return Symbol()
+
     def parse(self):
         """Parses the script"""
         pass

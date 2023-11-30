@@ -1221,6 +1221,7 @@ TEST(Nss, Location)
             string s = "Hello World";
             for(int index = 0; index < 10; ++index) {
                 int count = 0;
+                OBJECT_TYPE_CREATURE;
                 // ...
                 ind
             }
@@ -1238,4 +1239,37 @@ TEST(Nss, Location)
     std::vector<std::string> out4;
     vd4->complete("ind", out4);
     EXPECT_EQ(out4.size(), 1);
+
+    auto sym_info1 = nss4.locate_symbol("index", 7, 36);
+    EXPECT_TRUE(sym_info1.decl);
+    EXPECT_EQ(sym_info1.type, "int");
+
+    auto sym_info2 = nss4.locate_symbol("OBJECT_TYPE_CREATURE", 9, 36);
+    EXPECT_TRUE(sym_info2.decl);
+    EXPECT_EQ(sym_info2.type, "int");
+
+    script::Nss nss5(R"(
+        struct Test {
+            int x;
+        };
+
+        struct Test a_variable;
+        struct Test a_function_decl();
+    )"sv,
+        ctx.get());
+
+    EXPECT_NO_THROW(nss5.parse());
+    EXPECT_NO_THROW(nss5.resolve());
+
+    auto sym_info3 = nss5.locate_symbol("Test", 6, 19);
+    EXPECT_TRUE(sym_info3.decl);
+    EXPECT_EQ(sym_info3.type, "Test");
+
+    auto sym_info4 = nss5.locate_symbol("Test", 7, 19);
+    EXPECT_TRUE(sym_info4.decl);
+    EXPECT_EQ(sym_info4.type, "Test");
+
+    auto sym_info5 = nss5.locate_symbol("Test", 2, 19);
+    EXPECT_TRUE(sym_info5.decl);
+    EXPECT_EQ(sym_info5.type, "Test");
 }
