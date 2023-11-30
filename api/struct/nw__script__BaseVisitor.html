@@ -247,6 +247,7 @@
 <li class="toctree-l2"><a class="reference internal" href="nw__model__TrimeshNode.html">nw::model::TrimeshNode</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__AssignExpression.html">nw::script::AssignExpression</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__Ast.html">nw::script::Ast</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__AstLocator.html">nw::script::AstLocator</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__AstNode.html">nw::script::AstNode</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__AstPrinter.html">nw::script::AstPrinter</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__AstResolver.html">nw::script::AstResolver</a></li>
@@ -286,6 +287,7 @@
 <li class="toctree-l2"><a class="reference internal" href="nw__script__Statement.html">nw::script::Statement</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__StructDecl.html">nw::script::StructDecl</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__SwitchStatement.html">nw::script::SwitchStatement</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__Symbol.html">nw::script::Symbol</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__Type.html">nw::script::Type</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__UnaryExpression.html">nw::script::UnaryExpression</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__VarDecl.html">nw::script::VarDecl</a></li>
@@ -360,7 +362,7 @@
 <dl class="cpp struct">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw6script11BaseVisitorE">
 <span id="_CPPv3N2nw6script11BaseVisitorE"></span><span id="_CPPv2N2nw6script11BaseVisitorE"></span><span id="nw::script::BaseVisitor"></span><span class="target" id="structnw_1_1script_1_1_base_visitor"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">BaseVisitor</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script11BaseVisitorE" title="Permalink to this definition"></a><br /></dt>
-<dd><p>Subclassed by <a class="reference internal" href="nw__script__AstPrinter.html#structnw_1_1script_1_1_ast_printer"><span class="std std-ref">nw::script::AstPrinter</span></a>, <a class="reference internal" href="nw__script__AstResolver.html#structnw_1_1script_1_1_ast_resolver"><span class="std std-ref">nw::script::AstResolver</span></a></p>
+<dd><p>Subclassed by <a class="reference internal" href="nw__script__AstLocator.html#structnw_1_1script_1_1_ast_locator"><span class="std std-ref">nw::script::AstLocator</span></a>, <a class="reference internal" href="nw__script__AstPrinter.html#structnw_1_1script_1_1_ast_printer"><span class="std std-ref">nw::script::AstPrinter</span></a>, <a class="reference internal" href="nw__script__AstResolver.html#structnw_1_1script_1_1_ast_resolver"><span class="std std-ref">nw::script::AstResolver</span></a></p>
 <div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
 <dl class="cpp function">
@@ -464,8 +466,8 @@
 <dd></dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N2nw6script11BaseVisitor5visitEP13DeclStatement">
-<span id="_CPPv3N2nw6script11BaseVisitor5visitEP13DeclStatement"></span><span id="_CPPv2N2nw6script11BaseVisitor5visitEP13DeclStatement"></span><span id="nw::script::BaseVisitor::visit__DeclStatementP"></span><span class="target" id="structnw_1_1script_1_1_base_visitor_1a1e9ed5db58a2bbd0a466d97fb1dc315b"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">visit</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">DeclStatement</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">stmt</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N2nw6script11BaseVisitor5visitEP13DeclStatement" title="Permalink to this definition"></a><br /></dt>
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script11BaseVisitor5visitEP8DeclList">
+<span id="_CPPv3N2nw6script11BaseVisitor5visitEP8DeclList"></span><span id="_CPPv2N2nw6script11BaseVisitor5visitEP8DeclList"></span><span id="nw::script::BaseVisitor::visit__DeclListP"></span><span class="target" id="structnw_1_1script_1_1_base_visitor_1a2e16718698fc8e721dc04f20bf9847e5"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">visit</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">DeclList</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">stmt</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N2nw6script11BaseVisitor5visitEP8DeclList" title="Permalink to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp function">

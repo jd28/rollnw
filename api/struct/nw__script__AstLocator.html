@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>nw::script::AstLocator &mdash; rollNW  documentation</title>
+      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/tabs.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/doctools.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="nw::script::AstNode" href="nw__script__AstNode.html" />
+    <link rel="prev" title="nw::script::Ast" href="nw__script__Ast.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            rollNW
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">getting started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../gs/building.html">building</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gs/using.html">using</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">structure</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../structure/formats.html">formats</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../structure/i18n.html">i18n</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../structure/kernel.html">kernel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../structure/model.html">model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../structure/objects.html">objects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../structure/resources.html">resources</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../structure/rules.html">rules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../structure/script.html">script</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../structure/serialization.html">serialization</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">c++ api</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="../classlist.html">classes</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="nw__Ability.html">nw::Ability</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__AbilityInfo.html">nw::AbilityInfo</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Appearance.html">nw::Appearance</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Area.html">nw::Area</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__AreaScripts.html">nw::AreaScripts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__AreaWeather.html">nw::AreaWeather</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__AttackData.html">nw::AttackData</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__BaseItem.html">nw::BaseItem</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__BeamdogInstall.html">nw::BeamdogInstall</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Bif.html">nw::Bif</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__BodyParts.html">nw::BodyParts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ByteArray.html">nw::ByteArray</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Class.html">nw::Class</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ClassArray.html">nw::ClassArray</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ClassEntry.html">nw::ClassEntry</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ClassInfo.html">nw::ClassInfo</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__CombatInfo.html">nw::CombatInfo</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Common.html">nw::Common</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__CompressionHeader.html">nw::CompressionHeader</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ConfigOptions.html">nw::ConfigOptions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Container.html">nw::Container</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Creature.html">nw::Creature</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__CreatureScripts.html">nw::CreatureScripts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__CreatureStats.html">nw::CreatureStats</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__DamageResult.html">nw::DamageResult</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__DamageRoll.html">nw::DamageRoll</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Dialog.html">nw::Dialog</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__DialogNode.html">nw::DialogNode</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__DialogPtr.html">nw::DialogPtr</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__DiceRoll.html">nw::DiceRoll</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Directory.html">nw::Directory</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Disease.html">nw::Disease</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Door.html">nw::Door</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__DoorScripts.html">nw::DoorScripts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Effect.html">nw::Effect</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__EffectArray.html">nw::EffectArray</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__EffectHandle.html">nw::EffectHandle</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Encounter.html">nw::Encounter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__EncounterScripts.html">nw::EncounterScripts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Equips.html">nw::Equips</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Erf.html">nw::Erf</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Faction.html">nw::Faction</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__FactionInfo.html">nw::FactionInfo</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Feat.html">nw::Feat</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__FeatInfo.html">nw::FeatInfo</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__GameProfile.html">nw::GameProfile</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Gff.html">nw::Gff</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__GffBuilder.html">nw::GffBuilder</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__GffBuilderField.html">nw::GffBuilderField</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__GffBuilderList.html">nw::GffBuilderList</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__GffBuilderStruct.html">nw::GffBuilderStruct</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__GffField.html">nw::GffField</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__GffLabel.html">nw::GffLabel</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__GffStruct.html">nw::GffStruct</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Image.html">nw::Image</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Ini.html">nw::Ini</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__InstallInfo.html">nw::InstallInfo</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__InternedString.html">nw::InternedString</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Inventory.html">nw::Inventory</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__InventoryItem.html">nw::InventoryItem</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Item.html">nw::Item</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ItemColors.html">nw::ItemColors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ItemModelParts.html">nw::ItemModelParts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ItemProperty.html">nw::ItemProperty</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Journal.html">nw::Journal</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__JournalCategory.html">nw::JournalCategory</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__JournalEntry.html">nw::JournalEntry</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Key.html">nw::Key</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Language.html">nw::Language</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Language__Properties.html">nw::Language::Properties</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__LevelHistory.html">nw::LevelHistory</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__LevelHistoryEntry.html">nw::LevelHistoryEntry</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__LevelStats.html">nw::LevelStats</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__LocString.html">nw::LocString</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__LocalData.html">nw::LocalData</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__LocalVar.html">nw::LocalVar</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__LocalVarType.html">nw::LocalVarType</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Location.html">nw::Location</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Lock.html">nw::Lock</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__MasterFeat.html">nw::MasterFeat</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__MasterFeatRegistry.html">nw::MasterFeatRegistry</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Modifier.html">nw::Modifier</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ModifierRegistry.html">nw::ModifierRegistry</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ModifierType.html">nw::ModifierType</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Module.html">nw::Module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ModuleScripts.html">nw::ModuleScripts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__NWSync.html">nw::NWSync</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__NWSyncManifest.html">nw::NWSyncManifest</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Null.html">nw::Null</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Palette.html">nw::Palette</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__PaletteTreeNode.html">nw::PaletteTreeNode</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Placeable.html">nw::Placeable</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__PlaceableScripts.html">nw::PlaceableScripts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Player.html">nw::Player</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Plt.html">nw::Plt</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__PltColors.html">nw::PltColors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__PltPixel.html">nw::PltPixel</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Qualifier.html">nw::Qualifier</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Race.html">nw::Race</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__RaceInfo.html">nw::RaceInfo</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Reputation.html">nw::Reputation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Requirement.html">nw::Requirement</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Resource.html">nw::Resource</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ResourceDescriptor.html">nw::ResourceDescriptor</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ResourceType.html">nw::ResourceType</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Resref.html">nw::Resref</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__RuleFlag.html">nw::RuleFlag</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__RuleTypeArray.html">nw::RuleTypeArray</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Save.html">nw::Save</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Saves.html">nw::Saves</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Selector.html">nw::Selector</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__SerializationType.html">nw::SerializationType</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Situation.html">nw::Situation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Skill.html">nw::Skill</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__SkillInfo.html">nw::SkillInfo</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Sound.html">nw::Sound</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__SpawnCreature.html">nw::SpawnCreature</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__SpawnPoint.html">nw::SpawnPoint</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__SpecialAbility.html">nw::SpecialAbility</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Spell.html">nw::Spell</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__SpellBook.html">nw::SpellBook</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__SpellEntry.html">nw::SpellEntry</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__SpellInfo.html">nw::SpellInfo</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Store.html">nw::Store</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__StoreInventory.html">nw::StoreInventory</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__StoreScripts.html">nw::StoreScripts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Tile.html">nw::Tile</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Tlk.html">nw::Tlk</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__TlkElement.html">nw::TlkElement</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__TlkFlags.html">nw::TlkFlags</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__TlkHeader.html">nw::TlkHeader</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Tokenizer.html">nw::Tokenizer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Trap.html">nw::Trap</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Trigger.html">nw::Trigger</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__TriggerScripts.html">nw::TriggerScripts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__TwoDA.html">nw::TwoDA</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__TwoDACache.html">nw::TwoDACache</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Variant.html">nw::Variant</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Versus.html">nw::Versus</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Waypoint.html">nw::Waypoint</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Zip.html">nw::Zip</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ZipElement.html">nw::ZipElement</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ZlibHeader.html">nw::ZlibHeader</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ZstdHeader.html">nw::ZstdHeader</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__kernel__Config.html">nw::kernel::Config</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__kernel__EffectSystem.html">nw::kernel::EffectSystem</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__kernel__EventSystem.html">nw::kernel::EventSystem</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__kernel__ObjectSystem.html">nw::kernel::ObjectSystem</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__kernel__Resources.html">nw::kernel::Resources</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__kernel__Rules.html">nw::kernel::Rules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__kernel__ScriptSystem.html">nw::kernel::ScriptSystem</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__kernel__Service.html">nw::kernel::Service</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__kernel__Services.html">nw::kernel::Services</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__kernel__Strings.html">nw::kernel::Strings</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__model__AABBEntry.html">nw::model::AABBEntry</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__model__AABBNode.html">nw::model::AABBNode</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__model__Animation.html">nw::model::Animation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__model__AnimationEvent.html">nw::model::AnimationEvent</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__model__AnimeshNode.html">nw::model::AnimeshNode</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__model__CameraNode.html">nw::model::CameraNode</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__model__ControllerKey.html">nw::model::ControllerKey</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__model__ControllerType.html">nw::model::ControllerType</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__model__DanglymeshNode.html">nw::model::DanglymeshNode</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__model__DummyNode.html">nw::model::DummyNode</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__model__EmitterFlag.html">nw::model::EmitterFlag</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__model__EmitterNode.html">nw::model::EmitterNode</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__model__Face.html">nw::model::Face</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__model__Geometry.html">nw::model::Geometry</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__model__GeometryFlag.html">nw::model::GeometryFlag</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__model__GeometryType.html">nw::model::GeometryType</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__model__LightNode.html">nw::model::LightNode</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__model__Mdl.html">nw::model::Mdl</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__model__MdlTextParser.html">nw::model::TextParser</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__model__Model.html">nw::model::Model</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__model__ModelClass.html">nw::model::ModelClass</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__model__Node.html">nw::model::Node</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__model__NodeFlags.html">nw::model::NodeFlags</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__model__NodeTypes.html">nw::model::NodeType</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__model__PatchNode.html">nw::model::PatchNode</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__model__ReferenceNode.html">nw::model::ReferenceNode</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__model__SkinNode.html">nw::model::SkinNode</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__model__SkinWeight.html">nw::model::SkinWeight</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__model__TriangleMode.html">nw::model::TriangleMode</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__model__TrimeshNode.html">nw::model::TrimeshNode</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__AssignExpression.html">nw::script::AssignExpression</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__Ast.html">nw::script::Ast</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">nw::script::AstLocator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__AstNode.html">nw::script::AstNode</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__AstPrinter.html">nw::script::AstPrinter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__AstResolver.html">nw::script::AstResolver</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__BaseVisitor.html">nw::script::BaseVisitor</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__BinaryExpression.html">nw::script::BinaryExpression</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__BlockStatement.html">nw::script::BlockStatement</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__CallExpression.html">nw::script::CallExpression</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__Comment.html">nw::script::Comment</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__ConditionalExpression.html">nw::script::ConditionalExpression</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__Context.html">nw::script::Context</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__Declaration.html">nw::script::Declaration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__Diagnostic.html">nw::script::Diagnostic</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__DoStatement.html">nw::script::DoStatement</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__DotExpression.html">nw::script::DotExpression</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__ExprStatement.html">nw::script::ExprStatement</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__Expression.html">nw::script::Expression</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__ForStatement.html">nw::script::ForStatement</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__FunctionDecl.html">nw::script::FunctionDecl</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__FunctionDefinition.html">nw::script::FunctionDefinition</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__GroupingExpression.html">nw::script::GroupingExpression</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__IfStatement.html">nw::script::IfStatement</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__Include.html">nw::script::Include</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__JumpStatement.html">nw::script::JumpStatement</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__LabelStatement.html">nw::script::LabelStatement</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__LiteralExpression.html">nw::script::LiteralExpression</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__LiteralVectorExpression.html">nw::script::LiteralVectorExpression</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__LogicalExpression.html">nw::script::LogicalExpression</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__LspContext.html">nw::script::LspContext</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__Nss.html">nw::script::Nss</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__NssLexer.html">nw::script::NssLexer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__NssParser.html">nw::script::NssParser</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__NssToken.html">nw::script::NssToken</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__PostfixExpression.html">nw::script::PostfixExpression</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__SourceLocation.html">nw::script::SourceLocation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__SourcePosition.html">nw::script::SourcePosition</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__SourceRange.html">nw::script::SourceRange</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__Statement.html">nw::script::Statement</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__StructDecl.html">nw::script::StructDecl</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__SwitchStatement.html">nw::script::SwitchStatement</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__Symbol.html">nw::script::Symbol</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__Type.html">nw::script::Type</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__UnaryExpression.html">nw::script::UnaryExpression</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__VarDecl.html">nw::script::VarDecl</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__VariableExpression.html">nw::script::VariableExpression</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__WhileStatement.html">nw::script::WhileStatement</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nwn1__Profile.html">nwn1::Profile</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../definelist.html">defines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../enumlist.html">enums</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../functionlist.html">functions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../typedeflist.html">typedefs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">python api</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../api_python/rollnw.html">rollnw</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api_python/rollnw_kernel.html">rollnw.kernel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api_python/rollnw_model.html">rollnw.model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api_python/rollnw_nwn1.html">rollnw.nwn1</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api_python/rollnw_script.html">rollnw.script</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">gff schemas</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/are.html">are</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/bic.html">bic</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/dlg.html">dlg</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/fac.html">fac</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/gic.html">gic</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/git.html">git</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/ifo.html">ifo</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/itp.html">itp</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/jrl.html">jrl</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/utc.html">utc</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/utd.html">utd</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/ute.html">ute</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/uti.html">uti</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/utm.html">utm</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/utp.html">utp</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/uts.html">uts</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/utt.html">utt</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/utw.html">utw</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/vartable.html">vartable</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">rollNW</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../classlist.html">classes</a></li>
+      <li class="breadcrumb-item active">nw::script::AstLocator</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/api/struct/nw__script__AstLocator.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <div class="section" id="nw-script-astlocator">
+<h1>nw::script::AstLocator<a class="headerlink" href="#nw-script-astlocator" title="Permalink to this headline"></a></h1>
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script10AstLocatorE">
+<span id="_CPPv3N2nw6script10AstLocatorE"></span><span id="_CPPv2N2nw6script10AstLocatorE"></span><span id="nw::script::AstLocator"></span><span class="target" id="structnw_1_1script_1_1_ast_locator"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">AstLocator</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><span class="n"><span class="pre">nw</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">script</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="nw__script__BaseVisitor.html#_CPPv4N2nw6script11BaseVisitorE" title="nw::script::BaseVisitor"><span class="n"><span class="pre">BaseVisitor</span></span></a><a class="headerlink" href="#_CPPv4N2nw6script10AstLocatorE" title="Permalink to this definition"></a><br /></dt>
+<dd><div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script10AstLocator10AstLocatorEP3NssNSt6stringE6size_t6size_t">
+<span id="_CPPv3N2nw6script10AstLocator10AstLocatorEP3NssNSt6stringE6size_t6size_t"></span><span id="_CPPv2N2nw6script10AstLocator10AstLocatorEP3NssNSt6stringE6size_t6size_t"></span><span id="nw::script::AstLocator::AstLocator__NssP.ss.s.s"></span><span class="target" id="structnw_1_1script_1_1_ast_locator_1a6fcc154421e7168c87604e8e21105a41"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">AstLocator</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="nw__script__Nss.html#_CPPv4N2nw6script3NssE" title="nw::script::Nss"><span class="n"><span class="pre">Nss</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">parent</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">symbol</span></span>, <span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">line</span></span>, <span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">character</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6script10AstLocator10AstLocatorEP3NssNSt6stringE6size_t6size_t" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script10AstLocator22locate_in_dependenciesEv">
+<span id="_CPPv3N2nw6script10AstLocator22locate_in_dependenciesEv"></span><span id="_CPPv2N2nw6script10AstLocator22locate_in_dependenciesEv"></span><span id="nw::script::AstLocator::locate_in_dependencies"></span><span class="target" id="structnw_1_1script_1_1_ast_locator_1ac900c1b6ef57dd0d67e6bc8b5347d053"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">locate_in_dependencies</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6script10AstLocator22locate_in_dependenciesEv" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script10AstLocator5visitEP3Ast">
+<span id="_CPPv3N2nw6script10AstLocator5visitEP3Ast"></span><span id="_CPPv2N2nw6script10AstLocator5visitEP3Ast"></span><span id="nw::script::AstLocator::visit__AstP"></span><span class="target" id="structnw_1_1script_1_1_ast_locator_1a1e744ea6714d3026aba08faa625db688"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">visit</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="nw__script__Ast.html#_CPPv4N2nw6script3AstE" title="nw::script::Ast"><span class="n"><span class="pre">Ast</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">script</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6script10AstLocator5visitEP3Ast" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script10AstLocator5visitEP12FunctionDecl">
+<span id="_CPPv3N2nw6script10AstLocator5visitEP12FunctionDecl"></span><span id="_CPPv2N2nw6script10AstLocator5visitEP12FunctionDecl"></span><span id="nw::script::AstLocator::visit__FunctionDeclP"></span><span class="target" id="structnw_1_1script_1_1_ast_locator_1af1e355574cc5f1fa07dc23f8af75d67e"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">visit</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="nw__script__FunctionDecl.html#_CPPv4N2nw6script12FunctionDeclE" title="nw::script::FunctionDecl"><span class="n"><span class="pre">FunctionDecl</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">decl</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6script10AstLocator5visitEP12FunctionDecl" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script10AstLocator5visitEP18FunctionDefinition">
+<span id="_CPPv3N2nw6script10AstLocator5visitEP18FunctionDefinition"></span><span id="_CPPv2N2nw6script10AstLocator5visitEP18FunctionDefinition"></span><span id="nw::script::AstLocator::visit__FunctionDefinitionP"></span><span class="target" id="structnw_1_1script_1_1_ast_locator_1aedd8d1989e142317839d5a50165a235c"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">visit</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="nw__script__FunctionDefinition.html#_CPPv4N2nw6script18FunctionDefinitionE" title="nw::script::FunctionDefinition"><span class="n"><span class="pre">FunctionDefinition</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">decl</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6script10AstLocator5visitEP18FunctionDefinition" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script10AstLocator5visitEP10StructDecl">
+<span id="_CPPv3N2nw6script10AstLocator5visitEP10StructDecl"></span><span id="_CPPv2N2nw6script10AstLocator5visitEP10StructDecl"></span><span id="nw::script::AstLocator::visit__StructDeclP"></span><span class="target" id="structnw_1_1script_1_1_ast_locator_1a969324b55e535c0171eec64c325a8e4f"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">visit</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="nw__script__StructDecl.html#_CPPv4N2nw6script10StructDeclE" title="nw::script::StructDecl"><span class="n"><span class="pre">StructDecl</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">decl</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6script10AstLocator5visitEP10StructDecl" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script10AstLocator5visitEP7VarDecl">
+<span id="_CPPv3N2nw6script10AstLocator5visitEP7VarDecl"></span><span id="_CPPv2N2nw6script10AstLocator5visitEP7VarDecl"></span><span id="nw::script::AstLocator::visit__VarDeclP"></span><span class="target" id="structnw_1_1script_1_1_ast_locator_1aae029c35a1987298dfc6f2a7be28a0c6"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">visit</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="nw__script__VarDecl.html#_CPPv4N2nw6script7VarDeclE" title="nw::script::VarDecl"><span class="n"><span class="pre">VarDecl</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">decl</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6script10AstLocator5visitEP7VarDecl" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script10AstLocator5visitEP16AssignExpression">
+<span id="_CPPv3N2nw6script10AstLocator5visitEP16AssignExpression"></span><span id="_CPPv2N2nw6script10AstLocator5visitEP16AssignExpression"></span><span id="nw::script::AstLocator::visit__AssignExpressionP"></span><span class="target" id="structnw_1_1script_1_1_ast_locator_1a677e8825ba273e15dc76f2f165adec53"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">visit</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="nw__script__AssignExpression.html#_CPPv4N2nw6script16AssignExpressionE" title="nw::script::AssignExpression"><span class="n"><span class="pre">AssignExpression</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">expr</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6script10AstLocator5visitEP16AssignExpression" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script10AstLocator5visitEP16BinaryExpression">
+<span id="_CPPv3N2nw6script10AstLocator5visitEP16BinaryExpression"></span><span id="_CPPv2N2nw6script10AstLocator5visitEP16BinaryExpression"></span><span id="nw::script::AstLocator::visit__BinaryExpressionP"></span><span class="target" id="structnw_1_1script_1_1_ast_locator_1a20423b79fc65ab83e8c07ba6833a655a"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">visit</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="nw__script__BinaryExpression.html#_CPPv4N2nw6script16BinaryExpressionE" title="nw::script::BinaryExpression"><span class="n"><span class="pre">BinaryExpression</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">expr</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6script10AstLocator5visitEP16BinaryExpression" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script10AstLocator5visitEP14CallExpression">
+<span id="_CPPv3N2nw6script10AstLocator5visitEP14CallExpression"></span><span id="_CPPv2N2nw6script10AstLocator5visitEP14CallExpression"></span><span id="nw::script::AstLocator::visit__CallExpressionP"></span><span class="target" id="structnw_1_1script_1_1_ast_locator_1a728dd9c753017af5d130f8bc63dd3222"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">visit</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="nw__script__CallExpression.html#_CPPv4N2nw6script14CallExpressionE" title="nw::script::CallExpression"><span class="n"><span class="pre">CallExpression</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">expr</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6script10AstLocator5visitEP14CallExpression" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script10AstLocator5visitEP20ComparisonExpression">
+<span id="_CPPv3N2nw6script10AstLocator5visitEP20ComparisonExpression"></span><span id="_CPPv2N2nw6script10AstLocator5visitEP20ComparisonExpression"></span><span id="nw::script::AstLocator::visit__ComparisonExpressionP"></span><span class="target" id="structnw_1_1script_1_1_ast_locator_1a8bb1e276a66002bc4c7ed1ec00923ccf"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">visit</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">ComparisonExpression</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">expr</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6script10AstLocator5visitEP20ComparisonExpression" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script10AstLocator5visitEP21ConditionalExpression">
+<span id="_CPPv3N2nw6script10AstLocator5visitEP21ConditionalExpression"></span><span id="_CPPv2N2nw6script10AstLocator5visitEP21ConditionalExpression"></span><span id="nw::script::AstLocator::visit__ConditionalExpressionP"></span><span class="target" id="structnw_1_1script_1_1_ast_locator_1a7dfff2a8881d95e0cef7af67b5be26a3"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">visit</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="nw__script__ConditionalExpression.html#_CPPv4N2nw6script21ConditionalExpressionE" title="nw::script::ConditionalExpression"><span class="n"><span class="pre">ConditionalExpression</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">expr</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6script10AstLocator5visitEP21ConditionalExpression" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script10AstLocator5visitEP13DotExpression">
+<span id="_CPPv3N2nw6script10AstLocator5visitEP13DotExpression"></span><span id="_CPPv2N2nw6script10AstLocator5visitEP13DotExpression"></span><span id="nw::script::AstLocator::visit__DotExpressionP"></span><span class="target" id="structnw_1_1script_1_1_ast_locator_1af05002d88622965db6279437bb2f7416"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">visit</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="nw__script__DotExpression.html#_CPPv4N2nw6script13DotExpressionE" title="nw::script::DotExpression"><span class="n"><span class="pre">DotExpression</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">expr</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6script10AstLocator5visitEP13DotExpression" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script10AstLocator5visitEP18GroupingExpression">
+<span id="_CPPv3N2nw6script10AstLocator5visitEP18GroupingExpression"></span><span id="_CPPv2N2nw6script10AstLocator5visitEP18GroupingExpression"></span><span id="nw::script::AstLocator::visit__GroupingExpressionP"></span><span class="target" id="structnw_1_1script_1_1_ast_locator_1a18fc7044da3a3696effec23f4298a3c0"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">visit</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="nw__script__GroupingExpression.html#_CPPv4N2nw6script18GroupingExpressionE" title="nw::script::GroupingExpression"><span class="n"><span class="pre">GroupingExpression</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">expr</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6script10AstLocator5visitEP18GroupingExpression" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script10AstLocator5visitEP17LiteralExpression">
+<span id="_CPPv3N2nw6script10AstLocator5visitEP17LiteralExpression"></span><span id="_CPPv2N2nw6script10AstLocator5visitEP17LiteralExpression"></span><span id="nw::script::AstLocator::visit__LiteralExpressionP"></span><span class="target" id="structnw_1_1script_1_1_ast_locator_1ad7d400756baa93407bc2bb903483de26"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">visit</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="nw__script__LiteralExpression.html#_CPPv4N2nw6script17LiteralExpressionE" title="nw::script::LiteralExpression"><span class="n"><span class="pre">LiteralExpression</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">expr</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6script10AstLocator5visitEP17LiteralExpression" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script10AstLocator5visitEP23LiteralVectorExpression">
+<span id="_CPPv3N2nw6script10AstLocator5visitEP23LiteralVectorExpression"></span><span id="_CPPv2N2nw6script10AstLocator5visitEP23LiteralVectorExpression"></span><span id="nw::script::AstLocator::visit__LiteralVectorExpressionP"></span><span class="target" id="structnw_1_1script_1_1_ast_locator_1a7ba776904b6a79a34cd8980b634c4292"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">visit</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="nw__script__LiteralVectorExpression.html#_CPPv4N2nw6script23LiteralVectorExpressionE" title="nw::script::LiteralVectorExpression"><span class="n"><span class="pre">LiteralVectorExpression</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">expr</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6script10AstLocator5visitEP23LiteralVectorExpression" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script10AstLocator5visitEP17LogicalExpression">
+<span id="_CPPv3N2nw6script10AstLocator5visitEP17LogicalExpression"></span><span id="_CPPv2N2nw6script10AstLocator5visitEP17LogicalExpression"></span><span id="nw::script::AstLocator::visit__LogicalExpressionP"></span><span class="target" id="structnw_1_1script_1_1_ast_locator_1a822a26a431517927ede880ee79739a1b"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">visit</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="nw__script__LogicalExpression.html#_CPPv4N2nw6script17LogicalExpressionE" title="nw::script::LogicalExpression"><span class="n"><span class="pre">LogicalExpression</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">expr</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6script10AstLocator5visitEP17LogicalExpression" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script10AstLocator5visitEP17PostfixExpression">
+<span id="_CPPv3N2nw6script10AstLocator5visitEP17PostfixExpression"></span><span id="_CPPv2N2nw6script10AstLocator5visitEP17PostfixExpression"></span><span id="nw::script::AstLocator::visit__PostfixExpressionP"></span><span class="target" id="structnw_1_1script_1_1_ast_locator_1a8542d0b27c5ed1b61b18eee54978468f"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">visit</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="nw__script__PostfixExpression.html#_CPPv4N2nw6script17PostfixExpressionE" title="nw::script::PostfixExpression"><span class="n"><span class="pre">PostfixExpression</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">expr</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6script10AstLocator5visitEP17PostfixExpression" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script10AstLocator5visitEP15UnaryExpression">
+<span id="_CPPv3N2nw6script10AstLocator5visitEP15UnaryExpression"></span><span id="_CPPv2N2nw6script10AstLocator5visitEP15UnaryExpression"></span><span id="nw::script::AstLocator::visit__UnaryExpressionP"></span><span class="target" id="structnw_1_1script_1_1_ast_locator_1ad63f528305fad9ae2dd58f6b7b4b2626"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">visit</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="nw__script__UnaryExpression.html#_CPPv4N2nw6script15UnaryExpressionE" title="nw::script::UnaryExpression"><span class="n"><span class="pre">UnaryExpression</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">expr</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6script10AstLocator5visitEP15UnaryExpression" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script10AstLocator5visitEP18VariableExpression">
+<span id="_CPPv3N2nw6script10AstLocator5visitEP18VariableExpression"></span><span id="_CPPv2N2nw6script10AstLocator5visitEP18VariableExpression"></span><span id="nw::script::AstLocator::visit__VariableExpressionP"></span><span class="target" id="structnw_1_1script_1_1_ast_locator_1af09516479436b4f451b456eba7e0d9fd"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">visit</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="nw__script__VariableExpression.html#_CPPv4N2nw6script18VariableExpressionE" title="nw::script::VariableExpression"><span class="n"><span class="pre">VariableExpression</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">expr</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6script10AstLocator5visitEP18VariableExpression" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script10AstLocator5visitEP14BlockStatement">
+<span id="_CPPv3N2nw6script10AstLocator5visitEP14BlockStatement"></span><span id="_CPPv2N2nw6script10AstLocator5visitEP14BlockStatement"></span><span id="nw::script::AstLocator::visit__BlockStatementP"></span><span class="target" id="structnw_1_1script_1_1_ast_locator_1a5c1246b8768e72b33bb59d2afbe7b2b6"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">visit</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="nw__script__BlockStatement.html#_CPPv4N2nw6script14BlockStatementE" title="nw::script::BlockStatement"><span class="n"><span class="pre">BlockStatement</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">stmt</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6script10AstLocator5visitEP14BlockStatement" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script10AstLocator5visitEP8DeclList">
+<span id="_CPPv3N2nw6script10AstLocator5visitEP8DeclList"></span><span id="_CPPv2N2nw6script10AstLocator5visitEP8DeclList"></span><span id="nw::script::AstLocator::visit__DeclListP"></span><span class="target" id="structnw_1_1script_1_1_ast_locator_1aa7ed358b11b01624c26630ddb43cd333"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">visit</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">DeclList</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">stmt</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6script10AstLocator5visitEP8DeclList" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script10AstLocator5visitEP11DoStatement">
+<span id="_CPPv3N2nw6script10AstLocator5visitEP11DoStatement"></span><span id="_CPPv2N2nw6script10AstLocator5visitEP11DoStatement"></span><span id="nw::script::AstLocator::visit__DoStatementP"></span><span class="target" id="structnw_1_1script_1_1_ast_locator_1a3159f81473331c9f351648394012337e"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">visit</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="nw__script__DoStatement.html#_CPPv4N2nw6script11DoStatementE" title="nw::script::DoStatement"><span class="n"><span class="pre">DoStatement</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">stmt</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6script10AstLocator5visitEP11DoStatement" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script10AstLocator5visitEP14EmptyStatement">
+<span id="_CPPv3N2nw6script10AstLocator5visitEP14EmptyStatement"></span><span id="_CPPv2N2nw6script10AstLocator5visitEP14EmptyStatement"></span><span id="nw::script::AstLocator::visit__EmptyStatementP"></span><span class="target" id="structnw_1_1script_1_1_ast_locator_1a6f0b63e1c74fcd22961866ce16d997e4"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">visit</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">EmptyStatement</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">stmt</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6script10AstLocator5visitEP14EmptyStatement" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script10AstLocator5visitEP13ExprStatement">
+<span id="_CPPv3N2nw6script10AstLocator5visitEP13ExprStatement"></span><span id="_CPPv2N2nw6script10AstLocator5visitEP13ExprStatement"></span><span id="nw::script::AstLocator::visit__ExprStatementP"></span><span class="target" id="structnw_1_1script_1_1_ast_locator_1a17d0ec5e053cc4888a4dbc78b0c82630"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">visit</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="nw__script__ExprStatement.html#_CPPv4N2nw6script13ExprStatementE" title="nw::script::ExprStatement"><span class="n"><span class="pre">ExprStatement</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">stmt</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6script10AstLocator5visitEP13ExprStatement" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script10AstLocator5visitEP11IfStatement">
+<span id="_CPPv3N2nw6script10AstLocator5visitEP11IfStatement"></span><span id="_CPPv2N2nw6script10AstLocator5visitEP11IfStatement"></span><span id="nw::script::AstLocator::visit__IfStatementP"></span><span class="target" id="structnw_1_1script_1_1_ast_locator_1a1575d725537909523416739d761ccb24"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">visit</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="nw__script__IfStatement.html#_CPPv4N2nw6script11IfStatementE" title="nw::script::IfStatement"><span class="n"><span class="pre">IfStatement</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">stmt</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6script10AstLocator5visitEP11IfStatement" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script10AstLocator5visitEP12ForStatement">
+<span id="_CPPv3N2nw6script10AstLocator5visitEP12ForStatement"></span><span id="_CPPv2N2nw6script10AstLocator5visitEP12ForStatement"></span><span id="nw::script::AstLocator::visit__ForStatementP"></span><span class="target" id="structnw_1_1script_1_1_ast_locator_1aa137b7cf5a335cda6e9a65c30aad3c4d"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">visit</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="nw__script__ForStatement.html#_CPPv4N2nw6script12ForStatementE" title="nw::script::ForStatement"><span class="n"><span class="pre">ForStatement</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">stmt</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6script10AstLocator5visitEP12ForStatement" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script10AstLocator5visitEP13JumpStatement">
+<span id="_CPPv3N2nw6script10AstLocator5visitEP13JumpStatement"></span><span id="_CPPv2N2nw6script10AstLocator5visitEP13JumpStatement"></span><span id="nw::script::AstLocator::visit__JumpStatementP"></span><span class="target" id="structnw_1_1script_1_1_ast_locator_1ae4e9715d037fc99c710b4f0a054071bf"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">visit</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="nw__script__JumpStatement.html#_CPPv4N2nw6script13JumpStatementE" title="nw::script::JumpStatement"><span class="n"><span class="pre">JumpStatement</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">stmt</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6script10AstLocator5visitEP13JumpStatement" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script10AstLocator5visitEP14LabelStatement">
+<span id="_CPPv3N2nw6script10AstLocator5visitEP14LabelStatement"></span><span id="_CPPv2N2nw6script10AstLocator5visitEP14LabelStatement"></span><span id="nw::script::AstLocator::visit__LabelStatementP"></span><span class="target" id="structnw_1_1script_1_1_ast_locator_1ace5527b975d7158b3f02da972fd450fe"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">visit</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="nw__script__LabelStatement.html#_CPPv4N2nw6script14LabelStatementE" title="nw::script::LabelStatement"><span class="n"><span class="pre">LabelStatement</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">stmt</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6script10AstLocator5visitEP14LabelStatement" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script10AstLocator5visitEP15SwitchStatement">
+<span id="_CPPv3N2nw6script10AstLocator5visitEP15SwitchStatement"></span><span id="_CPPv2N2nw6script10AstLocator5visitEP15SwitchStatement"></span><span id="nw::script::AstLocator::visit__SwitchStatementP"></span><span class="target" id="structnw_1_1script_1_1_ast_locator_1ab583c5d4adfb9b380bf939e51e3486cb"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">visit</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="nw__script__SwitchStatement.html#_CPPv4N2nw6script15SwitchStatementE" title="nw::script::SwitchStatement"><span class="n"><span class="pre">SwitchStatement</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">stmt</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6script10AstLocator5visitEP15SwitchStatement" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script10AstLocator5visitEP14WhileStatement">
+<span id="_CPPv3N2nw6script10AstLocator5visitEP14WhileStatement"></span><span id="_CPPv2N2nw6script10AstLocator5visitEP14WhileStatement"></span><span id="nw::script::AstLocator::visit__WhileStatementP"></span><span class="target" id="structnw_1_1script_1_1_ast_locator_1aa88dbb335130df6f3b90725312571e50"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">visit</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="nw__script__WhileStatement.html#_CPPv4N2nw6script14WhileStatementE" title="nw::script::WhileStatement"><span class="n"><span class="pre">WhileStatement</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">stmt</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6script10AstLocator5visitEP14WhileStatement" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script10AstLocator7parent_E">
+<span id="_CPPv3N2nw6script10AstLocator7parent_E"></span><span id="_CPPv2N2nw6script10AstLocator7parent_E"></span><span id="nw::script::AstLocator::parent___NssP"></span><span class="target" id="structnw_1_1script_1_1_ast_locator_1a1639acd634ae56140404aebaefe74482"></span><a class="reference internal" href="nw__script__Nss.html#_CPPv4N2nw6script3NssE" title="nw::script::Nss"><span class="n"><span class="pre">Nss</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">parent_</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">nullptr</span></span><a class="headerlink" href="#_CPPv4N2nw6script10AstLocator7parent_E" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script10AstLocator4pos_E">
+<span id="_CPPv3N2nw6script10AstLocator4pos_E"></span><span id="_CPPv2N2nw6script10AstLocator4pos_E"></span><span id="nw::script::AstLocator::pos___SourcePosition"></span><span class="target" id="structnw_1_1script_1_1_ast_locator_1abe453a5293198e9dd2b6a2089ac8c2fe"></span><a class="reference internal" href="nw__script__SourcePosition.html#_CPPv4N2nw6script14SourcePositionE" title="nw::script::SourcePosition"><span class="n"><span class="pre">SourcePosition</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">pos_</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script10AstLocator4pos_E" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script10AstLocator7symbol_E">
+<span id="_CPPv3N2nw6script10AstLocator7symbol_E"></span><span id="_CPPv2N2nw6script10AstLocator7symbol_E"></span><span id="nw::script::AstLocator::symbol___ss"></span><span class="target" id="structnw_1_1script_1_1_ast_locator_1ab68ff4a50bd94ffe4a7977c4b30961f2"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">symbol_</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script10AstLocator7symbol_E" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script10AstLocator6found_E">
+<span id="_CPPv3N2nw6script10AstLocator6found_E"></span><span id="_CPPv2N2nw6script10AstLocator6found_E"></span><span id="nw::script::AstLocator::found___b"></span><span class="target" id="structnw_1_1script_1_1_ast_locator_1aaf355e61d4486bca9670f3c92509130c"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">found_</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">false</span></span><a class="headerlink" href="#_CPPv4N2nw6script10AstLocator6found_E" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6script10AstLocator7result_E">
+<span id="_CPPv3N2nw6script10AstLocator7result_E"></span><span id="_CPPv2N2nw6script10AstLocator7result_E"></span><span id="nw::script::AstLocator::result___Symbol"></span><span class="target" id="structnw_1_1script_1_1_ast_locator_1a1cae16a4d1bdc92415294c57033d37fa"></span><a class="reference internal" href="nw__script__Symbol.html#_CPPv4N2nw6script6SymbolE" title="nw::script::Symbol"><span class="n"><span class="pre">Symbol</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">result_</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script10AstLocator7result_E" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+</div>
+</dd></dl>
+
+</div>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="nw__script__Ast.html" class="btn btn-neutral float-left" title="nw::script::Ast" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="nw__script__AstNode.html" class="btn btn-neutral float-right" title="nw::script::AstNode" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright .</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
