@@ -80,8 +80,8 @@ struct Nss {
     /// Increments warning count
     void increment_warnings() noexcept { ++warnings_; }
 
-    /// Locate export
-    Declaration* locate_export(const std::string& name, bool is_type, bool search_dependencies = false);
+    /// Locate export, i.e. a top level symbols
+    Symbol locate_export(const std::string& symbol, bool is_type, bool search_dependencies = false);
 
     /// Script name
     std::string_view name() const noexcept;

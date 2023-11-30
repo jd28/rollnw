@@ -44,9 +44,9 @@ TEST(Nss, ParseNwscript)
     EXPECT_NO_THROW(nss.parse());
     EXPECT_NO_THROW(nss.resolve());
     EXPECT_TRUE(nss.errors() == 0);
-    auto decl = nss.locate_export("IntToString", false);
-    EXPECT_NE(decl, nullptr);
-    auto d = dynamic_cast<nw::script::FunctionDecl*>(decl);
+    auto sym = nss.locate_export("IntToString", false);
+    EXPECT_NE(sym.decl, nullptr);
+    auto d = dynamic_cast<nw::script::FunctionDecl*>(sym.decl);
     if (d) {
         EXPECT_EQ(d->identifier.loc.view(), "IntToString");
         EXPECT_EQ(d->type_id_, nss.ctx()->type_id("string"));
@@ -67,16 +67,16 @@ TEST(Nss, ParseNwscript)
     EXPECT_EQ(nss2.errors(), 0);
 
     // Env
-    auto decl2 = nss.locate_export("TRUE", false);
-    EXPECT_NE(decl2, nullptr);
-    auto d2 = dynamic_cast<nw::script::VarDecl*>(decl2);
+    auto sym2 = nss.locate_export("TRUE", false);
+    EXPECT_NE(sym2.decl, nullptr);
+    auto d2 = dynamic_cast<nw::script::VarDecl*>(sym2.decl);
     if (d2) {
         EXPECT_EQ(d2->env.size(), 1);
     }
 
-    auto decl3 = nss.locate_export("GetFirstObjectInShape", false);
-    EXPECT_NE(decl3, nullptr);
-    auto d3 = dynamic_cast<nw::script::FunctionDecl*>(decl3);
+    auto sym3 = nss.locate_export("GetFirstObjectInShape", false);
+    EXPECT_NE(sym3.decl, nullptr);
+    auto d3 = dynamic_cast<nw::script::FunctionDecl*>(sym3.decl);
     EXPECT_NE(d3, nullptr);
     std::vector<std::string> completions2;
     d3->complete("OBJECT_type_", completions2);

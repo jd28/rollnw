@@ -72,9 +72,12 @@ struct AstResolver : BaseVisitor {
                 }
             }
 
-            if (!redecl && !is_command_script_ && ctx_->command_script_->locate_export(s, is_type)) {
-                redecl = true;
-                msg = fmt::format("redeclaration of '{}' command script declaration", token.loc.view());
+            if (!redecl && !is_command_script_) {
+                auto sym = ctx_->command_script_->locate_export(s, is_type);
+                if (sym.decl) {
+                    redecl = true;
+                    msg = fmt::format("redeclaration of '{}' command script declaration", token.loc.view());
+                }
             }
 
             if (redecl) {
@@ -159,8 +162,9 @@ struct AstResolver : BaseVisitor {
     // Note: does not check command script
     Declaration* locate(const std::string& token, Nss* script, bool is_type)
     {
-        if (auto decl = script->locate_export(token, is_type)) {
-            return decl;
+        auto symbol = script->locate_export(token, is_type);
+        if (symbol.decl) {
+            return symbol.decl;
         } else {
             for (auto& it : reverse(script->ast().includes)) {
                 if (!it.script) { continue; }
@@ -206,7 +210,12 @@ struct AstResolver : BaseVisitor {
             if (auto decl = locate(s, it.script, is_type)) { return decl; }
         }
 
-        return ctx_->command_script_->locate_export(s, is_type);
+        if (!is_command_script_ && ctx_->command_script_) {
+            auto sym = ctx_->command_script_->locate_export(s, is_type);
+            return sym.decl;
+        }
+
+        return nullptr;
     }
 
     // == Visitor =============================================================

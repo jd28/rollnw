@@ -118,27 +118,49 @@ const std::vector<Diagnostic>& Nss::diagnostics() const noexcept
     return diagnostics_;
 }
 
-Declaration* Nss::locate_export(const std::string& name, bool is_type, bool search_dependencies)
+Symbol Nss::locate_export(const std::string& symbol, bool is_type, bool search_dependencies)
 {
-    auto sym = symbol_table_.find(name);
-    Declaration* decl = nullptr;
+    auto sym = symbol_table_.find(symbol);
+
+    Symbol result;
+
     if (sym) {
-        decl = is_type ? sym->type : sym->decl;
-    }
-
-    if (decl || !search_dependencies) { return decl; }
-
-    for (const auto it : ast_.includes) {
-        if ((decl = it.script->locate_export(name, is_type, search_dependencies))) {
-            return decl;
+        result.decl = is_type ? sym->type : sym->decl;
+        if (result.decl) {
+            if (!is_type) {
+                if (dynamic_cast<VarDecl*>(result.decl)) {
+                    result.kind = SymbolKind::variable;
+                } else if (auto fd = dynamic_cast<FunctionDefinition*>(result.decl)) {
+                    if (fd->decl_external) {
+                        result.decl = fd->decl_external;
+                    } else {
+                        result.decl = fd->decl_inline;
+                    }
+                    result.kind = SymbolKind::function;
+                } else {
+                    result.kind = SymbolKind::function;
+                }
+            } else {
+                result.kind = SymbolKind::type;
+            }
+            result.type = ctx_->type_name(result.decl->type_id_);
+            result.provider = name();
+            result.comment = ast().find_comment(result.decl->range_.start.line);
         }
     }
 
-    if (!is_command_script_ && ctx_->command_script_) {
-        return ctx_->command_script_->locate_export(name, is_type);
+    if (result.decl || !search_dependencies) { return result; }
+
+    for (const auto it : ast_.includes) {
+        result = it.script->locate_export(symbol, is_type, search_dependencies);
+        if (result.decl) { return result; }
     }
 
-    return nullptr;
+    if (!is_command_script_ && ctx_->command_script_) {
+        return ctx_->command_script_->locate_export(symbol, is_type);
+    }
+
+    return result;
 }
 
 std::string_view Nss::name() const noexcept
