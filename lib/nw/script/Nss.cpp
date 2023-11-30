@@ -134,6 +134,10 @@ Declaration* Nss::locate_export(const std::string& name, bool is_type, bool sear
         }
     }
 
+    if (!is_command_script_ && ctx_->command_script_) {
+        return ctx_->command_script_->locate_export(name, is_type);
+    }
+
     return nullptr;
 }
 
