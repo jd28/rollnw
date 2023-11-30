@@ -27,14 +27,13 @@ TEST(Nss, Preprocessor)
     auto ctx = std::make_unique<script::Context>();
     script::Nss nss(fs::path("test_data/user/development/script_preprocessor.nss"), ctx.get());
     EXPECT_NO_THROW(nss.parse());
-    EXPECT_TRUE(nss.errors() == 0);
-    const script::Ast& script = nss.ast();
-    EXPECT_TRUE(script.defines.size() == 6);
-    EXPECT_TRUE(script.defines[0].first == "ENGINE_NUM_STRUCTURES");
-    EXPECT_TRUE(script.defines[0].second == "5");
+    EXPECT_EQ(nss.errors(), 0);
+    script::Ast& script = nss.ast();
+    EXPECT_EQ(script.defines.size(), 6);
+    EXPECT_EQ(script.defines["ENGINE_NUM_STRUCTURES"], "5");
 
-    EXPECT_TRUE(script.includes.size() == 1);
-    EXPECT_TRUE(script.includes[0].resref == "constants");
+    EXPECT_EQ(script.includes.size(), 1);
+    EXPECT_EQ(script.includes[0].resref, "constants");
 }
 
 TEST(Nss, ParseNwscript)

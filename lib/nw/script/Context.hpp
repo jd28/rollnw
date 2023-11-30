@@ -33,6 +33,7 @@ struct Context {
     std::vector<StructDecl*> struct_stack_;
 
     virtual void register_default_types();
+    virtual void register_engine_types();
     size_t type_id(std::string_view type_name, bool define = false);
     size_t type_id(Type type_name, bool define = false);
     std::string_view type_name(size_t type_id);

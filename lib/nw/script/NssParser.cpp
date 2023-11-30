@@ -840,7 +840,7 @@ Ast NssParser::parse_program()
                         throw parser_error("Expected identifier");
                     }
                     value = std::string(advance().loc.view());
-                    ast_.defines.push_back({name, value});
+                    ast_.defines.insert({name, value});
                 }
             } else if (match({NssTokenType::COMMENT})) {
                 continue;

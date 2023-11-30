@@ -3,6 +3,8 @@
 #include "../kernel/Resources.hpp"
 #include "Nss.hpp"
 
+#include <fmt/format.h>
+
 namespace nw::script {
 
 Context::Context(std::string command_script)
@@ -14,8 +16,8 @@ Context::Context(std::string command_script)
 
     command_script_ = get(Resref{command_script_name_}, true);
     CHECK_F(!!command_script_, "[script] unable to load command script '{}'", command_script_name_);
+    register_engine_types(); // Must come before resolving command script!
     command_script_->resolve();
-    // register_engine_types
 }
 
 Nss* Context::get(Resref resref, bool command_script)
@@ -47,16 +49,25 @@ void Context::register_default_types()
     type_id("string", true);
     type_id("vector", true);
     type_id("void", true);
+}
 
-    // Engine Types
-    type_id("cassowary", true);
-    type_id("effect", true);
-    type_id("event", true);
-    type_id("itemproperty", true);
-    type_id("json", true);
-    type_id("location", true);
-    type_id("sqlquery", true);
-    type_id("talent", true);
+void Context::register_engine_types()
+{
+    auto it = command_script_->ast().defines.find("ENGINE_NUM_STRUCTURES");
+    if (it == std::end(command_script_->ast().defines)) { return; }
+
+    auto num = string::from<size_t>(it->second);
+    if (!num) { return; }
+
+    size_t count = *num;
+
+    for (size_t i = 0; i < count; ++i) {
+        auto lookup = fmt::format("ENGINE_STRUCTURE_{}", i);
+        auto it = command_script_->ast().defines.find(lookup);
+        if (it != std::end(command_script_->ast().defines)) {
+            type_id(it->second, true);
+        }
+    }
 }
 
 size_t Context::type_id(std::string_view type_name, bool define)

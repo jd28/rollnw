@@ -10,6 +10,7 @@
 #include <limits>
 #include <memory>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 namespace nw::script {
@@ -518,7 +519,7 @@ struct Ast {
 
     std::vector<Statement*> decls;
     std::vector<Include> includes;
-    std::vector<std::pair<std::string, std::string>> defines;
+    std::unordered_map<std::string, std::string> defines;
     std::vector<Comment> comments;
 
     std::vector<std::unique_ptr<AstNode>> nodes_;
