@@ -33,6 +33,19 @@ void init_script(py::module& nw)
         .def("view", &nws::SourceLocation::view)
         .def_readonly("range", &nws::SourceLocation::range);
 
+    py::enum_<nws::SymbolKind>(nw, "SymbolKind")
+        .value("variable", nws::SymbolKind::variable)
+        .value("function", nws::SymbolKind::function)
+        .value("type", nws::SymbolKind::type);
+
+    py::class_<nws::Symbol>(nw, "Symbol")
+        .def_readonly("node", &nws::Symbol::node)
+        .def_readonly("decl", &nws::Symbol::decl)
+        .def_readonly("comment", &nws::Symbol::comment)
+        .def_readonly("type", &nws::Symbol::type)
+        .def_readonly("kind", &nws::Symbol::kind)
+        .def_readonly("provider", &nws::Symbol::provider);
+
     py::class_<nws::Context>(nw, "Context")
         .def(py::init<>())
         .def(py::init<std::string>());

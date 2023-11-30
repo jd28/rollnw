@@ -24,6 +24,24 @@ struct Export {
     int command_id = -1;         ///< Command ID for command script, i.e. 'nwscript'
 };
 
+enum struct SymbolKind {
+    variable,
+    function,
+    type
+};
+
+/// Info regarding a particular symbol somewhere in a source file
+struct Symbol {
+    AstNode* node = nullptr;     ///< AstNode if symbol is used in a variable expression
+    Declaration* decl = nullptr; ///< Original declaration
+    std::string comment;         ///< Comment on original declaration, in case of functions decl is preferred over definition
+    std::string type;            ///< Type of the symbol
+    SymbolKind kind;             ///< The kind of symbol
+    std::string provider;        ///< What script this symbol is from, i.e. "nwscript"
+
+    operator bool() { return !!decl; }
+};
+
 struct Nss {
     explicit Nss(const std::filesystem::path& filename, Context* ctx, bool command_script = false);
     explicit Nss(std::string_view script, Context* ctx, bool command_script = false);

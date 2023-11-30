@@ -286,6 +286,28 @@ class SourceLocation:
         return ""
 
 
+class SymbolKind(enum.IntEnum):
+    """Enum of different symbol kinds
+    """
+    variable = auto()
+    function = auto()
+    type = auto()
+
+
+class Symbol:
+    """Info regarding a particular symbol somewhere in a source file
+
+    Attributes:
+        node (AstNode)
+        decl (Declaration)
+        comment (str)
+        type (str)
+        kind (SymbolKind)
+        provider (str)
+    """
+    pass
+
+
 class NssToken:
     """Nss token
 
