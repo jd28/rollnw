@@ -113,6 +113,7 @@ void NssParser::lex()
         tokens.clear();
     }
     lexed_ = true;
+    ast_.line_map = lexer_.line_map;
 }
 
 NssToken NssParser::lookahead(size_t index) const

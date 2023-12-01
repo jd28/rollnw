@@ -577,6 +577,8 @@ TEST(Nss, Lexer)
     }
 
     EXPECT_EQ(line, 26);
+    EXPECT_EQ(lexer12.line_map[2], 61);
+    EXPECT_EQ(lexer12.line_map[line - 1], 572);
 
     script::NssLexer lexer13{">>> >>>=", ctx.get()};
     EXPECT_EQ(int(lexer13.next().type), int(script::NssTokenType::USR));

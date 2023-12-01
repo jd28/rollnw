@@ -15,6 +15,7 @@ NssLexer::NssLexer(std::string_view buffer, Context* ctx, Nss* parent)
     , buffer_{buffer}
 {
     CHECK_F(!!ctx_, "[script] invalid script context");
+    line_map.push_back(0);
 }
 
 const NssToken& NssLexer::current() const
@@ -258,11 +259,13 @@ NssToken NssLexer::next()
             ++pos_;
             if (get(pos_) == '\n') ++pos_;
             last_line_pos_ = pos_;
+            line_map.push_back(last_line_pos_);
             continue;
         case '\n':
             ++line_;
             ++pos_;
             last_line_pos_ = pos_;
+            line_map.push_back(last_line_pos_);
             continue;
 
         // Punctuation
@@ -535,6 +538,7 @@ NssToken NssLexer::next()
                     if (get(pos_) == '\n') {
                         ++line_;
                         last_line_pos_ = pos_;
+                        line_map.push_back(last_line_pos_);
                     } else if (pos_ != start && get(pos_ - 1) == '*' && get(pos_) == '/') {
                         t = NssToken{
                             NssTokenType::COMMENT,

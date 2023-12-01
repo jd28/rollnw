@@ -521,6 +521,7 @@ struct Ast {
     std::vector<Include> includes;
     std::unordered_map<std::string, std::string> defines;
     std::vector<Comment> comments;
+    std::vector<size_t> line_map;
 
     std::vector<std::unique_ptr<AstNode>> nodes_;
 
