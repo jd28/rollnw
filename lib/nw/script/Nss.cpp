@@ -14,6 +14,7 @@ namespace nw::script {
 Nss::Nss(const std::filesystem::path& filename, Context* ctx, bool command_script)
     : ctx_{ctx}
     , data_{ResourceData::from_file(filename)}
+    , text_{data_.bytes.string_view()}
     , parser_{data_.bytes.string_view(), ctx_, this}
     , is_command_script_{command_script}
 {
@@ -22,6 +23,7 @@ Nss::Nss(const std::filesystem::path& filename, Context* ctx, bool command_scrip
 
 Nss::Nss(std::string_view script, Context* ctx, bool command_script)
     : ctx_{ctx}
+    , text_{script}
     , parser_{script, ctx_, this}
     , is_command_script_{command_script}
 {
@@ -31,6 +33,7 @@ Nss::Nss(std::string_view script, Context* ctx, bool command_script)
 Nss::Nss(ResourceData data, Context* ctx, bool command_script)
     : ctx_{ctx}
     , data_{std::move(data)}
+    , text_{data_.bytes.string_view()}
     , parser_{data_.bytes.string_view(), ctx_, this}
     , is_command_script_{command_script}
 {
@@ -147,6 +150,7 @@ Symbol Nss::locate_export(const std::string& symbol, bool is_type, bool search_d
             result.type = ctx_->type_name(result.decl->type_id_);
             result.provider = name();
             result.comment = ast().find_comment(result.decl->range_.start.line);
+            result.view = view_from_range(result.decl->range());
         }
     }
 
@@ -243,6 +247,14 @@ void Nss::resolve()
 Ast& Nss::ast() { return ast_; }
 const Ast& Nss::ast() const { return ast_; }
 
-std::string_view Nss::text() const noexcept { return data_.bytes.string_view(); }
+std::string_view Nss::text() const noexcept { return text_; }
+
+std::string_view Nss::view_from_range(SourceRange range) const noexcept
+{
+    size_t start = ast().line_map[range.start.line - 1] + range.start.column;
+    size_t end = ast().line_map[range.end.line - 1] + range.end.column;
+    if (start >= text_.length() || end >= text_.length()) { return ""; }
+    return std::string_view(text_.data() + start, text_.data() + end);
+}
 
 } // namespace nw::script

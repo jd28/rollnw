@@ -440,6 +440,7 @@ struct Declaration : public Statement {
     Type type;
     SourceRange range_;
     SourceRange range_selection_;
+    std::string_view view;
 
     virtual SourceRange range() const noexcept;
     virtual SourceRange selection_range() const noexcept;

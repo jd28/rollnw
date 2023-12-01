@@ -803,7 +803,7 @@ StructDecl* NssParser::parse_decl_struct()
     }
     consume(NssTokenType::RBRACE, "Expected '}'.");
     consume(NssTokenType::SEMICOLON, "Expected ';'.");
-    decl->range_.end = previous().loc.range.end;
+    decl->range_.end = previous().loc.range.start;
 
     return decl;
 }
@@ -968,7 +968,7 @@ Declaration* NssParser::parse_decl_function_def()
 {
     auto decl = parse_decl_function();
     if (match({NssTokenType::SEMICOLON})) {
-        decl->range_.end = previous().loc.range.end;
+        decl->range_.end = previous().loc.range.start;
         return decl;
     }
     auto def = ast_.create_node<FunctionDefinition>();

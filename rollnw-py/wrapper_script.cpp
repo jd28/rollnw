@@ -44,7 +44,8 @@ void init_script(py::module& nw)
         .def_readonly("comment", &nws::Symbol::comment)
         .def_readonly("type", &nws::Symbol::type)
         .def_readonly("kind", &nws::Symbol::kind)
-        .def_readonly("provider", &nws::Symbol::provider);
+        .def_readonly("provider", &nws::Symbol::provider)
+        .def_readonly("view", &nws::Symbol::view);
 
     py::class_<nws::Context>(nw, "Context")
         .def(py::init<>())
@@ -228,6 +229,7 @@ void init_script(py::module& nw)
             if (!node) { return ""sv; }
             return self.ctx() ? self.ctx()->type_name(node->type_id_) : ""sv;
         })
+        .def("view_from_range", &nws::Nss::view_from_range)
         .def("warnings", &nws::Nss::warnings)
         .def_static(
             "from_string", [](std::string_view str, nws::Context* ctx, bool command_script) {

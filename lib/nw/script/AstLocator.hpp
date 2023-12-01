@@ -213,10 +213,11 @@ struct AstLocator : public BaseVisitor {
     {
         if (contains_position(expr->var.loc.range, pos_) && expr->var.loc.view() == symbol_) {
             auto exp = expr->env.find(symbol_);
-            if (exp) {
+            if (exp && exp->decl) {
                 result_.type = parent_->ctx()->type_name(expr->type_id_);
                 result_.decl = exp->decl;
                 result_.comment = parent_->ast().find_comment(result_.decl->range_.start.line);
+                result_.view = parent_->view_from_range(result_.decl->range());
             } else {
                 locate_in_dependencies();
             }

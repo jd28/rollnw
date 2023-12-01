@@ -236,6 +236,10 @@ class Nss:
         """Resolves and type-checks Ast"""
         pass
 
+    def view_from_range(self, range: "SourceRange") -> str:
+        """Gets number of errors encountered while parsing"""
+        return ""
+
     def warnings(self):
         """Gets number of errors encountered while parsing"""
         pass

@@ -38,6 +38,7 @@ struct Symbol {
     std::string type;            ///< Type of the symbol
     SymbolKind kind;             ///< The kind of symbol
     std::string provider;        ///< What script this symbol is from, i.e. "nwscript"
+    std::string_view view;       ///< View of declaration
 };
 
 struct Nss {
@@ -114,12 +115,16 @@ struct Nss {
     /// Gets text of script
     std::string_view text() const noexcept;
 
+    /// Gets a view of source file in specified range
+    std::string_view view_from_range(SourceRange range) const noexcept;
+
     /// Returns how many warnings were found during parsing
     size_t warnings() const noexcept { return warnings_; }
 
 private:
     Context* ctx_ = nullptr;
     ResourceData data_;
+    std::string_view text_;
     NssParser parser_;
     Ast ast_;
     immer::map<std::string, Export> symbol_table_;
