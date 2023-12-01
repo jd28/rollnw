@@ -71,8 +71,8 @@ struct ObjectSystem : public Service {
     bool valid(ObjectHandle obj) const;
 
 private:
-    std::stack<ObjectID> free_list_;
-    std::deque<ObjectPayload> objects_;
+    std::stack<ObjectID, std::vector<ObjectID>> free_list_;
+    std::vector<ObjectPayload> objects_;
 };
 
 inline ObjectType serial_id_to_obj_type(std::string_view id)

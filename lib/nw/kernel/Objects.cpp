@@ -18,7 +18,7 @@ namespace nw::kernel {
 
 void ObjectSystem::clear()
 {
-    free_list_ = std::stack<ObjectID>();
+    free_list_ = std::stack<ObjectID, std::vector<ObjectID>>();
     objects_.clear();
 }
 
