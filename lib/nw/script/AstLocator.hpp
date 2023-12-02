@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../log.hpp"
 #include "Nss.hpp"
 #include "SourceLocation.hpp"
 
@@ -66,6 +67,7 @@ struct AstLocator : public BaseVisitor {
                     result_.type = struct_name;
                     result_.comment = parent_->ast().find_comment(result_.decl->range_.start.line);
                     result_.kind = SymbolKind::type;
+                    result_.view = parent_->view_from_range(result_.decl->range());
                     found_ = true;
                 } else {
                     locate_in_dependencies();
@@ -75,6 +77,7 @@ struct AstLocator : public BaseVisitor {
                 result_.type = parent_->ctx()->type_name(decl->type_id_);
                 result_.comment = parent_->ast().find_comment(decl->range_.start.line);
                 result_.kind = SymbolKind::function;
+                result_.view = parent_->view_from_range(result_.decl->range());
                 found_ = true;
             } else {
                 for (auto param : decl->params) {
@@ -102,6 +105,7 @@ struct AstLocator : public BaseVisitor {
             result_.type = std::string(decl->type.struct_id.loc.view());
             result_.comment = parent_->ast().find_comment(result_.decl->range_.start.line);
             result_.kind = SymbolKind::type;
+            result_.view = parent_->view_from_range(result_.decl->range());
             found_ = true;
         } else {
             for (auto decl : decl->decls) {
@@ -117,6 +121,7 @@ struct AstLocator : public BaseVisitor {
             result_.decl = decl;
             result_.type = parent_->ctx()->type_name(decl->type_id_);
             result_.comment = parent_->ast().find_comment(decl->range_.start.line);
+            result_.view = parent_->view_from_range(result_.decl->range());
             found_ = true;
         } else if (decl->type.struct_id.type != NssTokenType::INVALID
             && contains_position(decl->type.struct_id.loc.range, pos_)) {
@@ -127,6 +132,7 @@ struct AstLocator : public BaseVisitor {
                 result_.type = struct_name;
                 result_.comment = parent_->ast().find_comment(result_.decl->range_.start.line);
                 result_.kind = SymbolKind::type;
+                result_.view = parent_->view_from_range(result_.decl->range());
                 found_ = true;
             } else {
                 locate_in_dependencies();

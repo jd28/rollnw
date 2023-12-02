@@ -1017,7 +1017,7 @@ Statement* NssParser::parse_decl_global_var()
         }
     }
     consume(NssTokenType::SEMICOLON, "Expected ';'.");
-    decls->decls.back()->range_.end = previous().loc.range.end;
+    decls->decls.back()->range_.end = previous().loc.range.start;
 
     if (decls->decls.size() == 1) {
         return decls->decls[0];
