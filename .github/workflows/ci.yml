@@ -62,6 +62,7 @@ jobs:
           HOMEBREW_NO_BOTTLE_SOURCE_FALLBACK: "ON"
           HOMEBREW_NO_INSTALL_CLEANUP: "ON"
         run: |
+          rm /usr/local/bin/2to3
           brew install --force --overwrite pkg-config automake ninja libtool zlib llvm ccache
           echo "CC=$(brew --prefix llvm)/bin/clang" >> $GITHUB_ENV
           echo "CXX=$(brew --prefix llvm)/bin/clang++" >> $GITHUB_ENV
