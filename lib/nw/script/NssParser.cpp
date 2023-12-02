@@ -401,7 +401,9 @@ Expression* NssParser::parse_expr_postfix()
             auto e = ast_.create_node<CallExpression>(expr);
             while (!is_end() && !check({NssTokenType::RPAREN})) {
                 e->args.emplace_back(parse_expr());
-                match({NssTokenType::COMMA});
+                if (match({NssTokenType::COMMA}) && check({NssTokenType::RPAREN})) {
+                    diagnostic("spurious ','", previous());
+                }
             }
             consume(NssTokenType::RPAREN, "Expected ')'.");
             expr = e;
