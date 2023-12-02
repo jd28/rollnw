@@ -156,8 +156,6 @@ NssToken NssParser::previous()
 void NssParser::synchronize()
 {
     while (!is_end()) {
-        if (previous().type == NssTokenType::SEMICOLON) return;
-
         switch (peek().type) {
         default:
             break;
@@ -870,15 +868,31 @@ Statement* NssParser::parse_decl_external()
 
     // If after the type is parsed there is an '{' then it's a struct declaration
     if (match({NssTokenType::LBRACE})) {
-        auto sd = parse_decl_struct();
-        sd->type = t;
+        try {
+            auto sd = parse_decl_struct();
+            sd->type = t;
 
-        // Note range end is already determined
-        sd->range_.start = sd->type.type_specifier.loc.range.start;
-        sd->range_selection_.start = sd->type.struct_id.loc.range.start;
-        sd->range_selection_.end = sd->type.struct_id.loc.range.end;
+            // Note range end is already determined
+            sd->range_.start = sd->type.type_specifier.loc.range.start;
+            sd->range_selection_.start = sd->type.struct_id.loc.range.start;
+            sd->range_selection_.end = sd->type.struct_id.loc.range.end;
 
-        return sd;
+            return sd;
+        } catch (const parser_error&) {
+            int lbrace = 1;
+            // Gonna have to be pretty aggressive about recovering from this
+            // if this doesn't work probably best to bail on the script
+            while (!is_end()) {
+                if (peek().type == NssTokenType::LBRACE) {
+                    ++lbrace;
+                } else if (peek().type == NssTokenType::RBRACE) {
+                    --lbrace;
+                }
+                advance();
+                if (lbrace <= 0) { break; }
+            }
+            throw;
+        }
     }
 
     if (lookahead(0).type == NssTokenType::EQ
@@ -921,6 +935,11 @@ Statement* NssParser::parse_decl_external()
             def->decl_inline->type = t;
             def->range_selection_.start = def->decl_inline->identifier.loc.range.start;
             def->range_selection_.end = def->decl_inline->identifier.loc.range.end;
+            if (t.type_qualifier.type == NssTokenType::INVALID) {
+                def->decl_inline->range_.start = t.type_specifier.loc.range.start;
+            } else {
+                def->decl_inline->range_.start = t.type_specifier.loc.range.start;
+            }
         }
 
         if (t.type_qualifier.type == NssTokenType::INVALID) {
@@ -961,6 +980,7 @@ FunctionDecl* NssParser::parse_decl_function()
         match({NssTokenType::COMMA});
     }
     consume(NssTokenType::RPAREN, "Expected ')'.");
+    fd->range_.end = previous().loc.range.end;
     return fd;
 }
 
@@ -968,7 +988,6 @@ Declaration* NssParser::parse_decl_function_def()
 {
     auto decl = parse_decl_function();
     if (match({NssTokenType::SEMICOLON})) {
-        decl->range_.end = previous().loc.range.start;
         return decl;
     }
     auto def = ast_.create_node<FunctionDefinition>();

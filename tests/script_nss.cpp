@@ -491,6 +491,34 @@ TEST(Nss, Struct)
     EXPECT_NO_THROW(nss3.parse());
     EXPECT_NO_THROW(nss3.resolve());
     EXPECT_EQ(nss3.errors(), 1);
+
+    script::Nss nss6(R"(
+        struct a {
+
+        void main() {
+            struct a s;
+            s.test2;
+        }
+    )"sv,
+        ctx.get());
+
+    EXPECT_NO_THROW(nss6.parse());
+    EXPECT_EQ(nss6.errors(), 1);
+
+    script::Nss nss7(R"(
+        struct a {
+            int test
+        };
+
+        void main() {
+            struct a s;
+            s.test2;
+        }
+    )"sv,
+        ctx.get());
+
+    EXPECT_NO_THROW(nss7.parse());
+    EXPECT_EQ(nss7.errors(), 1);
 }
 
 TEST(Nss, Lexer)
