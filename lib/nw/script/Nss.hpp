@@ -94,12 +94,6 @@ struct Nss {
     /// Parses script file
     void parse();
 
-    /// Gets parser
-    NssParser& parser();
-
-    /// Gets parser
-    const NssParser& parser() const;
-
     /// Process includes recursively
     void process_includes(Nss* parent = nullptr);
 
@@ -125,14 +119,12 @@ private:
     Context* ctx_ = nullptr;
     ResourceData data_;
     std::string_view text_;
-    NssParser parser_;
     Ast ast_;
     immer::map<std::string, Export> symbol_table_;
     std::vector<Diagnostic> diagnostics_;
     size_t errors_ = 0;
     size_t warnings_ = 0;
     bool resolved_ = false;
-    bool parsed_ = false;
     bool is_command_script_ = false;
 };
 

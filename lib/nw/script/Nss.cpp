@@ -15,7 +15,6 @@ Nss::Nss(const std::filesystem::path& filename, Context* ctx, bool command_scrip
     : ctx_{ctx}
     , data_{ResourceData::from_file(filename)}
     , text_{data_.bytes.string_view()}
-    , parser_{data_.bytes.string_view(), ctx_, this}
     , is_command_script_{command_script}
 {
     CHECK_F(!!ctx_, "[script] invalid script context");
@@ -24,7 +23,6 @@ Nss::Nss(const std::filesystem::path& filename, Context* ctx, bool command_scrip
 Nss::Nss(std::string_view script, Context* ctx, bool command_script)
     : ctx_{ctx}
     , text_{script}
-    , parser_{script, ctx_, this}
     , is_command_script_{command_script}
 {
     CHECK_F(!!ctx_, "[script] invalid script context");
@@ -34,7 +32,6 @@ Nss::Nss(ResourceData data, Context* ctx, bool command_script)
     : ctx_{ctx}
     , data_{std::move(data)}
     , text_{data_.bytes.string_view()}
-    , parser_{data_.bytes.string_view(), ctx_, this}
     , is_command_script_{command_script}
 {
     CHECK_F(!!ctx_, "[script] invalid script context");
@@ -189,13 +186,10 @@ std::string_view Nss::name() const noexcept
 
 void Nss::parse()
 {
-    if (parsed_) { return; }
-    ast_ = parser_.parse_program();
-    parsed_ = true;
+    NssParser parser{text_, ctx_, this};
+    ast_ = parser.parse_program();
+    resolved_ = false;
 }
-
-NssParser& Nss::parser() { return parser_; }
-const NssParser& Nss::parser() const { return parser_; }
 
 void Nss::process_includes(Nss* parent)
 {

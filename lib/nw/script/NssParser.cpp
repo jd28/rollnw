@@ -10,7 +10,6 @@ NssParser::NssParser(std::string_view view, Context* ctx, Nss* parent)
     : ctx_{ctx}
     , parent_{parent}
     , view_{view}
-    , lexer_{view_, ctx_, parent}
 {
     CHECK_F(!!ctx_, "[script] invalid script context");
 }
@@ -83,11 +82,11 @@ NssToken NssParser::consume(NssTokenType type, std::string_view message)
 
 void NssParser::lex()
 {
-    if (lexed_) { return; }
     size_t last_comment_line = std::string::npos;
     Comment current_comment;
     try {
-        NssToken tok = lexer_.next();
+        NssLexer lexer{view_, ctx_, parent_};
+        NssToken tok = lexer.next();
         while (tok.type != NssTokenType::END) {
             if (tok.type == NssTokenType::COMMENT) {
                 // Append all comments that on adjacent rows
@@ -103,17 +102,16 @@ void NssParser::lex()
             } else {
                 tokens.push_back(tok);
             }
-            tok = lexer_.next();
+            tok = lexer.next();
         }
         if (!current_comment.comment_.empty()) {
             ast_.comments.push_back(std::move(current_comment));
         }
+        ast_.line_map = lexer.line_map;
     } catch (const lexical_error& error) {
         ctx_->lexical_diagnostic(parent_, error.what(), false, error.location);
         tokens.clear();
     }
-    lexed_ = true;
-    ast_.line_map = lexer_.line_map;
 }
 
 NssToken NssParser::lookahead(size_t index) const

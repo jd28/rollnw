@@ -26,12 +26,10 @@ struct NssParser {
     Context* ctx_ = nullptr;
     Nss* parent_ = nullptr;
     std::string_view view_;
-    NssLexer lexer_;
     Ast ast_;
 
     std::vector<NssToken> tokens;
     size_t current_ = 0;
-    bool lexed_ = false;
 
     /// Advances the token stream
     NssToken advance();
