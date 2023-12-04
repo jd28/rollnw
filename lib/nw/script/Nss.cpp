@@ -241,6 +241,11 @@ void Nss::resolve()
 Ast& Nss::ast() { return ast_; }
 const Ast& Nss::ast() const { return ast_; }
 
+void Nss::set_name(const std::string& new_name)
+{
+    data_.name = Resource(new_name, ResourceType::nss);
+}
+
 std::string_view Nss::text() const noexcept { return text_; }
 
 std::string_view Nss::view_from_range(SourceRange range) const noexcept

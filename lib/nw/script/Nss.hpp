@@ -106,6 +106,9 @@ struct Nss {
     /// Resolves and type checks the Ast
     void resolve();
 
+    /// Sets a scripts name
+    void set_name(const std::string& new_name);
+
     /// Gets text of script
     std::string_view text() const noexcept;
 
