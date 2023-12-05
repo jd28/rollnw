@@ -111,13 +111,10 @@ struct NssParser {
 
     Type parse_type();
     Statement* parse_decl();
-    Statement* parse_decl_external();
-    VarDecl* parse_decl_param();
     StructDecl* parse_decl_struct();
-    VarDecl* parse_decl_struct_member();
-    FunctionDecl* parse_decl_function();
     Declaration* parse_decl_function_def();
-    Statement* parse_decl_global_var();
+    FunctionDecl* parse_decl_function();
+    VarDecl* parse_decl_param();
 
     /// Parses script
     Ast parse_program();

@@ -289,6 +289,17 @@ TEST(Nss, FunctionDef)
     EXPECT_NO_THROW(nss2.parse());
     EXPECT_NO_THROW(nss2.resolve());
     EXPECT_EQ(nss2.errors(), 0);
+
+    // -- Bad -----------------------------------------------------------------
+
+    script::Nss nss3(R"(
+            int test_function(int a) {
+            void main() { }
+        )"sv,
+        ctx.get());
+    EXPECT_NO_THROW(nss3.parse());
+    EXPECT_NO_THROW(nss3.resolve());
+    EXPECT_EQ(nss3.errors(), 2);
 }
 
 TEST(Nss, FunctionCall)
@@ -488,6 +499,7 @@ TEST(Nss, Struct)
     )"sv,
         ctx.get());
 
+    nss3.set_name("nss3");
     EXPECT_NO_THROW(nss3.parse());
     EXPECT_NO_THROW(nss3.resolve());
     EXPECT_EQ(nss3.errors(), 1);
@@ -496,14 +508,13 @@ TEST(Nss, Struct)
         struct a {
 
         void main() {
-            struct a s;
-            s.test2;
         }
     )"sv,
         ctx.get());
 
+    nss6.set_name("nss6");
     EXPECT_NO_THROW(nss6.parse());
-    EXPECT_EQ(nss6.errors(), 1);
+    EXPECT_EQ(nss6.errors(), 2);
 
     script::Nss nss7(R"(
         struct a {
@@ -512,13 +523,28 @@ TEST(Nss, Struct)
 
         void main() {
             struct a s;
-            s.test2;
+            s.test;
         }
     )"sv,
         ctx.get());
 
+    nss7.set_name("nss7");
     EXPECT_NO_THROW(nss7.parse());
     EXPECT_EQ(nss7.errors(), 1);
+
+    script::Nss nss8(R"(
+        void main() {
+            struct a {
+                int test;
+            };
+        }
+    )"sv,
+        ctx.get());
+
+    nss8.set_name("nss8");
+    EXPECT_NO_THROW(nss8.parse());
+    EXPECT_NO_THROW(nss8.resolve());
+    EXPECT_EQ(nss8.errors(), 1);
 }
 
 TEST(Nss, Lexer)

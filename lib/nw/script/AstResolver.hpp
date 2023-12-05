@@ -394,8 +394,7 @@ struct AstResolver : BaseVisitor {
         decl->block->accept(this);
         if (decl->type_id_ != ctx_->type_id("void") && !all_control_flow_paths_return(decl->block)) {
             ctx_->semantic_diagnostic(parent_, "not all control flow paths return",
-                false,
-                decl->decl_inline->identifier.loc);
+                false, decl->decl_inline->identifier.loc);
         }
 
         end_scope();
@@ -404,6 +403,11 @@ struct AstResolver : BaseVisitor {
 
     virtual void visit(StructDecl* decl) override
     {
+        if (func_def_stack_) {
+            ctx_->semantic_diagnostic(parent_,
+                "structs can only be declared at toplevel scope", false, decl->type.struct_id.loc);
+        }
+
         decl->env = env_stack_.back();
         declare(decl->type.struct_id, decl, true);
         decl->type_id_ = ctx_->type_id(decl->type, true);

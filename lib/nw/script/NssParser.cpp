@@ -178,7 +178,6 @@ void NssParser::synchronize()
         case NssTokenType::IF:
         case NssTokenType::WHILE:
         case NssTokenType::RETURN:
-        case NssTokenType::RBRACE:
             return;
         }
 
@@ -596,7 +595,9 @@ Statement* NssParser::parse_stmt()
 
     auto s = ast_.create_node<ExprStatement>();
     s->expr = parse_expr();
-    consume(NssTokenType::SEMICOLON, "Expected ';'.");
+    if (!match({NssTokenType::SEMICOLON})) {
+        diagnostic("Expected ';'.", peek());
+    }
 
     return s;
 }
@@ -609,8 +610,14 @@ BlockStatement* NssParser::parse_stmt_block()
     while (!is_end() && !check({NssTokenType::RBRACE})) {
         try {
             auto n = parse_decl();
-            if (n) {
-                s->nodes.emplace_back(n);
+            if (auto fdef = dynamic_cast<FunctionDefinition*>(n)) {
+                diagnostic("structs cannot contain function definitions", fdef->decl_inline->identifier);
+            } else if (auto fdef = dynamic_cast<FunctionDecl*>(n)) {
+                diagnostic("structs cannot contain function declarations", fdef->identifier);
+            } else if (auto sd = dynamic_cast<StructDecl*>(n)) {
+                diagnostic("structs cannot contain other struct declarations", sd->type.struct_id);
+            } else if (n) {
+                s->nodes.push_back(n);
             }
         } catch (const parser_error&) {
             synchronize();
@@ -738,72 +745,173 @@ WhileStatement* NssParser::parse_stmt_while()
     return s;
 }
 
-// declaration -> var_decl
+// declaration -> const? TYPE IDENTIFIER (= primary )? ";"
+//             | const? TYPE IDENTIFIER(PARAMETER*) ";"
+//             | const? TYPE IDENTIFIER(PARAMETER*) block
+//             | struct IDENTIFIER { declaration+ }
 //             | statement ";"
 Statement* NssParser::parse_decl()
 {
+    Statement* result = nullptr;
     if (check_is_type()) {
-        auto decls = ast_.create_node<DeclList>();
         Type t = parse_type();
 
-        while (true) {
-            auto vd = ast_.create_node<VarDecl>();
-            vd->type = t;
-            consume(NssTokenType::IDENTIFIER, "Expected 'IDENTIFIER'.");
-            vd->identifier = previous();
-            if (match({NssTokenType::EQ})) {
-                vd->init = parse_expr();
+        if (match({NssTokenType::LBRACE})) {
+            // Struct Decls
+            // If after the type is parsed there is an '{' then it's a struct declaration
+
+            auto sd = parse_decl_struct();
+            sd->type = t;
+
+            // Note range end is already determined
+            sd->range_.start = sd->type.type_specifier.loc.range.start;
+            sd->range_selection_.start = sd->type.struct_id.loc.range.start;
+            sd->range_selection_.end = sd->type.struct_id.loc.range.end;
+
+            result = sd;
+        } else if (lookahead(0).type == NssTokenType::EQ
+            || lookahead(0).type == NssTokenType::SEMICOLON
+            || lookahead(0).type == NssTokenType::COMMA) {
+            // Variable Decls
+
+            auto decls = ast_.create_node<DeclList>();
+
+            while (true) {
+                auto vd = ast_.create_node<VarDecl>();
+                vd->type = t;
+                consume(NssTokenType::IDENTIFIER, "Expected 'IDENTIFIER'.");
+                vd->identifier = previous();
+                if (match({NssTokenType::EQ})) {
+                    vd->init = parse_expr();
+                }
+
+                if (t.type_qualifier.type == NssTokenType::INVALID) {
+                    vd->range_.start = t.type_specifier.loc.range.start;
+                } else {
+                    vd->range_.start = t.type_qualifier.loc.range.start;
+                }
+                vd->range_selection_.start = vd->identifier.loc.range.start;
+                vd->range_selection_.end = vd->identifier.loc.range.end;
+
+                decls->decls.push_back(vd);
+                if (!match({NssTokenType::COMMA})) { break; }
+            }
+
+            if (!match({NssTokenType::SEMICOLON})) {
+                diagnostic("Expected ';'.", previous());
+            }
+
+            for (auto decl : decls->decls) {
+                decl->range_.end = previous().loc.range.start;
+            }
+
+            if (decls->decls.size() == 1) {
+                result = decls->decls[0];
+            } else {
+                result = decls;
+            }
+        } else if (lookahead(0).type == NssTokenType::LPAREN) {
+            // Function Decls
+
+            auto fd = parse_decl_function_def();
+            if (auto decl = dynamic_cast<FunctionDecl*>(fd)) {
+                decl->type = t;
+                decl->range_selection_.start = decl->identifier.loc.range.start;
+                decl->range_selection_.end = decl->identifier.loc.range.end;
+            } else if (auto def = dynamic_cast<FunctionDefinition*>(fd)) {
+                def->decl_inline->type = t;
+                def->range_selection_.start = def->decl_inline->identifier.loc.range.start;
+                def->range_selection_.end = def->decl_inline->identifier.loc.range.end;
+                if (t.type_qualifier.type == NssTokenType::INVALID) {
+                    def->decl_inline->range_.start = t.type_specifier.loc.range.start;
+                } else {
+                    def->decl_inline->range_.start = t.type_specifier.loc.range.start;
+                }
             }
 
             if (t.type_qualifier.type == NssTokenType::INVALID) {
-                vd->range_.start = t.type_specifier.loc.range.start;
+                fd->range_.start = t.type_specifier.loc.range.start;
             } else {
-                vd->range_.start = t.type_qualifier.loc.range.start;
+                fd->range_.start = t.type_qualifier.loc.range.start;
             }
-            vd->range_selection_.start = vd->identifier.loc.range.start;
-            vd->range_selection_.end = vd->identifier.loc.range.end;
 
-            decls->decls.push_back(vd);
-            if (!match({NssTokenType::COMMA})) { break; }
+            result = fd;
         }
-        consume(NssTokenType::SEMICOLON, "Expected ';'.");
-        for (auto decl : decls->decls) {
-            decl->range_.end = previous().loc.range.start;
-        }
-
-        if (decls->decls.size() == 1) {
-            return decls->decls[0];
-        } else {
-            return decls;
-        }
+    } else {
+        result = parse_stmt();
     }
-    auto s = parse_stmt();
-    // consume(NssTokenType::SEMICOLON, "Expected ';'.");
-    return s;
-}
 
-VarDecl* NssParser::parse_decl_struct_member()
-{
-    Type t = parse_type();
-    auto d = ast_.create_node<VarDecl>();
-    d->type = t;
-    consume(NssTokenType::IDENTIFIER, "Expected 'IDENTIFIER'.");
-    d->identifier = previous();
-    consume(NssTokenType::SEMICOLON, "Expected ';'.");
-    return d;
+    if (match({NssTokenType::SEMICOLON})) {
+        diagnostic("spurious ';'", previous(), true);
+    }
+
+    return result;
 }
 
 StructDecl* NssParser::parse_decl_struct()
 {
     auto decl = ast_.create_node<StructDecl>();
+
     while (!is_end() && !check({NssTokenType::RBRACE})) {
-        decl->decls.emplace_back(parse_decl_struct_member());
+        auto var_decl = parse_decl();
+        if (auto vd = dynamic_cast<VarDecl*>(var_decl)) {
+            decl->decls.push_back(vd);
+        } else if (auto fdef = dynamic_cast<FunctionDefinition*>(var_decl)) {
+            diagnostic("structs cannot contain function definitions", fdef->decl_inline->identifier);
+        } else if (auto fdef = dynamic_cast<FunctionDecl*>(var_decl)) {
+            diagnostic("structs cannot contain function declarations", fdef->identifier);
+        } else if (auto sd = dynamic_cast<StructDecl*>(var_decl)) {
+            diagnostic("structs cannot contain other struct declarations", sd->type.struct_id);
+        }
     }
     consume(NssTokenType::RBRACE, "Expected '}'.");
     consume(NssTokenType::SEMICOLON, "Expected ';'.");
     decl->range_.end = previous().loc.range.start;
 
     return decl;
+}
+
+Declaration* NssParser::parse_decl_function_def()
+{
+    auto decl = parse_decl_function();
+    if (match({NssTokenType::SEMICOLON})) {
+        return decl;
+    }
+    auto def = ast_.create_node<FunctionDefinition>();
+    def->decl_inline = decl;
+    consume(NssTokenType::LBRACE, "Expected '{'.");
+    def->block = parse_stmt_block();
+    def->range_.end = previous().loc.range.end;
+    return def;
+}
+
+FunctionDecl* NssParser::parse_decl_function()
+{
+    auto fd = ast_.create_node<FunctionDecl>();
+    consume(NssTokenType::IDENTIFIER, "Expected 'IDENTIFIER'.");
+    fd->identifier = previous();
+    consume(NssTokenType::LPAREN, "Expected '('.");
+    while (!is_end() && !check({NssTokenType::RPAREN})) {
+        fd->params.emplace_back(parse_decl_param());
+        match({NssTokenType::COMMA});
+    }
+    consume(NssTokenType::RPAREN, "Expected ')'.");
+    fd->range_.end = previous().loc.range.end;
+    return fd;
+}
+
+VarDecl* NssParser::parse_decl_param()
+{
+    auto vd = ast_.create_node<VarDecl>();
+
+    Type t = parse_type();
+    vd->type = t;
+    consume(NssTokenType::IDENTIFIER, "Expected 'IDENTIFIER'.");
+    vd->identifier = previous();
+    if (match({NssTokenType::EQ})) {
+        vd->init = parse_expr_unary();
+    }
+    return vd;
 }
 
 // program -> external_declaration* EOF
@@ -841,189 +949,20 @@ Ast NssParser::parse_program()
                     value = std::string(advance().loc.view());
                     ast_.defines.insert({name, value});
                 }
-            } else if (match({NssTokenType::COMMENT})) {
-                continue;
             } else {
-                ast_.decls.emplace_back(parse_decl_external());
+                auto decl = parse_decl();
+                if (auto d = dynamic_cast<Declaration*>(decl)) {
+                    ast_.decls.push_back(d);
+                } else {
+                    diagnostic("Expected function definition/declaration, struct declaration, or global variable declaration", peek());
+                    throw parser_error("Expected function definition/declaration, struct declaration, or variable declaration");
+                }
             }
         } catch (const parser_error& err) {
             synchronize();
         }
     }
     return std::move(ast_);
-}
-
-// const? TYPE IDENTIFIER (= primary )? ;
-// const? TYPE IDENTIFIER(PARAMETER*);
-// const? TYPE IDENTIFIER(PARAMETER*) block
-// struct IDENTIFIER { declaration+ }
-Statement* NssParser::parse_decl_external()
-{
-    if (match({NssTokenType::SEMICOLON})) {
-        diagnostic("spurious ';'", previous(), true);
-        return ast_.create_node<EmptyStatement>();
-    }
-
-    Type t = parse_type();
-
-    // If after the type is parsed there is an '{' then it's a struct declaration
-    if (match({NssTokenType::LBRACE})) {
-        try {
-            auto sd = parse_decl_struct();
-            sd->type = t;
-
-            // Note range end is already determined
-            sd->range_.start = sd->type.type_specifier.loc.range.start;
-            sd->range_selection_.start = sd->type.struct_id.loc.range.start;
-            sd->range_selection_.end = sd->type.struct_id.loc.range.end;
-
-            return sd;
-        } catch (const parser_error&) {
-            int lbrace = 1;
-            // Gonna have to be pretty aggressive about recovering from this
-            // if this doesn't work probably best to bail on the script
-            while (!is_end()) {
-                if (peek().type == NssTokenType::LBRACE) {
-                    ++lbrace;
-                } else if (peek().type == NssTokenType::RBRACE) {
-                    --lbrace;
-                }
-                advance();
-                if (lbrace <= 0) { break; }
-            }
-            throw;
-        }
-    }
-
-    if (lookahead(0).type == NssTokenType::EQ
-        || lookahead(0).type == NssTokenType::SEMICOLON
-        || lookahead(0).type == NssTokenType::COMMA) {
-        auto gvd = parse_decl_global_var();
-        if (auto ds = dynamic_cast<DeclList*>(gvd)) {
-            for (auto& d : ds->decls) {
-                d->type = t;
-                if (t.type_qualifier.type == NssTokenType::INVALID) {
-                    d->range_.start = t.type_specifier.loc.range.start;
-                } else {
-                    d->range_.start = t.type_qualifier.loc.range.start;
-                }
-                d->range_selection_.start = d->identifier.loc.range.start;
-                d->range_selection_.end = d->identifier.loc.range.end;
-            }
-        } else {
-            auto vd = static_cast<VarDecl*>(gvd);
-            vd->type = t;
-            // Note range end is already determined
-            if (t.type_qualifier.type == NssTokenType::INVALID) {
-                vd->range_.start = t.type_specifier.loc.range.start;
-            } else {
-                vd->range_.start = t.type_qualifier.loc.range.start;
-            }
-            vd->range_selection_.start = vd->identifier.loc.range.start;
-            vd->range_selection_.end = vd->identifier.loc.range.end;
-        }
-        return gvd;
-    }
-
-    if (lookahead(0).type == NssTokenType::LPAREN) {
-        auto fd = parse_decl_function_def();
-        if (auto decl = dynamic_cast<FunctionDecl*>(fd)) {
-            decl->type = t;
-            decl->range_selection_.start = decl->identifier.loc.range.start;
-            decl->range_selection_.end = decl->identifier.loc.range.end;
-        } else if (auto def = dynamic_cast<FunctionDefinition*>(fd)) {
-            def->decl_inline->type = t;
-            def->range_selection_.start = def->decl_inline->identifier.loc.range.start;
-            def->range_selection_.end = def->decl_inline->identifier.loc.range.end;
-            if (t.type_qualifier.type == NssTokenType::INVALID) {
-                def->decl_inline->range_.start = t.type_specifier.loc.range.start;
-            } else {
-                def->decl_inline->range_.start = t.type_specifier.loc.range.start;
-            }
-        }
-
-        if (t.type_qualifier.type == NssTokenType::INVALID) {
-            fd->range_.start = t.type_specifier.loc.range.start;
-        } else {
-            fd->range_.start = t.type_qualifier.loc.range.start;
-        }
-
-        return fd;
-    }
-
-    diagnostic("Expected function definition/declaration, struct declaration, or global variable declaration", peek());
-    throw parser_error("Expected function definition/declaration, struct declaration, or variable declaration");
-}
-
-VarDecl* NssParser::parse_decl_param()
-{
-    auto vd = ast_.create_node<VarDecl>();
-
-    Type t = parse_type();
-    vd->type = t;
-    consume(NssTokenType::IDENTIFIER, "Expected 'IDENTIFIER'.");
-    vd->identifier = previous();
-    if (match({NssTokenType::EQ})) {
-        vd->init = parse_expr_unary();
-    }
-    return vd;
-}
-
-FunctionDecl* NssParser::parse_decl_function()
-{
-    auto fd = ast_.create_node<FunctionDecl>();
-    consume(NssTokenType::IDENTIFIER, "Expected 'IDENTIFIER'.");
-    fd->identifier = previous();
-    consume(NssTokenType::LPAREN, "Expected '('.");
-    while (!is_end() && !check({NssTokenType::RPAREN})) {
-        fd->params.emplace_back(parse_decl_param());
-        match({NssTokenType::COMMA});
-    }
-    consume(NssTokenType::RPAREN, "Expected ')'.");
-    fd->range_.end = previous().loc.range.end;
-    return fd;
-}
-
-Declaration* NssParser::parse_decl_function_def()
-{
-    auto decl = parse_decl_function();
-    if (match({NssTokenType::SEMICOLON})) {
-        return decl;
-    }
-    auto def = ast_.create_node<FunctionDefinition>();
-    def->decl_inline = decl;
-    consume(NssTokenType::LBRACE, "Expected '{'.");
-    def->block = parse_stmt_block();
-    def->range_.end = previous().loc.range.end;
-    return def;
-}
-
-Statement* NssParser::parse_decl_global_var()
-{
-    auto decls = ast_.create_node<DeclList>();
-    while (true) {
-        auto ret = ast_.create_node<VarDecl>();
-        consume(NssTokenType::IDENTIFIER, "Expected 'IDENTIFIER'.");
-        ret->identifier = previous();
-        if (match({NssTokenType::EQ})) {
-            // [TODO] Parse is going to need to error on non constant expressions
-            ret->init = parse_expr();
-        }
-        decls->decls.push_back(ret);
-        if (!match({NssTokenType::COMMA})) {
-            break;
-        } else {
-            decls->decls.back()->range_.end = previous().loc.range.end;
-        }
-    }
-    consume(NssTokenType::SEMICOLON, "Expected ';'.");
-    decls->decls.back()->range_.end = previous().loc.range.start;
-
-    if (decls->decls.size() == 1) {
-        return decls->decls[0];
-    } else {
-        return decls;
-    }
 }
 
 } // namespace nw::script

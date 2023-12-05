@@ -49,6 +49,12 @@ struct Nss {
     /// Add diagnostic to script
     void add_diagnostic(Diagnostic diagnostic);
 
+    /// Gets parsed AST
+    Ast& ast();
+
+    /// Gets parsed ast
+    const Ast& ast() const;
+
     /// Generates a list of potential completions (excluding dependencies)
     void complete(const std::string& needle, std::vector<std::string>& out) const;
 
@@ -96,12 +102,6 @@ struct Nss {
 
     /// Process includes recursively
     void process_includes(Nss* parent = nullptr);
-
-    /// Gets parsed AST
-    Ast& ast();
-
-    /// Gets parsed ast
-    const Ast& ast() const;
 
     /// Resolves and type checks the Ast
     void resolve();
