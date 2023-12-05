@@ -69,7 +69,7 @@ void NssParser::diagnostic(std::string_view msg, NssToken token, bool is_warning
 
 bool NssParser::is_end() const
 {
-    return current_ >= tokens.size();
+    return current_ >= tokens.size() || tokens[current_].type == NssTokenType::END;
 }
 
 NssToken NssParser::consume(NssTokenType type, std::string_view message)
@@ -104,6 +104,7 @@ void NssParser::lex()
             }
             tok = lexer.next();
         }
+        tokens.push_back(tok);
         if (!current_comment.comment_.empty()) {
             ast_.comments.push_back(std::move(current_comment));
         }
@@ -135,9 +136,8 @@ bool NssParser::match(std::initializer_list<NssTokenType> types)
 
 NssToken NssParser::peek() const
 {
-    if (current_ >= tokens.size()) {
-        LOG_F(ERROR, "token out of bounds");
-        return {};
+    if (is_end()) {
+        return tokens.back();
     }
     return tokens[current_];
 }
