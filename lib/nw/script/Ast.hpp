@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../util/Variant.hpp"
+#include "../util/string.hpp"
 #include "Token.hpp"
 
 #include <fmt/format.h>
@@ -442,6 +443,7 @@ struct Declaration : public Statement {
     SourceRange range_selection_;
     std::string_view view;
 
+    virtual std::string identifier() const = 0;
     virtual SourceRange range() const noexcept;
     virtual SourceRange selection_range() const noexcept;
 };
@@ -451,8 +453,10 @@ struct FunctionDecl : public Declaration {
     FunctionDecl(FunctionDecl&) = delete;
     FunctionDecl& operator=(const FunctionDecl&) = delete;
 
-    NssToken identifier;
+    NssToken identifier_;
     std::vector<VarDecl*> params;
+
+    virtual std::string identifier() const override { return std::string(identifier_.loc.view()); };
 
     DEFINE_ACCEPT_VISITOR
 };
@@ -462,18 +466,24 @@ struct FunctionDefinition : public Declaration {
     BlockStatement* block = nullptr;
     FunctionDecl* decl_external = nullptr;
 
+    virtual std::string identifier() const override { return std::string(decl_inline->identifier_.loc.view()); };
+
     DEFINE_ACCEPT_VISITOR
 };
 
 struct StructDecl : public Declaration {
     std::vector<VarDecl*> decls;
 
+    virtual std::string identifier() const override { return std::string(type.struct_id.loc.view()); };
+
     DEFINE_ACCEPT_VISITOR
 };
 
 struct VarDecl : public Declaration {
-    NssToken identifier;
+    NssToken identifier_;
     Expression* init = nullptr;
+
+    virtual std::string identifier() const override { return std::string(identifier_.loc.view()); };
 
     DEFINE_ACCEPT_VISITOR
 };
@@ -481,6 +491,15 @@ struct VarDecl : public Declaration {
 /// List of comma separated declarations
 struct DeclList : public Declaration {
     std::vector<VarDecl*> decls;
+
+    virtual std::string identifier() const override
+    {
+        std::vector<std::string> identifiers;
+        for (const auto decl : decls) {
+            identifiers.push_back(decl->identifier());
+        }
+        return string::join(identifiers);
+    };
 
     DEFINE_ACCEPT_VISITOR
 };

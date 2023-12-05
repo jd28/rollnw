@@ -611,9 +611,9 @@ BlockStatement* NssParser::parse_stmt_block()
         try {
             auto n = parse_decl();
             if (auto fdef = dynamic_cast<FunctionDefinition*>(n)) {
-                diagnostic("structs cannot contain function definitions", fdef->decl_inline->identifier);
+                diagnostic("structs cannot contain function definitions", fdef->decl_inline->identifier_);
             } else if (auto fdef = dynamic_cast<FunctionDecl*>(n)) {
-                diagnostic("structs cannot contain function declarations", fdef->identifier);
+                diagnostic("structs cannot contain function declarations", fdef->identifier_);
             } else if (auto sd = dynamic_cast<StructDecl*>(n)) {
                 diagnostic("structs cannot contain other struct declarations", sd->type.struct_id);
             } else if (n) {
@@ -623,6 +623,7 @@ BlockStatement* NssParser::parse_stmt_block()
             synchronize();
         }
     }
+
     consume(NssTokenType::RBRACE, "Expected '}'.");
     s->range.end = previous().loc.range.start;
     return s;
@@ -780,7 +781,7 @@ Statement* NssParser::parse_decl()
                 auto vd = ast_.create_node<VarDecl>();
                 vd->type = t;
                 consume(NssTokenType::IDENTIFIER, "Expected 'IDENTIFIER'.");
-                vd->identifier = previous();
+                vd->identifier_ = previous();
                 if (match({NssTokenType::EQ})) {
                     vd->init = parse_expr();
                 }
@@ -790,8 +791,8 @@ Statement* NssParser::parse_decl()
                 } else {
                     vd->range_.start = t.type_qualifier.loc.range.start;
                 }
-                vd->range_selection_.start = vd->identifier.loc.range.start;
-                vd->range_selection_.end = vd->identifier.loc.range.end;
+                vd->range_selection_.start = vd->identifier_.loc.range.start;
+                vd->range_selection_.end = vd->identifier_.loc.range.end;
 
                 decls->decls.push_back(vd);
                 if (!match({NssTokenType::COMMA})) { break; }
@@ -816,12 +817,12 @@ Statement* NssParser::parse_decl()
             auto fd = parse_decl_function_def();
             if (auto decl = dynamic_cast<FunctionDecl*>(fd)) {
                 decl->type = t;
-                decl->range_selection_.start = decl->identifier.loc.range.start;
-                decl->range_selection_.end = decl->identifier.loc.range.end;
+                decl->range_selection_.start = decl->identifier_.loc.range.start;
+                decl->range_selection_.end = decl->identifier_.loc.range.end;
             } else if (auto def = dynamic_cast<FunctionDefinition*>(fd)) {
                 def->decl_inline->type = t;
-                def->range_selection_.start = def->decl_inline->identifier.loc.range.start;
-                def->range_selection_.end = def->decl_inline->identifier.loc.range.end;
+                def->range_selection_.start = def->decl_inline->identifier_.loc.range.start;
+                def->range_selection_.end = def->decl_inline->identifier_.loc.range.end;
                 if (t.type_qualifier.type == NssTokenType::INVALID) {
                     def->decl_inline->range_.start = t.type_specifier.loc.range.start;
                 } else {
@@ -857,9 +858,9 @@ StructDecl* NssParser::parse_decl_struct()
         if (auto vd = dynamic_cast<VarDecl*>(var_decl)) {
             decl->decls.push_back(vd);
         } else if (auto fdef = dynamic_cast<FunctionDefinition*>(var_decl)) {
-            diagnostic("structs cannot contain function definitions", fdef->decl_inline->identifier);
+            diagnostic("structs cannot contain function definitions", fdef->decl_inline->identifier_);
         } else if (auto fdef = dynamic_cast<FunctionDecl*>(var_decl)) {
-            diagnostic("structs cannot contain function declarations", fdef->identifier);
+            diagnostic("structs cannot contain function declarations", fdef->identifier_);
         } else if (auto sd = dynamic_cast<StructDecl*>(var_decl)) {
             diagnostic("structs cannot contain other struct declarations", sd->type.struct_id);
         }
@@ -889,7 +890,7 @@ FunctionDecl* NssParser::parse_decl_function()
 {
     auto fd = ast_.create_node<FunctionDecl>();
     consume(NssTokenType::IDENTIFIER, "Expected 'IDENTIFIER'.");
-    fd->identifier = previous();
+    fd->identifier_ = previous();
     consume(NssTokenType::LPAREN, "Expected '('.");
     while (!is_end() && !check({NssTokenType::RPAREN})) {
         fd->params.emplace_back(parse_decl_param());
@@ -907,7 +908,7 @@ VarDecl* NssParser::parse_decl_param()
     Type t = parse_type();
     vd->type = t;
     consume(NssTokenType::IDENTIFIER, "Expected 'IDENTIFIER'.");
-    vd->identifier = previous();
+    vd->identifier_ = previous();
     if (match({NssTokenType::EQ})) {
         vd->init = parse_expr_unary();
     }

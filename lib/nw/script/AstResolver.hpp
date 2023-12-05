@@ -255,7 +255,7 @@ struct AstResolver : BaseVisitor {
                     decl->params.size(),
                     def->params.size()),
                 false,
-                def->identifier.loc); // [TODO] expand this
+                def->identifier_.loc); // [TODO] expand this
         } else {
             std::string reason;
 
@@ -269,17 +269,17 @@ struct AstResolver : BaseVisitor {
                         ctx_->type_name(decl->params[i]->type_id_), ctx_->type_name(def->params[i]->type_id_));
                     mismatch = true;
                     loc = def->params[i]->type.type_specifier.loc;
-                } else if (decl->params[i]->identifier.loc.view() != def->params[i]->identifier.loc.view()) {
+                } else if (decl->params[i]->identifier_.loc.view() != def->params[i]->identifier_.loc.view()) {
                     reason = fmt::format("function parameter declared with identifier '{}', defined with identifier '{}'",
-                        decl->params[i]->identifier.loc.view(), def->params[i]->identifier.loc.view());
+                        decl->params[i]->identifier_.loc.view(), def->params[i]->identifier_.loc.view());
                     mismatch = true;
                     warning = true;
-                    loc = def->params[i]->identifier.loc;
+                    loc = def->params[i]->identifier_.loc;
                 } else if (decl->params[i]->is_const_ != def->params[i]->is_const_) {
                     reason = fmt::format("function parameter const mismatch",
                         ctx_->type_name(decl->params[i]->type_id_), ctx_->type_name(def->params[i]->type_id_));
                     mismatch = true;
-                    loc = decl->params[i]->identifier.loc;
+                    loc = decl->params[i]->identifier_.loc;
                 } else if (decl->params[i]->init && def->params[i]->init) {
                     // [TODO] Probably need to have some sort of constant folding or tree walking interpreter
                     // to ensure the values of initializers are the same.
@@ -288,14 +288,14 @@ struct AstResolver : BaseVisitor {
                     if (lit1 && lit2 && lit1->data != lit2->data) {
                         reason = "mismatch parameter initializers";
                         mismatch = true;
-                        loc = decl->params[i]->identifier.loc;
+                        loc = decl->params[i]->identifier_.loc;
                     } else {
                         auto vlit1 = dynamic_cast<LiteralVectorExpression*>(decl->params[i]->init);
                         auto vlit2 = dynamic_cast<LiteralVectorExpression*>(def->params[i]->init);
                         if (vlit1 && vlit2 && vlit1->data != vlit2->data) {
                             reason = "mismatch parameter initializers";
                             mismatch = true;
-                            loc = decl->params[i]->identifier.loc;
+                            loc = decl->params[i]->identifier_.loc;
                         }
                     }
                 }
@@ -341,11 +341,11 @@ struct AstResolver : BaseVisitor {
     {
         decl->env = env_stack_.back();
         // Check to see if there's been a function definition, if so got to match.
-        auto fd = resolve(decl->identifier.loc.view(), decl->identifier.loc, false);
+        auto fd = resolve(decl->identifier_.loc.view(), decl->identifier_.loc, false);
 
         decl->type_id_ = ctx_->type_id(decl->type);
-        declare(decl->identifier, decl);
-        define(decl->identifier);
+        declare(decl->identifier_, decl);
+        define(decl->identifier_);
 
         // Multiple declarations...
         if (auto d = dynamic_cast<FunctionDecl*>(fd)) { return; }
@@ -356,7 +356,7 @@ struct AstResolver : BaseVisitor {
             if (p->init && !p->init->is_const_) {
                 ctx_->semantic_diagnostic(parent_, "initializing parameter a with non-constant expression",
                     false,
-                    p->identifier.loc);
+                    p->identifier_.loc);
             }
         }
         end_scope();
@@ -371,13 +371,13 @@ struct AstResolver : BaseVisitor {
         decl->env = env_stack_.back();
         func_def_stack_ = decl;
         // Check to see if there's been a function declaration, if so got to match.
-        auto fd = resolve(decl->decl_inline->identifier.loc.view(), decl->decl_inline->identifier.loc, false);
+        auto fd = resolve(decl->decl_inline->identifier_.loc.view(), decl->decl_inline->identifier_.loc, false);
         decl->decl_external = dynamic_cast<FunctionDecl*>(fd);
 
         decl->type_id_ = decl->decl_inline->type_id_ = ctx_->type_id(decl->decl_inline->type);
 
-        declare(decl->decl_inline->identifier, decl);
-        define(decl->decl_inline->identifier);
+        declare(decl->decl_inline->identifier_, decl);
+        define(decl->decl_inline->identifier_);
 
         begin_scope();
         for (auto& p : decl->decl_inline->params) {
@@ -385,7 +385,7 @@ struct AstResolver : BaseVisitor {
             if (p->init && !p->init->is_const_) {
                 ctx_->semantic_diagnostic(parent_, "initializing parameter a with non-constant expression",
                     false,
-                    p->identifier.loc);
+                    p->identifier_.loc);
             }
         }
 
@@ -394,7 +394,7 @@ struct AstResolver : BaseVisitor {
         decl->block->accept(this);
         if (decl->type_id_ != ctx_->type_id("void") && !all_control_flow_paths_return(decl->block)) {
             ctx_->semantic_diagnostic(parent_, "not all control flow paths return",
-                false, decl->decl_inline->identifier.loc);
+                false, decl->decl_inline->identifier_.loc);
         }
 
         end_scope();
@@ -411,8 +411,8 @@ struct AstResolver : BaseVisitor {
             it->accept(this);
             if (it->is_const_) {
                 ctx_->semantic_diagnostic(parent_,
-                    fmt::format("struct member '{}' cannot be declared as 'const'", it->identifier.loc.view()),
-                    false, it->identifier.loc);
+                    fmt::format("struct member '{}' cannot be declared as 'const'", it->identifier_.loc.view()),
+                    false, it->identifier_.loc);
             }
         }
         end_scope();
@@ -429,16 +429,16 @@ struct AstResolver : BaseVisitor {
         if (decl->type_id_ == ctx_->type_id("void")) {
             ctx_->semantic_diagnostic(parent_, "variable declared with void type",
                 false,
-                decl->identifier.loc);
+                decl->identifier_.loc);
         }
 
         if (decl->is_const_ && !decl->init) {
             ctx_->semantic_diagnostic(parent_, "constant variable declaration with no initializer",
                 false,
-                decl->identifier.loc);
+                decl->identifier_.loc);
         }
 
-        declare(decl->identifier, decl);
+        declare(decl->identifier_, decl);
         if (decl->init) {
             decl->init->accept(this);
 
@@ -448,14 +448,14 @@ struct AstResolver : BaseVisitor {
             } else if (decl->type_id_ != decl->init->type_id_) {
                 ctx_->semantic_diagnostic(parent_,
                     fmt::format("initializing variable '{}' of type '{}' with value of type '{}' ",
-                        decl->identifier.loc.view(),
+                        decl->identifier_.loc.view(),
                         ctx_->type_name(decl->type_id_),
                         ctx_->type_name(decl->init->type_id_)),
                     false,
-                    decl->identifier.loc);
+                    decl->identifier_.loc);
             }
         }
-        define(decl->identifier);
+        define(decl->identifier_);
     }
 
     // Expressions
@@ -622,7 +622,7 @@ struct AstResolver : BaseVisitor {
 
         auto resolve_struct_member = [this](VariableExpression* var, StructDecl* str) {
             for (const auto& it : str->decls) {
-                if (it->identifier.loc.view() == var->var.loc.view()) {
+                if (it->identifier_.loc.view() == var->var.loc.view()) {
                     var->type_id_ = it->type_id_;
                     var->is_const_ = it->is_const_;
                     return true;

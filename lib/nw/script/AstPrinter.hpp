@@ -28,7 +28,7 @@ struct AstPrinter : BaseVisitor {
     virtual void visit(FunctionDecl* decl) override
     {
         ss << '\n'
-           << std::string(size_t(depth * 2), ' ') << "(decl " << decl->identifier.loc.view() << " : ";
+           << std::string(size_t(depth * 2), ' ') << "(decl " << decl->identifier_.loc.view() << " : ";
 
         if (decl->type.type_qualifier.loc.view().size()) {
             ss << decl->type.type_qualifier.loc.view() << " ";
@@ -75,7 +75,7 @@ struct AstPrinter : BaseVisitor {
     virtual void visit(VarDecl* decl) override
     {
         ss << '\n'
-           << std::string(size_t(depth * 2), ' ') << "(decl " << decl->identifier.loc.view() << " : ";
+           << std::string(size_t(depth * 2), ' ') << "(decl " << decl->identifier_.loc.view() << " : ";
         if (decl->type.type_qualifier.loc.view().size()) {
             ss << decl->type.type_qualifier.loc.view() << " ";
         }

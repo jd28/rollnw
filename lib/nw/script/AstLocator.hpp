@@ -72,7 +72,7 @@ struct AstLocator : public BaseVisitor {
                 } else {
                     locate_in_dependencies();
                 }
-            } else if (contains_position(decl->identifier.loc.range, pos_)) {
+            } else if (contains_position(decl->identifier_.loc.range, pos_)) {
                 result_.decl = decl;
                 result_.type = parent_->ctx()->type_name(decl->type_id_);
                 result_.comment = parent_->ast().find_comment(decl->range_.start.line);
@@ -117,7 +117,7 @@ struct AstLocator : public BaseVisitor {
 
     virtual void visit(VarDecl* decl)
     {
-        if (contains_position(decl->identifier.loc.range, pos_)) {
+        if (contains_position(decl->identifier_.loc.range, pos_)) {
             result_.decl = decl;
             result_.type = parent_->ctx()->type_name(decl->type_id_);
             result_.comment = parent_->ast().find_comment(decl->range_.start.line);

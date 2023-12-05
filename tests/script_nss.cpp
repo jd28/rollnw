@@ -47,7 +47,7 @@ TEST(Nss, ParseNwscript)
     EXPECT_NE(sym.decl, nullptr);
     auto d = dynamic_cast<nw::script::FunctionDecl*>(sym.decl);
     if (d) {
-        EXPECT_EQ(d->identifier.loc.view(), "IntToString");
+        EXPECT_EQ(d->identifier_.loc.view(), "IntToString");
         EXPECT_EQ(d->type_id_, nss.ctx()->type_id("string"));
     }
 
@@ -1266,7 +1266,7 @@ TEST(Nss, Location)
     EXPECT_TRUE(decl1);
     auto vd1 = dynamic_cast<const nw::script::VarDecl*>(decl1);
     EXPECT_TRUE(vd1);
-    EXPECT_EQ(vd1->identifier.loc.view(), "f");
+    EXPECT_EQ(vd1->identifier_.loc.view(), "f");
 
     auto decl2 = nss1.ast().find_last_declaration(0, 0);
     EXPECT_FALSE(decl2);
@@ -1288,8 +1288,7 @@ TEST(Nss, Location)
     EXPECT_TRUE(decl3);
     auto vd3 = dynamic_cast<const nw::script::VarDecl*>(decl3);
     EXPECT_TRUE(vd3);
-    EXPECT_EQ(vd3->identifier.loc.view(), "s");
-    std::vector<std::string> out3;
+    EXPECT_EQ(vd3->identifier_.loc.view(), "s");
     vd3->complete("te", out3);
     EXPECT_EQ(out3.size(), 1);
 
@@ -1315,8 +1314,8 @@ TEST(Nss, Location)
     EXPECT_TRUE(decl4);
     auto vd4 = dynamic_cast<const nw::script::VarDecl*>(decl4);
     EXPECT_TRUE(vd4);
-    EXPECT_EQ(vd4->identifier.loc.view(), "count");
     std::vector<std::string> out4;
+    EXPECT_EQ(vd4->identifier_.loc.view(), "count");
     vd4->complete("ind", out4);
     EXPECT_EQ(out4.size(), 1);
 

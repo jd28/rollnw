@@ -590,14 +590,14 @@ class Declaration(Statement):
     Attributes:
         type
     """
-    pass
+
+    def identifier(self) -> str:
+        """Get declaration identifier"""
+        return ""
 
 
 class FunctionDecl (Declaration):
     """Function declaration
-
-    Attributes:
-        identifier
     """
 
     def __len__(self):
@@ -636,7 +636,6 @@ class VarDecl (Declaration):
     """Variable declaration
 
     Attributes:
-        identifier
         init
     """
     pass

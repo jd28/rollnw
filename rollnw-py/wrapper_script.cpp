@@ -448,13 +448,13 @@ void init_script(py::module& nw)
             py::return_value_policy::reference_internal);
 
     py::class_<nws::Declaration, nws::Statement>(nw, "Declaration")
+        .def("identifier", &nws::Declaration::identifier,
+            "Gets the declarations identifier")
         .def_readonly("type", &nws::Declaration::type)
         .def("range", &nws::Declaration::range)
         .def("selection_range", &nws::Declaration::selection_range);
 
     py::class_<nws::FunctionDecl, nws::Declaration>(nw, "FunctionDecl")
-        .def_readonly("identifier", &nws::FunctionDecl::identifier,
-            "Gets the declarations identifier")
         .def("__len__", [](nws::FunctionDecl& self) { return self.params.size(); })
         .def(
             "__getitem__", [](nws::FunctionDecl& self, size_t idx) { return self.params[idx]; },
@@ -475,8 +475,6 @@ void init_script(py::module& nw)
             py::return_value_policy::reference_internal);
 
     py::class_<nws::VarDecl, nws::Declaration>(nw, "VarDecl")
-        .def_readonly("identifier", &nws::VarDecl::identifier,
-            "Gets the declarations identifier")
         .def_property_readonly(
             "init", [](nws::VarDecl& self) { return self.init; },
             py::return_value_policy::reference_internal);

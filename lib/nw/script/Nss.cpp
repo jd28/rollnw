@@ -76,7 +76,7 @@ void Nss::complete_at(const std::string& needle, size_t line, size_t character, 
                 identifier = std::string{d->decl_inline->identifier.loc.view()};
             } else if (auto d = dynamic_cast<const DeclList*>(node)) {
                 for (const auto decl : d->decls) {
-                    std::string id{decl->identifier.loc.view()};
+                    std::string id{decl->identifier_.loc.view()};
                     if (has_match(needle.c_str(), id.c_str())) {
                         out.push_back(identifier);
                     }
