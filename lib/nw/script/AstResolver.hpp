@@ -403,11 +403,6 @@ struct AstResolver : BaseVisitor {
 
     virtual void visit(StructDecl* decl) override
     {
-        if (func_def_stack_) {
-            ctx_->semantic_diagnostic(parent_,
-                "structs can only be declared at toplevel scope", false, decl->type.struct_id.loc);
-        }
-
         decl->env = env_stack_.back();
         declare(decl->type.struct_id, decl, true);
         decl->type_id_ = ctx_->type_id(decl->type, true);
