@@ -121,9 +121,9 @@ Symbol Nss::locate_export(const std::string& symbol, bool is_type, bool search_d
         result.decl = is_type ? sym->type : sym->decl;
         if (result.decl) {
             if (!is_type) {
-                if (dynamic_cast<VarDecl*>(result.decl)) {
+                if (dynamic_cast<const VarDecl*>(result.decl)) {
                     result.kind = SymbolKind::variable;
-                } else if (auto fd = dynamic_cast<FunctionDefinition*>(result.decl)) {
+                } else if (auto fd = dynamic_cast<const FunctionDefinition*>(result.decl)) {
                     if (fd->decl_external) {
                         result.decl = fd->decl_external;
                     } else {

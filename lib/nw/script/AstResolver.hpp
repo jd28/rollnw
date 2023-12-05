@@ -160,7 +160,7 @@ struct AstResolver : BaseVisitor {
 
     // Locate decl in script or dependencies
     // Note: does not check command script
-    Declaration* locate(const std::string& token, Nss* script, bool is_type)
+    const Declaration* locate(const std::string& token, Nss* script, bool is_type)
     {
         auto symbol = script->locate_export(token, is_type);
         if (symbol.decl) {
@@ -177,7 +177,7 @@ struct AstResolver : BaseVisitor {
     }
 
     // Resolve symbol to original decl
-    Declaration* resolve(std::string_view token, SourceLocation loc, bool is_type)
+    const Declaration* resolve(std::string_view token, SourceLocation loc, bool is_type)
     {
         auto s = std::string(token);
 
@@ -235,7 +235,7 @@ struct AstResolver : BaseVisitor {
 
     // Decls
 
-    void match_function_decls(FunctionDecl* decl, FunctionDecl* def)
+    void match_function_decls(const FunctionDecl* decl, const FunctionDecl* def)
     {
         if (!decl || !def) { return; }
 
@@ -348,7 +348,7 @@ struct AstResolver : BaseVisitor {
         define(decl->identifier_);
 
         // Multiple declarations...
-        if (auto d = dynamic_cast<FunctionDecl*>(fd)) { return; }
+        if (auto d = dynamic_cast<const FunctionDecl*>(fd)) { return; }
 
         begin_scope();
         for (auto& p : decl->params) {
@@ -361,7 +361,7 @@ struct AstResolver : BaseVisitor {
         }
         end_scope();
 
-        if (auto d = dynamic_cast<FunctionDefinition*>(fd)) {
+        if (auto d = dynamic_cast<const FunctionDefinition*>(fd)) {
             match_function_decls(decl, d->decl_inline);
         }
     }
@@ -372,7 +372,7 @@ struct AstResolver : BaseVisitor {
         func_def_stack_ = decl;
         // Check to see if there's been a function declaration, if so got to match.
         auto fd = resolve(decl->decl_inline->identifier_.loc.view(), decl->decl_inline->identifier_.loc, false);
-        decl->decl_external = dynamic_cast<FunctionDecl*>(fd);
+        decl->decl_external = dynamic_cast<const FunctionDecl*>(fd);
 
         decl->type_id_ = decl->decl_inline->type_id_ = ctx_->type_id(decl->decl_inline->type);
 
@@ -513,12 +513,12 @@ struct AstResolver : BaseVisitor {
             return;
         }
 
-        FunctionDecl* func_decl = nullptr;
-        FunctionDecl* orig_decl = nullptr;
+        const FunctionDecl* func_decl = nullptr;
+        const FunctionDecl* orig_decl = nullptr;
         auto decl = resolve(ve->var.loc.view(), ve->var.loc, false);
-        if (auto fd = dynamic_cast<FunctionDecl*>(decl)) {
+        if (auto fd = dynamic_cast<const FunctionDecl*>(decl)) {
             func_decl = fd;
-        } else if (auto fd = dynamic_cast<FunctionDefinition*>(decl)) {
+        } else if (auto fd = dynamic_cast<const FunctionDefinition*>(decl)) {
             func_decl = fd->decl_inline;
             orig_decl = fd->decl_external;
         } else {
@@ -620,7 +620,7 @@ struct AstResolver : BaseVisitor {
     {
         expr->env = env_stack_.back();
 
-        auto resolve_struct_member = [this](VariableExpression* var, StructDecl* str) {
+        auto resolve_struct_member = [this](VariableExpression* var, const StructDecl* str) {
             for (const auto& it : str->decls) {
                 if (it->identifier_.loc.view() == var->var.loc.view()) {
                     var->type_id_ = it->type_id_;
@@ -640,12 +640,12 @@ struct AstResolver : BaseVisitor {
             return;
         }
 
-        StructDecl* struct_decl = nullptr;
+        const StructDecl* struct_decl = nullptr;
         std::string_view struct_type;
         if (auto de = dynamic_cast<DotExpression*>(expr->lhs)) {
             expr->lhs->accept(this);
             struct_type = ctx_->type_name(expr->lhs->type_id_);
-            struct_decl = struct_decl = dynamic_cast<StructDecl*>(resolve(struct_type, expr->dot.loc, true));
+            struct_decl = struct_decl = dynamic_cast<const StructDecl*>(resolve(struct_type, expr->dot.loc, true));
         } else if (auto ve = dynamic_cast<VariableExpression*>(expr->lhs)) {
             ve->accept(this);
 
@@ -659,7 +659,7 @@ struct AstResolver : BaseVisitor {
             }
 
             struct_type = ctx_->type_name(ve->type_id_);
-            struct_decl = dynamic_cast<StructDecl*>(resolve(ctx_->type_name(ve->type_id_), ve->var.loc, true));
+            struct_decl = dynamic_cast<const StructDecl*>(resolve(ctx_->type_name(ve->type_id_), ve->var.loc, true));
         }
 
         if (!struct_decl) {

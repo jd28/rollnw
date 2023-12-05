@@ -465,7 +465,7 @@ struct FunctionDecl : public Declaration {
 struct FunctionDefinition : public Declaration {
     FunctionDecl* decl_inline = nullptr;
     BlockStatement* block = nullptr;
-    FunctionDecl* decl_external = nullptr;
+    const FunctionDecl* decl_external = nullptr;
 
     virtual std::string identifier() const override { return std::string(decl_inline->identifier_.loc.view()); };
 
