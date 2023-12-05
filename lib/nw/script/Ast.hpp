@@ -20,6 +20,7 @@ struct Nss;
 struct Ast;
 struct Export;
 
+struct Declaration;
 struct FunctionDecl;
 struct FunctionDefinition;
 struct StructDecl;
@@ -99,7 +100,7 @@ struct AstNode {
 
     /// Find completions for this Ast Node
     /// @note This function does not traverse dependencies
-    virtual void complete(const std::string& needle, std::vector<std::string>& out) const;
+    virtual void complete(const std::string& needle, std::vector<const Declaration*>& out) const;
 
     size_t type_id_ = invalid_type_id;
     bool is_const_ = false;

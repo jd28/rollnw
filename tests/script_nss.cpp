@@ -52,12 +52,15 @@ TEST(Nss, ParseNwscript)
     }
 
     // Completion
-    std::vector<std::string> completions;
+    std::vector<const script::Declaration*> completions;
     nss.complete("IntToString", completions);
-    std::sort(std::begin(completions), std::end(completions));
+    std::sort(std::begin(completions), std::end(completions),
+        [](const script::Declaration* lhs, const script::Declaration* rhs) {
+            return lhs->identifier() < rhs->identifier();
+        });
     EXPECT_EQ(completions.size(), 2);
-    EXPECT_EQ(completions[0], "IntToHexString");
-    EXPECT_EQ(completions[1], "IntToString");
+    EXPECT_EQ(completions[0]->identifier(), "IntToHexString");
+    EXPECT_EQ(completions[1]->identifier(), "IntToString");
 
     // Command Script Resolution..
     script::Nss nss2("string test_function(string s, int b) { return IntToString(b); }"sv, ctx.get());
@@ -77,9 +80,14 @@ TEST(Nss, ParseNwscript)
     EXPECT_NE(sym3.decl, nullptr);
     auto d3 = dynamic_cast<nw::script::FunctionDecl*>(sym3.decl);
     EXPECT_NE(d3, nullptr);
-    std::vector<std::string> completions2;
+    std::vector<const script::Declaration*> completions2;
     d3->complete("OBJECT_type_", completions2);
-    std::sort(std::begin(completions2), std::end(completions2));
+
+    std::vector<std::string> completions2_string;
+    for (auto decl : completions2) {
+        completions2_string.push_back(decl->identifier());
+    }
+    std::sort(std::begin(completions2_string), std::end(completions2_string));
     std::vector<std::string> expect2{
         "OBJECT_TYPE_ALL",
         "OBJECT_TYPE_AREA_OF_EFFECT",
@@ -93,7 +101,7 @@ TEST(Nss, ParseNwscript)
         "OBJECT_TYPE_TRIGGER",
         "OBJECT_TYPE_WAYPOINT",
     };
-    EXPECT_EQ(completions2, expect2);
+    EXPECT_EQ(completions2_string, expect2);
 }
 
 TEST(Nss, Variables)
@@ -1289,6 +1297,7 @@ TEST(Nss, Location)
     auto vd3 = dynamic_cast<const nw::script::VarDecl*>(decl3);
     EXPECT_TRUE(vd3);
     EXPECT_EQ(vd3->identifier_.loc.view(), "s");
+    std::vector<const script::Declaration*> out3;
     vd3->complete("te", out3);
     EXPECT_EQ(out3.size(), 1);
 
@@ -1314,8 +1323,8 @@ TEST(Nss, Location)
     EXPECT_TRUE(decl4);
     auto vd4 = dynamic_cast<const nw::script::VarDecl*>(decl4);
     EXPECT_TRUE(vd4);
-    std::vector<std::string> out4;
     EXPECT_EQ(vd4->identifier_.loc.view(), "count");
+    std::vector<const script::Declaration*> out4;
     vd4->complete("ind", out4);
     EXPECT_EQ(out4.size(), 1);
 

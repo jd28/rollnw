@@ -42,16 +42,17 @@ void Nss::add_diagnostic(Diagnostic diagnostic)
     diagnostics_.push_back(std::move(diagnostic));
 }
 
-void Nss::complete(const std::string& needle, std::vector<std::string>& out) const
+void Nss::complete(const std::string& needle, std::vector<const Declaration*>& out) const
 {
-    for (const auto& [name, _] : symbol_table_) {
+    for (const auto& [name, exp] : symbol_table_) {
         if (has_match(needle.c_str(), name.c_str())) {
-            out.push_back(name);
+            if (exp.decl) { out.push_back(exp.decl); }
+            if (exp.type) { out.push_back(exp.type); }
         }
     }
 }
 
-inline void complete_includes(const Nss* script, const std::string& needle, std::vector<std::string>& out)
+inline void complete_includes(const Nss* script, const std::string& needle, std::vector<const Declaration*>& out)
 {
     script->complete(needle, out);
     for (const auto& it : script->ast().includes) {
@@ -60,31 +61,22 @@ inline void complete_includes(const Nss* script, const std::string& needle, std:
     }
 }
 
-void Nss::complete_at(const std::string& needle, size_t line, size_t character, std::vector<std::string>& out) const
+void Nss::complete_at(const std::string& needle, size_t line, size_t character, std::vector<const Declaration*>& out) const
 {
     auto node = ast_.find_last_declaration(line, character);
     if (node) {
         node->complete(needle, out);
 
         if (node->range_.start.line < line) { // Skip if on the same line
-            std::string identifier;
-            if (auto d = dynamic_cast<const VarDecl*>(node)) {
-                identifier = std::string{d->identifier.loc.view()};
-            } else if (auto d = dynamic_cast<const FunctionDecl*>(node)) {
-                identifier = std::string{d->identifier.loc.view()};
-            } else if (auto d = dynamic_cast<const FunctionDefinition*>(node)) {
-                identifier = std::string{d->decl_inline->identifier.loc.view()};
-            } else if (auto d = dynamic_cast<const DeclList*>(node)) {
+            if (auto d = dynamic_cast<const DeclList*>(node)) {
                 for (const auto decl : d->decls) {
                     std::string id{decl->identifier_.loc.view()};
                     if (has_match(needle.c_str(), id.c_str())) {
-                        out.push_back(identifier);
+                        out.push_back(decl);
                     }
                 }
-            }
-
-            if (!identifier.empty() && has_match(needle.c_str(), identifier.c_str())) {
-                out.push_back(identifier);
+            } else {
+                out.push_back(node);
             }
         }
     }

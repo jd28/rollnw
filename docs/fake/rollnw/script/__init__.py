@@ -198,12 +198,12 @@ class Nss:
         """Gets the parsed script"""
         pass
 
-    def complete(self, needle: str) -> Sequence[str]:
+    def complete(self, needle: str) -> Sequence["Declaration"]:
         """Generates a list of potential completions (excluding dependencies)
         """
         return []
 
-    def complete_at(self, needle: str, line: int, character: int) -> Sequence[str]:
+    def complete_at(self, needle: str, line: int, character: int) -> Sequence["Declaration"]:
         """Get all completions (including dependencies)
         """
         return []
@@ -334,7 +334,7 @@ class NssToken:
 class AstNode:
     """Base Ast Node class"""
 
-    def complete(self, needle: str) -> List[str]:
+    def complete(self, needle: str) -> Sequence["Declaration"]:
         """Find completions for any Ast Node
 
         @note This function does not traverse dependencies

@@ -56,10 +56,10 @@ struct Nss {
     const Ast& ast() const;
 
     /// Generates a list of potential completions (excluding dependencies)
-    void complete(const std::string& needle, std::vector<std::string>& out) const;
+    void complete(const std::string& needle, std::vector<const Declaration*>& out) const;
 
     /// Get all completions (including dependencies)
-    void complete_at(const std::string& needle, size_t line, size_t character, std::vector<std::string>& out) const;
+    void complete_at(const std::string& needle, size_t line, size_t character, std::vector<const Declaration*>& out) const;
 
     /// Script context
     Context* ctx() const;

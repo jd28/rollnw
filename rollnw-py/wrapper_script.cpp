@@ -198,16 +198,20 @@ void init_script(py::module& nw)
                 return &self.ast();
             },
             py::return_value_policy::reference_internal)
-        .def("complete", [](const nws::Nss& self, const std::string& needle) {
-            std::vector<std::string> out;
-            self.complete(needle, out);
-            return out;
-        })
-        .def("complete_at", [](const nws::Nss& self, const std::string& needle, size_t line, size_t character) {
-            std::vector<std::string> out;
-            self.complete_at(needle, line, character, out);
-            return out;
-        })
+        .def(
+            "complete", [](const nws::Nss& self, const std::string& needle) {
+                std::vector<const nws::Declaration*> out;
+                self.complete(needle, out);
+                return out;
+            },
+            py::return_value_policy::reference_internal)
+        .def(
+            "complete_at", [](const nws::Nss& self, const std::string& needle, size_t line, size_t character) {
+                std::vector<const nws::Declaration*> out;
+                self.complete_at(needle, line, character, out);
+                return out;
+            },
+            py::return_value_policy::reference_internal)
         .def("dependencies", &nws::Nss::dependencies)
         .def("diagnostics", &nws::Nss::diagnostics)
         .def("errors", &nws::Nss::errors)
