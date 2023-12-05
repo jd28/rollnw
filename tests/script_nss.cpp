@@ -52,15 +52,15 @@ TEST(Nss, ParseNwscript)
     }
 
     // Completion
-    std::vector<const script::Declaration*> completions;
-    nss.complete("IntToString", completions);
-    std::sort(std::begin(completions), std::end(completions),
-        [](const script::Declaration* lhs, const script::Declaration* rhs) {
-            return lhs->identifier() < rhs->identifier();
+    script::CompletionContext comp_ctx;
+    nss.complete("IntToString", comp_ctx);
+    std::sort(std::begin(comp_ctx.completions), std::end(comp_ctx.completions),
+        [](const script::Symbol lhs, const script::Symbol rhs) {
+            return lhs.decl->identifier() < rhs.decl->identifier();
         });
-    EXPECT_EQ(completions.size(), 2);
-    EXPECT_EQ(completions[0]->identifier(), "IntToHexString");
-    EXPECT_EQ(completions[1]->identifier(), "IntToString");
+    EXPECT_EQ(comp_ctx.completions.size(), 2);
+    EXPECT_EQ(comp_ctx.completions[0].decl->identifier(), "IntToHexString");
+    EXPECT_EQ(comp_ctx.completions[1].decl->identifier(), "IntToString");
 
     // Command Script Resolution..
     script::Nss nss2("string test_function(string s, int b) { return IntToString(b); }"sv, ctx.get());

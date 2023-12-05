@@ -41,6 +41,24 @@ struct Symbol {
     std::string_view view;             ///< View of declaration
 };
 
+struct CompletionContext {
+    void add(Symbol symbol)
+    {
+        std::string id = symbol.decl->identifier();
+        auto it = completion_map.find(id);
+        // This isn't super ideal, but there are only collisions between structs
+        // and everything else.
+        if (completion_map.find(id) == std::end(completion_map)
+            || completions[it->second].kind != symbol.kind) {
+            completion_map.insert({id, completions.size()});
+            completions.push_back(std::move(symbol));
+        }
+    }
+
+    std::unordered_map<std::string, size_t> completion_map;
+    std::vector<Symbol> completions;
+};
+
 struct Nss {
     explicit Nss(const std::filesystem::path& filename, Context* ctx, bool command_script = false);
     explicit Nss(std::string_view script, Context* ctx, bool command_script = false);
@@ -56,10 +74,10 @@ struct Nss {
     const Ast& ast() const;
 
     /// Generates a list of potential completions (excluding dependencies)
-    void complete(const std::string& needle, std::vector<const Declaration*>& out) const;
+    void complete(const std::string& needle, CompletionContext& out) const;
 
     /// Get all completions (including dependencies)
-    void complete_at(const std::string& needle, size_t line, size_t character, std::vector<const Declaration*>& out) const;
+    void complete_at(const std::string& needle, size_t line, size_t character, CompletionContext& out) const;
 
     /// Script context
     Context* ctx() const;
@@ -119,6 +137,8 @@ struct Nss {
     size_t warnings() const noexcept { return warnings_; }
 
 private:
+    Symbol decl_to_symbol(const Declaration* decl) const;
+
     Context* ctx_ = nullptr;
     ResourceData data_;
     std::string_view text_;
