@@ -409,6 +409,11 @@ struct AstResolver : BaseVisitor {
         begin_scope();
         for (auto& it : decl->decls) {
             it->accept(this);
+            if (it->is_const_) {
+                ctx_->semantic_diagnostic(parent_,
+                    fmt::format("struct member '{}' cannot be declared as 'const'", it->identifier.loc.view()),
+                    false, it->identifier.loc);
+            }
         }
         end_scope();
         // Define down here so there's no recursive elements

@@ -546,6 +546,20 @@ TEST(Nss, Struct)
     EXPECT_NO_THROW(nss8.resolve());
     EXPECT_EQ(nss8.errors(), 1);
 
+    script::Nss nss9(R"(
+        struct a {
+            const int test;
+        };
+        void main() {
+        }
+    )"sv,
+        ctx.get());
+
+    nss9.set_name("nss9");
+    EXPECT_NO_THROW(nss9.parse());
+    EXPECT_NO_THROW(nss9.resolve());
+    EXPECT_EQ(nss9.errors(), 2); // two errors const-missing-init and struct-field-const
+
     script::Nss nss10(R"(
         struct a {
             void test;
