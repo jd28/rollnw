@@ -212,6 +212,13 @@ void init_script(py::module& nw)
                 return out.completions;
             },
             py::return_value_policy::reference_internal)
+        .def(
+            "complete_dot", [](nws::Nss& self, const std::string& needle, size_t line, size_t character) {
+                std::vector<nw::script::Symbol> out;
+                self.complete_dot(needle, line, character, out);
+                return out;
+            },
+            py::return_value_policy::reference_internal)
         .def("dependencies", &nws::Nss::dependencies)
         .def("diagnostics", &nws::Nss::diagnostics)
         .def("errors", &nws::Nss::errors)

@@ -203,6 +203,11 @@ class Nss:
         """
         return []
 
+    def complete_dot(self, needle: str, line: int, character: int) -> Sequence["Symbol"]:
+        """Get all completions for struct fields
+        """
+        return []
+
     def diagnostics(self) -> List[Diagnostic]:
         return []
 

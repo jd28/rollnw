@@ -15,7 +15,7 @@ struct AstLocator : public BaseVisitor {
     }
 
     // Search data
-    Nss* parent_ = nullptr;
+    const Nss* parent_ = nullptr;
     SourcePosition pos_;
     std::string symbol_;
 

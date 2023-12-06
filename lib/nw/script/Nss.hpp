@@ -79,6 +79,9 @@ struct Nss {
     /// Get all completions (including dependencies)
     void complete_at(const std::string& needle, size_t line, size_t character, CompletionContext& out);
 
+    /// Get all completions (including dependencies)
+    void complete_dot(const std::string& needle, size_t line, size_t character, std::vector<Symbol>& out);
+
     /// Script context
     Context* ctx() const;
 

@@ -65,8 +65,27 @@ void Nss::complete_at(const std::string& needle, size_t line, size_t character, 
 {
     AstLocator locator{this, needle, line, character};
     locator.visit(&ast_);
-
     auto node = locator.last_seen_decl;
+
+    if (locator.dot) {
+        std::string struct_name(ctx_->type_name(locator.dot->lhs->type_id_));
+        const StructDecl* struct_decl = nullptr;
+        auto exp = locator.dot->env.find(struct_name);
+        if (exp && exp->type) {
+            struct_decl = exp->type;
+        } else {
+            auto symbol = locate_export(struct_name, true, true);
+            struct_decl = dynamic_cast<const StructDecl*>(symbol.decl);
+        }
+
+        if (struct_decl) {
+            for (auto decl : struct_decl->decls) {
+                out.add(declaration_to_symbol(decl));
+            }
+        }
+        return;
+    }
+
     if (node) {
         std::vector<const Declaration*> decls;
         node->complete(needle, decls);
@@ -92,6 +111,51 @@ void Nss::complete_at(const std::string& needle, size_t line, size_t character, 
 
     if (!is_command_script_) {
         ctx_->command_script_->complete(needle, out);
+    }
+}
+
+void Nss::complete_dot(const std::string& needle, size_t line, size_t character, std::vector<Symbol>& out)
+{
+    AstLocator locator{this, needle, line, character};
+    locator.visit(&ast_);
+
+    auto node = locator.last_seen_decl;
+    if (!node) {
+        LOG_F(INFO, "Failed to find node");
+        return;
+    }
+
+    const Declaration* decl;
+    if (node->identifier() == needle) {
+        decl = node;
+    } else {
+        auto exp = node->env.find(needle);
+        if (!exp || !exp->decl) {
+            LOG_F(INFO, "Failed to find needle declaration: {}", node->identifier());
+            return;
+        }
+        decl = exp->decl;
+    }
+
+    if (decl->type.struct_id.type == NssTokenType::INVALID) {
+        LOG_F(INFO, "needle declaration doesn't have type struct");
+        return;
+    }
+
+    std::string struct_id(decl->type.struct_id.loc.view());
+    auto exp2 = node->env.find(struct_id);
+    const StructDecl* struct_decl = nullptr;
+    if (auto sd = dynamic_cast<const StructDecl*>(exp2->type)) {
+        struct_decl = sd;
+    } else {
+        auto symbol = locate_export(struct_id, true, true);
+        struct_decl = dynamic_cast<const StructDecl*>(symbol.decl);
+    }
+
+    if (struct_decl) {
+        for (auto decl : struct_decl->decls) {
+            out.push_back(declaration_to_symbol(decl));
+        }
     }
 }
 

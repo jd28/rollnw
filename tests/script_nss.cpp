@@ -1371,4 +1371,46 @@ TEST(Nss, Location)
     auto sym_info5 = nss5.locate_symbol("Test", 2, 19);
     EXPECT_TRUE(sym_info5.decl);
     EXPECT_EQ(sym_info5.type, "Test");
+
+    script::Nss nss6(R"(
+        struct Test {
+            int x;
+        };
+        void main() {
+            struct Test my_struct;
+            my_struct.
+        }
+    )"sv,
+        ctx.get());
+
+    EXPECT_NO_THROW(nss6.parse());
+    EXPECT_NO_THROW(nss6.resolve());
+
+    std::vector<script::Symbol> completions6;
+    nss6.complete_dot("my_struct", 7, 21, completions6);
+    EXPECT_EQ(completions6.size(), 1);
+    EXPECT_EQ(completions6[0].decl->identifier(), "x");
+
+    script::Nss nss7(R"(
+        struct Test {
+            int xray;
+        };
+        void main() {
+            struct Test my_struct;
+            my_struct.xr;
+        }
+    )"sv,
+        ctx.get());
+
+    EXPECT_NO_THROW(nss7.parse());
+    EXPECT_NO_THROW(nss7.resolve());
+
+    script::AstPrinter printer;
+    printer.visit(&nss7.ast());
+    LOG_F(INFO, "{}", printer.ss.str());
+
+    script::CompletionContext completions7;
+    nss7.complete_at("xr", 7, 23, completions7);
+    EXPECT_EQ(completions7.completions.size(), 1);
+    EXPECT_EQ(completions7.completions[0].decl->identifier(), "xray");
 }
