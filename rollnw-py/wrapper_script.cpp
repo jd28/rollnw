@@ -36,7 +36,9 @@ void init_script(py::module& nw)
     py::enum_<nws::SymbolKind>(nw, "SymbolKind")
         .value("variable", nws::SymbolKind::variable)
         .value("function", nws::SymbolKind::function)
-        .value("type", nws::SymbolKind::type);
+        .value("type", nws::SymbolKind::type)
+        .value("param", nws::SymbolKind::param)
+        .value("field", nws::SymbolKind::field);
 
     py::class_<nws::Symbol>(nw, "Symbol")
         .def_readonly("node", &nws::Symbol::node)

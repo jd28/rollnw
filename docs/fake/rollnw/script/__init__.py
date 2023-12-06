@@ -309,6 +309,8 @@ class SymbolKind(enum.IntEnum):
     variable = auto()
     function = auto()
     type = auto()
+    param = auto()
+    field = auto()
 
 
 class Symbol:

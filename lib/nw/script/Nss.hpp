@@ -27,7 +27,9 @@ struct Export {
 enum struct SymbolKind {
     variable,
     function,
-    type
+    type,
+    param,
+    field,
 };
 
 /// Info regarding a particular symbol somewhere in a source file

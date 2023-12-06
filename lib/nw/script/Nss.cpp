@@ -169,19 +169,21 @@ Symbol Nss::declaration_to_symbol(const Declaration* decl) const
     Symbol result;
     result.decl = decl;
     result.comment = ast().find_comment(decl->range_.start.line);
+    result.type = ctx_->type_name(decl->type_id_);
+    result.provider = name();
+    result.view = view_from_range(decl->range_);
 
     if (dynamic_cast<const StructDecl*>(decl)) {
         result.kind = SymbolKind::type;
-    } else if (dynamic_cast<const FunctionDecl*>(decl)
-        || dynamic_cast<const FunctionDefinition*>(decl)) {
+    } else if (dynamic_cast<const FunctionDecl*>(decl)) {
         result.kind = SymbolKind::function;
+    } else if (auto fd = dynamic_cast<const FunctionDefinition*>(decl)) {
+        result.kind = SymbolKind::function;
+        result.view = view_from_range(fd->decl_inline->range_);
     } else {
         result.kind = SymbolKind::variable;
     }
 
-    result.type = ctx_->type_name(decl->type_id_);
-    result.provider = name();
-    result.view = view_from_range(decl->range_);
     return result;
 }
 
@@ -259,7 +261,6 @@ void Nss::process_includes(Nss* parent)
 
     parent->ctx_->include_stack_.push_back(data_.name.resref.string());
 
-    ast_.includes.reserve(ast_.includes.size());
     for (auto& include : ast_.includes) {
         for (const auto& entry : parent->ctx_->include_stack_) {
             if (include.resref == entry) {
