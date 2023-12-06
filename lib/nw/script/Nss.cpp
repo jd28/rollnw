@@ -180,6 +180,15 @@ Symbol Nss::declaration_to_symbol(const Declaration* decl) const
     } else if (auto fd = dynamic_cast<const FunctionDefinition*>(decl)) {
         result.kind = SymbolKind::function;
         result.view = view_from_range(fd->decl_inline->range_);
+        // Prefer some stuff from external declaration
+        if (fd->decl_external) {
+            // There is no guarantee that external decl is in the same file, but
+            // this is ok.. for now.
+            auto comment = ast().find_comment(fd->decl_external->range_.start.line);
+            if (!comment.empty()) {
+                result.comment = comment;
+            }
+        }
     } else {
         result.kind = SymbolKind::variable;
     }

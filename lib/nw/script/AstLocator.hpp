@@ -108,8 +108,8 @@ struct AstLocator : public BaseVisitor {
             found_ = true;
         } else {
             in_struct_decl_ = true;
-            for (auto decl : decl->decls) {
-                decl->accept(this);
+            for (auto d : decl->decls) {
+                d->accept(this);
                 if (found_) { return; }
             }
             in_struct_decl_ = false;
