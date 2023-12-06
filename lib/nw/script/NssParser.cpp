@@ -620,7 +620,9 @@ BlockStatement* NssParser::parse_stmt_block()
                 s->nodes.push_back(n);
             }
         } catch (const parser_error&) {
-            synchronize();
+            if (peek().type != NssTokenType::RBRACE) {
+                synchronize();
+            }
         }
     }
 
