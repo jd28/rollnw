@@ -206,7 +206,7 @@ void init_script(py::module& nw)
             },
             py::return_value_policy::reference_internal)
         .def(
-            "complete_at", [](const nws::Nss& self, const std::string& needle, size_t line, size_t character) {
+            "complete_at", [](nws::Nss& self, const std::string& needle, size_t line, size_t character) {
                 nws::CompletionContext out;
                 self.complete_at(needle, line, character, out);
                 return out.completions;
@@ -277,8 +277,7 @@ void init_script(py::module& nw)
         })
         .def_readonly("includes", &nws::Ast::includes)
         .def_readonly("comments", &nws::Ast::comments)
-        .def("find_comment", &nws::Ast::find_comment)
-        .def("find_last_declaration", &nws::Ast::find_last_declaration, py::return_value_policy::reference_internal);
+        .def("find_comment", &nws::Ast::find_comment);
 
     py::class_<nws::AstNode>(nw, "AstNode")
         .def("accept", &nws::AstNode::accept)

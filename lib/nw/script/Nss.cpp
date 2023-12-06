@@ -61,9 +61,12 @@ inline void complete_includes(const Nss* script, const std::string& needle, Comp
     }
 }
 
-void Nss::complete_at(const std::string& needle, size_t line, size_t character, CompletionContext& out) const
+void Nss::complete_at(const std::string& needle, size_t line, size_t character, CompletionContext& out)
 {
-    auto node = ast_.find_last_declaration(line, character);
+    AstLocator locator{this, needle, line, character};
+    locator.visit(&ast_);
+
+    auto node = locator.last_seen_decl;
     if (node) {
         std::vector<const Declaration*> decls;
         node->complete(needle, decls);

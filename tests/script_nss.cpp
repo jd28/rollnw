@@ -1,3 +1,4 @@
+#include "nw/script/AstLocator.hpp"
 #include "nw/script/LspContext.hpp"
 #include <gtest/gtest.h>
 
@@ -1270,13 +1271,17 @@ TEST(Nss, Location)
         ctx.get());
 
     EXPECT_NO_THROW(nss1.parse());
-    auto decl1 = nss1.ast().find_last_declaration(4, 4);
+    script::AstLocator locator1{&nss1, "abc", 4, 4};
+    locator1.visit(&nss1.ast());
+    auto decl1 = locator1.last_seen_decl;
     EXPECT_TRUE(decl1);
     auto vd1 = dynamic_cast<const nw::script::VarDecl*>(decl1);
     EXPECT_TRUE(vd1);
     EXPECT_EQ(vd1->identifier_.loc.view(), "f");
 
-    auto decl2 = nss1.ast().find_last_declaration(0, 0);
+    script::AstLocator locator2{&nss1, "abc", 0, 0};
+    locator2.visit(&nss1.ast());
+    auto decl2 = locator2.last_seen_decl;
     EXPECT_FALSE(decl2);
 
     script::Nss nss3(R"(
@@ -1292,7 +1297,10 @@ TEST(Nss, Location)
 
     EXPECT_NO_THROW(nss3.parse());
     EXPECT_NO_THROW(nss3.resolve());
-    auto decl3 = nss3.ast().find_last_declaration(7, 19);
+
+    script::AstLocator locator3{&nss3, "abc", 7, 19};
+    locator3.visit(&nss3.ast());
+    auto decl3 = locator3.last_seen_decl;
     EXPECT_TRUE(decl3);
     auto vd3 = dynamic_cast<const nw::script::VarDecl*>(decl3);
     EXPECT_TRUE(vd3);
@@ -1319,7 +1327,10 @@ TEST(Nss, Location)
 
     EXPECT_NO_THROW(nss4.parse());
     EXPECT_NO_THROW(nss4.resolve());
-    auto decl4 = nss4.ast().find_last_declaration(10, 20);
+
+    script::AstLocator locator4{&nss4, "ind", 10, 20};
+    locator4.visit(&nss4.ast());
+    auto decl4 = locator4.last_seen_decl;
     EXPECT_TRUE(decl4);
     auto vd4 = dynamic_cast<const nw::script::VarDecl*>(decl4);
     EXPECT_TRUE(vd4);

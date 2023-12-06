@@ -181,11 +181,6 @@ class Ast:
         """
         return ""
 
-    def find_last_declaration(self, line: int, character: int) -> Optional["Declaration"]:
-        """Find last declaration before the specified position
-        """
-        return None
-
 
 class Nss:
     """Implementation of nwscript"""

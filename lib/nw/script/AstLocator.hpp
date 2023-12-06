@@ -22,6 +22,8 @@ struct AstLocator : public BaseVisitor {
     // Result data
     bool found_ = false;
     Symbol result_;
+    const Declaration* last_seen_decl = nullptr;
+    const DotExpression* dot = nullptr; // Keep track if our symbol is in a dot expr
 
     void locate_in_dependencies()
     {
@@ -57,6 +59,8 @@ struct AstLocator : public BaseVisitor {
     // Decls
     virtual void visit(FunctionDecl* decl)
     {
+        if (decl->range_.end < pos_) { last_seen_decl = decl; }
+
         if (contains_position(decl->range_, pos_)) {
             if (decl->type.struct_id.type != NssTokenType::INVALID
                 && contains_position(decl->type.struct_id.loc.range, pos_)) {
@@ -82,6 +86,8 @@ struct AstLocator : public BaseVisitor {
 
     virtual void visit(FunctionDefinition* decl)
     {
+        if (decl->range_.end < pos_) { last_seen_decl = decl; }
+
         if (contains_position(decl->range_, pos_)) {
             decl->decl_inline->accept(this);
             if (found_) { return; }
@@ -91,6 +97,8 @@ struct AstLocator : public BaseVisitor {
 
     virtual void visit(StructDecl* decl)
     {
+        if (decl->range_.end < pos_) { last_seen_decl = decl; }
+
         if (decl->type.struct_id.type != NssTokenType::INVALID
             && contains_position(decl->type.struct_id.loc.range, pos_)) {
             result_ = parent_->declaration_to_symbol(decl);
@@ -105,6 +113,8 @@ struct AstLocator : public BaseVisitor {
 
     virtual void visit(VarDecl* decl)
     {
+        if (decl->range_.end < pos_) { last_seen_decl = decl; }
+
         if (contains_position(decl->identifier_.loc.range, pos_)) {
             result_.decl = decl;
             result_.type = parent_->ctx()->type_name(decl->type_id_);
@@ -169,7 +179,9 @@ struct AstLocator : public BaseVisitor {
     virtual void visit(DotExpression* expr)
     {
         expr->lhs->accept(this);
+        if (found_) { return; }
         expr->rhs->accept(this);
+        if (found_) { dot = expr; }
     }
 
     virtual void visit(GroupingExpression* expr)
