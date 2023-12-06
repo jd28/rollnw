@@ -133,35 +133,16 @@ const std::vector<Diagnostic>& Nss::diagnostics() const noexcept
     return diagnostics_;
 }
 
-Symbol Nss::locate_export(const std::string& symbol, bool is_type, bool search_dependencies)
+Symbol Nss::locate_export(const std::string& symbol, bool is_type, bool search_dependencies) const
 {
     auto sym = symbol_table_.find(symbol);
 
     Symbol result;
 
     if (sym) {
-        result.decl = is_type ? sym->type : sym->decl;
-        if (result.decl) {
-            if (!is_type) {
-                if (dynamic_cast<const VarDecl*>(result.decl)) {
-                    result.kind = SymbolKind::variable;
-                } else if (auto fd = dynamic_cast<const FunctionDefinition*>(result.decl)) {
-                    if (fd->decl_external) {
-                        result.decl = fd->decl_external;
-                    } else {
-                        result.decl = fd->decl_inline;
-                    }
-                    result.kind = SymbolKind::function;
-                } else {
-                    result.kind = SymbolKind::function;
-                }
-            } else {
-                result.kind = SymbolKind::type;
-            }
-            result.type = ctx_->type_name(result.decl->type_id_);
-            result.provider = name();
-            result.comment = ast().find_comment(result.decl->range_.start.line);
-            result.view = view_from_range(result.decl->range());
+        auto decl = is_type ? sym->type : sym->decl;
+        if (decl) {
+            result = declaration_to_symbol(is_type ? sym->type : sym->decl);
         }
     }
 

@@ -63,21 +63,13 @@ struct AstLocator : public BaseVisitor {
                 std::string struct_name{decl->type.struct_id.loc.view()};
                 auto exp = decl->env.find(struct_name);
                 if (exp && exp->type) {
-                    result_.decl = exp->type;
-                    result_.type = struct_name;
-                    result_.comment = parent_->ast().find_comment(result_.decl->range_.start.line);
-                    result_.kind = SymbolKind::type;
-                    result_.view = parent_->view_from_range(result_.decl->range());
+                    result_ = parent_->declaration_to_symbol(exp->type);
                     found_ = true;
                 } else {
                     locate_in_dependencies();
                 }
             } else if (contains_position(decl->identifier_.loc.range, pos_)) {
-                result_.decl = decl;
-                result_.type = parent_->ctx()->type_name(decl->type_id_);
-                result_.comment = parent_->ast().find_comment(decl->range_.start.line);
-                result_.kind = SymbolKind::function;
-                result_.view = parent_->view_from_range(result_.decl->range());
+                result_ = parent_->declaration_to_symbol(decl);
                 found_ = true;
             } else {
                 for (auto param : decl->params) {
@@ -101,11 +93,7 @@ struct AstLocator : public BaseVisitor {
     {
         if (decl->type.struct_id.type != NssTokenType::INVALID
             && contains_position(decl->type.struct_id.loc.range, pos_)) {
-            result_.decl = decl;
-            result_.type = std::string(decl->type.struct_id.loc.view());
-            result_.comment = parent_->ast().find_comment(result_.decl->range_.start.line);
-            result_.kind = SymbolKind::type;
-            result_.view = parent_->view_from_range(result_.decl->range());
+            result_ = parent_->declaration_to_symbol(decl);
             found_ = true;
         } else {
             for (auto decl : decl->decls) {
@@ -220,10 +208,7 @@ struct AstLocator : public BaseVisitor {
         if (contains_position(expr->var.loc.range, pos_) && expr->var.loc.view() == symbol_) {
             auto exp = expr->env.find(symbol_);
             if (exp && exp->decl) {
-                result_.type = parent_->ctx()->type_name(expr->type_id_);
-                result_.decl = exp->decl;
-                result_.comment = parent_->ast().find_comment(result_.decl->range_.start.line);
-                result_.view = parent_->view_from_range(result_.decl->range());
+                result_ = parent_->declaration_to_symbol(exp->decl);
             } else {
                 locate_in_dependencies();
             }

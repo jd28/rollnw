@@ -111,7 +111,7 @@ struct Nss {
     bool is_command_script() const noexcept { return is_command_script_; }
 
     /// Locate export, i.e. a top level symbols
-    Symbol locate_export(const std::string& symbol, bool is_type, bool search_dependencies = false);
+    Symbol locate_export(const std::string& symbol, bool is_type, bool search_dependencies = false) const;
 
     /// Locate symbol in source file
     Symbol locate_symbol(const std::string& symbol, size_t line, size_t character);
