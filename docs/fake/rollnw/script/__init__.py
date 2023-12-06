@@ -215,6 +215,10 @@ class Nss:
         """Gets number of errors encountered while parsing"""
         pass
 
+    def exports(self) -> List["Symbol"]:
+        """Gets all of the scripts exports, i.e. top level declarations"""
+        return []
+
     def locate_export(self, is_type: bool,
                       search_dependencies: bool) -> "Symbol":
         """Locate export, i.e. a top level symbols"""

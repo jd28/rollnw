@@ -217,9 +217,10 @@ void init_script(py::module& nw)
         .def("errors", &nws::Nss::errors)
         .def(
             "exports", [](const nws::Nss& self) {
-                std::vector<std::pair<std::string, nws::Export>> result;
+                std::vector<nws::Symbol> result;
                 for (const auto& [key, exp] : self.exports()) {
-                    result.emplace_back(key, exp);
+                    if (exp.decl) { result.push_back(self.declaration_to_symbol(exp.decl)); }
+                    if (exp.type) { result.push_back(self.declaration_to_symbol(exp.type)); }
                 }
                 return result;
             },

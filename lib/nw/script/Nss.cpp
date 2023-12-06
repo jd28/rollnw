@@ -46,8 +46,8 @@ void Nss::complete(const std::string& needle, CompletionContext& out) const
 {
     for (const auto& [name, exp] : symbol_table_) {
         if (has_match(needle.c_str(), name.c_str())) {
-            if (exp.decl) { out.add(decl_to_symbol(exp.decl)); }
-            if (exp.type) { out.add(decl_to_symbol(exp.type)); }
+            if (exp.decl) { out.add(declaration_to_symbol(exp.decl)); }
+            if (exp.type) { out.add(declaration_to_symbol(exp.type)); }
         }
     }
 }
@@ -68,16 +68,16 @@ void Nss::complete_at(const std::string& needle, size_t line, size_t character, 
         std::vector<const Declaration*> decls;
         node->complete(needle, decls);
         for (auto decl : decls) {
-            out.add(decl_to_symbol(decl));
+            out.add(declaration_to_symbol(decl));
         }
 
         if (node->range_.start.line < line) { // Skip if on the same line
             if (auto d = dynamic_cast<const DeclList*>(node)) {
                 for (const auto decl : d->decls) {
-                    out.add(decl_to_symbol(decl));
+                    out.add(declaration_to_symbol(decl));
                 }
             } else {
-                out.add(decl_to_symbol(node));
+                out.add(declaration_to_symbol(node));
             }
         }
     }
@@ -95,6 +95,27 @@ void Nss::complete_at(const std::string& needle, size_t line, size_t character, 
 Context* Nss::ctx() const
 {
     return ctx_;
+}
+
+Symbol Nss::declaration_to_symbol(const Declaration* decl) const
+{
+    Symbol result;
+    result.decl = decl;
+    result.comment = ast().find_comment(decl->range_.start.line);
+
+    if (dynamic_cast<const StructDecl*>(decl)) {
+        result.kind = SymbolKind::type;
+    } else if (dynamic_cast<const FunctionDecl*>(decl)
+        || dynamic_cast<const FunctionDefinition*>(decl)) {
+        result.kind = SymbolKind::function;
+    } else {
+        result.kind = SymbolKind::variable;
+    }
+
+    result.type = ctx_->type_name(decl->type_id_);
+    result.provider = name();
+    result.view = view_from_range(decl->range_);
+    return result;
 }
 
 std::set<std::string> Nss::dependencies() const
@@ -247,27 +268,6 @@ std::string_view Nss::view_from_range(SourceRange range) const noexcept
     size_t end = ast().line_map[range.end.line - 1] + range.end.column;
     if (start >= text_.length() || end >= text_.length()) { return ""; }
     return std::string_view(text_.data() + start, text_.data() + end);
-}
-
-Symbol Nss::decl_to_symbol(const Declaration* decl) const
-{
-    Symbol result;
-    result.decl = decl;
-    result.comment = ast().find_comment(decl->range_.start.line);
-
-    if (dynamic_cast<const StructDecl*>(decl)) {
-        result.kind = SymbolKind::type;
-    } else if (dynamic_cast<const FunctionDecl*>(decl)
-        || dynamic_cast<const FunctionDefinition*>(decl)) {
-        result.kind = SymbolKind::function;
-    } else {
-        result.kind = SymbolKind::variable;
-    }
-
-    result.type = ctx_->type_name(decl->type_id_);
-    result.provider = name();
-    result.view = view_from_range(decl->range_);
-    return result;
 }
 
 } // namespace nw::script

@@ -82,6 +82,10 @@ struct Nss {
     /// Script context
     Context* ctx() const;
 
+    /// Converts declaration to symbol
+    /// @note Declaration must be in script
+    Symbol declaration_to_symbol(const Declaration* decl) const;
+
     /// Returns all transitive dependencies
     std::set<std::string> dependencies() const;
 
@@ -137,8 +141,6 @@ struct Nss {
     size_t warnings() const noexcept { return warnings_; }
 
 private:
-    Symbol decl_to_symbol(const Declaration* decl) const;
-
     Context* ctx_ = nullptr;
     ResourceData data_;
     std::string_view text_;
