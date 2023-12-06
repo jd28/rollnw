@@ -1405,12 +1405,35 @@ TEST(Nss, Location)
     EXPECT_NO_THROW(nss7.parse());
     EXPECT_NO_THROW(nss7.resolve());
 
-    script::AstPrinter printer;
-    printer.visit(&nss7.ast());
-    LOG_F(INFO, "{}", printer.ss.str());
-
     script::CompletionContext completions7;
     nss7.complete_at("xr", 7, 23, completions7);
     EXPECT_EQ(completions7.completions.size(), 1);
     EXPECT_EQ(completions7.completions[0].decl->identifier(), "xray");
+
+    script::Nss nss8(R"(
+        // Impl of ABS
+        int abs2(int y);
+
+        int abs2(int y) {
+            if(y < 0) { return -y; }
+            else { return y; }
+        }
+
+        void main() {
+            for(int i = 0; i < 10; ++i) {
+                abs2(1);
+            }
+        }
+    )"sv,
+        ctx.get());
+
+    EXPECT_NO_THROW(nss8.parse());
+    EXPECT_NO_THROW(nss8.resolve());
+
+    script::AstPrinter printer;
+    printer.visit(&nss8.ast());
+    LOG_F(INFO, "{}", printer.ss.str());
+
+    auto sym_info8 = nss8.locate_symbol("abs2", 12, 20);
+    EXPECT_TRUE(sym_info8.decl);
 }

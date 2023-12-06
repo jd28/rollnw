@@ -512,6 +512,7 @@ struct AstResolver : BaseVisitor {
 
             return;
         }
+        ve->env = env_stack_.back();
 
         const FunctionDecl* func_decl = nullptr;
         const FunctionDecl* orig_decl = nullptr;
