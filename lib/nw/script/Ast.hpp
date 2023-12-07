@@ -432,10 +432,20 @@ struct WhileStatement : public Statement {
     DEFINE_ACCEPT_VISITOR
 };
 
+/// Contains type tokens
 struct Type {
-    NssToken type_qualifier;
-    NssToken type_specifier;
-    NssToken struct_id; // Only set if type_specifier if of type NssTokenType::STRUCT
+    NssToken type_qualifier; ///< `const`
+    NssToken type_specifier; ///< `int`, `float`, `string`, etc
+    NssToken struct_id;      // Only set if type_specifier if of type NssTokenType::STRUCT
+
+    SourcePosition range_start() const noexcept
+    {
+        if (type_qualifier.type != NssTokenType::INVALID) {
+            return type_qualifier.loc.range.start;
+        } else {
+            return type_specifier.loc.range.start;
+        }
+    }
 };
 
 struct Declaration : public Statement {

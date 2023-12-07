@@ -611,11 +611,11 @@ BlockStatement* NssParser::parse_stmt_block()
         try {
             auto n = parse_decl();
             if (auto fdef = dynamic_cast<FunctionDefinition*>(n)) {
-                diagnostic("structs cannot contain function definitions", fdef->decl_inline->identifier_);
+                diagnostic("blocks cannot contain nested function definitions", fdef->decl_inline->identifier_);
             } else if (auto fdef = dynamic_cast<FunctionDecl*>(n)) {
-                diagnostic("structs cannot contain function declarations", fdef->identifier_);
+                diagnostic("blocks cannot contain nested function declarations", fdef->identifier_);
             } else if (auto sd = dynamic_cast<StructDecl*>(n)) {
-                diagnostic("structs cannot contain other struct declarations", sd->type.struct_id);
+                diagnostic("blocks cannot contain nested other struct declarations", sd->type.struct_id);
             } else if (n) {
                 s->nodes.push_back(n);
             }
@@ -768,8 +768,7 @@ Statement* NssParser::parse_decl()
 
             // Note range end is already determined
             sd->range_.start = sd->type.type_specifier.loc.range.start;
-            sd->range_selection_.start = sd->type.struct_id.loc.range.start;
-            sd->range_selection_.end = sd->type.struct_id.loc.range.end;
+            sd->range_selection_ = sd->type.struct_id.loc.range;
 
             result = sd;
         } else if (lookahead(0).type == NssTokenType::EQ
@@ -788,13 +787,8 @@ Statement* NssParser::parse_decl()
                     vd->init = parse_expr();
                 }
 
-                if (t.type_qualifier.type == NssTokenType::INVALID) {
-                    vd->range_.start = t.type_specifier.loc.range.start;
-                } else {
-                    vd->range_.start = t.type_qualifier.loc.range.start;
-                }
-                vd->range_selection_.start = vd->identifier_.loc.range.start;
-                vd->range_selection_.end = vd->identifier_.loc.range.end;
+                vd->range_.start = t.range_start();
+                vd->range_selection_ = vd->identifier_.loc.range;
 
                 decls->decls.push_back(vd);
                 if (!match({NssTokenType::COMMA})) { break; }
@@ -819,24 +813,13 @@ Statement* NssParser::parse_decl()
             auto fd = parse_decl_function_def();
             if (auto decl = dynamic_cast<FunctionDecl*>(fd)) {
                 decl->type = t;
-                decl->range_selection_.start = decl->identifier_.loc.range.start;
-                decl->range_selection_.end = decl->identifier_.loc.range.end;
+                decl->range_selection_ = decl->identifier_.loc.range;
             } else if (auto def = dynamic_cast<FunctionDefinition*>(fd)) {
                 def->decl_inline->type = t;
-                def->range_selection_.start = def->decl_inline->identifier_.loc.range.start;
-                def->range_selection_.end = def->decl_inline->identifier_.loc.range.end;
-                if (t.type_qualifier.type == NssTokenType::INVALID) {
-                    def->decl_inline->range_.start = t.type_specifier.loc.range.start;
-                } else {
-                    def->decl_inline->range_.start = t.type_specifier.loc.range.start;
-                }
+                def->range_selection_ = def->decl_inline->identifier_.loc.range;
+                def->decl_inline->range_.start = t.range_start();
             }
-
-            if (t.type_qualifier.type == NssTokenType::INVALID) {
-                fd->range_.start = t.type_specifier.loc.range.start;
-            } else {
-                fd->range_.start = t.type_qualifier.loc.range.start;
-            }
+            fd->range_.start = t.range_start();
 
             result = fd;
         }
