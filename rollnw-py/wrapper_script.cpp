@@ -289,8 +289,13 @@ void init_script(py::module& nw)
         .def("find_comment", &nws::Ast::find_comment);
 
     py::class_<nws::AstNode>(nw, "AstNode")
-        .def("accept", &nws::AstNode::accept)
-        .def("complete", &nws::AstNode::complete);
+        .def(
+            "complete", [](nws::AstNode& self, const std::string& needle) {
+                std::vector<const nws::Declaration*> out;
+                self.complete(needle, out);
+                return out;
+            },
+            py::return_value_policy::reference_internal);
 
     py::class_<nws::Expression, nws::AstNode>(nw, "Expression");
 
