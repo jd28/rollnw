@@ -391,11 +391,12 @@ Expression* NssParser::parse_expr_postfix()
         }
 
         if (previous().type == NssTokenType::LPAREN) {
-            if (!dynamic_cast<VariableExpression*>(expr)) {
+            auto ve = dynamic_cast<VariableExpression*>(expr);
+            if (!ve) {
                 diagnostic("expression cannot be used as a function", previous());
             }
 
-            auto e = ast_.create_node<CallExpression>(expr);
+            auto e = ast_.create_node<CallExpression>(ve);
             while (!is_end() && !check({NssTokenType::RPAREN})) {
                 e->args.emplace_back(parse_expr());
                 if (match({NssTokenType::COMMA}) && check({NssTokenType::RPAREN})) {

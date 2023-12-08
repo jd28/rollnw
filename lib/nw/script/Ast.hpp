@@ -164,20 +164,6 @@ struct BinaryExpression : Expression {
     DEFINE_ACCEPT_VISITOR
 };
 
-struct CallExpression : Expression {
-    explicit CallExpression(Expression* expr_)
-        : expr{expr_}
-    {
-    }
-
-    Expression* expr = nullptr;
-    std::vector<Expression*> args;
-
-    virtual SourceLocation extent() const override { return expr->extent(); };
-
-    DEFINE_ACCEPT_VISITOR
-};
-
 struct ComparisonExpression : Expression {
     ComparisonExpression(
         Expression* lhs_,
@@ -349,6 +335,20 @@ struct VariableExpression : Expression {
     NssToken var;
 
     virtual SourceLocation extent() const override { return var.loc; };
+
+    DEFINE_ACCEPT_VISITOR
+};
+
+struct CallExpression : Expression {
+    explicit CallExpression(VariableExpression* expr_)
+        : expr{expr_}
+    {
+    }
+
+    VariableExpression* expr = nullptr;
+    std::vector<Expression*> args;
+
+    virtual SourceLocation extent() const override { return expr->extent(); };
 
     DEFINE_ACCEPT_VISITOR
 };
