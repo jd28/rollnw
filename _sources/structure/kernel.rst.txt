@@ -2,7 +2,7 @@ kernel
 ======
 
 The ``kernel`` module provides submodules for handling global resources
-and services. It’s designed around some explicit goals:
+and services. It's designed around some explicit goals:
 
 -  Every service should be easily overrideable to allow for `parallel
    implementation <http://sevangelatos.com/john-carmack-on-parallel-implementations/>`__.
