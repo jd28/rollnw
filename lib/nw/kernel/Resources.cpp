@@ -91,7 +91,7 @@ void Resources::initialize()
             dmvault_install_ = Directory{config().options().install / "data/dmv/"};
             localvault_install_ = Directory{config().options().install / "data/lcv/"};
             music_install_ = Directory{config().options().install / "data/mus"};
-            override_install_ = Directory{config().options().install / "data/ovr"};
+            override_install_ = Directory{config().options().install / "ovr"};
             portraits_install_ = Directory{config().options().install / "data/prt/"};
 
             texture_packs_.emplace_back(config().options().install / "data/txpk/xp2_tex_tpa.erf");
