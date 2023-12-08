@@ -21,12 +21,13 @@ void init_script(py::module& nw)
 {
 
     py::class_<nws::SourcePosition>(nw, "SourcePosition")
-        .def_readonly("line", &nws::SourcePosition::line)
-        .def_readonly("column", &nws::SourcePosition::column);
+        .def_readwrite("line", &nws::SourcePosition::line)
+        .def_readwrite("column", &nws::SourcePosition::column);
 
     py::class_<nws::SourceRange>(nw, "SourceRange")
-        .def_readonly("start", &nws::SourceRange::start)
-        .def_readonly("end", &nws::SourceRange::end);
+        .def(py::init<>())
+        .def_readwrite("start", &nws::SourceRange::start)
+        .def_readwrite("end", &nws::SourceRange::end);
 
     py::class_<nws::SourceLocation>(nw, "SourceLocation")
         .def("length", &nws::SourceLocation::length)
@@ -48,6 +49,10 @@ void init_script(py::module& nw)
         .def_readonly("kind", &nws::Symbol::kind)
         .def_readonly("provider", &nws::Symbol::provider)
         .def_readonly("view", &nws::Symbol::view);
+
+    py::class_<nws::InlayHint>(nw, "InlayHint")
+        .def_readonly("message", &nws::InlayHint::message)
+        .def_readonly("position", &nws::InlayHint::position);
 
     py::class_<nws::Context>(nw, "Context")
         .def(py::init<>())
@@ -234,6 +239,7 @@ void init_script(py::module& nw)
                 return result;
             },
             py::return_value_policy::reference_internal)
+        .def("inlay_hints", &nws::Nss::inlay_hints)
         .def("locate_export", &nws::Nss::locate_export, py::return_value_policy::reference_internal)
         .def("locate_symbol", &nws::Nss::locate_symbol, py::return_value_policy::reference_internal)
         .def("parse", &nws::Nss::parse)

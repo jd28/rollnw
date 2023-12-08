@@ -327,6 +327,16 @@ class Symbol:
     pass
 
 
+class InlayHint:
+    """An inlay source code hint
+
+    Attributes:
+        message (str)
+        position (SourcePosition)
+    """
+    pass
+
+
 class NssToken:
     """Nss token
 

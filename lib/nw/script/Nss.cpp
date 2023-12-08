@@ -1,5 +1,6 @@
 #include "Nss.hpp"
 
+#include "AstHinter.hpp"
 #include "AstLocator.hpp"
 #include "AstResolver.hpp"
 
@@ -209,6 +210,13 @@ std::set<std::string> Nss::dependencies() const
 const std::vector<Diagnostic>& Nss::diagnostics() const noexcept
 {
     return diagnostics_;
+}
+
+std::vector<InlayHint> Nss::inlay_hints(SourceRange range)
+{
+    AstHinter hinter{this, range};
+    hinter.visit(&ast_);
+    return hinter.result_;
 }
 
 Symbol Nss::locate_export(const std::string& symbol, bool is_type, bool search_dependencies) const

@@ -353,6 +353,20 @@ TEST(Nss, FunctionCall)
     EXPECT_NO_THROW(nss10.resolve());
     EXPECT_EQ(nss10.errors(), 0);
 
+    script::Nss nss11(R"(
+        int test_function(int b);
+        void main() {
+            int c = test_function(1);
+        }
+    )"sv,
+        ctx.get());
+    EXPECT_NO_THROW(nss11.parse());
+    EXPECT_NO_THROW(nss11.resolve());
+    EXPECT_EQ(nss11.errors(), 0);
+    auto hints = nss11.inlay_hints(script::SourceRange{{1, 1}, {5, 1}});
+    EXPECT_EQ(hints.size(), 1);
+    EXPECT_EQ(hints[0].message, "b");
+
     // == Bad =================================================================
 
     script::Nss nss2("void main() { 423(b); }"sv, ctx.get());

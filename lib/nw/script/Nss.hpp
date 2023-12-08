@@ -43,6 +43,11 @@ struct Symbol {
     std::string_view view;             ///< View of declaration
 };
 
+struct InlayHint {
+    std::string message;
+    SourcePosition position;
+};
+
 struct CompletionContext {
     void add(Symbol symbol)
     {
@@ -111,6 +116,8 @@ struct Nss {
 
     /// Increments warning count
     void increment_warnings() noexcept { ++warnings_; }
+
+    std::vector<InlayHint> inlay_hints(SourceRange range);
 
     /// Is script a command script
     bool is_command_script() const noexcept { return is_command_script_; }

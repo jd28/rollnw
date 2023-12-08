@@ -38,6 +38,11 @@ class Symbol:
     provider: str
 
 
+class InlayHint:
+    message: str
+    position: SourcePosition
+
+
 class Context:
     def __init__(self, command_script: str = "nwscript") -> None: ...
 
