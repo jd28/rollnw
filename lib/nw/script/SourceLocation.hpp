@@ -51,4 +51,9 @@ inline bool contains_position(SourceRange haystack, SourcePosition needle)
         && std::tie(haystack.end.line, haystack.end.column) >= std::tie(needle.line, needle.column);
 }
 
+inline bool contains_range(SourceRange haystack, SourceRange needle)
+{
+    return contains_position(haystack, needle.start) && contains_position(haystack, needle.end);
+}
+
 } // namespace nw::script
