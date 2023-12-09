@@ -49,8 +49,8 @@ Resources::Resources(const Resources* parent)
 void Resources::initialize()
 {
     LOG_F(INFO, "kernel: initializing resource system");
-    LOG_F(INFO, "kernel: root directory: {}", config().options().install);
-    LOG_F(INFO, "kernel: user directory: {}", config().options().user);
+    LOG_F(INFO, "kernel: root directory: {}", config().install_path());
+    LOG_F(INFO, "kernel: user directory: {}", config().user_path());
 
     if (config().options().include_user) {
         ambient_user_ = Directory{config().alias_path(PathAlias::ambient)};
@@ -63,7 +63,7 @@ void Resources::initialize()
     }
 
     if (config().options().include_user) {
-        if (config().options().version == GameVersion::vEE) {
+        if (config().version() == GameVersion::vEE) {
             if (config().options().include_nwsync) {
                 nwsync_ = NWSync{config().alias_path(PathAlias::nwsync)};
             }
@@ -86,41 +86,41 @@ void Resources::initialize()
 
     if (config().options().include_install) {
         texture_packs_.reserve(4);
-        if (config().options().version == GameVersion::vEE) {
-            ambient_install_ = Directory{config().options().install / "data/amb/"};
-            dmvault_install_ = Directory{config().options().install / "data/dmv/"};
-            localvault_install_ = Directory{config().options().install / "data/lcv/"};
-            music_install_ = Directory{config().options().install / "data/mus"};
-            override_install_ = Directory{config().options().install / "ovr"};
-            portraits_install_ = Directory{config().options().install / "data/prt/"};
+        if (config().version() == GameVersion::vEE) {
+            ambient_install_ = Directory{config().install_path() / "data/amb/"};
+            dmvault_install_ = Directory{config().install_path() / "data/dmv/"};
+            localvault_install_ = Directory{config().install_path() / "data/lcv/"};
+            music_install_ = Directory{config().install_path() / "data/mus"};
+            override_install_ = Directory{config().install_path() / "ovr"};
+            portraits_install_ = Directory{config().install_path() / "data/prt/"};
 
-            texture_packs_.emplace_back(config().options().install / "data/txpk/xp2_tex_tpa.erf");
-            texture_packs_.emplace_back(config().options().install / "data/txpk/xp1_tex_tpa.erf");
-            texture_packs_.emplace_back(config().options().install / "data/txpk/textures_tpa.erf");
-            texture_packs_.emplace_back(config().options().install / "data/txpk/tiles_tpa.erf");
+            texture_packs_.emplace_back(config().install_path() / "data/txpk/xp2_tex_tpa.erf");
+            texture_packs_.emplace_back(config().install_path() / "data/txpk/xp1_tex_tpa.erf");
+            texture_packs_.emplace_back(config().install_path() / "data/txpk/textures_tpa.erf");
+            texture_packs_.emplace_back(config().install_path() / "data/txpk/tiles_tpa.erf");
 
             keys_.reserve(2);
             auto lang = strings().global_language();
             if (lang != LanguageID::english) {
                 auto shortcode = Language::to_string(lang);
-                keys_.emplace_back(config().options().install / "lang" / shortcode / "data" / "nwn_base_loc.key");
+                keys_.emplace_back(config().install_path() / "lang" / shortcode / "data" / "nwn_base_loc.key");
             }
-            keys_.emplace_back(config().options().install / "data/nwn_base.key");
+            keys_.emplace_back(config().install_path() / "data/nwn_base.key");
         } else {
-            texture_packs_.emplace_back(config().options().install / "texturepacks/xp2_tex_tpa.erf");
-            texture_packs_.emplace_back(config().options().install / "texturepacks/xp1_tex_tpa.erf");
-            texture_packs_.emplace_back(config().options().install / "texturepacks/textures_tpa.erf");
-            texture_packs_.emplace_back(config().options().install / "texturepacks/tiles_tpa.erf");
+            texture_packs_.emplace_back(config().install_path() / "texturepacks/xp2_tex_tpa.erf");
+            texture_packs_.emplace_back(config().install_path() / "texturepacks/xp1_tex_tpa.erf");
+            texture_packs_.emplace_back(config().install_path() / "texturepacks/textures_tpa.erf");
+            texture_packs_.emplace_back(config().install_path() / "texturepacks/tiles_tpa.erf");
 
             keys_.reserve(8);
-            keys_.emplace_back(config().options().install / "xp3patch.key");
-            keys_.emplace_back(config().options().install / "xp3.key");
-            keys_.emplace_back(config().options().install / "xp2patch.key");
-            keys_.emplace_back(config().options().install / "xp2.key");
-            keys_.emplace_back(config().options().install / "xp1patch.key");
-            keys_.emplace_back(config().options().install / "xp1.key");
-            keys_.emplace_back(config().options().install / "patch.key");
-            keys_.emplace_back(config().options().install / "chitin.key");
+            keys_.emplace_back(config().install_path() / "xp3patch.key");
+            keys_.emplace_back(config().install_path() / "xp3.key");
+            keys_.emplace_back(config().install_path() / "xp2patch.key");
+            keys_.emplace_back(config().install_path() / "xp2.key");
+            keys_.emplace_back(config().install_path() / "xp1patch.key");
+            keys_.emplace_back(config().install_path() / "xp1.key");
+            keys_.emplace_back(config().install_path() / "patch.key");
+            keys_.emplace_back(config().install_path() / "chitin.key");
         }
     }
     update_container_search();

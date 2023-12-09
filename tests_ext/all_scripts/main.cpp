@@ -11,13 +11,8 @@ int main(int argc, char* argv[])
 {
     nw::init_logger(argc, argv);
 
-    auto info = nw::probe_nwn_install();
-    nw::kernel::config().initialize({
-        info.version,
-        info.install,
-        "test_data/user/",
-    });
-
+    nw::kernel::config().set_paths("", "test_data/user/");
+    nw::kernel::config().initialize();
     nw::kernel::services().start();
     nw::kernel::load_profile(new nwn1::Profile);
 

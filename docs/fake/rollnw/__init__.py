@@ -9,6 +9,7 @@ class GameVersion(enum.Enum):
     """Game versions"""
     v1_69 = auto()
     vEE = auto()
+    nwn2 = auto()
 
 
 class PathAlias(enum.Enum):

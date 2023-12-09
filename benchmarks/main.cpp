@@ -319,21 +319,11 @@ int main(int argc, char** argv)
 
     nw::init_logger(argc, argv);
 
-    if (probe) {
-        auto info = nw::probe_nwn_install();
-        nwk::config().initialize({
-            info.version,
-            info.install,
-            info.user,
-        });
-    } else {
-        nwk::config().initialize({
-            nw::GameVersion::vEE,
-            "test_data/root/",
-            "test_data/user/",
-        });
+    if (!probe) {
+        nwk::config().set_paths("test_data/root/", "test_data/user/");
     }
 
+    nwk::config().initialize();
     nwk::services().start();
     nwk::load_profile(new nwn1::Profile);
 

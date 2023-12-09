@@ -13,7 +13,7 @@ TEST(Config, Basic)
     EXPECT_FALSE(config.alias_path(nw::PathAlias::development).empty());
     EXPECT_EQ(config.resolve_alias("HAK:test.hak"), config.alias_path(nw::PathAlias::hak) / "test.hak");
 
-    if (config.options().version == nw::GameVersion::vEE) {
+    if (config.version() == nw::GameVersion::vEE) {
         EXPECT_FALSE(config.settings_tml().empty());
         EXPECT_EQ(*config.settings_tml()["game"]["gore"].as<int64_t>(), 1);
     } else {

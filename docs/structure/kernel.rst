@@ -23,7 +23,7 @@ aliases, Ini and Toml settings.
 
 .. code:: cpp
 
-    if (config.options().version == nw::GameVersion::vEE) {
+    if (nw::kernel::config().version() == nw::GameVersion::vEE) {
         REQUIRE_FALSE(config.settings_tml().empty());
         REQUIRE(*config.settings_tml()["game"]["gore"].as<int64_t>() == 1);
     }

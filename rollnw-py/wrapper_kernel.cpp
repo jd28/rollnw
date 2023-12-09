@@ -29,42 +29,32 @@ namespace fs = std::filesystem;
 void init_kernel_config(py::module& kernel)
 {
     py::class_<nw::ConfigOptions>(kernel, "ConfigOptions")
-        .def(py::init([](bool probe, nw::GameVersion version) {
-            nw::ConfigOptions res{};
-            if (probe) {
-                auto p = nw::probe_nwn_install(version);
-                if (p.version == nw::GameVersion::invalid) {
-                    throw std::runtime_error("unable to locate a NWN installation");
-                } else if (p.version != nw::GameVersion::invalid) {
-                    throw std::runtime_error("NWN install did not match requested version");
-                }
-                res.version = p.version;
-                res.install = p.install;
-                res.user = p.user;
-            } else {
-                res.version = version;
-            }
-            return res;
-        }),
-            py::arg("probe") = true, py::arg("version") = nw::GameVersion::vEE)
-        .def_readwrite("version", &nw::ConfigOptions::version)
-        .def_readwrite("install", &nw::ConfigOptions::install)
-        .def_readwrite("user", &nw::ConfigOptions::user)
         .def_readwrite("include_install", &nw::ConfigOptions::include_install)
-        .def_readwrite("include_nwsync", &nw::ConfigOptions::include_nwsync);
-
-    kernel.def("config_initialize", [](const nw::ConfigOptions& options) {
-        nw::kernel::config().initialize(options);
-    });
+        .def_readwrite("include_nwsync", &nw::ConfigOptions::include_nwsync)
+        .def_readwrite("include_user", &nw::ConfigOptions::include_user);
 
     // [TODO] Figure out what to do about toml..
     py::class_<nw::kernel::Config>(kernel, "Config")
         .def("alias_path", &nw::kernel::Config::alias_path)
+        .def("initialize", [](const nw::ConfigOptions& options) {
+            nw::kernel::config().initialize(options);
+        })
+        .def("install_path", &nw::kernel::Config::install_path)
         .def("nwn_ini", &nw::kernel::Config::nwn_ini)
         .def("nwnplayer_ini", &nw::kernel::Config::nwnplayer_ini)
         .def("options", &nw::kernel::Config::options)
         .def("resolve_alias", &nw::kernel::Config::resolve_alias)
-        .def("userpatch_ini", &nw::kernel::Config::userpatch_ini);
+        .def("user_path", &nw::kernel::Config::user_path)
+        .def("userpatch_ini", &nw::kernel::Config::userpatch_ini)
+        .def("set_paths", &nw::kernel::Config::set_paths)
+        .def("set_version", &nw::kernel::Config::set_version)
+        .def("version", &nw::kernel::Config::version);
+
+    kernel.def(
+        "config", []() {
+            return &nw::kernel::config();
+        },
+        py::return_value_policy::reference);
 }
 
 void init_kernel_effects(py::module& kernel)
@@ -213,12 +203,6 @@ void init_kernel(py::module& kernel)
         .def("unload_module", &nw::kernel::unload_module);
 
     kernel.def("start", []() {
-              auto info = nw::probe_nwn_install();
-              nw::kernel::config().initialize({
-                  info.version,
-                  info.install,
-                  info.user,
-              });
               nw::kernel::services().start();
               nw::kernel::load_profile(new nwn1::Profile);
           })

@@ -58,20 +58,18 @@ static constexpr BeamdogInstall beamdog_versions[] = {
     {"00839", "NWN EE Digital Deluxe"},
     {"00785", "NWN EE"}};
 
-InstallInfo probe_nwn_install(GameVersion only)
+InstallInfo probe_nwn_install(GameVersion version)
 {
     InstallInfo result;
     bool install_found = false;
 
     // This probes both EE and 1.69 keys even though most of these paths are NWN:EE only.
-    auto probe_keys = [&result, &install_found, only](const fs::path& p) {
-        if (only != GameVersion::v1_69 && fs::exists(p / "data/nwn_base.key")) {
+    auto probe_keys = [&result, &install_found, version](const fs::path& p) {
+        if (version == GameVersion::vEE && fs::exists(p / "data/nwn_base.key")) {
             result.install = p;
-            result.version = GameVersion::vEE;
             install_found = true;
-        } else if (only != GameVersion::vEE && fs::exists(p / "chitin.key")) {
+        } else if (version == GameVersion::v1_69 && fs::exists(p / "chitin.key")) {
             result.install = p;
-            result.version = GameVersion::v1_69;
             install_found = true;
         }
     };

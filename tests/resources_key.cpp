@@ -12,7 +12,7 @@ using namespace std::literals;
 
 TEST(Key, Construction)
 {
-    auto install_path = nw::kernel::config().options().install;
+    auto install_path = nw::kernel::config().install_path();
     if (fs::exists(install_path / "data/nwn_base.key")) {
         nw::Key k{install_path / "data/nwn_base.key"};
         EXPECT_GT(k.size(), 0);
@@ -27,7 +27,7 @@ TEST(Key, Construction)
 TEST(Key, visit)
 {
 
-    auto install_path = nw::kernel::config().options().install;
+    auto install_path = nw::kernel::config().install_path();
     if (fs::exists(install_path / "data/nwn_base.key")) {
         nw::Key k{install_path / "data/nwn_base.key"};
 

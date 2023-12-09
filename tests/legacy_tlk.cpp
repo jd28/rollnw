@@ -15,7 +15,7 @@ TEST(Tlk, LoadEnglish)
 
 TEST(Tlk, LoadGerman)
 {
-    auto install_path = nw::kernel::config().options().install;
+    auto install_path = nw::kernel::config().install_path();
     nw::Tlk de{"test_data/root/lang/de/data/dialog.tlk"};
     EXPECT_TRUE(de.valid());
     EXPECT_EQ(de.get(10), "Mönch");

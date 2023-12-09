@@ -7,7 +7,8 @@ namespace nw {
 enum struct GameVersion {
     invalid,
     v1_69,
-    vEE
+    vEE,
+    nwn2
 };
 
 /// Path aliases, some of these are EE only.
@@ -48,6 +49,6 @@ struct InstallInfo {
 
 /// Probes for an NWN install
 /// @param only probe for specific version
-InstallInfo probe_nwn_install(GameVersion only = GameVersion::invalid);
+InstallInfo probe_nwn_install(GameVersion version);
 
 } // namespace nw

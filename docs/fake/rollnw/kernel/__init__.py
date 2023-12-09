@@ -12,21 +12,13 @@ from typing import Optional
 class ConfigOptions:
     """Configuration options
 
-    Args:
-        probe (bool): If true, probe for an NWN install.  (Default True)
-        version (GameVersion): NWN version install to probe for.  (Default GameVersion.vEE)
-
     Attributes:
-        version (GameVersion): Game version
-        install (str): NWN root install directory
         user (str): NWN user directory
         include_install (bool): If true, load base game data.  (Default True)
         include_nwsync (bool): If true, load NWSync data.  (Default True)
+        include_user (bool): If true, load user data.  (Default True)
     """
-
-    def __init__(self, probe: bool = True, version: GameVersion = GameVersion.vEE):
-        pass
-
+    pass
 
 class Config:
     """Configuration service
@@ -34,7 +26,15 @@ class Config:
 
     def alias_path(self, alias: PathAlias) -> str:
         """Gets alias path"""
+        return ""
+
+    def initialize(self, options: ConfigOptions):
+        """Initialize config system"""
         pass
+
+    def install_path(self) -> str:
+        """Gets game install path"""
+        return ""
 
     def nwn_ini(self) -> Ini:
         """Gets parsed nwn.ini
@@ -55,11 +55,26 @@ class Config:
         """Resolves alias path"""
         pass
 
+    def user_path(self) -> str:
+        """Gets game install path"""
+        return ""
+
     def userpatch_ini(self) -> Ini:
         """Gets parsed userpatch.ini
         """
         pass
 
+    def set_paths(self, install: str, user: str):
+        """Sets game paths
+
+        Note: Must be called before ``initialize``
+        """
+
+    def set_version(self, version: GameVersion):
+        """Sets game paths
+
+        Note: Must be called before ``initialize``
+        """
 
 class EffectSystemStats:
     """Effect system stat data
@@ -264,7 +279,7 @@ def rules():
     pass
 
 
-def start(config=None):
+def start(options: Optional[ConfigOptions]):
     """Starts kernel services
 
     Args:
