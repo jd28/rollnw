@@ -49,8 +49,6 @@ Resources::Resources(const Resources* parent)
 void Resources::initialize()
 {
     LOG_F(INFO, "kernel: initializing resource system");
-    LOG_F(INFO, "kernel: root directory: {}", config().install_path());
-    LOG_F(INFO, "kernel: user directory: {}", config().user_path());
 
     if (config().options().include_user) {
         ambient_user_ = Directory{config().alias_path(PathAlias::ambient)};

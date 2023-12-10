@@ -102,7 +102,10 @@ void Config::initialize(ConfigOptions options)
         LOG_F(INFO, "install: {}", install_);
         if (user_.empty()) { user_ = info.user; }
     }
+
     LOG_F(INFO, "kernel: initializing config system");
+    LOG_F(INFO, "kernel: root directory: {}", install_);
+    LOG_F(INFO, "kernel: user directory: {}", user_);
 
     // [TODO] Find a better method of conveying this error
     CHECK_F(!install_.empty(), "Failed to find valid NWN install.");
