@@ -203,6 +203,7 @@ void init_kernel(py::module& kernel)
         .def("unload_module", &nw::kernel::unload_module);
 
     kernel.def("start", []() {
+              nw::kernel::config().initialize();
               nw::kernel::services().start();
               nw::kernel::load_profile(new nwn1::Profile);
           })
