@@ -422,6 +422,16 @@ TEST(Nss, FunctionCall)
     EXPECT_NO_THROW(nss9.parse());
     EXPECT_NO_THROW(nss9.resolve());
     EXPECT_EQ(nss9.errors(), 1);
+
+    script::Nss nss12(R"(
+        void main() {
+            abs(
+                int a;
+        })"sv,
+        ctx.get());
+
+    EXPECT_NO_THROW(nss12.parse());
+    EXPECT_EQ(nss12.errors(), 3);
 }
 
 TEST(Nss, DotOperator)
