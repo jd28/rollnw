@@ -42,8 +42,10 @@ InternedString Strings::get_interned(std::string_view str) const
 void Strings::initialize()
 {
     auto lang = Language::to_string(global_language());
-    auto path = config().install_path() / "lang" / lang / "data" / "dialog.tlk";
-    load_dialog_tlk(path);
+    if (config().version() == GameVersion::vEE) {
+        auto path = config().install_path() / "lang" / lang / "data" / "dialog.tlk";
+        load_dialog_tlk(path);
+    }
 }
 
 InternedString Strings::intern(std::string_view str)
