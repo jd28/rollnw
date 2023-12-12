@@ -53,7 +53,7 @@ struct AstLocator : public BaseVisitor {
     virtual void visit(Ast* script)
     {
         for (auto decl : script->decls) {
-            decl->accept(this);
+            if (decl) { decl->accept(this); }
             if (found_) { break; }
         }
     }
@@ -79,7 +79,7 @@ struct AstLocator : public BaseVisitor {
             } else {
                 in_func_decl_ = true;
                 for (auto param : decl->params) {
-                    param->accept(this);
+                    if (param) { param->accept(this); }
                     if (found_) { return; }
                 }
                 in_func_decl_ = false;
@@ -92,9 +92,9 @@ struct AstLocator : public BaseVisitor {
         if (decl->range_.end < pos_) { last_seen_decl = decl; }
 
         if (contains_position(decl->range_, pos_)) {
-            decl->decl_inline->accept(this);
+            if (decl->decl_inline) { decl->decl_inline->accept(this); }
             if (found_) { return; }
-            decl->block->accept(this);
+            if (decl->block) { decl->block->accept(this); }
         }
     }
 
@@ -109,7 +109,7 @@ struct AstLocator : public BaseVisitor {
         } else {
             in_struct_decl_ = true;
             for (auto d : decl->decls) {
-                d->accept(this);
+                if (d) { d->accept(this); }
                 if (found_) { return; }
             }
             in_struct_decl_ = false;
@@ -146,50 +146,51 @@ struct AstLocator : public BaseVisitor {
     // Expressions
     virtual void visit(AssignExpression* expr)
     {
-        expr->lhs->accept(this);
-        expr->rhs->accept(this);
+        if (expr->lhs) { expr->lhs->accept(this); }
+        if (expr->rhs) { expr->rhs->accept(this); }
     }
 
     virtual void visit(BinaryExpression* expr)
     {
-        expr->lhs->accept(this);
-        expr->rhs->accept(this);
+        if (expr->lhs) { expr->lhs->accept(this); }
+        if (expr->rhs) { expr->rhs->accept(this); }
     }
 
     virtual void visit(CallExpression* expr)
     {
-        expr->expr->accept(this);
+
+        if (expr->expr) { expr->expr->accept(this); }
         if (found_) { return; }
         for (const auto arg : expr->args) {
-            arg->accept(this);
+            if (arg) { arg->accept(this); }
             if (found_) { return; }
         }
     }
 
     virtual void visit(ComparisonExpression* expr)
     {
-        expr->lhs->accept(this);
-        expr->rhs->accept(this);
+        if (expr->lhs) { expr->lhs->accept(this); }
+        if (expr->rhs) { expr->rhs->accept(this); }
     }
 
     virtual void visit(ConditionalExpression* expr)
     {
-        expr->test->accept(this);
-        expr->true_branch->accept(this);
-        expr->false_branch->accept(this);
+        if (expr->test) { expr->test->accept(this); }
+        if (expr->true_branch) { expr->true_branch->accept(this); }
+        if (expr->false_branch) { expr->false_branch->accept(this); }
     }
 
     virtual void visit(DotExpression* expr)
     {
-        expr->lhs->accept(this);
+        if (expr->lhs) { expr->lhs->accept(this); }
         if (found_) { return; }
-        expr->rhs->accept(this);
+        if (expr->rhs) { expr->rhs->accept(this); }
         if (found_) { dot = expr; }
     }
 
     virtual void visit(GroupingExpression* expr)
     {
-        expr->expr->accept(this);
+        if (expr->expr) { expr->expr->accept(this); }
     }
 
     virtual void visit(LiteralExpression* expr)
@@ -204,18 +205,18 @@ struct AstLocator : public BaseVisitor {
 
     virtual void visit(LogicalExpression* expr)
     {
-        expr->lhs->accept(this);
-        expr->rhs->accept(this);
+        if (expr->lhs) { expr->lhs->accept(this); }
+        if (expr->rhs) { expr->rhs->accept(this); }
     }
 
     virtual void visit(PostfixExpression* expr)
     {
-        expr->lhs->accept(this);
+        if (expr->lhs) { expr->lhs->accept(this); }
     }
 
     virtual void visit(UnaryExpression* expr)
     {
-        expr->rhs->accept(this);
+        if (expr->rhs) { expr->rhs->accept(this); }
     }
 
     virtual void visit(VariableExpression* expr)
@@ -238,7 +239,7 @@ struct AstLocator : public BaseVisitor {
         // Block is a good place to bail if we've not found the symbol
         if (stmt->range.start.line > pos_.line) { return; }
         for (auto decl : stmt->nodes) {
-            decl->accept(this);
+            if (decl) { decl->accept(this); }
             if (found_) { return; }
         }
     }
@@ -246,15 +247,15 @@ struct AstLocator : public BaseVisitor {
     virtual void visit(DeclList* stmt)
     {
         for (auto decl : stmt->decls) {
-            decl->accept(this);
+            if (decl) { decl->accept(this); }
             if (found_) { return; }
         }
     }
 
     virtual void visit(DoStatement* stmt)
     {
-        stmt->expr->accept(this);
-        stmt->block->accept(this);
+        if (stmt->expr) { stmt->expr->accept(this); }
+        if (stmt->block) { stmt->block->accept(this); }
     }
 
     virtual void visit(EmptyStatement* stmt)
@@ -264,57 +265,51 @@ struct AstLocator : public BaseVisitor {
 
     virtual void visit(ExprStatement* stmt)
     {
-        stmt->expr->accept(this);
+        if (stmt->expr) { stmt->expr->accept(this); }
     }
 
     virtual void visit(IfStatement* stmt)
     {
-        stmt->expr->accept(this);
+        if (stmt->expr) { stmt->expr->accept(this); }
         if (found_) { return; }
-        stmt->if_branch->accept(this);
+        if (stmt->if_branch) { stmt->if_branch->accept(this); }
         if (found_) { return; }
-        if (stmt->else_branch) {
-            stmt->else_branch->accept(this);
-        }
+        if (stmt->else_branch) { stmt->else_branch->accept(this); }
     }
 
     virtual void visit(ForStatement* stmt)
     {
-        stmt->init->accept(this);
+        if (stmt->init) { stmt->init->accept(this); }
         if (found_) { return; }
-        stmt->check->accept(this);
+        if (stmt->check) { stmt->check->accept(this); }
         if (found_) { return; }
-        stmt->inc->accept(this);
+        if (stmt->inc) { stmt->inc->accept(this); }
         if (found_) { return; }
-        stmt->block->accept(this);
+        if (stmt->block) { stmt->block->accept(this); }
     }
 
     virtual void visit(JumpStatement* stmt)
     {
-        if (stmt->expr) {
-            stmt->expr->accept(this);
-        }
+        if (stmt->expr) { stmt->expr->accept(this); }
     }
 
     virtual void visit(LabelStatement* stmt)
     {
-        if (stmt->expr) {
-            stmt->expr->accept(this);
-        }
+        if (stmt->expr) { stmt->expr->accept(this); }
     }
 
     virtual void visit(SwitchStatement* stmt)
     {
-        stmt->target->accept(this);
+        if (stmt->target) { stmt->target->accept(this); }
         if (found_) { return; }
-        stmt->block->accept(this);
+        if (stmt->block) { stmt->block->accept(this); }
     }
 
     virtual void visit(WhileStatement* stmt)
     {
-        stmt->check->accept(this);
+        if (stmt->check) { stmt->check->accept(this); }
         if (found_) { return; }
-        stmt->block->accept(this);
+        if (stmt->block) { stmt->block->accept(this); }
     }
 };
 

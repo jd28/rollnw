@@ -42,7 +42,7 @@ struct AstHinter : public BaseVisitor {
     virtual void visit(Ast* script)
     {
         for (auto decl : script->decls) {
-            decl->accept(this);
+            if (decl) { decl->accept(this); }
         }
     }
 
@@ -54,7 +54,7 @@ struct AstHinter : public BaseVisitor {
 
     virtual void visit(FunctionDefinition* decl)
     {
-        decl->block->accept(this);
+        if (decl->block) { decl->block->accept(this); }
     }
 
     virtual void visit(StructDecl* decl)
@@ -70,17 +70,18 @@ struct AstHinter : public BaseVisitor {
     // Expressions
     virtual void visit(AssignExpression* expr)
     {
-        expr->rhs->accept(this);
+        if (expr->rhs) { expr->rhs->accept(this); }
     }
 
     virtual void visit(BinaryExpression* expr)
     {
-        expr->lhs->accept(this);
-        expr->rhs->accept(this);
+        if (expr->lhs) { expr->lhs->accept(this); }
+        if (expr->rhs) { expr->rhs->accept(this); }
     }
 
     virtual void visit(CallExpression* expr)
     {
+        if (!expr->expr) { return; }
         if (contains_range(range_, expr->extent().range)) {
             std::string needle{expr->expr->var.loc.view()};
             auto exp = expr->expr->env.find(needle);
@@ -105,28 +106,28 @@ struct AstHinter : public BaseVisitor {
             }
 
             for (auto arg : expr->args) {
-                arg->accept(this);
+                if (arg) { arg->accept(this); }
             }
         }
     }
 
     virtual void visit(ComparisonExpression* expr)
     {
-        expr->lhs->accept(this);
-        expr->rhs->accept(this);
+        if (expr->lhs) { expr->lhs->accept(this); }
+        if (expr->rhs) { expr->rhs->accept(this); }
     }
 
     virtual void visit(ConditionalExpression* expr)
     {
-        expr->test->accept(this);
-        expr->true_branch->accept(this);
-        expr->false_branch->accept(this);
+        if (expr->test) { expr->test->accept(this); }
+        if (expr->true_branch) { expr->true_branch->accept(this); }
+        if (expr->false_branch) { expr->false_branch->accept(this); }
     }
 
     virtual void visit(DotExpression* expr)
     {
-        expr->lhs->accept(this);
-        expr->rhs->accept(this);
+        if (expr->lhs) { expr->lhs->accept(this); }
+        if (expr->rhs) { expr->rhs->accept(this); }
     }
 
     virtual void visit(GroupingExpression* expr)
@@ -146,18 +147,18 @@ struct AstHinter : public BaseVisitor {
 
     virtual void visit(LogicalExpression* expr)
     {
-        expr->lhs->accept(this);
-        expr->rhs->accept(this);
+        if (expr->lhs) { expr->lhs->accept(this); }
+        if (expr->rhs) { expr->rhs->accept(this); }
     }
 
     virtual void visit(PostfixExpression* expr)
     {
-        expr->lhs->accept(this);
+        if (expr->lhs) { expr->lhs->accept(this); }
     }
 
     virtual void visit(UnaryExpression* expr)
     {
-        expr->rhs->accept(this);
+        if (expr->rhs) { expr->rhs->accept(this); }
     }
 
     virtual void visit(VariableExpression* expr)
@@ -169,7 +170,7 @@ struct AstHinter : public BaseVisitor {
     virtual void visit(BlockStatement* stmt)
     {
         for (auto decl : stmt->nodes) {
-            decl->accept(this);
+            if (decl) { decl->accept(this); }
         }
     }
 
@@ -181,8 +182,8 @@ struct AstHinter : public BaseVisitor {
     virtual void visit(DoStatement* stmt)
     {
         // No op
-        stmt->expr->accept(this);
-        stmt->block->accept(this);
+        if (stmt->expr) { stmt->expr->accept(this); }
+        if (stmt->block) { stmt->block->accept(this); }
     }
 
     virtual void visit(EmptyStatement* stmt)
@@ -191,13 +192,13 @@ struct AstHinter : public BaseVisitor {
 
     virtual void visit(ExprStatement* stmt)
     {
-        stmt->expr->accept(this);
+        if (stmt->expr) { stmt->expr->accept(this); }
     }
 
     virtual void visit(IfStatement* stmt)
     {
-        stmt->expr->accept(this);
-        stmt->if_branch->accept(this);
+        if (stmt->expr) { stmt->expr->accept(this); }
+        if (stmt->if_branch) { stmt->if_branch->accept(this); }
         if (stmt->else_branch) {
             stmt->if_branch->accept(this);
         }
@@ -207,7 +208,7 @@ struct AstHinter : public BaseVisitor {
         if (stmt->init) { stmt->init->accept(this); }
         if (stmt->check) { stmt->check->accept(this); }
         if (stmt->inc) { stmt->inc->accept(this); }
-        stmt->block->accept(this);
+        if (stmt->block) { stmt->block->accept(this); }
     }
 
     virtual void visit(JumpStatement* stmt)
@@ -217,18 +218,19 @@ struct AstHinter : public BaseVisitor {
 
     virtual void visit(LabelStatement* stmt)
     {
+        // No Op
     }
 
     virtual void visit(SwitchStatement* stmt)
     {
-        stmt->target->accept(this);
-        stmt->block->accept(this);
+        if (stmt->target) { stmt->target->accept(this); }
+        if (stmt->block) { stmt->block->accept(this); }
     }
 
     virtual void visit(WhileStatement* stmt)
     {
-        stmt->check->accept(this);
-        stmt->block->accept(this);
+        if (stmt->check) { stmt->check->accept(this); }
+        if (stmt->block) { stmt->block->accept(this); }
     }
 };
 

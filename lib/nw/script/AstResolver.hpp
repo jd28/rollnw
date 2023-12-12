@@ -504,6 +504,7 @@ struct AstResolver : BaseVisitor {
     {
         expr->env = env_stack_.back();
 
+        if (!expr->expr) { return; }
         auto ve = expr->expr;
         ve->env = env_stack_.back();
 
@@ -678,7 +679,11 @@ struct AstResolver : BaseVisitor {
     virtual void visit(GroupingExpression* expr) override
     {
         expr->env = env_stack_.back();
-        expr->expr->accept(this);
+        if (expr->expr) {
+            expr->expr->accept(this);
+        } else {
+            ctx_->semantic_diagnostic(parent_, "empty groupling expression", true, SourceLocation{});
+        }
         expr->type_id_ = expr->expr->type_id_;
         expr->is_const_ = expr->expr->is_const_;
     }
