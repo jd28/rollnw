@@ -81,10 +81,12 @@ struct AstHinter : public BaseVisitor {
 
     virtual void visit(CallExpression* expr)
     {
-        if (!expr->expr) { return; }
+        auto ve = dynamic_cast<VariableExpression*>(expr->expr);
+        if (!ve) { return; }
+
         if (contains_range(range_, expr->extent().range)) {
-            std::string needle{expr->expr->var.loc.view()};
-            auto exp = expr->expr->env.find(needle);
+            std::string needle{ve->var.loc.view()};
+            auto exp = ve->env.find(needle);
             const Declaration* decl = nullptr;
             if (exp && exp->decl) {
                 decl = exp->decl;

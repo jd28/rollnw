@@ -371,10 +371,12 @@ TEST(Nss, FunctionCall)
 
     script::Nss nss2("void main() { 423(b); }"sv, ctx.get());
     EXPECT_NO_THROW(nss2.parse());
+    EXPECT_NO_THROW(nss2.resolve());
     EXPECT_EQ(nss2.errors(), 1);
 
     script::Nss nss3("void main() { str.test(b); }"sv, ctx.get());
     EXPECT_NO_THROW(nss3.parse());
+    EXPECT_NO_THROW(nss3.resolve());
     EXPECT_EQ(nss3.errors(), 1);
 
     script::Nss nss6(R"(
@@ -456,7 +458,24 @@ TEST(Nss, DotOperator)
     // Only variable decl or chained dot operator
     script::Nss nss4("void main() { str.test.call_expr(); }"sv, ctx.get());
     EXPECT_NO_THROW(nss4.parse());
+    EXPECT_NO_THROW(nss4.resolve());
     EXPECT_EQ(nss4.errors(), 1);
+
+    script::Nss nss5(R"(
+        struct Test {
+            int test;
+            float testf;
+        };
+
+        void main() {
+            struct Test a_struct;
+            a_struct.
+            abs(
+        })"sv,
+        ctx.get());
+    EXPECT_NO_THROW(nss5.parse());
+    EXPECT_NO_THROW(nss5.resolve());
+    EXPECT_EQ(nss5.errors(), 4);
 }
 
 TEST(Nss, Struct)

@@ -391,12 +391,7 @@ Expression* NssParser::parse_expr_postfix()
         }
 
         if (previous().type == NssTokenType::LPAREN) {
-            auto ve = dynamic_cast<VariableExpression*>(expr);
-            if (!ve) {
-                diagnostic("expression cannot be used as a function", previous());
-            }
-
-            auto e = ast_.create_node<CallExpression>(ve);
+            auto e = ast_.create_node<CallExpression>(expr);
             while (!is_end() && !check({NssTokenType::RPAREN})) {
                 try {
                     auto arg = parse_expr();

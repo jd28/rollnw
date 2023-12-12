@@ -504,8 +504,16 @@ struct AstResolver : BaseVisitor {
     {
         expr->env = env_stack_.back();
 
-        if (!expr->expr) { return; }
-        auto ve = expr->expr;
+        auto ve = dynamic_cast<VariableExpression*>(expr->expr);
+        if (!ve) {
+            ctx_->semantic_diagnostic(
+                parent_,
+                "only variable expressions are permitted in function call expression",
+                false,
+                expr->expr->extent());
+            return;
+        }
+
         ve->env = env_stack_.back();
 
         const FunctionDecl* func_decl = nullptr;

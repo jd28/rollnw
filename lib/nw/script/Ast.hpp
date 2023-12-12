@@ -340,12 +340,12 @@ struct VariableExpression : Expression {
 };
 
 struct CallExpression : Expression {
-    explicit CallExpression(VariableExpression* expr_)
+    explicit CallExpression(Expression* expr_)
         : expr{expr_}
     {
     }
 
-    VariableExpression* expr = nullptr;
+    Expression* expr = nullptr;
     std::vector<Expression*> args;
 
     virtual SourceLocation extent() const override { return expr->extent(); };
