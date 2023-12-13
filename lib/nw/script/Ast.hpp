@@ -105,6 +105,7 @@ struct AstNode {
     size_t type_id_ = invalid_type_id;
     bool is_const_ = false;
     immer::map<std::string, Export> env_;
+    SourceRange range_;
 };
 
 #define DEFINE_ACCEPT_VISITOR                          \
@@ -117,8 +118,6 @@ struct AstNode {
 
 struct Expression : public AstNode {
     virtual ~Expression() = default;
-
-    virtual SourceLocation extent() const = 0;
 };
 
 struct AssignExpression : Expression {
@@ -132,11 +131,6 @@ struct AssignExpression : Expression {
     Expression* lhs = nullptr;
     NssToken op;
     Expression* rhs = nullptr;
-
-    virtual SourceLocation extent() const override
-    {
-        return merge_source_location(lhs->extent(), rhs->extent());
-    };
 
     DEFINE_ACCEPT_VISITOR
 };
@@ -156,11 +150,6 @@ struct BinaryExpression : Expression {
     NssToken op;
     Expression* rhs = nullptr;
 
-    virtual SourceLocation extent() const override
-    {
-        return merge_source_location(lhs->extent(), rhs->extent());
-    };
-
     DEFINE_ACCEPT_VISITOR
 };
 
@@ -178,11 +167,6 @@ struct ComparisonExpression : Expression {
     Expression* lhs = nullptr;
     NssToken op;
     Expression* rhs = nullptr;
-
-    virtual SourceLocation extent() const override
-    {
-        return merge_source_location(lhs->extent(), rhs->extent());
-    };
 
     DEFINE_ACCEPT_VISITOR
 };
@@ -202,11 +186,6 @@ struct ConditionalExpression : Expression {
     Expression* true_branch = nullptr;
     Expression* false_branch = nullptr;
 
-    virtual SourceLocation extent() const override
-    {
-        return merge_source_location(test->extent(), merge_source_location(true_branch->extent(), false_branch->extent()));
-    };
-
     DEFINE_ACCEPT_VISITOR
 };
 
@@ -225,8 +204,6 @@ struct DotExpression : Expression {
     NssToken dot;
     Expression* rhs = nullptr;
 
-    virtual SourceLocation extent() const override { return dot.loc; };
-
     DEFINE_ACCEPT_VISITOR
 };
 
@@ -237,8 +214,6 @@ struct GroupingExpression : Expression {
     }
 
     Expression* expr = nullptr;
-
-    virtual SourceLocation extent() const override { return expr->extent(); };
 
     DEFINE_ACCEPT_VISITOR
 };
@@ -251,8 +226,6 @@ struct LiteralExpression : Expression {
 
     NssToken literal;
     Variant<int32_t, float, std::string> data;
-
-    virtual SourceLocation extent() const override { return literal.loc; };
 
     DEFINE_ACCEPT_VISITOR
 };
@@ -267,11 +240,6 @@ struct LiteralVectorExpression : Expression {
 
     NssToken x, y, z;
     glm::vec3 data;
-
-    virtual SourceLocation extent() const override
-    {
-        return merge_source_location(x.loc, merge_source_location(y.loc, z.loc));
-    };
 
     DEFINE_ACCEPT_VISITOR
 };
@@ -291,8 +259,6 @@ struct LogicalExpression : Expression {
     NssToken op;
     Expression* rhs = nullptr;
 
-    virtual SourceLocation extent() const override { return op.loc; };
-
     DEFINE_ACCEPT_VISITOR
 };
 
@@ -305,8 +271,6 @@ struct PostfixExpression : Expression {
 
     Expression* lhs = nullptr;
     NssToken op;
-
-    virtual SourceLocation extent() const override { return op.loc; };
 
     DEFINE_ACCEPT_VISITOR
 };
@@ -321,8 +285,6 @@ struct UnaryExpression : Expression {
     NssToken op;
     Expression* rhs = nullptr;
 
-    virtual SourceLocation extent() const override { return op.loc; };
-
     DEFINE_ACCEPT_VISITOR
 };
 
@@ -333,8 +295,6 @@ struct VariableExpression : Expression {
     }
 
     NssToken var;
-
-    virtual SourceLocation extent() const override { return var.loc; };
 
     DEFINE_ACCEPT_VISITOR
 };
@@ -348,7 +308,6 @@ struct CallExpression : Expression {
     Expression* expr = nullptr;
     std::vector<Expression*> args;
 
-    virtual SourceLocation extent() const override { return expr->extent(); };
 
     DEFINE_ACCEPT_VISITOR
 };
@@ -364,7 +323,6 @@ struct BlockStatement : public Statement {
     BlockStatement(BlockStatement&) = delete;
     BlockStatement& operator=(const BlockStatement&) = delete;
 
-    SourceRange range;
     std::vector<Statement*> nodes;
 
     DEFINE_ACCEPT_VISITOR
@@ -450,7 +408,6 @@ struct Type {
 
 struct Declaration : public Statement {
     Type type;
-    SourceRange range_;
     SourceRange range_selection_;
     std::string_view view;
 
@@ -517,10 +474,10 @@ struct DeclList : public Declaration {
 
 /// Abstracts an script include
 struct Include {
-    std::string resref;      ///< Resref of included script
-    SourceLocation location; ///< Source location in script
-    Nss* script = nullptr;   ///< Loaded script
-    int used = 0;            ///< Number of times include is used in script file
+    std::string resref;    ///< Resref of included script
+    SourceRange location;  ///< Source location in script
+    Nss* script = nullptr; ///< Loaded script
+    int used = 0;          ///< Number of times include is used in script file
 };
 
 /// Abstracts a comment

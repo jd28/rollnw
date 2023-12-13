@@ -184,7 +184,7 @@ bool Context::is_type_convertible(size_t lhs, size_t rhs)
     return lhs == rhs || (lhs == float_ && rhs == int_);
 }
 
-void Context::lexical_diagnostic(Nss* script, std::string_view msg, bool is_warning, SourceLocation loc)
+void Context::lexical_diagnostic(Nss* script, std::string_view msg, bool is_warning, SourceRange range)
 {
     if (script) {
         Diagnostic result;
@@ -192,7 +192,7 @@ void Context::lexical_diagnostic(Nss* script, std::string_view msg, bool is_warn
         result.level = is_warning ? DiagnosticLevel::warning : DiagnosticLevel::error;
         result.script = script ? script->name() : "<source>";
         result.message = std::string(msg);
-        result.location = loc;
+        result.location = range;
         script->add_diagnostic(std::move(result));
 
         if (is_warning) {
@@ -203,7 +203,7 @@ void Context::lexical_diagnostic(Nss* script, std::string_view msg, bool is_warn
     }
 
     auto out = fmt::format("{}:{}:{} {}: {}", script ? script->name() : "<source>",
-        loc.range.start.line, loc.range.start.column, is_warning ? "warning" : "error", msg);
+        range.start.line, range.start.column, is_warning ? "warning" : "error", msg);
     if (is_warning) {
         LOG_F(WARNING, "{}", out);
     } else {
@@ -211,7 +211,7 @@ void Context::lexical_diagnostic(Nss* script, std::string_view msg, bool is_warn
     }
 }
 
-void Context::parse_diagnostic(Nss* script, std::string_view msg, bool is_warning, SourceLocation loc)
+void Context::parse_diagnostic(Nss* script, std::string_view msg, bool is_warning, SourceRange range)
 {
     if (script) {
         Diagnostic result;
@@ -219,7 +219,7 @@ void Context::parse_diagnostic(Nss* script, std::string_view msg, bool is_warnin
         result.level = is_warning ? DiagnosticLevel::warning : DiagnosticLevel::error;
         result.script = script ? script->name() : "<source>";
         result.message = std::string(msg);
-        result.location = loc;
+        result.location = range;
         script->add_diagnostic(std::move(result));
 
         if (is_warning) {
@@ -230,7 +230,7 @@ void Context::parse_diagnostic(Nss* script, std::string_view msg, bool is_warnin
     }
 
     auto out = fmt::format("{}:{}:{} {}: {}", script ? script->name() : "<source>",
-        loc.range.start.line, loc.range.start.column, is_warning ? "warning" : "error", msg);
+        range.start.line, range.start.column, is_warning ? "warning" : "error", msg);
     if (is_warning) {
         LOG_F(WARNING, "{}", out);
     } else {
@@ -238,7 +238,7 @@ void Context::parse_diagnostic(Nss* script, std::string_view msg, bool is_warnin
     }
 }
 
-void Context::semantic_diagnostic(Nss* script, std::string_view msg, bool is_warning, SourceLocation loc)
+void Context::semantic_diagnostic(Nss* script, std::string_view msg, bool is_warning, SourceRange range)
 {
     if (script) {
         Diagnostic result;
@@ -246,7 +246,7 @@ void Context::semantic_diagnostic(Nss* script, std::string_view msg, bool is_war
         result.level = is_warning ? DiagnosticLevel::warning : DiagnosticLevel::error;
         result.script = script ? script->name() : "<source>";
         result.message = std::string(msg);
-        result.location = loc;
+        result.location = range;
         script->add_diagnostic(std::move(result));
 
         if (is_warning) {
@@ -257,7 +257,7 @@ void Context::semantic_diagnostic(Nss* script, std::string_view msg, bool is_war
     }
 
     auto out = fmt::format("{}:{}:{} {}: {}", script ? script->name() : "<source>",
-        loc.range.start.line, loc.range.start.column, is_warning ? "warning" : "error", msg);
+        range.start.line, range.start.column, is_warning ? "warning" : "error", msg);
     if (is_warning) {
         LOG_F(WARNING, "{}", out);
     } else {

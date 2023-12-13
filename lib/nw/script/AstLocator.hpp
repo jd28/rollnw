@@ -237,7 +237,7 @@ struct AstLocator : public BaseVisitor {
     virtual void visit(BlockStatement* stmt)
     {
         // Block is a good place to bail if we've not found the symbol
-        if (stmt->range.start.line > pos_.line) { return; }
+        if (stmt->range_.start.line > pos_.line) { return; }
         for (auto decl : stmt->nodes) {
             if (decl) { decl->accept(this); }
             if (found_) { return; }

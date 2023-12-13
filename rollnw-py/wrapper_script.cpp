@@ -395,7 +395,7 @@ void init_script(py::module& nw)
         .def(
             "__getitem__", [](nws::BlockStatement& self, size_t idx) { return self.nodes[idx]; },
             py::return_value_policy::reference_internal)
-        .def_readonly("range", &nws::BlockStatement::range);
+        .def_readonly("range", &nws::BlockStatement::range_);
 
     py::class_<nws::DeclList, nws::Statement>(nw, "DeclList")
         .def("__len__", [](nws::DeclList& self) { return self.decls.size(); })

@@ -22,7 +22,7 @@ struct Diagnostic {
     DiagnosticLevel level;
     std::string script;
     std::string message;
-    SourceLocation location;
+    SourceRange location;
 };
 
 } // namespace nw::script

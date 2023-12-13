@@ -11,12 +11,8 @@ struct SourcePosition {
     size_t column = 0; ///< Starting column
 
     bool operator==(const SourcePosition& rhs) const = default;
+    auto operator<=>(const SourcePosition& rhs) const = default;
 };
-
-inline bool operator<(const SourcePosition lhs, const SourcePosition rhs)
-{
-    return std::tie(lhs.line, lhs.column) < std::tie(rhs.line, rhs.column);
-}
 
 /// Range of source code
 struct SourceRange {

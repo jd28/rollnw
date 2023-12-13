@@ -64,7 +64,7 @@ bool NssParser::check_is_type() const
 
 void NssParser::diagnostic(std::string_view msg, NssToken token, bool is_warning)
 {
-    ctx_->parse_diagnostic(parent_, msg, is_warning, token.loc);
+    ctx_->parse_diagnostic(parent_, msg, is_warning, token.loc.range);
 }
 
 bool NssParser::is_end() const
@@ -110,7 +110,7 @@ void NssParser::lex()
         }
         ast_.line_map = lexer.line_map;
     } catch (const lexical_error& error) {
-        ctx_->lexical_diagnostic(parent_, error.what(), false, error.location);
+        ctx_->lexical_diagnostic(parent_, error.what(), false, error.location.range);
         tokens.clear();
     }
 }
@@ -212,9 +212,15 @@ Expression* NssParser::parse_expr_assign()
         auto value = parse_expr_assign();
 
         if (dynamic_cast<VariableExpression*>(expr)) {
-            return ast_.create_node<AssignExpression>(expr, equals, value);
+            auto ae = ast_.create_node<AssignExpression>(expr, equals, value);
+            ae->range_.start = expr->range_.start;
+            ae->range_.end = value->range_.end;
+            return ae;
         } else if (dynamic_cast<DotExpression*>(expr)) {
-            return ast_.create_node<AssignExpression>(expr, equals, value);
+            auto ae = ast_.create_node<AssignExpression>(expr, equals, value);
+            ae->range_.start = expr->range_.start;
+            ae->range_.end = value->range_.end;
+            return ae;
         }
 
         diagnostic("Invalid assignment target.", peek());
@@ -230,7 +236,10 @@ Expression* NssParser::parse_expr_conditional()
         auto tbranch = parse_expr();
         consume(NssTokenType::COLON, "Expected ':'.");
         auto fbranch = parse_expr_conditional();
-        expr = ast_.create_node<ConditionalExpression>(expr, tbranch, fbranch);
+        auto ce = ast_.create_node<ConditionalExpression>(expr, tbranch, fbranch);
+        ce->range_.start = expr->range_.start;
+        ce->range_.end = fbranch->range_.end;
+        expr = ce;
     }
 
     return expr;
@@ -242,7 +251,10 @@ Expression* NssParser::parse_expr_or()
     while (match({NssTokenType::OROR})) {
         auto op = previous();
         auto right = parse_expr_and();
-        expr = ast_.create_node<LogicalExpression>(expr, op, right);
+        auto le = ast_.create_node<LogicalExpression>(expr, op, right);
+        le->range_.start = expr->range_.start;
+        le->range_.end = right->range_.end;
+        expr = le;
     }
     return expr;
 }
@@ -392,6 +404,7 @@ Expression* NssParser::parse_expr_postfix()
 
         if (previous().type == NssTokenType::LPAREN) {
             auto e = ast_.create_node<CallExpression>(expr);
+            e->range_.start = expr->range_.start;
             while (!is_end() && !check({NssTokenType::RPAREN})) {
                 try {
                     auto arg = parse_expr();
@@ -408,6 +421,8 @@ Expression* NssParser::parse_expr_postfix()
             if (!match({NssTokenType::RPAREN})) {
                 diagnostic("Expected ')'.", peek());
             }
+            e->range_.end = previous().loc.range.end;
+
             expr = e;
         }
 
@@ -427,7 +442,7 @@ Expression* NssParser::parse_expr_primary()
     if (match({NssTokenType::STRING_CONST, NssTokenType::INTEGER_CONST, NssTokenType::FLOAT_CONST,
             NssTokenType::OBJECT_INVALID_CONST, NssTokenType::OBJECT_SELF_CONST})) {
         auto expr = ast_.create_node<LiteralExpression>(previous());
-
+        expr->range_ = previous().loc.range;
         if (expr->literal.type == NssTokenType::STRING_CONST) {
             // Probably need to process the string..
             expr->data = std::string(expr->literal.loc.view());
@@ -438,7 +453,7 @@ Expression* NssParser::parse_expr_primary()
                 ctx_->parse_diagnostic(parent_,
                     fmt::format("unable to parse integer literal '{}'", expr->literal.loc.view()),
                     false,
-                    expr->literal.loc);
+                    expr->literal.loc.range);
             }
         } else if (expr->literal.type == NssTokenType::FLOAT_CONST) {
             if (auto val = string::from<float>(expr->literal.loc.view())) {
@@ -447,17 +462,20 @@ Expression* NssParser::parse_expr_primary()
                 ctx_->parse_diagnostic(parent_,
                     fmt::format("unable to parse float literal '{}'", expr->literal.loc.view()),
                     false,
-                    expr->literal.loc);
+                    expr->literal.loc.range);
             }
         }
         return expr;
     }
 
     if (match({NssTokenType::IDENTIFIER})) {
-        return ast_.create_node<VariableExpression>(previous());
+        auto expr = ast_.create_node<VariableExpression>(previous());
+        expr->range_ = previous().loc.range;
+        return expr;
     }
 
     if (match({NssTokenType::LBRACKET})) {
+        auto start = previous().loc.range.start;
         NssToken x, y, z;
         consume(NssTokenType::FLOAT_CONST, "Expected floating point literal");
         x = previous();
@@ -470,6 +488,8 @@ Expression* NssParser::parse_expr_primary()
         consume(NssTokenType::RBRACKET, "Expected ']'");
 
         auto expr = ast_.create_node<LiteralVectorExpression>(x, y, z);
+        expr->range_.start = start;
+        expr->range_.end = previous().loc.range.end;
 
         if (auto val = string::from<float>(expr->x.loc.view())) {
             expr->data.x = *val;
@@ -477,7 +497,7 @@ Expression* NssParser::parse_expr_primary()
             ctx_->parse_diagnostic(parent_,
                 fmt::format("unable to parse vector literal '{}'", expr->x.loc.view()),
                 false,
-                expr->x.loc);
+                expr->x.loc.range);
         }
 
         if (auto val = string::from<float>(expr->y.loc.view())) {
@@ -486,7 +506,7 @@ Expression* NssParser::parse_expr_primary()
             ctx_->parse_diagnostic(parent_,
                 fmt::format("unable to parse vector literal '{}'", expr->y.loc.view()),
                 false,
-                expr->y.loc);
+                expr->y.loc.range);
         }
 
         if (auto val = string::from<float>(expr->z.loc.view())) {
@@ -495,7 +515,7 @@ Expression* NssParser::parse_expr_primary()
             ctx_->parse_diagnostic(parent_,
                 fmt::format("unable to parse vector literal '{}'", expr->z.loc.view()),
                 false,
-                expr->z.loc);
+                expr->z.loc.range);
         }
 
         return expr;
@@ -611,7 +631,7 @@ Statement* NssParser::parse_stmt()
 BlockStatement* NssParser::parse_stmt_block()
 {
     auto s = ast_.create_node<BlockStatement>();
-    s->range.start = previous().loc.range.end; // Don't include the braces in the range.. for now.
+    s->range_.start = previous().loc.range.end; // Don't include the braces in the range.. for now.
     while (!is_end() && !check({NssTokenType::RBRACE})) {
         try {
             auto n = parse_decl();
@@ -632,7 +652,7 @@ BlockStatement* NssParser::parse_stmt_block()
     }
 
     consume(NssTokenType::RBRACE, "Expected '}'.");
-    s->range.end = previous().loc.range.start;
+    s->range_.end = previous().loc.range.start;
     return s;
 }
 
@@ -640,6 +660,7 @@ BlockStatement* NssParser::parse_stmt_block()
 DoStatement* NssParser::parse_stmt_do()
 {
     auto s = ast_.create_node<DoStatement>();
+    s->range_.start = previous().loc.range.start;
     consume(NssTokenType::LBRACE, "Expected '{'.");
     s->block = parse_stmt_block();
     consume(NssTokenType::WHILE, "Expected 'while'.");
@@ -647,6 +668,7 @@ DoStatement* NssParser::parse_stmt_do()
     s->expr = parse_expr();
     consume(NssTokenType::RPAREN, "Expected ')'.");
     consume(NssTokenType::SEMICOLON, "Expected ';'.");
+    s->range_.end = previous().loc.range.end;
     return s;
 }
 
@@ -655,7 +677,9 @@ ExprStatement* NssParser::parse_stmt_expr()
 {
     auto s = ast_.create_node<ExprStatement>();
     s->expr = parse_expr();
+    s->range_.start = s->expr->range_.start;
     consume(NssTokenType::SEMICOLON, "Expected ';'.");
+    s->range_.end = previous().loc.range.end;
     return s;
 }
 
@@ -663,14 +687,15 @@ ExprStatement* NssParser::parse_stmt_expr()
 IfStatement* NssParser::parse_stmt_if()
 {
     auto s = ast_.create_node<IfStatement>();
+    s->range_.start = previous().loc.range.start;
     consume(NssTokenType::LPAREN, "Expected '('.");
     s->expr = parse_expr();
     consume(NssTokenType::RPAREN, "Expected ')'.");
     s->if_branch = parse_stmt();
     if (match({NssTokenType::ELSE})) {
-
         s->else_branch = parse_stmt();
     }
+    s->range_.end = previous().loc.range.end;
     return s;
 }
 
@@ -678,6 +703,7 @@ IfStatement* NssParser::parse_stmt_if()
 ForStatement* NssParser::parse_stmt_for()
 {
     auto s = ast_.create_node<ForStatement>();
+    s->range_.start = previous().loc.range.start;
     consume(NssTokenType::LPAREN, "Expected '('.");
     bool semi_taken = false;
 
@@ -704,6 +730,7 @@ ForStatement* NssParser::parse_stmt_for()
     }
     consume(NssTokenType::RPAREN, "Expected ')'.");
     s->block = parse_stmt();
+    s->range_.end = previous().loc.range.end;
     return s;
 }
 
@@ -711,34 +738,40 @@ ForStatement* NssParser::parse_stmt_for()
 JumpStatement* NssParser::parse_stmt_jump()
 {
     auto s = ast_.create_node<JumpStatement>();
+    s->range_.start = previous().loc.range.start;
     s->op = previous();
     if (s->op.type == NssTokenType::RETURN && !check({NssTokenType::SEMICOLON})) {
         s->expr = parse_expr();
     }
     consume(NssTokenType::SEMICOLON, "Expected ';'.");
+    s->range_.end = previous().loc.range.end;
     return s;
 }
 
 LabelStatement* NssParser::parse_stmt_label()
 {
     auto s = ast_.create_node<LabelStatement>();
+    s->range_.start = previous().loc.range.start;
     s->type = previous();
     if (s->type.type == NssTokenType::CASE) {
         // [TODO] check here or in resolver for incorrect types.
         s->expr = parse_expr();
     }
     consume(NssTokenType::COLON, "Expected ':'.");
+    s->range_.end = previous().loc.range.end;
     return s;
 }
 
 SwitchStatement* NssParser::parse_stmt_switch()
 {
     auto s = ast_.create_node<SwitchStatement>();
+    s->range_.start = previous().loc.range.start;
     consume(NssTokenType::LPAREN, "Expected '('.");
     s->target = parse_expr();
     consume(NssTokenType::RPAREN, "Expected ')'.");
     consume(NssTokenType::LBRACE, "Expected '{'.");
     s->block = parse_stmt_block();
+    s->range_.end = previous().loc.range.end;
     return s;
 }
 
@@ -746,10 +779,12 @@ SwitchStatement* NssParser::parse_stmt_switch()
 WhileStatement* NssParser::parse_stmt_while()
 {
     auto s = ast_.create_node<WhileStatement>();
+    s->range_.start = previous().loc.range.start;
     consume(NssTokenType::LPAREN, "Expected '('.");
     s->check = parse_expr();
     consume(NssTokenType::RPAREN, "Expected ')'.");
     s->block = parse_stmt();
+    s->range_.end = previous().loc.range.end;
     return s;
 }
 
@@ -919,7 +954,7 @@ Ast NssParser::parse_program()
                         if (previous().loc.view().size() <= nw::Resref::max_size) {
                             ast_.includes.push_back({
                                 std::string(previous().loc.view()),
-                                previous().loc,
+                                previous().loc.range,
                             });
                         } else {
                             diagnostic(fmt::format("invalid include resref '{}'", previous().loc.view()), previous());

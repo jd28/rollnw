@@ -84,7 +84,7 @@ struct AstHinter : public BaseVisitor {
         auto ve = dynamic_cast<VariableExpression*>(expr->expr);
         if (!ve) { return; }
 
-        if (contains_range(range_, expr->extent().range)) {
+        if (contains_range(range_, expr->range_)) {
             std::string needle{ve->var.loc.view()};
             auto exp = ve->env_.find(needle);
             const Declaration* decl = nullptr;
@@ -104,7 +104,7 @@ struct AstHinter : public BaseVisitor {
 
             size_t args = std::min(fd->params.size(), expr->args.size());
             for (size_t i = 0; i < args; ++i) {
-                result_.push_back({fd->params[i]->identifier(), expr->args[i]->extent().range.start});
+                result_.push_back({fd->params[i]->identifier(), expr->args[i]->range_.start});
             }
 
             for (auto arg : expr->args) {

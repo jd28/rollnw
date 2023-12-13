@@ -11,7 +11,7 @@ LspContext::LspContext(std::string command_script)
 {
 }
 
-void LspContext::lexical_diagnostic(Nss* script, std::string_view msg, bool is_warning, SourceLocation loc)
+void LspContext::lexical_diagnostic(Nss* script, std::string_view msg, bool is_warning, SourceRange range)
 {
     CHECK_F(!!script, "");
 
@@ -20,7 +20,7 @@ void LspContext::lexical_diagnostic(Nss* script, std::string_view msg, bool is_w
     result.level = is_warning ? DiagnosticLevel::warning : DiagnosticLevel::error;
     result.script = script ? script->name() : "<source>";
     result.message = std::string(msg);
-    result.location = loc;
+    result.location = range;
     script->add_diagnostic(std::move(result));
 
     if (is_warning) {
@@ -30,7 +30,7 @@ void LspContext::lexical_diagnostic(Nss* script, std::string_view msg, bool is_w
     }
 }
 
-void LspContext::parse_diagnostic(Nss* script, std::string_view msg, bool is_warning, SourceLocation loc)
+void LspContext::parse_diagnostic(Nss* script, std::string_view msg, bool is_warning, SourceRange range)
 {
     CHECK_F(!!script, "");
 
@@ -39,7 +39,7 @@ void LspContext::parse_diagnostic(Nss* script, std::string_view msg, bool is_war
     result.level = is_warning ? DiagnosticLevel::warning : DiagnosticLevel::error;
     result.script = script ? script->name() : "<source>";
     result.message = std::string(msg);
-    result.location = loc;
+    result.location = range;
     script->add_diagnostic(std::move(result));
 
     if (is_warning) {
@@ -49,7 +49,7 @@ void LspContext::parse_diagnostic(Nss* script, std::string_view msg, bool is_war
     }
 }
 
-void LspContext::semantic_diagnostic(Nss* script, std::string_view msg, bool is_warning, SourceLocation loc)
+void LspContext::semantic_diagnostic(Nss* script, std::string_view msg, bool is_warning, SourceRange range)
 {
     CHECK_F(!!script, "");
 
@@ -58,7 +58,7 @@ void LspContext::semantic_diagnostic(Nss* script, std::string_view msg, bool is_
     result.level = is_warning ? DiagnosticLevel::warning : DiagnosticLevel::error;
     result.script = script ? script->name() : "<source>";
     result.message = std::string(msg);
-    result.location = loc;
+    result.location = range;
     script->add_diagnostic(std::move(result));
 
     if (is_warning) {

@@ -65,7 +65,7 @@ class Diagnostic:
     level: DiagnosticLevel
     script: str
     message: str
-    location: SourceLocation
+    location: SourceRange
 
 
 class LspContext(Context):

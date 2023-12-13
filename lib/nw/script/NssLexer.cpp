@@ -239,11 +239,8 @@ NssToken NssLexer::next()
             } else {
                 SourceLocation loc;
                 ctx_->lexical_diagnostic(parent_, fmt::format("Unrecognized character '{}'", get(pos_)),
-                    true, {
-                              buffer_.data() + start,
-                              buffer_.data() + start + 1,
-                              {start_pos, SourcePosition{line_, pos_ - last_line_pos_}},
-                          });
+                    true,
+                    {start_pos, SourcePosition{line_, pos_ - last_line_pos_}});
                 ++pos_;
                 continue;
             }
@@ -503,9 +500,8 @@ NssToken NssLexer::next()
             if (get(pos_ + 1) != '\r' && get(pos_ + 1) != '\n') {
                 ctx_->lexical_diagnostic(parent_, fmt::format("Unrecognized character '{}'", get(pos_)),
                     true,
-                    {&buffer_[start], &buffer_[pos_ + 1],
-                        line_,
-                        start - last_line_pos_});
+                    {SourcePosition{line_, start - last_line_pos_},
+                        SourcePosition{line_, start - last_line_pos_ + 1}});
             }
             ++pos_;
             continue;

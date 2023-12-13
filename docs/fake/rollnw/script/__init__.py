@@ -123,7 +123,8 @@ class Diagnostic:
         level (DiagnosticLevel)
         script (str)
         message (str)
-        location (SourceLocation)"""
+        location (SourceRange): Source range in script
+    """
 
 
 class LspContext:
@@ -137,7 +138,7 @@ class Include:
     """
     Attributes:
         resref (str): Resref of included script
-        location (SourceLocation): Source location in script
+        location (SourceRange): Source range in script
         script (Nss): Loaded script
         used (int): Number of times include is used in script file
     """

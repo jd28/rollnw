@@ -81,7 +81,7 @@ struct AstResolver : BaseVisitor {
             }
 
             if (redecl) {
-                ctx_->semantic_diagnostic(parent_, msg, false, token.loc);
+                ctx_->semantic_diagnostic(parent_, msg, false, token.loc.range);
             }
         }
 
@@ -92,7 +92,7 @@ struct AstResolver : BaseVisitor {
                     ctx_->semantic_diagnostic(parent_,
                         fmt::format("declaring '{}' in the same scope twice", token.loc.view()),
                         false,
-                        token.loc);
+                        token.loc.range);
                 } else {
                     it->second.struct_decl = dynamic_cast<StructDecl*>(decl);
                 }
@@ -106,7 +106,7 @@ struct AstResolver : BaseVisitor {
                     ctx_->semantic_diagnostic(parent_,
                         fmt::format("declaring '{}' in the same scope twice", token.loc.view()),
                         false,
-                        token.loc);
+                        token.loc.range);
                 }
             }
         } else {
@@ -126,7 +126,7 @@ struct AstResolver : BaseVisitor {
             ctx_->semantic_diagnostic(parent_,
                 fmt::format("defining unknown variable '{}'", token.loc.view()),
                 false,
-                token.loc);
+                token.loc.range);
         }
         if (is_type) {
             it->second.struct_decl_ready = true;
@@ -177,7 +177,7 @@ struct AstResolver : BaseVisitor {
     }
 
     // Resolve symbol to original decl
-    const Declaration* resolve(std::string_view token, SourceLocation loc, bool is_type)
+    const Declaration* resolve(std::string_view token, SourceRange range, bool is_type)
     {
         auto s = std::string(token);
 
@@ -190,7 +190,7 @@ struct AstResolver : BaseVisitor {
                     ctx_->semantic_diagnostic(parent_,
                         fmt::format("recursive use of struct '{}' in declaration", token),
                         false,
-                        loc);
+                        range);
                 }
                 return it->second.struct_decl;
             } else {
@@ -198,7 +198,7 @@ struct AstResolver : BaseVisitor {
                     ctx_->semantic_diagnostic(parent_,
                         fmt::format("using declared variable '{}' in init", token),
                         false,
-                        loc);
+                        range);
                 }
                 return it->second.decl;
             }
@@ -246,7 +246,7 @@ struct AstResolver : BaseVisitor {
                     ctx_->type_name(decl->type_id_),
                     ctx_->type_name(def->type_id_)),
                 false,
-                def->type.type_specifier.loc); // [TODO] expand this
+                def->type.type_specifier.loc.range); // [TODO] expand this
         }
 
         if (decl->params.size() != def->params.size()) {
@@ -255,7 +255,7 @@ struct AstResolver : BaseVisitor {
                     decl->params.size(),
                     def->params.size()),
                 false,
-                def->identifier_.loc); // [TODO] expand this
+                def->identifier_.loc.range); // [TODO] expand this
         } else {
             std::string reason;
 
@@ -300,7 +300,7 @@ struct AstResolver : BaseVisitor {
                     }
                 }
                 if (mismatch) {
-                    ctx_->semantic_diagnostic(parent_, reason, warning, loc);
+                    ctx_->semantic_diagnostic(parent_, reason, warning, loc.range);
                 }
             }
         }
@@ -341,7 +341,7 @@ struct AstResolver : BaseVisitor {
     {
         decl->env_ = env_stack_.back();
         // Check to see if there's been a function definition, if so got to match.
-        auto fd = resolve(decl->identifier_.loc.view(), decl->identifier_.loc, false);
+        auto fd = resolve(decl->identifier_.loc.view(), decl->identifier_.loc.range, false);
 
         decl->type_id_ = ctx_->type_id(decl->type);
         declare(decl->identifier_, decl);
@@ -356,7 +356,7 @@ struct AstResolver : BaseVisitor {
             if (p->init && !p->init->is_const_) {
                 ctx_->semantic_diagnostic(parent_, "initializing parameter a with non-constant expression",
                     false,
-                    p->identifier_.loc);
+                    p->identifier_.loc.range);
             }
         }
         end_scope();
@@ -371,7 +371,7 @@ struct AstResolver : BaseVisitor {
         decl->env_ = env_stack_.back();
         func_def_stack_ = decl;
         // Check to see if there's been a function declaration, if so got to match.
-        auto fd = resolve(decl->decl_inline->identifier_.loc.view(), decl->decl_inline->identifier_.loc, false);
+        auto fd = resolve(decl->decl_inline->identifier_.loc.view(), decl->decl_inline->identifier_.loc.range, false);
         decl->decl_external = dynamic_cast<const FunctionDecl*>(fd);
 
         decl->type_id_ = decl->decl_inline->type_id_ = ctx_->type_id(decl->decl_inline->type);
@@ -385,7 +385,7 @@ struct AstResolver : BaseVisitor {
             if (p->init && !p->init->is_const_) {
                 ctx_->semantic_diagnostic(parent_, "initializing parameter a with non-constant expression",
                     false,
-                    p->identifier_.loc);
+                    p->identifier_.loc.range);
             }
         }
 
@@ -394,7 +394,7 @@ struct AstResolver : BaseVisitor {
         decl->block->accept(this);
         if (decl->type_id_ != ctx_->type_id("void") && !all_control_flow_paths_return(decl->block)) {
             ctx_->semantic_diagnostic(parent_, "not all control flow paths return",
-                false, decl->decl_inline->identifier_.loc);
+                false, decl->decl_inline->identifier_.loc.range);
         }
 
         end_scope();
@@ -412,7 +412,7 @@ struct AstResolver : BaseVisitor {
             if (it->is_const_) {
                 ctx_->semantic_diagnostic(parent_,
                     fmt::format("struct member '{}' cannot be declared as 'const'", it->identifier_.loc.view()),
-                    false, it->identifier_.loc);
+                    false, it->identifier_.loc.range);
             }
         }
         end_scope();
@@ -429,13 +429,13 @@ struct AstResolver : BaseVisitor {
         if (decl->type_id_ == ctx_->type_id("void")) {
             ctx_->semantic_diagnostic(parent_, "variable declared with void type",
                 false,
-                decl->identifier_.loc);
+                decl->identifier_.loc.range);
         }
 
         if (decl->is_const_ && !decl->init) {
             ctx_->semantic_diagnostic(parent_, "constant variable declaration with no initializer",
                 false,
-                decl->identifier_.loc);
+                decl->identifier_.loc.range);
         }
 
         declare(decl->identifier_, decl);
@@ -452,7 +452,7 @@ struct AstResolver : BaseVisitor {
                         ctx_->type_name(decl->type_id_),
                         ctx_->type_name(decl->init->type_id_)),
                     false,
-                    decl->identifier_.loc);
+                    decl->identifier_.loc.range);
             }
         }
         define(decl->identifier_);
@@ -472,7 +472,7 @@ struct AstResolver : BaseVisitor {
                     ctx_->type_name(expr->rhs->type_id_),
                     expr->op.loc.view()),
                 false,
-                expr->op.loc);
+                expr->op.loc.range);
             return;
         }
 
@@ -494,7 +494,7 @@ struct AstResolver : BaseVisitor {
                     ctx_->type_name(expr->rhs->type_id_),
                     expr->op.loc.view()),
                 false,
-                expr->op.loc);
+                expr->op.loc.range);
             return;
         }
         expr->type_id_ = expr->lhs->type_id_;
@@ -510,7 +510,7 @@ struct AstResolver : BaseVisitor {
                 parent_,
                 "only variable expressions are permitted in function call expression",
                 false,
-                expr->expr->extent());
+                expr->expr->range_);
             return;
         }
 
@@ -518,7 +518,7 @@ struct AstResolver : BaseVisitor {
 
         const FunctionDecl* func_decl = nullptr;
         const FunctionDecl* orig_decl = nullptr;
-        auto decl = resolve(ve->var.loc.view(), ve->var.loc, false);
+        auto decl = resolve(ve->var.loc.view(), ve->var.loc.range, false);
         if (auto fd = dynamic_cast<const FunctionDecl*>(decl)) {
             func_decl = fd;
         } else if (auto fd = dynamic_cast<const FunctionDefinition*>(decl)) {
@@ -528,7 +528,7 @@ struct AstResolver : BaseVisitor {
             ctx_->semantic_diagnostic(parent_,
                 fmt::format("unable to resolve identifier '{}'", ve->var.loc.view()),
                 false,
-                ve->extent());
+                ve->range_);
             return;
         }
 
@@ -543,9 +543,9 @@ struct AstResolver : BaseVisitor {
         if (expr->args.size() < req || expr->args.size() > func_decl->params.size()) {
             ctx_->semantic_diagnostic(parent_,
                 fmt::format("no matching function call '{}' expected {} parameters",
-                    expr->extent().view(), req),
+                    parent_->view_from_range(expr->range_), req),
                 false,
-                expr->extent());
+                expr->range_);
             return;
         }
 
@@ -561,11 +561,10 @@ struct AstResolver : BaseVisitor {
             } else if (func_decl->params[i]->type_id_ != expr->args[i]->type_id_) {
                 ctx_->semantic_diagnostic(parent_,
                     fmt::format("no matching function call '{}' expected parameter type '{}' ",
-                        expr->extent()
-                            .view(),
+                        parent_->view_from_range(expr->range_),
                         ctx_->type_name(func_decl->params[i]->type_id_)),
                     false,
-                    expr->extent());
+                    expr->range_);
             }
         }
     }
@@ -585,9 +584,10 @@ struct AstResolver : BaseVisitor {
                 fmt::format(
                     "mismatched types in binary-expression '{}' != '{}', {} ",
                     ctx_->type_name(expr->lhs->type_id_),
-                    ctx_->type_name(expr->rhs->type_id_), expr->extent().view()),
+                    ctx_->type_name(expr->rhs->type_id_),
+                    expr->op.loc.view()),
                 false,
-                expr->extent());
+                expr->range_);
         }
         expr->type_id_ = ctx_->type_id("int");
     }
@@ -601,7 +601,7 @@ struct AstResolver : BaseVisitor {
                 fmt::format("could not convert value of type '{}' to integer bool ",
                     ctx_->type_name(expr->test->type_id_)),
                 false,
-                expr->test->extent());
+                expr->test->range_);
         }
 
         expr->true_branch->accept(this);
@@ -613,7 +613,7 @@ struct AstResolver : BaseVisitor {
                     ctx_->type_name(expr->true_branch->type_id_),
                     ctx_->type_name(expr->false_branch->type_id_)),
                 false,
-                expr->extent());
+                expr->range_);
         }
 
         expr->type_id_ = expr->true_branch->type_id_;
@@ -639,7 +639,7 @@ struct AstResolver : BaseVisitor {
             ctx_->semantic_diagnostic(parent_,
                 "struct member must be a variable expression",
                 false,
-                expr->dot.loc);
+                expr->dot.loc.range);
             return;
         }
 
@@ -648,7 +648,7 @@ struct AstResolver : BaseVisitor {
         if (auto de = dynamic_cast<DotExpression*>(expr->lhs)) {
             expr->lhs->accept(this);
             struct_type = ctx_->type_name(expr->lhs->type_id_);
-            struct_decl = struct_decl = dynamic_cast<const StructDecl*>(resolve(struct_type, expr->dot.loc, true));
+            struct_decl = struct_decl = dynamic_cast<const StructDecl*>(resolve(struct_type, expr->dot.loc.range, true));
         } else if (auto ve = dynamic_cast<VariableExpression*>(expr->lhs)) {
             ve->accept(this);
 
@@ -662,7 +662,7 @@ struct AstResolver : BaseVisitor {
             }
 
             struct_type = ctx_->type_name(ve->type_id_);
-            struct_decl = dynamic_cast<const StructDecl*>(resolve(ctx_->type_name(ve->type_id_), ve->var.loc, true));
+            struct_decl = dynamic_cast<const StructDecl*>(resolve(ctx_->type_name(ve->type_id_), ve->var.loc.range, true));
         }
 
         if (!struct_decl) {
@@ -671,14 +671,14 @@ struct AstResolver : BaseVisitor {
                     ex_rhs->var.loc.view(),
                     struct_type),
                 false,
-                expr->dot.loc);
+                expr->dot.loc.range);
         } else if (!resolve_struct_member(ex_rhs, struct_decl)) {
             ctx_->semantic_diagnostic(parent_,
                 fmt::format("request for member '{}', which is not in struct of type '{}' ",
                     ex_rhs->var.loc.view(),
                     struct_type),
                 false,
-                expr->dot.loc);
+                expr->dot.loc.range);
         }
 
         expr->type_id_ = expr->rhs->type_id_;
@@ -690,7 +690,7 @@ struct AstResolver : BaseVisitor {
         if (expr->expr) {
             expr->expr->accept(this);
         } else {
-            ctx_->semantic_diagnostic(parent_, "empty groupling expression", true, SourceLocation{});
+            ctx_->semantic_diagnostic(parent_, "empty groupling expression", true, expr->range_);
         }
         expr->type_id_ = expr->expr->type_id_;
         expr->is_const_ = expr->expr->is_const_;
@@ -726,7 +726,7 @@ struct AstResolver : BaseVisitor {
         expr->rhs->accept(this);
 
         if (expr->lhs->type_id_ != expr->rhs->type_id_) {
-            ctx_->semantic_diagnostic(parent_, "mismatched types", false, expr->op.loc);
+            ctx_->semantic_diagnostic(parent_, "mismatched types", false, expr->op.loc.range);
         }
 
         expr->type_id_ = ctx_->type_id("int");
@@ -751,8 +751,8 @@ struct AstResolver : BaseVisitor {
 
     virtual void visit(VariableExpression* expr) override
     {
-        auto decl = resolve(expr->var.loc.view(), expr->var.loc, false);
         expr->env_ = env_stack_.back();
+        auto decl = resolve(expr->var.loc.view(), expr->var.loc.range, false);
         if (decl) {
             expr->type_id_ = decl->type_id_;
             expr->is_const_ = decl->is_const_;
@@ -760,7 +760,7 @@ struct AstResolver : BaseVisitor {
             ctx_->semantic_diagnostic(parent_,
                 fmt::format("unable to resolve identifier '{}'", expr->var.loc.view()),
                 false,
-                expr->extent());
+                expr->range_);
         }
     }
 
@@ -804,7 +804,7 @@ struct AstResolver : BaseVisitor {
                 fmt::format("could not convert value of type '{}' to integer bool",
                     ctx_->type_name(stmt->expr->type_id_)),
                 false,
-                stmt->expr->extent());
+                stmt->expr->range_);
         }
 
         --loop_stack_;
@@ -833,7 +833,7 @@ struct AstResolver : BaseVisitor {
                 fmt::format("could not convert value of type '{}' to integer bool",
                     ctx_->type_name(stmt->expr->type_id_)),
                 false,
-                stmt->expr->extent());
+                stmt->expr->range_);
         }
 
         begin_scope();
@@ -863,7 +863,7 @@ struct AstResolver : BaseVisitor {
                     fmt::format("could not convert value of type '{}' to integer bool",
                         ctx_->type_name(stmt->check->type_id_)),
                     false,
-                    stmt->check->extent());
+                    stmt->check->range_);
             }
         }
 
@@ -889,23 +889,23 @@ struct AstResolver : BaseVisitor {
 
         if (stmt->op.type == NssTokenType::CONTINUE
             && loop_stack_ == 0) {
-            ctx_->semantic_diagnostic(parent_, "continue statement not within a loop", false, stmt->op.loc);
+            ctx_->semantic_diagnostic(parent_, "continue statement not within a loop", false, stmt->op.loc.range);
 
         } else if (stmt->op.type == NssTokenType::BREAK
             && (loop_stack_ == 0 && switch_stack_ == 0)) {
-            ctx_->semantic_diagnostic(parent_, "break statement not within loop or switch", false, stmt->op.loc);
+            ctx_->semantic_diagnostic(parent_, "break statement not within loop or switch", false, stmt->op.loc.range);
 
         } else if (stmt->op.type == NssTokenType::RETURN) {
             if (!func_def_stack_) {
                 // This shouldn't even be possible and would be a parser error
-                ctx_->semantic_diagnostic(parent_, "return statement not within function definition", false, stmt->op.loc);
+                ctx_->semantic_diagnostic(parent_, "return statement not within function definition", false, stmt->op.loc.range);
             } else if (func_def_stack_->type_id_ != stmt->type_id_
                 && !ctx_->is_type_convertible(func_def_stack_->type_id_, stmt->type_id_)) {
                 ctx_->semantic_diagnostic(parent_,
                     fmt::format("returning type '{}' expected '{}'", ctx_->type_name(stmt->type_id_),
                         ctx_->type_name(func_def_stack_->type_id_)),
                     false,
-                    stmt->expr->extent());
+                    stmt->expr->range_);
             }
         }
     }
@@ -917,7 +917,7 @@ struct AstResolver : BaseVisitor {
         if ((stmt->type.type == NssTokenType::CASE
                 || stmt->type.type == NssTokenType::DEFAULT)
             && switch_stack_ == 0) {
-            ctx_->semantic_diagnostic(parent_, "label statement not within switch", false, stmt->type.loc);
+            ctx_->semantic_diagnostic(parent_, "label statement not within switch", false, stmt->type.loc.range);
         }
 
         if (stmt->type.type == NssTokenType::DEFAULT) {
@@ -929,10 +929,10 @@ struct AstResolver : BaseVisitor {
             && stmt->expr->type_id_ != ctx_->type_id("string")) {
             ctx_->semantic_diagnostic(parent_,
                 fmt::format("could not convert value to integer or string"),
-                false, stmt->expr->extent());
+                false, stmt->expr->range_);
         } else if (!stmt->expr->is_const_) {
             ctx_->semantic_diagnostic(parent_, "case expression must be constant expression",
-                false, stmt->expr->extent());
+                false, stmt->expr->range_);
         }
     }
 
@@ -951,7 +951,7 @@ struct AstResolver : BaseVisitor {
             ctx_->semantic_diagnostic(parent_,
                 fmt::format("switch quantity not an integer"),
                 false,
-                stmt->target->extent());
+                stmt->target->range_);
         }
 
         begin_scope();
@@ -973,7 +973,7 @@ struct AstResolver : BaseVisitor {
                 fmt::format("could not convert value of type '{}' to integer bool",
                     ctx_->type_name(stmt->check->type_id_)),
                 false,
-                stmt->check->extent());
+                stmt->check->range_);
         }
 
         begin_scope();
