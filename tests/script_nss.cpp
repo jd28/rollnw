@@ -74,7 +74,7 @@ TEST(Nss, ParseNwscript)
     EXPECT_NE(sym2.decl, nullptr);
     auto d2 = dynamic_cast<const nw::script::VarDecl*>(sym2.decl);
     if (d2) {
-        EXPECT_EQ(d2->env.size(), 1);
+        EXPECT_EQ(d2->env_.size(), 1);
     }
 
     auto sym3 = nss.locate_export("GetFirstObjectInShape", false);

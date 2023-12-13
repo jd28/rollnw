@@ -66,7 +66,7 @@ struct AstLocator : public BaseVisitor {
             if (decl->type.struct_id.type != NssTokenType::INVALID
                 && contains_position(decl->type.struct_id.loc.range, pos_)) {
                 std::string struct_name{decl->type.struct_id.loc.view()};
-                auto exp = decl->env.find(struct_name);
+                auto exp = decl->env_.find(struct_name);
                 if (exp && exp->type) {
                     result_ = parent_->declaration_to_symbol(exp->type);
                     found_ = true;
@@ -131,7 +131,7 @@ struct AstLocator : public BaseVisitor {
         } else if (decl->type.struct_id.type != NssTokenType::INVALID
             && contains_position(decl->type.struct_id.loc.range, pos_)) {
             std::string struct_name{decl->type.struct_id.loc.view()};
-            auto exp = decl->env.find(struct_name);
+            auto exp = decl->env_.find(struct_name);
             if (exp && exp->type) {
                 result_ = parent_->declaration_to_symbol(exp->type);
                 found_ = true;
@@ -222,7 +222,7 @@ struct AstLocator : public BaseVisitor {
     virtual void visit(VariableExpression* expr)
     {
         if (contains_position(expr->var.loc.range, pos_) && expr->var.loc.view() == symbol_) {
-            auto exp = expr->env.find(symbol_);
+            auto exp = expr->env_.find(symbol_);
             if (exp && exp->decl) {
                 result_ = parent_->declaration_to_symbol(exp->decl);
             } else {

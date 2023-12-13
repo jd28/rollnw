@@ -10,7 +10,7 @@ namespace nw::script {
 
 void AstNode::complete(const std::string& needle, std::vector<const Declaration*>& out) const
 {
-    for (const auto& [name, exp] : env) {
+    for (const auto& [name, exp] : env_) {
         if (has_match(needle.c_str(), name.c_str())) {
             if (exp.decl) { out.push_back(exp.decl); }
             if (exp.type) { out.push_back(exp.type); }

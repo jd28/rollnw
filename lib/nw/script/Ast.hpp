@@ -104,7 +104,7 @@ struct AstNode {
 
     size_t type_id_ = invalid_type_id;
     bool is_const_ = false;
-    immer::map<std::string, Export> env;
+    immer::map<std::string, Export> env_;
 };
 
 #define DEFINE_ACCEPT_VISITOR                          \

@@ -339,7 +339,7 @@ struct AstResolver : BaseVisitor {
 
     virtual void visit(FunctionDecl* decl) override
     {
-        decl->env = env_stack_.back();
+        decl->env_ = env_stack_.back();
         // Check to see if there's been a function definition, if so got to match.
         auto fd = resolve(decl->identifier_.loc.view(), decl->identifier_.loc, false);
 
@@ -368,7 +368,7 @@ struct AstResolver : BaseVisitor {
 
     virtual void visit(FunctionDefinition* decl) override
     {
-        decl->env = env_stack_.back();
+        decl->env_ = env_stack_.back();
         func_def_stack_ = decl;
         // Check to see if there's been a function declaration, if so got to match.
         auto fd = resolve(decl->decl_inline->identifier_.loc.view(), decl->decl_inline->identifier_.loc, false);
@@ -403,7 +403,7 @@ struct AstResolver : BaseVisitor {
 
     virtual void visit(StructDecl* decl) override
     {
-        decl->env = env_stack_.back();
+        decl->env_ = env_stack_.back();
         declare(decl->type.struct_id, decl, true);
         decl->type_id_ = ctx_->type_id(decl->type, true);
         begin_scope();
@@ -422,7 +422,7 @@ struct AstResolver : BaseVisitor {
 
     virtual void visit(VarDecl* decl) override
     {
-        decl->env = env_stack_.back();
+        decl->env_ = env_stack_.back();
         decl->is_const_ = decl->type.type_qualifier.type == NssTokenType::CONST_;
         decl->type_id_ = ctx_->type_id(decl->type);
 
@@ -461,7 +461,7 @@ struct AstResolver : BaseVisitor {
     // Expressions
     virtual void visit(AssignExpression* expr) override
     {
-        expr->env = env_stack_.back();
+        expr->env_ = env_stack_.back();
         expr->lhs->accept(this);
         expr->rhs->accept(this);
 
@@ -481,7 +481,7 @@ struct AstResolver : BaseVisitor {
 
     virtual void visit(BinaryExpression* expr) override
     {
-        expr->env = env_stack_.back();
+        expr->env_ = env_stack_.back();
         expr->lhs->accept(this);
         expr->rhs->accept(this);
 
@@ -502,7 +502,7 @@ struct AstResolver : BaseVisitor {
 
     virtual void visit(CallExpression* expr) override
     {
-        expr->env = env_stack_.back();
+        expr->env_ = env_stack_.back();
 
         auto ve = dynamic_cast<VariableExpression*>(expr->expr);
         if (!ve) {
@@ -514,7 +514,7 @@ struct AstResolver : BaseVisitor {
             return;
         }
 
-        ve->env = env_stack_.back();
+        ve->env_ = env_stack_.back();
 
         const FunctionDecl* func_decl = nullptr;
         const FunctionDecl* orig_decl = nullptr;
@@ -572,7 +572,7 @@ struct AstResolver : BaseVisitor {
 
     virtual void visit(ComparisonExpression* expr) override
     {
-        expr->env = env_stack_.back();
+        expr->env_ = env_stack_.back();
         expr->lhs->accept(this);
         expr->rhs->accept(this);
 
@@ -594,7 +594,7 @@ struct AstResolver : BaseVisitor {
 
     virtual void visit(ConditionalExpression* expr) override
     {
-        expr->env = env_stack_.back();
+        expr->env_ = env_stack_.back();
         expr->test->accept(this);
         if (expr->test->type_id_ != ctx_->type_id("int")) {
             ctx_->semantic_diagnostic(parent_,
@@ -621,7 +621,7 @@ struct AstResolver : BaseVisitor {
 
     virtual void visit(DotExpression* expr) override
     {
-        expr->env = env_stack_.back();
+        expr->env_ = env_stack_.back();
 
         auto resolve_struct_member = [this](VariableExpression* var, const StructDecl* str) {
             for (const auto& it : str->decls) {
@@ -686,7 +686,7 @@ struct AstResolver : BaseVisitor {
 
     virtual void visit(GroupingExpression* expr) override
     {
-        expr->env = env_stack_.back();
+        expr->env_ = env_stack_.back();
         if (expr->expr) {
             expr->expr->accept(this);
         } else {
@@ -698,7 +698,7 @@ struct AstResolver : BaseVisitor {
 
     virtual void visit(LiteralExpression* expr) override
     {
-        expr->env = env_stack_.back();
+        expr->env_ = env_stack_.back();
         expr->is_const_ = true;
         if (expr->literal.type == NssTokenType::FLOAT_CONST) {
             expr->type_id_ = ctx_->type_id("float");
@@ -714,14 +714,14 @@ struct AstResolver : BaseVisitor {
 
     virtual void visit(LiteralVectorExpression* expr) override
     {
-        expr->env = env_stack_.back();
+        expr->env_ = env_stack_.back();
         expr->is_const_ = true;
         expr->type_id_ = ctx_->type_id("vector");
     }
 
     virtual void visit(LogicalExpression* expr) override
     {
-        expr->env = env_stack_.back();
+        expr->env_ = env_stack_.back();
         expr->lhs->accept(this);
         expr->rhs->accept(this);
 
@@ -735,7 +735,7 @@ struct AstResolver : BaseVisitor {
 
     virtual void visit(PostfixExpression* expr) override
     {
-        expr->env = env_stack_.back();
+        expr->env_ = env_stack_.back();
         expr->lhs->accept(this);
         expr->type_id_ = expr->lhs->type_id_;
         expr->is_const_ = expr->lhs->is_const_;
@@ -743,7 +743,7 @@ struct AstResolver : BaseVisitor {
 
     virtual void visit(UnaryExpression* expr) override
     {
-        expr->env = env_stack_.back();
+        expr->env_ = env_stack_.back();
         expr->rhs->accept(this);
         expr->type_id_ = expr->rhs->type_id_;
         expr->is_const_ = expr->rhs->is_const_;
@@ -751,8 +751,8 @@ struct AstResolver : BaseVisitor {
 
     virtual void visit(VariableExpression* expr) override
     {
-        expr->env = env_stack_.back();
         auto decl = resolve(expr->var.loc.view(), expr->var.loc, false);
+        expr->env_ = env_stack_.back();
         if (decl) {
             expr->type_id_ = decl->type_id_;
             expr->is_const_ = decl->is_const_;
@@ -767,7 +767,7 @@ struct AstResolver : BaseVisitor {
     // Statements
     virtual void visit(BlockStatement* stmt) override
     {
-        stmt->env = env_stack_.back();
+        stmt->env_ = env_stack_.back();
         stmt->type_id_ = ctx_->type_id("void");
         for (auto& s : stmt->nodes) {
             s->accept(this);
@@ -776,7 +776,7 @@ struct AstResolver : BaseVisitor {
 
     virtual void visit(DeclList* stmt) override
     {
-        stmt->env = env_stack_.back();
+        stmt->env_ = env_stack_.back();
         size_t ti = invalid_type_id;
         for (auto& s : stmt->decls) {
             // types of all must be the same;
@@ -792,7 +792,7 @@ struct AstResolver : BaseVisitor {
 
     virtual void visit(DoStatement* stmt) override
     {
-        stmt->env = env_stack_.back();
+        stmt->env_ = env_stack_.back();
         ++loop_stack_;
         begin_scope();
         stmt->block->accept(this);
@@ -812,19 +812,19 @@ struct AstResolver : BaseVisitor {
 
     virtual void visit(EmptyStatement* stmt) override
     {
-        stmt->env = env_stack_.back();
+        stmt->env_ = env_stack_.back();
         stmt->type_id_ = ctx_->type_id("void");
     }
 
     virtual void visit(ExprStatement* stmt) override
     {
-        stmt->env = env_stack_.back();
+        stmt->env_ = env_stack_.back();
         stmt->expr->accept(this);
     }
 
     virtual void visit(IfStatement* stmt) override
     {
-        stmt->env = env_stack_.back();
+        stmt->env_ = env_stack_.back();
         stmt->type_id_ = ctx_->type_id("void");
         stmt->expr->accept(this);
 
@@ -848,7 +848,7 @@ struct AstResolver : BaseVisitor {
 
     virtual void visit(ForStatement* stmt) override
     {
-        stmt->env = env_stack_.back();
+        stmt->env_ = env_stack_.back();
         ++loop_stack_;
         begin_scope();
 
@@ -878,7 +878,7 @@ struct AstResolver : BaseVisitor {
 
     virtual void visit(JumpStatement* stmt) override
     {
-        stmt->env = env_stack_.back();
+        stmt->env_ = env_stack_.back();
 
         if (stmt->expr) {
             stmt->expr->accept(this);
@@ -912,7 +912,7 @@ struct AstResolver : BaseVisitor {
 
     virtual void visit(LabelStatement* stmt) override
     {
-        stmt->env = env_stack_.back();
+        stmt->env_ = env_stack_.back();
 
         if ((stmt->type.type == NssTokenType::CASE
                 || stmt->type.type == NssTokenType::DEFAULT)
@@ -938,7 +938,7 @@ struct AstResolver : BaseVisitor {
 
     virtual void visit(SwitchStatement* stmt) override
     {
-        stmt->env = env_stack_.back();
+        stmt->env_ = env_stack_.back();
 
         stmt->type_id_ = ctx_->type_id("void");
         ++switch_stack_;
@@ -962,7 +962,7 @@ struct AstResolver : BaseVisitor {
 
     virtual void visit(WhileStatement* stmt) override
     {
-        stmt->env = env_stack_.back();
+        stmt->env_ = env_stack_.back();
 
         stmt->type_id_ = ctx_->type_id("void");
         ++loop_stack_;

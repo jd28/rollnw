@@ -71,7 +71,7 @@ void Nss::complete_at(const std::string& needle, size_t line, size_t character, 
     if (locator.dot) {
         std::string struct_name(ctx_->type_name(locator.dot->lhs->type_id_));
         const StructDecl* struct_decl = nullptr;
-        auto exp = locator.dot->env.find(struct_name);
+        auto exp = locator.dot->env_.find(struct_name);
         if (exp && exp->type) {
             struct_decl = exp->type;
         } else {
@@ -130,7 +130,7 @@ void Nss::complete_dot(const std::string& needle, size_t line, size_t character,
     if (node->identifier() == needle) {
         decl = node;
     } else {
-        auto exp = node->env.find(needle);
+        auto exp = node->env_.find(needle);
         if (!exp || !exp->decl) {
             LOG_F(INFO, "Failed to find needle declaration: {}", node->identifier());
             return;
@@ -144,7 +144,7 @@ void Nss::complete_dot(const std::string& needle, size_t line, size_t character,
     }
 
     std::string struct_id(decl->type.struct_id.loc.view());
-    auto exp2 = node->env.find(struct_id);
+    auto exp2 = node->env_.find(struct_id);
     const StructDecl* struct_decl = nullptr;
     if (auto sd = dynamic_cast<const StructDecl*>(exp2->type)) {
         struct_decl = sd;

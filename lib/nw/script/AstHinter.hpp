@@ -86,7 +86,7 @@ struct AstHinter : public BaseVisitor {
 
         if (contains_range(range_, expr->extent().range)) {
             std::string needle{ve->var.loc.view()};
-            auto exp = ve->env.find(needle);
+            auto exp = ve->env_.find(needle);
             const Declaration* decl = nullptr;
             if (exp && exp->decl) {
                 decl = exp->decl;
