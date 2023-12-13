@@ -709,6 +709,10 @@ struct AstResolver : BaseVisitor {
         } else if (expr->literal.type == NssTokenType::OBJECT_SELF_CONST
             || expr->literal.type == NssTokenType::OBJECT_INVALID_CONST) {
             expr->type_id_ = ctx_->type_id("object");
+        } else if (expr->literal.type == NssTokenType::LOCATION_INVALID) {
+            expr->type_id_ = ctx_->type_id("location");
+        } else if (expr->literal.type == NssTokenType::JSON_CONST) {
+            expr->type_id_ = ctx_->type_id("json");
         }
     }
 

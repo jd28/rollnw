@@ -70,6 +70,8 @@ enum class NssTokenType {
     OBJECT_INVALID_CONST,
     OBJECT_SELF_CONST,
     STRING_CONST,
+    LOCATION_INVALID,
+    JSON_CONST,
 
     // Keywords
     ACTION,       // action

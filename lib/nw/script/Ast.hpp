@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../objects/Location.hpp"
 #include "../util/Variant.hpp"
 #include "../util/string.hpp"
 #include "Token.hpp"
@@ -225,7 +226,7 @@ struct LiteralExpression : Expression {
     }
 
     NssToken literal;
-    Variant<int32_t, float, std::string> data;
+    Variant<int32_t, float, std::string, Location> data;
 
     DEFINE_ACCEPT_VISITOR
 };

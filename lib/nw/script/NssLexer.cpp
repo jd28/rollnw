@@ -98,9 +98,19 @@ inline NssTokenType check_keyword(const NssToken& tk)
             return NssTokenType::JSON;
         }
         break;
+    case 'J':
+        for (auto json_const : {"JSON_FALSE", "JSON_TRUE", "JSON_OBJECT", "JSON_ARRAY", "JSON_STRING"}) {
+            if (tk.loc.view() == json_const) { return NssTokenType::JSON_CONST; }
+        }
+        break;
     case 'l':
         if (tk.loc.view() == "location") {
             return NssTokenType::LOCATION;
+        }
+        break;
+    case 'L':
+        if (tk.loc.view() == "LOCATION_INVALID") {
+            return NssTokenType::LOCATION_INVALID;
         }
         break;
     case 'o':

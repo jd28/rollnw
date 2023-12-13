@@ -15,6 +15,7 @@ struct Location {
     Location();
 
     operator bool() { return area != object_invalid; }
+    bool operator==(const Location&) const = default;
 
     ObjectID area;
     glm::vec3 position;

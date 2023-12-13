@@ -96,6 +96,9 @@ class NssTokenType(enum.IntEnum):
     VOID = auto()           # void
     WHILE = auto()          # while
 
+    JSON_CONST = auto()
+    LOCATION_INVALID = auto()
+
 
 class Context:
     """Provides a context for parsing a NWScript file"""

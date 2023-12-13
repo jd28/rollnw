@@ -139,34 +139,36 @@ void init_script(py::module& nw)
         .value("OBJECT_SELF_CONST", nws::NssTokenType::OBJECT_SELF_CONST)
         .value("STRING_CONST", nws::NssTokenType::STRING_CONST)
         // Keywords
-        .value("ACTION", nws::NssTokenType::ACTION)             // action
-        .value("BREAK", nws::NssTokenType::BREAK)               // break
-        .value("CASE", nws::NssTokenType::CASE)                 // case
-        .value("CASSOWARY", nws::NssTokenType::CASSOWARY)       // cassowary
-        .value("CONST", nws::NssTokenType::CONST_)              // const
-        .value("CONTINUE", nws::NssTokenType::CONTINUE)         // continue
-        .value("DEFAULT", nws::NssTokenType::DEFAULT)           // default
-        .value("DO", nws::NssTokenType::DO)                     // do
-        .value("EFFECT", nws::NssTokenType::EFFECT)             // effect
-        .value("ELSE", nws::NssTokenType::ELSE)                 // else
-        .value("EVENT", nws::NssTokenType::EVENT)               // event
-        .value("FLOAT", nws::NssTokenType::FLOAT)               // float
-        .value("FOR", nws::NssTokenType::FOR)                   // for
-        .value("IF", nws::NssTokenType::IF)                     // if
-        .value("INT", nws::NssTokenType::INT)                   // int
-        .value("ITEMPROPERTY", nws::NssTokenType::ITEMPROPERTY) // itemproperty
-        .value("JSON", nws::NssTokenType::JSON)                 // json
-        .value("LOCATION", nws::NssTokenType::LOCATION)         // location
-        .value("OBJECT", nws::NssTokenType::OBJECT)             // object
-        .value("RETURN", nws::NssTokenType::RETURN)             // return
-        .value("STRING", nws::NssTokenType::STRING)             // string
-        .value("STRUCT", nws::NssTokenType::STRUCT)             // struct
-        .value("SQLQUERY", nws::NssTokenType::SQLQUERY)         // sqlquery
-        .value("SWITCH", nws::NssTokenType::SWITCH)             // switch
-        .value("TALENT", nws::NssTokenType::TALENT)             // talent
-        .value("VECTOR", nws::NssTokenType::VECTOR)             // vector
-        .value("VOID", nws::NssTokenType::VOID_)                // void
-        .value("WHILE", nws::NssTokenType::WHILE);              // while
+        .value("ACTION", nws::NssTokenType::ACTION)                     // action
+        .value("BREAK", nws::NssTokenType::BREAK)                       // break
+        .value("CASE", nws::NssTokenType::CASE)                         // case
+        .value("CASSOWARY", nws::NssTokenType::CASSOWARY)               // cassowary
+        .value("CONST", nws::NssTokenType::CONST_)                      // const
+        .value("CONTINUE", nws::NssTokenType::CONTINUE)                 // continue
+        .value("DEFAULT", nws::NssTokenType::DEFAULT)                   // default
+        .value("DO", nws::NssTokenType::DO)                             // do
+        .value("EFFECT", nws::NssTokenType::EFFECT)                     // effect
+        .value("ELSE", nws::NssTokenType::ELSE)                         // else
+        .value("EVENT", nws::NssTokenType::EVENT)                       // event
+        .value("FLOAT", nws::NssTokenType::FLOAT)                       // float
+        .value("FOR", nws::NssTokenType::FOR)                           // for
+        .value("IF", nws::NssTokenType::IF)                             // if
+        .value("INT", nws::NssTokenType::INT)                           // int
+        .value("ITEMPROPERTY", nws::NssTokenType::ITEMPROPERTY)         // itemproperty
+        .value("JSON", nws::NssTokenType::JSON)                         // json
+        .value("JSON_CONST", nws::NssTokenType::JSON_CONST)             // json constant
+        .value("LOCATION", nws::NssTokenType::LOCATION)                 // location
+        .value("LOCATION_INVALID", nws::NssTokenType::LOCATION_INVALID) // location invalid const
+        .value("OBJECT", nws::NssTokenType::OBJECT)                     // object
+        .value("RETURN", nws::NssTokenType::RETURN)                     // return
+        .value("STRING", nws::NssTokenType::STRING)                     // string
+        .value("STRUCT", nws::NssTokenType::STRUCT)                     // struct
+        .value("SQLQUERY", nws::NssTokenType::SQLQUERY)                 // sqlquery
+        .value("SWITCH", nws::NssTokenType::SWITCH)                     // switch
+        .value("TALENT", nws::NssTokenType::TALENT)                     // talent
+        .value("VECTOR", nws::NssTokenType::VECTOR)                     // vector
+        .value("VOID", nws::NssTokenType::VOID_)                        // void
+        .value("WHILE", nws::NssTokenType::WHILE);                      // while
 
     py::class_<nws::Type>(nw, "Type")
         .def_readonly("type_qualifier", &nws::Type::type_qualifier)

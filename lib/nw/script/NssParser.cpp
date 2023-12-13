@@ -440,7 +440,8 @@ Expression* NssParser::parse_expr_postfix()
 Expression* NssParser::parse_expr_primary()
 {
     if (match({NssTokenType::STRING_CONST, NssTokenType::INTEGER_CONST, NssTokenType::FLOAT_CONST,
-            NssTokenType::OBJECT_INVALID_CONST, NssTokenType::OBJECT_SELF_CONST})) {
+            NssTokenType::OBJECT_INVALID_CONST, NssTokenType::OBJECT_SELF_CONST,
+            NssTokenType::LOCATION_INVALID, NssTokenType::JSON_CONST})) {
         auto expr = ast_.create_node<LiteralExpression>(previous());
         expr->range_ = previous().loc.range;
         if (expr->literal.type == NssTokenType::STRING_CONST) {
@@ -464,6 +465,10 @@ Expression* NssParser::parse_expr_primary()
                     false,
                     expr->literal.loc.range);
             }
+        } else if (expr->literal.type == NssTokenType::LOCATION_INVALID) {
+            expr->data = Location{};
+        } else if (expr->literal.type == NssTokenType::JSON_CONST) {
+            // [TODO] I don't know what to do with this.. yet
         }
         return expr;
     }
