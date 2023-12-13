@@ -33,6 +33,7 @@ struct CallExpression;
 struct ComparisonExpression;
 struct ConditionalExpression;
 struct DotExpression;
+struct EmptyExpression;
 struct GroupingExpression;
 struct LiteralExpression;
 struct LiteralVectorExpression;
@@ -71,6 +72,7 @@ struct BaseVisitor {
     virtual void visit(ComparisonExpression* expr) = 0;
     virtual void visit(ConditionalExpression* expr) = 0;
     virtual void visit(DotExpression* expr) = 0;
+    virtual void visit(EmptyExpression* expr) = 0;
     virtual void visit(GroupingExpression* expr) = 0;
     virtual void visit(LiteralExpression* expr) = 0;
     virtual void visit(LiteralVectorExpression* expr) = 0;
@@ -309,7 +311,10 @@ struct CallExpression : Expression {
     Expression* expr = nullptr;
     std::vector<Expression*> args;
 
+    DEFINE_ACCEPT_VISITOR
+};
 
+struct EmptyExpression : Expression {
     DEFINE_ACCEPT_VISITOR
 };
 

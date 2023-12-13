@@ -54,6 +54,11 @@ void init_script(py::module& nw)
         .def_readonly("message", &nws::InlayHint::message)
         .def_readonly("position", &nws::InlayHint::position);
 
+    py::class_<nws::SignatureHelp>(nw, "SignatureHelp")
+        .def_readonly("decl", &nws::SignatureHelp::decl)
+        .def_readonly("expr", &nws::SignatureHelp::expr)
+        .def_readonly("active_param", &nws::SignatureHelp::active_param);
+
     py::class_<nws::Context>(nw, "Context")
         .def(py::init<>())
         .def(py::init<std::string>());
@@ -247,6 +252,7 @@ void init_script(py::module& nw)
         .def("parse", &nws::Nss::parse)
         .def("process_includes", &nws::Nss::process_includes, py::arg("parent") = nullptr)
         .def("resolve", &nws::Nss::resolve)
+        .def("signature_help", &nws::Nss::signature_help, py::return_value_policy::reference_internal)
         .def("type_name", [](const nws::Nss& self, const nws::AstNode* node) {
             if (!node) { return ""sv; }
             return self.ctx() ? self.ctx()->type_name(node->type_id_) : ""sv;
@@ -352,6 +358,8 @@ void init_script(py::module& nw)
         .def_property_readonly(
             "rhs", [](nws::DotExpression& self) { return self.rhs; },
             py::return_value_policy::reference_internal);
+
+    py::class_<nws::EmptyExpression, nws::Expression>(nw, "EmptyExpression");
 
     py::class_<nws::GroupingExpression, nws::Expression>(nw, "GroupingExpression")
         .def_property_readonly(

@@ -48,6 +48,12 @@ struct InlayHint {
     SourcePosition position;
 };
 
+struct SignatureHelp {
+    const Declaration* decl = nullptr;    // Function declaration | definition
+    const CallExpression* expr = nullptr; // Function declaration | definition
+    size_t active_param = 0;
+};
+
 struct CompletionContext {
     void add(Symbol symbol)
     {
@@ -142,6 +148,8 @@ struct Nss {
 
     /// Sets a scripts name
     void set_name(const std::string& new_name);
+
+    SignatureHelp signature_help(size_t line, size_t character);
 
     /// Gets text of script
     std::string_view text() const noexcept;

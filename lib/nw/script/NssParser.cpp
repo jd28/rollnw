@@ -406,16 +406,28 @@ Expression* NssParser::parse_expr_postfix()
             auto e = ast_.create_node<CallExpression>(expr);
             e->range_.start = expr->range_.start;
             while (!is_end() && !check({NssTokenType::RPAREN})) {
+                if (match({NssTokenType::COMMA})) {
+                    auto empty = ast_.create_node<EmptyExpression>();
+                    empty->range_ = {previous().loc.range.end, previous().loc.range.end};
+                    e->args.push_back(empty);
+                    continue;
+                }
+
                 try {
                     auto arg = parse_expr();
                     e->args.push_back(arg);
                 } catch (const parser_error& error) {
-                    LOG_F(INFO, "call expression, parser error");
+                    auto empty = ast_.create_node<EmptyExpression>();
+                    empty->range_ = {previous().loc.range.end, previous().loc.range.end};
+                    e->args.push_back(empty);
                     break;
                 }
+
                 if (match({NssTokenType::COMMA}) && check({NssTokenType::RPAREN})) {
                     // Just ignore it instead of an error
-                    // diagnostic("spurious ','", previous());
+                    auto empty = ast_.create_node<EmptyExpression>();
+                    empty->range_ = {previous().loc.range.end, previous().loc.range.end};
+                    e->args.push_back(empty);
                 }
             }
             if (!match({NssTokenType::RPAREN})) {

@@ -132,6 +132,11 @@ struct AstHinter : public BaseVisitor {
         if (expr->rhs) { expr->rhs->accept(this); }
     }
 
+    virtual void visit(EmptyExpression* expr)
+    {
+        // No Op
+    }
+
     virtual void visit(GroupingExpression* expr)
     {
         if (expr->expr) { expr->expr->accept(this); }

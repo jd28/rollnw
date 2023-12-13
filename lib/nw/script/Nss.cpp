@@ -326,6 +326,37 @@ void Nss::set_name(const std::string& new_name)
     data_.name = Resource(new_name, ResourceType::nss);
 }
 
+SignatureHelp Nss::signature_help(size_t line, size_t character)
+{
+    SignatureHelp result;
+    AstLocator locator{this, "", line, character};
+    locator.visit(&ast_);
+    if (!locator.call) { return result; }
+
+    if (auto ve = dynamic_cast<VariableExpression*>(locator.call->expr)) {
+        std::string name(ve->var.loc.view());
+        result.expr = locator.call;
+        result.active_param = locator.active_param;
+        auto exp = result.expr->env_.find(name);
+        if (exp && exp->decl) {
+            result.decl = exp->decl;
+        } else {
+            auto sym = locate_export(name, false, true);
+            result.decl = sym.decl;
+        }
+    }
+
+    if (result.expr) {
+        LOG_F(INFO, "Found call expression");
+    }
+
+    if (result.decl) {
+        LOG_F(INFO, "Found call decl");
+    }
+
+    return result;
+}
+
 std::string_view Nss::text() const noexcept { return text_; }
 
 std::string_view Nss::view_from_range(SourceRange range) const noexcept

@@ -552,6 +552,14 @@ struct AstResolver : BaseVisitor {
         for (size_t i = 0; i < expr->args.size(); ++i) {
             expr->args[i]->accept(this);
 
+            if (dynamic_cast<EmptyExpression*>(expr->args[i])) {
+                ctx_->semantic_diagnostic(parent_,
+                    "argument cannot be a null expression",
+                    false,
+                    expr->args[i]->range_);
+                continue;
+            }
+
             if (func_decl->params[i]->type_id_ == ctx_->type_id("float")
                 && expr->args[i]->type_id_ == ctx_->type_id("int")) {
                 // This is fine
@@ -682,6 +690,11 @@ struct AstResolver : BaseVisitor {
         }
 
         expr->type_id_ = expr->rhs->type_id_;
+    }
+
+    virtual void visit(EmptyExpression* expr) override
+    {
+        // No op
     }
 
     virtual void visit(GroupingExpression* expr) override

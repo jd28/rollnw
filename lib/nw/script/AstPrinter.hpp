@@ -185,6 +185,12 @@ struct AstPrinter : BaseVisitor {
         ss << ")";
     }
 
+    virtual void visit(EmptyExpression* expr) override
+    {
+        ss << '\n'
+           << std::string(size_t(depth * 2), ' ') << "<empty expr>";
+    }
+
     virtual void visit(GroupingExpression* expr) override
     {
         expr->expr->accept(this);

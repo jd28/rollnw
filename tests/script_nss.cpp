@@ -1480,3 +1480,45 @@ TEST(Nss, Location)
     auto sym_info8 = nss8.locate_symbol("abs2", 12, 20);
     EXPECT_TRUE(sym_info8.decl);
 }
+
+TEST(Nss, SignatureHelper)
+{
+    auto ctx = std::make_unique<nw::script::LspContext>();
+
+    script::Nss nss1(R"(
+        void main() {
+            ApplyEffectToObject()
+        }
+    )"sv,
+        ctx.get());
+    EXPECT_NO_THROW(nss1.parse());
+    EXPECT_NO_THROW(nss1.resolve());
+
+    auto sig1 = nss1.signature_help(3, 33);
+    EXPECT_TRUE(sig1.expr);
+    EXPECT_TRUE(sig1.decl);
+    EXPECT_EQ(sig1.active_param, 0);
+
+    script::Nss nss2(R"(
+        void main() {
+            ApplyEffectToObject(DURATION_TYPE_INSTANT, )
+        }
+    )"sv,
+        ctx.get());
+    EXPECT_NO_THROW(nss2.parse());
+    EXPECT_NO_THROW(nss2.resolve());
+
+    auto sig2_1 = nss2.signature_help(3, 44);
+    EXPECT_TRUE(sig2_1.expr);
+    EXPECT_TRUE(sig2_1.decl);
+    EXPECT_EQ(sig2_1.active_param, 0);
+
+    auto sig2_2 = nss2.signature_help(3, 56);
+    EXPECT_TRUE(sig2_2.expr);
+    EXPECT_TRUE(sig2_2.decl);
+    EXPECT_EQ(sig2_2.active_param, 1);
+
+    auto sig2_3 = nss2.signature_help(4, 0);
+    EXPECT_FALSE(sig2_3.expr);
+    EXPECT_FALSE(sig2_3.decl);
+}

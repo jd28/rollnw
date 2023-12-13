@@ -25,7 +25,9 @@ struct AstLocator : public BaseVisitor {
     bool found_ = false;
     Symbol result_;
     const Declaration* last_seen_decl = nullptr;
-    const DotExpression* dot = nullptr; // Keep track if our symbol is in a dot expr
+    const DotExpression* dot = nullptr;   // Keep track if our symbol is in a dot expr
+    const CallExpression* call = nullptr; // Keep track if our symbol is in a call expr
+    size_t active_param = 0;
 
     void locate_in_dependencies()
     {
@@ -158,11 +160,19 @@ struct AstLocator : public BaseVisitor {
 
     virtual void visit(CallExpression* expr)
     {
+        if (contains_position(expr->range_, pos_)) {
+            call = expr;
+        }
 
         if (expr->expr) { expr->expr->accept(this); }
         if (found_) { return; }
-        for (const auto arg : expr->args) {
-            if (arg) { arg->accept(this); }
+        for (size_t i = 0; i < expr->args.size(); ++i) {
+            if (expr->args[i]) {
+                if (expr->args[i]->range_.start <= pos_) {
+                    active_param = i;
+                }
+                expr->args[i]->accept(this);
+            }
             if (found_) { return; }
         }
     }
@@ -186,6 +196,11 @@ struct AstLocator : public BaseVisitor {
         if (found_) { return; }
         if (expr->rhs) { expr->rhs->accept(this); }
         if (found_) { dot = expr; }
+    }
+
+    virtual void visit(EmptyExpression* expr)
+    {
+        // No Op
     }
 
     virtual void visit(GroupingExpression* expr)

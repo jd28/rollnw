@@ -156,6 +156,15 @@ class Comment:
         return ""
 
 
+class SignatureHelp:
+    """
+    Attributes
+        decl ()
+        expr (CallExpression)
+        active_param (int)
+    """
+
+
 class Ast:
     """Class containing a parsed ast
 
@@ -243,6 +252,10 @@ class Nss:
     def resolve(self):
         """Resolves and type-checks Ast"""
         pass
+
+    def signature_help(self, line: int, character: int) -> SignatureHelp:
+        """Gets signature help for a call expression that contains the provided position"""
+        return SignatureHelp()
 
     def view_from_range(self, range: "SourceRange") -> str:
         """Gets number of errors encountered while parsing"""
@@ -421,6 +434,12 @@ class DotExpression(Expression):
 
     Attributes:
         expr
+    """
+    pass
+
+
+class EmptyExpression(Expression):
+    """Empty expression only used in case of expression parsing erros
     """
     pass
 
