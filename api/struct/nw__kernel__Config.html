@@ -378,8 +378,14 @@
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw6kernel6Config10initializeE13ConfigOptions">
-<span id="_CPPv3N2nw6kernel6Config10initializeE13ConfigOptions"></span><span id="_CPPv2N2nw6kernel6Config10initializeE13ConfigOptions"></span><span id="nw::kernel::Config::initialize__ConfigOptions"></span><span class="target" id="structnw_1_1kernel_1_1_config_1a8278867a456ccadd701deac117fecd89"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">initialize</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="nw__ConfigOptions.html#_CPPv4N2nw13ConfigOptionsE" title="nw::ConfigOptions"><span class="n"><span class="pre">ConfigOptions</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">options</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6kernel6Config10initializeE13ConfigOptions" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw6kernel6Config10initializeE13ConfigOptions"></span><span id="_CPPv2N2nw6kernel6Config10initializeE13ConfigOptions"></span><span id="nw::kernel::Config::initialize__ConfigOptions"></span><span class="target" id="structnw_1_1kernel_1_1_config_1addadf20f7bc693629021e2c992e2c377"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">initialize</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="nw__ConfigOptions.html#_CPPv4N2nw13ConfigOptionsE" title="nw::ConfigOptions"><span class="n"><span class="pre">ConfigOptions</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">options</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="p"><span class="pre">}</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6kernel6Config10initializeE13ConfigOptions" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Initializes configuration system. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK2nw6kernel6Config12install_pathEv">
+<span id="_CPPv3NK2nw6kernel6Config12install_pathEv"></span><span id="_CPPv2NK2nw6kernel6Config12install_pathEv"></span><span id="nw::kernel::Config::install_pathC"></span><span class="target" id="structnw_1_1kernel_1_1_config_1a2d44ee35ec862eb40c1b67e5413571fa"></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">filesystem</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">path</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">install_path</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="k"><span class="pre">noexcept</span></span><a class="headerlink" href="#_CPPv4NK2nw6kernel6Config12install_pathEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Game installation path. </p>
 </dd></dl>
 
 <dl class="cpp function">
@@ -407,6 +413,22 @@
 </dd></dl>
 
 <dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6kernel6Config9set_pathsEKNSt10filesystem4pathEKNSt10filesystem4pathE">
+<span id="_CPPv3N2nw6kernel6Config9set_pathsEKNSt10filesystem4pathEKNSt10filesystem4pathE"></span><span id="_CPPv2N2nw6kernel6Config9set_pathsEKNSt10filesystem4pathEKNSt10filesystem4pathE"></span><span id="nw::kernel::Config::set_paths__std::filesystem::pathC.std::filesystem::pathC"></span><span class="target" id="structnw_1_1kernel_1_1_config_1a8c4f86fe41912343b41c23d89ce2c56a"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_paths</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">filesystem</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">path</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">install</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">filesystem</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">path</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">user</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6kernel6Config9set_pathsEKNSt10filesystem4pathEKNSt10filesystem4pathE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Sets game paths. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If paths are unset, the kernel will attempt to find them. </p>
+</div>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6kernel6Config11set_versionE11GameVersion">
+<span id="_CPPv3N2nw6kernel6Config11set_versionE11GameVersion"></span><span id="_CPPv2N2nw6kernel6Config11set_versionE11GameVersion"></span><span id="nw::kernel::Config::set_version__GameVersion"></span><span class="target" id="structnw_1_1kernel_1_1_config_1a060a8c6053b6daa604912081aaff290b"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_version</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="../enum/nw__GameVersion.html#_CPPv4N2nw11GameVersionE" title="nw::GameVersion"><span class="n"><span class="pre">GameVersion</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">version</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6kernel6Config11set_versionE11GameVersion" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Sets game version. </p>
+</dd></dl>
+
+<dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4NK2nw6kernel6Config12settings_tmlEv">
 <span id="_CPPv3NK2nw6kernel6Config12settings_tmlEv"></span><span id="_CPPv2NK2nw6kernel6Config12settings_tmlEv"></span><span id="nw::kernel::Config::settings_tmlC"></span><span class="target" id="structnw_1_1kernel_1_1_config_1aeb78a3feeada04538995053598033d5d"></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">toml</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">table</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">settings_tml</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="k"><span class="pre">noexcept</span></span><a class="headerlink" href="#_CPPv4NK2nw6kernel6Config12settings_tmlEv" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Gets settings.tml </p>
@@ -417,9 +439,21 @@
 </dd></dl>
 
 <dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK2nw6kernel6Config9user_pathEv">
+<span id="_CPPv3NK2nw6kernel6Config9user_pathEv"></span><span id="_CPPv2NK2nw6kernel6Config9user_pathEv"></span><span id="nw::kernel::Config::user_pathC"></span><span class="target" id="structnw_1_1kernel_1_1_config_1aca1058897dbca72a9e7a17c86ff54f81"></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">filesystem</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">path</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">user_path</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="k"><span class="pre">noexcept</span></span><a class="headerlink" href="#_CPPv4NK2nw6kernel6Config9user_pathEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Path to user directory. </p>
+</dd></dl>
+
+<dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4NK2nw6kernel6Config13userpatch_iniEv">
 <span id="_CPPv3NK2nw6kernel6Config13userpatch_iniEv"></span><span id="_CPPv2NK2nw6kernel6Config13userpatch_iniEv"></span><span id="nw::kernel::Config::userpatch_iniC"></span><span class="target" id="structnw_1_1kernel_1_1_config_1aa7c7addfaa079fbb0578c65179302ba6"></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="nw__Ini.html#_CPPv4N2nw3IniE" title="nw::Ini"><span class="n"><span class="pre">Ini</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">userpatch_ini</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="k"><span class="pre">noexcept</span></span><a class="headerlink" href="#_CPPv4NK2nw6kernel6Config13userpatch_iniEv" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Gets userpatch.ini or nwnpatch.ini if 1.69. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK2nw6kernel6Config7versionEv">
+<span id="_CPPv3NK2nw6kernel6Config7versionEv"></span><span id="_CPPv2NK2nw6kernel6Config7versionEv"></span><span id="nw::kernel::Config::versionC"></span><span class="target" id="structnw_1_1kernel_1_1_config_1a80687f5aca5a5783f7552da495a959c2"></span><a class="reference internal" href="../enum/nw__GameVersion.html#_CPPv4N2nw11GameVersionE" title="nw::GameVersion"><span class="n"><span class="pre">GameVersion</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">version</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="k"><span class="pre">noexcept</span></span><a class="headerlink" href="#_CPPv4NK2nw6kernel6Config7versionEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Gets games version. </p>
 </dd></dl>
 
 </div>

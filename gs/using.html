@@ -146,13 +146,13 @@
 <span class="w">    </span><span class="c1">// Initialize logger</span>
 <span class="w">    </span><span class="n">nw</span><span class="o">::</span><span class="n">init_logger</span><span class="p">(</span><span class="n">argc</span><span class="p">,</span><span class="w"> </span><span class="n">argv</span><span class="p">);</span>
 
+<span class="w">    </span><span class="c1">// Say this application is specific to 1.69.</span>
+<span class="w">    </span><span class="c1">// This must be set before the initialize call below.  The default is NWN:EE, so in that case,</span>
+<span class="w">    </span><span class="c1">// ``set_version`` need not be called</span>
+<span class="w">    </span><span class="n">nw</span><span class="o">::</span><span class="n">kernel</span><span class="o">::</span><span class="n">config</span><span class="p">().</span><span class="n">set_version</span><span class="p">(</span><span class="n">GameVersion</span><span class="o">::</span><span class="n">v1_69</span><span class="p">);</span>
+
 <span class="w">    </span><span class="c1">// Sets config for the system, paths, version, etc.</span>
-<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">info</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">nw</span><span class="o">::</span><span class="n">probe_nwn_install</span><span class="p">();</span>
-<span class="w">    </span><span class="n">nw</span><span class="o">::</span><span class="n">kernel</span><span class="o">::</span><span class="n">config</span><span class="p">().</span><span class="n">initialize</span><span class="p">({</span>
-<span class="w">        </span><span class="n">info</span><span class="p">.</span><span class="n">version</span><span class="p">,</span>
-<span class="w">        </span><span class="n">info</span><span class="p">.</span><span class="n">install</span><span class="p">,</span>
-<span class="w">        </span><span class="n">info</span><span class="p">.</span><span class="n">user</span><span class="p">,</span>
-<span class="w">    </span><span class="p">});</span>
+<span class="w">    </span><span class="n">nw</span><span class="o">::</span><span class="n">kernel</span><span class="o">::</span><span class="n">config</span><span class="p">().</span><span class="n">initialize</span><span class="p">();</span>
 
 <span class="w">    </span><span class="c1">// Initializes all systems</span>
 <span class="w">    </span><span class="n">nw</span><span class="o">::</span><span class="n">kernel</span><span class="o">::</span><span class="n">services</span><span class="p">().</span><span class="n">start</span><span class="p">();</span>

@@ -33,13 +33,13 @@ While the library is far from done, basic usage would be as follows.
                 // Initialize logger
                 nw::init_logger(argc, argv);
 
+                // Say this application is specific to 1.69.
+                // This must be set before the initialize call below.  The default is NWN:EE, so in that case,
+                // ``set_version`` need not be called
+                nw::kernel::config().set_version(GameVersion::v1_69);
+
                 // Sets config for the system, paths, version, etc.
-                auto info = nw::probe_nwn_install();
-                nw::kernel::config().initialize({
-                    info.version,
-                    info.install,
-                    info.user,
-                });
+                nw::kernel::config().initialize();
 
                 // Initializes all systems
                 nw::kernel::services().start();
