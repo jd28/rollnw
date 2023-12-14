@@ -361,33 +361,41 @@ Expression* NssParser::parse_expr_unary()
                     || lit->literal.type == NssTokenType::FLOAT_CONST)) {
                 // If plus and a literal throw away the plus if it's an int or a float
                 lit->literal.loc = merge_source_location(op.loc, lit->literal.loc);
+                right->range_ = lit->literal.loc.range;
                 return right;
             } else if (op.type == NssTokenType::MINUS) {
                 if (lit->literal.type == NssTokenType::INTEGER_CONST) {
                     lit->data = -lit->data.as<int32_t>();
                     lit->literal.loc = merge_source_location(op.loc, lit->literal.loc);
+                    right->range_ = lit->literal.loc.range;
                     return right;
                 } else if (lit->literal.type == NssTokenType::FLOAT_CONST) {
                     lit->data = -lit->data.as<float>();
                     lit->literal.loc = merge_source_location(op.loc, lit->literal.loc);
+                    right->range_ = lit->literal.loc.range;
                     return right;
                 }
             } else if (op.type == NssTokenType::TILDE) {
                 if (lit->literal.type == NssTokenType::INTEGER_CONST) {
                     lit->data = ~lit->data.as<int32_t>();
                     lit->literal.loc = merge_source_location(op.loc, lit->literal.loc);
+                    right->range_ = lit->literal.loc.range;
                     return right;
                 }
             } else if (op.type == NssTokenType::NOT) {
                 if (lit->literal.type == NssTokenType::INTEGER_CONST) {
                     lit->data = !lit->data.as<int32_t>();
                     lit->literal.loc = merge_source_location(op.loc, lit->literal.loc);
+                    right->range_ = lit->literal.loc.range;
                     return right;
                 }
             }
             // Leave everything else for errors later
         }
-        return ast_.create_node<UnaryExpression>(op, right);
+        auto e = ast_.create_node<UnaryExpression>(op, right);
+        e->range_.start = op.loc.range.start;
+        e->range_.end = right->range_.end;
+        return e;
     }
     return parse_expr_postfix();
 }
@@ -399,7 +407,10 @@ Expression* NssParser::parse_expr_postfix()
     while (match({NssTokenType::PLUSPLUS, NssTokenType::MINUSMINUS, NssTokenType::LPAREN, NssTokenType::DOT})) {
         if (previous().type == NssTokenType::PLUSPLUS || previous().type == NssTokenType::MINUSMINUS) {
             auto op = previous();
-            expr = ast_.create_node<PostfixExpression>(expr, op);
+            auto e = ast_.create_node<PostfixExpression>(expr, op);
+            e->range_.start = expr->range_.start;
+            e->range_.end = op.loc.range.end;
+            expr = e;
         }
 
         if (previous().type == NssTokenType::LPAREN) {
@@ -438,7 +449,10 @@ Expression* NssParser::parse_expr_postfix()
         if (previous().type == NssTokenType::DOT) {
             auto dot = previous();
             auto right = parse_expr_primary();
-            expr = ast_.create_node<DotExpression>(expr, dot, right);
+            auto e = ast_.create_node<DotExpression>(expr, dot, right);
+            e->range_.start = expr->range_.start;
+            e->range_.end = right->range_.end;
+            expr = e;
         }
     }
 
