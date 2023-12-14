@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../kernel/Resources.hpp"
 #include "../resources/Resource.hpp"
 #include "Token.hpp"
 
@@ -21,6 +22,9 @@ struct Context {
     // Dependency Tracking
     absl::flat_hash_map<Resource, std::unique_ptr<Nss>> dependencies_;
     std::vector<std::string> include_stack_;
+    kernel::Resources resman_;
+
+    /// Gets a script from internal resman
     Nss* get(Resref resref, bool command_script = false);
 
     // Spec

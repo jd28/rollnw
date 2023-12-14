@@ -10,6 +10,7 @@ namespace nw::script {
 Context::Context(std::string command_script)
     : dependencies_{}
     , command_script_name_{std::move(command_script)}
+    , resman_{&kernel::resman()}
     , type_map_{}
 {
     register_default_types();
@@ -28,7 +29,7 @@ Nss* Context::get(Resref resref, bool command_script)
         return it->second.get();
     }
 
-    auto data = nw::kernel::resman().demand(res);
+    auto data = resman_.demand(res);
     if (data.bytes.size()) {
         auto nss = std::make_unique<Nss>(std::move(data), this, command_script);
         nss->parse();
