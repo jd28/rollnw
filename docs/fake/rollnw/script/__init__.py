@@ -106,6 +106,10 @@ class Context:
     def __init__(self, command_script: str = "nwscript"):
         pass
 
+    def add_include_path(self, path: str):
+        """Adds path to internal resman"""
+        pass
+
 
 class DiagnosticType(enum.IntEnum):
     lexical = auto()

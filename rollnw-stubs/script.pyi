@@ -45,6 +45,7 @@ class InlayHint:
 
 class Context:
     def __init__(self, command_script: str = "nwscript") -> None: ...
+    def add_include_path(self, path: str): ...
 
 
 class DiagnosticType:

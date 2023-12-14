@@ -24,6 +24,9 @@ struct Context {
     std::vector<std::string> include_stack_;
     kernel::Resources resman_;
 
+    /// Adds include path to internal resman
+    void add_include_path(const std::filesystem::path& path);
+
     /// Gets a script from internal resman
     Nss* get(Resref resref, bool command_script = false);
 

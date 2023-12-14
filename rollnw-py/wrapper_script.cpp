@@ -13,7 +13,6 @@
 #include <pybind11/stl_bind.h>
 
 #include <string>
-#include <variant>
 
 namespace py = pybind11;
 namespace nws = nw::script;
@@ -62,7 +61,8 @@ void init_script(py::module& nw)
 
     py::class_<nws::Context>(nw, "Context")
         .def(py::init<>())
-        .def(py::init<std::string>());
+        .def(py::init<std::string>())
+        .def("add_include_path", &nws::Context::add_include_path);
 
     py::enum_<nw::script::DiagnosticType>(nw, "DiagnosticType")
         .value("lexical", nws::DiagnosticType::lexical)

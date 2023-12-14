@@ -5,6 +5,8 @@
 
 #include <fmt/format.h>
 
+namespace fs = std::filesystem;
+
 namespace nw::script {
 
 Context::Context(std::string command_script)
@@ -19,6 +21,12 @@ Context::Context(std::string command_script)
     CHECK_F(!!command_script_, "[script] unable to load command script '{}'", command_script_name_);
     register_engine_types(); // Must come before resolving command script!
     command_script_->resolve();
+}
+
+void Context::add_include_path(const std::filesystem::path& path)
+{
+    if (!fs::exists(path) || !fs::is_directory(path)) { return; }
+    resman_.add_container(new Directory{path});
 }
 
 Nss* Context::get(Resref resref, bool command_script)
