@@ -3,6 +3,7 @@
 
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
+#include <pybind11/stl/filesystem.h>
 #include <pybind11/stl_bind.h>
 
 #include <nw/util/platform.hpp>
@@ -26,14 +27,6 @@ void init_nwn1(py::module& m);
 PYBIND11_MODULE(rollnw, nw)
 {
     nw.doc() = "rollnw python wrapper";
-
-    // pybind11 doesn't have native type for this.
-    py::class_<std::filesystem::path>(nw, "Path")
-        .def(py::init<std::string>())
-        .def("__repr__", [](const std::filesystem::path& self) {
-            return nw::path_to_string(self);
-        });
-    py::implicitly_convertible<std::string, std::filesystem::path>();
 
     bind_opaque_types(nw);
     // Initialize submodules
