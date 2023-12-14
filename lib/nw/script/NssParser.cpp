@@ -405,11 +405,10 @@ Expression* NssParser::parse_expr_postfix()
         if (previous().type == NssTokenType::LPAREN) {
             auto e = ast_.create_node<CallExpression>(expr);
             e->range_.start = expr->range_.start;
+            e->arg_range.start = previous().loc.range.end;
             while (!is_end() && !check({NssTokenType::RPAREN})) {
                 if (match({NssTokenType::COMMA})) {
-                    auto empty = ast_.create_node<EmptyExpression>();
-                    empty->range_ = {previous().loc.range.end, previous().loc.range.end};
-                    e->args.push_back(empty);
+                    e->comma_ranges.push_back(previous().loc.range);
                     continue;
                 }
 
@@ -417,23 +416,21 @@ Expression* NssParser::parse_expr_postfix()
                     auto arg = parse_expr();
                     e->args.push_back(arg);
                 } catch (const parser_error& error) {
-                    auto empty = ast_.create_node<EmptyExpression>();
-                    empty->range_ = {previous().loc.range.end, previous().loc.range.end};
-                    e->args.push_back(empty);
+                    if (match({NssTokenType::COMMA})) {
+                        e->comma_ranges.push_back(previous().loc.range);
+                    }
                     break;
                 }
 
-                if (match({NssTokenType::COMMA}) && check({NssTokenType::RPAREN})) {
-                    // Just ignore it instead of an error
-                    auto empty = ast_.create_node<EmptyExpression>();
-                    empty->range_ = {previous().loc.range.end, previous().loc.range.end};
-                    e->args.push_back(empty);
+                if (match({NssTokenType::COMMA})) {
+                    e->comma_ranges.push_back(previous().loc.range);
                 }
             }
             if (!match({NssTokenType::RPAREN})) {
                 diagnostic("Expected ')'.", peek());
             }
             e->range_.end = previous().loc.range.end;
+            e->arg_range.end = previous().loc.range.start;
 
             expr = e;
         }

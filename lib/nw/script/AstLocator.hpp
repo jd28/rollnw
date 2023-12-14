@@ -160,20 +160,28 @@ struct AstLocator : public BaseVisitor {
 
     virtual void visit(CallExpression* expr)
     {
-        if (contains_position(expr->range_, pos_)) {
-            call = expr;
-        }
-
         if (expr->expr) { expr->expr->accept(this); }
         if (found_) { return; }
+
         for (size_t i = 0; i < expr->args.size(); ++i) {
             if (expr->args[i]) {
-                if (expr->args[i]->range_.start <= pos_) {
-                    active_param = i;
-                }
                 expr->args[i]->accept(this);
             }
             if (found_) { return; }
+        }
+
+        if (!call && contains_position(expr->arg_range, pos_)) {
+            call = expr;
+            size_t i = 1;
+            for (const auto cr : expr->comma_ranges) {
+                if (cr.end <= pos_) {
+                    active_param = i;
+                    LOG_F(INFO, "active param: {}", active_param);
+                } else {
+                    break;
+                }
+                ++i;
+            }
         }
     }
 

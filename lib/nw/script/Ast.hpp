@@ -310,6 +310,8 @@ struct CallExpression : Expression {
 
     Expression* expr = nullptr;
     std::vector<Expression*> args;
+    SourceRange arg_range;
+    std::vector<SourceRange> comma_ranges; // This is probably stupid
 
     DEFINE_ACCEPT_VISITOR
 };

@@ -1494,7 +1494,7 @@ TEST(Nss, SignatureHelper)
     EXPECT_NO_THROW(nss1.parse());
     EXPECT_NO_THROW(nss1.resolve());
 
-    auto sig1 = nss1.signature_help(3, 33);
+    auto sig1 = nss1.signature_help(3, 32);
     EXPECT_TRUE(sig1.expr);
     EXPECT_TRUE(sig1.decl);
     EXPECT_EQ(sig1.active_param, 0);
@@ -1513,7 +1513,7 @@ TEST(Nss, SignatureHelper)
     EXPECT_TRUE(sig2_1.decl);
     EXPECT_EQ(sig2_1.active_param, 0);
 
-    auto sig2_2 = nss2.signature_help(3, 56);
+    auto sig2_2 = nss2.signature_help(3, 55);
     EXPECT_TRUE(sig2_2.expr);
     EXPECT_TRUE(sig2_2.decl);
     EXPECT_EQ(sig2_2.active_param, 1);
