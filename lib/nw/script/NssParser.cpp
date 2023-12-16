@@ -679,7 +679,9 @@ BlockStatement* NssParser::parse_stmt_block()
         }
     }
 
-    consume(NssTokenType::RBRACE, "Expected '}'.");
+    if (!match({NssTokenType::RBRACE})) {
+        diagnostic("Expected '}'.", peek());
+    }
     s->range_.end = previous().loc.range.start;
     return s;
 }
