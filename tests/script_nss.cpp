@@ -308,7 +308,7 @@ TEST(Nss, FunctionDef)
         ctx.get());
     EXPECT_NO_THROW(nss3.parse());
     EXPECT_NO_THROW(nss3.resolve());
-    EXPECT_EQ(nss3.errors(), 2);
+    EXPECT_EQ(nss3.errors(), 3);
 }
 
 TEST(Nss, FunctionCall)
