@@ -71,17 +71,25 @@ void Nss::complete_at(const std::string& needle, size_t line, size_t character, 
     if (locator.dot) {
         std::string struct_name(ctx_->type_name(locator.dot->lhs->type_id_));
         const StructDecl* struct_decl = nullptr;
+        const Nss* provider = this;
         auto exp = locator.dot->env_.find(struct_name);
         if (exp && exp->type) {
             struct_decl = exp->type;
         } else {
             auto symbol = locate_export(struct_name, true, true);
+            provider = symbol.provider;
             struct_decl = dynamic_cast<const StructDecl*>(symbol.decl);
         }
 
         if (struct_decl) {
             for (auto decl : struct_decl->decls) {
-                out.add(declaration_to_symbol(decl));
+                if (auto vdl = dynamic_cast<const DeclList*>(decl)) {
+                    for (auto vd : vdl->decls) {
+                        out.add(provider->declaration_to_symbol(vd));
+                    }
+                } else {
+                    out.add(provider->declaration_to_symbol(decl));
+                }
             }
         }
         return;
@@ -132,7 +140,7 @@ void Nss::complete_dot(const std::string& needle, size_t line, size_t character,
     } else {
         auto exp = node->env_.find(needle);
         if (!exp || !exp->decl) {
-            LOG_F(INFO, "Failed to find needle declaration: {}", node->identifier());
+            LOG_F(INFO, "Failed to find needle declaration: {}", needle);
             return;
         }
         decl = exp->decl;
@@ -144,20 +152,29 @@ void Nss::complete_dot(const std::string& needle, size_t line, size_t character,
     }
 
     std::string struct_id(decl->type.struct_id.loc.view());
-    auto exp2 = node->env_.find(struct_id);
-    if (!exp2 || !exp2->type) { return; }
-
     const StructDecl* struct_decl = nullptr;
-    if (auto sd = dynamic_cast<const StructDecl*>(exp2->type)) {
-        struct_decl = sd;
-    } else {
+    const Nss* provider = this;
+
+    auto exp2 = node->env_.find(struct_id);
+    if (exp2 && exp2->type) {
+        struct_decl = dynamic_cast<const StructDecl*>(exp2->type);
+    }
+
+    if (!struct_decl) {
         auto symbol = locate_export(struct_id, true, true);
+        provider = symbol.provider;
         struct_decl = dynamic_cast<const StructDecl*>(symbol.decl);
     }
 
     if (struct_decl) {
         for (auto decl : struct_decl->decls) {
-            out.push_back(declaration_to_symbol(decl));
+            if (auto vdl = dynamic_cast<const DeclList*>(decl)) {
+                for (auto vd : vdl->decls) {
+                    out.push_back(provider->declaration_to_symbol(vd));
+                }
+            } else {
+                out.push_back(provider->declaration_to_symbol(decl));
+            }
         }
     }
 }
