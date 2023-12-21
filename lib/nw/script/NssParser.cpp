@@ -420,6 +420,7 @@ Expression* NssParser::parse_expr_postfix()
             while (!is_end() && !check({NssTokenType::RPAREN})) {
                 if (match({NssTokenType::COMMA})) {
                     e->comma_ranges.push_back(previous().loc.range);
+                    diagnostic("expected expression", previous());
                     continue;
                 }
 
@@ -435,6 +436,9 @@ Expression* NssParser::parse_expr_postfix()
 
                 if (match({NssTokenType::COMMA})) {
                     e->comma_ranges.push_back(previous().loc.range);
+                    if (check({NssTokenType::RPAREN})) {
+                        diagnostic("expected expression", peek());
+                    }
                 }
             }
             if (!match({NssTokenType::RPAREN})) {
