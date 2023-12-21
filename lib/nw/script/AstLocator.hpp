@@ -29,10 +29,10 @@ struct AstLocator : public BaseVisitor {
     const CallExpression* call = nullptr; // Keep track if our symbol is in a call expr
     size_t active_param = 0;
 
-    void locate_in_dependencies()
+    void locate_in_dependencies(bool is_type = false)
     {
         if (!parent_->is_command_script() && parent_->ctx()->command_script_) {
-            auto sym = parent_->ctx()->command_script_->locate_export(symbol_, false);
+            auto sym = parent_->ctx()->command_script_->locate_export(symbol_, is_type);
             if (sym.decl) {
                 result_ = sym;
             }
@@ -40,7 +40,7 @@ struct AstLocator : public BaseVisitor {
         if (!result_.decl) {
             for (const auto it : parent_->ast().includes) {
                 if (!it.script) { continue; }
-                auto sym = it.script->locate_export(symbol_, false, true);
+                auto sym = it.script->locate_export(symbol_, is_type, true);
                 if (sym.decl) {
                     result_ = sym;
                     break;
@@ -138,7 +138,7 @@ struct AstLocator : public BaseVisitor {
                 result_ = parent_->declaration_to_symbol(exp->type);
                 found_ = true;
             } else {
-                locate_in_dependencies();
+                locate_in_dependencies(true);
             }
         } else if (decl->init) {
             decl->init->accept(this);
