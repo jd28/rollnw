@@ -173,7 +173,7 @@ Symbol Nss::declaration_to_symbol(const Declaration* decl) const
     result.decl = decl;
     result.comment = ast().find_comment(decl->range_.start.line);
     result.type = ctx_->type_name(decl->type_id_);
-    result.provider = name();
+    result.provider = this;
     result.view = view_from_range(decl->range_);
 
     if (dynamic_cast<const StructDecl*>(decl)) {

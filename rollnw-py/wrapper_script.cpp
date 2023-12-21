@@ -47,7 +47,7 @@ void init_script(py::module& nw)
         .def_readonly("comment", &nws::Symbol::comment)
         .def_readonly("type", &nws::Symbol::type)
         .def_readonly("kind", &nws::Symbol::kind)
-        .def_readonly("provider", &nws::Symbol::provider)
+        .def_readonly("provider", &nws::Symbol::provider, py::return_value_policy::reference_internal)
         .def_readonly("view", &nws::Symbol::view);
 
     py::class_<nws::InlayHint>(nw, "InlayHint")

@@ -343,7 +343,8 @@ class Symbol:
         comment (str)
         type (str)
         kind (SymbolKind)
-        provider (str)
+        provider (Nss)
+        view (str)
     """
     pass
 

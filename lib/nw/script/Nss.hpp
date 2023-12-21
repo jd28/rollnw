@@ -39,7 +39,7 @@ struct Symbol {
     std::string comment;               ///< Comment on original declaration, in case of functions decl is preferred over definition
     std::string type;                  ///< Type of the symbol
     SymbolKind kind;                   ///< The kind of symbol
-    std::string provider;              ///< What script this symbol is from, i.e. "nwscript"
+    const Nss* provider = nullptr;     ///< What script this symbol is from, i.e. "nwscript"
     std::string_view view;             ///< View of declaration
 };
 
