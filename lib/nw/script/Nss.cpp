@@ -145,6 +145,8 @@ void Nss::complete_dot(const std::string& needle, size_t line, size_t character,
 
     std::string struct_id(decl->type.struct_id.loc.view());
     auto exp2 = node->env_.find(struct_id);
+    if (!exp2 || !exp2->type) { return; }
+
     const StructDecl* struct_decl = nullptr;
     if (auto sd = dynamic_cast<const StructDecl*>(exp2->type)) {
         struct_decl = sd;
