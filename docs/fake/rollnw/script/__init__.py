@@ -245,6 +245,10 @@ class Nss:
         """Locate symbol in source file"""
         return Symbol()
 
+    def name(self) -> str:
+        """Gets script's name"""
+        return ""
+
     def parse(self):
         """Parses the script"""
         pass
