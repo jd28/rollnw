@@ -448,7 +448,7 @@ struct FunctionDefinition : public Declaration {
 };
 
 struct StructDecl : public Declaration {
-    std::vector<VarDecl*> decls;
+    std::vector<Declaration*> decls;
 
     virtual std::string identifier() const override { return std::string(type.struct_id.loc.view()); };
 

@@ -410,9 +410,15 @@ struct AstResolver : BaseVisitor {
         for (auto& it : decl->decls) {
             it->accept(this);
             if (it->is_const_) {
+                NssToken identifier;
+                if (auto vd = dynamic_cast<VarDecl*>(it)) {
+                    identifier = vd->identifier_;
+                } else if (auto vdl = dynamic_cast<DeclList*>(it)) {
+                    identifier = vdl->decls[0]->identifier_;
+                }
                 ctx_->semantic_diagnostic(parent_,
-                    fmt::format("struct member '{}' cannot be declared as 'const'", it->identifier_.loc.view()),
-                    false, it->identifier_.loc.range);
+                    fmt::format("struct member '{}' cannot be declared as 'const'", identifier.loc.view()),
+                    false, identifier.loc.range);
             }
         }
         end_scope();
@@ -632,11 +638,21 @@ struct AstResolver : BaseVisitor {
         expr->env_ = env_stack_.back();
 
         auto resolve_struct_member = [this](VariableExpression* var, const StructDecl* str) {
-            for (const auto& it : str->decls) {
-                if (it->identifier_.loc.view() == var->var.loc.view()) {
-                    var->type_id_ = it->type_id_;
-                    var->is_const_ = it->is_const_;
-                    return true;
+            for (const auto it : str->decls) {
+                if (auto vdl = dynamic_cast<const DeclList*>(it)) {
+                    for (const auto vd : vdl->decls) {
+                        if (vd->identifier_.loc.view() == var->var.loc.view()) {
+                            var->type_id_ = vd->type_id_;
+                            var->is_const_ = vd->is_const_;
+                            return true;
+                        }
+                    }
+                } else if (auto vd = dynamic_cast<const VarDecl*>(it)) {
+                    if (vd->identifier_.loc.view() == var->var.loc.view()) {
+                        var->type_id_ = vd->type_id_;
+                        var->is_const_ = vd->is_const_;
+                        return true;
+                    }
                 }
             }
             return false;

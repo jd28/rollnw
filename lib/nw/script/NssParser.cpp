@@ -916,6 +916,8 @@ StructDecl* NssParser::parse_decl_struct()
         auto var_decl = parse_decl();
         if (auto vd = dynamic_cast<VarDecl*>(var_decl)) {
             decl->decls.push_back(vd);
+        } else if (auto vdl = dynamic_cast<DeclList*>(var_decl)) {
+            decl->decls.push_back(vdl);
         } else if (auto fdef = dynamic_cast<FunctionDefinition*>(var_decl)) {
             diagnostic("structs cannot contain function definitions", fdef->decl_inline->identifier_);
         } else if (auto fdef = dynamic_cast<FunctionDecl*>(var_decl)) {
