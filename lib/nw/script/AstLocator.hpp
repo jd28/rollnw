@@ -233,12 +233,14 @@ struct AstLocator : public BaseVisitor {
                         for (auto vd : vdl->decls) {
                             if (vd->identifier_.loc.view() == symbol_) {
                                 result_ = provider->declaration_to_symbol(vd);
+                                result_.kind = SymbolKind::field;
                                 found_ = true;
                             }
                         }
                     } else if (auto vd = dynamic_cast<VarDecl*>(decl)) {
                         if (vd->identifier_.loc.view() == symbol_) {
                             result_ = provider->declaration_to_symbol(vd);
+                            result_.kind = SymbolKind::field;
                             found_ = true;
                         }
                     }
