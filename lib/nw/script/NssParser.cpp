@@ -927,7 +927,9 @@ StructDecl* NssParser::parse_decl_struct()
         }
     }
     consume(NssTokenType::RBRACE, "Expected '}'.");
-    consume(NssTokenType::SEMICOLON, "Expected ';'.");
+    if (!match({NssTokenType::SEMICOLON})) {
+        diagnostic("Expected ';'.", peek());
+    }
     decl->range_.end = previous().loc.range.start;
 
     return decl;
