@@ -1473,12 +1473,37 @@ TEST(Nss, Location)
     EXPECT_NO_THROW(nss8.parse());
     EXPECT_NO_THROW(nss8.resolve());
 
-    script::AstPrinter printer;
-    printer.visit(&nss8.ast());
-    LOG_F(INFO, "{}", printer.ss.str());
-
     auto sym_info8 = nss8.locate_symbol("abs2", 12, 20);
     EXPECT_TRUE(sym_info8.decl);
+
+    script::Nss nss9(R"(
+        struct TestA {
+            int integer;
+        };
+
+        struct TestB {
+            struct TestA structure;
+        };
+
+        void main() {
+            struct TestB value;
+            value.structure.integer;
+        }
+    )"sv,
+        ctx.get());
+
+    EXPECT_NO_THROW(nss9.parse());
+    EXPECT_NO_THROW(nss9.resolve());
+
+    script::AstPrinter printer9;
+    printer9.visit(&nss9.ast());
+    LOG_F(INFO, "{}", printer9.ss.str());
+
+    auto sym9_1 = nss9.locate_symbol("integer", 12, 34);
+    EXPECT_TRUE(sym9_1.decl);
+
+    auto sym9_2 = nss9.locate_symbol("structure", 12, 25);
+    EXPECT_TRUE(sym9_2.decl);
 }
 
 TEST(Nss, SignatureHelper)

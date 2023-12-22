@@ -29,25 +29,20 @@ struct AstLocator : public BaseVisitor {
     const CallExpression* call = nullptr; // Keep track if our symbol is in a call expr
     size_t active_param = 0;
 
-    void locate_in_dependencies(bool is_type = false)
+    Symbol locate_in_dependencies(const std::string& needle, bool is_type = false)
     {
         if (!parent_->is_command_script() && parent_->ctx()->command_script_) {
-            auto sym = parent_->ctx()->command_script_->locate_export(symbol_, is_type);
-            if (sym.decl) {
-                result_ = sym;
-            }
+            auto sym = parent_->ctx()->command_script_->locate_export(needle, is_type);
+            if (sym.decl) { return sym; }
         }
         if (!result_.decl) {
             for (const auto it : parent_->ast().includes) {
                 if (!it.script) { continue; }
-                auto sym = it.script->locate_export(symbol_, is_type, true);
-                if (sym.decl) {
-                    result_ = sym;
-                    break;
-                }
+                auto sym = it.script->locate_export(needle, is_type, true);
+                if (sym.decl) { return sym; }
             }
         }
-        found_ = !!result_.decl;
+        return {};
     }
 
     // -- Visitor -------------------------------------------------------------
@@ -73,7 +68,11 @@ struct AstLocator : public BaseVisitor {
                     result_ = parent_->declaration_to_symbol(exp->type);
                     found_ = true;
                 } else {
-                    locate_in_dependencies();
+                    auto sym = locate_in_dependencies(symbol_);
+                    if (sym.decl) {
+                        result_ = std::move(sym);
+                        found_ = true;
+                    }
                 }
             } else if (contains_position(decl->identifier_.loc.range, pos_)) {
                 result_ = parent_->declaration_to_symbol(decl);
@@ -138,7 +137,11 @@ struct AstLocator : public BaseVisitor {
                 result_ = parent_->declaration_to_symbol(exp->type);
                 found_ = true;
             } else {
-                locate_in_dependencies(true);
+                auto sym = locate_in_dependencies(struct_name, true);
+                if (sym.decl) {
+                    result_ = std::move(sym);
+                    found_ = true;
+                }
             }
         } else if (decl->init) {
             decl->init->accept(this);
@@ -176,7 +179,6 @@ struct AstLocator : public BaseVisitor {
             for (const auto cr : expr->comma_ranges) {
                 if (cr.end <= pos_) {
                     active_param = i;
-                    LOG_F(INFO, "active param: {}", active_param);
                 } else {
                     break;
                 }
@@ -200,10 +202,52 @@ struct AstLocator : public BaseVisitor {
 
     virtual void visit(DotExpression* expr)
     {
+        // right hand side of dot expression is always a variable expression
+        // everything on the left must be of some struct type.
         if (expr->lhs) { expr->lhs->accept(this); }
         if (found_) { return; }
-        if (expr->rhs) { expr->rhs->accept(this); }
-        if (found_) { dot = expr; }
+
+        auto ve = dynamic_cast<VariableExpression*>(expr->rhs);
+        if (ve
+            && ve->var.loc.view() == symbol_
+            && contains_position(ve->var.loc.range, pos_)) {
+            auto struct_name = std::string(parent_->ctx()->type_name(expr->lhs->type_id_));
+            const StructDecl* sd = nullptr;
+            const Nss* provider = nullptr;
+
+            auto exp = expr->env_.find(struct_name);
+            if (exp && exp->type) {
+                sd = exp->type;
+                provider = parent_;
+            } else {
+                auto sym = locate_in_dependencies(struct_name, true);
+                if (sym.decl) {
+                    sd = dynamic_cast<const StructDecl*>(sym.decl);
+                    provider = sym.provider;
+                }
+            }
+
+            if (sd) {
+                for (auto decl : sd->decls) {
+                    if (auto vdl = dynamic_cast<DeclList*>(decl)) {
+                        for (auto vd : vdl->decls) {
+                            if (vd->identifier_.loc.view() == symbol_) {
+                                result_ = provider->declaration_to_symbol(vd);
+                                found_ = true;
+                            }
+                        }
+                    } else if (auto vd = dynamic_cast<VarDecl*>(decl)) {
+                        if (vd->identifier_.loc.view() == symbol_) {
+                            result_ = provider->declaration_to_symbol(vd);
+                            found_ = true;
+                        }
+                    }
+                    if (found_) { break; }
+                }
+
+                dot = expr; // bookkeep
+            }
+        }
     }
 
     virtual void visit(EmptyExpression* expr)
@@ -249,7 +293,11 @@ struct AstLocator : public BaseVisitor {
             if (exp && exp->decl) {
                 result_ = parent_->declaration_to_symbol(exp->decl);
             } else {
-                locate_in_dependencies();
+                auto sym = locate_in_dependencies(symbol_);
+                if (sym.decl) {
+                    result_ = std::move(sym);
+                    found_ = true;
+                }
             }
             result_.node = expr;
             found_ = true;
