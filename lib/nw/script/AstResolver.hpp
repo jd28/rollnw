@@ -638,22 +638,11 @@ struct AstResolver : BaseVisitor {
         expr->env_ = env_stack_.back();
 
         auto resolve_struct_member = [this](VariableExpression* var, const StructDecl* str) {
-            for (const auto it : str->decls) {
-                if (auto vdl = dynamic_cast<const DeclList*>(it)) {
-                    for (const auto vd : vdl->decls) {
-                        if (vd->identifier_.loc.view() == var->var.loc.view()) {
-                            var->type_id_ = vd->type_id_;
-                            var->is_const_ = vd->is_const_;
-                            return true;
-                        }
-                    }
-                } else if (auto vd = dynamic_cast<const VarDecl*>(it)) {
-                    if (vd->identifier_.loc.view() == var->var.loc.view()) {
-                        var->type_id_ = vd->type_id_;
-                        var->is_const_ = vd->is_const_;
-                        return true;
-                    }
-                }
+            auto vd = str->locate_member_decl(var->var.loc.view());
+            if (vd) {
+                var->type_id_ = vd->type_id_;
+                var->is_const_ = vd->is_const_;
+                return true;
             }
             return false;
         };

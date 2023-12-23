@@ -228,26 +228,14 @@ struct AstLocator : public BaseVisitor {
             }
 
             if (sd) {
-                for (auto decl : sd->decls) {
-                    if (auto vdl = dynamic_cast<DeclList*>(decl)) {
-                        for (auto vd : vdl->decls) {
-                            if (vd->identifier_.loc.view() == symbol_) {
-                                result_ = provider->declaration_to_symbol(vd);
-                                result_.kind = SymbolKind::field;
-                                found_ = true;
-                            }
-                        }
-                    } else if (auto vd = dynamic_cast<VarDecl*>(decl)) {
-                        if (vd->identifier_.loc.view() == symbol_) {
-                            result_ = provider->declaration_to_symbol(vd);
-                            result_.kind = SymbolKind::field;
-                            found_ = true;
-                        }
-                    }
-                    if (found_) { break; }
-                }
-
                 dot = expr; // bookkeep
+
+                auto vd = sd->locate_member_decl(symbol_);
+                if (vd) {
+                    result_ = provider->declaration_to_symbol(vd);
+                    result_.kind = SymbolKind::field;
+                    found_ = true;
+                }
             }
         }
     }

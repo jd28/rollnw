@@ -451,6 +451,7 @@ struct StructDecl : public Declaration {
     std::vector<Declaration*> decls;
 
     virtual std::string identifier() const override { return std::string(type.struct_id.loc.view()); };
+    const VarDecl* locate_member_decl(std::string_view name) const;
 
     DEFINE_ACCEPT_VISITOR
 };
@@ -476,6 +477,8 @@ struct DeclList : public Declaration {
         }
         return string::join(identifiers);
     };
+
+    const VarDecl* locate_decl(std::string_view name) const;
 
     DEFINE_ACCEPT_VISITOR
 };

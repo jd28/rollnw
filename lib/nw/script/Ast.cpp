@@ -28,6 +28,32 @@ SourceRange Declaration::selection_range() const noexcept
     return range_selection_;
 }
 
+const VarDecl* DeclList::locate_decl(std::string_view name) const
+{
+    for (auto d : decls) {
+        if (d->identifier_.loc.view() == name) {
+            return d;
+        }
+    }
+    return nullptr;
+}
+
+const VarDecl* StructDecl::locate_member_decl(std::string_view name) const
+{
+    const VarDecl* result = nullptr;
+    for (auto d : decls) {
+        if (auto vdl = dynamic_cast<const DeclList*>(d)) {
+            result = vdl->locate_decl(name);
+        } else if (auto vd = dynamic_cast<const VarDecl*>(d)) {
+            if (vd->identifier_.loc.view() == name) {
+                result = vd;
+            }
+        }
+        if (result) { break; }
+    }
+    return result;
+}
+
 std::string_view Ast::find_comment(size_t line) const noexcept
 {
     for (const auto& comment : comments) {
