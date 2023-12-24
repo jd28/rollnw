@@ -103,7 +103,8 @@ class NssTokenType(enum.IntEnum):
 class Context:
     """Provides a context for parsing a NWScript file"""
 
-    def __init__(self, command_script: str = "nwscript"):
+    def __init__(self, include_paths: List[str] = [],
+                 command_script: str = "nwscript"):
         pass
 
     def add_include_path(self, path: str):
@@ -137,7 +138,8 @@ class Diagnostic:
 class LspContext:
     """Provides a context built around providing diagnostics to a language server"""
 
-    def __init__(self, command_script: str = "nwscript"):
+    def __init__(self, include_paths: List[str] = [],
+                 command_script: str = "nwscript"):
         pass
 
 

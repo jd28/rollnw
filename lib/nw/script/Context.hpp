@@ -16,10 +16,11 @@ struct StructDecl;
 struct Type;
 
 struct Context {
-    Context(std::string command_script = "nwscript");
+    Context(std::vector<std::string> include_paths = {}, std::string command_script = "nwscript");
     virtual ~Context() = default;
 
     // Dependency Tracking
+    std::vector<std::string> include_paths_;
     absl::flat_hash_map<Resource, std::unique_ptr<Nss>> dependencies_;
     std::vector<std::string> include_stack_;
     kernel::Resources resman_;

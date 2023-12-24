@@ -45,7 +45,9 @@ class InlayHint:
 
 
 class Context:
-    def __init__(self, command_script: str = "nwscript") -> None: ...
+    def __init__(self, include_paths: List[str] = [
+    ], command_script: str = "nwscript") -> None: ...
+
     def add_include_path(self, path: str): ...
 
 
@@ -71,7 +73,8 @@ class Diagnostic:
 
 
 class LspContext(Context):
-    def __init__(self, command_script: str = "nwscript") -> None: ...
+    def __init__(self, include_paths: List[str] = [
+    ], command_script: str = "nwscript") -> None: ...
 
 
 class SignatureHelp:

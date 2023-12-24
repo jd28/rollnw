@@ -9,13 +9,19 @@ namespace fs = std::filesystem;
 
 namespace nw::script {
 
-Context::Context(std::string command_script)
-    : dependencies_{}
+Context::Context(std::vector<std::string> include_paths, std::string command_script)
+    : include_paths_{std::move(include_paths)}
+    , dependencies_{}
     , command_script_name_{std::move(command_script)}
     , resman_{&kernel::resman()}
     , type_map_{}
 {
     register_default_types();
+
+    for (const auto& path : include_paths_) {
+        if (!fs::exists(path) || !fs::is_directory(path)) { continue; }
+        resman_.add_container(new Directory{path});
+    }
 
     command_script_ = get(Resref{command_script_name_}, true);
     CHECK_F(!!command_script_, "[script] unable to load command script '{}'", command_script_name_);

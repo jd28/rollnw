@@ -6,8 +6,8 @@
 
 namespace nw::script {
 
-LspContext::LspContext(std::string command_script)
-    : Context(std::move(command_script))
+LspContext::LspContext(std::vector<std::string> include_paths, std::string command_script)
+    : Context(std::move(include_paths), std::move(command_script))
 {
 }
 

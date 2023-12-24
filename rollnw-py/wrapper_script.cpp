@@ -1,5 +1,3 @@
-#include "opaque_types.hpp"
-
 #include <nw/kernel/Resources.hpp>
 #include <nw/script/LspContext.hpp>
 #include <nw/script/Nss.hpp>
@@ -19,7 +17,6 @@ namespace nws = nw::script;
 
 void init_script(py::module& nw)
 {
-
     py::class_<nws::SourcePosition>(nw, "SourcePosition")
         .def_readwrite("line", &nws::SourcePosition::line)
         .def_readwrite("column", &nws::SourcePosition::column);
@@ -61,7 +58,8 @@ void init_script(py::module& nw)
 
     py::class_<nws::Context>(nw, "Context")
         .def(py::init<>())
-        .def(py::init<std::string>())
+        .def(py::init<std::vector<std::string>>())
+        .def(py::init<std::vector<std::string>, std::string>())
         .def("add_include_path", &nws::Context::add_include_path);
 
     py::enum_<nw::script::DiagnosticType>(nw, "DiagnosticType")
@@ -82,7 +80,8 @@ void init_script(py::module& nw)
 
     py::class_<nws::LspContext, nws::Context>(nw, "LspContext")
         .def(py::init<>())
-        .def(py::init<std::string>());
+        .def(py::init<std::vector<std::string>>())
+        .def(py::init<std::vector<std::string>, std::string>());
 
     py::enum_<nws::NssTokenType>(nw, "NssTokenType")
         .value("INVALID", nws::NssTokenType::INVALID)
