@@ -118,9 +118,11 @@ class DiagnosticType(enum.IntEnum):
     semantic = auto()
 
 
-class DiagnosticLevel(enum.IntEnum):
-    warning = auto()
+class DiagnosticSeverity(enum.IntEnum):
     error = auto()
+    hint = auto()
+    information = auto()
+    warning = auto()
 
 
 class Diagnostic:
@@ -128,7 +130,7 @@ class Diagnostic:
 
     Attributes:
         type (DiagnosticType)
-        level (DiagnosticLevel)
+        severity (DiagnosticSeverity)
         script (str)
         message (str)
         location (SourceRange): Source range in script

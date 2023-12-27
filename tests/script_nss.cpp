@@ -1255,7 +1255,7 @@ TEST(Nss, LspContext)
     EXPECT_NO_THROW(nss3.resolve());
     EXPECT_EQ(nss3.diagnostics().size(), 1);
     EXPECT_EQ(nss3.diagnostics()[0].type, nw::script::DiagnosticType::semantic);
-    EXPECT_EQ(nss3.diagnostics()[0].level, nw::script::DiagnosticLevel::error);
+    EXPECT_EQ(nss3.diagnostics()[0].severity, nw::script::DiagnosticSeverity::error);
 }
 
 TEST(Nss, Comment)

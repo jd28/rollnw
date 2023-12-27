@@ -17,7 +17,7 @@ void LspContext::lexical_diagnostic(Nss* script, std::string_view msg, bool is_w
 
     Diagnostic result;
     result.type = DiagnosticType::lexical;
-    result.level = is_warning ? DiagnosticLevel::warning : DiagnosticLevel::error;
+    result.severity = is_warning ? DiagnosticSeverity::warning : DiagnosticSeverity::error;
     result.script = script ? script->name() : "<source>";
     result.message = std::string(msg);
     result.location = range;
@@ -36,7 +36,7 @@ void LspContext::parse_diagnostic(Nss* script, std::string_view msg, bool is_war
 
     Diagnostic result;
     result.type = DiagnosticType::parse;
-    result.level = is_warning ? DiagnosticLevel::warning : DiagnosticLevel::error;
+    result.severity = is_warning ? DiagnosticSeverity::warning : DiagnosticSeverity::error;
     result.script = script ? script->name() : "<source>";
     result.message = std::string(msg);
     result.location = range;
@@ -55,7 +55,7 @@ void LspContext::semantic_diagnostic(Nss* script, std::string_view msg, bool is_
 
     Diagnostic result;
     result.type = DiagnosticType::semantic;
-    result.level = is_warning ? DiagnosticLevel::warning : DiagnosticLevel::error;
+    result.severity = is_warning ? DiagnosticSeverity::warning : DiagnosticSeverity::error;
     result.script = script ? script->name() : "<source>";
     result.message = std::string(msg);
     result.location = range;

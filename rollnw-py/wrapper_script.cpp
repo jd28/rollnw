@@ -67,13 +67,15 @@ void init_script(py::module& nw)
         .value("parse", nws::DiagnosticType::parse)
         .value("semantic", nws::DiagnosticType::semantic);
 
-    py::enum_<nw::script::DiagnosticLevel>(nw, "DiagnosticLevel")
-        .value("warning", nws::DiagnosticLevel::warning)
-        .value("error", nws::DiagnosticLevel::error);
+    py::enum_<nw::script::DiagnosticSeverity>(nw, "DiagnosticSeverity")
+        .value("error", nws::DiagnosticSeverity::error)
+        .value("hint", nws::DiagnosticSeverity::hint)
+        .value("information", nws::DiagnosticSeverity::information)
+        .value("warning", nws::DiagnosticSeverity::warning);
 
     py::class_<nws::Diagnostic>(nw, "Diagnostic")
         .def_readonly("type", &nws::Diagnostic::type)
-        .def_readonly("level", &nws::Diagnostic::level)
+        .def_readonly("severity", &nws::Diagnostic::severity)
         .def_readonly("script", &nws::Diagnostic::script)
         .def_readonly("message", &nws::Diagnostic::message)
         .def_readonly("location", &nws::Diagnostic::location);

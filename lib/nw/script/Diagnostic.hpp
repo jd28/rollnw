@@ -12,14 +12,16 @@ enum struct DiagnosticType {
     semantic,
 };
 
-enum struct DiagnosticLevel {
-    warning,
+enum struct DiagnosticSeverity {
     error,
+    hint,
+    information,
+    warning,
 };
 
 struct Diagnostic {
     DiagnosticType type;
-    DiagnosticLevel level;
+    DiagnosticSeverity severity;
     std::string script;
     std::string message;
     SourceRange location;

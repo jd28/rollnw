@@ -204,7 +204,7 @@ void Context::lexical_diagnostic(Nss* script, std::string_view msg, bool is_warn
     if (script) {
         Diagnostic result;
         result.type = DiagnosticType::lexical;
-        result.level = is_warning ? DiagnosticLevel::warning : DiagnosticLevel::error;
+        result.severity = is_warning ? DiagnosticSeverity::warning : DiagnosticSeverity::error;
         result.script = script ? script->name() : "<source>";
         result.message = std::string(msg);
         result.location = range;
@@ -231,7 +231,7 @@ void Context::parse_diagnostic(Nss* script, std::string_view msg, bool is_warnin
     if (script) {
         Diagnostic result;
         result.type = DiagnosticType::parse;
-        result.level = is_warning ? DiagnosticLevel::warning : DiagnosticLevel::error;
+        result.severity = is_warning ? DiagnosticSeverity::warning : DiagnosticSeverity::error;
         result.script = script ? script->name() : "<source>";
         result.message = std::string(msg);
         result.location = range;
@@ -258,7 +258,7 @@ void Context::semantic_diagnostic(Nss* script, std::string_view msg, bool is_war
     if (script) {
         Diagnostic result;
         result.type = DiagnosticType::semantic;
-        result.level = is_warning ? DiagnosticLevel::warning : DiagnosticLevel::error;
+        result.severity = is_warning ? DiagnosticSeverity::warning : DiagnosticSeverity::error;
         result.script = script ? script->name() : "<source>";
         result.message = std::string(msg);
         result.location = range;
