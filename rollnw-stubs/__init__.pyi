@@ -433,7 +433,7 @@ class Door(ObjectBase):
     animation_state: DoorAnimationState
     appearance: int
     common: Common
-    conversation: Resref
+    conversation: str
     description: LocString
     faction: int
     generic_type: int
@@ -477,21 +477,6 @@ class DoorAnimationState:
 
 
 class DoorScripts:
-    on_click: Resref
-    on_closed: Resref
-    on_damaged: Resref
-    on_death: Resref
-    on_disarm: Resref
-    on_heartbeat: Resref
-    on_lock: Resref
-    on_melee_attacked: Resref
-    on_open: Resref
-    on_open_failure: Resref
-    on_spell_cast_at: Resref
-    on_trap_triggered: Resref
-    on_unlock: Resref
-    on_user_defined: Resref
-    def __init__(self, *args, **kwargs) -> None: ...
 
 
 class DoorVector:
@@ -527,6 +512,20 @@ class DoorVector:
     def __setitem__(self, arg0: int, arg1) -> None: ...
     @overload
     def __setitem__(self, arg0: slice, arg1: DoorVector) -> None: ...
+    on_click: str
+    on_closed: str
+    on_damaged: str
+    on_death: str
+    on_disarm: str
+    on_heartbeat: str
+    on_lock: str
+    on_melee_attacked: str
+    on_open: str
+    on_open_failure: str
+    on_spell_cast_at: str
+    on_trap_triggered: str
+    on_unlock: str
+    on_user_defined: str
 
 
 class Effect:
@@ -625,11 +624,11 @@ class Encounter(ObjectBase):
 
 
 class EncounterScripts:
-    on_entered: Resref
-    on_exhausted: Resref
-    on_exit: Resref
-    on_heartbeat: Resref
-    on_user_defined: Resref
+    on_entered: str
+    on_exhausted: str
+    on_exit: str
+    on_heartbeat: str
+    on_user_defined: str
     def __init__(self, *args, **kwargs) -> None: ...
 
 
@@ -1386,25 +1385,24 @@ class Module(ObjectBase):
 
 
 class ModuleScripts:
-    on_client_enter: Resref
-    on_client_leave: Resref
-    on_cutsnabort: Resref
-    on_heartbeat: Resref
-    on_item_acquire: Resref
-    on_item_activate: Resref
-    on_item_unaquire: Resref
-    on_load: Resref
-    on_player_chat: Resref
-    on_player_death: Resref
-    on_player_dying: Resref
-    on_player_equip: Resref
-    on_player_level_up: Resref
-    on_player_rest: Resref
-    on_player_uneqiup: Resref
-    on_spawnbtndn: Resref
-    on_start: Resref
-    on_user_defined: Resref
-    def __init__(self, *args, **kwargs) -> None: ...
+    on_client_enter: str
+    on_client_leave: str
+    on_cutsnabort: str
+    on_heartbeat: str
+    on_item_acquire: str
+    on_item_activate: str
+    on_item_unaquire: str
+    on_load: str
+    on_player_chat: str
+    on_player_death: str
+    on_player_dying: str
+    on_player_equip: str
+    on_player_level_up: str
+    on_player_rest: str
+    on_player_uneqiup: str
+    on_spawnbtndn: str
+    on_start: str
+    on_user_defined: str
 
 
 class NWSync:
@@ -1602,21 +1600,21 @@ class PlaceableAnimationState:
 
 
 class PlaceableScripts:
-    on_click: Resref
-    on_closed: Resref
-    on_damaged: Resref
-    on_death: Resref
-    on_disarm: Resref
-    on_heartbeat: Resref
-    on_inventory_disturbed: Resref
-    on_lock: Resref
-    on_melee_attacked: Resref
-    on_open: Resref
-    on_spell_cast_at: Resref
-    on_trap_triggered: Resref
-    on_unlock: Resref
-    on_used: Resref
-    on_user_defined: Resref
+    on_click: str
+    on_closed: str
+    on_damaged: str
+    on_death: str
+    on_disarm: str
+    on_heartbeat: str
+    on_inventory_disturbed: str
+    on_lock: str
+    on_melee_attacked: str
+    on_open: str
+    on_spell_cast_at: str
+    on_trap_triggered: str
+    on_unlock: str
+    on_used: str
+    on_user_defined: str
     def __init__(self, *args, **kwargs) -> None: ...
 
 
@@ -1760,7 +1758,7 @@ class Ray:
 
 
 class Resource:
-    resref: Resref
+    resref: str
     type: ResourceType
     @overload
     def __init__(self) -> None: ...
@@ -2087,7 +2085,7 @@ class SoundVector:
 class SpawnCreature:
     appearance: int
     cr: float
-    resref: Resref
+    resref: str
     single_spawn: bool
     def __init__(self, *args, **kwargs) -> None: ...
 
@@ -2199,8 +2197,8 @@ class Store(ObjectBase):
 
 
 class StoreScripts:
-    on_closed: Resref
-    on_opened: Resref
+    on_closed: str
+    on_opened: str
     def __init__(self, *args, **kwargs) -> None: ...
 
 
@@ -2394,13 +2392,13 @@ class Trigger(ObjectBase):
 
 
 class TriggerScripts:
-    on_click: Resref
-    on_disarm: Resref
-    on_enter: Resref
-    on_exit: Resref
-    on_heartbeat: Resref
-    on_trap_triggered: Resref
-    on_user_defined: Resref
+    on_click: str
+    on_disarm: str
+    on_enter: str
+    on_exit: str
+    on_heartbeat: str
+    on_trap_triggered: str
+    on_user_defined: str
     def __init__(self, *args, **kwargs) -> None: ...
 
 
