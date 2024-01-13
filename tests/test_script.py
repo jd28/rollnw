@@ -16,7 +16,7 @@ def test_script_lexer():
 
 
 def test_function_decl():
-    ctx = Context("nwscript")
+    ctx = Context([], "nwscript")
     nss = Nss.from_string("void test_function(string s, int b);", ctx, False)
     nss.parse()
     nss.resolve()
@@ -28,7 +28,7 @@ def test_function_decl():
 
 
 def test_function_decl2():
-    ctx = LspContext("nwscript")
+    ctx = LspContext([], "nwscript")
     nss = Nss.from_string("void test_function(string s, int b)", ctx, False)
     try:
         nss.parse()
@@ -39,7 +39,7 @@ def test_function_decl2():
 
 
 def test_var_decl():
-    ctx = Context("nwscript")
+    ctx = Context([], "nwscript")
     nss = Nss.from_string("int TRUE = 1; const int MY_GLOBAL = 1;", ctx, False)
     nss.parse()
     nss.resolve()

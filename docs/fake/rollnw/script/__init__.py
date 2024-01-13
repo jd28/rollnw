@@ -206,7 +206,7 @@ class Ast:
 class Nss:
     """Implementation of nwscript"""
 
-    def __init__(self, path: str):
+    def __init__(self, path: str, ctx: Context, is_command_script: bool):
         """Constructs Nss object"""
         pass
 
@@ -278,7 +278,7 @@ class Nss:
         pass
 
     @staticmethod
-    def from_string(string: str):
+    def from_string(string: str, ctx: Context, is_command_script: bool):
         """Loads Nss from string"""
         pass
 
