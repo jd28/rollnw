@@ -181,7 +181,7 @@ class Ast:
         includes ([str])
     """
 
-    def __getitem__(self, index):
+    def __getitem__(self, index: int):
         """Gets a toplevel declaration"""
         pass
 
@@ -423,11 +423,15 @@ class CallExpression(Expression):
     """
 
     def __len__(self):
-        """Gets the number of parameters"""
+        """Gets the number of arguments"""
         pass
 
     def __getitem__(self, idx: int):
-        """Gets a parameter"""
+        """Gets an argument"""
+        pass
+
+    def __iter__(self):
+        """Gets iterator of arguments"""
         pass
 
 
@@ -548,6 +552,10 @@ class BlockStatement (Statement):
         """Gets a statement in the block"""
         pass
 
+    def __iter__(self):
+        """Gets iterator of statements"""
+        pass
+
 
 class DoStatement (Statement):
     """If statement
@@ -660,6 +668,10 @@ class FunctionDecl (Declaration):
         """Gets a parameter"""
         pass
 
+    def __iter__(self):
+        """Gets iterator of parameters"""
+        pass
+
 
 class FunctionDefinition (Declaration):
     """Function definition
@@ -683,6 +695,10 @@ class StructDecl (Declaration):
         """Gets a struct member declaration"""
         pass
 
+    def __iter__(self):
+        """Gets iterator of statements"""
+        pass
+
 
 class VarDecl (Declaration):
     """Variable declaration
@@ -700,4 +716,8 @@ class DeclList (Declaration):
 
     def __getitem__(self, idx: int):
         """Gets a declaration"""
+        pass
+
+    def __iter__(self):
+        """Gets iterator of statements"""
         pass

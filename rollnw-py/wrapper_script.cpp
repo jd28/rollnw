@@ -18,13 +18,13 @@ namespace nws = nw::script;
 void init_script(py::module& nw)
 {
     py::class_<nws::SourcePosition>(nw, "SourcePosition")
-        .def_readwrite("line", &nws::SourcePosition::line)
-        .def_readwrite("column", &nws::SourcePosition::column);
+        .def_readonly("line", &nws::SourcePosition::line)
+        .def_readonly("column", &nws::SourcePosition::column);
 
     py::class_<nws::SourceRange>(nw, "SourceRange")
         .def(py::init<>())
-        .def_readwrite("start", &nws::SourceRange::start)
-        .def_readwrite("end", &nws::SourceRange::end);
+        .def_readonly("start", &nws::SourceRange::start)
+        .def_readonly("end", &nws::SourceRange::end);
 
     py::class_<nws::SourceLocation>(nw, "SourceLocation")
         .def("length", &nws::SourceLocation::length)
@@ -284,23 +284,12 @@ void init_script(py::module& nw)
             },
             py::return_value_policy::reference_internal)
         .def("__len__", [](const nws::Ast& self) { return self.decls.size(); })
-        .def("__iter__", [](const nws::Ast& self) {
-            auto pylist = py::list();
-            for (auto& ptr : self.decls) {
-                auto pyobj = py::cast(*ptr, py::return_value_policy::reference);
-                pylist.append(pyobj);
-            }
-            return py::iter(pylist);
-        })
+        .def(
+            "__iter__", [](const nws::Ast& self) {
+                return py::make_iterator(self.decls.begin(), self.decls.end());
+            },
+            py::keep_alive<0, 1>())
         .def_readonly("defines", &nws::Ast::defines)
-        .def("includes", [](const nws::Ast& self) {
-            auto pylist = py::list();
-            for (auto& ptr : self.includes) {
-                auto pyobj = py::cast(ptr, py::return_value_policy::reference);
-                pylist.append(pyobj);
-            }
-            return pylist;
-        })
         .def_readonly("includes", &nws::Ast::includes)
         .def_readonly("comments", &nws::Ast::comments)
         .def("find_comment", &nws::Ast::find_comment);
@@ -341,7 +330,12 @@ void init_script(py::module& nw)
         .def("__len__", [](nws::CallExpression& self) { return self.args.size(); })
         .def(
             "__getitem__", [](nws::CallExpression& self, size_t idx) { return self.args[idx]; },
-            py::return_value_policy::reference_internal);
+            py::return_value_policy::reference_internal)
+        .def(
+            "__iter__", [](nws::CallExpression& self) {
+                return py::make_iterator(self.args.begin(), self.args.end());
+            },
+            py::keep_alive<0, 1>());
 
     py::class_<nws::ConditionalExpression, nws::Expression>(nw, "ConditionalExpression")
         .def_property_readonly(
@@ -408,13 +402,12 @@ void init_script(py::module& nw)
         .def(
             "__getitem__", [](nws::BlockStatement& self, size_t idx) { return self.nodes[idx]; },
             py::return_value_policy::reference_internal)
-        .def_readonly("range", &nws::BlockStatement::range_);
-
-    py::class_<nws::DeclList, nws::Statement>(nw, "DeclList")
-        .def("__len__", [](nws::DeclList& self) { return self.decls.size(); })
         .def(
-            "__getitem__", [](nws::DeclList& self, size_t idx) { return self.decls[idx]; },
-            py::return_value_policy::reference_internal);
+            "__iter__", [](const nws::BlockStatement& self) {
+                return py::make_iterator(self.nodes.begin(), self.nodes.end());
+            },
+            py::keep_alive<0, 1>())
+        .def_readonly("range", &nws::BlockStatement::range_);
 
     py::class_<nws::DoStatement, nws::Statement>(nw, "DoStatement")
         .def_property_readonly(
@@ -495,7 +488,12 @@ void init_script(py::module& nw)
         .def("__len__", [](nws::FunctionDecl& self) { return self.params.size(); })
         .def(
             "__getitem__", [](nws::FunctionDecl& self, size_t idx) { return self.params[idx]; },
-            py::return_value_policy::reference_internal);
+            py::return_value_policy::reference_internal)
+        .def(
+            "__iter__", [](const nws::FunctionDecl& self) {
+                return py::make_iterator(self.params.begin(), self.params.end());
+            },
+            py::keep_alive<0, 1>());
 
     py::class_<nws::FunctionDefinition, nws::Declaration>(nw, "FunctionDefinition")
         .def_property_readonly(
@@ -509,12 +507,30 @@ void init_script(py::module& nw)
         .def("__len__", [](nws::StructDecl& self) { return self.decls.size(); })
         .def(
             "__getitem__", [](nws::StructDecl& self, size_t idx) { return self.decls[idx]; },
-            py::return_value_policy::reference_internal);
+            py::return_value_policy::reference_internal)
+        .def(
+            "__iter__", [](const nws::StructDecl& self) {
+                return py::make_iterator(self.decls.begin(), self.decls.end());
+            },
+            py::keep_alive<0, 1>())
+        .def("locate_member_decl", &nws::StructDecl::locate_member_decl, py::return_value_policy::reference_internal);
 
     py::class_<nws::VarDecl, nws::Declaration>(nw, "VarDecl")
         .def_property_readonly(
             "init", [](nws::VarDecl& self) { return self.init; },
             py::return_value_policy::reference_internal);
+
+    py::class_<nws::DeclList, nws::Declaration>(nw, "DeclList")
+        .def("__len__", [](nws::DeclList& self) { return self.decls.size(); })
+        .def(
+            "__getitem__", [](nws::DeclList& self, size_t idx) { return self.decls[idx]; },
+            py::return_value_policy::reference_internal)
+        .def(
+            "__iter__", [](const nws::BlockStatement& self) {
+                return py::make_iterator(self.nodes.begin(), self.nodes.end());
+            },
+            py::keep_alive<0, 1>())
+        .def("locate_decl", &nws::DeclList::locate_decl, py::return_value_policy::reference_internal);
 
     nw.def(
         "load", [](std::string_view script, nws::Context* ctx, bool command_script) {

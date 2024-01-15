@@ -30,10 +30,7 @@ def test_function_decl():
 def test_function_decl2():
     ctx = LspContext([], "nwscript")
     nss = Nss.from_string("void test_function(string s, int b)", ctx, False)
-    try:
-        nss.parse()
-    except:
-        pass
+    nss.parse()
     nss.resolve()
     assert len(nss.diagnostics()) == 1
 

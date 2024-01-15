@@ -16,7 +16,7 @@ examples
 
         # Create a context and load a script
         ctx = Context()
-        nss = Nss("path/to/myscript.nss", ctx)
+        nss = Nss("path/to/myscript.nss", ctx, False)
 
         # Parse
         nss.parse()
@@ -38,7 +38,7 @@ examples
         #include <nw/script/Nss.hpp>
 
         auto ctx = std::make_unique<nw::script::Context>();
-        nw::script::Nss nss{nw::kerne::resman().demand({"nwscript"sv, nw::ResourceType::nss), ctx.get()};
+        nw::script::Nss nss{nw::kerne::resman().demand({"nwscript"sv, nw::ResourceType::nss), ctx.get(), true};
 
         // Parse
         nss.parse();
@@ -62,14 +62,14 @@ examples
 
     # Load
     ctx = Context()
-    nss = rollnw.script.load("nwscript", ctx)
+    nss = rollnw.script.load("nwscript", ctx, True)
 
     # Iterate toplevel declarations and look for function declarations
     # This is all functions WITHOUT bodies.
     for decl in nss.ast():
-    	if isinstance(decl, FunctionDecl):
-    		# the identifier is token for now..
-    		print(f"function '{decl.identifier.loc.view()}' has {len(decl)} parameter(s)")
+        if isinstance(decl, FunctionDecl):
+            # the identifier is token for now..
+            print(f"function '{decl.identifier.loc.view()}' has {len(decl)} parameter(s)")
 
     # Or if you know what you're looking for..
     int_to_string = nss.locate_export("IntToString")
