@@ -1,20 +1,24 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html5" lang="en" data-content_root="../../">
 <head>
-  <meta charset="utf-8" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>nw::kernel::EventSystem &mdash; rollNW  documentation</title>
-      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
-      <link rel="stylesheet" href="../../_static/tabs.css" type="text/css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="../../_static/tabs.css?v=a5c4661c" />
+
+  
   <!--[if lt IE 9]>
     <script src="../../_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
-        <script src="../../_static/jquery.js"></script>
-        <script src="../../_static/underscore.js"></script>
-        <script src="../../_static/doctools.js"></script>
+        <script src="../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+        <script src="../../_static/doctools.js?v=888ff710"></script>
+        <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
@@ -207,7 +211,18 @@
 <li class="toctree-l2"><a class="reference internal" href="nw__ZstdHeader.html">nw::ZstdHeader</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__kernel__Config.html">nw::kernel::Config</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__kernel__EffectSystem.html">nw::kernel::EffectSystem</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">nw::kernel::EventSystem</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">nw::kernel::EventSystem</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#_CPPv4N2nw6kernel11EventSystemE"><code class="docutils literal notranslate"><span class="pre">EventSystem</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4I0EN2nw6kernel11EventSystem7storageE"><code class="docutils literal notranslate"><span class="pre">EventSystem::storage</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6kernel11EventSystem3addE9EventTypeP10ObjectBasePv"><code class="docutils literal notranslate"><span class="pre">EventSystem::add()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6kernel11EventSystem7processEv"><code class="docutils literal notranslate"><span class="pre">EventSystem::process()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6kernel11EventSystem10initializeEv"><code class="docutils literal notranslate"><span class="pre">EventSystem::initialize()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6kernel11EventSystem5clearEv"><code class="docutils literal notranslate"><span class="pre">EventSystem::clear()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6kernel11EventSystem6queue_E"><code class="docutils literal notranslate"><span class="pre">EventSystem::queue_</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="nw__kernel__ObjectSystem.html">nw::kernel::ObjectSystem</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__kernel__Resources.html">nw::kernel::Resources</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__kernel__Rules.html">nw::kernel::Rules</a></li>
@@ -358,16 +373,16 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <div class="section" id="nw-kernel-eventsystem">
-<h1>nw::kernel::EventSystem<a class="headerlink" href="#nw-kernel-eventsystem" title="Permalink to this headline"></a></h1>
+  <section id="nw-kernel-eventsystem">
+<h1>nw::kernel::EventSystem<a class="headerlink" href="#nw-kernel-eventsystem" title="Link to this heading"></a></h1>
 <dl class="cpp struct">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw6kernel11EventSystemE">
-<span id="_CPPv3N2nw6kernel11EventSystemE"></span><span id="_CPPv2N2nw6kernel11EventSystemE"></span><span id="nw::kernel::EventSystem"></span><span class="target" id="structnw_1_1kernel_1_1_event_system"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">EventSystem</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><span class="n"><span class="pre">nw</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">kernel</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="nw__kernel__Service.html#_CPPv4N2nw6kernel7ServiceE" title="nw::kernel::Service"><span class="n"><span class="pre">Service</span></span></a><a class="headerlink" href="#_CPPv4N2nw6kernel11EventSystemE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw6kernel11EventSystemE"></span><span id="_CPPv2N2nw6kernel11EventSystemE"></span><span id="nw::kernel::EventSystem"></span><span class="target" id="structnw_1_1kernel_1_1_event_system"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">EventSystem</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><span class="n"><span class="pre">nw</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">kernel</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="nw__kernel__Service.html#_CPPv4N2nw6kernel7ServiceE" title="nw::kernel::Service"><span class="n"><span class="pre">Service</span></span></a><a class="headerlink" href="#_CPPv4N2nw6kernel11EventSystemE" title="Link to this definition"></a><br /></dt>
 <dd><div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-types">Public Types</p>
 <dl class="cpp type">
 <dt class="sig sig-object cpp" id="_CPPv4I0EN2nw6kernel11EventSystem7storageE">
-<span id="_CPPv3I0EN2nw6kernel11EventSystem7storageE"></span><span id="_CPPv2I0EN2nw6kernel11EventSystem7storageE"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">T</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="structnw_1_1kernel_1_1_event_system_1a50dc014ae5d389f442e4553ccf1bb089"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">storage</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">priority_queue</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4I0EN2nw6kernel11EventSystem7storageE" title="nw::kernel::EventSystem::storage::T"><span class="n"><span class="pre">T</span></span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4I0EN2nw6kernel11EventSystem7storageE" title="nw::kernel::EventSystem::storage::T"><span class="n"><span class="pre">T</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">greater</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4I0EN2nw6kernel11EventSystem7storageE" title="nw::kernel::EventSystem::storage::T"><span class="n"><span class="pre">T</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">&gt;</span></span><a class="headerlink" href="#_CPPv4I0EN2nw6kernel11EventSystem7storageE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3I0EN2nw6kernel11EventSystem7storageE"></span><span id="_CPPv2I0EN2nw6kernel11EventSystem7storageE"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">T</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="structnw_1_1kernel_1_1_event_system_1a50dc014ae5d389f442e4553ccf1bb089"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">storage</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">priority_queue</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4I0EN2nw6kernel11EventSystem7storageE" title="nw::kernel::EventSystem::storage::T"><span class="n"><span class="pre">T</span></span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4I0EN2nw6kernel11EventSystem7storageE" title="nw::kernel::EventSystem::storage::T"><span class="n"><span class="pre">T</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">greater</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4I0EN2nw6kernel11EventSystem7storageE" title="nw::kernel::EventSystem::storage::T"><span class="n"><span class="pre">T</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">&gt;</span></span><a class="headerlink" href="#_CPPv4I0EN2nw6kernel11EventSystem7storageE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 </div>
@@ -375,23 +390,23 @@
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw6kernel11EventSystem3addE9EventTypeP10ObjectBasePv">
-<span id="_CPPv3N2nw6kernel11EventSystem3addE9EventTypeP10ObjectBasePv"></span><span id="_CPPv2N2nw6kernel11EventSystem3addE9EventTypeP10ObjectBasePv"></span><span id="nw::kernel::EventSystem::add__EventType.ObjectBaseP.voidP"></span><span class="target" id="structnw_1_1kernel_1_1_event_system_1a25b7a01871484bd62dcf01a5f8c91146"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">add</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">EventType</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">type</span></span>, <span class="n"><span class="pre">ObjectBase</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">object</span></span>, <span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">data</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">nullptr</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6kernel11EventSystem3addE9EventTypeP10ObjectBasePv" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw6kernel11EventSystem3addE9EventTypeP10ObjectBasePv"></span><span id="_CPPv2N2nw6kernel11EventSystem3addE9EventTypeP10ObjectBasePv"></span><span id="nw::kernel::EventSystem::add__EventType.ObjectBaseP.voidP"></span><span class="target" id="structnw_1_1kernel_1_1_event_system_1a25b7a01871484bd62dcf01a5f8c91146"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">add</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">EventType</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">type</span></span>, <span class="n"><span class="pre">ObjectBase</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">object</span></span>, <span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">data</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">nullptr</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6kernel11EventSystem3addE9EventTypeP10ObjectBasePv" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw6kernel11EventSystem7processEv">
-<span id="_CPPv3N2nw6kernel11EventSystem7processEv"></span><span id="_CPPv2N2nw6kernel11EventSystem7processEv"></span><span id="nw::kernel::EventSystem::process"></span><span class="target" id="structnw_1_1kernel_1_1_event_system_1a7b2cd71d966f48453a4b17a8e4ca5c7f"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">process</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6kernel11EventSystem7processEv" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw6kernel11EventSystem7processEv"></span><span id="_CPPv2N2nw6kernel11EventSystem7processEv"></span><span id="nw::kernel::EventSystem::process"></span><span class="target" id="structnw_1_1kernel_1_1_event_system_1a7b2cd71d966f48453a4b17a8e4ca5c7f"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">process</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6kernel11EventSystem7processEv" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw6kernel11EventSystem10initializeEv">
-<span id="_CPPv3N2nw6kernel11EventSystem10initializeEv"></span><span id="_CPPv2N2nw6kernel11EventSystem10initializeEv"></span><span id="nw::kernel::EventSystem::initialize"></span><span class="target" id="structnw_1_1kernel_1_1_service_1a4f89111c1a6b8d0e2cd0ada248d887c2"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">initialize</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6kernel11EventSystem10initializeEv" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw6kernel11EventSystem10initializeEv"></span><span id="_CPPv2N2nw6kernel11EventSystem10initializeEv"></span><span id="nw::kernel::EventSystem::initialize"></span><span class="target" id="structnw_1_1kernel_1_1_service_1a4f89111c1a6b8d0e2cd0ada248d887c2"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">initialize</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6kernel11EventSystem10initializeEv" title="Link to this definition"></a><br /></dt>
 <dd><p>Initializes a service. </p>
 </dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw6kernel11EventSystem5clearEv">
-<span id="_CPPv3N2nw6kernel11EventSystem5clearEv"></span><span id="_CPPv2N2nw6kernel11EventSystem5clearEv"></span><span id="nw::kernel::EventSystem::clear"></span><span class="target" id="structnw_1_1kernel_1_1_service_1ae73d8fd36b7313f837ae1f25bc95f67d"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">clear</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6kernel11EventSystem5clearEv" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw6kernel11EventSystem5clearEv"></span><span id="_CPPv2N2nw6kernel11EventSystem5clearEv"></span><span id="nw::kernel::EventSystem::clear"></span><span class="target" id="structnw_1_1kernel_1_1_service_1ae73d8fd36b7313f837ae1f25bc95f67d"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">clear</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6kernel11EventSystem5clearEv" title="Link to this definition"></a><br /></dt>
 <dd><p>Clears a service. </p>
 </dd></dl>
 
@@ -400,13 +415,13 @@
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw6kernel11EventSystem6queue_E">
-<span id="_CPPv3N2nw6kernel11EventSystem6queue_E"></span><span id="_CPPv2N2nw6kernel11EventSystem6queue_E"></span><span id="nw::kernel::EventSystem::queue___storage:EventHandle:"></span><span class="target" id="structnw_1_1kernel_1_1_event_system_1a0e72b10d8be1cb18fc4bfd6183aa6c0f"></span><a class="reference internal" href="#_CPPv4I0EN2nw6kernel11EventSystem7storageE" title="nw::kernel::EventSystem::storage"><span class="n"><span class="pre">storage</span></span></a><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">EventHandle</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">queue_</span></span></span><a class="headerlink" href="#_CPPv4N2nw6kernel11EventSystem6queue_E" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw6kernel11EventSystem6queue_E"></span><span id="_CPPv2N2nw6kernel11EventSystem6queue_E"></span><span id="nw::kernel::EventSystem::queue___storage:EventHandle:"></span><span class="target" id="structnw_1_1kernel_1_1_event_system_1a0e72b10d8be1cb18fc4bfd6183aa6c0f"></span><a class="reference internal" href="#_CPPv4I0EN2nw6kernel11EventSystem7storageE" title="nw::kernel::EventSystem::storage"><span class="n"><span class="pre">storage</span></span></a><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">EventHandle</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">queue_</span></span></span><a class="headerlink" href="#_CPPv4N2nw6kernel11EventSystem6queue_E" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 </div>
 </dd></dl>
 
-</div>
+</section>
 
 
            </div>

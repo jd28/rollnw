@@ -1,20 +1,24 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html5" lang="en" data-content_root="../../">
 <head>
-  <meta charset="utf-8" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>nw::resolve_effects_of &mdash; rollNW  documentation</title>
-      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
-      <link rel="stylesheet" href="../../_static/tabs.css" type="text/css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="../../_static/tabs.css?v=a5c4661c" />
+
+  
   <!--[if lt IE 9]>
     <script src="../../_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
-        <script src="../../_static/jquery.js"></script>
-        <script src="../../_static/underscore.js"></script>
-        <script src="../../_static/doctools.js"></script>
+        <script src="../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+        <script src="../../_static/doctools.js?v=888ff710"></script>
+        <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
@@ -116,7 +120,10 @@
 <li class="toctree-l2"><a class="reference internal" href="nw__operator_lt.html">nw::operator&lt;</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__ostream_write.html">nw::ostream_write</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__probe_nwn_install.html">nw::probe_nwn_install</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">nw::resolve_effects_of</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">nw::resolve_effects_of</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#_CPPv4I00000EN2nw18resolve_effects_ofE2It2It2ItN2nw10EffectTypeEi6Versus8CallBack9Extractor4Comp"><code class="docutils literal notranslate"><span class="pre">resolve_effects_of()</span></code></a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="nw__reverse.html">nw::reverse</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__roll_dice.html">nw::roll_dice</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__roll_dice_explode.html">nw::roll_dice_explode</a></li>
@@ -257,15 +264,15 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <div class="section" id="nw-resolve-effects-of">
-<h1>nw::resolve_effects_of<a class="headerlink" href="#nw-resolve-effects-of" title="Permalink to this headline"></a></h1>
+  <section id="nw-resolve-effects-of">
+<h1>nw::resolve_effects_of<a class="headerlink" href="#nw-resolve-effects-of" title="Link to this heading"></a></h1>
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4I00000EN2nw18resolve_effects_ofE2It2It2ItN2nw10EffectTypeEi6Versus8CallBack9Extractor4Comp">
-<span id="_CPPv3I00000EN2nw18resolve_effects_ofE2It2ItN2nw10EffectTypeEi6Versus8CallBack9Extractor4Comp"></span><span id="_CPPv2I00000EN2nw18resolve_effects_ofE2It2ItN2nw10EffectTypeEi6Versus8CallBack9Extractor4Comp"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">T</span></span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">It</span></span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">CallBack</span></span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Extractor</span></span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Comp</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">greater</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4I00000EN2nw18resolve_effects_ofE2It2It2ItN2nw10EffectTypeEi6Versus8CallBack9Extractor4Comp" title="nw::resolve_effects_of::T"><span class="n"><span class="pre">T</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="namespacenw_1ae7f1be4d9cb668624531198e87b06d14"></span><a class="reference internal" href="#_CPPv4I00000EN2nw18resolve_effects_ofE2It2It2ItN2nw10EffectTypeEi6Versus8CallBack9Extractor4Comp" title="nw::resolve_effects_of::It"><span class="n"><span class="pre">It</span></span></a><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">nw</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">resolve_effects_of</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4I00000EN2nw18resolve_effects_ofE2It2It2ItN2nw10EffectTypeEi6Versus8CallBack9Extractor4Comp" title="nw::resolve_effects_of::It"><span class="n"><span class="pre">It</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">begin</span></span>, <a class="reference internal" href="#_CPPv4I00000EN2nw18resolve_effects_ofE2It2It2ItN2nw10EffectTypeEi6Versus8CallBack9Extractor4Comp" title="nw::resolve_effects_of::It"><span class="n"><span class="pre">It</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">end</span></span>, <span class="n"><span class="pre">nw</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">EffectType</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">type</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">subtype</span></span>, <a class="reference internal" href="../struct/nw__Versus.html#_CPPv4N2nw6VersusE" title="nw::Versus"><span class="n"><span class="pre">Versus</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">vs</span></span>, <a class="reference internal" href="#_CPPv4I00000EN2nw18resolve_effects_ofE2It2It2ItN2nw10EffectTypeEi6Versus8CallBack9Extractor4Comp" title="nw::resolve_effects_of::CallBack"><span class="n"><span class="pre">CallBack</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">cb</span></span>, <a class="reference internal" href="#_CPPv4I00000EN2nw18resolve_effects_ofE2It2It2ItN2nw10EffectTypeEi6Versus8CallBack9Extractor4Comp" title="nw::resolve_effects_of::Extractor"><span class="n"><span class="pre">Extractor</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">extractor</span></span>, <a class="reference internal" href="#_CPPv4I00000EN2nw18resolve_effects_ofE2It2It2ItN2nw10EffectTypeEi6Versus8CallBack9Extractor4Comp" title="nw::resolve_effects_of::Comp"><span class="n"><span class="pre">Comp</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">comparator</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">greater</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4I00000EN2nw18resolve_effects_ofE2It2It2ItN2nw10EffectTypeEi6Versus8CallBack9Extractor4Comp" title="nw::resolve_effects_of::T"><span class="n"><span class="pre">T</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">{</span></span><span class="p"><span class="pre">}</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">noexcept</span></span><a class="headerlink" href="#_CPPv4I00000EN2nw18resolve_effects_ofE2It2It2ItN2nw10EffectTypeEi6Versus8CallBack9Extractor4Comp" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3I00000EN2nw18resolve_effects_ofE2It2ItN2nw10EffectTypeEi6Versus8CallBack9Extractor4Comp"></span><span id="_CPPv2I00000EN2nw18resolve_effects_ofE2It2ItN2nw10EffectTypeEi6Versus8CallBack9Extractor4Comp"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">T</span></span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">It</span></span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">CallBack</span></span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Extractor</span></span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Comp</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">greater</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4I00000EN2nw18resolve_effects_ofE2It2It2ItN2nw10EffectTypeEi6Versus8CallBack9Extractor4Comp" title="nw::resolve_effects_of::T"><span class="n"><span class="pre">T</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="namespacenw_1ae7f1be4d9cb668624531198e87b06d14"></span><a class="reference internal" href="#_CPPv4I00000EN2nw18resolve_effects_ofE2It2It2ItN2nw10EffectTypeEi6Versus8CallBack9Extractor4Comp" title="nw::resolve_effects_of::It"><span class="n"><span class="pre">It</span></span></a><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">nw</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">resolve_effects_of</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4I00000EN2nw18resolve_effects_ofE2It2It2ItN2nw10EffectTypeEi6Versus8CallBack9Extractor4Comp" title="nw::resolve_effects_of::It"><span class="n"><span class="pre">It</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">begin</span></span>, <a class="reference internal" href="#_CPPv4I00000EN2nw18resolve_effects_ofE2It2It2ItN2nw10EffectTypeEi6Versus8CallBack9Extractor4Comp" title="nw::resolve_effects_of::It"><span class="n"><span class="pre">It</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">end</span></span>, <span class="n"><span class="pre">nw</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">EffectType</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">type</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">subtype</span></span>, <a class="reference internal" href="../struct/nw__Versus.html#_CPPv4N2nw6VersusE" title="nw::Versus"><span class="n"><span class="pre">Versus</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">vs</span></span>, <a class="reference internal" href="#_CPPv4I00000EN2nw18resolve_effects_ofE2It2It2ItN2nw10EffectTypeEi6Versus8CallBack9Extractor4Comp" title="nw::resolve_effects_of::CallBack"><span class="n"><span class="pre">CallBack</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">cb</span></span>, <a class="reference internal" href="#_CPPv4I00000EN2nw18resolve_effects_ofE2It2It2ItN2nw10EffectTypeEi6Versus8CallBack9Extractor4Comp" title="nw::resolve_effects_of::Extractor"><span class="n"><span class="pre">Extractor</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">extractor</span></span>, <a class="reference internal" href="#_CPPv4I00000EN2nw18resolve_effects_ofE2It2It2ItN2nw10EffectTypeEi6Versus8CallBack9Extractor4Comp" title="nw::resolve_effects_of::Comp"><span class="n"><span class="pre">Comp</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">comparator</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">greater</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4I00000EN2nw18resolve_effects_ofE2It2It2ItN2nw10EffectTypeEi6Versus8CallBack9Extractor4Comp" title="nw::resolve_effects_of::T"><span class="n"><span class="pre">T</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">{</span></span><span class="p"><span class="pre">}</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">noexcept</span></span><a class="headerlink" href="#_CPPv4I00000EN2nw18resolve_effects_ofE2It2It2ItN2nw10EffectTypeEi6Versus8CallBack9Extractor4Comp" title="Link to this definition"></a><br /></dt>
 <dd><p>Finds all applicable effects of a given type / subtype. </p>
 <p>Applicable effects are passed to a user supplied callback.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Template Parameters</dt>
+<dt class="field-odd">Template Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>T</strong> – An arbitrary type that can be held in an effect, e.g. a simple integer, a damage roll, etc. </p></li>
 <li><p><strong>It</strong> – An iterator type </p></li>
@@ -274,7 +281,7 @@
 <li><p><strong>Comp</strong> – A comparator taking two <code class="docutils literal notranslate"><span class="pre">T</span></code> values and returns <code class="docutils literal notranslate"><span class="pre">true</span></code> if the first is greater (Default std::greater&lt;T&gt;) </p></li>
 </ul>
 </dd>
-<dt class="field-even">Parameters</dt>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
 <dd class="field-even"><ul class="simple">
 <li><p><strong>begin</strong> – Start of a range of effect handles of a type/subtype </p></li>
 <li><p><strong>end</strong> – End range of effect handles </p></li>
@@ -286,13 +293,13 @@
 <li><p><strong>comparator</strong> – A function taking two <code class="docutils literal notranslate"><span class="pre">T</span></code> values and returns <code class="docutils literal notranslate"><span class="pre">true</span></code> if the first is greater (Default std::greater&lt;T&gt;) </p></li>
 </ul>
 </dd>
-<dt class="field-odd">Returns</dt>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
 <dd class="field-odd"><p>iterator to passed last processed effect </p>
 </dd>
 </dl>
 </dd></dl>
 
-</div>
+</section>
 
 
            </div>

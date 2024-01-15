@@ -1,20 +1,24 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html5" lang="en" data-content_root="../../">
 <head>
-  <meta charset="utf-8" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>nw::SpecialAbility &mdash; rollNW  documentation</title>
-      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
-      <link rel="stylesheet" href="../../_static/tabs.css" type="text/css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="../../_static/tabs.css?v=a5c4661c" />
+
+  
   <!--[if lt IE 9]>
     <script src="../../_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
-        <script src="../../_static/jquery.js"></script>
-        <script src="../../_static/underscore.js"></script>
-        <script src="../../_static/doctools.js"></script>
+        <script src="../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+        <script src="../../_static/doctools.js?v=888ff710"></script>
+        <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
@@ -179,7 +183,15 @@
 <li class="toctree-l2"><a class="reference internal" href="nw__Sound.html">nw::Sound</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__SpawnCreature.html">nw::SpawnCreature</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__SpawnPoint.html">nw::SpawnPoint</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">nw::SpecialAbility</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">nw::SpecialAbility</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#_CPPv4N2nw14SpecialAbilityE"><code class="docutils literal notranslate"><span class="pre">SpecialAbility</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw14SpecialAbility5spellE"><code class="docutils literal notranslate"><span class="pre">SpecialAbility::spell</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw14SpecialAbility5levelE"><code class="docutils literal notranslate"><span class="pre">SpecialAbility::level</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw14SpecialAbility5flagsE"><code class="docutils literal notranslate"><span class="pre">SpecialAbility::flags</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Spell.html">nw::Spell</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__SpellBook.html">nw::SpellBook</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__SpellEntry.html">nw::SpellEntry</a></li>
@@ -358,32 +370,32 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <div class="section" id="nw-specialability">
-<h1>nw::SpecialAbility<a class="headerlink" href="#nw-specialability" title="Permalink to this headline"></a></h1>
+  <section id="nw-specialability">
+<h1>nw::SpecialAbility<a class="headerlink" href="#nw-specialability" title="Link to this heading"></a></h1>
 <dl class="cpp struct">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw14SpecialAbilityE">
-<span id="_CPPv3N2nw14SpecialAbilityE"></span><span id="_CPPv2N2nw14SpecialAbilityE"></span><span id="nw::SpecialAbility"></span><span class="target" id="structnw_1_1_special_ability"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SpecialAbility</span></span></span><a class="headerlink" href="#_CPPv4N2nw14SpecialAbilityE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw14SpecialAbilityE"></span><span id="_CPPv2N2nw14SpecialAbilityE"></span><span id="nw::SpecialAbility"></span><span class="target" id="structnw_1_1_special_ability"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SpecialAbility</span></span></span><a class="headerlink" href="#_CPPv4N2nw14SpecialAbilityE" title="Link to this definition"></a><br /></dt>
 <dd><div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw14SpecialAbility5spellE">
-<span id="_CPPv3N2nw14SpecialAbility5spellE"></span><span id="_CPPv2N2nw14SpecialAbility5spellE"></span><span id="nw::SpecialAbility::spell__uint16_t"></span><span class="target" id="structnw_1_1_special_ability_1a50e80c11fd998aee57ee3b3e439d7700"></span><span class="n"><span class="pre">uint16_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">spell</span></span></span><a class="headerlink" href="#_CPPv4N2nw14SpecialAbility5spellE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw14SpecialAbility5spellE"></span><span id="_CPPv2N2nw14SpecialAbility5spellE"></span><span id="nw::SpecialAbility::spell__uint16_t"></span><span class="target" id="structnw_1_1_special_ability_1a50e80c11fd998aee57ee3b3e439d7700"></span><span class="n"><span class="pre">uint16_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">spell</span></span></span><a class="headerlink" href="#_CPPv4N2nw14SpecialAbility5spellE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw14SpecialAbility5levelE">
-<span id="_CPPv3N2nw14SpecialAbility5levelE"></span><span id="_CPPv2N2nw14SpecialAbility5levelE"></span><span id="nw::SpecialAbility::level__uint8_t"></span><span class="target" id="structnw_1_1_special_ability_1aa5a704f8a05725bb561057656269bfe9"></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">level</span></span></span><a class="headerlink" href="#_CPPv4N2nw14SpecialAbility5levelE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw14SpecialAbility5levelE"></span><span id="_CPPv2N2nw14SpecialAbility5levelE"></span><span id="nw::SpecialAbility::level__uint8_t"></span><span class="target" id="structnw_1_1_special_ability_1aa5a704f8a05725bb561057656269bfe9"></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">level</span></span></span><a class="headerlink" href="#_CPPv4N2nw14SpecialAbility5levelE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw14SpecialAbility5flagsE">
-<span id="_CPPv3N2nw14SpecialAbility5flagsE"></span><span id="_CPPv2N2nw14SpecialAbility5flagsE"></span><span id="nw::SpecialAbility::flags__SpellFlags"></span><span class="target" id="structnw_1_1_special_ability_1a38b77cee1db30686cd9fa2d8cfcce6be"></span><a class="reference internal" href="../enum/nw__SpellFlags.html#_CPPv4N2nw10SpellFlagsE" title="nw::SpellFlags"><span class="n"><span class="pre">SpellFlags</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">flags</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="../enum/nw__SpellFlags.html#_CPPv4N2nw10SpellFlagsE" title="nw::SpellFlags"><span class="n"><span class="pre">SpellFlags</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../enum/nw__SpellFlags.html#_CPPv4N2nw10SpellFlags4noneE" title="nw::SpellFlags::none"><span class="n"><span class="pre">none</span></span></a><a class="headerlink" href="#_CPPv4N2nw14SpecialAbility5flagsE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw14SpecialAbility5flagsE"></span><span id="_CPPv2N2nw14SpecialAbility5flagsE"></span><span id="nw::SpecialAbility::flags__SpellFlags"></span><span class="target" id="structnw_1_1_special_ability_1a38b77cee1db30686cd9fa2d8cfcce6be"></span><a class="reference internal" href="../enum/nw__SpellFlags.html#_CPPv4N2nw10SpellFlagsE" title="nw::SpellFlags"><span class="n"><span class="pre">SpellFlags</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">flags</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="../enum/nw__SpellFlags.html#_CPPv4N2nw10SpellFlagsE" title="nw::SpellFlags"><span class="n"><span class="pre">SpellFlags</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../enum/nw__SpellFlags.html#_CPPv4N2nw10SpellFlags4noneE" title="nw::SpellFlags::none"><span class="n"><span class="pre">none</span></span></a><a class="headerlink" href="#_CPPv4N2nw14SpecialAbility5flagsE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 </div>
 </dd></dl>
 
-</div>
+</section>
 
 
            </div>

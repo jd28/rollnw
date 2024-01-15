@@ -1,20 +1,24 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html5" lang="en" data-content_root="../../">
 <head>
-  <meta charset="utf-8" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>nw::StoreInventory &mdash; rollNW  documentation</title>
-      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
-      <link rel="stylesheet" href="../../_static/tabs.css" type="text/css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="../../_static/tabs.css?v=a5c4661c" />
+
+  
   <!--[if lt IE 9]>
     <script src="../../_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
-        <script src="../../_static/jquery.js"></script>
-        <script src="../../_static/underscore.js"></script>
-        <script src="../../_static/doctools.js"></script>
+        <script src="../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+        <script src="../../_static/doctools.js?v=888ff710"></script>
+        <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
@@ -185,7 +189,22 @@
 <li class="toctree-l2"><a class="reference internal" href="nw__SpellEntry.html">nw::SpellEntry</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__SpellInfo.html">nw::SpellInfo</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Store.html">nw::Store</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">nw::StoreInventory</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">nw::StoreInventory</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#_CPPv4N2nw14StoreInventoryE"><code class="docutils literal notranslate"><span class="pre">StoreInventory</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw14StoreInventory14StoreInventoryEv"><code class="docutils literal notranslate"><span class="pre">StoreInventory::StoreInventory()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw14StoreInventory14StoreInventoryEP10ObjectBase"><code class="docutils literal notranslate"><span class="pre">StoreInventory::StoreInventory()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw14StoreInventory9set_ownerEP10ObjectBase"><code class="docutils literal notranslate"><span class="pre">StoreInventory::set_owner()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw14StoreInventory5armorE"><code class="docutils literal notranslate"><span class="pre">StoreInventory::armor</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw14StoreInventory13miscellaneousE"><code class="docutils literal notranslate"><span class="pre">StoreInventory::miscellaneous</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw14StoreInventory7potionsE"><code class="docutils literal notranslate"><span class="pre">StoreInventory::potions</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw14StoreInventory5ringsE"><code class="docutils literal notranslate"><span class="pre">StoreInventory::rings</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw14StoreInventory7weaponsE"><code class="docutils literal notranslate"><span class="pre">StoreInventory::weapons</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw14StoreInventory12will_not_buyE"><code class="docutils literal notranslate"><span class="pre">StoreInventory::will_not_buy</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw14StoreInventory13will_only_buyE"><code class="docutils literal notranslate"><span class="pre">StoreInventory::will_only_buy</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="nw__StoreScripts.html">nw::StoreScripts</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Tile.html">nw::Tile</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Tlk.html">nw::Tlk</a></li>
@@ -358,27 +377,27 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <div class="section" id="nw-storeinventory">
-<h1>nw::StoreInventory<a class="headerlink" href="#nw-storeinventory" title="Permalink to this headline"></a></h1>
+  <section id="nw-storeinventory">
+<h1>nw::StoreInventory<a class="headerlink" href="#nw-storeinventory" title="Link to this heading"></a></h1>
 <dl class="cpp struct">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw14StoreInventoryE">
-<span id="_CPPv3N2nw14StoreInventoryE"></span><span id="_CPPv2N2nw14StoreInventoryE"></span><span id="nw::StoreInventory"></span><span class="target" id="structnw_1_1_store_inventory"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">StoreInventory</span></span></span><a class="headerlink" href="#_CPPv4N2nw14StoreInventoryE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw14StoreInventoryE"></span><span id="_CPPv2N2nw14StoreInventoryE"></span><span id="nw::StoreInventory"></span><span class="target" id="structnw_1_1_store_inventory"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">StoreInventory</span></span></span><a class="headerlink" href="#_CPPv4N2nw14StoreInventoryE" title="Link to this definition"></a><br /></dt>
 <dd><p><a class="reference internal" href="nw__Store.html#structnw_1_1_store"><span class="std std-ref">Store</span></a> <a class="reference internal" href="nw__Inventory.html#structnw_1_1_inventory"><span class="std std-ref">Inventory</span></a> component. </p>
 <div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw14StoreInventory14StoreInventoryEv">
-<span id="_CPPv3N2nw14StoreInventory14StoreInventoryEv"></span><span id="_CPPv2N2nw14StoreInventory14StoreInventoryEv"></span><span id="nw::StoreInventory::StoreInventory"></span><span class="target" id="structnw_1_1_store_inventory_1aa5bac65a1fa3b50c25d7007cedbc1c92"></span><span class="sig-name descname"><span class="n"><span class="pre">StoreInventory</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">default</span></span><a class="headerlink" href="#_CPPv4N2nw14StoreInventory14StoreInventoryEv" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw14StoreInventory14StoreInventoryEv"></span><span id="_CPPv2N2nw14StoreInventory14StoreInventoryEv"></span><span id="nw::StoreInventory::StoreInventory"></span><span class="target" id="structnw_1_1_store_inventory_1aa5bac65a1fa3b50c25d7007cedbc1c92"></span><span class="sig-name descname"><span class="n"><span class="pre">StoreInventory</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">default</span></span><a class="headerlink" href="#_CPPv4N2nw14StoreInventory14StoreInventoryEv" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw14StoreInventory14StoreInventoryEP10ObjectBase">
-<span id="_CPPv3N2nw14StoreInventory14StoreInventoryEP10ObjectBase"></span><span id="_CPPv2N2nw14StoreInventory14StoreInventoryEP10ObjectBase"></span><span id="nw::StoreInventory::StoreInventory__ObjectBaseP"></span><span class="target" id="structnw_1_1_store_inventory_1ac250dc55aa91a704a8c61a110c6d86b8"></span><span class="sig-name descname"><span class="n"><span class="pre">StoreInventory</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">ObjectBase</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">owner</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw14StoreInventory14StoreInventoryEP10ObjectBase" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw14StoreInventory14StoreInventoryEP10ObjectBase"></span><span id="_CPPv2N2nw14StoreInventory14StoreInventoryEP10ObjectBase"></span><span id="nw::StoreInventory::StoreInventory__ObjectBaseP"></span><span class="target" id="structnw_1_1_store_inventory_1ac250dc55aa91a704a8c61a110c6d86b8"></span><span class="sig-name descname"><span class="n"><span class="pre">StoreInventory</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">ObjectBase</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">owner</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw14StoreInventory14StoreInventoryEP10ObjectBase" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw14StoreInventory9set_ownerEP10ObjectBase">
-<span id="_CPPv3N2nw14StoreInventory9set_ownerEP10ObjectBase"></span><span id="_CPPv2N2nw14StoreInventory9set_ownerEP10ObjectBase"></span><span id="nw::StoreInventory::set_owner__ObjectBaseP"></span><span class="target" id="structnw_1_1_store_inventory_1a71a5dafd4fdffa3254bf09a9f7a34f75"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_owner</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">ObjectBase</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">owner</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw14StoreInventory9set_ownerEP10ObjectBase" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw14StoreInventory9set_ownerEP10ObjectBase"></span><span id="_CPPv2N2nw14StoreInventory9set_ownerEP10ObjectBase"></span><span id="nw::StoreInventory::set_owner__ObjectBaseP"></span><span class="target" id="structnw_1_1_store_inventory_1a71a5dafd4fdffa3254bf09a9f7a34f75"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_owner</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">ObjectBase</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">owner</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw14StoreInventory9set_ownerEP10ObjectBase" title="Link to this definition"></a><br /></dt>
 <dd><p>Sets inventory owner. </p>
 </dd></dl>
 
@@ -387,43 +406,43 @@
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw14StoreInventory5armorE">
-<span id="_CPPv3N2nw14StoreInventory5armorE"></span><span id="_CPPv2N2nw14StoreInventory5armorE"></span><span id="nw::StoreInventory::armor__Inventory"></span><span class="target" id="structnw_1_1_store_inventory_1addf636a4d147380351f189d244f03a5d"></span><a class="reference internal" href="nw__Inventory.html#_CPPv4N2nw9InventoryE" title="nw::Inventory"><span class="n"><span class="pre">Inventory</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">armor</span></span></span><a class="headerlink" href="#_CPPv4N2nw14StoreInventory5armorE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw14StoreInventory5armorE"></span><span id="_CPPv2N2nw14StoreInventory5armorE"></span><span id="nw::StoreInventory::armor__Inventory"></span><span class="target" id="structnw_1_1_store_inventory_1addf636a4d147380351f189d244f03a5d"></span><a class="reference internal" href="nw__Inventory.html#_CPPv4N2nw9InventoryE" title="nw::Inventory"><span class="n"><span class="pre">Inventory</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">armor</span></span></span><a class="headerlink" href="#_CPPv4N2nw14StoreInventory5armorE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw14StoreInventory13miscellaneousE">
-<span id="_CPPv3N2nw14StoreInventory13miscellaneousE"></span><span id="_CPPv2N2nw14StoreInventory13miscellaneousE"></span><span id="nw::StoreInventory::miscellaneous__Inventory"></span><span class="target" id="structnw_1_1_store_inventory_1aa3f07dd33614f177f0874ed7cc4ae7ac"></span><a class="reference internal" href="nw__Inventory.html#_CPPv4N2nw9InventoryE" title="nw::Inventory"><span class="n"><span class="pre">Inventory</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">miscellaneous</span></span></span><a class="headerlink" href="#_CPPv4N2nw14StoreInventory13miscellaneousE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw14StoreInventory13miscellaneousE"></span><span id="_CPPv2N2nw14StoreInventory13miscellaneousE"></span><span id="nw::StoreInventory::miscellaneous__Inventory"></span><span class="target" id="structnw_1_1_store_inventory_1aa3f07dd33614f177f0874ed7cc4ae7ac"></span><a class="reference internal" href="nw__Inventory.html#_CPPv4N2nw9InventoryE" title="nw::Inventory"><span class="n"><span class="pre">Inventory</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">miscellaneous</span></span></span><a class="headerlink" href="#_CPPv4N2nw14StoreInventory13miscellaneousE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw14StoreInventory7potionsE">
-<span id="_CPPv3N2nw14StoreInventory7potionsE"></span><span id="_CPPv2N2nw14StoreInventory7potionsE"></span><span id="nw::StoreInventory::potions__Inventory"></span><span class="target" id="structnw_1_1_store_inventory_1a60f7e2622f7f62617f89e42204ab58b4"></span><a class="reference internal" href="nw__Inventory.html#_CPPv4N2nw9InventoryE" title="nw::Inventory"><span class="n"><span class="pre">Inventory</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">potions</span></span></span><a class="headerlink" href="#_CPPv4N2nw14StoreInventory7potionsE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw14StoreInventory7potionsE"></span><span id="_CPPv2N2nw14StoreInventory7potionsE"></span><span id="nw::StoreInventory::potions__Inventory"></span><span class="target" id="structnw_1_1_store_inventory_1a60f7e2622f7f62617f89e42204ab58b4"></span><a class="reference internal" href="nw__Inventory.html#_CPPv4N2nw9InventoryE" title="nw::Inventory"><span class="n"><span class="pre">Inventory</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">potions</span></span></span><a class="headerlink" href="#_CPPv4N2nw14StoreInventory7potionsE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw14StoreInventory5ringsE">
-<span id="_CPPv3N2nw14StoreInventory5ringsE"></span><span id="_CPPv2N2nw14StoreInventory5ringsE"></span><span id="nw::StoreInventory::rings__Inventory"></span><span class="target" id="structnw_1_1_store_inventory_1a1643b9a40010cec995afd43f3d0e7575"></span><a class="reference internal" href="nw__Inventory.html#_CPPv4N2nw9InventoryE" title="nw::Inventory"><span class="n"><span class="pre">Inventory</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">rings</span></span></span><a class="headerlink" href="#_CPPv4N2nw14StoreInventory5ringsE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw14StoreInventory5ringsE"></span><span id="_CPPv2N2nw14StoreInventory5ringsE"></span><span id="nw::StoreInventory::rings__Inventory"></span><span class="target" id="structnw_1_1_store_inventory_1a1643b9a40010cec995afd43f3d0e7575"></span><a class="reference internal" href="nw__Inventory.html#_CPPv4N2nw9InventoryE" title="nw::Inventory"><span class="n"><span class="pre">Inventory</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">rings</span></span></span><a class="headerlink" href="#_CPPv4N2nw14StoreInventory5ringsE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw14StoreInventory7weaponsE">
-<span id="_CPPv3N2nw14StoreInventory7weaponsE"></span><span id="_CPPv2N2nw14StoreInventory7weaponsE"></span><span id="nw::StoreInventory::weapons__Inventory"></span><span class="target" id="structnw_1_1_store_inventory_1a18a22c2c3d1b389dc5f8ca801fab9205"></span><a class="reference internal" href="nw__Inventory.html#_CPPv4N2nw9InventoryE" title="nw::Inventory"><span class="n"><span class="pre">Inventory</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">weapons</span></span></span><a class="headerlink" href="#_CPPv4N2nw14StoreInventory7weaponsE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw14StoreInventory7weaponsE"></span><span id="_CPPv2N2nw14StoreInventory7weaponsE"></span><span id="nw::StoreInventory::weapons__Inventory"></span><span class="target" id="structnw_1_1_store_inventory_1a18a22c2c3d1b389dc5f8ca801fab9205"></span><a class="reference internal" href="nw__Inventory.html#_CPPv4N2nw9InventoryE" title="nw::Inventory"><span class="n"><span class="pre">Inventory</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">weapons</span></span></span><a class="headerlink" href="#_CPPv4N2nw14StoreInventory7weaponsE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw14StoreInventory12will_not_buyE">
-<span id="_CPPv3N2nw14StoreInventory12will_not_buyE"></span><span id="_CPPv2N2nw14StoreInventory12will_not_buyE"></span><span id="nw::StoreInventory::will_not_buy__std::vector:int32_t:"></span><span class="target" id="structnw_1_1_store_inventory_1abf1d74885b318a3f535e72bacf034867"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">int32_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">will_not_buy</span></span></span><a class="headerlink" href="#_CPPv4N2nw14StoreInventory12will_not_buyE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw14StoreInventory12will_not_buyE"></span><span id="_CPPv2N2nw14StoreInventory12will_not_buyE"></span><span id="nw::StoreInventory::will_not_buy__std::vector:int32_t:"></span><span class="target" id="structnw_1_1_store_inventory_1abf1d74885b318a3f535e72bacf034867"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">int32_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">will_not_buy</span></span></span><a class="headerlink" href="#_CPPv4N2nw14StoreInventory12will_not_buyE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw14StoreInventory13will_only_buyE">
-<span id="_CPPv3N2nw14StoreInventory13will_only_buyE"></span><span id="_CPPv2N2nw14StoreInventory13will_only_buyE"></span><span id="nw::StoreInventory::will_only_buy__std::vector:int32_t:"></span><span class="target" id="structnw_1_1_store_inventory_1afda205472c2d0cf071ebc7c4c3377886"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">int32_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">will_only_buy</span></span></span><a class="headerlink" href="#_CPPv4N2nw14StoreInventory13will_only_buyE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw14StoreInventory13will_only_buyE"></span><span id="_CPPv2N2nw14StoreInventory13will_only_buyE"></span><span id="nw::StoreInventory::will_only_buy__std::vector:int32_t:"></span><span class="target" id="structnw_1_1_store_inventory_1afda205472c2d0cf071ebc7c4c3377886"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">int32_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">will_only_buy</span></span></span><a class="headerlink" href="#_CPPv4N2nw14StoreInventory13will_only_buyE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 </div>
 </dd></dl>
 
-</div>
+</section>
 
 
            </div>

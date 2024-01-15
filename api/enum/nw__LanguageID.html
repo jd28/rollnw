@@ -1,20 +1,24 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html5" lang="en" data-content_root="../../">
 <head>
-  <meta charset="utf-8" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>nw::LanguageID &mdash; rollNW  documentation</title>
-      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
-      <link rel="stylesheet" href="../../_static/tabs.css" type="text/css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="../../_static/tabs.css?v=a5c4661c" />
+
+  
   <!--[if lt IE 9]>
     <script src="../../_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
-        <script src="../../_static/jquery.js"></script>
-        <script src="../../_static/underscore.js"></script>
-        <script src="../../_static/doctools.js"></script>
+        <script src="../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+        <script src="../../_static/doctools.js?v=888ff710"></script>
+        <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
@@ -76,7 +80,23 @@
 <li class="toctree-l2"><a class="reference internal" href="nw__ErfVersion.html">nw::ErfVersion</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__GameVersion.html">nw::GameVersion</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__ItemModelType.html">nw::ItemModelType</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">nw::LanguageID</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">nw::LanguageID</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#_CPPv4N2nw10LanguageIDE"><code class="docutils literal notranslate"><span class="pre">LanguageID</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw10LanguageID7invalidE"><code class="docutils literal notranslate"><span class="pre">LanguageID::invalid</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw10LanguageID7englishE"><code class="docutils literal notranslate"><span class="pre">LanguageID::english</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw10LanguageID6frenchE"><code class="docutils literal notranslate"><span class="pre">LanguageID::french</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw10LanguageID6germanE"><code class="docutils literal notranslate"><span class="pre">LanguageID::german</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw10LanguageID7italianE"><code class="docutils literal notranslate"><span class="pre">LanguageID::italian</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw10LanguageID7spanishE"><code class="docutils literal notranslate"><span class="pre">LanguageID::spanish</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw10LanguageID6polishE"><code class="docutils literal notranslate"><span class="pre">LanguageID::polish</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw10LanguageID6koreanE"><code class="docutils literal notranslate"><span class="pre">LanguageID::korean</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw10LanguageID19chinese_traditionalE"><code class="docutils literal notranslate"><span class="pre">LanguageID::chinese_traditional</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw10LanguageID18chinese_simplifiedE"><code class="docutils literal notranslate"><span class="pre">LanguageID::chinese_simplified</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw10LanguageID8japaneseE"><code class="docutils literal notranslate"><span class="pre">LanguageID::japanese</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="nw__ObjectID.html">nw::ObjectID</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__ObjectType.html">nw::ObjectType</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__PaletteNodeType.html">nw::PaletteNodeType</a></li>
@@ -153,75 +173,75 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <div class="section" id="nw-languageid">
-<h1>nw::LanguageID<a class="headerlink" href="#nw-languageid" title="Permalink to this headline"></a></h1>
+  <section id="nw-languageid">
+<h1>nw::LanguageID<a class="headerlink" href="#nw-languageid" title="Link to this heading"></a></h1>
 <dl class="cpp enum-class">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw10LanguageIDE">
-<span id="_CPPv3N2nw10LanguageIDE"></span><span id="_CPPv2N2nw10LanguageIDE"></span><span class="target" id="namespacenw_1a54db07354348dd9e2a62900dbb148306"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">nw</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">LanguageID</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">uint32_t</span></span><a class="headerlink" href="#_CPPv4N2nw10LanguageIDE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw10LanguageIDE"></span><span id="_CPPv2N2nw10LanguageIDE"></span><span class="target" id="namespacenw_1a54db07354348dd9e2a62900dbb148306"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">nw</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">LanguageID</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">uint32_t</span></span><a class="headerlink" href="#_CPPv4N2nw10LanguageIDE" title="Link to this definition"></a><br /></dt>
 <dd><p><a class="reference internal" href="../struct/nw__Language.html#structnw_1_1_language"><span class="std std-ref">Language</span></a> IDs. </p>
 <p><em>Values:</em></p>
 <dl class="cpp enumerator">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw10LanguageID7invalidE">
-<span id="_CPPv3N2nw10LanguageID7invalidE"></span><span id="_CPPv2N2nw10LanguageID7invalidE"></span><span class="target" id="namespacenw_1a54db07354348dd9e2a62900dbb148306afedb2d84cafe20862cb4399751a8a7e3"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">invalid</span></span></span><a class="headerlink" href="#_CPPv4N2nw10LanguageID7invalidE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw10LanguageID7invalidE"></span><span id="_CPPv2N2nw10LanguageID7invalidE"></span><span class="target" id="namespacenw_1a54db07354348dd9e2a62900dbb148306afedb2d84cafe20862cb4399751a8a7e3"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">invalid</span></span></span><a class="headerlink" href="#_CPPv4N2nw10LanguageID7invalidE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp enumerator">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw10LanguageID7englishE">
-<span id="_CPPv3N2nw10LanguageID7englishE"></span><span id="_CPPv2N2nw10LanguageID7englishE"></span><span class="target" id="namespacenw_1a54db07354348dd9e2a62900dbb148306aba0a6ddd94c73698a3658f92ac222f8a"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">english</span></span></span><a class="headerlink" href="#_CPPv4N2nw10LanguageID7englishE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw10LanguageID7englishE"></span><span id="_CPPv2N2nw10LanguageID7englishE"></span><span class="target" id="namespacenw_1a54db07354348dd9e2a62900dbb148306aba0a6ddd94c73698a3658f92ac222f8a"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">english</span></span></span><a class="headerlink" href="#_CPPv4N2nw10LanguageID7englishE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp enumerator">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw10LanguageID6frenchE">
-<span id="_CPPv3N2nw10LanguageID6frenchE"></span><span id="_CPPv2N2nw10LanguageID6frenchE"></span><span class="target" id="namespacenw_1a54db07354348dd9e2a62900dbb148306a64e12ab6aa0d4c7473286d43b6a35fc8"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">french</span></span></span><a class="headerlink" href="#_CPPv4N2nw10LanguageID6frenchE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw10LanguageID6frenchE"></span><span id="_CPPv2N2nw10LanguageID6frenchE"></span><span class="target" id="namespacenw_1a54db07354348dd9e2a62900dbb148306a64e12ab6aa0d4c7473286d43b6a35fc8"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">french</span></span></span><a class="headerlink" href="#_CPPv4N2nw10LanguageID6frenchE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp enumerator">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw10LanguageID6germanE">
-<span id="_CPPv3N2nw10LanguageID6germanE"></span><span id="_CPPv2N2nw10LanguageID6germanE"></span><span class="target" id="namespacenw_1a54db07354348dd9e2a62900dbb148306aa6d414ac4f293187dd042025834925f7"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">german</span></span></span><a class="headerlink" href="#_CPPv4N2nw10LanguageID6germanE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw10LanguageID6germanE"></span><span id="_CPPv2N2nw10LanguageID6germanE"></span><span class="target" id="namespacenw_1a54db07354348dd9e2a62900dbb148306aa6d414ac4f293187dd042025834925f7"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">german</span></span></span><a class="headerlink" href="#_CPPv4N2nw10LanguageID6germanE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp enumerator">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw10LanguageID7italianE">
-<span id="_CPPv3N2nw10LanguageID7italianE"></span><span id="_CPPv2N2nw10LanguageID7italianE"></span><span class="target" id="namespacenw_1a54db07354348dd9e2a62900dbb148306a2267860f043bf39437195f97d46520ea"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">italian</span></span></span><a class="headerlink" href="#_CPPv4N2nw10LanguageID7italianE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw10LanguageID7italianE"></span><span id="_CPPv2N2nw10LanguageID7italianE"></span><span class="target" id="namespacenw_1a54db07354348dd9e2a62900dbb148306a2267860f043bf39437195f97d46520ea"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">italian</span></span></span><a class="headerlink" href="#_CPPv4N2nw10LanguageID7italianE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp enumerator">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw10LanguageID7spanishE">
-<span id="_CPPv3N2nw10LanguageID7spanishE"></span><span id="_CPPv2N2nw10LanguageID7spanishE"></span><span class="target" id="namespacenw_1a54db07354348dd9e2a62900dbb148306a4757b7df2140d47d35c37e54a70ad41d"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">spanish</span></span></span><a class="headerlink" href="#_CPPv4N2nw10LanguageID7spanishE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw10LanguageID7spanishE"></span><span id="_CPPv2N2nw10LanguageID7spanishE"></span><span class="target" id="namespacenw_1a54db07354348dd9e2a62900dbb148306a4757b7df2140d47d35c37e54a70ad41d"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">spanish</span></span></span><a class="headerlink" href="#_CPPv4N2nw10LanguageID7spanishE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp enumerator">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw10LanguageID6polishE">
-<span id="_CPPv3N2nw10LanguageID6polishE"></span><span id="_CPPv2N2nw10LanguageID6polishE"></span><span class="target" id="namespacenw_1a54db07354348dd9e2a62900dbb148306a60ee0bc62638fccf2d37ac27a634a9e9"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">polish</span></span></span><a class="headerlink" href="#_CPPv4N2nw10LanguageID6polishE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw10LanguageID6polishE"></span><span id="_CPPv2N2nw10LanguageID6polishE"></span><span class="target" id="namespacenw_1a54db07354348dd9e2a62900dbb148306a60ee0bc62638fccf2d37ac27a634a9e9"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">polish</span></span></span><a class="headerlink" href="#_CPPv4N2nw10LanguageID6polishE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp enumerator">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw10LanguageID6koreanE">
-<span id="_CPPv3N2nw10LanguageID6koreanE"></span><span id="_CPPv2N2nw10LanguageID6koreanE"></span><span class="target" id="namespacenw_1a54db07354348dd9e2a62900dbb148306a9d42bc52034504306fc80b80aaa94a7c"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">korean</span></span></span><a class="headerlink" href="#_CPPv4N2nw10LanguageID6koreanE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw10LanguageID6koreanE"></span><span id="_CPPv2N2nw10LanguageID6koreanE"></span><span class="target" id="namespacenw_1a54db07354348dd9e2a62900dbb148306a9d42bc52034504306fc80b80aaa94a7c"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">korean</span></span></span><a class="headerlink" href="#_CPPv4N2nw10LanguageID6koreanE" title="Link to this definition"></a><br /></dt>
 <dd><p>Unsupported in EE? </p>
 </dd></dl>
 
 <dl class="cpp enumerator">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw10LanguageID19chinese_traditionalE">
-<span id="_CPPv3N2nw10LanguageID19chinese_traditionalE"></span><span id="_CPPv2N2nw10LanguageID19chinese_traditionalE"></span><span class="target" id="namespacenw_1a54db07354348dd9e2a62900dbb148306a37362f58ab309825135eef8f3f3170a3"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">chinese_traditional</span></span></span><a class="headerlink" href="#_CPPv4N2nw10LanguageID19chinese_traditionalE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw10LanguageID19chinese_traditionalE"></span><span id="_CPPv2N2nw10LanguageID19chinese_traditionalE"></span><span class="target" id="namespacenw_1a54db07354348dd9e2a62900dbb148306a37362f58ab309825135eef8f3f3170a3"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">chinese_traditional</span></span></span><a class="headerlink" href="#_CPPv4N2nw10LanguageID19chinese_traditionalE" title="Link to this definition"></a><br /></dt>
 <dd><p>Unsupported in EE? </p>
 </dd></dl>
 
 <dl class="cpp enumerator">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw10LanguageID18chinese_simplifiedE">
-<span id="_CPPv3N2nw10LanguageID18chinese_simplifiedE"></span><span id="_CPPv2N2nw10LanguageID18chinese_simplifiedE"></span><span class="target" id="namespacenw_1a54db07354348dd9e2a62900dbb148306a3e51212028842b6a7ee12199aef8afae"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">chinese_simplified</span></span></span><a class="headerlink" href="#_CPPv4N2nw10LanguageID18chinese_simplifiedE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw10LanguageID18chinese_simplifiedE"></span><span id="_CPPv2N2nw10LanguageID18chinese_simplifiedE"></span><span class="target" id="namespacenw_1a54db07354348dd9e2a62900dbb148306a3e51212028842b6a7ee12199aef8afae"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">chinese_simplified</span></span></span><a class="headerlink" href="#_CPPv4N2nw10LanguageID18chinese_simplifiedE" title="Link to this definition"></a><br /></dt>
 <dd><p>Unsupported in EE? </p>
 </dd></dl>
 
 <dl class="cpp enumerator">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw10LanguageID8japaneseE">
-<span id="_CPPv3N2nw10LanguageID8japaneseE"></span><span id="_CPPv2N2nw10LanguageID8japaneseE"></span><span class="target" id="namespacenw_1a54db07354348dd9e2a62900dbb148306a8175469f5b7510febe85d18daa424a3f"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">japanese</span></span></span><a class="headerlink" href="#_CPPv4N2nw10LanguageID8japaneseE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw10LanguageID8japaneseE"></span><span id="_CPPv2N2nw10LanguageID8japaneseE"></span><span class="target" id="namespacenw_1a54db07354348dd9e2a62900dbb148306a8175469f5b7510febe85d18daa424a3f"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">japanese</span></span></span><a class="headerlink" href="#_CPPv4N2nw10LanguageID8japaneseE" title="Link to this definition"></a><br /></dt>
 <dd><p>Unsupported in EE? </p>
 </dd></dl>
 
 </dd></dl>
 
-</div>
+</section>
 
 
            </div>

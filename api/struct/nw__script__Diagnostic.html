@@ -1,20 +1,24 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html5" lang="en" data-content_root="../../">
 <head>
-  <meta charset="utf-8" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>nw::script::Diagnostic &mdash; rollNW  documentation</title>
-      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
-      <link rel="stylesheet" href="../../_static/tabs.css" type="text/css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="../../_static/tabs.css?v=a5c4661c" />
+
+  
   <!--[if lt IE 9]>
     <script src="../../_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
-        <script src="../../_static/jquery.js"></script>
-        <script src="../../_static/underscore.js"></script>
-        <script src="../../_static/doctools.js"></script>
+        <script src="../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+        <script src="../../_static/doctools.js?v=888ff710"></script>
+        <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
@@ -259,7 +263,17 @@
 <li class="toctree-l2"><a class="reference internal" href="nw__script__ConditionalExpression.html">nw::script::ConditionalExpression</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__Context.html">nw::script::Context</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__Declaration.html">nw::script::Declaration</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">nw::script::Diagnostic</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">nw::script::Diagnostic</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#_CPPv4N2nw6script10DiagnosticE"><code class="docutils literal notranslate"><span class="pre">Diagnostic</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6script10Diagnostic4typeE"><code class="docutils literal notranslate"><span class="pre">Diagnostic::type</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6script10Diagnostic8severityE"><code class="docutils literal notranslate"><span class="pre">Diagnostic::severity</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6script10Diagnostic6scriptE"><code class="docutils literal notranslate"><span class="pre">Diagnostic::script</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6script10Diagnostic7messageE"><code class="docutils literal notranslate"><span class="pre">Diagnostic::message</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6script10Diagnostic8locationE"><code class="docutils literal notranslate"><span class="pre">Diagnostic::location</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__DoStatement.html">nw::script::DoStatement</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__DotExpression.html">nw::script::DotExpression</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__ExprStatement.html">nw::script::ExprStatement</a></li>
@@ -358,42 +372,42 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <div class="section" id="nw-script-diagnostic">
-<h1>nw::script::Diagnostic<a class="headerlink" href="#nw-script-diagnostic" title="Permalink to this headline"></a></h1>
+  <section id="nw-script-diagnostic">
+<h1>nw::script::Diagnostic<a class="headerlink" href="#nw-script-diagnostic" title="Link to this heading"></a></h1>
 <dl class="cpp struct">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw6script10DiagnosticE">
-<span id="_CPPv3N2nw6script10DiagnosticE"></span><span id="_CPPv2N2nw6script10DiagnosticE"></span><span id="nw::script::Diagnostic"></span><span class="target" id="structnw_1_1script_1_1_diagnostic"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Diagnostic</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script10DiagnosticE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw6script10DiagnosticE"></span><span id="_CPPv2N2nw6script10DiagnosticE"></span><span id="nw::script::Diagnostic"></span><span class="target" id="structnw_1_1script_1_1_diagnostic"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Diagnostic</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script10DiagnosticE" title="Link to this definition"></a><br /></dt>
 <dd><div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw6script10Diagnostic4typeE">
-<span id="_CPPv3N2nw6script10Diagnostic4typeE"></span><span id="_CPPv2N2nw6script10Diagnostic4typeE"></span><span id="nw::script::Diagnostic::type__DiagnosticType"></span><span class="target" id="structnw_1_1script_1_1_diagnostic_1a13f750fb5f7353549cafda5d42566829"></span><a class="reference internal" href="../enum/nw__script__DiagnosticType.html#_CPPv4N2nw6script14DiagnosticTypeE" title="nw::script::DiagnosticType"><span class="n"><span class="pre">DiagnosticType</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">type</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script10Diagnostic4typeE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw6script10Diagnostic4typeE"></span><span id="_CPPv2N2nw6script10Diagnostic4typeE"></span><span id="nw::script::Diagnostic::type__DiagnosticType"></span><span class="target" id="structnw_1_1script_1_1_diagnostic_1a13f750fb5f7353549cafda5d42566829"></span><a class="reference internal" href="../enum/nw__script__DiagnosticType.html#_CPPv4N2nw6script14DiagnosticTypeE" title="nw::script::DiagnosticType"><span class="n"><span class="pre">DiagnosticType</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">type</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script10Diagnostic4typeE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw6script10Diagnostic8severityE">
-<span id="_CPPv3N2nw6script10Diagnostic8severityE"></span><span id="_CPPv2N2nw6script10Diagnostic8severityE"></span><span id="nw::script::Diagnostic::severity__DiagnosticSeverity"></span><span class="target" id="structnw_1_1script_1_1_diagnostic_1a7e2d49f6dc24b9d18144f552f04b2e50"></span><span class="n"><span class="pre">DiagnosticSeverity</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">severity</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script10Diagnostic8severityE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw6script10Diagnostic8severityE"></span><span id="_CPPv2N2nw6script10Diagnostic8severityE"></span><span id="nw::script::Diagnostic::severity__DiagnosticSeverity"></span><span class="target" id="structnw_1_1script_1_1_diagnostic_1a7e2d49f6dc24b9d18144f552f04b2e50"></span><span class="n"><span class="pre">DiagnosticSeverity</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">severity</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script10Diagnostic8severityE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw6script10Diagnostic6scriptE">
-<span id="_CPPv3N2nw6script10Diagnostic6scriptE"></span><span id="_CPPv2N2nw6script10Diagnostic6scriptE"></span><span id="nw::script::Diagnostic::script__ss"></span><span class="target" id="structnw_1_1script_1_1_diagnostic_1aac49803671e2850714d4d5ffc0c6ead1"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">script</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script10Diagnostic6scriptE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw6script10Diagnostic6scriptE"></span><span id="_CPPv2N2nw6script10Diagnostic6scriptE"></span><span id="nw::script::Diagnostic::script__ss"></span><span class="target" id="structnw_1_1script_1_1_diagnostic_1aac49803671e2850714d4d5ffc0c6ead1"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">script</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script10Diagnostic6scriptE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw6script10Diagnostic7messageE">
-<span id="_CPPv3N2nw6script10Diagnostic7messageE"></span><span id="_CPPv2N2nw6script10Diagnostic7messageE"></span><span id="nw::script::Diagnostic::message__ss"></span><span class="target" id="structnw_1_1script_1_1_diagnostic_1abcd4c8b0b9a50470a245b3b0f2eb663c"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">message</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script10Diagnostic7messageE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw6script10Diagnostic7messageE"></span><span id="_CPPv2N2nw6script10Diagnostic7messageE"></span><span id="nw::script::Diagnostic::message__ss"></span><span class="target" id="structnw_1_1script_1_1_diagnostic_1abcd4c8b0b9a50470a245b3b0f2eb663c"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">message</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script10Diagnostic7messageE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw6script10Diagnostic8locationE">
-<span id="_CPPv3N2nw6script10Diagnostic8locationE"></span><span id="_CPPv2N2nw6script10Diagnostic8locationE"></span><span id="nw::script::Diagnostic::location__SourceRange"></span><span class="target" id="structnw_1_1script_1_1_diagnostic_1a8fea39cebe5e17b112a760c90a3d9d2e"></span><a class="reference internal" href="nw__script__SourceRange.html#_CPPv4N2nw6script11SourceRangeE" title="nw::script::SourceRange"><span class="n"><span class="pre">SourceRange</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">location</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script10Diagnostic8locationE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw6script10Diagnostic8locationE"></span><span id="_CPPv2N2nw6script10Diagnostic8locationE"></span><span id="nw::script::Diagnostic::location__SourceRange"></span><span class="target" id="structnw_1_1script_1_1_diagnostic_1a8fea39cebe5e17b112a760c90a3d9d2e"></span><a class="reference internal" href="nw__script__SourceRange.html#_CPPv4N2nw6script11SourceRangeE" title="nw::script::SourceRange"><span class="n"><span class="pre">SourceRange</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">location</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script10Diagnostic8locationE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 </div>
 </dd></dl>
 
-</div>
+</section>
 
 
            </div>

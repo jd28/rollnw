@@ -1,21 +1,25 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html5" lang="en" data-content_root="../">
 <head>
-  <meta charset="utf-8" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>script &mdash; rollNW  documentation</title>
-      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
-      <link rel="stylesheet" href="../_static/tabs.css" type="text/css" />
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="../_static/tabs.css?v=a5c4661c" />
+
+  
   <!--[if lt IE 9]>
     <script src="../_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
-        <script src="../_static/jquery.js"></script>
-        <script src="../_static/underscore.js"></script>
-        <script src="../_static/doctools.js"></script>
-        <script src="../_static/tabs.js"></script>
+        <script src="../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../_static/documentation_options.js?v=5929fcd5"></script>
+        <script src="../_static/doctools.js?v=888ff710"></script>
+        <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+        <script src="../_static/tabs.js?v=3030b3cb"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
@@ -128,18 +132,18 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <div class="section" id="script">
-<h1>script<a class="headerlink" href="#script" title="Permalink to this headline"></a></h1>
+  <section id="script">
+<h1>script<a class="headerlink" href="#script" title="Link to this heading"></a></h1>
 <p>The script module provides a lexer, recursive decent parser, and type-checker for NWScript.</p>
-<div class="section" id="examples">
-<h2>examples<a class="headerlink" href="#examples" title="Permalink to this headline"></a></h2>
+<section id="examples">
+<h2>examples<a class="headerlink" href="#examples" title="Link to this heading"></a></h2>
 <p><strong>Basic Loading</strong></p>
 <div class="sphinx-tabs docutils container">
 <div aria-label="Tabbed content" class="closeable" role="tablist"><button aria-controls="panel-0-UHl0aG9u" aria-selected="true" class="sphinx-tabs-tab code-tab group-tab" id="tab-0-UHl0aG9u" name="UHl0aG9u" role="tab" tabindex="0">Python</button><button aria-controls="panel-0-Qysr" aria-selected="false" class="sphinx-tabs-tab code-tab group-tab" id="tab-0-Qysr" name="Qysr" role="tab" tabindex="-1">C++</button></div><div aria-labelledby="tab-0-UHl0aG9u" class="sphinx-tabs-panel code-tab group-tab" id="panel-0-UHl0aG9u" name="UHl0aG9u" role="tabpanel" tabindex="0"><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">rollnw.script</span> <span class="kn">import</span> <span class="n">Nss</span><span class="p">,</span> <span class="n">Context</span>
 
 <span class="c1"># Create a context and load a script</span>
 <span class="n">ctx</span> <span class="o">=</span> <span class="n">Context</span><span class="p">()</span>
-<span class="n">nss</span> <span class="o">=</span> <span class="n">Nss</span><span class="p">(</span><span class="s2">&quot;path/to/myscript.nss&quot;</span><span class="p">,</span> <span class="n">ctx</span><span class="p">)</span>
+<span class="n">nss</span> <span class="o">=</span> <span class="n">Nss</span><span class="p">(</span><span class="s2">&quot;path/to/myscript.nss&quot;</span><span class="p">,</span> <span class="n">ctx</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
 
 <span class="c1"># Parse</span>
 <span class="n">nss</span><span class="o">.</span><span class="n">parse</span><span class="p">()</span>
@@ -160,7 +164,7 @@
 </div><div aria-labelledby="tab-0-Qysr" class="sphinx-tabs-panel code-tab group-tab" hidden="true" id="panel-0-Qysr" name="Qysr" role="tabpanel" tabindex="0"><div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;nw/script/Nss.hpp&gt;</span>
 
 <span class="k">auto</span><span class="w"> </span><span class="n">ctx</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">make_unique</span><span class="o">&lt;</span><span class="n">nw</span><span class="o">::</span><span class="n">script</span><span class="o">::</span><span class="n">Context</span><span class="o">&gt;</span><span class="p">();</span>
-<span class="n">nw</span><span class="o">::</span><span class="n">script</span><span class="o">::</span><span class="n">Nss</span><span class="w"> </span><span class="n">nss</span><span class="p">{</span><span class="n">nw</span><span class="o">::</span><span class="n">kerne</span><span class="o">::</span><span class="n">resman</span><span class="p">().</span><span class="n">demand</span><span class="p">({</span><span class="s">&quot;nwscript&quot;</span><span class="n">sv</span><span class="p">,</span><span class="w"> </span><span class="n">nw</span><span class="o">::</span><span class="n">ResourceType</span><span class="o">::</span><span class="n">nss</span><span class="p">),</span><span class="w"> </span><span class="n">ctx</span><span class="p">.</span><span class="n">get</span><span class="p">()};</span>
+<span class="n">nw</span><span class="o">::</span><span class="n">script</span><span class="o">::</span><span class="n">Nss</span><span class="w"> </span><span class="n">nss</span><span class="p">{</span><span class="n">nw</span><span class="o">::</span><span class="n">kerne</span><span class="o">::</span><span class="n">resman</span><span class="p">().</span><span class="n">demand</span><span class="p">({</span><span class="s">&quot;nwscript&quot;</span><span class="n">sv</span><span class="p">,</span><span class="w"> </span><span class="n">nw</span><span class="o">::</span><span class="n">ResourceType</span><span class="o">::</span><span class="n">nss</span><span class="p">),</span><span class="w"> </span><span class="n">ctx</span><span class="p">.</span><span class="n">get</span><span class="p">(),</span><span class="w"> </span><span class="nb">true</span><span class="p">};</span>
 
 <span class="c1">// Parse</span>
 <span class="n">nss</span><span class="p">.</span><span class="n">parse</span><span class="p">();</span>
@@ -181,39 +185,39 @@
 
 <span class="c1"># Load</span>
 <span class="n">ctx</span> <span class="o">=</span> <span class="n">Context</span><span class="p">()</span>
-<span class="n">nss</span> <span class="o">=</span> <span class="n">rollnw</span><span class="o">.</span><span class="n">script</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s2">&quot;nwscript&quot;</span><span class="p">,</span> <span class="n">ctx</span><span class="p">)</span>
+<span class="n">nss</span> <span class="o">=</span> <span class="n">rollnw</span><span class="o">.</span><span class="n">script</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s2">&quot;nwscript&quot;</span><span class="p">,</span> <span class="n">ctx</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
 
 <span class="c1"># Iterate toplevel declarations and look for function declarations</span>
 <span class="c1"># This is all functions WITHOUT bodies.</span>
 <span class="k">for</span> <span class="n">decl</span> <span class="ow">in</span> <span class="n">nss</span><span class="o">.</span><span class="n">ast</span><span class="p">():</span>
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">decl</span><span class="p">,</span> <span class="n">FunctionDecl</span><span class="p">):</span>
-            <span class="c1"># the identifier is token for now..</span>
-            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;function &#39;</span><span class="si">{</span><span class="n">decl</span><span class="o">.</span><span class="n">identifier</span><span class="o">.</span><span class="n">loc</span><span class="o">.</span><span class="n">view</span><span class="p">()</span><span class="si">}</span><span class="s2">&#39; has </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">decl</span><span class="p">)</span><span class="si">}</span><span class="s2"> parameter(s)&quot;</span><span class="p">)</span>
+        <span class="c1"># the identifier is token for now..</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;function &#39;</span><span class="si">{</span><span class="n">decl</span><span class="o">.</span><span class="n">identifier</span><span class="o">.</span><span class="n">loc</span><span class="o">.</span><span class="n">view</span><span class="p">()</span><span class="si">}</span><span class="s2">&#39; has </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">decl</span><span class="p">)</span><span class="si">}</span><span class="s2"> parameter(s)&quot;</span><span class="p">)</span>
 
 <span class="c1"># Or if you know what you&#39;re looking for..</span>
 <span class="n">int_to_string</span> <span class="o">=</span> <span class="n">nss</span><span class="o">.</span><span class="n">locate_export</span><span class="p">(</span><span class="s2">&quot;IntToString&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
-</div>
-<div class="section" id="performance">
-<h2>performance<a class="headerlink" href="#performance" title="Permalink to this headline"></a></h2>
+</section>
+<section id="performance">
+<h2>performance<a class="headerlink" href="#performance" title="Link to this heading"></a></h2>
 <p>The parser currently parses at &gt;100MBps on a 2015 MacBook Pro.</p>
-</div>
-<div class="section" id="todos">
-<h2>TODOs<a class="headerlink" href="#todos" title="Permalink to this headline"></a></h2>
+</section>
+<section id="todos">
+<h2>TODOs<a class="headerlink" href="#todos" title="Link to this heading"></a></h2>
 <ul class="simple">
 <li><p>Decide how much to track NWN:EE NWScript changes</p></li>
 <li><p>Make the library more useful for NWScript successors (i.e Dragon Age or KoTOR)</p></li>
 <li><p>Whether to do optimizations or anything further than performance/usability improvements</p></li>
 </ul>
-</div>
-<div class="section" id="credits">
-<h2>credits<a class="headerlink" href="#credits" title="Permalink to this headline"></a></h2>
+</section>
+<section id="credits">
+<h2>credits<a class="headerlink" href="#credits" title="Link to this heading"></a></h2>
 <ul class="simple">
 <li><p><a class="reference external" href="https://craftinginterpreters.com/">Crafting Interpreters</a></p></li>
 </ul>
-</div>
-</div>
+</section>
+</section>
 
 
            </div>

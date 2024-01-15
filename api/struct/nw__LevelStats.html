@@ -1,20 +1,24 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html5" lang="en" data-content_root="../../">
 <head>
-  <meta charset="utf-8" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>nw::LevelStats &mdash; rollNW  documentation</title>
-      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
-      <link rel="stylesheet" href="../../_static/tabs.css" type="text/css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="../../_static/tabs.css?v=a5c4661c" />
+
+  
   <!--[if lt IE 9]>
     <script src="../../_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
-        <script src="../../_static/jquery.js"></script>
-        <script src="../../_static/underscore.js"></script>
-        <script src="../../_static/doctools.js"></script>
+        <script src="../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+        <script src="../../_static/doctools.js?v=888ff710"></script>
+        <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
@@ -133,7 +137,21 @@
 <li class="toctree-l2"><a class="reference internal" href="nw__Language__Properties.html">nw::Language::Properties</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__LevelHistory.html">nw::LevelHistory</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__LevelHistoryEntry.html">nw::LevelHistoryEntry</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">nw::LevelStats</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">nw::LevelStats</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#_CPPv4N2nw10LevelStatsE"><code class="docutils literal notranslate"><span class="pre">LevelStats</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw10LevelStats10LevelStatsEv"><code class="docutils literal notranslate"><span class="pre">LevelStats::LevelStats()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw10LevelStats9from_jsonERKN8nlohmann4jsonE"><code class="docutils literal notranslate"><span class="pre">LevelStats::from_json()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw10LevelStats7to_jsonEv"><code class="docutils literal notranslate"><span class="pre">LevelStats::to_json()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw10LevelStats5levelEv"><code class="docutils literal notranslate"><span class="pre">LevelStats::level()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw10LevelStats14level_by_classE5Class"><code class="docutils literal notranslate"><span class="pre">LevelStats::level_by_class()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw10LevelStats8positionE5Class"><code class="docutils literal notranslate"><span class="pre">LevelStats::position()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw10LevelStats7entriesE"><code class="docutils literal notranslate"><span class="pre">LevelStats::entries</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw10LevelStats11max_classesE"><code class="docutils literal notranslate"><span class="pre">LevelStats::max_classes</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw10LevelStats4nposE"><code class="docutils literal notranslate"><span class="pre">LevelStats::npos</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="nw__LocString.html">nw::LocString</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__LocalData.html">nw::LocalData</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__LocalVar.html">nw::LocalVar</a></li>
@@ -358,43 +376,43 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <div class="section" id="nw-levelstats">
-<h1>nw::LevelStats<a class="headerlink" href="#nw-levelstats" title="Permalink to this headline"></a></h1>
+  <section id="nw-levelstats">
+<h1>nw::LevelStats<a class="headerlink" href="#nw-levelstats" title="Link to this heading"></a></h1>
 <dl class="cpp struct">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw10LevelStatsE">
-<span id="_CPPv3N2nw10LevelStatsE"></span><span id="_CPPv2N2nw10LevelStatsE"></span><span id="nw::LevelStats"></span><span class="target" id="structnw_1_1_level_stats"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">LevelStats</span></span></span><a class="headerlink" href="#_CPPv4N2nw10LevelStatsE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw10LevelStatsE"></span><span id="_CPPv2N2nw10LevelStatsE"></span><span id="nw::LevelStats"></span><span class="target" id="structnw_1_1_level_stats"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">LevelStats</span></span></span><a class="headerlink" href="#_CPPv4N2nw10LevelStatsE" title="Link to this definition"></a><br /></dt>
 <dd><div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw10LevelStats10LevelStatsEv">
-<span id="_CPPv3N2nw10LevelStats10LevelStatsEv"></span><span id="_CPPv2N2nw10LevelStats10LevelStatsEv"></span><span id="nw::LevelStats::LevelStats"></span><span class="target" id="structnw_1_1_level_stats_1ab84b3f014a2a74a458115c94964b8b78"></span><span class="sig-name descname"><span class="n"><span class="pre">LevelStats</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">default</span></span><a class="headerlink" href="#_CPPv4N2nw10LevelStats10LevelStatsEv" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw10LevelStats10LevelStatsEv"></span><span id="_CPPv2N2nw10LevelStats10LevelStatsEv"></span><span id="nw::LevelStats::LevelStats"></span><span class="target" id="structnw_1_1_level_stats_1ab84b3f014a2a74a458115c94964b8b78"></span><span class="sig-name descname"><span class="n"><span class="pre">LevelStats</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">default</span></span><a class="headerlink" href="#_CPPv4N2nw10LevelStats10LevelStatsEv" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw10LevelStats9from_jsonERKN8nlohmann4jsonE">
-<span id="_CPPv3N2nw10LevelStats9from_jsonERKN8nlohmann4jsonE"></span><span id="_CPPv2N2nw10LevelStats9from_jsonERKN8nlohmann4jsonE"></span><span id="nw::LevelStats::from_json__nlohmann::jsonCR"></span><span class="target" id="structnw_1_1_level_stats_1a8e5df755fd35087a15ebc7d7b232dd3f"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">from_json</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">nlohmann</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">json</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">archive</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw10LevelStats9from_jsonERKN8nlohmann4jsonE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw10LevelStats9from_jsonERKN8nlohmann4jsonE"></span><span id="_CPPv2N2nw10LevelStats9from_jsonERKN8nlohmann4jsonE"></span><span id="nw::LevelStats::from_json__nlohmann::jsonCR"></span><span class="target" id="structnw_1_1_level_stats_1a8e5df755fd35087a15ebc7d7b232dd3f"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">from_json</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">nlohmann</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">json</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">archive</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw10LevelStats9from_jsonERKN8nlohmann4jsonE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4NK2nw10LevelStats7to_jsonEv">
-<span id="_CPPv3NK2nw10LevelStats7to_jsonEv"></span><span id="_CPPv2NK2nw10LevelStats7to_jsonEv"></span><span id="nw::LevelStats::to_jsonC"></span><span class="target" id="structnw_1_1_level_stats_1a8a5bf91de13a7e3ddfcb9d8a0fc673cf"></span><span class="n"><span class="pre">nlohmann</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">json</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">to_json</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK2nw10LevelStats7to_jsonEv" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3NK2nw10LevelStats7to_jsonEv"></span><span id="_CPPv2NK2nw10LevelStats7to_jsonEv"></span><span id="nw::LevelStats::to_jsonC"></span><span class="target" id="structnw_1_1_level_stats_1a8a5bf91de13a7e3ddfcb9d8a0fc673cf"></span><span class="n"><span class="pre">nlohmann</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">json</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">to_json</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK2nw10LevelStats7to_jsonEv" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4NK2nw10LevelStats5levelEv">
-<span id="_CPPv3NK2nw10LevelStats5levelEv"></span><span id="_CPPv2NK2nw10LevelStats5levelEv"></span><span id="nw::LevelStats::levelC"></span><span class="target" id="structnw_1_1_level_stats_1ae7e6d3bf4620f563364126ff5d779f9f"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">level</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="k"><span class="pre">noexcept</span></span><a class="headerlink" href="#_CPPv4NK2nw10LevelStats5levelEv" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3NK2nw10LevelStats5levelEv"></span><span id="_CPPv2NK2nw10LevelStats5levelEv"></span><span id="nw::LevelStats::levelC"></span><span class="target" id="structnw_1_1_level_stats_1ae7e6d3bf4620f563364126ff5d779f9f"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">level</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="k"><span class="pre">noexcept</span></span><a class="headerlink" href="#_CPPv4NK2nw10LevelStats5levelEv" title="Link to this definition"></a><br /></dt>
 <dd><p>Determines total level. </p>
 </dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4NK2nw10LevelStats14level_by_classE5Class">
-<span id="_CPPv3NK2nw10LevelStats14level_by_classE5Class"></span><span id="_CPPv2NK2nw10LevelStats14level_by_classE5Class"></span><span id="nw::LevelStats::level_by_class__ClassC"></span><span class="target" id="structnw_1_1_level_stats_1a65e5221a9fd5e9ae3c16bfffabf799cd"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">level_by_class</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="nw__Class.html#_CPPv4N2nw5ClassE" title="nw::Class"><span class="n"><span class="pre">Class</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">id</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="k"><span class="pre">noexcept</span></span><a class="headerlink" href="#_CPPv4NK2nw10LevelStats14level_by_classE5Class" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3NK2nw10LevelStats14level_by_classE5Class"></span><span id="_CPPv2NK2nw10LevelStats14level_by_classE5Class"></span><span id="nw::LevelStats::level_by_class__ClassC"></span><span class="target" id="structnw_1_1_level_stats_1a65e5221a9fd5e9ae3c16bfffabf799cd"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">level_by_class</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="nw__Class.html#_CPPv4N2nw5ClassE" title="nw::Class"><span class="n"><span class="pre">Class</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">id</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="k"><span class="pre">noexcept</span></span><a class="headerlink" href="#_CPPv4NK2nw10LevelStats14level_by_classE5Class" title="Link to this definition"></a><br /></dt>
 <dd><p>Determines level by class. </p>
 </dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4NK2nw10LevelStats8positionE5Class">
-<span id="_CPPv3NK2nw10LevelStats8positionE5Class"></span><span id="_CPPv2NK2nw10LevelStats8positionE5Class"></span><span id="nw::LevelStats::position__ClassC"></span><span class="target" id="structnw_1_1_level_stats_1a996cfd4afcdd1c67934af8f0b838be92"></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">position</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="nw__Class.html#_CPPv4N2nw5ClassE" title="nw::Class"><span class="n"><span class="pre">Class</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">id</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="k"><span class="pre">noexcept</span></span><a class="headerlink" href="#_CPPv4NK2nw10LevelStats8positionE5Class" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3NK2nw10LevelStats8positionE5Class"></span><span id="_CPPv2NK2nw10LevelStats8positionE5Class"></span><span id="nw::LevelStats::position__ClassC"></span><span class="target" id="structnw_1_1_level_stats_1a996cfd4afcdd1c67934af8f0b838be92"></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">position</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="nw__Class.html#_CPPv4N2nw5ClassE" title="nw::Class"><span class="n"><span class="pre">Class</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">id</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="k"><span class="pre">noexcept</span></span><a class="headerlink" href="#_CPPv4NK2nw10LevelStats8positionE5Class" title="Link to this definition"></a><br /></dt>
 <dd><p>Returns the position of the class, or <code class="docutils literal notranslate"><span class="pre">npos</span></code>. </p>
 </dd></dl>
 
@@ -403,7 +421,7 @@
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw10LevelStats7entriesE">
-<span id="_CPPv3N2nw10LevelStats7entriesE"></span><span id="_CPPv2N2nw10LevelStats7entriesE"></span><span id="nw::LevelStats::entries__std::array:ClassEntry.max_classes:"></span><span class="target" id="structnw_1_1_level_stats_1ad3c03cfb50655344907f3e2c681f455f"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">array</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="nw__ClassEntry.html#_CPPv4N2nw10ClassEntryE" title="nw::ClassEntry"><span class="n"><span class="pre">ClassEntry</span></span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N2nw10LevelStats11max_classesE" title="nw::LevelStats::max_classes"><span class="n"><span class="pre">max_classes</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">entries</span></span></span><a class="headerlink" href="#_CPPv4N2nw10LevelStats7entriesE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw10LevelStats7entriesE"></span><span id="_CPPv2N2nw10LevelStats7entriesE"></span><span id="nw::LevelStats::entries__std::array:ClassEntry.max_classes:"></span><span class="target" id="structnw_1_1_level_stats_1ad3c03cfb50655344907f3e2c681f455f"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">array</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="nw__ClassEntry.html#_CPPv4N2nw10ClassEntryE" title="nw::ClassEntry"><span class="n"><span class="pre">ClassEntry</span></span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N2nw10LevelStats11max_classesE" title="nw::LevelStats::max_classes"><span class="n"><span class="pre">max_classes</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">entries</span></span></span><a class="headerlink" href="#_CPPv4N2nw10LevelStats7entriesE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 </div>
@@ -411,18 +429,18 @@
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-static-attributes">Public Static Attributes</p>
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw10LevelStats11max_classesE">
-<span id="_CPPv3N2nw10LevelStats11max_classesE"></span><span id="_CPPv2N2nw10LevelStats11max_classesE"></span><span id="nw::LevelStats::max_classes__s"></span><span class="target" id="structnw_1_1_level_stats_1a084ea6796b833527705c968429c1dfa4"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">max_classes</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">8</span></span><a class="headerlink" href="#_CPPv4N2nw10LevelStats11max_classesE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw10LevelStats11max_classesE"></span><span id="_CPPv2N2nw10LevelStats11max_classesE"></span><span id="nw::LevelStats::max_classes__s"></span><span class="target" id="structnw_1_1_level_stats_1a084ea6796b833527705c968429c1dfa4"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">max_classes</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">8</span></span><a class="headerlink" href="#_CPPv4N2nw10LevelStats11max_classesE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw10LevelStats4nposE">
-<span id="_CPPv3N2nw10LevelStats4nposE"></span><span id="_CPPv2N2nw10LevelStats4nposE"></span><span id="nw::LevelStats::npos__s"></span><span class="target" id="structnw_1_1_level_stats_1a754e04c82bc6d0f4cc466cf089bc6982"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">npos</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">numeric_limits</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">size_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">max</span></span><span class="p"><span class="pre">(</span></span><span class="p"><span class="pre">)</span></span><a class="headerlink" href="#_CPPv4N2nw10LevelStats4nposE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw10LevelStats4nposE"></span><span id="_CPPv2N2nw10LevelStats4nposE"></span><span id="nw::LevelStats::npos__s"></span><span class="target" id="structnw_1_1_level_stats_1a754e04c82bc6d0f4cc466cf089bc6982"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">npos</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">numeric_limits</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">size_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">max</span></span><span class="p"><span class="pre">(</span></span><span class="p"><span class="pre">)</span></span><a class="headerlink" href="#_CPPv4N2nw10LevelStats4nposE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 </div>
 </dd></dl>
 
-</div>
+</section>
 
 
            </div>

@@ -1,20 +1,24 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html5" lang="en" data-content_root="../../">
 <head>
-  <meta charset="utf-8" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>nw::SkillInfo &mdash; rollNW  documentation</title>
-      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
-      <link rel="stylesheet" href="../../_static/tabs.css" type="text/css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="../../_static/tabs.css?v=a5c4661c" />
+
+  
   <!--[if lt IE 9]>
     <script src="../../_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
-        <script src="../../_static/jquery.js"></script>
-        <script src="../../_static/underscore.js"></script>
-        <script src="../../_static/doctools.js"></script>
+        <script src="../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+        <script src="../../_static/doctools.js?v=888ff710"></script>
+        <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
@@ -175,7 +179,24 @@
 <li class="toctree-l2"><a class="reference internal" href="nw__SerializationType.html">nw::SerializationType</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Situation.html">nw::Situation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Skill.html">nw::Skill</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">nw::SkillInfo</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">nw::SkillInfo</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#_CPPv4N2nw9SkillInfoE"><code class="docutils literal notranslate"><span class="pre">SkillInfo</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw9SkillInfo9SkillInfoEv"><code class="docutils literal notranslate"><span class="pre">SkillInfo::SkillInfo()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw9SkillInfo9SkillInfoERK12TwoDARowView"><code class="docutils literal notranslate"><span class="pre">SkillInfo::SkillInfo()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw9SkillInfo5validEv"><code class="docutils literal notranslate"><span class="pre">SkillInfo::valid()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw9SkillInfo4nameE"><code class="docutils literal notranslate"><span class="pre">SkillInfo::name</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw9SkillInfo11descriptionE"><code class="docutils literal notranslate"><span class="pre">SkillInfo::description</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw9SkillInfo4iconE"><code class="docutils literal notranslate"><span class="pre">SkillInfo::icon</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw9SkillInfo9untrainedE"><code class="docutils literal notranslate"><span class="pre">SkillInfo::untrained</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw9SkillInfo7abilityE"><code class="docutils literal notranslate"><span class="pre">SkillInfo::ability</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw9SkillInfo19armor_check_penaltyE"><code class="docutils literal notranslate"><span class="pre">SkillInfo::armor_check_penalty</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw9SkillInfo11all_can_useE"><code class="docutils literal notranslate"><span class="pre">SkillInfo::all_can_use</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw9SkillInfo8constantE"><code class="docutils literal notranslate"><span class="pre">SkillInfo::constant</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw9SkillInfo7hostileE"><code class="docutils literal notranslate"><span class="pre">SkillInfo::hostile</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Sound.html">nw::Sound</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__SpawnCreature.html">nw::SpawnCreature</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__SpawnPoint.html">nw::SpawnPoint</a></li>
@@ -358,27 +379,27 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <div class="section" id="nw-skillinfo">
-<h1>nw::SkillInfo<a class="headerlink" href="#nw-skillinfo" title="Permalink to this headline"></a></h1>
+  <section id="nw-skillinfo">
+<h1>nw::SkillInfo<a class="headerlink" href="#nw-skillinfo" title="Link to this heading"></a></h1>
 <dl class="cpp struct">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw9SkillInfoE">
-<span id="_CPPv3N2nw9SkillInfoE"></span><span id="_CPPv2N2nw9SkillInfoE"></span><span id="nw::SkillInfo"></span><span class="target" id="structnw_1_1_skill_info"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SkillInfo</span></span></span><a class="headerlink" href="#_CPPv4N2nw9SkillInfoE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw9SkillInfoE"></span><span id="_CPPv2N2nw9SkillInfoE"></span><span id="nw::SkillInfo"></span><span class="target" id="structnw_1_1_skill_info"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SkillInfo</span></span></span><a class="headerlink" href="#_CPPv4N2nw9SkillInfoE" title="Link to this definition"></a><br /></dt>
 <dd><p><a class="reference internal" href="nw__Skill.html#structnw_1_1_skill"><span class="std std-ref">Skill</span></a> definition. </p>
 <div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw9SkillInfo9SkillInfoEv">
-<span id="_CPPv3N2nw9SkillInfo9SkillInfoEv"></span><span id="_CPPv2N2nw9SkillInfo9SkillInfoEv"></span><span id="nw::SkillInfo::SkillInfo"></span><span class="target" id="structnw_1_1_skill_info_1ad9ad354debe971f21d983fb3c4b2ae80"></span><span class="sig-name descname"><span class="n"><span class="pre">SkillInfo</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">default</span></span><a class="headerlink" href="#_CPPv4N2nw9SkillInfo9SkillInfoEv" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw9SkillInfo9SkillInfoEv"></span><span id="_CPPv2N2nw9SkillInfo9SkillInfoEv"></span><span id="nw::SkillInfo::SkillInfo"></span><span class="target" id="structnw_1_1_skill_info_1ad9ad354debe971f21d983fb3c4b2ae80"></span><span class="sig-name descname"><span class="n"><span class="pre">SkillInfo</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">default</span></span><a class="headerlink" href="#_CPPv4N2nw9SkillInfo9SkillInfoEv" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw9SkillInfo9SkillInfoERK12TwoDARowView">
-<span id="_CPPv3N2nw9SkillInfo9SkillInfoERK12TwoDARowView"></span><span id="_CPPv2N2nw9SkillInfo9SkillInfoERK12TwoDARowView"></span><span id="nw::SkillInfo::SkillInfo__TwoDARowViewCR"></span><span class="target" id="structnw_1_1_skill_info_1aaf2693e576539caa53a85cb230fee9b3"></span><span class="sig-name descname"><span class="n"><span class="pre">SkillInfo</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">TwoDARowView</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">tda</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw9SkillInfo9SkillInfoERK12TwoDARowView" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw9SkillInfo9SkillInfoERK12TwoDARowView"></span><span id="_CPPv2N2nw9SkillInfo9SkillInfoERK12TwoDARowView"></span><span id="nw::SkillInfo::SkillInfo__TwoDARowViewCR"></span><span class="target" id="structnw_1_1_skill_info_1aaf2693e576539caa53a85cb230fee9b3"></span><span class="sig-name descname"><span class="n"><span class="pre">SkillInfo</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">TwoDARowView</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">tda</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw9SkillInfo9SkillInfoERK12TwoDARowView" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4NK2nw9SkillInfo5validEv">
-<span id="_CPPv3NK2nw9SkillInfo5validEv"></span><span id="_CPPv2NK2nw9SkillInfo5validEv"></span><span id="nw::SkillInfo::validC"></span><span class="target" id="structnw_1_1_skill_info_1ab7abf578d3aa1d42181e7b3b4126339d"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">valid</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="k"><span class="pre">noexcept</span></span><a class="headerlink" href="#_CPPv4NK2nw9SkillInfo5validEv" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3NK2nw9SkillInfo5validEv"></span><span id="_CPPv2NK2nw9SkillInfo5validEv"></span><span id="nw::SkillInfo::validC"></span><span class="target" id="structnw_1_1_skill_info_1ab7abf578d3aa1d42181e7b3b4126339d"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">valid</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="k"><span class="pre">noexcept</span></span><a class="headerlink" href="#_CPPv4NK2nw9SkillInfo5validEv" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 </div>
@@ -386,53 +407,53 @@
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw9SkillInfo4nameE">
-<span id="_CPPv3N2nw9SkillInfo4nameE"></span><span id="_CPPv2N2nw9SkillInfo4nameE"></span><span id="nw::SkillInfo::name__uint32_t"></span><span class="target" id="structnw_1_1_skill_info_1a7a9f207c4a4854e766e3f96d94100888"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">name</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0xFFFFFFFF</span></span><a class="headerlink" href="#_CPPv4N2nw9SkillInfo4nameE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw9SkillInfo4nameE"></span><span id="_CPPv2N2nw9SkillInfo4nameE"></span><span id="nw::SkillInfo::name__uint32_t"></span><span class="target" id="structnw_1_1_skill_info_1a7a9f207c4a4854e766e3f96d94100888"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">name</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0xFFFFFFFF</span></span><a class="headerlink" href="#_CPPv4N2nw9SkillInfo4nameE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw9SkillInfo11descriptionE">
-<span id="_CPPv3N2nw9SkillInfo11descriptionE"></span><span id="_CPPv2N2nw9SkillInfo11descriptionE"></span><span id="nw::SkillInfo::description__uint32_t"></span><span class="target" id="structnw_1_1_skill_info_1ac7cea7f2aa612a04ab3ca7188c447ec0"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">description</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0xFFFFFFFF</span></span><a class="headerlink" href="#_CPPv4N2nw9SkillInfo11descriptionE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw9SkillInfo11descriptionE"></span><span id="_CPPv2N2nw9SkillInfo11descriptionE"></span><span id="nw::SkillInfo::description__uint32_t"></span><span class="target" id="structnw_1_1_skill_info_1ac7cea7f2aa612a04ab3ca7188c447ec0"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">description</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0xFFFFFFFF</span></span><a class="headerlink" href="#_CPPv4N2nw9SkillInfo11descriptionE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw9SkillInfo4iconE">
-<span id="_CPPv3N2nw9SkillInfo4iconE"></span><span id="_CPPv2N2nw9SkillInfo4iconE"></span><span id="nw::SkillInfo::icon__Resource"></span><span class="target" id="structnw_1_1_skill_info_1a0b1f1e2683e404b38efca5799d870262"></span><a class="reference internal" href="nw__Resource.html#_CPPv4N2nw8ResourceE" title="nw::Resource"><span class="n"><span class="pre">Resource</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">icon</span></span></span><a class="headerlink" href="#_CPPv4N2nw9SkillInfo4iconE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw9SkillInfo4iconE"></span><span id="_CPPv2N2nw9SkillInfo4iconE"></span><span id="nw::SkillInfo::icon__Resource"></span><span class="target" id="structnw_1_1_skill_info_1a0b1f1e2683e404b38efca5799d870262"></span><a class="reference internal" href="nw__Resource.html#_CPPv4N2nw8ResourceE" title="nw::Resource"><span class="n"><span class="pre">Resource</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">icon</span></span></span><a class="headerlink" href="#_CPPv4N2nw9SkillInfo4iconE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw9SkillInfo9untrainedE">
-<span id="_CPPv3N2nw9SkillInfo9untrainedE"></span><span id="_CPPv2N2nw9SkillInfo9untrainedE"></span><span id="nw::SkillInfo::untrained__b"></span><span class="target" id="structnw_1_1_skill_info_1a5e00238e506515aeaa00705069297588"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">untrained</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">false</span></span><a class="headerlink" href="#_CPPv4N2nw9SkillInfo9untrainedE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw9SkillInfo9untrainedE"></span><span id="_CPPv2N2nw9SkillInfo9untrainedE"></span><span id="nw::SkillInfo::untrained__b"></span><span class="target" id="structnw_1_1_skill_info_1a5e00238e506515aeaa00705069297588"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">untrained</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">false</span></span><a class="headerlink" href="#_CPPv4N2nw9SkillInfo9untrainedE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw9SkillInfo7abilityE">
-<span id="_CPPv3N2nw9SkillInfo7abilityE"></span><span id="_CPPv2N2nw9SkillInfo7abilityE"></span><span id="nw::SkillInfo::ability__Ability"></span><span class="target" id="structnw_1_1_skill_info_1a013156d852d6a9a97660fd3205192cf2"></span><a class="reference internal" href="nw__Ability.html#_CPPv4N2nw7AbilityE" title="nw::Ability"><span class="n"><span class="pre">Ability</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ability</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N2nw9SkillInfo7abilityE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw9SkillInfo7abilityE"></span><span id="_CPPv2N2nw9SkillInfo7abilityE"></span><span id="nw::SkillInfo::ability__Ability"></span><span class="target" id="structnw_1_1_skill_info_1a013156d852d6a9a97660fd3205192cf2"></span><a class="reference internal" href="nw__Ability.html#_CPPv4N2nw7AbilityE" title="nw::Ability"><span class="n"><span class="pre">Ability</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ability</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N2nw9SkillInfo7abilityE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw9SkillInfo19armor_check_penaltyE">
-<span id="_CPPv3N2nw9SkillInfo19armor_check_penaltyE"></span><span id="_CPPv2N2nw9SkillInfo19armor_check_penaltyE"></span><span id="nw::SkillInfo::armor_check_penalty__b"></span><span class="target" id="structnw_1_1_skill_info_1a06c0562bdb8ee182aeb31bb57cf60476"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">armor_check_penalty</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">false</span></span><a class="headerlink" href="#_CPPv4N2nw9SkillInfo19armor_check_penaltyE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw9SkillInfo19armor_check_penaltyE"></span><span id="_CPPv2N2nw9SkillInfo19armor_check_penaltyE"></span><span id="nw::SkillInfo::armor_check_penalty__b"></span><span class="target" id="structnw_1_1_skill_info_1a06c0562bdb8ee182aeb31bb57cf60476"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">armor_check_penalty</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">false</span></span><a class="headerlink" href="#_CPPv4N2nw9SkillInfo19armor_check_penaltyE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw9SkillInfo11all_can_useE">
-<span id="_CPPv3N2nw9SkillInfo11all_can_useE"></span><span id="_CPPv2N2nw9SkillInfo11all_can_useE"></span><span id="nw::SkillInfo::all_can_use__b"></span><span class="target" id="structnw_1_1_skill_info_1a6f062aa2a5abd5dfc64f95048fa503f2"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">all_can_use</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">false</span></span><a class="headerlink" href="#_CPPv4N2nw9SkillInfo11all_can_useE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw9SkillInfo11all_can_useE"></span><span id="_CPPv2N2nw9SkillInfo11all_can_useE"></span><span id="nw::SkillInfo::all_can_use__b"></span><span class="target" id="structnw_1_1_skill_info_1a6f062aa2a5abd5dfc64f95048fa503f2"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">all_can_use</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">false</span></span><a class="headerlink" href="#_CPPv4N2nw9SkillInfo11all_can_useE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw9SkillInfo8constantE">
-<span id="_CPPv3N2nw9SkillInfo8constantE"></span><span id="_CPPv2N2nw9SkillInfo8constantE"></span><span id="nw::SkillInfo::constant__InternedString"></span><span class="target" id="structnw_1_1_skill_info_1a7fd2126f3957499ccceaecf1ef009cbb"></span><a class="reference internal" href="nw__InternedString.html#_CPPv4N2nw14InternedStringE" title="nw::InternedString"><span class="n"><span class="pre">InternedString</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">constant</span></span></span><a class="headerlink" href="#_CPPv4N2nw9SkillInfo8constantE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw9SkillInfo8constantE"></span><span id="_CPPv2N2nw9SkillInfo8constantE"></span><span id="nw::SkillInfo::constant__InternedString"></span><span class="target" id="structnw_1_1_skill_info_1a7fd2126f3957499ccceaecf1ef009cbb"></span><a class="reference internal" href="nw__InternedString.html#_CPPv4N2nw14InternedStringE" title="nw::InternedString"><span class="n"><span class="pre">InternedString</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">constant</span></span></span><a class="headerlink" href="#_CPPv4N2nw9SkillInfo8constantE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw9SkillInfo7hostileE">
-<span id="_CPPv3N2nw9SkillInfo7hostileE"></span><span id="_CPPv2N2nw9SkillInfo7hostileE"></span><span id="nw::SkillInfo::hostile__b"></span><span class="target" id="structnw_1_1_skill_info_1ae73e9a37e3f0649de838ab927e4cd3d4"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">hostile</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">false</span></span><a class="headerlink" href="#_CPPv4N2nw9SkillInfo7hostileE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw9SkillInfo7hostileE"></span><span id="_CPPv2N2nw9SkillInfo7hostileE"></span><span id="nw::SkillInfo::hostile__b"></span><span class="target" id="structnw_1_1_skill_info_1ae73e9a37e3f0649de838ab927e4cd3d4"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">hostile</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">false</span></span><a class="headerlink" href="#_CPPv4N2nw9SkillInfo7hostileE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 </div>
 </dd></dl>
 
-</div>
+</section>
 
 
            </div>

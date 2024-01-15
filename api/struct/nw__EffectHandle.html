@@ -1,20 +1,24 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html5" lang="en" data-content_root="../../">
 <head>
-  <meta charset="utf-8" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>nw::EffectHandle &mdash; rollNW  documentation</title>
-      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
-      <link rel="stylesheet" href="../../_static/tabs.css" type="text/css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="../../_static/tabs.css?v=a5c4661c" />
+
+  
   <!--[if lt IE 9]>
     <script src="../../_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
-        <script src="../../_static/jquery.js"></script>
-        <script src="../../_static/underscore.js"></script>
-        <script src="../../_static/doctools.js"></script>
+        <script src="../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+        <script src="../../_static/doctools.js?v=888ff710"></script>
+        <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
@@ -97,7 +101,20 @@
 <li class="toctree-l2"><a class="reference internal" href="nw__DoorScripts.html">nw::DoorScripts</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Effect.html">nw::Effect</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__EffectArray.html">nw::EffectArray</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">nw::EffectHandle</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">nw::EffectHandle</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#_CPPv4N2nw12EffectHandleE"><code class="docutils literal notranslate"><span class="pre">EffectHandle</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw12EffectHandleeqERK12EffectHandle"><code class="docutils literal notranslate"><span class="pre">EffectHandle::operator==()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw12EffectHandlessERK12EffectHandle"><code class="docutils literal notranslate"><span class="pre">EffectHandle::operator&lt;=&gt;()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw12EffectHandle4typeE"><code class="docutils literal notranslate"><span class="pre">EffectHandle::type</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw12EffectHandle7subtypeE"><code class="docutils literal notranslate"><span class="pre">EffectHandle::subtype</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw12EffectHandle7creatorE"><code class="docutils literal notranslate"><span class="pre">EffectHandle::creator</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw12EffectHandle8spell_idE"><code class="docutils literal notranslate"><span class="pre">EffectHandle::spell_id</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw12EffectHandle8categoryE"><code class="docutils literal notranslate"><span class="pre">EffectHandle::category</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw12EffectHandle6effectE"><code class="docutils literal notranslate"><span class="pre">EffectHandle::effect</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Encounter.html">nw::Encounter</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__EncounterScripts.html">nw::EncounterScripts</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Equips.html">nw::Equips</a></li>
@@ -358,21 +375,21 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <div class="section" id="nw-effecthandle">
-<h1>nw::EffectHandle<a class="headerlink" href="#nw-effecthandle" title="Permalink to this headline"></a></h1>
+  <section id="nw-effecthandle">
+<h1>nw::EffectHandle<a class="headerlink" href="#nw-effecthandle" title="Link to this heading"></a></h1>
 <dl class="cpp struct">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw12EffectHandleE">
-<span id="_CPPv3N2nw12EffectHandleE"></span><span id="_CPPv2N2nw12EffectHandleE"></span><span id="nw::EffectHandle"></span><span class="target" id="structnw_1_1_effect_handle"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">EffectHandle</span></span></span><a class="headerlink" href="#_CPPv4N2nw12EffectHandleE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw12EffectHandleE"></span><span id="_CPPv2N2nw12EffectHandleE"></span><span id="nw::EffectHandle"></span><span class="target" id="structnw_1_1_effect_handle"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">EffectHandle</span></span></span><a class="headerlink" href="#_CPPv4N2nw12EffectHandleE" title="Link to this definition"></a><br /></dt>
 <dd><div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4NK2nw12EffectHandleeqERK12EffectHandle">
-<span id="_CPPv3NK2nw12EffectHandleeqERK12EffectHandle"></span><span id="_CPPv2NK2nw12EffectHandleeqERK12EffectHandle"></span><span id="nw::EffectHandle::eq-operator__EffectHandleCRC"></span><span class="target" id="structnw_1_1_effect_handle_1a515d9d0146695f615fc190137cb9c9a7"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">==</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N2nw12EffectHandleE" title="nw::EffectHandle"><span class="n"><span class="pre">EffectHandle</span></span></a><span class="p"><span class="pre">&amp;</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">default</span></span><a class="headerlink" href="#_CPPv4NK2nw12EffectHandleeqERK12EffectHandle" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3NK2nw12EffectHandleeqERK12EffectHandle"></span><span id="_CPPv2NK2nw12EffectHandleeqERK12EffectHandle"></span><span id="nw::EffectHandle::eq-operator__EffectHandleCRC"></span><span class="target" id="structnw_1_1_effect_handle_1a515d9d0146695f615fc190137cb9c9a7"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">==</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N2nw12EffectHandleE" title="nw::EffectHandle"><span class="n"><span class="pre">EffectHandle</span></span></a><span class="p"><span class="pre">&amp;</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">default</span></span><a class="headerlink" href="#_CPPv4NK2nw12EffectHandleeqERK12EffectHandle" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4NK2nw12EffectHandlessERK12EffectHandle">
-<span id="_CPPv3NK2nw12EffectHandlessERK12EffectHandle"></span><span id="_CPPv2NK2nw12EffectHandlessERK12EffectHandle"></span><span class="target" id="structnw_1_1_effect_handle_1ae9153d781a05d9d6487ce17e1a4f37fe"></span><span class="kt"><span class="pre">auto</span></span><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">&lt;=&gt;</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N2nw12EffectHandleE" title="nw::EffectHandle"><span class="n"><span class="pre">EffectHandle</span></span></a><span class="p"><span class="pre">&amp;</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">default</span></span><a class="headerlink" href="#_CPPv4NK2nw12EffectHandlessERK12EffectHandle" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3NK2nw12EffectHandlessERK12EffectHandle"></span><span id="_CPPv2NK2nw12EffectHandlessERK12EffectHandle"></span><span class="target" id="structnw_1_1_effect_handle_1ae9153d781a05d9d6487ce17e1a4f37fe"></span><span class="kt"><span class="pre">auto</span></span><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">&lt;=&gt;</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N2nw12EffectHandleE" title="nw::EffectHandle"><span class="n"><span class="pre">EffectHandle</span></span></a><span class="p"><span class="pre">&amp;</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">default</span></span><a class="headerlink" href="#_CPPv4NK2nw12EffectHandlessERK12EffectHandle" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 </div>
@@ -380,38 +397,38 @@
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw12EffectHandle4typeE">
-<span id="_CPPv3N2nw12EffectHandle4typeE"></span><span id="_CPPv2N2nw12EffectHandle4typeE"></span><span id="nw::EffectHandle::type__EffectType"></span><span class="target" id="structnw_1_1_effect_handle_1afe7255bf0db6e3dcaeb88469050f6a04"></span><span class="n"><span class="pre">EffectType</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">type</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">EffectType</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">invalid</span></span><span class="p"><span class="pre">(</span></span><span class="p"><span class="pre">)</span></span><a class="headerlink" href="#_CPPv4N2nw12EffectHandle4typeE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw12EffectHandle4typeE"></span><span id="_CPPv2N2nw12EffectHandle4typeE"></span><span id="nw::EffectHandle::type__EffectType"></span><span class="target" id="structnw_1_1_effect_handle_1afe7255bf0db6e3dcaeb88469050f6a04"></span><span class="n"><span class="pre">EffectType</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">type</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">EffectType</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">invalid</span></span><span class="p"><span class="pre">(</span></span><span class="p"><span class="pre">)</span></span><a class="headerlink" href="#_CPPv4N2nw12EffectHandle4typeE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw12EffectHandle7subtypeE">
-<span id="_CPPv3N2nw12EffectHandle7subtypeE"></span><span id="_CPPv2N2nw12EffectHandle7subtypeE"></span><span id="nw::EffectHandle::subtype__i"></span><span class="target" id="structnw_1_1_effect_handle_1ab7f66f0f90fb306640f343f9a5cfe13e"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">subtype</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="o"><span class="pre">-</span></span><span class="m"><span class="pre">1</span></span><a class="headerlink" href="#_CPPv4N2nw12EffectHandle7subtypeE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw12EffectHandle7subtypeE"></span><span id="_CPPv2N2nw12EffectHandle7subtypeE"></span><span id="nw::EffectHandle::subtype__i"></span><span class="target" id="structnw_1_1_effect_handle_1ab7f66f0f90fb306640f343f9a5cfe13e"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">subtype</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="o"><span class="pre">-</span></span><span class="m"><span class="pre">1</span></span><a class="headerlink" href="#_CPPv4N2nw12EffectHandle7subtypeE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw12EffectHandle7creatorE">
-<span id="_CPPv3N2nw12EffectHandle7creatorE"></span><span id="_CPPv2N2nw12EffectHandle7creatorE"></span><span id="nw::EffectHandle::creator__ObjectHandle"></span><span class="target" id="structnw_1_1_effect_handle_1a386dbd14fd4479eaf9ce059972781e6f"></span><span class="n"><span class="pre">ObjectHandle</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">creator</span></span></span><a class="headerlink" href="#_CPPv4N2nw12EffectHandle7creatorE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw12EffectHandle7creatorE"></span><span id="_CPPv2N2nw12EffectHandle7creatorE"></span><span id="nw::EffectHandle::creator__ObjectHandle"></span><span class="target" id="structnw_1_1_effect_handle_1a386dbd14fd4479eaf9ce059972781e6f"></span><span class="n"><span class="pre">ObjectHandle</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">creator</span></span></span><a class="headerlink" href="#_CPPv4N2nw12EffectHandle7creatorE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw12EffectHandle8spell_idE">
-<span id="_CPPv3N2nw12EffectHandle8spell_idE"></span><span id="_CPPv2N2nw12EffectHandle8spell_idE"></span><span id="nw::EffectHandle::spell_id__Spell"></span><span class="target" id="structnw_1_1_effect_handle_1a6a58533700a363e8ce149594c986136a"></span><a class="reference internal" href="nw__Spell.html#_CPPv4N2nw5SpellE" title="nw::Spell"><span class="n"><span class="pre">Spell</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">spell_id</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="nw__Spell.html#_CPPv4N2nw5SpellE" title="nw::Spell"><span class="n"><span class="pre">Spell</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="nw__Spell.html#_CPPv4N2nw5Spell7invalidEv" title="nw::Spell::invalid"><span class="n"><span class="pre">invalid</span></span></a><span class="p"><span class="pre">(</span></span><span class="p"><span class="pre">)</span></span><a class="headerlink" href="#_CPPv4N2nw12EffectHandle8spell_idE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw12EffectHandle8spell_idE"></span><span id="_CPPv2N2nw12EffectHandle8spell_idE"></span><span id="nw::EffectHandle::spell_id__Spell"></span><span class="target" id="structnw_1_1_effect_handle_1a6a58533700a363e8ce149594c986136a"></span><a class="reference internal" href="nw__Spell.html#_CPPv4N2nw5SpellE" title="nw::Spell"><span class="n"><span class="pre">Spell</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">spell_id</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="nw__Spell.html#_CPPv4N2nw5SpellE" title="nw::Spell"><span class="n"><span class="pre">Spell</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="nw__Spell.html#_CPPv4N2nw5Spell7invalidEv" title="nw::Spell::invalid"><span class="n"><span class="pre">invalid</span></span></a><span class="p"><span class="pre">(</span></span><span class="p"><span class="pre">)</span></span><a class="headerlink" href="#_CPPv4N2nw12EffectHandle8spell_idE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw12EffectHandle8categoryE">
-<span id="_CPPv3N2nw12EffectHandle8categoryE"></span><span id="_CPPv2N2nw12EffectHandle8categoryE"></span><span id="nw::EffectHandle::category__EffectCategory"></span><span class="target" id="structnw_1_1_effect_handle_1ab3f8338e8397337ba2f21426e99c9eb7"></span><span class="n"><span class="pre">EffectCategory</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">category</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">EffectCategory</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">magical</span></span><a class="headerlink" href="#_CPPv4N2nw12EffectHandle8categoryE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw12EffectHandle8categoryE"></span><span id="_CPPv2N2nw12EffectHandle8categoryE"></span><span id="nw::EffectHandle::category__EffectCategory"></span><span class="target" id="structnw_1_1_effect_handle_1ab3f8338e8397337ba2f21426e99c9eb7"></span><span class="n"><span class="pre">EffectCategory</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">category</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">EffectCategory</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">magical</span></span><a class="headerlink" href="#_CPPv4N2nw12EffectHandle8categoryE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw12EffectHandle6effectE">
-<span id="_CPPv3N2nw12EffectHandle6effectE"></span><span id="_CPPv2N2nw12EffectHandle6effectE"></span><span id="nw::EffectHandle::effect__EffectP"></span><span class="target" id="structnw_1_1_effect_handle_1a78bb793110d958ee808fbdf4df321346"></span><a class="reference internal" href="nw__Effect.html#_CPPv4N2nw6EffectE" title="nw::Effect"><span class="n"><span class="pre">Effect</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">effect</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">nullptr</span></span><a class="headerlink" href="#_CPPv4N2nw12EffectHandle6effectE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw12EffectHandle6effectE"></span><span id="_CPPv2N2nw12EffectHandle6effectE"></span><span id="nw::EffectHandle::effect__EffectP"></span><span class="target" id="structnw_1_1_effect_handle_1a78bb793110d958ee808fbdf4df321346"></span><a class="reference internal" href="nw__Effect.html#_CPPv4N2nw6EffectE" title="nw::Effect"><span class="n"><span class="pre">Effect</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">effect</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">nullptr</span></span><a class="headerlink" href="#_CPPv4N2nw12EffectHandle6effectE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 </div>
 </dd></dl>
 
-</div>
+</section>
 
 
            </div>

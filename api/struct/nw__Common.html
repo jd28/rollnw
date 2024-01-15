@@ -1,20 +1,24 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html5" lang="en" data-content_root="../../">
 <head>
-  <meta charset="utf-8" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>nw::Common &mdash; rollNW  documentation</title>
-      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
-      <link rel="stylesheet" href="../../_static/tabs.css" type="text/css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="../../_static/tabs.css?v=a5c4661c" />
+
+  
   <!--[if lt IE 9]>
     <script src="../../_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
-        <script src="../../_static/jquery.js"></script>
-        <script src="../../_static/underscore.js"></script>
-        <script src="../../_static/doctools.js"></script>
+        <script src="../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+        <script src="../../_static/doctools.js?v=888ff710"></script>
+        <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
@@ -78,7 +82,23 @@
 <li class="toctree-l2"><a class="reference internal" href="nw__ClassEntry.html">nw::ClassEntry</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__ClassInfo.html">nw::ClassInfo</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__CombatInfo.html">nw::CombatInfo</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">nw::Common</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">nw::Common</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#_CPPv4N2nw6CommonE"><code class="docutils literal notranslate"><span class="pre">Common</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6Common9from_jsonERKN8nlohmann4jsonE20SerializationProfile10ObjectType"><code class="docutils literal notranslate"><span class="pre">Common::from_json()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw6Common7to_jsonE20SerializationProfile10ObjectType"><code class="docutils literal notranslate"><span class="pre">Common::to_json()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6Common5validEv"><code class="docutils literal notranslate"><span class="pre">Common::valid()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6Common4uuidE"><code class="docutils literal notranslate"><span class="pre">Common::uuid</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6Common6resrefE"><code class="docutils literal notranslate"><span class="pre">Common::resref</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6Common3tagE"><code class="docutils literal notranslate"><span class="pre">Common::tag</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6Common4nameE"><code class="docutils literal notranslate"><span class="pre">Common::name</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6Common6localsE"><code class="docutils literal notranslate"><span class="pre">Common::locals</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6Common8locationE"><code class="docutils literal notranslate"><span class="pre">Common::location</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6Common7commentE"><code class="docutils literal notranslate"><span class="pre">Common::comment</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6Common10palette_idE"><code class="docutils literal notranslate"><span class="pre">Common::palette_id</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="nw__CompressionHeader.html">nw::CompressionHeader</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__ConfigOptions.html">nw::ConfigOptions</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Container.html">nw::Container</a></li>
@@ -358,26 +378,26 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <div class="section" id="nw-common">
-<h1>nw::Common<a class="headerlink" href="#nw-common" title="Permalink to this headline"></a></h1>
+  <section id="nw-common">
+<h1>nw::Common<a class="headerlink" href="#nw-common" title="Link to this heading"></a></h1>
 <dl class="cpp struct">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw6CommonE">
-<span id="_CPPv3N2nw6CommonE"></span><span id="_CPPv2N2nw6CommonE"></span><span id="nw::Common"></span><span class="target" id="structnw_1_1_common"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Common</span></span></span><a class="headerlink" href="#_CPPv4N2nw6CommonE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw6CommonE"></span><span id="_CPPv2N2nw6CommonE"></span><span id="nw::Common"></span><span class="target" id="structnw_1_1_common"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Common</span></span></span><a class="headerlink" href="#_CPPv4N2nw6CommonE" title="Link to this definition"></a><br /></dt>
 <dd><div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw6Common9from_jsonERKN8nlohmann4jsonE20SerializationProfile10ObjectType">
-<span id="_CPPv3N2nw6Common9from_jsonERKN8nlohmann4jsonE20SerializationProfile10ObjectType"></span><span id="_CPPv2N2nw6Common9from_jsonERKN8nlohmann4jsonE20SerializationProfile10ObjectType"></span><span id="nw::Common::from_json__nlohmann::jsonCR.SerializationProfile.ObjectType"></span><span class="target" id="structnw_1_1_common_1a7056fc06d13b285e1255aa6428c384a0"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">from_json</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">nlohmann</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">json</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">archive</span></span>, <a class="reference internal" href="../enum/nw__SerializationProfile.html#_CPPv4N2nw20SerializationProfileE" title="nw::SerializationProfile"><span class="n"><span class="pre">SerializationProfile</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">profile</span></span>, <a class="reference internal" href="../enum/nw__ObjectType.html#_CPPv4N2nw10ObjectTypeE" title="nw::ObjectType"><span class="n"><span class="pre">ObjectType</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">object_type</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6Common9from_jsonERKN8nlohmann4jsonE20SerializationProfile10ObjectType" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw6Common9from_jsonERKN8nlohmann4jsonE20SerializationProfile10ObjectType"></span><span id="_CPPv2N2nw6Common9from_jsonERKN8nlohmann4jsonE20SerializationProfile10ObjectType"></span><span id="nw::Common::from_json__nlohmann::jsonCR.SerializationProfile.ObjectType"></span><span class="target" id="structnw_1_1_common_1a7056fc06d13b285e1255aa6428c384a0"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">from_json</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">nlohmann</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">json</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">archive</span></span>, <a class="reference internal" href="../enum/nw__SerializationProfile.html#_CPPv4N2nw20SerializationProfileE" title="nw::SerializationProfile"><span class="n"><span class="pre">SerializationProfile</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">profile</span></span>, <a class="reference internal" href="../enum/nw__ObjectType.html#_CPPv4N2nw10ObjectTypeE" title="nw::ObjectType"><span class="n"><span class="pre">ObjectType</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">object_type</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6Common9from_jsonERKN8nlohmann4jsonE20SerializationProfile10ObjectType" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4NK2nw6Common7to_jsonE20SerializationProfile10ObjectType">
-<span id="_CPPv3NK2nw6Common7to_jsonE20SerializationProfile10ObjectType"></span><span id="_CPPv2NK2nw6Common7to_jsonE20SerializationProfile10ObjectType"></span><span id="nw::Common::to_json__SerializationProfile.ObjectTypeC"></span><span class="target" id="structnw_1_1_common_1a442ad294db302f6dfc8617b7a7f698e1"></span><span class="n"><span class="pre">nlohmann</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">json</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">to_json</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="../enum/nw__SerializationProfile.html#_CPPv4N2nw20SerializationProfileE" title="nw::SerializationProfile"><span class="n"><span class="pre">SerializationProfile</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">profile</span></span>, <a class="reference internal" href="../enum/nw__ObjectType.html#_CPPv4N2nw10ObjectTypeE" title="nw::ObjectType"><span class="n"><span class="pre">ObjectType</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">object_type</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK2nw6Common7to_jsonE20SerializationProfile10ObjectType" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3NK2nw6Common7to_jsonE20SerializationProfile10ObjectType"></span><span id="_CPPv2NK2nw6Common7to_jsonE20SerializationProfile10ObjectType"></span><span id="nw::Common::to_json__SerializationProfile.ObjectTypeC"></span><span class="target" id="structnw_1_1_common_1a442ad294db302f6dfc8617b7a7f698e1"></span><span class="n"><span class="pre">nlohmann</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">json</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">to_json</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="../enum/nw__SerializationProfile.html#_CPPv4N2nw20SerializationProfileE" title="nw::SerializationProfile"><span class="n"><span class="pre">SerializationProfile</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">profile</span></span>, <a class="reference internal" href="../enum/nw__ObjectType.html#_CPPv4N2nw10ObjectTypeE" title="nw::ObjectType"><span class="n"><span class="pre">ObjectType</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">object_type</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK2nw6Common7to_jsonE20SerializationProfile10ObjectType" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw6Common5validEv">
-<span id="_CPPv3N2nw6Common5validEv"></span><span id="_CPPv2N2nw6Common5validEv"></span><span id="nw::Common::valid"></span><span class="target" id="structnw_1_1_common_1a8ce878d4800f8002fd27abd45a3410c4"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">valid</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6Common5validEv" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw6Common5validEv"></span><span id="_CPPv2N2nw6Common5validEv"></span><span id="nw::Common::valid"></span><span class="target" id="structnw_1_1_common_1a8ce878d4800f8002fd27abd45a3410c4"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">valid</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6Common5validEv" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 </div>
@@ -385,48 +405,48 @@
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw6Common4uuidE">
-<span id="_CPPv3N2nw6Common4uuidE"></span><span id="_CPPv2N2nw6Common4uuidE"></span><span id="nw::Common::uuid__uuids::uuid"></span><span class="target" id="structnw_1_1_common_1ac6fa6381bda4027a2c66004439e85c8c"></span><span class="n"><span class="pre">uuids</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">uuid</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">uuid</span></span></span><a class="headerlink" href="#_CPPv4N2nw6Common4uuidE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw6Common4uuidE"></span><span id="_CPPv2N2nw6Common4uuidE"></span><span id="nw::Common::uuid__uuids::uuid"></span><span class="target" id="structnw_1_1_common_1ac6fa6381bda4027a2c66004439e85c8c"></span><span class="n"><span class="pre">uuids</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">uuid</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">uuid</span></span></span><a class="headerlink" href="#_CPPv4N2nw6Common4uuidE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw6Common6resrefE">
-<span id="_CPPv3N2nw6Common6resrefE"></span><span id="_CPPv2N2nw6Common6resrefE"></span><span id="nw::Common::resref__Resref"></span><span class="target" id="structnw_1_1_common_1af5af2790a3fe89134753b570761ca211"></span><a class="reference internal" href="nw__Resref.html#_CPPv4N2nw6ResrefE" title="nw::Resref"><span class="n"><span class="pre">Resref</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">resref</span></span></span><a class="headerlink" href="#_CPPv4N2nw6Common6resrefE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw6Common6resrefE"></span><span id="_CPPv2N2nw6Common6resrefE"></span><span id="nw::Common::resref__Resref"></span><span class="target" id="structnw_1_1_common_1af5af2790a3fe89134753b570761ca211"></span><a class="reference internal" href="nw__Resref.html#_CPPv4N2nw6ResrefE" title="nw::Resref"><span class="n"><span class="pre">Resref</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">resref</span></span></span><a class="headerlink" href="#_CPPv4N2nw6Common6resrefE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw6Common3tagE">
-<span id="_CPPv3N2nw6Common3tagE"></span><span id="_CPPv2N2nw6Common3tagE"></span><span id="nw::Common::tag__ss"></span><span class="target" id="structnw_1_1_common_1a35873a71cd7228688c2db25fa81ab3da"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">tag</span></span></span><a class="headerlink" href="#_CPPv4N2nw6Common3tagE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw6Common3tagE"></span><span id="_CPPv2N2nw6Common3tagE"></span><span id="nw::Common::tag__ss"></span><span class="target" id="structnw_1_1_common_1a35873a71cd7228688c2db25fa81ab3da"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">tag</span></span></span><a class="headerlink" href="#_CPPv4N2nw6Common3tagE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw6Common4nameE">
-<span id="_CPPv3N2nw6Common4nameE"></span><span id="_CPPv2N2nw6Common4nameE"></span><span id="nw::Common::name__LocString"></span><span class="target" id="structnw_1_1_common_1a6d92168ff3eaca3c8709da01dca5afa3"></span><a class="reference internal" href="nw__LocString.html#_CPPv4N2nw9LocStringE" title="nw::LocString"><span class="n"><span class="pre">LocString</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">name</span></span></span><a class="headerlink" href="#_CPPv4N2nw6Common4nameE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw6Common4nameE"></span><span id="_CPPv2N2nw6Common4nameE"></span><span id="nw::Common::name__LocString"></span><span class="target" id="structnw_1_1_common_1a6d92168ff3eaca3c8709da01dca5afa3"></span><a class="reference internal" href="nw__LocString.html#_CPPv4N2nw9LocStringE" title="nw::LocString"><span class="n"><span class="pre">LocString</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">name</span></span></span><a class="headerlink" href="#_CPPv4N2nw6Common4nameE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw6Common6localsE">
-<span id="_CPPv3N2nw6Common6localsE"></span><span id="_CPPv2N2nw6Common6localsE"></span><span id="nw::Common::locals__LocalData"></span><span class="target" id="structnw_1_1_common_1a0d132d3e1c0cb6230c5a925d7953faaf"></span><a class="reference internal" href="nw__LocalData.html#_CPPv4N2nw9LocalDataE" title="nw::LocalData"><span class="n"><span class="pre">LocalData</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">locals</span></span></span><a class="headerlink" href="#_CPPv4N2nw6Common6localsE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw6Common6localsE"></span><span id="_CPPv2N2nw6Common6localsE"></span><span id="nw::Common::locals__LocalData"></span><span class="target" id="structnw_1_1_common_1a0d132d3e1c0cb6230c5a925d7953faaf"></span><a class="reference internal" href="nw__LocalData.html#_CPPv4N2nw9LocalDataE" title="nw::LocalData"><span class="n"><span class="pre">LocalData</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">locals</span></span></span><a class="headerlink" href="#_CPPv4N2nw6Common6localsE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw6Common8locationE">
-<span id="_CPPv3N2nw6Common8locationE"></span><span id="_CPPv2N2nw6Common8locationE"></span><span id="nw::Common::location__Location"></span><span class="target" id="structnw_1_1_common_1aa0ca1be2e484c0f63d5ad4855a775ed8"></span><a class="reference internal" href="nw__Location.html#_CPPv4N2nw8LocationE" title="nw::Location"><span class="n"><span class="pre">Location</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">location</span></span></span><a class="headerlink" href="#_CPPv4N2nw6Common8locationE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw6Common8locationE"></span><span id="_CPPv2N2nw6Common8locationE"></span><span id="nw::Common::location__Location"></span><span class="target" id="structnw_1_1_common_1aa0ca1be2e484c0f63d5ad4855a775ed8"></span><a class="reference internal" href="nw__Location.html#_CPPv4N2nw8LocationE" title="nw::Location"><span class="n"><span class="pre">Location</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">location</span></span></span><a class="headerlink" href="#_CPPv4N2nw6Common8locationE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw6Common7commentE">
-<span id="_CPPv3N2nw6Common7commentE"></span><span id="_CPPv2N2nw6Common7commentE"></span><span id="nw::Common::comment__ss"></span><span class="target" id="structnw_1_1_common_1a1289d1060ff795d9bf4a15bce94dbeeb"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">comment</span></span></span><a class="headerlink" href="#_CPPv4N2nw6Common7commentE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw6Common7commentE"></span><span id="_CPPv2N2nw6Common7commentE"></span><span id="nw::Common::comment__ss"></span><span class="target" id="structnw_1_1_common_1a1289d1060ff795d9bf4a15bce94dbeeb"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">comment</span></span></span><a class="headerlink" href="#_CPPv4N2nw6Common7commentE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw6Common10palette_idE">
-<span id="_CPPv3N2nw6Common10palette_idE"></span><span id="_CPPv2N2nw6Common10palette_idE"></span><span id="nw::Common::palette_id__uint8_t"></span><span class="target" id="structnw_1_1_common_1a9816843262dcd9270378a7c4edd06866"></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">palette_id</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">numeric_limits</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">max</span></span><span class="p"><span class="pre">(</span></span><span class="p"><span class="pre">)</span></span><a class="headerlink" href="#_CPPv4N2nw6Common10palette_idE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw6Common10palette_idE"></span><span id="_CPPv2N2nw6Common10palette_idE"></span><span id="nw::Common::palette_id__uint8_t"></span><span class="target" id="structnw_1_1_common_1a9816843262dcd9270378a7c4edd06866"></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">palette_id</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">numeric_limits</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">max</span></span><span class="p"><span class="pre">(</span></span><span class="p"><span class="pre">)</span></span><a class="headerlink" href="#_CPPv4N2nw6Common10palette_idE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 </div>
 </dd></dl>
 
-</div>
+</section>
 
 
            </div>

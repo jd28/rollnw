@@ -1,20 +1,24 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html5" lang="en" data-content_root="../../">
 <head>
-  <meta charset="utf-8" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>nw::Spell &mdash; rollNW  documentation</title>
-      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
-      <link rel="stylesheet" href="../../_static/tabs.css" type="text/css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="../../_static/tabs.css?v=a5c4661c" />
+
+  
   <!--[if lt IE 9]>
     <script src="../../_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
-        <script src="../../_static/jquery.js"></script>
-        <script src="../../_static/underscore.js"></script>
-        <script src="../../_static/doctools.js"></script>
+        <script src="../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+        <script src="../../_static/doctools.js?v=888ff710"></script>
+        <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
@@ -180,7 +184,18 @@
 <li class="toctree-l2"><a class="reference internal" href="nw__SpawnCreature.html">nw::SpawnCreature</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__SpawnPoint.html">nw::SpawnPoint</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__SpecialAbility.html">nw::SpecialAbility</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">nw::Spell</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">nw::Spell</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#_CPPv4N2nw5SpellE"><code class="docutils literal notranslate"><span class="pre">Spell</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw5SpelleqERK5Spell"><code class="docutils literal notranslate"><span class="pre">Spell::operator==()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw5SpellssERK5Spell"><code class="docutils literal notranslate"><span class="pre">Spell::operator&lt;=&gt;()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw5SpellmlEv"><code class="docutils literal notranslate"><span class="pre">Spell::operator*()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw5Spell3idxEv"><code class="docutils literal notranslate"><span class="pre">Spell::idx()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw5Spell4makeE7int32_t"><code class="docutils literal notranslate"><span class="pre">Spell::make()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw5Spell7invalidEv"><code class="docutils literal notranslate"><span class="pre">Spell::invalid()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="nw__SpellBook.html">nw::SpellBook</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__SpellEntry.html">nw::SpellEntry</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__SpellInfo.html">nw::SpellInfo</a></li>
@@ -358,34 +373,34 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <div class="section" id="nw-spell">
-<h1>nw::Spell<a class="headerlink" href="#nw-spell" title="Permalink to this headline"></a></h1>
+  <section id="nw-spell">
+<h1>nw::Spell<a class="headerlink" href="#nw-spell" title="Link to this heading"></a></h1>
 <dl class="cpp struct">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw5SpellE">
-<span id="_CPPv3N2nw5SpellE"></span><span id="_CPPv2N2nw5SpellE"></span><span id="nw::Spell"></span><span class="target" id="structnw_1_1_spell"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Spell</span></span></span><a class="headerlink" href="#_CPPv4N2nw5SpellE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw5SpellE"></span><span id="_CPPv2N2nw5SpellE"></span><span id="nw::Spell"></span><span class="target" id="structnw_1_1_spell"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Spell</span></span></span><a class="headerlink" href="#_CPPv4N2nw5SpellE" title="Link to this definition"></a><br /></dt>
 <dd><div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4NK2nw5SpelleqERK5Spell">
-<span id="_CPPv3NK2nw5SpelleqERK5Spell"></span><span id="_CPPv2NK2nw5SpelleqERK5Spell"></span><span id="nw::Spell::eq-operator__SpellCRC"></span><span class="target" id="structnw_1_1_spell_1a3e0bd94a2b4e0cffcfbbf6490fc7cbed"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">==</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N2nw5SpellE" title="nw::Spell"><span class="n"><span class="pre">Spell</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">rhs</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">default</span></span><a class="headerlink" href="#_CPPv4NK2nw5SpelleqERK5Spell" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3NK2nw5SpelleqERK5Spell"></span><span id="_CPPv2NK2nw5SpelleqERK5Spell"></span><span id="nw::Spell::eq-operator__SpellCRC"></span><span class="target" id="structnw_1_1_spell_1a3e0bd94a2b4e0cffcfbbf6490fc7cbed"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">==</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N2nw5SpellE" title="nw::Spell"><span class="n"><span class="pre">Spell</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">rhs</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">default</span></span><a class="headerlink" href="#_CPPv4NK2nw5SpelleqERK5Spell" title="Link to this definition"></a><br /></dt>
 <dd><p>Defaulted equality operator </p>
 </dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4NK2nw5SpellssERK5Spell">
-<span id="_CPPv3NK2nw5SpellssERK5Spell"></span><span id="_CPPv2NK2nw5SpellssERK5Spell"></span><span class="target" id="structnw_1_1_spell_1ae60643533fa7dbeea7b4769f432d1fe5"></span><span class="kt"><span class="pre">auto</span></span><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">&lt;=&gt;</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N2nw5SpellE" title="nw::Spell"><span class="n"><span class="pre">Spell</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">rhs</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">default</span></span><a class="headerlink" href="#_CPPv4NK2nw5SpellssERK5Spell" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3NK2nw5SpellssERK5Spell"></span><span id="_CPPv2NK2nw5SpellssERK5Spell"></span><span class="target" id="structnw_1_1_spell_1ae60643533fa7dbeea7b4769f432d1fe5"></span><span class="kt"><span class="pre">auto</span></span><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">&lt;=&gt;</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N2nw5SpellE" title="nw::Spell"><span class="n"><span class="pre">Spell</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">rhs</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">default</span></span><a class="headerlink" href="#_CPPv4NK2nw5SpellssERK5Spell" title="Link to this definition"></a><br /></dt>
 <dd><p>Defaulted spaceship operator </p>
 </dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4NK2nw5SpellmlEv">
-<span id="_CPPv3NK2nw5SpellmlEv"></span><span id="_CPPv2NK2nw5SpellmlEv"></span><span id="nw::Spell::mul-operatorCCE"></span><span class="target" id="structnw_1_1_spell_1aabc5ba3e475d183d07d4dac50cda25b6"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">int32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">*</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="k"><span class="pre">noexcept</span></span><a class="headerlink" href="#_CPPv4NK2nw5SpellmlEv" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3NK2nw5SpellmlEv"></span><span id="_CPPv2NK2nw5SpellmlEv"></span><span id="nw::Spell::mul-operatorCCE"></span><span class="target" id="structnw_1_1_spell_1aabc5ba3e475d183d07d4dac50cda25b6"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">int32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">*</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="k"><span class="pre">noexcept</span></span><a class="headerlink" href="#_CPPv4NK2nw5SpellmlEv" title="Link to this definition"></a><br /></dt>
 <dd><p>Returns rule type as value </p>
 </dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4NK2nw5Spell3idxEv">
-<span id="_CPPv3NK2nw5Spell3idxEv"></span><span id="_CPPv2NK2nw5Spell3idxEv"></span><span id="nw::Spell::idxCCE"></span><span class="target" id="structnw_1_1_spell_1a887d15c4e5f34f70936ec53d300df8b3"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">idx</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="k"><span class="pre">noexcept</span></span><a class="headerlink" href="#_CPPv4NK2nw5Spell3idxEv" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3NK2nw5Spell3idxEv"></span><span id="_CPPv2NK2nw5Spell3idxEv"></span><span id="nw::Spell::idxCCE"></span><span class="target" id="structnw_1_1_spell_1a887d15c4e5f34f70936ec53d300df8b3"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">idx</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="k"><span class="pre">noexcept</span></span><a class="headerlink" href="#_CPPv4NK2nw5Spell3idxEv" title="Link to this definition"></a><br /></dt>
 <dd><p>Returns rule type as index </p>
 </dd></dl>
 
@@ -394,20 +409,20 @@
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-static-functions">Public Static Functions</p>
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw5Spell4makeE7int32_t">
-<span id="_CPPv3N2nw5Spell4makeE7int32_t"></span><span id="_CPPv2N2nw5Spell4makeE7int32_t"></span><span id="nw::Spell::make__int32_tCE"></span><span class="target" id="structnw_1_1_spell_1ab1b3c853a7936adb7232aa773a09ce8d"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N2nw5SpellE" title="nw::Spell"><span class="n"><span class="pre">Spell</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">make</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">int32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">id</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw5Spell4makeE7int32_t" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw5Spell4makeE7int32_t"></span><span id="_CPPv2N2nw5Spell4makeE7int32_t"></span><span id="nw::Spell::make__int32_tCE"></span><span class="target" id="structnw_1_1_spell_1ab1b3c853a7936adb7232aa773a09ce8d"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N2nw5SpellE" title="nw::Spell"><span class="n"><span class="pre">Spell</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">make</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">int32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">id</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw5Spell4makeE7int32_t" title="Link to this definition"></a><br /></dt>
 <dd><p>Makes a rule type </p>
 </dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw5Spell7invalidEv">
-<span id="_CPPv3N2nw5Spell7invalidEv"></span><span id="_CPPv2N2nw5Spell7invalidEv"></span><span id="nw::Spell::invalidCE"></span><span class="target" id="structnw_1_1_spell_1a5bc238d25c72c568a108b95ddc5c706b"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N2nw5SpellE" title="nw::Spell"><span class="n"><span class="pre">Spell</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">invalid</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw5Spell7invalidEv" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw5Spell7invalidEv"></span><span id="_CPPv2N2nw5Spell7invalidEv"></span><span id="nw::Spell::invalidCE"></span><span class="target" id="structnw_1_1_spell_1a5bc238d25c72c568a108b95ddc5c706b"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N2nw5SpellE" title="nw::Spell"><span class="n"><span class="pre">Spell</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">invalid</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw5Spell7invalidEv" title="Link to this definition"></a><br /></dt>
 <dd><p>Returns an invalid rule type </p>
 </dd></dl>
 
 </div>
 </dd></dl>
 
-</div>
+</section>
 
 
            </div>

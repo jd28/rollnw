@@ -1,20 +1,24 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html5" lang="en" data-content_root="../../">
 <head>
-  <meta charset="utf-8" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>nw::Versus &mdash; rollNW  documentation</title>
-      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
-      <link rel="stylesheet" href="../../_static/tabs.css" type="text/css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="../../_static/tabs.css?v=a5c4661c" />
+
+  
   <!--[if lt IE 9]>
     <script src="../../_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
-        <script src="../../_static/jquery.js"></script>
-        <script src="../../_static/underscore.js"></script>
-        <script src="../../_static/doctools.js"></script>
+        <script src="../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+        <script src="../../_static/doctools.js?v=888ff710"></script>
+        <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
@@ -199,7 +203,19 @@
 <li class="toctree-l2"><a class="reference internal" href="nw__TwoDA.html">nw::TwoDA</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__TwoDACache.html">nw::TwoDACache</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Variant.html">nw::Variant</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">nw::Versus</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">nw::Versus</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#_CPPv4N2nw6VersusE"><code class="docutils literal notranslate"><span class="pre">Versus</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw6VersuseqERK6Versus"><code class="docutils literal notranslate"><span class="pre">Versus::operator==()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw6VersusssERK6Versus"><code class="docutils literal notranslate"><span class="pre">Versus::operator&lt;=&gt;()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw6VersuscvbEv"><code class="docutils literal notranslate"><span class="pre">Versus::operator</span> <span class="pre">bool()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw6Versus5matchERK6Versus"><code class="docutils literal notranslate"><span class="pre">Versus::match()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6Versus4raceE"><code class="docutils literal notranslate"><span class="pre">Versus::race</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6Versus11align_flagsE"><code class="docutils literal notranslate"><span class="pre">Versus::align_flags</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6Versus4trapE"><code class="docutils literal notranslate"><span class="pre">Versus::trap</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Waypoint.html">nw::Waypoint</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Zip.html">nw::Zip</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__ZipElement.html">nw::ZipElement</a></li>
@@ -358,31 +374,31 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <div class="section" id="nw-versus">
-<h1>nw::Versus<a class="headerlink" href="#nw-versus" title="Permalink to this headline"></a></h1>
+  <section id="nw-versus">
+<h1>nw::Versus<a class="headerlink" href="#nw-versus" title="Link to this heading"></a></h1>
 <dl class="cpp struct">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw6VersusE">
-<span id="_CPPv3N2nw6VersusE"></span><span id="_CPPv2N2nw6VersusE"></span><span id="nw::Versus"></span><span class="target" id="structnw_1_1_versus"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Versus</span></span></span><a class="headerlink" href="#_CPPv4N2nw6VersusE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw6VersusE"></span><span id="_CPPv2N2nw6VersusE"></span><span id="nw::Versus"></span><span class="target" id="structnw_1_1_versus"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Versus</span></span></span><a class="headerlink" href="#_CPPv4N2nw6VersusE" title="Link to this definition"></a><br /></dt>
 <dd><div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4NK2nw6VersuseqERK6Versus">
-<span id="_CPPv3NK2nw6VersuseqERK6Versus"></span><span id="_CPPv2NK2nw6VersuseqERK6Versus"></span><span id="nw::Versus::eq-operator__VersusCRC"></span><span class="target" id="structnw_1_1_versus_1a65c7a8f73b9fb46e67a86c3aed1f078a"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">==</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N2nw6VersusE" title="nw::Versus"><span class="n"><span class="pre">Versus</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">rhs</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">default</span></span><a class="headerlink" href="#_CPPv4NK2nw6VersuseqERK6Versus" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3NK2nw6VersuseqERK6Versus"></span><span id="_CPPv2NK2nw6VersuseqERK6Versus"></span><span id="nw::Versus::eq-operator__VersusCRC"></span><span class="target" id="structnw_1_1_versus_1a65c7a8f73b9fb46e67a86c3aed1f078a"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">==</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N2nw6VersusE" title="nw::Versus"><span class="n"><span class="pre">Versus</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">rhs</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">default</span></span><a class="headerlink" href="#_CPPv4NK2nw6VersuseqERK6Versus" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4NK2nw6VersusssERK6Versus">
-<span id="_CPPv3NK2nw6VersusssERK6Versus"></span><span id="_CPPv2NK2nw6VersusssERK6Versus"></span><span class="target" id="structnw_1_1_versus_1a4c092a74c6876b35b6ddbd2d7fe62899"></span><span class="kt"><span class="pre">auto</span></span><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">&lt;=&gt;</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N2nw6VersusE" title="nw::Versus"><span class="n"><span class="pre">Versus</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">rhs</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">default</span></span><a class="headerlink" href="#_CPPv4NK2nw6VersusssERK6Versus" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3NK2nw6VersusssERK6Versus"></span><span id="_CPPv2NK2nw6VersusssERK6Versus"></span><span class="target" id="structnw_1_1_versus_1a4c092a74c6876b35b6ddbd2d7fe62899"></span><span class="kt"><span class="pre">auto</span></span><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">&lt;=&gt;</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N2nw6VersusE" title="nw::Versus"><span class="n"><span class="pre">Versus</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">rhs</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">default</span></span><a class="headerlink" href="#_CPPv4NK2nw6VersusssERK6Versus" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4NK2nw6VersuscvbEv">
-<span id="_CPPv3NK2nw6VersuscvbEv"></span><span id="_CPPv2NK2nw6VersuscvbEv"></span><span id="nw::Versus::castto-b-operatorC"></span><span class="target" id="structnw_1_1_versus_1acfcb4e5d325da7464bffb2ca0651911d"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="k"><span class="pre">noexcept</span></span><a class="headerlink" href="#_CPPv4NK2nw6VersuscvbEv" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3NK2nw6VersuscvbEv"></span><span id="_CPPv2NK2nw6VersuscvbEv"></span><span id="nw::Versus::castto-b-operatorC"></span><span class="target" id="structnw_1_1_versus_1acfcb4e5d325da7464bffb2ca0651911d"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="k"><span class="pre">noexcept</span></span><a class="headerlink" href="#_CPPv4NK2nw6VersuscvbEv" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4NK2nw6Versus5matchERK6Versus">
-<span id="_CPPv3NK2nw6Versus5matchERK6Versus"></span><span id="_CPPv2NK2nw6Versus5matchERK6Versus"></span><span id="nw::Versus::match__VersusCRC"></span><span class="target" id="structnw_1_1_versus_1aa853d7dc26048e9ba333130928fa8aeb"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">match</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N2nw6VersusE" title="nw::Versus"><span class="n"><span class="pre">Versus</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">rhs</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="k"><span class="pre">noexcept</span></span><a class="headerlink" href="#_CPPv4NK2nw6Versus5matchERK6Versus" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3NK2nw6Versus5matchERK6Versus"></span><span id="_CPPv2NK2nw6Versus5matchERK6Versus"></span><span id="nw::Versus::match__VersusCRC"></span><span class="target" id="structnw_1_1_versus_1aa853d7dc26048e9ba333130928fa8aeb"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">match</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N2nw6VersusE" title="nw::Versus"><span class="n"><span class="pre">Versus</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">rhs</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="k"><span class="pre">noexcept</span></span><a class="headerlink" href="#_CPPv4NK2nw6Versus5matchERK6Versus" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 </div>
@@ -390,23 +406,23 @@
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw6Versus4raceE">
-<span id="_CPPv3N2nw6Versus4raceE"></span><span id="_CPPv2N2nw6Versus4raceE"></span><span id="nw::Versus::race__Race"></span><span class="target" id="structnw_1_1_versus_1a0f125344df2b503e6f4b85d37e6f99ad"></span><a class="reference internal" href="nw__Race.html#_CPPv4N2nw4RaceE" title="nw::Race"><span class="n"><span class="pre">Race</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">race</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="nw__Race.html#_CPPv4N2nw4RaceE" title="nw::Race"><span class="n"><span class="pre">Race</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="nw__Race.html#_CPPv4N2nw4Race7invalidEv" title="nw::Race::invalid"><span class="n"><span class="pre">invalid</span></span></a><span class="p"><span class="pre">(</span></span><span class="p"><span class="pre">)</span></span><a class="headerlink" href="#_CPPv4N2nw6Versus4raceE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw6Versus4raceE"></span><span id="_CPPv2N2nw6Versus4raceE"></span><span id="nw::Versus::race__Race"></span><span class="target" id="structnw_1_1_versus_1a0f125344df2b503e6f4b85d37e6f99ad"></span><a class="reference internal" href="nw__Race.html#_CPPv4N2nw4RaceE" title="nw::Race"><span class="n"><span class="pre">Race</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">race</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="nw__Race.html#_CPPv4N2nw4RaceE" title="nw::Race"><span class="n"><span class="pre">Race</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="nw__Race.html#_CPPv4N2nw4Race7invalidEv" title="nw::Race::invalid"><span class="n"><span class="pre">invalid</span></span></a><span class="p"><span class="pre">(</span></span><span class="p"><span class="pre">)</span></span><a class="headerlink" href="#_CPPv4N2nw6Versus4raceE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw6Versus11align_flagsE">
-<span id="_CPPv3N2nw6Versus11align_flagsE"></span><span id="_CPPv2N2nw6Versus11align_flagsE"></span><span id="nw::Versus::align_flags__AlignmentFlags"></span><span class="target" id="structnw_1_1_versus_1a00dd362c9398c6d6675dc2f29bda9458"></span><a class="reference internal" href="../enum/nw__AlignmentFlags.html#_CPPv4N2nw14AlignmentFlagsE" title="nw::AlignmentFlags"><span class="n"><span class="pre">AlignmentFlags</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">align_flags</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="../enum/nw__AlignmentFlags.html#_CPPv4N2nw14AlignmentFlagsE" title="nw::AlignmentFlags"><span class="n"><span class="pre">AlignmentFlags</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../enum/nw__AlignmentFlags.html#_CPPv4N2nw14AlignmentFlags4noneE" title="nw::AlignmentFlags::none"><span class="n"><span class="pre">none</span></span></a><a class="headerlink" href="#_CPPv4N2nw6Versus11align_flagsE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw6Versus11align_flagsE"></span><span id="_CPPv2N2nw6Versus11align_flagsE"></span><span id="nw::Versus::align_flags__AlignmentFlags"></span><span class="target" id="structnw_1_1_versus_1a00dd362c9398c6d6675dc2f29bda9458"></span><a class="reference internal" href="../enum/nw__AlignmentFlags.html#_CPPv4N2nw14AlignmentFlagsE" title="nw::AlignmentFlags"><span class="n"><span class="pre">AlignmentFlags</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">align_flags</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="../enum/nw__AlignmentFlags.html#_CPPv4N2nw14AlignmentFlagsE" title="nw::AlignmentFlags"><span class="n"><span class="pre">AlignmentFlags</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../enum/nw__AlignmentFlags.html#_CPPv4N2nw14AlignmentFlags4noneE" title="nw::AlignmentFlags::none"><span class="n"><span class="pre">none</span></span></a><a class="headerlink" href="#_CPPv4N2nw6Versus11align_flagsE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw6Versus4trapE">
-<span id="_CPPv3N2nw6Versus4trapE"></span><span id="_CPPv2N2nw6Versus4trapE"></span><span id="nw::Versus::trap__b"></span><span class="target" id="structnw_1_1_versus_1a2579fac7d65af7285dd8e3bf94a00db0"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">trap</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">false</span></span><a class="headerlink" href="#_CPPv4N2nw6Versus4trapE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw6Versus4trapE"></span><span id="_CPPv2N2nw6Versus4trapE"></span><span id="nw::Versus::trap__b"></span><span class="target" id="structnw_1_1_versus_1a2579fac7d65af7285dd8e3bf94a00db0"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">trap</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">false</span></span><a class="headerlink" href="#_CPPv4N2nw6Versus4trapE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 </div>
 </dd></dl>
 
-</div>
+</section>
 
 
            </div>

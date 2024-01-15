@@ -1,20 +1,24 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html5" lang="en" data-content_root="../../">
 <head>
-  <meta charset="utf-8" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>nw::PltLayer &mdash; rollNW  documentation</title>
-      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
-      <link rel="stylesheet" href="../../_static/tabs.css" type="text/css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="../../_static/tabs.css?v=a5c4661c" />
+
+  
   <!--[if lt IE 9]>
     <script src="../../_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
-        <script src="../../_static/jquery.js"></script>
-        <script src="../../_static/underscore.js"></script>
-        <script src="../../_static/doctools.js"></script>
+        <script src="../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+        <script src="../../_static/doctools.js?v=888ff710"></script>
+        <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
@@ -82,7 +86,23 @@
 <li class="toctree-l2"><a class="reference internal" href="nw__PaletteNodeType.html">nw::PaletteNodeType</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__PathAlias.html">nw::PathAlias</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__PlaceableAnimationState.html">nw::PlaceableAnimationState</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">nw::PltLayer</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">nw::PltLayer</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#_CPPv4N2nw8PltLayerE"><code class="docutils literal notranslate"><span class="pre">PltLayer</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw8PltLayer14plt_layer_skinE"><code class="docutils literal notranslate"><span class="pre">PltLayer::plt_layer_skin</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw8PltLayer14plt_layer_hairE"><code class="docutils literal notranslate"><span class="pre">PltLayer::plt_layer_hair</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw8PltLayer16plt_layer_metal1E"><code class="docutils literal notranslate"><span class="pre">PltLayer::plt_layer_metal1</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw8PltLayer16plt_layer_metal2E"><code class="docutils literal notranslate"><span class="pre">PltLayer::plt_layer_metal2</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw8PltLayer16plt_layer_cloth1E"><code class="docutils literal notranslate"><span class="pre">PltLayer::plt_layer_cloth1</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw8PltLayer16plt_layer_cloth2E"><code class="docutils literal notranslate"><span class="pre">PltLayer::plt_layer_cloth2</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw8PltLayer18plt_layer_leather1E"><code class="docutils literal notranslate"><span class="pre">PltLayer::plt_layer_leather1</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw8PltLayer18plt_layer_leather2E"><code class="docutils literal notranslate"><span class="pre">PltLayer::plt_layer_leather2</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw8PltLayer17plt_layer_tattoo1E"><code class="docutils literal notranslate"><span class="pre">PltLayer::plt_layer_tattoo1</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw8PltLayer17plt_layer_tattoo2E"><code class="docutils literal notranslate"><span class="pre">PltLayer::plt_layer_tattoo2</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw8PltLayer14plt_layer_sizeE"><code class="docutils literal notranslate"><span class="pre">PltLayer::plt_layer_size</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="nw__SelectorType.html">nw::SelectorType</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__SerializationProfile.html">nw::SerializationProfile</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__SpellFlags.html">nw::SpellFlags</a></li>
@@ -153,71 +173,71 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <div class="section" id="nw-pltlayer">
-<h1>nw::PltLayer<a class="headerlink" href="#nw-pltlayer" title="Permalink to this headline"></a></h1>
+  <section id="nw-pltlayer">
+<h1>nw::PltLayer<a class="headerlink" href="#nw-pltlayer" title="Link to this heading"></a></h1>
 <dl class="cpp class enum">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw8PltLayerE">
-<span id="_CPPv3N2nw8PltLayerE"></span><span id="_CPPv2N2nw8PltLayerE"></span><span class="target" id="namespacenw_1a0f4d5f944407f4b25e2de364fad3eabc"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">nw</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">PltLayer</span></span></span><a class="headerlink" href="#_CPPv4N2nw8PltLayerE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw8PltLayerE"></span><span id="_CPPv2N2nw8PltLayerE"></span><span class="target" id="namespacenw_1a0f4d5f944407f4b25e2de364fad3eabc"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">nw</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">PltLayer</span></span></span><a class="headerlink" href="#_CPPv4N2nw8PltLayerE" title="Link to this definition"></a><br /></dt>
 <dd><p><a class="reference internal" href="../struct/nw__Plt.html#structnw_1_1_plt"><span class="std std-ref">Plt</span></a> formats respective layers. </p>
 <p><em>Values:</em></p>
 <dl class="cpp enumerator">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw8PltLayer14plt_layer_skinE">
-<span id="_CPPv3N2nw8PltLayer14plt_layer_skinE"></span><span id="_CPPv2N2nw8PltLayer14plt_layer_skinE"></span><span class="target" id="namespacenw_1a0f4d5f944407f4b25e2de364fad3eabca91090344bc8df247671a1bd4d04a908f"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">plt_layer_skin</span></span></span><a class="headerlink" href="#_CPPv4N2nw8PltLayer14plt_layer_skinE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw8PltLayer14plt_layer_skinE"></span><span id="_CPPv2N2nw8PltLayer14plt_layer_skinE"></span><span class="target" id="namespacenw_1a0f4d5f944407f4b25e2de364fad3eabca91090344bc8df247671a1bd4d04a908f"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">plt_layer_skin</span></span></span><a class="headerlink" href="#_CPPv4N2nw8PltLayer14plt_layer_skinE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp enumerator">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw8PltLayer14plt_layer_hairE">
-<span id="_CPPv3N2nw8PltLayer14plt_layer_hairE"></span><span id="_CPPv2N2nw8PltLayer14plt_layer_hairE"></span><span class="target" id="namespacenw_1a0f4d5f944407f4b25e2de364fad3eabcaa0b292c775aa92317e4895044d8df9b4"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">plt_layer_hair</span></span></span><a class="headerlink" href="#_CPPv4N2nw8PltLayer14plt_layer_hairE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw8PltLayer14plt_layer_hairE"></span><span id="_CPPv2N2nw8PltLayer14plt_layer_hairE"></span><span class="target" id="namespacenw_1a0f4d5f944407f4b25e2de364fad3eabcaa0b292c775aa92317e4895044d8df9b4"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">plt_layer_hair</span></span></span><a class="headerlink" href="#_CPPv4N2nw8PltLayer14plt_layer_hairE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp enumerator">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw8PltLayer16plt_layer_metal1E">
-<span id="_CPPv3N2nw8PltLayer16plt_layer_metal1E"></span><span id="_CPPv2N2nw8PltLayer16plt_layer_metal1E"></span><span class="target" id="namespacenw_1a0f4d5f944407f4b25e2de364fad3eabca2a6b427c8a7f44998d093f039d83f8e7"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">plt_layer_metal1</span></span></span><a class="headerlink" href="#_CPPv4N2nw8PltLayer16plt_layer_metal1E" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw8PltLayer16plt_layer_metal1E"></span><span id="_CPPv2N2nw8PltLayer16plt_layer_metal1E"></span><span class="target" id="namespacenw_1a0f4d5f944407f4b25e2de364fad3eabca2a6b427c8a7f44998d093f039d83f8e7"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">plt_layer_metal1</span></span></span><a class="headerlink" href="#_CPPv4N2nw8PltLayer16plt_layer_metal1E" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp enumerator">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw8PltLayer16plt_layer_metal2E">
-<span id="_CPPv3N2nw8PltLayer16plt_layer_metal2E"></span><span id="_CPPv2N2nw8PltLayer16plt_layer_metal2E"></span><span class="target" id="namespacenw_1a0f4d5f944407f4b25e2de364fad3eabcad85b73971a03fbe777f9bf97fd0fcc7f"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">plt_layer_metal2</span></span></span><a class="headerlink" href="#_CPPv4N2nw8PltLayer16plt_layer_metal2E" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw8PltLayer16plt_layer_metal2E"></span><span id="_CPPv2N2nw8PltLayer16plt_layer_metal2E"></span><span class="target" id="namespacenw_1a0f4d5f944407f4b25e2de364fad3eabcad85b73971a03fbe777f9bf97fd0fcc7f"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">plt_layer_metal2</span></span></span><a class="headerlink" href="#_CPPv4N2nw8PltLayer16plt_layer_metal2E" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp enumerator">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw8PltLayer16plt_layer_cloth1E">
-<span id="_CPPv3N2nw8PltLayer16plt_layer_cloth1E"></span><span id="_CPPv2N2nw8PltLayer16plt_layer_cloth1E"></span><span class="target" id="namespacenw_1a0f4d5f944407f4b25e2de364fad3eabca2bded7bce6cd0815296e36d56dae7c98"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">plt_layer_cloth1</span></span></span><a class="headerlink" href="#_CPPv4N2nw8PltLayer16plt_layer_cloth1E" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw8PltLayer16plt_layer_cloth1E"></span><span id="_CPPv2N2nw8PltLayer16plt_layer_cloth1E"></span><span class="target" id="namespacenw_1a0f4d5f944407f4b25e2de364fad3eabca2bded7bce6cd0815296e36d56dae7c98"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">plt_layer_cloth1</span></span></span><a class="headerlink" href="#_CPPv4N2nw8PltLayer16plt_layer_cloth1E" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp enumerator">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw8PltLayer16plt_layer_cloth2E">
-<span id="_CPPv3N2nw8PltLayer16plt_layer_cloth2E"></span><span id="_CPPv2N2nw8PltLayer16plt_layer_cloth2E"></span><span class="target" id="namespacenw_1a0f4d5f944407f4b25e2de364fad3eabca5763a3034671bbe64aa7111bcf28e57b"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">plt_layer_cloth2</span></span></span><a class="headerlink" href="#_CPPv4N2nw8PltLayer16plt_layer_cloth2E" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw8PltLayer16plt_layer_cloth2E"></span><span id="_CPPv2N2nw8PltLayer16plt_layer_cloth2E"></span><span class="target" id="namespacenw_1a0f4d5f944407f4b25e2de364fad3eabca5763a3034671bbe64aa7111bcf28e57b"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">plt_layer_cloth2</span></span></span><a class="headerlink" href="#_CPPv4N2nw8PltLayer16plt_layer_cloth2E" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp enumerator">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw8PltLayer18plt_layer_leather1E">
-<span id="_CPPv3N2nw8PltLayer18plt_layer_leather1E"></span><span id="_CPPv2N2nw8PltLayer18plt_layer_leather1E"></span><span class="target" id="namespacenw_1a0f4d5f944407f4b25e2de364fad3eabca54d1ef525c67b22f4556c095a46d4d82"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">plt_layer_leather1</span></span></span><a class="headerlink" href="#_CPPv4N2nw8PltLayer18plt_layer_leather1E" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw8PltLayer18plt_layer_leather1E"></span><span id="_CPPv2N2nw8PltLayer18plt_layer_leather1E"></span><span class="target" id="namespacenw_1a0f4d5f944407f4b25e2de364fad3eabca54d1ef525c67b22f4556c095a46d4d82"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">plt_layer_leather1</span></span></span><a class="headerlink" href="#_CPPv4N2nw8PltLayer18plt_layer_leather1E" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp enumerator">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw8PltLayer18plt_layer_leather2E">
-<span id="_CPPv3N2nw8PltLayer18plt_layer_leather2E"></span><span id="_CPPv2N2nw8PltLayer18plt_layer_leather2E"></span><span class="target" id="namespacenw_1a0f4d5f944407f4b25e2de364fad3eabca30433cceab3eec310e19cac1a1f2a6f6"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">plt_layer_leather2</span></span></span><a class="headerlink" href="#_CPPv4N2nw8PltLayer18plt_layer_leather2E" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw8PltLayer18plt_layer_leather2E"></span><span id="_CPPv2N2nw8PltLayer18plt_layer_leather2E"></span><span class="target" id="namespacenw_1a0f4d5f944407f4b25e2de364fad3eabca30433cceab3eec310e19cac1a1f2a6f6"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">plt_layer_leather2</span></span></span><a class="headerlink" href="#_CPPv4N2nw8PltLayer18plt_layer_leather2E" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp enumerator">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw8PltLayer17plt_layer_tattoo1E">
-<span id="_CPPv3N2nw8PltLayer17plt_layer_tattoo1E"></span><span id="_CPPv2N2nw8PltLayer17plt_layer_tattoo1E"></span><span class="target" id="namespacenw_1a0f4d5f944407f4b25e2de364fad3eabca6ca212b33c9786a2ae4ce0a8ebeeb861"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">plt_layer_tattoo1</span></span></span><a class="headerlink" href="#_CPPv4N2nw8PltLayer17plt_layer_tattoo1E" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw8PltLayer17plt_layer_tattoo1E"></span><span id="_CPPv2N2nw8PltLayer17plt_layer_tattoo1E"></span><span class="target" id="namespacenw_1a0f4d5f944407f4b25e2de364fad3eabca6ca212b33c9786a2ae4ce0a8ebeeb861"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">plt_layer_tattoo1</span></span></span><a class="headerlink" href="#_CPPv4N2nw8PltLayer17plt_layer_tattoo1E" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp enumerator">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw8PltLayer17plt_layer_tattoo2E">
-<span id="_CPPv3N2nw8PltLayer17plt_layer_tattoo2E"></span><span id="_CPPv2N2nw8PltLayer17plt_layer_tattoo2E"></span><span class="target" id="namespacenw_1a0f4d5f944407f4b25e2de364fad3eabca6db19487b7c0514d20823341b2942c51"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">plt_layer_tattoo2</span></span></span><a class="headerlink" href="#_CPPv4N2nw8PltLayer17plt_layer_tattoo2E" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw8PltLayer17plt_layer_tattoo2E"></span><span id="_CPPv2N2nw8PltLayer17plt_layer_tattoo2E"></span><span class="target" id="namespacenw_1a0f4d5f944407f4b25e2de364fad3eabca6db19487b7c0514d20823341b2942c51"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">plt_layer_tattoo2</span></span></span><a class="headerlink" href="#_CPPv4N2nw8PltLayer17plt_layer_tattoo2E" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp enumerator">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw8PltLayer14plt_layer_sizeE">
-<span id="_CPPv3N2nw8PltLayer14plt_layer_sizeE"></span><span id="_CPPv2N2nw8PltLayer14plt_layer_sizeE"></span><span class="target" id="namespacenw_1a0f4d5f944407f4b25e2de364fad3eabcaac123f0d3abb755a06e0571f0cc1ed4e"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">plt_layer_size</span></span></span><a class="headerlink" href="#_CPPv4N2nw8PltLayer14plt_layer_sizeE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw8PltLayer14plt_layer_sizeE"></span><span id="_CPPv2N2nw8PltLayer14plt_layer_sizeE"></span><span class="target" id="namespacenw_1a0f4d5f944407f4b25e2de364fad3eabcaac123f0d3abb755a06e0571f0cc1ed4e"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">plt_layer_size</span></span></span><a class="headerlink" href="#_CPPv4N2nw8PltLayer14plt_layer_sizeE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 </dd></dl>
 
-</div>
+</section>
 
 
            </div>

@@ -1,20 +1,24 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html5" lang="en" data-content_root="../../">
 <head>
-  <meta charset="utf-8" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>nw::Location &mdash; rollNW  documentation</title>
-      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
-      <link rel="stylesheet" href="../../_static/tabs.css" type="text/css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="../../_static/tabs.css?v=a5c4661c" />
+
+  
   <!--[if lt IE 9]>
     <script src="../../_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
-        <script src="../../_static/jquery.js"></script>
-        <script src="../../_static/underscore.js"></script>
-        <script src="../../_static/doctools.js"></script>
+        <script src="../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+        <script src="../../_static/doctools.js?v=888ff710"></script>
+        <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
@@ -138,7 +142,18 @@
 <li class="toctree-l2"><a class="reference internal" href="nw__LocalData.html">nw::LocalData</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__LocalVar.html">nw::LocalVar</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__LocalVarType.html">nw::LocalVarType</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">nw::Location</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">nw::Location</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#_CPPv4N2nw8LocationE"><code class="docutils literal notranslate"><span class="pre">Location</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw8Location8LocationEv"><code class="docutils literal notranslate"><span class="pre">Location::Location()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw8LocationcvbEv"><code class="docutils literal notranslate"><span class="pre">Location::operator</span> <span class="pre">bool()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw8LocationeqERK8Location"><code class="docutils literal notranslate"><span class="pre">Location::operator==()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw8Location4areaE"><code class="docutils literal notranslate"><span class="pre">Location::area</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw8Location8positionE"><code class="docutils literal notranslate"><span class="pre">Location::position</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw8Location11orientationE"><code class="docutils literal notranslate"><span class="pre">Location::orientation</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Lock.html">nw::Lock</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__MasterFeat.html">nw::MasterFeat</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__MasterFeatRegistry.html">nw::MasterFeatRegistry</a></li>
@@ -358,26 +373,26 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <div class="section" id="nw-location">
-<h1>nw::Location<a class="headerlink" href="#nw-location" title="Permalink to this headline"></a></h1>
+  <section id="nw-location">
+<h1>nw::Location<a class="headerlink" href="#nw-location" title="Link to this heading"></a></h1>
 <dl class="cpp struct">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw8LocationE">
-<span id="_CPPv3N2nw8LocationE"></span><span id="_CPPv2N2nw8LocationE"></span><span id="nw::Location"></span><span class="target" id="structnw_1_1_location"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Location</span></span></span><a class="headerlink" href="#_CPPv4N2nw8LocationE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw8LocationE"></span><span id="_CPPv2N2nw8LocationE"></span><span id="nw::Location"></span><span class="target" id="structnw_1_1_location"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Location</span></span></span><a class="headerlink" href="#_CPPv4N2nw8LocationE" title="Link to this definition"></a><br /></dt>
 <dd><div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw8Location8LocationEv">
-<span id="_CPPv3N2nw8Location8LocationEv"></span><span id="_CPPv2N2nw8Location8LocationEv"></span><span id="nw::Location::Location"></span><span class="target" id="structnw_1_1_location_1ae7d22aba6869eaa57a9fc4ce2f49f436"></span><span class="sig-name descname"><span class="n"><span class="pre">Location</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw8Location8LocationEv" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw8Location8LocationEv"></span><span id="_CPPv2N2nw8Location8LocationEv"></span><span id="nw::Location::Location"></span><span class="target" id="structnw_1_1_location_1ae7d22aba6869eaa57a9fc4ce2f49f436"></span><span class="sig-name descname"><span class="n"><span class="pre">Location</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw8Location8LocationEv" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw8LocationcvbEv">
-<span id="_CPPv3N2nw8LocationcvbEv"></span><span id="_CPPv2N2nw8LocationcvbEv"></span><span id="nw::Location::castto-b-operator"></span><span class="target" id="structnw_1_1_location_1a03ca49be8f2749ad8b2c10d09be0dae7"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw8LocationcvbEv" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw8LocationcvbEv"></span><span id="_CPPv2N2nw8LocationcvbEv"></span><span id="nw::Location::castto-b-operator"></span><span class="target" id="structnw_1_1_location_1a03ca49be8f2749ad8b2c10d09be0dae7"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw8LocationcvbEv" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4NK2nw8LocationeqERK8Location">
-<span id="_CPPv3NK2nw8LocationeqERK8Location"></span><span id="_CPPv2NK2nw8LocationeqERK8Location"></span><span id="nw::Location::eq-operator__LocationCRC"></span><span class="target" id="structnw_1_1_location_1a626d7799dbeb32a2a89271213b901a53"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">==</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N2nw8LocationE" title="nw::Location"><span class="n"><span class="pre">Location</span></span></a><span class="p"><span class="pre">&amp;</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">default</span></span><a class="headerlink" href="#_CPPv4NK2nw8LocationeqERK8Location" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3NK2nw8LocationeqERK8Location"></span><span id="_CPPv2NK2nw8LocationeqERK8Location"></span><span id="nw::Location::eq-operator__LocationCRC"></span><span class="target" id="structnw_1_1_location_1a626d7799dbeb32a2a89271213b901a53"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">==</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N2nw8LocationE" title="nw::Location"><span class="n"><span class="pre">Location</span></span></a><span class="p"><span class="pre">&amp;</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">default</span></span><a class="headerlink" href="#_CPPv4NK2nw8LocationeqERK8Location" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 </div>
@@ -385,23 +400,23 @@
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw8Location4areaE">
-<span id="_CPPv3N2nw8Location4areaE"></span><span id="_CPPv2N2nw8Location4areaE"></span><span id="nw::Location::area__ObjectID"></span><span class="target" id="structnw_1_1_location_1a4b7737999d2669f89b6cfbfdc4bc5150"></span><a class="reference internal" href="../enum/nw__ObjectID.html#_CPPv4N2nw8ObjectIDE" title="nw::ObjectID"><span class="n"><span class="pre">ObjectID</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">area</span></span></span><a class="headerlink" href="#_CPPv4N2nw8Location4areaE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw8Location4areaE"></span><span id="_CPPv2N2nw8Location4areaE"></span><span id="nw::Location::area__ObjectID"></span><span class="target" id="structnw_1_1_location_1a4b7737999d2669f89b6cfbfdc4bc5150"></span><a class="reference internal" href="../enum/nw__ObjectID.html#_CPPv4N2nw8ObjectIDE" title="nw::ObjectID"><span class="n"><span class="pre">ObjectID</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">area</span></span></span><a class="headerlink" href="#_CPPv4N2nw8Location4areaE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw8Location8positionE">
-<span id="_CPPv3N2nw8Location8positionE"></span><span id="_CPPv2N2nw8Location8positionE"></span><span id="nw::Location::position__glm::vec3"></span><span class="target" id="structnw_1_1_location_1abb73ec799f0fe5d8e626f924789e00a5"></span><span class="n"><span class="pre">glm</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vec3</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">position</span></span></span><a class="headerlink" href="#_CPPv4N2nw8Location8positionE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw8Location8positionE"></span><span id="_CPPv2N2nw8Location8positionE"></span><span id="nw::Location::position__glm::vec3"></span><span class="target" id="structnw_1_1_location_1abb73ec799f0fe5d8e626f924789e00a5"></span><span class="n"><span class="pre">glm</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vec3</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">position</span></span></span><a class="headerlink" href="#_CPPv4N2nw8Location8positionE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw8Location11orientationE">
-<span id="_CPPv3N2nw8Location11orientationE"></span><span id="_CPPv2N2nw8Location11orientationE"></span><span id="nw::Location::orientation__glm::vec3"></span><span class="target" id="structnw_1_1_location_1a3970807f5b72b0a1a238439e58529bdd"></span><span class="n"><span class="pre">glm</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vec3</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">orientation</span></span></span><a class="headerlink" href="#_CPPv4N2nw8Location11orientationE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw8Location11orientationE"></span><span id="_CPPv2N2nw8Location11orientationE"></span><span id="nw::Location::orientation__glm::vec3"></span><span class="target" id="structnw_1_1_location_1a3970807f5b72b0a1a238439e58529bdd"></span><span class="n"><span class="pre">glm</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vec3</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">orientation</span></span></span><a class="headerlink" href="#_CPPv4N2nw8Location11orientationE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 </div>
 </dd></dl>
 
-</div>
+</section>
 
 
            </div>

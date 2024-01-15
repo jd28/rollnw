@@ -1,20 +1,24 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html5" lang="en" data-content_root="../../">
 <head>
-  <meta charset="utf-8" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>nw::Equips &mdash; rollNW  documentation</title>
-      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
-      <link rel="stylesheet" href="../../_static/tabs.css" type="text/css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="../../_static/tabs.css?v=a5c4661c" />
+
+  
   <!--[if lt IE 9]>
     <script src="../../_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
-        <script src="../../_static/jquery.js"></script>
-        <script src="../../_static/underscore.js"></script>
-        <script src="../../_static/doctools.js"></script>
+        <script src="../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+        <script src="../../_static/doctools.js?v=888ff710"></script>
+        <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
@@ -100,7 +104,23 @@
 <li class="toctree-l2"><a class="reference internal" href="nw__EffectHandle.html">nw::EffectHandle</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Encounter.html">nw::Encounter</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__EncounterScripts.html">nw::EncounterScripts</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">nw::Equips</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">nw::Equips</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#_CPPv4N2nw6EquipsE"><code class="docutils literal notranslate"><span class="pre">Equips</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6Equips6EquipsEP8Creature"><code class="docutils literal notranslate"><span class="pre">Equips::Equips()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6Equips6EquipsERK6Equips"><code class="docutils literal notranslate"><span class="pre">Equips::Equips()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6Equips6EquipsERR6Equips"><code class="docutils literal notranslate"><span class="pre">Equips::Equips()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6EquipsaSERK6Equips"><code class="docutils literal notranslate"><span class="pre">Equips::operator=()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6EquipsaSERR6Equips"><code class="docutils literal notranslate"><span class="pre">Equips::operator=()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6EquipsD0Ev"><code class="docutils literal notranslate"><span class="pre">Equips::~Equips()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6Equips11instantiateEv"><code class="docutils literal notranslate"><span class="pre">Equips::instantiate()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6Equips9from_jsonERKN8nlohmann4jsonE20SerializationProfile"><code class="docutils literal notranslate"><span class="pre">Equips::from_json()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw6Equips7to_jsonE20SerializationProfile"><code class="docutils literal notranslate"><span class="pre">Equips::to_json()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6Equips6owner_E"><code class="docutils literal notranslate"><span class="pre">Equips::owner_</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6Equips6equipsE"><code class="docutils literal notranslate"><span class="pre">Equips::equips</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Erf.html">nw::Erf</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Faction.html">nw::Faction</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__FactionInfo.html">nw::FactionInfo</a></li>
@@ -358,56 +378,56 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <div class="section" id="nw-equips">
-<h1>nw::Equips<a class="headerlink" href="#nw-equips" title="Permalink to this headline"></a></h1>
+  <section id="nw-equips">
+<h1>nw::Equips<a class="headerlink" href="#nw-equips" title="Link to this heading"></a></h1>
 <dl class="cpp struct">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw6EquipsE">
-<span id="_CPPv3N2nw6EquipsE"></span><span id="_CPPv2N2nw6EquipsE"></span><span id="nw::Equips"></span><span class="target" id="structnw_1_1_equips"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Equips</span></span></span><a class="headerlink" href="#_CPPv4N2nw6EquipsE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw6EquipsE"></span><span id="_CPPv2N2nw6EquipsE"></span><span id="nw::Equips"></span><span class="target" id="structnw_1_1_equips"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Equips</span></span></span><a class="headerlink" href="#_CPPv4N2nw6EquipsE" title="Link to this definition"></a><br /></dt>
 <dd><div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw6Equips6EquipsEP8Creature">
-<span id="_CPPv3N2nw6Equips6EquipsEP8Creature"></span><span id="_CPPv2N2nw6Equips6EquipsEP8Creature"></span><span id="nw::Equips::Equips__CreatureP"></span><span class="target" id="structnw_1_1_equips_1a535286e8c2117237673a3920f2ab4b49"></span><span class="sig-name descname"><span class="n"><span class="pre">Equips</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="nw__Creature.html#_CPPv4N2nw8CreatureE" title="nw::Creature"><span class="n"><span class="pre">Creature</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">owner</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6Equips6EquipsEP8Creature" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw6Equips6EquipsEP8Creature"></span><span id="_CPPv2N2nw6Equips6EquipsEP8Creature"></span><span id="nw::Equips::Equips__CreatureP"></span><span class="target" id="structnw_1_1_equips_1a535286e8c2117237673a3920f2ab4b49"></span><span class="sig-name descname"><span class="n"><span class="pre">Equips</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="nw__Creature.html#_CPPv4N2nw8CreatureE" title="nw::Creature"><span class="n"><span class="pre">Creature</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">owner</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6Equips6EquipsEP8Creature" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw6Equips6EquipsERK6Equips">
-<span id="_CPPv3N2nw6Equips6EquipsERK6Equips"></span><span id="_CPPv2N2nw6Equips6EquipsERK6Equips"></span><span id="nw::Equips::Equips__EquipsCR"></span><span class="target" id="structnw_1_1_equips_1a8a88c2cc377bb73df529aef532430f5c"></span><span class="sig-name descname"><span class="n"><span class="pre">Equips</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N2nw6Equips6EquipsERK6Equips" title="nw::Equips::Equips"><span class="n"><span class="pre">Equips</span></span></a><span class="p"><span class="pre">&amp;</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">delete</span></span><a class="headerlink" href="#_CPPv4N2nw6Equips6EquipsERK6Equips" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw6Equips6EquipsERK6Equips"></span><span id="_CPPv2N2nw6Equips6EquipsERK6Equips"></span><span id="nw::Equips::Equips__EquipsCR"></span><span class="target" id="structnw_1_1_equips_1a8a88c2cc377bb73df529aef532430f5c"></span><span class="sig-name descname"><span class="n"><span class="pre">Equips</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N2nw6Equips6EquipsERK6Equips" title="nw::Equips::Equips"><span class="n"><span class="pre">Equips</span></span></a><span class="p"><span class="pre">&amp;</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">delete</span></span><a class="headerlink" href="#_CPPv4N2nw6Equips6EquipsERK6Equips" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw6Equips6EquipsERR6Equips">
-<span id="_CPPv3N2nw6Equips6EquipsERR6Equips"></span><span id="_CPPv2N2nw6Equips6EquipsERR6Equips"></span><span id="nw::Equips::Equips__EquipsRR"></span><span class="target" id="structnw_1_1_equips_1a1219b1b3db5541618444ccd5b9523099"></span><span class="sig-name descname"><span class="n"><span class="pre">Equips</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N2nw6Equips6EquipsERR6Equips" title="nw::Equips::Equips"><span class="n"><span class="pre">Equips</span></span></a><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">default</span></span><a class="headerlink" href="#_CPPv4N2nw6Equips6EquipsERR6Equips" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw6Equips6EquipsERR6Equips"></span><span id="_CPPv2N2nw6Equips6EquipsERR6Equips"></span><span id="nw::Equips::Equips__EquipsRR"></span><span class="target" id="structnw_1_1_equips_1a1219b1b3db5541618444ccd5b9523099"></span><span class="sig-name descname"><span class="n"><span class="pre">Equips</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N2nw6Equips6EquipsERR6Equips" title="nw::Equips::Equips"><span class="n"><span class="pre">Equips</span></span></a><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">default</span></span><a class="headerlink" href="#_CPPv4N2nw6Equips6EquipsERR6Equips" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw6EquipsaSERK6Equips">
-<span id="_CPPv3N2nw6EquipsaSERK6Equips"></span><span id="_CPPv2N2nw6EquipsaSERK6Equips"></span><span id="nw::Equips::assign-operator__EquipsCR"></span><span class="target" id="structnw_1_1_equips_1ae15c9b92f01d1a5ef980a637993fc7c4"></span><a class="reference internal" href="#_CPPv4N2nw6EquipsE" title="nw::Equips"><span class="n"><span class="pre">Equips</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">=</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N2nw6EquipsE" title="nw::Equips"><span class="n"><span class="pre">Equips</span></span></a><span class="p"><span class="pre">&amp;</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">delete</span></span><a class="headerlink" href="#_CPPv4N2nw6EquipsaSERK6Equips" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw6EquipsaSERK6Equips"></span><span id="_CPPv2N2nw6EquipsaSERK6Equips"></span><span id="nw::Equips::assign-operator__EquipsCR"></span><span class="target" id="structnw_1_1_equips_1ae15c9b92f01d1a5ef980a637993fc7c4"></span><a class="reference internal" href="#_CPPv4N2nw6EquipsE" title="nw::Equips"><span class="n"><span class="pre">Equips</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">=</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N2nw6EquipsE" title="nw::Equips"><span class="n"><span class="pre">Equips</span></span></a><span class="p"><span class="pre">&amp;</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">delete</span></span><a class="headerlink" href="#_CPPv4N2nw6EquipsaSERK6Equips" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw6EquipsaSERR6Equips">
-<span id="_CPPv3N2nw6EquipsaSERR6Equips"></span><span id="_CPPv2N2nw6EquipsaSERR6Equips"></span><span id="nw::Equips::assign-operator__EquipsRR"></span><span class="target" id="structnw_1_1_equips_1ab43cedd6c60b5776d15de29e62c41931"></span><a class="reference internal" href="#_CPPv4N2nw6EquipsE" title="nw::Equips"><span class="n"><span class="pre">Equips</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">=</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N2nw6EquipsE" title="nw::Equips"><span class="n"><span class="pre">Equips</span></span></a><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">default</span></span><a class="headerlink" href="#_CPPv4N2nw6EquipsaSERR6Equips" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw6EquipsaSERR6Equips"></span><span id="_CPPv2N2nw6EquipsaSERR6Equips"></span><span id="nw::Equips::assign-operator__EquipsRR"></span><span class="target" id="structnw_1_1_equips_1ab43cedd6c60b5776d15de29e62c41931"></span><a class="reference internal" href="#_CPPv4N2nw6EquipsE" title="nw::Equips"><span class="n"><span class="pre">Equips</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">=</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N2nw6EquipsE" title="nw::Equips"><span class="n"><span class="pre">Equips</span></span></a><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">default</span></span><a class="headerlink" href="#_CPPv4N2nw6EquipsaSERR6Equips" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw6EquipsD0Ev">
-<span id="_CPPv3N2nw6EquipsD0Ev"></span><span id="_CPPv2N2nw6EquipsD0Ev"></span><span id="nw::Equips::~Equips"></span><span class="target" id="structnw_1_1_equips_1a8887157a1b3cd71d11aa1d93e86cc271"></span><span class="sig-name descname"><span class="n"><span class="pre">~Equips</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">default</span></span><a class="headerlink" href="#_CPPv4N2nw6EquipsD0Ev" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw6EquipsD0Ev"></span><span id="_CPPv2N2nw6EquipsD0Ev"></span><span id="nw::Equips::~Equips"></span><span class="target" id="structnw_1_1_equips_1a8887157a1b3cd71d11aa1d93e86cc271"></span><span class="sig-name descname"><span class="n"><span class="pre">~Equips</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">default</span></span><a class="headerlink" href="#_CPPv4N2nw6EquipsD0Ev" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw6Equips11instantiateEv">
-<span id="_CPPv3N2nw6Equips11instantiateEv"></span><span id="_CPPv2N2nw6Equips11instantiateEv"></span><span id="nw::Equips::instantiate"></span><span class="target" id="structnw_1_1_equips_1a6cdae4a33d9894a643b7663960446b1d"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">instantiate</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6Equips11instantiateEv" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw6Equips11instantiateEv"></span><span id="_CPPv2N2nw6Equips11instantiateEv"></span><span id="nw::Equips::instantiate"></span><span class="target" id="structnw_1_1_equips_1a6cdae4a33d9894a643b7663960446b1d"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">instantiate</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6Equips11instantiateEv" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw6Equips9from_jsonERKN8nlohmann4jsonE20SerializationProfile">
-<span id="_CPPv3N2nw6Equips9from_jsonERKN8nlohmann4jsonE20SerializationProfile"></span><span id="_CPPv2N2nw6Equips9from_jsonERKN8nlohmann4jsonE20SerializationProfile"></span><span id="nw::Equips::from_json__nlohmann::jsonCR.SerializationProfile"></span><span class="target" id="structnw_1_1_equips_1a88f0f48de67e4871d841a81b85fee303"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">from_json</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">nlohmann</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">json</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">archive</span></span>, <a class="reference internal" href="../enum/nw__SerializationProfile.html#_CPPv4N2nw20SerializationProfileE" title="nw::SerializationProfile"><span class="n"><span class="pre">SerializationProfile</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">profile</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6Equips9from_jsonERKN8nlohmann4jsonE20SerializationProfile" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw6Equips9from_jsonERKN8nlohmann4jsonE20SerializationProfile"></span><span id="_CPPv2N2nw6Equips9from_jsonERKN8nlohmann4jsonE20SerializationProfile"></span><span id="nw::Equips::from_json__nlohmann::jsonCR.SerializationProfile"></span><span class="target" id="structnw_1_1_equips_1a88f0f48de67e4871d841a81b85fee303"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">from_json</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">nlohmann</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">json</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">archive</span></span>, <a class="reference internal" href="../enum/nw__SerializationProfile.html#_CPPv4N2nw20SerializationProfileE" title="nw::SerializationProfile"><span class="n"><span class="pre">SerializationProfile</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">profile</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6Equips9from_jsonERKN8nlohmann4jsonE20SerializationProfile" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4NK2nw6Equips7to_jsonE20SerializationProfile">
-<span id="_CPPv3NK2nw6Equips7to_jsonE20SerializationProfile"></span><span id="_CPPv2NK2nw6Equips7to_jsonE20SerializationProfile"></span><span id="nw::Equips::to_json__SerializationProfileC"></span><span class="target" id="structnw_1_1_equips_1ab38f6170a29bf9001b767422d13f5ace"></span><span class="n"><span class="pre">nlohmann</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">json</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">to_json</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="../enum/nw__SerializationProfile.html#_CPPv4N2nw20SerializationProfileE" title="nw::SerializationProfile"><span class="n"><span class="pre">SerializationProfile</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">profile</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK2nw6Equips7to_jsonE20SerializationProfile" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3NK2nw6Equips7to_jsonE20SerializationProfile"></span><span id="_CPPv2NK2nw6Equips7to_jsonE20SerializationProfile"></span><span id="nw::Equips::to_json__SerializationProfileC"></span><span class="target" id="structnw_1_1_equips_1ab38f6170a29bf9001b767422d13f5ace"></span><span class="n"><span class="pre">nlohmann</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">json</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">to_json</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="../enum/nw__SerializationProfile.html#_CPPv4N2nw20SerializationProfileE" title="nw::SerializationProfile"><span class="n"><span class="pre">SerializationProfile</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">profile</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK2nw6Equips7to_jsonE20SerializationProfile" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 </div>
@@ -415,18 +435,18 @@
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw6Equips6owner_E">
-<span id="_CPPv3N2nw6Equips6owner_E"></span><span id="_CPPv2N2nw6Equips6owner_E"></span><span id="nw::Equips::owner___nw::CreatureP"></span><span class="target" id="structnw_1_1_equips_1a09bb98c5d6e190557da4827807cfbedf"></span><span class="n"><span class="pre">nw</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="nw__Creature.html#_CPPv4N2nw8CreatureE" title="nw::Creature"><span class="n"><span class="pre">Creature</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">owner_</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">nullptr</span></span><a class="headerlink" href="#_CPPv4N2nw6Equips6owner_E" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw6Equips6owner_E"></span><span id="_CPPv2N2nw6Equips6owner_E"></span><span id="nw::Equips::owner___nw::CreatureP"></span><span class="target" id="structnw_1_1_equips_1a09bb98c5d6e190557da4827807cfbedf"></span><span class="n"><span class="pre">nw</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="nw__Creature.html#_CPPv4N2nw8CreatureE" title="nw::Creature"><span class="n"><span class="pre">Creature</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">owner_</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">nullptr</span></span><a class="headerlink" href="#_CPPv4N2nw6Equips6owner_E" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw6Equips6equipsE">
-<span id="_CPPv3N2nw6Equips6equipsE"></span><span id="_CPPv2N2nw6Equips6equipsE"></span><span id="nw::Equips::equips__std::array:EquipItem.18:"></span><span class="target" id="structnw_1_1_equips_1a3d65bb7fe58f02fb681a317737dcf364"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">array</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="../typedef/nw__EquipItem.html#_CPPv4N2nw9EquipItemE" title="nw::EquipItem"><span class="n"><span class="pre">EquipItem</span></span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="m"><span class="pre">18</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">equips</span></span></span><a class="headerlink" href="#_CPPv4N2nw6Equips6equipsE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw6Equips6equipsE"></span><span id="_CPPv2N2nw6Equips6equipsE"></span><span id="nw::Equips::equips__std::array:EquipItem.18:"></span><span class="target" id="structnw_1_1_equips_1a3d65bb7fe58f02fb681a317737dcf364"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">array</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="../typedef/nw__EquipItem.html#_CPPv4N2nw9EquipItemE" title="nw::EquipItem"><span class="n"><span class="pre">EquipItem</span></span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="m"><span class="pre">18</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">equips</span></span></span><a class="headerlink" href="#_CPPv4N2nw6Equips6equipsE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 </div>
 </dd></dl>
 
-</div>
+</section>
 
 
            </div>

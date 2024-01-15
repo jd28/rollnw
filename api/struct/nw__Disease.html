@@ -1,20 +1,24 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html5" lang="en" data-content_root="../../">
 <head>
-  <meta charset="utf-8" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>nw::Disease &mdash; rollNW  documentation</title>
-      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
-      <link rel="stylesheet" href="../../_static/tabs.css" type="text/css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="../../_static/tabs.css?v=a5c4661c" />
+
+  
   <!--[if lt IE 9]>
     <script src="../../_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
-        <script src="../../_static/jquery.js"></script>
-        <script src="../../_static/underscore.js"></script>
-        <script src="../../_static/doctools.js"></script>
+        <script src="../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+        <script src="../../_static/doctools.js?v=888ff710"></script>
+        <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
@@ -92,7 +96,18 @@
 <li class="toctree-l2"><a class="reference internal" href="nw__DialogPtr.html">nw::DialogPtr</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__DiceRoll.html">nw::DiceRoll</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Directory.html">nw::Directory</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">nw::Disease</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">nw::Disease</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#_CPPv4N2nw7DiseaseE"><code class="docutils literal notranslate"><span class="pre">Disease</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw7DiseaseeqERK7Disease"><code class="docutils literal notranslate"><span class="pre">Disease::operator==()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw7DiseasessERK7Disease"><code class="docutils literal notranslate"><span class="pre">Disease::operator&lt;=&gt;()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw7DiseasemlEv"><code class="docutils literal notranslate"><span class="pre">Disease::operator*()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw7Disease3idxEv"><code class="docutils literal notranslate"><span class="pre">Disease::idx()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw7Disease4makeE7int32_t"><code class="docutils literal notranslate"><span class="pre">Disease::make()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw7Disease7invalidEv"><code class="docutils literal notranslate"><span class="pre">Disease::invalid()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Door.html">nw::Door</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__DoorScripts.html">nw::DoorScripts</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Effect.html">nw::Effect</a></li>
@@ -358,34 +373,34 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <div class="section" id="nw-disease">
-<h1>nw::Disease<a class="headerlink" href="#nw-disease" title="Permalink to this headline"></a></h1>
+  <section id="nw-disease">
+<h1>nw::Disease<a class="headerlink" href="#nw-disease" title="Link to this heading"></a></h1>
 <dl class="cpp struct">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw7DiseaseE">
-<span id="_CPPv3N2nw7DiseaseE"></span><span id="_CPPv2N2nw7DiseaseE"></span><span id="nw::Disease"></span><span class="target" id="structnw_1_1_disease"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Disease</span></span></span><a class="headerlink" href="#_CPPv4N2nw7DiseaseE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw7DiseaseE"></span><span id="_CPPv2N2nw7DiseaseE"></span><span id="nw::Disease"></span><span class="target" id="structnw_1_1_disease"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Disease</span></span></span><a class="headerlink" href="#_CPPv4N2nw7DiseaseE" title="Link to this definition"></a><br /></dt>
 <dd><div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4NK2nw7DiseaseeqERK7Disease">
-<span id="_CPPv3NK2nw7DiseaseeqERK7Disease"></span><span id="_CPPv2NK2nw7DiseaseeqERK7Disease"></span><span id="nw::Disease::eq-operator__DiseaseCRC"></span><span class="target" id="structnw_1_1_disease_1aa6490eeafbb610cc5f28f161154ea89f"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">==</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N2nw7DiseaseE" title="nw::Disease"><span class="n"><span class="pre">Disease</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">rhs</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">default</span></span><a class="headerlink" href="#_CPPv4NK2nw7DiseaseeqERK7Disease" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3NK2nw7DiseaseeqERK7Disease"></span><span id="_CPPv2NK2nw7DiseaseeqERK7Disease"></span><span id="nw::Disease::eq-operator__DiseaseCRC"></span><span class="target" id="structnw_1_1_disease_1aa6490eeafbb610cc5f28f161154ea89f"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">==</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N2nw7DiseaseE" title="nw::Disease"><span class="n"><span class="pre">Disease</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">rhs</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">default</span></span><a class="headerlink" href="#_CPPv4NK2nw7DiseaseeqERK7Disease" title="Link to this definition"></a><br /></dt>
 <dd><p>Defaulted equality operator </p>
 </dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4NK2nw7DiseasessERK7Disease">
-<span id="_CPPv3NK2nw7DiseasessERK7Disease"></span><span id="_CPPv2NK2nw7DiseasessERK7Disease"></span><span class="target" id="structnw_1_1_disease_1a0f2a2ed67fe3708944a272796de41fa0"></span><span class="kt"><span class="pre">auto</span></span><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">&lt;=&gt;</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N2nw7DiseaseE" title="nw::Disease"><span class="n"><span class="pre">Disease</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">rhs</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">default</span></span><a class="headerlink" href="#_CPPv4NK2nw7DiseasessERK7Disease" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3NK2nw7DiseasessERK7Disease"></span><span id="_CPPv2NK2nw7DiseasessERK7Disease"></span><span class="target" id="structnw_1_1_disease_1a0f2a2ed67fe3708944a272796de41fa0"></span><span class="kt"><span class="pre">auto</span></span><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">&lt;=&gt;</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N2nw7DiseaseE" title="nw::Disease"><span class="n"><span class="pre">Disease</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">rhs</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">default</span></span><a class="headerlink" href="#_CPPv4NK2nw7DiseasessERK7Disease" title="Link to this definition"></a><br /></dt>
 <dd><p>Defaulted spaceship operator </p>
 </dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4NK2nw7DiseasemlEv">
-<span id="_CPPv3NK2nw7DiseasemlEv"></span><span id="_CPPv2NK2nw7DiseasemlEv"></span><span id="nw::Disease::mul-operatorCCE"></span><span class="target" id="structnw_1_1_disease_1acdcffa1553ce985817fe6649e09b829d"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">int32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">*</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="k"><span class="pre">noexcept</span></span><a class="headerlink" href="#_CPPv4NK2nw7DiseasemlEv" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3NK2nw7DiseasemlEv"></span><span id="_CPPv2NK2nw7DiseasemlEv"></span><span id="nw::Disease::mul-operatorCCE"></span><span class="target" id="structnw_1_1_disease_1acdcffa1553ce985817fe6649e09b829d"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">int32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">*</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="k"><span class="pre">noexcept</span></span><a class="headerlink" href="#_CPPv4NK2nw7DiseasemlEv" title="Link to this definition"></a><br /></dt>
 <dd><p>Returns rule type as value </p>
 </dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4NK2nw7Disease3idxEv">
-<span id="_CPPv3NK2nw7Disease3idxEv"></span><span id="_CPPv2NK2nw7Disease3idxEv"></span><span id="nw::Disease::idxCCE"></span><span class="target" id="structnw_1_1_disease_1a93cb37978bbde9618727a8a1cf8ad501"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">idx</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="k"><span class="pre">noexcept</span></span><a class="headerlink" href="#_CPPv4NK2nw7Disease3idxEv" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3NK2nw7Disease3idxEv"></span><span id="_CPPv2NK2nw7Disease3idxEv"></span><span id="nw::Disease::idxCCE"></span><span class="target" id="structnw_1_1_disease_1a93cb37978bbde9618727a8a1cf8ad501"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">idx</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="k"><span class="pre">noexcept</span></span><a class="headerlink" href="#_CPPv4NK2nw7Disease3idxEv" title="Link to this definition"></a><br /></dt>
 <dd><p>Returns rule type as index </p>
 </dd></dl>
 
@@ -394,20 +409,20 @@
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-static-functions">Public Static Functions</p>
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw7Disease4makeE7int32_t">
-<span id="_CPPv3N2nw7Disease4makeE7int32_t"></span><span id="_CPPv2N2nw7Disease4makeE7int32_t"></span><span id="nw::Disease::make__int32_tCE"></span><span class="target" id="structnw_1_1_disease_1a8e3424ab8158cc97e9b256d050f874cb"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N2nw7DiseaseE" title="nw::Disease"><span class="n"><span class="pre">Disease</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">make</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">int32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">id</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw7Disease4makeE7int32_t" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw7Disease4makeE7int32_t"></span><span id="_CPPv2N2nw7Disease4makeE7int32_t"></span><span id="nw::Disease::make__int32_tCE"></span><span class="target" id="structnw_1_1_disease_1a8e3424ab8158cc97e9b256d050f874cb"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N2nw7DiseaseE" title="nw::Disease"><span class="n"><span class="pre">Disease</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">make</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">int32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">id</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw7Disease4makeE7int32_t" title="Link to this definition"></a><br /></dt>
 <dd><p>Makes a rule type </p>
 </dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw7Disease7invalidEv">
-<span id="_CPPv3N2nw7Disease7invalidEv"></span><span id="_CPPv2N2nw7Disease7invalidEv"></span><span id="nw::Disease::invalidCE"></span><span class="target" id="structnw_1_1_disease_1a56d0c67b815e10698278ce4d0a49877c"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N2nw7DiseaseE" title="nw::Disease"><span class="n"><span class="pre">Disease</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">invalid</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw7Disease7invalidEv" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw7Disease7invalidEv"></span><span id="_CPPv2N2nw7Disease7invalidEv"></span><span id="nw::Disease::invalidCE"></span><span class="target" id="structnw_1_1_disease_1a56d0c67b815e10698278ce4d0a49877c"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N2nw7DiseaseE" title="nw::Disease"><span class="n"><span class="pre">Disease</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">invalid</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw7Disease7invalidEv" title="Link to this definition"></a><br /></dt>
 <dd><p>Returns an invalid rule type </p>
 </dd></dl>
 
 </div>
 </dd></dl>
 
-</div>
+</section>
 
 
            </div>

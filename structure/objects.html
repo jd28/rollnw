@@ -1,21 +1,25 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html5" lang="en" data-content_root="../">
 <head>
-  <meta charset="utf-8" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>objects &mdash; rollNW  documentation</title>
-      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
-      <link rel="stylesheet" href="../_static/tabs.css" type="text/css" />
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="../_static/tabs.css?v=a5c4661c" />
+
+  
   <!--[if lt IE 9]>
     <script src="../_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
-        <script src="../_static/jquery.js"></script>
-        <script src="../_static/underscore.js"></script>
-        <script src="../_static/doctools.js"></script>
-        <script src="../_static/tabs.js"></script>
+        <script src="../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../_static/documentation_options.js?v=5929fcd5"></script>
+        <script src="../_static/doctools.js?v=888ff710"></script>
+        <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+        <script src="../_static/tabs.js?v=3030b3cb"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
@@ -137,11 +141,11 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <div class="section" id="objects">
-<h1>objects<a class="headerlink" href="#objects" title="Permalink to this headline"></a></h1>
+  <section id="objects">
+<h1>objects<a class="headerlink" href="#objects" title="Link to this heading"></a></h1>
 <p>rollNW is all about live objects and <em>not</em> serialized file formats.</p>
-<div class="section" id="definitions">
-<h2>definitions<a class="headerlink" href="#definitions" title="Permalink to this headline"></a></h2>
+<section id="definitions">
+<h2>definitions<a class="headerlink" href="#definitions" title="Link to this heading"></a></h2>
 <dl class="simple">
 <dt><code class="xref cpp cpp-enum docutils literal notranslate"><span class="pre">ObjectID</span></code></dt><dd><p>Unlike NWN an ObjectID does not provide a one-to-one mapping to an object.  Rather,
 it’s an index into a structure containing objects.</p>
@@ -153,9 +157,9 @@ handle must match what is in the object array.</p>
 <dt><code class="xref cpp cpp-struct docutils literal notranslate"><span class="pre">ObjectBase</span></code></dt><dd><p>The base class of all objects</p>
 </dd>
 </dl>
-</div>
-<div class="section" id="kernel-service">
-<h2>kernel service<a class="headerlink" href="#kernel-service" title="Permalink to this headline"></a></h2>
+</section>
+<section id="kernel-service">
+<h2>kernel service<a class="headerlink" href="#kernel-service" title="Link to this heading"></a></h2>
 <p>Any object that is loaded via the Objects service, belongs to the service and must be deleted through it.</p>
 <p><strong>Example - Loading and Deleting a Creature</strong></p>
 <div class="sphinx-tabs docutils container">
@@ -175,13 +179,13 @@ handle must match what is in the object array.</p>
 </pre></div>
 </div>
 </div></div>
-</div>
+</section>
 <hr class="docutils" />
-<div class="section" id="area">
-<h2>area<a class="headerlink" href="#area" title="Permalink to this headline"></a></h2>
-</div>
-<div class="section" id="creature">
-<h2>creature<a class="headerlink" href="#creature" title="Permalink to this headline"></a></h2>
+<section id="area">
+<h2>area<a class="headerlink" href="#area" title="Link to this heading"></a></h2>
+</section>
+<section id="creature">
+<h2>creature<a class="headerlink" href="#creature" title="Link to this heading"></a></h2>
 <div class="sphinx-tabs docutils container">
 <div aria-label="Tabbed content" class="closeable" role="tablist"><button aria-controls="panel-1-UHl0aG9u" aria-selected="true" class="sphinx-tabs-tab code-tab group-tab" id="tab-1-UHl0aG9u" name="UHl0aG9u" role="tab" tabindex="0">Python</button><button aria-controls="panel-1-Qysr" aria-selected="false" class="sphinx-tabs-tab code-tab group-tab" id="tab-1-Qysr" name="Qysr" role="tab" tabindex="-1">C++</button></div><div aria-labelledby="tab-1-UHl0aG9u" class="sphinx-tabs-panel code-tab group-tab" id="panel-1-UHl0aG9u" name="UHl0aG9u" role="tabpanel" tabindex="0"><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">rollnw</span> <span class="kn">import</span> <span class="n">Creature</span>
 
@@ -195,35 +199,35 @@ handle must match what is in the object array.</p>
 </pre></div>
 </div>
 </div></div>
-</div>
-<div class="section" id="door">
-<h2>door<a class="headerlink" href="#door" title="Permalink to this headline"></a></h2>
-</div>
-<div class="section" id="encounter">
-<h2>encounter<a class="headerlink" href="#encounter" title="Permalink to this headline"></a></h2>
-</div>
-<div class="section" id="item">
-<h2>item<a class="headerlink" href="#item" title="Permalink to this headline"></a></h2>
-</div>
-<div class="section" id="module">
-<h2>module<a class="headerlink" href="#module" title="Permalink to this headline"></a></h2>
-</div>
-<div class="section" id="placeable">
-<h2>placeable<a class="headerlink" href="#placeable" title="Permalink to this headline"></a></h2>
-</div>
-<div class="section" id="sound">
-<h2>sound<a class="headerlink" href="#sound" title="Permalink to this headline"></a></h2>
-</div>
-<div class="section" id="store">
-<h2>store<a class="headerlink" href="#store" title="Permalink to this headline"></a></h2>
-</div>
-<div class="section" id="trigger">
-<h2>trigger<a class="headerlink" href="#trigger" title="Permalink to this headline"></a></h2>
-</div>
-<div class="section" id="waypoint">
-<h2>waypoint<a class="headerlink" href="#waypoint" title="Permalink to this headline"></a></h2>
-</div>
-</div>
+</section>
+<section id="door">
+<h2>door<a class="headerlink" href="#door" title="Link to this heading"></a></h2>
+</section>
+<section id="encounter">
+<h2>encounter<a class="headerlink" href="#encounter" title="Link to this heading"></a></h2>
+</section>
+<section id="item">
+<h2>item<a class="headerlink" href="#item" title="Link to this heading"></a></h2>
+</section>
+<section id="module">
+<h2>module<a class="headerlink" href="#module" title="Link to this heading"></a></h2>
+</section>
+<section id="placeable">
+<h2>placeable<a class="headerlink" href="#placeable" title="Link to this heading"></a></h2>
+</section>
+<section id="sound">
+<h2>sound<a class="headerlink" href="#sound" title="Link to this heading"></a></h2>
+</section>
+<section id="store">
+<h2>store<a class="headerlink" href="#store" title="Link to this heading"></a></h2>
+</section>
+<section id="trigger">
+<h2>trigger<a class="headerlink" href="#trigger" title="Link to this heading"></a></h2>
+</section>
+<section id="waypoint">
+<h2>waypoint<a class="headerlink" href="#waypoint" title="Link to this heading"></a></h2>
+</section>
+</section>
 
 
            </div>

@@ -1,20 +1,24 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html5" lang="en" data-content_root="../../">
 <head>
-  <meta charset="utf-8" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>nw::model::Mdl &mdash; rollNW  documentation</title>
-      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
-      <link rel="stylesheet" href="../../_static/tabs.css" type="text/css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="../../_static/tabs.css?v=a5c4661c" />
+
+  
   <!--[if lt IE 9]>
     <script src="../../_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
-        <script src="../../_static/jquery.js"></script>
-        <script src="../../_static/underscore.js"></script>
-        <script src="../../_static/doctools.js"></script>
+        <script src="../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+        <script src="../../_static/doctools.js?v=888ff710"></script>
+        <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
@@ -232,7 +236,17 @@
 <li class="toctree-l2"><a class="reference internal" href="nw__model__GeometryFlag.html">nw::model::GeometryFlag</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__model__GeometryType.html">nw::model::GeometryType</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__model__LightNode.html">nw::model::LightNode</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">nw::model::Mdl</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">nw::model::Mdl</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#_CPPv4N2nw5model3MdlE"><code class="docutils literal notranslate"><span class="pre">Mdl</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw5model3Mdl3MdlERKNSt10filesystem4pathE"><code class="docutils literal notranslate"><span class="pre">Mdl::Mdl()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw5model3Mdl3MdlE12ResourceData"><code class="docutils literal notranslate"><span class="pre">Mdl::Mdl()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw5model3Mdl9make_nodeE8uint32_tNSt11string_viewE"><code class="docutils literal notranslate"><span class="pre">Mdl::make_node()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw5model3Mdl5validEv"><code class="docutils literal notranslate"><span class="pre">Mdl::valid()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw5model3Mdl5modelE"><code class="docutils literal notranslate"><span class="pre">Mdl::model</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="nw__model__MdlTextParser.html">nw::model::TextParser</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__model__Model.html">nw::model::Model</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__model__ModelClass.html">nw::model::ModelClass</a></li>
@@ -358,11 +372,11 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <div class="section" id="nw-model-mdl">
-<h1>nw::model::Mdl<a class="headerlink" href="#nw-model-mdl" title="Permalink to this headline"></a></h1>
+  <section id="nw-model-mdl">
+<h1>nw::model::Mdl<a class="headerlink" href="#nw-model-mdl" title="Link to this heading"></a></h1>
 <dl class="cpp class">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw5model3MdlE">
-<span id="_CPPv3N2nw5model3MdlE"></span><span id="_CPPv2N2nw5model3MdlE"></span><span id="nw::model::Mdl"></span><span class="target" id="classnw_1_1model_1_1_mdl"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Mdl</span></span></span><a class="headerlink" href="#_CPPv4N2nw5model3MdlE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw5model3MdlE"></span><span id="_CPPv2N2nw5model3MdlE"></span><span id="nw::model::Mdl"></span><span class="target" id="classnw_1_1model_1_1_mdl"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Mdl</span></span></span><a class="headerlink" href="#_CPPv4N2nw5model3MdlE" title="Link to this definition"></a><br /></dt>
 <dd><p>Implements Bioware MDL file format </p>
 <div class="admonition warning">
 <p class="admonition-title">Warning</p>
@@ -372,22 +386,22 @@
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw5model3Mdl3MdlERKNSt10filesystem4pathE">
-<span id="_CPPv3N2nw5model3Mdl3MdlERKNSt10filesystem4pathE"></span><span id="_CPPv2N2nw5model3Mdl3MdlERKNSt10filesystem4pathE"></span><span id="nw::model::Mdl::Mdl__std::filesystem::pathCR"></span><span class="target" id="classnw_1_1model_1_1_mdl_1a330844066957417b706b1b679642d9fe"></span><span class="sig-name descname"><span class="n"><span class="pre">Mdl</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">filesystem</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">path</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">filename</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw5model3Mdl3MdlERKNSt10filesystem4pathE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw5model3Mdl3MdlERKNSt10filesystem4pathE"></span><span id="_CPPv2N2nw5model3Mdl3MdlERKNSt10filesystem4pathE"></span><span id="nw::model::Mdl::Mdl__std::filesystem::pathCR"></span><span class="target" id="classnw_1_1model_1_1_mdl_1a330844066957417b706b1b679642d9fe"></span><span class="sig-name descname"><span class="n"><span class="pre">Mdl</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">filesystem</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">path</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">filename</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw5model3Mdl3MdlERKNSt10filesystem4pathE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw5model3Mdl3MdlE12ResourceData">
-<span id="_CPPv3N2nw5model3Mdl3MdlE12ResourceData"></span><span id="_CPPv2N2nw5model3Mdl3MdlE12ResourceData"></span><span id="nw::model::Mdl::Mdl__ResourceData"></span><span class="target" id="classnw_1_1model_1_1_mdl_1ae53bcade1d32f3fcde5e6b5b51231b07"></span><span class="sig-name descname"><span class="n"><span class="pre">Mdl</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">ResourceData</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">data</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw5model3Mdl3MdlE12ResourceData" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw5model3Mdl3MdlE12ResourceData"></span><span id="_CPPv2N2nw5model3Mdl3MdlE12ResourceData"></span><span id="nw::model::Mdl::Mdl__ResourceData"></span><span class="target" id="classnw_1_1model_1_1_mdl_1ae53bcade1d32f3fcde5e6b5b51231b07"></span><span class="sig-name descname"><span class="n"><span class="pre">Mdl</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">ResourceData</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">data</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw5model3Mdl3MdlE12ResourceData" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw5model3Mdl9make_nodeE8uint32_tNSt11string_viewE">
-<span id="_CPPv3N2nw5model3Mdl9make_nodeE8uint32_tNSt11string_viewE"></span><span id="_CPPv2N2nw5model3Mdl9make_nodeE8uint32_tNSt11string_viewE"></span><span id="nw::model::Mdl::make_node__uint32_t.std::string_view"></span><span class="target" id="classnw_1_1model_1_1_mdl_1a3902a1578d6294ea4eeb69328f24157b"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">unique_ptr</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="nw__model__Node.html#_CPPv4N2nw5model4NodeE" title="nw::model::Node"><span class="n"><span class="pre">Node</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">make_node</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">type</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">name</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw5model3Mdl9make_nodeE8uint32_tNSt11string_viewE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw5model3Mdl9make_nodeE8uint32_tNSt11string_viewE"></span><span id="_CPPv2N2nw5model3Mdl9make_nodeE8uint32_tNSt11string_viewE"></span><span id="nw::model::Mdl::make_node__uint32_t.std::string_view"></span><span class="target" id="classnw_1_1model_1_1_mdl_1a3902a1578d6294ea4eeb69328f24157b"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">unique_ptr</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="nw__model__Node.html#_CPPv4N2nw5model4NodeE" title="nw::model::Node"><span class="n"><span class="pre">Node</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">make_node</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">type</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">name</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw5model3Mdl9make_nodeE8uint32_tNSt11string_viewE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4NK2nw5model3Mdl5validEv">
-<span id="_CPPv3NK2nw5model3Mdl5validEv"></span><span id="_CPPv2NK2nw5model3Mdl5validEv"></span><span id="nw::model::Mdl::validC"></span><span class="target" id="classnw_1_1model_1_1_mdl_1aff5e22c2898c4efa6453b5039bda1551"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">valid</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK2nw5model3Mdl5validEv" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3NK2nw5model3Mdl5validEv"></span><span id="_CPPv2NK2nw5model3Mdl5validEv"></span><span id="nw::model::Mdl::validC"></span><span class="target" id="classnw_1_1model_1_1_mdl_1aff5e22c2898c4efa6453b5039bda1551"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">valid</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK2nw5model3Mdl5validEv" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 </div>
@@ -395,13 +409,13 @@
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw5model3Mdl5modelE">
-<span id="_CPPv3N2nw5model3Mdl5modelE"></span><span id="_CPPv2N2nw5model3Mdl5modelE"></span><span id="nw::model::Mdl::model__Model"></span><span class="target" id="classnw_1_1model_1_1_mdl_1adc42fc7a4801509ae338c7ff33c62fd0"></span><a class="reference internal" href="nw__model__Model.html#_CPPv4N2nw5model5ModelE" title="nw::model::Model"><span class="n"><span class="pre">Model</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">model</span></span></span><a class="headerlink" href="#_CPPv4N2nw5model3Mdl5modelE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw5model3Mdl5modelE"></span><span id="_CPPv2N2nw5model3Mdl5modelE"></span><span id="nw::model::Mdl::model__Model"></span><span class="target" id="classnw_1_1model_1_1_mdl_1adc42fc7a4801509ae338c7ff33c62fd0"></span><a class="reference internal" href="nw__model__Model.html#_CPPv4N2nw5model5ModelE" title="nw::model::Model"><span class="n"><span class="pre">Model</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">model</span></span></span><a class="headerlink" href="#_CPPv4N2nw5model3Mdl5modelE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 </div>
 </dd></dl>
 
-</div>
+</section>
 
 
            </div>

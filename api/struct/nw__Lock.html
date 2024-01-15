@@ -1,20 +1,24 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html5" lang="en" data-content_root="../../">
 <head>
-  <meta charset="utf-8" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>nw::Lock &mdash; rollNW  documentation</title>
-      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
-      <link rel="stylesheet" href="../../_static/tabs.css" type="text/css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="../../_static/tabs.css?v=a5c4661c" />
+
+  
   <!--[if lt IE 9]>
     <script src="../../_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
-        <script src="../../_static/jquery.js"></script>
-        <script src="../../_static/underscore.js"></script>
-        <script src="../../_static/doctools.js"></script>
+        <script src="../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+        <script src="../../_static/doctools.js?v=888ff710"></script>
+        <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
@@ -139,7 +143,22 @@
 <li class="toctree-l2"><a class="reference internal" href="nw__LocalVar.html">nw::LocalVar</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__LocalVarType.html">nw::LocalVarType</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Location.html">nw::Location</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">nw::Lock</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">nw::Lock</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#_CPPv4N2nw4LockE"><code class="docutils literal notranslate"><span class="pre">Lock</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw4Lock4LockEv"><code class="docutils literal notranslate"><span class="pre">Lock::Lock()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw4Lock9from_jsonERKN8nlohmann4jsonE"><code class="docutils literal notranslate"><span class="pre">Lock::from_json()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw4Lock7to_jsonEv"><code class="docutils literal notranslate"><span class="pre">Lock::to_json()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw4Lock8key_nameE"><code class="docutils literal notranslate"><span class="pre">Lock::key_name</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw4Lock12key_requiredE"><code class="docutils literal notranslate"><span class="pre">Lock::key_required</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw4Lock8lockableE"><code class="docutils literal notranslate"><span class="pre">Lock::lockable</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw4Lock6lockedE"><code class="docutils literal notranslate"><span class="pre">Lock::locked</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw4Lock7lock_dcE"><code class="docutils literal notranslate"><span class="pre">Lock::lock_dc</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw4Lock9unlock_dcE"><code class="docutils literal notranslate"><span class="pre">Lock::unlock_dc</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw4Lock10remove_keyE"><code class="docutils literal notranslate"><span class="pre">Lock::remove_key</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="nw__MasterFeat.html">nw::MasterFeat</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__MasterFeatRegistry.html">nw::MasterFeatRegistry</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Modifier.html">nw::Modifier</a></li>
@@ -358,27 +377,27 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <div class="section" id="nw-lock">
-<h1>nw::Lock<a class="headerlink" href="#nw-lock" title="Permalink to this headline"></a></h1>
+  <section id="nw-lock">
+<h1>nw::Lock<a class="headerlink" href="#nw-lock" title="Link to this heading"></a></h1>
 <dl class="cpp struct">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw4LockE">
-<span id="_CPPv3N2nw4LockE"></span><span id="_CPPv2N2nw4LockE"></span><span id="nw::Lock"></span><span class="target" id="structnw_1_1_lock"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Lock</span></span></span><a class="headerlink" href="#_CPPv4N2nw4LockE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw4LockE"></span><span id="_CPPv2N2nw4LockE"></span><span id="nw::Lock"></span><span class="target" id="structnw_1_1_lock"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Lock</span></span></span><a class="headerlink" href="#_CPPv4N2nw4LockE" title="Link to this definition"></a><br /></dt>
 <dd><p>Component for lockable objects. </p>
 <div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw4Lock4LockEv">
-<span id="_CPPv3N2nw4Lock4LockEv"></span><span id="_CPPv2N2nw4Lock4LockEv"></span><span id="nw::Lock::Lock"></span><span class="target" id="structnw_1_1_lock_1a4380d3168afdec4018d1c8cf8662d2bb"></span><span class="sig-name descname"><span class="n"><span class="pre">Lock</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">default</span></span><a class="headerlink" href="#_CPPv4N2nw4Lock4LockEv" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw4Lock4LockEv"></span><span id="_CPPv2N2nw4Lock4LockEv"></span><span id="nw::Lock::Lock"></span><span class="target" id="structnw_1_1_lock_1a4380d3168afdec4018d1c8cf8662d2bb"></span><span class="sig-name descname"><span class="n"><span class="pre">Lock</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">default</span></span><a class="headerlink" href="#_CPPv4N2nw4Lock4LockEv" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw4Lock9from_jsonERKN8nlohmann4jsonE">
-<span id="_CPPv3N2nw4Lock9from_jsonERKN8nlohmann4jsonE"></span><span id="_CPPv2N2nw4Lock9from_jsonERKN8nlohmann4jsonE"></span><span id="nw::Lock::from_json__nlohmann::jsonCR"></span><span class="target" id="structnw_1_1_lock_1a71915e1f3fafef504b5c0f8da6cbd582"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">from_json</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">nlohmann</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">json</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">archive</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw4Lock9from_jsonERKN8nlohmann4jsonE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw4Lock9from_jsonERKN8nlohmann4jsonE"></span><span id="_CPPv2N2nw4Lock9from_jsonERKN8nlohmann4jsonE"></span><span id="nw::Lock::from_json__nlohmann::jsonCR"></span><span class="target" id="structnw_1_1_lock_1a71915e1f3fafef504b5c0f8da6cbd582"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">from_json</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">nlohmann</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">json</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">archive</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw4Lock9from_jsonERKN8nlohmann4jsonE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4NK2nw4Lock7to_jsonEv">
-<span id="_CPPv3NK2nw4Lock7to_jsonEv"></span><span id="_CPPv2NK2nw4Lock7to_jsonEv"></span><span id="nw::Lock::to_jsonC"></span><span class="target" id="structnw_1_1_lock_1ac773015a0e48e9cdcd4361d0961f5150"></span><span class="n"><span class="pre">nlohmann</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">json</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">to_json</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK2nw4Lock7to_jsonEv" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3NK2nw4Lock7to_jsonEv"></span><span id="_CPPv2NK2nw4Lock7to_jsonEv"></span><span id="nw::Lock::to_jsonC"></span><span class="target" id="structnw_1_1_lock_1ac773015a0e48e9cdcd4361d0961f5150"></span><span class="n"><span class="pre">nlohmann</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">json</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">to_json</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK2nw4Lock7to_jsonEv" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 </div>
@@ -386,43 +405,43 @@
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw4Lock8key_nameE">
-<span id="_CPPv3N2nw4Lock8key_nameE"></span><span id="_CPPv2N2nw4Lock8key_nameE"></span><span id="nw::Lock::key_name__ss"></span><span class="target" id="structnw_1_1_lock_1af85fd4848b753ef1d5b64df9edefe33e"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">key_name</span></span></span><a class="headerlink" href="#_CPPv4N2nw4Lock8key_nameE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw4Lock8key_nameE"></span><span id="_CPPv2N2nw4Lock8key_nameE"></span><span id="nw::Lock::key_name__ss"></span><span class="target" id="structnw_1_1_lock_1af85fd4848b753ef1d5b64df9edefe33e"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">key_name</span></span></span><a class="headerlink" href="#_CPPv4N2nw4Lock8key_nameE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw4Lock12key_requiredE">
-<span id="_CPPv3N2nw4Lock12key_requiredE"></span><span id="_CPPv2N2nw4Lock12key_requiredE"></span><span id="nw::Lock::key_required__b"></span><span class="target" id="structnw_1_1_lock_1aa39db4408eed7fd61c544e518eb39426"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">key_required</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">false</span></span><a class="headerlink" href="#_CPPv4N2nw4Lock12key_requiredE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw4Lock12key_requiredE"></span><span id="_CPPv2N2nw4Lock12key_requiredE"></span><span id="nw::Lock::key_required__b"></span><span class="target" id="structnw_1_1_lock_1aa39db4408eed7fd61c544e518eb39426"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">key_required</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">false</span></span><a class="headerlink" href="#_CPPv4N2nw4Lock12key_requiredE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw4Lock8lockableE">
-<span id="_CPPv3N2nw4Lock8lockableE"></span><span id="_CPPv2N2nw4Lock8lockableE"></span><span id="nw::Lock::lockable__b"></span><span class="target" id="structnw_1_1_lock_1a8fe1d3e525ad26ef005ba5c96cacc656"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">lockable</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">false</span></span><a class="headerlink" href="#_CPPv4N2nw4Lock8lockableE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw4Lock8lockableE"></span><span id="_CPPv2N2nw4Lock8lockableE"></span><span id="nw::Lock::lockable__b"></span><span class="target" id="structnw_1_1_lock_1a8fe1d3e525ad26ef005ba5c96cacc656"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">lockable</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">false</span></span><a class="headerlink" href="#_CPPv4N2nw4Lock8lockableE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw4Lock6lockedE">
-<span id="_CPPv3N2nw4Lock6lockedE"></span><span id="_CPPv2N2nw4Lock6lockedE"></span><span id="nw::Lock::locked__b"></span><span class="target" id="structnw_1_1_lock_1af82529b11ba5ee150dc328fee5817b52"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">locked</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">false</span></span><a class="headerlink" href="#_CPPv4N2nw4Lock6lockedE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw4Lock6lockedE"></span><span id="_CPPv2N2nw4Lock6lockedE"></span><span id="nw::Lock::locked__b"></span><span class="target" id="structnw_1_1_lock_1af82529b11ba5ee150dc328fee5817b52"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">locked</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">false</span></span><a class="headerlink" href="#_CPPv4N2nw4Lock6lockedE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw4Lock7lock_dcE">
-<span id="_CPPv3N2nw4Lock7lock_dcE"></span><span id="_CPPv2N2nw4Lock7lock_dcE"></span><span id="nw::Lock::lock_dc__uint8_t"></span><span class="target" id="structnw_1_1_lock_1a2a6147f0d4a4a661005e4ab958b9f234"></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">lock_dc</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N2nw4Lock7lock_dcE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw4Lock7lock_dcE"></span><span id="_CPPv2N2nw4Lock7lock_dcE"></span><span id="nw::Lock::lock_dc__uint8_t"></span><span class="target" id="structnw_1_1_lock_1a2a6147f0d4a4a661005e4ab958b9f234"></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">lock_dc</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N2nw4Lock7lock_dcE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw4Lock9unlock_dcE">
-<span id="_CPPv3N2nw4Lock9unlock_dcE"></span><span id="_CPPv2N2nw4Lock9unlock_dcE"></span><span id="nw::Lock::unlock_dc__uint8_t"></span><span class="target" id="structnw_1_1_lock_1a1eb49efd57849fa753df98fcec056ec6"></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">unlock_dc</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N2nw4Lock9unlock_dcE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw4Lock9unlock_dcE"></span><span id="_CPPv2N2nw4Lock9unlock_dcE"></span><span id="nw::Lock::unlock_dc__uint8_t"></span><span class="target" id="structnw_1_1_lock_1a1eb49efd57849fa753df98fcec056ec6"></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">unlock_dc</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N2nw4Lock9unlock_dcE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw4Lock10remove_keyE">
-<span id="_CPPv3N2nw4Lock10remove_keyE"></span><span id="_CPPv2N2nw4Lock10remove_keyE"></span><span id="nw::Lock::remove_key__b"></span><span class="target" id="structnw_1_1_lock_1a433f1a4b99755332833100a032159eef"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">remove_key</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">false</span></span><a class="headerlink" href="#_CPPv4N2nw4Lock10remove_keyE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw4Lock10remove_keyE"></span><span id="_CPPv2N2nw4Lock10remove_keyE"></span><span id="nw::Lock::remove_key__b"></span><span class="target" id="structnw_1_1_lock_1a433f1a4b99755332833100a032159eef"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">remove_key</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">false</span></span><a class="headerlink" href="#_CPPv4N2nw4Lock10remove_keyE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 </div>
 </dd></dl>
 
-</div>
+</section>
 
 
            </div>

@@ -1,20 +1,24 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html5" lang="en" data-content_root="../../">
 <head>
-  <meta charset="utf-8" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>nw::TargetState &mdash; rollNW  documentation</title>
-      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
-      <link rel="stylesheet" href="../../_static/tabs.css" type="text/css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="../../_static/tabs.css?v=a5c4661c" />
+
+  
   <!--[if lt IE 9]>
     <script src="../../_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
-        <script src="../../_static/jquery.js"></script>
-        <script src="../../_static/underscore.js"></script>
-        <script src="../../_static/doctools.js"></script>
+        <script src="../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+        <script src="../../_static/doctools.js?v=888ff710"></script>
+        <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
@@ -87,7 +91,24 @@
 <li class="toctree-l2"><a class="reference internal" href="nw__SerializationProfile.html">nw::SerializationProfile</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__SpellFlags.html">nw::SpellFlags</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__SpellMetaMagic.html">nw::SpellMetaMagic</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">nw::TargetState</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">nw::TargetState</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#_CPPv4N2nw11TargetStateE"><code class="docutils literal notranslate"><span class="pre">TargetState</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw11TargetState4noneE"><code class="docutils literal notranslate"><span class="pre">TargetState::none</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw11TargetState5blindE"><code class="docutils literal notranslate"><span class="pre">TargetState::blind</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw11TargetState14attacker_invisE"><code class="docutils literal notranslate"><span class="pre">TargetState::attacker_invis</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw11TargetState6unseenE"><code class="docutils literal notranslate"><span class="pre">TargetState::unseen</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw11TargetState6movingE"><code class="docutils literal notranslate"><span class="pre">TargetState::moving</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw11TargetState5proneE"><code class="docutils literal notranslate"><span class="pre">TargetState::prone</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw11TargetState7stunnedE"><code class="docutils literal notranslate"><span class="pre">TargetState::stunned</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw11TargetState7flankedE"><code class="docutils literal notranslate"><span class="pre">TargetState::flanked</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw11TargetState10flatfootedE"><code class="docutils literal notranslate"><span class="pre">TargetState::flatfooted</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw11TargetState6asleepE"><code class="docutils literal notranslate"><span class="pre">TargetState::asleep</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw11TargetState15attacker_unseenE"><code class="docutils literal notranslate"><span class="pre">TargetState::attacker_unseen</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw11TargetState5invisE"><code class="docutils literal notranslate"><span class="pre">TargetState::invis</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__DiagnosticLevel.html">nw::script::DiagnosticLevel</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__DiagnosticType.html">nw::script::DiagnosticType</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__NssTokenType.html">nw::script::NssTokenType</a></li>
@@ -153,75 +174,75 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <div class="section" id="nw-targetstate">
-<h1>nw::TargetState<a class="headerlink" href="#nw-targetstate" title="Permalink to this headline"></a></h1>
+  <section id="nw-targetstate">
+<h1>nw::TargetState<a class="headerlink" href="#nw-targetstate" title="Link to this heading"></a></h1>
 <dl class="cpp enum-class">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw11TargetStateE">
-<span id="_CPPv3N2nw11TargetStateE"></span><span id="_CPPv2N2nw11TargetStateE"></span><span class="target" id="namespacenw_1a8ffc297dacee494ee19fccb4d0b799a6"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">nw</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">TargetState</span></span></span><a class="headerlink" href="#_CPPv4N2nw11TargetStateE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw11TargetStateE"></span><span id="_CPPv2N2nw11TargetStateE"></span><span class="target" id="namespacenw_1a8ffc297dacee494ee19fccb4d0b799a6"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">nw</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">TargetState</span></span></span><a class="headerlink" href="#_CPPv4N2nw11TargetStateE" title="Link to this definition"></a><br /></dt>
 <dd><p><em>Values:</em></p>
 <dl class="cpp enumerator">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw11TargetState4noneE">
-<span id="_CPPv3N2nw11TargetState4noneE"></span><span id="_CPPv2N2nw11TargetState4noneE"></span><span class="target" id="namespacenw_1a8ffc297dacee494ee19fccb4d0b799a6a334c4a4c42fdb79d7ebc3e73b517e6f8"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">none</span></span></span><a class="headerlink" href="#_CPPv4N2nw11TargetState4noneE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw11TargetState4noneE"></span><span id="_CPPv2N2nw11TargetState4noneE"></span><span class="target" id="namespacenw_1a8ffc297dacee494ee19fccb4d0b799a6a334c4a4c42fdb79d7ebc3e73b517e6f8"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">none</span></span></span><a class="headerlink" href="#_CPPv4N2nw11TargetState4noneE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp enumerator">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw11TargetState5blindE">
-<span id="_CPPv3N2nw11TargetState5blindE"></span><span id="_CPPv2N2nw11TargetState5blindE"></span><span class="target" id="namespacenw_1a8ffc297dacee494ee19fccb4d0b799a6a6013221752df892237d0fc99fd8a328f"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">blind</span></span></span><a class="headerlink" href="#_CPPv4N2nw11TargetState5blindE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw11TargetState5blindE"></span><span id="_CPPv2N2nw11TargetState5blindE"></span><span class="target" id="namespacenw_1a8ffc297dacee494ee19fccb4d0b799a6a6013221752df892237d0fc99fd8a328f"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">blind</span></span></span><a class="headerlink" href="#_CPPv4N2nw11TargetState5blindE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp enumerator">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw11TargetState14attacker_invisE">
-<span id="_CPPv3N2nw11TargetState14attacker_invisE"></span><span id="_CPPv2N2nw11TargetState14attacker_invisE"></span><span class="target" id="namespacenw_1a8ffc297dacee494ee19fccb4d0b799a6aad7e999cdd9761ffbe71789881e8b681"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">attacker_invis</span></span></span><a class="headerlink" href="#_CPPv4N2nw11TargetState14attacker_invisE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw11TargetState14attacker_invisE"></span><span id="_CPPv2N2nw11TargetState14attacker_invisE"></span><span class="target" id="namespacenw_1a8ffc297dacee494ee19fccb4d0b799a6aad7e999cdd9761ffbe71789881e8b681"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">attacker_invis</span></span></span><a class="headerlink" href="#_CPPv4N2nw11TargetState14attacker_invisE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp enumerator">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw11TargetState6unseenE">
-<span id="_CPPv3N2nw11TargetState6unseenE"></span><span id="_CPPv2N2nw11TargetState6unseenE"></span><span class="target" id="namespacenw_1a8ffc297dacee494ee19fccb4d0b799a6a00dfd891fb5cff9d016834676c0202a0"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">unseen</span></span></span><a class="headerlink" href="#_CPPv4N2nw11TargetState6unseenE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw11TargetState6unseenE"></span><span id="_CPPv2N2nw11TargetState6unseenE"></span><span class="target" id="namespacenw_1a8ffc297dacee494ee19fccb4d0b799a6a00dfd891fb5cff9d016834676c0202a0"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">unseen</span></span></span><a class="headerlink" href="#_CPPv4N2nw11TargetState6unseenE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp enumerator">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw11TargetState6movingE">
-<span id="_CPPv3N2nw11TargetState6movingE"></span><span id="_CPPv2N2nw11TargetState6movingE"></span><span class="target" id="namespacenw_1a8ffc297dacee494ee19fccb4d0b799a6a7b3ef1b118f53a58660b8530d1aa4683"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">moving</span></span></span><a class="headerlink" href="#_CPPv4N2nw11TargetState6movingE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw11TargetState6movingE"></span><span id="_CPPv2N2nw11TargetState6movingE"></span><span class="target" id="namespacenw_1a8ffc297dacee494ee19fccb4d0b799a6a7b3ef1b118f53a58660b8530d1aa4683"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">moving</span></span></span><a class="headerlink" href="#_CPPv4N2nw11TargetState6movingE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp enumerator">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw11TargetState5proneE">
-<span id="_CPPv3N2nw11TargetState5proneE"></span><span id="_CPPv2N2nw11TargetState5proneE"></span><span class="target" id="namespacenw_1a8ffc297dacee494ee19fccb4d0b799a6abdf2644a318f355e3bc4e27f6d07c825"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">prone</span></span></span><a class="headerlink" href="#_CPPv4N2nw11TargetState5proneE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw11TargetState5proneE"></span><span id="_CPPv2N2nw11TargetState5proneE"></span><span class="target" id="namespacenw_1a8ffc297dacee494ee19fccb4d0b799a6abdf2644a318f355e3bc4e27f6d07c825"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">prone</span></span></span><a class="headerlink" href="#_CPPv4N2nw11TargetState5proneE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp enumerator">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw11TargetState7stunnedE">
-<span id="_CPPv3N2nw11TargetState7stunnedE"></span><span id="_CPPv2N2nw11TargetState7stunnedE"></span><span class="target" id="namespacenw_1a8ffc297dacee494ee19fccb4d0b799a6a735ec6d53723be15b1737edd89183ec2"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">stunned</span></span></span><a class="headerlink" href="#_CPPv4N2nw11TargetState7stunnedE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw11TargetState7stunnedE"></span><span id="_CPPv2N2nw11TargetState7stunnedE"></span><span class="target" id="namespacenw_1a8ffc297dacee494ee19fccb4d0b799a6a735ec6d53723be15b1737edd89183ec2"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">stunned</span></span></span><a class="headerlink" href="#_CPPv4N2nw11TargetState7stunnedE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp enumerator">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw11TargetState7flankedE">
-<span id="_CPPv3N2nw11TargetState7flankedE"></span><span id="_CPPv2N2nw11TargetState7flankedE"></span><span class="target" id="namespacenw_1a8ffc297dacee494ee19fccb4d0b799a6a089ed3c06f1d6218d643ccdc035c2928"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">flanked</span></span></span><a class="headerlink" href="#_CPPv4N2nw11TargetState7flankedE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw11TargetState7flankedE"></span><span id="_CPPv2N2nw11TargetState7flankedE"></span><span class="target" id="namespacenw_1a8ffc297dacee494ee19fccb4d0b799a6a089ed3c06f1d6218d643ccdc035c2928"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">flanked</span></span></span><a class="headerlink" href="#_CPPv4N2nw11TargetState7flankedE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp enumerator">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw11TargetState10flatfootedE">
-<span id="_CPPv3N2nw11TargetState10flatfootedE"></span><span id="_CPPv2N2nw11TargetState10flatfootedE"></span><span class="target" id="namespacenw_1a8ffc297dacee494ee19fccb4d0b799a6a3766327b8a87f3b5ab4da61a5424d34b"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">flatfooted</span></span></span><a class="headerlink" href="#_CPPv4N2nw11TargetState10flatfootedE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw11TargetState10flatfootedE"></span><span id="_CPPv2N2nw11TargetState10flatfootedE"></span><span class="target" id="namespacenw_1a8ffc297dacee494ee19fccb4d0b799a6a3766327b8a87f3b5ab4da61a5424d34b"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">flatfooted</span></span></span><a class="headerlink" href="#_CPPv4N2nw11TargetState10flatfootedE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp enumerator">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw11TargetState6asleepE">
-<span id="_CPPv3N2nw11TargetState6asleepE"></span><span id="_CPPv2N2nw11TargetState6asleepE"></span><span class="target" id="namespacenw_1a8ffc297dacee494ee19fccb4d0b799a6aefdf8d1b7982706502aab0844b27b66c"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">asleep</span></span></span><a class="headerlink" href="#_CPPv4N2nw11TargetState6asleepE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw11TargetState6asleepE"></span><span id="_CPPv2N2nw11TargetState6asleepE"></span><span class="target" id="namespacenw_1a8ffc297dacee494ee19fccb4d0b799a6aefdf8d1b7982706502aab0844b27b66c"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">asleep</span></span></span><a class="headerlink" href="#_CPPv4N2nw11TargetState6asleepE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp enumerator">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw11TargetState15attacker_unseenE">
-<span id="_CPPv3N2nw11TargetState15attacker_unseenE"></span><span id="_CPPv2N2nw11TargetState15attacker_unseenE"></span><span class="target" id="namespacenw_1a8ffc297dacee494ee19fccb4d0b799a6ac70b9964d391191fc91de86ecc873807"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">attacker_unseen</span></span></span><a class="headerlink" href="#_CPPv4N2nw11TargetState15attacker_unseenE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw11TargetState15attacker_unseenE"></span><span id="_CPPv2N2nw11TargetState15attacker_unseenE"></span><span class="target" id="namespacenw_1a8ffc297dacee494ee19fccb4d0b799a6ac70b9964d391191fc91de86ecc873807"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">attacker_unseen</span></span></span><a class="headerlink" href="#_CPPv4N2nw11TargetState15attacker_unseenE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp enumerator">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw11TargetState5invisE">
-<span id="_CPPv3N2nw11TargetState5invisE"></span><span id="_CPPv2N2nw11TargetState5invisE"></span><span class="target" id="namespacenw_1a8ffc297dacee494ee19fccb4d0b799a6a10d739c5546fab1edb1b1d1857bd805b"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">invis</span></span></span><a class="headerlink" href="#_CPPv4N2nw11TargetState5invisE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw11TargetState5invisE"></span><span id="_CPPv2N2nw11TargetState5invisE"></span><span class="target" id="namespacenw_1a8ffc297dacee494ee19fccb4d0b799a6a10d739c5546fab1edb1b1d1857bd805b"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">invis</span></span></span><a class="headerlink" href="#_CPPv4N2nw11TargetState5invisE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 </dd></dl>
 
-</div>
+</section>
 
 
            </div>

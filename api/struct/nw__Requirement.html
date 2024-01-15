@@ -1,20 +1,24 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html5" lang="en" data-content_root="../../">
 <head>
-  <meta charset="utf-8" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>nw::Requirement &mdash; rollNW  documentation</title>
-      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
-      <link rel="stylesheet" href="../../_static/tabs.css" type="text/css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="../../_static/tabs.css?v=a5c4661c" />
+
+  
   <!--[if lt IE 9]>
     <script src="../../_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
-        <script src="../../_static/jquery.js"></script>
-        <script src="../../_static/underscore.js"></script>
-        <script src="../../_static/doctools.js"></script>
+        <script src="../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+        <script src="../../_static/doctools.js?v=888ff710"></script>
+        <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
@@ -162,7 +166,18 @@
 <li class="toctree-l2"><a class="reference internal" href="nw__Race.html">nw::Race</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__RaceInfo.html">nw::RaceInfo</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Reputation.html">nw::Reputation</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">nw::Requirement</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">nw::Requirement</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#_CPPv4N2nw11RequirementE"><code class="docutils literal notranslate"><span class="pre">Requirement</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw11Requirement11RequirementEb"><code class="docutils literal notranslate"><span class="pre">Requirement::Requirement()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw11Requirement11RequirementENSt16initializer_listI9QualifierEEb"><code class="docutils literal notranslate"><span class="pre">Requirement::Requirement()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw11Requirement3addE9Qualifier"><code class="docutils literal notranslate"><span class="pre">Requirement::add()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw11Requirement4sizeEv"><code class="docutils literal notranslate"><span class="pre">Requirement::size()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw11Requirement10qualifiersE"><code class="docutils literal notranslate"><span class="pre">Requirement::qualifiers</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw11Requirement11conjunctionE"><code class="docutils literal notranslate"><span class="pre">Requirement::conjunction</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Resource.html">nw::Resource</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__ResourceDescriptor.html">nw::ResourceDescriptor</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__ResourceType.html">nw::ResourceType</a></li>
@@ -358,31 +373,31 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <div class="section" id="nw-requirement">
-<h1>nw::Requirement<a class="headerlink" href="#nw-requirement" title="Permalink to this headline"></a></h1>
+  <section id="nw-requirement">
+<h1>nw::Requirement<a class="headerlink" href="#nw-requirement" title="Link to this heading"></a></h1>
 <dl class="cpp struct">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw11RequirementE">
-<span id="_CPPv3N2nw11RequirementE"></span><span id="_CPPv2N2nw11RequirementE"></span><span id="nw::Requirement"></span><span class="target" id="structnw_1_1_requirement"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Requirement</span></span></span><a class="headerlink" href="#_CPPv4N2nw11RequirementE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw11RequirementE"></span><span id="_CPPv2N2nw11RequirementE"></span><span id="nw::Requirement"></span><span class="target" id="structnw_1_1_requirement"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Requirement</span></span></span><a class="headerlink" href="#_CPPv4N2nw11RequirementE" title="Link to this definition"></a><br /></dt>
 <dd><div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw11Requirement11RequirementEb">
-<span id="_CPPv3N2nw11Requirement11RequirementEb"></span><span id="_CPPv2N2nw11Requirement11RequirementEb"></span><span id="nw::Requirement::Requirement__b"></span><span class="target" id="structnw_1_1_requirement_1acc58ff9ff34aab41fcd2faf333ea6215"></span><span class="k"><span class="pre">explicit</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Requirement</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">conjunction_</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">true</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw11Requirement11RequirementEb" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw11Requirement11RequirementEb"></span><span id="_CPPv2N2nw11Requirement11RequirementEb"></span><span id="nw::Requirement::Requirement__b"></span><span class="target" id="structnw_1_1_requirement_1acc58ff9ff34aab41fcd2faf333ea6215"></span><span class="k"><span class="pre">explicit</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Requirement</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">conjunction_</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">true</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw11Requirement11RequirementEb" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw11Requirement11RequirementENSt16initializer_listI9QualifierEEb">
-<span id="_CPPv3N2nw11Requirement11RequirementENSt16initializer_listI9QualifierEEb"></span><span id="_CPPv2N2nw11Requirement11RequirementENSt16initializer_listI9QualifierEEb"></span><span id="nw::Requirement::Requirement__std::initializer_list:Qualifier:.b"></span><span class="target" id="structnw_1_1_requirement_1aff3e05ebedcf2fe4fde6738453a1746f"></span><span class="k"><span class="pre">explicit</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Requirement</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">initializer_list</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="nw__Qualifier.html#_CPPv4N2nw9QualifierE" title="nw::Qualifier"><span class="n"><span class="pre">Qualifier</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">quals</span></span>, <span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">conjunction_</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">true</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw11Requirement11RequirementENSt16initializer_listI9QualifierEEb" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw11Requirement11RequirementENSt16initializer_listI9QualifierEEb"></span><span id="_CPPv2N2nw11Requirement11RequirementENSt16initializer_listI9QualifierEEb"></span><span id="nw::Requirement::Requirement__std::initializer_list:Qualifier:.b"></span><span class="target" id="structnw_1_1_requirement_1aff3e05ebedcf2fe4fde6738453a1746f"></span><span class="k"><span class="pre">explicit</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Requirement</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">initializer_list</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="nw__Qualifier.html#_CPPv4N2nw9QualifierE" title="nw::Qualifier"><span class="n"><span class="pre">Qualifier</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">quals</span></span>, <span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">conjunction_</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">true</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw11Requirement11RequirementENSt16initializer_listI9QualifierEEb" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw11Requirement3addE9Qualifier">
-<span id="_CPPv3N2nw11Requirement3addE9Qualifier"></span><span id="_CPPv2N2nw11Requirement3addE9Qualifier"></span><span id="nw::Requirement::add__Qualifier"></span><span class="target" id="structnw_1_1_requirement_1a7c340753730235d18c605f702a599871"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">add</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="nw__Qualifier.html#_CPPv4N2nw9QualifierE" title="nw::Qualifier"><span class="n"><span class="pre">Qualifier</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">qualifier</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw11Requirement3addE9Qualifier" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw11Requirement3addE9Qualifier"></span><span id="_CPPv2N2nw11Requirement3addE9Qualifier"></span><span id="nw::Requirement::add__Qualifier"></span><span class="target" id="structnw_1_1_requirement_1a7c340753730235d18c605f702a599871"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">add</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="nw__Qualifier.html#_CPPv4N2nw9QualifierE" title="nw::Qualifier"><span class="n"><span class="pre">Qualifier</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">qualifier</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw11Requirement3addE9Qualifier" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4NK2nw11Requirement4sizeEv">
-<span id="_CPPv3NK2nw11Requirement4sizeEv"></span><span id="_CPPv2NK2nw11Requirement4sizeEv"></span><span id="nw::Requirement::sizeC"></span><span class="target" id="structnw_1_1_requirement_1a8c9ed72e9cb03ef6029f5ef49ff407cb"></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">size</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="k"><span class="pre">noexcept</span></span><a class="headerlink" href="#_CPPv4NK2nw11Requirement4sizeEv" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3NK2nw11Requirement4sizeEv"></span><span id="_CPPv2NK2nw11Requirement4sizeEv"></span><span id="nw::Requirement::sizeC"></span><span class="target" id="structnw_1_1_requirement_1a8c9ed72e9cb03ef6029f5ef49ff407cb"></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">size</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="k"><span class="pre">noexcept</span></span><a class="headerlink" href="#_CPPv4NK2nw11Requirement4sizeEv" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 </div>
@@ -390,18 +405,18 @@
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw11Requirement10qualifiersE">
-<span id="_CPPv3N2nw11Requirement10qualifiersE"></span><span id="_CPPv2N2nw11Requirement10qualifiersE"></span><span id="nw::Requirement::qualifiers__absl::InlinedVector:Qualifier.8:"></span><span class="target" id="structnw_1_1_requirement_1a0b99236e7e1534615bd309e7e1640c50"></span><span class="n"><span class="pre">absl</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">InlinedVector</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="nw__Qualifier.html#_CPPv4N2nw9QualifierE" title="nw::Qualifier"><span class="n"><span class="pre">Qualifier</span></span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="m"><span class="pre">8</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">qualifiers</span></span></span><a class="headerlink" href="#_CPPv4N2nw11Requirement10qualifiersE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw11Requirement10qualifiersE"></span><span id="_CPPv2N2nw11Requirement10qualifiersE"></span><span id="nw::Requirement::qualifiers__absl::InlinedVector:Qualifier.8:"></span><span class="target" id="structnw_1_1_requirement_1a0b99236e7e1534615bd309e7e1640c50"></span><span class="n"><span class="pre">absl</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">InlinedVector</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="nw__Qualifier.html#_CPPv4N2nw9QualifierE" title="nw::Qualifier"><span class="n"><span class="pre">Qualifier</span></span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="m"><span class="pre">8</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">qualifiers</span></span></span><a class="headerlink" href="#_CPPv4N2nw11Requirement10qualifiersE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw11Requirement11conjunctionE">
-<span id="_CPPv3N2nw11Requirement11conjunctionE"></span><span id="_CPPv2N2nw11Requirement11conjunctionE"></span><span id="nw::Requirement::conjunction__b"></span><span class="target" id="structnw_1_1_requirement_1a6adc8884c990ae1c247ad4c80d819d53"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">conjunction</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">true</span></span><a class="headerlink" href="#_CPPv4N2nw11Requirement11conjunctionE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw11Requirement11conjunctionE"></span><span id="_CPPv2N2nw11Requirement11conjunctionE"></span><span id="nw::Requirement::conjunction__b"></span><span class="target" id="structnw_1_1_requirement_1a6adc8884c990ae1c247ad4c80d819d53"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">conjunction</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">true</span></span><a class="headerlink" href="#_CPPv4N2nw11Requirement11conjunctionE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 </div>
 </dd></dl>
 
-</div>
+</section>
 
 
            </div>

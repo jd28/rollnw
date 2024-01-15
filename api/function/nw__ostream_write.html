@@ -1,20 +1,24 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html5" lang="en" data-content_root="../../">
 <head>
-  <meta charset="utf-8" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>nw::ostream_write &mdash; rollNW  documentation</title>
-      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
-      <link rel="stylesheet" href="../../_static/tabs.css" type="text/css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="../../_static/tabs.css?v=a5c4661c" />
+
+  
   <!--[if lt IE 9]>
     <script src="../../_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
-        <script src="../../_static/jquery.js"></script>
-        <script src="../../_static/underscore.js"></script>
-        <script src="../../_static/doctools.js"></script>
+        <script src="../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+        <script src="../../_static/doctools.js?v=888ff710"></script>
+        <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
@@ -114,7 +118,10 @@
 <li class="toctree-l2"><a class="reference internal" href="nw__operator_eq.html">nw::operator==</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__operator_lshift.html">nw::operator&lt;&lt;</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__operator_lt.html">nw::operator&lt;</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">nw::ostream_write</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">nw::ostream_write</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#_CPPv4I00EN2nw13ostream_writeERNSt7ostreamERNSt7ostreamEPK1T1U"><code class="docutils literal notranslate"><span class="pre">ostream_write()</span></code></a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="nw__probe_nwn_install.html">nw::probe_nwn_install</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__resolve_effects_of.html">nw::resolve_effects_of</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__reverse.html">nw::reverse</a></li>
@@ -257,15 +264,15 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <div class="section" id="nw-ostream-write">
-<h1>nw::ostream_write<a class="headerlink" href="#nw-ostream-write" title="Permalink to this headline"></a></h1>
+  <section id="nw-ostream-write">
+<h1>nw::ostream_write<a class="headerlink" href="#nw-ostream-write" title="Link to this heading"></a></h1>
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4I00EN2nw13ostream_writeERNSt7ostreamERNSt7ostreamEPK1T1U">
-<span id="_CPPv3I00EN2nw13ostream_writeERNSt7ostreamEPK1T1U"></span><span id="_CPPv2I00EN2nw13ostream_writeERNSt7ostreamEPK1T1U"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">T</span></span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">U</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="namespacenw_1a5182f8a9ceebdd7939a4d62d8313cd2d"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">ostream</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-prename descclassname"><span class="n"><span class="pre">nw</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">ostream_write</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">ostream</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">stream</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I00EN2nw13ostream_writeERNSt7ostreamERNSt7ostreamEPK1T1U" title="nw::ostream_write::T"><span class="n"><span class="pre">T</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">data</span></span>, <a class="reference internal" href="#_CPPv4I00EN2nw13ostream_writeERNSt7ostreamERNSt7ostreamEPK1T1U" title="nw::ostream_write::U"><span class="n"><span class="pre">U</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">size</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4I00EN2nw13ostream_writeERNSt7ostreamERNSt7ostreamEPK1T1U" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3I00EN2nw13ostream_writeERNSt7ostreamEPK1T1U"></span><span id="_CPPv2I00EN2nw13ostream_writeERNSt7ostreamEPK1T1U"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">T</span></span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">U</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="namespacenw_1a5182f8a9ceebdd7939a4d62d8313cd2d"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">ostream</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-prename descclassname"><span class="n"><span class="pre">nw</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">ostream_write</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">ostream</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">stream</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I00EN2nw13ostream_writeERNSt7ostreamERNSt7ostreamEPK1T1U" title="nw::ostream_write::T"><span class="n"><span class="pre">T</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">data</span></span>, <a class="reference internal" href="#_CPPv4I00EN2nw13ostream_writeERNSt7ostreamERNSt7ostreamEPK1T1U" title="nw::ostream_write::U"><span class="n"><span class="pre">U</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">size</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4I00EN2nw13ostream_writeERNSt7ostreamERNSt7ostreamEPK1T1U" title="Link to this definition"></a><br /></dt>
 <dd><p>Writes to a stream from nto an arbitrary pointer of type <code class="docutils literal notranslate"><span class="pre">T</span></code></p>
 </dd></dl>
 
-</div>
+</section>
 
 
            </div>

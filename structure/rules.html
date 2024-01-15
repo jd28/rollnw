@@ -1,20 +1,24 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html5" lang="en" data-content_root="../">
 <head>
-  <meta charset="utf-8" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>rules &mdash; rollNW  documentation</title>
-      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
-      <link rel="stylesheet" href="../_static/tabs.css" type="text/css" />
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="../_static/tabs.css?v=a5c4661c" />
+
+  
   <!--[if lt IE 9]>
     <script src="../_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
-        <script src="../_static/jquery.js"></script>
-        <script src="../_static/underscore.js"></script>
-        <script src="../_static/doctools.js"></script>
+        <script src="../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../_static/documentation_options.js?v=5929fcd5"></script>
+        <script src="../_static/doctools.js?v=888ff710"></script>
+        <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
@@ -131,17 +135,17 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <div class="section" id="rules">
-<h1>rules<a class="headerlink" href="#rules" title="Permalink to this headline"></a></h1>
+  <section id="rules">
+<h1>rules<a class="headerlink" href="#rules" title="Link to this heading"></a></h1>
 <p>The <code class="docutils literal notranslate"><span class="pre">Rules</span></code> module presents some difficulties in the sense that if one
 was to sit down and design a system capable of expressing relatively
 arbitrary sets of rules and modifiers, it probably would not look much
 like NWN. Enhanced Edition’s approach largely was to unhardcode
-<em>values</em>, but not systems <a class="footnote-reference brackets" href="#id4" id="id1">1</a>.</p>
+<em>values</em>, but not systems <a class="footnote-reference brackets" href="#id4" id="id1" role="doc-noteref"><span class="fn-bracket">[</span>1<span class="fn-bracket">]</span></a>.</p>
 <p>rollNW has the elements of NWN’s rule system builtin, which is itself an approximation of the Dungeons
 and Dragons 3rd Edition ruleset.</p>
-<div class="section" id="the-goals">
-<h2>The Goals<a class="headerlink" href="#the-goals" title="Permalink to this headline"></a></h2>
+<section id="the-goals">
+<h2>The Goals<a class="headerlink" href="#the-goals" title="Link to this heading"></a></h2>
 <ul class="simple">
 <li><p>Rules must be overridable, expandable, removable either through
 configuration (2da) or at the very least programmatically. Nothing
@@ -152,10 +156,10 @@ all the modifiers that affect this particular situation?</p></li>
 <li><p>Ideally, constants would be disassociated from 2da rows.  Say a UUID &lt;-&gt; integer map, but that’s
 both a configuration and serialization problem.</p></li>
 </ul>
-</div>
+</section>
 <hr class="docutils" />
-<div class="section" id="definitions">
-<h2>Definitions<a class="headerlink" href="#definitions" title="Permalink to this headline"></a></h2>
+<section id="definitions">
+<h2>Definitions<a class="headerlink" href="#definitions" title="Link to this heading"></a></h2>
 <dl>
 <dt><strong>Profile</strong></dt><dd><p>Profiles are a way of decoupling different rulesets from the rule system itself.</p>
 </dd>
@@ -192,10 +196,10 @@ armor class:</p>
 <dt><strong>Flag</strong></dt><dd><p><a class="reference internal" href="../api/struct/nw__RuleFlag.html#_CPPv4I0_6size_tEN2nw8RuleFlagE" title="nw::RuleFlag"><code class="xref cpp cpp-struct docutils literal notranslate"><span class="pre">nw::RuleFlag</span></code></a> provides a mechanism for making flags out of rule types.</p>
 </dd>
 </dl>
-</div>
+</section>
 <hr class="docutils" />
-<div class="section" id="modifiers">
-<h2>Modifiers<a class="headerlink" href="#modifiers" title="Permalink to this headline"></a></h2>
+<section id="modifiers">
+<h2>Modifiers<a class="headerlink" href="#modifiers" title="Link to this heading"></a></h2>
 <p>The foundation of the modifier system is just three types: <code class="docutils literal notranslate"><span class="pre">int32_t</span></code>, <code class="docutils literal notranslate"><span class="pre">float</span></code>, strings.  It builds
 on the following abstractions to provide a dynamic, modifiable, queryable system.  Modifiers are stored
 in a global table in <a class="reference internal" href="../api/struct/nw__kernel__Rules.html#_CPPv4N2nw6kernel5RulesE" title="nw::kernel::Rules"><code class="xref cpp cpp-struct docutils literal notranslate"><span class="pre">nw::kernel::Rules</span></code></a>. Note that Master Feat modifiers are special cased
@@ -205,14 +209,14 @@ below.</p>
 <a class="reference external" href="https://github.com/nwnxee/unified/tree/master/Plugins/SkillRanks">SkillRank</a>,
 and <a class="reference external" href="https://github.com/nwnxee/unified/tree/master/Plugins/Feat">Feat</a>.</p>
 <p>Note that the examples below are designed for simplicity, not things that should necessarily be done.</p>
-<div class="section" id="id2">
-<h3>Definitions<a class="headerlink" href="#id2" title="Permalink to this headline"></a></h3>
+<section id="id2">
+<h3>Definitions<a class="headerlink" href="#id2" title="Link to this heading"></a></h3>
 <dl>
 <dt><strong>Modifier Type</strong></dt><dd><p>A modifier type is a rule type that is used to determine how to process the outputs of a modifier.</p>
 </dd>
 <dt><strong>Modifier Source</strong></dt><dd><p>A modifier source indicates the attribute of an object that modifier is associated with.</p>
 </dd>
-<dt><strong>Modifier Input</strong></dt><dd><p>An input is an <code class="docutils literal notranslate"><span class="pre">int</span></code>, <code class="docutils literal notranslate"><span class="pre">float</span></code>, or a version of a <code class="xref cpp cpp-struct docutils literal notranslate"><span class="pre">ModifierFunction</span></code> <a class="footnote-reference brackets" href="#id5" id="id3">2</a>.</p>
+<dt><strong>Modifier Input</strong></dt><dd><p>An input is an <code class="docutils literal notranslate"><span class="pre">int</span></code>, <code class="docutils literal notranslate"><span class="pre">float</span></code>, or a version of a <code class="xref cpp cpp-struct docutils literal notranslate"><span class="pre">ModifierFunction</span></code> <a class="footnote-reference brackets" href="#id5" id="id3" role="doc-noteref"><span class="fn-bracket">[</span>2<span class="fn-bracket">]</span></a>.</p>
 </dd>
 <dt><strong>Modifier Output</strong></dt><dd><p>In the basic cases, an output is the input passed directly without modification.  When a function
 is the modifier input, it is called and its result is the output</p>
@@ -268,11 +272,11 @@ with passing callbacks.</p>
 <span class="c1">// res == 0</span>
 </pre></div>
 </div>
-</div>
-</div>
+</section>
+</section>
 <hr class="docutils" />
-<div class="section" id="master-feats">
-<h2>Master Feats<a class="headerlink" href="#master-feats" title="Permalink to this headline"></a></h2>
+<section id="master-feats">
+<h2>Master Feats<a class="headerlink" href="#master-feats" title="Link to this heading"></a></h2>
 <p>Master feats and associated bonuses are set in the <a class="reference internal" href="../api/struct/nw__MasterFeatRegistry.html#_CPPv4N2nw18MasterFeatRegistryE" title="nw::MasterFeatRegistry"><code class="xref cpp cpp-struct docutils literal notranslate"><span class="pre">nw::MasterFeatRegistry</span></code></a>.  The master
 feat registry associates a particular rule element, say, a skill with a master feat and a feat corresponding
 to that skill.</p>
@@ -314,10 +318,10 @@ for all martial weapons.</p>
 <span class="kt">int</span><span class="w"> </span><span class="n">value2</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">nw</span><span class="o">::</span><span class="n">kernel</span><span class="o">::</span><span class="n">resolve_master_feat</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="p">(</span><span class="n">cre</span><span class="p">,</span><span class="w"> </span><span class="n">baseitem</span><span class="p">,</span><span class="w"> </span><span class="n">mfeat_weapon_focus</span><span class="p">);</span>
 </pre></div>
 </div>
-</div>
+</section>
 <hr class="docutils" />
-<div class="section" id="requirements">
-<h2>Requirements<a class="headerlink" href="#requirements" title="Permalink to this headline"></a></h2>
+<section id="requirements">
+<h2>Requirements<a class="headerlink" href="#requirements" title="Link to this heading"></a></h2>
 <dl>
 <dt><strong>Selector</strong></dt><dd><p>A selector gets some piece of information from an entity.</p>
 <p><strong>Example</strong>:</p>
@@ -362,17 +366,19 @@ minimum appraise skill of 6.</p>
 </div>
 </dd>
 </dl>
-<dl class="footnote brackets">
-<dt class="label" id="id4"><span class="brackets"><a class="fn-backref" href="#id1">1</a></span></dt>
-<dd><p>There are some exceptions, parts of the custom spellcaster system.</p>
-</dd>
-<dt class="label" id="id5"><span class="brackets"><a class="fn-backref" href="#id3">2</a></span></dt>
-<dd><p>One could imagine in a different context, say NWNX:EE, you could add a callback to
+<aside class="footnote-list brackets">
+<aside class="footnote brackets" id="id4" role="note">
+<span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id1">1</a><span class="fn-bracket">]</span></span>
+<p>There are some exceptions, parts of the custom spellcaster system.</p>
+</aside>
+<aside class="footnote brackets" id="id5" role="note">
+<span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id3">2</a><span class="fn-bracket">]</span></span>
+<p>One could imagine in a different context, say NWNX:EE, you could add a callback to
 nwnx_dotnet/lua/etc or a string for use with <code class="docutils literal notranslate"><span class="pre">ExecuteScriptChunk</span></code>.</p>
-</dd>
-</dl>
-</div>
-</div>
+</aside>
+</aside>
+</section>
+</section>
 
 
            </div>

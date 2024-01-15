@@ -1,20 +1,24 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html5" lang="en" data-content_root="../../">
 <head>
-  <meta charset="utf-8" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>nw::GffBuilder &mdash; rollNW  documentation</title>
-      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
-      <link rel="stylesheet" href="../../_static/tabs.css" type="text/css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="../../_static/tabs.css?v=a5c4661c" />
+
+  
   <!--[if lt IE 9]>
     <script src="../../_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
-        <script src="../../_static/jquery.js"></script>
-        <script src="../../_static/underscore.js"></script>
-        <script src="../../_static/doctools.js"></script>
+        <script src="../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+        <script src="../../_static/doctools.js?v=888ff710"></script>
+        <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
@@ -108,7 +112,25 @@
 <li class="toctree-l2"><a class="reference internal" href="nw__FeatInfo.html">nw::FeatInfo</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__GameProfile.html">nw::GameProfile</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Gff.html">nw::Gff</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">nw::GffBuilder</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">nw::GffBuilder</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#_CPPv4N2nw10GffBuilderE"><code class="docutils literal notranslate"><span class="pre">GffBuilder</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw10GffBuilder10GffBuilderENSt11string_viewENSt11string_viewE"><code class="docutils literal notranslate"><span class="pre">GffBuilder::GffBuilder()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw10GffBuilder9add_labelENSt11string_viewE"><code class="docutils literal notranslate"><span class="pre">GffBuilder::add_label()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw10GffBuilder5buildEv"><code class="docutils literal notranslate"><span class="pre">GffBuilder::build()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw10GffBuilder13to_byte_arrayEv"><code class="docutils literal notranslate"><span class="pre">GffBuilder::to_byte_array()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw10GffBuilder8write_toERKNSt10filesystem4pathE"><code class="docutils literal notranslate"><span class="pre">GffBuilder::write_to()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw10GffBuilder3topE"><code class="docutils literal notranslate"><span class="pre">GffBuilder::top</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw10GffBuilder6headerE"><code class="docutils literal notranslate"><span class="pre">GffBuilder::header</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw10GffBuilder4dataE"><code class="docutils literal notranslate"><span class="pre">GffBuilder::data</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw10GffBuilder6labelsE"><code class="docutils literal notranslate"><span class="pre">GffBuilder::labels</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw10GffBuilder13field_indicesE"><code class="docutils literal notranslate"><span class="pre">GffBuilder::field_indices</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw10GffBuilder12list_indicesE"><code class="docutils literal notranslate"><span class="pre">GffBuilder::list_indices</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw10GffBuilder13field_entriesE"><code class="docutils literal notranslate"><span class="pre">GffBuilder::field_entries</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw10GffBuilder14struct_entriesE"><code class="docutils literal notranslate"><span class="pre">GffBuilder::struct_entries</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="nw__GffBuilderField.html">nw::GffBuilderField</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__GffBuilderList.html">nw::GffBuilderList</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__GffBuilderStruct.html">nw::GffBuilderStruct</a></li>
@@ -358,36 +380,36 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <div class="section" id="nw-gffbuilder">
-<h1>nw::GffBuilder<a class="headerlink" href="#nw-gffbuilder" title="Permalink to this headline"></a></h1>
+  <section id="nw-gffbuilder">
+<h1>nw::GffBuilder<a class="headerlink" href="#nw-gffbuilder" title="Link to this heading"></a></h1>
 <dl class="cpp struct">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw10GffBuilderE">
-<span id="_CPPv3N2nw10GffBuilderE"></span><span id="_CPPv2N2nw10GffBuilderE"></span><span id="nw::GffBuilder"></span><span class="target" id="structnw_1_1_gff_builder"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">GffBuilder</span></span></span><a class="headerlink" href="#_CPPv4N2nw10GffBuilderE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw10GffBuilderE"></span><span id="_CPPv2N2nw10GffBuilderE"></span><span id="nw::GffBuilder"></span><span class="target" id="structnw_1_1_gff_builder"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">GffBuilder</span></span></span><a class="headerlink" href="#_CPPv4N2nw10GffBuilderE" title="Link to this definition"></a><br /></dt>
 <dd><div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw10GffBuilder10GffBuilderENSt11string_viewENSt11string_viewE">
-<span id="_CPPv3N2nw10GffBuilder10GffBuilderENSt11string_viewENSt11string_viewE"></span><span id="_CPPv2N2nw10GffBuilder10GffBuilderENSt11string_viewENSt11string_viewE"></span><span id="nw::GffBuilder::GffBuilder__std::string_view.std::string_view"></span><span class="target" id="structnw_1_1_gff_builder_1af2624362422884272695e938256befbf"></span><span class="k"><span class="pre">explicit</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">GffBuilder</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">type</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">version</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="s"><span class="pre">&quot;V3.2&quot;</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw10GffBuilder10GffBuilderENSt11string_viewENSt11string_viewE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw10GffBuilder10GffBuilderENSt11string_viewENSt11string_viewE"></span><span id="_CPPv2N2nw10GffBuilder10GffBuilderENSt11string_viewENSt11string_viewE"></span><span id="nw::GffBuilder::GffBuilder__std::string_view.std::string_view"></span><span class="target" id="structnw_1_1_gff_builder_1af2624362422884272695e938256befbf"></span><span class="k"><span class="pre">explicit</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">GffBuilder</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">type</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">version</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="s"><span class="pre">&quot;V3.2&quot;</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw10GffBuilder10GffBuilderENSt11string_viewENSt11string_viewE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw10GffBuilder9add_labelENSt11string_viewE">
-<span id="_CPPv3N2nw10GffBuilder9add_labelENSt11string_viewE"></span><span id="_CPPv2N2nw10GffBuilder9add_labelENSt11string_viewE"></span><span id="nw::GffBuilder::add_label__std::string_view"></span><span class="target" id="structnw_1_1_gff_builder_1a0904ea7e4320232efd8c375cc876b835"></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">add_label</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">name</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw10GffBuilder9add_labelENSt11string_viewE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw10GffBuilder9add_labelENSt11string_viewE"></span><span id="_CPPv2N2nw10GffBuilder9add_labelENSt11string_viewE"></span><span id="nw::GffBuilder::add_label__std::string_view"></span><span class="target" id="structnw_1_1_gff_builder_1a0904ea7e4320232efd8c375cc876b835"></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">add_label</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">name</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw10GffBuilder9add_labelENSt11string_viewE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw10GffBuilder5buildEv">
-<span id="_CPPv3N2nw10GffBuilder5buildEv"></span><span id="_CPPv2N2nw10GffBuilder5buildEv"></span><span id="nw::GffBuilder::build"></span><span class="target" id="structnw_1_1_gff_builder_1a34e4a29fc4bc4a472427ad3981630bf2"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">build</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw10GffBuilder5buildEv" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw10GffBuilder5buildEv"></span><span id="_CPPv2N2nw10GffBuilder5buildEv"></span><span id="nw::GffBuilder::build"></span><span class="target" id="structnw_1_1_gff_builder_1a34e4a29fc4bc4a472427ad3981630bf2"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">build</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw10GffBuilder5buildEv" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4NK2nw10GffBuilder13to_byte_arrayEv">
-<span id="_CPPv3NK2nw10GffBuilder13to_byte_arrayEv"></span><span id="_CPPv2NK2nw10GffBuilder13to_byte_arrayEv"></span><span id="nw::GffBuilder::to_byte_arrayC"></span><span class="target" id="structnw_1_1_gff_builder_1ab408dde9f626cca53f4989459e990196"></span><a class="reference internal" href="nw__ByteArray.html#_CPPv4N2nw9ByteArrayE" title="nw::ByteArray"><span class="n"><span class="pre">ByteArray</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">to_byte_array</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK2nw10GffBuilder13to_byte_arrayEv" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3NK2nw10GffBuilder13to_byte_arrayEv"></span><span id="_CPPv2NK2nw10GffBuilder13to_byte_arrayEv"></span><span id="nw::GffBuilder::to_byte_arrayC"></span><span class="target" id="structnw_1_1_gff_builder_1ab408dde9f626cca53f4989459e990196"></span><a class="reference internal" href="nw__ByteArray.html#_CPPv4N2nw9ByteArrayE" title="nw::ByteArray"><span class="n"><span class="pre">ByteArray</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">to_byte_array</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK2nw10GffBuilder13to_byte_arrayEv" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4NK2nw10GffBuilder8write_toERKNSt10filesystem4pathE">
-<span id="_CPPv3NK2nw10GffBuilder8write_toERKNSt10filesystem4pathE"></span><span id="_CPPv2NK2nw10GffBuilder8write_toERKNSt10filesystem4pathE"></span><span id="nw::GffBuilder::write_to__std::filesystem::pathCRC"></span><span class="target" id="structnw_1_1_gff_builder_1a15ac8816a69f8ad7ddb7e43c4d694805"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">write_to</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">filesystem</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">path</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">path</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK2nw10GffBuilder8write_toERKNSt10filesystem4pathE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3NK2nw10GffBuilder8write_toERKNSt10filesystem4pathE"></span><span id="_CPPv2NK2nw10GffBuilder8write_toERKNSt10filesystem4pathE"></span><span id="nw::GffBuilder::write_to__std::filesystem::pathCRC"></span><span class="target" id="structnw_1_1_gff_builder_1a15ac8816a69f8ad7ddb7e43c4d694805"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">write_to</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">filesystem</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">path</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">path</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK2nw10GffBuilder8write_toERKNSt10filesystem4pathE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 </div>
@@ -395,48 +417,48 @@
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw10GffBuilder3topE">
-<span id="_CPPv3N2nw10GffBuilder3topE"></span><span id="_CPPv2N2nw10GffBuilder3topE"></span><span id="nw::GffBuilder::top__GffBuilderStruct"></span><span class="target" id="structnw_1_1_gff_builder_1a068e0ded1efe4a78fc462e4fb5ab744b"></span><a class="reference internal" href="nw__GffBuilderStruct.html#_CPPv4N2nw16GffBuilderStructE" title="nw::GffBuilderStruct"><span class="n"><span class="pre">GffBuilderStruct</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">top</span></span></span><a class="headerlink" href="#_CPPv4N2nw10GffBuilder3topE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw10GffBuilder3topE"></span><span id="_CPPv2N2nw10GffBuilder3topE"></span><span id="nw::GffBuilder::top__GffBuilderStruct"></span><span class="target" id="structnw_1_1_gff_builder_1a068e0ded1efe4a78fc462e4fb5ab744b"></span><a class="reference internal" href="nw__GffBuilderStruct.html#_CPPv4N2nw16GffBuilderStructE" title="nw::GffBuilderStruct"><span class="n"><span class="pre">GffBuilderStruct</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">top</span></span></span><a class="headerlink" href="#_CPPv4N2nw10GffBuilder3topE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw10GffBuilder6headerE">
-<span id="_CPPv3N2nw10GffBuilder6headerE"></span><span id="_CPPv2N2nw10GffBuilder6headerE"></span><span id="nw::GffBuilder::header__GffHeader"></span><span class="target" id="structnw_1_1_gff_builder_1a8a580c9503aea1ba6c52675d8d093863"></span><span class="n"><span class="pre">GffHeader</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">header</span></span></span><a class="headerlink" href="#_CPPv4N2nw10GffBuilder6headerE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw10GffBuilder6headerE"></span><span id="_CPPv2N2nw10GffBuilder6headerE"></span><span id="nw::GffBuilder::header__GffHeader"></span><span class="target" id="structnw_1_1_gff_builder_1a8a580c9503aea1ba6c52675d8d093863"></span><span class="n"><span class="pre">GffHeader</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">header</span></span></span><a class="headerlink" href="#_CPPv4N2nw10GffBuilder6headerE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw10GffBuilder4dataE">
-<span id="_CPPv3N2nw10GffBuilder4dataE"></span><span id="_CPPv2N2nw10GffBuilder4dataE"></span><span id="nw::GffBuilder::data__ByteArray"></span><span class="target" id="structnw_1_1_gff_builder_1a28fdd7ebb725d811e478841cd12caa04"></span><a class="reference internal" href="nw__ByteArray.html#_CPPv4N2nw9ByteArrayE" title="nw::ByteArray"><span class="n"><span class="pre">ByteArray</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">data</span></span></span><a class="headerlink" href="#_CPPv4N2nw10GffBuilder4dataE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw10GffBuilder4dataE"></span><span id="_CPPv2N2nw10GffBuilder4dataE"></span><span id="nw::GffBuilder::data__ByteArray"></span><span class="target" id="structnw_1_1_gff_builder_1a28fdd7ebb725d811e478841cd12caa04"></span><a class="reference internal" href="nw__ByteArray.html#_CPPv4N2nw9ByteArrayE" title="nw::ByteArray"><span class="n"><span class="pre">ByteArray</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">data</span></span></span><a class="headerlink" href="#_CPPv4N2nw10GffBuilder4dataE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw10GffBuilder6labelsE">
-<span id="_CPPv3N2nw10GffBuilder6labelsE"></span><span id="_CPPv2N2nw10GffBuilder6labelsE"></span><span id="nw::GffBuilder::labels__std::vector:GffLabel:"></span><span class="target" id="structnw_1_1_gff_builder_1a54fe5632671aba5526d5f831a37ab4f4"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="nw__GffLabel.html#_CPPv4N2nw8GffLabelE" title="nw::GffLabel"><span class="n"><span class="pre">GffLabel</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">labels</span></span></span><a class="headerlink" href="#_CPPv4N2nw10GffBuilder6labelsE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw10GffBuilder6labelsE"></span><span id="_CPPv2N2nw10GffBuilder6labelsE"></span><span id="nw::GffBuilder::labels__std::vector:GffLabel:"></span><span class="target" id="structnw_1_1_gff_builder_1a54fe5632671aba5526d5f831a37ab4f4"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="nw__GffLabel.html#_CPPv4N2nw8GffLabelE" title="nw::GffLabel"><span class="n"><span class="pre">GffLabel</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">labels</span></span></span><a class="headerlink" href="#_CPPv4N2nw10GffBuilder6labelsE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw10GffBuilder13field_indicesE">
-<span id="_CPPv3N2nw10GffBuilder13field_indicesE"></span><span id="_CPPv2N2nw10GffBuilder13field_indicesE"></span><span id="nw::GffBuilder::field_indices__std::vector:uint32_t:"></span><span class="target" id="structnw_1_1_gff_builder_1a7326355a8aa15b357f116a27a07d5fe7"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">uint32_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">field_indices</span></span></span><a class="headerlink" href="#_CPPv4N2nw10GffBuilder13field_indicesE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw10GffBuilder13field_indicesE"></span><span id="_CPPv2N2nw10GffBuilder13field_indicesE"></span><span id="nw::GffBuilder::field_indices__std::vector:uint32_t:"></span><span class="target" id="structnw_1_1_gff_builder_1a7326355a8aa15b357f116a27a07d5fe7"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">uint32_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">field_indices</span></span></span><a class="headerlink" href="#_CPPv4N2nw10GffBuilder13field_indicesE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw10GffBuilder12list_indicesE">
-<span id="_CPPv3N2nw10GffBuilder12list_indicesE"></span><span id="_CPPv2N2nw10GffBuilder12list_indicesE"></span><span id="nw::GffBuilder::list_indices__std::vector:uint32_t:"></span><span class="target" id="structnw_1_1_gff_builder_1a8d1362672646611afca270785e631689"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">uint32_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">list_indices</span></span></span><a class="headerlink" href="#_CPPv4N2nw10GffBuilder12list_indicesE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw10GffBuilder12list_indicesE"></span><span id="_CPPv2N2nw10GffBuilder12list_indicesE"></span><span id="nw::GffBuilder::list_indices__std::vector:uint32_t:"></span><span class="target" id="structnw_1_1_gff_builder_1a8d1362672646611afca270785e631689"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">uint32_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">list_indices</span></span></span><a class="headerlink" href="#_CPPv4N2nw10GffBuilder12list_indicesE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw10GffBuilder13field_entriesE">
-<span id="_CPPv3N2nw10GffBuilder13field_entriesE"></span><span id="_CPPv2N2nw10GffBuilder13field_entriesE"></span><span id="nw::GffBuilder::field_entries__std::vector:GffFieldEntry:"></span><span class="target" id="structnw_1_1_gff_builder_1a6fb8e7cc17fdbeeb6cdb448692d68d6e"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">GffFieldEntry</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">field_entries</span></span></span><a class="headerlink" href="#_CPPv4N2nw10GffBuilder13field_entriesE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw10GffBuilder13field_entriesE"></span><span id="_CPPv2N2nw10GffBuilder13field_entriesE"></span><span id="nw::GffBuilder::field_entries__std::vector:GffFieldEntry:"></span><span class="target" id="structnw_1_1_gff_builder_1a6fb8e7cc17fdbeeb6cdb448692d68d6e"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">GffFieldEntry</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">field_entries</span></span></span><a class="headerlink" href="#_CPPv4N2nw10GffBuilder13field_entriesE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw10GffBuilder14struct_entriesE">
-<span id="_CPPv3N2nw10GffBuilder14struct_entriesE"></span><span id="_CPPv2N2nw10GffBuilder14struct_entriesE"></span><span id="nw::GffBuilder::struct_entries__std::vector:GffStructEntry:"></span><span class="target" id="structnw_1_1_gff_builder_1afa8a4aef1f8ea156b5fdb0e84047a6bc"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">GffStructEntry</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">struct_entries</span></span></span><a class="headerlink" href="#_CPPv4N2nw10GffBuilder14struct_entriesE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw10GffBuilder14struct_entriesE"></span><span id="_CPPv2N2nw10GffBuilder14struct_entriesE"></span><span id="nw::GffBuilder::struct_entries__std::vector:GffStructEntry:"></span><span class="target" id="structnw_1_1_gff_builder_1afa8a4aef1f8ea156b5fdb0e84047a6bc"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">GffStructEntry</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">struct_entries</span></span></span><a class="headerlink" href="#_CPPv4N2nw10GffBuilder14struct_entriesE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 </div>
 </dd></dl>
 
-</div>
+</section>
 
 
            </div>

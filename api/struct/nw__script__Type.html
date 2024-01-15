@@ -1,20 +1,24 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html5" lang="en" data-content_root="../../">
 <head>
-  <meta charset="utf-8" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>nw::script::Type &mdash; rollNW  documentation</title>
-      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
-      <link rel="stylesheet" href="../../_static/tabs.css" type="text/css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="../../_static/tabs.css?v=a5c4661c" />
+
+  
   <!--[if lt IE 9]>
     <script src="../../_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
-        <script src="../../_static/jquery.js"></script>
-        <script src="../../_static/underscore.js"></script>
-        <script src="../../_static/doctools.js"></script>
+        <script src="../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+        <script src="../../_static/doctools.js?v=888ff710"></script>
+        <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
@@ -289,7 +293,16 @@
 <li class="toctree-l2"><a class="reference internal" href="nw__script__StructDecl.html">nw::script::StructDecl</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__SwitchStatement.html">nw::script::SwitchStatement</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__Symbol.html">nw::script::Symbol</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">nw::script::Type</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">nw::script::Type</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#_CPPv4N2nw6script4TypeE"><code class="docutils literal notranslate"><span class="pre">Type</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw6script4Type11range_startEv"><code class="docutils literal notranslate"><span class="pre">Type::range_start()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6script4Type14type_qualifierE"><code class="docutils literal notranslate"><span class="pre">Type::type_qualifier</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6script4Type14type_specifierE"><code class="docutils literal notranslate"><span class="pre">Type::type_specifier</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6script4Type9struct_idE"><code class="docutils literal notranslate"><span class="pre">Type::struct_id</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__UnaryExpression.html">nw::script::UnaryExpression</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__VarDecl.html">nw::script::VarDecl</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__VariableExpression.html">nw::script::VariableExpression</a></li>
@@ -358,17 +371,17 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <div class="section" id="nw-script-type">
-<h1>nw::script::Type<a class="headerlink" href="#nw-script-type" title="Permalink to this headline"></a></h1>
+  <section id="nw-script-type">
+<h1>nw::script::Type<a class="headerlink" href="#nw-script-type" title="Link to this heading"></a></h1>
 <dl class="cpp struct">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw6script4TypeE">
-<span id="_CPPv3N2nw6script4TypeE"></span><span id="_CPPv2N2nw6script4TypeE"></span><span id="nw::script::Type"></span><span class="target" id="structnw_1_1script_1_1_type"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Type</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script4TypeE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw6script4TypeE"></span><span id="_CPPv2N2nw6script4TypeE"></span><span id="nw::script::Type"></span><span class="target" id="structnw_1_1script_1_1_type"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Type</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script4TypeE" title="Link to this definition"></a><br /></dt>
 <dd><p>Contains type tokens. </p>
 <div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4NK2nw6script4Type11range_startEv">
-<span id="_CPPv3NK2nw6script4Type11range_startEv"></span><span id="_CPPv2NK2nw6script4Type11range_startEv"></span><span id="nw::script::Type::range_startC"></span><span class="target" id="structnw_1_1script_1_1_type_1a0724e0d28968929ca3b41a57f8025132"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="nw__script__SourcePosition.html#_CPPv4N2nw6script14SourcePositionE" title="nw::script::SourcePosition"><span class="n"><span class="pre">SourcePosition</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">range_start</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="k"><span class="pre">noexcept</span></span><a class="headerlink" href="#_CPPv4NK2nw6script4Type11range_startEv" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3NK2nw6script4Type11range_startEv"></span><span id="_CPPv2NK2nw6script4Type11range_startEv"></span><span id="nw::script::Type::range_startC"></span><span class="target" id="structnw_1_1script_1_1_type_1a0724e0d28968929ca3b41a57f8025132"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="nw__script__SourcePosition.html#_CPPv4N2nw6script14SourcePositionE" title="nw::script::SourcePosition"><span class="n"><span class="pre">SourcePosition</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">range_start</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="k"><span class="pre">noexcept</span></span><a class="headerlink" href="#_CPPv4NK2nw6script4Type11range_startEv" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 </div>
@@ -376,25 +389,25 @@
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw6script4Type14type_qualifierE">
-<span id="_CPPv3N2nw6script4Type14type_qualifierE"></span><span id="_CPPv2N2nw6script4Type14type_qualifierE"></span><span id="nw::script::Type::type_qualifier__NssToken"></span><span class="target" id="structnw_1_1script_1_1_type_1a138d85524904e8021e53076ae1f1ff85"></span><a class="reference internal" href="nw__script__NssToken.html#_CPPv4N2nw6script8NssTokenE" title="nw::script::NssToken"><span class="n"><span class="pre">NssToken</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">type_qualifier</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script4Type14type_qualifierE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw6script4Type14type_qualifierE"></span><span id="_CPPv2N2nw6script4Type14type_qualifierE"></span><span id="nw::script::Type::type_qualifier__NssToken"></span><span class="target" id="structnw_1_1script_1_1_type_1a138d85524904e8021e53076ae1f1ff85"></span><a class="reference internal" href="nw__script__NssToken.html#_CPPv4N2nw6script8NssTokenE" title="nw::script::NssToken"><span class="n"><span class="pre">NssToken</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">type_qualifier</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script4Type14type_qualifierE" title="Link to this definition"></a><br /></dt>
 <dd><p><code class="docutils literal notranslate"><span class="pre">const</span></code></p>
 </dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw6script4Type14type_specifierE">
-<span id="_CPPv3N2nw6script4Type14type_specifierE"></span><span id="_CPPv2N2nw6script4Type14type_specifierE"></span><span id="nw::script::Type::type_specifier__NssToken"></span><span class="target" id="structnw_1_1script_1_1_type_1a8467948d980fbd7293912e890802d044"></span><a class="reference internal" href="nw__script__NssToken.html#_CPPv4N2nw6script8NssTokenE" title="nw::script::NssToken"><span class="n"><span class="pre">NssToken</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">type_specifier</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script4Type14type_specifierE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw6script4Type14type_specifierE"></span><span id="_CPPv2N2nw6script4Type14type_specifierE"></span><span id="nw::script::Type::type_specifier__NssToken"></span><span class="target" id="structnw_1_1script_1_1_type_1a8467948d980fbd7293912e890802d044"></span><a class="reference internal" href="nw__script__NssToken.html#_CPPv4N2nw6script8NssTokenE" title="nw::script::NssToken"><span class="n"><span class="pre">NssToken</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">type_specifier</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script4Type14type_specifierE" title="Link to this definition"></a><br /></dt>
 <dd><p><code class="docutils literal notranslate"><span class="pre">int</span></code>, <code class="docutils literal notranslate"><span class="pre">float</span></code>, <code class="docutils literal notranslate"><span class="pre">string</span></code>, etc </p>
 </dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw6script4Type9struct_idE">
-<span id="_CPPv3N2nw6script4Type9struct_idE"></span><span id="_CPPv2N2nw6script4Type9struct_idE"></span><span id="nw::script::Type::struct_id__NssToken"></span><span class="target" id="structnw_1_1script_1_1_type_1a25c642a0d1c64af6e52b4e5cdd4aadaf"></span><a class="reference internal" href="nw__script__NssToken.html#_CPPv4N2nw6script8NssTokenE" title="nw::script::NssToken"><span class="n"><span class="pre">NssToken</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">struct_id</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script4Type9struct_idE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw6script4Type9struct_idE"></span><span id="_CPPv2N2nw6script4Type9struct_idE"></span><span id="nw::script::Type::struct_id__NssToken"></span><span class="target" id="structnw_1_1script_1_1_type_1a25c642a0d1c64af6e52b4e5cdd4aadaf"></span><a class="reference internal" href="nw__script__NssToken.html#_CPPv4N2nw6script8NssTokenE" title="nw::script::NssToken"><span class="n"><span class="pre">NssToken</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">struct_id</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script4Type9struct_idE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 </div>
 </dd></dl>
 
-</div>
+</section>
 
 
            </div>

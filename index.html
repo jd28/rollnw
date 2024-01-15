@@ -1,20 +1,24 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html5" lang="en" data-content_root="./">
 <head>
-  <meta charset="utf-8" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>rollNW &mdash; rollNW  documentation</title>
-      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
-      <link rel="stylesheet" href="_static/tabs.css" type="text/css" />
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="_static/tabs.css?v=a5c4661c" />
+
+  
   <!--[if lt IE 9]>
     <script src="_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
-        <script src="_static/jquery.js"></script>
-        <script src="_static/underscore.js"></script>
-        <script src="_static/doctools.js"></script>
+        <script src="_static/jquery.js?v=5d32c60e"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="_static/documentation_options.js?v=5929fcd5"></script>
+        <script src="_static/doctools.js?v=888ff710"></script>
+        <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
@@ -121,8 +125,8 @@
            <div itemprop="articleBody">
              
   <p><a class="reference external" href="https://opensource.org/licenses/MIT"><img alt="License: MIT" src="https://img.shields.io/badge/License-MIT-yellow.svg" /></a> <a class="reference external" href="https://github.com/jd28/rollnw/actions?query=workflow%3Aci"><img alt="ci" src="https://github.com/jd28/rollnw/actions/workflows/ci.yml/badge.svg" /></a> <a class="reference external" href="https://github.com/jd28/rollnw/actions/workflows/codeql-analysis.yml"><img alt="CodeQL" src="https://github.com/jd28/rollnw/actions/workflows/codeql-analysis.yml/badge.svg" /></a> <a class="reference external" href="https://codecov.io/gh/jd28/rollnw"><img alt="codecov" src="https://codecov.io/gh/jd28/rollnw/branch/main/graph/badge.svg?token=79PNROEEUU" /></a> <a class="reference external" href="https://rollnw.readthedocs.io/en/latest/?badge=latest"><img alt="Documentation Status" src="https://readthedocs.org/projects/rollnw/badge/?version=latest" /></a> <a class="reference external" href="https://badge.fury.io/py/rollnw"><img alt="pypi" src="https://badge.fury.io/py/rollnw.svg" /></a></p>
-<div class="section" id="rollnw">
-<h1>rollNW<a class="headerlink" href="#rollnw" title="Permalink to this headline"></a></h1>
+<section id="rollnw">
+<h1>rollNW<a class="headerlink" href="#rollnw" title="Link to this heading"></a></h1>
 <p>rollNW is an homage to Neverwinter Nights in C++ and Python.</p>
 <p>See the <a class="reference external" href="https://rollnw.readthedocs.io/en/latest/">docs</a> and
 <a class="reference external" href="https://github.com/jd28/rollnw/tree/main/tests">tests</a> for more info,
@@ -131,8 +135,8 @@ or open an IDE in browser in the quickstart section below.</p>
 and until there is a real release, it should be assumed the library is
 in flux.</strong></p>
 <hr class="docutils" />
-<div class="section" id="features">
-<h2>features<a class="headerlink" href="#features" title="Permalink to this headline"></a></h2>
+<section id="features">
+<h2>features<a class="headerlink" href="#features" title="Link to this heading"></a></h2>
 <ul class="simple">
 <li><p>The beginnings of a novel <a class="reference external" href="https://rollnw.readthedocs.io/en/latest/structure/rules.html">Rules System</a> designed for
 easily adding, overriding, expanding, or removing any rule and reasonable performance</p></li>
@@ -146,10 +150,10 @@ nearing being able to simulate melee battles.</p></li>
 <li><p>An implementation of NWN’s <a class="reference external" href="https://rollnw.readthedocs.io/en/latest/structure/i18n.html">Localization System</a> focused
 on utf8 everywhere.</p></li>
 </ul>
-</div>
+</section>
 <hr class="docutils" />
-<div class="section" id="goals">
-<h2>goals<a class="headerlink" href="#goals" title="Permalink to this headline"></a></h2>
+<section id="goals">
+<h2>goals<a class="headerlink" href="#goals" title="Link to this heading"></a></h2>
 <ul class="simple">
 <li><p>aims to implement an RPG engine inspired by NWN, excluding graphics and networking.</p></li>
 <li><p>focuses on usage, instead of doing things the Aurora Engine Way.</p></li>
@@ -160,17 +164,17 @@ as possible.</p></li>
 <li><p>aims to be as easily bindable as possible to other languages. I.e.
 only library specific or STL types at API boundaries.</p></li>
 </ul>
-</div>
+</section>
 <hr class="docutils" />
-<div class="section" id="quickstart-open-vs-code-in-your-browser">
-<h2>quickstart - Open VS Code in your Browser<a class="headerlink" href="#quickstart-open-vs-code-in-your-browser" title="Permalink to this headline"></a></h2>
+<section id="quickstart-open-vs-code-in-your-browser">
+<h2>quickstart - Open VS Code in your Browser<a class="headerlink" href="#quickstart-open-vs-code-in-your-browser" title="Link to this heading"></a></h2>
 <p><a class="reference external" href="https://gitpod.io/#https://github.com/jd28/rollnw"><img alt="Open in Gitpod" src="https://gitpod.io/button/open-in-gitpod.svg" /></a></p>
 <p><a class="reference external" href="https://github.com/features/codespaces">Github Codespaces</a> is
 available to those in the beta.</p>
-</div>
+</section>
 <hr class="docutils" />
-<div class="section" id="history">
-<h2>History<a class="headerlink" href="#history" title="Permalink to this headline"></a></h2>
+<section id="history">
+<h2>History<a class="headerlink" href="#history" title="Link to this heading"></a></h2>
 <p>A lot of what’s here was written in the 2011-2015 range as part of
 personal minimalist toolset, modernized and with new EE stuff added. In
 some sense, it’s a work of historical fiction - it’s what I’d have
@@ -178,10 +182,10 @@ suggested at the start of NWN:EE: get the game and the community on the
 same set of libraries. Similarly to an older project that asked <a class="reference external" href="https://solstice.readthedocs.io/en/latest/">“what
 if Bioware had stuck with Lua?”</a>. The answer to
 that was pretty positive: a decade ahead, at least, of nwscript.</p>
-</div>
+</section>
 <hr class="docutils" />
-<div class="section" id="moonshots">
-<h2>Moonshots<a class="headerlink" href="#moonshots" title="Permalink to this headline"></a></h2>
+<section id="moonshots">
+<h2>Moonshots<a class="headerlink" href="#moonshots" title="Link to this heading"></a></h2>
 <p>You make ask yourself, why? But, to paraphrase Tennyson, ours isn’t to
 question why, it’s but to do and die and learn and maybe make neat
 things. In that spirit, here is a list of crazy projects that this
@@ -193,10 +197,10 @@ Server</a></p></li>
 <li><p>And, of course, the ever elusive open source NWN Toolset, with
 plugins, scripting, and a built-in console.</p></li>
 </ul>
-</div>
+</section>
 <hr class="docutils" />
-<div class="section" id="credits">
-<h2>Credits<a class="headerlink" href="#credits" title="Permalink to this headline"></a></h2>
+<section id="credits">
+<h2>Credits<a class="headerlink" href="#credits" title="Link to this heading"></a></h2>
 <ul class="simple">
 <li><p><a class="reference external" href="https://bioware.com">Bioware</a>, <a class="reference external" href="https://beamdog.com">Beamdog</a> - The game itself</p></li>
 <li><p><a class="reference external" href="https://github.com/microsoft/vcpkg">vcpkg</a> - Package Management</p></li>
@@ -281,8 +285,8 @@ plugins, scripting, and a built-in console.</p></li>
 <li class="toctree-l1"><a class="reference internal" href="gff_schema/vartable.html">vartable</a></li>
 </ul>
 </div>
-</div>
-</div>
+</section>
+</section>
 
 
            </div>

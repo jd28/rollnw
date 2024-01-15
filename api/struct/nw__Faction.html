@@ -1,20 +1,24 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html5" lang="en" data-content_root="../../">
 <head>
-  <meta charset="utf-8" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>nw::Faction &mdash; rollNW  documentation</title>
-      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
-      <link rel="stylesheet" href="../../_static/tabs.css" type="text/css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="../../_static/tabs.css?v=a5c4661c" />
+
+  
   <!--[if lt IE 9]>
     <script src="../../_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
-        <script src="../../_static/jquery.js"></script>
-        <script src="../../_static/underscore.js"></script>
-        <script src="../../_static/doctools.js"></script>
+        <script src="../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+        <script src="../../_static/doctools.js?v=888ff710"></script>
+        <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
@@ -102,7 +106,20 @@
 <li class="toctree-l2"><a class="reference internal" href="nw__EncounterScripts.html">nw::EncounterScripts</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Equips.html">nw::Equips</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Erf.html">nw::Erf</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">nw::Faction</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">nw::Faction</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#_CPPv4N2nw7FactionE"><code class="docutils literal notranslate"><span class="pre">Faction</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw7Faction7FactionERK3Gff"><code class="docutils literal notranslate"><span class="pre">Faction::Faction()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw7Faction7FactionERKN8nlohmann4jsonE"><code class="docutils literal notranslate"><span class="pre">Faction::Faction()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw7Faction9serializeEv"><code class="docutils literal notranslate"><span class="pre">Faction::serialize()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw7Faction7to_jsonEv"><code class="docutils literal notranslate"><span class="pre">Faction::to_json()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw7Faction8factionsE"><code class="docutils literal notranslate"><span class="pre">Faction::factions</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw7Faction11reputationsE"><code class="docutils literal notranslate"><span class="pre">Faction::reputations</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw7Faction20json_archive_versionE"><code class="docutils literal notranslate"><span class="pre">Faction::json_archive_version</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw7Faction7restypeE"><code class="docutils literal notranslate"><span class="pre">Faction::restype</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="nw__FactionInfo.html">nw::FactionInfo</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Feat.html">nw::Feat</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__FeatInfo.html">nw::FeatInfo</a></li>
@@ -358,31 +375,31 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <div class="section" id="nw-faction">
-<h1>nw::Faction<a class="headerlink" href="#nw-faction" title="Permalink to this headline"></a></h1>
+  <section id="nw-faction">
+<h1>nw::Faction<a class="headerlink" href="#nw-faction" title="Link to this heading"></a></h1>
 <dl class="cpp struct">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw7FactionE">
-<span id="_CPPv3N2nw7FactionE"></span><span id="_CPPv2N2nw7FactionE"></span><span id="nw::Faction"></span><span class="target" id="structnw_1_1_faction"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Faction</span></span></span><a class="headerlink" href="#_CPPv4N2nw7FactionE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw7FactionE"></span><span id="_CPPv2N2nw7FactionE"></span><span id="nw::Faction"></span><span class="target" id="structnw_1_1_faction"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Faction</span></span></span><a class="headerlink" href="#_CPPv4N2nw7FactionE" title="Link to this definition"></a><br /></dt>
 <dd><div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw7Faction7FactionERK3Gff">
-<span id="_CPPv3N2nw7Faction7FactionERK3Gff"></span><span id="_CPPv2N2nw7Faction7FactionERK3Gff"></span><span id="nw::Faction::Faction__GffCR"></span><span class="target" id="structnw_1_1_faction_1a5bc454b9ac895105511286f971a0ba20"></span><span class="k"><span class="pre">explicit</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Faction</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="nw__Gff.html#_CPPv4N2nw3GffE" title="nw::Gff"><span class="n"><span class="pre">Gff</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">archive</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw7Faction7FactionERK3Gff" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw7Faction7FactionERK3Gff"></span><span id="_CPPv2N2nw7Faction7FactionERK3Gff"></span><span id="nw::Faction::Faction__GffCR"></span><span class="target" id="structnw_1_1_faction_1a5bc454b9ac895105511286f971a0ba20"></span><span class="k"><span class="pre">explicit</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Faction</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="nw__Gff.html#_CPPv4N2nw3GffE" title="nw::Gff"><span class="n"><span class="pre">Gff</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">archive</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw7Faction7FactionERK3Gff" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw7Faction7FactionERKN8nlohmann4jsonE">
-<span id="_CPPv3N2nw7Faction7FactionERKN8nlohmann4jsonE"></span><span id="_CPPv2N2nw7Faction7FactionERKN8nlohmann4jsonE"></span><span id="nw::Faction::Faction__nlohmann::jsonCR"></span><span class="target" id="structnw_1_1_faction_1a4413caa0454448dff8aae35c57e141bf"></span><span class="k"><span class="pre">explicit</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Faction</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">nlohmann</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">json</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">archive</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw7Faction7FactionERKN8nlohmann4jsonE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw7Faction7FactionERKN8nlohmann4jsonE"></span><span id="_CPPv2N2nw7Faction7FactionERKN8nlohmann4jsonE"></span><span id="nw::Faction::Faction__nlohmann::jsonCR"></span><span class="target" id="structnw_1_1_faction_1a4413caa0454448dff8aae35c57e141bf"></span><span class="k"><span class="pre">explicit</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Faction</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">nlohmann</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">json</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">archive</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw7Faction7FactionERKN8nlohmann4jsonE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4NK2nw7Faction9serializeEv">
-<span id="_CPPv3NK2nw7Faction9serializeEv"></span><span id="_CPPv2NK2nw7Faction9serializeEv"></span><span id="nw::Faction::serializeC"></span><span class="target" id="structnw_1_1_faction_1a8bb05af92c60c8ad96f90897507a7f06"></span><a class="reference internal" href="nw__GffBuilder.html#_CPPv4N2nw10GffBuilderE" title="nw::GffBuilder"><span class="n"><span class="pre">GffBuilder</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">serialize</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK2nw7Faction9serializeEv" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3NK2nw7Faction9serializeEv"></span><span id="_CPPv2NK2nw7Faction9serializeEv"></span><span id="nw::Faction::serializeC"></span><span class="target" id="structnw_1_1_faction_1a8bb05af92c60c8ad96f90897507a7f06"></span><a class="reference internal" href="nw__GffBuilder.html#_CPPv4N2nw10GffBuilderE" title="nw::GffBuilder"><span class="n"><span class="pre">GffBuilder</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">serialize</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK2nw7Faction9serializeEv" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4NK2nw7Faction7to_jsonEv">
-<span id="_CPPv3NK2nw7Faction7to_jsonEv"></span><span id="_CPPv2NK2nw7Faction7to_jsonEv"></span><span id="nw::Faction::to_jsonC"></span><span class="target" id="structnw_1_1_faction_1a6fedb62ee0b2cf18de918c65f079983b"></span><span class="n"><span class="pre">nlohmann</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">json</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">to_json</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK2nw7Faction7to_jsonEv" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3NK2nw7Faction7to_jsonEv"></span><span id="_CPPv2NK2nw7Faction7to_jsonEv"></span><span id="nw::Faction::to_jsonC"></span><span class="target" id="structnw_1_1_faction_1a6fedb62ee0b2cf18de918c65f079983b"></span><span class="n"><span class="pre">nlohmann</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">json</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">to_json</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK2nw7Faction7to_jsonEv" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 </div>
@@ -390,12 +407,12 @@
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw7Faction8factionsE">
-<span id="_CPPv3N2nw7Faction8factionsE"></span><span id="_CPPv2N2nw7Faction8factionsE"></span><span id="nw::Faction::factions__std::vector:FactionInfo:"></span><span class="target" id="structnw_1_1_faction_1a8c0365e533e7203dcf72655e84d0c69a"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="nw__FactionInfo.html#_CPPv4N2nw11FactionInfoE" title="nw::FactionInfo"><span class="n"><span class="pre">FactionInfo</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">factions</span></span></span><a class="headerlink" href="#_CPPv4N2nw7Faction8factionsE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw7Faction8factionsE"></span><span id="_CPPv2N2nw7Faction8factionsE"></span><span id="nw::Faction::factions__std::vector:FactionInfo:"></span><span class="target" id="structnw_1_1_faction_1a8c0365e533e7203dcf72655e84d0c69a"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="nw__FactionInfo.html#_CPPv4N2nw11FactionInfoE" title="nw::FactionInfo"><span class="n"><span class="pre">FactionInfo</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">factions</span></span></span><a class="headerlink" href="#_CPPv4N2nw7Faction8factionsE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw7Faction11reputationsE">
-<span id="_CPPv3N2nw7Faction11reputationsE"></span><span id="_CPPv2N2nw7Faction11reputationsE"></span><span id="nw::Faction::reputations__std::vector:Reputation:"></span><span class="target" id="structnw_1_1_faction_1ae95a51fa4047ea060697df2b5229948c"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="nw__Reputation.html#_CPPv4N2nw10ReputationE" title="nw::Reputation"><span class="n"><span class="pre">Reputation</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">reputations</span></span></span><a class="headerlink" href="#_CPPv4N2nw7Faction11reputationsE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw7Faction11reputationsE"></span><span id="_CPPv2N2nw7Faction11reputationsE"></span><span id="nw::Faction::reputations__std::vector:Reputation:"></span><span class="target" id="structnw_1_1_faction_1ae95a51fa4047ea060697df2b5229948c"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="nw__Reputation.html#_CPPv4N2nw10ReputationE" title="nw::Reputation"><span class="n"><span class="pre">Reputation</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">reputations</span></span></span><a class="headerlink" href="#_CPPv4N2nw7Faction11reputationsE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 </div>
@@ -403,18 +420,18 @@
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-static-attributes">Public Static Attributes</p>
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw7Faction20json_archive_versionE">
-<span id="_CPPv3N2nw7Faction20json_archive_versionE"></span><span id="_CPPv2N2nw7Faction20json_archive_versionE"></span><span id="nw::Faction::json_archive_version__i"></span><span class="target" id="structnw_1_1_faction_1adacc8f993a59cc98ea12cd44d043e355"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">json_archive_version</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">1</span></span><a class="headerlink" href="#_CPPv4N2nw7Faction20json_archive_versionE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw7Faction20json_archive_versionE"></span><span id="_CPPv2N2nw7Faction20json_archive_versionE"></span><span id="nw::Faction::json_archive_version__i"></span><span class="target" id="structnw_1_1_faction_1adacc8f993a59cc98ea12cd44d043e355"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">json_archive_version</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">1</span></span><a class="headerlink" href="#_CPPv4N2nw7Faction20json_archive_versionE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw7Faction7restypeE">
-<span id="_CPPv3N2nw7Faction7restypeE"></span><span id="_CPPv2N2nw7Faction7restypeE"></span><span id="nw::Faction::restype__ResourceType::type"></span><span class="target" id="structnw_1_1_faction_1a0c9f4872f634888a40ac67f6f5fe6157"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><a class="reference internal" href="nw__ResourceType.html#_CPPv4N2nw12ResourceTypeE" title="nw::ResourceType"><span class="n"><span class="pre">ResourceType</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="nw__ResourceType.html#_CPPv4N2nw12ResourceType4typeE" title="nw::ResourceType::type"><span class="n"><span class="pre">type</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">restype</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="nw__ResourceType.html#_CPPv4N2nw12ResourceTypeE" title="nw::ResourceType"><span class="n"><span class="pre">ResourceType</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="nw__ResourceType.html#_CPPv4N2nw12ResourceType4type3facE" title="nw::ResourceType::fac"><span class="n"><span class="pre">fac</span></span></a><a class="headerlink" href="#_CPPv4N2nw7Faction7restypeE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw7Faction7restypeE"></span><span id="_CPPv2N2nw7Faction7restypeE"></span><span id="nw::Faction::restype__ResourceType::type"></span><span class="target" id="structnw_1_1_faction_1a0c9f4872f634888a40ac67f6f5fe6157"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><a class="reference internal" href="nw__ResourceType.html#_CPPv4N2nw12ResourceTypeE" title="nw::ResourceType"><span class="n"><span class="pre">ResourceType</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="nw__ResourceType.html#_CPPv4N2nw12ResourceType4typeE" title="nw::ResourceType::type"><span class="n"><span class="pre">type</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">restype</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="nw__ResourceType.html#_CPPv4N2nw12ResourceTypeE" title="nw::ResourceType"><span class="n"><span class="pre">ResourceType</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="nw__ResourceType.html#_CPPv4N2nw12ResourceType4type3facE" title="nw::ResourceType::fac"><span class="n"><span class="pre">fac</span></span></a><a class="headerlink" href="#_CPPv4N2nw7Faction7restypeE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 </div>
 </dd></dl>
 
-</div>
+</section>
 
 
            </div>

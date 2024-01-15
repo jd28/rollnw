@@ -1,20 +1,24 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html5" lang="en" data-content_root="../../">
 <head>
-  <meta charset="utf-8" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>nw::script::Include &mdash; rollNW  documentation</title>
-      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
-      <link rel="stylesheet" href="../../_static/tabs.css" type="text/css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="../../_static/tabs.css?v=a5c4661c" />
+
+  
   <!--[if lt IE 9]>
     <script src="../../_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
-        <script src="../../_static/jquery.js"></script>
-        <script src="../../_static/underscore.js"></script>
-        <script src="../../_static/doctools.js"></script>
+        <script src="../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+        <script src="../../_static/doctools.js?v=888ff710"></script>
+        <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
@@ -269,7 +273,16 @@
 <li class="toctree-l2"><a class="reference internal" href="nw__script__FunctionDefinition.html">nw::script::FunctionDefinition</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__GroupingExpression.html">nw::script::GroupingExpression</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__IfStatement.html">nw::script::IfStatement</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">nw::script::Include</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">nw::script::Include</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#_CPPv4N2nw6script7IncludeE"><code class="docutils literal notranslate"><span class="pre">Include</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6script7Include6resrefE"><code class="docutils literal notranslate"><span class="pre">Include::resref</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6script7Include8locationE"><code class="docutils literal notranslate"><span class="pre">Include::location</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6script7Include6scriptE"><code class="docutils literal notranslate"><span class="pre">Include::script</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6script7Include4usedE"><code class="docutils literal notranslate"><span class="pre">Include::used</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__InlayHint.html">nw::script::InlayHint</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__JumpStatement.html">nw::script::JumpStatement</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__LabelStatement.html">nw::script::LabelStatement</a></li>
@@ -358,42 +371,42 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <div class="section" id="nw-script-include">
-<h1>nw::script::Include<a class="headerlink" href="#nw-script-include" title="Permalink to this headline"></a></h1>
+  <section id="nw-script-include">
+<h1>nw::script::Include<a class="headerlink" href="#nw-script-include" title="Link to this heading"></a></h1>
 <dl class="cpp struct">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw6script7IncludeE">
-<span id="_CPPv3N2nw6script7IncludeE"></span><span id="_CPPv2N2nw6script7IncludeE"></span><span id="nw::script::Include"></span><span class="target" id="structnw_1_1script_1_1_include"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Include</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script7IncludeE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw6script7IncludeE"></span><span id="_CPPv2N2nw6script7IncludeE"></span><span id="nw::script::Include"></span><span class="target" id="structnw_1_1script_1_1_include"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Include</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script7IncludeE" title="Link to this definition"></a><br /></dt>
 <dd><p>Abstracts an script include. </p>
 <div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw6script7Include6resrefE">
-<span id="_CPPv3N2nw6script7Include6resrefE"></span><span id="_CPPv2N2nw6script7Include6resrefE"></span><span id="nw::script::Include::resref__ss"></span><span class="target" id="structnw_1_1script_1_1_include_1a1ef98e696f73a53bf524b6e61186413a"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">resref</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script7Include6resrefE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw6script7Include6resrefE"></span><span id="_CPPv2N2nw6script7Include6resrefE"></span><span id="nw::script::Include::resref__ss"></span><span class="target" id="structnw_1_1script_1_1_include_1a1ef98e696f73a53bf524b6e61186413a"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">resref</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script7Include6resrefE" title="Link to this definition"></a><br /></dt>
 <dd><p><a class="reference internal" href="nw__Resref.html#structnw_1_1_resref"><span class="std std-ref">Resref</span></a> of included script. </p>
 </dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw6script7Include8locationE">
-<span id="_CPPv3N2nw6script7Include8locationE"></span><span id="_CPPv2N2nw6script7Include8locationE"></span><span id="nw::script::Include::location__SourceRange"></span><span class="target" id="structnw_1_1script_1_1_include_1a513ce4e9311b2c429259c983fa0c80d4"></span><a class="reference internal" href="nw__script__SourceRange.html#_CPPv4N2nw6script11SourceRangeE" title="nw::script::SourceRange"><span class="n"><span class="pre">SourceRange</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">location</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script7Include8locationE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw6script7Include8locationE"></span><span id="_CPPv2N2nw6script7Include8locationE"></span><span id="nw::script::Include::location__SourceRange"></span><span class="target" id="structnw_1_1script_1_1_include_1a513ce4e9311b2c429259c983fa0c80d4"></span><a class="reference internal" href="nw__script__SourceRange.html#_CPPv4N2nw6script11SourceRangeE" title="nw::script::SourceRange"><span class="n"><span class="pre">SourceRange</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">location</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script7Include8locationE" title="Link to this definition"></a><br /></dt>
 <dd><p>Source location in script. </p>
 </dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw6script7Include6scriptE">
-<span id="_CPPv3N2nw6script7Include6scriptE"></span><span id="_CPPv2N2nw6script7Include6scriptE"></span><span id="nw::script::Include::script__NssP"></span><span class="target" id="structnw_1_1script_1_1_include_1abd516161f8153cb4874d002ca55e296a"></span><a class="reference internal" href="nw__script__Nss.html#_CPPv4N2nw6script3NssE" title="nw::script::Nss"><span class="n"><span class="pre">Nss</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">script</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">nullptr</span></span><a class="headerlink" href="#_CPPv4N2nw6script7Include6scriptE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw6script7Include6scriptE"></span><span id="_CPPv2N2nw6script7Include6scriptE"></span><span id="nw::script::Include::script__NssP"></span><span class="target" id="structnw_1_1script_1_1_include_1abd516161f8153cb4874d002ca55e296a"></span><a class="reference internal" href="nw__script__Nss.html#_CPPv4N2nw6script3NssE" title="nw::script::Nss"><span class="n"><span class="pre">Nss</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">script</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">nullptr</span></span><a class="headerlink" href="#_CPPv4N2nw6script7Include6scriptE" title="Link to this definition"></a><br /></dt>
 <dd><p>Loaded script. </p>
 </dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw6script7Include4usedE">
-<span id="_CPPv3N2nw6script7Include4usedE"></span><span id="_CPPv2N2nw6script7Include4usedE"></span><span id="nw::script::Include::used__i"></span><span class="target" id="structnw_1_1script_1_1_include_1a8edf422d5843940eb84e6b2a8d90d037"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">used</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N2nw6script7Include4usedE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw6script7Include4usedE"></span><span id="_CPPv2N2nw6script7Include4usedE"></span><span id="nw::script::Include::used__i"></span><span class="target" id="structnw_1_1script_1_1_include_1a8edf422d5843940eb84e6b2a8d90d037"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">used</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N2nw6script7Include4usedE" title="Link to this definition"></a><br /></dt>
 <dd><p>Number of times include is used in script file. </p>
 </dd></dl>
 
 </div>
 </dd></dl>
 
-</div>
+</section>
 
 
            </div>

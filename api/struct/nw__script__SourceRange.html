@@ -1,20 +1,24 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html5" lang="en" data-content_root="../../">
 <head>
-  <meta charset="utf-8" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>nw::script::SourceRange &mdash; rollNW  documentation</title>
-      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
-      <link rel="stylesheet" href="../../_static/tabs.css" type="text/css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="../../_static/tabs.css?v=a5c4661c" />
+
+  
   <!--[if lt IE 9]>
     <script src="../../_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
-        <script src="../../_static/jquery.js"></script>
-        <script src="../../_static/underscore.js"></script>
-        <script src="../../_static/doctools.js"></script>
+        <script src="../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+        <script src="../../_static/doctools.js?v=888ff710"></script>
+        <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
@@ -284,7 +288,14 @@
 <li class="toctree-l2"><a class="reference internal" href="nw__script__PostfixExpression.html">nw::script::PostfixExpression</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__SourceLocation.html">nw::script::SourceLocation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__SourcePosition.html">nw::script::SourcePosition</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">nw::script::SourceRange</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">nw::script::SourceRange</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#_CPPv4N2nw6script11SourceRangeE"><code class="docutils literal notranslate"><span class="pre">SourceRange</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6script11SourceRange5startE"><code class="docutils literal notranslate"><span class="pre">SourceRange::start</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6script11SourceRange3endE"><code class="docutils literal notranslate"><span class="pre">SourceRange::end</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__Statement.html">nw::script::Statement</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__StructDecl.html">nw::script::StructDecl</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__SwitchStatement.html">nw::script::SwitchStatement</a></li>
@@ -358,30 +369,30 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <div class="section" id="nw-script-sourcerange">
-<h1>nw::script::SourceRange<a class="headerlink" href="#nw-script-sourcerange" title="Permalink to this headline"></a></h1>
+  <section id="nw-script-sourcerange">
+<h1>nw::script::SourceRange<a class="headerlink" href="#nw-script-sourcerange" title="Link to this heading"></a></h1>
 <dl class="cpp struct">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw6script11SourceRangeE">
-<span id="_CPPv3N2nw6script11SourceRangeE"></span><span id="_CPPv2N2nw6script11SourceRangeE"></span><span id="nw::script::SourceRange"></span><span class="target" id="structnw_1_1script_1_1_source_range"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SourceRange</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script11SourceRangeE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw6script11SourceRangeE"></span><span id="_CPPv2N2nw6script11SourceRangeE"></span><span id="nw::script::SourceRange"></span><span class="target" id="structnw_1_1script_1_1_source_range"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SourceRange</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script11SourceRangeE" title="Link to this definition"></a><br /></dt>
 <dd><p>Range of source code. </p>
 <div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw6script11SourceRange5startE">
-<span id="_CPPv3N2nw6script11SourceRange5startE"></span><span id="_CPPv2N2nw6script11SourceRange5startE"></span><span id="nw::script::SourceRange::start__SourcePosition"></span><span class="target" id="structnw_1_1script_1_1_source_range_1a86053b66a0391da844dd180a5ed2099d"></span><a class="reference internal" href="nw__script__SourcePosition.html#_CPPv4N2nw6script14SourcePositionE" title="nw::script::SourcePosition"><span class="n"><span class="pre">SourcePosition</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">start</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script11SourceRange5startE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw6script11SourceRange5startE"></span><span id="_CPPv2N2nw6script11SourceRange5startE"></span><span id="nw::script::SourceRange::start__SourcePosition"></span><span class="target" id="structnw_1_1script_1_1_source_range_1a86053b66a0391da844dd180a5ed2099d"></span><a class="reference internal" href="nw__script__SourcePosition.html#_CPPv4N2nw6script14SourcePositionE" title="nw::script::SourcePosition"><span class="n"><span class="pre">SourcePosition</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">start</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script11SourceRange5startE" title="Link to this definition"></a><br /></dt>
 <dd><p>Start of range. </p>
 </dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw6script11SourceRange3endE">
-<span id="_CPPv3N2nw6script11SourceRange3endE"></span><span id="_CPPv2N2nw6script11SourceRange3endE"></span><span id="nw::script::SourceRange::end__SourcePosition"></span><span class="target" id="structnw_1_1script_1_1_source_range_1ab25228429452058297d14c7f6b0f5cf5"></span><a class="reference internal" href="nw__script__SourcePosition.html#_CPPv4N2nw6script14SourcePositionE" title="nw::script::SourcePosition"><span class="n"><span class="pre">SourcePosition</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">end</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script11SourceRange3endE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw6script11SourceRange3endE"></span><span id="_CPPv2N2nw6script11SourceRange3endE"></span><span id="nw::script::SourceRange::end__SourcePosition"></span><span class="target" id="structnw_1_1script_1_1_source_range_1ab25228429452058297d14c7f6b0f5cf5"></span><a class="reference internal" href="nw__script__SourcePosition.html#_CPPv4N2nw6script14SourcePositionE" title="nw::script::SourcePosition"><span class="n"><span class="pre">SourcePosition</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">end</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script11SourceRange3endE" title="Link to this definition"></a><br /></dt>
 <dd><p>End of Range. </p>
 </dd></dl>
 
 </div>
 </dd></dl>
 
-</div>
+</section>
 
 
            </div>

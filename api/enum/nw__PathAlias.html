@@ -1,20 +1,24 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html5" lang="en" data-content_root="../../">
 <head>
-  <meta charset="utf-8" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>nw::PathAlias &mdash; rollNW  documentation</title>
-      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
-      <link rel="stylesheet" href="../../_static/tabs.css" type="text/css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="../../_static/tabs.css?v=a5c4661c" />
+
+  
   <!--[if lt IE 9]>
     <script src="../../_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
-        <script src="../../_static/jquery.js"></script>
-        <script src="../../_static/underscore.js"></script>
-        <script src="../../_static/doctools.js"></script>
+        <script src="../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+        <script src="../../_static/doctools.js?v=888ff710"></script>
+        <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
@@ -80,7 +84,38 @@
 <li class="toctree-l2"><a class="reference internal" href="nw__ObjectID.html">nw::ObjectID</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__ObjectType.html">nw::ObjectType</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__PaletteNodeType.html">nw::PaletteNodeType</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">nw::PathAlias</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">nw::PathAlias</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#_CPPv4N2nw9PathAliasE"><code class="docutils literal notranslate"><span class="pre">PathAlias</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw9PathAlias7ambientE"><code class="docutils literal notranslate"><span class="pre">PathAlias::ambient</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw9PathAlias5cacheE"><code class="docutils literal notranslate"><span class="pre">PathAlias::cache</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw9PathAlias11currentgameE"><code class="docutils literal notranslate"><span class="pre">PathAlias::currentgame</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw9PathAlias8databaseE"><code class="docutils literal notranslate"><span class="pre">PathAlias::database</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw9PathAlias11developmentE"><code class="docutils literal notranslate"><span class="pre">PathAlias::development</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw9PathAlias7dmvaultE"><code class="docutils literal notranslate"><span class="pre">PathAlias::dmvault</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw9PathAlias3hakE"><code class="docutils literal notranslate"><span class="pre">PathAlias::hak</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw9PathAlias3hd0E"><code class="docutils literal notranslate"><span class="pre">PathAlias::hd0</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw9PathAlias10localvaultE"><code class="docutils literal notranslate"><span class="pre">PathAlias::localvault</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw9PathAlias4logsE"><code class="docutils literal notranslate"><span class="pre">PathAlias::logs</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw9PathAlias13modelcompilerE"><code class="docutils literal notranslate"><span class="pre">PathAlias::modelcompiler</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw9PathAlias7modulesE"><code class="docutils literal notranslate"><span class="pre">PathAlias::modules</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw9PathAlias6moviesE"><code class="docutils literal notranslate"><span class="pre">PathAlias::movies</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw9PathAlias5musicE"><code class="docutils literal notranslate"><span class="pre">PathAlias::music</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw9PathAlias6nwsyncE"><code class="docutils literal notranslate"><span class="pre">PathAlias::nwsync</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw9PathAlias14oldservervaultE"><code class="docutils literal notranslate"><span class="pre">PathAlias::oldservervault</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw9PathAlias8overrideE"><code class="docutils literal notranslate"><span class="pre">PathAlias::override</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw9PathAlias5patchE"><code class="docutils literal notranslate"><span class="pre">PathAlias::patch</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw9PathAlias9portraitsE"><code class="docutils literal notranslate"><span class="pre">PathAlias::portraits</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw9PathAlias5savesE"><code class="docutils literal notranslate"><span class="pre">PathAlias::saves</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw9PathAlias11screenshotsE"><code class="docutils literal notranslate"><span class="pre">PathAlias::screenshots</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw9PathAlias11servervaultE"><code class="docutils literal notranslate"><span class="pre">PathAlias::servervault</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw9PathAlias4tempE"><code class="docutils literal notranslate"><span class="pre">PathAlias::temp</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw9PathAlias10tempclientE"><code class="docutils literal notranslate"><span class="pre">PathAlias::tempclient</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw9PathAlias3tlkE"><code class="docutils literal notranslate"><span class="pre">PathAlias::tlk</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw9PathAlias4userE"><code class="docutils literal notranslate"><span class="pre">PathAlias::user</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="nw__PlaceableAnimationState.html">nw::PlaceableAnimationState</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__PltLayer.html">nw::PltLayer</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__SelectorType.html">nw::SelectorType</a></li>
@@ -153,146 +188,146 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <div class="section" id="nw-pathalias">
-<h1>nw::PathAlias<a class="headerlink" href="#nw-pathalias" title="Permalink to this headline"></a></h1>
+  <section id="nw-pathalias">
+<h1>nw::PathAlias<a class="headerlink" href="#nw-pathalias" title="Link to this heading"></a></h1>
 <dl class="cpp enum-class">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw9PathAliasE">
-<span id="_CPPv3N2nw9PathAliasE"></span><span id="_CPPv2N2nw9PathAliasE"></span><span class="target" id="namespacenw_1a2c53a3257b01557dd0738d0397f13a6c"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">nw</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">PathAlias</span></span></span><a class="headerlink" href="#_CPPv4N2nw9PathAliasE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw9PathAliasE"></span><span id="_CPPv2N2nw9PathAliasE"></span><span class="target" id="namespacenw_1a2c53a3257b01557dd0738d0397f13a6c"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">nw</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">PathAlias</span></span></span><a class="headerlink" href="#_CPPv4N2nw9PathAliasE" title="Link to this definition"></a><br /></dt>
 <dd><p>Path aliases, some of these are EE only. </p>
 <p><em>Values:</em></p>
 <dl class="cpp enumerator">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw9PathAlias7ambientE">
-<span id="_CPPv3N2nw9PathAlias7ambientE"></span><span id="_CPPv2N2nw9PathAlias7ambientE"></span><span class="target" id="namespacenw_1a2c53a3257b01557dd0738d0397f13a6cafff66a4d00c8ed7bb7814ff29d0faca2"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ambient</span></span></span><a class="headerlink" href="#_CPPv4N2nw9PathAlias7ambientE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw9PathAlias7ambientE"></span><span id="_CPPv2N2nw9PathAlias7ambientE"></span><span class="target" id="namespacenw_1a2c53a3257b01557dd0738d0397f13a6cafff66a4d00c8ed7bb7814ff29d0faca2"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ambient</span></span></span><a class="headerlink" href="#_CPPv4N2nw9PathAlias7ambientE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp enumerator">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw9PathAlias5cacheE">
-<span id="_CPPv3N2nw9PathAlias5cacheE"></span><span id="_CPPv2N2nw9PathAlias5cacheE"></span><span class="target" id="namespacenw_1a2c53a3257b01557dd0738d0397f13a6ca0fea6a13c52b4d4725368f24b045ca84"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">cache</span></span></span><a class="headerlink" href="#_CPPv4N2nw9PathAlias5cacheE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw9PathAlias5cacheE"></span><span id="_CPPv2N2nw9PathAlias5cacheE"></span><span class="target" id="namespacenw_1a2c53a3257b01557dd0738d0397f13a6ca0fea6a13c52b4d4725368f24b045ca84"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">cache</span></span></span><a class="headerlink" href="#_CPPv4N2nw9PathAlias5cacheE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp enumerator">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw9PathAlias11currentgameE">
-<span id="_CPPv3N2nw9PathAlias11currentgameE"></span><span id="_CPPv2N2nw9PathAlias11currentgameE"></span><span class="target" id="namespacenw_1a2c53a3257b01557dd0738d0397f13a6cad05700bc67697489b6eb1de7254d8548"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">currentgame</span></span></span><a class="headerlink" href="#_CPPv4N2nw9PathAlias11currentgameE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw9PathAlias11currentgameE"></span><span id="_CPPv2N2nw9PathAlias11currentgameE"></span><span class="target" id="namespacenw_1a2c53a3257b01557dd0738d0397f13a6cad05700bc67697489b6eb1de7254d8548"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">currentgame</span></span></span><a class="headerlink" href="#_CPPv4N2nw9PathAlias11currentgameE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp enumerator">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw9PathAlias8databaseE">
-<span id="_CPPv3N2nw9PathAlias8databaseE"></span><span id="_CPPv2N2nw9PathAlias8databaseE"></span><span class="target" id="namespacenw_1a2c53a3257b01557dd0738d0397f13a6ca11e0eed8d3696c0a632f822df385ab3c"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">database</span></span></span><a class="headerlink" href="#_CPPv4N2nw9PathAlias8databaseE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw9PathAlias8databaseE"></span><span id="_CPPv2N2nw9PathAlias8databaseE"></span><span class="target" id="namespacenw_1a2c53a3257b01557dd0738d0397f13a6ca11e0eed8d3696c0a632f822df385ab3c"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">database</span></span></span><a class="headerlink" href="#_CPPv4N2nw9PathAlias8databaseE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp enumerator">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw9PathAlias11developmentE">
-<span id="_CPPv3N2nw9PathAlias11developmentE"></span><span id="_CPPv2N2nw9PathAlias11developmentE"></span><span class="target" id="namespacenw_1a2c53a3257b01557dd0738d0397f13a6ca759b74ce43947f5f4c91aeddc3e5bad3"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">development</span></span></span><a class="headerlink" href="#_CPPv4N2nw9PathAlias11developmentE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw9PathAlias11developmentE"></span><span id="_CPPv2N2nw9PathAlias11developmentE"></span><span class="target" id="namespacenw_1a2c53a3257b01557dd0738d0397f13a6ca759b74ce43947f5f4c91aeddc3e5bad3"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">development</span></span></span><a class="headerlink" href="#_CPPv4N2nw9PathAlias11developmentE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp enumerator">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw9PathAlias7dmvaultE">
-<span id="_CPPv3N2nw9PathAlias7dmvaultE"></span><span id="_CPPv2N2nw9PathAlias7dmvaultE"></span><span class="target" id="namespacenw_1a2c53a3257b01557dd0738d0397f13a6cada0d49185b9f16f4d68188669a46133d"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">dmvault</span></span></span><a class="headerlink" href="#_CPPv4N2nw9PathAlias7dmvaultE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw9PathAlias7dmvaultE"></span><span id="_CPPv2N2nw9PathAlias7dmvaultE"></span><span class="target" id="namespacenw_1a2c53a3257b01557dd0738d0397f13a6cada0d49185b9f16f4d68188669a46133d"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">dmvault</span></span></span><a class="headerlink" href="#_CPPv4N2nw9PathAlias7dmvaultE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp enumerator">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw9PathAlias3hakE">
-<span id="_CPPv3N2nw9PathAlias3hakE"></span><span id="_CPPv2N2nw9PathAlias3hakE"></span><span class="target" id="namespacenw_1a2c53a3257b01557dd0738d0397f13a6ca88c140be77c481bc9e848aecd9942e03"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">hak</span></span></span><a class="headerlink" href="#_CPPv4N2nw9PathAlias3hakE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw9PathAlias3hakE"></span><span id="_CPPv2N2nw9PathAlias3hakE"></span><span class="target" id="namespacenw_1a2c53a3257b01557dd0738d0397f13a6ca88c140be77c481bc9e848aecd9942e03"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">hak</span></span></span><a class="headerlink" href="#_CPPv4N2nw9PathAlias3hakE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp enumerator">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw9PathAlias3hd0E">
-<span id="_CPPv3N2nw9PathAlias3hd0E"></span><span id="_CPPv2N2nw9PathAlias3hd0E"></span><span class="target" id="namespacenw_1a2c53a3257b01557dd0738d0397f13a6ca1c2d0a2f5a5886401c7524ff1018f83d"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">hd0</span></span></span><a class="headerlink" href="#_CPPv4N2nw9PathAlias3hd0E" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw9PathAlias3hd0E"></span><span id="_CPPv2N2nw9PathAlias3hd0E"></span><span class="target" id="namespacenw_1a2c53a3257b01557dd0738d0397f13a6ca1c2d0a2f5a5886401c7524ff1018f83d"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">hd0</span></span></span><a class="headerlink" href="#_CPPv4N2nw9PathAlias3hd0E" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp enumerator">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw9PathAlias10localvaultE">
-<span id="_CPPv3N2nw9PathAlias10localvaultE"></span><span id="_CPPv2N2nw9PathAlias10localvaultE"></span><span class="target" id="namespacenw_1a2c53a3257b01557dd0738d0397f13a6cab366d38cd3cc26c8aa02264cdd8df710"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">localvault</span></span></span><a class="headerlink" href="#_CPPv4N2nw9PathAlias10localvaultE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw9PathAlias10localvaultE"></span><span id="_CPPv2N2nw9PathAlias10localvaultE"></span><span class="target" id="namespacenw_1a2c53a3257b01557dd0738d0397f13a6cab366d38cd3cc26c8aa02264cdd8df710"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">localvault</span></span></span><a class="headerlink" href="#_CPPv4N2nw9PathAlias10localvaultE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp enumerator">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw9PathAlias4logsE">
-<span id="_CPPv3N2nw9PathAlias4logsE"></span><span id="_CPPv2N2nw9PathAlias4logsE"></span><span class="target" id="namespacenw_1a2c53a3257b01557dd0738d0397f13a6ca2165e4fa5bddb65a31f6a0c495c2fa37"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">logs</span></span></span><a class="headerlink" href="#_CPPv4N2nw9PathAlias4logsE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw9PathAlias4logsE"></span><span id="_CPPv2N2nw9PathAlias4logsE"></span><span class="target" id="namespacenw_1a2c53a3257b01557dd0738d0397f13a6ca2165e4fa5bddb65a31f6a0c495c2fa37"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">logs</span></span></span><a class="headerlink" href="#_CPPv4N2nw9PathAlias4logsE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp enumerator">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw9PathAlias13modelcompilerE">
-<span id="_CPPv3N2nw9PathAlias13modelcompilerE"></span><span id="_CPPv2N2nw9PathAlias13modelcompilerE"></span><span class="target" id="namespacenw_1a2c53a3257b01557dd0738d0397f13a6ca83398cf5660e653b47efe3f76ef53930"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">modelcompiler</span></span></span><a class="headerlink" href="#_CPPv4N2nw9PathAlias13modelcompilerE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw9PathAlias13modelcompilerE"></span><span id="_CPPv2N2nw9PathAlias13modelcompilerE"></span><span class="target" id="namespacenw_1a2c53a3257b01557dd0738d0397f13a6ca83398cf5660e653b47efe3f76ef53930"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">modelcompiler</span></span></span><a class="headerlink" href="#_CPPv4N2nw9PathAlias13modelcompilerE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp enumerator">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw9PathAlias7modulesE">
-<span id="_CPPv3N2nw9PathAlias7modulesE"></span><span id="_CPPv2N2nw9PathAlias7modulesE"></span><span class="target" id="namespacenw_1a2c53a3257b01557dd0738d0397f13a6ca0eb9b3af2e4a00837a1b1a854c9ea18c"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">modules</span></span></span><a class="headerlink" href="#_CPPv4N2nw9PathAlias7modulesE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw9PathAlias7modulesE"></span><span id="_CPPv2N2nw9PathAlias7modulesE"></span><span class="target" id="namespacenw_1a2c53a3257b01557dd0738d0397f13a6ca0eb9b3af2e4a00837a1b1a854c9ea18c"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">modules</span></span></span><a class="headerlink" href="#_CPPv4N2nw9PathAlias7modulesE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp enumerator">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw9PathAlias6moviesE">
-<span id="_CPPv3N2nw9PathAlias6moviesE"></span><span id="_CPPv2N2nw9PathAlias6moviesE"></span><span class="target" id="namespacenw_1a2c53a3257b01557dd0738d0397f13a6ca55ba44c548d3ebafd9f70e64a7f232b0"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">movies</span></span></span><a class="headerlink" href="#_CPPv4N2nw9PathAlias6moviesE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw9PathAlias6moviesE"></span><span id="_CPPv2N2nw9PathAlias6moviesE"></span><span class="target" id="namespacenw_1a2c53a3257b01557dd0738d0397f13a6ca55ba44c548d3ebafd9f70e64a7f232b0"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">movies</span></span></span><a class="headerlink" href="#_CPPv4N2nw9PathAlias6moviesE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp enumerator">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw9PathAlias5musicE">
-<span id="_CPPv3N2nw9PathAlias5musicE"></span><span id="_CPPv2N2nw9PathAlias5musicE"></span><span class="target" id="namespacenw_1a2c53a3257b01557dd0738d0397f13a6ca18d6769919266cd0bd6cd78aa405d5d0"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">music</span></span></span><a class="headerlink" href="#_CPPv4N2nw9PathAlias5musicE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw9PathAlias5musicE"></span><span id="_CPPv2N2nw9PathAlias5musicE"></span><span class="target" id="namespacenw_1a2c53a3257b01557dd0738d0397f13a6ca18d6769919266cd0bd6cd78aa405d5d0"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">music</span></span></span><a class="headerlink" href="#_CPPv4N2nw9PathAlias5musicE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp enumerator">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw9PathAlias6nwsyncE">
-<span id="_CPPv3N2nw9PathAlias6nwsyncE"></span><span id="_CPPv2N2nw9PathAlias6nwsyncE"></span><span class="target" id="namespacenw_1a2c53a3257b01557dd0738d0397f13a6ca0ff5ddff2ed92860894bb7c041b44131"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">nwsync</span></span></span><a class="headerlink" href="#_CPPv4N2nw9PathAlias6nwsyncE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw9PathAlias6nwsyncE"></span><span id="_CPPv2N2nw9PathAlias6nwsyncE"></span><span class="target" id="namespacenw_1a2c53a3257b01557dd0738d0397f13a6ca0ff5ddff2ed92860894bb7c041b44131"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">nwsync</span></span></span><a class="headerlink" href="#_CPPv4N2nw9PathAlias6nwsyncE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp enumerator">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw9PathAlias14oldservervaultE">
-<span id="_CPPv3N2nw9PathAlias14oldservervaultE"></span><span id="_CPPv2N2nw9PathAlias14oldservervaultE"></span><span class="target" id="namespacenw_1a2c53a3257b01557dd0738d0397f13a6ca629fb573792bdbebff5667880613b6f0"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">oldservervault</span></span></span><a class="headerlink" href="#_CPPv4N2nw9PathAlias14oldservervaultE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw9PathAlias14oldservervaultE"></span><span id="_CPPv2N2nw9PathAlias14oldservervaultE"></span><span class="target" id="namespacenw_1a2c53a3257b01557dd0738d0397f13a6ca629fb573792bdbebff5667880613b6f0"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">oldservervault</span></span></span><a class="headerlink" href="#_CPPv4N2nw9PathAlias14oldservervaultE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp enumerator">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw9PathAlias8overrideE">
-<span id="_CPPv3N2nw9PathAlias8overrideE"></span><span id="_CPPv2N2nw9PathAlias8overrideE"></span><span class="target" id="namespacenw_1a2c53a3257b01557dd0738d0397f13a6cae3b3f56615d1e5f2608d2f1130a7ef54"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">override</span></span></span><a class="headerlink" href="#_CPPv4N2nw9PathAlias8overrideE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw9PathAlias8overrideE"></span><span id="_CPPv2N2nw9PathAlias8overrideE"></span><span class="target" id="namespacenw_1a2c53a3257b01557dd0738d0397f13a6cae3b3f56615d1e5f2608d2f1130a7ef54"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">override</span></span></span><a class="headerlink" href="#_CPPv4N2nw9PathAlias8overrideE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp enumerator">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw9PathAlias5patchE">
-<span id="_CPPv3N2nw9PathAlias5patchE"></span><span id="_CPPv2N2nw9PathAlias5patchE"></span><span class="target" id="namespacenw_1a2c53a3257b01557dd0738d0397f13a6cae5c5e6dae38b284e8cf0bd1fb0efac03"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">patch</span></span></span><a class="headerlink" href="#_CPPv4N2nw9PathAlias5patchE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw9PathAlias5patchE"></span><span id="_CPPv2N2nw9PathAlias5patchE"></span><span class="target" id="namespacenw_1a2c53a3257b01557dd0738d0397f13a6cae5c5e6dae38b284e8cf0bd1fb0efac03"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">patch</span></span></span><a class="headerlink" href="#_CPPv4N2nw9PathAlias5patchE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp enumerator">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw9PathAlias9portraitsE">
-<span id="_CPPv3N2nw9PathAlias9portraitsE"></span><span id="_CPPv2N2nw9PathAlias9portraitsE"></span><span class="target" id="namespacenw_1a2c53a3257b01557dd0738d0397f13a6ca0e1a709413cbdb0ef932bd78cb270c4b"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">portraits</span></span></span><a class="headerlink" href="#_CPPv4N2nw9PathAlias9portraitsE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw9PathAlias9portraitsE"></span><span id="_CPPv2N2nw9PathAlias9portraitsE"></span><span class="target" id="namespacenw_1a2c53a3257b01557dd0738d0397f13a6ca0e1a709413cbdb0ef932bd78cb270c4b"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">portraits</span></span></span><a class="headerlink" href="#_CPPv4N2nw9PathAlias9portraitsE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp enumerator">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw9PathAlias5savesE">
-<span id="_CPPv3N2nw9PathAlias5savesE"></span><span id="_CPPv2N2nw9PathAlias5savesE"></span><span class="target" id="namespacenw_1a2c53a3257b01557dd0738d0397f13a6cac030b16ec75c569b7fe705cf52c90013"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">saves</span></span></span><a class="headerlink" href="#_CPPv4N2nw9PathAlias5savesE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw9PathAlias5savesE"></span><span id="_CPPv2N2nw9PathAlias5savesE"></span><span class="target" id="namespacenw_1a2c53a3257b01557dd0738d0397f13a6cac030b16ec75c569b7fe705cf52c90013"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">saves</span></span></span><a class="headerlink" href="#_CPPv4N2nw9PathAlias5savesE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp enumerator">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw9PathAlias11screenshotsE">
-<span id="_CPPv3N2nw9PathAlias11screenshotsE"></span><span id="_CPPv2N2nw9PathAlias11screenshotsE"></span><span class="target" id="namespacenw_1a2c53a3257b01557dd0738d0397f13a6ca4b3cdc4cb815dfa317ae58526612f4b8"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">screenshots</span></span></span><a class="headerlink" href="#_CPPv4N2nw9PathAlias11screenshotsE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw9PathAlias11screenshotsE"></span><span id="_CPPv2N2nw9PathAlias11screenshotsE"></span><span class="target" id="namespacenw_1a2c53a3257b01557dd0738d0397f13a6ca4b3cdc4cb815dfa317ae58526612f4b8"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">screenshots</span></span></span><a class="headerlink" href="#_CPPv4N2nw9PathAlias11screenshotsE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp enumerator">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw9PathAlias11servervaultE">
-<span id="_CPPv3N2nw9PathAlias11servervaultE"></span><span id="_CPPv2N2nw9PathAlias11servervaultE"></span><span class="target" id="namespacenw_1a2c53a3257b01557dd0738d0397f13a6ca480da6f547243137ba3700c90195dd71"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">servervault</span></span></span><a class="headerlink" href="#_CPPv4N2nw9PathAlias11servervaultE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw9PathAlias11servervaultE"></span><span id="_CPPv2N2nw9PathAlias11servervaultE"></span><span class="target" id="namespacenw_1a2c53a3257b01557dd0738d0397f13a6ca480da6f547243137ba3700c90195dd71"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">servervault</span></span></span><a class="headerlink" href="#_CPPv4N2nw9PathAlias11servervaultE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp enumerator">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw9PathAlias4tempE">
-<span id="_CPPv3N2nw9PathAlias4tempE"></span><span id="_CPPv2N2nw9PathAlias4tempE"></span><span class="target" id="namespacenw_1a2c53a3257b01557dd0738d0397f13a6ca3d801aa532c1cec3ee82d87a99fdf63f"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">temp</span></span></span><a class="headerlink" href="#_CPPv4N2nw9PathAlias4tempE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw9PathAlias4tempE"></span><span id="_CPPv2N2nw9PathAlias4tempE"></span><span class="target" id="namespacenw_1a2c53a3257b01557dd0738d0397f13a6ca3d801aa532c1cec3ee82d87a99fdf63f"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">temp</span></span></span><a class="headerlink" href="#_CPPv4N2nw9PathAlias4tempE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp enumerator">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw9PathAlias10tempclientE">
-<span id="_CPPv3N2nw9PathAlias10tempclientE"></span><span id="_CPPv2N2nw9PathAlias10tempclientE"></span><span class="target" id="namespacenw_1a2c53a3257b01557dd0738d0397f13a6ca7e0cfbddb73b0829ce6fc3cc521acb58"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">tempclient</span></span></span><a class="headerlink" href="#_CPPv4N2nw9PathAlias10tempclientE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw9PathAlias10tempclientE"></span><span id="_CPPv2N2nw9PathAlias10tempclientE"></span><span class="target" id="namespacenw_1a2c53a3257b01557dd0738d0397f13a6ca7e0cfbddb73b0829ce6fc3cc521acb58"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">tempclient</span></span></span><a class="headerlink" href="#_CPPv4N2nw9PathAlias10tempclientE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp enumerator">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw9PathAlias3tlkE">
-<span id="_CPPv3N2nw9PathAlias3tlkE"></span><span id="_CPPv2N2nw9PathAlias3tlkE"></span><span class="target" id="namespacenw_1a2c53a3257b01557dd0738d0397f13a6ca4693d86cb83fafc74fbed1b08fc95782"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">tlk</span></span></span><a class="headerlink" href="#_CPPv4N2nw9PathAlias3tlkE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw9PathAlias3tlkE"></span><span id="_CPPv2N2nw9PathAlias3tlkE"></span><span class="target" id="namespacenw_1a2c53a3257b01557dd0738d0397f13a6ca4693d86cb83fafc74fbed1b08fc95782"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">tlk</span></span></span><a class="headerlink" href="#_CPPv4N2nw9PathAlias3tlkE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp enumerator">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw9PathAlias4userE">
-<span id="_CPPv3N2nw9PathAlias4userE"></span><span id="_CPPv2N2nw9PathAlias4userE"></span><span class="target" id="namespacenw_1a2c53a3257b01557dd0738d0397f13a6caee11cbb19052e40b07aac0ca060c23ee"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">user</span></span></span><a class="headerlink" href="#_CPPv4N2nw9PathAlias4userE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw9PathAlias4userE"></span><span id="_CPPv2N2nw9PathAlias4userE"></span><span class="target" id="namespacenw_1a2c53a3257b01557dd0738d0397f13a6caee11cbb19052e40b07aac0ca060c23ee"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">user</span></span></span><a class="headerlink" href="#_CPPv4N2nw9PathAlias4userE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 </dd></dl>
 
-</div>
+</section>
 
 
            </div>

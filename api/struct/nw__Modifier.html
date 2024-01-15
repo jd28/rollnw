@@ -1,20 +1,24 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html5" lang="en" data-content_root="../../">
 <head>
-  <meta charset="utf-8" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>nw::Modifier &mdash; rollNW  documentation</title>
-      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
-      <link rel="stylesheet" href="../../_static/tabs.css" type="text/css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="../../_static/tabs.css?v=a5c4661c" />
+
+  
   <!--[if lt IE 9]>
     <script src="../../_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
-        <script src="../../_static/jquery.js"></script>
-        <script src="../../_static/underscore.js"></script>
-        <script src="../../_static/doctools.js"></script>
+        <script src="../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+        <script src="../../_static/doctools.js?v=888ff710"></script>
+        <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
@@ -142,7 +146,19 @@
 <li class="toctree-l2"><a class="reference internal" href="nw__Lock.html">nw::Lock</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__MasterFeat.html">nw::MasterFeat</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__MasterFeatRegistry.html">nw::MasterFeatRegistry</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">nw::Modifier</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">nw::Modifier</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#_CPPv4N2nw8ModifierE"><code class="docutils literal notranslate"><span class="pre">Modifier</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw8Modifier4typeE"><code class="docutils literal notranslate"><span class="pre">Modifier::type</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw8Modifier5inputE"><code class="docutils literal notranslate"><span class="pre">Modifier::input</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw8Modifier6taggedE"><code class="docutils literal notranslate"><span class="pre">Modifier::tagged</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw8Modifier6sourceE"><code class="docutils literal notranslate"><span class="pre">Modifier::source</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw8Modifier11requirementE"><code class="docutils literal notranslate"><span class="pre">Modifier::requirement</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw8Modifier6versusE"><code class="docutils literal notranslate"><span class="pre">Modifier::versus</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw8Modifier7subtypeE"><code class="docutils literal notranslate"><span class="pre">Modifier::subtype</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="nw__ModifierRegistry.html">nw::ModifierRegistry</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__ModifierType.html">nw::ModifierType</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Module.html">nw::Module</a></li>
@@ -358,52 +374,52 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <div class="section" id="nw-modifier">
-<h1>nw::Modifier<a class="headerlink" href="#nw-modifier" title="Permalink to this headline"></a></h1>
+  <section id="nw-modifier">
+<h1>nw::Modifier<a class="headerlink" href="#nw-modifier" title="Link to this heading"></a></h1>
 <dl class="cpp struct">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw8ModifierE">
-<span id="_CPPv3N2nw8ModifierE"></span><span id="_CPPv2N2nw8ModifierE"></span><span id="nw::Modifier"></span><span class="target" id="structnw_1_1_modifier"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Modifier</span></span></span><a class="headerlink" href="#_CPPv4N2nw8ModifierE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw8ModifierE"></span><span id="_CPPv2N2nw8ModifierE"></span><span id="nw::Modifier"></span><span class="target" id="structnw_1_1_modifier"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Modifier</span></span></span><a class="headerlink" href="#_CPPv4N2nw8ModifierE" title="Link to this definition"></a><br /></dt>
 <dd><div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw8Modifier4typeE">
-<span id="_CPPv3N2nw8Modifier4typeE"></span><span id="_CPPv2N2nw8Modifier4typeE"></span><span id="nw::Modifier::type__ModifierType"></span><span class="target" id="structnw_1_1_modifier_1a030e7e2d14d5cdacf5d32d5b1494020c"></span><a class="reference internal" href="nw__ModifierType.html#_CPPv4N2nw12ModifierTypeE" title="nw::ModifierType"><span class="n"><span class="pre">ModifierType</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">type</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="nw__ModifierType.html#_CPPv4N2nw12ModifierTypeE" title="nw::ModifierType"><span class="n"><span class="pre">ModifierType</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="nw__ModifierType.html#_CPPv4N2nw12ModifierType7invalidEv" title="nw::ModifierType::invalid"><span class="n"><span class="pre">invalid</span></span></a><span class="p"><span class="pre">(</span></span><span class="p"><span class="pre">)</span></span><a class="headerlink" href="#_CPPv4N2nw8Modifier4typeE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw8Modifier4typeE"></span><span id="_CPPv2N2nw8Modifier4typeE"></span><span id="nw::Modifier::type__ModifierType"></span><span class="target" id="structnw_1_1_modifier_1a030e7e2d14d5cdacf5d32d5b1494020c"></span><a class="reference internal" href="nw__ModifierType.html#_CPPv4N2nw12ModifierTypeE" title="nw::ModifierType"><span class="n"><span class="pre">ModifierType</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">type</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="nw__ModifierType.html#_CPPv4N2nw12ModifierTypeE" title="nw::ModifierType"><span class="n"><span class="pre">ModifierType</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="nw__ModifierType.html#_CPPv4N2nw12ModifierType7invalidEv" title="nw::ModifierType::invalid"><span class="n"><span class="pre">invalid</span></span></a><span class="p"><span class="pre">(</span></span><span class="p"><span class="pre">)</span></span><a class="headerlink" href="#_CPPv4N2nw8Modifier4typeE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw8Modifier5inputE">
-<span id="_CPPv3N2nw8Modifier5inputE"></span><span id="_CPPv2N2nw8Modifier5inputE"></span><span id="nw::Modifier::input__ModifierVariant"></span><span class="target" id="structnw_1_1_modifier_1a69d99a02010e721d6508ed82f1be3f59"></span><a class="reference internal" href="../typedef/nw__ModifierVariant.html#_CPPv4N2nw15ModifierVariantE" title="nw::ModifierVariant"><span class="n"><span class="pre">ModifierVariant</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">input</span></span></span><a class="headerlink" href="#_CPPv4N2nw8Modifier5inputE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw8Modifier5inputE"></span><span id="_CPPv2N2nw8Modifier5inputE"></span><span id="nw::Modifier::input__ModifierVariant"></span><span class="target" id="structnw_1_1_modifier_1a69d99a02010e721d6508ed82f1be3f59"></span><a class="reference internal" href="../typedef/nw__ModifierVariant.html#_CPPv4N2nw15ModifierVariantE" title="nw::ModifierVariant"><span class="n"><span class="pre">ModifierVariant</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">input</span></span></span><a class="headerlink" href="#_CPPv4N2nw8Modifier5inputE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw8Modifier6taggedE">
-<span id="_CPPv3N2nw8Modifier6taggedE"></span><span id="_CPPv2N2nw8Modifier6taggedE"></span><span id="nw::Modifier::tagged__InternedString"></span><span class="target" id="structnw_1_1_modifier_1a5bcfab04dbcdf62d79d34f5d45e1bed9"></span><a class="reference internal" href="nw__InternedString.html#_CPPv4N2nw14InternedStringE" title="nw::InternedString"><span class="n"><span class="pre">InternedString</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">tagged</span></span></span><a class="headerlink" href="#_CPPv4N2nw8Modifier6taggedE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw8Modifier6taggedE"></span><span id="_CPPv2N2nw8Modifier6taggedE"></span><span id="nw::Modifier::tagged__InternedString"></span><span class="target" id="structnw_1_1_modifier_1a5bcfab04dbcdf62d79d34f5d45e1bed9"></span><a class="reference internal" href="nw__InternedString.html#_CPPv4N2nw14InternedStringE" title="nw::InternedString"><span class="n"><span class="pre">InternedString</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">tagged</span></span></span><a class="headerlink" href="#_CPPv4N2nw8Modifier6taggedE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw8Modifier6sourceE">
-<span id="_CPPv3N2nw8Modifier6sourceE"></span><span id="_CPPv2N2nw8Modifier6sourceE"></span><span id="nw::Modifier::source__ModifierSource"></span><span class="target" id="structnw_1_1_modifier_1aeaf96c32dfc107e17cf137c11ced343d"></span><span class="n"><span class="pre">ModifierSource</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">source</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">ModifierSource</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">unknown</span></span><a class="headerlink" href="#_CPPv4N2nw8Modifier6sourceE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw8Modifier6sourceE"></span><span id="_CPPv2N2nw8Modifier6sourceE"></span><span id="nw::Modifier::source__ModifierSource"></span><span class="target" id="structnw_1_1_modifier_1aeaf96c32dfc107e17cf137c11ced343d"></span><span class="n"><span class="pre">ModifierSource</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">source</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">ModifierSource</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">unknown</span></span><a class="headerlink" href="#_CPPv4N2nw8Modifier6sourceE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw8Modifier11requirementE">
-<span id="_CPPv3N2nw8Modifier11requirementE"></span><span id="_CPPv2N2nw8Modifier11requirementE"></span><span id="nw::Modifier::requirement__Requirement"></span><span class="target" id="structnw_1_1_modifier_1a8ba3cb6f9a44cec75d88b929d5467cde"></span><a class="reference internal" href="nw__Requirement.html#_CPPv4N2nw11RequirementE" title="nw::Requirement"><span class="n"><span class="pre">Requirement</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">requirement</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="nw__Requirement.html#_CPPv4N2nw11RequirementE" title="nw::Requirement"><span class="n"><span class="pre">Requirement</span></span></a><span class="p"><span class="pre">{</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N2nw8Modifier11requirementE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw8Modifier11requirementE"></span><span id="_CPPv2N2nw8Modifier11requirementE"></span><span id="nw::Modifier::requirement__Requirement"></span><span class="target" id="structnw_1_1_modifier_1a8ba3cb6f9a44cec75d88b929d5467cde"></span><a class="reference internal" href="nw__Requirement.html#_CPPv4N2nw11RequirementE" title="nw::Requirement"><span class="n"><span class="pre">Requirement</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">requirement</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="nw__Requirement.html#_CPPv4N2nw11RequirementE" title="nw::Requirement"><span class="n"><span class="pre">Requirement</span></span></a><span class="p"><span class="pre">{</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N2nw8Modifier11requirementE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw8Modifier6versusE">
-<span id="_CPPv3N2nw8Modifier6versusE"></span><span id="_CPPv2N2nw8Modifier6versusE"></span><span id="nw::Modifier::versus__Versus"></span><span class="target" id="structnw_1_1_modifier_1a4dff86336597346c9bf7ed5a4081db6a"></span><a class="reference internal" href="nw__Versus.html#_CPPv4N2nw6VersusE" title="nw::Versus"><span class="n"><span class="pre">Versus</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">versus</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N2nw8Modifier6versusE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw8Modifier6versusE"></span><span id="_CPPv2N2nw8Modifier6versusE"></span><span id="nw::Modifier::versus__Versus"></span><span class="target" id="structnw_1_1_modifier_1a4dff86336597346c9bf7ed5a4081db6a"></span><a class="reference internal" href="nw__Versus.html#_CPPv4N2nw6VersusE" title="nw::Versus"><span class="n"><span class="pre">Versus</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">versus</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N2nw8Modifier6versusE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw8Modifier7subtypeE">
-<span id="_CPPv3N2nw8Modifier7subtypeE"></span><span id="_CPPv2N2nw8Modifier7subtypeE"></span><span id="nw::Modifier::subtype__i"></span><span class="target" id="structnw_1_1_modifier_1a2e3b91bf0313b5d0cd81de690653602f"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">subtype</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="o"><span class="pre">-</span></span><span class="m"><span class="pre">1</span></span><a class="headerlink" href="#_CPPv4N2nw8Modifier7subtypeE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw8Modifier7subtypeE"></span><span id="_CPPv2N2nw8Modifier7subtypeE"></span><span id="nw::Modifier::subtype__i"></span><span class="target" id="structnw_1_1_modifier_1a2e3b91bf0313b5d0cd81de690653602f"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">subtype</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="o"><span class="pre">-</span></span><span class="m"><span class="pre">1</span></span><a class="headerlink" href="#_CPPv4N2nw8Modifier7subtypeE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 </div>
 </dd></dl>
 
-</div>
+</section>
 
 
            </div>

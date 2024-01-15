@@ -1,20 +1,24 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html5" lang="en" data-content_root="../../">
 <head>
-  <meta charset="utf-8" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>nw::AreaScripts &mdash; rollNW  documentation</title>
-      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
-      <link rel="stylesheet" href="../../_static/tabs.css" type="text/css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="../../_static/tabs.css?v=a5c4661c" />
+
+  
   <!--[if lt IE 9]>
     <script src="../../_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
-        <script src="../../_static/jquery.js"></script>
-        <script src="../../_static/underscore.js"></script>
-        <script src="../../_static/doctools.js"></script>
+        <script src="../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+        <script src="../../_static/doctools.js?v=888ff710"></script>
+        <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
@@ -65,7 +69,19 @@
 <li class="toctree-l2"><a class="reference internal" href="nw__AbilityInfo.html">nw::AbilityInfo</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Appearance.html">nw::Appearance</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Area.html">nw::Area</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">nw::AreaScripts</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">nw::AreaScripts</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#_CPPv4N2nw11AreaScriptsE"><code class="docutils literal notranslate"><span class="pre">AreaScripts</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw11AreaScripts11AreaScriptsEv"><code class="docutils literal notranslate"><span class="pre">AreaScripts::AreaScripts()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw11AreaScripts9from_jsonERKN8nlohmann4jsonE"><code class="docutils literal notranslate"><span class="pre">AreaScripts::from_json()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw11AreaScripts7to_jsonEv"><code class="docutils literal notranslate"><span class="pre">AreaScripts::to_json()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw11AreaScripts8on_enterE"><code class="docutils literal notranslate"><span class="pre">AreaScripts::on_enter</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw11AreaScripts7on_exitE"><code class="docutils literal notranslate"><span class="pre">AreaScripts::on_exit</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw11AreaScripts12on_heartbeatE"><code class="docutils literal notranslate"><span class="pre">AreaScripts::on_heartbeat</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw11AreaScripts15on_user_definedE"><code class="docutils literal notranslate"><span class="pre">AreaScripts::on_user_defined</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="nw__AreaWeather.html">nw::AreaWeather</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__AttackData.html">nw::AttackData</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__BaseItem.html">nw::BaseItem</a></li>
@@ -358,26 +374,26 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <div class="section" id="nw-areascripts">
-<h1>nw::AreaScripts<a class="headerlink" href="#nw-areascripts" title="Permalink to this headline"></a></h1>
+  <section id="nw-areascripts">
+<h1>nw::AreaScripts<a class="headerlink" href="#nw-areascripts" title="Link to this heading"></a></h1>
 <dl class="cpp struct">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw11AreaScriptsE">
-<span id="_CPPv3N2nw11AreaScriptsE"></span><span id="_CPPv2N2nw11AreaScriptsE"></span><span id="nw::AreaScripts"></span><span class="target" id="structnw_1_1_area_scripts"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">AreaScripts</span></span></span><a class="headerlink" href="#_CPPv4N2nw11AreaScriptsE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw11AreaScriptsE"></span><span id="_CPPv2N2nw11AreaScriptsE"></span><span id="nw::AreaScripts"></span><span class="target" id="structnw_1_1_area_scripts"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">AreaScripts</span></span></span><a class="headerlink" href="#_CPPv4N2nw11AreaScriptsE" title="Link to this definition"></a><br /></dt>
 <dd><div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw11AreaScripts11AreaScriptsEv">
-<span id="_CPPv3N2nw11AreaScripts11AreaScriptsEv"></span><span id="_CPPv2N2nw11AreaScripts11AreaScriptsEv"></span><span id="nw::AreaScripts::AreaScripts"></span><span class="target" id="structnw_1_1_area_scripts_1a12b344215ce7d89df07ed795c2457b87"></span><span class="sig-name descname"><span class="n"><span class="pre">AreaScripts</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">default</span></span><a class="headerlink" href="#_CPPv4N2nw11AreaScripts11AreaScriptsEv" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw11AreaScripts11AreaScriptsEv"></span><span id="_CPPv2N2nw11AreaScripts11AreaScriptsEv"></span><span id="nw::AreaScripts::AreaScripts"></span><span class="target" id="structnw_1_1_area_scripts_1a12b344215ce7d89df07ed795c2457b87"></span><span class="sig-name descname"><span class="n"><span class="pre">AreaScripts</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">default</span></span><a class="headerlink" href="#_CPPv4N2nw11AreaScripts11AreaScriptsEv" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw11AreaScripts9from_jsonERKN8nlohmann4jsonE">
-<span id="_CPPv3N2nw11AreaScripts9from_jsonERKN8nlohmann4jsonE"></span><span id="_CPPv2N2nw11AreaScripts9from_jsonERKN8nlohmann4jsonE"></span><span id="nw::AreaScripts::from_json__nlohmann::jsonCR"></span><span class="target" id="structnw_1_1_area_scripts_1aca023b4dbf90d97fce30af3ed64fd78b"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">from_json</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">nlohmann</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">json</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">archive</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw11AreaScripts9from_jsonERKN8nlohmann4jsonE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw11AreaScripts9from_jsonERKN8nlohmann4jsonE"></span><span id="_CPPv2N2nw11AreaScripts9from_jsonERKN8nlohmann4jsonE"></span><span id="nw::AreaScripts::from_json__nlohmann::jsonCR"></span><span class="target" id="structnw_1_1_area_scripts_1aca023b4dbf90d97fce30af3ed64fd78b"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">from_json</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">nlohmann</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">json</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">archive</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw11AreaScripts9from_jsonERKN8nlohmann4jsonE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4NK2nw11AreaScripts7to_jsonEv">
-<span id="_CPPv3NK2nw11AreaScripts7to_jsonEv"></span><span id="_CPPv2NK2nw11AreaScripts7to_jsonEv"></span><span id="nw::AreaScripts::to_jsonC"></span><span class="target" id="structnw_1_1_area_scripts_1a99bc5ceb33809a6a88656eb4e697f2cf"></span><span class="n"><span class="pre">nlohmann</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">json</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">to_json</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK2nw11AreaScripts7to_jsonEv" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3NK2nw11AreaScripts7to_jsonEv"></span><span id="_CPPv2NK2nw11AreaScripts7to_jsonEv"></span><span id="nw::AreaScripts::to_jsonC"></span><span class="target" id="structnw_1_1_area_scripts_1a99bc5ceb33809a6a88656eb4e697f2cf"></span><span class="n"><span class="pre">nlohmann</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">json</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">to_json</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK2nw11AreaScripts7to_jsonEv" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 </div>
@@ -385,28 +401,28 @@
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw11AreaScripts8on_enterE">
-<span id="_CPPv3N2nw11AreaScripts8on_enterE"></span><span id="_CPPv2N2nw11AreaScripts8on_enterE"></span><span id="nw::AreaScripts::on_enter__Resref"></span><span class="target" id="structnw_1_1_area_scripts_1a7d2c540e96f4308d629e1f430027666e"></span><a class="reference internal" href="nw__Resref.html#_CPPv4N2nw6ResrefE" title="nw::Resref"><span class="n"><span class="pre">Resref</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">on_enter</span></span></span><a class="headerlink" href="#_CPPv4N2nw11AreaScripts8on_enterE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw11AreaScripts8on_enterE"></span><span id="_CPPv2N2nw11AreaScripts8on_enterE"></span><span id="nw::AreaScripts::on_enter__Resref"></span><span class="target" id="structnw_1_1_area_scripts_1a7d2c540e96f4308d629e1f430027666e"></span><a class="reference internal" href="nw__Resref.html#_CPPv4N2nw6ResrefE" title="nw::Resref"><span class="n"><span class="pre">Resref</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">on_enter</span></span></span><a class="headerlink" href="#_CPPv4N2nw11AreaScripts8on_enterE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw11AreaScripts7on_exitE">
-<span id="_CPPv3N2nw11AreaScripts7on_exitE"></span><span id="_CPPv2N2nw11AreaScripts7on_exitE"></span><span id="nw::AreaScripts::on_exit__Resref"></span><span class="target" id="structnw_1_1_area_scripts_1a6a4193dcfdd9f6e1b31dbd020202cf4c"></span><a class="reference internal" href="nw__Resref.html#_CPPv4N2nw6ResrefE" title="nw::Resref"><span class="n"><span class="pre">Resref</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">on_exit</span></span></span><a class="headerlink" href="#_CPPv4N2nw11AreaScripts7on_exitE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw11AreaScripts7on_exitE"></span><span id="_CPPv2N2nw11AreaScripts7on_exitE"></span><span id="nw::AreaScripts::on_exit__Resref"></span><span class="target" id="structnw_1_1_area_scripts_1a6a4193dcfdd9f6e1b31dbd020202cf4c"></span><a class="reference internal" href="nw__Resref.html#_CPPv4N2nw6ResrefE" title="nw::Resref"><span class="n"><span class="pre">Resref</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">on_exit</span></span></span><a class="headerlink" href="#_CPPv4N2nw11AreaScripts7on_exitE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw11AreaScripts12on_heartbeatE">
-<span id="_CPPv3N2nw11AreaScripts12on_heartbeatE"></span><span id="_CPPv2N2nw11AreaScripts12on_heartbeatE"></span><span id="nw::AreaScripts::on_heartbeat__Resref"></span><span class="target" id="structnw_1_1_area_scripts_1a55cc7a51fcfda854a6326feb9e488e78"></span><a class="reference internal" href="nw__Resref.html#_CPPv4N2nw6ResrefE" title="nw::Resref"><span class="n"><span class="pre">Resref</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">on_heartbeat</span></span></span><a class="headerlink" href="#_CPPv4N2nw11AreaScripts12on_heartbeatE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw11AreaScripts12on_heartbeatE"></span><span id="_CPPv2N2nw11AreaScripts12on_heartbeatE"></span><span id="nw::AreaScripts::on_heartbeat__Resref"></span><span class="target" id="structnw_1_1_area_scripts_1a55cc7a51fcfda854a6326feb9e488e78"></span><a class="reference internal" href="nw__Resref.html#_CPPv4N2nw6ResrefE" title="nw::Resref"><span class="n"><span class="pre">Resref</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">on_heartbeat</span></span></span><a class="headerlink" href="#_CPPv4N2nw11AreaScripts12on_heartbeatE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw11AreaScripts15on_user_definedE">
-<span id="_CPPv3N2nw11AreaScripts15on_user_definedE"></span><span id="_CPPv2N2nw11AreaScripts15on_user_definedE"></span><span id="nw::AreaScripts::on_user_defined__Resref"></span><span class="target" id="structnw_1_1_area_scripts_1ae3d292a72db82b800ec8ca7d685bf1be"></span><a class="reference internal" href="nw__Resref.html#_CPPv4N2nw6ResrefE" title="nw::Resref"><span class="n"><span class="pre">Resref</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">on_user_defined</span></span></span><a class="headerlink" href="#_CPPv4N2nw11AreaScripts15on_user_definedE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw11AreaScripts15on_user_definedE"></span><span id="_CPPv2N2nw11AreaScripts15on_user_definedE"></span><span id="nw::AreaScripts::on_user_defined__Resref"></span><span class="target" id="structnw_1_1_area_scripts_1ae3d292a72db82b800ec8ca7d685bf1be"></span><a class="reference internal" href="nw__Resref.html#_CPPv4N2nw6ResrefE" title="nw::Resref"><span class="n"><span class="pre">Resref</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">on_user_defined</span></span></span><a class="headerlink" href="#_CPPv4N2nw11AreaScripts15on_user_definedE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 </div>
 </dd></dl>
 
-</div>
+</section>
 
 
            </div>

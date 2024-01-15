@@ -1,20 +1,24 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html5" lang="en" data-content_root="../">
 <head>
-  <meta charset="utf-8" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>serialization &mdash; rollNW  documentation</title>
-      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
-      <link rel="stylesheet" href="../_static/tabs.css" type="text/css" />
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="../_static/tabs.css?v=a5c4661c" />
+
+  
   <!--[if lt IE 9]>
     <script src="../_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
-        <script src="../_static/jquery.js"></script>
-        <script src="../_static/underscore.js"></script>
-        <script src="../_static/doctools.js"></script>
+        <script src="../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../_static/documentation_options.js?v=5929fcd5"></script>
+        <script src="../_static/doctools.js?v=888ff710"></script>
+        <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
@@ -126,10 +130,10 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <div class="section" id="serialization">
-<h1>serialization<a class="headerlink" href="#serialization" title="Permalink to this headline"></a></h1>
-<div class="section" id="definitions">
-<h2>Definitions<a class="headerlink" href="#definitions" title="Permalink to this headline"></a></h2>
+  <section id="serialization">
+<h1>serialization<a class="headerlink" href="#serialization" title="Link to this heading"></a></h1>
+<section id="definitions">
+<h2>Definitions<a class="headerlink" href="#definitions" title="Link to this heading"></a></h2>
 <ul class="simple">
 <li><p><strong>profile</strong> - NWN has three different (de)serialization profiles:</p>
 <ul>
@@ -177,9 +181,9 @@ the JSON into another language, or a dynamic language that can
 construct arbitrary objects from JSON, the usage is identical or
 analogous to the C++ objects.</p></li>
 </ul>
-</div>
-<div class="section" id="examples">
-<h2>Examples<a class="headerlink" href="#examples" title="Permalink to this headline"></a></h2>
+</section>
+<section id="examples">
+<h2>Examples<a class="headerlink" href="#examples" title="Link to this heading"></a></h2>
 <p><strong>Example - How to build your own GFF</strong></p>
 <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">nw</span><span class="o">::</span><span class="n">GffBuilder</span><span class="w"> </span><span class="n">gff</span><span class="p">{</span><span class="s">&quot;GFF&quot;</span><span class="p">};</span>
 
@@ -205,10 +209,10 @@ analogous to the C++ objects.</p></li>
 <span class="n">gff</span><span class="p">.</span><span class="n">write_to</span><span class="p">(</span><span class="s">&quot;mygff.gff&quot;</span><span class="p">);</span>
 </pre></div>
 </div>
-</div>
+</section>
 <hr class="docutils" />
-<div class="section" id="sample-rollnw-json-serialization-format">
-<h2>Sample rollnw JSON serialization format<a class="headerlink" href="#sample-rollnw-json-serialization-format" title="Permalink to this headline"></a></h2>
+<section id="sample-rollnw-json-serialization-format">
+<h2>Sample rollnw JSON serialization format<a class="headerlink" href="#sample-rollnw-json-serialization-format" title="Link to this heading"></a></h2>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
 <span class="w">    </span><span class="nt">&quot;$type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;UTC&quot;</span><span class="p">,</span>
 <span class="w">    </span><span class="nt">&quot;$version&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
@@ -497,8 +501,8 @@ analogous to the C++ objects.</p></li>
 <span class="p">}</span>
 </pre></div>
 </div>
-</div>
-</div>
+</section>
+</section>
 
 
            </div>

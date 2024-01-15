@@ -1,20 +1,24 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html5" lang="en" data-content_root="../../">
 <head>
-  <meta charset="utf-8" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>nw::AttackResult &mdash; rollNW  documentation</title>
-      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
-      <link rel="stylesheet" href="../../_static/tabs.css" type="text/css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="../../_static/tabs.css?v=a5c4661c" />
+
+  
   <!--[if lt IE 9]>
     <script src="../../_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
-        <script src="../../_static/jquery.js"></script>
-        <script src="../../_static/underscore.js"></script>
-        <script src="../../_static/doctools.js"></script>
+        <script src="../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+        <script src="../../_static/doctools.js?v=888ff710"></script>
+        <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
@@ -67,7 +71,19 @@
 <li class="toctree-l2"><a class="reference internal" href="nw__AlignmentFlags.html">nw::AlignmentFlags</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__AlignmentType.html">nw::AlignmentType</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__AreaFlags.html">nw::AreaFlags</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">nw::AttackResult</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">nw::AttackResult</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#_CPPv4N2nw12AttackResultE"><code class="docutils literal notranslate"><span class="pre">AttackResult</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw12AttackResult19hit_by_auto_successE"><code class="docutils literal notranslate"><span class="pre">AttackResult::hit_by_auto_success</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw12AttackResult15hit_by_criticalE"><code class="docutils literal notranslate"><span class="pre">AttackResult::hit_by_critical</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw12AttackResult11hit_by_rollE"><code class="docutils literal notranslate"><span class="pre">AttackResult::hit_by_roll</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw12AttackResult17miss_by_auto_failE"><code class="docutils literal notranslate"><span class="pre">AttackResult::miss_by_auto_fail</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw12AttackResult19miss_by_concealmentE"><code class="docutils literal notranslate"><span class="pre">AttackResult::miss_by_concealment</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw12AttackResult19miss_by_miss_chanceE"><code class="docutils literal notranslate"><span class="pre">AttackResult::miss_by_miss_chance</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw12AttackResult12miss_by_rollE"><code class="docutils literal notranslate"><span class="pre">AttackResult::miss_by_roll</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="nw__DialogNodeType.html">nw::DialogNodeType</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__DoorAnimationState.html">nw::DoorAnimationState</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__EquipIndex.html">nw::EquipIndex</a></li>
@@ -153,50 +169,50 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <div class="section" id="nw-attackresult">
-<h1>nw::AttackResult<a class="headerlink" href="#nw-attackresult" title="Permalink to this headline"></a></h1>
+  <section id="nw-attackresult">
+<h1>nw::AttackResult<a class="headerlink" href="#nw-attackresult" title="Link to this heading"></a></h1>
 <dl class="cpp enum-class">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw12AttackResultE">
-<span id="_CPPv3N2nw12AttackResultE"></span><span id="_CPPv2N2nw12AttackResultE"></span><span class="target" id="namespacenw_1a8ac3948499f1f68182d758fb2761a43b"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">nw</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">AttackResult</span></span></span><a class="headerlink" href="#_CPPv4N2nw12AttackResultE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw12AttackResultE"></span><span id="_CPPv2N2nw12AttackResultE"></span><span class="target" id="namespacenw_1a8ac3948499f1f68182d758fb2761a43b"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">nw</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">AttackResult</span></span></span><a class="headerlink" href="#_CPPv4N2nw12AttackResultE" title="Link to this definition"></a><br /></dt>
 <dd><p><em>Values:</em></p>
 <dl class="cpp enumerator">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw12AttackResult19hit_by_auto_successE">
-<span id="_CPPv3N2nw12AttackResult19hit_by_auto_successE"></span><span id="_CPPv2N2nw12AttackResult19hit_by_auto_successE"></span><span class="target" id="namespacenw_1a8ac3948499f1f68182d758fb2761a43ba04f9e06a92f43db32fc5d14dab233192"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">hit_by_auto_success</span></span></span><a class="headerlink" href="#_CPPv4N2nw12AttackResult19hit_by_auto_successE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw12AttackResult19hit_by_auto_successE"></span><span id="_CPPv2N2nw12AttackResult19hit_by_auto_successE"></span><span class="target" id="namespacenw_1a8ac3948499f1f68182d758fb2761a43ba04f9e06a92f43db32fc5d14dab233192"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">hit_by_auto_success</span></span></span><a class="headerlink" href="#_CPPv4N2nw12AttackResult19hit_by_auto_successE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp enumerator">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw12AttackResult15hit_by_criticalE">
-<span id="_CPPv3N2nw12AttackResult15hit_by_criticalE"></span><span id="_CPPv2N2nw12AttackResult15hit_by_criticalE"></span><span class="target" id="namespacenw_1a8ac3948499f1f68182d758fb2761a43ba9a9bb39999ee0fb21babf9f9a84db1c3"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">hit_by_critical</span></span></span><a class="headerlink" href="#_CPPv4N2nw12AttackResult15hit_by_criticalE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw12AttackResult15hit_by_criticalE"></span><span id="_CPPv2N2nw12AttackResult15hit_by_criticalE"></span><span class="target" id="namespacenw_1a8ac3948499f1f68182d758fb2761a43ba9a9bb39999ee0fb21babf9f9a84db1c3"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">hit_by_critical</span></span></span><a class="headerlink" href="#_CPPv4N2nw12AttackResult15hit_by_criticalE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp enumerator">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw12AttackResult11hit_by_rollE">
-<span id="_CPPv3N2nw12AttackResult11hit_by_rollE"></span><span id="_CPPv2N2nw12AttackResult11hit_by_rollE"></span><span class="target" id="namespacenw_1a8ac3948499f1f68182d758fb2761a43bad08b2821eaf460a56b55ba3f7dfb3857"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">hit_by_roll</span></span></span><a class="headerlink" href="#_CPPv4N2nw12AttackResult11hit_by_rollE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw12AttackResult11hit_by_rollE"></span><span id="_CPPv2N2nw12AttackResult11hit_by_rollE"></span><span class="target" id="namespacenw_1a8ac3948499f1f68182d758fb2761a43bad08b2821eaf460a56b55ba3f7dfb3857"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">hit_by_roll</span></span></span><a class="headerlink" href="#_CPPv4N2nw12AttackResult11hit_by_rollE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp enumerator">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw12AttackResult17miss_by_auto_failE">
-<span id="_CPPv3N2nw12AttackResult17miss_by_auto_failE"></span><span id="_CPPv2N2nw12AttackResult17miss_by_auto_failE"></span><span class="target" id="namespacenw_1a8ac3948499f1f68182d758fb2761a43ba956d6f54901b0f461e47b81a2cd1bc76"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">miss_by_auto_fail</span></span></span><a class="headerlink" href="#_CPPv4N2nw12AttackResult17miss_by_auto_failE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw12AttackResult17miss_by_auto_failE"></span><span id="_CPPv2N2nw12AttackResult17miss_by_auto_failE"></span><span class="target" id="namespacenw_1a8ac3948499f1f68182d758fb2761a43ba956d6f54901b0f461e47b81a2cd1bc76"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">miss_by_auto_fail</span></span></span><a class="headerlink" href="#_CPPv4N2nw12AttackResult17miss_by_auto_failE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp enumerator">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw12AttackResult19miss_by_concealmentE">
-<span id="_CPPv3N2nw12AttackResult19miss_by_concealmentE"></span><span id="_CPPv2N2nw12AttackResult19miss_by_concealmentE"></span><span class="target" id="namespacenw_1a8ac3948499f1f68182d758fb2761a43ba98ce2b5fdbb1edbb8c618dcc7fe97c94"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">miss_by_concealment</span></span></span><a class="headerlink" href="#_CPPv4N2nw12AttackResult19miss_by_concealmentE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw12AttackResult19miss_by_concealmentE"></span><span id="_CPPv2N2nw12AttackResult19miss_by_concealmentE"></span><span class="target" id="namespacenw_1a8ac3948499f1f68182d758fb2761a43ba98ce2b5fdbb1edbb8c618dcc7fe97c94"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">miss_by_concealment</span></span></span><a class="headerlink" href="#_CPPv4N2nw12AttackResult19miss_by_concealmentE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp enumerator">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw12AttackResult19miss_by_miss_chanceE">
-<span id="_CPPv3N2nw12AttackResult19miss_by_miss_chanceE"></span><span id="_CPPv2N2nw12AttackResult19miss_by_miss_chanceE"></span><span class="target" id="namespacenw_1a8ac3948499f1f68182d758fb2761a43ba2291ec4b56b5fb3a900cc8e43c6fb1ac"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">miss_by_miss_chance</span></span></span><a class="headerlink" href="#_CPPv4N2nw12AttackResult19miss_by_miss_chanceE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw12AttackResult19miss_by_miss_chanceE"></span><span id="_CPPv2N2nw12AttackResult19miss_by_miss_chanceE"></span><span class="target" id="namespacenw_1a8ac3948499f1f68182d758fb2761a43ba2291ec4b56b5fb3a900cc8e43c6fb1ac"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">miss_by_miss_chance</span></span></span><a class="headerlink" href="#_CPPv4N2nw12AttackResult19miss_by_miss_chanceE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp enumerator">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw12AttackResult12miss_by_rollE">
-<span id="_CPPv3N2nw12AttackResult12miss_by_rollE"></span><span id="_CPPv2N2nw12AttackResult12miss_by_rollE"></span><span class="target" id="namespacenw_1a8ac3948499f1f68182d758fb2761a43baf407be19ce268573690582a9b3fa3b36"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">miss_by_roll</span></span></span><a class="headerlink" href="#_CPPv4N2nw12AttackResult12miss_by_rollE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw12AttackResult12miss_by_rollE"></span><span id="_CPPv2N2nw12AttackResult12miss_by_rollE"></span><span class="target" id="namespacenw_1a8ac3948499f1f68182d758fb2761a43baf407be19ce268573690582a9b3fa3b36"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">miss_by_roll</span></span></span><a class="headerlink" href="#_CPPv4N2nw12AttackResult12miss_by_rollE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 </dd></dl>
 
-</div>
+</section>
 
 
            </div>

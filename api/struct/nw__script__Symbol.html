@@ -1,20 +1,24 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html5" lang="en" data-content_root="../../">
 <head>
-  <meta charset="utf-8" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>nw::script::Symbol &mdash; rollNW  documentation</title>
-      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
-      <link rel="stylesheet" href="../../_static/tabs.css" type="text/css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="../../_static/tabs.css?v=a5c4661c" />
+
+  
   <!--[if lt IE 9]>
     <script src="../../_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
-        <script src="../../_static/jquery.js"></script>
-        <script src="../../_static/underscore.js"></script>
-        <script src="../../_static/doctools.js"></script>
+        <script src="../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+        <script src="../../_static/doctools.js?v=888ff710"></script>
+        <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
@@ -288,7 +292,19 @@
 <li class="toctree-l2"><a class="reference internal" href="nw__script__Statement.html">nw::script::Statement</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__StructDecl.html">nw::script::StructDecl</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__SwitchStatement.html">nw::script::SwitchStatement</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">nw::script::Symbol</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">nw::script::Symbol</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#_CPPv4N2nw6script6SymbolE"><code class="docutils literal notranslate"><span class="pre">Symbol</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6script6Symbol4nodeE"><code class="docutils literal notranslate"><span class="pre">Symbol::node</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6script6Symbol4declE"><code class="docutils literal notranslate"><span class="pre">Symbol::decl</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6script6Symbol7commentE"><code class="docutils literal notranslate"><span class="pre">Symbol::comment</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6script6Symbol4typeE"><code class="docutils literal notranslate"><span class="pre">Symbol::type</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6script6Symbol4kindE"><code class="docutils literal notranslate"><span class="pre">Symbol::kind</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6script6Symbol8providerE"><code class="docutils literal notranslate"><span class="pre">Symbol::provider</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6script6Symbol4viewE"><code class="docutils literal notranslate"><span class="pre">Symbol::view</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__Type.html">nw::script::Type</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__UnaryExpression.html">nw::script::UnaryExpression</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__VarDecl.html">nw::script::VarDecl</a></li>
@@ -358,60 +374,60 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <div class="section" id="nw-script-symbol">
-<h1>nw::script::Symbol<a class="headerlink" href="#nw-script-symbol" title="Permalink to this headline"></a></h1>
+  <section id="nw-script-symbol">
+<h1>nw::script::Symbol<a class="headerlink" href="#nw-script-symbol" title="Link to this heading"></a></h1>
 <dl class="cpp struct">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw6script6SymbolE">
-<span id="_CPPv3N2nw6script6SymbolE"></span><span id="_CPPv2N2nw6script6SymbolE"></span><span id="nw::script::Symbol"></span><span class="target" id="structnw_1_1script_1_1_symbol"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Symbol</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script6SymbolE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw6script6SymbolE"></span><span id="_CPPv2N2nw6script6SymbolE"></span><span id="nw::script::Symbol"></span><span class="target" id="structnw_1_1script_1_1_symbol"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Symbol</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script6SymbolE" title="Link to this definition"></a><br /></dt>
 <dd><p>Info regarding a particular symbol somewhere in a source file. </p>
 <div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw6script6Symbol4nodeE">
-<span id="_CPPv3N2nw6script6Symbol4nodeE"></span><span id="_CPPv2N2nw6script6Symbol4nodeE"></span><span id="nw::script::Symbol::node__AstNodeP"></span><span class="target" id="structnw_1_1script_1_1_symbol_1a2db6ecab7f672c207374100c192503e7"></span><a class="reference internal" href="nw__script__AstNode.html#_CPPv4N2nw6script7AstNodeE" title="nw::script::AstNode"><span class="n"><span class="pre">AstNode</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">node</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">nullptr</span></span><a class="headerlink" href="#_CPPv4N2nw6script6Symbol4nodeE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw6script6Symbol4nodeE"></span><span id="_CPPv2N2nw6script6Symbol4nodeE"></span><span id="nw::script::Symbol::node__AstNodeP"></span><span class="target" id="structnw_1_1script_1_1_symbol_1a2db6ecab7f672c207374100c192503e7"></span><a class="reference internal" href="nw__script__AstNode.html#_CPPv4N2nw6script7AstNodeE" title="nw::script::AstNode"><span class="n"><span class="pre">AstNode</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">node</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">nullptr</span></span><a class="headerlink" href="#_CPPv4N2nw6script6Symbol4nodeE" title="Link to this definition"></a><br /></dt>
 <dd><p><a class="reference internal" href="nw__script__AstNode.html#structnw_1_1script_1_1_ast_node"><span class="std std-ref">AstNode</span></a> if symbol is used in a variable expression. </p>
 </dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw6script6Symbol4declE">
-<span id="_CPPv3N2nw6script6Symbol4declE"></span><span id="_CPPv2N2nw6script6Symbol4declE"></span><span id="nw::script::Symbol::decl__DeclarationCP"></span><span class="target" id="structnw_1_1script_1_1_symbol_1acae653ae560577ac7343dbe8a44fa980"></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="nw__script__Declaration.html#_CPPv4N2nw6script11DeclarationE" title="nw::script::Declaration"><span class="n"><span class="pre">Declaration</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">decl</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">nullptr</span></span><a class="headerlink" href="#_CPPv4N2nw6script6Symbol4declE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw6script6Symbol4declE"></span><span id="_CPPv2N2nw6script6Symbol4declE"></span><span id="nw::script::Symbol::decl__DeclarationCP"></span><span class="target" id="structnw_1_1script_1_1_symbol_1acae653ae560577ac7343dbe8a44fa980"></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="nw__script__Declaration.html#_CPPv4N2nw6script11DeclarationE" title="nw::script::Declaration"><span class="n"><span class="pre">Declaration</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">decl</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">nullptr</span></span><a class="headerlink" href="#_CPPv4N2nw6script6Symbol4declE" title="Link to this definition"></a><br /></dt>
 <dd><p>Original declaration. </p>
 </dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw6script6Symbol7commentE">
-<span id="_CPPv3N2nw6script6Symbol7commentE"></span><span id="_CPPv2N2nw6script6Symbol7commentE"></span><span id="nw::script::Symbol::comment__ss"></span><span class="target" id="structnw_1_1script_1_1_symbol_1af06d307f9a70f0acc3a8a60627ba195c"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">comment</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script6Symbol7commentE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw6script6Symbol7commentE"></span><span id="_CPPv2N2nw6script6Symbol7commentE"></span><span id="nw::script::Symbol::comment__ss"></span><span class="target" id="structnw_1_1script_1_1_symbol_1af06d307f9a70f0acc3a8a60627ba195c"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">comment</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script6Symbol7commentE" title="Link to this definition"></a><br /></dt>
 <dd><p><a class="reference internal" href="nw__script__Comment.html#structnw_1_1script_1_1_comment"><span class="std std-ref">Comment</span></a> on original declaration, in case of functions decl is preferred over definition. </p>
 </dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw6script6Symbol4typeE">
-<span id="_CPPv3N2nw6script6Symbol4typeE"></span><span id="_CPPv2N2nw6script6Symbol4typeE"></span><span id="nw::script::Symbol::type__ss"></span><span class="target" id="structnw_1_1script_1_1_symbol_1ab83ebdb2c5a6e1e12db8e26449a3fe2b"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">type</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script6Symbol4typeE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw6script6Symbol4typeE"></span><span id="_CPPv2N2nw6script6Symbol4typeE"></span><span id="nw::script::Symbol::type__ss"></span><span class="target" id="structnw_1_1script_1_1_symbol_1ab83ebdb2c5a6e1e12db8e26449a3fe2b"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">type</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script6Symbol4typeE" title="Link to this definition"></a><br /></dt>
 <dd><p><a class="reference internal" href="nw__script__Type.html#structnw_1_1script_1_1_type"><span class="std std-ref">Type</span></a> of the symbol. </p>
 </dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw6script6Symbol4kindE">
-<span id="_CPPv3N2nw6script6Symbol4kindE"></span><span id="_CPPv2N2nw6script6Symbol4kindE"></span><span id="nw::script::Symbol::kind__SymbolKind"></span><span class="target" id="structnw_1_1script_1_1_symbol_1a10e40596db2eee6ba58772c423a15a9b"></span><a class="reference internal" href="../enum/nw__script__SymbolKind.html#_CPPv4N2nw6script10SymbolKindE" title="nw::script::SymbolKind"><span class="n"><span class="pre">SymbolKind</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">kind</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script6Symbol4kindE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw6script6Symbol4kindE"></span><span id="_CPPv2N2nw6script6Symbol4kindE"></span><span id="nw::script::Symbol::kind__SymbolKind"></span><span class="target" id="structnw_1_1script_1_1_symbol_1a10e40596db2eee6ba58772c423a15a9b"></span><a class="reference internal" href="../enum/nw__script__SymbolKind.html#_CPPv4N2nw6script10SymbolKindE" title="nw::script::SymbolKind"><span class="n"><span class="pre">SymbolKind</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">kind</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script6Symbol4kindE" title="Link to this definition"></a><br /></dt>
 <dd><p>The kind of symbol. </p>
 </dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw6script6Symbol8providerE">
-<span id="_CPPv3N2nw6script6Symbol8providerE"></span><span id="_CPPv2N2nw6script6Symbol8providerE"></span><span id="nw::script::Symbol::provider__NssCP"></span><span class="target" id="structnw_1_1script_1_1_symbol_1afa4c5e44f8ed7bbb3da68ff9732ac70c"></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="nw__script__Nss.html#_CPPv4N2nw6script3NssE" title="nw::script::Nss"><span class="n"><span class="pre">Nss</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">provider</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">nullptr</span></span><a class="headerlink" href="#_CPPv4N2nw6script6Symbol8providerE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw6script6Symbol8providerE"></span><span id="_CPPv2N2nw6script6Symbol8providerE"></span><span id="nw::script::Symbol::provider__NssCP"></span><span class="target" id="structnw_1_1script_1_1_symbol_1afa4c5e44f8ed7bbb3da68ff9732ac70c"></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="nw__script__Nss.html#_CPPv4N2nw6script3NssE" title="nw::script::Nss"><span class="n"><span class="pre">Nss</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">provider</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">nullptr</span></span><a class="headerlink" href="#_CPPv4N2nw6script6Symbol8providerE" title="Link to this definition"></a><br /></dt>
 <dd><p>What script this symbol is from, i.e. “nwscript”. </p>
 </dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw6script6Symbol4viewE">
-<span id="_CPPv3N2nw6script6Symbol4viewE"></span><span id="_CPPv2N2nw6script6Symbol4viewE"></span><span id="nw::script::Symbol::view__std::string_view"></span><span class="target" id="structnw_1_1script_1_1_symbol_1a76ece8f401e60572e2fa629f1331f057"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">view</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script6Symbol4viewE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw6script6Symbol4viewE"></span><span id="_CPPv2N2nw6script6Symbol4viewE"></span><span id="nw::script::Symbol::view__std::string_view"></span><span class="target" id="structnw_1_1script_1_1_symbol_1a76ece8f401e60572e2fa629f1331f057"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">view</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script6Symbol4viewE" title="Link to this definition"></a><br /></dt>
 <dd><p>View of declaration. </p>
 </dd></dl>
 
 </div>
 </dd></dl>
 
-</div>
+</section>
 
 
            </div>

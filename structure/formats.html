@@ -1,21 +1,25 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html5" lang="en" data-content_root="../">
 <head>
-  <meta charset="utf-8" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>formats &mdash; rollNW  documentation</title>
-      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
-      <link rel="stylesheet" href="../_static/tabs.css" type="text/css" />
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="../_static/tabs.css?v=a5c4661c" />
+
+  
   <!--[if lt IE 9]>
     <script src="../_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
-        <script src="../_static/jquery.js"></script>
-        <script src="../_static/underscore.js"></script>
-        <script src="../_static/doctools.js"></script>
-        <script src="../_static/tabs.js"></script>
+        <script src="../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../_static/documentation_options.js?v=5929fcd5"></script>
+        <script src="../_static/doctools.js?v=888ff710"></script>
+        <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+        <script src="../_static/tabs.js?v=3030b3cb"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
@@ -135,8 +139,8 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <div class="section" id="formats">
-<h1>formats<a class="headerlink" href="#formats" title="Permalink to this headline"></a></h1>
+  <section id="formats">
+<h1>formats<a class="headerlink" href="#formats" title="Link to this heading"></a></h1>
 <p>One thing that makes NWN(:EE) so great is that it’s a local optima of
 power and simplicity. It’s file formats are no different many of them -
 at the reader level - can be implemented as a thin wrapper over a
@@ -148,8 +152,8 @@ easily be made read/write/modifiable with the exact same performance
 characteristics, Gff cannot. It’s better to separate them than convolute
 the implementations of all of them.</p>
 <hr class="docutils" />
-<div class="section" id="da">
-<h2>2da<a class="headerlink" href="#da" title="Permalink to this headline"></a></h2>
+<section id="da">
+<h2>2da<a class="headerlink" href="#da" title="Link to this heading"></a></h2>
 <p><strong>Status</strong>: read/write</p>
 <p>The 2da parser is one of the more optimized parts of the library.  It can parse ~300MBps and all
 default 2das in under half of a second.</p>
@@ -179,15 +183,15 @@ default 2das in under half of a second.</p>
 </pre></div>
 </div>
 </div></div>
-</div>
+</section>
 <hr class="docutils" />
-<div class="section" id="gff">
-<h2>gff<a class="headerlink" href="#gff" title="Permalink to this headline"></a></h2>
+<section id="gff">
+<h2>gff<a class="headerlink" href="#gff" title="Link to this heading"></a></h2>
 <p>See <a class="reference external" href="https://rollnw.readthedocs.io/en/latest/structure/serialization.html">serialization docs</a></p>
-</div>
+</section>
 <hr class="docutils" />
-<div class="section" id="images-formats">
-<h2>images formats<a class="headerlink" href="#images-formats" title="Permalink to this headline"></a></h2>
+<section id="images-formats">
+<h2>images formats<a class="headerlink" href="#images-formats" title="Link to this heading"></a></h2>
 <p><strong>Status</strong>:</p>
 <ul class="simple">
 <li><p>bmp: read/write</p></li>
@@ -213,10 +217,10 @@ dds (standard &amp; bioware) is supported thanks to <a class="reference external
 </pre></div>
 </div>
 </div></div>
-</div>
+</section>
 <hr class="docutils" />
-<div class="section" id="ini">
-<h2>ini<a class="headerlink" href="#ini" title="Permalink to this headline"></a></h2>
+<section id="ini">
+<h2>ini<a class="headerlink" href="#ini" title="Link to this heading"></a></h2>
 <p><strong>Status</strong>: read</p>
 <p>Supported thanks to <a class="reference external" href="https://github.com/benhoyt/inih">inih</a></p>
 <div class="sphinx-tabs docutils container">
@@ -231,21 +235,21 @@ dds (standard &amp; bioware) is supported thanks to <a class="reference external
 </pre></div>
 </div>
 </div></div>
-</div>
+</section>
 <hr class="docutils" />
-<div class="section" id="json">
-<h2>json<a class="headerlink" href="#json" title="Permalink to this headline"></a></h2>
+<section id="json">
+<h2>json<a class="headerlink" href="#json" title="Link to this heading"></a></h2>
 <p><strong>Status</strong>: read/write</p>
 <p>Supported thanks to <a class="reference external" href="https://github.com/nlohmann/json">nholmann_json</a></p>
-</div>
+</section>
 <hr class="docutils" />
-<div class="section" id="mdl">
-<h2>mdl<a class="headerlink" href="#mdl" title="Permalink to this headline"></a></h2>
+<section id="mdl">
+<h2>mdl<a class="headerlink" href="#mdl" title="Link to this heading"></a></h2>
 <p>See <a class="reference external" href="https://rollnw.readthedocs.io/en/latest/structure/model.html">model docs</a></p>
-</div>
+</section>
 <hr class="docutils" />
-<div class="section" id="mtr">
-<h2>mtr<a class="headerlink" href="#mtr" title="Permalink to this headline"></a></h2>
+<section id="mtr">
+<h2>mtr<a class="headerlink" href="#mtr" title="Link to this heading"></a></h2>
 <p><strong>Status</strong>: unsupported</p>
 <div class="sphinx-tabs docutils container">
 <div aria-label="Tabbed content" class="closeable" role="tablist"><button aria-controls="panel-3-UHl0aG9u" aria-selected="true" class="sphinx-tabs-tab code-tab group-tab" id="tab-3-UHl0aG9u" name="UHl0aG9u" role="tab" tabindex="0">Python</button><button aria-controls="panel-3-Qysr" aria-selected="false" class="sphinx-tabs-tab code-tab group-tab" id="tab-3-Qysr" name="Qysr" role="tab" tabindex="-1">C++</button></div><div aria-labelledby="tab-3-UHl0aG9u" class="sphinx-tabs-panel code-tab group-tab" id="panel-3-UHl0aG9u" name="UHl0aG9u" role="tabpanel" tabindex="0"><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># TODO</span>
@@ -255,10 +259,10 @@ dds (standard &amp; bioware) is supported thanks to <a class="reference external
 </pre></div>
 </div>
 </div></div>
-</div>
+</section>
 <hr class="docutils" />
-<div class="section" id="set">
-<h2>set<a class="headerlink" href="#set" title="Permalink to this headline"></a></h2>
+<section id="set">
+<h2>set<a class="headerlink" href="#set" title="Link to this heading"></a></h2>
 <p><strong>Status</strong>: read</p>
 <p>Supported thanks to <a class="reference external" href="https://github.com/benhoyt/inih">inih</a></p>
 <div class="sphinx-tabs docutils container">
@@ -269,10 +273,10 @@ dds (standard &amp; bioware) is supported thanks to <a class="reference external
 </pre></div>
 </div>
 </div></div>
-</div>
+</section>
 <hr class="docutils" />
-<div class="section" id="ssf">
-<h2>ssf<a class="headerlink" href="#ssf" title="Permalink to this headline"></a></h2>
+<section id="ssf">
+<h2>ssf<a class="headerlink" href="#ssf" title="Link to this heading"></a></h2>
 <p><strong>Status</strong>: unsupported</p>
 <div class="sphinx-tabs docutils container">
 <div aria-label="Tabbed content" class="closeable" role="tablist"><button aria-controls="panel-5-UHl0aG9u" aria-selected="true" class="sphinx-tabs-tab code-tab group-tab" id="tab-5-UHl0aG9u" name="UHl0aG9u" role="tab" tabindex="0">Python</button><button aria-controls="panel-5-Qysr" aria-selected="false" class="sphinx-tabs-tab code-tab group-tab" id="tab-5-Qysr" name="Qysr" role="tab" tabindex="-1">C++</button></div><div aria-labelledby="tab-5-UHl0aG9u" class="sphinx-tabs-panel code-tab group-tab" id="panel-5-UHl0aG9u" name="UHl0aG9u" role="tabpanel" tabindex="0"><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># TODO</span>
@@ -282,15 +286,15 @@ dds (standard &amp; bioware) is supported thanks to <a class="reference external
 </pre></div>
 </div>
 </div></div>
-</div>
+</section>
 <hr class="docutils" />
-<div class="section" id="tml">
-<h2>tml<a class="headerlink" href="#tml" title="Permalink to this headline"></a></h2>
+<section id="tml">
+<h2>tml<a class="headerlink" href="#tml" title="Link to this heading"></a></h2>
 <p><strong>Status</strong>: read/write (c++), unsupported (python)</p>
 <p>Supported thanks to <a class="reference external" href="https://github.com/marzer/tomlplusplus/">toml++</a>.</p>
-</div>
-<div class="section" id="txi">
-<h2>txi<a class="headerlink" href="#txi" title="Permalink to this headline"></a></h2>
+</section>
+<section id="txi">
+<h2>txi<a class="headerlink" href="#txi" title="Link to this heading"></a></h2>
 <p><strong>Status</strong>: unsupported</p>
 <div class="sphinx-tabs docutils container">
 <div aria-label="Tabbed content" class="closeable" role="tablist"><button aria-controls="panel-6-UHl0aG9u" aria-selected="true" class="sphinx-tabs-tab code-tab group-tab" id="tab-6-UHl0aG9u" name="UHl0aG9u" role="tab" tabindex="0">Python</button><button aria-controls="panel-6-Qysr" aria-selected="false" class="sphinx-tabs-tab code-tab group-tab" id="tab-6-Qysr" name="Qysr" role="tab" tabindex="-1">C++</button></div><div aria-labelledby="tab-6-UHl0aG9u" class="sphinx-tabs-panel code-tab group-tab" id="panel-6-UHl0aG9u" name="UHl0aG9u" role="tabpanel" tabindex="0"><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># TODO</span>
@@ -300,8 +304,8 @@ dds (standard &amp; bioware) is supported thanks to <a class="reference external
 </pre></div>
 </div>
 </div></div>
-</div>
-</div>
+</section>
+</section>
 
 
            </div>

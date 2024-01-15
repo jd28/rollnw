@@ -1,20 +1,24 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html5" lang="en" data-content_root="../../">
 <head>
-  <meta charset="utf-8" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>nw::Feat &mdash; rollNW  documentation</title>
-      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
-      <link rel="stylesheet" href="../../_static/tabs.css" type="text/css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="../../_static/tabs.css?v=a5c4661c" />
+
+  
   <!--[if lt IE 9]>
     <script src="../../_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
-        <script src="../../_static/jquery.js"></script>
-        <script src="../../_static/underscore.js"></script>
-        <script src="../../_static/doctools.js"></script>
+        <script src="../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+        <script src="../../_static/doctools.js?v=888ff710"></script>
+        <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
@@ -104,7 +108,18 @@
 <li class="toctree-l2"><a class="reference internal" href="nw__Erf.html">nw::Erf</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Faction.html">nw::Faction</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__FactionInfo.html">nw::FactionInfo</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">nw::Feat</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">nw::Feat</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#_CPPv4N2nw4FeatE"><code class="docutils literal notranslate"><span class="pre">Feat</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw4FeateqERK4Feat"><code class="docutils literal notranslate"><span class="pre">Feat::operator==()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw4FeatssERK4Feat"><code class="docutils literal notranslate"><span class="pre">Feat::operator&lt;=&gt;()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw4FeatmlEv"><code class="docutils literal notranslate"><span class="pre">Feat::operator*()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw4Feat3idxEv"><code class="docutils literal notranslate"><span class="pre">Feat::idx()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw4Feat4makeE7int32_t"><code class="docutils literal notranslate"><span class="pre">Feat::make()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw4Feat7invalidEv"><code class="docutils literal notranslate"><span class="pre">Feat::invalid()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="nw__FeatInfo.html">nw::FeatInfo</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__GameProfile.html">nw::GameProfile</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Gff.html">nw::Gff</a></li>
@@ -358,34 +373,34 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <div class="section" id="nw-feat">
-<h1>nw::Feat<a class="headerlink" href="#nw-feat" title="Permalink to this headline"></a></h1>
+  <section id="nw-feat">
+<h1>nw::Feat<a class="headerlink" href="#nw-feat" title="Link to this heading"></a></h1>
 <dl class="cpp struct">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw4FeatE">
-<span id="_CPPv3N2nw4FeatE"></span><span id="_CPPv2N2nw4FeatE"></span><span id="nw::Feat"></span><span class="target" id="structnw_1_1_feat"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Feat</span></span></span><a class="headerlink" href="#_CPPv4N2nw4FeatE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw4FeatE"></span><span id="_CPPv2N2nw4FeatE"></span><span id="nw::Feat"></span><span class="target" id="structnw_1_1_feat"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Feat</span></span></span><a class="headerlink" href="#_CPPv4N2nw4FeatE" title="Link to this definition"></a><br /></dt>
 <dd><div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4NK2nw4FeateqERK4Feat">
-<span id="_CPPv3NK2nw4FeateqERK4Feat"></span><span id="_CPPv2NK2nw4FeateqERK4Feat"></span><span id="nw::Feat::eq-operator__FeatCRC"></span><span class="target" id="structnw_1_1_feat_1a0c6556eaea066d00f830a6d8bf56f05c"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">==</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N2nw4FeatE" title="nw::Feat"><span class="n"><span class="pre">Feat</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">rhs</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">default</span></span><a class="headerlink" href="#_CPPv4NK2nw4FeateqERK4Feat" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3NK2nw4FeateqERK4Feat"></span><span id="_CPPv2NK2nw4FeateqERK4Feat"></span><span id="nw::Feat::eq-operator__FeatCRC"></span><span class="target" id="structnw_1_1_feat_1a0c6556eaea066d00f830a6d8bf56f05c"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">==</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N2nw4FeatE" title="nw::Feat"><span class="n"><span class="pre">Feat</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">rhs</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">default</span></span><a class="headerlink" href="#_CPPv4NK2nw4FeateqERK4Feat" title="Link to this definition"></a><br /></dt>
 <dd><p>Defaulted equality operator </p>
 </dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4NK2nw4FeatssERK4Feat">
-<span id="_CPPv3NK2nw4FeatssERK4Feat"></span><span id="_CPPv2NK2nw4FeatssERK4Feat"></span><span class="target" id="structnw_1_1_feat_1a0752c8392da0525bf07fb61b80a9f304"></span><span class="kt"><span class="pre">auto</span></span><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">&lt;=&gt;</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N2nw4FeatE" title="nw::Feat"><span class="n"><span class="pre">Feat</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">rhs</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">default</span></span><a class="headerlink" href="#_CPPv4NK2nw4FeatssERK4Feat" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3NK2nw4FeatssERK4Feat"></span><span id="_CPPv2NK2nw4FeatssERK4Feat"></span><span class="target" id="structnw_1_1_feat_1a0752c8392da0525bf07fb61b80a9f304"></span><span class="kt"><span class="pre">auto</span></span><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">&lt;=&gt;</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N2nw4FeatE" title="nw::Feat"><span class="n"><span class="pre">Feat</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">rhs</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">default</span></span><a class="headerlink" href="#_CPPv4NK2nw4FeatssERK4Feat" title="Link to this definition"></a><br /></dt>
 <dd><p>Defaulted spaceship operator </p>
 </dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4NK2nw4FeatmlEv">
-<span id="_CPPv3NK2nw4FeatmlEv"></span><span id="_CPPv2NK2nw4FeatmlEv"></span><span id="nw::Feat::mul-operatorCCE"></span><span class="target" id="structnw_1_1_feat_1ae3eaf4d33169ac7a58e7d13449aec849"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">int32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">*</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="k"><span class="pre">noexcept</span></span><a class="headerlink" href="#_CPPv4NK2nw4FeatmlEv" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3NK2nw4FeatmlEv"></span><span id="_CPPv2NK2nw4FeatmlEv"></span><span id="nw::Feat::mul-operatorCCE"></span><span class="target" id="structnw_1_1_feat_1ae3eaf4d33169ac7a58e7d13449aec849"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">int32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">*</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="k"><span class="pre">noexcept</span></span><a class="headerlink" href="#_CPPv4NK2nw4FeatmlEv" title="Link to this definition"></a><br /></dt>
 <dd><p>Returns rule type as value </p>
 </dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4NK2nw4Feat3idxEv">
-<span id="_CPPv3NK2nw4Feat3idxEv"></span><span id="_CPPv2NK2nw4Feat3idxEv"></span><span id="nw::Feat::idxCCE"></span><span class="target" id="structnw_1_1_feat_1a7ca8a549b51c56a36f5c73914a93259c"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">idx</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="k"><span class="pre">noexcept</span></span><a class="headerlink" href="#_CPPv4NK2nw4Feat3idxEv" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3NK2nw4Feat3idxEv"></span><span id="_CPPv2NK2nw4Feat3idxEv"></span><span id="nw::Feat::idxCCE"></span><span class="target" id="structnw_1_1_feat_1a7ca8a549b51c56a36f5c73914a93259c"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">idx</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="k"><span class="pre">noexcept</span></span><a class="headerlink" href="#_CPPv4NK2nw4Feat3idxEv" title="Link to this definition"></a><br /></dt>
 <dd><p>Returns rule type as index </p>
 </dd></dl>
 
@@ -394,20 +409,20 @@
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-static-functions">Public Static Functions</p>
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw4Feat4makeE7int32_t">
-<span id="_CPPv3N2nw4Feat4makeE7int32_t"></span><span id="_CPPv2N2nw4Feat4makeE7int32_t"></span><span id="nw::Feat::make__int32_tCE"></span><span class="target" id="structnw_1_1_feat_1af182e2b3edd591fc642c7b24286fffb5"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N2nw4FeatE" title="nw::Feat"><span class="n"><span class="pre">Feat</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">make</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">int32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">id</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw4Feat4makeE7int32_t" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw4Feat4makeE7int32_t"></span><span id="_CPPv2N2nw4Feat4makeE7int32_t"></span><span id="nw::Feat::make__int32_tCE"></span><span class="target" id="structnw_1_1_feat_1af182e2b3edd591fc642c7b24286fffb5"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N2nw4FeatE" title="nw::Feat"><span class="n"><span class="pre">Feat</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">make</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">int32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">id</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw4Feat4makeE7int32_t" title="Link to this definition"></a><br /></dt>
 <dd><p>Makes a rule type </p>
 </dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw4Feat7invalidEv">
-<span id="_CPPv3N2nw4Feat7invalidEv"></span><span id="_CPPv2N2nw4Feat7invalidEv"></span><span id="nw::Feat::invalidCE"></span><span class="target" id="structnw_1_1_feat_1ad82aa3c490ecd56e01a601fe2c3c86e9"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N2nw4FeatE" title="nw::Feat"><span class="n"><span class="pre">Feat</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">invalid</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw4Feat7invalidEv" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw4Feat7invalidEv"></span><span id="_CPPv2N2nw4Feat7invalidEv"></span><span id="nw::Feat::invalidCE"></span><span class="target" id="structnw_1_1_feat_1ad82aa3c490ecd56e01a601fe2c3c86e9"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N2nw4FeatE" title="nw::Feat"><span class="n"><span class="pre">Feat</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">invalid</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw4Feat7invalidEv" title="Link to this definition"></a><br /></dt>
 <dd><p>Returns an invalid rule type </p>
 </dd></dl>
 
 </div>
 </dd></dl>
 
-</div>
+</section>
 
 
            </div>

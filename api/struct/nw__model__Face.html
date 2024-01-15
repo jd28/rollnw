@@ -1,20 +1,24 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html5" lang="en" data-content_root="../../">
 <head>
-  <meta charset="utf-8" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>nw::model::Face &mdash; rollNW  documentation</title>
-      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
-      <link rel="stylesheet" href="../../_static/tabs.css" type="text/css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="../../_static/tabs.css?v=a5c4661c" />
+
+  
   <!--[if lt IE 9]>
     <script src="../../_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
-        <script src="../../_static/jquery.js"></script>
-        <script src="../../_static/underscore.js"></script>
-        <script src="../../_static/doctools.js"></script>
+        <script src="../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+        <script src="../../_static/doctools.js?v=888ff710"></script>
+        <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
@@ -227,7 +231,16 @@
 <li class="toctree-l2"><a class="reference internal" href="nw__model__DummyNode.html">nw::model::DummyNode</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__model__EmitterFlag.html">nw::model::EmitterFlag</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__model__EmitterNode.html">nw::model::EmitterNode</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">nw::model::Face</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">nw::model::Face</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#_CPPv4N2nw5model4FaceE"><code class="docutils literal notranslate"><span class="pre">Face</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw5model4Face8vert_idxE"><code class="docutils literal notranslate"><span class="pre">Face::vert_idx</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw5model4Face16shader_group_idxE"><code class="docutils literal notranslate"><span class="pre">Face::shader_group_idx</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw5model4Face9tvert_idxE"><code class="docutils literal notranslate"><span class="pre">Face::tvert_idx</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw5model4Face12material_idxE"><code class="docutils literal notranslate"><span class="pre">Face::material_idx</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="nw__model__Geometry.html">nw::model::Geometry</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__model__GeometryFlag.html">nw::model::GeometryFlag</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__model__GeometryType.html">nw::model::GeometryType</a></li>
@@ -358,37 +371,37 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <div class="section" id="nw-model-face">
-<h1>nw::model::Face<a class="headerlink" href="#nw-model-face" title="Permalink to this headline"></a></h1>
+  <section id="nw-model-face">
+<h1>nw::model::Face<a class="headerlink" href="#nw-model-face" title="Link to this heading"></a></h1>
 <dl class="cpp struct">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw5model4FaceE">
-<span id="_CPPv3N2nw5model4FaceE"></span><span id="_CPPv2N2nw5model4FaceE"></span><span id="nw::model::Face"></span><span class="target" id="structnw_1_1model_1_1_face"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Face</span></span></span><a class="headerlink" href="#_CPPv4N2nw5model4FaceE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw5model4FaceE"></span><span id="_CPPv2N2nw5model4FaceE"></span><span id="nw::model::Face"></span><span class="target" id="structnw_1_1model_1_1_face"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Face</span></span></span><a class="headerlink" href="#_CPPv4N2nw5model4FaceE" title="Link to this definition"></a><br /></dt>
 <dd><div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw5model4Face8vert_idxE">
-<span id="_CPPv3N2nw5model4Face8vert_idxE"></span><span id="_CPPv2N2nw5model4Face8vert_idxE"></span><span id="nw::model::Face::vert_idx__std::array:uint32_t.3:"></span><span class="target" id="structnw_1_1model_1_1_face_1a03f94ffff7d3b4b9a88cac025400e348"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">array</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">uint32_t</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="m"><span class="pre">3</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">vert_idx</span></span></span><a class="headerlink" href="#_CPPv4N2nw5model4Face8vert_idxE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw5model4Face8vert_idxE"></span><span id="_CPPv2N2nw5model4Face8vert_idxE"></span><span id="nw::model::Face::vert_idx__std::array:uint32_t.3:"></span><span class="target" id="structnw_1_1model_1_1_face_1a03f94ffff7d3b4b9a88cac025400e348"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">array</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">uint32_t</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="m"><span class="pre">3</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">vert_idx</span></span></span><a class="headerlink" href="#_CPPv4N2nw5model4Face8vert_idxE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw5model4Face16shader_group_idxE">
-<span id="_CPPv3N2nw5model4Face16shader_group_idxE"></span><span id="_CPPv2N2nw5model4Face16shader_group_idxE"></span><span id="nw::model::Face::shader_group_idx__int32_t"></span><span class="target" id="structnw_1_1model_1_1_face_1a3e2b3a7f2583b8cd3f902f553db2e4ab"></span><span class="n"><span class="pre">int32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">shader_group_idx</span></span></span><a class="headerlink" href="#_CPPv4N2nw5model4Face16shader_group_idxE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw5model4Face16shader_group_idxE"></span><span id="_CPPv2N2nw5model4Face16shader_group_idxE"></span><span id="nw::model::Face::shader_group_idx__int32_t"></span><span class="target" id="structnw_1_1model_1_1_face_1a3e2b3a7f2583b8cd3f902f553db2e4ab"></span><span class="n"><span class="pre">int32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">shader_group_idx</span></span></span><a class="headerlink" href="#_CPPv4N2nw5model4Face16shader_group_idxE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw5model4Face9tvert_idxE">
-<span id="_CPPv3N2nw5model4Face9tvert_idxE"></span><span id="_CPPv2N2nw5model4Face9tvert_idxE"></span><span id="nw::model::Face::tvert_idx__std::array:uint32_t.3:"></span><span class="target" id="structnw_1_1model_1_1_face_1ad6f49284a2ea85caed942283c3060c87"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">array</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">uint32_t</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="m"><span class="pre">3</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">tvert_idx</span></span></span><a class="headerlink" href="#_CPPv4N2nw5model4Face9tvert_idxE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw5model4Face9tvert_idxE"></span><span id="_CPPv2N2nw5model4Face9tvert_idxE"></span><span id="nw::model::Face::tvert_idx__std::array:uint32_t.3:"></span><span class="target" id="structnw_1_1model_1_1_face_1ad6f49284a2ea85caed942283c3060c87"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">array</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">uint32_t</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="m"><span class="pre">3</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">tvert_idx</span></span></span><a class="headerlink" href="#_CPPv4N2nw5model4Face9tvert_idxE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw5model4Face12material_idxE">
-<span id="_CPPv3N2nw5model4Face12material_idxE"></span><span id="_CPPv2N2nw5model4Face12material_idxE"></span><span id="nw::model::Face::material_idx__uint32_t"></span><span class="target" id="structnw_1_1model_1_1_face_1a683e9ff3b3bd15045597abf81430095f"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">material_idx</span></span></span><a class="headerlink" href="#_CPPv4N2nw5model4Face12material_idxE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw5model4Face12material_idxE"></span><span id="_CPPv2N2nw5model4Face12material_idxE"></span><span id="nw::model::Face::material_idx__uint32_t"></span><span class="target" id="structnw_1_1model_1_1_face_1a683e9ff3b3bd15045597abf81430095f"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">material_idx</span></span></span><a class="headerlink" href="#_CPPv4N2nw5model4Face12material_idxE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 </div>
 </dd></dl>
 
-</div>
+</section>
 
 
            </div>

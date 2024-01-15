@@ -1,20 +1,24 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html5" lang="en" data-content_root="../../">
 <head>
-  <meta charset="utf-8" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>nw::DialogPtr &mdash; rollNW  documentation</title>
-      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
-      <link rel="stylesheet" href="../../_static/tabs.css" type="text/css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="../../_static/tabs.css?v=a5c4661c" />
+
+  
   <!--[if lt IE 9]>
     <script src="../../_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
-        <script src="../../_static/jquery.js"></script>
-        <script src="../../_static/underscore.js"></script>
-        <script src="../../_static/doctools.js"></script>
+        <script src="../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+        <script src="../../_static/doctools.js?v=888ff710"></script>
+        <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
@@ -89,7 +93,21 @@
 <li class="toctree-l2"><a class="reference internal" href="nw__DamageRoll.html">nw::DamageRoll</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Dialog.html">nw::Dialog</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__DialogNode.html">nw::DialogNode</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">nw::DialogPtr</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">nw::DialogPtr</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#_CPPv4N2nw9DialogPtrE"><code class="docutils literal notranslate"><span class="pre">DialogPtr</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw9DialogPtr4nodeEv"><code class="docutils literal notranslate"><span class="pre">DialogPtr::node()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw9DialogPtr4nodeEv"><code class="docutils literal notranslate"><span class="pre">DialogPtr::node()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw9DialogPtr6parentE"><code class="docutils literal notranslate"><span class="pre">DialogPtr::parent</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw9DialogPtr4typeE"><code class="docutils literal notranslate"><span class="pre">DialogPtr::type</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw9DialogPtr5indexE"><code class="docutils literal notranslate"><span class="pre">DialogPtr::index</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw9DialogPtr14script_appearsE"><code class="docutils literal notranslate"><span class="pre">DialogPtr::script_appears</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw9DialogPtr8is_startE"><code class="docutils literal notranslate"><span class="pre">DialogPtr::is_start</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw9DialogPtr7is_linkE"><code class="docutils literal notranslate"><span class="pre">DialogPtr::is_link</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw9DialogPtr7commentE"><code class="docutils literal notranslate"><span class="pre">DialogPtr::comment</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="nw__DiceRoll.html">nw::DiceRoll</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Directory.html">nw::Directory</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Disease.html">nw::Disease</a></li>
@@ -358,21 +376,21 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <div class="section" id="nw-dialogptr">
-<h1>nw::DialogPtr<a class="headerlink" href="#nw-dialogptr" title="Permalink to this headline"></a></h1>
+  <section id="nw-dialogptr">
+<h1>nw::DialogPtr<a class="headerlink" href="#nw-dialogptr" title="Link to this heading"></a></h1>
 <dl class="cpp struct">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw9DialogPtrE">
-<span id="_CPPv3N2nw9DialogPtrE"></span><span id="_CPPv2N2nw9DialogPtrE"></span><span id="nw::DialogPtr"></span><span class="target" id="structnw_1_1_dialog_ptr"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">DialogPtr</span></span></span><a class="headerlink" href="#_CPPv4N2nw9DialogPtrE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw9DialogPtrE"></span><span id="_CPPv2N2nw9DialogPtrE"></span><span id="nw::DialogPtr"></span><span class="target" id="structnw_1_1_dialog_ptr"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">DialogPtr</span></span></span><a class="headerlink" href="#_CPPv4N2nw9DialogPtrE" title="Link to this definition"></a><br /></dt>
 <dd><div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw9DialogPtr4nodeEv">
-<span id="_CPPv3N2nw9DialogPtr4nodeEv"></span><span id="_CPPv2N2nw9DialogPtr4nodeEv"></span><span id="nw::DialogPtr::node"></span><span class="target" id="structnw_1_1_dialog_ptr_1a7636f891162ff84461342653c99fc24d"></span><a class="reference internal" href="nw__DialogNode.html#_CPPv4N2nw10DialogNodeE" title="nw::DialogNode"><span class="n"><span class="pre">DialogNode</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">node</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw9DialogPtr4nodeEv" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw9DialogPtr4nodeEv"></span><span id="_CPPv2N2nw9DialogPtr4nodeEv"></span><span id="nw::DialogPtr::node"></span><span class="target" id="structnw_1_1_dialog_ptr_1a7636f891162ff84461342653c99fc24d"></span><a class="reference internal" href="nw__DialogNode.html#_CPPv4N2nw10DialogNodeE" title="nw::DialogNode"><span class="n"><span class="pre">DialogNode</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">node</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw9DialogPtr4nodeEv" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4NK2nw9DialogPtr4nodeEv">
-<span id="_CPPv3NK2nw9DialogPtr4nodeEv"></span><span id="_CPPv2NK2nw9DialogPtr4nodeEv"></span><span id="nw::DialogPtr::nodeC"></span><span class="target" id="structnw_1_1_dialog_ptr_1aff9370739db869b208fbd44c0cfce076"></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="nw__DialogNode.html#_CPPv4N2nw10DialogNodeE" title="nw::DialogNode"><span class="n"><span class="pre">DialogNode</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">node</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK2nw9DialogPtr4nodeEv" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3NK2nw9DialogPtr4nodeEv"></span><span id="_CPPv2NK2nw9DialogPtr4nodeEv"></span><span id="nw::DialogPtr::nodeC"></span><span class="target" id="structnw_1_1_dialog_ptr_1aff9370739db869b208fbd44c0cfce076"></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="nw__DialogNode.html#_CPPv4N2nw10DialogNodeE" title="nw::DialogNode"><span class="n"><span class="pre">DialogNode</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">node</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK2nw9DialogPtr4nodeEv" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 </div>
@@ -380,43 +398,43 @@
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw9DialogPtr6parentE">
-<span id="_CPPv3N2nw9DialogPtr6parentE"></span><span id="_CPPv2N2nw9DialogPtr6parentE"></span><span id="nw::DialogPtr::parent__DialogP"></span><span class="target" id="structnw_1_1_dialog_ptr_1a83af3347678af5461aee024662aaac28"></span><a class="reference internal" href="nw__Dialog.html#_CPPv4N2nw6DialogE" title="nw::Dialog"><span class="n"><span class="pre">Dialog</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">parent</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">nullptr</span></span><a class="headerlink" href="#_CPPv4N2nw9DialogPtr6parentE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw9DialogPtr6parentE"></span><span id="_CPPv2N2nw9DialogPtr6parentE"></span><span id="nw::DialogPtr::parent__DialogP"></span><span class="target" id="structnw_1_1_dialog_ptr_1a83af3347678af5461aee024662aaac28"></span><a class="reference internal" href="nw__Dialog.html#_CPPv4N2nw6DialogE" title="nw::Dialog"><span class="n"><span class="pre">Dialog</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">parent</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">nullptr</span></span><a class="headerlink" href="#_CPPv4N2nw9DialogPtr6parentE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw9DialogPtr4typeE">
-<span id="_CPPv3N2nw9DialogPtr4typeE"></span><span id="_CPPv2N2nw9DialogPtr4typeE"></span><span id="nw::DialogPtr::type__DialogNodeType"></span><span class="target" id="structnw_1_1_dialog_ptr_1a3d504760c01d517e67ce98ae406547ab"></span><a class="reference internal" href="../enum/nw__DialogNodeType.html#_CPPv4N2nw14DialogNodeTypeE" title="nw::DialogNodeType"><span class="n"><span class="pre">DialogNodeType</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">type</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="../enum/nw__DialogNodeType.html#_CPPv4N2nw14DialogNodeTypeE" title="nw::DialogNodeType"><span class="n"><span class="pre">DialogNodeType</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../enum/nw__DialogNodeType.html#_CPPv4N2nw14DialogNodeType5entryE" title="nw::DialogNodeType::entry"><span class="n"><span class="pre">entry</span></span></a><a class="headerlink" href="#_CPPv4N2nw9DialogPtr4typeE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw9DialogPtr4typeE"></span><span id="_CPPv2N2nw9DialogPtr4typeE"></span><span id="nw::DialogPtr::type__DialogNodeType"></span><span class="target" id="structnw_1_1_dialog_ptr_1a3d504760c01d517e67ce98ae406547ab"></span><a class="reference internal" href="../enum/nw__DialogNodeType.html#_CPPv4N2nw14DialogNodeTypeE" title="nw::DialogNodeType"><span class="n"><span class="pre">DialogNodeType</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">type</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="../enum/nw__DialogNodeType.html#_CPPv4N2nw14DialogNodeTypeE" title="nw::DialogNodeType"><span class="n"><span class="pre">DialogNodeType</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../enum/nw__DialogNodeType.html#_CPPv4N2nw14DialogNodeType5entryE" title="nw::DialogNodeType::entry"><span class="n"><span class="pre">entry</span></span></a><a class="headerlink" href="#_CPPv4N2nw9DialogPtr4typeE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw9DialogPtr5indexE">
-<span id="_CPPv3N2nw9DialogPtr5indexE"></span><span id="_CPPv2N2nw9DialogPtr5indexE"></span><span id="nw::DialogPtr::index__uint32_t"></span><span class="target" id="structnw_1_1_dialog_ptr_1ae90e3b96fea572217f208842ab81d608"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">index</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">numeric_limits</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">uint32_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">max</span></span><span class="p"><span class="pre">(</span></span><span class="p"><span class="pre">)</span></span><a class="headerlink" href="#_CPPv4N2nw9DialogPtr5indexE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw9DialogPtr5indexE"></span><span id="_CPPv2N2nw9DialogPtr5indexE"></span><span id="nw::DialogPtr::index__uint32_t"></span><span class="target" id="structnw_1_1_dialog_ptr_1ae90e3b96fea572217f208842ab81d608"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">index</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">numeric_limits</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">uint32_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">max</span></span><span class="p"><span class="pre">(</span></span><span class="p"><span class="pre">)</span></span><a class="headerlink" href="#_CPPv4N2nw9DialogPtr5indexE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw9DialogPtr14script_appearsE">
-<span id="_CPPv3N2nw9DialogPtr14script_appearsE"></span><span id="_CPPv2N2nw9DialogPtr14script_appearsE"></span><span id="nw::DialogPtr::script_appears__Resref"></span><span class="target" id="structnw_1_1_dialog_ptr_1a9ae5ad3ad10831401d2742b5c665afa4"></span><a class="reference internal" href="nw__Resref.html#_CPPv4N2nw6ResrefE" title="nw::Resref"><span class="n"><span class="pre">Resref</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">script_appears</span></span></span><a class="headerlink" href="#_CPPv4N2nw9DialogPtr14script_appearsE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw9DialogPtr14script_appearsE"></span><span id="_CPPv2N2nw9DialogPtr14script_appearsE"></span><span id="nw::DialogPtr::script_appears__Resref"></span><span class="target" id="structnw_1_1_dialog_ptr_1a9ae5ad3ad10831401d2742b5c665afa4"></span><a class="reference internal" href="nw__Resref.html#_CPPv4N2nw6ResrefE" title="nw::Resref"><span class="n"><span class="pre">Resref</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">script_appears</span></span></span><a class="headerlink" href="#_CPPv4N2nw9DialogPtr14script_appearsE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw9DialogPtr8is_startE">
-<span id="_CPPv3N2nw9DialogPtr8is_startE"></span><span id="_CPPv2N2nw9DialogPtr8is_startE"></span><span id="nw::DialogPtr::is_start__b"></span><span class="target" id="structnw_1_1_dialog_ptr_1a13048bc7c2ae14fb80561fa8d05df6c8"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">is_start</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">false</span></span><a class="headerlink" href="#_CPPv4N2nw9DialogPtr8is_startE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw9DialogPtr8is_startE"></span><span id="_CPPv2N2nw9DialogPtr8is_startE"></span><span id="nw::DialogPtr::is_start__b"></span><span class="target" id="structnw_1_1_dialog_ptr_1a13048bc7c2ae14fb80561fa8d05df6c8"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">is_start</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">false</span></span><a class="headerlink" href="#_CPPv4N2nw9DialogPtr8is_startE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw9DialogPtr7is_linkE">
-<span id="_CPPv3N2nw9DialogPtr7is_linkE"></span><span id="_CPPv2N2nw9DialogPtr7is_linkE"></span><span id="nw::DialogPtr::is_link__b"></span><span class="target" id="structnw_1_1_dialog_ptr_1afacf676015fd5e65809fbd9c6393d286"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">is_link</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">false</span></span><a class="headerlink" href="#_CPPv4N2nw9DialogPtr7is_linkE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw9DialogPtr7is_linkE"></span><span id="_CPPv2N2nw9DialogPtr7is_linkE"></span><span id="nw::DialogPtr::is_link__b"></span><span class="target" id="structnw_1_1_dialog_ptr_1afacf676015fd5e65809fbd9c6393d286"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">is_link</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">false</span></span><a class="headerlink" href="#_CPPv4N2nw9DialogPtr7is_linkE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw9DialogPtr7commentE">
-<span id="_CPPv3N2nw9DialogPtr7commentE"></span><span id="_CPPv2N2nw9DialogPtr7commentE"></span><span id="nw::DialogPtr::comment__ss"></span><span class="target" id="structnw_1_1_dialog_ptr_1ae6f55de4209220e8af1907ec9d181c9a"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">comment</span></span></span><a class="headerlink" href="#_CPPv4N2nw9DialogPtr7commentE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw9DialogPtr7commentE"></span><span id="_CPPv2N2nw9DialogPtr7commentE"></span><span id="nw::DialogPtr::comment__ss"></span><span class="target" id="structnw_1_1_dialog_ptr_1ae6f55de4209220e8af1907ec9d181c9a"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">comment</span></span></span><a class="headerlink" href="#_CPPv4N2nw9DialogPtr7commentE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 </div>
 </dd></dl>
 
-</div>
+</section>
 
 
            </div>

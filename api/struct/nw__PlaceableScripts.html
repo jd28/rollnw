@@ -1,20 +1,24 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html5" lang="en" data-content_root="../../">
 <head>
-  <meta charset="utf-8" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>nw::PlaceableScripts &mdash; rollNW  documentation</title>
-      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
-      <link rel="stylesheet" href="../../_static/tabs.css" type="text/css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="../../_static/tabs.css?v=a5c4661c" />
+
+  
   <!--[if lt IE 9]>
     <script src="../../_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
-        <script src="../../_static/jquery.js"></script>
-        <script src="../../_static/underscore.js"></script>
-        <script src="../../_static/doctools.js"></script>
+        <script src="../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+        <script src="../../_static/doctools.js?v=888ff710"></script>
+        <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
@@ -153,7 +157,29 @@
 <li class="toctree-l2"><a class="reference internal" href="nw__Palette.html">nw::Palette</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__PaletteTreeNode.html">nw::PaletteTreeNode</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Placeable.html">nw::Placeable</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">nw::PlaceableScripts</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">nw::PlaceableScripts</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#_CPPv4N2nw16PlaceableScriptsE"><code class="docutils literal notranslate"><span class="pre">PlaceableScripts</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw16PlaceableScripts9from_jsonERKN8nlohmann4jsonE"><code class="docutils literal notranslate"><span class="pre">PlaceableScripts::from_json()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw16PlaceableScripts7to_jsonEv"><code class="docutils literal notranslate"><span class="pre">PlaceableScripts::to_json()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw16PlaceableScripts8on_clickE"><code class="docutils literal notranslate"><span class="pre">PlaceableScripts::on_click</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw16PlaceableScripts9on_closedE"><code class="docutils literal notranslate"><span class="pre">PlaceableScripts::on_closed</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw16PlaceableScripts10on_damagedE"><code class="docutils literal notranslate"><span class="pre">PlaceableScripts::on_damaged</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw16PlaceableScripts8on_deathE"><code class="docutils literal notranslate"><span class="pre">PlaceableScripts::on_death</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw16PlaceableScripts9on_disarmE"><code class="docutils literal notranslate"><span class="pre">PlaceableScripts::on_disarm</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw16PlaceableScripts12on_heartbeatE"><code class="docutils literal notranslate"><span class="pre">PlaceableScripts::on_heartbeat</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw16PlaceableScripts22on_inventory_disturbedE"><code class="docutils literal notranslate"><span class="pre">PlaceableScripts::on_inventory_disturbed</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw16PlaceableScripts7on_lockE"><code class="docutils literal notranslate"><span class="pre">PlaceableScripts::on_lock</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw16PlaceableScripts17on_melee_attackedE"><code class="docutils literal notranslate"><span class="pre">PlaceableScripts::on_melee_attacked</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw16PlaceableScripts7on_openE"><code class="docutils literal notranslate"><span class="pre">PlaceableScripts::on_open</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw16PlaceableScripts16on_spell_cast_atE"><code class="docutils literal notranslate"><span class="pre">PlaceableScripts::on_spell_cast_at</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw16PlaceableScripts17on_trap_triggeredE"><code class="docutils literal notranslate"><span class="pre">PlaceableScripts::on_trap_triggered</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw16PlaceableScripts9on_unlockE"><code class="docutils literal notranslate"><span class="pre">PlaceableScripts::on_unlock</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw16PlaceableScripts7on_usedE"><code class="docutils literal notranslate"><span class="pre">PlaceableScripts::on_used</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw16PlaceableScripts15on_user_definedE"><code class="docutils literal notranslate"><span class="pre">PlaceableScripts::on_user_defined</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Player.html">nw::Player</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Plt.html">nw::Plt</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__PltColors.html">nw::PltColors</a></li>
@@ -358,21 +384,21 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <div class="section" id="nw-placeablescripts">
-<h1>nw::PlaceableScripts<a class="headerlink" href="#nw-placeablescripts" title="Permalink to this headline"></a></h1>
+  <section id="nw-placeablescripts">
+<h1>nw::PlaceableScripts<a class="headerlink" href="#nw-placeablescripts" title="Link to this heading"></a></h1>
 <dl class="cpp struct">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw16PlaceableScriptsE">
-<span id="_CPPv3N2nw16PlaceableScriptsE"></span><span id="_CPPv2N2nw16PlaceableScriptsE"></span><span id="nw::PlaceableScripts"></span><span class="target" id="structnw_1_1_placeable_scripts"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">PlaceableScripts</span></span></span><a class="headerlink" href="#_CPPv4N2nw16PlaceableScriptsE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw16PlaceableScriptsE"></span><span id="_CPPv2N2nw16PlaceableScriptsE"></span><span id="nw::PlaceableScripts"></span><span class="target" id="structnw_1_1_placeable_scripts"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">PlaceableScripts</span></span></span><a class="headerlink" href="#_CPPv4N2nw16PlaceableScriptsE" title="Link to this definition"></a><br /></dt>
 <dd><div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw16PlaceableScripts9from_jsonERKN8nlohmann4jsonE">
-<span id="_CPPv3N2nw16PlaceableScripts9from_jsonERKN8nlohmann4jsonE"></span><span id="_CPPv2N2nw16PlaceableScripts9from_jsonERKN8nlohmann4jsonE"></span><span id="nw::PlaceableScripts::from_json__nlohmann::jsonCR"></span><span class="target" id="structnw_1_1_placeable_scripts_1a838d84415183b6183499681463a53b36"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">from_json</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">nlohmann</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">json</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">archive</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw16PlaceableScripts9from_jsonERKN8nlohmann4jsonE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw16PlaceableScripts9from_jsonERKN8nlohmann4jsonE"></span><span id="_CPPv2N2nw16PlaceableScripts9from_jsonERKN8nlohmann4jsonE"></span><span id="nw::PlaceableScripts::from_json__nlohmann::jsonCR"></span><span class="target" id="structnw_1_1_placeable_scripts_1a838d84415183b6183499681463a53b36"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">from_json</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">nlohmann</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">json</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">archive</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw16PlaceableScripts9from_jsonERKN8nlohmann4jsonE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4NK2nw16PlaceableScripts7to_jsonEv">
-<span id="_CPPv3NK2nw16PlaceableScripts7to_jsonEv"></span><span id="_CPPv2NK2nw16PlaceableScripts7to_jsonEv"></span><span id="nw::PlaceableScripts::to_jsonC"></span><span class="target" id="structnw_1_1_placeable_scripts_1a9a44a8edc40ac9071ca7d37d1d08c32c"></span><span class="n"><span class="pre">nlohmann</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">json</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">to_json</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK2nw16PlaceableScripts7to_jsonEv" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3NK2nw16PlaceableScripts7to_jsonEv"></span><span id="_CPPv2NK2nw16PlaceableScripts7to_jsonEv"></span><span id="nw::PlaceableScripts::to_jsonC"></span><span class="target" id="structnw_1_1_placeable_scripts_1a9a44a8edc40ac9071ca7d37d1d08c32c"></span><span class="n"><span class="pre">nlohmann</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">json</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">to_json</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK2nw16PlaceableScripts7to_jsonEv" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 </div>
@@ -380,83 +406,83 @@
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw16PlaceableScripts8on_clickE">
-<span id="_CPPv3N2nw16PlaceableScripts8on_clickE"></span><span id="_CPPv2N2nw16PlaceableScripts8on_clickE"></span><span id="nw::PlaceableScripts::on_click__Resref"></span><span class="target" id="structnw_1_1_placeable_scripts_1ad582db5e4a07076e127533f642567ec2"></span><a class="reference internal" href="nw__Resref.html#_CPPv4N2nw6ResrefE" title="nw::Resref"><span class="n"><span class="pre">Resref</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">on_click</span></span></span><a class="headerlink" href="#_CPPv4N2nw16PlaceableScripts8on_clickE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw16PlaceableScripts8on_clickE"></span><span id="_CPPv2N2nw16PlaceableScripts8on_clickE"></span><span id="nw::PlaceableScripts::on_click__Resref"></span><span class="target" id="structnw_1_1_placeable_scripts_1ad582db5e4a07076e127533f642567ec2"></span><a class="reference internal" href="nw__Resref.html#_CPPv4N2nw6ResrefE" title="nw::Resref"><span class="n"><span class="pre">Resref</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">on_click</span></span></span><a class="headerlink" href="#_CPPv4N2nw16PlaceableScripts8on_clickE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw16PlaceableScripts9on_closedE">
-<span id="_CPPv3N2nw16PlaceableScripts9on_closedE"></span><span id="_CPPv2N2nw16PlaceableScripts9on_closedE"></span><span id="nw::PlaceableScripts::on_closed__Resref"></span><span class="target" id="structnw_1_1_placeable_scripts_1a7022fae6fa83dfc8a4fa676ea8800f46"></span><a class="reference internal" href="nw__Resref.html#_CPPv4N2nw6ResrefE" title="nw::Resref"><span class="n"><span class="pre">Resref</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">on_closed</span></span></span><a class="headerlink" href="#_CPPv4N2nw16PlaceableScripts9on_closedE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw16PlaceableScripts9on_closedE"></span><span id="_CPPv2N2nw16PlaceableScripts9on_closedE"></span><span id="nw::PlaceableScripts::on_closed__Resref"></span><span class="target" id="structnw_1_1_placeable_scripts_1a7022fae6fa83dfc8a4fa676ea8800f46"></span><a class="reference internal" href="nw__Resref.html#_CPPv4N2nw6ResrefE" title="nw::Resref"><span class="n"><span class="pre">Resref</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">on_closed</span></span></span><a class="headerlink" href="#_CPPv4N2nw16PlaceableScripts9on_closedE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw16PlaceableScripts10on_damagedE">
-<span id="_CPPv3N2nw16PlaceableScripts10on_damagedE"></span><span id="_CPPv2N2nw16PlaceableScripts10on_damagedE"></span><span id="nw::PlaceableScripts::on_damaged__Resref"></span><span class="target" id="structnw_1_1_placeable_scripts_1a4af45ce2e3c00572658480b41fb30079"></span><a class="reference internal" href="nw__Resref.html#_CPPv4N2nw6ResrefE" title="nw::Resref"><span class="n"><span class="pre">Resref</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">on_damaged</span></span></span><a class="headerlink" href="#_CPPv4N2nw16PlaceableScripts10on_damagedE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw16PlaceableScripts10on_damagedE"></span><span id="_CPPv2N2nw16PlaceableScripts10on_damagedE"></span><span id="nw::PlaceableScripts::on_damaged__Resref"></span><span class="target" id="structnw_1_1_placeable_scripts_1a4af45ce2e3c00572658480b41fb30079"></span><a class="reference internal" href="nw__Resref.html#_CPPv4N2nw6ResrefE" title="nw::Resref"><span class="n"><span class="pre">Resref</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">on_damaged</span></span></span><a class="headerlink" href="#_CPPv4N2nw16PlaceableScripts10on_damagedE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw16PlaceableScripts8on_deathE">
-<span id="_CPPv3N2nw16PlaceableScripts8on_deathE"></span><span id="_CPPv2N2nw16PlaceableScripts8on_deathE"></span><span id="nw::PlaceableScripts::on_death__Resref"></span><span class="target" id="structnw_1_1_placeable_scripts_1acfd3f3f39c76c607ee2f29831b83d979"></span><a class="reference internal" href="nw__Resref.html#_CPPv4N2nw6ResrefE" title="nw::Resref"><span class="n"><span class="pre">Resref</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">on_death</span></span></span><a class="headerlink" href="#_CPPv4N2nw16PlaceableScripts8on_deathE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw16PlaceableScripts8on_deathE"></span><span id="_CPPv2N2nw16PlaceableScripts8on_deathE"></span><span id="nw::PlaceableScripts::on_death__Resref"></span><span class="target" id="structnw_1_1_placeable_scripts_1acfd3f3f39c76c607ee2f29831b83d979"></span><a class="reference internal" href="nw__Resref.html#_CPPv4N2nw6ResrefE" title="nw::Resref"><span class="n"><span class="pre">Resref</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">on_death</span></span></span><a class="headerlink" href="#_CPPv4N2nw16PlaceableScripts8on_deathE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw16PlaceableScripts9on_disarmE">
-<span id="_CPPv3N2nw16PlaceableScripts9on_disarmE"></span><span id="_CPPv2N2nw16PlaceableScripts9on_disarmE"></span><span id="nw::PlaceableScripts::on_disarm__Resref"></span><span class="target" id="structnw_1_1_placeable_scripts_1ab3f2f290c4db869087194b1b088a2e98"></span><a class="reference internal" href="nw__Resref.html#_CPPv4N2nw6ResrefE" title="nw::Resref"><span class="n"><span class="pre">Resref</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">on_disarm</span></span></span><a class="headerlink" href="#_CPPv4N2nw16PlaceableScripts9on_disarmE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw16PlaceableScripts9on_disarmE"></span><span id="_CPPv2N2nw16PlaceableScripts9on_disarmE"></span><span id="nw::PlaceableScripts::on_disarm__Resref"></span><span class="target" id="structnw_1_1_placeable_scripts_1ab3f2f290c4db869087194b1b088a2e98"></span><a class="reference internal" href="nw__Resref.html#_CPPv4N2nw6ResrefE" title="nw::Resref"><span class="n"><span class="pre">Resref</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">on_disarm</span></span></span><a class="headerlink" href="#_CPPv4N2nw16PlaceableScripts9on_disarmE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw16PlaceableScripts12on_heartbeatE">
-<span id="_CPPv3N2nw16PlaceableScripts12on_heartbeatE"></span><span id="_CPPv2N2nw16PlaceableScripts12on_heartbeatE"></span><span id="nw::PlaceableScripts::on_heartbeat__Resref"></span><span class="target" id="structnw_1_1_placeable_scripts_1a8758e6b63df981e577b0d2d99ca98f98"></span><a class="reference internal" href="nw__Resref.html#_CPPv4N2nw6ResrefE" title="nw::Resref"><span class="n"><span class="pre">Resref</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">on_heartbeat</span></span></span><a class="headerlink" href="#_CPPv4N2nw16PlaceableScripts12on_heartbeatE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw16PlaceableScripts12on_heartbeatE"></span><span id="_CPPv2N2nw16PlaceableScripts12on_heartbeatE"></span><span id="nw::PlaceableScripts::on_heartbeat__Resref"></span><span class="target" id="structnw_1_1_placeable_scripts_1a8758e6b63df981e577b0d2d99ca98f98"></span><a class="reference internal" href="nw__Resref.html#_CPPv4N2nw6ResrefE" title="nw::Resref"><span class="n"><span class="pre">Resref</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">on_heartbeat</span></span></span><a class="headerlink" href="#_CPPv4N2nw16PlaceableScripts12on_heartbeatE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw16PlaceableScripts22on_inventory_disturbedE">
-<span id="_CPPv3N2nw16PlaceableScripts22on_inventory_disturbedE"></span><span id="_CPPv2N2nw16PlaceableScripts22on_inventory_disturbedE"></span><span id="nw::PlaceableScripts::on_inventory_disturbed__Resref"></span><span class="target" id="structnw_1_1_placeable_scripts_1a3858a8fdd4ecc59117c140a10fca80a8"></span><a class="reference internal" href="nw__Resref.html#_CPPv4N2nw6ResrefE" title="nw::Resref"><span class="n"><span class="pre">Resref</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">on_inventory_disturbed</span></span></span><a class="headerlink" href="#_CPPv4N2nw16PlaceableScripts22on_inventory_disturbedE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw16PlaceableScripts22on_inventory_disturbedE"></span><span id="_CPPv2N2nw16PlaceableScripts22on_inventory_disturbedE"></span><span id="nw::PlaceableScripts::on_inventory_disturbed__Resref"></span><span class="target" id="structnw_1_1_placeable_scripts_1a3858a8fdd4ecc59117c140a10fca80a8"></span><a class="reference internal" href="nw__Resref.html#_CPPv4N2nw6ResrefE" title="nw::Resref"><span class="n"><span class="pre">Resref</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">on_inventory_disturbed</span></span></span><a class="headerlink" href="#_CPPv4N2nw16PlaceableScripts22on_inventory_disturbedE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw16PlaceableScripts7on_lockE">
-<span id="_CPPv3N2nw16PlaceableScripts7on_lockE"></span><span id="_CPPv2N2nw16PlaceableScripts7on_lockE"></span><span id="nw::PlaceableScripts::on_lock__Resref"></span><span class="target" id="structnw_1_1_placeable_scripts_1aa91878207a6d5ee97fc9bdca64de7fa4"></span><a class="reference internal" href="nw__Resref.html#_CPPv4N2nw6ResrefE" title="nw::Resref"><span class="n"><span class="pre">Resref</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">on_lock</span></span></span><a class="headerlink" href="#_CPPv4N2nw16PlaceableScripts7on_lockE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw16PlaceableScripts7on_lockE"></span><span id="_CPPv2N2nw16PlaceableScripts7on_lockE"></span><span id="nw::PlaceableScripts::on_lock__Resref"></span><span class="target" id="structnw_1_1_placeable_scripts_1aa91878207a6d5ee97fc9bdca64de7fa4"></span><a class="reference internal" href="nw__Resref.html#_CPPv4N2nw6ResrefE" title="nw::Resref"><span class="n"><span class="pre">Resref</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">on_lock</span></span></span><a class="headerlink" href="#_CPPv4N2nw16PlaceableScripts7on_lockE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw16PlaceableScripts17on_melee_attackedE">
-<span id="_CPPv3N2nw16PlaceableScripts17on_melee_attackedE"></span><span id="_CPPv2N2nw16PlaceableScripts17on_melee_attackedE"></span><span id="nw::PlaceableScripts::on_melee_attacked__Resref"></span><span class="target" id="structnw_1_1_placeable_scripts_1ae3e12edd11175f209e8fa01d6714b772"></span><a class="reference internal" href="nw__Resref.html#_CPPv4N2nw6ResrefE" title="nw::Resref"><span class="n"><span class="pre">Resref</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">on_melee_attacked</span></span></span><a class="headerlink" href="#_CPPv4N2nw16PlaceableScripts17on_melee_attackedE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw16PlaceableScripts17on_melee_attackedE"></span><span id="_CPPv2N2nw16PlaceableScripts17on_melee_attackedE"></span><span id="nw::PlaceableScripts::on_melee_attacked__Resref"></span><span class="target" id="structnw_1_1_placeable_scripts_1ae3e12edd11175f209e8fa01d6714b772"></span><a class="reference internal" href="nw__Resref.html#_CPPv4N2nw6ResrefE" title="nw::Resref"><span class="n"><span class="pre">Resref</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">on_melee_attacked</span></span></span><a class="headerlink" href="#_CPPv4N2nw16PlaceableScripts17on_melee_attackedE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw16PlaceableScripts7on_openE">
-<span id="_CPPv3N2nw16PlaceableScripts7on_openE"></span><span id="_CPPv2N2nw16PlaceableScripts7on_openE"></span><span id="nw::PlaceableScripts::on_open__Resref"></span><span class="target" id="structnw_1_1_placeable_scripts_1ab4371290d49fbdb8f4e2c78be7612403"></span><a class="reference internal" href="nw__Resref.html#_CPPv4N2nw6ResrefE" title="nw::Resref"><span class="n"><span class="pre">Resref</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">on_open</span></span></span><a class="headerlink" href="#_CPPv4N2nw16PlaceableScripts7on_openE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw16PlaceableScripts7on_openE"></span><span id="_CPPv2N2nw16PlaceableScripts7on_openE"></span><span id="nw::PlaceableScripts::on_open__Resref"></span><span class="target" id="structnw_1_1_placeable_scripts_1ab4371290d49fbdb8f4e2c78be7612403"></span><a class="reference internal" href="nw__Resref.html#_CPPv4N2nw6ResrefE" title="nw::Resref"><span class="n"><span class="pre">Resref</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">on_open</span></span></span><a class="headerlink" href="#_CPPv4N2nw16PlaceableScripts7on_openE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw16PlaceableScripts16on_spell_cast_atE">
-<span id="_CPPv3N2nw16PlaceableScripts16on_spell_cast_atE"></span><span id="_CPPv2N2nw16PlaceableScripts16on_spell_cast_atE"></span><span id="nw::PlaceableScripts::on_spell_cast_at__Resref"></span><span class="target" id="structnw_1_1_placeable_scripts_1ad3c129c64de12c34b281081f58545d7c"></span><a class="reference internal" href="nw__Resref.html#_CPPv4N2nw6ResrefE" title="nw::Resref"><span class="n"><span class="pre">Resref</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">on_spell_cast_at</span></span></span><a class="headerlink" href="#_CPPv4N2nw16PlaceableScripts16on_spell_cast_atE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw16PlaceableScripts16on_spell_cast_atE"></span><span id="_CPPv2N2nw16PlaceableScripts16on_spell_cast_atE"></span><span id="nw::PlaceableScripts::on_spell_cast_at__Resref"></span><span class="target" id="structnw_1_1_placeable_scripts_1ad3c129c64de12c34b281081f58545d7c"></span><a class="reference internal" href="nw__Resref.html#_CPPv4N2nw6ResrefE" title="nw::Resref"><span class="n"><span class="pre">Resref</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">on_spell_cast_at</span></span></span><a class="headerlink" href="#_CPPv4N2nw16PlaceableScripts16on_spell_cast_atE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw16PlaceableScripts17on_trap_triggeredE">
-<span id="_CPPv3N2nw16PlaceableScripts17on_trap_triggeredE"></span><span id="_CPPv2N2nw16PlaceableScripts17on_trap_triggeredE"></span><span id="nw::PlaceableScripts::on_trap_triggered__Resref"></span><span class="target" id="structnw_1_1_placeable_scripts_1ac52f477547c57742fcd41ad3226ccbea"></span><a class="reference internal" href="nw__Resref.html#_CPPv4N2nw6ResrefE" title="nw::Resref"><span class="n"><span class="pre">Resref</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">on_trap_triggered</span></span></span><a class="headerlink" href="#_CPPv4N2nw16PlaceableScripts17on_trap_triggeredE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw16PlaceableScripts17on_trap_triggeredE"></span><span id="_CPPv2N2nw16PlaceableScripts17on_trap_triggeredE"></span><span id="nw::PlaceableScripts::on_trap_triggered__Resref"></span><span class="target" id="structnw_1_1_placeable_scripts_1ac52f477547c57742fcd41ad3226ccbea"></span><a class="reference internal" href="nw__Resref.html#_CPPv4N2nw6ResrefE" title="nw::Resref"><span class="n"><span class="pre">Resref</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">on_trap_triggered</span></span></span><a class="headerlink" href="#_CPPv4N2nw16PlaceableScripts17on_trap_triggeredE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw16PlaceableScripts9on_unlockE">
-<span id="_CPPv3N2nw16PlaceableScripts9on_unlockE"></span><span id="_CPPv2N2nw16PlaceableScripts9on_unlockE"></span><span id="nw::PlaceableScripts::on_unlock__Resref"></span><span class="target" id="structnw_1_1_placeable_scripts_1aa9b843a0d85f6d47ffc57da2cf7bd985"></span><a class="reference internal" href="nw__Resref.html#_CPPv4N2nw6ResrefE" title="nw::Resref"><span class="n"><span class="pre">Resref</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">on_unlock</span></span></span><a class="headerlink" href="#_CPPv4N2nw16PlaceableScripts9on_unlockE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw16PlaceableScripts9on_unlockE"></span><span id="_CPPv2N2nw16PlaceableScripts9on_unlockE"></span><span id="nw::PlaceableScripts::on_unlock__Resref"></span><span class="target" id="structnw_1_1_placeable_scripts_1aa9b843a0d85f6d47ffc57da2cf7bd985"></span><a class="reference internal" href="nw__Resref.html#_CPPv4N2nw6ResrefE" title="nw::Resref"><span class="n"><span class="pre">Resref</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">on_unlock</span></span></span><a class="headerlink" href="#_CPPv4N2nw16PlaceableScripts9on_unlockE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw16PlaceableScripts7on_usedE">
-<span id="_CPPv3N2nw16PlaceableScripts7on_usedE"></span><span id="_CPPv2N2nw16PlaceableScripts7on_usedE"></span><span id="nw::PlaceableScripts::on_used__Resref"></span><span class="target" id="structnw_1_1_placeable_scripts_1aab900a77bac37b352cd1d431e4d55aae"></span><a class="reference internal" href="nw__Resref.html#_CPPv4N2nw6ResrefE" title="nw::Resref"><span class="n"><span class="pre">Resref</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">on_used</span></span></span><a class="headerlink" href="#_CPPv4N2nw16PlaceableScripts7on_usedE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw16PlaceableScripts7on_usedE"></span><span id="_CPPv2N2nw16PlaceableScripts7on_usedE"></span><span id="nw::PlaceableScripts::on_used__Resref"></span><span class="target" id="structnw_1_1_placeable_scripts_1aab900a77bac37b352cd1d431e4d55aae"></span><a class="reference internal" href="nw__Resref.html#_CPPv4N2nw6ResrefE" title="nw::Resref"><span class="n"><span class="pre">Resref</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">on_used</span></span></span><a class="headerlink" href="#_CPPv4N2nw16PlaceableScripts7on_usedE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw16PlaceableScripts15on_user_definedE">
-<span id="_CPPv3N2nw16PlaceableScripts15on_user_definedE"></span><span id="_CPPv2N2nw16PlaceableScripts15on_user_definedE"></span><span id="nw::PlaceableScripts::on_user_defined__Resref"></span><span class="target" id="structnw_1_1_placeable_scripts_1a1e1b4cbe853877f060eb643c2d95447c"></span><a class="reference internal" href="nw__Resref.html#_CPPv4N2nw6ResrefE" title="nw::Resref"><span class="n"><span class="pre">Resref</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">on_user_defined</span></span></span><a class="headerlink" href="#_CPPv4N2nw16PlaceableScripts15on_user_definedE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw16PlaceableScripts15on_user_definedE"></span><span id="_CPPv2N2nw16PlaceableScripts15on_user_definedE"></span><span id="nw::PlaceableScripts::on_user_defined__Resref"></span><span class="target" id="structnw_1_1_placeable_scripts_1a1e1b4cbe853877f060eb643c2d95447c"></span><a class="reference internal" href="nw__Resref.html#_CPPv4N2nw6ResrefE" title="nw::Resref"><span class="n"><span class="pre">Resref</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">on_user_defined</span></span></span><a class="headerlink" href="#_CPPv4N2nw16PlaceableScripts15on_user_definedE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 </div>
 </dd></dl>
 
-</div>
+</section>
 
 
            </div>

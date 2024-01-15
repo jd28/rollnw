@@ -1,20 +1,24 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html5" lang="en" data-content_root="../../">
 <head>
-  <meta charset="utf-8" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>nw::NWSync &mdash; rollNW  documentation</title>
-      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
-      <link rel="stylesheet" href="../../_static/tabs.css" type="text/css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="../../_static/tabs.css?v=a5c4661c" />
+
+  
   <!--[if lt IE 9]>
     <script src="../../_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
-        <script src="../../_static/jquery.js"></script>
-        <script src="../../_static/underscore.js"></script>
-        <script src="../../_static/doctools.js"></script>
+        <script src="../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+        <script src="../../_static/doctools.js?v=888ff710"></script>
+        <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
@@ -147,7 +151,25 @@
 <li class="toctree-l2"><a class="reference internal" href="nw__ModifierType.html">nw::ModifierType</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Module.html">nw::Module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__ModuleScripts.html">nw::ModuleScripts</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">nw::NWSync</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">nw::NWSync</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#_CPPv4N2nw6NWSyncE"><code class="docutils literal notranslate"><span class="pre">NWSync</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6NWSync6NWSyncEv"><code class="docutils literal notranslate"><span class="pre">NWSync::NWSync()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6NWSync6NWSyncERKNSt10filesystem4pathE"><code class="docutils literal notranslate"><span class="pre">NWSync::NWSync()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6NWSync6NWSyncERK6NWSync"><code class="docutils literal notranslate"><span class="pre">NWSync::NWSync()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6NWSync6NWSyncERR6NWSync"><code class="docutils literal notranslate"><span class="pre">NWSync::NWSync()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6NWSyncD0Ev"><code class="docutils literal notranslate"><span class="pre">NWSync::~NWSync()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6NWSync3getENSt11string_viewE"><code class="docutils literal notranslate"><span class="pre">NWSync::get()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw6NWSync9is_loadedEv"><code class="docutils literal notranslate"><span class="pre">NWSync::is_loaded()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6NWSync9manifestsEv"><code class="docutils literal notranslate"><span class="pre">NWSync::manifests()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw6NWSync11shard_countEv"><code class="docutils literal notranslate"><span class="pre">NWSync::shard_count()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6NWSync4metaEv"><code class="docutils literal notranslate"><span class="pre">NWSync::meta()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6NWSync6shardsEv"><code class="docutils literal notranslate"><span class="pre">NWSync::shards()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6NWSyncaSERK6NWSync"><code class="docutils literal notranslate"><span class="pre">NWSync::operator=()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6NWSyncaSERR6NWSync"><code class="docutils literal notranslate"><span class="pre">NWSync::operator=()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="nw__NWSyncManifest.html">nw::NWSyncManifest</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Null.html">nw::Null</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Palette.html">nw::Palette</a></li>
@@ -358,88 +380,88 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <div class="section" id="nw-nwsync">
-<h1>nw::NWSync<a class="headerlink" href="#nw-nwsync" title="Permalink to this headline"></a></h1>
+  <section id="nw-nwsync">
+<h1>nw::NWSync<a class="headerlink" href="#nw-nwsync" title="Link to this heading"></a></h1>
 <dl class="cpp struct">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw6NWSyncE">
-<span id="_CPPv3N2nw6NWSyncE"></span><span id="_CPPv2N2nw6NWSyncE"></span><span id="nw::NWSync"></span><span class="target" id="structnw_1_1_n_w_sync"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">NWSync</span></span></span><a class="headerlink" href="#_CPPv4N2nw6NWSyncE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw6NWSyncE"></span><span id="_CPPv2N2nw6NWSyncE"></span><span id="nw::NWSync"></span><span class="target" id="structnw_1_1_n_w_sync"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">NWSync</span></span></span><a class="headerlink" href="#_CPPv4N2nw6NWSyncE" title="Link to this definition"></a><br /></dt>
 <dd><div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw6NWSync6NWSyncEv">
-<span id="_CPPv3N2nw6NWSync6NWSyncEv"></span><span id="_CPPv2N2nw6NWSync6NWSyncEv"></span><span id="nw::NWSync::NWSync"></span><span class="target" id="structnw_1_1_n_w_sync_1aa1a264ef09eae070088455276f563ed8"></span><span class="sig-name descname"><span class="n"><span class="pre">NWSync</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6NWSync6NWSyncEv" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw6NWSync6NWSyncEv"></span><span id="_CPPv2N2nw6NWSync6NWSyncEv"></span><span id="nw::NWSync::NWSync"></span><span class="target" id="structnw_1_1_n_w_sync_1aa1a264ef09eae070088455276f563ed8"></span><span class="sig-name descname"><span class="n"><span class="pre">NWSync</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6NWSync6NWSyncEv" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw6NWSync6NWSyncERKNSt10filesystem4pathE">
-<span id="_CPPv3N2nw6NWSync6NWSyncERKNSt10filesystem4pathE"></span><span id="_CPPv2N2nw6NWSync6NWSyncERKNSt10filesystem4pathE"></span><span id="nw::NWSync::NWSync__std::filesystem::pathCR"></span><span class="target" id="structnw_1_1_n_w_sync_1a51edfe827041274341c6f35ce2e40e44"></span><span class="k"><span class="pre">explicit</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">NWSync</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">filesystem</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">path</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">path</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6NWSync6NWSyncERKNSt10filesystem4pathE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw6NWSync6NWSyncERKNSt10filesystem4pathE"></span><span id="_CPPv2N2nw6NWSync6NWSyncERKNSt10filesystem4pathE"></span><span id="nw::NWSync::NWSync__std::filesystem::pathCR"></span><span class="target" id="structnw_1_1_n_w_sync_1a51edfe827041274341c6f35ce2e40e44"></span><span class="k"><span class="pre">explicit</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">NWSync</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">filesystem</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">path</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">path</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6NWSync6NWSyncERKNSt10filesystem4pathE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw6NWSync6NWSyncERK6NWSync">
-<span id="_CPPv3N2nw6NWSync6NWSyncERK6NWSync"></span><span id="_CPPv2N2nw6NWSync6NWSyncERK6NWSync"></span><span id="nw::NWSync::NWSync__NWSyncCR"></span><span class="target" id="structnw_1_1_n_w_sync_1ad78eec6b8ddc3ee82f87b9663e86fc7f"></span><span class="sig-name descname"><span class="n"><span class="pre">NWSync</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N2nw6NWSync6NWSyncERK6NWSync" title="nw::NWSync::NWSync"><span class="n"><span class="pre">NWSync</span></span></a><span class="p"><span class="pre">&amp;</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">delete</span></span><a class="headerlink" href="#_CPPv4N2nw6NWSync6NWSyncERK6NWSync" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw6NWSync6NWSyncERK6NWSync"></span><span id="_CPPv2N2nw6NWSync6NWSyncERK6NWSync"></span><span id="nw::NWSync::NWSync__NWSyncCR"></span><span class="target" id="structnw_1_1_n_w_sync_1ad78eec6b8ddc3ee82f87b9663e86fc7f"></span><span class="sig-name descname"><span class="n"><span class="pre">NWSync</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N2nw6NWSync6NWSyncERK6NWSync" title="nw::NWSync::NWSync"><span class="n"><span class="pre">NWSync</span></span></a><span class="p"><span class="pre">&amp;</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">delete</span></span><a class="headerlink" href="#_CPPv4N2nw6NWSync6NWSyncERK6NWSync" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw6NWSync6NWSyncERR6NWSync">
-<span id="_CPPv3N2nw6NWSync6NWSyncERR6NWSync"></span><span id="_CPPv2N2nw6NWSync6NWSyncERR6NWSync"></span><span id="nw::NWSync::NWSync__NWSyncRR"></span><span class="target" id="structnw_1_1_n_w_sync_1a54b3b32b2a9cf7fdbc26b57bfb0ded33"></span><span class="sig-name descname"><span class="n"><span class="pre">NWSync</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N2nw6NWSync6NWSyncERR6NWSync" title="nw::NWSync::NWSync"><span class="n"><span class="pre">NWSync</span></span></a><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">default</span></span><a class="headerlink" href="#_CPPv4N2nw6NWSync6NWSyncERR6NWSync" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw6NWSync6NWSyncERR6NWSync"></span><span id="_CPPv2N2nw6NWSync6NWSyncERR6NWSync"></span><span id="nw::NWSync::NWSync__NWSyncRR"></span><span class="target" id="structnw_1_1_n_w_sync_1a54b3b32b2a9cf7fdbc26b57bfb0ded33"></span><span class="sig-name descname"><span class="n"><span class="pre">NWSync</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N2nw6NWSync6NWSyncERR6NWSync" title="nw::NWSync::NWSync"><span class="n"><span class="pre">NWSync</span></span></a><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">default</span></span><a class="headerlink" href="#_CPPv4N2nw6NWSync6NWSyncERR6NWSync" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw6NWSyncD0Ev">
-<span id="_CPPv3N2nw6NWSyncD0Ev"></span><span id="_CPPv2N2nw6NWSyncD0Ev"></span><span id="nw::NWSync::~NWSync"></span><span class="target" id="structnw_1_1_n_w_sync_1a59e2245896291c17e99939d13e948d9c"></span><span class="sig-name descname"><span class="n"><span class="pre">~NWSync</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">default</span></span><a class="headerlink" href="#_CPPv4N2nw6NWSyncD0Ev" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw6NWSyncD0Ev"></span><span id="_CPPv2N2nw6NWSyncD0Ev"></span><span id="nw::NWSync::~NWSync"></span><span class="target" id="structnw_1_1_n_w_sync_1a59e2245896291c17e99939d13e948d9c"></span><span class="sig-name descname"><span class="n"><span class="pre">~NWSync</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">default</span></span><a class="headerlink" href="#_CPPv4N2nw6NWSyncD0Ev" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw6NWSync3getENSt11string_viewE">
-<span id="_CPPv3N2nw6NWSync3getENSt11string_viewE"></span><span id="_CPPv2N2nw6NWSync3getENSt11string_viewE"></span><span id="nw::NWSync::get__std::string_view"></span><span class="target" id="structnw_1_1_n_w_sync_1a54e388239f2c1ff6efb8c959b45c3840"></span><a class="reference internal" href="nw__NWSyncManifest.html#_CPPv4N2nw14NWSyncManifestE" title="nw::NWSyncManifest"><span class="n"><span class="pre">NWSyncManifest</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">get</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">manifest</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6NWSync3getENSt11string_viewE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw6NWSync3getENSt11string_viewE"></span><span id="_CPPv2N2nw6NWSync3getENSt11string_viewE"></span><span id="nw::NWSync::get__std::string_view"></span><span class="target" id="structnw_1_1_n_w_sync_1a54e388239f2c1ff6efb8c959b45c3840"></span><a class="reference internal" href="nw__NWSyncManifest.html#_CPPv4N2nw14NWSyncManifestE" title="nw::NWSyncManifest"><span class="n"><span class="pre">NWSyncManifest</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">get</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">manifest</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6NWSync3getENSt11string_viewE" title="Link to this definition"></a><br /></dt>
 <dd><p>Get a particular manifest as a container. </p>
 </dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4NK2nw6NWSync9is_loadedEv">
-<span id="_CPPv3NK2nw6NWSync9is_loadedEv"></span><span id="_CPPv2NK2nw6NWSync9is_loadedEv"></span><span id="nw::NWSync::is_loadedC"></span><span class="target" id="structnw_1_1_n_w_sync_1a41d9f4f3d59f335ba1dcb2f6d15c602a"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">is_loaded</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="k"><span class="pre">noexcept</span></span><a class="headerlink" href="#_CPPv4NK2nw6NWSync9is_loadedEv" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3NK2nw6NWSync9is_loadedEv"></span><span id="_CPPv2NK2nw6NWSync9is_loadedEv"></span><span id="nw::NWSync::is_loadedC"></span><span class="target" id="structnw_1_1_n_w_sync_1a41d9f4f3d59f335ba1dcb2f6d15c602a"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">is_loaded</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="k"><span class="pre">noexcept</span></span><a class="headerlink" href="#_CPPv4NK2nw6NWSync9is_loadedEv" title="Link to this definition"></a><br /></dt>
 <dd><p>Get if <a class="reference internal" href="#structnw_1_1_n_w_sync"><span class="std std-ref">NWSync</span></a> was successfully loaded. </p>
 </dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw6NWSync9manifestsEv">
-<span id="_CPPv3N2nw6NWSync9manifestsEv"></span><span id="_CPPv2N2nw6NWSync9manifestsEv"></span><span id="nw::NWSync::manifests"></span><span class="target" id="structnw_1_1_n_w_sync_1a647d284de5729a269b531043d18dc8a8"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">manifests</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6NWSync9manifestsEv" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw6NWSync9manifestsEv"></span><span id="_CPPv2N2nw6NWSync9manifestsEv"></span><span id="nw::NWSync::manifests"></span><span class="target" id="structnw_1_1_n_w_sync_1a647d284de5729a269b531043d18dc8a8"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">manifests</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6NWSync9manifestsEv" title="Link to this definition"></a><br /></dt>
 <dd><p>Get list of all manifests. </p>
 </dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4NK2nw6NWSync11shard_countEv">
-<span id="_CPPv3NK2nw6NWSync11shard_countEv"></span><span id="_CPPv2NK2nw6NWSync11shard_countEv"></span><span id="nw::NWSync::shard_countC"></span><span class="target" id="structnw_1_1_n_w_sync_1ac2f59a4a594948fb0f0e981e83fce746"></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">shard_count</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="k"><span class="pre">noexcept</span></span><a class="headerlink" href="#_CPPv4NK2nw6NWSync11shard_countEv" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3NK2nw6NWSync11shard_countEv"></span><span id="_CPPv2NK2nw6NWSync11shard_countEv"></span><span id="nw::NWSync::shard_countC"></span><span class="target" id="structnw_1_1_n_w_sync_1ac2f59a4a594948fb0f0e981e83fce746"></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">shard_count</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="k"><span class="pre">noexcept</span></span><a class="headerlink" href="#_CPPv4NK2nw6NWSync11shard_countEv" title="Link to this definition"></a><br /></dt>
 <dd><p>Get the number of shards. </p>
 </dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw6NWSync4metaEv">
-<span id="_CPPv3N2nw6NWSync4metaEv"></span><span id="_CPPv2N2nw6NWSync4metaEv"></span><span id="nw::NWSync::meta"></span><span class="target" id="structnw_1_1_n_w_sync_1aa5b5e1005727542bac87db08f05fe7b1"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">sqlite3</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">meta</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6NWSync4metaEv" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw6NWSync4metaEv"></span><span id="_CPPv2N2nw6NWSync4metaEv"></span><span id="nw::NWSync::meta"></span><span class="target" id="structnw_1_1_n_w_sync_1aa5b5e1005727542bac87db08f05fe7b1"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">sqlite3</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">meta</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6NWSync4metaEv" title="Link to this definition"></a><br /></dt>
 <dd><p>Get a pointer to the nwsyncmeta database. </p>
 </dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw6NWSync6shardsEv">
-<span id="_CPPv3N2nw6NWSync6shardsEv"></span><span id="_CPPv2N2nw6NWSync6shardsEv"></span><span id="nw::NWSync::shards"></span><span class="target" id="structnw_1_1_n_w_sync_1ae28321c0fa1c3121c10e53440ccb3596"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="../typedef/nw__sqlite3_ptr.html#_CPPv4N2nw11sqlite3_ptrE" title="nw::sqlite3_ptr"><span class="n"><span class="pre">sqlite3_ptr</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">shards</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6NWSync6shardsEv" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw6NWSync6shardsEv"></span><span id="_CPPv2N2nw6NWSync6shardsEv"></span><span id="nw::NWSync::shards"></span><span class="target" id="structnw_1_1_n_w_sync_1ae28321c0fa1c3121c10e53440ccb3596"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="../typedef/nw__sqlite3_ptr.html#_CPPv4N2nw11sqlite3_ptrE" title="nw::sqlite3_ptr"><span class="n"><span class="pre">sqlite3_ptr</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">shards</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6NWSync6shardsEv" title="Link to this definition"></a><br /></dt>
 <dd><p>List of all shards as active Sqlite3 connections. </p>
 </dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw6NWSyncaSERK6NWSync">
-<span id="_CPPv3N2nw6NWSyncaSERK6NWSync"></span><span id="_CPPv2N2nw6NWSyncaSERK6NWSync"></span><span id="nw::NWSync::assign-operator__NWSyncCR"></span><span class="target" id="structnw_1_1_n_w_sync_1aef25d20975ac924007dfb230b839be21"></span><a class="reference internal" href="#_CPPv4N2nw6NWSyncE" title="nw::NWSync"><span class="n"><span class="pre">NWSync</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">=</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N2nw6NWSyncE" title="nw::NWSync"><span class="n"><span class="pre">NWSync</span></span></a><span class="p"><span class="pre">&amp;</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">delete</span></span><a class="headerlink" href="#_CPPv4N2nw6NWSyncaSERK6NWSync" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw6NWSyncaSERK6NWSync"></span><span id="_CPPv2N2nw6NWSyncaSERK6NWSync"></span><span id="nw::NWSync::assign-operator__NWSyncCR"></span><span class="target" id="structnw_1_1_n_w_sync_1aef25d20975ac924007dfb230b839be21"></span><a class="reference internal" href="#_CPPv4N2nw6NWSyncE" title="nw::NWSync"><span class="n"><span class="pre">NWSync</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">=</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N2nw6NWSyncE" title="nw::NWSync"><span class="n"><span class="pre">NWSync</span></span></a><span class="p"><span class="pre">&amp;</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">delete</span></span><a class="headerlink" href="#_CPPv4N2nw6NWSyncaSERK6NWSync" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw6NWSyncaSERR6NWSync">
-<span id="_CPPv3N2nw6NWSyncaSERR6NWSync"></span><span id="_CPPv2N2nw6NWSyncaSERR6NWSync"></span><span id="nw::NWSync::assign-operator__NWSyncRR"></span><span class="target" id="structnw_1_1_n_w_sync_1aaf2b33ecad3aac40b791dae5e8981598"></span><a class="reference internal" href="#_CPPv4N2nw6NWSyncE" title="nw::NWSync"><span class="n"><span class="pre">NWSync</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">=</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N2nw6NWSyncE" title="nw::NWSync"><span class="n"><span class="pre">NWSync</span></span></a><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">default</span></span><a class="headerlink" href="#_CPPv4N2nw6NWSyncaSERR6NWSync" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw6NWSyncaSERR6NWSync"></span><span id="_CPPv2N2nw6NWSyncaSERR6NWSync"></span><span id="nw::NWSync::assign-operator__NWSyncRR"></span><span class="target" id="structnw_1_1_n_w_sync_1aaf2b33ecad3aac40b791dae5e8981598"></span><a class="reference internal" href="#_CPPv4N2nw6NWSyncE" title="nw::NWSync"><span class="n"><span class="pre">NWSync</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">=</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N2nw6NWSyncE" title="nw::NWSync"><span class="n"><span class="pre">NWSync</span></span></a><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">default</span></span><a class="headerlink" href="#_CPPv4N2nw6NWSyncaSERR6NWSync" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 </div>
 </dd></dl>
 
-</div>
+</section>
 
 
            </div>

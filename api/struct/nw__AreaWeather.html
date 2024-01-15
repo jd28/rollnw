@@ -1,20 +1,24 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html5" lang="en" data-content_root="../../">
 <head>
-  <meta charset="utf-8" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>nw::AreaWeather &mdash; rollNW  documentation</title>
-      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
-      <link rel="stylesheet" href="../../_static/tabs.css" type="text/css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="../../_static/tabs.css?v=a5c4661c" />
+
+  
   <!--[if lt IE 9]>
     <script src="../../_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
-        <script src="../../_static/jquery.js"></script>
-        <script src="../../_static/underscore.js"></script>
-        <script src="../../_static/doctools.js"></script>
+        <script src="../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+        <script src="../../_static/doctools.js?v=888ff710"></script>
+        <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
@@ -66,7 +70,33 @@
 <li class="toctree-l2"><a class="reference internal" href="nw__Appearance.html">nw::Appearance</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Area.html">nw::Area</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__AreaScripts.html">nw::AreaScripts</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">nw::AreaWeather</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">nw::AreaWeather</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#_CPPv4N2nw11AreaWeatherE"><code class="docutils literal notranslate"><span class="pre">AreaWeather</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw11AreaWeather11AreaWeatherEv"><code class="docutils literal notranslate"><span class="pre">AreaWeather::AreaWeather()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw11AreaWeather9from_jsonERKN8nlohmann4jsonE"><code class="docutils literal notranslate"><span class="pre">AreaWeather::from_json()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw11AreaWeather7to_jsonEv"><code class="docutils literal notranslate"><span class="pre">AreaWeather::to_json()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw11AreaWeather16chance_lightningE"><code class="docutils literal notranslate"><span class="pre">AreaWeather::chance_lightning</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw11AreaWeather11chance_rainE"><code class="docutils literal notranslate"><span class="pre">AreaWeather::chance_rain</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw11AreaWeather11chance_snowE"><code class="docutils literal notranslate"><span class="pre">AreaWeather::chance_snow</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw11AreaWeather18color_moon_ambientE"><code class="docutils literal notranslate"><span class="pre">AreaWeather::color_moon_ambient</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw11AreaWeather18color_moon_diffuseE"><code class="docutils literal notranslate"><span class="pre">AreaWeather::color_moon_diffuse</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw11AreaWeather14color_moon_fogE"><code class="docutils literal notranslate"><span class="pre">AreaWeather::color_moon_fog</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw11AreaWeather17color_sun_ambientE"><code class="docutils literal notranslate"><span class="pre">AreaWeather::color_sun_ambient</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw11AreaWeather17color_sun_diffuseE"><code class="docutils literal notranslate"><span class="pre">AreaWeather::color_sun_diffuse</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw11AreaWeather13color_sun_fogE"><code class="docutils literal notranslate"><span class="pre">AreaWeather::color_sun_fog</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw11AreaWeather17fog_clip_distanceE"><code class="docutils literal notranslate"><span class="pre">AreaWeather::fog_clip_distance</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw11AreaWeather10wind_powerE"><code class="docutils literal notranslate"><span class="pre">AreaWeather::wind_power</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw11AreaWeather15day_night_cycleE"><code class="docutils literal notranslate"><span class="pre">AreaWeather::day_night_cycle</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw11AreaWeather8is_nightE"><code class="docutils literal notranslate"><span class="pre">AreaWeather::is_night</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw11AreaWeather15lighting_schemeE"><code class="docutils literal notranslate"><span class="pre">AreaWeather::lighting_scheme</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw11AreaWeather15fog_moon_amountE"><code class="docutils literal notranslate"><span class="pre">AreaWeather::fog_moon_amount</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw11AreaWeather12moon_shadowsE"><code class="docutils literal notranslate"><span class="pre">AreaWeather::moon_shadows</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw11AreaWeather14fog_sun_amountE"><code class="docutils literal notranslate"><span class="pre">AreaWeather::fog_sun_amount</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw11AreaWeather11sun_shadowsE"><code class="docutils literal notranslate"><span class="pre">AreaWeather::sun_shadows</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="nw__AttackData.html">nw::AttackData</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__BaseItem.html">nw::BaseItem</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__BeamdogInstall.html">nw::BeamdogInstall</a></li>
@@ -358,26 +388,26 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <div class="section" id="nw-areaweather">
-<h1>nw::AreaWeather<a class="headerlink" href="#nw-areaweather" title="Permalink to this headline"></a></h1>
+  <section id="nw-areaweather">
+<h1>nw::AreaWeather<a class="headerlink" href="#nw-areaweather" title="Link to this heading"></a></h1>
 <dl class="cpp struct">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw11AreaWeatherE">
-<span id="_CPPv3N2nw11AreaWeatherE"></span><span id="_CPPv2N2nw11AreaWeatherE"></span><span id="nw::AreaWeather"></span><span class="target" id="structnw_1_1_area_weather"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">AreaWeather</span></span></span><a class="headerlink" href="#_CPPv4N2nw11AreaWeatherE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw11AreaWeatherE"></span><span id="_CPPv2N2nw11AreaWeatherE"></span><span id="nw::AreaWeather"></span><span class="target" id="structnw_1_1_area_weather"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">AreaWeather</span></span></span><a class="headerlink" href="#_CPPv4N2nw11AreaWeatherE" title="Link to this definition"></a><br /></dt>
 <dd><div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw11AreaWeather11AreaWeatherEv">
-<span id="_CPPv3N2nw11AreaWeather11AreaWeatherEv"></span><span id="_CPPv2N2nw11AreaWeather11AreaWeatherEv"></span><span id="nw::AreaWeather::AreaWeather"></span><span class="target" id="structnw_1_1_area_weather_1a8a1af79e7684f83140b3f5c62f64be3d"></span><span class="sig-name descname"><span class="n"><span class="pre">AreaWeather</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">default</span></span><a class="headerlink" href="#_CPPv4N2nw11AreaWeather11AreaWeatherEv" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw11AreaWeather11AreaWeatherEv"></span><span id="_CPPv2N2nw11AreaWeather11AreaWeatherEv"></span><span id="nw::AreaWeather::AreaWeather"></span><span class="target" id="structnw_1_1_area_weather_1a8a1af79e7684f83140b3f5c62f64be3d"></span><span class="sig-name descname"><span class="n"><span class="pre">AreaWeather</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">default</span></span><a class="headerlink" href="#_CPPv4N2nw11AreaWeather11AreaWeatherEv" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw11AreaWeather9from_jsonERKN8nlohmann4jsonE">
-<span id="_CPPv3N2nw11AreaWeather9from_jsonERKN8nlohmann4jsonE"></span><span id="_CPPv2N2nw11AreaWeather9from_jsonERKN8nlohmann4jsonE"></span><span id="nw::AreaWeather::from_json__nlohmann::jsonCR"></span><span class="target" id="structnw_1_1_area_weather_1a5e73e5cbf78196fbf38afc1303e0c041"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">from_json</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">nlohmann</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">json</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">archive</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw11AreaWeather9from_jsonERKN8nlohmann4jsonE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw11AreaWeather9from_jsonERKN8nlohmann4jsonE"></span><span id="_CPPv2N2nw11AreaWeather9from_jsonERKN8nlohmann4jsonE"></span><span id="nw::AreaWeather::from_json__nlohmann::jsonCR"></span><span class="target" id="structnw_1_1_area_weather_1a5e73e5cbf78196fbf38afc1303e0c041"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">from_json</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">nlohmann</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">json</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">archive</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw11AreaWeather9from_jsonERKN8nlohmann4jsonE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4NK2nw11AreaWeather7to_jsonEv">
-<span id="_CPPv3NK2nw11AreaWeather7to_jsonEv"></span><span id="_CPPv2NK2nw11AreaWeather7to_jsonEv"></span><span id="nw::AreaWeather::to_jsonC"></span><span class="target" id="structnw_1_1_area_weather_1ae32cc7f92b4296852c11c909c2e7ee96"></span><span class="n"><span class="pre">nlohmann</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">json</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">to_json</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK2nw11AreaWeather7to_jsonEv" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3NK2nw11AreaWeather7to_jsonEv"></span><span id="_CPPv2NK2nw11AreaWeather7to_jsonEv"></span><span id="nw::AreaWeather::to_jsonC"></span><span class="target" id="structnw_1_1_area_weather_1ae32cc7f92b4296852c11c909c2e7ee96"></span><span class="n"><span class="pre">nlohmann</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">json</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">to_json</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK2nw11AreaWeather7to_jsonEv" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 </div>
@@ -385,98 +415,98 @@
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw11AreaWeather16chance_lightningE">
-<span id="_CPPv3N2nw11AreaWeather16chance_lightningE"></span><span id="_CPPv2N2nw11AreaWeather16chance_lightningE"></span><span id="nw::AreaWeather::chance_lightning__int32_t"></span><span class="target" id="structnw_1_1_area_weather_1a31e01d173cdaa68d4916fcc45b9d092a"></span><span class="n"><span class="pre">int32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">chance_lightning</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N2nw11AreaWeather16chance_lightningE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw11AreaWeather16chance_lightningE"></span><span id="_CPPv2N2nw11AreaWeather16chance_lightningE"></span><span id="nw::AreaWeather::chance_lightning__int32_t"></span><span class="target" id="structnw_1_1_area_weather_1a31e01d173cdaa68d4916fcc45b9d092a"></span><span class="n"><span class="pre">int32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">chance_lightning</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N2nw11AreaWeather16chance_lightningE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw11AreaWeather11chance_rainE">
-<span id="_CPPv3N2nw11AreaWeather11chance_rainE"></span><span id="_CPPv2N2nw11AreaWeather11chance_rainE"></span><span id="nw::AreaWeather::chance_rain__int32_t"></span><span class="target" id="structnw_1_1_area_weather_1aec82ee1c029425395e3cbaa0fd3b86e6"></span><span class="n"><span class="pre">int32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">chance_rain</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N2nw11AreaWeather11chance_rainE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw11AreaWeather11chance_rainE"></span><span id="_CPPv2N2nw11AreaWeather11chance_rainE"></span><span id="nw::AreaWeather::chance_rain__int32_t"></span><span class="target" id="structnw_1_1_area_weather_1aec82ee1c029425395e3cbaa0fd3b86e6"></span><span class="n"><span class="pre">int32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">chance_rain</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N2nw11AreaWeather11chance_rainE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw11AreaWeather11chance_snowE">
-<span id="_CPPv3N2nw11AreaWeather11chance_snowE"></span><span id="_CPPv2N2nw11AreaWeather11chance_snowE"></span><span id="nw::AreaWeather::chance_snow__int32_t"></span><span class="target" id="structnw_1_1_area_weather_1abf98904d44f0c049b3da8300fbf918c2"></span><span class="n"><span class="pre">int32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">chance_snow</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N2nw11AreaWeather11chance_snowE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw11AreaWeather11chance_snowE"></span><span id="_CPPv2N2nw11AreaWeather11chance_snowE"></span><span id="nw::AreaWeather::chance_snow__int32_t"></span><span class="target" id="structnw_1_1_area_weather_1abf98904d44f0c049b3da8300fbf918c2"></span><span class="n"><span class="pre">int32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">chance_snow</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N2nw11AreaWeather11chance_snowE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw11AreaWeather18color_moon_ambientE">
-<span id="_CPPv3N2nw11AreaWeather18color_moon_ambientE"></span><span id="_CPPv2N2nw11AreaWeather18color_moon_ambientE"></span><span id="nw::AreaWeather::color_moon_ambient__uint32_t"></span><span class="target" id="structnw_1_1_area_weather_1a49f05e97be507215d3a5e84beed390aa"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">color_moon_ambient</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N2nw11AreaWeather18color_moon_ambientE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw11AreaWeather18color_moon_ambientE"></span><span id="_CPPv2N2nw11AreaWeather18color_moon_ambientE"></span><span id="nw::AreaWeather::color_moon_ambient__uint32_t"></span><span class="target" id="structnw_1_1_area_weather_1a49f05e97be507215d3a5e84beed390aa"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">color_moon_ambient</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N2nw11AreaWeather18color_moon_ambientE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw11AreaWeather18color_moon_diffuseE">
-<span id="_CPPv3N2nw11AreaWeather18color_moon_diffuseE"></span><span id="_CPPv2N2nw11AreaWeather18color_moon_diffuseE"></span><span id="nw::AreaWeather::color_moon_diffuse__uint32_t"></span><span class="target" id="structnw_1_1_area_weather_1ab21c3866c3430c6adc9fde4c07ad4475"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">color_moon_diffuse</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N2nw11AreaWeather18color_moon_diffuseE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw11AreaWeather18color_moon_diffuseE"></span><span id="_CPPv2N2nw11AreaWeather18color_moon_diffuseE"></span><span id="nw::AreaWeather::color_moon_diffuse__uint32_t"></span><span class="target" id="structnw_1_1_area_weather_1ab21c3866c3430c6adc9fde4c07ad4475"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">color_moon_diffuse</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N2nw11AreaWeather18color_moon_diffuseE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw11AreaWeather14color_moon_fogE">
-<span id="_CPPv3N2nw11AreaWeather14color_moon_fogE"></span><span id="_CPPv2N2nw11AreaWeather14color_moon_fogE"></span><span id="nw::AreaWeather::color_moon_fog__uint32_t"></span><span class="target" id="structnw_1_1_area_weather_1a2b326ace7748025a4a3bf6a7850a8fb4"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">color_moon_fog</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N2nw11AreaWeather14color_moon_fogE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw11AreaWeather14color_moon_fogE"></span><span id="_CPPv2N2nw11AreaWeather14color_moon_fogE"></span><span id="nw::AreaWeather::color_moon_fog__uint32_t"></span><span class="target" id="structnw_1_1_area_weather_1a2b326ace7748025a4a3bf6a7850a8fb4"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">color_moon_fog</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N2nw11AreaWeather14color_moon_fogE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw11AreaWeather17color_sun_ambientE">
-<span id="_CPPv3N2nw11AreaWeather17color_sun_ambientE"></span><span id="_CPPv2N2nw11AreaWeather17color_sun_ambientE"></span><span id="nw::AreaWeather::color_sun_ambient__uint32_t"></span><span class="target" id="structnw_1_1_area_weather_1a1509613e21908847393490b859285a28"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">color_sun_ambient</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N2nw11AreaWeather17color_sun_ambientE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw11AreaWeather17color_sun_ambientE"></span><span id="_CPPv2N2nw11AreaWeather17color_sun_ambientE"></span><span id="nw::AreaWeather::color_sun_ambient__uint32_t"></span><span class="target" id="structnw_1_1_area_weather_1a1509613e21908847393490b859285a28"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">color_sun_ambient</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N2nw11AreaWeather17color_sun_ambientE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw11AreaWeather17color_sun_diffuseE">
-<span id="_CPPv3N2nw11AreaWeather17color_sun_diffuseE"></span><span id="_CPPv2N2nw11AreaWeather17color_sun_diffuseE"></span><span id="nw::AreaWeather::color_sun_diffuse__uint32_t"></span><span class="target" id="structnw_1_1_area_weather_1a020678aca4e949188d230e958ebe9c88"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">color_sun_diffuse</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N2nw11AreaWeather17color_sun_diffuseE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw11AreaWeather17color_sun_diffuseE"></span><span id="_CPPv2N2nw11AreaWeather17color_sun_diffuseE"></span><span id="nw::AreaWeather::color_sun_diffuse__uint32_t"></span><span class="target" id="structnw_1_1_area_weather_1a020678aca4e949188d230e958ebe9c88"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">color_sun_diffuse</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N2nw11AreaWeather17color_sun_diffuseE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw11AreaWeather13color_sun_fogE">
-<span id="_CPPv3N2nw11AreaWeather13color_sun_fogE"></span><span id="_CPPv2N2nw11AreaWeather13color_sun_fogE"></span><span id="nw::AreaWeather::color_sun_fog__uint32_t"></span><span class="target" id="structnw_1_1_area_weather_1a0723e7894783485654b00c2fb16199fd"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">color_sun_fog</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N2nw11AreaWeather13color_sun_fogE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw11AreaWeather13color_sun_fogE"></span><span id="_CPPv2N2nw11AreaWeather13color_sun_fogE"></span><span id="nw::AreaWeather::color_sun_fog__uint32_t"></span><span class="target" id="structnw_1_1_area_weather_1a0723e7894783485654b00c2fb16199fd"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">color_sun_fog</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N2nw11AreaWeather13color_sun_fogE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw11AreaWeather17fog_clip_distanceE">
-<span id="_CPPv3N2nw11AreaWeather17fog_clip_distanceE"></span><span id="_CPPv2N2nw11AreaWeather17fog_clip_distanceE"></span><span id="nw::AreaWeather::fog_clip_distance__float"></span><span class="target" id="structnw_1_1_area_weather_1aafe7b852e6cea0a43f8ae0112bdeca17"></span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">fog_clip_distance</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0.0f</span></span><a class="headerlink" href="#_CPPv4N2nw11AreaWeather17fog_clip_distanceE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw11AreaWeather17fog_clip_distanceE"></span><span id="_CPPv2N2nw11AreaWeather17fog_clip_distanceE"></span><span id="nw::AreaWeather::fog_clip_distance__float"></span><span class="target" id="structnw_1_1_area_weather_1aafe7b852e6cea0a43f8ae0112bdeca17"></span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">fog_clip_distance</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0.0f</span></span><a class="headerlink" href="#_CPPv4N2nw11AreaWeather17fog_clip_distanceE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw11AreaWeather10wind_powerE">
-<span id="_CPPv3N2nw11AreaWeather10wind_powerE"></span><span id="_CPPv2N2nw11AreaWeather10wind_powerE"></span><span id="nw::AreaWeather::wind_power__int32_t"></span><span class="target" id="structnw_1_1_area_weather_1a18111c4321b31704a623e6eecd2cbf67"></span><span class="n"><span class="pre">int32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">wind_power</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N2nw11AreaWeather10wind_powerE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw11AreaWeather10wind_powerE"></span><span id="_CPPv2N2nw11AreaWeather10wind_powerE"></span><span id="nw::AreaWeather::wind_power__int32_t"></span><span class="target" id="structnw_1_1_area_weather_1a18111c4321b31704a623e6eecd2cbf67"></span><span class="n"><span class="pre">int32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">wind_power</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N2nw11AreaWeather10wind_powerE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw11AreaWeather15day_night_cycleE">
-<span id="_CPPv3N2nw11AreaWeather15day_night_cycleE"></span><span id="_CPPv2N2nw11AreaWeather15day_night_cycleE"></span><span id="nw::AreaWeather::day_night_cycle__uint8_t"></span><span class="target" id="structnw_1_1_area_weather_1a5a7f04cd8ea4058964cf1df588d9fe73"></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">day_night_cycle</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N2nw11AreaWeather15day_night_cycleE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw11AreaWeather15day_night_cycleE"></span><span id="_CPPv2N2nw11AreaWeather15day_night_cycleE"></span><span id="nw::AreaWeather::day_night_cycle__uint8_t"></span><span class="target" id="structnw_1_1_area_weather_1a5a7f04cd8ea4058964cf1df588d9fe73"></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">day_night_cycle</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N2nw11AreaWeather15day_night_cycleE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw11AreaWeather8is_nightE">
-<span id="_CPPv3N2nw11AreaWeather8is_nightE"></span><span id="_CPPv2N2nw11AreaWeather8is_nightE"></span><span id="nw::AreaWeather::is_night__uint8_t"></span><span class="target" id="structnw_1_1_area_weather_1a5cce8e9729f5476766d2e7b976dc90bb"></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">is_night</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N2nw11AreaWeather8is_nightE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw11AreaWeather8is_nightE"></span><span id="_CPPv2N2nw11AreaWeather8is_nightE"></span><span id="nw::AreaWeather::is_night__uint8_t"></span><span class="target" id="structnw_1_1_area_weather_1a5cce8e9729f5476766d2e7b976dc90bb"></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">is_night</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N2nw11AreaWeather8is_nightE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw11AreaWeather15lighting_schemeE">
-<span id="_CPPv3N2nw11AreaWeather15lighting_schemeE"></span><span id="_CPPv2N2nw11AreaWeather15lighting_schemeE"></span><span id="nw::AreaWeather::lighting_scheme__uint8_t"></span><span class="target" id="structnw_1_1_area_weather_1a88ad10eb2a808a2c0e852b8258d25c39"></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">lighting_scheme</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N2nw11AreaWeather15lighting_schemeE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw11AreaWeather15lighting_schemeE"></span><span id="_CPPv2N2nw11AreaWeather15lighting_schemeE"></span><span id="nw::AreaWeather::lighting_scheme__uint8_t"></span><span class="target" id="structnw_1_1_area_weather_1a88ad10eb2a808a2c0e852b8258d25c39"></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">lighting_scheme</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N2nw11AreaWeather15lighting_schemeE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw11AreaWeather15fog_moon_amountE">
-<span id="_CPPv3N2nw11AreaWeather15fog_moon_amountE"></span><span id="_CPPv2N2nw11AreaWeather15fog_moon_amountE"></span><span id="nw::AreaWeather::fog_moon_amount__uint8_t"></span><span class="target" id="structnw_1_1_area_weather_1a3f5977b70e281acdcf0ac49755bd6155"></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">fog_moon_amount</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N2nw11AreaWeather15fog_moon_amountE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw11AreaWeather15fog_moon_amountE"></span><span id="_CPPv2N2nw11AreaWeather15fog_moon_amountE"></span><span id="nw::AreaWeather::fog_moon_amount__uint8_t"></span><span class="target" id="structnw_1_1_area_weather_1a3f5977b70e281acdcf0ac49755bd6155"></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">fog_moon_amount</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N2nw11AreaWeather15fog_moon_amountE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw11AreaWeather12moon_shadowsE">
-<span id="_CPPv3N2nw11AreaWeather12moon_shadowsE"></span><span id="_CPPv2N2nw11AreaWeather12moon_shadowsE"></span><span id="nw::AreaWeather::moon_shadows__uint8_t"></span><span class="target" id="structnw_1_1_area_weather_1a8604a06e910123d01d18502991c37e77"></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">moon_shadows</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N2nw11AreaWeather12moon_shadowsE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw11AreaWeather12moon_shadowsE"></span><span id="_CPPv2N2nw11AreaWeather12moon_shadowsE"></span><span id="nw::AreaWeather::moon_shadows__uint8_t"></span><span class="target" id="structnw_1_1_area_weather_1a8604a06e910123d01d18502991c37e77"></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">moon_shadows</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N2nw11AreaWeather12moon_shadowsE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw11AreaWeather14fog_sun_amountE">
-<span id="_CPPv3N2nw11AreaWeather14fog_sun_amountE"></span><span id="_CPPv2N2nw11AreaWeather14fog_sun_amountE"></span><span id="nw::AreaWeather::fog_sun_amount__uint8_t"></span><span class="target" id="structnw_1_1_area_weather_1ac069581f954000a8bcc476d5a29d603d"></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">fog_sun_amount</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N2nw11AreaWeather14fog_sun_amountE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw11AreaWeather14fog_sun_amountE"></span><span id="_CPPv2N2nw11AreaWeather14fog_sun_amountE"></span><span id="nw::AreaWeather::fog_sun_amount__uint8_t"></span><span class="target" id="structnw_1_1_area_weather_1ac069581f954000a8bcc476d5a29d603d"></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">fog_sun_amount</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N2nw11AreaWeather14fog_sun_amountE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw11AreaWeather11sun_shadowsE">
-<span id="_CPPv3N2nw11AreaWeather11sun_shadowsE"></span><span id="_CPPv2N2nw11AreaWeather11sun_shadowsE"></span><span id="nw::AreaWeather::sun_shadows__uint8_t"></span><span class="target" id="structnw_1_1_area_weather_1a41f9955275eb947e047619a9959a85d2"></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">sun_shadows</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N2nw11AreaWeather11sun_shadowsE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw11AreaWeather11sun_shadowsE"></span><span id="_CPPv2N2nw11AreaWeather11sun_shadowsE"></span><span id="nw::AreaWeather::sun_shadows__uint8_t"></span><span class="target" id="structnw_1_1_area_weather_1a41f9955275eb947e047619a9959a85d2"></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">sun_shadows</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N2nw11AreaWeather11sun_shadowsE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 </div>
 </dd></dl>
 
-</div>
+</section>
 
 
            </div>

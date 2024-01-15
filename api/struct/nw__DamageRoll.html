@@ -1,20 +1,24 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html5" lang="en" data-content_root="../../">
 <head>
-  <meta charset="utf-8" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>nw::DamageRoll &mdash; rollNW  documentation</title>
-      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
-      <link rel="stylesheet" href="../../_static/tabs.css" type="text/css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="../../_static/tabs.css?v=a5c4661c" />
+
+  
   <!--[if lt IE 9]>
     <script src="../../_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
-        <script src="../../_static/jquery.js"></script>
-        <script src="../../_static/underscore.js"></script>
-        <script src="../../_static/doctools.js"></script>
+        <script src="../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+        <script src="../../_static/doctools.js?v=888ff710"></script>
+        <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
@@ -86,7 +90,15 @@
 <li class="toctree-l2"><a class="reference internal" href="nw__CreatureScripts.html">nw::CreatureScripts</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__CreatureStats.html">nw::CreatureStats</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__DamageResult.html">nw::DamageResult</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">nw::DamageRoll</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">nw::DamageRoll</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#_CPPv4N2nw10DamageRollE"><code class="docutils literal notranslate"><span class="pre">DamageRoll</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw10DamageRoll4typeE"><code class="docutils literal notranslate"><span class="pre">DamageRoll::type</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw10DamageRoll4rollE"><code class="docutils literal notranslate"><span class="pre">DamageRoll::roll</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw10DamageRoll5flagsE"><code class="docutils literal notranslate"><span class="pre">DamageRoll::flags</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Dialog.html">nw::Dialog</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__DialogNode.html">nw::DialogNode</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__DialogPtr.html">nw::DialogPtr</a></li>
@@ -358,32 +370,32 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <div class="section" id="nw-damageroll">
-<h1>nw::DamageRoll<a class="headerlink" href="#nw-damageroll" title="Permalink to this headline"></a></h1>
+  <section id="nw-damageroll">
+<h1>nw::DamageRoll<a class="headerlink" href="#nw-damageroll" title="Link to this heading"></a></h1>
 <dl class="cpp struct">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw10DamageRollE">
-<span id="_CPPv3N2nw10DamageRollE"></span><span id="_CPPv2N2nw10DamageRollE"></span><span id="nw::DamageRoll"></span><span class="target" id="structnw_1_1_damage_roll"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">DamageRoll</span></span></span><a class="headerlink" href="#_CPPv4N2nw10DamageRollE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw10DamageRollE"></span><span id="_CPPv2N2nw10DamageRollE"></span><span id="nw::DamageRoll"></span><span class="target" id="structnw_1_1_damage_roll"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">DamageRoll</span></span></span><a class="headerlink" href="#_CPPv4N2nw10DamageRollE" title="Link to this definition"></a><br /></dt>
 <dd><div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw10DamageRoll4typeE">
-<span id="_CPPv3N2nw10DamageRoll4typeE"></span><span id="_CPPv2N2nw10DamageRoll4typeE"></span><span id="nw::DamageRoll::type__Damage"></span><span class="target" id="structnw_1_1_damage_roll_1aeceeeb36d1bc67d836209249f519c253"></span><span class="n"><span class="pre">Damage</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">type</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">Damage</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">invalid</span></span><span class="p"><span class="pre">(</span></span><span class="p"><span class="pre">)</span></span><a class="headerlink" href="#_CPPv4N2nw10DamageRoll4typeE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw10DamageRoll4typeE"></span><span id="_CPPv2N2nw10DamageRoll4typeE"></span><span id="nw::DamageRoll::type__Damage"></span><span class="target" id="structnw_1_1_damage_roll_1aeceeeb36d1bc67d836209249f519c253"></span><span class="n"><span class="pre">Damage</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">type</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">Damage</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">invalid</span></span><span class="p"><span class="pre">(</span></span><span class="p"><span class="pre">)</span></span><a class="headerlink" href="#_CPPv4N2nw10DamageRoll4typeE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw10DamageRoll4rollE">
-<span id="_CPPv3N2nw10DamageRoll4rollE"></span><span id="_CPPv2N2nw10DamageRoll4rollE"></span><span id="nw::DamageRoll::roll__DiceRoll"></span><span class="target" id="structnw_1_1_damage_roll_1a8e0c7fd2abb8c49e58c3a4a3b3ade403"></span><a class="reference internal" href="nw__DiceRoll.html#_CPPv4N2nw8DiceRollE" title="nw::DiceRoll"><span class="n"><span class="pre">DiceRoll</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">roll</span></span></span><a class="headerlink" href="#_CPPv4N2nw10DamageRoll4rollE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw10DamageRoll4rollE"></span><span id="_CPPv2N2nw10DamageRoll4rollE"></span><span id="nw::DamageRoll::roll__DiceRoll"></span><span class="target" id="structnw_1_1_damage_roll_1a8e0c7fd2abb8c49e58c3a4a3b3ade403"></span><a class="reference internal" href="nw__DiceRoll.html#_CPPv4N2nw8DiceRollE" title="nw::DiceRoll"><span class="n"><span class="pre">DiceRoll</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">roll</span></span></span><a class="headerlink" href="#_CPPv4N2nw10DamageRoll4rollE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw10DamageRoll5flagsE">
-<span id="_CPPv3N2nw10DamageRoll5flagsE"></span><span id="_CPPv2N2nw10DamageRoll5flagsE"></span><span id="nw::DamageRoll::flags__DamageCategory"></span><span class="target" id="structnw_1_1_damage_roll_1acd4b216402b7de58b7eff98f43f3cef2"></span><span class="n"><span class="pre">DamageCategory</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">flags</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">DamageCategory</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">none</span></span><a class="headerlink" href="#_CPPv4N2nw10DamageRoll5flagsE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw10DamageRoll5flagsE"></span><span id="_CPPv2N2nw10DamageRoll5flagsE"></span><span id="nw::DamageRoll::flags__DamageCategory"></span><span class="target" id="structnw_1_1_damage_roll_1acd4b216402b7de58b7eff98f43f3cef2"></span><span class="n"><span class="pre">DamageCategory</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">flags</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">DamageCategory</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">none</span></span><a class="headerlink" href="#_CPPv4N2nw10DamageRoll5flagsE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 </div>
 </dd></dl>
 
-</div>
+</section>
 
 
            </div>

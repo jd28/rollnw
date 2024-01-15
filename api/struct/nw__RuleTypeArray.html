@@ -1,20 +1,24 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html5" lang="en" data-content_root="../../">
 <head>
-  <meta charset="utf-8" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>nw::RuleTypeArray &mdash; rollNW  documentation</title>
-      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
-      <link rel="stylesheet" href="../../_static/tabs.css" type="text/css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="../../_static/tabs.css?v=a5c4661c" />
+
+  
   <!--[if lt IE 9]>
     <script src="../../_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
-        <script src="../../_static/jquery.js"></script>
-        <script src="../../_static/underscore.js"></script>
-        <script src="../../_static/doctools.js"></script>
+        <script src="../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+        <script src="../../_static/doctools.js?v=888ff710"></script>
+        <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
@@ -168,7 +172,18 @@
 <li class="toctree-l2"><a class="reference internal" href="nw__ResourceType.html">nw::ResourceType</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Resref.html">nw::Resref</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__RuleFlag.html">nw::RuleFlag</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">nw::RuleTypeArray</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">nw::RuleTypeArray</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#_CPPv4I00EN2nw13RuleTypeArrayE"><code class="docutils literal notranslate"><span class="pre">RuleTypeArray</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw13RuleTypeArray8map_typeE"><code class="docutils literal notranslate"><span class="pre">RuleTypeArray::map_type</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw13RuleTypeArray3getE8RuleType"><code class="docutils literal notranslate"><span class="pre">RuleTypeArray::get()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw13RuleTypeArray8is_validE8RuleType"><code class="docutils literal notranslate"><span class="pre">RuleTypeArray::is_valid()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw13RuleTypeArray13from_constantENSt11string_viewE"><code class="docutils literal notranslate"><span class="pre">RuleTypeArray::from_constant()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw13RuleTypeArray7entriesE"><code class="docutils literal notranslate"><span class="pre">RuleTypeArray::entries</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw13RuleTypeArray17constant_to_indexE"><code class="docutils literal notranslate"><span class="pre">RuleTypeArray::constant_to_index</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Save.html">nw::Save</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Saves.html">nw::Saves</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Selector.html">nw::Selector</a></li>
@@ -358,14 +373,14 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <div class="section" id="nw-ruletypearray">
-<h1>nw::RuleTypeArray<a class="headerlink" href="#nw-ruletypearray" title="Permalink to this headline"></a></h1>
+  <section id="nw-ruletypearray">
+<h1>nw::RuleTypeArray<a class="headerlink" href="#nw-ruletypearray" title="Link to this heading"></a></h1>
 <dl class="cpp struct">
 <dt class="sig sig-object cpp" id="_CPPv4I00EN2nw13RuleTypeArrayE">
-<span id="_CPPv3I00EN2nw13RuleTypeArrayE"></span><span id="_CPPv2I00EN2nw13RuleTypeArrayE"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">RuleType</span></span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">RuleTypeInfo</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="structnw_1_1_rule_type_array"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">RuleTypeArray</span></span></span><a class="headerlink" href="#_CPPv4I00EN2nw13RuleTypeArrayE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3I00EN2nw13RuleTypeArrayE"></span><span id="_CPPv2I00EN2nw13RuleTypeArrayE"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">RuleType</span></span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">RuleTypeInfo</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="structnw_1_1_rule_type_array"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">RuleTypeArray</span></span></span><a class="headerlink" href="#_CPPv4I00EN2nw13RuleTypeArrayE" title="Link to this definition"></a><br /></dt>
 <dd><p>Base template for rule type arrays. </p>
 <dl class="field-list simple">
-<dt class="field-odd">Template Parameters</dt>
+<dt class="field-odd">Template Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>RuleType</strong> – </p></li>
 <li><p><strong>RuleTypeInfo</strong> – </p></li>
@@ -376,7 +391,7 @@
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-types">Public Types</p>
 <dl class="cpp type">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw13RuleTypeArray8map_typeE">
-<span id="_CPPv3N2nw13RuleTypeArray8map_typeE"></span><span id="_CPPv2N2nw13RuleTypeArray8map_typeE"></span><span class="target" id="structnw_1_1_rule_type_array_1a37a7cfb46627a45b0dd265a31f0d1119"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">map_type</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">absl</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">flat_hash_map</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="nw__InternedString.html#_CPPv4N2nw14InternedStringE" title="nw::InternedString"><span class="n"><span class="pre">InternedString</span></span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I00EN2nw13RuleTypeArrayE" title="nw::RuleTypeArray::RuleType"><span class="n"><span class="pre">RuleType</span></span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">InternedStringHash</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">InternedStringEq</span></span><span class="p"><span class="pre">&gt;</span></span><a class="headerlink" href="#_CPPv4N2nw13RuleTypeArray8map_typeE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw13RuleTypeArray8map_typeE"></span><span id="_CPPv2N2nw13RuleTypeArray8map_typeE"></span><span class="target" id="structnw_1_1_rule_type_array_1a37a7cfb46627a45b0dd265a31f0d1119"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">map_type</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">absl</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">flat_hash_map</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="nw__InternedString.html#_CPPv4N2nw14InternedStringE" title="nw::InternedString"><span class="n"><span class="pre">InternedString</span></span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I00EN2nw13RuleTypeArrayE" title="nw::RuleTypeArray::RuleType"><span class="n"><span class="pre">RuleType</span></span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">InternedStringHash</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">InternedStringEq</span></span><span class="p"><span class="pre">&gt;</span></span><a class="headerlink" href="#_CPPv4N2nw13RuleTypeArray8map_typeE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 </div>
@@ -384,17 +399,17 @@
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4NK2nw13RuleTypeArray3getE8RuleType">
-<span id="_CPPv3NK2nw13RuleTypeArray3getE8RuleType"></span><span id="_CPPv2NK2nw13RuleTypeArray3getE8RuleType"></span><span id="nw::RuleTypeArray::get__RuleTypeC"></span><span class="target" id="structnw_1_1_rule_type_array_1a34fd7490c38cd5e650fb518a2ddfa0b2"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I00EN2nw13RuleTypeArrayE" title="nw::RuleTypeArray::RuleTypeInfo"><span class="n"><span class="pre">RuleTypeInfo</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">get</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4I00EN2nw13RuleTypeArrayE" title="nw::RuleTypeArray::RuleType"><span class="n"><span class="pre">RuleType</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">type</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="k"><span class="pre">noexcept</span></span><a class="headerlink" href="#_CPPv4NK2nw13RuleTypeArray3getE8RuleType" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3NK2nw13RuleTypeArray3getE8RuleType"></span><span id="_CPPv2NK2nw13RuleTypeArray3getE8RuleType"></span><span id="nw::RuleTypeArray::get__RuleTypeC"></span><span class="target" id="structnw_1_1_rule_type_array_1a34fd7490c38cd5e650fb518a2ddfa0b2"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I00EN2nw13RuleTypeArrayE" title="nw::RuleTypeArray::RuleTypeInfo"><span class="n"><span class="pre">RuleTypeInfo</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">get</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4I00EN2nw13RuleTypeArrayE" title="nw::RuleTypeArray::RuleType"><span class="n"><span class="pre">RuleType</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">type</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="k"><span class="pre">noexcept</span></span><a class="headerlink" href="#_CPPv4NK2nw13RuleTypeArray3getE8RuleType" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4NK2nw13RuleTypeArray8is_validE8RuleType">
-<span id="_CPPv3NK2nw13RuleTypeArray8is_validE8RuleType"></span><span id="_CPPv2NK2nw13RuleTypeArray8is_validE8RuleType"></span><span id="nw::RuleTypeArray::is_valid__RuleTypeC"></span><span class="target" id="structnw_1_1_rule_type_array_1a7634ddd43c5a3b7659b8576da6e703bb"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">is_valid</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4I00EN2nw13RuleTypeArrayE" title="nw::RuleTypeArray::RuleType"><span class="n"><span class="pre">RuleType</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">type</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="k"><span class="pre">noexcept</span></span><a class="headerlink" href="#_CPPv4NK2nw13RuleTypeArray8is_validE8RuleType" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3NK2nw13RuleTypeArray8is_validE8RuleType"></span><span id="_CPPv2NK2nw13RuleTypeArray8is_validE8RuleType"></span><span id="nw::RuleTypeArray::is_valid__RuleTypeC"></span><span class="target" id="structnw_1_1_rule_type_array_1a7634ddd43c5a3b7659b8576da6e703bb"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">is_valid</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4I00EN2nw13RuleTypeArrayE" title="nw::RuleTypeArray::RuleType"><span class="n"><span class="pre">RuleType</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">type</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="k"><span class="pre">noexcept</span></span><a class="headerlink" href="#_CPPv4NK2nw13RuleTypeArray8is_validE8RuleType" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4NK2nw13RuleTypeArray13from_constantENSt11string_viewE">
-<span id="_CPPv3NK2nw13RuleTypeArray13from_constantENSt11string_viewE"></span><span id="_CPPv2NK2nw13RuleTypeArray13from_constantENSt11string_viewE"></span><span id="nw::RuleTypeArray::from_constant__std::string_viewC"></span><span class="target" id="structnw_1_1_rule_type_array_1ac2e5fbf4073525002ace52f9bcadfd18"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I00EN2nw13RuleTypeArrayE" title="nw::RuleTypeArray::RuleType"><span class="n"><span class="pre">RuleType</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">from_constant</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">constant</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK2nw13RuleTypeArray13from_constantENSt11string_viewE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3NK2nw13RuleTypeArray13from_constantENSt11string_viewE"></span><span id="_CPPv2NK2nw13RuleTypeArray13from_constantENSt11string_viewE"></span><span id="nw::RuleTypeArray::from_constant__std::string_viewC"></span><span class="target" id="structnw_1_1_rule_type_array_1ac2e5fbf4073525002ace52f9bcadfd18"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I00EN2nw13RuleTypeArrayE" title="nw::RuleTypeArray::RuleType"><span class="n"><span class="pre">RuleType</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">from_constant</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">constant</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK2nw13RuleTypeArray13from_constantENSt11string_viewE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 </div>
@@ -402,18 +417,18 @@
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw13RuleTypeArray7entriesE">
-<span id="_CPPv3N2nw13RuleTypeArray7entriesE"></span><span id="_CPPv2N2nw13RuleTypeArray7entriesE"></span><span id="nw::RuleTypeArray::entries__std::vector:RuleTypeInfo:"></span><span class="target" id="structnw_1_1_rule_type_array_1a6467d9417b33de7de7549a3e247aae5c"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4I00EN2nw13RuleTypeArrayE" title="nw::RuleTypeArray::RuleTypeInfo"><span class="n"><span class="pre">RuleTypeInfo</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">entries</span></span></span><a class="headerlink" href="#_CPPv4N2nw13RuleTypeArray7entriesE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw13RuleTypeArray7entriesE"></span><span id="_CPPv2N2nw13RuleTypeArray7entriesE"></span><span id="nw::RuleTypeArray::entries__std::vector:RuleTypeInfo:"></span><span class="target" id="structnw_1_1_rule_type_array_1a6467d9417b33de7de7549a3e247aae5c"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4I00EN2nw13RuleTypeArrayE" title="nw::RuleTypeArray::RuleTypeInfo"><span class="n"><span class="pre">RuleTypeInfo</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">entries</span></span></span><a class="headerlink" href="#_CPPv4N2nw13RuleTypeArray7entriesE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw13RuleTypeArray17constant_to_indexE">
-<span id="_CPPv3N2nw13RuleTypeArray17constant_to_indexE"></span><span id="_CPPv2N2nw13RuleTypeArray17constant_to_indexE"></span><span id="nw::RuleTypeArray::constant_to_index__map_type"></span><span class="target" id="structnw_1_1_rule_type_array_1a13236e5dd25f178035220ed6e6bd4118"></span><a class="reference internal" href="#_CPPv4N2nw13RuleTypeArray8map_typeE" title="nw::RuleTypeArray::map_type"><span class="n"><span class="pre">map_type</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">constant_to_index</span></span></span><a class="headerlink" href="#_CPPv4N2nw13RuleTypeArray17constant_to_indexE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw13RuleTypeArray17constant_to_indexE"></span><span id="_CPPv2N2nw13RuleTypeArray17constant_to_indexE"></span><span id="nw::RuleTypeArray::constant_to_index__map_type"></span><span class="target" id="structnw_1_1_rule_type_array_1a13236e5dd25f178035220ed6e6bd4118"></span><a class="reference internal" href="#_CPPv4N2nw13RuleTypeArray8map_typeE" title="nw::RuleTypeArray::map_type"><span class="n"><span class="pre">map_type</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">constant_to_index</span></span></span><a class="headerlink" href="#_CPPv4N2nw13RuleTypeArray17constant_to_indexE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 </div>
 </dd></dl>
 
-</div>
+</section>
 
 
            </div>

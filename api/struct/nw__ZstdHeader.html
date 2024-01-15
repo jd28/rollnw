@@ -1,20 +1,24 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html5" lang="en" data-content_root="../../">
 <head>
-  <meta charset="utf-8" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>nw::ZstdHeader &mdash; rollNW  documentation</title>
-      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
-      <link rel="stylesheet" href="../../_static/tabs.css" type="text/css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="../../_static/tabs.css?v=a5c4661c" />
+
+  
   <!--[if lt IE 9]>
     <script src="../../_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
-        <script src="../../_static/jquery.js"></script>
-        <script src="../../_static/underscore.js"></script>
-        <script src="../../_static/doctools.js"></script>
+        <script src="../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+        <script src="../../_static/doctools.js?v=888ff710"></script>
+        <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
@@ -204,7 +208,14 @@
 <li class="toctree-l2"><a class="reference internal" href="nw__Zip.html">nw::Zip</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__ZipElement.html">nw::ZipElement</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__ZlibHeader.html">nw::ZlibHeader</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">nw::ZstdHeader</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">nw::ZstdHeader</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#_CPPv4N2nw10ZstdHeaderE"><code class="docutils literal notranslate"><span class="pre">ZstdHeader</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw10ZstdHeader7versionE"><code class="docutils literal notranslate"><span class="pre">ZstdHeader::version</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw10ZstdHeader10dictionaryE"><code class="docutils literal notranslate"><span class="pre">ZstdHeader::dictionary</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="nw__kernel__Config.html">nw::kernel::Config</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__kernel__EffectSystem.html">nw::kernel::EffectSystem</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__kernel__EventSystem.html">nw::kernel::EventSystem</a></li>
@@ -358,27 +369,27 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <div class="section" id="nw-zstdheader">
-<h1>nw::ZstdHeader<a class="headerlink" href="#nw-zstdheader" title="Permalink to this headline"></a></h1>
+  <section id="nw-zstdheader">
+<h1>nw::ZstdHeader<a class="headerlink" href="#nw-zstdheader" title="Link to this heading"></a></h1>
 <dl class="cpp struct">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw10ZstdHeaderE">
-<span id="_CPPv3N2nw10ZstdHeaderE"></span><span id="_CPPv2N2nw10ZstdHeaderE"></span><span id="nw::ZstdHeader"></span><span class="target" id="structnw_1_1_zstd_header"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ZstdHeader</span></span></span><a class="headerlink" href="#_CPPv4N2nw10ZstdHeaderE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw10ZstdHeaderE"></span><span id="_CPPv2N2nw10ZstdHeaderE"></span><span id="nw::ZstdHeader"></span><span class="target" id="structnw_1_1_zstd_header"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ZstdHeader</span></span></span><a class="headerlink" href="#_CPPv4N2nw10ZstdHeaderE" title="Link to this definition"></a><br /></dt>
 <dd><div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw10ZstdHeader7versionE">
-<span id="_CPPv3N2nw10ZstdHeader7versionE"></span><span id="_CPPv2N2nw10ZstdHeader7versionE"></span><span id="nw::ZstdHeader::version__uint32_t"></span><span class="target" id="structnw_1_1_zstd_header_1a4eac496e22b9f013c27f2d6a546195f5"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">version</span></span></span><a class="headerlink" href="#_CPPv4N2nw10ZstdHeader7versionE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw10ZstdHeader7versionE"></span><span id="_CPPv2N2nw10ZstdHeader7versionE"></span><span id="nw::ZstdHeader::version__uint32_t"></span><span class="target" id="structnw_1_1_zstd_header_1a4eac496e22b9f013c27f2d6a546195f5"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">version</span></span></span><a class="headerlink" href="#_CPPv4N2nw10ZstdHeader7versionE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw10ZstdHeader10dictionaryE">
-<span id="_CPPv3N2nw10ZstdHeader10dictionaryE"></span><span id="_CPPv2N2nw10ZstdHeader10dictionaryE"></span><span id="nw::ZstdHeader::dictionary__uint32_t"></span><span class="target" id="structnw_1_1_zstd_header_1a758627d1e87f62bbc4db02eaf535ef21"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">dictionary</span></span></span><a class="headerlink" href="#_CPPv4N2nw10ZstdHeader10dictionaryE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw10ZstdHeader10dictionaryE"></span><span id="_CPPv2N2nw10ZstdHeader10dictionaryE"></span><span id="nw::ZstdHeader::dictionary__uint32_t"></span><span class="target" id="structnw_1_1_zstd_header_1a758627d1e87f62bbc4db02eaf535ef21"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">dictionary</span></span></span><a class="headerlink" href="#_CPPv4N2nw10ZstdHeader10dictionaryE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 </div>
 </dd></dl>
 
-</div>
+</section>
 
 
            </div>

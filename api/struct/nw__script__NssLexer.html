@@ -1,20 +1,24 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html5" lang="en" data-content_root="../../">
 <head>
-  <meta charset="utf-8" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>nw::script::NssLexer &mdash; rollNW  documentation</title>
-      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
-      <link rel="stylesheet" href="../../_static/tabs.css" type="text/css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="../../_static/tabs.css?v=a5c4661c" />
+
+  
   <!--[if lt IE 9]>
     <script src="../../_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
-        <script src="../../_static/jquery.js"></script>
-        <script src="../../_static/underscore.js"></script>
-        <script src="../../_static/doctools.js"></script>
+        <script src="../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+        <script src="../../_static/doctools.js?v=888ff710"></script>
+        <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
@@ -278,7 +282,17 @@
 <li class="toctree-l2"><a class="reference internal" href="nw__script__LogicalExpression.html">nw::script::LogicalExpression</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__LspContext.html">nw::script::LspContext</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__Nss.html">nw::script::Nss</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">nw::script::NssLexer</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">nw::script::NssLexer</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#_CPPv4N2nw6script8NssLexerE"><code class="docutils literal notranslate"><span class="pre">NssLexer</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6script8NssLexer8NssLexerENSt11string_viewEP7ContextP3Nss"><code class="docutils literal notranslate"><span class="pre">NssLexer::NssLexer()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6script8NssLexer4nextEv"><code class="docutils literal notranslate"><span class="pre">NssLexer::next()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw6script8NssLexer7currentEv"><code class="docutils literal notranslate"><span class="pre">NssLexer::current()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw6script8NssLexer4dataEv"><code class="docutils literal notranslate"><span class="pre">NssLexer::data()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6script8NssLexer8line_mapE"><code class="docutils literal notranslate"><span class="pre">NssLexer::line_map</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__NssParser.html">nw::script::NssParser</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__NssToken.html">nw::script::NssToken</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__PostfixExpression.html">nw::script::PostfixExpression</a></li>
@@ -358,31 +372,31 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <div class="section" id="nw-script-nsslexer">
-<h1>nw::script::NssLexer<a class="headerlink" href="#nw-script-nsslexer" title="Permalink to this headline"></a></h1>
+  <section id="nw-script-nsslexer">
+<h1>nw::script::NssLexer<a class="headerlink" href="#nw-script-nsslexer" title="Link to this heading"></a></h1>
 <dl class="cpp struct">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw6script8NssLexerE">
-<span id="_CPPv3N2nw6script8NssLexerE"></span><span id="_CPPv2N2nw6script8NssLexerE"></span><span id="nw::script::NssLexer"></span><span class="target" id="structnw_1_1script_1_1_nss_lexer"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">NssLexer</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script8NssLexerE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw6script8NssLexerE"></span><span id="_CPPv2N2nw6script8NssLexerE"></span><span id="nw::script::NssLexer"></span><span class="target" id="structnw_1_1script_1_1_nss_lexer"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">NssLexer</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script8NssLexerE" title="Link to this definition"></a><br /></dt>
 <dd><div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw6script8NssLexer8NssLexerENSt11string_viewEP7ContextP3Nss">
-<span id="_CPPv3N2nw6script8NssLexer8NssLexerENSt11string_viewEP7ContextP3Nss"></span><span id="_CPPv2N2nw6script8NssLexer8NssLexerENSt11string_viewEP7ContextP3Nss"></span><span id="nw::script::NssLexer::NssLexer__std::string_view.ContextP.NssP"></span><span class="target" id="structnw_1_1script_1_1_nss_lexer_1abe207c4a2fa9c3704d95d240007e2f81"></span><span class="k"><span class="pre">explicit</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">NssLexer</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">buffer</span></span>, <a class="reference internal" href="nw__script__Context.html#_CPPv4N2nw6script7ContextE" title="nw::script::Context"><span class="n"><span class="pre">Context</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">ctx</span></span>, <a class="reference internal" href="nw__script__Nss.html#_CPPv4N2nw6script3NssE" title="nw::script::Nss"><span class="n"><span class="pre">Nss</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">parent</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">nullptr</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6script8NssLexer8NssLexerENSt11string_viewEP7ContextP3Nss" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw6script8NssLexer8NssLexerENSt11string_viewEP7ContextP3Nss"></span><span id="_CPPv2N2nw6script8NssLexer8NssLexerENSt11string_viewEP7ContextP3Nss"></span><span id="nw::script::NssLexer::NssLexer__std::string_view.ContextP.NssP"></span><span class="target" id="structnw_1_1script_1_1_nss_lexer_1abe207c4a2fa9c3704d95d240007e2f81"></span><span class="k"><span class="pre">explicit</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">NssLexer</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">buffer</span></span>, <a class="reference internal" href="nw__script__Context.html#_CPPv4N2nw6script7ContextE" title="nw::script::Context"><span class="n"><span class="pre">Context</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">ctx</span></span>, <a class="reference internal" href="nw__script__Nss.html#_CPPv4N2nw6script3NssE" title="nw::script::Nss"><span class="n"><span class="pre">Nss</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">parent</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">nullptr</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6script8NssLexer8NssLexerENSt11string_viewEP7ContextP3Nss" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw6script8NssLexer4nextEv">
-<span id="_CPPv3N2nw6script8NssLexer4nextEv"></span><span id="_CPPv2N2nw6script8NssLexer4nextEv"></span><span id="nw::script::NssLexer::next"></span><span class="target" id="structnw_1_1script_1_1_nss_lexer_1a4d027ff569dd0554be938709eccaf639"></span><a class="reference internal" href="nw__script__NssToken.html#_CPPv4N2nw6script8NssTokenE" title="nw::script::NssToken"><span class="n"><span class="pre">NssToken</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">next</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6script8NssLexer4nextEv" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw6script8NssLexer4nextEv"></span><span id="_CPPv2N2nw6script8NssLexer4nextEv"></span><span id="nw::script::NssLexer::next"></span><span class="target" id="structnw_1_1script_1_1_nss_lexer_1a4d027ff569dd0554be938709eccaf639"></span><a class="reference internal" href="nw__script__NssToken.html#_CPPv4N2nw6script8NssTokenE" title="nw::script::NssToken"><span class="n"><span class="pre">NssToken</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">next</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6script8NssLexer4nextEv" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4NK2nw6script8NssLexer7currentEv">
-<span id="_CPPv3NK2nw6script8NssLexer7currentEv"></span><span id="_CPPv2NK2nw6script8NssLexer7currentEv"></span><span id="nw::script::NssLexer::currentC"></span><span class="target" id="structnw_1_1script_1_1_nss_lexer_1a9542408145f216ba6c604103eaa8308c"></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="nw__script__NssToken.html#_CPPv4N2nw6script8NssTokenE" title="nw::script::NssToken"><span class="n"><span class="pre">NssToken</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">current</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK2nw6script8NssLexer7currentEv" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3NK2nw6script8NssLexer7currentEv"></span><span id="_CPPv2NK2nw6script8NssLexer7currentEv"></span><span id="nw::script::NssLexer::currentC"></span><span class="target" id="structnw_1_1script_1_1_nss_lexer_1a9542408145f216ba6c604103eaa8308c"></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="nw__script__NssToken.html#_CPPv4N2nw6script8NssTokenE" title="nw::script::NssToken"><span class="n"><span class="pre">NssToken</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">current</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK2nw6script8NssLexer7currentEv" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4NK2nw6script8NssLexer4dataEv">
-<span id="_CPPv3NK2nw6script8NssLexer4dataEv"></span><span id="_CPPv2NK2nw6script8NssLexer4dataEv"></span><span id="nw::script::NssLexer::dataC"></span><span class="target" id="structnw_1_1script_1_1_nss_lexer_1a5630e49b3dec2ea001af0cfc41f4afdd"></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">data</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK2nw6script8NssLexer4dataEv" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3NK2nw6script8NssLexer4dataEv"></span><span id="_CPPv2NK2nw6script8NssLexer4dataEv"></span><span id="nw::script::NssLexer::dataC"></span><span class="target" id="structnw_1_1script_1_1_nss_lexer_1a5630e49b3dec2ea001af0cfc41f4afdd"></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">data</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK2nw6script8NssLexer4dataEv" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 </div>
@@ -390,13 +404,13 @@
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw6script8NssLexer8line_mapE">
-<span id="_CPPv3N2nw6script8NssLexer8line_mapE"></span><span id="_CPPv2N2nw6script8NssLexer8line_mapE"></span><span id="nw::script::NssLexer::line_map__std::vector:s:"></span><span class="target" id="structnw_1_1script_1_1_nss_lexer_1aeb10f9cee4274c93c711da70120e6c9e"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">size_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">line_map</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script8NssLexer8line_mapE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw6script8NssLexer8line_mapE"></span><span id="_CPPv2N2nw6script8NssLexer8line_mapE"></span><span id="nw::script::NssLexer::line_map__std::vector:s:"></span><span class="target" id="structnw_1_1script_1_1_nss_lexer_1aeb10f9cee4274c93c711da70120e6c9e"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">size_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">line_map</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script8NssLexer8line_mapE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 </div>
 </dd></dl>
 
-</div>
+</section>
 
 
            </div>

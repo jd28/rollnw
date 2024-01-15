@@ -1,20 +1,24 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html5" lang="en" data-content_root="../../">
 <head>
-  <meta charset="utf-8" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>nw::DamageResult &mdash; rollNW  documentation</title>
-      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
-      <link rel="stylesheet" href="../../_static/tabs.css" type="text/css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="../../_static/tabs.css?v=a5c4661c" />
+
+  
   <!--[if lt IE 9]>
     <script src="../../_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
-        <script src="../../_static/jquery.js"></script>
-        <script src="../../_static/underscore.js"></script>
-        <script src="../../_static/doctools.js"></script>
+        <script src="../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+        <script src="../../_static/doctools.js?v=888ff710"></script>
+        <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
@@ -85,7 +89,20 @@
 <li class="toctree-l2"><a class="reference internal" href="nw__Creature.html">nw::Creature</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__CreatureScripts.html">nw::CreatureScripts</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__CreatureStats.html">nw::CreatureStats</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">nw::DamageResult</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">nw::DamageResult</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#_CPPv4N2nw12DamageResultE"><code class="docutils literal notranslate"><span class="pre">DamageResult</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw12DamageResult4typeE"><code class="docutils literal notranslate"><span class="pre">DamageResult::type</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw12DamageResult6amountE"><code class="docutils literal notranslate"><span class="pre">DamageResult::amount</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw12DamageResult9unblockedE"><code class="docutils literal notranslate"><span class="pre">DamageResult::unblocked</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw12DamageResult8immunityE"><code class="docutils literal notranslate"><span class="pre">DamageResult::immunity</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw12DamageResult9reductionE"><code class="docutils literal notranslate"><span class="pre">DamageResult::reduction</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw12DamageResult19reduction_remainingE"><code class="docutils literal notranslate"><span class="pre">DamageResult::reduction_remaining</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw12DamageResult6resistE"><code class="docutils literal notranslate"><span class="pre">DamageResult::resist</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw12DamageResult16resist_remainingE"><code class="docutils literal notranslate"><span class="pre">DamageResult::resist_remaining</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="nw__DamageRoll.html">nw::DamageRoll</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Dialog.html">nw::Dialog</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__DialogNode.html">nw::DialogNode</a></li>
@@ -358,57 +375,57 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <div class="section" id="nw-damageresult">
-<h1>nw::DamageResult<a class="headerlink" href="#nw-damageresult" title="Permalink to this headline"></a></h1>
+  <section id="nw-damageresult">
+<h1>nw::DamageResult<a class="headerlink" href="#nw-damageresult" title="Link to this heading"></a></h1>
 <dl class="cpp struct">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw12DamageResultE">
-<span id="_CPPv3N2nw12DamageResultE"></span><span id="_CPPv2N2nw12DamageResultE"></span><span id="nw::DamageResult"></span><span class="target" id="structnw_1_1_damage_result"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">DamageResult</span></span></span><a class="headerlink" href="#_CPPv4N2nw12DamageResultE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw12DamageResultE"></span><span id="_CPPv2N2nw12DamageResultE"></span><span id="nw::DamageResult"></span><span class="target" id="structnw_1_1_damage_result"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">DamageResult</span></span></span><a class="headerlink" href="#_CPPv4N2nw12DamageResultE" title="Link to this definition"></a><br /></dt>
 <dd><div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw12DamageResult4typeE">
-<span id="_CPPv3N2nw12DamageResult4typeE"></span><span id="_CPPv2N2nw12DamageResult4typeE"></span><span id="nw::DamageResult::type__nw::Damage"></span><span class="target" id="structnw_1_1_damage_result_1a4e8d2e14b1f23253cf7b25d2080db380"></span><span class="n"><span class="pre">nw</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">Damage</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">type</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">nw</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">Damage</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">invalid</span></span><span class="p"><span class="pre">(</span></span><span class="p"><span class="pre">)</span></span><a class="headerlink" href="#_CPPv4N2nw12DamageResult4typeE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw12DamageResult4typeE"></span><span id="_CPPv2N2nw12DamageResult4typeE"></span><span id="nw::DamageResult::type__nw::Damage"></span><span class="target" id="structnw_1_1_damage_result_1a4e8d2e14b1f23253cf7b25d2080db380"></span><span class="n"><span class="pre">nw</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">Damage</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">type</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">nw</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">Damage</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">invalid</span></span><span class="p"><span class="pre">(</span></span><span class="p"><span class="pre">)</span></span><a class="headerlink" href="#_CPPv4N2nw12DamageResult4typeE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw12DamageResult6amountE">
-<span id="_CPPv3N2nw12DamageResult6amountE"></span><span id="_CPPv2N2nw12DamageResult6amountE"></span><span id="nw::DamageResult::amount__i"></span><span class="target" id="structnw_1_1_damage_result_1a706b1ff29fd6dd5e58ce65f24d271d92"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">amount</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N2nw12DamageResult6amountE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw12DamageResult6amountE"></span><span id="_CPPv2N2nw12DamageResult6amountE"></span><span id="nw::DamageResult::amount__i"></span><span class="target" id="structnw_1_1_damage_result_1a706b1ff29fd6dd5e58ce65f24d271d92"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">amount</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N2nw12DamageResult6amountE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw12DamageResult9unblockedE">
-<span id="_CPPv3N2nw12DamageResult9unblockedE"></span><span id="_CPPv2N2nw12DamageResult9unblockedE"></span><span id="nw::DamageResult::unblocked__i"></span><span class="target" id="structnw_1_1_damage_result_1ac63ed6601f2adbc8dc6e4f6331c92605"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">unblocked</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N2nw12DamageResult9unblockedE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw12DamageResult9unblockedE"></span><span id="_CPPv2N2nw12DamageResult9unblockedE"></span><span id="nw::DamageResult::unblocked__i"></span><span class="target" id="structnw_1_1_damage_result_1ac63ed6601f2adbc8dc6e4f6331c92605"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">unblocked</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N2nw12DamageResult9unblockedE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw12DamageResult8immunityE">
-<span id="_CPPv3N2nw12DamageResult8immunityE"></span><span id="_CPPv2N2nw12DamageResult8immunityE"></span><span id="nw::DamageResult::immunity__i"></span><span class="target" id="structnw_1_1_damage_result_1a144bbfc97a92aefd044d8c857331e4d1"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">immunity</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N2nw12DamageResult8immunityE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw12DamageResult8immunityE"></span><span id="_CPPv2N2nw12DamageResult8immunityE"></span><span id="nw::DamageResult::immunity__i"></span><span class="target" id="structnw_1_1_damage_result_1a144bbfc97a92aefd044d8c857331e4d1"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">immunity</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N2nw12DamageResult8immunityE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw12DamageResult9reductionE">
-<span id="_CPPv3N2nw12DamageResult9reductionE"></span><span id="_CPPv2N2nw12DamageResult9reductionE"></span><span id="nw::DamageResult::reduction__i"></span><span class="target" id="structnw_1_1_damage_result_1aff5a62860d96289bd54a33c57d2e9b6e"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">reduction</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N2nw12DamageResult9reductionE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw12DamageResult9reductionE"></span><span id="_CPPv2N2nw12DamageResult9reductionE"></span><span id="nw::DamageResult::reduction__i"></span><span class="target" id="structnw_1_1_damage_result_1aff5a62860d96289bd54a33c57d2e9b6e"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">reduction</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N2nw12DamageResult9reductionE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw12DamageResult19reduction_remainingE">
-<span id="_CPPv3N2nw12DamageResult19reduction_remainingE"></span><span id="_CPPv2N2nw12DamageResult19reduction_remainingE"></span><span id="nw::DamageResult::reduction_remaining__i"></span><span class="target" id="structnw_1_1_damage_result_1ac45b01fc23229150ef7d18b554264935"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">reduction_remaining</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N2nw12DamageResult19reduction_remainingE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw12DamageResult19reduction_remainingE"></span><span id="_CPPv2N2nw12DamageResult19reduction_remainingE"></span><span id="nw::DamageResult::reduction_remaining__i"></span><span class="target" id="structnw_1_1_damage_result_1ac45b01fc23229150ef7d18b554264935"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">reduction_remaining</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N2nw12DamageResult19reduction_remainingE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw12DamageResult6resistE">
-<span id="_CPPv3N2nw12DamageResult6resistE"></span><span id="_CPPv2N2nw12DamageResult6resistE"></span><span id="nw::DamageResult::resist__i"></span><span class="target" id="structnw_1_1_damage_result_1ab3832e6686b00c47aa0415713f32a462"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">resist</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N2nw12DamageResult6resistE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw12DamageResult6resistE"></span><span id="_CPPv2N2nw12DamageResult6resistE"></span><span id="nw::DamageResult::resist__i"></span><span class="target" id="structnw_1_1_damage_result_1ab3832e6686b00c47aa0415713f32a462"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">resist</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N2nw12DamageResult6resistE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw12DamageResult16resist_remainingE">
-<span id="_CPPv3N2nw12DamageResult16resist_remainingE"></span><span id="_CPPv2N2nw12DamageResult16resist_remainingE"></span><span id="nw::DamageResult::resist_remaining__i"></span><span class="target" id="structnw_1_1_damage_result_1aaacf827f48a184f99c8f5c6e09baad01"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">resist_remaining</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N2nw12DamageResult16resist_remainingE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw12DamageResult16resist_remainingE"></span><span id="_CPPv2N2nw12DamageResult16resist_remainingE"></span><span id="nw::DamageResult::resist_remaining__i"></span><span class="target" id="structnw_1_1_damage_result_1aaacf827f48a184f99c8f5c6e09baad01"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">resist_remaining</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N2nw12DamageResult16resist_remainingE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 </div>
 </dd></dl>
 
-</div>
+</section>
 
 
            </div>

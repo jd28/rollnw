@@ -1,20 +1,24 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html5" lang="en" data-content_root="../../">
 <head>
-  <meta charset="utf-8" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>nw::script::SourcePosition &mdash; rollNW  documentation</title>
-      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
-      <link rel="stylesheet" href="../../_static/tabs.css" type="text/css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="../../_static/tabs.css?v=a5c4661c" />
+
+  
   <!--[if lt IE 9]>
     <script src="../../_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
-        <script src="../../_static/jquery.js"></script>
-        <script src="../../_static/underscore.js"></script>
-        <script src="../../_static/doctools.js"></script>
+        <script src="../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+        <script src="../../_static/doctools.js?v=888ff710"></script>
+        <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
@@ -283,7 +287,16 @@
 <li class="toctree-l2"><a class="reference internal" href="nw__script__NssToken.html">nw::script::NssToken</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__PostfixExpression.html">nw::script::PostfixExpression</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__SourceLocation.html">nw::script::SourceLocation</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">nw::script::SourcePosition</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">nw::script::SourcePosition</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#_CPPv4N2nw6script14SourcePositionE"><code class="docutils literal notranslate"><span class="pre">SourcePosition</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw6script14SourcePositioneqERK14SourcePosition"><code class="docutils literal notranslate"><span class="pre">SourcePosition::operator==()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw6script14SourcePositionssERK14SourcePosition"><code class="docutils literal notranslate"><span class="pre">SourcePosition::operator&lt;=&gt;()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6script14SourcePosition4lineE"><code class="docutils literal notranslate"><span class="pre">SourcePosition::line</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6script14SourcePosition6columnE"><code class="docutils literal notranslate"><span class="pre">SourcePosition::column</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__SourceRange.html">nw::script::SourceRange</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__Statement.html">nw::script::Statement</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__script__StructDecl.html">nw::script::StructDecl</a></li>
@@ -358,22 +371,22 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <div class="section" id="nw-script-sourceposition">
-<h1>nw::script::SourcePosition<a class="headerlink" href="#nw-script-sourceposition" title="Permalink to this headline"></a></h1>
+  <section id="nw-script-sourceposition">
+<h1>nw::script::SourcePosition<a class="headerlink" href="#nw-script-sourceposition" title="Link to this heading"></a></h1>
 <dl class="cpp struct">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw6script14SourcePositionE">
-<span id="_CPPv3N2nw6script14SourcePositionE"></span><span id="_CPPv2N2nw6script14SourcePositionE"></span><span id="nw::script::SourcePosition"></span><span class="target" id="structnw_1_1script_1_1_source_position"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SourcePosition</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script14SourcePositionE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw6script14SourcePositionE"></span><span id="_CPPv2N2nw6script14SourcePositionE"></span><span id="nw::script::SourcePosition"></span><span class="target" id="structnw_1_1script_1_1_source_position"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SourcePosition</span></span></span><a class="headerlink" href="#_CPPv4N2nw6script14SourcePositionE" title="Link to this definition"></a><br /></dt>
 <dd><p>Position in source code. </p>
 <div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4NK2nw6script14SourcePositioneqERK14SourcePosition">
-<span id="_CPPv3NK2nw6script14SourcePositioneqERK14SourcePosition"></span><span id="_CPPv2NK2nw6script14SourcePositioneqERK14SourcePosition"></span><span id="nw::script::SourcePosition::eq-operator__SourcePositionCRC"></span><span class="target" id="structnw_1_1script_1_1_source_position_1ae69f6f012a5e61a47e043ebb21f6de9f"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">==</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N2nw6script14SourcePositionE" title="nw::script::SourcePosition"><span class="n"><span class="pre">SourcePosition</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">rhs</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">default</span></span><a class="headerlink" href="#_CPPv4NK2nw6script14SourcePositioneqERK14SourcePosition" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3NK2nw6script14SourcePositioneqERK14SourcePosition"></span><span id="_CPPv2NK2nw6script14SourcePositioneqERK14SourcePosition"></span><span id="nw::script::SourcePosition::eq-operator__SourcePositionCRC"></span><span class="target" id="structnw_1_1script_1_1_source_position_1ae69f6f012a5e61a47e043ebb21f6de9f"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">==</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N2nw6script14SourcePositionE" title="nw::script::SourcePosition"><span class="n"><span class="pre">SourcePosition</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">rhs</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">default</span></span><a class="headerlink" href="#_CPPv4NK2nw6script14SourcePositioneqERK14SourcePosition" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4NK2nw6script14SourcePositionssERK14SourcePosition">
-<span id="_CPPv3NK2nw6script14SourcePositionssERK14SourcePosition"></span><span id="_CPPv2NK2nw6script14SourcePositionssERK14SourcePosition"></span><span class="target" id="structnw_1_1script_1_1_source_position_1ad78eee7445633ff8f8d2eb30d662374f"></span><span class="kt"><span class="pre">auto</span></span><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">&lt;=&gt;</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N2nw6script14SourcePositionE" title="nw::script::SourcePosition"><span class="n"><span class="pre">SourcePosition</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">rhs</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">default</span></span><a class="headerlink" href="#_CPPv4NK2nw6script14SourcePositionssERK14SourcePosition" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3NK2nw6script14SourcePositionssERK14SourcePosition"></span><span id="_CPPv2NK2nw6script14SourcePositionssERK14SourcePosition"></span><span class="target" id="structnw_1_1script_1_1_source_position_1ad78eee7445633ff8f8d2eb30d662374f"></span><span class="kt"><span class="pre">auto</span></span><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">&lt;=&gt;</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N2nw6script14SourcePositionE" title="nw::script::SourcePosition"><span class="n"><span class="pre">SourcePosition</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">rhs</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">default</span></span><a class="headerlink" href="#_CPPv4NK2nw6script14SourcePositionssERK14SourcePosition" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 </div>
@@ -381,20 +394,20 @@
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw6script14SourcePosition4lineE">
-<span id="_CPPv3N2nw6script14SourcePosition4lineE"></span><span id="_CPPv2N2nw6script14SourcePosition4lineE"></span><span id="nw::script::SourcePosition::line__s"></span><span class="target" id="structnw_1_1script_1_1_source_position_1a9803d3a815d8eb1de3c89a927b23871c"></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">line</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N2nw6script14SourcePosition4lineE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw6script14SourcePosition4lineE"></span><span id="_CPPv2N2nw6script14SourcePosition4lineE"></span><span id="nw::script::SourcePosition::line__s"></span><span class="target" id="structnw_1_1script_1_1_source_position_1a9803d3a815d8eb1de3c89a927b23871c"></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">line</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N2nw6script14SourcePosition4lineE" title="Link to this definition"></a><br /></dt>
 <dd><p>Starting line. </p>
 </dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw6script14SourcePosition6columnE">
-<span id="_CPPv3N2nw6script14SourcePosition6columnE"></span><span id="_CPPv2N2nw6script14SourcePosition6columnE"></span><span id="nw::script::SourcePosition::column__s"></span><span class="target" id="structnw_1_1script_1_1_source_position_1ab3f05a475dc2b9c4e155b166d0826c94"></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">column</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N2nw6script14SourcePosition6columnE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw6script14SourcePosition6columnE"></span><span id="_CPPv2N2nw6script14SourcePosition6columnE"></span><span id="nw::script::SourcePosition::column__s"></span><span class="target" id="structnw_1_1script_1_1_source_position_1ab3f05a475dc2b9c4e155b166d0826c94"></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">column</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N2nw6script14SourcePosition6columnE" title="Link to this definition"></a><br /></dt>
 <dd><p>Starting column. </p>
 </dd></dl>
 
 </div>
 </dd></dl>
 
-</div>
+</section>
 
 
            </div>

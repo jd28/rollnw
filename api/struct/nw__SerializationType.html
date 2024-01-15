@@ -1,20 +1,24 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html5" lang="en" data-content_root="../../">
 <head>
-  <meta charset="utf-8" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>nw::SerializationType &mdash; rollNW  documentation</title>
-      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
-      <link rel="stylesheet" href="../../_static/tabs.css" type="text/css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="../../_static/tabs.css?v=a5c4661c" />
+
+  
   <!--[if lt IE 9]>
     <script src="../../_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
-        <script src="../../_static/jquery.js"></script>
-        <script src="../../_static/underscore.js"></script>
-        <script src="../../_static/doctools.js"></script>
+        <script src="../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+        <script src="../../_static/doctools.js?v=888ff710"></script>
+        <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
@@ -172,7 +176,15 @@
 <li class="toctree-l2"><a class="reference internal" href="nw__Save.html">nw::Save</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Saves.html">nw::Saves</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Selector.html">nw::Selector</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">nw::SerializationType</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">nw::SerializationType</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#_CPPv4N2nw17SerializationTypeE"><code class="docutils literal notranslate"><span class="pre">SerializationType</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw17SerializationType4typeE"><code class="docutils literal notranslate"><span class="pre">SerializationType::type</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4I0EN2nw17SerializationType2idEN17SerializationType4typeEv"><code class="docutils literal notranslate"><span class="pre">SerializationType::id()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw17SerializationType9to_stringEN17SerializationType4typeE"><code class="docutils literal notranslate"><span class="pre">SerializationType::to_string()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Situation.html">nw::Situation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Skill.html">nw::Skill</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__SkillInfo.html">nw::SkillInfo</a></li>
@@ -358,101 +370,101 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <div class="section" id="nw-serializationtype">
-<h1>nw::SerializationType<a class="headerlink" href="#nw-serializationtype" title="Permalink to this headline"></a></h1>
+  <section id="nw-serializationtype">
+<h1>nw::SerializationType<a class="headerlink" href="#nw-serializationtype" title="Link to this heading"></a></h1>
 <dl class="cpp struct">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw17SerializationTypeE">
-<span id="_CPPv3N2nw17SerializationTypeE"></span><span id="_CPPv2N2nw17SerializationTypeE"></span><span id="nw::SerializationType"></span><span class="target" id="structnw_1_1_serialization_type"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SerializationType</span></span></span><a class="headerlink" href="#_CPPv4N2nw17SerializationTypeE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw17SerializationTypeE"></span><span id="_CPPv2N2nw17SerializationTypeE"></span><span id="nw::SerializationType"></span><span class="target" id="structnw_1_1_serialization_type"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SerializationType</span></span></span><a class="headerlink" href="#_CPPv4N2nw17SerializationTypeE" title="Link to this definition"></a><br /></dt>
 <dd><p><a class="reference internal" href="nw__Gff.html#structnw_1_1_gff"><span class="std std-ref">Gff</span></a> types, renamed for clarity. </p>
 <div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-types">Public Types</p>
 <dl class="cpp class enum">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw17SerializationType4typeE">
-<span id="_CPPv3N2nw17SerializationType4typeE"></span><span id="_CPPv2N2nw17SerializationType4typeE"></span><span class="target" id="structnw_1_1_serialization_type_1a494605f231da92694d055d86c080462d"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">type</span></span></span><a class="headerlink" href="#_CPPv4N2nw17SerializationType4typeE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw17SerializationType4typeE"></span><span id="_CPPv2N2nw17SerializationType4typeE"></span><span class="target" id="structnw_1_1_serialization_type_1a494605f231da92694d055d86c080462d"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">type</span></span></span><a class="headerlink" href="#_CPPv4N2nw17SerializationType4typeE" title="Link to this definition"></a><br /></dt>
 <dd><p><em>Values:</em></p>
 <dl class="cpp enumerator">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw17SerializationType4type7invalidE">
-<span id="_CPPv3N2nw17SerializationType4type7invalidE"></span><span id="_CPPv2N2nw17SerializationType4type7invalidE"></span><span class="target" id="structnw_1_1_serialization_type_1a494605f231da92694d055d86c080462da8f1a02d6b32cd9ad018b360387794234"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">invalid</span></span></span><a class="headerlink" href="#_CPPv4N2nw17SerializationType4type7invalidE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw17SerializationType4type7invalidE"></span><span id="_CPPv2N2nw17SerializationType4type7invalidE"></span><span class="target" id="structnw_1_1_serialization_type_1a494605f231da92694d055d86c080462da8f1a02d6b32cd9ad018b360387794234"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">invalid</span></span></span><a class="headerlink" href="#_CPPv4N2nw17SerializationType4type7invalidE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp enumerator">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw17SerializationType4type5uint8E">
-<span id="_CPPv3N2nw17SerializationType4type5uint8E"></span><span id="_CPPv2N2nw17SerializationType4type5uint8E"></span><span class="target" id="structnw_1_1_serialization_type_1a494605f231da92694d055d86c080462da6b3c06263946f4b670ac2060efa646c5"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">uint8</span></span></span><a class="headerlink" href="#_CPPv4N2nw17SerializationType4type5uint8E" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw17SerializationType4type5uint8E"></span><span id="_CPPv2N2nw17SerializationType4type5uint8E"></span><span class="target" id="structnw_1_1_serialization_type_1a494605f231da92694d055d86c080462da6b3c06263946f4b670ac2060efa646c5"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">uint8</span></span></span><a class="headerlink" href="#_CPPv4N2nw17SerializationType4type5uint8E" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp enumerator">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw17SerializationType4type4int8E">
-<span id="_CPPv3N2nw17SerializationType4type4int8E"></span><span id="_CPPv2N2nw17SerializationType4type4int8E"></span><span class="target" id="structnw_1_1_serialization_type_1a494605f231da92694d055d86c080462da4a45b311e2109133a7e57bee5067db52"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">int8</span></span></span><a class="headerlink" href="#_CPPv4N2nw17SerializationType4type4int8E" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw17SerializationType4type4int8E"></span><span id="_CPPv2N2nw17SerializationType4type4int8E"></span><span class="target" id="structnw_1_1_serialization_type_1a494605f231da92694d055d86c080462da4a45b311e2109133a7e57bee5067db52"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">int8</span></span></span><a class="headerlink" href="#_CPPv4N2nw17SerializationType4type4int8E" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp enumerator">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw17SerializationType4type6uint16E">
-<span id="_CPPv3N2nw17SerializationType4type6uint16E"></span><span id="_CPPv2N2nw17SerializationType4type6uint16E"></span><span class="target" id="structnw_1_1_serialization_type_1a494605f231da92694d055d86c080462daec71f656fed749b88de4e579b1aba3df"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">uint16</span></span></span><a class="headerlink" href="#_CPPv4N2nw17SerializationType4type6uint16E" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw17SerializationType4type6uint16E"></span><span id="_CPPv2N2nw17SerializationType4type6uint16E"></span><span class="target" id="structnw_1_1_serialization_type_1a494605f231da92694d055d86c080462daec71f656fed749b88de4e579b1aba3df"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">uint16</span></span></span><a class="headerlink" href="#_CPPv4N2nw17SerializationType4type6uint16E" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp enumerator">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw17SerializationType4type5int16E">
-<span id="_CPPv3N2nw17SerializationType4type5int16E"></span><span id="_CPPv2N2nw17SerializationType4type5int16E"></span><span class="target" id="structnw_1_1_serialization_type_1a494605f231da92694d055d86c080462dafeea96e046ba619eb2803328983b1aab"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">int16</span></span></span><a class="headerlink" href="#_CPPv4N2nw17SerializationType4type5int16E" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw17SerializationType4type5int16E"></span><span id="_CPPv2N2nw17SerializationType4type5int16E"></span><span class="target" id="structnw_1_1_serialization_type_1a494605f231da92694d055d86c080462dafeea96e046ba619eb2803328983b1aab"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">int16</span></span></span><a class="headerlink" href="#_CPPv4N2nw17SerializationType4type5int16E" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp enumerator">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw17SerializationType4type6uint32E">
-<span id="_CPPv3N2nw17SerializationType4type6uint32E"></span><span id="_CPPv2N2nw17SerializationType4type6uint32E"></span><span class="target" id="structnw_1_1_serialization_type_1a494605f231da92694d055d86c080462da04e6eac73b2bb2fa360bdd73581fa522"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">uint32</span></span></span><a class="headerlink" href="#_CPPv4N2nw17SerializationType4type6uint32E" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw17SerializationType4type6uint32E"></span><span id="_CPPv2N2nw17SerializationType4type6uint32E"></span><span class="target" id="structnw_1_1_serialization_type_1a494605f231da92694d055d86c080462da04e6eac73b2bb2fa360bdd73581fa522"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">uint32</span></span></span><a class="headerlink" href="#_CPPv4N2nw17SerializationType4type6uint32E" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp enumerator">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw17SerializationType4type5int32E">
-<span id="_CPPv3N2nw17SerializationType4type5int32E"></span><span id="_CPPv2N2nw17SerializationType4type5int32E"></span><span class="target" id="structnw_1_1_serialization_type_1a494605f231da92694d055d86c080462daef54336b710626d521bc1de66da02e47"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">int32</span></span></span><a class="headerlink" href="#_CPPv4N2nw17SerializationType4type5int32E" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw17SerializationType4type5int32E"></span><span id="_CPPv2N2nw17SerializationType4type5int32E"></span><span class="target" id="structnw_1_1_serialization_type_1a494605f231da92694d055d86c080462daef54336b710626d521bc1de66da02e47"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">int32</span></span></span><a class="headerlink" href="#_CPPv4N2nw17SerializationType4type5int32E" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp enumerator">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw17SerializationType4type6uint64E">
-<span id="_CPPv3N2nw17SerializationType4type6uint64E"></span><span id="_CPPv2N2nw17SerializationType4type6uint64E"></span><span class="target" id="structnw_1_1_serialization_type_1a494605f231da92694d055d86c080462dafe6990374028490ec9b51d888b2c0dd5"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">uint64</span></span></span><a class="headerlink" href="#_CPPv4N2nw17SerializationType4type6uint64E" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw17SerializationType4type6uint64E"></span><span id="_CPPv2N2nw17SerializationType4type6uint64E"></span><span class="target" id="structnw_1_1_serialization_type_1a494605f231da92694d055d86c080462dafe6990374028490ec9b51d888b2c0dd5"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">uint64</span></span></span><a class="headerlink" href="#_CPPv4N2nw17SerializationType4type6uint64E" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp enumerator">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw17SerializationType4type5int64E">
-<span id="_CPPv3N2nw17SerializationType4type5int64E"></span><span id="_CPPv2N2nw17SerializationType4type5int64E"></span><span class="target" id="structnw_1_1_serialization_type_1a494605f231da92694d055d86c080462daef82fae14a9047549148b3b99090176e"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">int64</span></span></span><a class="headerlink" href="#_CPPv4N2nw17SerializationType4type5int64E" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw17SerializationType4type5int64E"></span><span id="_CPPv2N2nw17SerializationType4type5int64E"></span><span class="target" id="structnw_1_1_serialization_type_1a494605f231da92694d055d86c080462daef82fae14a9047549148b3b99090176e"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">int64</span></span></span><a class="headerlink" href="#_CPPv4N2nw17SerializationType4type5int64E" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp enumerator">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw17SerializationType4type6float_E">
-<span id="_CPPv3N2nw17SerializationType4type6float_E"></span><span id="_CPPv2N2nw17SerializationType4type6float_E"></span><span class="target" id="structnw_1_1_serialization_type_1a494605f231da92694d055d86c080462da5820c37035c43a625546e1b61bcf3c6c"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">float_</span></span></span><a class="headerlink" href="#_CPPv4N2nw17SerializationType4type6float_E" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw17SerializationType4type6float_E"></span><span id="_CPPv2N2nw17SerializationType4type6float_E"></span><span class="target" id="structnw_1_1_serialization_type_1a494605f231da92694d055d86c080462da5820c37035c43a625546e1b61bcf3c6c"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">float_</span></span></span><a class="headerlink" href="#_CPPv4N2nw17SerializationType4type6float_E" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp enumerator">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw17SerializationType4type7double_E">
-<span id="_CPPv3N2nw17SerializationType4type7double_E"></span><span id="_CPPv2N2nw17SerializationType4type7double_E"></span><span class="target" id="structnw_1_1_serialization_type_1a494605f231da92694d055d86c080462da41b838221793702ed5a5af2e4829f5f5"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">double_</span></span></span><a class="headerlink" href="#_CPPv4N2nw17SerializationType4type7double_E" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw17SerializationType4type7double_E"></span><span id="_CPPv2N2nw17SerializationType4type7double_E"></span><span class="target" id="structnw_1_1_serialization_type_1a494605f231da92694d055d86c080462da41b838221793702ed5a5af2e4829f5f5"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">double_</span></span></span><a class="headerlink" href="#_CPPv4N2nw17SerializationType4type7double_E" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp enumerator">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw17SerializationType4type6stringE">
-<span id="_CPPv3N2nw17SerializationType4type6stringE"></span><span id="_CPPv2N2nw17SerializationType4type6stringE"></span><span class="target" id="structnw_1_1_serialization_type_1a494605f231da92694d055d86c080462da60cbc2c7ca8fd1c8c8a8bfac6c0d15da"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">string</span></span></span><a class="headerlink" href="#_CPPv4N2nw17SerializationType4type6stringE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw17SerializationType4type6stringE"></span><span id="_CPPv2N2nw17SerializationType4type6stringE"></span><span class="target" id="structnw_1_1_serialization_type_1a494605f231da92694d055d86c080462da60cbc2c7ca8fd1c8c8a8bfac6c0d15da"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">string</span></span></span><a class="headerlink" href="#_CPPv4N2nw17SerializationType4type6stringE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp enumerator">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw17SerializationType4type6resrefE">
-<span id="_CPPv3N2nw17SerializationType4type6resrefE"></span><span id="_CPPv2N2nw17SerializationType4type6resrefE"></span><span class="target" id="structnw_1_1_serialization_type_1a494605f231da92694d055d86c080462dacfc444c857ee6cf8e5d693d246c2b0e2"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">resref</span></span></span><a class="headerlink" href="#_CPPv4N2nw17SerializationType4type6resrefE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw17SerializationType4type6resrefE"></span><span id="_CPPv2N2nw17SerializationType4type6resrefE"></span><span class="target" id="structnw_1_1_serialization_type_1a494605f231da92694d055d86c080462dacfc444c857ee6cf8e5d693d246c2b0e2"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">resref</span></span></span><a class="headerlink" href="#_CPPv4N2nw17SerializationType4type6resrefE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp enumerator">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw17SerializationType4type9locstringE">
-<span id="_CPPv3N2nw17SerializationType4type9locstringE"></span><span id="_CPPv2N2nw17SerializationType4type9locstringE"></span><span class="target" id="structnw_1_1_serialization_type_1a494605f231da92694d055d86c080462daf17bf0e2d178a48cb9499c1655a3a6f6"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">locstring</span></span></span><a class="headerlink" href="#_CPPv4N2nw17SerializationType4type9locstringE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw17SerializationType4type9locstringE"></span><span id="_CPPv2N2nw17SerializationType4type9locstringE"></span><span class="target" id="structnw_1_1_serialization_type_1a494605f231da92694d055d86c080462daf17bf0e2d178a48cb9499c1655a3a6f6"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">locstring</span></span></span><a class="headerlink" href="#_CPPv4N2nw17SerializationType4type9locstringE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp enumerator">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw17SerializationType4type5void_E">
-<span id="_CPPv3N2nw17SerializationType4type5void_E"></span><span id="_CPPv2N2nw17SerializationType4type5void_E"></span><span class="target" id="structnw_1_1_serialization_type_1a494605f231da92694d055d86c080462dab5c47afbf938f2de55785f69fca28fef"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">void_</span></span></span><a class="headerlink" href="#_CPPv4N2nw17SerializationType4type5void_E" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw17SerializationType4type5void_E"></span><span id="_CPPv2N2nw17SerializationType4type5void_E"></span><span class="target" id="structnw_1_1_serialization_type_1a494605f231da92694d055d86c080462dab5c47afbf938f2de55785f69fca28fef"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">void_</span></span></span><a class="headerlink" href="#_CPPv4N2nw17SerializationType4type5void_E" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp enumerator">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw17SerializationType4type7struct_E">
-<span id="_CPPv3N2nw17SerializationType4type7struct_E"></span><span id="_CPPv2N2nw17SerializationType4type7struct_E"></span><span class="target" id="structnw_1_1_serialization_type_1a494605f231da92694d055d86c080462da1b5bbeeb6024315b3edf55ebf27a75f7"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">struct_</span></span></span><a class="headerlink" href="#_CPPv4N2nw17SerializationType4type7struct_E" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw17SerializationType4type7struct_E"></span><span id="_CPPv2N2nw17SerializationType4type7struct_E"></span><span class="target" id="structnw_1_1_serialization_type_1a494605f231da92694d055d86c080462da1b5bbeeb6024315b3edf55ebf27a75f7"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">struct_</span></span></span><a class="headerlink" href="#_CPPv4N2nw17SerializationType4type7struct_E" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp enumerator">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw17SerializationType4type4listE">
-<span id="_CPPv3N2nw17SerializationType4type4listE"></span><span id="_CPPv2N2nw17SerializationType4type4listE"></span><span class="target" id="structnw_1_1_serialization_type_1a494605f231da92694d055d86c080462da4e2fd8450d87e9d590308b30d34de249"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">list</span></span></span><a class="headerlink" href="#_CPPv4N2nw17SerializationType4type4listE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw17SerializationType4type4listE"></span><span id="_CPPv2N2nw17SerializationType4type4listE"></span><span class="target" id="structnw_1_1_serialization_type_1a494605f231da92694d055d86c080462da4e2fd8450d87e9d590308b30d34de249"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">list</span></span></span><a class="headerlink" href="#_CPPv4N2nw17SerializationType4type4listE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 </dd></dl>
@@ -462,19 +474,19 @@
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-static-functions">Public Static Functions</p>
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4I0EN2nw17SerializationType2idEN17SerializationType4typeEv">
-<span id="_CPPv3I0EN2nw17SerializationType2idEv"></span><span id="_CPPv2I0EN2nw17SerializationType2idEv"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">T</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="structnw_1_1_serialization_type_1a9303f7ffb2989f14e1652a97068442df"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N2nw17SerializationTypeE" title="nw::SerializationType"><span class="n"><span class="pre">SerializationType</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N2nw17SerializationType4typeE" title="nw::SerializationType::type"><span class="n"><span class="pre">type</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">id</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4I0EN2nw17SerializationType2idEN17SerializationType4typeEv" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3I0EN2nw17SerializationType2idEv"></span><span id="_CPPv2I0EN2nw17SerializationType2idEv"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">T</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="structnw_1_1_serialization_type_1a9303f7ffb2989f14e1652a97068442df"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N2nw17SerializationTypeE" title="nw::SerializationType"><span class="n"><span class="pre">SerializationType</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N2nw17SerializationType4typeE" title="nw::SerializationType::type"><span class="n"><span class="pre">type</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">id</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4I0EN2nw17SerializationType2idEN17SerializationType4typeEv" title="Link to this definition"></a><br /></dt>
 <dd><p>Convert type to <a class="reference internal" href="#structnw_1_1_serialization_type"><span class="std std-ref">SerializationType</span></a>. </p>
 </dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw17SerializationType9to_stringEN17SerializationType4typeE">
-<span id="_CPPv3N2nw17SerializationType9to_stringEN17SerializationType4typeE"></span><span id="_CPPv2N2nw17SerializationType9to_stringEN17SerializationType4typeE"></span><span id="nw::SerializationType::to_string__SerializationType::typeCE"></span><span class="target" id="structnw_1_1_serialization_type_1abf16cfe4d077792291feeda63d405daa"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">to_string</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N2nw17SerializationTypeE" title="nw::SerializationType"><span class="n"><span class="pre">SerializationType</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N2nw17SerializationType4typeE" title="nw::SerializationType::type"><span class="n"><span class="pre">type</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">type</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw17SerializationType9to_stringEN17SerializationType4typeE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw17SerializationType9to_stringEN17SerializationType4typeE"></span><span id="_CPPv2N2nw17SerializationType9to_stringEN17SerializationType4typeE"></span><span id="nw::SerializationType::to_string__SerializationType::typeCE"></span><span class="target" id="structnw_1_1_serialization_type_1abf16cfe4d077792291feeda63d405daa"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">to_string</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N2nw17SerializationTypeE" title="nw::SerializationType"><span class="n"><span class="pre">SerializationType</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N2nw17SerializationType4typeE" title="nw::SerializationType::type"><span class="n"><span class="pre">type</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">type</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw17SerializationType9to_stringEN17SerializationType4typeE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 </div>
 </dd></dl>
 
-</div>
+</section>
 
 
            </div>

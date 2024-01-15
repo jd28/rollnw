@@ -1,20 +1,24 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html5" lang="en" data-content_root="../../">
 <head>
-  <meta charset="utf-8" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>nw::Language &mdash; rollNW  documentation</title>
-      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
-      <link rel="stylesheet" href="../../_static/tabs.css" type="text/css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="../../_static/tabs.css?v=a5c4661c" />
+
+  
   <!--[if lt IE 9]>
     <script src="../../_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
-        <script src="../../_static/jquery.js"></script>
-        <script src="../../_static/underscore.js"></script>
-        <script src="../../_static/doctools.js"></script>
+        <script src="../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+        <script src="../../_static/doctools.js?v=888ff710"></script>
+        <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
@@ -129,7 +133,18 @@
 <li class="toctree-l2"><a class="reference internal" href="nw__JournalCategory.html">nw::JournalCategory</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__JournalEntry.html">nw::JournalEntry</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Key.html">nw::Key</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">nw::Language</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">nw::Language</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#_CPPv4N2nw8LanguageE"><code class="docutils literal notranslate"><span class="pre">Language</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw8Language8encodingE10LanguageID"><code class="docutils literal notranslate"><span class="pre">Language::encoding()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw8Language11from_stringENSt11string_viewE"><code class="docutils literal notranslate"><span class="pre">Language::from_string()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw8Language12has_feminineE10LanguageID"><code class="docutils literal notranslate"><span class="pre">Language::has_feminine()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw8Language10to_base_idE8uint32_t"><code class="docutils literal notranslate"><span class="pre">Language::to_base_id()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw8Language13to_runtime_idE10LanguageIDb"><code class="docutils literal notranslate"><span class="pre">Language::to_runtime_id()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw8Language9to_stringE10LanguageIDb"><code class="docutils literal notranslate"><span class="pre">Language::to_string()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Language__Properties.html">nw::Language::Properties</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__LevelHistory.html">nw::LevelHistory</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__LevelHistoryEntry.html">nw::LevelHistoryEntry</a></li>
@@ -358,11 +373,11 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <div class="section" id="nw-language">
-<h1>nw::Language<a class="headerlink" href="#nw-language" title="Permalink to this headline"></a></h1>
+  <section id="nw-language">
+<h1>nw::Language<a class="headerlink" href="#nw-language" title="Link to this heading"></a></h1>
 <dl class="cpp struct">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw8LanguageE">
-<span id="_CPPv3N2nw8LanguageE"></span><span id="_CPPv2N2nw8LanguageE"></span><span id="nw::Language"></span><span class="target" id="structnw_1_1_language"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Language</span></span></span><a class="headerlink" href="#_CPPv4N2nw8LanguageE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw8LanguageE"></span><span id="_CPPv2N2nw8LanguageE"></span><span id="nw::Language"></span><span class="target" id="structnw_1_1_language"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Language</span></span></span><a class="headerlink" href="#_CPPv4N2nw8LanguageE" title="Link to this definition"></a><br /></dt>
 <dd><p>Constants and related properties for supported languages. </p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
@@ -372,44 +387,44 @@
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-static-functions">Public Static Functions</p>
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw8Language8encodingE10LanguageID">
-<span id="_CPPv3N2nw8Language8encodingE10LanguageID"></span><span id="_CPPv2N2nw8Language8encodingE10LanguageID"></span><span id="nw::Language::encoding__LanguageID"></span><span class="target" id="structnw_1_1_language_1a6410ba663d88db5eae9f970fb7520f27"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">encoding</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="../enum/nw__LanguageID.html#_CPPv4N2nw10LanguageIDE" title="nw::LanguageID"><span class="n"><span class="pre">LanguageID</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">lang</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw8Language8encodingE10LanguageID" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw8Language8encodingE10LanguageID"></span><span id="_CPPv2N2nw8Language8encodingE10LanguageID"></span><span id="nw::Language::encoding__LanguageID"></span><span class="target" id="structnw_1_1_language_1a6410ba663d88db5eae9f970fb7520f27"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">encoding</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="../enum/nw__LanguageID.html#_CPPv4N2nw10LanguageIDE" title="nw::LanguageID"><span class="n"><span class="pre">LanguageID</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">lang</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw8Language8encodingE10LanguageID" title="Link to this definition"></a><br /></dt>
 <dd><p>Gets the encoding for a particular language. </p>
 </dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw8Language11from_stringENSt11string_viewE">
-<span id="_CPPv3N2nw8Language11from_stringENSt11string_viewE"></span><span id="_CPPv2N2nw8Language11from_stringENSt11string_viewE"></span><span id="nw::Language::from_string__std::string_view"></span><span class="target" id="structnw_1_1_language_1ac85fd34bf1af88ca17137215fa848779"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><a class="reference internal" href="../enum/nw__LanguageID.html#_CPPv4N2nw10LanguageIDE" title="nw::LanguageID"><span class="n"><span class="pre">LanguageID</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">from_string</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">lang</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw8Language11from_stringENSt11string_viewE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw8Language11from_stringENSt11string_viewE"></span><span id="_CPPv2N2nw8Language11from_stringENSt11string_viewE"></span><span id="nw::Language::from_string__std::string_view"></span><span class="target" id="structnw_1_1_language_1ac85fd34bf1af88ca17137215fa848779"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><a class="reference internal" href="../enum/nw__LanguageID.html#_CPPv4N2nw10LanguageIDE" title="nw::LanguageID"><span class="n"><span class="pre">LanguageID</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">from_string</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">lang</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw8Language11from_stringENSt11string_viewE" title="Link to this definition"></a><br /></dt>
 <dd><p>Converts string (short or long form) to ID. </p>
 </dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw8Language12has_feminineE10LanguageID">
-<span id="_CPPv3N2nw8Language12has_feminineE10LanguageID"></span><span id="_CPPv2N2nw8Language12has_feminineE10LanguageID"></span><span id="nw::Language::has_feminine__LanguageID"></span><span class="target" id="structnw_1_1_language_1aa4da96035f8d2779d84c6b32913df62d"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">has_feminine</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="../enum/nw__LanguageID.html#_CPPv4N2nw10LanguageIDE" title="nw::LanguageID"><span class="n"><span class="pre">LanguageID</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">lang</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw8Language12has_feminineE10LanguageID" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw8Language12has_feminineE10LanguageID"></span><span id="_CPPv2N2nw8Language12has_feminineE10LanguageID"></span><span id="nw::Language::has_feminine__LanguageID"></span><span class="target" id="structnw_1_1_language_1aa4da96035f8d2779d84c6b32913df62d"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">has_feminine</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="../enum/nw__LanguageID.html#_CPPv4N2nw10LanguageIDE" title="nw::LanguageID"><span class="n"><span class="pre">LanguageID</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">lang</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw8Language12has_feminineE10LanguageID" title="Link to this definition"></a><br /></dt>
 <dd><p>Determines if language has feminine translations. </p>
 </dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw8Language10to_base_idE8uint32_t">
-<span id="_CPPv3N2nw8Language10to_base_idE8uint32_t"></span><span id="_CPPv2N2nw8Language10to_base_idE8uint32_t"></span><span id="nw::Language::to_base_id__uint32_t"></span><span class="target" id="structnw_1_1_language_1adbf9d2cd7fafe828a11c5a9561c5f27c"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">pair</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="../enum/nw__LanguageID.html#_CPPv4N2nw10LanguageIDE" title="nw::LanguageID"><span class="n"><span class="pre">LanguageID</span></span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">to_base_id</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">lang</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw8Language10to_base_idE8uint32_t" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw8Language10to_base_idE8uint32_t"></span><span id="_CPPv2N2nw8Language10to_base_idE8uint32_t"></span><span id="nw::Language::to_base_id__uint32_t"></span><span class="target" id="structnw_1_1_language_1adbf9d2cd7fafe828a11c5a9561c5f27c"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">pair</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="../enum/nw__LanguageID.html#_CPPv4N2nw10LanguageIDE" title="nw::LanguageID"><span class="n"><span class="pre">LanguageID</span></span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">to_base_id</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">lang</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw8Language10to_base_idE8uint32_t" title="Link to this definition"></a><br /></dt>
 <dd><p>Convert runtime language identifier to base language and bool indicating masc/fem. </p>
 </dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw8Language13to_runtime_idE10LanguageIDb">
-<span id="_CPPv3N2nw8Language13to_runtime_idE10LanguageIDb"></span><span id="_CPPv2N2nw8Language13to_runtime_idE10LanguageIDb"></span><span id="nw::Language::to_runtime_id__LanguageID.b"></span><span class="target" id="structnw_1_1_language_1acb2c76c694da3219fd43fedc0ff98736"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">to_runtime_id</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="../enum/nw__LanguageID.html#_CPPv4N2nw10LanguageIDE" title="nw::LanguageID"><span class="n"><span class="pre">LanguageID</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">lang</span></span>, <span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">feminine</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">false</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw8Language13to_runtime_idE10LanguageIDb" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw8Language13to_runtime_idE10LanguageIDb"></span><span id="_CPPv2N2nw8Language13to_runtime_idE10LanguageIDb"></span><span id="nw::Language::to_runtime_id__LanguageID.b"></span><span class="target" id="structnw_1_1_language_1acb2c76c694da3219fd43fedc0ff98736"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">to_runtime_id</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="../enum/nw__LanguageID.html#_CPPv4N2nw10LanguageIDE" title="nw::LanguageID"><span class="n"><span class="pre">LanguageID</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">lang</span></span>, <span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">feminine</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">false</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw8Language13to_runtime_idE10LanguageIDb" title="Link to this definition"></a><br /></dt>
 <dd><p>Convert language ID to runtime identifier. </p>
 </dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw8Language9to_stringE10LanguageIDb">
-<span id="_CPPv3N2nw8Language9to_stringE10LanguageIDb"></span><span id="_CPPv2N2nw8Language9to_stringE10LanguageIDb"></span><span id="nw::Language::to_string__LanguageID.b"></span><span class="target" id="structnw_1_1_language_1ad8bf3f5bcc18da07d8fe6e420a672872"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">to_string</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="../enum/nw__LanguageID.html#_CPPv4N2nw10LanguageIDE" title="nw::LanguageID"><span class="n"><span class="pre">LanguageID</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">lang</span></span>, <span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">long_name</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">false</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw8Language9to_stringE10LanguageIDb" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw8Language9to_stringE10LanguageIDb"></span><span id="_CPPv2N2nw8Language9to_stringE10LanguageIDb"></span><span id="nw::Language::to_string__LanguageID.b"></span><span class="target" id="structnw_1_1_language_1ad8bf3f5bcc18da07d8fe6e420a672872"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">to_string</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="../enum/nw__LanguageID.html#_CPPv4N2nw10LanguageIDE" title="nw::LanguageID"><span class="n"><span class="pre">LanguageID</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">lang</span></span>, <span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">long_name</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">false</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw8Language9to_stringE10LanguageIDb" title="Link to this definition"></a><br /></dt>
 <dd><p>Converts language to string form. </p>
 </dd></dl>
 
 </div>
 </dd></dl>
 
-</div>
+</section>
 
 
            </div>

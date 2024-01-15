@@ -1,20 +1,24 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html5" lang="en" data-content_root="../../">
 <head>
-  <meta charset="utf-8" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>nw::model::NodeFlags &mdash; rollNW  documentation</title>
-      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
-      <link rel="stylesheet" href="../../_static/tabs.css" type="text/css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="../../_static/tabs.css?v=a5c4661c" />
+
+  
   <!--[if lt IE 9]>
     <script src="../../_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
-        <script src="../../_static/jquery.js"></script>
-        <script src="../../_static/underscore.js"></script>
-        <script src="../../_static/doctools.js"></script>
+        <script src="../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+        <script src="../../_static/doctools.js?v=888ff710"></script>
+        <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
@@ -237,7 +241,23 @@
 <li class="toctree-l2"><a class="reference internal" href="nw__model__Model.html">nw::model::Model</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__model__ModelClass.html">nw::model::ModelClass</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__model__Node.html">nw::model::Node</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">nw::model::NodeFlags</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">nw::model::NodeFlags</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#_CPPv4N2nw5model9NodeFlagsE"><code class="docutils literal notranslate"><span class="pre">NodeFlags</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw5model9NodeFlags6headerE"><code class="docutils literal notranslate"><span class="pre">NodeFlags::header</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw5model9NodeFlags5lightE"><code class="docutils literal notranslate"><span class="pre">NodeFlags::light</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw5model9NodeFlags7emitterE"><code class="docutils literal notranslate"><span class="pre">NodeFlags::emitter</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw5model9NodeFlags6cameraE"><code class="docutils literal notranslate"><span class="pre">NodeFlags::camera</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw5model9NodeFlags9referenceE"><code class="docutils literal notranslate"><span class="pre">NodeFlags::reference</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw5model9NodeFlags4meshE"><code class="docutils literal notranslate"><span class="pre">NodeFlags::mesh</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw5model9NodeFlags4skinE"><code class="docutils literal notranslate"><span class="pre">NodeFlags::skin</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw5model9NodeFlags4animE"><code class="docutils literal notranslate"><span class="pre">NodeFlags::anim</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw5model9NodeFlags6danglyE"><code class="docutils literal notranslate"><span class="pre">NodeFlags::dangly</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw5model9NodeFlags4aabbE"><code class="docutils literal notranslate"><span class="pre">NodeFlags::aabb</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw5model9NodeFlags5patchE"><code class="docutils literal notranslate"><span class="pre">NodeFlags::patch</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="nw__model__NodeTypes.html">nw::model::NodeType</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__model__PatchNode.html">nw::model::PatchNode</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__model__ReferenceNode.html">nw::model::ReferenceNode</a></li>
@@ -358,72 +378,72 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <div class="section" id="nw-model-nodeflags">
-<h1>nw::model::NodeFlags<a class="headerlink" href="#nw-model-nodeflags" title="Permalink to this headline"></a></h1>
+  <section id="nw-model-nodeflags">
+<h1>nw::model::NodeFlags<a class="headerlink" href="#nw-model-nodeflags" title="Link to this heading"></a></h1>
 <dl class="cpp struct">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw5model9NodeFlagsE">
-<span id="_CPPv3N2nw5model9NodeFlagsE"></span><span id="_CPPv2N2nw5model9NodeFlagsE"></span><span id="nw::model::NodeFlags"></span><span class="target" id="structnw_1_1model_1_1_node_flags"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">NodeFlags</span></span></span><a class="headerlink" href="#_CPPv4N2nw5model9NodeFlagsE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw5model9NodeFlagsE"></span><span id="_CPPv2N2nw5model9NodeFlagsE"></span><span id="nw::model::NodeFlags"></span><span class="target" id="structnw_1_1model_1_1_node_flags"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">NodeFlags</span></span></span><a class="headerlink" href="#_CPPv4N2nw5model9NodeFlagsE" title="Link to this definition"></a><br /></dt>
 <dd><div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-static-attributes">Public Static Attributes</p>
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw5model9NodeFlags6headerE">
-<span id="_CPPv3N2nw5model9NodeFlags6headerE"></span><span id="_CPPv2N2nw5model9NodeFlags6headerE"></span><span id="nw::model::NodeFlags::header__uint32_t"></span><span class="target" id="structnw_1_1model_1_1_node_flags_1a99b916e3a465e06a014c8caccec0e03b"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">header</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0x00000001</span></span><a class="headerlink" href="#_CPPv4N2nw5model9NodeFlags6headerE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw5model9NodeFlags6headerE"></span><span id="_CPPv2N2nw5model9NodeFlags6headerE"></span><span id="nw::model::NodeFlags::header__uint32_t"></span><span class="target" id="structnw_1_1model_1_1_node_flags_1a99b916e3a465e06a014c8caccec0e03b"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">header</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0x00000001</span></span><a class="headerlink" href="#_CPPv4N2nw5model9NodeFlags6headerE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw5model9NodeFlags5lightE">
-<span id="_CPPv3N2nw5model9NodeFlags5lightE"></span><span id="_CPPv2N2nw5model9NodeFlags5lightE"></span><span id="nw::model::NodeFlags::light__uint32_t"></span><span class="target" id="structnw_1_1model_1_1_node_flags_1a0546485d4072327bfe0afef59d39a95d"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">light</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0x00000002</span></span><a class="headerlink" href="#_CPPv4N2nw5model9NodeFlags5lightE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw5model9NodeFlags5lightE"></span><span id="_CPPv2N2nw5model9NodeFlags5lightE"></span><span id="nw::model::NodeFlags::light__uint32_t"></span><span class="target" id="structnw_1_1model_1_1_node_flags_1a0546485d4072327bfe0afef59d39a95d"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">light</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0x00000002</span></span><a class="headerlink" href="#_CPPv4N2nw5model9NodeFlags5lightE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw5model9NodeFlags7emitterE">
-<span id="_CPPv3N2nw5model9NodeFlags7emitterE"></span><span id="_CPPv2N2nw5model9NodeFlags7emitterE"></span><span id="nw::model::NodeFlags::emitter__uint32_t"></span><span class="target" id="structnw_1_1model_1_1_node_flags_1aff9f73a5a922161ff2e7c7b2f11b5606"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">emitter</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0x00000004</span></span><a class="headerlink" href="#_CPPv4N2nw5model9NodeFlags7emitterE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw5model9NodeFlags7emitterE"></span><span id="_CPPv2N2nw5model9NodeFlags7emitterE"></span><span id="nw::model::NodeFlags::emitter__uint32_t"></span><span class="target" id="structnw_1_1model_1_1_node_flags_1aff9f73a5a922161ff2e7c7b2f11b5606"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">emitter</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0x00000004</span></span><a class="headerlink" href="#_CPPv4N2nw5model9NodeFlags7emitterE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw5model9NodeFlags6cameraE">
-<span id="_CPPv3N2nw5model9NodeFlags6cameraE"></span><span id="_CPPv2N2nw5model9NodeFlags6cameraE"></span><span id="nw::model::NodeFlags::camera__uint32_t"></span><span class="target" id="structnw_1_1model_1_1_node_flags_1a826ec5ab6f90be2350800f9cb8ab2fa2"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">camera</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0x00000008</span></span><a class="headerlink" href="#_CPPv4N2nw5model9NodeFlags6cameraE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw5model9NodeFlags6cameraE"></span><span id="_CPPv2N2nw5model9NodeFlags6cameraE"></span><span id="nw::model::NodeFlags::camera__uint32_t"></span><span class="target" id="structnw_1_1model_1_1_node_flags_1a826ec5ab6f90be2350800f9cb8ab2fa2"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">camera</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0x00000008</span></span><a class="headerlink" href="#_CPPv4N2nw5model9NodeFlags6cameraE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw5model9NodeFlags9referenceE">
-<span id="_CPPv3N2nw5model9NodeFlags9referenceE"></span><span id="_CPPv2N2nw5model9NodeFlags9referenceE"></span><span id="nw::model::NodeFlags::reference__uint32_t"></span><span class="target" id="structnw_1_1model_1_1_node_flags_1abdacca0317e3bd6f9e56bf6be7ba56d3"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">reference</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0x00000010</span></span><a class="headerlink" href="#_CPPv4N2nw5model9NodeFlags9referenceE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw5model9NodeFlags9referenceE"></span><span id="_CPPv2N2nw5model9NodeFlags9referenceE"></span><span id="nw::model::NodeFlags::reference__uint32_t"></span><span class="target" id="structnw_1_1model_1_1_node_flags_1abdacca0317e3bd6f9e56bf6be7ba56d3"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">reference</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0x00000010</span></span><a class="headerlink" href="#_CPPv4N2nw5model9NodeFlags9referenceE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw5model9NodeFlags4meshE">
-<span id="_CPPv3N2nw5model9NodeFlags4meshE"></span><span id="_CPPv2N2nw5model9NodeFlags4meshE"></span><span id="nw::model::NodeFlags::mesh__uint32_t"></span><span class="target" id="structnw_1_1model_1_1_node_flags_1a96827e3ce87a1abe693d12ebaa39d0db"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">mesh</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0x00000020</span></span><a class="headerlink" href="#_CPPv4N2nw5model9NodeFlags4meshE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw5model9NodeFlags4meshE"></span><span id="_CPPv2N2nw5model9NodeFlags4meshE"></span><span id="nw::model::NodeFlags::mesh__uint32_t"></span><span class="target" id="structnw_1_1model_1_1_node_flags_1a96827e3ce87a1abe693d12ebaa39d0db"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">mesh</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0x00000020</span></span><a class="headerlink" href="#_CPPv4N2nw5model9NodeFlags4meshE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw5model9NodeFlags4skinE">
-<span id="_CPPv3N2nw5model9NodeFlags4skinE"></span><span id="_CPPv2N2nw5model9NodeFlags4skinE"></span><span id="nw::model::NodeFlags::skin__uint32_t"></span><span class="target" id="structnw_1_1model_1_1_node_flags_1a33d99a31d6da8a7ed3eced5c83ac0cb7"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">skin</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0x00000040</span></span><a class="headerlink" href="#_CPPv4N2nw5model9NodeFlags4skinE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw5model9NodeFlags4skinE"></span><span id="_CPPv2N2nw5model9NodeFlags4skinE"></span><span id="nw::model::NodeFlags::skin__uint32_t"></span><span class="target" id="structnw_1_1model_1_1_node_flags_1a33d99a31d6da8a7ed3eced5c83ac0cb7"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">skin</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0x00000040</span></span><a class="headerlink" href="#_CPPv4N2nw5model9NodeFlags4skinE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw5model9NodeFlags4animE">
-<span id="_CPPv3N2nw5model9NodeFlags4animE"></span><span id="_CPPv2N2nw5model9NodeFlags4animE"></span><span id="nw::model::NodeFlags::anim__uint32_t"></span><span class="target" id="structnw_1_1model_1_1_node_flags_1ad4f7637e32caaee9c65b6a4758c351ca"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">anim</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0x00000080</span></span><a class="headerlink" href="#_CPPv4N2nw5model9NodeFlags4animE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw5model9NodeFlags4animE"></span><span id="_CPPv2N2nw5model9NodeFlags4animE"></span><span id="nw::model::NodeFlags::anim__uint32_t"></span><span class="target" id="structnw_1_1model_1_1_node_flags_1ad4f7637e32caaee9c65b6a4758c351ca"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">anim</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0x00000080</span></span><a class="headerlink" href="#_CPPv4N2nw5model9NodeFlags4animE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw5model9NodeFlags6danglyE">
-<span id="_CPPv3N2nw5model9NodeFlags6danglyE"></span><span id="_CPPv2N2nw5model9NodeFlags6danglyE"></span><span id="nw::model::NodeFlags::dangly__uint32_t"></span><span class="target" id="structnw_1_1model_1_1_node_flags_1ae2bea60a3ba2e5703376dd989df47774"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">dangly</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0x00000100</span></span><a class="headerlink" href="#_CPPv4N2nw5model9NodeFlags6danglyE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw5model9NodeFlags6danglyE"></span><span id="_CPPv2N2nw5model9NodeFlags6danglyE"></span><span id="nw::model::NodeFlags::dangly__uint32_t"></span><span class="target" id="structnw_1_1model_1_1_node_flags_1ae2bea60a3ba2e5703376dd989df47774"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">dangly</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0x00000100</span></span><a class="headerlink" href="#_CPPv4N2nw5model9NodeFlags6danglyE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw5model9NodeFlags4aabbE">
-<span id="_CPPv3N2nw5model9NodeFlags4aabbE"></span><span id="_CPPv2N2nw5model9NodeFlags4aabbE"></span><span id="nw::model::NodeFlags::aabb__uint32_t"></span><span class="target" id="structnw_1_1model_1_1_node_flags_1ae95724ed44575aeb2caea4702a192571"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">aabb</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0x00000200</span></span><a class="headerlink" href="#_CPPv4N2nw5model9NodeFlags4aabbE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw5model9NodeFlags4aabbE"></span><span id="_CPPv2N2nw5model9NodeFlags4aabbE"></span><span id="nw::model::NodeFlags::aabb__uint32_t"></span><span class="target" id="structnw_1_1model_1_1_node_flags_1ae95724ed44575aeb2caea4702a192571"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">aabb</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0x00000200</span></span><a class="headerlink" href="#_CPPv4N2nw5model9NodeFlags4aabbE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw5model9NodeFlags5patchE">
-<span id="_CPPv3N2nw5model9NodeFlags5patchE"></span><span id="_CPPv2N2nw5model9NodeFlags5patchE"></span><span id="nw::model::NodeFlags::patch__uint32_t"></span><span class="target" id="structnw_1_1model_1_1_node_flags_1a643d3c7312fbd780ef16e7949c281fb0"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">patch</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0x00000400</span></span><a class="headerlink" href="#_CPPv4N2nw5model9NodeFlags5patchE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw5model9NodeFlags5patchE"></span><span id="_CPPv2N2nw5model9NodeFlags5patchE"></span><span id="nw::model::NodeFlags::patch__uint32_t"></span><span class="target" id="structnw_1_1model_1_1_node_flags_1a643d3c7312fbd780ef16e7949c281fb0"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">patch</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0x00000400</span></span><a class="headerlink" href="#_CPPv4N2nw5model9NodeFlags5patchE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 </div>
 </dd></dl>
 
-</div>
+</section>
 
 
            </div>

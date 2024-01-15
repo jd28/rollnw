@@ -1,21 +1,25 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html5" lang="en" data-content_root="../">
 <head>
-  <meta charset="utf-8" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>model &mdash; rollNW  documentation</title>
-      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
-      <link rel="stylesheet" href="../_static/tabs.css" type="text/css" />
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="../_static/tabs.css?v=a5c4661c" />
+
+  
   <!--[if lt IE 9]>
     <script src="../_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
-        <script src="../_static/jquery.js"></script>
-        <script src="../_static/underscore.js"></script>
-        <script src="../_static/doctools.js"></script>
-        <script src="../_static/tabs.js"></script>
+        <script src="../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../_static/documentation_options.js?v=5929fcd5"></script>
+        <script src="../_static/doctools.js?v=888ff710"></script>
+        <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+        <script src="../_static/tabs.js?v=3030b3cb"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
@@ -127,24 +131,24 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <div class="section" id="model">
-<h1>model<a class="headerlink" href="#model" title="Permalink to this headline"></a></h1>
+  <section id="model">
+<h1>model<a class="headerlink" href="#model" title="Link to this heading"></a></h1>
 <p>As mentioned elsewhere, the goal of this library is not to render graphics, but maybe?  Loading NWN models is
 for the purpose of conversion or in some other asset pipeline.</p>
 <p>See the <a class="reference external" href="https://github.com/jd28/mudl">mudl</a> model viewer side project for work on a NWN model viewer.</p>
-<div class="section" id="ascii-models">
-<h2>ASCII Models<a class="headerlink" href="#ascii-models" title="Permalink to this headline"></a></h2>
+<section id="ascii-models">
+<h2>ASCII Models<a class="headerlink" href="#ascii-models" title="Link to this heading"></a></h2>
 <p>Most default NWN models can be parsed without errors.</p>
 <p>The parser can parse at about 100mb/s and can read pretty much <a class="reference external" href="https://neverwintervault.org/project/nwn1/model/neverwinter-nights-ee-ascii-source-models">all ascii models</a>
 in ~20s on 2015 MacBook Pro.</p>
-</div>
-<div class="section" id="binary-models">
-<h2>Binary Models<a class="headerlink" href="#binary-models" title="Permalink to this headline"></a></h2>
+</section>
+<section id="binary-models">
+<h2>Binary Models<a class="headerlink" href="#binary-models" title="Link to this heading"></a></h2>
 <p>The beginnings of binary model parsing is in the library.
 It’s hard to tell what’s right and what’s wrong until there is more rendering experience.</p>
-</div>
-<div class="section" id="examples">
-<h2>Examples<a class="headerlink" href="#examples" title="Permalink to this headline"></a></h2>
+</section>
+<section id="examples">
+<h2>Examples<a class="headerlink" href="#examples" title="Link to this heading"></a></h2>
 <div class="sphinx-tabs docutils container">
 <div aria-label="Tabbed content" class="closeable" role="tablist"><button aria-controls="panel-0-UHl0aG9u" aria-selected="true" class="sphinx-tabs-tab code-tab group-tab" id="tab-0-UHl0aG9u" name="UHl0aG9u" role="tab" tabindex="0">Python</button><button aria-controls="panel-0-Qysr" aria-selected="false" class="sphinx-tabs-tab code-tab group-tab" id="tab-0-Qysr" name="Qysr" role="tab" tabindex="-1">C++</button></div><div aria-labelledby="tab-0-UHl0aG9u" class="sphinx-tabs-panel code-tab group-tab" id="panel-0-UHl0aG9u" name="UHl0aG9u" role="tabpanel" tabindex="0"><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="ch">#! /usr/bin/env python</span>
 
@@ -161,8 +165,8 @@ It’s hard to tell what’s right and what’s wrong until there is more render
 </pre></div>
 </div>
 </div></div>
-</div>
-</div>
+</section>
+</section>
 
 
            </div>

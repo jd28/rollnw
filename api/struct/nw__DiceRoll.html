@@ -1,20 +1,24 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html5" lang="en" data-content_root="../../">
 <head>
-  <meta charset="utf-8" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>nw::DiceRoll &mdash; rollNW  documentation</title>
-      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
-      <link rel="stylesheet" href="../../_static/tabs.css" type="text/css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="../../_static/tabs.css?v=a5c4661c" />
+
+  
   <!--[if lt IE 9]>
     <script src="../../_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
-        <script src="../../_static/jquery.js"></script>
-        <script src="../../_static/underscore.js"></script>
-        <script src="../../_static/doctools.js"></script>
+        <script src="../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+        <script src="../../_static/doctools.js?v=888ff710"></script>
+        <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
@@ -90,7 +94,16 @@
 <li class="toctree-l2"><a class="reference internal" href="nw__Dialog.html">nw::Dialog</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__DialogNode.html">nw::DialogNode</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__DialogPtr.html">nw::DialogPtr</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">nw::DiceRoll</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">nw::DiceRoll</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#_CPPv4N2nw8DiceRollE"><code class="docutils literal notranslate"><span class="pre">DiceRoll</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw8DiceRollcvbEv"><code class="docutils literal notranslate"><span class="pre">DiceRoll::operator</span> <span class="pre">bool()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw8DiceRoll4diceE"><code class="docutils literal notranslate"><span class="pre">DiceRoll::dice</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw8DiceRoll5sidesE"><code class="docutils literal notranslate"><span class="pre">DiceRoll::sides</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw8DiceRoll5bonusE"><code class="docutils literal notranslate"><span class="pre">DiceRoll::bonus</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Directory.html">nw::Directory</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Disease.html">nw::Disease</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Door.html">nw::Door</a></li>
@@ -358,17 +371,17 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <div class="section" id="nw-diceroll">
-<h1>nw::DiceRoll<a class="headerlink" href="#nw-diceroll" title="Permalink to this headline"></a></h1>
+  <section id="nw-diceroll">
+<h1>nw::DiceRoll<a class="headerlink" href="#nw-diceroll" title="Link to this heading"></a></h1>
 <dl class="cpp struct">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw8DiceRollE">
-<span id="_CPPv3N2nw8DiceRollE"></span><span id="_CPPv2N2nw8DiceRollE"></span><span id="nw::DiceRoll"></span><span class="target" id="structnw_1_1_dice_roll"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">DiceRoll</span></span></span><a class="headerlink" href="#_CPPv4N2nw8DiceRollE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw8DiceRollE"></span><span id="_CPPv2N2nw8DiceRollE"></span><span id="nw::DiceRoll"></span><span class="target" id="structnw_1_1_dice_roll"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">DiceRoll</span></span></span><a class="headerlink" href="#_CPPv4N2nw8DiceRollE" title="Link to this definition"></a><br /></dt>
 <dd><p>A dice roll. </p>
 <div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw8DiceRollcvbEv">
-<span id="_CPPv3N2nw8DiceRollcvbEv"></span><span id="_CPPv2N2nw8DiceRollcvbEv"></span><span id="nw::DiceRoll::castto-b-operator"></span><span class="target" id="structnw_1_1_dice_roll_1a8ed6b5f5f84faa71fe4b4191a6167f1a"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw8DiceRollcvbEv" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw8DiceRollcvbEv"></span><span id="_CPPv2N2nw8DiceRollcvbEv"></span><span id="nw::DiceRoll::castto-b-operator"></span><span class="target" id="structnw_1_1_dice_roll_1a8ed6b5f5f84faa71fe4b4191a6167f1a"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw8DiceRollcvbEv" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 </div>
@@ -376,26 +389,26 @@
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw8DiceRoll4diceE">
-<span id="_CPPv3N2nw8DiceRoll4diceE"></span><span id="_CPPv2N2nw8DiceRoll4diceE"></span><span id="nw::DiceRoll::dice__i"></span><span class="target" id="structnw_1_1_dice_roll_1a48e876197e797187120633e5756f15ab"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">dice</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N2nw8DiceRoll4diceE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw8DiceRoll4diceE"></span><span id="_CPPv2N2nw8DiceRoll4diceE"></span><span id="nw::DiceRoll::dice__i"></span><span class="target" id="structnw_1_1_dice_roll_1a48e876197e797187120633e5756f15ab"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">dice</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N2nw8DiceRoll4diceE" title="Link to this definition"></a><br /></dt>
 <dd><p>Number of dice to roll. </p>
 </dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw8DiceRoll5sidesE">
-<span id="_CPPv3N2nw8DiceRoll5sidesE"></span><span id="_CPPv2N2nw8DiceRoll5sidesE"></span><span id="nw::DiceRoll::sides__i"></span><span class="target" id="structnw_1_1_dice_roll_1a2d99328b0449632749ca5ededc563a64"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">sides</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N2nw8DiceRoll5sidesE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw8DiceRoll5sidesE"></span><span id="_CPPv2N2nw8DiceRoll5sidesE"></span><span id="nw::DiceRoll::sides__i"></span><span class="target" id="structnw_1_1_dice_roll_1a2d99328b0449632749ca5ededc563a64"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">sides</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N2nw8DiceRoll5sidesE" title="Link to this definition"></a><br /></dt>
 <dd><p>Number of sides on the dice. </p>
 </dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw8DiceRoll5bonusE">
-<span id="_CPPv3N2nw8DiceRoll5bonusE"></span><span id="_CPPv2N2nw8DiceRoll5bonusE"></span><span id="nw::DiceRoll::bonus__i"></span><span class="target" id="structnw_1_1_dice_roll_1a441a5dde7286efe9d6482198c84eb9e2"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">bonus</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N2nw8DiceRoll5bonusE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw8DiceRoll5bonusE"></span><span id="_CPPv2N2nw8DiceRoll5bonusE"></span><span id="nw::DiceRoll::bonus__i"></span><span class="target" id="structnw_1_1_dice_roll_1a441a5dde7286efe9d6482198c84eb9e2"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">bonus</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N2nw8DiceRoll5bonusE" title="Link to this definition"></a><br /></dt>
 <dd><p>Additional bonus. </p>
 </dd></dl>
 
 </div>
 </dd></dl>
 
-</div>
+</section>
 
 
            </div>

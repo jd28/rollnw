@@ -1,20 +1,24 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html5" lang="en" data-content_root="../../">
 <head>
-  <meta charset="utf-8" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>nw::Trap &mdash; rollNW  documentation</title>
-      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
-      <link rel="stylesheet" href="../../_static/tabs.css" type="text/css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="../../_static/tabs.css?v=a5c4661c" />
+
+  
   <!--[if lt IE 9]>
     <script src="../../_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
-        <script src="../../_static/jquery.js"></script>
-        <script src="../../_static/underscore.js"></script>
-        <script src="../../_static/doctools.js"></script>
+        <script src="../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+        <script src="../../_static/doctools.js?v=888ff710"></script>
+        <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
@@ -193,7 +197,22 @@
 <li class="toctree-l2"><a class="reference internal" href="nw__TlkFlags.html">nw::TlkFlags</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__TlkHeader.html">nw::TlkHeader</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Tokenizer.html">nw::Tokenizer</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">nw::Trap</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">nw::Trap</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#_CPPv4N2nw4TrapE"><code class="docutils literal notranslate"><span class="pre">Trap</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw4Trap4TrapEv"><code class="docutils literal notranslate"><span class="pre">Trap::Trap()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw4Trap9from_jsonERKN8nlohmann4jsonE"><code class="docutils literal notranslate"><span class="pre">Trap::from_json()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw4Trap7to_jsonEv"><code class="docutils literal notranslate"><span class="pre">Trap::to_json()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw4Trap10is_trappedE"><code class="docutils literal notranslate"><span class="pre">Trap::is_trapped</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw4Trap4typeE"><code class="docutils literal notranslate"><span class="pre">Trap::type</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw4Trap10detectableE"><code class="docutils literal notranslate"><span class="pre">Trap::detectable</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw4Trap9detect_dcE"><code class="docutils literal notranslate"><span class="pre">Trap::detect_dc</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw4Trap10disarmableE"><code class="docutils literal notranslate"><span class="pre">Trap::disarmable</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw4Trap9disarm_dcE"><code class="docutils literal notranslate"><span class="pre">Trap::disarm_dc</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw4Trap8one_shotE"><code class="docutils literal notranslate"><span class="pre">Trap::one_shot</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Trigger.html">nw::Trigger</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__TriggerScripts.html">nw::TriggerScripts</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__TwoDA.html">nw::TwoDA</a></li>
@@ -358,26 +377,26 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <div class="section" id="nw-trap">
-<h1>nw::Trap<a class="headerlink" href="#nw-trap" title="Permalink to this headline"></a></h1>
+  <section id="nw-trap">
+<h1>nw::Trap<a class="headerlink" href="#nw-trap" title="Link to this heading"></a></h1>
 <dl class="cpp struct">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw4TrapE">
-<span id="_CPPv3N2nw4TrapE"></span><span id="_CPPv2N2nw4TrapE"></span><span id="nw::Trap"></span><span class="target" id="structnw_1_1_trap"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Trap</span></span></span><a class="headerlink" href="#_CPPv4N2nw4TrapE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw4TrapE"></span><span id="_CPPv2N2nw4TrapE"></span><span id="nw::Trap"></span><span class="target" id="structnw_1_1_trap"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Trap</span></span></span><a class="headerlink" href="#_CPPv4N2nw4TrapE" title="Link to this definition"></a><br /></dt>
 <dd><div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw4Trap4TrapEv">
-<span id="_CPPv3N2nw4Trap4TrapEv"></span><span id="_CPPv2N2nw4Trap4TrapEv"></span><span id="nw::Trap::Trap"></span><span class="target" id="structnw_1_1_trap_1ac12d0b3806c5a04bc59f2a62de002da3"></span><span class="sig-name descname"><span class="n"><span class="pre">Trap</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">default</span></span><a class="headerlink" href="#_CPPv4N2nw4Trap4TrapEv" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw4Trap4TrapEv"></span><span id="_CPPv2N2nw4Trap4TrapEv"></span><span id="nw::Trap::Trap"></span><span class="target" id="structnw_1_1_trap_1ac12d0b3806c5a04bc59f2a62de002da3"></span><span class="sig-name descname"><span class="n"><span class="pre">Trap</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">default</span></span><a class="headerlink" href="#_CPPv4N2nw4Trap4TrapEv" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw4Trap9from_jsonERKN8nlohmann4jsonE">
-<span id="_CPPv3N2nw4Trap9from_jsonERKN8nlohmann4jsonE"></span><span id="_CPPv2N2nw4Trap9from_jsonERKN8nlohmann4jsonE"></span><span id="nw::Trap::from_json__nlohmann::jsonCR"></span><span class="target" id="structnw_1_1_trap_1a539a944b80aedea76e938805a3bcf091"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">from_json</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">nlohmann</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">json</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">archive</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw4Trap9from_jsonERKN8nlohmann4jsonE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw4Trap9from_jsonERKN8nlohmann4jsonE"></span><span id="_CPPv2N2nw4Trap9from_jsonERKN8nlohmann4jsonE"></span><span id="nw::Trap::from_json__nlohmann::jsonCR"></span><span class="target" id="structnw_1_1_trap_1a539a944b80aedea76e938805a3bcf091"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">from_json</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">nlohmann</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">json</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">archive</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw4Trap9from_jsonERKN8nlohmann4jsonE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4NK2nw4Trap7to_jsonEv">
-<span id="_CPPv3NK2nw4Trap7to_jsonEv"></span><span id="_CPPv2NK2nw4Trap7to_jsonEv"></span><span id="nw::Trap::to_jsonC"></span><span class="target" id="structnw_1_1_trap_1a10c3eb93317a11b756feafede43ab451"></span><span class="n"><span class="pre">nlohmann</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">json</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">to_json</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK2nw4Trap7to_jsonEv" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3NK2nw4Trap7to_jsonEv"></span><span id="_CPPv2NK2nw4Trap7to_jsonEv"></span><span id="nw::Trap::to_jsonC"></span><span class="target" id="structnw_1_1_trap_1a10c3eb93317a11b756feafede43ab451"></span><span class="n"><span class="pre">nlohmann</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">json</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">to_json</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK2nw4Trap7to_jsonEv" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 </div>
@@ -385,43 +404,43 @@
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw4Trap10is_trappedE">
-<span id="_CPPv3N2nw4Trap10is_trappedE"></span><span id="_CPPv2N2nw4Trap10is_trappedE"></span><span id="nw::Trap::is_trapped__b"></span><span class="target" id="structnw_1_1_trap_1a218bd4f5256e3a1308f2a6b5d4073179"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">is_trapped</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">false</span></span><a class="headerlink" href="#_CPPv4N2nw4Trap10is_trappedE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw4Trap10is_trappedE"></span><span id="_CPPv2N2nw4Trap10is_trappedE"></span><span id="nw::Trap::is_trapped__b"></span><span class="target" id="structnw_1_1_trap_1a218bd4f5256e3a1308f2a6b5d4073179"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">is_trapped</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">false</span></span><a class="headerlink" href="#_CPPv4N2nw4Trap10is_trappedE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw4Trap4typeE">
-<span id="_CPPv3N2nw4Trap4typeE"></span><span id="_CPPv2N2nw4Trap4typeE"></span><span id="nw::Trap::type__uint8_t"></span><span class="target" id="structnw_1_1_trap_1a9c7d6ee9d9898489f1a7570178c9e291"></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">type</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N2nw4Trap4typeE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw4Trap4typeE"></span><span id="_CPPv2N2nw4Trap4typeE"></span><span id="nw::Trap::type__uint8_t"></span><span class="target" id="structnw_1_1_trap_1a9c7d6ee9d9898489f1a7570178c9e291"></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">type</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N2nw4Trap4typeE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw4Trap10detectableE">
-<span id="_CPPv3N2nw4Trap10detectableE"></span><span id="_CPPv2N2nw4Trap10detectableE"></span><span id="nw::Trap::detectable__b"></span><span class="target" id="structnw_1_1_trap_1a9c57319e0e9c4acde8391f3f48ff8f1e"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">detectable</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">false</span></span><a class="headerlink" href="#_CPPv4N2nw4Trap10detectableE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw4Trap10detectableE"></span><span id="_CPPv2N2nw4Trap10detectableE"></span><span id="nw::Trap::detectable__b"></span><span class="target" id="structnw_1_1_trap_1a9c57319e0e9c4acde8391f3f48ff8f1e"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">detectable</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">false</span></span><a class="headerlink" href="#_CPPv4N2nw4Trap10detectableE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw4Trap9detect_dcE">
-<span id="_CPPv3N2nw4Trap9detect_dcE"></span><span id="_CPPv2N2nw4Trap9detect_dcE"></span><span id="nw::Trap::detect_dc__uint8_t"></span><span class="target" id="structnw_1_1_trap_1a5ad193011f3b9cdf1ba27493fbb93244"></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">detect_dc</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N2nw4Trap9detect_dcE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw4Trap9detect_dcE"></span><span id="_CPPv2N2nw4Trap9detect_dcE"></span><span id="nw::Trap::detect_dc__uint8_t"></span><span class="target" id="structnw_1_1_trap_1a5ad193011f3b9cdf1ba27493fbb93244"></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">detect_dc</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N2nw4Trap9detect_dcE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw4Trap10disarmableE">
-<span id="_CPPv3N2nw4Trap10disarmableE"></span><span id="_CPPv2N2nw4Trap10disarmableE"></span><span id="nw::Trap::disarmable__b"></span><span class="target" id="structnw_1_1_trap_1aedb4ef4d50308efd87476f9cf5c6a68d"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">disarmable</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">false</span></span><a class="headerlink" href="#_CPPv4N2nw4Trap10disarmableE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw4Trap10disarmableE"></span><span id="_CPPv2N2nw4Trap10disarmableE"></span><span id="nw::Trap::disarmable__b"></span><span class="target" id="structnw_1_1_trap_1aedb4ef4d50308efd87476f9cf5c6a68d"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">disarmable</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">false</span></span><a class="headerlink" href="#_CPPv4N2nw4Trap10disarmableE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw4Trap9disarm_dcE">
-<span id="_CPPv3N2nw4Trap9disarm_dcE"></span><span id="_CPPv2N2nw4Trap9disarm_dcE"></span><span id="nw::Trap::disarm_dc__uint8_t"></span><span class="target" id="structnw_1_1_trap_1aca8cef32e7a93d17b67eab01aec98bad"></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">disarm_dc</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N2nw4Trap9disarm_dcE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw4Trap9disarm_dcE"></span><span id="_CPPv2N2nw4Trap9disarm_dcE"></span><span id="nw::Trap::disarm_dc__uint8_t"></span><span class="target" id="structnw_1_1_trap_1aca8cef32e7a93d17b67eab01aec98bad"></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">disarm_dc</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N2nw4Trap9disarm_dcE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw4Trap8one_shotE">
-<span id="_CPPv3N2nw4Trap8one_shotE"></span><span id="_CPPv2N2nw4Trap8one_shotE"></span><span id="nw::Trap::one_shot__b"></span><span class="target" id="structnw_1_1_trap_1abd6f3862f558c76d5efedba900826fa4"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">one_shot</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">false</span></span><a class="headerlink" href="#_CPPv4N2nw4Trap8one_shotE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw4Trap8one_shotE"></span><span id="_CPPv2N2nw4Trap8one_shotE"></span><span id="nw::Trap::one_shot__b"></span><span class="target" id="structnw_1_1_trap_1abd6f3862f558c76d5efedba900826fa4"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">one_shot</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">false</span></span><a class="headerlink" href="#_CPPv4N2nw4Trap8one_shotE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 </div>
 </dd></dl>
 
-</div>
+</section>
 
 
            </div>

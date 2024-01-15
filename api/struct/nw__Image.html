@@ -1,20 +1,24 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html5" lang="en" data-content_root="../../">
 <head>
-  <meta charset="utf-8" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>nw::Image &mdash; rollNW  documentation</title>
-      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
-      <link rel="stylesheet" href="../../_static/tabs.css" type="text/css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="../../_static/tabs.css?v=a5c4661c" />
+
+  
   <!--[if lt IE 9]>
     <script src="../../_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
-        <script src="../../_static/jquery.js"></script>
-        <script src="../../_static/underscore.js"></script>
-        <script src="../../_static/doctools.js"></script>
+        <script src="../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+        <script src="../../_static/doctools.js?v=888ff710"></script>
+        <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
@@ -115,7 +119,25 @@
 <li class="toctree-l2"><a class="reference internal" href="nw__GffField.html">nw::GffField</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__GffLabel.html">nw::GffLabel</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__GffStruct.html">nw::GffStruct</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">nw::Image</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">nw::Image</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#_CPPv4N2nw5ImageE"><code class="docutils literal notranslate"><span class="pre">Image</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw5Image5ImageERKNSt10filesystem4pathE"><code class="docutils literal notranslate"><span class="pre">Image::Image()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw5Image5ImageE12ResourceData"><code class="docutils literal notranslate"><span class="pre">Image::Image()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw5Image5ImageERR5Image"><code class="docutils literal notranslate"><span class="pre">Image::Image()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw5Image5ImageERK5Image"><code class="docutils literal notranslate"><span class="pre">Image::Image()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw5ImageaSERR5Image"><code class="docutils literal notranslate"><span class="pre">Image::operator=()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw5ImageaSERK5Image"><code class="docutils literal notranslate"><span class="pre">Image::operator=()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw5ImageD0Ev"><code class="docutils literal notranslate"><span class="pre">Image::~Image()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw5Image8channelsEv"><code class="docutils literal notranslate"><span class="pre">Image::channels()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw5Image4dataEv"><code class="docutils literal notranslate"><span class="pre">Image::data()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw5Image6heightEv"><code class="docutils literal notranslate"><span class="pre">Image::height()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw5Image5validEv"><code class="docutils literal notranslate"><span class="pre">Image::valid()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw5Image5widthEv"><code class="docutils literal notranslate"><span class="pre">Image::width()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw5Image8write_toERKNSt10filesystem4pathE"><code class="docutils literal notranslate"><span class="pre">Image::write_to()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Ini.html">nw::Ini</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__InstallInfo.html">nw::InstallInfo</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__InternedString.html">nw::InternedString</a></li>
@@ -358,11 +380,11 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <div class="section" id="nw-image">
-<h1>nw::Image<a class="headerlink" href="#nw-image" title="Permalink to this headline"></a></h1>
+  <section id="nw-image">
+<h1>nw::Image<a class="headerlink" href="#nw-image" title="Link to this heading"></a></h1>
 <dl class="cpp struct">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw5ImageE">
-<span id="_CPPv3N2nw5ImageE"></span><span id="_CPPv2N2nw5ImageE"></span><span id="nw::Image"></span><span class="target" id="structnw_1_1_image"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Image</span></span></span><a class="headerlink" href="#_CPPv4N2nw5ImageE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw5ImageE"></span><span id="_CPPv2N2nw5ImageE"></span><span id="nw::Image"></span><span class="target" id="structnw_1_1_image"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Image</span></span></span><a class="headerlink" href="#_CPPv4N2nw5ImageE" title="Link to this definition"></a><br /></dt>
 <dd><p><a class="reference internal" href="#structnw_1_1_image"><span class="std std-ref">Image</span></a> <a class="reference internal" href="nw__Resource.html#structnw_1_1_resource"><span class="std std-ref">Resource</span></a>. </p>
 <p>Read/Write Support:<ul class="simple">
 <li><p>jpg, png, dds, tga (thanks to stb_image and SOIL)</p></li>
@@ -384,79 +406,79 @@
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw5Image5ImageERKNSt10filesystem4pathE">
-<span id="_CPPv3N2nw5Image5ImageERKNSt10filesystem4pathE"></span><span id="_CPPv2N2nw5Image5ImageERKNSt10filesystem4pathE"></span><span id="nw::Image::Image__std::filesystem::pathCR"></span><span class="target" id="structnw_1_1_image_1a763935a5c98ecc6f3012244416a4bc56"></span><span class="k"><span class="pre">explicit</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Image</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">filesystem</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">path</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">filename</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw5Image5ImageERKNSt10filesystem4pathE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw5Image5ImageERKNSt10filesystem4pathE"></span><span id="_CPPv2N2nw5Image5ImageERKNSt10filesystem4pathE"></span><span id="nw::Image::Image__std::filesystem::pathCR"></span><span class="target" id="structnw_1_1_image_1a763935a5c98ecc6f3012244416a4bc56"></span><span class="k"><span class="pre">explicit</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Image</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">filesystem</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">path</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">filename</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw5Image5ImageERKNSt10filesystem4pathE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw5Image5ImageE12ResourceData">
-<span id="_CPPv3N2nw5Image5ImageE12ResourceData"></span><span id="_CPPv2N2nw5Image5ImageE12ResourceData"></span><span id="nw::Image::Image__ResourceData"></span><span class="target" id="structnw_1_1_image_1aa83f4f641fc56c3282b5db533a43a0b7"></span><span class="k"><span class="pre">explicit</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Image</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">ResourceData</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">data</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw5Image5ImageE12ResourceData" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw5Image5ImageE12ResourceData"></span><span id="_CPPv2N2nw5Image5ImageE12ResourceData"></span><span id="nw::Image::Image__ResourceData"></span><span class="target" id="structnw_1_1_image_1aa83f4f641fc56c3282b5db533a43a0b7"></span><span class="k"><span class="pre">explicit</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Image</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">ResourceData</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">data</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw5Image5ImageE12ResourceData" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw5Image5ImageERR5Image">
-<span id="_CPPv3N2nw5Image5ImageERR5Image"></span><span id="_CPPv2N2nw5Image5ImageERR5Image"></span><span id="nw::Image::Image__ImageRR"></span><span class="target" id="structnw_1_1_image_1ab7a0a345ef6c77815e5cc5cfe55b84cb"></span><span class="sig-name descname"><span class="n"><span class="pre">Image</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N2nw5Image5ImageERR5Image" title="nw::Image::Image"><span class="n"><span class="pre">Image</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">other</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw5Image5ImageERR5Image" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw5Image5ImageERR5Image"></span><span id="_CPPv2N2nw5Image5ImageERR5Image"></span><span id="nw::Image::Image__ImageRR"></span><span class="target" id="structnw_1_1_image_1ab7a0a345ef6c77815e5cc5cfe55b84cb"></span><span class="sig-name descname"><span class="n"><span class="pre">Image</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N2nw5Image5ImageERR5Image" title="nw::Image::Image"><span class="n"><span class="pre">Image</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">other</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw5Image5ImageERR5Image" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw5Image5ImageERK5Image">
-<span id="_CPPv3N2nw5Image5ImageERK5Image"></span><span id="_CPPv2N2nw5Image5ImageERK5Image"></span><span id="nw::Image::Image__ImageCR"></span><span class="target" id="structnw_1_1_image_1a704cd79c57776b54c1a1c29887752fac"></span><span class="sig-name descname"><span class="n"><span class="pre">Image</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N2nw5Image5ImageERK5Image" title="nw::Image::Image"><span class="n"><span class="pre">Image</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">other</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">delete</span></span><a class="headerlink" href="#_CPPv4N2nw5Image5ImageERK5Image" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw5Image5ImageERK5Image"></span><span id="_CPPv2N2nw5Image5ImageERK5Image"></span><span id="nw::Image::Image__ImageCR"></span><span class="target" id="structnw_1_1_image_1a704cd79c57776b54c1a1c29887752fac"></span><span class="sig-name descname"><span class="n"><span class="pre">Image</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N2nw5Image5ImageERK5Image" title="nw::Image::Image"><span class="n"><span class="pre">Image</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">other</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">delete</span></span><a class="headerlink" href="#_CPPv4N2nw5Image5ImageERK5Image" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw5ImageaSERR5Image">
-<span id="_CPPv3N2nw5ImageaSERR5Image"></span><span id="_CPPv2N2nw5ImageaSERR5Image"></span><span id="nw::Image::assign-operator__ImageRR"></span><span class="target" id="structnw_1_1_image_1a0c9dfaf0135c2941bc3209e57e5ae127"></span><a class="reference internal" href="#_CPPv4N2nw5ImageE" title="nw::Image"><span class="n"><span class="pre">Image</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">=</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N2nw5ImageE" title="nw::Image"><span class="n"><span class="pre">Image</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">other</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw5ImageaSERR5Image" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw5ImageaSERR5Image"></span><span id="_CPPv2N2nw5ImageaSERR5Image"></span><span id="nw::Image::assign-operator__ImageRR"></span><span class="target" id="structnw_1_1_image_1a0c9dfaf0135c2941bc3209e57e5ae127"></span><a class="reference internal" href="#_CPPv4N2nw5ImageE" title="nw::Image"><span class="n"><span class="pre">Image</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">=</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N2nw5ImageE" title="nw::Image"><span class="n"><span class="pre">Image</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">other</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw5ImageaSERR5Image" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw5ImageaSERK5Image">
-<span id="_CPPv3N2nw5ImageaSERK5Image"></span><span id="_CPPv2N2nw5ImageaSERK5Image"></span><span id="nw::Image::assign-operator__ImageCR"></span><span class="target" id="structnw_1_1_image_1a958b39a3b54c670edbf137abef6e5a3d"></span><a class="reference internal" href="#_CPPv4N2nw5ImageE" title="nw::Image"><span class="n"><span class="pre">Image</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">=</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N2nw5ImageE" title="nw::Image"><span class="n"><span class="pre">Image</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">other</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">delete</span></span><a class="headerlink" href="#_CPPv4N2nw5ImageaSERK5Image" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw5ImageaSERK5Image"></span><span id="_CPPv2N2nw5ImageaSERK5Image"></span><span id="nw::Image::assign-operator__ImageCR"></span><span class="target" id="structnw_1_1_image_1a958b39a3b54c670edbf137abef6e5a3d"></span><a class="reference internal" href="#_CPPv4N2nw5ImageE" title="nw::Image"><span class="n"><span class="pre">Image</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">=</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N2nw5ImageE" title="nw::Image"><span class="n"><span class="pre">Image</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">other</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">delete</span></span><a class="headerlink" href="#_CPPv4N2nw5ImageaSERK5Image" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw5ImageD0Ev">
-<span id="_CPPv3N2nw5ImageD0Ev"></span><span id="_CPPv2N2nw5ImageD0Ev"></span><span id="nw::Image::~Image"></span><span class="target" id="structnw_1_1_image_1a89fe5dec1018c9a8a6401be08981e527"></span><span class="sig-name descname"><span class="n"><span class="pre">~Image</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw5ImageD0Ev" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw5ImageD0Ev"></span><span id="_CPPv2N2nw5ImageD0Ev"></span><span id="nw::Image::~Image"></span><span class="target" id="structnw_1_1_image_1a89fe5dec1018c9a8a6401be08981e527"></span><span class="sig-name descname"><span class="n"><span class="pre">~Image</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw5ImageD0Ev" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4NK2nw5Image8channelsEv">
-<span id="_CPPv3NK2nw5Image8channelsEv"></span><span id="_CPPv2NK2nw5Image8channelsEv"></span><span id="nw::Image::channelsC"></span><span class="target" id="structnw_1_1_image_1a9bdf50fe16a8d73c52a693e953c04d6d"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">channels</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="k"><span class="pre">noexcept</span></span><a class="headerlink" href="#_CPPv4NK2nw5Image8channelsEv" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3NK2nw5Image8channelsEv"></span><span id="_CPPv2NK2nw5Image8channelsEv"></span><span id="nw::Image::channelsC"></span><span class="target" id="structnw_1_1_image_1a9bdf50fe16a8d73c52a693e953c04d6d"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">channels</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="k"><span class="pre">noexcept</span></span><a class="headerlink" href="#_CPPv4NK2nw5Image8channelsEv" title="Link to this definition"></a><br /></dt>
 <dd><p>Get BBP. </p>
 </dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw5Image4dataEv">
-<span id="_CPPv3N2nw5Image4dataEv"></span><span id="_CPPv2N2nw5Image4dataEv"></span><span id="nw::Image::data"></span><span class="target" id="structnw_1_1_image_1afcd16f05df458a3d2a12e9f6415d2516"></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">data</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw5Image4dataEv" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw5Image4dataEv"></span><span id="_CPPv2N2nw5Image4dataEv"></span><span id="nw::Image::data"></span><span class="target" id="structnw_1_1_image_1afcd16f05df458a3d2a12e9f6415d2516"></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">data</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw5Image4dataEv" title="Link to this definition"></a><br /></dt>
 <dd><p>Get raw data. </p>
 </dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4NK2nw5Image6heightEv">
-<span id="_CPPv3NK2nw5Image6heightEv"></span><span id="_CPPv2NK2nw5Image6heightEv"></span><span id="nw::Image::heightC"></span><span class="target" id="structnw_1_1_image_1a9dc851919d290817960e642a1ce10561"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">height</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="k"><span class="pre">noexcept</span></span><a class="headerlink" href="#_CPPv4NK2nw5Image6heightEv" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3NK2nw5Image6heightEv"></span><span id="_CPPv2NK2nw5Image6heightEv"></span><span id="nw::Image::heightC"></span><span class="target" id="structnw_1_1_image_1a9dc851919d290817960e642a1ce10561"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">height</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="k"><span class="pre">noexcept</span></span><a class="headerlink" href="#_CPPv4NK2nw5Image6heightEv" title="Link to this definition"></a><br /></dt>
 <dd><p>Get height. </p>
 </dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4NK2nw5Image5validEv">
-<span id="_CPPv3NK2nw5Image5validEv"></span><span id="_CPPv2NK2nw5Image5validEv"></span><span id="nw::Image::validC"></span><span class="target" id="structnw_1_1_image_1a1f1f4bf4e8fe360b461caf40668f02c8"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">valid</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK2nw5Image5validEv" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3NK2nw5Image5validEv"></span><span id="_CPPv2NK2nw5Image5validEv"></span><span id="nw::Image::validC"></span><span class="target" id="structnw_1_1_image_1a1f1f4bf4e8fe360b461caf40668f02c8"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">valid</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK2nw5Image5validEv" title="Link to this definition"></a><br /></dt>
 <dd><p>Determine if successfully loaded. </p>
 </dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4NK2nw5Image5widthEv">
-<span id="_CPPv3NK2nw5Image5widthEv"></span><span id="_CPPv2NK2nw5Image5widthEv"></span><span id="nw::Image::widthC"></span><span class="target" id="structnw_1_1_image_1acc1240d074d1a60849da46ff2ae48519"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">width</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="k"><span class="pre">noexcept</span></span><a class="headerlink" href="#_CPPv4NK2nw5Image5widthEv" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3NK2nw5Image5widthEv"></span><span id="_CPPv2NK2nw5Image5widthEv"></span><span id="nw::Image::widthC"></span><span class="target" id="structnw_1_1_image_1acc1240d074d1a60849da46ff2ae48519"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">width</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="k"><span class="pre">noexcept</span></span><a class="headerlink" href="#_CPPv4NK2nw5Image5widthEv" title="Link to this definition"></a><br /></dt>
 <dd><p>Get width. </p>
 </dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4NK2nw5Image8write_toERKNSt10filesystem4pathE">
-<span id="_CPPv3NK2nw5Image8write_toERKNSt10filesystem4pathE"></span><span id="_CPPv2NK2nw5Image8write_toERKNSt10filesystem4pathE"></span><span id="nw::Image::write_to__std::filesystem::pathCRC"></span><span class="target" id="structnw_1_1_image_1a9a027c74081d37ab6fd2f22642e02dcb"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">write_to</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">filesystem</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">path</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">filename</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK2nw5Image8write_toERKNSt10filesystem4pathE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3NK2nw5Image8write_toERKNSt10filesystem4pathE"></span><span id="_CPPv2NK2nw5Image8write_toERKNSt10filesystem4pathE"></span><span id="nw::Image::write_to__std::filesystem::pathCRC"></span><span class="target" id="structnw_1_1_image_1a9a027c74081d37ab6fd2f22642e02dcb"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">write_to</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">filesystem</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">path</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">filename</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK2nw5Image8write_toERKNSt10filesystem4pathE" title="Link to this definition"></a><br /></dt>
 <dd><p>Write <a class="reference internal" href="#structnw_1_1_image"><span class="std std-ref">Image</span></a> to file. </p>
 </dd></dl>
 
 </div>
 </dd></dl>
 
-</div>
+</section>
 
 
            </div>

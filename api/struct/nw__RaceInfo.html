@@ -1,20 +1,24 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html5" lang="en" data-content_root="../../">
 <head>
-  <meta charset="utf-8" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>nw::RaceInfo &mdash; rollNW  documentation</title>
-      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
-      <link rel="stylesheet" href="../../_static/tabs.css" type="text/css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="../../_static/tabs.css?v=a5c4661c" />
+
+  
   <!--[if lt IE 9]>
     <script src="../../_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
-        <script src="../../_static/jquery.js"></script>
-        <script src="../../_static/underscore.js"></script>
-        <script src="../../_static/doctools.js"></script>
+        <script src="../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+        <script src="../../_static/doctools.js?v=888ff710"></script>
+        <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
@@ -160,7 +164,38 @@
 <li class="toctree-l2"><a class="reference internal" href="nw__PltPixel.html">nw::PltPixel</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Qualifier.html">nw::Qualifier</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Race.html">nw::Race</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">nw::RaceInfo</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">nw::RaceInfo</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#_CPPv4N2nw8RaceInfoE"><code class="docutils literal notranslate"><span class="pre">RaceInfo</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw8RaceInfo8RaceInfoEv"><code class="docutils literal notranslate"><span class="pre">RaceInfo::RaceInfo()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw8RaceInfo8RaceInfoERK12TwoDARowView"><code class="docutils literal notranslate"><span class="pre">RaceInfo::RaceInfo()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw8RaceInfo5validEv"><code class="docutils literal notranslate"><span class="pre">RaceInfo::valid()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw8RaceInfo4nameE"><code class="docutils literal notranslate"><span class="pre">RaceInfo::name</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw8RaceInfo17name_conversationE"><code class="docutils literal notranslate"><span class="pre">RaceInfo::name_conversation</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw8RaceInfo23name_conversation_lowerE"><code class="docutils literal notranslate"><span class="pre">RaceInfo::name_conversation_lower</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw8RaceInfo11name_pluralE"><code class="docutils literal notranslate"><span class="pre">RaceInfo::name_plural</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw8RaceInfo11descriptionE"><code class="docutils literal notranslate"><span class="pre">RaceInfo::description</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw8RaceInfo4iconE"><code class="docutils literal notranslate"><span class="pre">RaceInfo::icon</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw8RaceInfo10appearanceE"><code class="docutils literal notranslate"><span class="pre">RaceInfo::appearance</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw8RaceInfo17ability_modifiersE"><code class="docutils literal notranslate"><span class="pre">RaceInfo::ability_modifiers</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw8RaceInfo13favored_classE"><code class="docutils literal notranslate"><span class="pre">RaceInfo::favored_class</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw8RaceInfo11feats_tableE"><code class="docutils literal notranslate"><span class="pre">RaceInfo::feats_table</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw8RaceInfo9biographyE"><code class="docutils literal notranslate"><span class="pre">RaceInfo::biography</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw8RaceInfo11player_raceE"><code class="docutils literal notranslate"><span class="pre">RaceInfo::player_race</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw8RaceInfo8constantE"><code class="docutils literal notranslate"><span class="pre">RaceInfo::constant</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw8RaceInfo3ageE"><code class="docutils literal notranslate"><span class="pre">RaceInfo::age</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw8RaceInfo13toolset_classE"><code class="docutils literal notranslate"><span class="pre">RaceInfo::toolset_class</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw8RaceInfo11cr_modifierE"><code class="docutils literal notranslate"><span class="pre">RaceInfo::cr_modifier</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw8RaceInfo21feats_extra_1st_levelE"><code class="docutils literal notranslate"><span class="pre">RaceInfo::feats_extra_1st_level</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw8RaceInfo27skillpoints_extra_per_levelE"><code class="docutils literal notranslate"><span class="pre">RaceInfo::skillpoints_extra_per_level</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw8RaceInfo32skillpoints_1st_level_multiplierE"><code class="docutils literal notranslate"><span class="pre">RaceInfo::skillpoints_1st_level_multiplier</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw8RaceInfo24ability_point_buy_numberE"><code class="docutils literal notranslate"><span class="pre">RaceInfo::ability_point_buy_number</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw8RaceInfo18feats_normal_levelE"><code class="docutils literal notranslate"><span class="pre">RaceInfo::feats_normal_level</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw8RaceInfo19feats_normal_amountE"><code class="docutils literal notranslate"><span class="pre">RaceInfo::feats_normal_amount</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw8RaceInfo19skillpoints_abilityE"><code class="docutils literal notranslate"><span class="pre">RaceInfo::skillpoints_ability</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Reputation.html">nw::Reputation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Requirement.html">nw::Requirement</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Resource.html">nw::Resource</a></li>
@@ -358,27 +393,27 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <div class="section" id="nw-raceinfo">
-<h1>nw::RaceInfo<a class="headerlink" href="#nw-raceinfo" title="Permalink to this headline"></a></h1>
+  <section id="nw-raceinfo">
+<h1>nw::RaceInfo<a class="headerlink" href="#nw-raceinfo" title="Link to this heading"></a></h1>
 <dl class="cpp struct">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw8RaceInfoE">
-<span id="_CPPv3N2nw8RaceInfoE"></span><span id="_CPPv2N2nw8RaceInfoE"></span><span id="nw::RaceInfo"></span><span class="target" id="structnw_1_1_race_info"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">RaceInfo</span></span></span><a class="headerlink" href="#_CPPv4N2nw8RaceInfoE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw8RaceInfoE"></span><span id="_CPPv2N2nw8RaceInfoE"></span><span id="nw::RaceInfo"></span><span class="target" id="structnw_1_1_race_info"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">RaceInfo</span></span></span><a class="headerlink" href="#_CPPv4N2nw8RaceInfoE" title="Link to this definition"></a><br /></dt>
 <dd><p><a class="reference internal" href="nw__Race.html#structnw_1_1_race"><span class="std std-ref">Race</span></a> definition. </p>
 <div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw8RaceInfo8RaceInfoEv">
-<span id="_CPPv3N2nw8RaceInfo8RaceInfoEv"></span><span id="_CPPv2N2nw8RaceInfo8RaceInfoEv"></span><span id="nw::RaceInfo::RaceInfo"></span><span class="target" id="structnw_1_1_race_info_1a29caa59762e9a60c7dda6fd2ed91f7c3"></span><span class="sig-name descname"><span class="n"><span class="pre">RaceInfo</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">default</span></span><a class="headerlink" href="#_CPPv4N2nw8RaceInfo8RaceInfoEv" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw8RaceInfo8RaceInfoEv"></span><span id="_CPPv2N2nw8RaceInfo8RaceInfoEv"></span><span id="nw::RaceInfo::RaceInfo"></span><span class="target" id="structnw_1_1_race_info_1a29caa59762e9a60c7dda6fd2ed91f7c3"></span><span class="sig-name descname"><span class="n"><span class="pre">RaceInfo</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">default</span></span><a class="headerlink" href="#_CPPv4N2nw8RaceInfo8RaceInfoEv" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw8RaceInfo8RaceInfoERK12TwoDARowView">
-<span id="_CPPv3N2nw8RaceInfo8RaceInfoERK12TwoDARowView"></span><span id="_CPPv2N2nw8RaceInfo8RaceInfoERK12TwoDARowView"></span><span id="nw::RaceInfo::RaceInfo__TwoDARowViewCR"></span><span class="target" id="structnw_1_1_race_info_1ad2a966eb67e9b0b8347c848379e2c20e"></span><span class="sig-name descname"><span class="n"><span class="pre">RaceInfo</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">TwoDARowView</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">tda</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw8RaceInfo8RaceInfoERK12TwoDARowView" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw8RaceInfo8RaceInfoERK12TwoDARowView"></span><span id="_CPPv2N2nw8RaceInfo8RaceInfoERK12TwoDARowView"></span><span id="nw::RaceInfo::RaceInfo__TwoDARowViewCR"></span><span class="target" id="structnw_1_1_race_info_1ad2a966eb67e9b0b8347c848379e2c20e"></span><span class="sig-name descname"><span class="n"><span class="pre">RaceInfo</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">TwoDARowView</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">tda</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw8RaceInfo8RaceInfoERK12TwoDARowView" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4NK2nw8RaceInfo5validEv">
-<span id="_CPPv3NK2nw8RaceInfo5validEv"></span><span id="_CPPv2NK2nw8RaceInfo5validEv"></span><span id="nw::RaceInfo::validC"></span><span class="target" id="structnw_1_1_race_info_1a745f0b860aac53d85226fb41af13792d"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">valid</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="k"><span class="pre">noexcept</span></span><a class="headerlink" href="#_CPPv4NK2nw8RaceInfo5validEv" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3NK2nw8RaceInfo5validEv"></span><span id="_CPPv2NK2nw8RaceInfo5validEv"></span><span id="nw::RaceInfo::validC"></span><span class="target" id="structnw_1_1_race_info_1a745f0b860aac53d85226fb41af13792d"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">valid</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="k"><span class="pre">noexcept</span></span><a class="headerlink" href="#_CPPv4NK2nw8RaceInfo5validEv" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 </div>
@@ -386,123 +421,123 @@
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw8RaceInfo4nameE">
-<span id="_CPPv3N2nw8RaceInfo4nameE"></span><span id="_CPPv2N2nw8RaceInfo4nameE"></span><span id="nw::RaceInfo::name__uint32_t"></span><span class="target" id="structnw_1_1_race_info_1a4396fec98a10fae9e58e2beda2586eab"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">name</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0xFFFFFFFF</span></span><a class="headerlink" href="#_CPPv4N2nw8RaceInfo4nameE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw8RaceInfo4nameE"></span><span id="_CPPv2N2nw8RaceInfo4nameE"></span><span id="nw::RaceInfo::name__uint32_t"></span><span class="target" id="structnw_1_1_race_info_1a4396fec98a10fae9e58e2beda2586eab"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">name</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0xFFFFFFFF</span></span><a class="headerlink" href="#_CPPv4N2nw8RaceInfo4nameE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw8RaceInfo17name_conversationE">
-<span id="_CPPv3N2nw8RaceInfo17name_conversationE"></span><span id="_CPPv2N2nw8RaceInfo17name_conversationE"></span><span id="nw::RaceInfo::name_conversation__uint32_t"></span><span class="target" id="structnw_1_1_race_info_1a5d04be13f0c23d2bd9e949227b500880"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">name_conversation</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0xFFFFFFFF</span></span><a class="headerlink" href="#_CPPv4N2nw8RaceInfo17name_conversationE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw8RaceInfo17name_conversationE"></span><span id="_CPPv2N2nw8RaceInfo17name_conversationE"></span><span id="nw::RaceInfo::name_conversation__uint32_t"></span><span class="target" id="structnw_1_1_race_info_1a5d04be13f0c23d2bd9e949227b500880"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">name_conversation</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0xFFFFFFFF</span></span><a class="headerlink" href="#_CPPv4N2nw8RaceInfo17name_conversationE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw8RaceInfo23name_conversation_lowerE">
-<span id="_CPPv3N2nw8RaceInfo23name_conversation_lowerE"></span><span id="_CPPv2N2nw8RaceInfo23name_conversation_lowerE"></span><span id="nw::RaceInfo::name_conversation_lower__uint32_t"></span><span class="target" id="structnw_1_1_race_info_1a0c9a2bc64edb9f6b65d17b820f320831"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">name_conversation_lower</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0xFFFFFFFF</span></span><a class="headerlink" href="#_CPPv4N2nw8RaceInfo23name_conversation_lowerE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw8RaceInfo23name_conversation_lowerE"></span><span id="_CPPv2N2nw8RaceInfo23name_conversation_lowerE"></span><span id="nw::RaceInfo::name_conversation_lower__uint32_t"></span><span class="target" id="structnw_1_1_race_info_1a0c9a2bc64edb9f6b65d17b820f320831"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">name_conversation_lower</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0xFFFFFFFF</span></span><a class="headerlink" href="#_CPPv4N2nw8RaceInfo23name_conversation_lowerE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw8RaceInfo11name_pluralE">
-<span id="_CPPv3N2nw8RaceInfo11name_pluralE"></span><span id="_CPPv2N2nw8RaceInfo11name_pluralE"></span><span id="nw::RaceInfo::name_plural__uint32_t"></span><span class="target" id="structnw_1_1_race_info_1ade164219c1b0d15342d928612d432cca"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">name_plural</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0xFFFFFFFF</span></span><a class="headerlink" href="#_CPPv4N2nw8RaceInfo11name_pluralE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw8RaceInfo11name_pluralE"></span><span id="_CPPv2N2nw8RaceInfo11name_pluralE"></span><span id="nw::RaceInfo::name_plural__uint32_t"></span><span class="target" id="structnw_1_1_race_info_1ade164219c1b0d15342d928612d432cca"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">name_plural</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0xFFFFFFFF</span></span><a class="headerlink" href="#_CPPv4N2nw8RaceInfo11name_pluralE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw8RaceInfo11descriptionE">
-<span id="_CPPv3N2nw8RaceInfo11descriptionE"></span><span id="_CPPv2N2nw8RaceInfo11descriptionE"></span><span id="nw::RaceInfo::description__uint32_t"></span><span class="target" id="structnw_1_1_race_info_1a9ebe53a72f0854cd544a64c5be240511"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">description</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0xFFFFFFFF</span></span><a class="headerlink" href="#_CPPv4N2nw8RaceInfo11descriptionE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw8RaceInfo11descriptionE"></span><span id="_CPPv2N2nw8RaceInfo11descriptionE"></span><span id="nw::RaceInfo::description__uint32_t"></span><span class="target" id="structnw_1_1_race_info_1a9ebe53a72f0854cd544a64c5be240511"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">description</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0xFFFFFFFF</span></span><a class="headerlink" href="#_CPPv4N2nw8RaceInfo11descriptionE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw8RaceInfo4iconE">
-<span id="_CPPv3N2nw8RaceInfo4iconE"></span><span id="_CPPv2N2nw8RaceInfo4iconE"></span><span id="nw::RaceInfo::icon__Resource"></span><span class="target" id="structnw_1_1_race_info_1ab3f010cda90d21a953c50c30fdef1371"></span><a class="reference internal" href="nw__Resource.html#_CPPv4N2nw8ResourceE" title="nw::Resource"><span class="n"><span class="pre">Resource</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">icon</span></span></span><a class="headerlink" href="#_CPPv4N2nw8RaceInfo4iconE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw8RaceInfo4iconE"></span><span id="_CPPv2N2nw8RaceInfo4iconE"></span><span id="nw::RaceInfo::icon__Resource"></span><span class="target" id="structnw_1_1_race_info_1ab3f010cda90d21a953c50c30fdef1371"></span><a class="reference internal" href="nw__Resource.html#_CPPv4N2nw8ResourceE" title="nw::Resource"><span class="n"><span class="pre">Resource</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">icon</span></span></span><a class="headerlink" href="#_CPPv4N2nw8RaceInfo4iconE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw8RaceInfo10appearanceE">
-<span id="_CPPv3N2nw8RaceInfo10appearanceE"></span><span id="_CPPv2N2nw8RaceInfo10appearanceE"></span><span id="nw::RaceInfo::appearance__i"></span><span class="target" id="structnw_1_1_race_info_1a6947035bb0139259b8a384dceb9e46d3"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">appearance</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N2nw8RaceInfo10appearanceE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw8RaceInfo10appearanceE"></span><span id="_CPPv2N2nw8RaceInfo10appearanceE"></span><span id="nw::RaceInfo::appearance__i"></span><span class="target" id="structnw_1_1_race_info_1a6947035bb0139259b8a384dceb9e46d3"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">appearance</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N2nw8RaceInfo10appearanceE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw8RaceInfo17ability_modifiersE">
-<span id="_CPPv3N2nw8RaceInfo17ability_modifiersE"></span><span id="_CPPv2N2nw8RaceInfo17ability_modifiersE"></span><span id="nw::RaceInfo::ability_modifiers__std::array:i.6:"></span><span class="target" id="structnw_1_1_race_info_1ad274346369b8c445a640dcd97c1b4163"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">array</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">int</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="m"><span class="pre">6</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ability_modifiers</span></span></span><a class="headerlink" href="#_CPPv4N2nw8RaceInfo17ability_modifiersE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw8RaceInfo17ability_modifiersE"></span><span id="_CPPv2N2nw8RaceInfo17ability_modifiersE"></span><span id="nw::RaceInfo::ability_modifiers__std::array:i.6:"></span><span class="target" id="structnw_1_1_race_info_1ad274346369b8c445a640dcd97c1b4163"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">array</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">int</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="m"><span class="pre">6</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ability_modifiers</span></span></span><a class="headerlink" href="#_CPPv4N2nw8RaceInfo17ability_modifiersE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw8RaceInfo13favored_classE">
-<span id="_CPPv3N2nw8RaceInfo13favored_classE"></span><span id="_CPPv2N2nw8RaceInfo13favored_classE"></span><span id="nw::RaceInfo::favored_class__i"></span><span class="target" id="structnw_1_1_race_info_1aaed3e07a5d3d42ec8cf7ae7191534b90"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">favored_class</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N2nw8RaceInfo13favored_classE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw8RaceInfo13favored_classE"></span><span id="_CPPv2N2nw8RaceInfo13favored_classE"></span><span id="nw::RaceInfo::favored_class__i"></span><span class="target" id="structnw_1_1_race_info_1aaed3e07a5d3d42ec8cf7ae7191534b90"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">favored_class</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N2nw8RaceInfo13favored_classE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw8RaceInfo11feats_tableE">
-<span id="_CPPv3N2nw8RaceInfo11feats_tableE"></span><span id="_CPPv2N2nw8RaceInfo11feats_tableE"></span><span id="nw::RaceInfo::feats_table__Resource"></span><span class="target" id="structnw_1_1_race_info_1a4416f5a53deb2313ba72167f1efce771"></span><a class="reference internal" href="nw__Resource.html#_CPPv4N2nw8ResourceE" title="nw::Resource"><span class="n"><span class="pre">Resource</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">feats_table</span></span></span><a class="headerlink" href="#_CPPv4N2nw8RaceInfo11feats_tableE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw8RaceInfo11feats_tableE"></span><span id="_CPPv2N2nw8RaceInfo11feats_tableE"></span><span id="nw::RaceInfo::feats_table__Resource"></span><span class="target" id="structnw_1_1_race_info_1a4416f5a53deb2313ba72167f1efce771"></span><a class="reference internal" href="nw__Resource.html#_CPPv4N2nw8ResourceE" title="nw::Resource"><span class="n"><span class="pre">Resource</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">feats_table</span></span></span><a class="headerlink" href="#_CPPv4N2nw8RaceInfo11feats_tableE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw8RaceInfo9biographyE">
-<span id="_CPPv3N2nw8RaceInfo9biographyE"></span><span id="_CPPv2N2nw8RaceInfo9biographyE"></span><span id="nw::RaceInfo::biography__uint32_t"></span><span class="target" id="structnw_1_1_race_info_1a90d8774005682691361f923964d23229"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">biography</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0xFFFFFFFF</span></span><a class="headerlink" href="#_CPPv4N2nw8RaceInfo9biographyE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw8RaceInfo9biographyE"></span><span id="_CPPv2N2nw8RaceInfo9biographyE"></span><span id="nw::RaceInfo::biography__uint32_t"></span><span class="target" id="structnw_1_1_race_info_1a90d8774005682691361f923964d23229"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">biography</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0xFFFFFFFF</span></span><a class="headerlink" href="#_CPPv4N2nw8RaceInfo9biographyE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw8RaceInfo11player_raceE">
-<span id="_CPPv3N2nw8RaceInfo11player_raceE"></span><span id="_CPPv2N2nw8RaceInfo11player_raceE"></span><span id="nw::RaceInfo::player_race__b"></span><span class="target" id="structnw_1_1_race_info_1a4ae5e2e475bfac2667f01aac90d982aa"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">player_race</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">false</span></span><a class="headerlink" href="#_CPPv4N2nw8RaceInfo11player_raceE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw8RaceInfo11player_raceE"></span><span id="_CPPv2N2nw8RaceInfo11player_raceE"></span><span id="nw::RaceInfo::player_race__b"></span><span class="target" id="structnw_1_1_race_info_1a4ae5e2e475bfac2667f01aac90d982aa"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">player_race</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">false</span></span><a class="headerlink" href="#_CPPv4N2nw8RaceInfo11player_raceE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw8RaceInfo8constantE">
-<span id="_CPPv3N2nw8RaceInfo8constantE"></span><span id="_CPPv2N2nw8RaceInfo8constantE"></span><span id="nw::RaceInfo::constant__InternedString"></span><span class="target" id="structnw_1_1_race_info_1a6078c7eb62757f192fd9ef0e9b060308"></span><a class="reference internal" href="nw__InternedString.html#_CPPv4N2nw14InternedStringE" title="nw::InternedString"><span class="n"><span class="pre">InternedString</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">constant</span></span></span><a class="headerlink" href="#_CPPv4N2nw8RaceInfo8constantE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw8RaceInfo8constantE"></span><span id="_CPPv2N2nw8RaceInfo8constantE"></span><span id="nw::RaceInfo::constant__InternedString"></span><span class="target" id="structnw_1_1_race_info_1a6078c7eb62757f192fd9ef0e9b060308"></span><a class="reference internal" href="nw__InternedString.html#_CPPv4N2nw14InternedStringE" title="nw::InternedString"><span class="n"><span class="pre">InternedString</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">constant</span></span></span><a class="headerlink" href="#_CPPv4N2nw8RaceInfo8constantE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw8RaceInfo3ageE">
-<span id="_CPPv3N2nw8RaceInfo3ageE"></span><span id="_CPPv2N2nw8RaceInfo3ageE"></span><span id="nw::RaceInfo::age__i"></span><span class="target" id="structnw_1_1_race_info_1aa8d2190a4df487fa728759bff7e57912"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">age</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">1</span></span><a class="headerlink" href="#_CPPv4N2nw8RaceInfo3ageE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw8RaceInfo3ageE"></span><span id="_CPPv2N2nw8RaceInfo3ageE"></span><span id="nw::RaceInfo::age__i"></span><span class="target" id="structnw_1_1_race_info_1aa8d2190a4df487fa728759bff7e57912"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">age</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">1</span></span><a class="headerlink" href="#_CPPv4N2nw8RaceInfo3ageE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw8RaceInfo13toolset_classE">
-<span id="_CPPv3N2nw8RaceInfo13toolset_classE"></span><span id="_CPPv2N2nw8RaceInfo13toolset_classE"></span><span id="nw::RaceInfo::toolset_class__i"></span><span class="target" id="structnw_1_1_race_info_1a181dc436469612d29cabef92f0cd284f"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">toolset_class</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N2nw8RaceInfo13toolset_classE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw8RaceInfo13toolset_classE"></span><span id="_CPPv2N2nw8RaceInfo13toolset_classE"></span><span id="nw::RaceInfo::toolset_class__i"></span><span class="target" id="structnw_1_1_race_info_1a181dc436469612d29cabef92f0cd284f"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">toolset_class</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N2nw8RaceInfo13toolset_classE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw8RaceInfo11cr_modifierE">
-<span id="_CPPv3N2nw8RaceInfo11cr_modifierE"></span><span id="_CPPv2N2nw8RaceInfo11cr_modifierE"></span><span id="nw::RaceInfo::cr_modifier__float"></span><span class="target" id="structnw_1_1_race_info_1af698c1711ceca06c901fd8abb85db037"></span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">cr_modifier</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">1.0f</span></span><a class="headerlink" href="#_CPPv4N2nw8RaceInfo11cr_modifierE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw8RaceInfo11cr_modifierE"></span><span id="_CPPv2N2nw8RaceInfo11cr_modifierE"></span><span id="nw::RaceInfo::cr_modifier__float"></span><span class="target" id="structnw_1_1_race_info_1af698c1711ceca06c901fd8abb85db037"></span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">cr_modifier</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">1.0f</span></span><a class="headerlink" href="#_CPPv4N2nw8RaceInfo11cr_modifierE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw8RaceInfo21feats_extra_1st_levelE">
-<span id="_CPPv3N2nw8RaceInfo21feats_extra_1st_levelE"></span><span id="_CPPv2N2nw8RaceInfo21feats_extra_1st_levelE"></span><span id="nw::RaceInfo::feats_extra_1st_level__i"></span><span class="target" id="structnw_1_1_race_info_1aa1a885e454747f8815b9fa86da942939"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">feats_extra_1st_level</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N2nw8RaceInfo21feats_extra_1st_levelE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw8RaceInfo21feats_extra_1st_levelE"></span><span id="_CPPv2N2nw8RaceInfo21feats_extra_1st_levelE"></span><span id="nw::RaceInfo::feats_extra_1st_level__i"></span><span class="target" id="structnw_1_1_race_info_1aa1a885e454747f8815b9fa86da942939"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">feats_extra_1st_level</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N2nw8RaceInfo21feats_extra_1st_levelE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw8RaceInfo27skillpoints_extra_per_levelE">
-<span id="_CPPv3N2nw8RaceInfo27skillpoints_extra_per_levelE"></span><span id="_CPPv2N2nw8RaceInfo27skillpoints_extra_per_levelE"></span><span id="nw::RaceInfo::skillpoints_extra_per_level__i"></span><span class="target" id="structnw_1_1_race_info_1a9ee29b1b67902e0c99db8a600a586a30"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">skillpoints_extra_per_level</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N2nw8RaceInfo27skillpoints_extra_per_levelE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw8RaceInfo27skillpoints_extra_per_levelE"></span><span id="_CPPv2N2nw8RaceInfo27skillpoints_extra_per_levelE"></span><span id="nw::RaceInfo::skillpoints_extra_per_level__i"></span><span class="target" id="structnw_1_1_race_info_1a9ee29b1b67902e0c99db8a600a586a30"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">skillpoints_extra_per_level</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N2nw8RaceInfo27skillpoints_extra_per_levelE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw8RaceInfo32skillpoints_1st_level_multiplierE">
-<span id="_CPPv3N2nw8RaceInfo32skillpoints_1st_level_multiplierE"></span><span id="_CPPv2N2nw8RaceInfo32skillpoints_1st_level_multiplierE"></span><span id="nw::RaceInfo::skillpoints_1st_level_multiplier__i"></span><span class="target" id="structnw_1_1_race_info_1a99328e9bf6c8b55f1f07cff52c0e864d"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">skillpoints_1st_level_multiplier</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N2nw8RaceInfo32skillpoints_1st_level_multiplierE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw8RaceInfo32skillpoints_1st_level_multiplierE"></span><span id="_CPPv2N2nw8RaceInfo32skillpoints_1st_level_multiplierE"></span><span id="nw::RaceInfo::skillpoints_1st_level_multiplier__i"></span><span class="target" id="structnw_1_1_race_info_1a99328e9bf6c8b55f1f07cff52c0e864d"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">skillpoints_1st_level_multiplier</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N2nw8RaceInfo32skillpoints_1st_level_multiplierE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw8RaceInfo24ability_point_buy_numberE">
-<span id="_CPPv3N2nw8RaceInfo24ability_point_buy_numberE"></span><span id="_CPPv2N2nw8RaceInfo24ability_point_buy_numberE"></span><span id="nw::RaceInfo::ability_point_buy_number__i"></span><span class="target" id="structnw_1_1_race_info_1a1f565cae94dcf6c67acedc18a60cc10a"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ability_point_buy_number</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N2nw8RaceInfo24ability_point_buy_numberE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw8RaceInfo24ability_point_buy_numberE"></span><span id="_CPPv2N2nw8RaceInfo24ability_point_buy_numberE"></span><span id="nw::RaceInfo::ability_point_buy_number__i"></span><span class="target" id="structnw_1_1_race_info_1a1f565cae94dcf6c67acedc18a60cc10a"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ability_point_buy_number</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N2nw8RaceInfo24ability_point_buy_numberE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw8RaceInfo18feats_normal_levelE">
-<span id="_CPPv3N2nw8RaceInfo18feats_normal_levelE"></span><span id="_CPPv2N2nw8RaceInfo18feats_normal_levelE"></span><span id="nw::RaceInfo::feats_normal_level__i"></span><span class="target" id="structnw_1_1_race_info_1a3d4cf74c17062475dd60c0a5ed409b27"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">feats_normal_level</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N2nw8RaceInfo18feats_normal_levelE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw8RaceInfo18feats_normal_levelE"></span><span id="_CPPv2N2nw8RaceInfo18feats_normal_levelE"></span><span id="nw::RaceInfo::feats_normal_level__i"></span><span class="target" id="structnw_1_1_race_info_1a3d4cf74c17062475dd60c0a5ed409b27"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">feats_normal_level</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N2nw8RaceInfo18feats_normal_levelE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw8RaceInfo19feats_normal_amountE">
-<span id="_CPPv3N2nw8RaceInfo19feats_normal_amountE"></span><span id="_CPPv2N2nw8RaceInfo19feats_normal_amountE"></span><span id="nw::RaceInfo::feats_normal_amount__i"></span><span class="target" id="structnw_1_1_race_info_1a4cb09dd01a689ab762823aab00cb0b58"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">feats_normal_amount</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N2nw8RaceInfo19feats_normal_amountE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw8RaceInfo19feats_normal_amountE"></span><span id="_CPPv2N2nw8RaceInfo19feats_normal_amountE"></span><span id="nw::RaceInfo::feats_normal_amount__i"></span><span class="target" id="structnw_1_1_race_info_1a4cb09dd01a689ab762823aab00cb0b58"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">feats_normal_amount</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N2nw8RaceInfo19feats_normal_amountE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw8RaceInfo19skillpoints_abilityE">
-<span id="_CPPv3N2nw8RaceInfo19skillpoints_abilityE"></span><span id="_CPPv2N2nw8RaceInfo19skillpoints_abilityE"></span><span id="nw::RaceInfo::skillpoints_ability__i"></span><span class="target" id="structnw_1_1_race_info_1a032f15bf9c69d52def739dbbbf9eb455"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">skillpoints_ability</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N2nw8RaceInfo19skillpoints_abilityE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw8RaceInfo19skillpoints_abilityE"></span><span id="_CPPv2N2nw8RaceInfo19skillpoints_abilityE"></span><span id="nw::RaceInfo::skillpoints_ability__i"></span><span class="target" id="structnw_1_1_race_info_1a032f15bf9c69d52def739dbbbf9eb455"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">skillpoints_ability</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N2nw8RaceInfo19skillpoints_abilityE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 </div>
 </dd></dl>
 
-</div>
+</section>
 
 
            </div>

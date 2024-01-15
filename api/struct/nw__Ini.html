@@ -1,20 +1,24 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html5" lang="en" data-content_root="../../">
 <head>
-  <meta charset="utf-8" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>nw::Ini &mdash; rollNW  documentation</title>
-      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
-      <link rel="stylesheet" href="../../_static/tabs.css" type="text/css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="../../_static/tabs.css?v=a5c4661c" />
+
+  
   <!--[if lt IE 9]>
     <script src="../../_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
-        <script src="../../_static/jquery.js"></script>
-        <script src="../../_static/underscore.js"></script>
-        <script src="../../_static/doctools.js"></script>
+        <script src="../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+        <script src="../../_static/doctools.js?v=888ff710"></script>
+        <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
@@ -116,7 +120,20 @@
 <li class="toctree-l2"><a class="reference internal" href="nw__GffLabel.html">nw::GffLabel</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__GffStruct.html">nw::GffStruct</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Image.html">nw::Image</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">nw::Ini</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">nw::Ini</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#_CPPv4N2nw3IniE"><code class="docutils literal notranslate"><span class="pre">Ini</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw3Ini3IniEv"><code class="docutils literal notranslate"><span class="pre">Ini::Ini()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw3Ini3IniERKNSt10filesystem4pathE"><code class="docutils literal notranslate"><span class="pre">Ini::Ini()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw3Ini3IniE9ByteArray"><code class="docutils literal notranslate"><span class="pre">Ini::Ini()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4I0ENK2nw3Ini3getENSt8optionalI1TEENSt6stringE"><code class="docutils literal notranslate"><span class="pre">Ini::get()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw3Ini6get_toENSt6stringERNSt6stringE"><code class="docutils literal notranslate"><span class="pre">Ini::get_to()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw3Ini6get_toENSt6stringERi"><code class="docutils literal notranslate"><span class="pre">Ini::get_to()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw3Ini6get_toENSt6stringERf"><code class="docutils literal notranslate"><span class="pre">Ini::get_to()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw3Ini5validEv"><code class="docutils literal notranslate"><span class="pre">Ini::valid()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="nw__InstallInfo.html">nw::InstallInfo</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__InternedString.html">nw::InternedString</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Inventory.html">nw::Inventory</a></li>
@@ -358,11 +375,11 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <div class="section" id="nw-ini">
-<h1>nw::Ini<a class="headerlink" href="#nw-ini" title="Permalink to this headline"></a></h1>
+  <section id="nw-ini">
+<h1>nw::Ini<a class="headerlink" href="#nw-ini" title="Link to this heading"></a></h1>
 <dl class="cpp struct">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw3IniE">
-<span id="_CPPv3N2nw3IniE"></span><span id="_CPPv2N2nw3IniE"></span><span id="nw::Ini"></span><span class="target" id="structnw_1_1_ini"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Ini</span></span></span><a class="headerlink" href="#_CPPv4N2nw3IniE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw3IniE"></span><span id="_CPPv2N2nw3IniE"></span><span id="nw::Ini"></span><span class="target" id="structnw_1_1_ini"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Ini</span></span></span><a class="headerlink" href="#_CPPv4N2nw3IniE" title="Link to this definition"></a><br /></dt>
 <dd><p><a class="reference internal" href="#structnw_1_1_ini"><span class="std std-ref">Ini</span></a> file format parser. </p>
 <p>Lookup is by “&lt;section&gt;/&lt;key&gt;”</p>
 <div class="admonition note">
@@ -373,31 +390,31 @@
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw3Ini3IniEv">
-<span id="_CPPv3N2nw3Ini3IniEv"></span><span id="_CPPv2N2nw3Ini3IniEv"></span><span id="nw::Ini::Ini"></span><span class="target" id="structnw_1_1_ini_1ae1b2a7954710bc89586635633afca32e"></span><span class="sig-name descname"><span class="n"><span class="pre">Ini</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">default</span></span><a class="headerlink" href="#_CPPv4N2nw3Ini3IniEv" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw3Ini3IniEv"></span><span id="_CPPv2N2nw3Ini3IniEv"></span><span id="nw::Ini::Ini"></span><span class="target" id="structnw_1_1_ini_1ae1b2a7954710bc89586635633afca32e"></span><span class="sig-name descname"><span class="n"><span class="pre">Ini</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">default</span></span><a class="headerlink" href="#_CPPv4N2nw3Ini3IniEv" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw3Ini3IniERKNSt10filesystem4pathE">
-<span id="_CPPv3N2nw3Ini3IniERKNSt10filesystem4pathE"></span><span id="_CPPv2N2nw3Ini3IniERKNSt10filesystem4pathE"></span><span id="nw::Ini::Ini__std::filesystem::pathCR"></span><span class="target" id="structnw_1_1_ini_1a82ef8e8f5b65ea8ada076e4c8c19babb"></span><span class="k"><span class="pre">explicit</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Ini</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">filesystem</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">path</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">filename</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw3Ini3IniERKNSt10filesystem4pathE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw3Ini3IniERKNSt10filesystem4pathE"></span><span id="_CPPv2N2nw3Ini3IniERKNSt10filesystem4pathE"></span><span id="nw::Ini::Ini__std::filesystem::pathCR"></span><span class="target" id="structnw_1_1_ini_1a82ef8e8f5b65ea8ada076e4c8c19babb"></span><span class="k"><span class="pre">explicit</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Ini</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">filesystem</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">path</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">filename</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw3Ini3IniERKNSt10filesystem4pathE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw3Ini3IniE9ByteArray">
-<span id="_CPPv3N2nw3Ini3IniE9ByteArray"></span><span id="_CPPv2N2nw3Ini3IniE9ByteArray"></span><span id="nw::Ini::Ini__ByteArray"></span><span class="target" id="structnw_1_1_ini_1a7934f2edc2144bddd30bfeaf7b6c2b46"></span><span class="k"><span class="pre">explicit</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Ini</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="nw__ByteArray.html#_CPPv4N2nw9ByteArrayE" title="nw::ByteArray"><span class="n"><span class="pre">ByteArray</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">bytes</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw3Ini3IniE9ByteArray" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw3Ini3IniE9ByteArray"></span><span id="_CPPv2N2nw3Ini3IniE9ByteArray"></span><span id="nw::Ini::Ini__ByteArray"></span><span class="target" id="structnw_1_1_ini_1a7934f2edc2144bddd30bfeaf7b6c2b46"></span><span class="k"><span class="pre">explicit</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Ini</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="nw__ByteArray.html#_CPPv4N2nw9ByteArrayE" title="nw::ByteArray"><span class="n"><span class="pre">ByteArray</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">bytes</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw3Ini3IniE9ByteArray" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4I0ENK2nw3Ini3getENSt8optionalI1TEENSt6stringE">
-<span id="_CPPv3I0ENK2nw3Ini3getENSt6stringE"></span><span id="_CPPv2I0ENK2nw3Ini3getENSt6stringE"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">T</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="structnw_1_1_ini_1ae6db67a679c24ccec1f22adc56d4f65e"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">optional</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4I0ENK2nw3Ini3getENSt8optionalI1TEENSt6stringE" title="nw::Ini::get::T"><span class="n"><span class="pre">T</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">key</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4I0ENK2nw3Ini3getENSt8optionalI1TEENSt6stringE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3I0ENK2nw3Ini3getENSt6stringE"></span><span id="_CPPv2I0ENK2nw3Ini3getENSt6stringE"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">T</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="structnw_1_1_ini_1ae6db67a679c24ccec1f22adc56d4f65e"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">optional</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4I0ENK2nw3Ini3getENSt8optionalI1TEENSt6stringE" title="nw::Ini::get::T"><span class="n"><span class="pre">T</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">key</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4I0ENK2nw3Ini3getENSt8optionalI1TEENSt6stringE" title="Link to this definition"></a><br /></dt>
 <dd><p>Gets a value. </p>
 <dl class="field-list simple">
-<dt class="field-odd">Template Parameters</dt>
+<dt class="field-odd">Template Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>T</strong> – <code class="docutils literal notranslate"><span class="pre">int32_t</span></code>, <code class="docutils literal notranslate"><span class="pre">float</span></code>, or <code class="docutils literal notranslate"><span class="pre">std::string</span></code></p>
 </dd>
-<dt class="field-even">Parameters</dt>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
 <dd class="field-even"><p><strong>key</strong> – </p>
 </dd>
-<dt class="field-odd">Returns</dt>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
 <dd class="field-odd"><p>std::optional&lt;T&gt; </p>
 </dd>
 </dl>
@@ -405,32 +422,32 @@
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4NK2nw3Ini6get_toENSt6stringERNSt6stringE">
-<span id="_CPPv3NK2nw3Ini6get_toENSt6stringERNSt6stringE"></span><span id="_CPPv2NK2nw3Ini6get_toENSt6stringERNSt6stringE"></span><span id="nw::Ini::get_to__ss.ssRC"></span><span class="target" id="structnw_1_1_ini_1a87a9294e0d8565300e4ccdaee6d38bde"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_to</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">key</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">out</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK2nw3Ini6get_toENSt6stringERNSt6stringE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3NK2nw3Ini6get_toENSt6stringERNSt6stringE"></span><span id="_CPPv2NK2nw3Ini6get_toENSt6stringERNSt6stringE"></span><span id="nw::Ini::get_to__ss.ssRC"></span><span class="target" id="structnw_1_1_ini_1a87a9294e0d8565300e4ccdaee6d38bde"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_to</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">key</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">out</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK2nw3Ini6get_toENSt6stringERNSt6stringE" title="Link to this definition"></a><br /></dt>
 <dd><p>Gets string value. </p>
 </dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4NK2nw3Ini6get_toENSt6stringERi">
-<span id="_CPPv3NK2nw3Ini6get_toENSt6stringERi"></span><span id="_CPPv2NK2nw3Ini6get_toENSt6stringERi"></span><span id="nw::Ini::get_to__ss.iRC"></span><span class="target" id="structnw_1_1_ini_1abf8a27332c7a1b9f6a87f51c88b41e8d"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_to</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">key</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">out</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK2nw3Ini6get_toENSt6stringERi" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3NK2nw3Ini6get_toENSt6stringERi"></span><span id="_CPPv2NK2nw3Ini6get_toENSt6stringERi"></span><span id="nw::Ini::get_to__ss.iRC"></span><span class="target" id="structnw_1_1_ini_1abf8a27332c7a1b9f6a87f51c88b41e8d"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_to</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">key</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">out</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK2nw3Ini6get_toENSt6stringERi" title="Link to this definition"></a><br /></dt>
 <dd><p>Gets int value. </p>
 </dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4NK2nw3Ini6get_toENSt6stringERf">
-<span id="_CPPv3NK2nw3Ini6get_toENSt6stringERf"></span><span id="_CPPv2NK2nw3Ini6get_toENSt6stringERf"></span><span id="nw::Ini::get_to__ss.floatRC"></span><span class="target" id="structnw_1_1_ini_1ad6ecf9e32573ac5e19d8e001d8425c42"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_to</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">key</span></span>, <span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">out</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK2nw3Ini6get_toENSt6stringERf" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3NK2nw3Ini6get_toENSt6stringERf"></span><span id="_CPPv2NK2nw3Ini6get_toENSt6stringERf"></span><span id="nw::Ini::get_to__ss.floatRC"></span><span class="target" id="structnw_1_1_ini_1ad6ecf9e32573ac5e19d8e001d8425c42"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_to</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">key</span></span>, <span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">out</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK2nw3Ini6get_toENSt6stringERf" title="Link to this definition"></a><br /></dt>
 <dd><p>Gets float value. </p>
 </dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4NK2nw3Ini5validEv">
-<span id="_CPPv3NK2nw3Ini5validEv"></span><span id="_CPPv2NK2nw3Ini5validEv"></span><span id="nw::Ini::validC"></span><span class="target" id="structnw_1_1_ini_1a26621cd51060ceff46ffb348372595bf"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">valid</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="k"><span class="pre">noexcept</span></span><a class="headerlink" href="#_CPPv4NK2nw3Ini5validEv" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3NK2nw3Ini5validEv"></span><span id="_CPPv2NK2nw3Ini5validEv"></span><span id="nw::Ini::validC"></span><span class="target" id="structnw_1_1_ini_1a26621cd51060ceff46ffb348372595bf"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">valid</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="k"><span class="pre">noexcept</span></span><a class="headerlink" href="#_CPPv4NK2nw3Ini5validEv" title="Link to this definition"></a><br /></dt>
 <dd><p>Deterimes if <a class="reference internal" href="#structnw_1_1_ini"><span class="std std-ref">Ini</span></a> file was successfully parsed. </p>
 </dd></dl>
 
 </div>
 </dd></dl>
 
-</div>
+</section>
 
 
            </div>

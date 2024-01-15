@@ -1,20 +1,24 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html5" lang="en" data-content_root="../../">
 <head>
-  <meta charset="utf-8" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>nw::kernel::sum_modifier &mdash; rollNW  documentation</title>
-      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
-      <link rel="stylesheet" href="../../_static/tabs.css" type="text/css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="../../_static/tabs.css?v=a5c4661c" />
+
+  
   <!--[if lt IE 9]>
     <script src="../../_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
-        <script src="../../_static/jquery.js"></script>
-        <script src="../../_static/underscore.js"></script>
-        <script src="../../_static/doctools.js"></script>
+        <script src="../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+        <script src="../../_static/doctools.js?v=888ff710"></script>
+        <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
@@ -105,7 +109,11 @@
 <li class="toctree-l2"><a class="reference internal" href="nw__kernel__services.html">nw::kernel::services</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__kernel__strings.html">nw::kernel::strings</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__kernel__sum_master_feats.html">nw::kernel::sum_master_feats</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">nw::kernel::sum_modifier</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">nw::kernel::sum_modifier</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#_CPPv4I0EN2nw6kernel12sum_modifierE1TPK10ObjectBaseK12ModifierType"><code class="docutils literal notranslate"><span class="pre">sum_modifier()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#_CPPv4I00EN2nw6kernel12sum_modifierE1TPK10ObjectBaseK12ModifierType7SubType"><code class="docutils literal notranslate"><span class="pre">sum_modifier()</span></code></a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="nw__kernel__unload_module.html">nw::kernel::unload_module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__knows_feat.html">nw::knows_feat</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__max_effects_of.html">nw::max_effects_of</a></li>
@@ -257,14 +265,14 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <div class="section" id="nw-kernel-sum-modifier">
-<h1>nw::kernel::sum_modifier<a class="headerlink" href="#nw-kernel-sum-modifier" title="Permalink to this headline"></a></h1>
+  <section id="nw-kernel-sum-modifier">
+<h1>nw::kernel::sum_modifier<a class="headerlink" href="#nw-kernel-sum-modifier" title="Link to this heading"></a></h1>
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4I0EN2nw6kernel12sum_modifierE1TPK10ObjectBaseK12ModifierType">
-<span id="_CPPv3I0EN2nw6kernel12sum_modifierEPK10ObjectBaseK12ModifierType"></span><span id="_CPPv2I0EN2nw6kernel12sum_modifierEPK10ObjectBaseK12ModifierType"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">T</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="lib_2nw_2kernel_2_rules_8hpp_1ac8ebd4ed7ed6772f3a64d3b31f4a2605"></span><a class="reference internal" href="#_CPPv4I0EN2nw6kernel12sum_modifierE1TPK10ObjectBaseK12ModifierType" title="nw::kernel::sum_modifier::T"><span class="n"><span class="pre">T</span></span></a><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">nw</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">kernel</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">sum_modifier</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">ObjectBase</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">obj</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="../struct/nw__ModifierType.html#_CPPv4N2nw12ModifierTypeE" title="nw::ModifierType"><span class="n"><span class="pre">ModifierType</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">type</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4I0EN2nw6kernel12sum_modifierE1TPK10ObjectBaseK12ModifierType" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3I0EN2nw6kernel12sum_modifierEPK10ObjectBaseK12ModifierType"></span><span id="_CPPv2I0EN2nw6kernel12sum_modifierEPK10ObjectBaseK12ModifierType"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">T</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="lib_2nw_2kernel_2_rules_8hpp_1ac8ebd4ed7ed6772f3a64d3b31f4a2605"></span><a class="reference internal" href="#_CPPv4I0EN2nw6kernel12sum_modifierE1TPK10ObjectBaseK12ModifierType" title="nw::kernel::sum_modifier::T"><span class="n"><span class="pre">T</span></span></a><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">nw</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">kernel</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">sum_modifier</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">ObjectBase</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">obj</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="../struct/nw__ModifierType.html#_CPPv4N2nw12ModifierTypeE" title="nw::ModifierType"><span class="n"><span class="pre">ModifierType</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">type</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4I0EN2nw6kernel12sum_modifierE1TPK10ObjectBaseK12ModifierType" title="Link to this definition"></a><br /></dt>
 <dd><p>Sums all modifiers of <code class="docutils literal notranslate"><span class="pre">type</span></code></p>
 <dl class="field-list simple">
-<dt class="field-odd">Template Parameters</dt>
+<dt class="field-odd">Template Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>T</strong> – </p>
 </dd>
 </dl>
@@ -286,10 +294,10 @@ Potential matches:
 <hr class="docutils" />
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4I00EN2nw6kernel12sum_modifierE1TPK10ObjectBaseK12ModifierType7SubType">
-<span id="_CPPv3I00EN2nw6kernel12sum_modifierEPK10ObjectBaseK12ModifierType7SubType"></span><span id="_CPPv2I00EN2nw6kernel12sum_modifierEPK10ObjectBaseK12ModifierType7SubType"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">T</span></span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SubType</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="lib_2nw_2kernel_2_rules_8hpp_1aa85770cea21c6b356176585bf4b11ab5"></span><a class="reference internal" href="#_CPPv4I00EN2nw6kernel12sum_modifierE1TPK10ObjectBaseK12ModifierType7SubType" title="nw::kernel::sum_modifier::T"><span class="n"><span class="pre">T</span></span></a><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">nw</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">kernel</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">sum_modifier</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">ObjectBase</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">obj</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="../struct/nw__ModifierType.html#_CPPv4N2nw12ModifierTypeE" title="nw::ModifierType"><span class="n"><span class="pre">ModifierType</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">type</span></span>, <a class="reference internal" href="#_CPPv4I00EN2nw6kernel12sum_modifierE1TPK10ObjectBaseK12ModifierType7SubType" title="nw::kernel::sum_modifier::SubType"><span class="n"><span class="pre">SubType</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">subtype</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4I00EN2nw6kernel12sum_modifierE1TPK10ObjectBaseK12ModifierType7SubType" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3I00EN2nw6kernel12sum_modifierEPK10ObjectBaseK12ModifierType7SubType"></span><span id="_CPPv2I00EN2nw6kernel12sum_modifierEPK10ObjectBaseK12ModifierType7SubType"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">T</span></span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SubType</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="lib_2nw_2kernel_2_rules_8hpp_1aa85770cea21c6b356176585bf4b11ab5"></span><a class="reference internal" href="#_CPPv4I00EN2nw6kernel12sum_modifierE1TPK10ObjectBaseK12ModifierType7SubType" title="nw::kernel::sum_modifier::T"><span class="n"><span class="pre">T</span></span></a><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">nw</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">kernel</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">sum_modifier</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">ObjectBase</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">obj</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="../struct/nw__ModifierType.html#_CPPv4N2nw12ModifierTypeE" title="nw::ModifierType"><span class="n"><span class="pre">ModifierType</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">type</span></span>, <a class="reference internal" href="#_CPPv4I00EN2nw6kernel12sum_modifierE1TPK10ObjectBaseK12ModifierType7SubType" title="nw::kernel::sum_modifier::SubType"><span class="n"><span class="pre">SubType</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">subtype</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4I00EN2nw6kernel12sum_modifierE1TPK10ObjectBaseK12ModifierType7SubType" title="Link to this definition"></a><br /></dt>
 <dd><p>Sums all modifiers of a <code class="docutils literal notranslate"><span class="pre">type</span></code> and <code class="docutils literal notranslate"><span class="pre">subtype</span></code></p>
 <dl class="field-list simple">
-<dt class="field-odd">Template Parameters</dt>
+<dt class="field-odd">Template Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>T</strong> – </p></li>
 <li><p><strong>U</strong> – is some rule subtype </p></li>
@@ -311,7 +319,7 @@ Potential matches:
 </pre></div>
 </div>
 </div>
-</div>
+</section>
 
 
            </div>
