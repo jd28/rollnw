@@ -1547,3 +1547,32 @@ TEST(Nss, SignatureHelper)
     EXPECT_FALSE(sig2_3.expr);
     EXPECT_FALSE(sig2_3.decl);
 }
+
+TEST(Nss, Precedence)
+{
+    auto ctx = std::make_unique<nw::script::Context>();
+
+    script::Nss nss1(R"(
+        int TEST = 2 + 6 * 3;
+    )"sv,
+        ctx.get());
+    EXPECT_NO_THROW(nss1.parse());
+    EXPECT_NO_THROW(nss1.resolve());
+    auto vd1 = dynamic_cast<nw::script::VarDecl*>(nss1.ast().decls[0]);
+    EXPECT_TRUE(vd1);
+    auto expr1 = dynamic_cast<nw::script::BinaryExpression*>(vd1->init);
+    EXPECT_TRUE(expr1);
+    EXPECT_EQ(expr1->op.loc.view(), "+");
+
+    script::Nss nss2(R"(
+        int TEST = 6 * 3 + 2;
+    )"sv,
+        ctx.get());
+    EXPECT_NO_THROW(nss2.parse());
+    EXPECT_NO_THROW(nss2.resolve());
+    auto vd2 = dynamic_cast<nw::script::VarDecl*>(nss2.ast().decls[0]);
+    EXPECT_TRUE(vd2);
+    auto expr2 = dynamic_cast<nw::script::BinaryExpression*>(vd2->init);
+    EXPECT_TRUE(expr2);
+    EXPECT_EQ(expr2->op.loc.view(), "+");
+}
