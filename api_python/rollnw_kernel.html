@@ -73,7 +73,85 @@
 <p class="caption" role="heading"><span class="caption-text">python api</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="rollnw.html">rollnw</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">rollnw.kernel</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">rollnw.kernel</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#rollnw.kernel.Config"><code class="docutils literal notranslate"><span class="pre">Config</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#rollnw.kernel.Config.alias_path"><code class="docutils literal notranslate"><span class="pre">Config.alias_path()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#rollnw.kernel.Config.initialize"><code class="docutils literal notranslate"><span class="pre">Config.initialize()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#rollnw.kernel.Config.install_path"><code class="docutils literal notranslate"><span class="pre">Config.install_path()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#rollnw.kernel.Config.nwn_ini"><code class="docutils literal notranslate"><span class="pre">Config.nwn_ini()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#rollnw.kernel.Config.nwnplayer_ini"><code class="docutils literal notranslate"><span class="pre">Config.nwnplayer_ini()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#rollnw.kernel.Config.options"><code class="docutils literal notranslate"><span class="pre">Config.options()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#rollnw.kernel.Config.resolve_alias"><code class="docutils literal notranslate"><span class="pre">Config.resolve_alias()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#rollnw.kernel.Config.set_paths"><code class="docutils literal notranslate"><span class="pre">Config.set_paths()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#rollnw.kernel.Config.set_version"><code class="docutils literal notranslate"><span class="pre">Config.set_version()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#rollnw.kernel.Config.user_path"><code class="docutils literal notranslate"><span class="pre">Config.user_path()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#rollnw.kernel.Config.userpatch_ini"><code class="docutils literal notranslate"><span class="pre">Config.userpatch_ini()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#rollnw.kernel.ConfigOptions"><code class="docutils literal notranslate"><span class="pre">ConfigOptions</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#rollnw.kernel.ConfigOptions.user"><code class="docutils literal notranslate"><span class="pre">ConfigOptions.user</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#rollnw.kernel.ConfigOptions.include_install"><code class="docutils literal notranslate"><span class="pre">ConfigOptions.include_install</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#rollnw.kernel.ConfigOptions.include_nwsync"><code class="docutils literal notranslate"><span class="pre">ConfigOptions.include_nwsync</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#rollnw.kernel.ConfigOptions.include_user"><code class="docutils literal notranslate"><span class="pre">ConfigOptions.include_user</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#rollnw.kernel.EffectSystem"><code class="docutils literal notranslate"><span class="pre">EffectSystem</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#rollnw.kernel.EffectSystem.add"><code class="docutils literal notranslate"><span class="pre">EffectSystem.add()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#rollnw.kernel.EffectSystem.apply"><code class="docutils literal notranslate"><span class="pre">EffectSystem.apply()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#rollnw.kernel.EffectSystem.create"><code class="docutils literal notranslate"><span class="pre">EffectSystem.create()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#rollnw.kernel.EffectSystem.destroy"><code class="docutils literal notranslate"><span class="pre">EffectSystem.destroy()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#rollnw.kernel.EffectSystem.effect_limits_ability"><code class="docutils literal notranslate"><span class="pre">EffectSystem.effect_limits_ability()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#rollnw.kernel.EffectSystem.effect_limits_armor_class"><code class="docutils literal notranslate"><span class="pre">EffectSystem.effect_limits_armor_class()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#rollnw.kernel.EffectSystem.effect_limits_attack"><code class="docutils literal notranslate"><span class="pre">EffectSystem.effect_limits_attack()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#rollnw.kernel.EffectSystem.effect_limits_skill"><code class="docutils literal notranslate"><span class="pre">EffectSystem.effect_limits_skill()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#rollnw.kernel.EffectSystem.ip_cost_table"><code class="docutils literal notranslate"><span class="pre">EffectSystem.ip_cost_table()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#rollnw.kernel.EffectSystem.ip_definition"><code class="docutils literal notranslate"><span class="pre">EffectSystem.ip_definition()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#rollnw.kernel.EffectSystem.ip_param_table"><code class="docutils literal notranslate"><span class="pre">EffectSystem.ip_param_table()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#rollnw.kernel.EffectSystem.remove"><code class="docutils literal notranslate"><span class="pre">EffectSystem.remove()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#rollnw.kernel.EffectSystem.set_effect_limits_ability"><code class="docutils literal notranslate"><span class="pre">EffectSystem.set_effect_limits_ability()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#rollnw.kernel.EffectSystem.set_effect_limits_armor_class"><code class="docutils literal notranslate"><span class="pre">EffectSystem.set_effect_limits_armor_class()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#rollnw.kernel.EffectSystem.set_effect_limits_attack"><code class="docutils literal notranslate"><span class="pre">EffectSystem.set_effect_limits_attack()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#rollnw.kernel.EffectSystem.set_effect_limits_skill"><code class="docutils literal notranslate"><span class="pre">EffectSystem.set_effect_limits_skill()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#rollnw.kernel.EffectSystem.stats"><code class="docutils literal notranslate"><span class="pre">EffectSystem.stats()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#rollnw.kernel.EffectSystemStats"><code class="docutils literal notranslate"><span class="pre">EffectSystemStats</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#rollnw.kernel.EffectSystemStats.free_list_size"><code class="docutils literal notranslate"><span class="pre">EffectSystemStats.free_list_size</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#rollnw.kernel.EffectSystemStats.pool_size"><code class="docutils literal notranslate"><span class="pre">EffectSystemStats.pool_size</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#rollnw.kernel.Objects"><code class="docutils literal notranslate"><span class="pre">Objects</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#rollnw.kernel.Objects.area"><code class="docutils literal notranslate"><span class="pre">Objects.area()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#rollnw.kernel.Objects.creature"><code class="docutils literal notranslate"><span class="pre">Objects.creature()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#rollnw.kernel.Objects.destroy"><code class="docutils literal notranslate"><span class="pre">Objects.destroy()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#rollnw.kernel.Objects.door"><code class="docutils literal notranslate"><span class="pre">Objects.door()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#rollnw.kernel.Objects.encounter"><code class="docutils literal notranslate"><span class="pre">Objects.encounter()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#rollnw.kernel.Objects.get"><code class="docutils literal notranslate"><span class="pre">Objects.get()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#rollnw.kernel.Objects.placeable"><code class="docutils literal notranslate"><span class="pre">Objects.placeable()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#rollnw.kernel.Objects.store"><code class="docutils literal notranslate"><span class="pre">Objects.store()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#rollnw.kernel.Objects.trigger"><code class="docutils literal notranslate"><span class="pre">Objects.trigger()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#rollnw.kernel.Objects.valid"><code class="docutils literal notranslate"><span class="pre">Objects.valid()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#rollnw.kernel.Objects.waypoint"><code class="docutils literal notranslate"><span class="pre">Objects.waypoint()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#rollnw.kernel.Resources"><code class="docutils literal notranslate"><span class="pre">Resources</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#rollnw.kernel.Rules"><code class="docutils literal notranslate"><span class="pre">Rules</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#rollnw.kernel.Strings"><code class="docutils literal notranslate"><span class="pre">Strings</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#rollnw.kernel.TwoDACache"><code class="docutils literal notranslate"><span class="pre">TwoDACache</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#rollnw.kernel.TwoDACache.get"><code class="docutils literal notranslate"><span class="pre">TwoDACache.get()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#rollnw.kernel.config"><code class="docutils literal notranslate"><span class="pre">config()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#rollnw.kernel.effects"><code class="docutils literal notranslate"><span class="pre">effects()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#rollnw.kernel.load_module"><code class="docutils literal notranslate"><span class="pre">load_module()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#rollnw.kernel.objects"><code class="docutils literal notranslate"><span class="pre">objects()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#rollnw.kernel.resman"><code class="docutils literal notranslate"><span class="pre">resman()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#rollnw.kernel.rules"><code class="docutils literal notranslate"><span class="pre">rules()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#rollnw.kernel.start"><code class="docutils literal notranslate"><span class="pre">start()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#rollnw.kernel.strings"><code class="docutils literal notranslate"><span class="pre">strings()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#rollnw.kernel.unload_module"><code class="docutils literal notranslate"><span class="pre">unload_module()</span></code></a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="rollnw_model.html">rollnw.model</a></li>
 <li class="toctree-l1"><a class="reference internal" href="rollnw_nwn1.html">rollnw.nwn1</a></li>
 <li class="toctree-l1"><a class="reference internal" href="rollnw_script.html">rollnw.script</a></li>
@@ -125,8 +203,427 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="rollnw-kernel">
-<h1>rollnw.kernel<a class="headerlink" href="#rollnw-kernel" title="Link to this heading"></a></h1>
+  <section id="module-rollnw.kernel">
+<span id="rollnw-kernel"></span><h1>rollnw.kernel<a class="headerlink" href="#module-rollnw.kernel" title="Link to this heading"></a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="rollnw.kernel.Config">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">rollnw.kernel.</span></span><span class="sig-name descname"><span class="pre">Config</span></span><a class="headerlink" href="#rollnw.kernel.Config" title="Link to this definition"></a></dt>
+<dd><p>Configuration service</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="rollnw.kernel.Config.alias_path">
+<span class="sig-name descname"><span class="pre">alias_path</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">alias</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="rollnw.html#rollnw.PathAlias" title="rollnw.PathAlias"><span class="pre">PathAlias</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="headerlink" href="#rollnw.kernel.Config.alias_path" title="Link to this definition"></a></dt>
+<dd><p>Gets alias path</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="rollnw.kernel.Config.initialize">
+<span class="sig-name descname"><span class="pre">initialize</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">options</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#rollnw.kernel.ConfigOptions" title="rollnw.kernel.ConfigOptions"><span class="pre">ConfigOptions</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#rollnw.kernel.Config.initialize" title="Link to this definition"></a></dt>
+<dd><p>Initialize config system</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="rollnw.kernel.Config.install_path">
+<span class="sig-name descname"><span class="pre">install_path</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="headerlink" href="#rollnw.kernel.Config.install_path" title="Link to this definition"></a></dt>
+<dd><p>Gets game install path</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="rollnw.kernel.Config.nwn_ini">
+<span class="sig-name descname"><span class="pre">nwn_ini</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="rollnw.html#rollnw.Ini" title="rollnw.Ini"><span class="pre">Ini</span></a></span></span><a class="headerlink" href="#rollnw.kernel.Config.nwn_ini" title="Link to this definition"></a></dt>
+<dd><p>Gets parsed nwn.ini</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="rollnw.kernel.Config.nwnplayer_ini">
+<span class="sig-name descname"><span class="pre">nwnplayer_ini</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="rollnw.html#rollnw.Ini" title="rollnw.Ini"><span class="pre">Ini</span></a></span></span><a class="headerlink" href="#rollnw.kernel.Config.nwnplayer_ini" title="Link to this definition"></a></dt>
+<dd><p>Gets parsed nwnplayer.ini</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="rollnw.kernel.Config.options">
+<span class="sig-name descname"><span class="pre">options</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#rollnw.kernel.ConfigOptions" title="rollnw.kernel.ConfigOptions"><span class="pre">ConfigOptions</span></a></span></span><a class="headerlink" href="#rollnw.kernel.Config.options" title="Link to this definition"></a></dt>
+<dd><p>Gets config options</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="rollnw.kernel.Config.resolve_alias">
+<span class="sig-name descname"><span class="pre">resolve_alias</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">alias_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="headerlink" href="#rollnw.kernel.Config.resolve_alias" title="Link to this definition"></a></dt>
+<dd><p>Resolves alias path</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="rollnw.kernel.Config.set_paths">
+<span class="sig-name descname"><span class="pre">set_paths</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">install</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">user</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#rollnw.kernel.Config.set_paths" title="Link to this definition"></a></dt>
+<dd><p>Sets game paths</p>
+<p>Note: Must be called before <code class="docutils literal notranslate"><span class="pre">initialize</span></code></p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="rollnw.kernel.Config.set_version">
+<span class="sig-name descname"><span class="pre">set_version</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">version</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="rollnw.html#rollnw.GameVersion" title="rollnw.GameVersion"><span class="pre">GameVersion</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#rollnw.kernel.Config.set_version" title="Link to this definition"></a></dt>
+<dd><p>Sets game paths</p>
+<p>Note: Must be called before <code class="docutils literal notranslate"><span class="pre">initialize</span></code></p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="rollnw.kernel.Config.user_path">
+<span class="sig-name descname"><span class="pre">user_path</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="headerlink" href="#rollnw.kernel.Config.user_path" title="Link to this definition"></a></dt>
+<dd><p>Gets game install path</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="rollnw.kernel.Config.userpatch_ini">
+<span class="sig-name descname"><span class="pre">userpatch_ini</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="rollnw.html#rollnw.Ini" title="rollnw.Ini"><span class="pre">Ini</span></a></span></span><a class="headerlink" href="#rollnw.kernel.Config.userpatch_ini" title="Link to this definition"></a></dt>
+<dd><p>Gets parsed userpatch.ini</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="rollnw.kernel.ConfigOptions">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">rollnw.kernel.</span></span><span class="sig-name descname"><span class="pre">ConfigOptions</span></span><a class="headerlink" href="#rollnw.kernel.ConfigOptions" title="Link to this definition"></a></dt>
+<dd><p>Configuration options</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="rollnw.kernel.ConfigOptions.user">
+<span class="sig-name descname"><span class="pre">user</span></span><a class="headerlink" href="#rollnw.kernel.ConfigOptions.user" title="Link to this definition"></a></dt>
+<dd><p>NWN user directory</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="rollnw.kernel.ConfigOptions.include_install">
+<span class="sig-name descname"><span class="pre">include_install</span></span><a class="headerlink" href="#rollnw.kernel.ConfigOptions.include_install" title="Link to this definition"></a></dt>
+<dd><p>If true, load base game data.  (Default True)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="rollnw.kernel.ConfigOptions.include_nwsync">
+<span class="sig-name descname"><span class="pre">include_nwsync</span></span><a class="headerlink" href="#rollnw.kernel.ConfigOptions.include_nwsync" title="Link to this definition"></a></dt>
+<dd><p>If true, load NWSync data.  (Default True)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="rollnw.kernel.ConfigOptions.include_user">
+<span class="sig-name descname"><span class="pre">include_user</span></span><a class="headerlink" href="#rollnw.kernel.ConfigOptions.include_user" title="Link to this definition"></a></dt>
+<dd><p>If true, load user data.  (Default True)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="rollnw.kernel.EffectSystem">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">rollnw.kernel.</span></span><span class="sig-name descname"><span class="pre">EffectSystem</span></span><a class="headerlink" href="#rollnw.kernel.EffectSystem" title="Link to this definition"></a></dt>
+<dd><dl class="py method">
+<dt class="sig sig-object py" id="rollnw.kernel.EffectSystem.add">
+<span class="sig-name descname"><span class="pre">add</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">type</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">generator</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#rollnw.kernel.EffectSystem.add" title="Link to this definition"></a></dt>
+<dd><p>Adds an item property type to the registry</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="rollnw.kernel.EffectSystem.apply">
+<span class="sig-name descname"><span class="pre">apply</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">obj</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="rollnw.html#rollnw.ObjectBase" title="rollnw.ObjectBase"><span class="pre">ObjectBase</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">effect</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="rollnw.html#rollnw.Effect" title="rollnw.Effect"><span class="pre">Effect</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="headerlink" href="#rollnw.kernel.EffectSystem.apply" title="Link to this definition"></a></dt>
+<dd><p>Applies an effect to an object</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="rollnw.kernel.EffectSystem.create">
+<span class="sig-name descname"><span class="pre">create</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">type</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="rollnw.html#rollnw.Effect" title="rollnw.Effect"><span class="pre">Effect</span></a></span></span><a class="headerlink" href="#rollnw.kernel.EffectSystem.create" title="Link to this definition"></a></dt>
+<dd><p>Creates an effect</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="rollnw.kernel.EffectSystem.destroy">
+<span class="sig-name descname"><span class="pre">destroy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">effect</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="rollnw.html#rollnw.Effect" title="rollnw.Effect"><span class="pre">Effect</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#rollnw.kernel.EffectSystem.destroy" title="Link to this definition"></a></dt>
+<dd><p>Destroys an effect</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="rollnw.kernel.EffectSystem.effect_limits_ability">
+<span class="sig-name descname"><span class="pre">effect_limits_ability</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#rollnw.kernel.EffectSystem.effect_limits_ability" title="Link to this definition"></a></dt>
+<dd><p>Gets ability effect minimum and maximum</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="rollnw.kernel.EffectSystem.effect_limits_armor_class">
+<span class="sig-name descname"><span class="pre">effect_limits_armor_class</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#rollnw.kernel.EffectSystem.effect_limits_armor_class" title="Link to this definition"></a></dt>
+<dd><p>Gets armor class effect minimum and maximum</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="rollnw.kernel.EffectSystem.effect_limits_attack">
+<span class="sig-name descname"><span class="pre">effect_limits_attack</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#rollnw.kernel.EffectSystem.effect_limits_attack" title="Link to this definition"></a></dt>
+<dd><p>Gets attack effect minimum and maximum</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="rollnw.kernel.EffectSystem.effect_limits_skill">
+<span class="sig-name descname"><span class="pre">effect_limits_skill</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#rollnw.kernel.EffectSystem.effect_limits_skill" title="Link to this definition"></a></dt>
+<dd><p>Gets skill effect minimum and maximum</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="rollnw.kernel.EffectSystem.ip_cost_table">
+<span class="sig-name descname"><span class="pre">ip_cost_table</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">table</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="rollnw.html#rollnw.TwoDA" title="rollnw.TwoDA"><span class="pre">TwoDA</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></span><a class="headerlink" href="#rollnw.kernel.EffectSystem.ip_cost_table" title="Link to this definition"></a></dt>
+<dd><p>Gets an item property cost table</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="rollnw.kernel.EffectSystem.ip_definition">
+<span class="sig-name descname"><span class="pre">ip_definition</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">type</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#rollnw.kernel.EffectSystem.ip_definition" title="Link to this definition"></a></dt>
+<dd><p>Gets an item property definition</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="rollnw.kernel.EffectSystem.ip_param_table">
+<span class="sig-name descname"><span class="pre">ip_param_table</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">table</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="rollnw.html#rollnw.TwoDA" title="rollnw.TwoDA"><span class="pre">TwoDA</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></span><a class="headerlink" href="#rollnw.kernel.EffectSystem.ip_param_table" title="Link to this definition"></a></dt>
+<dd><p>Gets an item property param table</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="rollnw.kernel.EffectSystem.remove">
+<span class="sig-name descname"><span class="pre">remove</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">obj</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="rollnw.html#rollnw.ObjectBase" title="rollnw.ObjectBase"><span class="pre">ObjectBase</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">effect</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="rollnw.html#rollnw.Effect" title="rollnw.Effect"><span class="pre">Effect</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="headerlink" href="#rollnw.kernel.EffectSystem.remove" title="Link to this definition"></a></dt>
+<dd><p>Removes an effect to an object</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="rollnw.kernel.EffectSystem.set_effect_limits_ability">
+<span class="sig-name descname"><span class="pre">set_effect_limits_ability</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">min</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#rollnw.kernel.EffectSystem.set_effect_limits_ability" title="Link to this definition"></a></dt>
+<dd><p>Sets ability effect minimum and maximum</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="rollnw.kernel.EffectSystem.set_effect_limits_armor_class">
+<span class="sig-name descname"><span class="pre">set_effect_limits_armor_class</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">min</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#rollnw.kernel.EffectSystem.set_effect_limits_armor_class" title="Link to this definition"></a></dt>
+<dd><p>Sets armor class effect minimum and maximum</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="rollnw.kernel.EffectSystem.set_effect_limits_attack">
+<span class="sig-name descname"><span class="pre">set_effect_limits_attack</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">min</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#rollnw.kernel.EffectSystem.set_effect_limits_attack" title="Link to this definition"></a></dt>
+<dd><p>Sets attack effect minimum and maximum</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="rollnw.kernel.EffectSystem.set_effect_limits_skill">
+<span class="sig-name descname"><span class="pre">set_effect_limits_skill</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">min</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#rollnw.kernel.EffectSystem.set_effect_limits_skill" title="Link to this definition"></a></dt>
+<dd><p>Sets skill effect minimum and maximum</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="rollnw.kernel.EffectSystem.stats">
+<span class="sig-name descname"><span class="pre">stats</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#rollnw.kernel.EffectSystemStats" title="rollnw.kernel.EffectSystemStats"><span class="pre">EffectSystemStats</span></a></span></span><a class="headerlink" href="#rollnw.kernel.EffectSystem.stats" title="Link to this definition"></a></dt>
+<dd><p>Gets stats regarding the effect system</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="rollnw.kernel.EffectSystemStats">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">rollnw.kernel.</span></span><span class="sig-name descname"><span class="pre">EffectSystemStats</span></span><a class="headerlink" href="#rollnw.kernel.EffectSystemStats" title="Link to this definition"></a></dt>
+<dd><p>Effect system stat data</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="rollnw.kernel.EffectSystemStats.free_list_size">
+<span class="sig-name descname"><span class="pre">free_list_size</span></span><a class="headerlink" href="#rollnw.kernel.EffectSystemStats.free_list_size" title="Link to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>int</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="rollnw.kernel.EffectSystemStats.pool_size">
+<span class="sig-name descname"><span class="pre">pool_size</span></span><a class="headerlink" href="#rollnw.kernel.EffectSystemStats.pool_size" title="Link to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>int</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="rollnw.kernel.Objects">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">rollnw.kernel.</span></span><span class="sig-name descname"><span class="pre">Objects</span></span><a class="headerlink" href="#rollnw.kernel.Objects" title="Link to this definition"></a></dt>
+<dd><p>The object system creates, serializes, and deserializes entities</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="rollnw.kernel.Objects.area">
+<span class="sig-name descname"><span class="pre">area</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">resref</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="rollnw.html#rollnw.Area" title="rollnw.Area"><span class="pre">Area</span></a></span></span><a class="headerlink" href="#rollnw.kernel.Objects.area" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="rollnw.kernel.Objects.creature">
+<span class="sig-name descname"><span class="pre">creature</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">resref</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="rollnw.html#rollnw.Creature" title="rollnw.Creature"><span class="pre">Creature</span></a></span></span><a class="headerlink" href="#rollnw.kernel.Objects.creature" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="rollnw.kernel.Objects.destroy">
+<span class="sig-name descname"><span class="pre">destroy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">obj</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="rollnw.html#rollnw.ObjectHandle" title="rollnw.ObjectHandle"><span class="pre">ObjectHandle</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#rollnw.kernel.Objects.destroy" title="Link to this definition"></a></dt>
+<dd><p>Destroys an object and removes it from object system</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="rollnw.kernel.Objects.door">
+<span class="sig-name descname"><span class="pre">door</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">resref</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="rollnw.html#rollnw.Door" title="rollnw.Door"><span class="pre">Door</span></a></span></span><a class="headerlink" href="#rollnw.kernel.Objects.door" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="rollnw.kernel.Objects.encounter">
+<span class="sig-name descname"><span class="pre">encounter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">resref</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="rollnw.html#rollnw.Encounter" title="rollnw.Encounter"><span class="pre">Encounter</span></a></span></span><a class="headerlink" href="#rollnw.kernel.Objects.encounter" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="rollnw.kernel.Objects.get">
+<span class="sig-name descname"><span class="pre">get</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">handle</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="rollnw.html#rollnw.ObjectHandle" title="rollnw.ObjectHandle"><span class="pre">ObjectHandle</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#rollnw.kernel.Objects.get" title="Link to this definition"></a></dt>
+<dd><p>Gets an object by its handle</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="rollnw.kernel.Objects.placeable">
+<span class="sig-name descname"><span class="pre">placeable</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">resref</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="rollnw.html#rollnw.Placeable" title="rollnw.Placeable"><span class="pre">Placeable</span></a></span></span><a class="headerlink" href="#rollnw.kernel.Objects.placeable" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="rollnw.kernel.Objects.store">
+<span class="sig-name descname"><span class="pre">store</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">resref</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="rollnw.html#rollnw.Store" title="rollnw.Store"><span class="pre">Store</span></a></span></span><a class="headerlink" href="#rollnw.kernel.Objects.store" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="rollnw.kernel.Objects.trigger">
+<span class="sig-name descname"><span class="pre">trigger</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">resref</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="rollnw.html#rollnw.Trigger" title="rollnw.Trigger"><span class="pre">Trigger</span></a></span></span><a class="headerlink" href="#rollnw.kernel.Objects.trigger" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="rollnw.kernel.Objects.valid">
+<span class="sig-name descname"><span class="pre">valid</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">handle</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="rollnw.html#rollnw.ObjectHandle" title="rollnw.ObjectHandle"><span class="pre">ObjectHandle</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="headerlink" href="#rollnw.kernel.Objects.valid" title="Link to this definition"></a></dt>
+<dd><p>Checks if an object handle is still valid</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="rollnw.kernel.Objects.waypoint">
+<span class="sig-name descname"><span class="pre">waypoint</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">resref</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="rollnw.html#rollnw.Waypoint" title="rollnw.Waypoint"><span class="pre">Waypoint</span></a></span></span><a class="headerlink" href="#rollnw.kernel.Objects.waypoint" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="rollnw.kernel.Resources">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">rollnw.kernel.</span></span><span class="sig-name descname"><span class="pre">Resources</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">parent</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#rollnw.kernel.Resources" title="rollnw.kernel.Resources"><span class="pre">Resources</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#rollnw.kernel.Resources" title="Link to this definition"></a></dt>
+<dd><p>Resources service</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="rollnw.kernel.Rules">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">rollnw.kernel.</span></span><span class="sig-name descname"><span class="pre">Rules</span></span><a class="headerlink" href="#rollnw.kernel.Rules" title="Link to this definition"></a></dt>
+<dd><p>Rules service</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="rollnw.kernel.Strings">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">rollnw.kernel.</span></span><span class="sig-name descname"><span class="pre">Strings</span></span><a class="headerlink" href="#rollnw.kernel.Strings" title="Link to this definition"></a></dt>
+<dd><p>Strings service</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="rollnw.kernel.TwoDACache">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">rollnw.kernel.</span></span><span class="sig-name descname"><span class="pre">TwoDACache</span></span><a class="headerlink" href="#rollnw.kernel.TwoDACache" title="Link to this definition"></a></dt>
+<dd><p>2da cache</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="rollnw.kernel.TwoDACache.get">
+<span class="sig-name descname"><span class="pre">get</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference internal" href="rollnw.html#rollnw.Resource" title="rollnw.Resource"><span class="pre">Resource</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="rollnw.html#rollnw.TwoDA" title="rollnw.TwoDA"><span class="pre">TwoDA</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></span><a class="headerlink" href="#rollnw.kernel.TwoDACache.get" title="Link to this definition"></a></dt>
+<dd><p>Gets a cached twoda</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="rollnw.kernel.config">
+<span class="sig-prename descclassname"><span class="pre">rollnw.kernel.</span></span><span class="sig-name descname"><span class="pre">config</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#rollnw.kernel.config" title="Link to this definition"></a></dt>
+<dd><p>Gets config service</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="rollnw.kernel.effects">
+<span class="sig-prename descclassname"><span class="pre">rollnw.kernel.</span></span><span class="sig-name descname"><span class="pre">effects</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#rollnw.kernel.effects" title="Link to this definition"></a></dt>
+<dd><p>Gets effects service</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="rollnw.kernel.load_module">
+<span class="sig-prename descclassname"><span class="pre">rollnw.kernel.</span></span><span class="sig-name descname"><span class="pre">load_module</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mod</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">manifest</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="rollnw.html#rollnw.Module" title="rollnw.Module"><span class="pre">Module</span></a></span></span><a class="headerlink" href="#rollnw.kernel.load_module" title="Link to this definition"></a></dt>
+<dd><p>Loads a module</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mod</strong> – </p></li>
+<li><p><strong>manifest</strong> (<em>str</em>) – NWSynch manifest hash</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="rollnw.kernel.objects">
+<span class="sig-prename descclassname"><span class="pre">rollnw.kernel.</span></span><span class="sig-name descname"><span class="pre">objects</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#rollnw.kernel.objects" title="Link to this definition"></a></dt>
+<dd><p>Gets objects service</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="rollnw.kernel.resman">
+<span class="sig-prename descclassname"><span class="pre">rollnw.kernel.</span></span><span class="sig-name descname"><span class="pre">resman</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#rollnw.kernel.Resources" title="rollnw.kernel.Resources"><span class="pre">Resources</span></a></span></span><a class="headerlink" href="#rollnw.kernel.resman" title="Link to this definition"></a></dt>
+<dd><p>Gets resman service</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="rollnw.kernel.rules">
+<span class="sig-prename descclassname"><span class="pre">rollnw.kernel.</span></span><span class="sig-name descname"><span class="pre">rules</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#rollnw.kernel.rules" title="Link to this definition"></a></dt>
+<dd><p>Gets rules service</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="rollnw.kernel.start">
+<span class="sig-prename descclassname"><span class="pre">rollnw.kernel.</span></span><span class="sig-name descname"><span class="pre">start</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">options</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#rollnw.kernel.ConfigOptions" title="rollnw.kernel.ConfigOptions"><span class="pre">ConfigOptions</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#rollnw.kernel.start" title="Link to this definition"></a></dt>
+<dd><p>Starts kernel services</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>config</strong> (<em>rollnw.ConfigOptions</em><em> | </em><em>None</em>) – Optionally pass in configuration.  Default behavior
+is to search for whatever NWN(:EE) install that it can find</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="rollnw.kernel.strings">
+<span class="sig-prename descclassname"><span class="pre">rollnw.kernel.</span></span><span class="sig-name descname"><span class="pre">strings</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#rollnw.kernel.strings" title="Link to this definition"></a></dt>
+<dd><p>Gets strings service</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="rollnw.kernel.unload_module">
+<span class="sig-prename descclassname"><span class="pre">rollnw.kernel.</span></span><span class="sig-name descname"><span class="pre">unload_module</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#rollnw.kernel.unload_module" title="Link to this definition"></a></dt>
+<dd><p>Unloads the currently loaded module</p>
+</dd></dl>
+
 </section>
 
 
