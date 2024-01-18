@@ -1,5 +1,5 @@
 breathe
 sphinx_rtd_theme
 sphinx-tabs
-enum-tools==0.11.0
-sphinx-toolbox==2.18.1
+enum-tools
+sphinx-toolbox
