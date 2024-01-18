@@ -202,6 +202,7 @@ void init_script(py::module& nw)
 
     py::class_<nws::Nss>(nw, "Nss")
         .def(py::init<std::filesystem::path, nws::Context*, bool>(),
+            py::arg("path"), py::arg("ctx"), py::arg("is_command_script") = false,
             py::keep_alive<1, 3>())
         .def(
             "ast", [](nws::Nss& self) {
@@ -260,7 +261,7 @@ void init_script(py::module& nw)
             "from_string", [](std::string_view str, nws::Context* ctx, bool command_script) {
                 return new nws::Nss(str, ctx, command_script);
             },
-            py::keep_alive<0, 2>());
+            py::arg("str"), py::arg("ctx"), py::arg("is_command_script") = false, py::keep_alive<0, 2>());
 
     py::class_<nws::Include>(nw, "Include")
         .def_readonly("resref", &nws::Include::resref)
@@ -534,5 +535,5 @@ void init_script(py::module& nw)
             res->resolve();
             return res;
         },
-        py::keep_alive<0, 2>());
+        py::arg("script"), py::arg("ctx"), py::arg("is_command_script") = false, py::keep_alive<0, 2>());
 }

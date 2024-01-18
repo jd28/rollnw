@@ -198,7 +198,7 @@ class Ast:
 class Nss:
     """Implementation of nwscript"""
 
-    def __init__(self, path: str, ctx: Context, is_command_script: bool):
+    def __init__(self, path: str, ctx: Context, is_command_script: bool = False):
         """Constructs Nss object"""
         pass
 
@@ -270,7 +270,7 @@ class Nss:
         pass
 
     @staticmethod
-    def from_string(string: str, ctx: Context, is_command_script: bool):
+    def from_string(string: str, ctx: Context, is_command_script: bool = False):
         """Loads Nss from string"""
         pass
 
@@ -713,3 +713,7 @@ class DeclList (Declaration):
     def __iter__(self):
         """Gets iterator of statements"""
         pass
+
+
+def load(script: str, ctx: Context,
+         is_command_script: bool = False) -> Nss: ...
