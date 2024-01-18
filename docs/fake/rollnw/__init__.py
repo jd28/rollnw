@@ -436,13 +436,13 @@ class SpellFlags(enum.Flag):
 
 
 class SpellMetaMagic(enum.Flag):
-    none = 0x00,
-    empower = 0x01,
-    extend = 0x02,
-    maximize = 0x04,
-    quicken = 0x08,
-    silent = 0x10,
-    still = 0x20,
+    none = 0x00
+    empower = 0x01
+    extend = 0x02
+    maximize = 0x04
+    quicken = 0x08
+    silent = 0x10
+    still = 0x20
 
 
 class SpellEntry:
@@ -1981,15 +1981,15 @@ class Effect:
         """Gets the effect's ID"""
         pass
 
-    def set_float(self, index, value):
+    def set_float(self, index: int, value: float):
         """Sets a floating point value"""
         pass
 
-    def set_int(self, index, value):
+    def set_int(self, index: int, value: int):
         """Sets an integer point value"""
         pass
 
-    def set_string(self, index, value):
+    def set_string(self, index: int, value: str):
         """Sets a string value"""
         pass
 

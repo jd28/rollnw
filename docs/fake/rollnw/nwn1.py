@@ -1,5 +1,5 @@
-from .. import ObjectBase, ObjectHandle, Area, Creature, Door, Encounter, Item, Placeable, Store, Trigger, Waypoint
-from .. import Effect, ItemProperty, DiceRoll, AttackData
+from . import ObjectBase, ObjectHandle, Area, Creature, Door, Encounter, Item, Placeable, Store, Trigger, Waypoint
+from . import Effect, ItemProperty, DiceRoll, AttackData
 
 # == Abilities ===============================================================
 # ============================================================================

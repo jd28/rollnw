@@ -1,7 +1,6 @@
-from .. import GameVersion, Module, PathAlias, Ini, Container, TwoDA, Resource
-from .. import ObjectBase, ObjectHandle, Area, Creature, Door, Encounter, Placeable, Store, Trigger, Waypoint
-from .. import Effect
-from ..script import Script
+from . import GameVersion, Module, PathAlias, Ini, Container, TwoDA, Resource
+from . import ObjectBase, ObjectHandle, Area, Creature, Door, Encounter, Placeable, Store, Trigger, Waypoint
+from . import Effect
 
 from typing import Optional
 
@@ -19,6 +18,7 @@ class ConfigOptions:
         include_user (bool): If true, load user data.  (Default True)
     """
     pass
+
 
 class Config:
     """Configuration service
@@ -75,6 +75,7 @@ class Config:
 
         Note: Must be called before ``initialize``
         """
+
 
 class EffectSystemStats:
     """Effect system stat data
@@ -211,19 +212,6 @@ class Rules:
     """Rules service
     """
     pass
-
-
-class ParsedScriptCache:
-    """Script Cache service
-    """
-
-    def get(self, resref: str) -> Script | None:
-        """Gets a parsed script
-
-        Notes:
-            If a script is not in the cache it is demanded from the resource manager and parsed
-        """
-        pass
 
 
 class Strings:
