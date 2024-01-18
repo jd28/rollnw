@@ -1,5 +1,4 @@
 #include "nw/script/AstLocator.hpp"
-#include "nw/script/LspContext.hpp"
 #include <gtest/gtest.h>
 
 #include <nw/log.hpp>
@@ -1237,9 +1236,9 @@ TEST(Nss, While)
     EXPECT_EQ(nss1.errors(), 1);
 }
 
-TEST(Nss, LspContext)
+TEST(Nss, Context)
 {
-    auto ctx = std::make_unique<nw::script::LspContext>();
+    auto ctx = std::make_unique<nw::script::Context>();
 
     script::Nss nss3(R"(
         struct a { int test1; };
@@ -1260,7 +1259,7 @@ TEST(Nss, LspContext)
 
 TEST(Nss, Comment)
 {
-    auto ctx = std::make_unique<nw::script::LspContext>();
+    auto ctx = std::make_unique<nw::script::Context>();
 
     script::Nss nss1(R"(
         // This is a comment
@@ -1305,7 +1304,7 @@ TEST(Nss, Comment)
 
 TEST(Nss, Location)
 {
-    auto ctx = std::make_unique<nw::script::LspContext>();
+    auto ctx = std::make_unique<nw::script::Context>();
 
     script::Nss nss1(R"(
         int test = 1;
@@ -1508,7 +1507,7 @@ TEST(Nss, Location)
 
 TEST(Nss, SignatureHelper)
 {
-    auto ctx = std::make_unique<nw::script::LspContext>();
+    auto ctx = std::make_unique<nw::script::Context>();
 
     script::Nss nss1(R"(
         void main() {

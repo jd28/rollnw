@@ -137,14 +137,6 @@ class Diagnostic:
     """
 
 
-class LspContext:
-    """Provides a context built around providing diagnostics to a language server"""
-
-    def __init__(self, include_paths: List[str] = [],
-                 command_script: str = "nwscript"):
-        pass
-
-
 class Include:
     """
     Attributes:

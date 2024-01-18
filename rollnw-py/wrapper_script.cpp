@@ -1,5 +1,4 @@
 #include <nw/kernel/Resources.hpp>
-#include <nw/script/LspContext.hpp>
 #include <nw/script/Nss.hpp>
 #include <nw/script/NssLexer.hpp>
 #include <nw/script/Token.hpp>
@@ -79,11 +78,6 @@ void init_script(py::module& nw)
         .def_readonly("script", &nws::Diagnostic::script)
         .def_readonly("message", &nws::Diagnostic::message)
         .def_readonly("location", &nws::Diagnostic::location);
-
-    py::class_<nws::LspContext, nws::Context>(nw, "LspContext")
-        .def(py::init<>())
-        .def(py::init<std::vector<std::string>>())
-        .def(py::init<std::vector<std::string>, std::string>());
 
     py::enum_<nws::NssTokenType>(nw, "NssTokenType")
         .value("INVALID", nws::NssTokenType::INVALID)

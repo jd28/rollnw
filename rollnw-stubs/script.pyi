@@ -73,11 +73,6 @@ class Diagnostic:
     location: SourceRange
 
 
-class LspContext(Context):
-    def __init__(self, include_paths: List[str] = [
-    ], command_script: str = "nwscript") -> None: ...
-
-
 class SignatureHelp:
     decl: FunctionDecl | FunctionDefinition
     expr: CallExpression
