@@ -1,6 +1,7 @@
+from . import Location
 import enum
 from enum import auto
-from typing import List, Sequence, Optional
+from typing import List, Sequence, Optional, Iterator
 
 # Script ######################################################################
 ###############################################################################
@@ -126,26 +127,38 @@ class DiagnosticSeverity(enum.IntEnum):
 
 
 class Diagnostic:
-    """Parsed script Diagnostic
-
-    Attributes:
-        type (DiagnosticType)
-        severity (DiagnosticSeverity)
-        script (str)
-        message (str)
-        location (SourceRange): Source range in script
+    """Information for a script diagnostic
     """
+    #: The type of the diagnostic
+    type: DiagnosticType
+
+    #: The severity of the diagnostic
+    severity: DiagnosticSeverity
+
+    #: Name of script
+    script: str
+
+    #: A helpful message
+    message: str
+
+    #: Source range in script
+    location: "SourceRange"
 
 
 class Include:
+    """Abstracts a script include
     """
-    Attributes:
-        resref (str): Resref of included script
-        location (SourceRange): Source range in script
-        script (Nss): Loaded script
-        used (int): Number of times include is used in script file
-    """
-    pass
+    #: Resref of included script
+    resref: str
+
+    #: Source range in script
+    location: "SourceRange"
+
+    #: Loaded script
+    script: "Nss"
+
+    #: Number of times include is used in script file
+    used: int
 
 
 class Comment:
@@ -157,35 +170,40 @@ class Comment:
 
 
 class SignatureHelp:
+    """Data required for providing Signature Help in an LSP
     """
-    Attributes
-        decl ()
-        expr (CallExpression)
-        active_param (int)
-    """
+    #: The declaration for ``expr``
+    decl: "Declaration"
+
+    #: The current call expression
+    expr: "CallExpression"
+
+    #: The currently active parameter, i.e. where the cursor is in the parameter
+    active_param: int
 
 
 class Ast:
     """Class containing a parsed ast
-
-    Attributes:
-        defines ([str])
-        includes ([str])
     """
+    #: Defines from ``#define`` directive.  Only used in command script, i.e. nwscript.nss
+    defines: dict[str, str]
 
-    def __getitem__(self, index: int):
+    #: Scripts that are included in the current script
+    includes: List[Include]
+
+    def __getitem__(self, index: int) -> "Declaration":
         """Gets a toplevel declaration"""
         pass
 
-    def __iter__(self):
+    def __iter__(self) -> "Iterator[Declaration]":
         """Gets an iterator of toplevel declarations"""
         pass
 
-    def __len__(self):
+    def __len__(self) -> int:
         """Gets number of toplevel declarations"""
         pass
 
-    def comments(self) -> Sequence[Comment]:
+    def comments(self) -> List[Comment]:
         """Gets all comments in Ast"""
         return []
 
@@ -206,17 +224,17 @@ class Nss:
         """Gets the parsed script"""
         pass
 
-    def complete(self, needle: str) -> Sequence["Symbol"]:
+    def complete(self, needle: str) -> List["Symbol"]:
         """Generates a list of potential completions (excluding dependencies)
         """
         return []
 
-    def complete_at(self, needle: str, line: int, character: int) -> Sequence["Symbol"]:
+    def complete_at(self, needle: str, line: int, character: int) -> List["Symbol"]:
         """Get all completions (including dependencies)
         """
         return []
 
-    def complete_dot(self, needle: str, line: int, character: int) -> Sequence["Symbol"]:
+    def complete_dot(self, needle: str, line: int, character: int) -> List["Symbol"]:
         """Get all completions for struct fields
         """
         return []
@@ -224,7 +242,7 @@ class Nss:
     def diagnostics(self) -> List[Diagnostic]:
         return []
 
-    def errors(self):
+    def errors(self) -> int:
         """Gets number of errors encountered while parsing"""
         pass
 
@@ -233,7 +251,7 @@ class Nss:
         return []
 
     def locate_export(self, is_type: bool,
-                      search_dependencies: bool) -> "Symbol":
+                      search_dependencies: bool = False) -> "Symbol":
         """Locate export, i.e. a top level symbols"""
         return Symbol()
 
@@ -262,15 +280,15 @@ class Nss:
         return SignatureHelp()
 
     def view_from_range(self, range: "SourceRange") -> str:
-        """Gets number of errors encountered while parsing"""
+        """Gets string view of the source at ``range``"""
         return ""
 
-    def warnings(self):
+    def warnings(self) -> int:
         """Gets number of errors encountered while parsing"""
         pass
 
     @staticmethod
-    def from_string(string: str, ctx: Context, is_command_script: bool = False):
+    def from_string(string: str, ctx: Context, is_command_script: bool = False) -> "Nss":
         """Loads Nss from string"""
         pass
 
@@ -290,29 +308,29 @@ class NssLexer:
 
 class SourcePosition:
     """Position in source code
-
-    Attributes:
-        column (int): Starting column
-        line (int): Starting line
     """
+    #: Starting column
+    column: int
+
+    #: Starting line
+    line: int
 
 
 class SourceRange:
     """Range into the source code
-
-    Attributes:
-        start (SourcePosition): Start
-        end (SourcePosition): End
     """
-    pass
+    #: Start
+    start: SourcePosition
+
+    #: End
+    end: SourcePosition
 
 
 class SourceLocation:
     """Nss source location
-
-    Attributes:
-        range (SourceRange): Range in source code
     """
+    #: Range in source code
+    range: SourceRange
 
     def length(self) -> int:
         """Length of the source location"""
@@ -336,43 +354,53 @@ class SymbolKind(enum.IntEnum):
 
 class Symbol:
     """Info regarding a particular symbol somewhere in a source file
-
-    Attributes:
-        node (AstNode)
-        decl (Declaration)
-        comment (str)
-        type (str)
-        kind (SymbolKind)
-        provider (Nss)
-        view (str)
     """
-    pass
+    #: The ast node where the symbol was found, if availble
+    node: "Optional[AstNode]"
+
+    #: The declaration of the symbol
+    decl: "Declaration"
+
+    #: Comment associated with the line the symbol is on or the line prior
+    comment: str
+
+    #: The symbols type as a string
+    type: str
+
+    #: The symbols kind, for use with an LSP
+    kind: SymbolKind
+
+    #: The script in which the symbol was found
+    provider: Nss
+
+    #: A string view of the symbol in source
+    view: str
 
 
 class InlayHint:
-    """An inlay source code hint
-
-    Attributes:
-        message (str)
-        position (SourcePosition)
+    """An inlay source code hint for an LSP
     """
-    pass
+    #: Helpful message to display inline or a type, etc.
+    message: str
+
+    #: The postion where the hint should be displayed
+    position: SourcePosition
 
 
 class NssToken:
     """Nss token
-
-    Attributes:
-        type (NssTokenType)
-        loc (SourceLocation)
     """
-    pass
+    #: The type of the token
+    type: NssTokenType
+
+    #: The location of the token in a source file
+    loc: SourceLocation
 
 
 class AstNode:
     """Base Ast Node class"""
 
-    def complete(self, needle: str) -> Sequence["Symbol"]:
+    def complete(self, needle: str) -> List["Symbol"]:
         """Find completions for any Ast Node
 
         @note This function does not traverse dependencies
@@ -387,64 +415,86 @@ class Expression(AstNode):
 
 class AssignExpression(Expression):
     """Assignment operation expression
-
-    Attributes:
-        lhs
-        operator
-        rhs
     """
-    pass
+    #: Expression being assigned to.  Note that in a simple language like NWScript
+    #: this can only be a variable expression or a dot expression (i.e. assigning a struct member)
+    lhs: "VariableExpression | DotExpression"
+
+    #: The assignment operator, '=', '+=', etc, etc.
+    operator: NssToken
+
+    #: The expression being assigned
+    rhs: Expression
 
 
 class BinaryExpression(Expression):
     """Binary operation expression
-
-    Attributes:
-        lhs
-        operator
-        rhs
     """
-    pass
+    #: Lefthand side of the binary expression
+    lhs: Expression
+
+    #: The binary operator, '+', '-', etc, etc.
+    operator: NssToken
+
+    #: Righthand side of the binary expression
+    rhs: Expression
 
 
 class CallExpression(Expression):
     """Call operation expression
-
-    Attributes:
-        expr
     """
+    #: The expression prior to ``(...)``
+    expr: Expression
 
-    def __len__(self):
+    def __len__(self) -> int:
         """Gets the number of arguments"""
         pass
 
-    def __getitem__(self, idx: int):
+    def __getitem__(self, idx: int) -> Expression:
         """Gets an argument"""
         pass
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[Expression]:
         """Gets iterator of arguments"""
         pass
 
 
+class ComparisonExpression(Expression):
+    """Comparison operation expression
+    """
+    #: Lefthand side of the Comparison expression
+    lhs: Expression
+
+    #: The Comparison operator, '==', '<', etc, etc.
+    operator: NssToken
+
+    #: Righthand side of the Comparison expression
+    rhs: Expression
+
+
 class ConditionalExpression(Expression):
     """Conditional operation expression
-
-    Attributes:
-        test
-        true_branch
-        false_branch
     """
-    pass
+
+    #: The expression that is tested
+    test: Expression
+
+    #: The branch where ``test`` is True
+    true_branch: "Statement"
+
+    #: The branch where ``test`` is False
+    false_branch: "Statement"
 
 
 class DotExpression(Expression):
     """Dot operation expression
-
-    Attributes:
-        expr
     """
-    pass
+    #: In NWScript the only two possible expressions on the left hand of the dot
+    #: are var_expr.var_expr or call_expr.var_expr
+    lhs: "VariableExpression | CallExpression"
+
+    #: The right hand side of a dot operator
+    rhs: "VariableExpression"
 
 
 class EmptyExpression(Expression):
@@ -455,72 +505,72 @@ class EmptyExpression(Expression):
 
 class GroupingExpression(Expression):
     """Grouping operation expression
-
-    Attributes:
-        expr
     """
-    pass
+    #: Expression contained in the grouping parenthesis.
+    expr: Expression
 
 
 class LiteralExpression(Expression):
     """Literal expression
-
-    Attributes:
-        literal
     """
-    pass
+    #: Data of the literal value
+    data: int | str | float | Location
+
+    #: Token of the literal value
+    literal: NssToken
 
 
 class LiteralVectorExpression(Expression):
     """Literal vector expression
-
-    Attributes:
-        x
-        y
-        z
     """
+    #: Token representation for ``x`` value
+    x: NssToken
 
-    pass
+    #: Token representation for ``y`` value
+    y: NssToken
+
+    #: Token representation for ``z`` value
+    z: NssToken
 
 
 class LogicalExpression(Expression):
-    """Binary operation expression
-
-    Attributes:
-        lhs
-        operator
-        rhs
+    """Logical operation expression
     """
-    pass
+    #: Lefthand side of the logical expression
+    lhs: Expression
+
+    #: The logical operator, '||', '&&', etc, etc.
+    operator: NssToken
+
+    #: Righthand side of the logical expression
+    rhs: Expression
 
 
 class PostfixExpression(Expression):
     """Postfix operation expression
-
-    Attributes:
-        lhs
-        operator
     """
-    pass
+    #: Lefthand side of the postfix expression
+    lhs: Expression
+
+    #: The postix operator, '++', '--', etc.
+    operator: NssToken
 
 
 class UnaryExpression(Expression):
     """Unary operation expression
-
-    Attributes:
-        rhs
-        operator
     """
-    pass
+    #: The postix operator, '++', '--', etc.
+    operator: NssToken
+
+    #: Righthand side of the postfix expression
+    rhs: Expression
 
 
 class VariableExpression(Expression):
     """Variable expression
-
-    Attributes:
-        var
     """
-    pass
+    #: Token containing variable identifier
+    var: NssToken
 
 
 class Statement(AstNode):
@@ -536,27 +586,27 @@ class BlockStatement (Statement):
     """
     pass
 
-    def __len__(self):
+    def __len__(self) -> int:
         """Gets the number of statements"""
         pass
 
-    def __getitem__(self, idx: int):
+    def __getitem__(self, idx: int) -> Statement:
         """Gets a statement in the block"""
         pass
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[Statement]:
         """Gets iterator of statements"""
         pass
 
 
 class DoStatement (Statement):
-    """If statement
-
-    Attributes:
-        block (BlockStatement)
-        test (Expression)
+    """Do statement
     """
-    pass
+    #: The do block statement
+    block: BlockStatement
+
+    #: The test at the end of the block
+    test: Expression
 
 
 class EmptyStatement (Statement):
@@ -566,80 +616,82 @@ class EmptyStatement (Statement):
 
 class ExprStatement (Statement):
     """Expression statement
-
-    Attributes:
-        expr (Expression)
     """
-    pass
+    #: An expression
+    expr: Expression
 
 
 class IfStatement (Statement):
     """If statement
-
-    Attributes:
-        test
-        true_branch
-        false_branch
     """
-    pass
+    #: The expression that is tested
+    test: Expression
+
+    #: The branch where ``test`` is True
+    true_branch: "Statement"
+
+    #: The optional branch where ``test`` is False
+    false_branch: "Statement"
 
 
 class ForStatement (Statement):
     """For statement
-
-    Attributes:
-        init
-        test
-        increment
-        block (BlockStatement)
     """
-    pass
+    #: An optional initialization.  Normally this is a Declaration or just an expression
+    init: Optional[AstNode]
+
+    #: An optional expression that determines if the loop is to continue
+    test: Optional[Expression]
+
+    #: An optional increment expression
+    increment: Optional[Expression]
+
+    #: While this is called ``block``, any (single) statement can follow a for loop.
+    block: Statement
 
 
 class JumpStatement (Statement):
     """Jump statement
-
-    Attributes:
-        operator (NssToken)
-        expr (Expression)
     """
-    pass
+    #: Token representing the jump statement (i.e. ``return``, ``break``, ``continue``)
+    operator: NssToken
+
+    #: Optional expression when returning a value
+    expr: Optional[Expression]
 
 
 class LabelStatement (Statement):
     """Label statement
-
-    Attributes:
-        label (NssToken)
-        expr (Expression)
     """
-    pass
+    #: Token representing the label statement (i.e. ``case``, ``default``)
+    label: NssToken
+
+    #: Expression when label is a ``case``.
+    expr: Optional[Expression]
 
 
 class SwitchStatement (Statement):
     """Switch statement
-
-    Attributes:
-        target (Expression)
-        block (BlockStatement)
     """
-    pass
+    #: The target expression for the switch
+    target: Expression
+
+    #: The block of labels and stuff
+    block: BlockStatement
 
 
 class WhileStatement (Statement):
     """While statement
-
-    Attributes:
-        test (Expression)
-        block (BlockStatement)
     """
-    pass
+    #: The expression that determines if the loop is to continue
+    test: Expression
+
+    #: While this is called ``block``, any (single) statement can follow a for loop.
+    block: Statement
 
 
 class Declaration(Statement):
     """Base Declaration class
-
-    Attributes:
         type
     """
 
@@ -652,68 +704,68 @@ class FunctionDecl (Declaration):
     """Function declaration
     """
 
-    def __len__(self):
+    def __len__(self) -> int:
         """Gets the number of parameters"""
         pass
 
-    def __getitem__(self, idx: int):
+    def __getitem__(self, idx: int) -> Declaration:
         """Gets a parameter"""
         pass
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[Declaration]:
         """Gets iterator of parameters"""
         pass
 
 
 class FunctionDefinition (Declaration):
     """Function definition
-
-    Attributes:
-        decl (FunctionDecl)
-        block (BlockStatement)
     """
-    pass
+    #: Declaration of the function definition
+    decl: FunctionDecl
+
+    #: Block of the function
+    block: BlockStatement
 
 
 class StructDecl (Declaration):
     """Struct declaration
     """
 
-    def __len__(self):
+    def __len__(self) -> int:
         """Gets the number of struct members"""
         pass
 
-    def __getitem__(self, idx: int):
+    def __getitem__(self, idx: int) -> Declaration:
         """Gets a struct member declaration"""
         pass
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[Declaration]:
         """Gets iterator of statements"""
         pass
 
 
 class VarDecl (Declaration):
     """Variable declaration
-
-    Attributes:
-        init
     """
-    pass
+    #: An optional expression to initialize declaration
+    init: Optional[Expression]
 
 
 class DeclList (Declaration):
-    def __len__(self):
+    def __len__(self) -> int:
         """Gets the number of declarations"""
         pass
 
-    def __getitem__(self, idx: int):
+    def __getitem__(self, idx: int) -> Declaration:
         """Gets a declaration"""
         pass
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[Declaration]:
         """Gets iterator of statements"""
         pass
 
 
 def load(script: str, ctx: Context,
-         is_command_script: bool = False) -> Nss: ...
+         is_command_script: bool = False) -> Nss:
+    """Fully loads a script from resman"""
+    pass

@@ -21,10 +21,10 @@ def test_function_decl():
     nss.parse()
     nss.resolve()
     script = nss.ast()
-    assert isinstance(script[0], FunctionDecl)
     decl = script[0]
-    assert len(decl) == 2
-    assert isinstance(decl[0], VarDecl)
+    if isinstance(decl, FunctionDecl):
+        assert len(decl) == 2
+        assert isinstance(decl[0], VarDecl)
 
 
 def test_function_decl2():

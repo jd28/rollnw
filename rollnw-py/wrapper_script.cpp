@@ -244,7 +244,7 @@ void init_script(py::module& nw)
             },
             py::return_value_policy::reference_internal)
         .def("inlay_hints", &nws::Nss::inlay_hints)
-        .def("locate_export", &nws::Nss::locate_export, py::return_value_policy::reference_internal)
+        .def("locate_export", &nws::Nss::locate_export, py::arg("symbol"), py::arg("is_type"), py::arg("search_dependancies") = false, py::return_value_policy::reference_internal)
         .def("locate_symbol", &nws::Nss::locate_symbol, py::return_value_policy::reference_internal)
         .def("name", &nws::Nss::name)
         .def("parse", &nws::Nss::parse)
@@ -332,6 +332,15 @@ void init_script(py::module& nw)
             },
             py::keep_alive<0, 1>());
 
+    py::class_<nws::ComparisonExpression, nws::Expression>(nw, "ComparisonExpression")
+        .def_readonly("operator", &nws::ComparisonExpression::op)
+        .def_property_readonly(
+            "lhs", [](nws::ComparisonExpression& self) { return self.lhs; },
+            py::return_value_policy::reference_internal)
+        .def_property_readonly(
+            "rhs", [](nws::ComparisonExpression& self) { return self.rhs; },
+            py::return_value_policy::reference_internal);
+
     py::class_<nws::ConditionalExpression, nws::Expression>(nw, "ConditionalExpression")
         .def_property_readonly(
             "test", [](nws::ConditionalExpression& self) { return self.test; },
@@ -359,7 +368,8 @@ void init_script(py::module& nw)
             py::return_value_policy::reference_internal);
 
     py::class_<nws::LiteralExpression, nws::Expression>(nw, "LiteralExpression")
-        .def_readonly("literal", &nws::LiteralExpression::literal);
+        .def_readonly("literal", &nws::LiteralExpression::literal)
+        .def_readonly("data", &nws::LiteralExpression::data);
 
     py::class_<nws::LiteralVectorExpression, nws::Expression>(nw, "LiteralVectorExpression")
         .def_readonly("x", &nws::LiteralVectorExpression::x)
