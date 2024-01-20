@@ -135,11 +135,20 @@
   <section id="script">
 <h1>script<a class="headerlink" href="#script" title="Link to this heading"></a></h1>
 <p>The script module provides a lexer, recursive decent parser, and type-checker for NWScript.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>In the case of the <a class="reference external" href="https://rollnw.readthedocs.io/en/latest/api_python/rollnw_script.html">Python API</a>,
+the interface to the AST is read only.</p>
+</div>
 <section id="examples">
 <h2>examples<a class="headerlink" href="#examples" title="Link to this heading"></a></h2>
 <p><strong>Basic Loading</strong></p>
 <div class="sphinx-tabs docutils container">
-<div aria-label="Tabbed content" class="closeable" role="tablist"><button aria-controls="panel-0-UHl0aG9u" aria-selected="true" class="sphinx-tabs-tab code-tab group-tab" id="tab-0-UHl0aG9u" name="UHl0aG9u" role="tab" tabindex="0">Python</button><button aria-controls="panel-0-Qysr" aria-selected="false" class="sphinx-tabs-tab code-tab group-tab" id="tab-0-Qysr" name="Qysr" role="tab" tabindex="-1">C++</button></div><div aria-labelledby="tab-0-UHl0aG9u" class="sphinx-tabs-panel code-tab group-tab" id="panel-0-UHl0aG9u" name="UHl0aG9u" role="tabpanel" tabindex="0"><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">rollnw.script</span> <span class="kn">import</span> <span class="n">Nss</span><span class="p">,</span> <span class="n">Context</span>
+<div aria-label="Tabbed content" class="closeable" role="tablist"><button aria-controls="panel-0-UHl0aG9u" aria-selected="true" class="sphinx-tabs-tab code-tab group-tab" id="tab-0-UHl0aG9u" name="UHl0aG9u" role="tab" tabindex="0">Python</button><button aria-controls="panel-0-Qysr" aria-selected="false" class="sphinx-tabs-tab code-tab group-tab" id="tab-0-Qysr" name="Qysr" role="tab" tabindex="-1">C++</button></div><div aria-labelledby="tab-0-UHl0aG9u" class="sphinx-tabs-panel code-tab group-tab" id="panel-0-UHl0aG9u" name="UHl0aG9u" role="tabpanel" tabindex="0"><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">rollnw</span>
+<span class="kn">from</span> <span class="nn">rollnw.script</span> <span class="kn">import</span> <span class="n">Nss</span><span class="p">,</span> <span class="n">Context</span>
+
+<span class="c1"># Start kernel, if you want to load game assets</span>
+<span class="n">rollnw</span><span class="o">.</span><span class="n">kernel</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
 
 <span class="c1"># Create a context and load a script</span>
 <span class="n">ctx</span> <span class="o">=</span> <span class="n">Context</span><span class="p">()</span>
@@ -161,7 +170,12 @@
 <span class="n">raise_dead</span> <span class="o">=</span> <span class="n">rollnw</span><span class="o">.</span><span class="n">script</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s2">&quot;nw_s0_raisdead&quot;</span><span class="p">,</span> <span class="n">Context</span><span class="p">())</span>
 </pre></div>
 </div>
-</div><div aria-labelledby="tab-0-Qysr" class="sphinx-tabs-panel code-tab group-tab" hidden="true" id="panel-0-Qysr" name="Qysr" role="tabpanel" tabindex="0"><div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;nw/script/Nss.hpp&gt;</span>
+</div><div aria-labelledby="tab-0-Qysr" class="sphinx-tabs-panel code-tab group-tab" hidden="true" id="panel-0-Qysr" name="Qysr" role="tabpanel" tabindex="0"><div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;nw/kernel/Kernel.hpp&gt;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;nw/script/Nss.hpp&gt;</span>
+
+<span class="c1">// Start the kernel, if you want to load game assets</span>
+<span class="n">nw</span><span class="o">::</span><span class="n">kernel</span><span class="o">::</span><span class="n">config</span><span class="p">().</span><span class="n">initialize</span><span class="p">();</span>
+<span class="n">nw</span><span class="o">::</span><span class="n">kernel</span><span class="o">::</span><span class="n">services</span><span class="p">().</span><span class="n">start</span><span class="p">();</span>
 
 <span class="k">auto</span><span class="w"> </span><span class="n">ctx</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">make_unique</span><span class="o">&lt;</span><span class="n">nw</span><span class="o">::</span><span class="n">script</span><span class="o">::</span><span class="n">Context</span><span class="o">&gt;</span><span class="p">();</span>
 <span class="n">nw</span><span class="o">::</span><span class="n">script</span><span class="o">::</span><span class="n">Nss</span><span class="w"> </span><span class="n">nss</span><span class="p">{</span><span class="n">nw</span><span class="o">::</span><span class="n">kerne</span><span class="o">::</span><span class="n">resman</span><span class="p">().</span><span class="n">demand</span><span class="p">({</span><span class="s">&quot;nwscript&quot;</span><span class="n">sv</span><span class="p">,</span><span class="w"> </span><span class="n">nw</span><span class="o">::</span><span class="n">ResourceType</span><span class="o">::</span><span class="n">nss</span><span class="p">),</span><span class="w"> </span><span class="n">ctx</span><span class="p">.</span><span class="n">get</span><span class="p">(),</span><span class="w"> </span><span class="nb">true</span><span class="p">};</span>
@@ -181,7 +195,11 @@
 </div></div>
 <hr class="docutils" />
 <p><strong>Iterating Top-Level Declarations</strong></p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">rollnw.script</span> <span class="kn">import</span> <span class="n">Nss</span><span class="p">,</span> <span class="n">FunctionDecl</span><span class="p">,</span> <span class="n">Context</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">rollnw</span>
+<span class="kn">from</span> <span class="nn">rollnw.script</span> <span class="kn">import</span> <span class="n">Nss</span><span class="p">,</span> <span class="n">FunctionDecl</span><span class="p">,</span> <span class="n">Context</span>
+
+<span class="c1"># Start kernel, if you want to load game assets</span>
+<span class="n">rollnw</span><span class="o">.</span><span class="n">kernel</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
 
 <span class="c1"># Load</span>
 <span class="n">ctx</span> <span class="o">=</span> <span class="n">Context</span><span class="p">()</span>
@@ -192,10 +210,10 @@
 <span class="k">for</span> <span class="n">decl</span> <span class="ow">in</span> <span class="n">nss</span><span class="o">.</span><span class="n">ast</span><span class="p">():</span>
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">decl</span><span class="p">,</span> <span class="n">FunctionDecl</span><span class="p">):</span>
         <span class="c1"># the identifier is token for now..</span>
-        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;function &#39;</span><span class="si">{</span><span class="n">decl</span><span class="o">.</span><span class="n">identifier</span><span class="o">.</span><span class="n">loc</span><span class="o">.</span><span class="n">view</span><span class="p">()</span><span class="si">}</span><span class="s2">&#39; has </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">decl</span><span class="p">)</span><span class="si">}</span><span class="s2"> parameter(s)&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;function &#39;</span><span class="si">{</span><span class="n">decl</span><span class="o">.</span><span class="n">identifier</span><span class="p">()</span><span class="si">}</span><span class="s2">&#39; has </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">decl</span><span class="p">)</span><span class="si">}</span><span class="s2"> parameter(s)&quot;</span><span class="p">)</span>
 
-<span class="c1"># Or if you know what you&#39;re looking for..</span>
-<span class="n">int_to_string</span> <span class="o">=</span> <span class="n">nss</span><span class="o">.</span><span class="n">locate_export</span><span class="p">(</span><span class="s2">&quot;IntToString&quot;</span><span class="p">)</span>
+<span class="c1"># Or if you know what you&#39;re looking for.. the result is a rollnw.script.Symbol</span>
+<span class="n">int_to_string</span> <span class="o">=</span> <span class="n">nss</span><span class="o">.</span><span class="n">locate_export</span><span class="p">(</span><span class="s2">&quot;IntToString&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
 </pre></div>
 </div>
 </section>
@@ -206,7 +224,7 @@
 <section id="todos">
 <h2>TODOs<a class="headerlink" href="#todos" title="Link to this heading"></a></h2>
 <ul class="simple">
-<li><p>Decide how much to track NWN:EE NWScript changes</p></li>
+<li><p>Decide how much to track NWN:EE NWScript changes, only raw strings isn’t already done.</p></li>
 <li><p>Make the library more useful for NWScript successors (i.e Dragon Age or KoTOR)</p></li>
 <li><p>Whether to do optimizations or anything further than performance/usability improvements</p></li>
 </ul>
