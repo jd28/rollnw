@@ -150,24 +150,30 @@ the interface to the AST is read only.</p>
 <span class="c1"># Start kernel, if you want to load game assets</span>
 <span class="n">rollnw</span><span class="o">.</span><span class="n">kernel</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
 
-<span class="c1"># Create a context and load a script</span>
-<span class="n">ctx</span> <span class="o">=</span> <span class="n">Context</span><span class="p">()</span>
-<span class="n">nss</span> <span class="o">=</span> <span class="n">Nss</span><span class="p">(</span><span class="s2">&quot;path/to/myscript.nss&quot;</span><span class="p">,</span> <span class="n">ctx</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+<span class="c1"># Create a context and to add include path, pass them into the Context constructor</span>
+<span class="n">ctx</span> <span class="o">=</span> <span class="n">Context</span><span class="p">([</span><span class="s2">&quot;includes/&quot;</span><span class="p">])</span>
+
+<span class="c1"># Load the script from a file</span>
+<span class="n">nss</span> <span class="o">=</span> <span class="n">Nss</span><span class="p">(</span><span class="s2">&quot;path/to/myscript.nss&quot;</span><span class="p">,</span> <span class="n">ctx</span><span class="p">)</span>
 
 <span class="c1"># Parse</span>
 <span class="n">nss</span><span class="o">.</span><span class="n">parse</span><span class="p">()</span>
 
 <span class="c1"># Preprocessing</span>
 <span class="n">nss</span><span class="o">.</span><span class="n">process_includes</span><span class="p">()</span>
+
 <span class="c1"># Now all dependencies are available</span>
 <span class="n">deps</span> <span class="o">=</span> <span class="n">nss</span><span class="o">.</span><span class="n">dependencies</span><span class="p">()</span>
 
 <span class="c1"># Ast resolution and type-checking</span>
 <span class="n">nss</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span>
 
-<span class="c1"># To simplify this process for assets in the resource manager,</span>
-<span class="c1"># the ``load`` function will call all the above</span>
-<span class="n">raise_dead</span> <span class="o">=</span> <span class="n">rollnw</span><span class="o">.</span><span class="n">script</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s2">&quot;nw_s0_raisdead&quot;</span><span class="p">,</span> <span class="n">Context</span><span class="p">())</span>
+<span class="c1"># Load a script from string</span>
+<span class="n">nss2</span> <span class="o">=</span> <span class="n">Nss</span><span class="o">.</span><span class="n">from_string</span><span class="p">(</span><span class="s2">&quot;void test_function(string s, int b);&quot;</span><span class="p">,</span> <span class="n">ctx</span><span class="p">)</span>
+
+<span class="c1"># To get any old script in the the context&#39;s resman use ``get``.  Note this</span>
+<span class="c1"># parses and resolves the script, nothing further processing is needed.</span>
+<span class="n">raise_dead</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;nw_s0_raisdead&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
 </div><div aria-labelledby="tab-0-Qysr" class="sphinx-tabs-panel code-tab group-tab" hidden="true" id="panel-0-Qysr" name="Qysr" role="tabpanel" tabindex="0"><div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;nw/kernel/Kernel.hpp&gt;</span>
@@ -178,7 +184,7 @@ the interface to the AST is read only.</p>
 <span class="n">nw</span><span class="o">::</span><span class="n">kernel</span><span class="o">::</span><span class="n">services</span><span class="p">().</span><span class="n">start</span><span class="p">();</span>
 
 <span class="k">auto</span><span class="w"> </span><span class="n">ctx</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">make_unique</span><span class="o">&lt;</span><span class="n">nw</span><span class="o">::</span><span class="n">script</span><span class="o">::</span><span class="n">Context</span><span class="o">&gt;</span><span class="p">();</span>
-<span class="n">nw</span><span class="o">::</span><span class="n">script</span><span class="o">::</span><span class="n">Nss</span><span class="w"> </span><span class="n">nss</span><span class="p">{</span><span class="n">nw</span><span class="o">::</span><span class="n">kerne</span><span class="o">::</span><span class="n">resman</span><span class="p">().</span><span class="n">demand</span><span class="p">({</span><span class="s">&quot;nwscript&quot;</span><span class="n">sv</span><span class="p">,</span><span class="w"> </span><span class="n">nw</span><span class="o">::</span><span class="n">ResourceType</span><span class="o">::</span><span class="n">nss</span><span class="p">),</span><span class="w"> </span><span class="n">ctx</span><span class="p">.</span><span class="n">get</span><span class="p">(),</span><span class="w"> </span><span class="nb">true</span><span class="p">};</span>
+<span class="n">nw</span><span class="o">::</span><span class="n">script</span><span class="o">::</span><span class="n">Nss</span><span class="w"> </span><span class="n">nss</span><span class="p">{</span><span class="n">nw</span><span class="o">::</span><span class="n">kernel</span><span class="o">::</span><span class="n">resman</span><span class="p">().</span><span class="n">demand</span><span class="p">({</span><span class="s">&quot;nwscript&quot;</span><span class="n">sv</span><span class="p">,</span><span class="w"> </span><span class="n">nw</span><span class="o">::</span><span class="n">ResourceType</span><span class="o">::</span><span class="n">nss</span><span class="p">),</span><span class="w"> </span><span class="n">ctx</span><span class="p">.</span><span class="n">get</span><span class="p">(),</span><span class="w"> </span><span class="nb">true</span><span class="p">};</span>
 
 <span class="c1">// Parse</span>
 <span class="n">nss</span><span class="p">.</span><span class="n">parse</span><span class="p">();</span>
@@ -201,9 +207,11 @@ the interface to the AST is read only.</p>
 <span class="c1"># Start kernel, if you want to load game assets</span>
 <span class="n">rollnw</span><span class="o">.</span><span class="n">kernel</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
 
-<span class="c1"># Load</span>
+<span class="c1"># Create a context..</span>
 <span class="n">ctx</span> <span class="o">=</span> <span class="n">Context</span><span class="p">()</span>
-<span class="n">nss</span> <span class="o">=</span> <span class="n">rollnw</span><span class="o">.</span><span class="n">script</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s2">&quot;nwscript&quot;</span><span class="p">,</span> <span class="n">ctx</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+
+<span class="c1"># The default command script is &quot;nwsscript&quot;</span>
+<span class="n">nss</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">command_script</span><span class="p">()</span>
 
 <span class="c1"># Iterate toplevel declarations and look for function declarations</span>
 <span class="c1"># This is all functions WITHOUT bodies.</span>

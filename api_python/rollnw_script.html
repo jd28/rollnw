@@ -136,6 +136,8 @@
 <li class="toctree-l2"><a class="reference internal" href="#rollnw.script.Context"><code class="docutils literal notranslate"><span class="pre">Context</span></code></a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#rollnw.script.Context.__init__"><code class="docutils literal notranslate"><span class="pre">Context.__init__()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#rollnw.script.Context.add_include_path"><code class="docutils literal notranslate"><span class="pre">Context.add_include_path()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#rollnw.script.Context.command_script"><code class="docutils literal notranslate"><span class="pre">Context.command_script()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#rollnw.script.Context.get"><code class="docutils literal notranslate"><span class="pre">Context.get()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#rollnw.script.DeclList"><code class="docutils literal notranslate"><span class="pre">DeclList</span></code></a><ul>
@@ -448,7 +450,6 @@
 <li class="toctree-l3"><a class="reference internal" href="#rollnw.script.WhileStatement.test"><code class="docutils literal notranslate"><span class="pre">WhileStatement.test</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#rollnw.script.load"><code class="docutils literal notranslate"><span class="pre">load()</span></code></a></li>
 </ul>
 </li>
 </ul>
@@ -740,6 +741,16 @@ this can only be a variable expression or a dot expression (i.e. assigning a str
 <dt class="sig sig-object py" id="rollnw.script.Context">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">rollnw.script.</span></span><span class="sig-name descname"><span class="pre">Context</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">include_paths</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">[]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">command_script</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'nwscript'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#rollnw.script.Context" title="Link to this definition"></a></dt>
 <dd><p>Provides a context for parsing a NWScript file</p>
+<p>Every context contains its own resource manager that has as a parent the global resource manager.
+Ultimately, this will be changed to each context having its own unique resource manager.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>include_paths</strong> (<em>[</em><em>str</em><em>]</em><em>, </em><em>optional</em>) – A list of include paths to load into internal resource manager. Default: <code class="docutils literal notranslate"><span class="pre">[]</span></code>.</p></li>
+<li><p><strong>command_script</strong> (<em>str</em><em>, </em><em>optional</em>) – Command script to load. Default: “nwscript”.</p></li>
+</ul>
+</dd>
+</dl>
 <dl class="py method">
 <dt class="sig sig-object py" id="rollnw.script.Context.__init__">
 <span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">include_paths</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">[]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">command_script</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'nwscript'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#rollnw.script.Context.__init__" title="Link to this definition"></a></dt>
@@ -749,6 +760,18 @@ this can only be a variable expression or a dot expression (i.e. assigning a str
 <dt class="sig sig-object py" id="rollnw.script.Context.add_include_path">
 <span class="sig-name descname"><span class="pre">add_include_path</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#rollnw.script.Context.add_include_path" title="Link to this definition"></a></dt>
 <dd><p>Adds path to internal resman</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="rollnw.script.Context.command_script">
+<span class="sig-name descname"><span class="pre">command_script</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#rollnw.script.Nss" title="rollnw.script.Nss"><span class="pre">Nss</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></span><a class="headerlink" href="#rollnw.script.Context.command_script" title="Link to this definition"></a></dt>
+<dd><p>Gets the command script for the current context</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="rollnw.script.Context.get">
+<span class="sig-name descname"><span class="pre">get</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">resref</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_command_script</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#rollnw.script.Nss" title="rollnw.script.Nss"><span class="pre">Nss</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></span><a class="headerlink" href="#rollnw.script.Context.get" title="Link to this definition"></a></dt>
+<dd><p>Gets a script from the context’s internal resman</p>
 </dd></dl>
 
 </dd></dl>
@@ -2091,12 +2114,6 @@ are var_expr.var_expr or call_expr.var_expr</p>
 <dd><p>The expression that determines if the loop is to continue</p>
 </dd></dl>
 
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="rollnw.script.load">
-<span class="sig-prename descclassname"><span class="pre">rollnw.script.</span></span><span class="sig-name descname"><span class="pre">load</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">script</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ctx</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#rollnw.script.Context" title="rollnw.script.Context"><span class="pre">Context</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_command_script</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#rollnw.script.Nss" title="rollnw.script.Nss"><span class="pre">Nss</span></a></span></span><a class="headerlink" href="#rollnw.script.load" title="Link to this definition"></a></dt>
-<dd><p>Fully loads a script from resman</p>
 </dd></dl>
 
 </section>
