@@ -8,6 +8,12 @@ def test_script_context():
     assert ctx.command_script()
 
 
+def test_script_context_get():
+    ctx = Context()
+    nss = ctx.get("nw_s0_raisdead")
+    assert nss
+
+
 def test_script_lexer():
     ctx = Context()
     lex = NssLexer("void main() { }", ctx)

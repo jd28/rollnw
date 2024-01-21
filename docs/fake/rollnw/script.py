@@ -124,6 +124,11 @@ class Context:
         """Gets the command script for the current context"""
         pass
 
+    def get(self, resref: str,
+            is_command_script: bool = False) -> "Optional[Nss]":
+        """Gets a script from the context's internal resman"""
+        pass
+
 
 class DiagnosticType(enum.IntEnum):
     lexical = auto()
@@ -775,9 +780,3 @@ class DeclList (Declaration):
     def __iter__(self) -> Iterator[Declaration]:
         """Gets iterator of statements"""
         pass
-
-
-def load(script: str, ctx: Context,
-         is_command_script: bool = False) -> Nss:
-    """Fully loads a script from resman"""
-    pass

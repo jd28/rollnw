@@ -51,6 +51,9 @@ class Context:
 
     def command_script(self) -> "Optional[Nss]": ...
 
+    def get(self, resref: str,
+            is_command_script: bool = False) -> "Optional[Nss]": ...
+
 
 class DiagnosticType:
     __members__: ClassVar[dict] = ...  # read-only
@@ -488,7 +491,3 @@ class WhileStatement(Statement):
     def block(self) -> Statement: ...
     @property
     def test(self) -> Expression: ...
-
-
-def load(script: str, ctx: Context,
-         is_command_script: bool = False) -> Nss: ...

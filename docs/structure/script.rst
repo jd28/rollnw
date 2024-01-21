@@ -26,7 +26,7 @@ examples
         # Create a context and to add include path, pass them into the Context constructor
         ctx = Context(["includes/"])
 
-        # Load the script
+        # Load the script from a file
         nss = Nss("path/to/myscript.nss", ctx)
 
         # Parse
@@ -41,9 +41,12 @@ examples
         # Ast resolution and type-checking
         nss.resolve()
 
-        # To simplify this process for assets in the resource manager,
-        # the ``load`` function will call all the above
-        raise_dead = rollnw.script.load("nw_s0_raisdead", Context())
+        # Load a script from string
+        nss2 = Nss.from_string("void test_function(string s, int b);", ctx)
+
+        # To get any old script in the the context's resman use ``get``.  Note this
+        # parses and resolves the script, nothing further processing is needed.
+        raise_dead = ctx.get("nw_s0_raisdead")
 
     .. code-tab:: c++
 

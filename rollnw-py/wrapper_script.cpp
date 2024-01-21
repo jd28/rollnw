@@ -1,3 +1,5 @@
+#include "casters.hpp"
+
 #include <nw/kernel/Resources.hpp>
 #include <nw/script/Nss.hpp>
 #include <nw/script/NssLexer.hpp>
@@ -60,7 +62,9 @@ void init_script(py::module& nw)
         .def(py::init<std::vector<std::string>>())
         .def(py::init<std::vector<std::string>, std::string>())
         .def("add_include_path", &nws::Context::add_include_path)
-        .def("command_script", &nws::Context::command_script, py::return_value_policy::reference_internal);
+        .def("command_script", &nws::Context::command_script, py::return_value_policy::reference_internal)
+        .def("get", &nws::Context::get, py::return_value_policy::reference_internal,
+            py::arg("resref"), py::arg("is_command_script") = false);
 
     py::enum_<nw::script::DiagnosticType>(nw, "DiagnosticType")
         .value("lexical", nws::DiagnosticType::lexical)
@@ -537,14 +541,4 @@ void init_script(py::module& nw)
             },
             py::keep_alive<0, 1>())
         .def("locate_decl", &nws::DeclList::locate_decl, py::return_value_policy::reference_internal);
-
-    nw.def(
-        "load", [](std::string_view script, nws::Context* ctx, bool command_script) {
-            auto res = new nws::Nss{nw::kernel::resman().demand({script, nw::ResourceType::nss}), ctx, command_script};
-            res->parse();
-            res->process_includes();
-            res->resolve();
-            return res;
-        },
-        py::arg("script"), py::arg("ctx"), py::arg("is_command_script") = false, py::keep_alive<0, 2>());
 }
