@@ -3,6 +3,11 @@ import rollnw
 from rollnw.script import *
 
 
+def test_script_context():
+    ctx = Context()
+    assert ctx.command_script()
+
+
 def test_script_lexer():
     ctx = Context()
     lex = NssLexer("void main() { }", ctx)

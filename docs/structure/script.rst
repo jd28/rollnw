@@ -23,15 +23,18 @@ examples
         # Start kernel, if you want to load game assets
         rollnw.kernel.start()
 
-        # Create a context and load a script
-        ctx = Context()
-        nss = Nss("path/to/myscript.nss", ctx, False)
+        # Create a context and to add include path, pass them into the Context constructor
+        ctx = Context(["includes/"])
+
+        # Load the script
+        nss = Nss("path/to/myscript.nss", ctx)
 
         # Parse
         nss.parse()
 
         # Preprocessing
         nss.process_includes()
+
         # Now all dependencies are available
         deps = nss.dependencies()
 
@@ -52,7 +55,7 @@ examples
         nw::kernel::services().start();
 
         auto ctx = std::make_unique<nw::script::Context>();
-        nw::script::Nss nss{nw::kerne::resman().demand({"nwscript"sv, nw::ResourceType::nss), ctx.get(), true};
+        nw::script::Nss nss{nw::kernel::resman().demand({"nwscript"sv, nw::ResourceType::nss), ctx.get(), true};
 
         // Parse
         nss.parse();
@@ -78,9 +81,11 @@ examples
     # Start kernel, if you want to load game assets
     rollnw.kernel.start()
 
-    # Load
+    # Create a context..
     ctx = Context()
-    nss = rollnw.script.load("nwscript", ctx, True)
+
+    # The default command script is "nwsscript"
+    nss = ctx.command_script()
 
     # Iterate toplevel declarations and look for function declarations
     # This is all functions WITHOUT bodies.

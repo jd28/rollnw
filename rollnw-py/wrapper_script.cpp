@@ -59,7 +59,8 @@ void init_script(py::module& nw)
         .def(py::init<>())
         .def(py::init<std::vector<std::string>>())
         .def(py::init<std::vector<std::string>, std::string>())
-        .def("add_include_path", &nws::Context::add_include_path);
+        .def("add_include_path", &nws::Context::add_include_path)
+        .def("command_script", &nws::Context::command_script, py::return_value_policy::reference_internal);
 
     py::enum_<nw::script::DiagnosticType>(nw, "DiagnosticType")
         .value("lexical", nws::DiagnosticType::lexical)

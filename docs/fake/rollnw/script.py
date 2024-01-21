@@ -102,7 +102,15 @@ class NssTokenType(enum.IntEnum):
 
 
 class Context:
-    """Provides a context for parsing a NWScript file"""
+    """Provides a context for parsing a NWScript file
+
+    Every context contains its own resource manager that has as a parent the global resource manager.
+    Ultimately, this will be changed to each context having its own unique resource manager.
+
+    Args:
+        include_paths ([str], optional): A list of include paths to load into internal resource manager. Default: ``[]``.
+        command_script (str, optional): Command script to load. Default: "nwscript".
+    """
 
     def __init__(self, include_paths: List[str] = [],
                  command_script: str = "nwscript"):
@@ -110,6 +118,10 @@ class Context:
 
     def add_include_path(self, path: str):
         """Adds path to internal resman"""
+        pass
+
+    def command_script(self) -> "Optional[Nss]":
+        """Gets the command script for the current context"""
         pass
 
 

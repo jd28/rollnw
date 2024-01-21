@@ -49,6 +49,8 @@ class Context:
 
     def add_include_path(self, path: str): ...
 
+    def command_script(self) -> "Optional[Nss]": ...
+
 
 class DiagnosticType:
     __members__: ClassVar[dict] = ...  # read-only

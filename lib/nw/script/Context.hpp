@@ -19,7 +19,7 @@ struct Context {
     Context(std::vector<std::string> include_paths = {}, std::string command_script = "nwscript");
     virtual ~Context() = default;
 
-    // Dependency Tracking
+    // Resource Loading / Dependency Tracking
     std::vector<std::string> include_paths_;
     absl::flat_hash_map<Resource, std::unique_ptr<Nss>> dependencies_;
     std::vector<std::string> include_stack_;
@@ -31,7 +31,10 @@ struct Context {
     /// Gets a script from internal resman
     Nss* get(Resref resref, bool command_script = false);
 
-    // Spec
+    /// Gets command script
+    const Nss* command_script() const noexcept { return command_script_; }
+
+    // Spec ..
     std::string command_script_name_;
     Nss* command_script_ = nullptr;
 
