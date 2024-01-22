@@ -103,7 +103,7 @@ jobs:
 
       - name: all - cache vcpkg
         id: cache-vcpkg
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: |
             ${{ github.workspace }}/vcpkg/.cache
@@ -112,7 +112,7 @@ jobs:
             ${{ runner.os }}-build-
 
       - name: all - cache ccache
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: |
             ${{ github.workspace }}/.ccache/
@@ -135,7 +135,7 @@ jobs:
       # nwn
       - name: all - cache nwn
         id: cache-nwn
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: |
             ${{ github.workspace }}/nwn/
