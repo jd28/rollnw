@@ -13,6 +13,7 @@ def json_file():
 def test_creature_default_construct():
     w = rollnw.Creature()
     assert w.handle().id == rollnw.OBJECT_INVALID
+    assert w.json_archive_version == 1
 
 
 def test_creature_dict_construct(json_file):
@@ -87,7 +88,6 @@ def test_creature_level_stats():
 
 
 def test_objects_kernel_service():
-    rollnw.kernel.start()
     cre = rollnw.kernel.objects().creature('nw_chicken.utc')
     assert cre
     cre2 = rollnw.kernel.objects().get(cre.handle())
