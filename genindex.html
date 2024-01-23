@@ -247,14 +247,16 @@
       <li><a href="api_python/rollnw.html#rollnw.Erf.add">add() (rollnw.Erf method)</a>
 
       <ul>
-        <li><a href="api_python/rollnw_kernel.html#rollnw.kernel.EffectSystem.add">(rollnw.kernel.EffectSystem method)</a>
-</li>
         <li><a href="api_python/rollnw.html#rollnw.LocString.add">(rollnw.LocString method)</a>
 </li>
       </ul></li>
+      <li><a href="api_python/rollnw_kernel.html#rollnw.kernel.EffectSystem.add_effect">add_effect() (rollnw.kernel.EffectSystem method)</a>
+</li>
       <li><a href="api_python/rollnw.html#rollnw.CreatureStats.add_feat">add_feat() (rollnw.CreatureStats method)</a>
 </li>
       <li><a href="api_python/rollnw_script.html#rollnw.script.Context.add_include_path">add_include_path() (rollnw.script.Context method)</a>
+</li>
+      <li><a href="api_python/rollnw_kernel.html#rollnw.kernel.EffectSystem.add_itemprop">add_itemprop() (rollnw.kernel.EffectSystem method)</a>
 </li>
       <li><a href="api_python/rollnw.html#rollnw.SpellBook.add_known_spell">add_known_spell() (rollnw.SpellBook method)</a>
 </li>
@@ -355,6 +357,8 @@
 </li>
       </ul></li>
       <li><a href="api_python/rollnw_kernel.html#rollnw.kernel.Objects.area">area() (rollnw.kernel.Objects method)</a>
+</li>
+      <li><a href="api_python/rollnw.html#rollnw.Module.area_count">area_count() (rollnw.Module method)</a>
 </li>
       <li><a href="api_python/rollnw.html#rollnw.ObjectType.areaofeffect">areaofeffect (rollnw.ObjectType attribute)</a>
 </li>
@@ -706,8 +710,6 @@
 </li>
       <li><a href="api_python/rollnw_model.html#rollnw.model.MdlControllerKey.columns">columns (rollnw.model.MdlControllerKey attribute)</a>
 </li>
-      <li><a href="api_python/rollnw.html#rollnw.Creature.combat_info">combat_info (rollnw.Creature attribute)</a>
-</li>
       <li><a href="api_python/rollnw.html#rollnw.CombatInfo.combat_mode">combat_mode (rollnw.CombatInfo attribute)</a>
 </li>
       <li><a href="api_python/rollnw.html#rollnw.CombatInfo">CombatInfo (class in rollnw)</a>
@@ -785,10 +787,6 @@
       <li><a href="api_python/rollnw_script.html#rollnw.script.NssTokenType.CONTINUE">CONTINUE (rollnw.script.NssTokenType attribute)</a>
 </li>
       <li><a href="api_python/rollnw.html#rollnw.Sound.continuous">continuous (rollnw.Sound attribute)</a>
-</li>
-      <li><a href="api_python/rollnw_model.html#rollnw.model.MdlNode.controller_data">controller_data (rollnw.model.MdlNode attribute)</a>
-</li>
-      <li><a href="api_python/rollnw_model.html#rollnw.model.MdlNode.controller_keys">controller_keys (rollnw.model.MdlNode attribute)</a>
 </li>
       <li><a href="api_python/rollnw.html#rollnw.Creature.conversation">conversation (rollnw.Creature attribute)</a>
 
@@ -1154,6 +1152,8 @@
 </li>
       <li><a href="api_python/rollnw_nwn1.html#rollnw.nwn1.equip_item">equip_item() (in module rollnw.nwn1)</a>
 </li>
+      <li><a href="api_python/rollnw.html#rollnw.Creature.equipment">equipment (rollnw.Creature property)</a>
+</li>
       <li><a href="api_python/rollnw.html#rollnw.Equips">Equips (class in rollnw)</a>
 </li>
       <li><a href="api_python/rollnw.html#rollnw.Equips.equips">equips (rollnw.Equips attribute)</a>
@@ -1278,10 +1278,10 @@
 </li>
       <li><a href="api_python/rollnw.html#rollnw.BodyParts.forearm_left">forearm_left (rollnw.BodyParts attribute)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api_python/rollnw.html#rollnw.BodyParts.forearm_right">forearm_right (rollnw.BodyParts attribute)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api_python/rollnw_script.html#rollnw.script.ForStatement">ForStatement (class in rollnw.script)</a>
 </li>
       <li><a href="api_python/rollnw.html#rollnw.Saves.fort">fort (rollnw.Saves attribute)</a>
@@ -1315,6 +1315,8 @@
 </li>
         <li><a href="api_python/rollnw.html#rollnw.Store.from_dict">(rollnw.Store static method)</a>
 </li>
+        <li><a href="api_python/rollnw.html#rollnw.Trigger.from_dict">(rollnw.Trigger static method)</a>
+</li>
         <li><a href="api_python/rollnw.html#rollnw.Waypoint.from_dict">(rollnw.Waypoint static method)</a>
 </li>
       </ul></li>
@@ -1335,10 +1337,12 @@
 </li>
         <li><a href="api_python/rollnw.html#rollnw.Store.from_file">(rollnw.Store static method)</a>
 </li>
+        <li><a href="api_python/rollnw.html#rollnw.Trigger.from_file">(rollnw.Trigger static method)</a>
+</li>
         <li><a href="api_python/rollnw.html#rollnw.Waypoint.from_file">(rollnw.Waypoint static method)</a>
 </li>
       </ul></li>
-      <li><a href="api_python/rollnw.html#rollnw.Resource.from_filename">from_filename() (rollnw.Resource method)</a>
+      <li><a href="api_python/rollnw.html#rollnw.Resource.from_filename">from_filename() (rollnw.Resource static method)</a>
 </li>
       <li><a href="api_python/rollnw.html#rollnw.Language.from_string">from_string() (rollnw.Language static method)</a>
 
@@ -1403,6 +1407,8 @@
 </li>
       </ul></li>
       <li><a href="api_python/rollnw_model.html#rollnw.model.MdlModel.get_animation">get_animation() (rollnw.model.MdlModel method)</a>
+</li>
+      <li><a href="api_python/rollnw.html#rollnw.Module.get_area">get_area() (rollnw.Module method)</a>
 </li>
       <li><a href="api_python/rollnw_model.html#rollnw.model.MdlNode.get_controller">get_controller() (rollnw.model.MdlNode method)</a>
 </li>
@@ -1556,7 +1562,7 @@
 </li>
       <li><a href="api_python/rollnw_script.html#rollnw.script.DiagnosticSeverity.hint">hint (rollnw.script.DiagnosticSeverity attribute)</a>
 </li>
-      <li><a href="api_python/rollnw.html#rollnw.Creature.history">history (rollnw.Creature attribute)</a>
+      <li><a href="api_python/rollnw.html#rollnw.Creature.history">history (rollnw.Creature property)</a>
 </li>
       <li><a href="api_python/rollnw.html#rollnw.AttackResult.hit_by_auto_success">hit_by_auto_success (rollnw.AttackResult attribute)</a>
 </li>
@@ -1690,8 +1696,6 @@
 </li>
       <li><a href="api_python/rollnw.html#rollnw.AreaFlags.interior">interior (rollnw.AreaFlags attribute)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api_python/rollnw.html#rollnw.Creature.interruptable">interruptable (rollnw.Creature attribute)</a>
 
       <ul>
@@ -1700,6 +1704,8 @@
         <li><a href="api_python/rollnw.html#rollnw.Placeable.interruptable">(rollnw.Placeable attribute)</a>
 </li>
       </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api_python/rollnw.html#rollnw.Sound.interval">interval (rollnw.Sound attribute)</a>
 </li>
       <li><a href="api_python/rollnw.html#rollnw.Sound.interval_variation">interval_variation (rollnw.Sound attribute)</a>
@@ -1720,9 +1726,11 @@
 </li>
       <li><a href="api_python/rollnw.html#rollnw.Inventory">Inventory (class in rollnw)</a>
 </li>
-      <li><a href="api_python/rollnw.html#rollnw.Item.inventory">inventory (rollnw.Item attribute)</a>
+      <li><a href="api_python/rollnw.html#rollnw.Creature.inventory">inventory (rollnw.Creature property)</a>
 
       <ul>
+        <li><a href="api_python/rollnw.html#rollnw.Item.inventory">(rollnw.Item attribute)</a>
+</li>
         <li><a href="api_python/rollnw.html#rollnw.Placeable.inventory">(rollnw.Placeable attribute)</a>
 </li>
       </ul></li>
@@ -1794,6 +1802,8 @@
 </li>
       <li><a href="api_python/rollnw.html#rollnw.ResourceType.itp">itp (rollnw.ResourceType attribute)</a>
 </li>
+      <li><a href="api_python/rollnw.html#rollnw.IVector4">IVector4 (class in rollnw)</a>
+</li>
   </ul></td>
 </tr></table>
 
@@ -1806,12 +1816,26 @@
 </li>
       <li><a href="api_python/rollnw.html#rollnw.ResourceType.jrl">jrl (rollnw.ResourceType attribute)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api_python/rollnw.html#rollnw.ResourceType.json">json (rollnw.ResourceType attribute)</a>
 </li>
       <li><a href="api_python/rollnw_script.html#rollnw.script.NssTokenType.JSON">JSON (rollnw.script.NssTokenType attribute)</a>
 </li>
+      <li><a href="api_python/rollnw.html#rollnw.Area.json_archive_version">json_archive_version (rollnw.Area attribute)</a>
+
+      <ul>
+        <li><a href="api_python/rollnw.html#rollnw.Creature.json_archive_version">(rollnw.Creature attribute)</a>
+</li>
+        <li><a href="api_python/rollnw.html#rollnw.Door.json_archive_version">(rollnw.Door attribute)</a>
+</li>
+        <li><a href="api_python/rollnw.html#rollnw.Placeable.json_archive_version">(rollnw.Placeable attribute)</a>
+</li>
+        <li><a href="api_python/rollnw.html#rollnw.Sound.json_archive_version">(rollnw.Sound attribute)</a>
+</li>
+        <li><a href="api_python/rollnw.html#rollnw.Store.json_archive_version">(rollnw.Store attribute)</a>
+</li>
+      </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api_python/rollnw_script.html#rollnw.script.NssTokenType.JSON_CONST">JSON_CONST (rollnw.script.NssTokenType attribute)</a>
 </li>
       <li><a href="api_python/rollnw_script.html#rollnw.script.JumpStatement">JumpStatement (class in rollnw.script)</a>
@@ -9485,6 +9509,20 @@
 </li>
       <li><a href="api_python/rollnw_script.html#rollnw.script.NssTokenType.OBJECT_SELF_CONST">OBJECT_SELF_CONST (rollnw.script.NssTokenType attribute)</a>
 </li>
+      <li><a href="api_python/rollnw.html#rollnw.Area.object_type">object_type (rollnw.Area attribute)</a>
+
+      <ul>
+        <li><a href="api_python/rollnw.html#rollnw.Creature.object_type">(rollnw.Creature attribute)</a>
+</li>
+        <li><a href="api_python/rollnw.html#rollnw.Door.object_type">(rollnw.Door attribute)</a>
+</li>
+        <li><a href="api_python/rollnw.html#rollnw.Placeable.object_type">(rollnw.Placeable attribute)</a>
+</li>
+        <li><a href="api_python/rollnw.html#rollnw.Sound.object_type">(rollnw.Sound attribute)</a>
+</li>
+        <li><a href="api_python/rollnw.html#rollnw.Store.object_type">(rollnw.Store attribute)</a>
+</li>
+      </ul></li>
       <li><a href="api_python/rollnw.html#rollnw.ObjectBase">ObjectBase (class in rollnw)</a>
 </li>
       <li><a href="api_python/rollnw.html#rollnw.ObjectHandle">ObjectHandle (class in rollnw)</a>
@@ -9601,14 +9639,14 @@
         <li><a href="api_python/rollnw.html#rollnw.PlaceableScripts.on_lock">(rollnw.PlaceableScripts attribute)</a>
 </li>
       </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api_python/rollnw.html#rollnw.DoorScripts.on_melee_attacked">on_melee_attacked (rollnw.DoorScripts attribute)</a>
 
       <ul>
         <li><a href="api_python/rollnw.html#rollnw.PlaceableScripts.on_melee_attacked">(rollnw.PlaceableScripts attribute)</a>
 </li>
       </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api_python/rollnw.html#rollnw.DoorScripts.on_open">on_open (rollnw.DoorScripts attribute)</a>
 
       <ul>
@@ -10780,14 +10818,12 @@
 </li>
       <li><a href="api_python/rollnw_script.html#rollnw.script.Include.used">used (rollnw.script.Include attribute)</a>
 </li>
-      <li><a href="api_python/rollnw_kernel.html#rollnw.kernel.ConfigOptions.user">user (rollnw.kernel.ConfigOptions attribute)</a>
-</li>
       <li><a href="api_python/rollnw_kernel.html#rollnw.kernel.Config.user_path">user_path() (rollnw.kernel.Config method)</a>
+</li>
+      <li><a href="api_python/rollnw_kernel.html#rollnw.kernel.Config.userpatch_ini">userpatch_ini() (rollnw.kernel.Config method)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api_python/rollnw_kernel.html#rollnw.kernel.Config.userpatch_ini">userpatch_ini() (rollnw.kernel.Config method)</a>
-</li>
       <li><a href="api_python/rollnw_script.html#rollnw.script.NssTokenType.USR">USR (rollnw.script.NssTokenType attribute)</a>
 </li>
       <li><a href="api_python/rollnw_script.html#rollnw.script.NssTokenType.USREQ">USREQ (rollnw.script.NssTokenType attribute)</a>
@@ -10850,10 +10886,16 @@
 </li>
       <li><a href="api_python/rollnw_script.html#rollnw.script.NssTokenType.VECTOR">VECTOR (rollnw.script.NssTokenType attribute)</a>
 </li>
-      <li><a href="api_python/rollnw.html#rollnw.GameVersion.vEE">vEE (rollnw.GameVersion attribute)</a>
+      <li><a href="api_python/rollnw.html#rollnw.Vector2">Vector2 (class in rollnw)</a>
+</li>
+      <li><a href="api_python/rollnw.html#rollnw.Vector3">Vector3 (class in rollnw)</a>
+</li>
+      <li><a href="api_python/rollnw.html#rollnw.Vector4">Vector4 (class in rollnw)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api_python/rollnw.html#rollnw.GameVersion.vEE">vEE (rollnw.GameVersion attribute)</a>
+</li>
       <li><a href="api_python/rollnw_model.html#rollnw.model.MdlControllerType.velocity">velocity (rollnw.model.MdlControllerType attribute)</a>
 </li>
       <li><a href="api_python/rollnw.html#rollnw.Area.version">version (rollnw.Area attribute)</a>
@@ -10898,6 +10940,10 @@
 <h2 id="W">W</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api_python/rollnw.html#rollnw.IVector4.w">w (rollnw.IVector4 attribute)</a>
+</li>
+      <li><a href="api_python/rollnw.html#rollnw.Vector4.W">W (rollnw.Vector4 attribute)</a>
+</li>
       <li><a href="api_python/rollnw.html#rollnw.Creature.walkrate">walkrate (rollnw.Creature attribute)</a>
 </li>
       <li><a href="api_python/rollnw_script.html#rollnw.script.DiagnosticSeverity.warning">warning (rollnw.script.DiagnosticSeverity attribute)</a>
@@ -10922,10 +10968,10 @@
 </li>
       <li><a href="api_python/rollnw.html#rollnw.Store.weapons">weapons (rollnw.Store attribute)</a>
 </li>
-      <li><a href="api_python/rollnw.html#rollnw.Area.weather">weather (rollnw.Area attribute)</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api_python/rollnw.html#rollnw.Area.weather">weather (rollnw.Area attribute)</a>
+</li>
       <li><a href="api_python/rollnw_model.html#rollnw.model.SkinVertex.weights">weights (rollnw.model.SkinVertex attribute)</a>
 </li>
       <li><a href="api_python/rollnw_script.html#rollnw.script.NssTokenType.WHILE">WHILE (rollnw.script.NssTokenType attribute)</a>
@@ -10963,15 +11009,23 @@
       <li><a href="api_python/rollnw.html#rollnw.InventoryItem.x">x (rollnw.InventoryItem attribute)</a>
 
       <ul>
+        <li><a href="api_python/rollnw.html#rollnw.IVector4.x">(rollnw.IVector4 attribute)</a>
+</li>
         <li><a href="api_python/rollnw_script.html#rollnw.script.LiteralVectorExpression.x">(rollnw.script.LiteralVectorExpression attribute)</a>
 </li>
+        <li><a href="api_python/rollnw.html#rollnw.Vector2.x">(rollnw.Vector2 attribute)</a>
+</li>
+        <li><a href="api_python/rollnw.html#rollnw.Vector3.x">(rollnw.Vector3 attribute)</a>
+</li>
+        <li><a href="api_python/rollnw.html#rollnw.Vector4.x">(rollnw.Vector4 attribute)</a>
+</li>
       </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api_python/rollnw.html#rollnw.ResourceType.xbc">xbc (rollnw.ResourceType attribute)</a>
 </li>
       <li><a href="api_python/rollnw_model.html#rollnw.model.MdlEmitterNode.xgrid">xgrid (rollnw.model.MdlEmitterNode attribute)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api_python/rollnw_script.html#rollnw.script.NssTokenType.XOR">XOR (rollnw.script.NssTokenType attribute)</a>
 </li>
       <li><a href="api_python/rollnw_script.html#rollnw.script.NssTokenType.XOREQ">XOREQ (rollnw.script.NssTokenType attribute)</a>
@@ -10989,7 +11043,15 @@
       <li><a href="api_python/rollnw.html#rollnw.InventoryItem.y">y (rollnw.InventoryItem attribute)</a>
 
       <ul>
+        <li><a href="api_python/rollnw.html#rollnw.IVector4.y">(rollnw.IVector4 attribute)</a>
+</li>
         <li><a href="api_python/rollnw_script.html#rollnw.script.LiteralVectorExpression.y">(rollnw.script.LiteralVectorExpression attribute)</a>
+</li>
+        <li><a href="api_python/rollnw.html#rollnw.Vector2.y">(rollnw.Vector2 attribute)</a>
+</li>
+        <li><a href="api_python/rollnw.html#rollnw.Vector3.y">(rollnw.Vector3 attribute)</a>
+</li>
+        <li><a href="api_python/rollnw.html#rollnw.Vector4.y">(rollnw.Vector4 attribute)</a>
 </li>
       </ul></li>
   </ul></td>
@@ -11004,8 +11066,16 @@
 <h2 id="Z">Z</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api_python/rollnw_script.html#rollnw.script.LiteralVectorExpression.z">z (rollnw.script.LiteralVectorExpression attribute)</a>
+      <li><a href="api_python/rollnw.html#rollnw.IVector4.z">z (rollnw.IVector4 attribute)</a>
+
+      <ul>
+        <li><a href="api_python/rollnw_script.html#rollnw.script.LiteralVectorExpression.z">(rollnw.script.LiteralVectorExpression attribute)</a>
 </li>
+        <li><a href="api_python/rollnw.html#rollnw.Vector3.z">(rollnw.Vector3 attribute)</a>
+</li>
+        <li><a href="api_python/rollnw.html#rollnw.Vector4.z">(rollnw.Vector4 attribute)</a>
+</li>
+      </ul></li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api_python/rollnw.html#rollnw.Zip">Zip (class in rollnw)</a>

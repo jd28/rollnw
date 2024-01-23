@@ -89,14 +89,14 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#rollnw.kernel.ConfigOptions"><code class="docutils literal notranslate"><span class="pre">ConfigOptions</span></code></a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#rollnw.kernel.ConfigOptions.user"><code class="docutils literal notranslate"><span class="pre">ConfigOptions.user</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#rollnw.kernel.ConfigOptions.include_install"><code class="docutils literal notranslate"><span class="pre">ConfigOptions.include_install</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#rollnw.kernel.ConfigOptions.include_nwsync"><code class="docutils literal notranslate"><span class="pre">ConfigOptions.include_nwsync</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#rollnw.kernel.ConfigOptions.include_user"><code class="docutils literal notranslate"><span class="pre">ConfigOptions.include_user</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#rollnw.kernel.EffectSystem"><code class="docutils literal notranslate"><span class="pre">EffectSystem</span></code></a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#rollnw.kernel.EffectSystem.add"><code class="docutils literal notranslate"><span class="pre">EffectSystem.add()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#rollnw.kernel.EffectSystem.add_effect"><code class="docutils literal notranslate"><span class="pre">EffectSystem.add_effect()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#rollnw.kernel.EffectSystem.add_itemprop"><code class="docutils literal notranslate"><span class="pre">EffectSystem.add_itemprop()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#rollnw.kernel.EffectSystem.apply"><code class="docutils literal notranslate"><span class="pre">EffectSystem.apply()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#rollnw.kernel.EffectSystem.create"><code class="docutils literal notranslate"><span class="pre">EffectSystem.create()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#rollnw.kernel.EffectSystem.destroy"><code class="docutils literal notranslate"><span class="pre">EffectSystem.destroy()</span></code></a></li>
@@ -284,47 +284,21 @@
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">rollnw.kernel.</span></span><span class="sig-name descname"><span class="pre">ConfigOptions</span></span><a class="headerlink" href="#rollnw.kernel.ConfigOptions" title="Link to this definition"></a></dt>
 <dd><p>Configuration options</p>
 <dl class="py attribute">
-<dt class="sig sig-object py" id="rollnw.kernel.ConfigOptions.user">
-<span class="sig-name descname"><span class="pre">user</span></span><a class="headerlink" href="#rollnw.kernel.ConfigOptions.user" title="Link to this definition"></a></dt>
-<dd><p>NWN user directory</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>str</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py attribute">
 <dt class="sig sig-object py" id="rollnw.kernel.ConfigOptions.include_install">
-<span class="sig-name descname"><span class="pre">include_install</span></span><a class="headerlink" href="#rollnw.kernel.ConfigOptions.include_install" title="Link to this definition"></a></dt>
-<dd><p>If true, load base game data.  (Default True)</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>bool</p>
-</dd>
-</dl>
+<span class="sig-name descname"><span class="pre">include_install</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">True</span></em><a class="headerlink" href="#rollnw.kernel.ConfigOptions.include_install" title="Link to this definition"></a></dt>
+<dd><p>If true, load base game data.</p>
 </dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="rollnw.kernel.ConfigOptions.include_nwsync">
-<span class="sig-name descname"><span class="pre">include_nwsync</span></span><a class="headerlink" href="#rollnw.kernel.ConfigOptions.include_nwsync" title="Link to this definition"></a></dt>
-<dd><p>If true, load NWSync data.  (Default True)</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>bool</p>
-</dd>
-</dl>
+<span class="sig-name descname"><span class="pre">include_nwsync</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">True</span></em><a class="headerlink" href="#rollnw.kernel.ConfigOptions.include_nwsync" title="Link to this definition"></a></dt>
+<dd><p>If true, load NWSync data.</p>
 </dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="rollnw.kernel.ConfigOptions.include_user">
-<span class="sig-name descname"><span class="pre">include_user</span></span><a class="headerlink" href="#rollnw.kernel.ConfigOptions.include_user" title="Link to this definition"></a></dt>
-<dd><p>If true, load user data.  (Default True)</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>bool</p>
-</dd>
-</dl>
+<span class="sig-name descname"><span class="pre">include_user</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">True</span></em><a class="headerlink" href="#rollnw.kernel.ConfigOptions.include_user" title="Link to this definition"></a></dt>
+<dd><p>If true, load user data.</p>
 </dd></dl>
 
 </dd></dl>
@@ -333,8 +307,14 @@
 <dt class="sig sig-object py" id="rollnw.kernel.EffectSystem">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">rollnw.kernel.</span></span><span class="sig-name descname"><span class="pre">EffectSystem</span></span><a class="headerlink" href="#rollnw.kernel.EffectSystem" title="Link to this definition"></a></dt>
 <dd><dl class="py method">
-<dt class="sig sig-object py" id="rollnw.kernel.EffectSystem.add">
-<span class="sig-name descname"><span class="pre">add</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">type</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">generator</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#rollnw.kernel.EffectSystem.add" title="Link to this definition"></a></dt>
+<dt class="sig sig-object py" id="rollnw.kernel.EffectSystem.add_effect">
+<span class="sig-name descname"><span class="pre">add_effect</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">type</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">apply</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">remove</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#rollnw.kernel.EffectSystem.add_effect" title="Link to this definition"></a></dt>
+<dd><p>Adds an effect type to the registry</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="rollnw.kernel.EffectSystem.add_itemprop">
+<span class="sig-name descname"><span class="pre">add_itemprop</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">type</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">generator</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#rollnw.kernel.EffectSystem.add_itemprop" title="Link to this definition"></a></dt>
 <dd><p>Adds an item property type to the registry</p>
 </dd></dl>
 
@@ -358,25 +338,25 @@
 
 <dl class="py method">
 <dt class="sig sig-object py" id="rollnw.kernel.EffectSystem.effect_limits_ability">
-<span class="sig-name descname"><span class="pre">effect_limits_ability</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#rollnw.kernel.EffectSystem.effect_limits_ability" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">effect_limits_ability</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#rollnw.kernel.EffectSystem.effect_limits_ability" title="Link to this definition"></a></dt>
 <dd><p>Gets ability effect minimum and maximum</p>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="rollnw.kernel.EffectSystem.effect_limits_armor_class">
-<span class="sig-name descname"><span class="pre">effect_limits_armor_class</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#rollnw.kernel.EffectSystem.effect_limits_armor_class" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">effect_limits_armor_class</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#rollnw.kernel.EffectSystem.effect_limits_armor_class" title="Link to this definition"></a></dt>
 <dd><p>Gets armor class effect minimum and maximum</p>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="rollnw.kernel.EffectSystem.effect_limits_attack">
-<span class="sig-name descname"><span class="pre">effect_limits_attack</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#rollnw.kernel.EffectSystem.effect_limits_attack" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">effect_limits_attack</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#rollnw.kernel.EffectSystem.effect_limits_attack" title="Link to this definition"></a></dt>
 <dd><p>Gets attack effect minimum and maximum</p>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="rollnw.kernel.EffectSystem.effect_limits_skill">
-<span class="sig-name descname"><span class="pre">effect_limits_skill</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#rollnw.kernel.EffectSystem.effect_limits_skill" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">effect_limits_skill</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#rollnw.kernel.EffectSystem.effect_limits_skill" title="Link to this definition"></a></dt>
 <dd><p>Gets skill effect minimum and maximum</p>
 </dd></dl>
 
@@ -442,23 +422,13 @@
 <dd><p>Effect system stat data</p>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="rollnw.kernel.EffectSystemStats.free_list_size">
-<span class="sig-name descname"><span class="pre">free_list_size</span></span><a class="headerlink" href="#rollnw.kernel.EffectSystemStats.free_list_size" title="Link to this definition"></a></dt>
-<dd><dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>int</p>
-</dd>
-</dl>
-</dd></dl>
+<span class="sig-name descname"><span class="pre">free_list_size</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><a class="headerlink" href="#rollnw.kernel.EffectSystemStats.free_list_size" title="Link to this definition"></a></dt>
+<dd></dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="rollnw.kernel.EffectSystemStats.pool_size">
-<span class="sig-name descname"><span class="pre">pool_size</span></span><a class="headerlink" href="#rollnw.kernel.EffectSystemStats.pool_size" title="Link to this definition"></a></dt>
-<dd><dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>int</p>
-</dd>
-</dl>
-</dd></dl>
+<span class="sig-name descname"><span class="pre">pool_size</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><a class="headerlink" href="#rollnw.kernel.EffectSystemStats.pool_size" title="Link to this definition"></a></dt>
+<dd></dd></dl>
 
 </dd></dl>
 
