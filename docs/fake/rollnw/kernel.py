@@ -2,7 +2,7 @@ from . import GameVersion, Module, PathAlias, Ini, Container, TwoDA, Resource
 from . import ObjectBase, ObjectHandle, Area, Creature, Door, Encounter, Placeable, Store, Trigger, Waypoint
 from . import Effect
 
-from typing import Optional
+from typing import Optional, Tuple
 
 # Classes #####################################################################
 ###############################################################################
@@ -10,14 +10,13 @@ from typing import Optional
 
 class ConfigOptions:
     """Configuration options
-
-    Attributes:
-        user (str): NWN user directory
-        include_install (bool): If true, load base game data.  (Default True)
-        include_nwsync (bool): If true, load NWSync data.  (Default True)
-        include_user (bool): If true, load user data.  (Default True)
     """
-    pass
+    #: If true, load base game data.
+    include_install: bool = True
+    #: If true, load NWSync data.
+    include_nwsync: bool = True
+    #: If true, load user data.
+    include_user: bool = True
 
 
 class Config:
@@ -79,20 +78,17 @@ class Config:
 
 class EffectSystemStats:
     """Effect system stat data
-
-    Attributes:
-        free_list_size (int)
-        pool_size (int)
     """
-    pass
+    free_list_size: int
+    pool_size: int
 
 
 class EffectSystem:
-    def add(self, type, apply, remove):
+    def add_effect(self, type, apply, remove):
         """Adds an effect type to the registry"""
         pass
 
-    def add(self, type,  generator):
+    def add_itemprop(self, type, generator):
         """Adds an item property type to the registry"""
         pass
 
@@ -107,19 +103,19 @@ class EffectSystem:
     def destroy(self, effect: Effect) -> None:
         """Destroys an effect"""
 
-    def effect_limits_ability(self) -> tuple[int, int]:
+    def effect_limits_ability(self) -> Tuple[int, int]:
         """Gets ability effect minimum and maximum"""
         pass
 
-    def effect_limits_armor_class(self) -> tuple[int, int]:
+    def effect_limits_armor_class(self) -> Tuple[int, int]:
         """Gets armor class effect minimum and maximum"""
         pass
 
-    def effect_limits_attack(self) -> tuple[int, int]:
+    def effect_limits_attack(self) -> Tuple[int, int]:
         """Gets attack effect minimum and maximum"""
         pass
 
-    def effect_limits_skill(self) -> tuple[int, int]:
+    def effect_limits_skill(self) -> Tuple[int, int]:
         """Gets skill effect minimum and maximum"""
         pass
 
@@ -157,6 +153,7 @@ class EffectSystem:
 
     def stats(self) -> EffectSystemStats:
         """Gets stats regarding the effect system"""
+        pass
 
 
 class Objects:

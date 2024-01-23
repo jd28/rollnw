@@ -1,5 +1,13 @@
 import enum
 from enum import auto
+from typing import Tuple, List, ClassVar, Optional
+
+from . import (
+    IVector4,
+    Vector2,
+    Vector3,
+    Vector4,
+)
 
 # Model #######################################################################
 ###############################################################################
@@ -7,59 +15,50 @@ from enum import auto
 
 class MdlNodeFlags:
     """Model node flags
-
-    Attributes:
-        header
-        light
-        emitter
-        camera
-        reference
-        mesh
-        skin
-        anim
-        dangly
-        aabb
-        patch
     """
-    pass
+    header: ClassVar[int]
+    light: ClassVar[int]
+    emitter: ClassVar[int]
+    camera: ClassVar[int]
+    reference: ClassVar[int]
+    mesh: ClassVar[int]
+    skin: ClassVar[int]
+    anim: ClassVar[int]
+    dangly: ClassVar[int]
+    aabb: ClassVar[int]
+    patch: ClassVar[int]
 
 
 class MdlNodeType:
     """ Model node types
-
-    Attributes:
-        aabb
-        animmesh
-        camera
-        danglymesh
-        dummy
-        emitter
-        light
-        patch
-        reference
-        skin
-        trimesh
     """
-    pass
+    aabb: ClassVar[int]
+    animmesh: ClassVar[int]
+    camera: ClassVar[int]
+    danglymesh: ClassVar[int]
+    dummy: ClassVar[int]
+    emitter: ClassVar[int]
+    light: ClassVar[int]
+    patch: ClassVar[int]
+    reference: ClassVar[int]
+    skin: ClassVar[int]
+    trimesh: ClassVar[int]
 
 
 class ModelEmitterFlag:
     """Emitter flags
-
-    Attributes:
-        affected_by_wind (int)
-        bounce (int)
-        inherit_local (int)
-        inherit_part (int)
-        inherit_vel (int)
-        inherit (int)
-        is_tinted (int)
-        p2p_sel (int)
-        p2p (int)
-        random (int)
-        splat (int)
     """
-    pass
+    affected_by_wind: ClassVar[int]
+    bounce: ClassVar[int]
+    inherit_local: ClassVar[int]
+    inherit_part: ClassVar[int]
+    inherit_vel: ClassVar[int]
+    inherit: ClassVar[int]
+    is_tinted: ClassVar[int]
+    p2p_sel: ClassVar[int]
+    p2p: ClassVar[int]
+    random: ClassVar[int]
+    splat: ClassVar[int]
 
 
 class MdlTriangleMode(enum.IntEnum):
@@ -100,105 +99,92 @@ class MdlClassification(enum.IntEnum):
 
 class MdlControllerType:
     """Controller types
-
-    Attributes:
-        position
-        orientation
-        scale
-        wirecolor
-        color
-        radius
-        shadow_radius
-        vertical_displacement
-        multiplier
-        alpha_end
-        alpha_start
-        birthrate
-        bounce_co
-        color_end
-        color_start
-        combine_time
-        drag
-        fps
-        frame_end
-        frame_start
-        grav
-        life_exp
-        mass
-        p2p_bezier2
-        p2p_bezier3
-        particle_rot
-        rand_vel
-        size_start
-        size_end
-        size_start_y
-        size_end_y
-        spread
-        threshold
-        velocity
-        xsize
-        ysize
-        blur_length
-        lightning_delay
-        lightning_radius
-        lightning_scale
-        lightning_subdiv
-        detonate
-        alpha_mid
-        color_mid
-        percent_start
-        percent_mid
-        percent_end
-        size_mid
-        size_mid_y
-        self_illum_color
-        alpha
     """
-    pass
+    position: ClassVar[int]
+    orientation: ClassVar[int]
+    scale: ClassVar[int]
+    wirecolor: ClassVar[int]
+    color: ClassVar[int]
+    radius: ClassVar[int]
+    shadow_radius: ClassVar[int]
+    vertical_displacement: ClassVar[int]
+    multiplier: ClassVar[int]
+    alpha_end: ClassVar[int]
+    alpha_start: ClassVar[int]
+    birthrate: ClassVar[int]
+    bounce_co: ClassVar[int]
+    color_end: ClassVar[int]
+    color_start: ClassVar[int]
+    combine_time: ClassVar[int]
+    drag: ClassVar[int]
+    fps: ClassVar[int]
+    frame_end: ClassVar[int]
+    frame_start: ClassVar[int]
+    grav: ClassVar[int]
+    life_exp: ClassVar[int]
+    mass: ClassVar[int]
+    p2p_bezier2: ClassVar[int]
+    p2p_bezier3: ClassVar[int]
+    particle_rot: ClassVar[int]
+    rand_vel: ClassVar[int]
+    size_start: ClassVar[int]
+    size_end: ClassVar[int]
+    size_start_y: ClassVar[int]
+    size_end_y: ClassVar[int]
+    spread: ClassVar[int]
+    threshold: ClassVar[int]
+    velocity: ClassVar[int]
+    xsize: ClassVar[int]
+    ysize: ClassVar[int]
+    blur_length: ClassVar[int]
+    lightning_delay: ClassVar[int]
+    lightning_radius: ClassVar[int]
+    lightning_scale: ClassVar[int]
+    lightning_subdiv: ClassVar[int]
+    detonate: ClassVar[int]
+    alpha_mid: ClassVar[int]
+    color_mid: ClassVar[int]
+    percent_start: ClassVar[int]
+    percent_mid: ClassVar[int]
+    percent_end: ClassVar[int]
+    size_mid: ClassVar[int]
+    size_mid_y: ClassVar[int]
+    self_illum_color: ClassVar[int]
+    alpha: ClassVar[int]
 
 
 class MdlControllerKey:
     """Model controller
-
-    Attributes:
-        name
-        type
-        rows
-        key_offset
-        time_offset
-        data_offset
-        columns
-        is_key
     """
-    pass
+    name: str
+    type: int
+    rows: int
+    key_offset: int
+    time_offset: int
+    data_offset: int
+    columns: int
+    is_key: bool
 
 
 class MdlFace:
     """Model face
-
-    Attributes:
-        vert_idx
-        shader_group_idx
-        tvert_idx
-        material_idx
     """
-    pass
+    vert_idx: List[int]
+    shader_group_idx: int
+    tvert_idx: List[int]
+    material_idx: int
 
 
 class MdlNode:
     """Base Model Node
-
-    Attributes:
-       name (str): name
-       type: type
-       inheritcolor (bool): inheritcolor
-       parent (rollnw.MdlNode): Parent node
-       children ([rollnw.MdlNode]): Children nodes
-       controller_keys: controller_keys
-       controller_data: controller_data
     """
+    name: str
+    type: int
+    inheritcolor: bool
+    parent: "MdlNode"
+    children: List["MdlNode"]
 
-    def get_controller(self, type: int, is_key: bool) -> tuple[MdlControllerKey, list[float], list[float]]:
+    def get_controller(self, type: int, is_key: bool) -> Tuple[MdlControllerKey, List[float], List[float]]:
         """Gets a controller key and times and key data
 
         Note:
@@ -219,54 +205,48 @@ class MdlCameraNode(MdlNode):
 
 class MdlEmitterNode(MdlNode):
     """Emitter node
-
-    Attributes:
-        blastlength
-        blastradius
-        blend
-        chunkname
-        deadspace
-        loop
-        render
-        renderorder
-        spawntype
-        texture
-        twosidedtex
-        update
-        xgrid
-        ygrid
-        flags
-        render_sel
-        blend_sel
-        update_sel
-        spawntype_sel
-        opacity
-        p2p_type
     """
-    pass
+    blastlength: float
+    blastradius: float
+    blend: str
+    chunkname: str
+    deadspace: float
+    loop: int
+    render: str
+    renderorder: int
+    spawntype: int
+    texture: str
+    twosidedtex: int
+    update: str
+    xgrid: int
+    ygrid: int
+    flags: int
+    render_sel: int
+    blend_sel: int
+    update_sel: int
+    spawntype_sel: int
+    opacity: float
+    p2p_type: str
 
 
 class MdlLightNode(MdlNode):
     """Light node
-
-    Attributes:
-        lensflares
-        flareradius
-        multiplier
-        color
-        flaresizes
-        flarepositions
-        flarecolorshifts
-        textures
-        lightpriority
-        ambientonly
-        dynamic
-        affectdynamic
-        shadow
-        generateflare
-        fadinglight
     """
-    pass
+    lensflares: float
+    flareradius: float
+    multiplier: float
+    color: Vector3
+    flaresizes: List[float]
+    flarepositions: List[float]
+    flarecolorshifts: List[Vector3]
+    textures: List[str]
+    lightpriority: int
+    ambientonly: int
+    dynamic: bool
+    affectdynamic: int
+    shadow: int
+    generateflare: int
+    fadinglight: int
 
 
 class MdlPatchNode(MdlNode):
@@ -276,131 +256,104 @@ class MdlPatchNode(MdlNode):
 
 class MdlReferenceNode(MdlNode):
     """Reference node
-
-    Attributes:
-        refmodel (str)
-        reattachable (bool)
     """
-    pass
+    refmodel: str
+    reattachable: bool
 
 
 class Vertex:
     """Vertex data
-
-    Attributes:
-        position
-        tex_coords
-        normal
-        tangent
     """
-    pass
+    position: Vector3
+    tex_coords: Vector2
+    normal: Vector3
+    tangent: Vector3
 
 
 class MdlTrimeshNode(MdlNode):
     """Trimesh Node
-
-    Attributes:
-        ambient
-        beaming
-        bmin
-        bmax
-        bitmap
-        center
-        diffuse
-        materialname
-        render
-        renderhint
-        rotatetexture
-        shadow
-        shininess
-        specular
-        textures
-        tilefade
-        transparencyhint
-        showdispl
-        displtype
-        lightmapped
-        multimaterial
-        vertices ([Vertex]): List of vertex positions, texcoords, normals, tangents
-        indices ([int]): List of vertex indices
     """
-    pass
+    ambient: Vector3
+    beaming: bool
+    bmin: Vector3
+    bmax: Vector3
+    bitmap: str
+    center: Vector3
+    diffuse: Vector3
+    materialname: str
+    render: bool
+    renderhint: str
+    rotatetexture: bool
+    shadow: bool
+    shininess: float
+    specular: Vector3
+    textures: List[str]
+    tilefade: int
+    transparencyhint: int
+    showdispl: bool
+    displtype: int
+    lightmapped: int
+    multimaterial: List[str]
+    #: List of vertex positions, texcoords, normals, tangents
+    vertices: List[Vertex]
+    #: List of vertex indices
+    indices: List[int]
 
 
 class SkinVertex:
     """Skin Vertex data
-
-    Attributes:
-        position
-        tex_coords
-        normal
-        tangent
-        bones
-        weights
     """
-    pass
+    position: Vector3
+    tex_coords: Vector2
+    normal: Vector3
+    tangent: Vector4
+    bones: IVector4
+    weights: Vector4
 
 
 class MdlSkinNode(MdlTrimeshNode):
     """Skin mesh node
-
-    Attributes:
-        vertices ([SkinVertex])
     """
-    pass
+    vertices: List[SkinVertex]
 
 
 class MdlAnimeshNode(MdlTrimeshNode):
     """Animated mesh node
-
-    Attributes:
-        animtverts
-        animverts
-        sampleperiod
     """
-    pass
+    animtverts: List[Vector3]
+    animverts: List[Vector3]
+    sampleperiod: float
 
 
 class MdlDanglymeshNode(MdlTrimeshNode):
     """MdlDanglymeshNode
-
-    Attributes:
-        constraints
-        displacement
-        period
-        tightness
     """
-    pass
+    constraints: List[float]
+    displacement: float
+    period: float
+    tightness: float
 
 
 class MdlAABBEntry:
     """AABB Entry
-
-    Attributes:
-        bmin
-        bmax
-        leaf_face
-        plane
     """
-    pass
+    bmin: Vector3
+    bmax: Vector3
+    leaf_face: int
+    plane: int
 
 
 class MdlAABBNode(MdlTrimeshNode):
     """AABB model node
-
-    Attributes:
-        entries
     """
-    pass
+    entries: List[MdlAABBEntry]
 
 
 class MdlGeometry:
     """Class containing model geometry
-
-    Attributes:
-       name (str): name
-       type: type
     """
+    name: str
+    type: int
 
     def __getitem__(self, index):
         """Gets a model node"""
@@ -417,40 +370,32 @@ class MdlGeometry:
 
 class MdlAnimationEvent:
     """Animation Event
-
-    Attributes:
-        time (float)
-        name (str)
     """
-    pass
+    time: float
+    name: str
 
 
 class MdlAnimation(MdlGeometry):
     """Class containing model animation
-
-    Attributes:
-        length
-        transition_time
-        anim_root
-        events
     """
-    pass
+    length: float
+    transition_time: float
+    anim_root: str
+    events: List[MdlAnimationEvent]
 
 
 class MdlModel(MdlGeometry):
     """A parsed model
-
-    Attributes:
-        bmax (vec3): bmax
-        bmin (vec3): bmin
-        classification: classification
-        ignorefog: ignorefog
-        supermodel: supermodel
-        radius: radius
-        animationscale: animationscale
-        supermodel_name (str): supermodel_name
-        file_dependency: file_dependency
     """
+    bmax: Vector3
+    bmin: Vector3
+    classification: int
+    ignorefog: bool
+    supermodel: "Optional[Mdl]"
+    radius: float
+    animationscale: float
+    supermodel_name: str
+    file_dependency: str
 
     def animation_count(self):
         """Gets the number of animations"""
@@ -467,12 +412,11 @@ class MdlModel(MdlGeometry):
 
 class Mdl:
     """Implementation of ASCII Mdl file format
-
-    Attributes:
-        model (rollnw.MdlModel): The parsed model
     """
+    #: The parsed model
+    model: MdlModel
 
-    def valid():
+    def valid(self):
         """Determines if file was successfully parsed"""
         pass
 
@@ -480,5 +424,3 @@ class Mdl:
     def from_file(path):
         """Loads mdl file from file path"""
         pass
-
-    pass

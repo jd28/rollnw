@@ -1,5 +1,20 @@
-from . import ObjectBase, ObjectHandle, Area, Creature, Door, Encounter, Item, Placeable, Store, Trigger, Waypoint
-from . import Effect, ItemProperty, DiceRoll, AttackData
+from . import (
+    Area,
+    AttackData,
+    Creature,
+    DiceRoll,
+    Door,
+    Effect,
+    Encounter,
+    Item,
+    ItemProperty,
+    ObjectBase,
+    ObjectHandle,
+    Placeable,
+    Store,
+    Trigger,
+    Waypoint,
+)
 
 # == Abilities ===============================================================
 # ============================================================================
@@ -245,12 +260,12 @@ def queue_remove_effect_by(obj: ObjectBase, creator: ObjectHandle):
 # ============================================================================
 
 
-def can_equip_item(obj: Creature, item, slot):
+def can_equip_item(obj: Creature, item: Item, slot: int):
     """Determines if an item can be equipped"""
     pass
 
 
-def equip_item(obj, item, slot):
+def equip_item(obj: Creature, item: Item, slot: int):
     """Equip an item"""
     pass
 
@@ -270,7 +285,7 @@ def is_shield(baseitem) -> bool:
     pass
 
 
-def unequip_item(obj, slot):
+def unequip_item(obj: Creature, slot: int):
     """Unequips an item"""
     pass
 

@@ -1,5 +1,34 @@
 import enum
 from enum import auto
+from typing import NewType, Tuple, List, ClassVar, Optional, ByteString
+
+# Math ########################################################################
+###############################################################################
+
+
+class IVector4:
+    x: int
+    y: int
+    z: int
+    w: int
+
+
+class Vector2:
+    x: float
+    y: float
+
+
+class Vector3:
+    x: float
+    y: float
+    z: float
+
+
+class Vector4:
+    x: float
+    y: float
+    z: float
+    W: float
 
 # Platform ####################################################################
 ###############################################################################
@@ -47,95 +76,92 @@ class PathAlias(enum.Enum):
 
 class Appearance:
     """Class containing creature's appearance
-
-    Attributes:
-        body_parts (BodyParts): body_parts
-        hair (int): hair
-        id (int): Index into ``appearance.2da``
-        phenotype (int): phenotype
-        portrait_id (int): Index into ``portraits.2da``
-        skin (int): skin
-        tail (int): tail
-        tattoo1 (int): tattoo1
-        tattoo2 (int): tattoo2
-        wings (int): wings"""
-    pass
+    """
+    #: body_parts
+    body_parts: "BodyParts"
+    #: hair
+    hair: int
+    #: Index into ``appearance.2da``
+    id: int
+    #: phenotype
+    phenotype: int
+    #: Index into ``portraits.2da``
+    portrait_id: int
+    #: skin
+    skin: int
+    #: tail
+    tail: int
+    #: tattoo1
+    tattoo1: int
+    #: tattoo2
+    tattoo2: int
+    #: wings
+    wings: int
 
 
 class BodyParts:
     """Class containing references to creature's body parts
-
-    Attributes:
-        belt (int): body part
-        bicep_left (int): body part
-        bicep_right (int): body part
-        foot_left (int): body part
-        foot_right (int): body part
-        forearm_left (int): body part
-        forearm_right (int): body part
-        hand_left (int): body part
-        hand_right (int): body part
-        head (int): body part
-        neck (int): body part
-        pelvis (int): body part
-        shin_left (int): body part
-        shin_right (int): body part
-        shoulder_left (int): body part
-        shoulder_right (int): body part
-        thigh_left (int): body part
-        thigh_right (int): body part"""
-    pass
+    """
+    belt: int
+    bicep_left: int
+    bicep_right: int
+    foot_left: int
+    foot_right: int
+    forearm_left: int
+    forearm_right: int
+    hand_left: int
+    hand_right: int
+    head: int
+    neck: int
+    pelvis: int
+    shin_left: int
+    shin_right: int
+    shoulder_left: int
+    shoulder_right: int
+    thigh_left: int
+    thigh_right: int
 
 
 class CombatInfo:
     """Class containing combat related data
-
-    Attributes:
-        ac_natural_bonus (int)
-        ac_armor_base (int)
-        ac_shield_base (int)
-        combat_mode (int)
-        target_state (int)
-        size_ab_modifier (int)
-        size_ac_modifier (int)
     """
-    pass
+    ac_natural_bonus: int
+    ac_armor_base: int
+    ac_shield_base: int
+    combat_mode: int
+    target_state: int
+    size_ab_modifier: int
+    size_ac_modifier: int
 
 
 class Common:
     """Class containing attributes common to all objects
-
-    Attributes:
-        resref (str): resref
-        tag (str): tag
-        name (LocString): name
-        locals (LocalData): locals
-        location (Location): location
-        comment (str): comment
-        palette_id (int): palette_id
     """
-    pass
+    resref: str
+    tag: str
+    name: "LocString"
+    locals: "LocalData"
+    location: "Location"
+    comment: str
+    palette_id: int
 
 
 class CreatureScripts:
     """A class containing a creature's script set.
-
-    Attributes:
-        on_attacked (str): A script
-        on_blocked (str): A script
-        on_conversation (str): A script
-        on_damaged (str): A script
-        on_death (str): A script
-        on_disturbed (str): A script
-        on_endround (str): A script
-        on_heartbeat (str): A script
-        on_perceived (str): A script
-        on_rested (str): A script
-        on_spawn (str): A script
-        on_spell_cast_at (str): A script
-        on_user_defined (str): A script
     """
-    pass
+    on_attacked: str
+    on_blocked: str
+    on_conversation: str
+    on_damaged: str
+    on_death: str
+    on_disturbed: str
+    on_endround: str
+    on_heartbeat: str
+    on_perceived: str
+    on_rested: str
+    on_spawn: str
+    on_spell_cast_at: str
+    on_user_defined: str
 
 
 class CreatureStats:
@@ -170,24 +196,21 @@ class CreatureStats:
 
 class DoorScripts:
     """Door's scripts
-
-    Attributes:
-        on_click (str)
-        on_closed (str)
-        on_damaged (str)
-        on_death (str)
-        on_disarm (str)
-        on_heartbeat (str)
-        on_lock (str)
-        on_melee_attacked (str)
-        on_open_failure (str)
-        on_open (str)
-        on_spell_cast_at (str)
-        on_trap_triggered (str)
-        on_unlock (str)
-        on_user_defined (str)
     """
-    pass
+    on_click: str
+    on_closed: str
+    on_damaged: str
+    on_death: str
+    on_disarm: str
+    on_heartbeat: str
+    on_lock: str
+    on_melee_attacked: str
+    on_open_failure: str
+    on_open: str
+    on_spell_cast_at: str
+    on_trap_triggered: str
+    on_unlock: str
+    on_user_defined: str
 
 
 class EquipSlot(enum.Flag):
@@ -238,10 +261,10 @@ class EquipIndex(enum.IntEnum):
 
 class Equips:
     """Creature's equipment
-
-    Attributes:
-        equips
     """
+
+    #: Note: len(equips) == 18
+    equips: "List[str | Item]"
 
     def instantiate(self):
         """Instantiates equipment by loading contained items from the resource manager"""
@@ -250,23 +273,19 @@ class Equips:
 
 class InventoryItem:
     """An inventory item
-
-    Attributes:
-        infinite (bool): Only applicable to stores
-        x (int)
-        y (int)
-        item (str | Item)
     """
-    pass
+    #: Only applicable to stores
+    infinite: bool
+    x: int
+    y: int
+    item: "str | Item"
 
 
 class Inventory:
     """An Object's inventory
-
-    Attributes:
-        items ([rollnw.InventoryItem])
-        owner
     """
+    items: List[InventoryItem]
+    owner: "ObjectBase"
 
     def instantiate(self):
         """Instantiates inventory by loading contained items from the resource manager"""
@@ -275,46 +294,45 @@ class Inventory:
 
 class ClassEntry:
     """Class level data
-
-    Attributes:
-        id
-        level
-        spells
     """
-    pass
+    id: int
+    level: int
+    spells: "SpellBook"
 
 
 class LevelUp:
     """Level up data
-
-    Attributes:
-        class_ (int): Class the level was taken as
-        ability (int): Ability score that was raised, if any.
-        epic (bool): ``True`` if level is an epic level
-        feats ([int]): Added feats
-        hitpoints (int): Hitpoints gained.
-        known_spells ((int, int)): Level, Spell pair for gained spells
-        skillpoints (int): Roll over skill points
-        skills ([(int, int)]): Skill and the amount increased
     """
-    pass
+    #: Class the level was taken as
+    class_: int
+    #: Ability score that was raised, if any.  -1 if none
+    ability: int
+    #: ``True`` if level is an epic level
+    epic: bool
+    #: Added feats
+    feats: List[int]
+    #: Hitpoints gained.
+    hitpoints: int
+    #: Level, Spell pair for gained spells
+    known_spells: List[Tuple[int, int]]
+    #: Roll over skill points
+    skillpoints: int
+    #: Skill and the amount increased
+    skills: List[Tuple[int, int]]
 
 
 class LevelHistory:
     """Implements a creatures levelup history
-
-    Attributes:
-        entries ([LevelUp]): Entries for levels
     """
-    pass
+    #: Entries for levels
+    entries: List[LevelUp]
 
 
 class LevelStats:
     """Implements a creatures level related stats
-
-    Attributes:
-        entries ([ClassEntry]): Entries for levels
     """
+    #: Entries for levels
+    entries: List[ClassEntry]
 
     def level(self) -> int:
         """Gets total level"""
@@ -327,13 +345,10 @@ class LevelStats:
 
 class Location:
     """Class representing an objects location
-
-    Attributes:
-        area
-        orientation
-        position
     """
-    pass
+    area: int  # [TODO] Fix this..
+    orientation: Vector3
+    position: Vector3
 
 
 class LocalData:
@@ -400,32 +415,26 @@ class LocalData:
     def size(self):
         """Gets number of variables"""
         pass
-    pass
 
 
 class Lock:
     """Class representing a lock on an object
-
-    Attributes:
-        key_name (str)
-        key_required (bool)
-        lockable (bool)
-        locked (bool)
-        lock_dc (int)
-        unlock_dc (int)
-        remove_key (bool)
     """
-    pass
+    key_name: str
+    key_required: bool
+    lockable: bool
+    locked: bool
+    lock_dc: int
+    unlock_dc: int
+    remove_key: bool
 
 
 class Saves:
     """An objects saves
-
-    Attributes:
-        fort (int)
-        reflex (int)
-        will (int)
     """
+    fort: int
+    reflex: int
+    will: int
 
 
 class SpellFlags(enum.Flag):
@@ -447,13 +456,10 @@ class SpellMetaMagic(enum.Flag):
 
 class SpellEntry:
     """An entry in a spellbook
-
-    Attributes:
-        spell
-        meta
-        flags
     """
-    pass
+    spell: int
+    meta: SpellMetaMagic
+    flags: SpellFlags
 
 
 class SpellBook:
@@ -494,27 +500,22 @@ class SpellBook:
 
 class SpecialAbility:
     """Special Ability
-
-    Attributes:
-        spell
-        level
-        flags (SpellFlags)
     """
+    spell: int
+    level: int
+    flags: SpellFlags
 
 
 class Trap:
     """Class representing a trap on an object
-
-    Attributes:
-        detect_dc (int)
-        detectable (bool)
-        disarm_dc (int)
-        disarmable (bool)
-        is_trapped (bool)
-        one_shot (bool)
-        type
     """
-    pass
+    detect_dc: int
+    detectable: bool
+    disarm_dc: int
+    disarmable: bool
+    is_trapped: bool
+    one_shot: bool
+    type: int
 
 
 # Formats #####################################################################
@@ -526,6 +527,9 @@ class Image:
     Args:
         filename (str): image file to load
     """
+
+    def __init__(self, filename: str):
+        pass
 
     def channels(self):
         """Gets BPP
@@ -564,6 +568,9 @@ class Ini:
     Args:
         filename (str): ini file to load
     """
+
+    def __init__(self, filename: str):
+        pass
 
     def get_int(self, key: str) -> int | None:
         """Gets an INI value"""
@@ -609,12 +616,10 @@ class PltPixel:
 class PltColors:
     """Plt Color Array
 
-    Attributes:
-        colors
-
     Notes:
-        This would be the colors that a player would select"""
-    pass
+        This would be the colors that a player would select
+    """
+    colors: List[int]
 
 
 class Plt:
@@ -633,7 +638,7 @@ class Plt:
         pass
 
 
-def decode_plt_color(plt: Plt, colors, x: int, y: int) -> list[int]:
+def decode_plt_color(plt: Plt, colors: PltColors, x: int, y: int) -> List[int]:
     """Decodes PLT and user selected colors to RBGA
     """
     pass
@@ -864,12 +869,13 @@ class ObjectType(enum.Enum):
 
 class ObjectHandle:
     """Object handle
-
-    Attributes:
-        id (int): index into object array
-        version (int): object index version
-        type (ObjectType): object type
     """
+    #: index into object array
+    id: int
+    #: object index version
+    version: int
+    #: object type
+    type: ObjectType
 
     def valid(self):
         """Determines if handle is valid"""
@@ -885,119 +891,133 @@ class AreaFlags(enum.Flag):
 
 class Area:
     """Area object
-
-    Attributes:
-        comments
-        creator_id
-        creatures
-        doors
-        encounters
-        flags
-        height
-        id
-        items
-        listen_check_mod
-        loadscreen
-        name
-        no_rest
-        placeables
-        pvp
-        scripts
-        shadow_opacity
-        skybox
-        sounds
-        spot_check_mod
-        stores
-        tiles
-        tileset
-        triggers
-        version
-        waypoints
-        weather
-        width
     """
-    pass
+    json_archive_version: ClassVar[int]
+    object_type: ClassVar[int]
+
+    comments: str
+    creator_id: int
+    creatures: "List[Creature]"
+    doors: "List[Door]"
+    encounters: "List[Encounter]"
+    flags: AreaFlags
+    height: int
+    id: int
+    items: "List[Item]"
+    listen_check_mod: int
+    loadscreen: int
+    name: LocString
+    no_rest: int
+    placeables: "List[Placeable]"
+    pvp: int
+    scripts: "AreaScripts"
+    shadow_opacity: int
+    skybox: int
+    sounds: "List[Sound]"
+    spot_check_mod: int
+    stores: "List[Store]"
+    tiles: "List[Tile]"
+    tileset: str
+    triggers: "List[Trigger]"
+    version: int
+    waypoints: "List[Waypoint]"
+    weather: "AreaWeather"
+    width: int
 
 
 class AreaScripts:
     """Area's scripts
-
-    Attributes:
-        on_enter(str)
-        on_exit(str)
-        on_heartbeat(str)
-        on_user_defined(str)
     """
-    pass
+    on_enter: str
+    on_exit: str
+    on_heartbeat: str
+    on_user_defined: str
 
 
 class AreaWeather:
     """Area's weather
-
-    Attributes:
-        chance_lightning
-        chance_rain
-        chance_snow
-        color_moon_ambient
-        color_moon_diffuse
-        color_moon_fog
-        color_sun_ambient
-        color_sun_diffuse
-        color_sun_fog
-        fog_clip_distance
-        wind_power
-        day_night_cycle
-        is_night
-        lighting_scheme
-        fog_moon_amount
-        moon_shadows
-        fog_sun_amount
-        sun_shadows
     """
-    pass
+    chance_lightning: int
+    chance_rain: int
+    chance_snow: int
+    color_moon_ambient: int
+    color_moon_diffuse: int
+    color_moon_fog: int
+    color_sun_ambient: int
+    color_sun_diffuse: int
+    color_sun_fog: int
+    fog_clip_distance: int
+    wind_power: int
+    day_night_cycle: int
+    is_night: int
+    lighting_scheme: int
+    fog_moon_amount: int
+    moon_shadows: int
+    fog_sun_amount: int
+    sun_shadows: int
 
 
 class Creature(ObjectBase):
     """Class that represents a Creature object
-
-    Attributes:
-        appearance (Appearance)
-        bodybag
-        chunk_death
-        combat_info
-        common (Common)
-        conversation (str): Dialog resref
-        cr
-        cr_adjust
-        decay_time
-        deity
-        description
-        disarmable
-        faction_id
-        gender
-        good_evil
-        history (LevelHistory)
-        hp
-        hp_current
-        hp_max
-        immortal
-        interruptable
-        lawful_chaotic
-        levels
-        lootable
-        name_first
-        name_last
-        pc
-        perception_range
-        plot
-        race
-        scripts
-        soundset
-        starting_package
-        stats (CreatureStats): Offensive and defensive stats.
-        subrace (str): Subrace
-        walkrate
     """
+    json_archive_version: ClassVar[int]
+    object_type: ClassVar[int]
+
+    appearance: Appearance
+    bodybag: int
+    chunk_death: int
+    # [TODO] combat_info: CombatInfo
+    common: Common
+    #: Dialog resref
+    conversation: str
+    cr: float
+    cr_adjust: int
+    decay_time: int
+    deity: str
+    description: LocString
+    disarmable: int
+    faction_id: int
+    gender: int
+    good_evil: int
+    hp: int
+    hp_current: int
+    hp_max: int
+    immortal: int
+    interruptable: int
+    lawful_chaotic: int
+    levels: LevelStats
+    lootable: int
+    name_first: LocString
+    name_last: LocString
+    pc: int
+    perception_range: float
+    plot: int
+    race: int
+    scripts: CreatureScripts
+    soundset: str
+    starting_package: int
+    #: Offensive and defensive stats.
+    stats: CreatureStats
+    subrace: str
+    walkrate: int
+
+    @property
+    def equipment(self) -> Equips:
+        """Gets creatures equipped items
+        """
+        pass
+
+    @property
+    def history(self) -> LevelHistory:
+        """Gets creatures level history
+        """
+        pass
+
+    @property
+    def inventory(self) -> Inventory:
+        """Gets creatures inventory
+        """
+        pass
 
     @staticmethod
     def from_dict(value: dict):
@@ -1021,28 +1041,31 @@ class DoorAnimationState(enum.Enum):
 
 class Door:
     """Class that represents a Door object
-
-    Attributes:
-        animation_state
-        appearance
-        conversation (str): Door's conversation resref
-        description
-        faction
-        generic_type
-        hardness
-        hp
-        hp_current
-        interruptable
-        linked_to
-        linked_to_flags
-        loadscreen
-        lock (Lock)
-        plot
-        portrait_id
-        saves
-        scripts (DoorScripts)
-        trap (Trap)
     """
+    json_archive_version: ClassVar[int]
+    object_type: ClassVar[int]
+
+    animation_state: DoorAnimationState
+    appearance: int
+    #: Door's conversation resref
+    conversation: str
+    description: LocString
+    faction: int
+    generic_type: int
+    hardness: int
+    hp: int
+    hp_current: int
+    interruptable: int
+    linked_to: str
+    linked_to_flags: int
+    loadscreen: int
+    lock: Lock
+    plot: int
+    portrait_id: int
+    saves: Saves
+    scripts: DoorScripts
+    trap: Trap
+
     @staticmethod
     def from_dict(value: dict):
         """Constructs object from python dict.
@@ -1059,57 +1082,49 @@ class Door:
 
 class EncounterScripts:
     """Encounter's scripts
-
-    Attributes:
-        on_entered (str)
-        on_exhausted (str)
-        on_exit (str)
-        on_heartbeat (str)
-        on_user_defined (str)
     """
+    on_entered: str
+    on_exhausted: str
+    on_exit: str
+    on_heartbeat: str
+    on_user_defined: str
 
 
 class SpawnCreature:
     """Encounter creature spawn
-
-    Attributes:
-        appearance
-        cr
-        resref
-        single_spawn
     """
+    appearance: int
+    cr: int
+    resref: str
+    single_spawn: bool
 
 
 class SpawnPoint:
     """A spawn point
-
-    Attributes:
-        orientation (vec3)
-        position (vec3)
     """
-    pass
+    orientation: Vector3
+    position: Vector3
 
 
 class Encounter:
     """Class that represents an Encounter object
-
-    Attributes:
-        active (bool)
-        creatures
-        creatures_max (int)
-        creatures_recommended
-        difficulty
-        difficulty_index
-        faction
-        geometry
-        player_only
-        reset
-        reset_time
-        respawns
-        scripts
-        spawn_option
-        spawn_points
     """
+    active: bool
+    creatures: List[SpawnCreature]
+    creatures_max: int
+    creatures_recommended: int
+    difficulty: int
+    difficulty_index: int
+    faction: int
+    geometry: List[Vector3]
+    player_only: bool
+    reset: bool
+    reset_time: int
+    respawns: int
+    scripts: EncounterScripts
+    spawn_option: int
+    spawn_points: List[SpawnPoint]
+
     @staticmethod
     def from_dict(value: dict):
         """Constructs object from python dict.
@@ -1166,39 +1181,38 @@ class ItemModelParts(enum.Enum):
 
 class ItemProperty:
     """An item property
-
-    Attributes:
-        type
-        subtype
-        cost_table
-        cost_value
-        param_table
-        param_value
     """
-    pass
+    type: int
+    subtype: int
+    cost_table: int
+    cost_value: int
+    param_table: int
+    param_value: int
 
 
 class Item:
     """Class that represents an Item object
-
-    Attributes:
-        additional_cost
-        baseitem
-        charges
-        cost
-        cursed
-        description (LocString): Description
-        description_id (LocString): Description after being identified.
-        identified
-        inventory
-        model_colors
-        model_parts
-        model_type
-        plot (bool): Is a plot item.
-        properties
-        stacksize
-        stolen
     """
+    additional_cost: int
+    baseitem: int
+    charges: int
+    cost: int
+    cursed: bool
+    #: Description
+    description: LocString
+    #: Description after being identified.
+    description_id: LocString
+    identified: bool
+    inventory: Inventory
+    model_colors: List[int]
+    model_parts: List[int]
+    model_type: ItemModelType
+    #: Is a plot item.
+    plot: bool
+    properties: List[ItemProperty]
+    stacksize: int
+    stolen: bool
+
     @staticmethod
     def from_dict(value: dict):
         """Constructs object from python dict.
@@ -1213,62 +1227,34 @@ class Item:
     pass
 
 
-class ModuleScripts:
-    """Module's Scripts
-
-    Attributes:
-        on_client_enter
-        on_client_leave
-        on_cutsnabort
-        on_heartbeat
-        on_item_acquire
-        on_item_activate
-        on_item_unaquire
-        on_load
-        on_player_chat
-        on_player_death
-        on_player_dying
-        on_player_equip
-        on_player_level_up
-        on_player_rest
-        on_player_uneqiup
-        on_spawnbtndn
-        on_start
-        on_user_defined
-    """
-    pass
-
-
 class Module:
     """Class that represents a Module object
-
-    Attributes:
-        creator
-        dawn_hour
-        description
-        dusk_hour
-        entry_area
-        entry_orientation
-        entry_position
-        expansion_pack
-        haks
-        id
-        is_save_game
-        locals
-        min_game_version
-        minutes_per_hour
-        name
-        scripts
-        start_day
-        start_hour
-        start_month
-        start_movie
-        start_year
-        tag
-        tlk
-        version
-        xpscale
     """
+    creator: int
+    dawn_hour: int
+    description: LocString
+    dusk_hour: int
+    entry_area: str
+    entry_orientation: Vector3
+    entry_position: Vector3
+    expansion_pack: int
+    haks: List[str]
+    id: ByteString
+    is_save_game: bool
+    locals: LocalData
+    min_game_version: int
+    minutes_per_hour: int
+    name: LocString
+    scripts: "ModuleScripts"
+    start_day: int
+    start_hour: int
+    start_month: int
+    start_movie: str
+    start_year: int
+    tag: str
+    tlk: str
+    version: int
+    xpscale: int
 
     def __iter__(self):
         """Get iterator of areas in the module"""
@@ -1278,31 +1264,36 @@ class Module:
         """Get the number of areas in the module"""
         pass
 
+    def area_count(self) -> int:
+        """Gets number of areas in module"""
+        pass
+
+    def get_area(self, index: int) -> Optional[Area]:
+        """Gets number of areas in module"""
+        pass
+
 
 class ModuleScripts:
     """Module Scripts
-
-    Attributes:
-        on_client_enter
-        on_client_leave
-        on_cutsnabort
-        on_heartbeat
-        on_item_acquire
-        on_item_activate
-        on_item_unaquire
-        on_load
-        on_player_chat
-        on_player_death
-        on_player_dying
-        on_player_equip
-        on_player_level_up
-        on_player_rest
-        on_player_uneqiup
-        on_spawnbtndn
-        on_start
-        on_user_defined
     """
-    pass
+    on_client_enter: str
+    on_client_leave: str
+    on_cutsnabort: str
+    on_heartbeat: str
+    on_item_acquire: str
+    on_item_activate: str
+    on_item_unaquire: str
+    on_load: str
+    on_player_chat: str
+    on_player_death: str
+    on_player_dying: str
+    on_player_equip: str
+    on_player_level_up: str
+    on_player_rest: str
+    on_player_uneqiup: str
+    on_spawnbtndn: str
+    on_start: str
+    on_user_defined: str
 
 
 class PlaceableAnimationState(enum.Enum):
@@ -1316,53 +1307,52 @@ class PlaceableAnimationState(enum.Enum):
 
 class PlaceableScripts:
     """Placeable's scripts
-
-    Attributes:
-        on_click (str)
-        on_closed (str)
-        on_damaged (str)
-        on_death (str)
-        on_disarm (str)
-        on_heartbeat (str)
-        on_inventory_disturbed (str)
-        on_lock (str)
-        on_melee_attacked (str)
-        on_open (str)
-        on_spell_cast_at (str)
-        on_trap_triggered (str)
-        on_unlock (str)
-        on_used (str)
-        on_user_defined (str)
     """
-    pass
+    on_click: str
+    on_closed: str
+    on_damaged: str
+    on_death: str
+    on_disarm: str
+    on_heartbeat: str
+    on_inventory_disturbed: str
+    on_lock: str
+    on_melee_attacked: str
+    on_open: str
+    on_spell_cast_at: str
+    on_trap_triggered: str
+    on_unlock: str
+    on_used: str
+    on_user_defined: str
 
 
 class Placeable(ObjectBase):
     """Class that represents a Placeable object
-
-    Attributes:
-        animation_state
-        appearance
-        bodybag
-        common
-        conversation
-        description
-        faction
-        hardness
-        has_inventory
-        hp
-        hp_current
-        interruptable
-        inventory
-        lock
-        plot
-        portrait_id
-        saves
-        scripts (PlaceableScripts):
-        static
-        trap
-        useable
     """
+    json_archive_version: ClassVar[int]
+    object_type: ClassVar[int]
+
+    animation_state: PlaceableAnimationState
+    appearance: int
+    bodybag: int
+    common: Common
+    conversation: str
+    description: LocString
+    faction: int
+    hardness: int
+    has_inventory: bool
+    hp: int
+    hp_current: int
+    interruptable: bool
+    inventory: Inventory
+    lock: Lock
+    plot: bool
+    portrait_id: int
+    saves: Saves
+    scripts: PlaceableScripts
+    static: bool
+    trap: Trap
+    useable: bool
+
     @staticmethod
     def from_dict(value: dict):
         """Constructs object from python dict.
@@ -1389,31 +1379,32 @@ class Player(Creature):
 
 class Sound(ObjectBase):
     """Class that represents a Sound object
-
-    Attributes:
-        active
-        common (Common): Common object component
-        continuous
-        distance_max
-        distance_min
-        elevation
-        generated_type
-        hours
-        interval
-        interval_variation
-        looping
-        pitch_variation
-        positional
-        priority
-        random
-        random_position
-        random_x
-        random_y
-        sounds ([rollnw.Resref]): Sounds
-        times
-        volume
-        volume_variation
     """
+    json_archive_version: ClassVar[int]
+    object_type: ClassVar[int]
+
+    active: bool
+    common: Common
+    continuous: bool
+    distance_max: float
+    distance_min: float
+    elevation: float
+    generated_type: int
+    hours: int
+    interval: int
+    interval_variation: int
+    looping: bool
+    pitch_variation: float
+    positional: bool
+    priority: int
+    random: bool
+    random_position: bool
+    random_x: float
+    random_y: float
+    sounds: List[str]
+    times: int
+    volume: int
+    volume_variation: int
 
     @staticmethod
     def from_dict(value: dict):
@@ -1431,35 +1422,30 @@ class Sound(ObjectBase):
 
 class StoreScripts:
     """A Store's scripts
-
-    Attributes:
-        on_closed (str)
-        on_opened (str)
     """
-    pass
+    on_closed: str
+    on_opened: str
 
 
 class Store(ObjectBase):
     """Class that represents a Store object
-
-    Attributes:
-        armor
-        blackmarket
-        blackmarket_markdown
-        gold
-        identify_price
-        markdown
-        markup
-        max_price
-        miscellaneous
-        potions
-        rings
-        scripts (StoreScripts)
-        weapons
-
-    //.def_readonly("will_not_buy", &nw::Store::will_not_buy)
-    //.def_readonly("will_only_buy", &nw::Store::will_only_buy)
     """
+    json_archive_version: ClassVar[int]
+    object_type: ClassVar[int]
+
+    armor: Inventory
+    blackmarket: bool
+    blackmarket_markdown: int
+    gold: int
+    identify_price: int
+    markdown: int
+    markup: int
+    max_price: int
+    miscellaneous: Inventory
+    potions: Inventory
+    rings: Inventory
+    scripts: StoreScripts
+    weapons: Inventory
 
     @staticmethod
     def from_dict(value: dict) -> 'Store':
@@ -1472,72 +1458,75 @@ class Store(ObjectBase):
         """Constructs object from file.  The file can be JSON or Gff.
         """
         pass
-    pass
 
 
 class Tile:
     """Area tile
-
-    Attributes:
-        id
-        height
-        orientation
-        animloop1
-        animloop2
-        animloop3
-        mainlight1
-        mainlight2
-        srclight1
-        srclight2
     """
-    pass
+    id: int
+    height: int
+    orientation: int
+    animloop1: int
+    animloop2: int
+    animloop3: int
+    mainlight1: int
+    mainlight2: int
+    srclight1: int
+    srclight2: int
 
 
 class TriggerScripts:
     """A trigger's scripts
-
-    Attributes:
-        on_click (str)
-        on_disarm (str)
-        on_enter (str)
-        on_exit (str)
-        on_heartbeat (str)
-        on_trap_triggered (str)
-        on_user_defined (str)
     """
-    pass
+    on_click: str
+    on_disarm: str
+    on_enter: str
+    on_exit: str
+    on_heartbeat: str
+    on_trap_triggered: str
+    on_user_defined: str
 
 
 class Trigger(ObjectBase):
     """Class that represents a Trigger object
-
-    Attributes:
-        cursor
-        faction
-        geometry
-        highlight_height
-        linked_to
-        linked_to_flags
-        loadscreen
-        portrait
-        scripts (TriggerScripts)
-        trap (Trap): A trap component
-        type
     """
-    pass
+    cursor: int
+    faction: int
+    geometry: List[Vector3]
+    highlight_height: float
+    linked_to: str
+    linked_to_flags: int
+    loadscreen: int
+    portrait: int
+    scripts: TriggerScripts
+    trap: Trap
+    type: int
+
+    @staticmethod
+    def from_dict(value: dict) -> 'Trigger':
+        """Constructs object from python dict.
+        """
+        pass
+
+    @staticmethod
+    def from_file(path: str) -> 'Trigger':
+        """Constructs object from file.  The file can be JSON or Gff.
+        """
+        pass
 
 
 class Waypoint(ObjectBase):
     """Class that represents a Waypoint object
-
-    Attributes:
-        appearance
-        description (LocString)
-        has_map_note (bool): Has a map note
-        linked_to (str): Tag of linked object
-        map_note (LocString)
-        map_note_enabled (bool)
     """
+    appearance: int
+    description: LocString
+    #: Has a map note
+    has_map_note: bool
+    #: Tag of linked object
+    linked_to: str
+    map_note: LocString
+    map_note_enabled: bool
+
     @staticmethod
     def from_dict(value: dict):
         """Constructs object from python dict.
@@ -1674,6 +1663,7 @@ class Resource:
         type (ResourceType)
     """
 
+    @staticmethod
     def from_filename(filename: str) -> 'Resource':
         """Creates resource from file name"""
         pass
@@ -1879,25 +1869,24 @@ class AttackData:
     """Class aggregating attack data
 
     Attributes:
-        attacker
-        target
-
-        type
-        result
-        target_state
-
-        target_is_creature
-        is_ranged_attack
-        nth_attack
-        attack_roll
-        attack_bonus
-        armor_class
-        iteration_penalty
-        multiplier
-        threat_range
-        concealment
     """
-    pass
+    attacker: Creature
+    target: ObjectBase
+
+    type: int
+    result: "AttackResult"
+    target_state: int
+
+    target_is_creature: bool
+    is_ranged_attack: bool
+    nth_attack: int
+    attack_roll: int
+    attack_bonus: int
+    armor_class: int
+    iteration_penalty: int
+    multiplier: int
+    threat_range: int
+    concealment: int
 
 
 class AttackResult(enum.IntEnum):
@@ -1914,13 +1903,10 @@ class AttackResult(enum.IntEnum):
 
 class DiceRoll:
     """Dice roll
-
-    Attributes:
-        dice (int)
-        sides (int)
-        bonus (int)
     """
-    pass
+    dice: int
+    sides: int
+    bonus: int
 
 
 class EffectCategory(enum.IntEnum):
@@ -1935,25 +1921,20 @@ class EffectCategory(enum.IntEnum):
 
 class EffectID:
     """Effect ID
-
-    Attributes:
-        version (int)
-        index (int)
     """
+    version: int
+    index: int
 
 
 class EffectHandle:
     """Effect Handle
-
-    Attributes:
-        type (int)
-        subtype (int)
-        creator (ObjectHandle)
-        spell_id (int)
-        category (EffectCategory)
-        effect (Effect)
     """
-    pass
+    type: int
+    subtype: int
+    creator: ObjectHandle
+    spell_id: int
+    category: EffectCategory
+    effect: "Effect"
 
 
 class Effect:

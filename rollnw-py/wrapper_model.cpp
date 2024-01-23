@@ -136,13 +136,13 @@ void init_model(py::module& nw)
         .def_readonly_static("alpha", &nw::model::ControllerType::Alpha);
 
     py::class_<nw::model::ControllerKey>(nw, "MdlControllerKey>")
-        .def_readwrite("name", &nw::model::ControllerKey::name)
-        .def_readwrite("type", &nw::model::ControllerKey::type)
-        .def_readwrite("rows", &nw::model::ControllerKey::rows)
-        .def_readwrite("key_offset", &nw::model::ControllerKey::key_offset)
-        .def_readwrite("data_offset", &nw::model::ControllerKey::data_offset)
-        .def_readwrite("columns", &nw::model::ControllerKey::columns)
-        .def_readwrite("is_key", &nw::model::ControllerKey::is_key);
+        .def_readonly("name", &nw::model::ControllerKey::name)
+        .def_readonly("type", &nw::model::ControllerKey::type)
+        .def_readonly("rows", &nw::model::ControllerKey::rows)
+        .def_readonly("key_offset", &nw::model::ControllerKey::key_offset)
+        .def_readonly("data_offset", &nw::model::ControllerKey::data_offset)
+        .def_readonly("columns", &nw::model::ControllerKey::columns)
+        .def_readonly("is_key", &nw::model::ControllerKey::is_key);
 
     py::class_<nw::model::Face>(nw, "MdlFace")
         .def_readwrite("vert_idx", &nw::model::Face::vert_idx)
@@ -156,8 +156,6 @@ void init_model(py::module& nw)
         .def_readonly("inheritcolor", &nw::model::Node::inheritcolor)
         .def_readonly("parent", &nw::model::Node::parent)
         .def_readonly("children", &nw::model::Node::children)
-        .def_readonly("controller_keys", &nw::model::Node::controller_keys)
-        .def_readonly("controller_data", &nw::model::Node::controller_data)
         .def(
             "get_controller", [](const nw::model::Node& self, uint32_t type, bool is_key) {
                 auto key = self.get_controller(type, is_key);
