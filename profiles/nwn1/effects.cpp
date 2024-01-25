@@ -302,7 +302,7 @@ nw::ItemProperty itemprop_ability_modifier(nw::Ability ability, int modifier)
 {
     nw::ItemProperty result;
     if (modifier == 0) { return result; }
-    result.type = modifier > 0 ? *ip_ability_bonus : *ip_decreased_ability_score;
+    result.type = uint16_t(modifier > 0 ? *ip_ability_bonus : *ip_decreased_ability_score);
     result.subtype = uint16_t(*ability);
     result.cost_value = uint16_t(std::abs(modifier));
     return result;
@@ -452,7 +452,7 @@ nw::Effect* ip_gen_enhancement_modifier(const nw::ItemProperty& ip, nw::EquipInd
 nw::ItemProperty itemprop_haste()
 {
     nw::ItemProperty result;
-    result.type = *ip_haste;
+    result.type = uint16_t(*ip_haste);
     return result;
 }
 
@@ -464,7 +464,7 @@ nw::Effect* ip_gen_haste(const nw::ItemProperty&, nw::EquipIndex, nw::BaseItem)
 nw::ItemProperty itemprop_keen()
 {
     nw::ItemProperty result;
-    result.type = *ip_keen;
+    result.type = uint16_t(*ip_keen);
     return result;
 }
 
@@ -472,7 +472,7 @@ nw::ItemProperty itemprop_save_modifier(nw::Save type, int modifier)
 {
     nw::ItemProperty result;
     if (modifier == 0) { return result; }
-    result.type = modifier > 0 ? *ip_saving_throw_bonus : *ip_decreased_saving_throws;
+    result.type = uint16_t(modifier > 0 ? *ip_saving_throw_bonus : *ip_decreased_saving_throws);
     result.subtype = uint16_t(*type);
     result.cost_value = uint16_t(std::abs(modifier));
     return result;
@@ -498,7 +498,7 @@ nw::ItemProperty itemprop_save_vs_modifier(nw::SaveVersus type, int modifier)
 {
     nw::ItemProperty result;
     if (modifier == 0) { return result; }
-    result.type = modifier > 0 ? *ip_saving_throw_bonus_specific : *ip_decreased_saving_throws_specific;
+    result.type = uint16_t(modifier > 0 ? *ip_saving_throw_bonus_specific : *ip_decreased_saving_throws_specific);
     result.subtype = uint16_t(*type);
     result.cost_value = uint16_t(std::abs(modifier));
     return result;
@@ -524,7 +524,7 @@ nw::ItemProperty itemprop_skill_modifier(nw::Skill skill, int modifier)
 {
     nw::ItemProperty result;
     if (modifier == 0) { return result; }
-    result.type = modifier > 0 ? *ip_skill_bonus : *ip_decreased_skill_modifier;
+    result.type = uint16_t(modifier > 0 ? *ip_skill_bonus : *ip_decreased_skill_modifier);
     result.subtype = uint16_t(*skill);
     result.cost_value = uint16_t(std::abs(modifier));
     return result;
