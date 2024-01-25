@@ -28,6 +28,7 @@ if(MSVC)
         -DUNICODE
         -D_UNICODE
         -D_SILENCE_ALL_CXX17_DEPRECATION_WARNINGS # abseil
+        -D_SILENCE_ALL_MS_EXT_DEPRECATION_WARNINGS # fmt
         -DSTBI_WINDOWS_UTF8 # stbi_image
     )
 endif()
