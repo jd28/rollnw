@@ -984,6 +984,19 @@ TEST(Nss, Conditional)
     EXPECT_NO_THROW(nss3.resolve());
     EXPECT_EQ(nss3.errors(), 0);
 
+    // nested conditionals
+    script::Nss nss4(R"(
+        void main() {
+            string s =  1
+                ? TRUE ? "Hi" : "Bye"
+                : FALSE ? "Hello" : "Goodbye";
+        }
+    )"sv,
+        ctx.get());
+    EXPECT_NO_THROW(nss4.parse());
+    EXPECT_NO_THROW(nss4.resolve());
+    EXPECT_EQ(nss4.errors(), 0);
+
     // == Bad =================================================================
 
     // non-integer bool test

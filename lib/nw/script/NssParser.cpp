@@ -233,7 +233,7 @@ Expression* NssParser::parse_expr_conditional()
 {
     auto expr = parse_expr_or();
     if (match({NssTokenType::QUESTION})) {
-        auto tbranch = parse_expr();
+        auto tbranch = parse_expr_conditional();
         consume(NssTokenType::COLON, "Expected ':'.");
         auto fbranch = parse_expr_conditional();
         auto ce = ast_.create_node<ConditionalExpression>(expr, tbranch, fbranch);
