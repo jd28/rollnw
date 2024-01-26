@@ -92,14 +92,11 @@ struct Module : public ObjectBase {
 // == Module - Serialization - Gff ============================================
 // ============================================================================
 
-#ifdef ROLLNW_ENABLE_LEGACY
 bool deserialize(Module* ent, const GffStruct& archive);
 GffBuilder serialize(const Module* ent);
 bool serialize(const Module* ent, GffBuilderStruct& archive);
 
 bool deserialize(ModuleScripts& self, const GffStruct& archive);
 bool serialize(const ModuleScripts& self, GffBuilderStruct& archive);
-
-#endif
 
 } // namespace nw

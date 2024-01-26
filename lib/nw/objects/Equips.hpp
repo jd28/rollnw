@@ -160,9 +160,7 @@ struct Equips {
     std::array<EquipItem, 18> equips;
 };
 
-#ifdef ROLLNW_ENABLE_LEGACY
 bool deserialize(Equips& self, const GffStruct& archive, SerializationProfile profile);
 bool serialize(const Equips& self, GffBuilderStruct& archive, SerializationProfile profile);
-#endif // ROLLNW_ENABLE_LEGACY
 
 } // namespace nw

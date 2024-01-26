@@ -35,7 +35,6 @@ nlohmann::json Lock::to_json() const
     return j;
 }
 
-#ifdef ROLLNW_ENABLE_LEGACY
 bool deserialize(Lock& self, const GffStruct& archive)
 {
     archive.get_to("Lockable", self.lockable);
@@ -61,6 +60,5 @@ bool serialize(const Lock& self, GffBuilderStruct& archive)
 
     return true;
 }
-#endif
 
 } // namespace nw

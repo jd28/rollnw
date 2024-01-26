@@ -4,7 +4,6 @@
 #include "ObjectBase.hpp"
 
 #include <cstdint>
-#include <memory>
 #include <variant>
 #include <vector>
 
@@ -40,9 +39,7 @@ struct Inventory {
     std::vector<InventoryItem> items;
 };
 
-#ifdef ROLLNW_ENABLE_LEGACY
 bool deserialize(Inventory& self, const GffStruct& archive, SerializationProfile profile);
 bool serialize(const Inventory& self, GffBuilderStruct& archive, SerializationProfile profile);
-#endif
 
 } // namespace nw

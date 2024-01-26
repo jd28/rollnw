@@ -7,7 +7,6 @@ option(ROLLNW_BUILD_BENCHMARKS "Build benchmarks" OFF)
 option(ROLLNW_BUILD_DOCS "Build documentation" OFF)
 option(ROLLNW_BUILD_RUNTIME_SCRIPTING "Build Luau scripting language" ON)
 option(ROLLNW_BUILD_TESTS "Build tests" OFF)
-option(ROLLNW_ENABLE_LEGACY "Build legacy NWN stuff" ON)
 option(ROLLNW_BUILD_PYTHON "Build python bindings" OFF)
 
 # Generate compile_commands.json to make it easier to work with clang based tools
@@ -59,10 +58,6 @@ elseif(UNIX)
     add_definitions(-DROLLNW_OS_LINUX)
 else()
     message(FATAL "Unsupported target platform")
-endif()
-
-if(ROLLNW_ENABLE_LEGACY)
-add_definitions(-DROLLNW_ENABLE_LEGACY)
 endif()
 
 include_directories(SYSTEM external)

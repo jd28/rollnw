@@ -88,13 +88,11 @@ struct Placeable : public ObjectBase {
 // == Placeable - Serialization - Gff =========================================
 // ============================================================================
 
-#ifdef ROLLNW_ENABLE_LEGACY
 bool deserialize(Placeable* obj, const GffStruct& archive, SerializationProfile profile);
 GffBuilder serialize(const Placeable* obj, SerializationProfile profile);
 bool serialize(const Placeable* obj, GffBuilderStruct& archive, SerializationProfile profile);
 
 bool deserialize(PlaceableScripts& self, const GffStruct& archive);
 bool serialize(const PlaceableScripts& self, GffBuilderStruct& archive);
-#endif // ROLLNW_ENABLE_LEGACY
 
 } // namespace nw

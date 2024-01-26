@@ -50,8 +50,6 @@ TEST(Player, AttackBonus)
     nwk::unload_module();
 }
 
-#ifdef ROLLNW_ENABLE_LEGACY
-
 TEST(Player, GffJsonSerialize)
 {
     auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
@@ -67,5 +65,3 @@ TEST(Player, GffJsonSerialize)
 
     nwk::unload_module();
 }
-
-#endif // ROLLNW_ENABLE_LEGACY

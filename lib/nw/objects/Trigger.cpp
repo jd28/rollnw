@@ -127,8 +127,6 @@ bool Trigger::serialize(const Trigger* obj, nlohmann::json& archive, Serializati
 // == Trigger - Serialization - Gff ===========================================
 // ============================================================================
 
-#ifdef ROLLNW_ENABLE_LEGACY
-
 bool deserialize(Trigger* obj, const GffStruct& archive, SerializationProfile profile)
 {
     if (!obj) return false;
@@ -243,7 +241,5 @@ GffBuilder serialize(const Trigger* obj, SerializationProfile profile)
     out.build();
     return out;
 }
-
-#endif // ROLLNW_ENABLE_LEGACY
 
 } // namespace nw

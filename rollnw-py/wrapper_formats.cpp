@@ -1,7 +1,7 @@
+#include <nw/formats/Image.hpp>
 #include <nw/formats/Ini.hpp>
+#include <nw/formats/Plt.hpp>
 #include <nw/formats/TwoDA.hpp>
-#include <nw/legacy/Image.hpp>
-#include <nw/legacy/Plt.hpp>
 
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>

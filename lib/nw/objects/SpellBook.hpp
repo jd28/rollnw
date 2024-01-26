@@ -69,9 +69,7 @@ struct SpellBook {
     std::vector<std::vector<SpellEntry>> memorized_;
 };
 
-#ifdef ROLLNW_ENABLE_LEGACY
 bool deserialize(SpellBook& self, const GffStruct& archive);
 bool serialize(const SpellBook& self, GffBuilderStruct& archive);
-#endif // ROLLNW_ENABLE_LEGACY
 
 } // namespace nw

@@ -35,8 +35,7 @@ struct LevelStats {
     std::array<ClassEntry, max_classes> entries;
 };
 
-#ifdef ROLLNW_ENABLE_LEGACY
 bool deserialize(LevelStats& self, const GffStruct& archive);
 bool serialize(const LevelStats& self, GffBuilderStruct& archive);
-#endif
+
 } // namespace nw

@@ -1,8 +1,8 @@
-#ifdef ROLLNW_ENABLE_LEGACY
+
 
 #include <gtest/gtest.h>
 
-#include <nw/legacy/Palette.hpp>
+#include <nw/formats/Palette.hpp>
 #include <nw/serialization/Archives.hpp>
 
 #include <nlohmann/json.hpp>
@@ -59,5 +59,3 @@ TEST(Palette, JsonConversion)
     std::ofstream f2{"tmp/creaturepalstd.itp.json"};
     f2 << std::setw(4) << j2;
 }
-
-#endif // ROLLNW_ENABLE_LEGACY

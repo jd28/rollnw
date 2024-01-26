@@ -52,9 +52,7 @@ struct CombatInfo {
     std::vector<SpecialAbility> special_abilities;
 };
 
-#ifdef ROLLNW_ENABLE_LEGACY
 bool deserialize(CombatInfo& self, const GffStruct& archive);
 bool serialize(const CombatInfo& self, GffBuilderStruct& archive);
-#endif // ROLLNW_ENABLE_LEGACY
 
 } // namespace nw

@@ -54,8 +54,6 @@ struct Waypoint : public ObjectBase {
 // == Waypoint - Serialization - Gff ==========================================
 // ============================================================================
 
-#ifdef ROLLNW_ENABLE_LEGACY
-
 /// Deserializes entity from GFF
 bool deserialize(Waypoint* obj, const GffStruct& archive, SerializationProfile profile);
 
@@ -64,7 +62,5 @@ GffBuilder serialize(const Waypoint* obj, SerializationProfile profile);
 
 /// Deserializes entity to GFF
 bool serialize(const Waypoint* obj, GffBuilderStruct& archive, SerializationProfile profile);
-
-#endif // ROLLNW_ENABLE_LEGACY
 
 } // namespace nw

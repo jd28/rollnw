@@ -44,9 +44,7 @@ struct Appearance {
     uint8_t tattoo2 = 0;
 };
 
-#ifdef ROLLNW_ENABLE_LEGACY
 bool deserialize(Appearance& self, const GffStruct& archive);
 bool serialize(const Appearance& self, GffBuilderStruct& archive);
-#endif // ROLLNW_ENABLE_LEGACY
 
 } // namespace nw

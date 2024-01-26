@@ -1,10 +1,9 @@
 
-#ifdef ROLLNW_ENABLE_LEGACY
 
 #include <gtest/gtest.h>
 
+#include <nw/formats/Plt.hpp>
 #include <nw/kernel/Resources.hpp>
-#include <nw/legacy/Plt.hpp>
 #include <nw/log.hpp>
 
 #include <filesystem>
@@ -22,5 +21,3 @@ TEST(Plt, Load)
     EXPECT_EQ(size_t(color[1]), 102);
     EXPECT_EQ(size_t(color[2]), 81);
 }
-
-#endif // ROLLNW_ENABLE_LEGACY

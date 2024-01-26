@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 
-#include <nw/legacy/LocString.hpp>
+#include <nw/i18n/LocString.hpp>
 #include <nw/log.hpp>
 
 #include <nlohmann/json.hpp>

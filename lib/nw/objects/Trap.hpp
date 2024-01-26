@@ -19,9 +19,7 @@ struct Trap {
     bool one_shot = false;
 };
 
-#ifdef ROLLNW_ENABLE_LEGACY
 bool deserialize(Trap& self, const GffStruct& archive);
 bool serialize(const Trap& self, GffBuilderStruct& archive);
-#endif
 
 } // namespace nw

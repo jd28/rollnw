@@ -202,7 +202,6 @@ nlohmann::json LocalData::to_json(SerializationProfile profile) const
     return j;
 }
 
-#ifdef ROLLNW_ENABLE_LEGACY
 bool deserialize(LocalData& self, const GffStruct& archive)
 {
     auto st = archive["VarTable"];
@@ -304,7 +303,5 @@ bool serialize(const LocalData& self, GffBuilderStruct& archive, SerializationPr
 
     return true;
 }
-
-#endif
 
 } // namespace nw

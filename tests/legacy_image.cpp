@@ -1,8 +1,8 @@
-#ifdef ROLLNW_ENABLE_LEGACY
+
 
 #include <gtest/gtest.h>
 
-#include <nw/legacy/Image.hpp>
+#include <nw/formats/Image.hpp>
 #include <nw/log.hpp>
 
 #include <filesystem>
@@ -48,5 +48,3 @@ TEST(Image, TGA)
     EXPECT_TRUE(tga.write_to("tmp/qfpp_001_L.tga"));
 #endif
 }
-
-#endif // #ifdef ROLLNW_ENABLE_LEGACY

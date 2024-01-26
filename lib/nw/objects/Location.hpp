@@ -25,8 +25,6 @@ struct Location {
 void from_json(const nlohmann::json& json, Location& loc);
 void to_json(nlohmann::json& json, const Location& loc);
 
-#ifdef ROLLNW_ENABLE_LEGACY
 bool deserialize(Location& self, const GffStruct gff, SerializationProfile profile);
-#endif
 
 } // namespace nw

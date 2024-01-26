@@ -31,7 +31,6 @@ void to_json(nlohmann::json& json, const LevelUp& entry)
     json["skills"] = entry.skills;
 }
 
-#ifdef ROLLNW_ENABLE_LEGACY
 bool deserialize(LevelUp& self, const GffStruct& archive)
 {
     uint8_t temp = 0;
@@ -120,6 +119,5 @@ bool serialize(const LevelUp& self, GffBuilderStruct& archive)
 
     return true;
 }
-#endif
 
 } // namespace nw

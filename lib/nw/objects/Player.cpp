@@ -39,8 +39,6 @@ bool Player::deserialize(Player* obj, const nlohmann::json& archive)
 // == Player - Serialization - Gff ============================================
 // ============================================================================
 
-#ifdef ROLLNW_ENABLE_LEGACY
-
 bool deserialize(Player* obj, const GffStruct& archive)
 {
     obj->pc = true;
@@ -55,7 +53,5 @@ bool deserialize(Player* obj, const GffStruct& archive)
 
     return true;
 }
-
-#endif // ROLLNW_ENABLE_LEGACY
 
 } // namespace nw

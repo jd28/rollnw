@@ -178,8 +178,6 @@ bool Encounter::serialize(const Encounter* obj, nlohmann::json& archive, Seriali
 // == Encounter - Serialization - Gff =========================================
 // ============================================================================
 
-#ifdef ROLLNW_ENABLE_LEGACY
-
 bool deserialize(Encounter* obj, const GffStruct& archive, SerializationProfile profile)
 {
     if (!obj) {
@@ -354,7 +352,5 @@ bool deserialize(SpawnPoint& self, const GffStruct& archive)
 
     return true;
 }
-
-#endif // ROLLNW_ENABLE_LEGACY
 
 } // namespace nw

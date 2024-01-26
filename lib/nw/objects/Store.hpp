@@ -66,10 +66,8 @@ struct Store : public ObjectBase {
 // == Store - Serialization - Gff =============================================
 // ============================================================================
 
-#ifdef ROLLNW_ENABLE_LEGACY
 bool deserialize(Store* obj, const GffStruct& archive, SerializationProfile profile);
 GffBuilder serialize(const Store* obj, SerializationProfile profile);
 bool serialize(const Store* obj, GffBuilderStruct& archive, SerializationProfile profile);
-#endif // ROLLNW_ENABLE_LEGACY
 
 } // namespace nw

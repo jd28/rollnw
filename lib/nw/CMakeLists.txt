@@ -9,34 +9,23 @@ find_package(unofficial-sqlite3 CONFIG REQUIRED)
 find_package(zstd CONFIG REQUIRED)
 find_package(ZLIB REQUIRED)
 
-if(ROLLNW_ENABLE_LEGACY)
-set(LEGACY_SRC
-    legacy/gff_common.cpp
-    legacy/gff_conversion.cpp
-    legacy/Gff.cpp
-    legacy/GffBuilder.cpp
-    legacy/Image.cpp
-    legacy/LocString.cpp
-    legacy/Palette.cpp
-    legacy/Plt.cpp
-    legacy/Tlk.cpp
-)
-else()
-set(LEGACY_SRC )
-endif()
-
 add_library(nw STATIC
     functions.cpp
     log.cpp
 
     formats/Dialog.cpp
     formats/Faction.cpp
+    formats/Image.cpp
     formats/Ini.cpp
     formats/Journal.cpp
+    formats/Palette.cpp
+    formats/Plt.cpp
     formats/TwoDA.cpp
 
     i18n/conversion.cpp
     i18n/Language.cpp
+    i18n/LocString.cpp
+    i18n/Tlk.cpp
 
     kernel/Kernel.cpp
     kernel/Config.cpp
@@ -47,8 +36,6 @@ add_library(nw STATIC
     kernel/Rules.cpp
     kernel/Strings.cpp
     kernel/TwoDACache.cpp
-
-    ${LEGACY_SRC}
 
     model/Mdl.cpp
     model/MdlTextParser.cpp
@@ -114,6 +101,10 @@ add_library(nw STATIC
     script/NssLexer.cpp
     script/NssParser.cpp
 
+    serialization/gff_common.cpp
+    serialization/gff_conversion.cpp
+    serialization/Gff.cpp
+    serialization/GffBuilder.cpp
     serialization/Serialization.cpp
 
     util/base64.cpp

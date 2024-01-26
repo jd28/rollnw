@@ -93,7 +93,6 @@ nlohmann::json Equips::to_json(SerializationProfile profile) const
     return j;
 }
 
-#ifdef ROLLNW_ENABLE_LEGACY
 bool deserialize(Equips& self, const GffStruct& archive, SerializationProfile profile)
 {
     size_t sz = archive["Equip_ItemList"].size();
@@ -143,6 +142,5 @@ bool serialize(const Equips& self, GffBuilderStruct& archive, SerializationProfi
 
     return true;
 }
-#endif // ROLLNW_ENABLE_LEGACY
 
 } // namespace nw

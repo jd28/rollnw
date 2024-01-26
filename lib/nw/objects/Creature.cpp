@@ -250,8 +250,6 @@ bool Creature::serialize(const Creature* obj, nlohmann::json& archive,
 // == Creature - Serialization - Gff ==========================================
 // ============================================================================
 
-#ifdef ROLLNW_ENABLE_LEGACY
-
 bool deserialize(Creature* obj, const GffStruct& archive, SerializationProfile profile)
 {
     if (!obj) {
@@ -388,7 +386,5 @@ GffBuilder serialize(const Creature* obj, SerializationProfile profile)
     out.build();
     return out;
 }
-
-#endif // ROLLNW_ENABLE_LEGACY
 
 } // namespace nw

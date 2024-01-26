@@ -1,15 +1,12 @@
 #include "Resources.hpp"
 
+#include "../formats/palette_textures.hpp"
 #include "../objects/Module.hpp"
 #include "../util/game_install.hpp"
 #include "../util/platform.hpp"
 #include "../util/templates.hpp"
 #include "Kernel.hpp"
 #include "Strings.hpp"
-
-#ifdef ROLLNW_ENABLE_LEGACY
-#include "../legacy/palette_textures.hpp"
-#endif
 
 #include <filesystem>
 #include <memory>
@@ -122,9 +119,7 @@ void Resources::initialize()
         }
     }
     update_container_search();
-#ifdef ROLLNW_ENABLE_LEGACY
     load_palette_textures();
-#endif
 }
 
 bool Resources::load_module(std::filesystem::path path, std::string_view manifest)
@@ -327,7 +322,6 @@ void Resources::visit(std::function<void(const Resource&)> callback) const noexc
     }
 }
 
-#ifdef ROLLNW_ENABLE_LEGACY
 void Resources::load_palette_textures()
 {
     // [TODO]: Fix all this with a image/texture cache at some point
@@ -383,7 +377,6 @@ Image* Resources::palette_texture(PltLayer layer)
 
     return palette_textures_[layer]->valid() ? palette_textures_[layer].get() : nullptr;
 }
-#endif
 
 void Resources::update_container_search()
 {

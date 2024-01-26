@@ -35,8 +35,6 @@ void to_json(nlohmann::json& json, const Location& loc)
         {"orientation", {loc.orientation.x, loc.orientation.y, loc.orientation.z}}};
 }
 
-#ifdef ROLLNW_ENABLE_LEGACY
-
 bool deserialize(Location& self, const GffStruct gff, SerializationProfile profile)
 {
     if (profile != SerializationProfile::any
@@ -82,7 +80,5 @@ bool deserialize(Location& self, const GffStruct gff, SerializationProfile profi
 
     return self.area != object_invalid;
 }
-
-#endif // ROLLNW_ENABLE_LEGACY
 
 } // namespace nw

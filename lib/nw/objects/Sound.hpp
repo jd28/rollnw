@@ -53,10 +53,8 @@ struct Sound : public ObjectBase {
 // == Sound - Serialization - Gff =============================================
 // ============================================================================
 
-#ifdef ROLLNW_ENABLE_LEGACY
 bool deserialize(Sound* obj, const GffStruct& archive, SerializationProfile profile);
 bool serialize(const Sound* obj, GffBuilderStruct& archive, SerializationProfile profile);
 GffBuilder serialize(const Sound* obj, SerializationProfile profile);
-#endif // ROLLNW_ENABLE_LEGACY
 
 } // namespace nw

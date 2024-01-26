@@ -28,8 +28,6 @@ TEST(Door, JsonSerialize)
     f << std::setw(4) << j;
 }
 
-#ifdef ROLLNW_ENABLE_LEGACY
-
 TEST(Door, GffDeserialize)
 {
     auto door = nw::kernel::objects().load<nw::Door>(fs::path("test_data/user/development/door_ttr_002.utd"));
@@ -67,5 +65,3 @@ TEST(Door, GffRoundTrip)
     EXPECT_EQ(oa.header.list_idx_offset, g.head_->list_idx_offset);
     EXPECT_EQ(oa.header.list_idx_count, g.head_->list_idx_count);
 }
-
-#endif // ROLLNW_ENABLE_LEGACY

@@ -138,10 +138,8 @@ struct Area : public ObjectBase {
 // == Area - Serialization - Gff ==============================================
 // ============================================================================
 
-#ifdef ROLLNW_ENABLE_LEGACY
 bool deserialize(AreaScripts& self, const GffStruct& archive);
 bool deserialize(Area* obj, const GffStruct& are, const GffStruct& git, const GffStruct& gic);
 bool deserialize(Tile& self, const GffStruct& archive);
-#endif // ROLLNW_ENABLE_LEGACY
 
 } // namespace nw

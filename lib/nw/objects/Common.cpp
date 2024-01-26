@@ -55,7 +55,6 @@ nlohmann::json Common::to_json(SerializationProfile profile, ObjectType object_t
     return j;
 }
 
-#ifdef ROLLNW_ENABLE_LEGACY
 bool deserialize(Common& self, const GffStruct& archive, SerializationProfile profile, ObjectType object_type)
 {
     deserialize(self.location, archive, profile);
@@ -83,6 +82,5 @@ bool deserialize(Common& self, const GffStruct& archive, SerializationProfile pr
 
     return true;
 }
-#endif
 
 } // namespace nw

@@ -291,8 +291,6 @@ void Area::serialize(const Area* obj, nlohmann::json& archive)
 // == Area - Serialization - Gff ==============================================
 // ============================================================================
 
-#ifdef ROLLNW_ENABLE_LEGACY
-
 bool deserialize(AreaScripts& self, const GffStruct& archive)
 {
     return archive.get_to("OnEnter", self.on_enter)
@@ -407,7 +405,5 @@ bool deserialize(Area* obj, const GffStruct& are, const GffStruct& git, const Gf
 
     return true;
 }
-
-#endif // ROLLNW_ENABLE_LEGACY
 
 } // namespace nw

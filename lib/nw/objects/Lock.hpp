@@ -20,9 +20,7 @@ struct Lock {
     bool remove_key = false;
 };
 
-#ifdef ROLLNW_ENABLE_LEGACY
 bool deserialize(Lock& self, const GffStruct& archive);
 bool serialize(const Lock& self, GffBuilderStruct& archive);
-#endif
 
 } // namespace nw

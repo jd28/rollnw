@@ -106,8 +106,6 @@ bool Store::serialize(const Store* obj, nlohmann::json& archive, SerializationPr
 // == Store - Serialization - Gff =============================================
 // ============================================================================
 
-#ifdef ROLLNW_ENABLE_LEGACY
-
 bool deserialize(Store* obj, const GffStruct& archive, SerializationProfile profile)
 {
     if (!obj) {
@@ -258,7 +256,5 @@ GffBuilder serialize(const Store* obj, SerializationProfile profile)
     out.build();
     return out;
 }
-
-#endif // ROLLNW_ENABLE_LEGACY
 
 } // namespace nw

@@ -1,8 +1,8 @@
 #include "pybind11_json/pybind11_json.hpp"
 
 #include <nw/i18n/Language.hpp>
-#include <nw/legacy/LocString.hpp>
-#include <nw/legacy/Tlk.hpp>
+#include <nw/i18n/LocString.hpp>
+#include <nw/i18n/Tlk.hpp>
 
 #include <nlohmann/json.hpp>
 #include <pybind11/pybind11.h>

@@ -55,8 +55,6 @@ void Waypoint::serialize(const Waypoint* obj, nlohmann::json& archive,
 // == Waypoint - Serialization - Gff ==========================================
 // ============================================================================
 
-#ifdef ROLLNW_ENABLE_LEGACY
-
 bool deserialize(Waypoint* obj, const GffStruct& archive, SerializationProfile profile)
 {
     if (!obj) {
@@ -123,7 +121,5 @@ GffBuilder serialize(const Waypoint* obj, SerializationProfile profile)
     out.build();
     return out;
 }
-
-#endif // ROLLNW_ENABLE_LEGACY
 
 } // namespace nw

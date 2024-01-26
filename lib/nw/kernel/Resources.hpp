@@ -1,5 +1,7 @@
 #pragma once
 
+#include "../formats/Image.hpp"
+#include "../formats/Plt.hpp"
 #include "../log.hpp"
 #include "../resources/Directory.hpp"
 #include "../resources/Erf.hpp"
@@ -7,11 +9,6 @@
 #include "../resources/NWSync.hpp"
 #include "../resources/Zip.hpp"
 #include "Kernel.hpp"
-
-#ifdef ROLLNW_ENABLE_LEGACY
-#include "../legacy/Image.hpp"
-#include "../legacy/Plt.hpp"
-#endif
 
 #include <string_view>
 #include <variant>
@@ -58,10 +55,8 @@ struct Resources : public Container, public Service {
     /// Attempts to locate first matching resource by resource type priority
     ResourceData demand_in_order(Resref resref, std::initializer_list<ResourceType::type> restypes) const;
 
-#ifdef ROLLNW_ENABLE_LEGACY
     void load_palette_textures();
     Image* palette_texture(PltLayer layer);
-#endif
 
     virtual std::vector<ResourceDescriptor> all() const override
     {
@@ -111,9 +106,7 @@ private:
     std::vector<Erf> texture_packs_;
     std::vector<Key> keys_;
 
-#ifdef ROLLNW_ENABLE_LEGACY
     std::array<std::unique_ptr<Image>, plt_layer_size> palette_textures_;
-#endif
 };
 
 inline Resources& resman()

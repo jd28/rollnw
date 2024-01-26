@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../legacy/LocString.hpp"
+#include "../i18n/LocString.hpp"
 #include "../util/ByteArray.hpp"
 #include "Container.hpp"
 

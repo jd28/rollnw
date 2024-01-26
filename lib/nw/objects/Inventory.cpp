@@ -96,7 +96,6 @@ nlohmann::json Inventory::to_json(SerializationProfile profile) const
     return j;
 }
 
-#ifdef ROLLNW_ENABLE_LEGACY
 bool deserialize(Inventory& self, const GffStruct& archive, SerializationProfile profile)
 {
     size_t sz = archive["ItemList"].size();
@@ -160,6 +159,5 @@ bool serialize(const Inventory& self, GffBuilderStruct& archive, SerializationPr
     }
     return true;
 }
-#endif
 
 } // namespace nw

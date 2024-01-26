@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 
+#include <nw/i18n/Tlk.hpp>
 #include <nw/kernel/Kernel.hpp>
-#include <nw/legacy/Tlk.hpp>
 #include <nw/log.hpp>
 
 TEST(Tlk, LoadEnglish)

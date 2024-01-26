@@ -127,7 +127,6 @@ void SpellBook::remove_memorized_spell(size_t level, SpellEntry entry)
     }
 }
 
-#ifdef ROLLNW_ENABLE_LEGACY
 bool deserialize(SpellBook& self, const GffStruct& archive)
 {
     for (size_t i = 0; i < 10; ++i) {
@@ -198,7 +197,5 @@ bool serialize(const SpellBook& self, GffBuilderStruct& archive)
 
     return true;
 }
-
-#endif // ROLLNW_ENABLE_LEGACY
 
 } // namespace nw

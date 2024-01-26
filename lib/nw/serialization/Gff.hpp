@@ -1,14 +1,14 @@
 #pragma once
 
 #include "../i18n/Language.hpp"
+#include "../i18n/LocString.hpp"
 #include "../i18n/conversion.hpp"
-#include "../legacy/LocString.hpp"
 #include "../log.hpp"
 #include "../resources/ResourceData.hpp"
 #include "../serialization/Serialization.hpp"
+#include "../serialization/gff_common.hpp"
 #include "../util/macros.hpp"
 #include "../util/string.hpp"
-#include "gff_common.hpp"
 
 #include <array>
 #include <cstdint>

@@ -40,7 +40,6 @@ nlohmann::json CombatInfo::to_json() const
     return j;
 }
 
-#ifdef ROLLNW_ENABLE_LEGACY
 bool deserialize(CombatInfo& self, const GffStruct& archive)
 {
     uint8_t temp;
@@ -73,6 +72,5 @@ bool serialize(const CombatInfo& self, GffBuilderStruct& archive)
 
     return true;
 }
-#endif // ROLLNW_ENABLE_LEGACY
 
 } // namespace nw

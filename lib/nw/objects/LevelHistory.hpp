@@ -28,9 +28,7 @@ struct LevelHistory {
     std::vector<LevelUp> entries;
 };
 
-#ifdef ROLLNW_ENABLE_LEGACY
 bool deserialize(LevelUp& self, const GffStruct& archive);
 bool serialize(const LevelUp& self, GffBuilderStruct& archive);
-#endif
 
 } // namespace nw

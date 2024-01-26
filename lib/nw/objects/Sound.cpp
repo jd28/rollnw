@@ -96,8 +96,6 @@ void Sound::serialize(const Sound* obj, nlohmann::json& archive, SerializationPr
     archive["volume_variation"] = obj->volume_variation;
 }
 
-#ifdef ROLLNW_ENABLE_LEGACY
-
 bool deserialize(Sound* obj, const GffStruct& archive, SerializationProfile profile)
 {
     if (!obj) {
@@ -213,7 +211,5 @@ GffBuilder serialize(const Sound* obj, SerializationProfile profile)
     result.build();
     return result;
 }
-
-#endif // ROLLNW_ENABLE_LEGACY
 
 } // namespace nw

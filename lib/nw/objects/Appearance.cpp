@@ -82,7 +82,6 @@ nlohmann::json Appearance::to_json() const
     return j;
 }
 
-#ifdef ROLLNW_ENABLE_LEGACY
 bool deserialize(Appearance& self, const GffStruct& archive)
 {
     if (!archive.get_to("Tail_New", self.tail, false)) {
@@ -161,6 +160,5 @@ bool serialize(const Appearance& self, GffBuilderStruct& archive)
 
     return true;
 }
-#endif // ROLLNW_ENABLE_LEGACY
 
 } // namespace nw

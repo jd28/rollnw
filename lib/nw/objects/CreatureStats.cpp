@@ -88,7 +88,6 @@ bool CreatureStats::set_skill_rank(Skill id, int value)
     return (skills_[id.idx()] = uint8_t(value));
 }
 
-#ifdef ROLLNW_ENABLE_LEGACY
 bool deserialize(CreatureStats& self, const GffStruct& archive)
 {
     archive.get_to("Str", self.abilities_[0]);
@@ -148,5 +147,4 @@ bool serialize(const CreatureStats& self, GffBuilderStruct& archive)
     return true;
 }
 
-#endif // ROLLNW_ENABLE_LEGACY
 } // namespace nw

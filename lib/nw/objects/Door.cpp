@@ -146,8 +146,6 @@ bool Door::serialize(const Door* obj, nlohmann::json& archive, SerializationProf
 // == Door - Serialization - Gff ==============================================
 // ============================================================================
 
-#ifdef ROLLNW_ENABLE_LEGACY
-
 bool deserialize(DoorScripts& self, const GffStruct& archive)
 {
     archive.get_to("OnClick", self.on_click);
@@ -303,6 +301,5 @@ GffBuilder serialize(const Door* obj, SerializationProfile profile)
     out.build();
     return out;
 }
-#endif // ROLLNW_ENABLE_LEGACY
 
 } // namespace nw

@@ -48,9 +48,7 @@ private:
     std::vector<uint8_t> skills_;
 };
 
-#ifdef ROLLNW_ENABLE_LEGACY
 bool deserialize(CreatureStats& self, const GffStruct& archive);
 bool serialize(const CreatureStats& self, GffBuilderStruct& archive);
-#endif // ROLLNW_ENABLE_LEGACY
 
 } // namespace nw

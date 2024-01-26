@@ -64,10 +64,8 @@ struct Trigger : public ObjectBase {
 // == Trigger - Serialization - Gff ===========================================
 // ============================================================================
 
-#ifdef ROLLNW_ENABLE_LEGACY
 bool deserialize(Trigger* obj, const GffStruct& archive, SerializationProfile profile);
 GffBuilder serialize(const Trigger* obj, SerializationProfile profile);
 bool serialize(const Trigger* obj, GffBuilderStruct& archive, SerializationProfile profile);
-#endif // ROLLNW_ENABLE_LEGACY
 
 } // namespace nw

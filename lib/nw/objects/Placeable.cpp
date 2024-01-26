@@ -145,8 +145,6 @@ bool Placeable::serialize(const Placeable* obj, nlohmann::json& archive, Seriali
 // == Placeable - Serialization - Gff =========================================
 // ============================================================================
 
-#ifdef ROLLNW_ENABLE_LEGACY
-
 bool deserialize(Placeable* obj, const GffStruct& archive, SerializationProfile profile)
 {
     if (!obj) {
@@ -308,7 +306,5 @@ bool serialize(const PlaceableScripts& self, GffBuilderStruct& archive)
 
     return true;
 }
-
-#endif // ROLLNW_ENABLE_LEGACY
 
 } // namespace nw

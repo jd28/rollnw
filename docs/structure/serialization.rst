@@ -72,7 +72,7 @@ Examples
         .add_field("B", 12);
 
     // Add a struct.  It's pretty rare that a gff field is a struct but if necessary
-    // you can add a struct with it's struct ID, then add fields like above.
+    // you can add a struct with its struct ID, then add fields like above.
     gff.top.add_struct("STRUCT", 42)
         .add_field("A", 1)
         .add_field("B", 12);

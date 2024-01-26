@@ -57,8 +57,6 @@ TEST(Store, JsonRoundTrip)
     EXPECT_EQ(j, j2);
 }
 
-#ifdef ROLLNW_ENABLE_LEGACY
-
 TEST(Store, GffDeserialize)
 {
     auto ent = nw::kernel::objects().load<nw::Store>(fs::path("test_data/user/development/storethief002.utm"));
@@ -102,5 +100,3 @@ TEST(Store, GffRoundTrip)
     EXPECT_EQ(oa.header.list_idx_offset, g.head_->list_idx_offset);
     EXPECT_EQ(oa.header.list_idx_count, g.head_->list_idx_count);
 }
-
-#endif // ROLLNW_ENABLE_LEGACY

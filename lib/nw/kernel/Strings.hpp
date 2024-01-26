@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../legacy/LocString.hpp"
-#include "../legacy/Tlk.hpp"
+#include "../i18n/LocString.hpp"
+#include "../i18n/Tlk.hpp"
 #include "../log.hpp"
 #include "../util/InternedString.hpp"
 #include "Kernel.hpp"

@@ -111,11 +111,8 @@ struct Creature : public ObjectBase {
 // == Creature - Serialization - Gff ==========================================
 // ============================================================================
 
-#ifdef ROLLNW_ENABLE_LEGACY
-
 bool deserialize(Creature* obj, const GffStruct& archive, SerializationProfile profile);
 GffBuilder serialize(const Creature* obj, SerializationProfile profile);
 bool serialize(const Creature* obj, GffBuilderStruct& archive, SerializationProfile profile);
 
-#endif // ROLLNW_ENABLE_LEGACY
 } // namespace nw

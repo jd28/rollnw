@@ -37,8 +37,6 @@ nlohmann::json Trap::to_json() const
     return j;
 }
 
-#ifdef ROLLNW_ENABLE_LEGACY
-
 bool deserialize(Trap& self, const GffStruct& archive)
 {
     archive.get_to("TrapFlag", self.is_trapped);
@@ -64,7 +62,5 @@ bool serialize(const Trap& self, GffBuilderStruct& archive)
 
     return true;
 }
-
-#endif // ROLLNW_ENABLE_LEGACY
 
 } // namespace nw

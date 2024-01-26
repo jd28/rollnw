@@ -34,8 +34,6 @@ protected:
     bool valid_ = false;
 };
 
-#ifdef ROLLNW_ENABLE_LEGACY
 bool deserialize(Common& self, const GffStruct& archive, SerializationProfile profile, ObjectType object_type);
-#endif
 
 } // namespace nw

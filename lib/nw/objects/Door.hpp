@@ -81,12 +81,10 @@ struct Door : public ObjectBase {
 // == Door - Serialization - Gff ==============================================
 // ============================================================================
 
-#ifdef ROLLNW_ENABLE_LEGACY
 bool deserialize(Door* obj, const GffStruct& archive, SerializationProfile profile);
 bool serialize(const Door* obj, GffBuilderStruct& archive, SerializationProfile profile);
 GffBuilder serialize(const Door* obj, SerializationProfile profile);
 bool deserialize(DoorScripts& self, const GffStruct& archive);
 bool serialize(const DoorScripts& self, GffBuilderStruct& archive);
-#endif // ROLLNW_ENABLE_LEGACY
 
 } // namespace nw

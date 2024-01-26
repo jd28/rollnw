@@ -161,7 +161,6 @@ bool Module::deserialize(Module* obj, const nlohmann::json& archive)
 // == Module - Serialization - Gff ============================================
 // ============================================================================
 
-#ifdef ROLLNW_ENABLE_LEGACY
 bool deserialize(Module* obj, const GffStruct& archive)
 {
     if (!obj) {
@@ -410,7 +409,5 @@ bool serialize(const ModuleScripts& self, GffBuilderStruct& archive)
 
     return true;
 }
-
-#endif
 
 } // namespace nw

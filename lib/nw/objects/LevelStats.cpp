@@ -78,7 +78,6 @@ size_t LevelStats::position(Class id) const noexcept
     return npos;
 }
 
-#ifdef ROLLNW_ENABLE_LEGACY
 bool deserialize(LevelStats& self, const GffStruct& archive)
 {
     size_t sz = archive["ClassList"].size();
@@ -112,6 +111,5 @@ bool serialize(const LevelStats& self, GffBuilderStruct& archive)
 
     return true;
 }
-#endif
 
 } // namespace nw

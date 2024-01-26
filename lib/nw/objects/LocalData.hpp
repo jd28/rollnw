@@ -55,10 +55,8 @@ struct LocalData {
 
     size_t size() const noexcept { return vars_.size(); }
 
-#ifdef ROLLNW_ENABLE_LEGACY
     friend bool deserialize(LocalData& self, const GffStruct& archive);
     friend bool serialize(const LocalData& self, GffBuilderStruct& archive, SerializationProfile profile);
-#endif
 
 private:
     LocalVarTable vars_;
@@ -66,9 +64,7 @@ private:
 
 // [TODO] NWNX:EE POS, Sqlite3
 
-#ifdef ROLLNW_ENABLE_LEGACY
 bool deserialize(LocalData& self, const GffStruct& archive);
 bool serialize(const LocalData& self, GffBuilderStruct& archive, SerializationProfile profile);
-#endif
 
 } // namespace nw

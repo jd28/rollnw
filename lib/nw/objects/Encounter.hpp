@@ -80,7 +80,6 @@ struct Encounter : public ObjectBase {
 // == Encounter - Serialization - Gff =========================================
 // ============================================================================
 
-#ifdef ROLLNW_ENABLE_LEGACY
 bool deserialize(Encounter* obj, const GffStruct& archive, SerializationProfile profile);
 GffBuilder serialize(const Encounter* obj, SerializationProfile profile);
 bool serialize(const Encounter* obj, GffBuilderStruct& archive, SerializationProfile profile);
@@ -90,7 +89,5 @@ bool serialize(const EncounterScripts& self, GffBuilderStruct& archive);
 
 bool deserialize(SpawnCreature& self, const GffStruct& archive);
 bool deserialize(SpawnPoint& self, const GffStruct& archive);
-
-#endif // ROLLNW_ENABLE_LEGACY
 
 } // namespace nw
