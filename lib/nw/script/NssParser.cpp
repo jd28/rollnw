@@ -825,7 +825,7 @@ WhileStatement* NssParser::parse_stmt_while()
 // declaration -> const? TYPE IDENTIFIER (= primary )? ";"
 //             | const? TYPE IDENTIFIER(PARAMETER*) ";"
 //             | const? TYPE IDENTIFIER(PARAMETER*) block
-//             | struct IDENTIFIER { declaration+ }
+//             | struct IDENTIFIER { declaration+ } ";"
 //             | statement ";"
 Statement* NssParser::parse_decl()
 {
