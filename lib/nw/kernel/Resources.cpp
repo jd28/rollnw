@@ -48,21 +48,21 @@ void Resources::initialize()
     LOG_F(INFO, "kernel: initializing resource system");
 
     if (config().options().include_user) {
-        ambient_user_ = Directory{config().alias_path(PathAlias::ambient)};
-        dmvault_user_ = Directory{config().alias_path(PathAlias::dmvault)};
-        localvault_user_ = Directory{config().alias_path(PathAlias::localvault)};
-        music_user_ = Directory{config().alias_path(PathAlias::music)};
-        override_user_ = Directory{config().alias_path(PathAlias::override)};
-        portraits_user_ = Directory{config().alias_path(PathAlias::portraits)};
-        servervault_user_ = Directory{config().alias_path(PathAlias::servervault)};
+        ambient_user_ = Directory{config().user_path() / "ambient"};
+        dmvault_user_ = Directory{config().user_path() / "dmvault"};
+        localvault_user_ = Directory{config().user_path() / "localvault"};
+        music_user_ = Directory{config().user_path() / "music"};
+        override_user_ = Directory{config().user_path() / "override"};
+        portraits_user_ = Directory{config().user_path() / "portraits"};
+        servervault_user_ = Directory{config().user_path() / "servervault"};
     }
 
     if (config().options().include_user) {
         if (config().version() == GameVersion::vEE) {
             if (config().options().include_nwsync) {
-                nwsync_ = NWSync{config().alias_path(PathAlias::nwsync)};
+                nwsync_ = NWSync{config().user_path() / "nwsync"};
             }
-            development_ = Directory{config().alias_path(PathAlias::development)};
+            development_ = Directory{config().user_path() / "development"};
         }
     }
 
@@ -71,7 +71,7 @@ void Resources::initialize()
             int i = 0;
             std::string file;
             while (config().userpatch_ini().get_to(fmt::format("Patch/PatchFile{:03d}", i++), file)) {
-                auto c = resolve_container(config().alias_path(PathAlias::patch), file);
+                auto c = resolve_container(config().user_path() / "patch", file);
                 if (c) {
                     patches_.emplace_back(c);
                 }
@@ -147,9 +147,9 @@ bool Resources::load_module(std::filesystem::path path, std::string_view manifes
 
 void Resources::load_module_haks(const std::vector<std::string>& haks)
 {
-    // [TODO]
+    // [TODO] - Change to resolve container
     for (const auto& h : haks) {
-        haks_.emplace_back(config().alias_path(PathAlias::hak) / (h + ".hak"));
+        haks_.emplace_back(config().user_path() / "hak" / (h + ".hak"));
     }
 }
 
@@ -267,7 +267,7 @@ ResourceData Resources::demand_in_order(Resref resref, std::initializer_list<Res
 ResourceData Resources::demand_server_vault(std::string_view cdkey, std::string_view resref)
 {
     ResourceData result;
-    auto vault_path = config().alias_path(PathAlias::servervault);
+    auto vault_path = config().user_path() / "servervault";
     if (!fs::exists(vault_path)) { return result; }
 
     vault_path /= cdkey;

@@ -18,9 +18,6 @@ namespace kernel {
 struct Config {
     explicit Config() = default;
 
-    /// Gets the path of an alias
-    std::filesystem::path alias_path(PathAlias alias);
-
     /// Initializes configuration system
     void initialize(ConfigOptions options = {});
 
@@ -35,9 +32,6 @@ struct Config {
 
     /// Gets installation info
     const ConfigOptions& options() const noexcept;
-
-    /// Resolves a path alias
-    std::filesystem::path resolve_alias(std::string_view alias_path) const;
 
     /// Sets game paths.
     /// @note If paths are unset, the kernel will attempt to find them.

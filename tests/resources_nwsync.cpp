@@ -5,12 +5,11 @@
 #include <nw/resources/NWSync.hpp>
 #include <nw/resources/ResourceType.hpp>
 
-namespace fs = std::filesystem;
 using namespace std::literals;
 
 TEST(NWSync, Construction)
 {
-    auto path = nw::kernel::config().alias_path(nw::PathAlias::nwsync);
+    auto path = nw::kernel::config().user_path() / "nwsync";
     auto n = nw::NWSync(path);
     EXPECT_TRUE(n.is_loaded());
     EXPECT_TRUE(n.shard_count() == 1);

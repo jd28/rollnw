@@ -87,7 +87,7 @@ bool Module::instantiate()
     }
 
     if (tlk.size()) {
-        auto path = nw::kernel::config().alias_path(PathAlias::tlk);
+        auto path = nw::kernel::config().user_path() / "tlk";
         nw::kernel::strings().load_custom_tlk(path / (tlk + ".tlk"));
     }
 

@@ -43,7 +43,7 @@ TEST(KernelResources, Extract)
 TEST(KernelResources, LoadModule)
 {
     auto rm = new nw::kernel::Resources;
-    auto path = nw::kernel::config().alias_path(nw::PathAlias::nwsync);
+    auto path = nw::kernel::config().user_path() / "nwsync";
     auto n = nw::NWSync(path);
     EXPECT_TRUE(n.is_loaded());
     auto manifests = n.manifests();

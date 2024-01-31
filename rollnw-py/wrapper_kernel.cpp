@@ -36,7 +36,6 @@ void init_kernel_config(py::module& kernel)
 
     // [TODO] Figure out what to do about toml..
     py::class_<nw::kernel::Config>(kernel, "Config")
-        .def("alias_path", &nw::kernel::Config::alias_path)
         .def("initialize", [](const nw::ConfigOptions& options) {
             nw::kernel::config().initialize(options);
         })
@@ -44,7 +43,6 @@ void init_kernel_config(py::module& kernel)
         .def("nwn_ini", &nw::kernel::Config::nwn_ini)
         .def("nwnplayer_ini", &nw::kernel::Config::nwnplayer_ini)
         .def("options", &nw::kernel::Config::options)
-        .def("resolve_alias", &nw::kernel::Config::resolve_alias)
         .def("user_path", &nw::kernel::Config::user_path)
         .def("userpatch_ini", &nw::kernel::Config::userpatch_ini)
         .def("set_paths", &nw::kernel::Config::set_paths)

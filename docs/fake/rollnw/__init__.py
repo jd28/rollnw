@@ -41,35 +41,6 @@ class GameVersion(enum.Enum):
     nwn2 = auto()
 
 
-class PathAlias(enum.Enum):
-    """Path aliases, some of these are EE only."""
-    ambient = auto()
-    cache = auto()
-    currentgame = auto()
-    database = auto()
-    development = auto()
-    dmvault = auto()
-    hak = auto()
-    hd0 = auto()
-    localvault = auto()
-    logs = auto()
-    modelcompiler = auto()
-    modules = auto()
-    movies = auto()
-    music = auto()
-    nwsync = auto()
-    oldservervault = auto()
-    override = auto()
-    patch = auto()
-    portraits = auto()
-    saves = auto()
-    screenshots = auto()
-    servervault = auto()
-    temp = auto()
-    tempclient = auto()
-    tlk = auto()
-    user = hd0
-
 # Components ##################################################################
 ###############################################################################
 

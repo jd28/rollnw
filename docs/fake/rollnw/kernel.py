@@ -23,10 +23,6 @@ class Config:
     """Configuration service
     """
 
-    def alias_path(self, alias: PathAlias) -> str:
-        """Gets alias path"""
-        return ""
-
     def initialize(self, options: ConfigOptions):
         """Initialize config system"""
         pass
@@ -48,10 +44,6 @@ class Config:
     def options(self) -> ConfigOptions:
         """Gets config options
         """
-        pass
-
-    def resolve_alias(self, alias_path: str) -> str:
-        """Resolves alias path"""
         pass
 
     def user_path(self) -> str:

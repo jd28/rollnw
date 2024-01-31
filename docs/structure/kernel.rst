@@ -16,8 +16,7 @@ Services
 Config
 ~~~~~~
 
-The ``Config`` service provides access to installation info, path
-aliases, Ini and Toml settings.
+The ``Config`` service provides access to installation info, Ini and Toml settings.
 
 **Example**
 
