@@ -50,6 +50,7 @@
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../gs/building.html">building</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../gs/using.html">using</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../gs/differences.html">Differences</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">structure</span></p>
 <ul class="current">
@@ -223,7 +224,7 @@ lack of a ResMan plugin, even so the ability to load files from a Zip file is in
 </div><div aria-labelledby="tab-2-Qysr" class="sphinx-tabs-panel code-tab group-tab" hidden="true" id="panel-2-Qysr" name="Qysr" role="tabpanel" tabindex="0"><div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;nw/resources/NWSync.hpp&gt;</span>
 <span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;nw/kernel/Kernel.hpp&gt;</span>
 
-<span class="k">auto</span><span class="w"> </span><span class="n">path</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">nw</span><span class="o">::</span><span class="n">kernel</span><span class="o">::</span><span class="n">config</span><span class="p">().</span><span class="n">alias_path</span><span class="p">(</span><span class="n">nw</span><span class="o">::</span><span class="n">PathAlias</span><span class="o">::</span><span class="n">nwsync</span><span class="p">);</span>
+<span class="k">auto</span><span class="w"> </span><span class="n">path</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;path/to/nwsync&quot;</span>
 <span class="k">auto</span><span class="w"> </span><span class="n">n</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">nw</span><span class="o">::</span><span class="n">NWSync</span><span class="p">(</span><span class="n">path</span><span class="p">);</span>
 <span class="k">if</span><span class="p">(</span><span class="o">!</span><span class="n">n</span><span class="p">.</span><span class="n">is_loaded</span><span class="p">())</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="k">throw</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">runtime_error</span><span class="p">(</span><span class="s">&quot;a fit&quot;</span><span class="p">);</span>

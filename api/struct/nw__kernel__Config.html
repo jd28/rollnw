@@ -49,6 +49,7 @@
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../gs/building.html">building</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../gs/using.html">using</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gs/differences.html">Differences</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">structure</span></p>
 <ul>
@@ -212,13 +213,11 @@
 <li class="toctree-l2 current"><a class="current reference internal" href="#">nw::kernel::Config</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#_CPPv4N2nw6kernel6ConfigE"><code class="docutils literal notranslate"><span class="pre">Config</span></code></a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6kernel6Config6ConfigEv"><code class="docutils literal notranslate"><span class="pre">Config::Config()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6kernel6Config10alias_pathE9PathAlias"><code class="docutils literal notranslate"><span class="pre">Config::alias_path()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6kernel6Config10initializeE13ConfigOptions"><code class="docutils literal notranslate"><span class="pre">Config::initialize()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw6kernel6Config12install_pathEv"><code class="docutils literal notranslate"><span class="pre">Config::install_path()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw6kernel6Config7nwn_iniEv"><code class="docutils literal notranslate"><span class="pre">Config::nwn_ini()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw6kernel6Config13nwnplayer_iniEv"><code class="docutils literal notranslate"><span class="pre">Config::nwnplayer_ini()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw6kernel6Config7optionsEv"><code class="docutils literal notranslate"><span class="pre">Config::options()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw6kernel6Config13resolve_aliasENSt11string_viewE"><code class="docutils literal notranslate"><span class="pre">Config::resolve_alias()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6kernel6Config9set_pathsEKNSt10filesystem4pathEKNSt10filesystem4pathE"><code class="docutils literal notranslate"><span class="pre">Config::set_paths()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6kernel6Config11set_versionE11GameVersion"><code class="docutils literal notranslate"><span class="pre">Config::set_version()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw6kernel6Config12settings_tmlEv"><code class="docutils literal notranslate"><span class="pre">Config::settings_tml()</span></code></a></li>
@@ -393,12 +392,6 @@
 <dd></dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N2nw6kernel6Config10alias_pathE9PathAlias">
-<span id="_CPPv3N2nw6kernel6Config10alias_pathE9PathAlias"></span><span id="_CPPv2N2nw6kernel6Config10alias_pathE9PathAlias"></span><span id="nw::kernel::Config::alias_path__PathAlias"></span><span class="target" id="structnw_1_1kernel_1_1_config_1a7b04e53d45e1d00ec3aa5b019e56c5ba"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">filesystem</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">path</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">alias_path</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="../enum/nw__PathAlias.html#_CPPv4N2nw9PathAliasE" title="nw::PathAlias"><span class="n"><span class="pre">PathAlias</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">alias</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6kernel6Config10alias_pathE9PathAlias" title="Link to this definition"></a><br /></dt>
-<dd><p>Gets the path of an alias. </p>
-</dd></dl>
-
-<dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw6kernel6Config10initializeE13ConfigOptions">
 <span id="_CPPv3N2nw6kernel6Config10initializeE13ConfigOptions"></span><span id="_CPPv2N2nw6kernel6Config10initializeE13ConfigOptions"></span><span id="nw::kernel::Config::initialize__ConfigOptions"></span><span class="target" id="structnw_1_1kernel_1_1_config_1addadf20f7bc693629021e2c992e2c377"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">initialize</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="nw__ConfigOptions.html#_CPPv4N2nw13ConfigOptionsE" title="nw::ConfigOptions"><span class="n"><span class="pre">ConfigOptions</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">options</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="p"><span class="pre">}</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6kernel6Config10initializeE13ConfigOptions" title="Link to this definition"></a><br /></dt>
 <dd><p>Initializes configuration system. </p>
@@ -426,12 +419,6 @@
 <dt class="sig sig-object cpp" id="_CPPv4NK2nw6kernel6Config7optionsEv">
 <span id="_CPPv3NK2nw6kernel6Config7optionsEv"></span><span id="_CPPv2NK2nw6kernel6Config7optionsEv"></span><span id="nw::kernel::Config::optionsC"></span><span class="target" id="structnw_1_1kernel_1_1_config_1a00737aa784649ff78718cc42affe0364"></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="nw__ConfigOptions.html#_CPPv4N2nw13ConfigOptionsE" title="nw::ConfigOptions"><span class="n"><span class="pre">ConfigOptions</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">options</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="k"><span class="pre">noexcept</span></span><a class="headerlink" href="#_CPPv4NK2nw6kernel6Config7optionsEv" title="Link to this definition"></a><br /></dt>
 <dd><p>Gets installation info. </p>
-</dd></dl>
-
-<dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4NK2nw6kernel6Config13resolve_aliasENSt11string_viewE">
-<span id="_CPPv3NK2nw6kernel6Config13resolve_aliasENSt11string_viewE"></span><span id="_CPPv2NK2nw6kernel6Config13resolve_aliasENSt11string_viewE"></span><span id="nw::kernel::Config::resolve_alias__std::string_viewC"></span><span class="target" id="structnw_1_1kernel_1_1_config_1a616b1abaddd3b558f8d5a95c440b11a1"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">filesystem</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">path</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">resolve_alias</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">alias_path</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK2nw6kernel6Config13resolve_aliasENSt11string_viewE" title="Link to this definition"></a><br /></dt>
-<dd><p>Resolves a path alias. </p>
 </dd></dl>
 
 <dl class="cpp function">

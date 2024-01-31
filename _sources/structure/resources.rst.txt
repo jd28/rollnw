@@ -106,7 +106,7 @@ NWSync
         #include <nw/resources/NWSync.hpp>
         #include <nw/kernel/Kernel.hpp>
 
-        auto path = nw::kernel::config().alias_path(nw::PathAlias::nwsync);
+        auto path = "path/to/nwsync"
         auto n = nw::NWSync(path);
         if(!n.is_loaded()) {
             throw std::runtime_error("a fit");

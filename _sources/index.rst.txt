@@ -128,6 +128,7 @@ Credits
 
   gs/building
   gs/using
+  gs/differences
 
 .. toctree::
   :caption: structure
