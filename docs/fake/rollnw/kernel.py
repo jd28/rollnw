@@ -1,4 +1,4 @@
-from . import GameVersion, Module, PathAlias, Ini, Container, TwoDA, Resource
+from . import GameVersion, Module, Ini, Container, TwoDA, Resource
 from . import ObjectBase, ObjectHandle, Area, Creature, Door, Encounter, Placeable, Store, Trigger, Waypoint
 from . import Effect
 
@@ -31,16 +31,6 @@ class Config:
         """Gets game install path"""
         return ""
 
-    def nwn_ini(self) -> Ini:
-        """Gets parsed nwn.ini
-        """
-        pass
-
-    def nwnplayer_ini(self) -> Ini:
-        """Gets parsed nwnplayer.ini
-        """
-        pass
-
     def options(self) -> ConfigOptions:
         """Gets config options
         """
@@ -49,11 +39,6 @@ class Config:
     def user_path(self) -> str:
         """Gets game install path"""
         return ""
-
-    def userpatch_ini(self) -> Ini:
-        """Gets parsed userpatch.ini
-        """
-        pass
 
     def set_paths(self, install: str, user: str):
         """Sets game paths

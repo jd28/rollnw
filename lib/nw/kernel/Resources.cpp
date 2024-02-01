@@ -1,7 +1,7 @@
 #include "Resources.hpp"
 
+#include "../formats/Ini.hpp"
 #include "../formats/palette_textures.hpp"
-#include "../objects/Module.hpp"
 #include "../util/game_install.hpp"
 #include "../util/platform.hpp"
 #include "../util/templates.hpp"
@@ -12,6 +12,7 @@
 #include <memory>
 
 namespace fs = std::filesystem;
+using namespace std::literals;
 
 namespace nw::kernel {
 
@@ -67,13 +68,16 @@ void Resources::initialize()
     }
 
     if (config().options().include_user) {
-        if (config().userpatch_ini().valid()) {
-            int i = 0;
-            std::string file;
-            while (config().userpatch_ini().get_to(fmt::format("Patch/PatchFile{:03d}", i++), file)) {
-                auto c = resolve_container(config().user_path() / "patch", file);
-                if (c) {
-                    patches_.emplace_back(c);
+        if (fs::exists(config().user_path() / "userpatch.ini")) {
+            Ini user_patch{config().user_path() / "userpatch.ini"};
+            if (user_patch.valid()) {
+                int i = 0;
+                std::string file;
+                while (user_patch.get_to(fmt::format("Patch/PatchFile{:03d}", i++), file)) {
+                    auto c = resolve_container(config().user_path() / "patch", file);
+                    if (c) {
+                        patches_.emplace_back(c);
+                    }
                 }
             }
         }

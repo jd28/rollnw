@@ -40,11 +40,8 @@ void init_kernel_config(py::module& kernel)
             nw::kernel::config().initialize(options);
         })
         .def("install_path", &nw::kernel::Config::install_path)
-        .def("nwn_ini", &nw::kernel::Config::nwn_ini)
-        .def("nwnplayer_ini", &nw::kernel::Config::nwnplayer_ini)
         .def("options", &nw::kernel::Config::options)
         .def("user_path", &nw::kernel::Config::user_path)
-        .def("userpatch_ini", &nw::kernel::Config::userpatch_ini)
         .def("set_paths", &nw::kernel::Config::set_paths)
         .def("set_version", &nw::kernel::Config::set_version)
         .def("version", &nw::kernel::Config::version);

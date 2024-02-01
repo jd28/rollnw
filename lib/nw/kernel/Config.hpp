@@ -1,8 +1,6 @@
 #pragma once
 
-#include "../formats/Ini.hpp"
 #include "../util/game_install.hpp"
-#include "toml++/toml.hpp"
 
 namespace nw {
 
@@ -24,12 +22,6 @@ struct Config {
     /// Game installation path
     const std::filesystem::path& install_path() const noexcept;
 
-    /// Gets nwn.ini
-    const Ini& nwn_ini() const noexcept;
-
-    /// Gets nwnplayer.ini
-    const Ini& nwnplayer_ini() const noexcept;
-
     /// Gets installation info
     const ConfigOptions& options() const noexcept;
 
@@ -40,15 +32,8 @@ struct Config {
     /// Sets game version
     void set_version(GameVersion version);
 
-    /// Gets settings.tml
-    /// @note Return value will be `empty` if 1.69
-    const toml::table& settings_tml() const noexcept;
-
     /// Path to user directory
     const std::filesystem::path& user_path() const noexcept;
-
-    /// Gets userpatch.ini or nwnpatch.ini if 1.69
-    const Ini& userpatch_ini() const noexcept;
 
     /// Gets games version
     GameVersion version() const noexcept;
@@ -59,10 +44,6 @@ private:
     std::filesystem::path user_;             ///< Path to User directory
 
     ConfigOptions options_;
-    Ini nwn_ini_;
-    Ini nwnplayer_ini_;
-    Ini userpatch_ini_;
-    toml::table settings_tml_;
 };
 
 } // namespace kernel

@@ -17,7 +17,6 @@
 #include <benchmark/benchmark.h>
 #include <nlohmann/json.hpp>
 #include <nowide/cstdlib.hpp>
-#include <toml++/toml.hpp>
 
 #include <fstream>
 
@@ -33,15 +32,6 @@ static void BM_parse_feat_2da(benchmark::State& state)
     for (auto _ : state) {
         nw::TwoDA tda{data.copy()};
         benchmark::DoNotOptimize(tda);
-    }
-}
-
-static void BM_parse_settings_tml(benchmark::State& state)
-{
-    nw::ByteArray ba = nw::ByteArray::from_file("test_data/user/settings.tml");
-    for (auto _ : state) {
-        auto out = toml::parse(ba.string_view());
-        benchmark::DoNotOptimize(out);
     }
 }
 
@@ -280,7 +270,6 @@ static void BM_rules_modifier(benchmark::State& state)
 }
 
 BENCHMARK(BM_parse_feat_2da);
-BENCHMARK(BM_parse_settings_tml);
 BENCHMARK(BM_creature_deserialize);
 BENCHMARK(BM_creature_from_json);
 BENCHMARK(BM_creature_serialize);
