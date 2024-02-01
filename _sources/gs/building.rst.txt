@@ -15,7 +15,7 @@ automatically.  Just export the vcpkg root path in an ENV var:
 
          $ export VCPKG_ROOT=path/to/vcpkg
 
-   .. tab:: Linux / MacOS
+   .. tab:: Windows
 
       .. code:: batch
 
@@ -77,7 +77,7 @@ In order to run all of the tests, you can help the library locate Neverwinter Ni
          $ export NWN_ROOT=path/to/game
          $ export NWN_USER=path/to/nwn-user-dir
 
-   .. tab:: Linux / MacOS
+   .. tab:: Windows
 
       .. code:: batch
 
