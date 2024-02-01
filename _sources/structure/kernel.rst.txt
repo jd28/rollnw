@@ -16,15 +16,4 @@ Services
 Config
 ~~~~~~
 
-The ``Config`` service provides access to installation info, Ini and Toml settings.
-
-**Example**
-
-.. code:: cpp
-
-    if (nw::kernel::config().version() == nw::GameVersion::vEE) {
-        REQUIRE_FALSE(config.settings_tml().empty());
-        REQUIRE(*config.settings_tml()["game"]["gore"].as<int64_t>() == 1);
-    }
-
--------------------------------------------------------------------------------
+The ``Config`` service provides access to installation info.

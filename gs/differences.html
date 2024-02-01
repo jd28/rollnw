@@ -51,7 +51,7 @@
 <li class="toctree-l1"><a class="reference internal" href="using.html">using</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Differences</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#changed">Changed</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#removed">Removed</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#unsupported">Unsupported</a></li>
 </ul>
 </li>
 </ul>
@@ -140,10 +140,16 @@ On macOS, Windows, this generally makes no difference.  On Linux, converting fil
 to lower-case has always been the best policy.</p></li>
 </ol>
 </section>
-<section id="removed">
-<h2>Removed<a class="headerlink" href="#removed" title="Link to this heading"></a></h2>
+<section id="unsupported">
+<h2>Unsupported<a class="headerlink" href="#unsupported" title="Link to this heading"></a></h2>
 <ol class="arabic simple">
-<li><p>The concept of path aliases.</p></li>
+<li><p>NWN(:EE or 2) configuration files for a couple reasons:</p>
+<ul class="simple">
+<li><p>NWN:EE introduced a lot of needless complexity with <code class="docutils literal notranslate"><span class="pre">settings.tml</span></code> and it wasn’t a particularly good choice to begin with.</p></li>
+<li><p>If values are necessary they can be read first by some consumer of the library.</p></li>
+</ul>
+</li>
+<li><p>The concept of path aliases, i.e. “HAK:”, “HD0:”, etc.</p></li>
 </ol>
 </section>
 </section>
