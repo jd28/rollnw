@@ -14,16 +14,11 @@ struct InternedString {
     {
     }
 
-    int compare(std::string_view other) const noexcept { return view().compare(other); }
+    bool operator==(const InternedString& rhs) const noexcept = default;
+    auto operator<=>(const InternedString& rhs) const noexcept = default;
+
     std::string_view view() const noexcept { return string_ ? *string_ : std::string_view{}; }
     operator bool() const noexcept { return !!string_; }
-    operator std::string_view() const noexcept { return view(); }
-    bool operator==(InternedString rhs) const noexcept { return string_ == rhs.string_; }
-    bool operator==(std::string_view rhs) const noexcept { return compare(rhs) == 0; }
-    bool operator<(std::string_view rhs) const noexcept { return compare(rhs) < 0; }
-    bool operator<(const InternedString& rhs) const noexcept { return string_ < rhs.string_; }
-    bool operator>(std::string_view rhs) const noexcept { return compare(rhs) > 0; }
-    bool operator>(const InternedString& rhs) const noexcept { return string_ > rhs.string_; }
 
 private:
     template <typename H>
@@ -70,7 +65,7 @@ struct InternedStringEq {
     }
     bool operator()(const InternedString& a, const InternedString& b) const
     {
-        return a.compare(b) == 0;
+        return a == b;
     }
     bool operator()(absl::string_view b, absl::string_view a) const
     {

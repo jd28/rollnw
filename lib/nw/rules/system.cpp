@@ -75,11 +75,11 @@ int ModifierRegistry::remove(std::string_view tag)
     auto it = std::remove_if(std::begin(entries_), std::end(entries_),
         [&](const auto& mod) {
             if (starts) {
-                if (string::startswith(mod.tagged, prefix)) {
+                if (string::startswith(mod.tagged.view(), prefix)) {
                     ++result;
                     return true;
                 }
-            } else if (mod.tagged == prefix) {
+            } else if (mod.tagged.view() == prefix) {
                 ++result;
                 return true;
             }
@@ -111,11 +111,11 @@ int ModifierRegistry::replace(std::string_view tag, ModifierVariant value)
 
     for (auto& mod : entries_) {
         if (starts) {
-            if (string::startswith(mod.tagged, prefix)) {
+            if (string::startswith(mod.tagged.view(), prefix)) {
                 mod.input = std::move(value);
                 ++result;
             }
-        } else if (mod.tagged == prefix) {
+        } else if (mod.tagged.view() == prefix) {
             mod.input = std::move(value);
             ++result;
         }
@@ -143,11 +143,11 @@ int ModifierRegistry::replace(std::string_view tag, const Requirement& req)
 
     for (auto& mod : entries_) {
         if (starts) {
-            if (string::startswith(mod.tagged, prefix)) {
+            if (string::startswith(mod.tagged.view(), prefix)) {
                 mod.requirement = req;
                 ++result;
             }
-        } else if (mod.tagged == prefix) {
+        } else if (mod.tagged.view() == prefix) {
             mod.requirement = req;
             ++result;
         }

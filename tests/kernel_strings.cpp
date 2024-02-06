@@ -22,7 +22,7 @@ TEST(KernelStrings, LoadTLk)
 TEST(KernelStrings, Intern)
 {
     auto str = nw::kernel::strings().intern("This is a Test");
-    EXPECT_EQ(str, "This is a Test");
+    EXPECT_EQ(str.view(), "This is a Test");
 
     auto str2 = nw::kernel::strings().get_interned("asdf;lkj");
     EXPECT_FALSE(str2);
