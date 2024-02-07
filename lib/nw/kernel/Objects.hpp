@@ -9,6 +9,7 @@
 #include "Kernel.hpp"
 #include "Resources.hpp"
 
+#include <absl/container/btree_map.h>
 #include <nlohmann/json.hpp>
 
 #include <filesystem>
@@ -42,7 +43,10 @@ struct ObjectSystem : public Service {
     T* get(ObjectHandle obj);
 
     /// Gets an object
-    ObjectBase* get_object_base(ObjectHandle obj);
+    ObjectBase* get_object_base(ObjectHandle obj) const;
+
+    /// Gets object by tag
+    ObjectBase* get_object_by_tag(std::string_view tag, int nth = 0) const;
 
     /// Loads an object from file system
     template <typename T>
@@ -52,6 +56,14 @@ struct ObjectSystem : public Service {
     /// Loads an object from resource system
     template <typename T>
     T* load(std::string_view resref);
+
+    /// Loads an object from gff isntance
+    template <typename T>
+    T* load(const GffStruct& archive);
+
+    /// Loads an object from json isntance
+    template <typename T>
+    T* load(const nlohmann::json& archive);
 
     /// Loads an object from resource system
     nw::Player* load_player(std::string_view cdkey, std::string_view resref);
@@ -73,6 +85,7 @@ struct ObjectSystem : public Service {
 private:
     std::stack<ObjectID, std::vector<ObjectID>> free_list_;
     std::vector<ObjectPayload> objects_;
+    absl::btree_multimap<InternedString, ObjectHandle> object_tag_map_;
 };
 
 inline ObjectType serial_id_to_obj_type(std::string_view id)
@@ -182,6 +195,10 @@ T* ObjectSystem::load(const std::filesystem::path& archive, SerializationProfile
         LOG_F(ERROR, "Unable to load unknown file type: '{}'", archive);
     }
 
+    if (auto tag = obj->tag()) {
+        object_tag_map_.insert({tag, obj->handle()});
+    }
+
     if (!obj->instantiate()) {
         LOG_F(ERROR, "Failed to instantiate object");
         destroy(obj->handle());
@@ -203,6 +220,10 @@ T* ObjectSystem::load(std::string_view resref)
         }
     }
 
+    if (auto tag = obj->tag()) {
+        object_tag_map_.insert({tag, obj->handle()});
+    }
+
     if (!obj->instantiate()) {
         LOG_F(ERROR, "Failed to instantiate object");
         destroy(obj->handle());
@@ -210,6 +231,36 @@ T* ObjectSystem::load(std::string_view resref)
     }
 
     return obj;
+}
+
+template <typename T>
+T* ObjectSystem::load(const GffStruct& archive)
+{
+    auto ob = make<T>();
+    if (ob && deserialize(ob, archive, SerializationProfile::instance) && ob->instantiate()) {
+        if (auto tag = ob->tag()) {
+            object_tag_map_.insert({tag, ob->handle()});
+            return ob;
+        }
+    }
+    LOG_F(WARNING, "Something dreadfully wrong.");
+    if (ob) { destroy(ob->handle()); }
+    return nullptr;
+}
+
+template <typename T>
+T* ObjectSystem::load(const nlohmann::json& archive)
+{
+    auto ob = make<T>();
+    if (ob && T::deserialize(ob, archive, SerializationProfile::instance) && ob->instantiate()) {
+        if (auto tag = ob->tag()) {
+            object_tag_map_.insert({tag, ob->handle()});
+            return ob;
+        }
+    }
+    LOG_F(WARNING, "Something dreadfully wrong.");
+    if (ob) { destroy(ob->handle()); }
+    return nullptr;
 }
 
 inline ObjectSystem& objects()

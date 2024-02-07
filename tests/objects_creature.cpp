@@ -278,6 +278,7 @@ TEST(Creature, Attack)
             EXPECT_EQ(data1->damage_total, 0);
         }
     }
+    nwk::unload_module();
 }
 
 TEST(Creature, BaseAttackBonus)
@@ -444,6 +445,9 @@ TEST(Creature, AttackBonus)
 
 TEST(Creature, AttackRoll)
 {
+    auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
+    EXPECT_TRUE(mod);
+
     auto obj = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/drorry.utc"));
     EXPECT_TRUE(obj);
 
@@ -474,10 +478,15 @@ TEST(Creature, AttackRoll)
         auto result = nwn1::resolve_attack_roll(obj, nwn1::attack_type_onhand, target);
         EXPECT_TRUE((result == nw::AttackResult::miss_by_auto_fail || result == nw::AttackResult::miss_by_miss_chance));
     }
+
+    nwk::unload_module();
 }
 
 TEST(Creature, AttackType)
 {
+    auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
+    EXPECT_TRUE(mod);
+
     auto obj = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/drorry.utc"));
     EXPECT_TRUE(obj);
     obj->combat_info.attacks_onhand = 4;
@@ -487,6 +496,8 @@ TEST(Creature, AttackType)
     EXPECT_TRUE(obj2);
     obj2->combat_info.attacks_onhand = 1;
     EXPECT_EQ(nwn1::resolve_attack_type(obj2), nwn1::attack_type_unarmed);
+
+    nwk::unload_module();
 }
 
 TEST(Creature, Concealment)
@@ -519,10 +530,15 @@ TEST(Creature, Concealment)
     auto [c3, o3] = nwn1::resolve_concealment(obj, obj);
     EXPECT_EQ(c3, 35);
     EXPECT_TRUE(o3);
+
+    nwk::unload_module();
 }
 
 TEST(Creature, CriticalHitMultiplier)
 {
+    auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
+    EXPECT_TRUE(mod);
+
     auto obj = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/drorry.utc"));
     EXPECT_TRUE(obj);
 
@@ -533,10 +549,15 @@ TEST(Creature, CriticalHitMultiplier)
     EXPECT_TRUE(obj2);
     int multiplier2 = nwn1::resolve_critical_multiplier(obj2, nwn1::attack_type_onhand);
     EXPECT_EQ(multiplier2, 2);
+
+    nwk::unload_module();
 }
 
 TEST(Creature, CriticalHitThreat)
 {
+    auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
+    EXPECT_TRUE(mod);
+
     auto obj = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/drorry.utc"));
     EXPECT_TRUE(obj);
 
@@ -550,10 +571,15 @@ TEST(Creature, CriticalHitThreat)
     obj2->stats.add_feat(nwn1::feat_improved_critical_unarmed);
     threat2 = nwn1::resolve_critical_threat(obj2, nwn1::attack_type_onhand);
     EXPECT_EQ(threat2, 2);
+
+    nwk::unload_module();
 }
 
 TEST(Creature, DamageBase)
 {
+    auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
+    EXPECT_TRUE(mod);
+
     auto obj = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/pl_agent_001.utc"));
     EXPECT_TRUE(obj);
     EXPECT_TRUE(obj->stats.add_feat(nwn1::feat_weapon_specialization_unarmed));
@@ -577,10 +603,15 @@ TEST(Creature, DamageBase)
     auto dice3 = nwn1::resolve_unarmed_damage(obj3);
     EXPECT_EQ(dice3.dice, 1);
     EXPECT_EQ(dice3.sides, 2);
+
+    nwk::unload_module();
 }
 
 TEST(Creature, DamageWeaponFlags)
 {
+    auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
+    EXPECT_TRUE(mod);
+
     auto obj1 = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/drorry.utc"));
     EXPECT_TRUE(obj1);
     auto weapon1 = nwn1::get_equipped_item(obj1, nw::EquipIndex::righthand);
@@ -592,10 +623,15 @@ TEST(Creature, DamageWeaponFlags)
     auto weapon2 = nwn1::get_equipped_item(obj2, nw::EquipIndex::arms);
     EXPECT_TRUE(weapon2);
     EXPECT_TRUE(nwn1::resolve_weapon_damage_flags(weapon2).test(nwn1::damage_type_bludgeoning));
+
+    nwk::unload_module();
 }
 
 TEST(Creature, DamageImmunity)
 {
+    auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
+    EXPECT_TRUE(mod);
+
     auto obj = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/pl_agent_001.utc"));
     EXPECT_TRUE(obj);
 
@@ -613,10 +649,15 @@ TEST(Creature, DamageImmunity)
     obj2->levels.entries[0].id = nwn1::class_type_dragon_disciple;
     obj2->levels.entries[0].level = 20;
     EXPECT_EQ(nwn1::resolve_damage_immunity(obj2, nwn1::damage_type_fire), 100);
+
+    nwk::unload_module();
 }
 
 TEST(Creature, DamageReduction)
 {
+    auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
+    EXPECT_TRUE(mod);
+
     auto obj = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/pl_agent_001.utc"));
     EXPECT_TRUE(obj);
 
@@ -649,10 +690,15 @@ TEST(Creature, DamageReduction)
 
     obj3->stats.add_feat(nwn1::feat_epic_damage_reduction_6);
     EXPECT_EQ(nwn1::resolve_damage_reduction(obj3, 1).first, 10);
+
+    nwk::unload_module();
 }
 
 TEST(Creature, DamageResistance)
 {
+    auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
+    EXPECT_TRUE(mod);
+
     auto obj = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/pl_agent_001.utc"));
     EXPECT_TRUE(obj);
 
@@ -665,10 +711,15 @@ TEST(Creature, DamageResistance)
     EXPECT_TRUE(obj3);
     obj3->stats.add_feat(nwn1::feat_epic_energy_resistance_sonic_3);
     EXPECT_EQ(nwn1::resolve_damage_resistance(obj3, nwn1::damage_type_sonic).first, 30);
+
+    nwk::unload_module();
 }
 
 TEST(Creature, Hitpoints)
 {
+    auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
+    EXPECT_TRUE(mod);
+
     auto obj = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/nw_chicken.utc"));
     EXPECT_TRUE(obj);
 
@@ -684,10 +735,15 @@ TEST(Creature, Hitpoints)
     EXPECT_EQ(nwn1::get_max_hitpoints(obj), 115);
     EXPECT_TRUE(nw::remove_effect(obj, eff));
     EXPECT_EQ(nwn1::get_max_hitpoints(obj), 105);
+
+    nwk::unload_module();
 }
 
 TEST(Creature, IterationPenalty)
 {
+    auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
+    EXPECT_TRUE(mod);
+
     auto obj = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/drorry.utc"));
     EXPECT_TRUE(obj);
 
@@ -699,10 +755,15 @@ TEST(Creature, IterationPenalty)
     // Note the guy is hasted
     obj->combat_info.attacks_onhand = 1;
     EXPECT_EQ(nwn1::resolve_iteration_penalty(obj, nwn1::attack_type_offhand), 5);
+
+    nwk::unload_module();
 }
 
 TEST(Creature, SavingThrows)
 {
+    auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
+    EXPECT_TRUE(mod);
+
     auto obj = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/drorry.utc"));
     EXPECT_TRUE(obj);
     EXPECT_EQ(nwn1::saving_throw(obj, nwn1::saving_throw_fort), 20);
@@ -718,10 +779,15 @@ TEST(Creature, SavingThrows)
     EXPECT_TRUE(eff2);
     EXPECT_TRUE(nw::apply_effect(obj, eff2));
     EXPECT_EQ(nwn1::saving_throw(obj, nwn1::saving_throw_fort), 23);
+
+    nwk::unload_module();
 }
 
 TEST(Creature, TargetState)
 {
+    auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
+    EXPECT_TRUE(mod);
+
     nw::TargetState state = nw::TargetState::none;
     state = nwn1::resolve_target_state(nullptr, nullptr);
     EXPECT_EQ(state, nw::TargetState::none);
@@ -745,10 +811,15 @@ TEST(Creature, TargetState)
     obj->combat_info.target_distance_sq = 200.0f;
     state = nwn1::resolve_target_state(obj, target);
     EXPECT_FALSE(to_bool(state & nw::TargetState::flanked));
+
+    nwk::unload_module();
 }
 
 TEST(Creature, WeaponPower)
 {
+    auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
+    EXPECT_TRUE(mod);
+
     auto obj = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/drorry.utc"));
     EXPECT_TRUE(obj);
     EXPECT_EQ(nwn1::resolve_weapon_power(obj, nwn1::get_equipped_item(obj, nw::EquipIndex::righthand)), 2);
@@ -763,6 +834,8 @@ TEST(Creature, WeaponPower)
 
     obj3->stats.add_feat(nwn1::feat_ki_strike);
     EXPECT_EQ(nwn1::resolve_weapon_power(obj3, nullptr), 1);
+
+    nwk::unload_module();
 }
 
 TEST(Creature, JsonSerialization)

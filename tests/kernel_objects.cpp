@@ -50,6 +50,31 @@ TEST(ObjectSystem, LoadCreature)
     auto handle2 = ent3->handle();
 
     EXPECT_EQ(handle.id, handle2.id);
+    nwk::unload_module();
+}
+
+TEST(ObjectSystem, ObjectByTag)
+{
+    auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
+    EXPECT_TRUE(mod);
+
+    nwk::objects().clear();
+
+    std::vector<nw::Creature*> chickens;
+    for (size_t i = 0; i < 10; ++i) {
+        chickens.push_back(nwk::objects().load<nw::Creature>("nw_chicken"sv));
+    }
+
+    EXPECT_EQ(chickens[0]->tag().view(), "NW_CHICKEN");
+    EXPECT_TRUE(nwk::objects().get_object_by_tag("NW_CHICKEN"));
+    EXPECT_TRUE(nwk::objects().get_object_by_tag("NW_CHICKEN", 5));
+    EXPECT_FALSE(nwk::objects().get_object_by_tag("NW_CHICKEN", 10));
+
+    for (auto chicken : chickens) {
+        nwk::objects().destroy(chicken->handle());
+    }
+
+    EXPECT_FALSE(nwk::objects().get_object_by_tag("NW_CHICKEN"));
 
     nwk::unload_module();
 }

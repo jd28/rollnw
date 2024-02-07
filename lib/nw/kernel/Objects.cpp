@@ -2,15 +2,8 @@
 
 #include "../log.hpp"
 #include "../objects/Area.hpp"
-#include "../objects/Creature.hpp"
-#include "../objects/Door.hpp"
-#include "../objects/Encounter.hpp"
-#include "../objects/Item.hpp"
 #include "../objects/Module.hpp"
 #include "../objects/Player.hpp"
-#include "../objects/Trigger.hpp"
-#include "../util/platform.hpp"
-#include "../util/templates.hpp"
 #include "Kernel.hpp"
 #include "Resources.hpp"
 
@@ -20,6 +13,7 @@ void ObjectSystem::clear()
 {
     free_list_ = std::stack<ObjectID, std::vector<ObjectID>>();
     objects_.clear();
+    object_tag_map_.clear();
 }
 
 void ObjectSystem::destroy(ObjectHandle obj)
@@ -28,6 +22,20 @@ void ObjectSystem::destroy(ObjectHandle obj)
         size_t idx = static_cast<size_t>(obj.id);
         auto& o = std::get<std::unique_ptr<ObjectBase>>(objects_[idx]);
         auto new_handle = o->handle();
+
+        // Delete from tag map
+        if (auto tag = o->tag()) {
+            auto it = object_tag_map_.find(tag);
+            while (it != std::end(object_tag_map_)) {
+                if (it->second == new_handle) {
+                    object_tag_map_.erase(it);
+                    break;
+                } else if (it->first != tag) {
+                    break;
+                }
+            }
+        }
+
         // If version is at max don't add to free list.  Still clobber object.
         if (new_handle.version < std::numeric_limits<uint16_t>::max()) {
             ++new_handle.version;
@@ -37,11 +45,25 @@ void ObjectSystem::destroy(ObjectHandle obj)
     }
 }
 
-ObjectBase* ObjectSystem::get_object_base(ObjectHandle obj)
+ObjectBase* ObjectSystem::get_object_base(ObjectHandle obj) const
 {
     if (!valid(obj)) { return nullptr; }
     auto idx = static_cast<size_t>(obj.id);
     return std::get<std::unique_ptr<ObjectBase>>(objects_[idx]).get();
+}
+
+ObjectBase* ObjectSystem::get_object_by_tag(std::string_view tag, int nth) const
+{
+    auto str = strings().get_interned(tag);
+    if (!str) { return nullptr; }
+    auto it = object_tag_map_.find(str);
+    while (nth > 0) {
+        if (it == std::end(object_tag_map_) || it->first != str) { return nullptr; }
+        it++;
+        --nth;
+    }
+
+    return get_object_base(it->second);
 }
 
 nw::Player* ObjectSystem::load_player(std::string_view cdkey, std::string_view resref)

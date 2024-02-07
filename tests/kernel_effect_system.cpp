@@ -25,6 +25,9 @@ TEST(EffectSystem, Pool)
 
 TEST(EffectSystem, ApplyRemoveEffect)
 {
+    auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
+    EXPECT_TRUE(mod);
+
     auto eff = nwk::effects().create(nwn1::effect_type_haste);
 
     auto obj = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/nw_chicken.utc"));
@@ -35,6 +38,8 @@ TEST(EffectSystem, ApplyRemoveEffect)
     EXPECT_TRUE(nw::remove_effect(obj, eff));
     EXPECT_FALSE(obj->hasted);
     EXPECT_EQ(obj->effects().size(), 0);
+
+    nw::kernel::unload_module();
 }
 
 TEST(EffectSystem, IPCostParamTables)

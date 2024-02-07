@@ -43,8 +43,7 @@ bool Inventory::from_json(const nlohmann::json& archive, SerializationProfile pr
             if (profile == SerializationProfile::blueprint) {
                 ii.item = archive[i].at("item").get<Resref>();
             } else {
-                auto temp = kernel::objects().make<Item>();
-                Item::deserialize(temp, archive[i].at("item"), profile);
+                auto temp = kernel::objects().load<Item>(archive[i].at("item"));
                 ii.item = temp;
                 if (!temp) {
                     valid_entry = false;
@@ -116,8 +115,7 @@ bool deserialize(Inventory& self, const GffStruct& archive, SerializationProfile
                 ii.item = *r;
             }
         } else if (SerializationProfile::instance == profile) {
-            auto temp = kernel::objects().make<Item>();
-            deserialize(temp, st, profile);
+            auto temp = kernel::objects().load<Item>(st);
             ii.item = temp;
             if (!temp) {
                 valid_entry = false;
