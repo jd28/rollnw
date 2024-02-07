@@ -1,15 +1,18 @@
 #include "Common.hpp"
 
+#include "../kernel/Strings.hpp"
+
 #include <nlohmann/json.hpp>
 
 namespace nw {
 
 bool Common::from_json(const nlohmann::json& archive, SerializationProfile profile, ObjectType object_type)
 {
-
+    std::string temp;
     archive.at("object_type").get_to(object_type);
     archive.at("resref").get_to(resref);
-    archive.at("tag").get_to(tag);
+    archive.at("tag").get_to(temp);
+    if (!temp.empty()) { tag = nw::kernel::strings().intern(temp); }
 
     if (object_type != ObjectType::creature) {
         archive.at("name").get_to(name);
@@ -35,7 +38,7 @@ nlohmann::json Common::to_json(SerializationProfile profile, ObjectType object_t
 
     j["object_type"] = object_type;
     j["resref"] = resref;
-    j["tag"] = tag;
+    j["tag"] = tag ? tag.view() : "";
 
     if (object_type != ObjectType::creature) {
         j["name"] = name;
@@ -73,7 +76,9 @@ bool deserialize(Common& self, const GffStruct& archive, SerializationProfile pr
         LOG_F(WARNING, "object no localized name");
     }
 
-    archive.get_to("Tag", self.tag);
+    std::string temp;
+    archive.get_to("Tag", temp);
+    if (!temp.empty()) { self.tag = nw::kernel::strings().intern(temp); }
 
     if (profile == SerializationProfile::blueprint) {
         archive.get_to("Comment", self.comment);

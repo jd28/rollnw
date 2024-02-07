@@ -180,7 +180,7 @@ bool serialize(const Trigger* obj, GffBuilderStruct& archive, SerializationProfi
 
     archive.add_field("TemplateResRef", obj->common.resref); // Store does it's own thing, not typo.
     archive.add_field("LocalizedName", obj->common.name);
-    archive.add_field("Tag", obj->common.tag);
+    archive.add_field("Tag", std::string(obj->common.tag ? obj->common.tag.view() : ""sv));
 
     if (profile == SerializationProfile::blueprint) {
         archive.add_field("Comment", obj->common.comment);

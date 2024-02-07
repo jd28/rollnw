@@ -196,7 +196,7 @@ bool serialize(const Store* obj, GffBuilderStruct& archive, SerializationProfile
 
     archive.add_field("ResRef", obj->common.resref) // Store does it's own thing, not typo.
         .add_field("LocName", obj->common.name)
-        .add_field("Tag", obj->common.tag);
+        .add_field("Tag", std::string(obj->common.tag ? obj->common.tag.view() : ""sv));
 
     if (profile == SerializationProfile::blueprint) {
         archive.add_field("Comment", obj->common.comment);

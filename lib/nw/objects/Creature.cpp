@@ -316,7 +316,7 @@ bool serialize(const Creature* obj, GffBuilderStruct& archive, SerializationProf
     }
 
     archive.add_field("TemplateResRef", obj->common.resref)
-        .add_field("Tag", obj->common.tag);
+        .add_field("Tag", std::string(obj->common.tag ? obj->common.tag.view() : ""sv));
 
     if (profile == SerializationProfile::blueprint) {
         archive.add_field("Comment", obj->common.comment);

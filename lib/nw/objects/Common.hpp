@@ -1,7 +1,6 @@
 #pragma once
 
 #include "../resources/Resref.hpp"
-#include "../serialization/Archives.hpp"
 #include "LocalData.hpp"
 #include "Location.hpp"
 #include "ObjectBase.hpp"
@@ -20,7 +19,7 @@ struct Common {
 
     uuids::uuid uuid;
     Resref resref;
-    std::string tag;
+    InternedString tag;
     LocString name;
 
     LocalData locals;

@@ -83,7 +83,7 @@ bool serialize(const Waypoint* obj, GffBuilderStruct& archive,
 
     archive.add_field("TemplateResRef", obj->common.resref)
         .add_field("LocalizedName", obj->common.name)
-        .add_field("Tag", obj->common.tag);
+        .add_field("Tag", std::string(obj->common.tag ? obj->common.tag.view() : ""sv));
     if (profile == SerializationProfile::blueprint) {
         archive.add_field("Comment", obj->common.comment);
         archive.add_field("PaletteID", obj->common.palette_id);
