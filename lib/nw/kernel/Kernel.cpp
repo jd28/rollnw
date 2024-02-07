@@ -86,6 +86,7 @@ Module* load_module(const std::filesystem::path& path, std::string_view manifest
 
 void unload_module()
 {
+    objects().clear();
     resman().unload_module();
     strings().unload_custom_tlk();
 }
