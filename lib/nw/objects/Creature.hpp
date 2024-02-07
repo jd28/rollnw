@@ -51,6 +51,7 @@ struct Creature : public ObjectBase {
     virtual Creature* as_creature() override { return this; }
     virtual const Creature* as_creature() const override { return this; }
     virtual bool instantiate() override;
+    virtual InternedString tag() const override { return common.tag; }
     virtual Versus versus_me() const override;
 
     static bool deserialize(Creature* obj, const nlohmann::json& archive, SerializationProfile profile);

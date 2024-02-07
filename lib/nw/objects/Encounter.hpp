@@ -51,6 +51,7 @@ struct Encounter : public ObjectBase {
     virtual Encounter* as_encounter() override { return this; }
     virtual const Encounter* as_encounter() const override { return this; }
     virtual bool instantiate() override { return true; }
+    virtual InternedString tag() const override { return common.tag; }
 
     static bool deserialize(Encounter* obj, const nlohmann::json& archive, SerializationProfile profile);
     static bool serialize(const Encounter* obj, nlohmann::json& archive, SerializationProfile profile);

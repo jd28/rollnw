@@ -12,6 +12,7 @@ struct Player : public Creature {
     // ObjectBase Overrides
     virtual Player* as_player() override { return this; }
     virtual const Player* as_player() const override { return this; }
+    virtual InternedString tag() const override { return common.tag; }
 
     static bool deserialize(Player* obj, const nlohmann::json& archive);
 

@@ -51,6 +51,7 @@ struct Placeable : public ObjectBase {
     virtual Placeable* as_placeable() override { return this; }
     virtual const Placeable* as_placeable() const override { return this; }
     virtual bool instantiate() override;
+    virtual InternedString tag() const override { return common.tag; }
 
     // Serialization
     static bool deserialize(Placeable* obj, const nlohmann::json& archive, SerializationProfile profile);

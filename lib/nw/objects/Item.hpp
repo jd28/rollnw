@@ -23,6 +23,7 @@ struct Item : public ObjectBase {
     virtual Item* as_item() override { return this; }
     virtual const Item* as_item() const override { return this; }
     virtual bool instantiate() override;
+    virtual InternedString tag() const override { return common.tag; }
 
     // Serialization
     static bool deserialize(Item* obj, const nlohmann::json& archive, SerializationProfile profile);

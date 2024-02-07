@@ -36,6 +36,7 @@ struct Trigger : public ObjectBase {
     virtual Trigger* as_trigger() override { return this; }
     virtual const Trigger* as_trigger() const override { return this; }
     virtual bool instantiate() override { return true; }
+    virtual InternedString tag() const override { return common.tag; }
     virtual Versus versus_me() const override;
 
     // Serialization

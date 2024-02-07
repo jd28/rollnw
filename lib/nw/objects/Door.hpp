@@ -46,6 +46,7 @@ struct Door : public ObjectBase {
     virtual Door* as_door() override { return this; }
     virtual const Door* as_door() const override { return this; }
     virtual bool instantiate() override { return true; }
+    virtual InternedString tag() const override { return common.tag; }
 
     // Serialization
     static bool deserialize(Door* obj, const nlohmann::json& archive, SerializationProfile profile);

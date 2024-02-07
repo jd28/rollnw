@@ -1,12 +1,8 @@
 #pragma once
 
 #include "../rules/Versus.hpp"
-#include "../serialization/Archives.hpp"
 #include "EffectArray.hpp"
 #include "ObjectHandle.hpp"
-
-#include <compare>
-#include <cstdint>
 
 namespace nw {
 
@@ -29,11 +25,13 @@ struct Waypoint;
 
 struct ObjectBase {
     virtual ~ObjectBase() { }
+
     ObjectHandle handle() const noexcept { return handle_; }
     void set_handle(ObjectHandle handle) { handle_ = handle; }
-    EffectArray& effects();
     const EffectArray& effects() const;
     virtual Versus versus_me() const { return Versus{}; }
+    EffectArray& effects();
+    virtual InternedString tag() const;
 
     virtual Area* as_area() { return nullptr; }
     virtual const Area* as_area() const { return nullptr; }

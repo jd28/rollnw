@@ -18,6 +18,7 @@ struct Sound : public ObjectBase {
     virtual Sound* as_sound() override { return this; }
     virtual const Sound* as_sound() const override { return this; }
     virtual bool instantiate() override { return true; }
+    virtual InternedString tag() const override { return common.tag; }
 
     static bool deserialize(Sound* obj, const nlohmann::json& archive, SerializationProfile profile);
     static void serialize(const Sound* obj, nlohmann::json& archive, SerializationProfile profile);

@@ -19,6 +19,7 @@ struct Waypoint : public ObjectBase {
     virtual Waypoint* as_waypoint() override { return this; }
     virtual const Waypoint* as_waypoint() const override { return this; }
     virtual bool instantiate() override { return true; }
+    virtual InternedString tag() const override { return common.tag; }
 
     /// Deserializes entity from JSON
     static bool deserialize(Waypoint* obj, const nlohmann::json& archive,
