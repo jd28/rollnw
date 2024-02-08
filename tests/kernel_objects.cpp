@@ -66,15 +66,15 @@ TEST(ObjectSystem, ObjectByTag)
     }
 
     EXPECT_EQ(chickens[0]->tag().view(), "NW_CHICKEN");
-    EXPECT_TRUE(nwk::objects().get_object_by_tag("NW_CHICKEN"));
-    EXPECT_TRUE(nwk::objects().get_object_by_tag("NW_CHICKEN", 5));
-    EXPECT_FALSE(nwk::objects().get_object_by_tag("NW_CHICKEN", 10));
+    EXPECT_TRUE(nwk::objects().get_by_tag("NW_CHICKEN"));
+    EXPECT_TRUE(nwk::objects().get_by_tag("NW_CHICKEN", 5));
+    EXPECT_FALSE(nwk::objects().get_by_tag("NW_CHICKEN", 10));
 
     for (auto chicken : chickens) {
         nwk::objects().destroy(chicken->handle());
     }
 
-    EXPECT_FALSE(nwk::objects().get_object_by_tag("NW_CHICKEN"));
+    EXPECT_FALSE(nwk::objects().get_by_tag("NW_CHICKEN"));
 
     nwk::unload_module();
 }

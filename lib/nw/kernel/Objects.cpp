@@ -52,7 +52,7 @@ ObjectBase* ObjectSystem::get_object_base(ObjectHandle obj) const
     return std::get<std::unique_ptr<ObjectBase>>(objects_[idx]).get();
 }
 
-ObjectBase* ObjectSystem::get_object_by_tag(std::string_view tag, int nth) const
+ObjectBase* ObjectSystem::get_by_tag(std::string_view tag, int nth) const
 {
     auto str = strings().get_interned(tag);
     if (!str) { return nullptr; }

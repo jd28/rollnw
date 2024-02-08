@@ -46,7 +46,7 @@ struct ObjectSystem : public Service {
     ObjectBase* get_object_base(ObjectHandle obj) const;
 
     /// Gets object by tag
-    ObjectBase* get_object_by_tag(std::string_view tag, int nth = 0) const;
+    ObjectBase* get_by_tag(std::string_view tag, int nth = 0) const;
 
     /// Loads an object from file system
     template <typename T>

@@ -34,7 +34,6 @@ void init_kernel_config(py::module& kernel)
         .def_readwrite("include_nwsync", &nw::ConfigOptions::include_nwsync)
         .def_readwrite("include_user", &nw::ConfigOptions::include_user);
 
-    // [TODO] Figure out what to do about toml..
     py::class_<nw::kernel::Config>(kernel, "Config")
         .def("initialize", [](const nw::ConfigOptions& options) {
             nw::kernel::config().initialize(options);
@@ -115,6 +114,9 @@ void init_kernel_objects(py::module& kernel)
         .def("encounter", &load_object_helper<nw::Encounter>,
             py::return_value_policy::reference_internal)
         .def("get", &nw::kernel::ObjectSystem::get_object_base,
+            py::return_value_policy::reference_internal)
+        .def("get_by_tag", &nw::kernel::ObjectSystem::get_by_tag,
+            py::arg("tag"), py::arg("nth") = 0,
             py::return_value_policy::reference_internal)
         .def("placeable", &load_object_helper<nw::Placeable>,
             py::return_value_policy::reference_internal)

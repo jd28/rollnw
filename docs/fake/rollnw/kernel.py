@@ -157,6 +157,10 @@ class Objects:
         """Gets an object by its handle"""
         pass
 
+    def get_by_tag(self, tag: str, nth: int = 0) -> Optional[ObjectBase]:
+        """Gets an object with specific tag
+        """
+
     def placeable(self, resref: str) -> Placeable:
         pass
 
