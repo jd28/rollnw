@@ -1243,6 +1243,11 @@ class Module:
         """Gets number of areas in module"""
         pass
 
+    @property
+    def uuid(self) -> str:
+        """Gets modules UUID"""
+        return ""
+
 
 class ModuleScripts:
     """Module Scripts

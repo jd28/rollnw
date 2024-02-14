@@ -5,6 +5,7 @@
 #include "ObjectBase.hpp"
 
 #include <glm/glm.hpp>
+#include <stduuid/uuid.h>
 
 namespace nw {
 
@@ -70,6 +71,7 @@ struct Module : public ObjectBase {
     Resref start_movie;
     std::string tag;
     std::string tlk;
+    uuids::uuid uuid;
 
     int32_t creator = 0;
     uint32_t start_year;

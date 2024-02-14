@@ -134,6 +134,15 @@ bool Module::deserialize(Module* obj, const nlohmann::json& archive)
         archive.at("tag").get_to(obj->tag);
         archive.at("tlk").get_to(obj->tlk);
 
+        std::string temp;
+        auto it = archive.find("uuid");
+        if (it != std::end(archive)) {
+            it.value().get_to(temp);
+            if (auto uuid = uuids::uuid::from_string(temp)) {
+                obj->uuid = *uuid;
+            }
+        }
+
         archive.at("creator").get_to(obj->creator);
         archive.at("start_year").get_to(obj->start_year);
         archive.at("version").get_to(obj->version);
@@ -212,6 +221,14 @@ bool deserialize(Module* obj, const GffStruct& archive)
     archive.get_to("Mod_Tag", obj->tag);
     archive.get_to("Mod_CustomTlk", obj->tlk);
 
+    std::string temp;
+    archive.get_to("Mod_UUID", temp);
+    if (!temp.empty()) {
+        if (auto uuid = uuids::uuid::from_string(temp)) {
+            obj->uuid = *uuid;
+        }
+    }
+
     archive.get_to("Mod_Creator_ID", obj->creator);
     archive.get_to("Mod_StartYear", obj->start_year);
     archive.get_to("Mod_Version", obj->version);
@@ -272,6 +289,10 @@ bool Module::serialize(const Module* obj, nlohmann::json& archive)
     archive["tag"] = obj->tag;
     archive["tlk"] = obj->tlk;
 
+    if (!obj->uuid.is_nil()) {
+        archive["uuid"] = uuids::to_string(obj->uuid);
+    }
+
     archive["version"] = obj->version;
     archive["creator"] = obj->creator;
 
@@ -329,6 +350,10 @@ bool serialize(const Module* obj, GffBuilderStruct& archive)
     archive.add_field("Mod_StartMovie", obj->start_movie);
     archive.add_field("Mod_Tag", obj->tag);
     archive.add_field("Mod_CustomTlk", obj->tlk);
+
+    if (!obj->uuid.is_nil()) {
+        archive.add_field("Mod_UUID", uuids::to_string(obj->uuid));
+    }
 
     // Always empty, obsolete, but NWN as of 1.69, at least, kept them in the GFF.
     archive.add_list("Mod_CutSceneList");

@@ -553,6 +553,9 @@ void init_objects_module(py::module& nw)
         .def_readwrite("start_movie", &nw::Module::start_movie)
         .def_readwrite("tag", &nw::Module::tag)
         .def_readwrite("tlk", &nw::Module::tlk)
+        .def_property_readonly("uuid", [](const nw::Module& self) {
+            return uuids::to_string(self.uuid);
+        })
 
         .def_readwrite("creator", &nw::Module::creator)
         .def_readwrite("start_year", &nw::Module::start_year)

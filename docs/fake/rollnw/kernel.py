@@ -215,11 +215,11 @@ def config():
     pass
 
 
-def load_module(mod: str, manifest: str) -> Module:
+def load_module(path: str, manifest: str) -> Module:
     """Loads a module
 
     Args:
-        mod
+        path (str): path to module, can be a directory (with module.ifo), a mod file, or a zip file
         manifest (str): NWSynch manifest hash
     """
     pass

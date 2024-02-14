@@ -54,6 +54,7 @@ all:
   Mod_StartMovie: resref
   Mod_StartYear: dword
   Mod_Tag: string
+  Mod_UUID: string
   Mod_Version: dword
   Mod_XPScale: byte
   VarTable: vartable.yml
