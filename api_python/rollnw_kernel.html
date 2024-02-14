@@ -123,6 +123,7 @@
 <li class="toctree-l3"><a class="reference internal" href="#rollnw.kernel.Objects.door"><code class="docutils literal notranslate"><span class="pre">Objects.door()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#rollnw.kernel.Objects.encounter"><code class="docutils literal notranslate"><span class="pre">Objects.encounter()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#rollnw.kernel.Objects.get"><code class="docutils literal notranslate"><span class="pre">Objects.get()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#rollnw.kernel.Objects.get_by_tag"><code class="docutils literal notranslate"><span class="pre">Objects.get_by_tag()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#rollnw.kernel.Objects.placeable"><code class="docutils literal notranslate"><span class="pre">Objects.placeable()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#rollnw.kernel.Objects.store"><code class="docutils literal notranslate"><span class="pre">Objects.store()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#rollnw.kernel.Objects.trigger"><code class="docutils literal notranslate"><span class="pre">Objects.trigger()</span></code></a></li>
@@ -435,6 +436,12 @@
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="rollnw.kernel.Objects.get_by_tag">
+<span class="sig-name descname"><span class="pre">get_by_tag</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tag</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nth</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="rollnw.html#rollnw.ObjectBase" title="rollnw.ObjectBase"><span class="pre">ObjectBase</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></span><a class="headerlink" href="#rollnw.kernel.Objects.get_by_tag" title="Link to this definition"></a></dt>
+<dd><p>Gets an object with specific tag</p>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="rollnw.kernel.Objects.placeable">
 <span class="sig-name descname"><span class="pre">placeable</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">resref</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="rollnw.html#rollnw.Placeable" title="rollnw.Placeable"><span class="pre">Placeable</span></a></span></span><a class="headerlink" href="#rollnw.kernel.Objects.placeable" title="Link to this definition"></a></dt>
 <dd></dd></dl>
@@ -506,12 +513,12 @@
 
 <dl class="py function">
 <dt class="sig sig-object py" id="rollnw.kernel.load_module">
-<span class="sig-prename descclassname"><span class="pre">rollnw.kernel.</span></span><span class="sig-name descname"><span class="pre">load_module</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mod</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">manifest</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="rollnw.html#rollnw.Module" title="rollnw.Module"><span class="pre">Module</span></a></span></span><a class="headerlink" href="#rollnw.kernel.load_module" title="Link to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">rollnw.kernel.</span></span><span class="sig-name descname"><span class="pre">load_module</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">manifest</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="rollnw.html#rollnw.Module" title="rollnw.Module"><span class="pre">Module</span></a></span></span><a class="headerlink" href="#rollnw.kernel.load_module" title="Link to this definition"></a></dt>
 <dd><p>Loads a module</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>mod</strong> – </p></li>
+<li><p><strong>path</strong> (<em>str</em>) – path to module, can be a directory (with module.ifo), a mod file, or a zip file</p></li>
 <li><p><strong>manifest</strong> (<em>str</em>) – NWSynch manifest hash</p></li>
 </ul>
 </dd>
