@@ -337,7 +337,7 @@ struct BlockStatement : public Statement {
 };
 
 struct DoStatement : public Statement {
-    BlockStatement* block = nullptr;
+    Statement* block = nullptr;
     Expression* expr = nullptr;
 
     DEFINE_ACCEPT_VISITOR

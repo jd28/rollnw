@@ -695,8 +695,7 @@ DoStatement* NssParser::parse_stmt_do()
 {
     auto s = ast_.create_node<DoStatement>();
     s->range_.start = previous().loc.range.start;
-    consume(NssTokenType::LBRACE, "Expected '{'.");
-    s->block = parse_stmt_block();
+    s->block = parse_stmt();
     consume(NssTokenType::WHILE, "Expected 'while'.");
     consume(NssTokenType::LPAREN, "Expected '('.");
     s->expr = parse_expr();

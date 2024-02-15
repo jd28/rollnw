@@ -566,8 +566,7 @@ struct AstResolver : BaseVisitor {
                 continue;
             }
 
-            if (func_decl->params[i]->type_id_ == ctx_->type_id("float")
-                && expr->args[i]->type_id_ == ctx_->type_id("int")) {
+            if (ctx_->is_type_convertible(func_decl->params[i]->type_id_, expr->args[i]->type_id_)) {
                 // This is fine
             } else if (func_decl->params[i]->type_id_ == ctx_->type_id("action")
                 && dynamic_cast<CallExpression*>(expr->args[i])) {
@@ -661,7 +660,7 @@ struct AstResolver : BaseVisitor {
         if (auto de = dynamic_cast<DotExpression*>(expr->lhs)) {
             expr->lhs->accept(this);
             struct_type = ctx_->type_name(expr->lhs->type_id_);
-            struct_decl = struct_decl = dynamic_cast<const StructDecl*>(resolve(struct_type, expr->dot.loc.range, true));
+            struct_decl = dynamic_cast<const StructDecl*>(resolve(struct_type, expr->dot.loc.range, true));
         } else if (auto ve = dynamic_cast<VariableExpression*>(expr->lhs)) {
             ve->accept(this);
 
@@ -708,7 +707,7 @@ struct AstResolver : BaseVisitor {
         if (expr->expr) {
             expr->expr->accept(this);
         } else {
-            ctx_->semantic_diagnostic(parent_, "empty groupling expression", true, expr->range_);
+            ctx_->semantic_diagnostic(parent_, "empty grouping expression", true, expr->range_);
         }
         expr->type_id_ = expr->expr->type_id_;
         expr->is_const_ = expr->expr->is_const_;

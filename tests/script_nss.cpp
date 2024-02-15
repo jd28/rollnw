@@ -1087,6 +1087,37 @@ TEST(Nss, Do)
     EXPECT_NO_THROW(nss1.parse());
     EXPECT_NO_THROW(nss1.resolve());
     EXPECT_EQ(nss1.errors(), 1);
+
+    // == Good ================================================================
+
+    script::Nss nss2(R"(
+        void main() {
+            int i = 0;
+
+            do {
+                ++i;
+            } while(FALSE);
+        }
+    )"sv,
+        ctx.get());
+    EXPECT_NO_THROW(nss2.parse());
+    EXPECT_NO_THROW(nss2.resolve());
+    EXPECT_EQ(nss2.errors(), 0);
+
+    // do statement does not have to be a block
+    script::Nss nss3(R"(
+        void main() {
+            int i = 0;
+
+            do
+                ++i;
+            while(FALSE);
+        }
+    )"sv,
+        ctx.get());
+    EXPECT_NO_THROW(nss3.parse());
+    EXPECT_NO_THROW(nss3.resolve());
+    EXPECT_EQ(nss3.errors(), 0);
 }
 
 TEST(Nss, For)
