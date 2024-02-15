@@ -221,7 +221,7 @@ static void BM_script_parse(benchmark::State& state)
     nw::ResourceData data = nw::ResourceData::from_file("test_data/user/scratch/nwscript.nss");
     auto ctx = new nw::script::Context;
     for (auto _ : state) {
-        nw::script::Nss nss(data.bytes.string_view(), ctx);
+        nw::script::Nss nss(data.bytes.string_view(), ctx, true);
         nss.parse();
         benchmark::DoNotOptimize(nss);
     }
@@ -232,7 +232,7 @@ static void BM_script_resolve(benchmark::State& state)
     nw::ResourceData data = nw::ResourceData::from_file("test_data/user/scratch/nwscript.nss");
     auto ctx = new nw::script::Context;
     for (auto _ : state) {
-        nw::script::Nss nss(data.bytes.string_view(), ctx);
+        nw::script::Nss nss(data.bytes.string_view(), ctx, true);
         nss.parse();
         nss.resolve();
         benchmark::DoNotOptimize(nss);
