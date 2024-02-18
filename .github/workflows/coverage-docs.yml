@@ -3,12 +3,12 @@ on:
   push:
     branches: [main]
     paths-ignore:
-      - "**.md"
+      - "**/*.ipynb"
       - ".readthedocs.yaml"
   pull_request:
     branches: [main]
     paths-ignore:
-      - "**.md"
+      - "**/*.ipynb"
       - ".readthedocs.yaml"
 
 jobs:

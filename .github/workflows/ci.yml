@@ -5,13 +5,15 @@ on:
     paths-ignore:
       - "**.md"
       - "**.rst"
-      - "**.py"
+      - "**.ipynb"
+      - "docs/**"
       - ".readthedocs.yaml"
   pull_request:
     paths-ignore:
       - "**.md"
       - "**.rst"
-      - "**.py"
+      - "**.ipynb"
+      - "docs/**"
       - ".readthedocs.yaml"
   release:
     types:
