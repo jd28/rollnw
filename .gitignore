@@ -31,3 +31,6 @@ venv
 # python
 dist/
 rollnw.egg-info/
+
+# jupyter
+.ipynb_checkpoints
