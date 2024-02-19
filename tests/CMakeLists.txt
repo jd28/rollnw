@@ -77,12 +77,11 @@ add_executable(rollnw_test
 
 target_include_directories(rollnw_test PRIVATE
     ../lib
-    ../profiles
+    ../lib/nw/profiles
 )
 
 target_link_libraries(rollnw_test PRIVATE
     nw
-    nw-profiles
     Threads::Threads
     GTest::gtest)
 

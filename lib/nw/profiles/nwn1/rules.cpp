@@ -4,8 +4,8 @@
 #include "constants.hpp"
 #include "functions.hpp"
 
-#include <nw/functions.hpp>
-#include <nw/objects/Creature.hpp>
+#include "../../functions.hpp"
+#include "../../objects/Creature.hpp"
 
 namespace nwn1 {
 

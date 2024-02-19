@@ -1,11 +1,10 @@
 #pragma once
 
-#include "constants.hpp"
-
-#include <nw/objects/Equips.hpp>
+#include "../../rules/combat.hpp"
 
 namespace nw {
 struct Creature;
+struct Effect;
 struct Item;
 struct ObjectBase;
 } // namespace nw

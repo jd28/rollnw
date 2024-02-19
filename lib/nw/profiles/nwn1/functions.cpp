@@ -2,15 +2,15 @@
 
 #include "constants.hpp"
 
-#include <nw/functions.hpp>
-#include <nw/kernel/EffectSystem.hpp>
-#include <nw/kernel/EventSystem.hpp>
-#include <nw/kernel/Rules.hpp>
-#include <nw/kernel/Strings.hpp>
-#include <nw/kernel/TwoDACache.hpp>
-#include <nw/objects/Door.hpp>
-#include <nw/objects/Placeable.hpp>
-#include <nw/util/templates.hpp>
+#include "../../functions.hpp"
+#include "../../kernel/EffectSystem.hpp"
+#include "../../kernel/EventSystem.hpp"
+#include "../../kernel/Rules.hpp"
+#include "../../kernel/Strings.hpp"
+#include "../../kernel/TwoDACache.hpp"
+#include "../../objects/Door.hpp"
+#include "../../objects/Placeable.hpp"
+#include "../../util/templates.hpp"
 
 namespace nwn1 {
 

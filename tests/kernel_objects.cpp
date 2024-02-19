@@ -1,11 +1,12 @@
-#include "nw/serialization/Serialization.hpp"
 #include <gtest/gtest.h>
 
 #include <nw/kernel/Objects.hpp>
 #include <nw/log.hpp>
 #include <nw/objects/Creature.hpp>
 #include <nw/objects/Player.hpp>
+
 #include <nwn1/Profile.hpp>
+#include <nwn1/constants.hpp>
 
 #include <filesystem>
 

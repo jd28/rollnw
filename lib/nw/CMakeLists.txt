@@ -73,6 +73,15 @@ add_library(nw STATIC
     objects/SpellBook.cpp
     objects/Trap.cpp
 
+    profiles/nwn1/combat.cpp
+    profiles/nwn1/constants.cpp
+    profiles/nwn1/effects.cpp
+    profiles/nwn1/functions.cpp
+    profiles/nwn1/helpers.cpp
+    profiles/nwn1/Profile.cpp
+    profiles/nwn1/modifiers.cpp
+    profiles/nwn1/rules.cpp
+
     resources/Bif.cpp
     resources/Container.cpp
     resources/Directory.cpp

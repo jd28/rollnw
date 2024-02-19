@@ -2,9 +2,9 @@
 
 #include "constants.hpp"
 
-#include <nw/kernel/Kernel.hpp>
-#include <nw/rules/combat.hpp>
-#include <nw/rules/items.hpp>
+#include "../../kernel/Kernel.hpp"
+#include "../../rules/combat.hpp"
+#include "../../rules/items.hpp"
 
 namespace nwn1 {
 

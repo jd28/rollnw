@@ -1,6 +1,6 @@
 #pragma once
 
-#include <nw/rules/Spell.hpp>
+#include "../../../rules/Spell.hpp"
 
 namespace nwn1 {
 

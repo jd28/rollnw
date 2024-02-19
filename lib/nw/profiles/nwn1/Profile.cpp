@@ -6,14 +6,14 @@
 #include "modifiers.hpp"
 #include "rules.hpp"
 
-#include <nw/formats/TwoDA.hpp>
-#include <nw/kernel/EffectSystem.hpp>
-#include <nw/kernel/Resources.hpp>
-#include <nw/kernel/Rules.hpp>
-#include <nw/kernel/TwoDACache.hpp>
-#include <nw/objects/Creature.hpp>
-#include <nw/rules/feats.hpp>
-#include <nw/rules/system.hpp>
+#include "../../formats/TwoDA.hpp"
+#include "../../kernel/EffectSystem.hpp"
+#include "../../kernel/Resources.hpp"
+#include "../../kernel/Rules.hpp"
+#include "../../kernel/TwoDACache.hpp"
+#include "../../objects/Creature.hpp"
+#include "../../rules/feats.hpp"
+#include "../../rules/system.hpp"
 
 namespace nwn1 {
 

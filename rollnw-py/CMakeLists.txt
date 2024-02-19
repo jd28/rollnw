@@ -27,12 +27,12 @@ endif()
 
 target_link_libraries(rollnw PRIVATE
     nw
-    nw-profiles
     pybind11::module
 )
 
 target_include_directories(rollnw PRIVATE
-    ../external/rollnw/profiles
+    ../lib
+    ../lib/nw/profiles
     ../external/pybind11_json/include
     ../external/pybind11/include
 )

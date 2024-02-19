@@ -1,8 +1,8 @@
 #pragma once
 
+#include "../../objects/Equips.hpp"
+#include "../../rules/combat.hpp"
 #include "constants.hpp"
-#include "nw/objects/Equips.hpp"
-#include "nw/rules/combat.hpp"
 
 namespace nw {
 struct Effect;

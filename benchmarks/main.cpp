@@ -13,6 +13,8 @@
 #include <nwn1/combat.hpp>
 #include <nwn1/effects.hpp>
 #include <nwn1/functions.hpp>
+#include <nwn1/rules.hpp>
+
 
 #include <benchmark/benchmark.h>
 #include <nlohmann/json.hpp>

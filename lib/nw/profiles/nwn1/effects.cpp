@@ -4,15 +4,15 @@
 #include "constants.hpp"
 #include "functions.hpp"
 
-#include <algorithm>
-#include <nw/kernel/EffectSystem.hpp>
-#include <nw/kernel/Rules.hpp>
-#include <nw/kernel/Strings.hpp>
-#include <nw/objects/Creature.hpp>
-#include <nw/rules/Effect.hpp>
-#include <nw/rules/attributes.hpp>
-#include <nw/rules/items.hpp>
+#include "../../kernel/EffectSystem.hpp"
+#include "../../kernel/Rules.hpp"
+#include "../../kernel/Strings.hpp"
+#include "../../objects/Creature.hpp"
+#include "../../rules/Effect.hpp"
+#include "../../rules/attributes.hpp"
+#include "../../rules/items.hpp"
 
+#include <algorithm>
 #include <limits>
 
 namespace nwn1 {

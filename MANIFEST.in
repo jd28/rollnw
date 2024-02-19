@@ -2,7 +2,7 @@ include README.md LICENSE
 graft cmake
 graft external
 graft lib
-graft profiles
+graft notebooks
 graft rollnw-py
 graft rollnw-stubs
 graft tests

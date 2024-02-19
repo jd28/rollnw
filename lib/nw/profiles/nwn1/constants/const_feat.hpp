@@ -1,6 +1,6 @@
 #pragma once
 
-#include <nw/rules/feats.hpp>
+#include "../../../rules/feats.hpp"
 
 namespace nwn1 {
 

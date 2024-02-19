@@ -5,17 +5,17 @@
 #include "constants/const_feat.hpp"
 #include "functions.hpp"
 
-#include <nw/functions.hpp>
-#include <nw/kernel/Kernel.hpp>
-#include <nw/kernel/Rules.hpp>
-#include <nw/kernel/TwoDACache.hpp>
-#include <nw/log.hpp>
-#include <nw/objects/Common.hpp>
-#include <nw/objects/Creature.hpp>
-#include <nw/rules/Class.hpp>
-#include <nw/rules/combat.hpp>
-#include <nw/rules/feats.hpp>
-#include <nw/rules/items.hpp>
+#include "../../functions.hpp"
+#include "../../kernel/Kernel.hpp"
+#include "../../kernel/Rules.hpp"
+#include "../../kernel/TwoDACache.hpp"
+#include "../../log.hpp"
+#include "../../objects/Common.hpp"
+#include "../../objects/Creature.hpp"
+#include "../../rules/Class.hpp"
+#include "../../rules/combat.hpp"
+#include "../../rules/feats.hpp"
+#include "../../rules/items.hpp"
 
 namespace nwn1 {
 

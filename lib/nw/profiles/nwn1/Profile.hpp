@@ -3,7 +3,7 @@
 #include "constants.hpp"
 #include "rules.hpp"
 
-#include <nw/kernel/GameProfile.hpp>
+#include "../../kernel/GameProfile.hpp"
 
 namespace nwn1 {
 

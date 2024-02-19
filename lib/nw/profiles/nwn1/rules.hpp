@@ -2,8 +2,8 @@
 
 #include "functions.hpp"
 
-#include <nw/objects/ObjectBase.hpp>
-#include <nw/rules/system.hpp>
+#include "../../objects/ObjectBase.hpp"
+#include "../../rules/system.hpp"
 
 namespace nwn1 {
 

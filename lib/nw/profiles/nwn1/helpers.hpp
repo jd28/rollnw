@@ -1,12 +1,12 @@
 #pragma once
 
-#include <nw/rules/Class.hpp>
-#include <nw/rules/Spell.hpp>
-#include <nw/rules/attributes.hpp>
-#include <nw/rules/combat.hpp>
-#include <nw/rules/feats.hpp>
-#include <nw/rules/items.hpp>
-#include <nw/rules/system.hpp>
+#include "../../rules/Class.hpp"
+#include "../../rules/Spell.hpp"
+#include "../../rules/attributes.hpp"
+#include "../../rules/combat.hpp"
+#include "../../rules/feats.hpp"
+#include "../../rules/items.hpp"
+#include "../../rules/system.hpp"
 
 namespace nwn1 {
 

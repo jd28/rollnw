@@ -3,10 +3,10 @@
 #include "constants/const_feat.hpp"
 #include "constants/const_spell.hpp"
 
-#include <nw/rules/Class.hpp>
-#include <nw/rules/Effect.hpp>
-#include <nw/rules/combat.hpp>
-#include <nw/rules/items.hpp>
+#include "../../rules/Class.hpp"
+#include "../../rules/Effect.hpp"
+#include "../../rules/combat.hpp"
+#include "../../rules/items.hpp"
 
 namespace nwn1 {
 

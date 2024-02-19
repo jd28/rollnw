@@ -1,19 +1,20 @@
 #include "combat.hpp"
 
+#include "constants.hpp"
 #include "functions.hpp"
 
-#include <nw/functions.hpp>
-#include <nw/kernel/EffectSystem.hpp>
-#include <nw/kernel/Rules.hpp>
-#include <nw/objects/Creature.hpp>
-#include <nw/objects/Equips.hpp>
-#include <nw/objects/Item.hpp>
-#include <nw/objects/LevelStats.hpp>
-#include <nw/rules/Class.hpp>
-#include <nw/rules/combat.hpp>
-#include <nw/rules/items.hpp>
-#include <nw/rules/system.hpp>
-#include <nw/util/macros.hpp>
+#include "../../functions.hpp"
+#include "../../kernel/EffectSystem.hpp"
+#include "../../kernel/Rules.hpp"
+#include "../../objects/Creature.hpp"
+#include "../../objects/Equips.hpp"
+#include "../../objects/Item.hpp"
+#include "../../objects/LevelStats.hpp"
+#include "../../rules/Class.hpp"
+#include "../../rules/combat.hpp"
+#include "../../rules/items.hpp"
+#include "../../rules/system.hpp"
+#include "../../util/macros.hpp"
 
 namespace nwn1 {
 

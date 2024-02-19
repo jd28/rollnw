@@ -33,7 +33,7 @@ html_theme = "sphinx_rtd_theme"
 breathe_projects = {}
 
 if read_the_docs_build:
-    input_dir = '../lib/nw ../profiles'
+    input_dir = '../lib/nw'
     output_dir = 'build'
     breathe_projects['rollNW'] = 'build/xml/'
     configureDoxyfile(input_dir, output_dir)
