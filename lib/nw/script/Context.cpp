@@ -20,7 +20,7 @@ Context::Context(std::vector<std::string> include_paths, std::string command_scr
 
     for (const auto& path : include_paths_) {
         if (!fs::exists(path) || !fs::is_directory(path)) { continue; }
-        resman_.add_container(new Directory{path});
+        resman_.add_custom_container(new Directory{path});
     }
 
     command_script_ = get(Resref{command_script_name_}, true);
@@ -32,7 +32,7 @@ Context::Context(std::vector<std::string> include_paths, std::string command_scr
 void Context::add_include_path(const std::filesystem::path& path)
 {
     if (!fs::exists(path) || !fs::is_directory(path)) { return; }
-    resman_.add_container(new Directory{path});
+    resman_.add_custom_container(new Directory{path});
 }
 
 Nss* Context::get(Resref resref, bool command_script)

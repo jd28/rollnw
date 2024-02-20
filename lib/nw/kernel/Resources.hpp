@@ -21,18 +21,35 @@ namespace kernel {
 
 using LocatorVariant = std::variant<Container*, unique_container>;
 
+struct LocatorPayload {
+    LocatorVariant container;
+    ResourceType::type restype = ResourceType::invalid;
+};
+
 struct Resources : public Container, public Service {
     Resources(const Resources* parent = nullptr);
     virtual ~Resources() = default;
 
-    using SearchVector = std::vector<std::tuple<const Container*, ResourceType::type, bool>>;
+    using SearchVector = std::vector<LocatorPayload>;
 
     /// Initializes resources management system
     virtual void initialize() override;
     virtual void clear() override { }
 
+    /// Add a base container
+    /// @note This anything that is BELOW the module in priority
+    bool add_base_container(const std::filesystem::path& path, const std::string& name,
+        ResourceType::type restype = ResourceType::invalid);
+
     /// Add already created container
-    bool add_container(Container* container, bool take_ownership = true);
+    /// @note These containers are above all others in priority
+    bool add_custom_container(Container* container, bool take_ownership = true,
+        ResourceType::type restype = ResourceType::invalid);
+
+    /// Add override container
+    /// @note This anything that is ABOVE the module in priority
+    bool add_override_container(const std::filesystem::path& path, const std::string& name,
+        ResourceType::type restype = ResourceType::invalid);
 
     /// Clears any custom loaded containers
     void clear_containers();
@@ -82,29 +99,19 @@ private:
 
     SearchVector search_;
 
-    std::vector<LocatorVariant> custom_;
+    std::vector<LocatorPayload> custom_;
+    std::vector<LocatorPayload> override_;
 
-    Directory ambient_user_, ambient_install_;
-    Directory development_;
-    Directory dmvault_user_, dmvault_install_;
-    Directory localvault_user_, localvault_install_;
-    Directory music_user_, music_install_;
-    Directory override_user_, override_install_;
-    Directory portraits_user_, portraits_install_;
-    Directory servervault_user_, servervault_install_;
+    unique_container module_;
+    std::vector<unique_container> module_haks_;
 
-    std::vector<Erf> haks_;
+    std::vector<LocatorPayload> game_;
+
     NWSyncManifest* nwsync_manifest_ = nullptr;
 
     // currentgame, savegame, nwsync_savegame - Not dealing with this for now..
 
-    unique_container module_;
     std::filesystem::path module_path_;
-
-    std::vector<unique_container> patches_;
-
-    std::vector<Erf> texture_packs_;
-    std::vector<Key> keys_;
 
     std::array<std::unique_ptr<Image>, plt_layer_size> palette_textures_;
 };
@@ -118,5 +125,20 @@ inline Resources& resman()
     return *res;
 }
 
+inline Container* resolve_container(const std::filesystem::path& p, const std::string& name)
+{
+    if (std::filesystem::is_directory(p / name)) {
+        return new Directory{p / name};
+    } else if (std::filesystem::exists(p / (name + ".hak"))) {
+        return new Erf{p / (name + ".hak")};
+    } else if (std::filesystem::exists(p / (name + ".erf"))) {
+        return new Erf{p / (name + ".erf")};
+    } else if (std::filesystem::exists(p / (name + ".zip"))) {
+        return new Zip{p / (name + ".zip")};
+    } else if (std::filesystem::exists(p / (name + ".key"))) {
+        return new Key{p / (name + ".key")};
+    }
+    return nullptr;
+}
 } // namespace kernel
 } // namespace nw

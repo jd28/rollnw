@@ -157,7 +157,7 @@ bool Key::load()
         return false;
     }
 
-    LOG_F(INFO, "{}: Loading...", path_);
+    LOG_F(INFO, "[resources] key: loading - '{}'", path_);
 
     fsize_ = static_cast<std::streamsize>(fs::file_size(path_));
 
@@ -187,7 +187,7 @@ bool Key::load()
         std::string s(buffer);
         std::replace(s.begin(), s.end(), '\\', '/');
 
-        LOG_F(INFO, "  {}: Loading...", s);
+        LOG_F(INFO, "[resources] key: added bif - {}", s);
         bif_names.push_back(s);
 
         bifs_.emplace_back(this, bif_path / s);
@@ -207,7 +207,7 @@ bool Key::load()
             KeyTableElement{id >> 20, id & 0xFFFFF});
     }
 
-    LOG_F(INFO, "{}: {} resources loaded.", path_, elements_.size());
+    LOG_F(INFO, "[resources] key: loaded {} resources - '{}'", elements_.size(), path_);
     return true;
 }
 

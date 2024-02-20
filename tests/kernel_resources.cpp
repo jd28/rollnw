@@ -15,7 +15,7 @@ TEST(KernelResources, AddContainer)
     auto rm = new nw::kernel::Resources;
     auto sz = rm->size();
     nw::Erf e("test_data/user/modules/DockerDemo.mod");
-    EXPECT_TRUE(rm->add_container(&e, false));
+    EXPECT_TRUE(rm->add_custom_container(&e, false));
     EXPECT_TRUE(rm->contains({"module"sv, nw::ResourceType::ifo}));
     EXPECT_EQ(rm->size(), sz + e.size());
 
@@ -28,9 +28,9 @@ TEST(KernelResources, AddContainer)
 TEST(KernelResources, Extract)
 {
     auto rm = new nw::kernel::Resources;
-    EXPECT_TRUE(rm->add_container(new nw::Erf("test_data/user/modules/DockerDemo.mod")));
-    EXPECT_TRUE(rm->add_container(new nw::Zip("test_data/user/modules/module_as_zip.zip")));
-    EXPECT_FALSE(rm->add_container(new nw::Zip("test_data/user/modules/module_as_zip.zip")));
+    EXPECT_TRUE(rm->add_custom_container(new nw::Erf("test_data/user/modules/DockerDemo.mod")));
+    EXPECT_TRUE(rm->add_custom_container(new nw::Zip("test_data/user/modules/module_as_zip.zip")));
+    EXPECT_FALSE(rm->add_custom_container(new nw::Zip("test_data/user/modules/module_as_zip.zip")));
     EXPECT_TRUE(rm->contains({"module"sv, nw::ResourceType::ifo}));
     EXPECT_TRUE(rm->contains({"test_area"sv, nw::ResourceType::are}));
     EXPECT_EQ(rm->extract(std::regex(".*"), "tmp"), 37);
@@ -80,7 +80,7 @@ TEST(KernelResources, visit)
     auto rm = new nw::kernel::Resources;
     auto sz = rm->size();
     nw::Erf e("test_data/user/modules/DockerDemo.mod");
-    EXPECT_TRUE(rm->add_container(&e, false));
+    EXPECT_TRUE(rm->add_custom_container(&e, false));
     EXPECT_TRUE(rm->contains({"module"sv, nw::ResourceType::ifo}));
 
     size_t count = 0;

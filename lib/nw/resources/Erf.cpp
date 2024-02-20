@@ -354,7 +354,7 @@ void Erf::visit(std::function<void(const Resource&)> callback) const noexcept
 
 bool Erf::load(const fs::path& path)
 {
-    LOG_F(INFO, "{}: Loading...", path);
+    LOG_F(INFO, "[resources] erf: loading - '{}'", path);
 
     file_.open(path, std::ios::binary);
     if (!file_.is_open()) {
@@ -455,7 +455,7 @@ bool Erf::load(const fs::path& path)
         }
     }
 
-    LOG_F(INFO, "{}: {} resources loaded.", path, elements_.size());
+    LOG_F(INFO, "[resources] erf: loaded {} resources - '{}'", elements_.size(), path);
     return true;
 }
 

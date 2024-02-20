@@ -17,27 +17,13 @@ using namespace std::literals;
 
 namespace nw::kernel {
 
-inline const Container* get_container(const LocatorVariant& var)
+inline Container* get_container(const LocatorVariant& var)
 {
     if (std::holds_alternative<Container*>(var)) {
         return std::get<Container*>(var);
     } else {
         return std::get<unique_container>(var).get();
     }
-}
-
-inline Container* resolve_container(const std::filesystem::path& p, const std::string& name)
-{
-    if (fs::is_directory(p / name)) {
-        return new Directory{p / name};
-    } else if (fs::exists(p / (name + ".hak"))) {
-        return new Erf{p / (name + ".hak")};
-    } else if (fs::exists(p / (name + ".erf"))) {
-        return new Erf{p / (name + ".erf")};
-    } else if (fs::exists(p / (name + ".zip"))) {
-        return new Zip{p / (name + ".zip")};
-    }
-    return nullptr;
 }
 
 Resources::Resources(const Resources* parent)
@@ -50,80 +36,13 @@ void Resources::initialize()
     LOG_F(INFO, "kernel: resource system initializing...");
     auto start = std::chrono::high_resolution_clock::now();
 
-    if (config().options().include_user) {
-        ambient_user_ = Directory{config().user_path() / "ambient"};
-        dmvault_user_ = Directory{config().user_path() / "dmvault"};
-        localvault_user_ = Directory{config().user_path() / "localvault"};
-        music_user_ = Directory{config().user_path() / "music"};
-        override_user_ = Directory{config().user_path() / "override"};
-        portraits_user_ = Directory{config().user_path() / "portraits"};
-        servervault_user_ = Directory{config().user_path() / "servervault"};
+    if (config().options().include_user
+        && config().options().include_nwsync
+        && config().version() == GameVersion::vEE) {
+        nwsync_ = NWSync{config().user_path() / "nwsync"};
     }
 
-    if (config().options().include_user) {
-        if (config().version() == GameVersion::vEE) {
-            if (config().options().include_nwsync) {
-                nwsync_ = NWSync{config().user_path() / "nwsync"};
-            }
-            development_ = Directory{config().user_path() / "development"};
-        }
-    }
-
-    if (config().options().include_user) {
-        if (fs::exists(config().user_path() / "userpatch.ini")) {
-            Ini user_patch{config().user_path() / "userpatch.ini"};
-            if (user_patch.valid()) {
-                int i = 0;
-                std::string file;
-                while (user_patch.get_to(fmt::format("Patch/PatchFile{:03d}", i++), file)) {
-                    auto c = resolve_container(config().user_path() / "patch", file);
-                    if (c) {
-                        patches_.emplace_back(c);
-                    }
-                }
-            }
-        }
-    }
-
-    if (config().options().include_install) {
-        texture_packs_.reserve(4);
-        if (config().version() == GameVersion::vEE) {
-            ambient_install_ = Directory{config().install_path() / "data/amb/"};
-            dmvault_install_ = Directory{config().install_path() / "data/dmv/"};
-            localvault_install_ = Directory{config().install_path() / "data/lcv/"};
-            music_install_ = Directory{config().install_path() / "data/mus"};
-            override_install_ = Directory{config().install_path() / "ovr"};
-            portraits_install_ = Directory{config().install_path() / "data/prt/"};
-
-            texture_packs_.emplace_back(config().install_path() / "data/txpk/xp2_tex_tpa.erf");
-            texture_packs_.emplace_back(config().install_path() / "data/txpk/xp1_tex_tpa.erf");
-            texture_packs_.emplace_back(config().install_path() / "data/txpk/textures_tpa.erf");
-            texture_packs_.emplace_back(config().install_path() / "data/txpk/tiles_tpa.erf");
-
-            keys_.reserve(2);
-            auto lang = strings().global_language();
-            if (lang != LanguageID::english) {
-                auto shortcode = Language::to_string(lang);
-                keys_.emplace_back(config().install_path() / "lang" / shortcode / "data" / "nwn_base_loc.key");
-            }
-            keys_.emplace_back(config().install_path() / "data/nwn_base.key");
-        } else {
-            texture_packs_.emplace_back(config().install_path() / "texturepacks/xp2_tex_tpa.erf");
-            texture_packs_.emplace_back(config().install_path() / "texturepacks/xp1_tex_tpa.erf");
-            texture_packs_.emplace_back(config().install_path() / "texturepacks/textures_tpa.erf");
-            texture_packs_.emplace_back(config().install_path() / "texturepacks/tiles_tpa.erf");
-
-            keys_.reserve(8);
-            keys_.emplace_back(config().install_path() / "xp3patch.key");
-            keys_.emplace_back(config().install_path() / "xp3.key");
-            keys_.emplace_back(config().install_path() / "xp2patch.key");
-            keys_.emplace_back(config().install_path() / "xp2.key");
-            keys_.emplace_back(config().install_path() / "xp1patch.key");
-            keys_.emplace_back(config().install_path() / "xp1.key");
-            keys_.emplace_back(config().install_path() / "patch.key");
-            keys_.emplace_back(config().install_path() / "chitin.key");
-        }
-    }
+    services().profile()->load_resources();
     update_container_search();
     load_palette_textures();
 
@@ -157,9 +76,10 @@ bool Resources::load_module(std::filesystem::path path, std::string_view manifes
 
 void Resources::load_module_haks(const std::vector<std::string>& haks)
 {
-    // [TODO] - Change to resolve container
     for (const auto& h : haks) {
-        haks_.emplace_back(config().user_path() / "hak" / (h + ".hak"));
+        if (auto c = resolve_container(config().user_path() / "hak", h)) {
+            module_haks_.emplace_back(c);
+        }
     }
 }
 
@@ -168,28 +88,73 @@ void Resources::unload_module()
     LOG_F(INFO, "resman: unloading module container: {}", module_path_);
     module_path_.clear();
     nwsync_manifest_ = nullptr;
-    haks_.clear();
+    module_haks_.clear();
     module_.reset();
     update_container_search();
 }
 
-bool Resources::add_container(Container* container, bool take_ownership)
+bool Resources::add_base_container(const std::filesystem::path& path, const std::string& name,
+    ResourceType::type restype)
+{
+    auto container = resolve_container(path, name);
+
+    if (!container || !container->valid()) {
+        return false;
+    }
+    for (auto& [cont, _] : search_) {
+        auto c = get_container(cont);
+        if (!c || c->path() == container->path()) {
+            return false;
+        }
+    }
+
+    game_.push_back(LocatorPayload{unique_container{container}, restype});
+    update_container_search();
+
+    return true;
+}
+
+bool Resources::add_custom_container(Container* container, bool take_ownership, ResourceType::type restype)
 {
     if (!container || !container->valid()) {
         return false;
     }
-    for (auto& [cont, type, user] : search_) {
-        if (cont->path() == container->path()) {
+    for (auto& [cont, _] : search_) {
+        auto c = get_container(cont);
+        if (!c || c->path() == container->path()) {
             return false;
         }
     }
 
     if (take_ownership) {
-        custom_.emplace_back(unique_container{container});
+        custom_.push_back(LocatorPayload{unique_container{container}, restype});
     } else {
-        custom_.push_back(container);
+        custom_.push_back(LocatorPayload{container, restype});
     }
 
+    update_container_search();
+
+    return true;
+}
+
+/// Add already created container
+bool Resources::add_override_container(const std::filesystem::path& path, const std::string& name,
+    ResourceType::type restype)
+{
+    auto container = resolve_container(path, name);
+
+    if (!container || !container->valid()) {
+        return false;
+    }
+
+    for (auto& [cont, _] : search_) {
+        auto c = get_container(cont);
+        if (!c || c->path() == container->path()) {
+            return false;
+        }
+    }
+
+    override_.push_back(LocatorPayload{unique_container{container}, restype});
     update_container_search();
 
     return true;
@@ -203,11 +168,15 @@ void Resources::clear_containers()
 
 bool Resources::contains(Resource res) const
 {
-    for (auto [cont, type, user] : search_) {
+    for (auto& [cont, type] : search_) {
+        auto c = get_container(cont);
+        if (!c) { continue; }
+
         if (type != ResourceType::invalid && !ResourceType::check_category(type, res.type)) {
             continue;
         }
-        if (cont->contains(res)) { return true; }
+
+        if (c->contains(res)) { return true; }
     }
 
     if (parent_ && parent_->contains(res)) {
@@ -220,11 +189,13 @@ bool Resources::contains(Resource res) const
 ResourceData Resources::demand(Resource res) const
 {
     ResourceData result;
-    for (auto [cont, type, user] : search_) {
+    for (auto& [cont, type] : search_) {
+        auto c = get_container(cont);
+        if (!c) { continue; }
         if (type != ResourceType::invalid && !ResourceType::check_category(type, res.type)) {
             continue;
         }
-        result = cont->demand(res);
+        result = c->demand(res);
         if (result.bytes.size()) {
             break;
         }
@@ -241,13 +212,16 @@ ResourceData Resources::demand(Resource res) const
 ResourceData Resources::demand_any(Resref resref, std::initializer_list<ResourceType::type> restypes) const
 {
     ResourceData result;
-    for (auto [cont, type, user] : search_) {
+    for (auto& [cont, type] : search_) {
+        auto c = get_container(cont);
+        if (!c) { continue; }
+
         for (auto rt : restypes) {
             Resource res{resref, rt};
             if (type != ResourceType::invalid && !ResourceType::check_category(type, res.type)) {
                 continue;
             }
-            result = cont->demand(res);
+            result = c->demand(res);
             if (result.bytes.size()) {
                 return result;
             }
@@ -261,11 +235,13 @@ ResourceData Resources::demand_in_order(Resref resref, std::initializer_list<Res
     ResourceData result;
     for (auto rt : restypes) {
         Resource res{resref, rt};
-        for (auto [cont, type, user] : search_) {
+        for (auto& [cont, type] : search_) {
+            auto c = get_container(cont);
+            if (!c) { continue; }
             if (type != ResourceType::invalid && !ResourceType::check_category(type, res.type)) {
                 continue;
             }
-            result = cont->demand(res);
+            result = c->demand(res);
             if (result.bytes.size()) {
                 return result;
             }
@@ -294,8 +270,10 @@ ResourceData Resources::demand_server_vault(std::string_view cdkey, std::string_
 int Resources::extract(const std::regex& pattern, const std::filesystem::path& output) const
 {
     int result = 0;
-    for (auto [cont, type, user] : reverse(search_)) {
-        result += cont->extract(pattern, output);
+    for (auto& [cont, type] : reverse(search_)) {
+        auto c = get_container(cont);
+        if (!c) { continue; }
+        result += c->extract(pattern, output);
     }
 
     if (parent_) {
@@ -307,8 +285,10 @@ int Resources::extract(const std::regex& pattern, const std::filesystem::path& o
 size_t Resources::size() const
 {
     size_t result = 0;
-    for (auto [cont, type, user] : search_) {
-        result += cont->size();
+    for (auto& [cont, type] : search_) {
+        auto c = get_container(cont);
+        if (!c) { continue; }
+        result += c->size();
     }
     return result;
 }
@@ -316,19 +296,22 @@ size_t Resources::size() const
 ResourceDescriptor Resources::stat(const Resource& res) const
 {
     ResourceDescriptor rd;
-    for (auto [cont, type, user] : search_) {
-        rd = cont->stat(res);
-        if (rd) {
-            break;
-        }
+    for (auto& [cont, type] : search_) {
+        auto c = get_container(cont);
+        if (!c) { continue; }
+
+        rd = c->stat(res);
+        if (rd) { break; }
     }
     return rd;
 }
 
 void Resources::visit(std::function<void(const Resource&)> callback) const noexcept
 {
-    for (auto [cont, type, user] : search_) {
-        cont->visit(callback);
+    for (auto& [cont, type] : search_) {
+        auto c = get_container(cont);
+        if (!c) { continue; }
+        c->visit(callback);
     }
 }
 
@@ -392,50 +375,30 @@ void Resources::update_container_search()
 {
     search_.clear();
 
-    auto push_container = [this](const Container* c, ResourceType::type cat, bool user) {
+    auto push_container = [this](Container* c, ResourceType::type cat) {
         if (c && c->valid()) {
-            search_.emplace_back(c, cat, user);
+            search_.emplace_back(LocatorPayload(c, cat));
         }
     };
 
     for (auto& c : custom_) {
-        push_container(get_container(c), ResourceType::invalid, true);
+        push_container(get_container(c.container), c.restype);
     }
 
-    push_container(&portraits_user_, ResourceType::texture, true);
-    push_container(&portraits_install_, ResourceType::texture, false);
-
-    // Vault
-    // push_container(vault_user_, ResourceType::player, true);
-
-    push_container(&development_, ResourceType::invalid, true);
-
-    push_container(nwsync_manifest_, ResourceType::invalid, true);
-
-    for (const auto& c : haks_) {
-        push_container(&c, ResourceType::invalid, false);
+    for (auto& c : override_) {
+        push_container(get_container(c.container), c.restype);
     }
 
-    push_container(module_.get(), ResourceType::invalid, true);
+    // [TODO] Deal with NWSync, somehow
 
-    push_container(&override_user_, ResourceType::invalid, true);
-    push_container(&override_install_, ResourceType::invalid, false);
-
-    push_container(&ambient_user_, ResourceType::sound, true);
-    push_container(&music_user_, ResourceType::sound, true);
-    push_container(&ambient_install_, ResourceType::sound, false);
-    push_container(&music_install_, ResourceType::sound, false);
-
-    for (auto& c : patches_) {
-        push_container(c.get(), ResourceType::invalid, false);
+    for (const auto& c : module_haks_) {
+        push_container(c.get(), ResourceType::invalid);
     }
 
-    for (auto& c : texture_packs_) {
-        push_container(&c, ResourceType::texture, false);
-    }
+    push_container(module_.get(), ResourceType::invalid);
 
-    for (auto& c : keys_) {
-        push_container(&c, ResourceType::invalid, false);
+    for (auto& c : game_) {
+        push_container(get_container(c.container), c.restype);
     }
 }
 

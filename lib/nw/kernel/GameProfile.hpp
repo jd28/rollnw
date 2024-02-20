@@ -8,6 +8,7 @@ struct GameProfile {
 
     /// Loads game specific rules
     virtual bool load_rules() const = 0;
+    virtual bool load_resources() = 0;
 };
 
 } // namespace nw

@@ -275,6 +275,8 @@ bool NWSync::load()
         LOG_F(ERROR, "sqlite3 error: {}", sqlite3_errmsg(db));
         return false;
     }
+
+    LOG_F(INFO, "[resources] nwsync: meta database loaded - '{}'", db_path);
     meta_ = sqlite3_ptr(db, detail::sqlite3_deleter);
 
     int i = 0;
@@ -290,6 +292,8 @@ bool NWSync::load()
             LOG_F(ERROR, "sqlite3 error: {}", sqlite3_errmsg(db));
             return false;
         }
+
+        LOG_F(INFO, "[resources] nwsync: adding shard - '{}'", db_path);
         shards_.emplace_back(db, detail::sqlite3_deleter);
         ++i;
     }

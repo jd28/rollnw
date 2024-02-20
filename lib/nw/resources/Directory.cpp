@@ -29,7 +29,7 @@ Directory::Directory(const fs::path& path)
     path_string_ = path_to_string(fs::canonical(path));
     name_ = path_to_string(path.parent_path().filename());
 
-    LOG_F(INFO, "{}: Loading...", path_string_);
+    LOG_F(INFO, "[resources] dir: loading - {}", path_string_);
     is_valid_ = true;
 }
 
