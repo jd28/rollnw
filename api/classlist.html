@@ -1407,6 +1407,7 @@
 <li class="toctree-l2"><a class="reference internal" href="struct/nw__GameProfile.html#_CPPv4N2nw11GameProfileE"><code class="docutils literal notranslate"><span class="pre">GameProfile</span></code></a><ul>
 <li class="toctree-l3"><a class="reference internal" href="struct/nw__GameProfile.html#_CPPv4N2nw11GameProfileD0Ev"><code class="docutils literal notranslate"><span class="pre">GameProfile::~GameProfile()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="struct/nw__GameProfile.html#_CPPv4NK2nw11GameProfile10load_rulesEv"><code class="docutils literal notranslate"><span class="pre">GameProfile::load_rules()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="struct/nw__GameProfile.html#_CPPv4N2nw11GameProfile14load_resourcesEv"><code class="docutils literal notranslate"><span class="pre">GameProfile::load_resources()</span></code></a></li>
 </ul>
 </li>
 </ul>
@@ -3416,7 +3417,9 @@
 <li class="toctree-l3"><a class="reference internal" href="struct/nw__kernel__Resources.html#_CPPv4N2nw6kernel9ResourcesD0Ev"><code class="docutils literal notranslate"><span class="pre">Resources::~Resources()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="struct/nw__kernel__Resources.html#_CPPv4N2nw6kernel9Resources10initializeEv"><code class="docutils literal notranslate"><span class="pre">Resources::initialize()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="struct/nw__kernel__Resources.html#_CPPv4N2nw6kernel9Resources5clearEv"><code class="docutils literal notranslate"><span class="pre">Resources::clear()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__kernel__Resources.html#_CPPv4N2nw6kernel9Resources13add_containerEP9Containerb"><code class="docutils literal notranslate"><span class="pre">Resources::add_container()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="struct/nw__kernel__Resources.html#_CPPv4N2nw6kernel9Resources18add_base_containerERKNSt10filesystem4pathERKNSt6stringEN12ResourceType4typeE"><code class="docutils literal notranslate"><span class="pre">Resources::add_base_container()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="struct/nw__kernel__Resources.html#_CPPv4N2nw6kernel9Resources20add_custom_containerEP9ContainerbN12ResourceType4typeE"><code class="docutils literal notranslate"><span class="pre">Resources::add_custom_container()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="struct/nw__kernel__Resources.html#_CPPv4N2nw6kernel9Resources22add_override_containerERKNSt10filesystem4pathERKNSt6stringEN12ResourceType4typeE"><code class="docutils literal notranslate"><span class="pre">Resources::add_override_container()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="struct/nw__kernel__Resources.html#_CPPv4N2nw6kernel9Resources16clear_containersEv"><code class="docutils literal notranslate"><span class="pre">Resources::clear_containers()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="struct/nw__kernel__Resources.html#_CPPv4N2nw6kernel9Resources11load_moduleENSt10filesystem4pathENSt11string_viewE"><code class="docutils literal notranslate"><span class="pre">Resources::load_module()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="struct/nw__kernel__Resources.html#_CPPv4N2nw6kernel9Resources16load_module_haksERKNSt6vectorINSt6stringEEE"><code class="docutils literal notranslate"><span class="pre">Resources::load_module_haks()</span></code></a></li>
@@ -3476,7 +3479,7 @@
 <li class="toctree-l3"><a class="reference internal" href="struct/nw__kernel__Services.html#_CPPv4N2nw6kernel8Services8ServicesEv"><code class="docutils literal notranslate"><span class="pre">Services::Services()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="struct/nw__kernel__Services.html#_CPPv4N2nw6kernel8Services5startEv"><code class="docutils literal notranslate"><span class="pre">Services::start()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="struct/nw__kernel__Services.html#_CPPv4N2nw6kernel8Services8shutdownEv"><code class="docutils literal notranslate"><span class="pre">Services::shutdown()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__kernel__Services.html#_CPPv4N2nw6kernel8Services11set_profileEPK11GameProfile"><code class="docutils literal notranslate"><span class="pre">Services::set_profile()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="struct/nw__kernel__Services.html#_CPPv4NK2nw6kernel8Services7profileEv"><code class="docutils literal notranslate"><span class="pre">Services::profile()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="struct/nw__kernel__Services.html#_CPPv4N2nw6kernel8Services5clearEv"><code class="docutils literal notranslate"><span class="pre">Services::clear()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="struct/nw__kernel__Services.html#_CPPv4I0EN2nw6kernel8Services3addEP1Tv"><code class="docutils literal notranslate"><span class="pre">Services::add()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="struct/nw__kernel__Services.html#_CPPv4I0ENK2nw6kernel8Services3getEPK1Tv"><code class="docutils literal notranslate"><span class="pre">Services::get()</span></code></a></li>
@@ -5025,6 +5028,25 @@
 <li class="toctree-l2"><a class="reference internal" href="struct/nwn1__Profile.html#_CPPv4N4nwn17ProfileE"><code class="docutils literal notranslate"><span class="pre">Profile</span></code></a><ul>
 <li class="toctree-l3"><a class="reference internal" href="struct/nwn1__Profile.html#_CPPv4N4nwn17ProfileD0Ev"><code class="docutils literal notranslate"><span class="pre">Profile::~Profile()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="struct/nwn1__Profile.html#_CPPv4NK4nwn17Profile10load_rulesEv"><code class="docutils literal notranslate"><span class="pre">Profile::load_rules()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="struct/nwn1__Profile.html#_CPPv4N4nwn17Profile14load_resourcesEv"><code class="docutils literal notranslate"><span class="pre">Profile::load_resources()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="struct/nwn1__Profile.html#_CPPv4N4nwn17Profile13ambient_user_E"><code class="docutils literal notranslate"><span class="pre">Profile::ambient_user_</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="struct/nwn1__Profile.html#_CPPv4N4nwn17Profile16ambient_install_E"><code class="docutils literal notranslate"><span class="pre">Profile::ambient_install_</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="struct/nwn1__Profile.html#_CPPv4N4nwn17Profile12development_E"><code class="docutils literal notranslate"><span class="pre">Profile::development_</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="struct/nwn1__Profile.html#_CPPv4N4nwn17Profile13dmvault_user_E"><code class="docutils literal notranslate"><span class="pre">Profile::dmvault_user_</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="struct/nwn1__Profile.html#_CPPv4N4nwn17Profile16dmvault_install_E"><code class="docutils literal notranslate"><span class="pre">Profile::dmvault_install_</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="struct/nwn1__Profile.html#_CPPv4N4nwn17Profile16localvault_user_E"><code class="docutils literal notranslate"><span class="pre">Profile::localvault_user_</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="struct/nwn1__Profile.html#_CPPv4N4nwn17Profile19localvault_install_E"><code class="docutils literal notranslate"><span class="pre">Profile::localvault_install_</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="struct/nwn1__Profile.html#_CPPv4N4nwn17Profile11music_user_E"><code class="docutils literal notranslate"><span class="pre">Profile::music_user_</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="struct/nwn1__Profile.html#_CPPv4N4nwn17Profile14music_install_E"><code class="docutils literal notranslate"><span class="pre">Profile::music_install_</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="struct/nwn1__Profile.html#_CPPv4N4nwn17Profile14override_user_E"><code class="docutils literal notranslate"><span class="pre">Profile::override_user_</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="struct/nwn1__Profile.html#_CPPv4N4nwn17Profile17override_install_E"><code class="docutils literal notranslate"><span class="pre">Profile::override_install_</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="struct/nwn1__Profile.html#_CPPv4N4nwn17Profile15portraits_user_E"><code class="docutils literal notranslate"><span class="pre">Profile::portraits_user_</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="struct/nwn1__Profile.html#_CPPv4N4nwn17Profile18portraits_install_E"><code class="docutils literal notranslate"><span class="pre">Profile::portraits_install_</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="struct/nwn1__Profile.html#_CPPv4N4nwn17Profile17servervault_user_E"><code class="docutils literal notranslate"><span class="pre">Profile::servervault_user_</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="struct/nwn1__Profile.html#_CPPv4N4nwn17Profile20servervault_install_E"><code class="docutils literal notranslate"><span class="pre">Profile::servervault_install_</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="struct/nwn1__Profile.html#_CPPv4N4nwn17Profile8patches_E"><code class="docutils literal notranslate"><span class="pre">Profile::patches_</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="struct/nwn1__Profile.html#_CPPv4N4nwn17Profile14texture_packs_E"><code class="docutils literal notranslate"><span class="pre">Profile::texture_packs_</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="struct/nwn1__Profile.html#_CPPv4N4nwn17Profile5keys_E"><code class="docutils literal notranslate"><span class="pre">Profile::keys_</span></code></a></li>
 </ul>
 </li>
 </ul>

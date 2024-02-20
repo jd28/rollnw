@@ -144,7 +144,6 @@
 </div>
 </div><div aria-labelledby="tab-0-0-1" class="sphinx-tabs-panel" hidden="true" id="panel-0-0-1" name="0-1" role="tabpanel" tabindex="0"><div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;nw/kernel/Kernel.hpp&gt;</span>
 <span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;nw/log.hpp&gt;</span>
-<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;nwn1/Profile.hpp&gt;</span>
 
 <span class="kt">int</span><span class="w"> </span><span class="nf">main</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">argc</span><span class="p">,</span><span class="w"> </span><span class="kt">char</span><span class="o">*</span><span class="w"> </span><span class="n">argv</span><span class="p">[])</span>
 <span class="p">{</span>
@@ -153,7 +152,7 @@
 
 <span class="w">    </span><span class="c1">// Say this application is specific to 1.69.</span>
 <span class="w">    </span><span class="c1">// This must be set before the initialize call below.  The default is NWN:EE, so in that case,</span>
-<span class="w">    </span><span class="c1">// ``set_version`` need not be called</span>
+<span class="w">    </span><span class="c1">// ``set_version`` need not be called.. NOTE: THIS also controls which profile is loaded..</span>
 <span class="w">    </span><span class="n">nw</span><span class="o">::</span><span class="n">kernel</span><span class="o">::</span><span class="n">config</span><span class="p">().</span><span class="n">set_version</span><span class="p">(</span><span class="n">GameVersion</span><span class="o">::</span><span class="n">v1_69</span><span class="p">);</span>
 
 <span class="w">    </span><span class="c1">// Sets config for the system, paths, version, etc.</span>
@@ -161,9 +160,6 @@
 
 <span class="w">    </span><span class="c1">// Initializes all systems</span>
 <span class="w">    </span><span class="n">nw</span><span class="o">::</span><span class="n">kernel</span><span class="o">::</span><span class="n">services</span><span class="p">().</span><span class="n">start</span><span class="p">();</span>
-
-<span class="w">    </span><span class="c1">// Loads a game profile, in this case something vaguely like NWN1</span>
-<span class="w">    </span><span class="n">nw</span><span class="o">::</span><span class="n">kernel</span><span class="o">::</span><span class="n">load_profile</span><span class="p">(</span><span class="k">new</span><span class="w"> </span><span class="n">nwn1</span><span class="o">::</span><span class="n">Profile</span><span class="p">);</span>
 
 <span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">mod</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">nw</span><span class="o">::</span><span class="n">kernel</span><span class="o">::</span><span class="n">load_module</span><span class="p">(</span><span class="s">&quot;path/to/modules/your_module.mod&quot;</span><span class="p">);</span>
 
