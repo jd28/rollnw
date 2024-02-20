@@ -8,6 +8,7 @@
 #include "Kernel.hpp"
 #include "Strings.hpp"
 
+#include <chrono>
 #include <filesystem>
 #include <memory>
 
@@ -46,7 +47,8 @@ Resources::Resources(const Resources* parent)
 
 void Resources::initialize()
 {
-    LOG_F(INFO, "kernel: initializing resource system");
+    LOG_F(INFO, "kernel: resource system initializing...");
+    auto start = std::chrono::high_resolution_clock::now();
 
     if (config().options().include_user) {
         ambient_user_ = Directory{config().user_path() / "ambient"};
@@ -124,6 +126,10 @@ void Resources::initialize()
     }
     update_container_search();
     load_palette_textures();
+
+    auto elapsed = std::chrono::high_resolution_clock::now() - start;
+    long long ms = std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count();
+    LOG_F(INFO, "kernel: resource system initialized ({}ms)", ms);
 }
 
 bool Resources::load_module(std::filesystem::path path, std::string_view manifest)
@@ -384,9 +390,7 @@ Image* Resources::palette_texture(PltLayer layer)
 
 void Resources::update_container_search()
 {
-    if (search_.size()) {
-        search_.clear();
-    }
+    search_.clear();
 
     auto push_container = [this](const Container* c, ResourceType::type cat, bool user) {
         if (c && c->valid()) {

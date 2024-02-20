@@ -1,7 +1,5 @@
 #include "Kernel.hpp"
 
-#include "../log.hpp"
-#include "../objects/Module.hpp"
 #include "EffectSystem.hpp"
 #include "EventSystem.hpp"
 #include "Objects.hpp"
@@ -9,6 +7,8 @@
 #include "Rules.hpp"
 #include "Strings.hpp"
 #include "TwoDACache.hpp"
+
+#include "../profiles/nwn1/Profile.hpp"
 
 namespace nw::kernel {
 
@@ -26,6 +26,13 @@ Services::Services()
 
 void Services::start()
 {
+    if (config().version() == GameVersion::vEE
+        || config().version() == GameVersion::v1_69) {
+        profile_ = std::make_unique<nwn1::Profile>();
+    } else {
+        std::runtime_error("currently selected game version is unsupported");
+    }
+
     strings->initialize();
     resources->initialize();
     twoda_cache->initialize();
@@ -39,11 +46,13 @@ void Services::start()
     }
 }
 
+GameProfile* Services::profile() const
+{
+    return profile_.get();
+}
+
 void Services::shutdown()
 {
-#ifdef ROLLNW_BUILD_RUNTIME_SCRIPTING
-    scripts->clear();
-#endif
     events->clear();
     objects->clear();
     effects->clear();
@@ -65,11 +74,6 @@ Services& services()
 {
     static Services s_services;
     return s_services;
-}
-
-void load_profile(const GameProfile* profile)
-{
-    services().set_profile(profile);
 }
 
 Module* load_module(const std::filesystem::path& path, std::string_view manifest)

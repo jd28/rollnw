@@ -48,12 +48,8 @@ struct Services {
     /// Shutsdown kernel services
     void shutdown();
 
-    /// Sets game profile
-    void set_profile(const GameProfile* profile)
-    {
-        profile_.reset(profile);
-        profile_->load_rules();
-    }
+    /// Gets current game profile
+    GameProfile* profile() const;
 
     /// Clears all services
     void clear()
@@ -84,7 +80,7 @@ struct Services {
 
 private:
     std::vector<ServiceEntry> services_;
-    std::unique_ptr<const GameProfile> profile_;
+    std::unique_ptr<GameProfile> profile_;
 };
 
 template <typename T>
@@ -127,9 +123,6 @@ Config& config();
 
 /// Gets services
 Services& services();
-
-/// Loads game profile
-void load_profile(const GameProfile* profile);
 
 /// Loads a module
 Module* load_module(const std::filesystem::path& path, std::string_view manifest = {});

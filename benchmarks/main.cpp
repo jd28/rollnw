@@ -15,7 +15,6 @@
 #include <nwn1/functions.hpp>
 #include <nwn1/rules.hpp>
 
-
 #include <benchmark/benchmark.h>
 #include <nlohmann/json.hpp>
 #include <nowide/cstdlib.hpp>
@@ -316,7 +315,6 @@ int main(int argc, char** argv)
 
     nwk::config().initialize();
     nwk::services().start();
-    nwk::load_profile(new nwn1::Profile);
 
     ::benchmark::Initialize(&argc, argv);
     if (::benchmark::ReportUnrecognizedArguments(argc, argv)) return 1;

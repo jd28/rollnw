@@ -15,7 +15,6 @@
 #include <nw/objects/Store.hpp>
 #include <nw/objects/Trigger.hpp>
 #include <nw/objects/Waypoint.hpp>
-#include <nwn1/Profile.hpp>
 
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
@@ -203,11 +202,9 @@ void init_kernel(py::module& kernel)
     kernel.def("start", []() {
               nw::kernel::config().initialize();
               nw::kernel::services().start();
-              nw::kernel::load_profile(new nwn1::Profile);
           })
         .def("start", [](const nw::ConfigOptions& config) {
             nw::kernel::config().initialize(config);
             nw::kernel::services().start();
-            nw::kernel::load_profile(new nwn1::Profile);
         });
 }

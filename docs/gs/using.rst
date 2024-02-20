@@ -26,7 +26,6 @@ While the library is far from done, basic usage would be as follows.
 
             #include <nw/kernel/Kernel.hpp>
             #include <nw/log.hpp>
-            #include <nwn1/Profile.hpp>
 
             int main(int argc, char* argv[])
             {
@@ -35,7 +34,7 @@ While the library is far from done, basic usage would be as follows.
 
                 // Say this application is specific to 1.69.
                 // This must be set before the initialize call below.  The default is NWN:EE, so in that case,
-                // ``set_version`` need not be called
+                // ``set_version`` need not be called.. NOTE: THIS also controls which profile is loaded..
                 nw::kernel::config().set_version(GameVersion::v1_69);
 
                 // Sets config for the system, paths, version, etc.
@@ -43,9 +42,6 @@ While the library is far from done, basic usage would be as follows.
 
                 // Initializes all systems
                 nw::kernel::services().start();
-
-                // Loads a game profile, in this case something vaguely like NWN1
-                nw::kernel::load_profile(new nwn1::Profile);
 
                 auto mod = nw::kernel::load_module("path/to/modules/your_module.mod");
 

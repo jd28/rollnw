@@ -14,7 +14,6 @@ int main(int argc, char* argv[])
     nw::kernel::config().set_paths("", "test_data/user/");
     nw::kernel::config().initialize();
     nw::kernel::services().start();
-    nw::kernel::load_profile(new nwn1::Profile);
 
     std::string biggest_name;
     int64_t biggest = 0;

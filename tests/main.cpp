@@ -33,7 +33,6 @@ int main(int argc, char* argv[])
     if (!list_tests) {
         nw::kernel::config().initialize();
         nw::kernel::services().start();
-        nw::kernel::load_profile(new nwn1::Profile);
     }
 
     ::testing::InitGoogleTest(&argc, argv);

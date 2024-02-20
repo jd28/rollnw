@@ -28,7 +28,10 @@ void Rules::clear()
 
 void Rules::initialize()
 {
-    LOG_F(INFO, "kernel: initializing rules system");
+    LOG_F(INFO, "kernel: rules system initializing...");
+    if (auto profile = services().profile()) {
+        profile->load_rules();
+    }
 }
 
 bool Rules::match(const Qualifier& qual, const ObjectBase* obj) const
