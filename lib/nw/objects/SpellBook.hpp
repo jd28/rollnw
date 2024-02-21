@@ -9,23 +9,6 @@
 
 namespace nw {
 
-enum struct SpellFlags : uint8_t {
-    none = 0x0,
-    readied = 0x01,
-    spontaneous = 0x02,
-    unlimited = 0x04,
-};
-
-enum struct SpellMetaMagic : uint8_t {
-    none = 0x00,
-    empower = 0x01,
-    extend = 0x02,
-    maximize = 0x04,
-    quicken = 0x08,
-    silent = 0x10,
-    still = 0x20,
-};
-
 struct SpellEntry {
     Spell spell = Spell::invalid();
     SpellMetaMagic meta = SpellMetaMagic::none;
