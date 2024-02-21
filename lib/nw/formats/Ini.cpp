@@ -8,9 +8,8 @@ namespace fs = std::filesystem;
 namespace nw {
 
 Ini::Ini(const fs::path& filename)
-    : bytes_{ByteArray::from_file(filename)}
+    : Ini{ByteArray::from_file(filename)}
 {
-    loaded_ = parse();
 }
 
 Ini::Ini(ByteArray bytes)
