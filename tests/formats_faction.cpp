@@ -3,6 +3,8 @@
 #include <nw/formats/Faction.hpp>
 #include <nw/serialization/Serialization.hpp>
 
+#include <nlohmann/json.hpp>
+
 TEST(Faction, GffDeserialize)
 {
     nw::Gff g{"test_data/user/scratch/Repute.fac"};
@@ -35,4 +37,29 @@ TEST(Faction, GffRoundTrip)
     EXPECT_TRUE(out.header.field_idx_count == g.head_->field_idx_count);
     EXPECT_TRUE(out.header.list_idx_offset == g.head_->list_idx_offset);
     EXPECT_TRUE(out.header.list_idx_count == g.head_->list_idx_count);
+}
+
+TEST(Faction, JsonSerialize)
+{
+    nw::Gff g{"test_data/user/scratch/Repute.fac"};
+    EXPECT_TRUE(g.valid());
+
+    nw::Faction faction{g};
+    auto json = faction.to_json();
+
+    std::ofstream f{"tmp/repute.fac.json"};
+    f << std::setw(4) << json;
+}
+
+TEST(Faction, JsonDeserialize)
+{
+    std::ifstream f("test_data/user/scratch/repute.fac.json");
+    nlohmann::json json = nlohmann::json::parse(f);
+    nw::Faction faction(json);
+    EXPECT_TRUE(faction.factions.size() >= 4);
+    EXPECT_TRUE(faction.reputations.size() > 0);
+    EXPECT_EQ(faction.factions[0].name, "PC");
+    EXPECT_EQ(faction.factions[1].name, "Hostile");
+    EXPECT_EQ(faction.factions[2].name, "Commoner");
+    EXPECT_EQ(faction.factions[3].name, "Merchant");
 }

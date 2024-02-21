@@ -1,0 +1,133 @@
+{
+    "$type": "FAC",
+    "$version": 1,
+    "factions": [
+        {
+            "global": 1,
+            "name": "PC",
+            "parent": 4294967295
+        },
+        {
+            "global": 1,
+            "name": "Hostile",
+            "parent": 4294967295
+        },
+        {
+            "global": 1,
+            "name": "Commoner",
+            "parent": 4294967295
+        },
+        {
+            "global": 1,
+            "name": "Merchant",
+            "parent": 4294967295
+        },
+        {
+            "global": 1,
+            "name": "Defender",
+            "parent": 4294967295
+        }
+    ],
+    "reputations": [
+        {
+            "faction_1": 0,
+            "faction_2": 1,
+            "reputation": 0
+        },
+        {
+            "faction_1": 0,
+            "faction_2": 2,
+            "reputation": 50
+        },
+        {
+            "faction_1": 0,
+            "faction_2": 3,
+            "reputation": 50
+        },
+        {
+            "faction_1": 0,
+            "faction_2": 4,
+            "reputation": 50
+        },
+        {
+            "faction_1": 1,
+            "faction_2": 1,
+            "reputation": 100
+        },
+        {
+            "faction_1": 1,
+            "faction_2": 2,
+            "reputation": 0
+        },
+        {
+            "faction_1": 1,
+            "faction_2": 3,
+            "reputation": 0
+        },
+        {
+            "faction_1": 1,
+            "faction_2": 4,
+            "reputation": 0
+        },
+        {
+            "faction_1": 2,
+            "faction_2": 1,
+            "reputation": 0
+        },
+        {
+            "faction_1": 2,
+            "faction_2": 2,
+            "reputation": 100
+        },
+        {
+            "faction_1": 2,
+            "faction_2": 3,
+            "reputation": 50
+        },
+        {
+            "faction_1": 2,
+            "faction_2": 4,
+            "reputation": 100
+        },
+        {
+            "faction_1": 3,
+            "faction_2": 1,
+            "reputation": 0
+        },
+        {
+            "faction_1": 3,
+            "faction_2": 2,
+            "reputation": 50
+        },
+        {
+            "faction_1": 3,
+            "faction_2": 3,
+            "reputation": 100
+        },
+        {
+            "faction_1": 3,
+            "faction_2": 4,
+            "reputation": 100
+        },
+        {
+            "faction_1": 4,
+            "faction_2": 1,
+            "reputation": 0
+        },
+        {
+            "faction_1": 4,
+            "faction_2": 2,
+            "reputation": 50
+        },
+        {
+            "faction_1": 4,
+            "faction_2": 3,
+            "reputation": 100
+        },
+        {
+            "faction_1": 4,
+            "faction_2": 4,
+            "reputation": 100
+        }
+    ]
+}

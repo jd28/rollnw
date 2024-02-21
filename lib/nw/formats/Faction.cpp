@@ -107,7 +107,7 @@ nlohmann::json Faction::to_json() const
         });
     }
 
-    return true;
+    return j;
 }
 
 } // namespace nw
