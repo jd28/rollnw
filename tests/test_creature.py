@@ -87,6 +87,13 @@ def test_creature_level_stats():
     assert cre.levels.entries[0].spells.get_known_spell_count(1) == 0
 
 
+def test_creature_casting():
+    cre = Creature.from_file(
+        "tests/test_data/user/development/wizard_pm.utc")
+
+    assert rollnw.nwn1.get_caster_level(cre, 10) == 18  # Wizard
+
+
 def test_objects_kernel_service():
     cre = rollnw.kernel.objects().creature('nw_chicken.utc')
     assert cre

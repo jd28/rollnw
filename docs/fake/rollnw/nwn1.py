@@ -47,6 +47,15 @@ def calculate_item_ac(obj: Item) -> int:
     """Calculates the armor class of a piece of armor"""
     pass
 
+# == Casting =================================================================
+# ============================================================================
+
+
+def get_caster_level(obj: Creature, class_: int) -> int:
+    """Gets creatures caster level
+    """
+    return 0
+
 # == Classes =================================================================
 # ============================================================================
 

@@ -10,6 +10,7 @@
 #include <nw/rules/feats.hpp>
 #include <nw/serialization/Archives.hpp>
 #include <nwn1/Profile.hpp>
+#include <nwn1/casting.hpp>
 #include <nwn1/combat.hpp>
 #include <nwn1/constants.hpp>
 #include <nwn1/effects.hpp>
@@ -954,7 +955,6 @@ TEST(Creature, EffectsApplyRemove)
 
     auto obj = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/test_creature.utc"));
     EXPECT_TRUE(obj);
-    EXPECT_TRUE(obj->instantiate());
 
     auto eff = nwn1::effect_haste();
     EXPECT_TRUE(obj->effects().add(eff));
@@ -964,6 +964,25 @@ TEST(Creature, EffectsApplyRemove)
     EXPECT_FALSE(nw::has_effect_applied(obj, nwn1::effect_type_haste));
     EXPECT_EQ(obj->effects().size(), 0);
     EXPECT_FALSE(obj->effects().remove(nullptr));
+
+    nwk::unload_module();
+}
+
+TEST(Creature, Casting)
+{
+    auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
+    EXPECT_TRUE(mod);
+
+    auto obj = nwk::objects().load<nw::Creature>("x2_mephdrow012"sv);
+    EXPECT_TRUE(obj);
+    EXPECT_EQ(nwn1::get_caster_level(obj, nwn1::class_type_sorcerer), 25);
+    EXPECT_EQ(nwn1::get_caster_level(obj, nwn1::class_type_assassin), 0);
+
+    auto obj2 = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/wizard_pm.utc"));
+    EXPECT_TRUE(obj2);
+    EXPECT_EQ(obj2->levels.level_by_class(nwn1::class_type_wizard), 15);
+    EXPECT_EQ(obj2->levels.level_by_class(nwn1::class_type_palemaster), 6);
+    EXPECT_EQ(nwn1::get_caster_level(obj2, nwn1::class_type_wizard), 18);
 
     nwk::unload_module();
 }

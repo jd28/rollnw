@@ -5,6 +5,7 @@
 #include <nw/objects/Creature.hpp>
 #include <nw/objects/Item.hpp>
 
+#include <nwn1/casting.hpp>
 #include <nwn1/combat.hpp>
 #include <nwn1/effects.hpp>
 #include <nwn1/functions.hpp>
@@ -31,6 +32,11 @@ void init_nwn1(py::module& m)
     m.def("calculate_ac_versus", &nwn1::calculate_ac_versus,
         py::arg("obj"), py::arg("versus") = nullptr, py::arg("is_touch_attack") = false);
     m.def("calculate_item_ac", &nwn1::calculate_item_ac);
+
+    // == Casting =================================================================
+    // ============================================================================
+
+    m.def("get_caster_level", &nwn1::get_caster_level);
 
     // == Classes =================================================================
     // ============================================================================
