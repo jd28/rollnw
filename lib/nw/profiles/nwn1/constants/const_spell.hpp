@@ -4,6 +4,16 @@
 
 namespace nwn1 {
 
+constexpr nw::SpellSchool spell_school_general = nw::SpellSchool::make(0);
+constexpr nw::SpellSchool spell_school_abjuration = nw::SpellSchool::make(1);
+constexpr nw::SpellSchool spell_school_conjuration = nw::SpellSchool::make(2);
+constexpr nw::SpellSchool spell_school_divination = nw::SpellSchool::make(3);
+constexpr nw::SpellSchool spell_school_enchantment = nw::SpellSchool::make(4);
+constexpr nw::SpellSchool spell_school_evocation = nw::SpellSchool::make(5);
+constexpr nw::SpellSchool spell_school_illusion = nw::SpellSchool::make(6);
+constexpr nw::SpellSchool spell_school_necromancy = nw::SpellSchool::make(7);
+constexpr nw::SpellSchool spell_school_transmutation = nw::SpellSchool::make(8);
+
 constexpr nw::Spell spell_all_spells = nw::Spell::invalid(); // used for spell immunity.
 
 constexpr nw::Spell spell_acid_fog = nw::Spell::make(0);

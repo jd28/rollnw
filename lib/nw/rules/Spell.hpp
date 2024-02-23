@@ -24,6 +24,20 @@ enum struct SpellMetaMagic : uint8_t {
     still = 0x20,
 };
 
+DECLARE_RULE_TYPE(SpellSchool);
+struct SpellSchoolInfo {
+    SpellSchoolInfo() = default;
+    SpellSchoolInfo(const TwoDARowView& tda);
+
+    std::string letter;
+    uint32_t name = 0xFFFFFFFF;
+    nw::SpellSchool opposition = nw::SpellSchool::invalid();
+    uint32_t description = 0xFFFFFFFF;
+};
+
+/// Spell School singleton component
+using SpellSchoolArray = RuleTypeArray<SpellSchool, SpellSchoolInfo>;
+
 DECLARE_RULE_TYPE(Spell);
 
 struct SpellInfo {
@@ -32,10 +46,10 @@ struct SpellInfo {
 
     uint32_t name = 0xFFFFFFFF;
     Resource icon;
-    // School
+    nw::SpellSchool school = nw::SpellSchool::invalid();
     // Range
     // VS
-    // MetaMagic
+    SpellMetaMagic metamagic = SpellMetaMagic::none;
     // TargetType
     // ImpactScript
     // Bard
@@ -44,7 +58,7 @@ struct SpellInfo {
     // Paladin
     // Ranger
     // Wiz_Sorc
-    // Innate
+    int innate_level = 0;
     // ConjTime
     // ConjAnim
     // ConjHeadVisual

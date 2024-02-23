@@ -75,6 +75,10 @@ static inline bool load_master_feats()
     mfr.set_bonus(mfeat_overwhelming_crit, 1);
     mfr.set_bonus(mfeat_weapon_of_choice, 1);
 
+    mfr.set_bonus(mfeat_spell_focus, 2);
+    mfr.set_bonus(mfeat_spell_focus_greater, 2);
+    mfr.set_bonus(mfeat_spell_focus_epic, 2);
+
     // Special case baseitem invalid - the rest will be loaded during the baseitem loading below
     mfr.add(nw::BaseItem::invalid(), mfeat_weapon_focus, feat_weapon_focus_unarmed);
     mfr.add(nw::BaseItem::invalid(), mfeat_weapon_focus_epic, feat_epic_weapon_focus_unarmed);
@@ -111,6 +115,31 @@ static inline bool load_master_feats()
     mfr.add(racial_type_undead, mfeat_favored_enemy, feat_favored_enemy_undead);
     mfr.add(racial_type_vermin, mfeat_favored_enemy, feat_favored_enemy_vermin);
 
+    mfr.add(spell_school_abjuration, mfeat_spell_focus, feat_spell_focus_abjuration);
+    mfr.add(spell_school_abjuration, mfeat_spell_focus_greater, feat_greater_spell_focus_abjuration);
+    mfr.add(spell_school_abjuration, mfeat_spell_focus_epic, feat_epic_spell_focus_abjuration);
+    mfr.add(spell_school_conjuration, mfeat_spell_focus, feat_spell_focus_conjuration);
+    mfr.add(spell_school_conjuration, mfeat_spell_focus_greater, feat_greater_spell_focus_conjuration);
+    mfr.add(spell_school_conjuration, mfeat_spell_focus_epic, feat_epic_spell_focus_conjuration);
+    mfr.add(spell_school_divination, mfeat_spell_focus, feat_spell_focus_divination);
+    mfr.add(spell_school_divination, mfeat_spell_focus_greater, feat_greater_spell_focus_divination);
+    mfr.add(spell_school_divination, mfeat_spell_focus_epic, feat_epic_spell_focus_divination);
+    mfr.add(spell_school_enchantment, mfeat_spell_focus, feat_spell_focus_enchantment);
+    mfr.add(spell_school_enchantment, mfeat_spell_focus_greater, feat_greater_spell_focus_enchantment);
+    mfr.add(spell_school_enchantment, mfeat_spell_focus_epic, feat_epic_spell_focus_enchantment);
+    mfr.add(spell_school_evocation, mfeat_spell_focus, feat_spell_focus_evocation);
+    mfr.add(spell_school_evocation, mfeat_spell_focus_greater, feat_greater_spell_focus_evocation);
+    mfr.add(spell_school_evocation, mfeat_spell_focus_epic, feat_epic_spell_focus_evocation);
+    mfr.add(spell_school_illusion, mfeat_spell_focus, feat_spell_focus_illusion);
+    mfr.add(spell_school_illusion, mfeat_spell_focus_greater, feat_greater_spell_focus_illusion);
+    mfr.add(spell_school_illusion, mfeat_spell_focus_epic, feat_epic_spell_focus_illusion);
+    mfr.add(spell_school_necromancy, mfeat_spell_focus, feat_spell_focus_necromancy);
+    mfr.add(spell_school_necromancy, mfeat_spell_focus_greater, feat_greater_spell_focus_necromancy);
+    mfr.add(spell_school_necromancy, mfeat_spell_focus_epic, feat_epic_spell_focus_necromancy);
+    mfr.add(spell_school_transmutation, mfeat_spell_focus, feat_spell_focus_transmutation);
+    mfr.add(spell_school_transmutation, mfeat_spell_focus_greater, feat_greater_spell_focus_transmutation);
+    mfr.add(spell_school_transmutation, mfeat_spell_focus_epic, feat_epic_spell_focus_transmutation);
+
     LOG_F(INFO, "  ... {} master feat specializations loaded", mfr.entries().size());
     return true;
 }
@@ -131,6 +160,7 @@ bool Profile::load_rules() const
     nw::TwoDA racialtypes{nw::kernel::resman().demand({"racialtypes"sv, nw::ResourceType::twoda})};
     nw::TwoDA skills{nw::kernel::resman().demand({"skills"sv, nw::ResourceType::twoda})};
     nw::TwoDA spells{nw::kernel::resman().demand({"spells"sv, nw::ResourceType::twoda})};
+    nw::TwoDA spellschools{nw::kernel::resman().demand({"spellschools"sv, nw::ResourceType::twoda})};
     std::string temp_string;
     int temp_int = 0;
 
@@ -351,6 +381,15 @@ bool Profile::load_rules() const
         }
     } else {
         throw std::runtime_error("rules: failed to load 'skills.2da'");
+    }
+
+    // Spell Schools
+    auto& spell_school_array = nw::kernel::rules().spellschools;
+    if (spellschools.is_valid()) {
+        spell_school_array.entries.reserve(spellschools.rows());
+        for (size_t i = 0; i < spellschools.rows(); ++i) {
+            spell_school_array.entries.emplace_back(spellschools.row(i));
+        }
     }
 
     // Spells

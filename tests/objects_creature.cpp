@@ -984,5 +984,14 @@ TEST(Creature, Casting)
     EXPECT_EQ(obj2->levels.level_by_class(nwn1::class_type_palemaster), 6);
     EXPECT_EQ(nwn1::get_caster_level(obj2, nwn1::class_type_wizard), 18);
 
+    EXPECT_EQ(nwn1::get_ability_modifier(obj2, nwn1::ability_intelligence), 5);
+    EXPECT_EQ(nwn1::get_spell_dc(obj2, nwn1::class_type_wizard, nwn1::spell_fireball), 18);
+    EXPECT_TRUE(obj2->stats.add_feat(nwn1::feat_spell_focus_evocation));
+    EXPECT_EQ(nwn1::get_spell_dc(obj2, nwn1::class_type_wizard, nwn1::spell_fireball), 20);
+    EXPECT_TRUE(obj2->stats.add_feat(nwn1::feat_greater_spell_focus_evocation));
+    EXPECT_EQ(nwn1::get_spell_dc(obj2, nwn1::class_type_wizard, nwn1::spell_fireball), 22);
+    EXPECT_TRUE(obj2->stats.add_feat(nwn1::feat_epic_spell_focus_evocation));
+    EXPECT_EQ(nwn1::get_spell_dc(obj2, nwn1::class_type_wizard, nwn1::spell_fireball), 24);
+
     nwk::unload_module();
 }

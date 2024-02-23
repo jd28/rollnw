@@ -51,6 +51,7 @@ struct Rules : public Service {
     FeatArray feats;
     RaceArray races;
     SpellArray spells;
+    SpellSchoolArray spellschools;
     SkillArray skills;
     MasterFeatRegistry master_feats;
     ModifierRegistry modifiers;

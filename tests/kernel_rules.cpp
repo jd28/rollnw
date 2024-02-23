@@ -75,3 +75,15 @@ TEST(KernelRules, MasterFeats)
 
     nw::kernel::unload_module();
 }
+
+TEST(KernelRules, SpellSchools)
+{
+    auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
+    EXPECT_TRUE(mod);
+
+    auto& spellschools = nwk::rules().spellschools;
+    EXPECT_GT(spellschools.entries.size(), 1);
+    EXPECT_EQ(spellschools.entries[1].letter, "A");
+
+    nw::kernel::unload_module();
+}

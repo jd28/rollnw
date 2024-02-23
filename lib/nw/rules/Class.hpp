@@ -78,7 +78,7 @@ struct ClassInfo {
     bool learn_scroll = false;
     bool arcane = false;
     bool arcane_spell_failure = false;
-    int caster_ability;
+    nw::Ability caster_ability = nw::Ability::invalid();
     std::string spell_table_column;
     float caster_level_multiplier = 1.0f;
     int level_min_caster = 0;

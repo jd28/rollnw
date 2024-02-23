@@ -42,6 +42,11 @@ def get_equipped_item(arg0: rollnw.Creature,
 
 def get_skill_rank(arg0: rollnw.Creature, arg1: Skill,
                    arg2: rollnw.ObjectBase, arg3: bool) -> int: ...
+
+
+def get_spell_dc(obj: rollnw.Creature, class_: int, spell: int) -> int: ...
+
+
 def get_weapon_by_attack_type(
     arg0: rollnw.Creature, arg1: AttackType) -> rollnw.Item: ...
 

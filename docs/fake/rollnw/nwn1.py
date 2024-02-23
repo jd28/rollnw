@@ -56,6 +56,12 @@ def get_caster_level(obj: Creature, class_: int) -> int:
     """
     return 0
 
+
+def get_spell_dc(obj: Creature, class_: int, spell: int) -> int:
+    """Gets spell DC
+    """
+    return 0
+
 # == Classes =================================================================
 # ============================================================================
 

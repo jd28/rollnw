@@ -10,6 +10,8 @@ ClassInfo::ClassInfo(const TwoDARowView& tda)
 {
     auto class_array = &nw::kernel::rules().classes;
     std::string temp_string;
+    int temp_int;
+
     if (tda.get_to("label", temp_string)) {
         tda.get_to("Name", name);
         tda.get_to("Plural", plural);
@@ -87,7 +89,24 @@ ClassInfo::ClassInfo(const TwoDARowView& tda)
             tda.get_to("LearnScroll", learn_scroll);
             tda.get_to("Arcane", arcane);
             tda.get_to("ASF", arcane_spell_failure);
-            tda.get_to("SpellcastingAbil", caster_ability);
+
+            if (tda.get_to("SpellcastingAbil", temp_string)) {
+                // [TODO] Find some way around this...
+                if (string::icmp(temp_string, "STR")) {
+                    caster_ability = nw::Ability::make(0);
+                } else if (string::icmp(temp_string, "DEX")) {
+                    caster_ability = nw::Ability::make(1);
+                } else if (string::icmp(temp_string, "CON")) {
+                    caster_ability = nw::Ability::make(2);
+                } else if (string::icmp(temp_string, "INT")) {
+                    caster_ability = nw::Ability::make(3);
+                } else if (string::icmp(temp_string, "WIS")) {
+                    caster_ability = nw::Ability::make(4);
+                } else if (string::icmp(temp_string, "CHA")) {
+                    caster_ability = nw::Ability::make(5);
+                }
+            }
+
             tda.get_to("SpellTableColumn", spell_table_column);
             tda.get_to("CLMultiplier", caster_level_multiplier);
             tda.get_to("MinCastingLevel", level_min_caster);
