@@ -50,6 +50,7 @@ int get_ability_score(const nw::Creature* obj, nw::Ability ability, bool base)
 
 int get_ability_modifier(const nw::Creature* obj, nw::Ability ability, bool base)
 {
+    if (!obj || ability == nw::Ability::invalid()) { return 0; }
     return (get_ability_score(obj, ability, base) - 10) / 2;
 }
 
@@ -492,7 +493,7 @@ int get_skill_rank(const nw::Creature* obj, nw::Skill skill, nw::ObjectBase* ver
 
     // Base
     result = obj->stats.get_skill_rank(skill);
-    if (base) return result;
+    if (base) { return result; }
 
     bool untrained = true;
     if (result == 0) { untrained = ski->untrained; }
