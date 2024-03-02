@@ -1,6 +1,6 @@
 import enum
 from enum import auto
-from typing import NewType, Tuple, List, ClassVar, Optional, ByteString
+from typing import NewType, Tuple, List, ClassVar, Optional, ByteString, DefaultDict
 
 # Math ########################################################################
 ###############################################################################
@@ -686,7 +686,7 @@ class Language:
         pass
 
     @staticmethod
-    def to_base_id(id: int) -> tuple[LanguageID, bool]:
+    def to_base_id(id: int) -> Tuple[LanguageID, bool]:
         """Convert runtime language identifier to base language and bool indicating masc/fem.
         """
         pass
@@ -742,7 +742,7 @@ class LocString:
         """Gets string reference"""
         pass
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> DefaultDict:
         """Converts ``LocString`` to python ``dict``"""
         pass
 

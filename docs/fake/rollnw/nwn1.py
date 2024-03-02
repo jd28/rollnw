@@ -16,6 +16,8 @@ from . import (
     Waypoint,
 )
 
+from typing import Optional, Tuple
+
 # == Abilities ===============================================================
 # ============================================================================
 
@@ -38,7 +40,8 @@ def get_dex_modifier(obj: Creature) -> int:
 # ============================================================================
 
 
-def calculate_ac_versus(obj: ObjectBase, versus: ObjectBase = None, is_touch_attack: bool = False) -> int:
+def calculate_ac_versus(obj: ObjectBase, versus: Optional[ObjectBase] = None,
+                        is_touch_attack: bool = False) -> int:
     """Calculate Armor Class versus another object"""
     pass
 
@@ -66,7 +69,7 @@ def get_spell_dc(obj: Creature, class_: int, spell: int) -> int:
 # ============================================================================
 
 
-def can_use_monk_abilities(obj: Creature) -> tuple[bool, int]:
+def can_use_monk_abilities(obj: Creature) -> Tuple[bool, int]:
     """Determines if monk class abilities are usable and monk class level"""
     pass
 
@@ -106,7 +109,7 @@ def resolve_attack(obj: Creature, type, versus: ObjectBase):
     pass
 
 
-def resolve_attack_bonus(obj: Creature, type, versus: ObjectBase = None) -> int:
+def resolve_attack_bonus(obj: Creature, type, versus: Optional[ObjectBase] = None) -> int:
     """Calculates attack bonus"""
     pass
 
@@ -116,13 +119,13 @@ def resolve_attack_damage(obj: Creature, versus: ObjectBase, data: AttackData) -
     pass
 
 
-def resolve_concealment(obj: ObjectBase, type, target: ObjectBase, vs_ranged: bool) -> tuple[int, bool]:
+def resolve_concealment(obj: ObjectBase, type, target: ObjectBase, vs_ranged: bool) -> Tuple[int, bool]:
     """Resolves an concealment - i.e. the highest of concealment and miss chance
     """
     pass
 
 
-def resolve_critical_multiplier(obj: Creature, type, versus: ObjectBase = None) -> int:
+def resolve_critical_multiplier(obj: Creature, type, versus: Optional[ObjectBase] = None) -> int:
     """Resolves critical multiplier"""
     pass
 
@@ -138,25 +141,25 @@ def resolve_damage_modifiers(obj: Creature, versus: ObjectBase, data: AttackData
     pass
 
 
-def resolve_damage_immunity(obj: ObjectBase, dmg_type, versus: ObjectBase = None) -> int:
+def resolve_damage_immunity(obj: ObjectBase, dmg_type, versus: Optional[ObjectBase] = None) -> int:
     """Resolves damage immunity
     """
     pass
 
 
-def resolve_damage_reduction(obj: ObjectBase, power: int, versus: ObjectBase = None) -> tuple[int, Effect]:
+def resolve_damage_reduction(obj: ObjectBase, power: int, versus: Optional[ObjectBase] = None) -> Tuple[int, Effect]:
     """Resolves damage reduction
     """
     pass
 
 
-def resolve_damage_resistance(obj: ObjectBase,  dmg_type, versus: ObjectBase = None) -> tuple[int, Effect]:
+def resolve_damage_resistance(obj: ObjectBase,  dmg_type, versus: Optional[ObjectBase] = None) -> Tuple[int, Effect]:
     """Resolves damage resistance
     """
     pass
 
 
-def resolve_dual_wield_penalty(obj: Creature) -> tuple[int, int]:
+def resolve_dual_wield_penalty(obj: Creature) -> Tuple[int, int]:
     """ Resolves dual wield attack bonus penalty
     """
     pass
@@ -168,7 +171,7 @@ def resolve_iteration_penalty(obj: Creature, attack_type):
     pass
 
 
-def resolve_number_of_attacks(obj: Creature, offhand: bool = False) -> tuple[int, int]:
+def resolve_number_of_attacks(obj: Creature, offhand: bool = False) -> Tuple[int, int]:
     """Calculates number of attacks"""
     pass
 
