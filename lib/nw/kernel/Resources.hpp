@@ -22,6 +22,11 @@ namespace kernel {
 using LocatorVariant = std::variant<Container*, unique_container>;
 
 struct LocatorPayload {
+    LocatorPayload(LocatorVariant container_, ResourceType::type restype_)
+        : container(std::move(container_))
+        , restype(restype_)
+    {
+    }
     LocatorVariant container;
     ResourceType::type restype = ResourceType::invalid;
 };

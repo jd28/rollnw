@@ -7,6 +7,7 @@
 #include <functional>
 #include <memory>
 #include <typeindex>
+#include <vector>
 
 namespace nw {
 

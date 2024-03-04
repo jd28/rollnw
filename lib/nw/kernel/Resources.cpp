@@ -377,7 +377,7 @@ void Resources::update_container_search()
 
     auto push_container = [this](Container* c, ResourceType::type cat) {
         if (c && c->valid()) {
-            search_.emplace_back(LocatorPayload(c, cat));
+            search_.push_back(LocatorPayload(LocatorVariant(c), cat));
         }
     };
 
