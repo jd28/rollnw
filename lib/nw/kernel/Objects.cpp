@@ -1,9 +1,6 @@
 #include "Objects.hpp"
 
 #include "../log.hpp"
-#include "../objects/Area.hpp"
-#include "../objects/Module.hpp"
-#include "../objects/Player.hpp"
 #include "Kernel.hpp"
 #include "Resources.hpp"
 
@@ -14,13 +11,71 @@ void ObjectSystem::clear()
     free_list_ = std::stack<ObjectID, std::vector<ObjectID>>();
     objects_.clear();
     object_tag_map_.clear();
+    module_.reset();
+    areas_.clear();
+    creatures_.clear();
+    doors_.clear();
+    encounters_.clear();
+    items_.clear();
+    stores_.clear();
+    placeables_.clear();
+    players_.clear();
+    sounds_.clear();
+    triggers_.clear();
+    waypoints_.clear();
+}
+
+ObjectBase* ObjectSystem::alloc(ObjectType type)
+{
+    switch (type) {
+    default:
+        return nullptr;
+    case ObjectType::area: {
+        return areas_.allocate();
+    } break;
+    case ObjectType::creature: {
+        return creatures_.allocate();
+    } break;
+    case ObjectType::door: {
+        return doors_.allocate();
+    } break;
+    case ObjectType::encounter: {
+        return encounters_.allocate();
+    } break;
+    case ObjectType::item: {
+        return items_.allocate();
+    } break;
+    case ObjectType::module: {
+        module_ = std::make_unique<Module>();
+        return module_.get();
+    } break;
+    case ObjectType::store: {
+        return stores_.allocate();
+    } break;
+    case ObjectType::placeable: {
+        return placeables_.allocate();
+    } break;
+    case ObjectType::player: {
+        return players_.allocate();
+    } break;
+    case ObjectType::sound: {
+        return sounds_.allocate();
+    } break;
+    case ObjectType::trigger: {
+        return triggers_.allocate();
+    } break;
+    case ObjectType::waypoint: {
+        return waypoints_.allocate();
+    } break;
+    }
+    return nullptr;
 }
 
 void ObjectSystem::destroy(ObjectHandle obj)
 {
     if (valid(obj)) {
         size_t idx = static_cast<size_t>(obj.id);
-        auto& o = std::get<std::unique_ptr<ObjectBase>>(objects_[idx]);
+        auto o = std::get<ObjectBase*>(objects_[idx]);
         auto new_handle = o->handle();
 
         // Delete from tag map
@@ -42,6 +97,44 @@ void ObjectSystem::destroy(ObjectHandle obj)
             free_list_.push(new_handle.id);
         }
         objects_[idx] = new_handle;
+
+        switch (new_handle.type) {
+        default:
+            break;
+        case ObjectType::area: {
+            areas_.free(static_cast<Area*>(o));
+        } break;
+        case ObjectType::creature: {
+            creatures_.free(static_cast<Creature*>(o));
+        } break;
+        case ObjectType::door: {
+            doors_.free(static_cast<Door*>(o));
+        } break;
+        case ObjectType::encounter: {
+            encounters_.free(static_cast<Encounter*>(o));
+        } break;
+        case ObjectType::item: {
+            items_.free(static_cast<Item*>(o));
+        } break;
+        case ObjectType::store: {
+            stores_.free(static_cast<Store*>(o));
+        } break;
+        case ObjectType::placeable: {
+            placeables_.free(static_cast<Placeable*>(o));
+        } break;
+        case ObjectType::player: {
+            players_.free(static_cast<Player*>(o));
+        } break;
+        case ObjectType::sound: {
+            sounds_.free(static_cast<Sound*>(o));
+        } break;
+        case ObjectType::trigger: {
+            triggers_.free(static_cast<Trigger*>(o));
+        } break;
+        case ObjectType::waypoint: {
+            waypoints_.free(static_cast<Waypoint*>(o));
+        } break;
+        }
     }
 }
 
@@ -49,7 +142,7 @@ ObjectBase* ObjectSystem::get_object_base(ObjectHandle obj) const
 {
     if (!valid(obj)) { return nullptr; }
     auto idx = static_cast<size_t>(obj.id);
-    return std::get<std::unique_ptr<ObjectBase>>(objects_[idx]).get();
+    return std::get<ObjectBase*>(objects_[idx]);
 }
 
 ObjectBase* ObjectSystem::get_by_tag(std::string_view tag, int nth) const
@@ -130,7 +223,7 @@ bool ObjectSystem::valid(ObjectHandle handle) const
         return false;
     }
 
-    if (auto& obj = std::get<std::unique_ptr<ObjectBase>>(objects_[idx])) {
+    if (auto& obj = std::get<ObjectBase*>(objects_[idx])) {
         return obj->handle() == handle;
     }
 

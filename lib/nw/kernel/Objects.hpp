@@ -2,9 +2,18 @@
 
 #include "../objects/Area.hpp"
 #include "../objects/Creature.hpp"
+#include "../objects/Door.hpp"
+#include "../objects/Encounter.hpp"
 #include "../objects/Module.hpp"
 #include "../objects/ObjectBase.hpp"
+#include "../objects/Placeable.hpp"
+#include "../objects/Player.hpp"
+#include "../objects/Sound.hpp"
+#include "../objects/Store.hpp"
+#include "../objects/Trigger.hpp"
+#include "../objects/Waypoint.hpp"
 #include "../serialization/Archives.hpp"
+#include "../util/memory.hpp"
 #include "../util/platform.hpp"
 #include "Kernel.hpp"
 #include "Resources.hpp"
@@ -17,7 +26,7 @@
 
 namespace nw::kernel {
 
-using ObjectPayload = std::variant<ObjectHandle, std::unique_ptr<ObjectBase>>;
+using ObjectPayload = std::variant<ObjectHandle, ObjectBase*>;
 
 /**
  * @brief The object system creates, serializes, and deserializes entities
@@ -48,6 +57,8 @@ struct ObjectSystem : public Service {
     /// Gets object by tag
     ObjectBase* get_by_tag(std::string_view tag, int nth = 0) const;
 
+    ObjectBase* alloc(ObjectType object_type);
+
     /// Loads an object from file system
     template <typename T>
     T* load(const std::filesystem::path& archive,
@@ -66,7 +77,7 @@ struct ObjectSystem : public Service {
     T* load(const nlohmann::json& archive);
 
     /// Loads an object from resource system
-    nw::Player* load_player(std::string_view cdkey, std::string_view resref);
+    Player* load_player(std::string_view cdkey, std::string_view resref);
 
     /// Creates a new object
     template <typename T>
@@ -86,6 +97,19 @@ private:
     std::stack<ObjectID, std::vector<ObjectID>> free_list_;
     std::vector<ObjectPayload> objects_;
     absl::btree_multimap<InternedString, ObjectHandle> object_tag_map_;
+
+    std::unique_ptr<Module> module_;
+    ObjectPool<Area, 256> areas_;
+    ObjectPool<Creature, 256> creatures_;
+    ObjectPool<Door, 512> doors_;
+    ObjectPool<Encounter, 256> encounters_;
+    ObjectPool<Item, 256> items_;
+    ObjectPool<Store, 256> stores_;
+    ObjectPool<Placeable, 256> placeables_;
+    ObjectPool<Player, 128> players_;
+    ObjectPool<Sound, 256> sounds_;
+    ObjectPool<Trigger, 256> triggers_;
+    ObjectPool<Waypoint, 256> waypoints_;
 };
 
 inline ObjectType serial_id_to_obj_type(std::string_view id)
@@ -118,13 +142,15 @@ T* ObjectSystem::get(ObjectHandle obj)
 {
     if (!valid(obj) || T::object_type != obj.type) return nullptr;
     auto idx = static_cast<size_t>(obj.id);
-    return static_cast<T*>(std::get<std::unique_ptr<ObjectBase>>(objects_[idx]).get());
+    return static_cast<T*>(std::get<ObjectBase*>(objects_[idx]));
 }
 
 template <typename T>
 T* ObjectSystem::make()
 {
-    T* obj = new T;
+    T* obj = static_cast<T*>(alloc(T::object_type));
+    if (!obj) { return nullptr; }
+
     if (free_list_.size()) {
         auto oid = free_list_.top();
         auto idx = static_cast<size_t>(oid);
@@ -132,14 +158,14 @@ T* ObjectSystem::make()
         ObjectHandle oh = std::get<ObjectHandle>(objects_[idx]);
         oh.type = T::object_type;
         obj->set_handle(oh);
-        objects_[idx] = std::unique_ptr<ObjectBase>(obj);
+        objects_[idx] = obj;
     } else {
         ObjectHandle oh;
         oh.id = static_cast<ObjectID>(objects_.size());
         oh.version = 0;
         oh.type = T::object_type;
         obj->set_handle(oh);
-        objects_.push_back(std::unique_ptr<ObjectBase>(obj));
+        objects_.push_back(obj);
     }
     return obj;
 }
