@@ -240,8 +240,8 @@ T* ObjectSystem::load(const GffStruct& archive)
     if (ob && deserialize(ob, archive, SerializationProfile::instance) && ob->instantiate()) {
         if (auto tag = ob->tag()) {
             object_tag_map_.insert({tag, ob->handle()});
-            return ob;
         }
+        return ob;
     }
     LOG_F(WARNING, "Something dreadfully wrong.");
     if (ob) { destroy(ob->handle()); }
@@ -255,8 +255,8 @@ T* ObjectSystem::load(const nlohmann::json& archive)
     if (ob && T::deserialize(ob, archive, SerializationProfile::instance) && ob->instantiate()) {
         if (auto tag = ob->tag()) {
             object_tag_map_.insert({tag, ob->handle()});
-            return ob;
         }
+        return ob;
     }
     LOG_F(WARNING, "Something dreadfully wrong.");
     if (ob) { destroy(ob->handle()); }
