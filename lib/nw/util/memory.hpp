@@ -25,6 +25,7 @@ struct ObjectPool {
         }
         auto result = free_list.top();
         free_list.pop();
+        result->~T();
         result = new (result) T;
         return result;
     }
@@ -37,7 +38,6 @@ struct ObjectPool {
 
     void free(T* object)
     {
-        object->~T();
         free_list.push(object);
     }
 
