@@ -62,6 +62,7 @@ ObjectBase* ObjectSystem::get_by_tag(std::string_view tag, int nth) const
         it++;
         --nth;
     }
+    if (it == std::end(object_tag_map_)) { return nullptr; }
 
     return get_object_base(it->second);
 }
