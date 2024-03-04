@@ -383,7 +383,7 @@ std::string_view Nss::view_from_range(SourceRange range) const noexcept
     size_t start = ast().line_map[range.start.line - 1] + range.start.column;
     size_t end = ast().line_map[range.end.line - 1] + range.end.column;
     if (start >= text_.length() || end >= text_.length()) { return ""; }
-    return std::string_view(text_.data() + start, text_.data() + end);
+    return std::string_view(text_.data() + start, end - start);
 }
 
 } // namespace nw::script
