@@ -5,6 +5,7 @@
 #include "../util/game_install.hpp"
 #include "../util/platform.hpp"
 #include "../util/templates.hpp"
+#include "GameProfile.hpp"
 #include "Kernel.hpp"
 #include "Strings.hpp"
 

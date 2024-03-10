@@ -2,7 +2,6 @@
 
 #include "../util/templates.hpp"
 #include "Config.hpp"
-#include "GameProfile.hpp"
 
 #include <functional>
 #include <memory>
@@ -12,6 +11,7 @@
 namespace nw {
 
 // Forward decls
+struct GameProfile;
 struct Module;
 
 namespace kernel {
@@ -51,13 +51,6 @@ struct Services {
 
     /// Gets current game profile
     GameProfile* profile() const;
-
-    /// Clears all services
-    void clear()
-    {
-        profile_.reset();
-        services_.clear();
-    }
 
     /// Adds a service
     template <typename T>

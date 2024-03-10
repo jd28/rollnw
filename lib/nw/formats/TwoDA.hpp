@@ -260,7 +260,7 @@ struct TwoDARowView {
     bool get_to(std::string_view col, T& out) const;
 
     /// Gets the number of columns
-    constexpr size_t size() const noexcept { return data.size(); }
+    size_t size() const noexcept { return data.size(); }
 };
 
 template <typename T>

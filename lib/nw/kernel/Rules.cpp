@@ -1,6 +1,7 @@
 #include "Rules.hpp"
 
 #include "../util/string.hpp"
+#include "GameProfile.hpp"
 #include "TwoDACache.hpp"
 
 #include <cstddef>

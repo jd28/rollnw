@@ -53,6 +53,8 @@ GameProfile* Services::profile() const
 
 void Services::shutdown()
 {
+    profile_.reset();
+
     events->clear();
     objects->clear();
     effects->clear();
