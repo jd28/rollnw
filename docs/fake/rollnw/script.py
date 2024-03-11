@@ -67,6 +67,7 @@ class NssTokenType(enum.IntEnum):
     OBJECT_INVALID_CONST = auto()
     OBJECT_SELF_CONST = auto()
     STRING_CONST = auto()
+    STRING_RAW_CONST = auto()
     # Keywords
     ACTION = auto()         # action
     BREAK = auto()          # break

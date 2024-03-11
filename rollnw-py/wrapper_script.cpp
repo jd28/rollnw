@@ -144,6 +144,7 @@ void init_script(py::module& nw)
         .value("OBJECT_INVALID_CONST", nws::NssTokenType::OBJECT_INVALID_CONST)
         .value("OBJECT_SELF_CONST", nws::NssTokenType::OBJECT_SELF_CONST)
         .value("STRING_CONST", nws::NssTokenType::STRING_CONST)
+        .value("STRING_RAW_CONST", nws::NssTokenType::STRING_RAW_CONST)
         // Keywords
         .value("ACTION", nws::NssTokenType::ACTION)                     // action
         .value("BREAK", nws::NssTokenType::BREAK)                       // break

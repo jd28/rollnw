@@ -466,13 +466,15 @@ Expression* NssParser::parse_expr_postfix()
 // INT | FLOAT | STRING | "(" expression ")" | IDENTIFIER
 Expression* NssParser::parse_expr_primary()
 {
-    if (match({NssTokenType::STRING_CONST, NssTokenType::INTEGER_CONST, NssTokenType::FLOAT_CONST,
-            NssTokenType::OBJECT_INVALID_CONST, NssTokenType::OBJECT_SELF_CONST,
+    if (match({NssTokenType::STRING_CONST, NssTokenType::STRING_RAW_CONST, NssTokenType::INTEGER_CONST,
+            NssTokenType::FLOAT_CONST, NssTokenType::OBJECT_INVALID_CONST, NssTokenType::OBJECT_SELF_CONST,
             NssTokenType::LOCATION_INVALID, NssTokenType::JSON_CONST})) {
         auto expr = ast_.create_node<LiteralExpression>(previous());
         expr->range_ = previous().loc.range;
         if (expr->literal.type == NssTokenType::STRING_CONST) {
             // Probably need to process the string..
+            expr->data = std::string(expr->literal.loc.view());
+        } else if (expr->literal.type == NssTokenType::STRING_RAW_CONST) {
             expr->data = std::string(expr->literal.loc.view());
         } else if (expr->literal.type == NssTokenType::INTEGER_CONST) {
             if (auto val = string::from<int32_t>(expr->literal.loc.view())) {

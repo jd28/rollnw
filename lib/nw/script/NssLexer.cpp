@@ -1,5 +1,6 @@
 #include "NssLexer.hpp"
 
+#include "../kernel/Kernel.hpp"
 #include "../log.hpp"
 #include "Nss.hpp"
 
@@ -53,7 +54,8 @@ inline NssTokenType check_keyword(const NssToken& tk)
         if (tk.loc.view() == "case") {
             return NssTokenType::CASE;
             // CASE
-        } else if (tk.loc.view() == "cassowary") {
+        } else if (kernel::config().version() == nw::GameVersion::vEE
+            && tk.loc.view() == "cassowary") {
             return NssTokenType::CASSOWARY;
         } else if (tk.loc.view() == "const") {
             return NssTokenType::CONST_;
@@ -94,13 +96,17 @@ inline NssTokenType check_keyword(const NssToken& tk)
         }
         break;
     case 'j':
-        if (tk.loc.view() == "json") {
-            return NssTokenType::JSON;
+        if (kernel::config().version() == nw::GameVersion::vEE) {
+            if (tk.loc.view() == "json") {
+                return NssTokenType::JSON;
+            }
         }
         break;
     case 'J':
-        for (auto json_const : {"JSON_FALSE", "JSON_TRUE", "JSON_OBJECT", "JSON_ARRAY", "JSON_STRING"}) {
-            if (tk.loc.view() == json_const) { return NssTokenType::JSON_CONST; }
+        if (kernel::config().version() == nw::GameVersion::vEE) {
+            for (auto json_const : {"JSON_FALSE", "JSON_TRUE", "JSON_OBJECT", "JSON_ARRAY", "JSON_STRING"}) {
+                if (tk.loc.view() == json_const) { return NssTokenType::JSON_CONST; }
+            }
         }
         break;
     case 'l':
@@ -109,8 +115,10 @@ inline NssTokenType check_keyword(const NssToken& tk)
         }
         break;
     case 'L':
-        if (tk.loc.view() == "LOCATION_INVALID") {
-            return NssTokenType::LOCATION_INVALID;
+        if (kernel::config().version() == nw::GameVersion::vEE) {
+            if (tk.loc.view() == "LOCATION_INVALID") {
+                return NssTokenType::LOCATION_INVALID;
+            }
         }
         break;
     case 'o':
@@ -137,7 +145,8 @@ inline NssTokenType check_keyword(const NssToken& tk)
             return NssTokenType::STRUCT;
         } else if (tk.loc.view() == "switch") {
             return NssTokenType::SWITCH;
-        } else if (tk.loc.view() == "sqlquery") {
+        } else if (kernel::config().version() == nw::GameVersion::vEE
+            && tk.loc.view() == "sqlquery") {
             return NssTokenType::SQLQUERY;
         }
         break;
@@ -314,6 +323,46 @@ NssToken NssLexer::next()
             break;
 
         // String constants
+        case 'r':
+        case 'R':
+            if (kernel::config().version() == GameVersion::vEE
+                && get(pos_ + 1) == '"') {
+
+                bool matched = false;
+                size_t original_last_line = last_line_pos_;
+                size_t start_line = line_;
+                start = pos_ + 2;
+                pos_ += 2;
+                while (pos_ < buffer_.size()) {
+                    if (get(pos_) == '\n') {
+                        ++line_;
+                        last_line_pos_ = pos_;
+                        line_map.push_back(last_line_pos_);
+                    } else if (pos_ != start && get(pos_ - 1) != '\\' && get(pos_) == '"') {
+                        t = NssToken{
+                            NssTokenType::STRING_RAW_CONST,
+                            {buffer_.data() + start, pos_ - 1 - start},
+                            start_pos,
+                            SourcePosition{line_, pos_ - last_line_pos_},
+                        };
+                        ++pos_;
+                        matched = true;
+                        break;
+                    }
+                    ++pos_;
+                }
+                if (!matched) {
+                    SourceLocation loc;
+                    loc.start = &buffer_[start - 2];
+                    loc.end = buffer_.data() + start;
+                    loc.range.start = start_pos;
+                    loc.range.end = SourcePosition{start_pos.line, start_pos.column + 2};
+                    throw lexical_error("Unterminated raw string", loc);
+                }
+            } else {
+                t = handle_identifier();
+            }
+            break;
         case '"':
             start = ++pos_;
             while (pos_ < buffer_.size()) {

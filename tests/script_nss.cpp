@@ -714,6 +714,36 @@ TEST(Nss, Lexer)
     EXPECT_EQ(int(lexer13.next().type), int(script::NssTokenType::USR));
     EXPECT_EQ(int(lexer13.next().type), int(script::NssTokenType::USREQ));
 
+    script::NssLexer lexer16{R"(
+            R"
+                This is a test of raw string lexer;
+            "
+        )",
+        ctx.get()};
+    EXPECT_EQ(int(lexer16.next().type), int(script::NssTokenType::STRING_RAW_CONST));
+
+    script::NssLexer lexer17{R"(
+            r"
+                This is a test of raw string lexer;
+            "
+        )",
+        ctx.get()};
+    EXPECT_EQ(int(lexer17.next().type), int(script::NssTokenType::STRING_RAW_CONST));
+
+    script::NssLexer lexer18{R"(
+            r"
+                This is a test of raw string lexer;
+        )",
+        ctx.get()};
+    EXPECT_THROW(lexer18.next(), nw::script::lexical_error);
+
+    script::NssLexer lexer19{R"(
+            r"
+                This is a test of raw string lexer; \"
+        )",
+        ctx.get()};
+    EXPECT_THROW(lexer19.next(), nw::script::lexical_error);
+
     script::Nss nss1("void main() { string test = \"; }"sv, ctx.get());
     EXPECT_NO_THROW(nss1.parse());
     EXPECT_NO_THROW(nss1.resolve());
@@ -1618,4 +1648,18 @@ TEST(Nss, Precedence)
     auto expr2 = dynamic_cast<nw::script::BinaryExpression*>(vd2->init);
     EXPECT_TRUE(expr2);
     EXPECT_EQ(expr2->op.loc.view(), "+");
+}
+
+TEST(Nss, RawString)
+{
+    auto ctx = std::make_unique<nw::script::Context>();
+
+    script::Nss nss1(R"(
+        string TEST = R"
+            This is a test of raw string lexer;
+            ";
+    )"sv,
+        ctx.get());
+    EXPECT_NO_THROW(nss1.parse());
+    EXPECT_NO_THROW(nss1.resolve());
 }
