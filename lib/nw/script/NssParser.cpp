@@ -496,6 +496,9 @@ Expression* NssParser::parse_expr_primary()
             }
         } else if (expr->literal.type == NssTokenType::LOCATION_INVALID) {
             expr->data = Location{};
+        } else if (expr->literal.type == NssTokenType::OBJECT_INVALID_CONST
+            || expr->literal.type == NssTokenType::OBJECT_SELF_CONST) {
+            expr->data = object_invalid;
         } else if (expr->literal.type == NssTokenType::JSON_CONST) {
             // [TODO] I don't know what to do with this.. yet
         }
