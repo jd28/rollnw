@@ -846,7 +846,7 @@ TEST(Nss, Switch)
         int x;
         switch(1) {
             case x: ++x;
-        }; }
+        } }
         )"sv,
         ctx.get());
     EXPECT_NO_THROW(nss2.parse());
@@ -859,7 +859,7 @@ TEST(Nss, Switch)
         object y;
         switch(y) {
             case 1: ++x;
-        }; }
+        } }
         )"sv,
         ctx.get());
     EXPECT_NO_THROW(nss3.parse());
@@ -872,12 +872,26 @@ TEST(Nss, Switch)
         object y;
         switch(x) {
             case 0.0f: ++x;
-        }; }
+        } }
         )"sv,
         ctx.get());
     EXPECT_NO_THROW(nss4.parse());
     EXPECT_NO_THROW(nss4.resolve());
     EXPECT_EQ(nss4.errors(), 1);
+
+    // mismatched types in case statement
+    script::Nss nss6(R"(void main() {
+        int x;
+        object y;
+        switch(x) {
+            case "test": ++x; break;
+            case 0: --x; break;
+        } }
+        )"sv,
+        ctx.get());
+    EXPECT_NO_THROW(nss6.parse());
+    EXPECT_NO_THROW(nss6.resolve());
+    EXPECT_EQ(nss6.warnings(), 1);
 
     // [TODO] duplicate case values
 

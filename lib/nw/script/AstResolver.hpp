@@ -791,8 +791,31 @@ struct AstResolver : BaseVisitor {
     {
         stmt->env_ = env_stack_.back();
         stmt->type_id_ = ctx_->type_id("void");
+
+        size_t switch_type = invalid_type_id;
+
         for (auto& s : stmt->nodes) {
             s->accept(this);
+
+            if (switch_stack_ > 0) {
+                if (auto lbl = dynamic_cast<LabelStatement*>(s)) {
+                    if (lbl->expr) {
+                        if (switch_type == invalid_type_id) {
+                            switch_type = lbl->expr->type_id_;
+                        } else if (switch_type != lbl->expr->type_id_) {
+                            // According to a NWN dev mistaching types is okay:
+                            // https://github.com/Beamdog/nwn-issues/issues/605
+                            // But will put a warning, cause it's unlikely anyone would do this
+                            // intentionally.
+                            ctx_->semantic_diagnostic(parent_,
+                                fmt::format("mismatched case types in switch statement expected type of '{}' not type of '{}'",
+                                    ctx_->type_name(switch_type), ctx_->type_name(lbl->expr->type_id_)),
+                                true,
+                                lbl->expr->range_);
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -966,9 +989,6 @@ struct AstResolver : BaseVisitor {
         ++switch_stack_;
         stmt->target->accept(this);
 
-        // this could have string type also, but when the string case statements
-        // were added to NWscript, the NWN:EE team half-assed this from what
-        // I could tell.
         if (stmt->target->type_id_ != ctx_->type_id("int")) {
             ctx_->semantic_diagnostic(parent_,
                 fmt::format("switch quantity not an integer"),
