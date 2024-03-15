@@ -2,9 +2,11 @@
 
 #include "../log.hpp"
 #include "../util/templates.hpp"
+#include "AstConstEvaluator.hpp"
 #include "Context.hpp"
 #include "Nss.hpp"
 
+#include <absl/container/flat_hash_set.h>
 #include <immer/map.hpp>
 
 #include <unordered_map>
@@ -981,6 +983,9 @@ struct AstResolver : BaseVisitor {
         if (auto bs = dynamic_cast<BlockStatement*>(stmt->block)) {
             size_t switch_type = invalid_type_id;
             size_t label_count = 0;
+            absl::flat_hash_set<int32_t> integers;
+            absl::flat_hash_set<std::string> strings;
+
             for (auto s : bs->nodes) {
                 if (auto lbl = dynamic_cast<LabelStatement*>(s)) {
                     ++label_count;
@@ -997,6 +1002,35 @@ struct AstResolver : BaseVisitor {
                                     ctx_->type_name(switch_type), ctx_->type_name(lbl->expr->type_id_)),
                                 true,
                                 lbl->expr->range_);
+                        }
+
+                        AstConstEvaluator eval{parent_, lbl->expr};
+                        if (lbl->expr->type_id_ == ctx_->type_id("int")
+                            && !eval.failed_
+                            && eval.result_.size() > 0
+                            && eval.result_.top().is<int32_t>()) {
+
+                            int32_t value = eval.result_.top().as<int32_t>();
+                            if (!integers.insert(value).second) {
+                                ctx_->semantic_diagnostic(parent_,
+                                    fmt::format("duplicate case statement value: '{}'",
+                                        value),
+                                    false,
+                                    lbl->expr->range_);
+                            }
+                        } else if (lbl->expr->type_id_ == ctx_->type_id("string")
+                            && !eval.failed_
+                            && eval.result_.size() > 0
+                            && eval.result_.top().is<std::string>()) {
+
+                            std::string value = eval.result_.top().as<std::string>();
+                            if (!strings.insert(value).second) {
+                                ctx_->semantic_diagnostic(parent_,
+                                    fmt::format("duplicate case statement value: '{}'",
+                                        value),
+                                    false,
+                                    lbl->expr->range_);
+                            }
                         }
                     }
                 }

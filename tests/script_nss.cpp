@@ -906,7 +906,32 @@ TEST(Nss, Switch)
     EXPECT_NO_THROW(nss7.resolve());
     EXPECT_EQ(nss7.errors(), 1);
 
-    // [TODO] duplicate case values
+    // duplicate case values
+    script::Nss nss8(R"(void main() {
+        const int ONE = 1;
+        int x;
+        switch(x) {
+            case ONE: break;
+            case 1: break;
+        } }
+        )"sv,
+        ctx.get());
+    EXPECT_NO_THROW(nss8.parse());
+    EXPECT_NO_THROW(nss8.resolve());
+    EXPECT_EQ(nss8.errors(), 1);
+
+    script::Nss nss9(R"(void main() {
+        const string HELLO = "hello";
+        int x;
+        switch(x) {
+            case "hello": break;
+            case HELLO: break;
+        } }
+        )"sv,
+        ctx.get());
+    EXPECT_NO_THROW(nss9.parse());
+    EXPECT_NO_THROW(nss9.resolve());
+    EXPECT_EQ(nss9.errors(), 1);
 
     // == Good ================================================================
 

@@ -22,7 +22,7 @@ struct AstConstEvaluator : public BaseVisitor {
         : parent_{parent}
         , node_{node}
     {
-        if (is_foldable_type(node->type_id_)) {
+        if (is_foldable_type(node->type_id_) && node->is_const_) {
             node->accept(this);
         } else {
             failed_ = true;
