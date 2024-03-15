@@ -893,6 +893,18 @@ TEST(Nss, Switch)
     EXPECT_NO_THROW(nss6.resolve());
     EXPECT_EQ(nss6.warnings(), 1);
 
+    // no label statements
+    script::Nss nss7(R"(void main() {
+        int x;
+        object y;
+        switch(x) {
+        } }
+        )"sv,
+        ctx.get());
+    EXPECT_NO_THROW(nss7.parse());
+    EXPECT_NO_THROW(nss7.resolve());
+    EXPECT_EQ(nss7.errors(), 1);
+
     // [TODO] duplicate case values
 
     // == Good ================================================================

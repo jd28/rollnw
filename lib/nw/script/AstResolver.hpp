@@ -792,30 +792,8 @@ struct AstResolver : BaseVisitor {
         stmt->env_ = env_stack_.back();
         stmt->type_id_ = ctx_->type_id("void");
 
-        size_t switch_type = invalid_type_id;
-
         for (auto& s : stmt->nodes) {
             s->accept(this);
-
-            if (switch_stack_ > 0) {
-                if (auto lbl = dynamic_cast<LabelStatement*>(s)) {
-                    if (lbl->expr) {
-                        if (switch_type == invalid_type_id) {
-                            switch_type = lbl->expr->type_id_;
-                        } else if (switch_type != lbl->expr->type_id_) {
-                            // According to a NWN dev mistaching types is okay:
-                            // https://github.com/Beamdog/nwn-issues/issues/605
-                            // But will put a warning, cause it's unlikely anyone would do this
-                            // intentionally.
-                            ctx_->semantic_diagnostic(parent_,
-                                fmt::format("mismatched case types in switch statement expected type of '{}' not type of '{}'",
-                                    ctx_->type_name(switch_type), ctx_->type_name(lbl->expr->type_id_)),
-                                true,
-                                lbl->expr->range_);
-                        }
-                    }
-                }
-            }
         }
     }
 
@@ -999,6 +977,37 @@ struct AstResolver : BaseVisitor {
         begin_scope();
         stmt->block->accept(this);
         end_scope();
+
+        if (auto bs = dynamic_cast<BlockStatement*>(stmt->block)) {
+            size_t switch_type = invalid_type_id;
+            size_t label_count = 0;
+            for (auto s : bs->nodes) {
+                if (auto lbl = dynamic_cast<LabelStatement*>(s)) {
+                    ++label_count;
+                    if (lbl->expr) {
+                        if (switch_type == invalid_type_id) {
+                            switch_type = lbl->expr->type_id_;
+                        } else if (switch_type != lbl->expr->type_id_) {
+                            // According to a NWN dev mistaching types is okay:
+                            // https://github.com/Beamdog/nwn-issues/issues/605
+                            // But will put a warning, cause it's unlikely anyone would do this
+                            // intentionally.
+                            ctx_->semantic_diagnostic(parent_,
+                                fmt::format("mismatched case types in switch statement expected type of '{}' not type of '{}'",
+                                    ctx_->type_name(switch_type), ctx_->type_name(lbl->expr->type_id_)),
+                                true,
+                                lbl->expr->range_);
+                        }
+                    }
+                }
+            }
+            if (label_count == 0) {
+                ctx_->semantic_diagnostic(parent_,
+                    "switch statement must have at least one label statemement",
+                    false,
+                    stmt->range_);
+            }
+        }
         --switch_stack_;
     }
 
