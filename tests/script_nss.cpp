@@ -1,10 +1,11 @@
-#include "nw/script/AstLocator.hpp"
-#include <gtest/gtest.h>
-
 #include <nw/log.hpp>
+#include <nw/script/AstConstEvaluator.hpp>
+#include <nw/script/AstLocator.hpp>
 #include <nw/script/AstPrinter.hpp>
 #include <nw/script/Nss.hpp>
 #include <nw/script/NssLexer.hpp>
+
+#include <gtest/gtest.h>
 
 #include <filesystem>
 #include <string_view>
@@ -1688,4 +1689,61 @@ TEST(Nss, RawString)
         ctx.get());
     EXPECT_NO_THROW(nss1.parse());
     EXPECT_NO_THROW(nss1.resolve());
+}
+
+TEST(Nss, ConstEval)
+{
+    auto ctx = std::make_unique<nw::script::Context>();
+
+    script::Nss nss1(R"(
+        #include "constevalinc"
+
+        const int TEST = 2 + 2;
+        const int TEST2 = 10 - TEST;
+        const float TEST3 = PI * 3;
+        const string TEST4 = GLOBAL_STRING_CONST + "NWN:EE";
+    )"sv,
+        ctx.get());
+    EXPECT_NO_THROW(nss1.parse());
+    EXPECT_NO_THROW(nss1.process_includes());
+    EXPECT_NO_THROW(nss1.resolve());
+    EXPECT_GT(nss1.ast().decls.size(), 3);
+
+    auto vd1_1 = dynamic_cast<script::VarDecl*>(nss1.ast().decls[0]);
+    EXPECT_TRUE(vd1_1->is_const_);
+    script::AstConstEvaluator eval1_1{&nss1, vd1_1->init};
+    EXPECT_FALSE(eval1_1.failed_);
+    EXPECT_GT(eval1_1.result_.size(), 0);
+    EXPECT_TRUE(eval1_1.result_.top().is<int32_t>());
+    EXPECT_EQ(eval1_1.result_.top().as<int32_t>(), 4);
+
+    auto vd1_2 = dynamic_cast<script::VarDecl*>(nss1.ast().decls[1]);
+    EXPECT_TRUE(vd1_2->is_const_);
+    script::AstConstEvaluator eval1_2{&nss1, vd1_2->init};
+    EXPECT_FALSE(eval1_2.failed_);
+    EXPECT_GT(eval1_2.result_.size(), 0);
+    if (eval1_2.result_.size()) {
+        EXPECT_TRUE(eval1_2.result_.top().is<int32_t>());
+        EXPECT_EQ(eval1_2.result_.top().as<int32_t>(), 6);
+    }
+
+    auto vd1_3 = dynamic_cast<script::VarDecl*>(nss1.ast().decls[2]);
+    EXPECT_TRUE(vd1_3->is_const_);
+    script::AstConstEvaluator eval1_3{&nss1, vd1_3->init};
+    EXPECT_FALSE(eval1_3.failed_);
+    EXPECT_GT(eval1_3.result_.size(), 0);
+    if (eval1_3.result_.size()) {
+        EXPECT_TRUE(eval1_3.result_.top().is<float>());
+        EXPECT_FLOAT_EQ(eval1_3.result_.top().as<float>(), 3.141592f * 3.0f);
+    }
+
+    auto vd1_4 = dynamic_cast<script::VarDecl*>(nss1.ast().decls[3]);
+    EXPECT_TRUE(vd1_4->is_const_);
+    script::AstConstEvaluator eval1_4{&nss1, vd1_4->init};
+    EXPECT_FALSE(eval1_4.failed_);
+    EXPECT_GT(eval1_4.result_.size(), 0);
+    if (eval1_4.result_.size()) {
+        EXPECT_TRUE(eval1_4.result_.top().is<std::string>());
+        EXPECT_EQ(eval1_4.result_.top().as<std::string>(), "Hello, NWN:EE");
+    }
 }
