@@ -976,31 +976,32 @@ TEST(Nss, BinaryExpressions)
 
     script::Nss nss2(R"(
     void main() {
-        int x = 1;
-        float y = 1.0;
+        int i = 1;
+        float f = 1.0;
         vector v;
 
         float z = 1; // OK
-        y += x;      // OK
-        x + y;       // OK
-        y - x;       // OK
-        x * y;       // OK
-        y / x;       // OK
-        v / y;       // OK
-        v * y;       // OK
-        y * v;       // OK
-        x | x;       // OK
-        x & x;       // OK
+        f += i;      // OK
+        i + f;       // OK
+        f - i;       // OK
+        i * f;       // OK
+        f / i;       // OK
+        v / f;       // OK
+        v * f;       // OK
+        f * v;       // OK
+        i | i;       // OK
+        i & i;       // OK
 
-        y / v;       // Not OK
-        x /= y;      // Not OK
-        x | y;       // Not OK
-        x & y;       // Not OK
+        f / v;       // Not OK
+        f /= v;      // Not OK
+        i /= f;      // Not OK
+        i | f;       // Not OK
+        i & f;       // Not OK
     })"sv,
         ctx.get());
     EXPECT_NO_THROW(nss2.parse());
     EXPECT_NO_THROW(nss2.resolve());
-    EXPECT_EQ(nss2.errors(), 4);
+    EXPECT_EQ(nss2.errors(), 5);
 
     script::Nss nss3(R"(
     void main() {

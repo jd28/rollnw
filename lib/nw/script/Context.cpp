@@ -115,64 +115,85 @@ std::string_view Context::type_name(size_t type_id)
     return type_array_[type_id];
 }
 
-bool Context::type_check_binary_op(NssToken op, size_t lhs, size_t rhs)
+size_t Context::type_check_binary_op(NssToken op, size_t lhs, size_t rhs)
 {
     size_t int_ = type_id("int");
     size_t float_ = type_id("float");
     size_t string_ = type_id("string");
     size_t vector_ = type_id("vector");
 
-    bool is_good = false;
+    size_t is_good = invalid_type_id;
     bool is_eq = false;
 
     switch (op.type) {
     default:
-        return false;
+        return invalid_type_id;
 
     case NssTokenType::EQ:
-        return is_type_convertible(lhs, rhs);
+        if (is_type_convertible(lhs, rhs)) {
+            return lhs;
+        }
     case NssTokenType::MODEQ:
     case NssTokenType::MOD:
-        return lhs == int_ && rhs == int_;
+        if (lhs == int_ && rhs == int_) {
+            return int_;
+        }
     case NssTokenType::PLUS:
     case NssTokenType::PLUSEQ:
         is_eq = op.type == NssTokenType::PLUSEQ;
         if ((lhs == int_ || lhs == float_) && (rhs == int_ || rhs == float_)) {
-            is_good = true;
+            if (lhs == float_ || rhs == float_) {
+                is_good = float_;
+            } else {
+                is_good = int_;
+            }
         } else if (lhs == vector_ && rhs == vector_) {
-            is_good = true;
+            is_good = vector_;
         } else if (lhs == string_ && rhs == string_) {
-            is_good = true;
-        } else if ((lhs == vector_ || lhs == float_) && (rhs == vector_ || rhs == float_)) {
-            // x3_inc_horse
-            is_good = true;
+            is_good = string_;
         }
         break;
     case NssTokenType::MINUS:
     case NssTokenType::MINUSEQ:
         is_eq = op.type == NssTokenType::MINUSEQ;
         if ((lhs == int_ || lhs == float_) && (rhs == int_ || rhs == float_)) {
-            is_good = true;
+            if (lhs == float_ || rhs == float_) {
+                is_good = float_;
+            } else {
+                is_good = int_;
+            }
         } else if (lhs == vector_ && rhs == vector_) {
-            is_good = true;
+            is_good = vector_;
         }
         break;
     case NssTokenType::TIMES:
     case NssTokenType::TIMESEQ:
         is_eq = op.type == NssTokenType::TIMESEQ;
         if ((lhs == int_ || lhs == float_) && (rhs == int_ || rhs == float_)) {
-            is_good = true;
+            if (lhs == float_ || rhs == float_) {
+                is_good = float_;
+            } else {
+                is_good = int_;
+            }
         } else if ((lhs == vector_ || lhs == float_) && (rhs == vector_ || rhs == float_)) {
-            is_good = true;
+            if (lhs == vector_ || rhs == vector_) {
+                is_good = vector_;
+            } else {
+                is_good = float_;
+            }
         }
         break;
     case NssTokenType::DIV:
     case NssTokenType::DIVEQ:
         is_eq = op.type == NssTokenType::DIVEQ;
         if ((lhs == int_ || lhs == float_) && (rhs == int_ || rhs == float_)) {
-            is_good = true;
+            if (lhs == float_ || rhs == float_) {
+                is_good = float_;
+            } else {
+                is_good = int_;
+            }
         } else if (lhs == vector_ && rhs == float_) {
-            is_good = true;
+            is_good = vector_;
         }
         break;
     case NssTokenType::SL:
@@ -185,10 +206,20 @@ bool Context::type_check_binary_op(NssToken op, size_t lhs, size_t rhs)
     case NssTokenType::OREQ:
     case NssTokenType::AND:
     case NssTokenType::ANDEQ:
-        return lhs == int_ && rhs == int_;
+        if (lhs == int_ && rhs == int_) {
+            return int_;
+        }
     }
 
-    return is_eq ? (is_good && is_type_convertible(lhs, rhs)) : is_good;
+    if (is_eq) {
+        if (is_type_convertible(lhs, rhs) && is_good != invalid_type_id) {
+            return lhs;
+        } else {
+            return invalid_type_id;
+        }
+    } else {
+        return is_good;
+    }
 }
 
 bool Context::is_type_convertible(size_t lhs, size_t rhs)

@@ -473,7 +473,8 @@ struct AstResolver : BaseVisitor {
         expr->lhs->accept(this);
         expr->rhs->accept(this);
 
-        if (!ctx_->type_check_binary_op(expr->op, expr->lhs->type_id_, expr->rhs->type_id_)) {
+        size_t type_result = ctx_->type_check_binary_op(expr->op, expr->lhs->type_id_, expr->rhs->type_id_);
+        if (type_result == invalid_type_id) {
             ctx_->semantic_diagnostic(parent_,
                 fmt::format("invalid operands of types '{}' and '{}' to binary operator'{}' ",
                     ctx_->type_name(expr->lhs->type_id_),
@@ -484,7 +485,7 @@ struct AstResolver : BaseVisitor {
             return;
         }
 
-        expr->type_id_ = expr->lhs->type_id_;
+        expr->type_id_ = type_result;
     }
 
     virtual void visit(BinaryExpression* expr) override
@@ -495,7 +496,8 @@ struct AstResolver : BaseVisitor {
 
         expr->is_const_ = expr->lhs->is_const_ && expr->rhs->is_const_;
 
-        if (!ctx_->type_check_binary_op(expr->op, expr->lhs->type_id_, expr->rhs->type_id_)) {
+        size_t type_result = ctx_->type_check_binary_op(expr->op, expr->lhs->type_id_, expr->rhs->type_id_);
+        if (type_result == invalid_type_id) {
             ctx_->semantic_diagnostic(parent_,
                 fmt::format("invalid operands of types '{}' and '{}' to binary operator'{}' ",
                     ctx_->type_name(expr->lhs->type_id_),
@@ -505,7 +507,7 @@ struct AstResolver : BaseVisitor {
                 expr->op.loc.range);
             return;
         }
-        expr->type_id_ = expr->lhs->type_id_;
+        expr->type_id_ = type_result;
     }
 
     virtual void visit(CallExpression* expr) override
