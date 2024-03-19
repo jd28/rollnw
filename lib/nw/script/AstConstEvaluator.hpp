@@ -391,6 +391,7 @@ struct AstConstEvaluator : public BaseVisitor {
         resolve(expr);
     }
 
+    // LCOV_EXCL_START
     // Statements
     virtual void visit(BlockStatement* stmt) override
     {
@@ -446,6 +447,7 @@ struct AstConstEvaluator : public BaseVisitor {
     {
         // No Op
     }
+    // LCOV_EXCL_END
 };
 
 } // namespace nw::script
