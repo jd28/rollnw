@@ -38,7 +38,7 @@ struct Container {
     virtual const std::string& path() const = 0;
 
     /// Determines the size, if applicable, of the container
-    virtual size_t size() const { return 0; }
+    virtual size_t size() const = 0;
 
     /// Get some general data about a resource
     virtual ResourceDescriptor stat(const Resource& res) const = 0;

@@ -16,8 +16,8 @@ struct AstLocator : public BaseVisitor {
 
     // Search data
     const Nss* parent_ = nullptr;
-    SourcePosition pos_;
     std::string symbol_;
+    SourcePosition pos_;
     bool in_func_decl_ = false;
     bool in_struct_decl_ = false;
 
@@ -36,7 +36,7 @@ struct AstLocator : public BaseVisitor {
             if (sym.decl) { return sym; }
         }
         if (!result_.decl) {
-            for (const auto it : parent_->ast().includes) {
+            for (const auto& it : parent_->ast().includes) {
                 if (!it.script) { continue; }
                 auto sym = it.script->locate_export(needle, is_type, true);
                 if (sym.decl) { return sym; }

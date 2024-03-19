@@ -22,13 +22,16 @@ struct Bif {
     friend struct Key;
 
     Bif(Key* key, std::filesystem::path path);
+
+    // LCOV_EXCL_START
     Bif(const Bif&) = delete;
     Bif(Bif&& other) = default;
 
-    ByteArray demand(size_t index) const;
-
     Bif& operator=(const Bif&) = delete;
     Bif& operator=(Bif&& other) = default;
+    // LCOV_EXCL_END
+
+    ByteArray demand(size_t index) const;
 
 private:
     Key* key_ = nullptr;

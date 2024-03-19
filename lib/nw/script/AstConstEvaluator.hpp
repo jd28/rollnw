@@ -94,37 +94,39 @@ struct AstConstEvaluator : public BaseVisitor {
 
     // Visitor
 
-    virtual void visit(Ast* script) override
+    // LCOV_EXCL_START
+    virtual void visit(Ast*) override
     {
         // No op
     }
 
     // Decls
-    virtual void visit(FunctionDecl* decl) override
+    virtual void visit(FunctionDecl*) override
     {
         // No op
     }
 
-    virtual void visit(FunctionDefinition* decl) override
+    virtual void visit(FunctionDefinition*) override
     {
         // No op
     }
 
-    virtual void visit(StructDecl* decl) override
+    virtual void visit(StructDecl*) override
     {
         // No op
     }
 
-    virtual void visit(VarDecl* decl) override
+    virtual void visit(VarDecl*) override
     {
         // No op
     }
 
     // Expressions
-    virtual void visit(AssignExpression* expr) override
+    virtual void visit(AssignExpression*) override
     {
         // No op
     }
+    // LCOV_EXCL_END
 
     virtual void visit(BinaryExpression* expr) override
     {
@@ -147,9 +149,9 @@ struct AstConstEvaluator : public BaseVisitor {
             } else if (lhs_var.is<float>() && rhs_var.is<float>()) {
                 result_.push(lhs_var.as<float>() - rhs_var.as<float>());
             } else if (lhs_var.is<float>() && rhs_var.is<int32_t>()) {
-                result_.push(lhs_var.as<float>() - rhs_var.as<int32_t>());
+                result_.push(lhs_var.as<float>() - float(rhs_var.as<int32_t>()));
             } else if (lhs_var.is<int32_t>() && rhs_var.is<float>()) {
-                result_.push(lhs_var.as<int32_t>() - rhs_var.as<float>());
+                result_.push(float(lhs_var.as<int32_t>()) - rhs_var.as<float>());
             } else {
                 failed_ = true;
             }
@@ -161,9 +163,9 @@ struct AstConstEvaluator : public BaseVisitor {
             } else if (lhs_var.is<float>() && rhs_var.is<float>()) {
                 result_.push(lhs_var.as<float>() + rhs_var.as<float>());
             } else if (lhs_var.is<float>() && rhs_var.is<int32_t>()) {
-                result_.push(lhs_var.as<float>() + rhs_var.as<int32_t>());
+                result_.push(lhs_var.as<float>() + float(rhs_var.as<int32_t>()));
             } else if (lhs_var.is<int32_t>() && rhs_var.is<float>()) {
-                result_.push(lhs_var.as<int32_t>() + rhs_var.as<float>());
+                result_.push(float(lhs_var.as<int32_t>()) + rhs_var.as<float>());
             } else {
                 failed_ = true;
             }
@@ -173,9 +175,9 @@ struct AstConstEvaluator : public BaseVisitor {
             } else if (lhs_var.is<float>() && rhs_var.is<float>()) {
                 result_.push(lhs_var.as<float>() / rhs_var.as<float>());
             } else if (lhs_var.is<float>() && rhs_var.is<int32_t>()) {
-                result_.push(lhs_var.as<float>() / rhs_var.as<int32_t>());
+                result_.push(lhs_var.as<float>() / float(rhs_var.as<int32_t>()));
             } else if (lhs_var.is<int32_t>() && rhs_var.is<float>()) {
-                result_.push(lhs_var.as<int32_t>() / rhs_var.as<float>());
+                result_.push(float(lhs_var.as<int32_t>()) / rhs_var.as<float>());
             } else {
                 failed_ = true;
             }
@@ -185,9 +187,9 @@ struct AstConstEvaluator : public BaseVisitor {
             } else if (lhs_var.is<float>() && rhs_var.is<float>()) {
                 result_.push(lhs_var.as<float>() * rhs_var.as<float>());
             } else if (lhs_var.is<float>() && rhs_var.is<int32_t>()) {
-                result_.push(lhs_var.as<float>() * rhs_var.as<int32_t>());
+                result_.push(lhs_var.as<float>() * float(rhs_var.as<int32_t>()));
             } else if (lhs_var.is<int32_t>() && rhs_var.is<float>()) {
-                result_.push(lhs_var.as<int32_t>() * rhs_var.as<float>());
+                result_.push(float(lhs_var.as<int32_t>()) * rhs_var.as<float>());
             } else {
                 failed_ = true;
             }
@@ -234,12 +236,12 @@ struct AstConstEvaluator : public BaseVisitor {
         }
     }
 
-    virtual void visit(CallExpression* expr) override
+    virtual void visit(CallExpression*) override
     {
         // No Op
     }
 
-    virtual void visit(ComparisonExpression* expr) override
+    virtual void visit(ComparisonExpression*) override
     {
     }
 
@@ -260,15 +262,17 @@ struct AstConstEvaluator : public BaseVisitor {
         }
     }
 
-    virtual void visit(DotExpression* expr) override
+    // LCOV_EXCL_START
+    virtual void visit(DotExpression*) override
     {
         // No Op
     }
 
-    virtual void visit(EmptyExpression* expr) override
+    virtual void visit(EmptyExpression*) override
     {
         // No Op
     }
+    // LCOV_EXCL_END
 
     virtual void visit(GroupingExpression* expr) override
     {
@@ -393,57 +397,57 @@ struct AstConstEvaluator : public BaseVisitor {
 
     // LCOV_EXCL_START
     // Statements
-    virtual void visit(BlockStatement* stmt) override
+    virtual void visit(BlockStatement*) override
     {
         // No Op
     }
 
-    virtual void visit(DeclList* stmt) override
+    virtual void visit(DeclList*) override
     {
         // No Op
     }
 
-    virtual void visit(DoStatement* stmt) override
+    virtual void visit(DoStatement*) override
     {
         // No Op
     }
 
-    virtual void visit(EmptyStatement* stmt) override
+    virtual void visit(EmptyStatement*) override
     {
         // No Op
     }
 
-    virtual void visit(ExprStatement* stmt) override
+    virtual void visit(ExprStatement*) override
     {
         // No Op
     }
 
-    virtual void visit(IfStatement* stmt) override
+    virtual void visit(IfStatement*) override
     {
         // No Op
     }
 
-    virtual void visit(ForStatement* stmt) override
+    virtual void visit(ForStatement*) override
     {
         // No Op
     }
 
-    virtual void visit(JumpStatement* stmt) override
+    virtual void visit(JumpStatement*) override
     {
         // No Op
     }
 
-    virtual void visit(LabelStatement* stmt) override
+    virtual void visit(LabelStatement*) override
     {
         // No Op
     }
 
-    virtual void visit(SwitchStatement* stmt) override
+    virtual void visit(SwitchStatement*) override
     {
         // No Op
     }
 
-    virtual void visit(WhileStatement* stmt) override
+    virtual void visit(WhileStatement*) override
     {
         // No Op
     }
