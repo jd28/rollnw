@@ -745,6 +745,14 @@ TEST(Nss, Lexer)
         ctx.get()};
     EXPECT_THROW(lexer19.next(), nw::script::lexical_error);
 
+    script::NssLexer lexer20{R"(
+            r"
+                This is a test of raw string with escaped ""inside"""
+        )",
+        ctx.get()};
+    EXPECT_EQ(int(lexer20.next().type), int(script::NssTokenType::STRING_RAW_CONST));
+    EXPECT_EQ(int(lexer20.next().type), int(script::NssTokenType::END));
+
     script::Nss nss1("void main() { string test = \"; }"sv, ctx.get());
     EXPECT_NO_THROW(nss1.parse());
     EXPECT_NO_THROW(nss1.resolve());

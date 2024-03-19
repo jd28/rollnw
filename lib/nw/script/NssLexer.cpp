@@ -338,7 +338,10 @@ NssToken NssLexer::next()
                         ++line_;
                         last_line_pos_ = pos_;
                         line_map.push_back(last_line_pos_);
-                    } else if (pos_ != start && get(pos_ - 1) != '\\' && get(pos_) == '"') {
+                    } else if ((get(pos_) == '"' && get(pos_ + 1) == '"')
+                        || (get(pos_) == '\\' && get(pos_ + 1) == '"')) {
+                        ++pos_; // Skip escape, then skip " below.
+                    } else if (pos_ != start && get(pos_) == '"') {
                         t = NssToken{
                             NssTokenType::STRING_RAW_CONST,
                             {buffer_.data() + start, pos_ - 1 - start},
