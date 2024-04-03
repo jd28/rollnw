@@ -2,7 +2,6 @@
   "name": "rollnw",
   "version": "0.26.0",
   "dependencies": [
-    "fmt",
     "zstd",
     "sqlite3",
     "minizip",
