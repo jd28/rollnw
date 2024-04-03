@@ -78,6 +78,9 @@ add_subdirectory(tests_ext)
 endif()
 
 if (ROLLNW_BUILD_BENCHMARKS)
+set(BENCHMARK_ENABLE_GTEST_TESTS OFF)
+set(BENCHMARK_ENABLE_TESTING OFF)
+add_subdirectory(external/benchmark-1.8.3)
 add_subdirectory(benchmarks)
 endif()
 

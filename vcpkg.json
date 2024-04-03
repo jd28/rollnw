@@ -13,7 +13,6 @@
       "platform": "windows"
     },
     "glm",
-    "benchmark",
     "stduuid",
     "gtest"
   ],

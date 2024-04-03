@@ -1,5 +1,3 @@
-find_package(benchmark CONFIG REQUIRED)
-
 add_executable(rollnw_benchmark
     main.cpp
 )
