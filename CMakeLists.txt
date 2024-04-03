@@ -71,6 +71,7 @@ add_subdirectory(external/stb)
 add_subdirectory(lib/nw)
 
 if (ROLLNW_BUILD_TESTS)
+add_subdirectory(external/googletest-1.14.0)
 include(CTest)
 enable_testing()
 add_subdirectory(tests)

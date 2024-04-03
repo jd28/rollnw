@@ -1,5 +1,4 @@
 find_package(Threads)
-find_package(GTest CONFIG REQUIRED)
 
 add_executable(rollnw_test_all_scripts
     main.cpp

@@ -1,5 +1,4 @@
 find_package(Threads)
-find_package(GTest CONFIG REQUIRED)
 
 add_custom_target(copy-files ALL
     COMMAND ${CMAKE_COMMAND} -E copy_directory
