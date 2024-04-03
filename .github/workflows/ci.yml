@@ -21,13 +21,9 @@ on:
 
 env:
   buildDir: "${{ github.workspace }}/build/"
-  vcpkg-tag: "master"
-  VCPKG_ROOT: "${{ github.workspace }}/vcpkg/"
-  VCPKG_DEFAULT_BINARY_CACHE: "${{ github.workspace }}/vcpkg/.cache"
   NWN_ROOT: "${{ github.workspace }}/nwn/"
   CI_GITHUB_ACTIONS: "1"
   MACOSX_DEPLOYMENT_TARGET: "12"
-  CMAKE_TOOLCHAIN_FILE: "${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake"
 
 jobs:
   build:
@@ -56,7 +52,7 @@ jobs:
           choco upgrade ccache ninja
 
       # macOS Dependencies
-      - name: macOS - install non-vcpkg dependencies
+      - name: macOS - install dependencies
         if: matrix.os == 'macos-12'
         env:
           HOMEBREW_NO_ANALYTICS: "ON"
@@ -98,21 +94,6 @@ jobs:
       # Install latest CMake.
       - uses: lukka/get-cmake@latest
 
-      # vcpkg
-      - name: all - download vcpkg
-        run: |
-          git clone https://github.com/microsoft/vcpkg ${{ github.workspace }}/vcpkg || true
-
-      - name: all - cache vcpkg
-        id: cache-vcpkg
-        uses: actions/cache@v4
-        with:
-          path: |
-            ${{ github.workspace }}/vcpkg/.cache
-          key: ${{ runner.os }}-build-${{ env.vcpkg-tag }}-${{ env.DATE }}-${{ hashFiles('vcpkg.json') }}
-          restore-keys: |
-            ${{ runner.os }}-build-
-
       - name: all - cache ccache
         uses: actions/cache@v4
         with:
@@ -121,18 +102,6 @@ jobs:
           key: ${{ runner.os }}-ccache-${{ env.DATE }}
           restore-keys: |
             ${{ runner.os }}-ccache-
-
-      - name: macOS|linux - bootstrap vcpkg
-        if: matrix.os != 'windows-latest'  && steps.cache-vcpkg.outputs.cache-hit != 'true'
-        run: |
-          mkdir -p vcpkg/.cache
-          vcpkg/bootstrap-vcpkg.sh
-
-      - name: windows - bootstrap vcpkg
-        if: matrix.os == 'windows-latest' && steps.cache-vcpkg.outputs.cache-hit != 'true'
-        run: |
-          md vcpkg/.cache -ea 0
-          vcpkg/bootstrap-vcpkg.bat
 
       # nwn
       - name: all - cache nwn
@@ -156,13 +125,6 @@ jobs:
         uses: egor-tensin/vs-shell@v2
         with:
           arch: x64
-
-      - name: Reset vcpkg env vars.
-        if: matrix.os == 'windows-latest'
-        run: |
-          echo "VCPKG_ROOT=${{ github.workspace }}/vcpkg/" | Out-File -FilePath $env:GITHUB_ENV -Append
-          echo "CMAKE_TOOLCHAIN_FILE=${{env.CMAKE_TOOLCHAIN_FILE}}" | Out-File -FilePath $env:GITHUB_ENV -Append
-          echo "VCPKG_DEFAULT_BINARY_CACHE=${{env.VCPKG_DEFAULT_BINARY_CACHE}}" | Out-File -FilePath $env:GITHUB_ENV -Append
 
       - name: setup ccache
         run: |
@@ -218,14 +180,6 @@ jobs:
           mv ./wheelhouse/.ccache $HOST_CCACHE_DIR
           ls -la $HOST_CCACHE_DIR
           ccache -s
-
-      - name: Download vcpkg Cache from Docker (linux only)
-        if: ${{ runner.os == 'Linux' }}
-        run: |
-          env
-          rm -rf $VCPKG_DEFAULT_BINARY_CACHE
-          mv ./wheelhouse/.vcpkg_cache $VCPKG_DEFAULT_BINARY_CACHE
-          ls -la $VCPKG_DEFAULT_BINARY_CACHE
 
       - uses: actions/upload-artifact@v4
         with:

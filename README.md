@@ -43,7 +43,6 @@ A lot of what's here was written in the 2011-2015 range as part of personal mini
 ## Credits
 
 - [Bioware](https://bioware.com), [Beamdog](https://beamdog.com) - The game itself
-- [vcpkg](https://github.com/microsoft/vcpkg) - Package Management
 - [abseil](https://abseil.io/) - Foundational
 - [Catch2](https://github.com/catchorg/Catch2) - Testing
 - [glm](https://www.opengl.org/sdk/libs/GLM/) - Mathematics

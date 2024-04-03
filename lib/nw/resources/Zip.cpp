@@ -68,6 +68,8 @@ ResourceData Zip::demand(Resource resref) const
         data.bytes.resize(info.uncompressed_size);
         if (unzReadCurrentFile(file_, data.bytes.data(), static_cast<uint32_t>(info.uncompressed_size)) == 0) {
             // Not sure about the return here..
+            data.bytes.clear();
+            LOG_F(ERROR, "Failed to read file {}", fn);
         }
         unzCloseCurrentFile(file_);
     }

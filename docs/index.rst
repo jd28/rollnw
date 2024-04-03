@@ -89,7 +89,6 @@ Credits
 -------
 
 -  `Bioware <https://bioware.com>`__, `Beamdog <https://beamdog.com>`__ - The game itself
--  `vcpkg <https://github.com/microsoft/vcpkg>`__ - Package Management
 -  `abseil <https://abseil.io/>`__ - Foundational
 -  `Catch2 <https://github.com/catchorg/Catch2>`__ - Testing
 -  `glm <https://www.opengl.org/sdk/libs/GLM/>`__ - Mathematics

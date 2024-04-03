@@ -1,11 +1,4 @@
 find_package(Threads)
-find_package(glm CONFIG REQUIRED)
-find_package(Iconv REQUIRED)
-find_package(unofficial-minizip CONFIG REQUIRED)
-find_package(nlohmann_json CONFIG REQUIRED)
-find_package(unofficial-sqlite3 CONFIG REQUIRED)
-find_package(zstd CONFIG REQUIRED)
-find_package(ZLIB REQUIRED)
 
 add_library(nw STATIC
     functions.cpp
@@ -125,6 +118,8 @@ add_library(nw STATIC
 
 )
 
+target_compile_definitions(nw PUBLIC -DGLM_ENABLE_EXPERIMENTAL)
+
 target_link_libraries(nw PUBLIC
     fmt::fmt
     absl::base
@@ -133,13 +128,13 @@ target_link_libraries(nw PUBLIC
     absl::span
     absl::utility
     absl::strings
-    glm::glm
-    unofficial::minizip::minizip
-    nlohmann_json nlohmann_json::nlohmann_json
+    minizip
+    zlib
     nowide::nowide
-    zstd::libzstd_static
-    unofficial::sqlite3::sqlite3
+    libzstd_static
+    sqlite3
     Threads::Threads
+    iconv
 
     stb_image
     fzy
@@ -147,10 +142,6 @@ target_link_libraries(nw PUBLIC
 
     coverage_config
 )
-
-if(NOT Iconv_IS_BUILT_IN)
-    target_link_libraries(nw PRIVATE Iconv::Iconv)
-endif()
 
 include(../../cmake/ProjectSettings.cmake)
 

@@ -13,10 +13,6 @@
             "binaryDir": "${sourceDir}/build",
             "generator": "Ninja",
             "cacheVariables": {
-                "CMAKE_TOOLCHAIN_FILE": {
-                    "value": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
-                    "type": "FILEPATH"
-                },
                 "ROLLNW_BUILD_BENCHMARKS": {
                     "type": "BOOL",
                     "value": "OFF"
@@ -116,10 +112,6 @@
             "architecture": {
                 "value": "x64",
                 "strategy": "external"
-            },
-            "cacheVariables": {
-                "VCPKG_TARGET_TRIPLET": "x64-windows-static",
-                "VCPKG_HOST_TRIPLET": "x64-windows-static"
             }
         },
         {

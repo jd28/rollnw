@@ -42,14 +42,6 @@ if [ -d $HOST_CCACHE_DIR ]; then
     cp -R $HOST_CCACHE_DIR /output/.ccache
 fi
 
-HOST_VCPKG_CACHE_DIR="/host${HOST_VCPKG_CACHE_DIR:-/home/runner/work/rollnw/rollnw/vcpkg/.cache}"
-if [ -d $HOST_VCPKG_CACHE_DIR ]; then
-    mkdir -p /output
-    cp -R $HOST_VCPKG_CACHE_DIR /output/.vcpkg_cache
-fi
-
-export VCPKG_DEFAULT_BINARY_CACHE="/output/.vcpkg_cache"
-
 ls -la /output/
 
 ccache -o cache_dir="/output/.ccache"

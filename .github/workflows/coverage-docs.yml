@@ -15,9 +15,6 @@ jobs:
   build:
     env:
       buildDir: "${{ github.workspace }}/build/"
-      vcpkg-tag: "2023.06.20"
-      VCPKG_ROOT: "${{ github.workspace }}/vcpkg/"
-      VCPKG_DEFAULT_BINARY_CACHE: "${{ github.workspace }}/vcpkg/.cache"
       ASAN_OPTIONS: "detect_leaks=0:detect_container_overflow=0" # Not read for this yet..
       NWN_ROOT: "${{ github.workspace }}/nwn/"
       CI_GITHUB_ACTIONS: "1"
@@ -59,27 +56,14 @@ jobs:
       # Install latest CMake.
       - uses: lukka/get-cmake@latest
 
-      - name: download vcpkg
-        run: |
-          git clone https://github.com/microsoft/vcpkg ${{ github.workspace }}/vcpkg || true
-          pushd vcpkg
-          ./bootstrap-vcpkg.sh
-          popd
-
-      - name: cache vcpkg
-        id: cache-vcpkg
+      - name: cache ccache
         uses: actions/cache@v4
         with:
           path: |
-            ${{ github.workspace }}/vcpkg/.cache
             ${{ github.workspace }}/ccache
-          key: ${{ runner.os }}-coverage-${{ env.vcpkg-tag }}-${{ env.DATE }}-${{ hashFiles('vcpkg.json') }}
+          key: ${{ runner.os }}-coverage-${{ env.DATE }}
           restore-keys: |
             ${{ runner.os }}-coverage-
-
-      - name: Make cache dir
-        if: steps.cache-vcpkg.outputs.cache-hit != 'true'
-        run: mkdir -p "${{ github.workspace }}/vcpkg/.cache"
 
       - name: cache nwn
         id: cache-nwn
@@ -111,7 +95,7 @@ jobs:
       - name: Coverage
         run: |
           lcov --directory . --capture --output-file coverage.info
-          lcov --remove coverage.info '/usr/*' "${HOME}"'/.cache/*' '/Library/*' $(pwd)'/tests/*' $(pwd)'/build/vcpkg_installed/*' $(pwd)'/external/*' --output-file coverage.info
+          lcov --remove coverage.info '/usr/*' "${HOME}"'/.cache/*' '/Library/*' $(pwd)'/tests/*' $(pwd)'/external/*' --output-file coverage.info
           lcov --list coverage.info
           bash <(curl -s https://codecov.io/bash) -f coverage.info || echo "Codecov did not collect coverage reports"
 

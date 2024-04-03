@@ -22,7 +22,7 @@ inline std::string iconv_wrapper(std::string_view str, const char* from, const c
     iconv_t conv = iconv_open(to, from);
     SCOPE_EXIT([conv]() { iconv_close(conv); });
 
-    char* src_ptr = const_cast<char*>(str.data()); // Doesn't modify str
+    const char* src_ptr = str.data(); // Doesn't modify str
     size_t src_size = str.size();
     char dst_buffer[2024];
 

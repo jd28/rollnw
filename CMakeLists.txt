@@ -60,6 +60,10 @@ else()
     message(FATAL "Unsupported target platform")
 endif()
 
+set(ZLIB_BUILD_EXAMPLES OFF)
+set(ZLIB_ENABLE_TESTS OFF)
+add_subdirectory(external/zlib-1.3.1)
+
 include_directories(SYSTEM external)
 include_directories(SYSTEM external/immer)
 include_directories(SYSTEM external/nowide/include)
@@ -68,8 +72,26 @@ add_subdirectory(external/fmt-10.2.1)
 add_subdirectory(external/fzy)
 add_subdirectory(external/immer)
 add_subdirectory(external/inih)
+
+add_subdirectory(external/libiconv)
+
+include_directories(SYSTEM external/sqlite-3.45.2)
+add_subdirectory(external/sqlite-3.45.2)
+
+add_subdirectory(external/minizip)
+include_directories(SYSTEM external/minizip/include)
+
 add_subdirectory(external/nowide)
 add_subdirectory(external/stb)
+
+include_directories(SYSTEM external/zstd-1.5.6/lib)
+set(ZSTD_BUILD_PROGRAMS OFF)
+set(ZSTD_BUILD_STATIC ON)
+set(ZSTD_BUILD_SHARED OFF)
+set(ZSTD_BUILD_TESTS OFF)
+set(ZSTD_BUILD_CONTRIB OFF)
+add_subdirectory(external/zstd-1.5.6/build/cmake)
+
 add_subdirectory(lib/nw)
 
 if (ROLLNW_BUILD_TESTS)

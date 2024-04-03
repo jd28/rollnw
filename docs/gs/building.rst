@@ -4,23 +4,6 @@ building
 rollnw uses cmake as its build system and more specifically
 `CMakePresets.json <https://cmake.org/cmake/help/latest/manual/cmake-presets.7.html>`__.
 
-Install `vcpkg <https://github.com/microsoft/vcpkg>`__. All vcpkg packages required will be built
-automatically.  Just export the vcpkg root path in an ENV var:
-
-.. tabs::
-
-   .. tab:: Linux / MacOS
-
-      .. code:: bash
-
-         $ export VCPKG_ROOT=path/to/vcpkg
-
-   .. tab:: Windows
-
-      .. code:: batch
-
-         set VCPKG_ROOT=C:\path\to\vcpkg
-
 To build the library, all one needs to do is use the following cmake commands.  This example
 also builds tests which are not enabled by default.
 
@@ -39,8 +22,7 @@ also builds tests which are not enabled by default.
 
       .. note::
 
-         The deployment target is currently set to 10.15.  Only x86_64 builds are supported
-         due to vcpkg.
+         The deployment target is currently set to 12.
 
       .. code:: bash
 

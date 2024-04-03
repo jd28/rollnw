@@ -37,9 +37,6 @@ jobs:
   analyze:
     env:
       buildDir: "${{ github.workspace }}/build/"
-      vcpkg-tag: "2023.06.20"
-      VCPKG_ROOT: "${{ github.workspace }}/vcpkg/"
-      VCPKG_DEFAULT_BINARY_CACHE: "${{ github.workspace }}/vcpkg/.cache"
       CCACHE_DIR: "${{ github.workspace }}/ccache/"
 
     name: Analyze
@@ -88,27 +85,14 @@ jobs:
       - name: Install latest CMake.
         uses: lukka/get-cmake@latest
 
-      - name: download vcpkg
-        run: |
-          git clone https://github.com/microsoft/vcpkg ${{ github.workspace }}/vcpkg || true
-          pushd vcpkg
-          ./bootstrap-vcpkg.sh
-          popd
-
-      - name: cache vcpkg
-        id: cache-vcpkg
+      - name: cache ccache
         uses: actions/cache@v4
         with:
           path: |
-            ${{ github.workspace }}/vcpkg/.cache
             ${{ github.workspace }}/ccache
-          key: ${{ runner.os }}-analyze-${{ env.vcpkg-tag }}-${{ env.DATE }}-${{ hashFiles('vcpkg.json') }}
+          key: ${{ runner.os }}-analyze-${{ env.DATE }}
           restore-keys: |
             ${{ runner.os }}-analyze-
-
-      - name: Make cache dir
-        if: steps.cache-vcpkg.outputs.cache-hit != 'true'
-        run: mkdir -p "${{ github.workspace }}/vcpkg/.cache"
 
       - name: Configure
         run: |
