@@ -73,7 +73,9 @@ add_subdirectory(external/fzy)
 add_subdirectory(external/immer)
 add_subdirectory(external/inih)
 
+if(WIN32)
 add_subdirectory(external/libiconv)
+endif()
 
 include_directories(SYSTEM external/sqlite-3.45.2)
 add_subdirectory(external/sqlite-3.45.2)

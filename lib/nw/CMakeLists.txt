@@ -134,7 +134,6 @@ target_link_libraries(nw PUBLIC
     libzstd_static
     sqlite3
     Threads::Threads
-    iconv
 
     stb_image
     fzy
@@ -142,6 +141,12 @@ target_link_libraries(nw PUBLIC
 
     coverage_config
 )
+
+if(WIN32)
+target_link_libraries(nw PUBLIC
+    iconv
+)
+endif()
 
 include(../../cmake/ProjectSettings.cmake)
 

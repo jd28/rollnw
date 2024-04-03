@@ -30,7 +30,13 @@ inline std::string iconv_wrapper(std::string_view str, const char* from, const c
     while (0 < src_size) {
         char* dst_ptr = dst_buffer;
         size_t dst_size = 2024;
+
+#ifdef ROLLNW_OS_WINDOWS
         size_t res = ::iconv(conv, &src_ptr, &src_size, &dst_ptr, &dst_size);
+#else
+        char* sp = const_cast<char*>(src_ptr);
+        size_t res = ::iconv(conv, &sp, &src_size, &dst_ptr, &dst_size);
+#endif
         if (res == std::numeric_limits<size_t>::max()) {
             if (errno == E2BIG) {
                 // ignore this error
