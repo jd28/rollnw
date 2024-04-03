@@ -3,7 +3,6 @@
   "version": "0.26.0",
   "dependencies": [
     "fmt",
-    "abseil",
     "zstd",
     "sqlite3",
     "minizip",

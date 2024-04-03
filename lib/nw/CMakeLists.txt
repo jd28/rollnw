@@ -1,5 +1,4 @@
 find_package(Threads)
-find_package(absl CONFIG REQUIRED)
 find_package(fmt CONFIG REQUIRED)
 find_package(glm CONFIG REQUIRED)
 find_package(Iconv REQUIRED)
