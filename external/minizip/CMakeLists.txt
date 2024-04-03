@@ -41,5 +41,5 @@ target_include_directories(minizip PUBLIC
 )
 
 target_link_libraries(minizip PRIVATE
-    zlib
+    zlibstatic
 )

@@ -52,6 +52,7 @@
 #else
 # include <unistd.h>
 # include <utime.h>
+# include <sys/stat.h>
 #endif
 
 
@@ -703,4 +704,3 @@ int unzip(zipfilename,dirname)
 
     return ret_value;
 }
-
