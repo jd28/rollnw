@@ -459,7 +459,7 @@ add_definitions(-DLIBDIR)
 add_definitions(-DLIBICONV_STATIC)
 
 # Build
-add_library(iconv lib/iconv.c libcharset/lib/localcharset.c)
+add_library(iconv STATIC lib/iconv.c libcharset/lib/localcharset.c)
 set_target_properties(iconv PROPERTIES VERSION ${LIBICONV_VERSION} SOVERSION ${LIBICONV_SOVERSION})
 #set_target_properties(iconv PROPERTIES INTERFACE_INCLUDE_DIRECTORIES "${CMAKE_CURRENT_BINARY_DIR}/include")
 
