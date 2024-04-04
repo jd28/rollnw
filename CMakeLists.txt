@@ -67,6 +67,8 @@ add_subdirectory(external/zlib-1.3.1)
 include_directories(SYSTEM external)
 include_directories(SYSTEM external/immer)
 include_directories(SYSTEM external/nowide/include)
+
+set(ABSL_USE_SYSTEM_INCLUDES ON)
 add_subdirectory(external/abseil-cpp-20240116.1)
 add_subdirectory(external/fmt-10.2.1)
 add_subdirectory(external/fzy)
