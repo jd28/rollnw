@@ -138,10 +138,15 @@ target_link_libraries(nw PUBLIC
     stb_image
     fzy
     inih
-    iconv
 
     coverage_config
 )
+
+if(NOT LINUX)
+target_link_libraries(nw PUBLIC
+    iconv
+)
+endif()
 
 include(../../cmake/ProjectSettings.cmake)
 
