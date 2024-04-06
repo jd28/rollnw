@@ -206,6 +206,8 @@ size_t Context::type_check_binary_op(NssToken op, size_t lhs, size_t rhs)
     case NssTokenType::OREQ:
     case NssTokenType::AND:
     case NssTokenType::ANDEQ:
+    case NssTokenType::XOR:
+    case NssTokenType::XOREQ:
         if (lhs == int_ && rhs == int_) {
             return int_;
         }
