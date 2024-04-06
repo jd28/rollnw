@@ -448,6 +448,8 @@ Expression* NssParser::parse_expr_postfix()
             }
             if (!match({NssTokenType::RPAREN})) {
                 diagnostic("Expected ')'.", peek());
+                // Bail out, this could be a snippet or something that will lead to a lot more errors
+                throw parser_error("Expected ')'");
             }
             e->range_.end = previous().loc.range.end;
             e->arg_range.end = previous().loc.range.start;

@@ -433,7 +433,7 @@ TEST(Nss, FunctionCall)
         ctx.get());
 
     EXPECT_NO_THROW(nss12.parse());
-    EXPECT_EQ(nss12.errors(), 3);
+    EXPECT_EQ(nss12.errors(), 2);
 }
 
 TEST(Nss, DotOperator)
@@ -475,7 +475,7 @@ TEST(Nss, DotOperator)
         ctx.get());
     EXPECT_NO_THROW(nss5.parse());
     EXPECT_NO_THROW(nss5.resolve());
-    EXPECT_EQ(nss5.errors(), 4);
+    EXPECT_EQ(nss5.errors(), 2);
 }
 
 TEST(Nss, Struct)
@@ -1780,4 +1780,19 @@ TEST(Nss, ConstEval)
         EXPECT_TRUE(eval1_4.result_.top().is<std::string>());
         EXPECT_EQ(eval1_4.result_.top().as<std::string>(), "Hello, NWN:EE");
     }
+}
+
+TEST(Nss, Snippet)
+{
+    auto ctx = std::make_unique<nw::script::Context>();
+
+    script::Nss nss1(R"(
+        void main() {
+            SendMessageToPC(object oObject, string sMessage)
+        }
+    )"sv,
+        ctx.get());
+    EXPECT_NO_THROW(nss1.parse());
+    EXPECT_NO_THROW(nss1.process_includes());
+    EXPECT_NO_THROW(nss1.resolve());
 }
