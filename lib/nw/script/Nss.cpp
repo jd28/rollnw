@@ -43,26 +43,26 @@ void Nss::add_diagnostic(Diagnostic diagnostic)
     diagnostics_.push_back(std::move(diagnostic));
 }
 
-void Nss::complete(const std::string& needle, CompletionContext& out) const
+void Nss::complete(const std::string& needle, CompletionContext& out, bool no_filter) const
 {
     for (const auto& [name, exp] : symbol_table_) {
-        if (has_match(needle.c_str(), name.c_str())) {
+        if (no_filter || has_match(needle.c_str(), name.c_str())) {
             if (exp.decl) { out.add(declaration_to_symbol(exp.decl)); }
             if (exp.type) { out.add(declaration_to_symbol(exp.type)); }
         }
     }
 }
 
-inline void complete_includes(const Nss* script, const std::string& needle, CompletionContext& out)
+inline void complete_includes(const Nss* script, const std::string& needle, CompletionContext& out, bool no_filter)
 {
-    script->complete(needle, out);
+    script->complete(needle, out, no_filter);
     for (const auto& it : script->ast().includes) {
         if (!it.script) { continue; }
-        complete_includes(it.script, needle, out);
+        complete_includes(it.script, needle, out, no_filter);
     }
 }
 
-void Nss::complete_at(const std::string& needle, size_t line, size_t character, CompletionContext& out)
+void Nss::complete_at(const std::string& needle, size_t line, size_t character, CompletionContext& out, bool no_filter)
 {
     AstLocator locator{this, needle, line, character};
     locator.visit(&ast_);
@@ -115,15 +115,16 @@ void Nss::complete_at(const std::string& needle, size_t line, size_t character, 
 
     for (const auto& it : ast_.includes) {
         if (!it.script) { continue; }
-        complete_includes(it.script, needle, out);
+        complete_includes(it.script, needle, out, no_filter);
     }
 
     if (!is_command_script_) {
-        ctx_->command_script_->complete(needle, out);
+        ctx_->command_script_->complete(needle, out, no_filter);
     }
 }
 
-void Nss::complete_dot(const std::string& needle, size_t line, size_t character, std::vector<Symbol>& out)
+void Nss::complete_dot(const std::string& needle, size_t line, size_t character, std::vector<Symbol>& out,
+    bool)
 {
     AstLocator locator{this, needle, line, character};
     locator.visit(&ast_);

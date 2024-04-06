@@ -87,13 +87,15 @@ struct Nss {
     const Ast& ast() const;
 
     /// Generates a list of potential completions (excluding dependencies)
-    void complete(const std::string& needle, CompletionContext& out) const;
+    void complete(const std::string& needle, CompletionContext& out, bool no_filter = false) const;
 
     /// Get all completions (including dependencies)
-    void complete_at(const std::string& needle, size_t line, size_t character, CompletionContext& out);
+    void complete_at(const std::string& needle, size_t line, size_t character, CompletionContext& out,
+        bool no_filter = false);
 
     /// Get all completions (including dependencies)
-    void complete_dot(const std::string& needle, size_t line, size_t character, std::vector<Symbol>& out);
+    void complete_dot(const std::string& needle, size_t line, size_t character, std::vector<Symbol>& out,
+        bool no_filter = false);
 
     /// Script context
     Context* ctx() const;

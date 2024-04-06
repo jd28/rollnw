@@ -228,17 +228,17 @@ void init_script(py::module& nw)
                 return &self.ast();
             },
             py::return_value_policy::reference_internal)
-        .def("complete", [](const nws::Nss& self, const std::string& needle) {
+        .def("complete", [](const nws::Nss& self, const std::string& needle, bool no_filter) {
                 nws::CompletionContext out;
-                self.complete(needle, out);
+                self.complete(needle, out, no_filter);
                 return std::move(out.completions); })
-        .def("complete_at", [](nws::Nss& self, const std::string& needle, size_t line, size_t character) {
+        .def("complete_at", [](nws::Nss& self, const std::string& needle, size_t line, size_t character, bool no_filter) {
                 nws::CompletionContext out;
-                self.complete_at(needle, line, character, out);
+                self.complete_at(needle, line, character, out, no_filter);
                 return std::move(out.completions); })
-        .def("complete_dot", [](nws::Nss& self, const std::string& needle, size_t line, size_t character) {
+        .def("complete_dot", [](nws::Nss& self, const std::string& needle, size_t line, size_t character, bool no_filter) {
                 std::vector<nw::script::Symbol> out;
-                self.complete_dot(needle, line, character, out);
+                self.complete_dot(needle, line, character, out, no_filter);
                 return out; })
         .def("dependencies", &nws::Nss::dependencies)
         .def("diagnostics", &nws::Nss::diagnostics)
