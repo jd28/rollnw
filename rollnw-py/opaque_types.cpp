@@ -37,4 +37,5 @@ void bind_opaque_types(py::module& m)
     py::bind_vector<std::vector<nw::Store*>>(m, "StoreVector");
     py::bind_vector<std::vector<nw::Trigger*>>(m, "TriggerVector");
     py::bind_vector<std::vector<nw::Waypoint*>>(m, "WaypointVector");
+    py::bind_vector<std::vector<nw::script::Symbol>>(m, "SymbolVector");
 }

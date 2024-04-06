@@ -1,4 +1,5 @@
 #include "casters.hpp"
+#include "opaque_types.hpp"
 
 #include <nw/kernel/Resources.hpp>
 #include <nw/script/Nss.hpp>
@@ -59,8 +60,20 @@ void init_script(py::module& nw)
 
     py::class_<nws::Context>(nw, "Context")
         .def(py::init<>())
-        .def(py::init<std::vector<std::string>>())
-        .def(py::init<std::vector<std::string>, std::string>())
+        .def(py::init([](py::list& includes) {
+            std::vector<std::string> incs;
+            for (const auto& include : includes) {
+                incs.push_back(include.cast<std::string>());
+            }
+            return new nws::Context(incs);
+        }))
+        .def(py::init([](py::list& includes, std::string command_script) {
+            std::vector<std::string> incs;
+            for (const auto& include : includes) {
+                incs.push_back(include.cast<std::string>());
+            }
+            return new nws::Context(incs, command_script);
+        }))
         .def("add_include_path", &nws::Context::add_include_path)
         .def("command_script", &nws::Context::command_script, py::return_value_policy::reference_internal)
         .def("get", &nws::Context::get, py::return_value_policy::reference_internal,
@@ -215,40 +228,28 @@ void init_script(py::module& nw)
                 return &self.ast();
             },
             py::return_value_policy::reference_internal)
-        .def(
-            "complete", [](const nws::Nss& self, const std::string& needle) {
+        .def("complete", [](const nws::Nss& self, const std::string& needle) {
                 nws::CompletionContext out;
                 self.complete(needle, out);
-                return out.completions;
-            },
-            py::return_value_policy::reference_internal)
-        .def(
-            "complete_at", [](nws::Nss& self, const std::string& needle, size_t line, size_t character) {
+                return std::move(out.completions); })
+        .def("complete_at", [](nws::Nss& self, const std::string& needle, size_t line, size_t character) {
                 nws::CompletionContext out;
                 self.complete_at(needle, line, character, out);
-                return out.completions;
-            },
-            py::return_value_policy::reference_internal)
-        .def(
-            "complete_dot", [](nws::Nss& self, const std::string& needle, size_t line, size_t character) {
+                return std::move(out.completions); })
+        .def("complete_dot", [](nws::Nss& self, const std::string& needle, size_t line, size_t character) {
                 std::vector<nw::script::Symbol> out;
                 self.complete_dot(needle, line, character, out);
-                return out;
-            },
-            py::return_value_policy::reference_internal)
+                return out; })
         .def("dependencies", &nws::Nss::dependencies)
         .def("diagnostics", &nws::Nss::diagnostics)
         .def("errors", &nws::Nss::errors)
-        .def(
-            "exports", [](const nws::Nss& self) {
+        .def("exports", [](const nws::Nss& self) {
                 std::vector<nws::Symbol> result;
                 for (const auto& [key, exp] : self.exports()) {
                     if (exp.decl) { result.push_back(self.declaration_to_symbol(exp.decl)); }
                     if (exp.type) { result.push_back(self.declaration_to_symbol(exp.type)); }
                 }
-                return result;
-            },
-            py::return_value_policy::reference_internal)
+                return result; }, py::return_value_policy::reference_internal)
         .def("inlay_hints", &nws::Nss::inlay_hints)
         .def("locate_export", &nws::Nss::locate_export, py::arg("symbol"), py::arg("is_type"), py::arg("search_dependancies") = false, py::return_value_policy::reference_internal)
         .def("locate_symbol", &nws::Nss::locate_symbol, py::return_value_policy::reference_internal)
@@ -259,15 +260,10 @@ void init_script(py::module& nw)
         .def("signature_help", &nws::Nss::signature_help, py::return_value_policy::reference_internal)
         .def("type_name", [](const nws::Nss& self, const nws::AstNode* node) {
             if (!node) { return ""sv; }
-            return self.ctx() ? self.ctx()->type_name(node->type_id_) : ""sv;
-        })
+            return self.ctx() ? self.ctx()->type_name(node->type_id_) : ""sv; })
         .def("view_from_range", &nws::Nss::view_from_range)
         .def("warnings", &nws::Nss::warnings)
-        .def_static(
-            "from_string", [](std::string_view str, nws::Context* ctx, bool command_script) {
-                return new nws::Nss(str, ctx, command_script);
-            },
-            py::arg("str"), py::arg("ctx"), py::arg("is_command_script") = false, py::keep_alive<0, 2>());
+        .def_static("from_string", [](std::string_view str, nws::Context* ctx, bool command_script) { return new nws::Nss(str, ctx, command_script); }, py::arg("str"), py::arg("ctx"), py::arg("is_command_script") = false, py::keep_alive<0, 2>());
 
     py::class_<nws::Include>(nw, "Include")
         .def_readonly("resref", &nws::Include::resref)
@@ -285,11 +281,7 @@ void init_script(py::module& nw)
             },
             py::return_value_policy::reference_internal)
         .def("__len__", [](const nws::Ast& self) { return self.decls.size(); })
-        .def(
-            "__iter__", [](const nws::Ast& self) {
-                return py::make_iterator(self.decls.begin(), self.decls.end());
-            },
-            py::keep_alive<0, 1>())
+        .def("__iter__", [](const nws::Ast& self) { return py::make_iterator(self.decls.begin(), self.decls.end()); }, py::keep_alive<0, 1>())
         .def_readonly("defines", &nws::Ast::defines)
         .def_readonly("includes", &nws::Ast::includes)
         .def_readonly("comments", &nws::Ast::comments)

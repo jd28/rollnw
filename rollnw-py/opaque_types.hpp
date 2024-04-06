@@ -15,6 +15,7 @@
 #include <nw/objects/Waypoint.hpp>
 #include <nw/resources/ResourceDescriptor.hpp>
 #include <nw/resources/Resref.hpp>
+#include <nw/script/Nss.hpp>
 
 #include <glm/vec3.hpp>
 #include <pybind11/pybind11.h>
@@ -56,5 +57,6 @@ PYBIND11_MAKE_OPAQUE(std::vector<nw::Sound*>)
 PYBIND11_MAKE_OPAQUE(std::vector<nw::Store*>)
 PYBIND11_MAKE_OPAQUE(std::vector<nw::Trigger*>)
 PYBIND11_MAKE_OPAQUE(std::vector<nw::Waypoint*>)
+PYBIND11_MAKE_OPAQUE(std::vector<nw::script::Symbol>)
 
 void bind_opaque_types(pybind11::module& m);
