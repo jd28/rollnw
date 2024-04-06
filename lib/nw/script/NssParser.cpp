@@ -151,9 +151,14 @@ NssToken NssParser::previous()
     return tokens[current_ - 1];
 }
 
-void NssParser::synchronize()
+void NssParser::synchronize(bool allow_rbrace)
 {
     while (!is_end()) {
+        // [TODO] I forget why I took rbrace out, so special case it here for now.
+        if (allow_rbrace && peek().type == NssTokenType::RBRACE) {
+            return;
+        }
+
         switch (peek().type) {
         default:
             break;
@@ -683,7 +688,7 @@ BlockStatement* NssParser::parse_stmt_block()
             }
         } catch (const parser_error&) {
             if (peek().type != NssTokenType::RBRACE) {
-                synchronize();
+                synchronize(true);
             }
         }
     }

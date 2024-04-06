@@ -78,7 +78,7 @@ struct NssParser {
     NssToken previous();
 
     /// Advances token stream after an error
-    void synchronize();
+    void synchronize(bool allow_rbrace = false);
 
     // Expression functions are basically listed from lowest precedence
     // to highest
