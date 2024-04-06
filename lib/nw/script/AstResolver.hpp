@@ -665,11 +665,12 @@ struct AstResolver : BaseVisitor {
             expr->lhs->accept(this);
             struct_type = ctx_->type_name(expr->lhs->type_id_);
             struct_decl = dynamic_cast<const StructDecl*>(resolve(struct_type, expr->dot.loc.range, true));
-        } else if (auto ve = dynamic_cast<VariableExpression*>(expr->lhs)) {
-            ve->accept(this);
+        } else if (dynamic_cast<VariableExpression*>(expr->lhs)
+            || dynamic_cast<CallExpression*>(expr->lhs)) {
+            expr->lhs->accept(this);
 
             // special case vector lookup here for now
-            if (ve->type_id_ == ctx_->type_id("vector")
+            if (expr->lhs->type_id_ == ctx_->type_id("vector")
                 && (ex_rhs->var.loc.view() == "x"
                     || ex_rhs->var.loc.view() == "y"
                     || ex_rhs->var.loc.view() == "z")) {
@@ -677,8 +678,9 @@ struct AstResolver : BaseVisitor {
                 return;
             }
 
-            struct_type = ctx_->type_name(ve->type_id_);
-            struct_decl = dynamic_cast<const StructDecl*>(resolve(ctx_->type_name(ve->type_id_), ve->var.loc.range, true));
+            struct_type = ctx_->type_name(expr->lhs->type_id_);
+            struct_decl = dynamic_cast<const StructDecl*>(resolve(ctx_->type_name(expr->lhs->type_id_),
+                expr->lhs->range_, true));
         }
 
         if (!struct_decl) {

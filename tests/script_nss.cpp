@@ -539,6 +539,18 @@ TEST(Nss, Struct)
     EXPECT_NO_THROW(nss5.resolve());
     EXPECT_EQ(nss5.errors(), 0);
 
+    script::Nss nss11(R"(
+        void main() {
+            location l;
+            float x = GetPositionFromLocation(l).x;
+        }
+    )"sv,
+        ctx.get());
+
+    EXPECT_NO_THROW(nss11.parse());
+    EXPECT_NO_THROW(nss11.resolve());
+    EXPECT_EQ(nss11.errors(), 0);
+
     // == Bad =================================================================
 
     script::Nss nss3(R"(
