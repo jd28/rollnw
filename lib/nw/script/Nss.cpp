@@ -217,12 +217,12 @@ Symbol Nss::declaration_to_symbol(const Declaration* decl) const
     return result;
 }
 
-std::set<std::string> Nss::dependencies() const
+std::vector<std::string> Nss::dependencies() const
 {
-    std::set<std::string> result;
-    for (const auto& [key, _] : ctx_->dependencies_) {
-        if (key == data_.name) { continue; }
-        result.emplace(key.resref.view());
+    std::vector<std::string> result;
+    for (const auto& [key, _] : ctx_->include_stack_) {
+        if (key == data_.name.resref.view()) { continue; }
+        result.push_back(key);
     }
     return result;
 }
@@ -295,15 +295,21 @@ void Nss::parse()
 void Nss::process_includes(Nss* parent)
 {
     if (!parent) { parent = this; }
+    auto resref = std::string(name());
 
-    parent->ctx_->include_stack_.push_back(data_.name.resref.string());
+    // If already there then skip
+    for (const auto& entry : ctx_->include_stack_) {
+        if (resref == entry.resref) { return; }
+    }
 
-    for (auto& include : ast_.includes) {
+    parent->ctx_->include_stack_.push_back(IncludeStackEntry{resref, this});
+
+    // Go through last include first
+    for (auto& include : reverse(ast_.includes)) {
         for (const auto& entry : parent->ctx_->include_stack_) {
-            if (include.resref == entry) {
+            if (include.resref == entry.resref) {
                 ctx_->semantic_diagnostic(parent,
-                    fmt::format("recursive includes: {}",
-                        string::join(parent->ctx_->include_stack_, ", ")),
+                    fmt::format("recursive includes: {}", resref),
                     false,
                     include.location);
                 return;
@@ -320,8 +326,6 @@ void Nss::process_includes(Nss* parent)
             include.script->process_includes(parent);
         }
     }
-
-    parent->ctx_->include_stack_.pop_back();
 }
 
 void Nss::resolve()

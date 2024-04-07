@@ -798,8 +798,47 @@ TEST(Nss, Includes)
     EXPECT_NO_THROW(nss3.resolve());
 
     auto deps3 = nss3.dependencies();
-    EXPECT_EQ(deps3.size(), 2);
-    EXPECT_NE(deps3.find("test_inc_i"), std::end(deps3));
+    EXPECT_EQ(deps3.size(), 1);
+    EXPECT_NE(std::find(std::begin(deps3), std::end(deps3), "test_inc_i"), std::end(deps3));
+
+    auto ctx4 = std::make_unique<script::Context>();
+    script::Nss nss4(fs::path("test_data/user/development/nw_s0_raisdead.nss"), ctx4.get());
+    EXPECT_NO_THROW(nss4.parse());
+    EXPECT_NO_THROW(nss4.process_includes());
+    EXPECT_NO_THROW(nss4.resolve());
+    std::vector<std::string> expectaion{
+        "x2_inc_spellhook",
+        "x3_inc_horse",
+        "x3_inc_skin",
+        "x3_inc_string",
+        "x0_inc_henai",
+        "x0_i0_henchman",
+        "nw_i0_spells",
+        "nw_i0_generic",
+        "x0_i0_anims",
+        "x0_i0_walkway",
+        "x0_i0_spawncond",
+        "x0_i0_combat",
+        "x0_i0_talent",
+        "x0_inc_generic",
+        "x0_i0_equip",
+        "x0_i0_enemy",
+        "x0_i0_match",
+        "x0_i0_assoc",
+        "x0_i0_debug",
+        "x0_i0_voice",
+        "x0_i0_modes",
+        "x0_i0_position",
+        "x0_i0_behavior",
+        "nw_i0_plot",
+        "x0_i0_common",
+        "x0_i0_transport",
+        "x0_i0_partywide",
+        "x0_i0_campaign",
+        "x2_inc_craft",
+        "x2_inc_switches",
+        "x2_inc_itemprop"};
+    EXPECT_EQ(nss4.dependencies(), expectaion);
 }
 
 TEST(Nss, Literals)

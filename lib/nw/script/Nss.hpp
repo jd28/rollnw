@@ -104,8 +104,9 @@ struct Nss {
     /// @note Declaration must be in script
     Symbol declaration_to_symbol(const Declaration* decl) const;
 
-    /// Returns all transitive dependencies
-    std::set<std::string> dependencies() const;
+    /// Returns all transitive dependencies in 'preprocessed' order,
+    /// i.e. dependencies()[n] was include before dependencies()[n+1]
+    std::vector<std::string> dependencies() const;
 
     /// Gets script diagnostics
     const std::vector<Diagnostic>& diagnostics() const noexcept;

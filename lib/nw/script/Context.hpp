@@ -15,6 +15,11 @@ struct Nss;
 struct StructDecl;
 struct Type;
 
+struct IncludeStackEntry {
+    std::string resref;
+    Nss* script = nullptr;
+};
+
 struct Context {
     Context(std::vector<std::string> include_paths = {}, std::string command_script = "nwscript");
     virtual ~Context() = default;
@@ -22,7 +27,7 @@ struct Context {
     // Resource Loading / Dependency Tracking
     std::vector<std::string> include_paths_;
     absl::flat_hash_map<Resource, std::unique_ptr<Nss>> dependencies_;
-    std::vector<std::string> include_stack_;
+    std::vector<IncludeStackEntry> include_stack_;
     kernel::Resources resman_;
 
     /// Adds include path to internal resman
