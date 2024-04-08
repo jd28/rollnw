@@ -65,9 +65,11 @@ struct AstResolver : BaseVisitor {
             bool redecl = false;
             std::string msg;
 
-            for (auto& it : reverse(parent_->ast().includes)) {
+            for (auto& it : reverse(parent_->ctx()->preprocessed_)) {
+                if (it.resref == parent_->name()) { break; }
                 if (!it.script) { continue; }
-                if (auto decl = locate(s, it.script, is_type)) {
+                Symbol symbol = it.script->locate_export(s, is_type);
+                if (symbol.decl) {
                     redecl = true;
                     msg = fmt::format("redeclaration of '{}' imported declaration", token.loc.view());
                     break;
@@ -160,24 +162,6 @@ struct AstResolver : BaseVisitor {
         return env_stack_[0];
     }
 
-    // Locate decl in script or dependencies
-    // Note: does not check command script
-    const Declaration* locate(const std::string& token, Nss* script, bool is_type)
-    {
-        auto symbol = script->locate_export(token, is_type);
-        if (symbol.decl) {
-            return symbol.decl;
-        } else {
-            for (auto& it : reverse(script->ast().includes)) {
-                if (!it.script) { continue; }
-                if (auto decl = locate(token, it.script, is_type)) {
-                    return decl;
-                }
-            }
-        }
-        return nullptr;
-    }
-
     // Resolve symbol to original decl
     const Declaration* resolve(std::string_view token, SourceRange range, bool is_type)
     {
@@ -207,9 +191,11 @@ struct AstResolver : BaseVisitor {
         }
 
         // Next look through all dependencies
-        for (auto it : reverse(parent_->ast().includes)) {
+        for (auto it : reverse(ctx_->preprocessed_)) {
+            if (it.resref == parent_->name()) { break; }
             if (!it.script) { continue; }
-            if (auto decl = locate(s, it.script, is_type)) { return decl; }
+            auto sym = it.script->locate_export(s, is_type);
+            if (sym.decl) { return sym.decl; }
         }
 
         if (!is_command_script_ && ctx_->command_script_) {
@@ -789,6 +775,10 @@ struct AstResolver : BaseVisitor {
                 fmt::format("unable to resolve identifier '{}'", expr->var.loc.view()),
                 false,
                 expr->range_);
+
+            for (const auto& it : ctx_->preprocessed_) {
+                LOG_F(INFO, "preprocessed stack: {}", it.resref);
+            }
         }
     }
 

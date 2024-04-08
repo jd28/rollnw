@@ -508,6 +508,12 @@ Expression* NssParser::parse_expr_primary()
             expr->data = object_invalid;
         } else if (expr->literal.type == NssTokenType::JSON_CONST) {
             // [TODO] I don't know what to do with this.. yet
+            // if (expr->literal.loc.view() == "JSON_FALSE") {
+            // } else if (expr->literal.loc.view() == "JSON_TRUE") {
+            // } else if (expr->literal.loc.view() == "JSON_OBJECT") {
+            // } else if (expr->literal.loc.view() == "JSON_ARRAY") {
+            // } else if (expr->literal.loc.view() == "JSON_STRING") {
+            // }
         }
         return expr;
     }

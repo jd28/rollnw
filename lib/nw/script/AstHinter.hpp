@@ -28,9 +28,10 @@ struct AstHinter : public BaseVisitor {
                 return sym.decl;
             }
         }
-        for (const auto it : parent_->ast().includes) {
+        for (const auto it : reverse(parent_->ctx()->preprocessed_)) {
+            if (it.resref == parent_->name()) { break; }
             if (!it.script) { continue; }
-            auto sym = it.script->locate_export(needle, false, true);
+            auto sym = it.script->locate_export(needle, false);
             if (sym.decl) {
                 return sym.decl;
             }

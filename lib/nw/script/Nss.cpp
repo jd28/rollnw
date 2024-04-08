@@ -53,15 +53,6 @@ void Nss::complete(const std::string& needle, CompletionContext& out, bool no_fi
     }
 }
 
-inline void complete_includes(const Nss* script, const std::string& needle, CompletionContext& out, bool no_filter)
-{
-    script->complete(needle, out, no_filter);
-    for (const auto& it : script->ast().includes) {
-        if (!it.script) { continue; }
-        complete_includes(it.script, needle, out, no_filter);
-    }
-}
-
 void Nss::complete_at(const std::string& needle, size_t line, size_t character, CompletionContext& out, bool no_filter)
 {
     AstLocator locator{this, needle, line, character};
@@ -113,9 +104,22 @@ void Nss::complete_at(const std::string& needle, size_t line, size_t character, 
         }
     }
 
-    for (const auto& it : ast_.includes) {
-        if (!it.script) { continue; }
-        complete_includes(it.script, needle, out, no_filter);
+    // Find our position in the include stack.. should be first
+    auto it = std::begin(ctx_->preprocessed_);
+    auto end = std::begin(ctx_->preprocessed_);
+    while (it != end) {
+        if (it->resref == name()) { break; }
+        ++it;
+    }
+
+    if (it == end) {
+        LOG_F(ERROR, "[script] failed to find script '{}' in include stack", name());
+        return;
+    }
+
+    ++it;
+    while (it != end) {
+        it->script->complete(needle, out);
     }
 
     if (!is_command_script_) {
@@ -220,7 +224,7 @@ Symbol Nss::declaration_to_symbol(const Declaration* decl) const
 std::vector<std::string> Nss::dependencies() const
 {
     std::vector<std::string> result;
-    for (const auto& [key, _] : ctx_->include_stack_) {
+    for (const auto& [key, _] : ctx_->preprocessed_) {
         if (key == data_.name.resref.view()) { continue; }
         result.push_back(key);
     }
@@ -259,9 +263,10 @@ Symbol Nss::locate_export(const std::string& symbol, bool is_type, bool search_d
     }
 
     if (!result.decl) {
-        for (const auto it : ast_.includes) {
+        for (const auto& it : reverse(ctx_->preprocessed_)) {
+            if (it.resref == name()) { break; }
             if (!it.script) { continue; }
-            result = it.script->locate_export(symbol, is_type, search_dependencies);
+            result = it.script->locate_export(symbol, is_type, false);
             if (result.decl) { return result; }
         }
     }
@@ -287,22 +292,24 @@ std::string_view Nss::name() const noexcept
 
 void Nss::parse()
 {
+    if (parsed_) { return; }
     NssParser parser{text_, ctx_, this};
     ast_ = parser.parse_program();
-    resolved_ = false;
+    parsed_ = true;
 }
 
 void Nss::process_includes(Nss* parent)
 {
+    bool has_parent = !!parent;
+    if (!has_parent && (includes_processed_ || is_command_script_)) { return; }
     if (!parent) { parent = this; }
     auto resref = std::string(name());
 
-    // If already there then skip
-    for (const auto& entry : ctx_->include_stack_) {
-        if (resref == entry.resref) { return; }
-    }
-
+    // Need two lists here, one to prevent recursive includes, one to track
+    // all includes.  Conceptually, at the end is 'preprocessed_' is like a
+    // faux view file processed by the C preprocessor.
     parent->ctx_->include_stack_.push_back(IncludeStackEntry{resref, this});
+    parent->ctx_->preprocessed_.push_back(IncludeStackEntry{resref, this});
 
     // Go through last include first
     for (auto& include : reverse(ast_.includes)) {
@@ -326,20 +333,51 @@ void Nss::process_includes(Nss* parent)
             include.script->process_includes(parent);
         }
     }
+
+    ctx_->include_stack_.pop_back();
+
+    if (!has_parent) {
+        // We're removing all but the last occurance of an include, imagine as a flat file
+        absl::flat_hash_set<std::string> set;
+        int count = 0;
+        auto test = [&set, &count](const IncludeStackEntry& entry) {
+            if (set.contains(entry.resref)) {
+                ++count;
+                return true;
+            }
+            set.insert(entry.resref);
+            return false;
+        };
+
+        auto it = std::remove_if(std::rbegin(ctx_->preprocessed_),
+            std::rend(ctx_->preprocessed_), test);
+
+        ctx_->preprocessed_.erase(std::begin(ctx_->preprocessed_), std::begin(ctx_->preprocessed_) + count);
+    }
+
+    includes_processed_ = true;
 }
 
 void Nss::resolve()
 {
     if (resolved_) { return; }
+    parse();
+    process_includes();
 
-    for (const auto& it : ast_.includes) {
-        if (it.script) { it.script->resolve(); }
+    // Command script naturally doesn't have anything in the preprocessed stack
+    if (is_command_script_) {
+        AstResolver resolver{this, ctx_, is_command_script_};
+        resolver.visit(&ast_);
+        symbol_table_ = resolver.symbol_table();
+        resolved_ = true;
+    } else {
+        for (const auto& it : reverse(ctx_->preprocessed_)) {
+            AstResolver resolver{it.script, ctx_, is_command_script_};
+            resolver.visit(&it.script->ast_);
+            it.script->symbol_table_ = resolver.symbol_table();
+            it.script->resolved_ = true;
+        }
     }
-
-    AstResolver resolver{this, ctx_, is_command_script_};
-    resolver.visit(&ast_);
-    symbol_table_ = resolver.symbol_table();
-    resolved_ = true;
 }
 
 Ast& Nss::ast() { return ast_; }

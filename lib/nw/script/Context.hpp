@@ -28,6 +28,7 @@ struct Context {
     std::vector<std::string> include_paths_;
     absl::flat_hash_map<Resource, std::unique_ptr<Nss>> dependencies_;
     std::vector<IncludeStackEntry> include_stack_;
+    std::vector<IncludeStackEntry> preprocessed_;
     kernel::Resources resman_;
 
     /// Adds include path to internal resman

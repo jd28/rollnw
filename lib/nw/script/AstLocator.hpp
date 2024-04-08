@@ -36,9 +36,10 @@ struct AstLocator : public BaseVisitor {
             if (sym.decl) { return sym; }
         }
         if (!result_.decl) {
-            for (const auto& it : parent_->ast().includes) {
+            for (const auto& it : reverse(parent_->ctx()->preprocessed_)) {
+                if (it.resref == parent_->name()) { break; }
                 if (!it.script) { continue; }
-                auto sym = it.script->locate_export(needle, is_type, true);
+                auto sym = it.script->locate_export(needle, is_type, false);
                 if (sym.decl) { return sym; }
             }
         }

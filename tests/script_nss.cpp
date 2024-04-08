@@ -794,7 +794,7 @@ TEST(Nss, Includes)
     EXPECT_EQ(nss3.ast().includes.size(), 1);
     EXPECT_TRUE(nss3.errors() == 0);
     nss3.process_includes();
-    EXPECT_EQ(nss.ast().includes.size(), 1);
+    EXPECT_EQ(nss3.ast().includes.size(), 1);
     EXPECT_NO_THROW(nss3.resolve());
 
     auto deps3 = nss3.dependencies();
@@ -803,8 +803,6 @@ TEST(Nss, Includes)
 
     auto ctx4 = std::make_unique<script::Context>();
     script::Nss nss4(fs::path("test_data/user/development/nw_s0_raisdead.nss"), ctx4.get());
-    EXPECT_NO_THROW(nss4.parse());
-    EXPECT_NO_THROW(nss4.process_includes());
     EXPECT_NO_THROW(nss4.resolve());
     std::vector<std::string> expectaion{
         "x2_inc_spellhook",
@@ -828,17 +826,25 @@ TEST(Nss, Includes)
         "x0_i0_debug",
         "x0_i0_voice",
         "x0_i0_modes",
-        "x0_i0_position",
         "x0_i0_behavior",
         "nw_i0_plot",
         "x0_i0_common",
         "x0_i0_transport",
         "x0_i0_partywide",
         "x0_i0_campaign",
+        "x0_i0_position",
         "x2_inc_craft",
         "x2_inc_switches",
         "x2_inc_itemprop"};
     EXPECT_EQ(nss4.dependencies(), expectaion);
+
+    auto ctx5 = std::make_unique<script::Context>();
+    script::Nss nss5(fs::path("test_data/user/development/test_inc_stack.nss"), ctx5.get());
+    EXPECT_NO_THROW(nss5.resolve());
+    std::vector<std::string> expectaion5{
+        "test_inc_stack_2",
+        "test_inc_i"};
+    EXPECT_EQ(nss5.dependencies(), expectaion5);
 }
 
 TEST(Nss, Literals)

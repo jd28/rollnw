@@ -38,24 +38,6 @@ struct AstConstEvaluator : public BaseVisitor {
             || parent_->ctx()->type_name(type) == "vector";
     }
 
-    // Locate decl in script or dependencies
-    // Note: does not check command script
-    const VarDecl* locate(const std::string& token, Nss* script)
-    {
-        auto symbol = script->locate_export(token, false);
-        if (symbol.decl) {
-            return dynamic_cast<const VarDecl*>(symbol.decl);
-        } else {
-            for (auto& it : reverse(script->ast().includes)) {
-                if (!it.script) { continue; }
-                if (auto decl = locate(token, it.script)) {
-                    return decl;
-                }
-            }
-        }
-        return nullptr;
-    }
-
     // Resolve symbol to original decl
     void resolve(VariableExpression* var)
     {
@@ -69,10 +51,12 @@ struct AstConstEvaluator : public BaseVisitor {
         }
 
         // Next look through all dependencies
-        for (auto it : reverse(parent_->ast().includes)) {
+        for (auto it : reverse(parent_->ctx()->preprocessed_)) {
+            if (it.resref == parent_->name()) { break; }
             if (!it.script) { continue; }
-            if (auto decl = locate(s, it.script)) {
-                AstConstEvaluator eval{it.script, decl->init};
+            auto symbol = it.script->locate_export(s, false);
+            if (auto vd = dynamic_cast<const VarDecl*>(symbol.decl)) {
+                AstConstEvaluator eval{it.script, vd->init};
                 if (!eval.failed_ && eval.result_.size() > 0) {
                     result_.push(eval.result_.top());
                     return;
