@@ -76,6 +76,8 @@ uint8_t* Image::data() { return bytes_; }
 
 uint32_t Image::height() const noexcept { return height_; }
 
+bool Image::is_bio_dds() const noexcept { return is_bio_dds_; }
+
 uint32_t Image::width() const noexcept { return width_; }
 
 bool Image::valid() const { return is_loaded_; }
@@ -175,6 +177,7 @@ bool Image::parse_dds()
     data_.bytes.read_at(0, &magic, 4);
 
     if (magic != 0x20534444) {
+        is_bio_dds_ = true;
         return parse_bioware();
     } else {
         return parse_dxt();

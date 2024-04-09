@@ -37,6 +37,9 @@ struct Image {
     /// Get height
     uint32_t height() const noexcept;
 
+    /// Returns true if image was loaded from a bioware dds file
+    bool is_bio_dds() const noexcept;
+
     /// Determine if successfully loaded.
     bool valid() const;
 
@@ -55,6 +58,7 @@ private:
     uint32_t height_ = 0;
     uint32_t width_ = 0;
     bool is_dds_ = false;
+    bool is_bio_dds_ = false;
 
     bool parse();
     bool parse_dds();
