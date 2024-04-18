@@ -17,7 +17,7 @@
         <script src="../../_static/jquery.js?v=5d32c60e"></script>
         <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
         <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
-        <script src="../../_static/doctools.js?v=888ff710"></script>
+        <script src="../../_static/doctools.js?v=9a2dae69"></script>
         <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
@@ -96,11 +96,10 @@
 <li class="toctree-l2"><a class="reference internal" href="nw__DialogNode.html">nw::DialogNode</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">nw::DialogPtr</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#_CPPv4N2nw9DialogPtrE"><code class="docutils literal notranslate"><span class="pre">DialogPtr</span></code></a><ul>
-<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw9DialogPtr4nodeEv"><code class="docutils literal notranslate"><span class="pre">DialogPtr::node()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw9DialogPtr4nodeEv"><code class="docutils literal notranslate"><span class="pre">DialogPtr::node()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw9DialogPtr6parentE"><code class="docutils literal notranslate"><span class="pre">DialogPtr::parent</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw9DialogPtr4typeE"><code class="docutils literal notranslate"><span class="pre">DialogPtr::type</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw9DialogPtr5indexE"><code class="docutils literal notranslate"><span class="pre">DialogPtr::index</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw9DialogPtr4nodeE"><code class="docutils literal notranslate"><span class="pre">DialogPtr::node</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw9DialogPtr14script_appearsE"><code class="docutils literal notranslate"><span class="pre">DialogPtr::script_appears</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw9DialogPtr8is_startE"><code class="docutils literal notranslate"><span class="pre">DialogPtr::is_start</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw9DialogPtr7is_linkE"><code class="docutils literal notranslate"><span class="pre">DialogPtr::is_link</span></code></a></li>
@@ -382,19 +381,6 @@
 <dt class="sig sig-object cpp" id="_CPPv4N2nw9DialogPtrE">
 <span id="_CPPv3N2nw9DialogPtrE"></span><span id="_CPPv2N2nw9DialogPtrE"></span><span id="nw::DialogPtr"></span><span class="target" id="structnw_1_1_dialog_ptr"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">DialogPtr</span></span></span><a class="headerlink" href="#_CPPv4N2nw9DialogPtrE" title="Link to this definition"></a><br /></dt>
 <dd><div class="breathe-sectiondef docutils container">
-<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
-<dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N2nw9DialogPtr4nodeEv">
-<span id="_CPPv3N2nw9DialogPtr4nodeEv"></span><span id="_CPPv2N2nw9DialogPtr4nodeEv"></span><span id="nw::DialogPtr::node"></span><span class="target" id="structnw_1_1_dialog_ptr_1a7636f891162ff84461342653c99fc24d"></span><a class="reference internal" href="nw__DialogNode.html#_CPPv4N2nw10DialogNodeE" title="nw::DialogNode"><span class="n"><span class="pre">DialogNode</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">node</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw9DialogPtr4nodeEv" title="Link to this definition"></a><br /></dt>
-<dd></dd></dl>
-
-<dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4NK2nw9DialogPtr4nodeEv">
-<span id="_CPPv3NK2nw9DialogPtr4nodeEv"></span><span id="_CPPv2NK2nw9DialogPtr4nodeEv"></span><span id="nw::DialogPtr::nodeC"></span><span class="target" id="structnw_1_1_dialog_ptr_1aff9370739db869b208fbd44c0cfce076"></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="nw__DialogNode.html#_CPPv4N2nw10DialogNodeE" title="nw::DialogNode"><span class="n"><span class="pre">DialogNode</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">node</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK2nw9DialogPtr4nodeEv" title="Link to this definition"></a><br /></dt>
-<dd></dd></dl>
-
-</div>
-<div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw9DialogPtr6parentE">
@@ -409,6 +395,11 @@
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw9DialogPtr5indexE">
 <span id="_CPPv3N2nw9DialogPtr5indexE"></span><span id="_CPPv2N2nw9DialogPtr5indexE"></span><span id="nw::DialogPtr::index__uint32_t"></span><span class="target" id="structnw_1_1_dialog_ptr_1ae90e3b96fea572217f208842ab81d608"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">index</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">numeric_limits</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">uint32_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">max</span></span><span class="p"><span class="pre">(</span></span><span class="p"><span class="pre">)</span></span><a class="headerlink" href="#_CPPv4N2nw9DialogPtr5indexE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw9DialogPtr4nodeE">
+<span id="_CPPv3N2nw9DialogPtr4nodeE"></span><span id="_CPPv2N2nw9DialogPtr4nodeE"></span><span id="nw::DialogPtr::node__DialogNodeP"></span><span class="target" id="structnw_1_1_dialog_ptr_1a5781662ff8ae7cff01f15919789ed2f3"></span><a class="reference internal" href="nw__DialogNode.html#_CPPv4N2nw10DialogNodeE" title="nw::DialogNode"><span class="n"><span class="pre">DialogNode</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">node</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">nullptr</span></span><a class="headerlink" href="#_CPPv4N2nw9DialogPtr4nodeE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
