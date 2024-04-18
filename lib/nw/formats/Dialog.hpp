@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../serialization/Archives.hpp"
+#include "../util/memory.hpp"
 
 #include <nlohmann/json_fwd.hpp>
 
@@ -19,12 +20,10 @@ struct Dialog;
 struct DialogNode;
 
 struct DialogPtr {
-    DialogNode* node();
-    const DialogNode* node() const;
-
     Dialog* parent = nullptr;
     DialogNodeType type = DialogNodeType::entry;
     uint32_t index = std::numeric_limits<uint32_t>::max();
+    DialogNode* node = nullptr;
 
     Resref script_appears;
     bool is_start = false;
@@ -49,7 +48,7 @@ public:
     Resref sound;
     LocString text;
 
-    std::vector<DialogPtr> pointers;
+    std::vector<DialogPtr*> pointers;
 };
 
 void from_json(const nlohmann::json& archive, DialogNode& node);
@@ -64,14 +63,23 @@ public:
     static constexpr int json_archive_version = 1;
     static constexpr ResourceType::type restype = ResourceType::dlg;
 
+    /// Creates a new Dialog Node.
+    DialogNode* create_node(DialogNodeType type);
+
+    /// Creates a new Dialog Pointer
+    DialogPtr* create_ptr();
+
+    /// Get Node index.
+    size_t node_index(DialogNode* node, DialogNodeType type) const;
+
     /// Checks id dialog was successfully parsed
     bool valid() const noexcept { return is_valid_; }
 
-    std::vector<DialogNode> entries;
-    std::vector<DialogNode> replies;
+    std::vector<DialogNode*> entries;
+    std::vector<DialogNode*> replies;
     Resref script_abort;
     Resref script_end;
-    std::vector<DialogPtr> starts;
+    std::vector<DialogPtr*> starts;
 
     uint32_t delay_entry = 0;
     uint32_t delay_reply = 0;
@@ -81,6 +89,8 @@ public:
 
 private:
     bool is_valid_ = false;
+    ObjectPool<DialogNode, 64> node_pool_;
+    ObjectPool<DialogPtr, 64> ptr_pool_;
 
     bool load(const GffStruct gff);
     bool read_nodes(const GffStruct gff, DialogNodeType node_type);
