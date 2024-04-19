@@ -126,6 +126,8 @@ private:
     bool read_nodes(const GffStruct gff, DialogNodeType node_type);
 };
 
+GffBuilder serialize(const Dialog* obj);
+
 void from_json(const nlohmann::json& archive, Dialog& node);
 void to_json(nlohmann::json& archive, const Dialog& node);
 

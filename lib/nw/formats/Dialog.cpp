@@ -310,6 +310,96 @@ bool Dialog::load(const GffStruct gff)
     return valid;
 }
 
+GffBuilder serialize(const Dialog* obj)
+{
+    GffBuilder gff{"DLG"};
+
+    gff.top.add_field("PreventZoomIn", obj->prevent_zoom);
+    gff.top.add_field("DelayEntry", obj->delay_entry);
+    gff.top.add_field("DelayReply", obj->delay_reply);
+    gff.top.add_field("EndConverAbort", obj->script_abort);
+    gff.top.add_field("EndConversation", obj->script_end);
+    gff.top.add_field("NumWords", obj->word_count);
+
+    DialogNodeType node_type = DialogNodeType::reply;
+    const std::vector<DialogNode*>* holder = &obj->entries;
+    std::string_view node_list = "EntryList";
+    std::string_view ptr_list = "RepliesList";
+
+    auto& entry_list = gff.top.add_list(node_list);
+    for (size_t i = 0; i < holder->size(); ++i) {
+        auto& s = entry_list.push_back(uint32_t(i));
+        if (!(*holder)[i]->quest.empty()) {
+            s.add_field("QuestEntry", (*holder)[i]->quest_entry);
+        }
+        s.add_field("Comment", (*holder)[i]->comment);
+        s.add_field("Quest", (*holder)[i]->quest);
+        s.add_field("Script", (*holder)[i]->script_action);
+        s.add_field("Speaker", (*holder)[i]->speaker);
+        s.add_field("Sound", (*holder)[i]->sound);
+        s.add_field("Text", (*holder)[i]->text);
+        s.add_field("Animation", (*holder)[i]->animation);
+        s.add_field("AnimLoop", (*holder)[i]->animation_loop);
+        s.add_field("Delay", (*holder)[i]->delay);
+
+        auto& ptrs = s.add_list(ptr_list);
+        for (size_t j = 0; j < (*holder)[i]->pointers.size(); ++j) {
+            auto& ps = ptrs.push_back(uint32_t(j));
+            uint32_t index = uint32_t(obj->node_index((*holder)[i]->pointers[j]->node, node_type));
+            ps.add_field("Active", (*holder)[i]->pointers[j]->script_appears);
+            ps.add_field("Index", index);
+            ps.add_field("IsChild", (*holder)[i]->pointers[j]->is_link);
+            if ((*holder)[i]->pointers[j]->is_link) {
+                ps.add_field("LinkComment", (*holder)[i]->pointers[j]->comment);
+            }
+        }
+    }
+
+    node_type = DialogNodeType::entry;
+    holder = &obj->replies;
+    node_list = "ReplyList";
+    ptr_list = "EntriesList";
+
+    auto& reply_list = gff.top.add_list(node_list);
+    for (size_t i = 0; i < holder->size(); ++i) {
+        auto& s = reply_list.push_back(uint32_t(i));
+        if (!(*holder)[i]->quest.empty()) {
+            s.add_field("QuestEntry", (*holder)[i]->quest_entry);
+        }
+        s.add_field("Comment", (*holder)[i]->comment);
+        s.add_field("Quest", (*holder)[i]->quest);
+        s.add_field("Script", (*holder)[i]->script_action);
+        s.add_field("Sound", (*holder)[i]->sound);
+        s.add_field("Text", (*holder)[i]->text);
+        s.add_field("Animation", (*holder)[i]->animation);
+        s.add_field("AnimLoop", (*holder)[i]->animation_loop);
+        s.add_field("Delay", (*holder)[i]->delay);
+
+        auto& ptrs = s.add_list(ptr_list);
+        for (size_t j = 0; j < (*holder)[i]->pointers.size(); ++j) {
+            auto& ps = ptrs.push_back(uint32_t(j));
+            uint32_t index = uint32_t(obj->node_index((*holder)[i]->pointers[j]->node, node_type));
+            ps.add_field("Active", (*holder)[i]->pointers[j]->script_appears);
+            ps.add_field("Index", index);
+            ps.add_field("IsChild", (*holder)[i]->pointers[j]->is_link);
+            if ((*holder)[i]->pointers[j]->is_link) {
+                ps.add_field("LinkComment", (*holder)[i]->pointers[j]->comment);
+            }
+        }
+    }
+
+    auto& starts = gff.top.add_list("StartingList");
+    for (size_t i = 0; i < obj->starts.size(); ++i) {
+        uint32_t index = uint32_t(obj->node_index(obj->starts[i]->node, DialogNodeType::entry));
+        starts.push_back(uint32_t(i))
+            .add_field("Active", obj->starts[i]->script_appears)
+            .add_field("Index", index);
+    }
+
+    gff.build();
+    return gff;
+}
+
 void from_json(const nlohmann::json& archive, Dialog& node)
 {
     if (archive["$type"].get<std::string>() != "DLG") {

@@ -77,3 +77,30 @@ TEST(Dialog, JsonSerialize)
     std::ofstream f{"tmp/alue_ranger.dlg.json"};
     f << std::setw(4) << j;
 }
+
+TEST(Dialog, GffRoundTrip)
+{
+    nw::Gff g("test_data/user/development/alue_ranger.dlg");
+    EXPECT_TRUE(g.valid());
+    nw::Dialog dlg{g.toplevel()};
+
+    nw::GffBuilder oa = nw::serialize(&dlg);
+    oa.write_to("tmp/alue_ranger.dlg");
+
+    nw::Gff g2("tmp/alue_ranger.dlg");
+    EXPECT_TRUE(g2.valid());
+    EXPECT_EQ(nw::gff_to_gffjson(g), nw::gff_to_gffjson(g2));
+
+    EXPECT_EQ(oa.header.struct_offset, g.head_->struct_offset);
+    EXPECT_EQ(oa.header.struct_count, g.head_->struct_count);
+    EXPECT_EQ(oa.header.field_offset, g.head_->field_offset);
+    EXPECT_EQ(oa.header.field_count, g.head_->field_count);
+    EXPECT_EQ(oa.header.label_offset, g.head_->label_offset);
+    EXPECT_EQ(oa.header.label_count, g.head_->label_count);
+    EXPECT_EQ(oa.header.field_data_offset, g.head_->field_data_offset);
+    EXPECT_EQ(oa.header.field_data_count, g.head_->field_data_count);
+    EXPECT_EQ(oa.header.field_idx_offset, g.head_->field_idx_offset);
+    EXPECT_EQ(oa.header.field_idx_count, g.head_->field_idx_count);
+    EXPECT_EQ(oa.header.list_idx_offset, g.head_->list_idx_offset);
+    EXPECT_EQ(oa.header.list_idx_count, g.head_->list_idx_count);
+}
