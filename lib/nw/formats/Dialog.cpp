@@ -78,6 +78,12 @@ void from_json(const nlohmann::json& archive, DialogNode& node)
     archive["script_action"].get_to(node.script_action);
     archive["sound"].get_to(node.sound);
     archive["text"].get_to(node.text);
+    if (node.type == DialogNodeType::entry) {
+        archive["speaker"].get_to(node.speaker);
+    }
+    archive["animation"].get_to(node.animation);
+    archive["animation_loop"].get_to(node.animation_loop);
+    archive["delay"].get_to(node.delay);
 }
 
 void to_json(nlohmann::json& archive, const DialogNode& node)
@@ -89,6 +95,12 @@ void to_json(nlohmann::json& archive, const DialogNode& node)
     archive["script_action"] = node.script_action;
     archive["sound"] = node.sound;
     archive["text"] = node.text;
+    if (node.type == DialogNodeType::entry) {
+        archive["speaker"] = node.speaker;
+    }
+    archive["animation"] = node.animation;
+    archive["animation_loop"] = node.animation_loop;
+    archive["delay"] = node.delay;
 }
 
 Dialog::Dialog()
@@ -208,6 +220,10 @@ bool Dialog::read_nodes(const GffStruct gff, DialogNodeType node_type)
         s.get_to("Quest", node->quest);
         s.get_to("Script", node->script_action);
         s.get_to("Sound", node->sound);
+        s.get_to("Speaker", node->speaker);
+        s.get_to("Animation", node->animation);
+        s.get_to("AnimLoop", node->animation_loop);
+        s.get_to("Delay", node->delay);
 
         valid = valid && s.get_to("Text", node->text);
 

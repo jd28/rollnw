@@ -56,10 +56,14 @@ public:
 
     std::string comment;
     std::string quest;
+    std::string speaker;
     uint32_t quest_entry = std::numeric_limits<uint32_t>::max();
     Resref script_action;
     Resref sound;
     LocString text;
+    uint32_t animation = -1;
+    bool animation_loop = false;
+    uint32_t delay = -1;
 
     std::vector<DialogPtr*> pointers;
 };
