@@ -110,7 +110,7 @@ struct AstConstEvaluator : public BaseVisitor {
     {
         // No op
     }
-    // LCOV_EXCL_END
+    // LCOV_EXCL_STOP
 
     virtual void visit(BinaryExpression* expr) override
     {
@@ -256,7 +256,7 @@ struct AstConstEvaluator : public BaseVisitor {
     {
         // No Op
     }
-    // LCOV_EXCL_END
+    // LCOV_EXCL_STOP
 
     virtual void visit(GroupingExpression* expr) override
     {
@@ -435,7 +435,7 @@ struct AstConstEvaluator : public BaseVisitor {
     {
         // No Op
     }
-    // LCOV_EXCL_END
+    // LCOV_EXCL_STOP
 };
 
 } // namespace nw::script

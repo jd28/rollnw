@@ -29,7 +29,7 @@ struct Bif {
 
     Bif& operator=(const Bif&) = delete;
     Bif& operator=(Bif&& other) = default;
-    // LCOV_EXCL_END
+    // LCOV_EXCL_STOP
 
     ByteArray demand(size_t index) const;
 
