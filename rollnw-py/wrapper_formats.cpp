@@ -148,13 +148,9 @@ void init_formats_twoda(py::module& nw)
                 self.set(row, col, std::get<std::string>(val));
             }
         })
-
         .def("pad", &nw::TwoDA::pad)
-
         .def("row", &nw::TwoDA::row)
-
         .def("rows", &nw::TwoDA::rows)
-
         .def("valid", &nw::TwoDA::is_valid);
 }
 

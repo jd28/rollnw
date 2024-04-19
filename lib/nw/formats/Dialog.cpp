@@ -10,6 +10,43 @@ namespace nw {
 
 // -- DialogPtr ---------------------------------------------------------------
 
+DialogPtr* DialogPtr::add()
+{
+    auto ptr = parent->create_ptr();
+    ptr->type = (type == DialogNodeType::entry) ? DialogNodeType::reply : DialogNodeType::entry;
+    ptr->node = parent->create_node(ptr->type);
+    return add_ptr(ptr);
+}
+
+DialogPtr* DialogPtr::add_ptr(DialogPtr* ptr, bool is_link)
+{
+    if (is_link) {
+        auto new_ptr = parent->create_ptr();
+        *new_ptr = *ptr;
+        new_ptr->is_link = true;
+        node->pointers.push_back(new_ptr);
+        return new_ptr;
+    } else {
+        node->pointers.push_back(ptr);
+        return ptr;
+    }
+}
+
+DialogPtr* DialogPtr::add_string(std::string value, nw::LanguageID lang, bool feminine)
+{
+    auto ptr = parent->create_ptr();
+    ptr->type = (type == DialogNodeType::entry) ? DialogNodeType::reply : DialogNodeType::entry;
+    ptr->node = parent->create_node(ptr->type);
+    ptr->node->text.add(lang, value, feminine);
+    return add_ptr(ptr);
+}
+
+void DialogPtr::remove_ptr(DialogPtr* ptr)
+{
+    auto it = std::remove(std::begin(node->pointers), std::end(node->pointers), ptr);
+    node->pointers.erase(it, std::end(node->pointers));
+}
+
 void from_json(const nlohmann::json& archive, DialogPtr& ptr)
 {
     archive["type"].get_to(ptr.type);
@@ -74,6 +111,40 @@ Dialog::Dialog(const nlohmann::json& archive)
     }
 }
 
+DialogPtr* Dialog::add()
+{
+    auto ptr = create_ptr();
+    ptr->type = DialogNodeType::entry;
+    ptr->is_start = true;
+    ptr->node = create_node(ptr->type);
+    return add_ptr(ptr);
+}
+
+DialogPtr* Dialog::add_ptr(DialogPtr* ptr, bool is_link)
+{
+    if (is_link) {
+        auto new_ptr = create_ptr();
+        *new_ptr = *ptr;
+        new_ptr->is_link = true;
+        ptr->is_start = true;
+        starts.push_back(new_ptr);
+        return new_ptr;
+    } else {
+        starts.push_back(ptr);
+        return ptr;
+    }
+}
+
+DialogPtr* Dialog::add_string(std::string value, nw::LanguageID lang, bool feminine)
+{
+    auto ptr = create_ptr();
+    ptr->type = DialogNodeType::entry;
+    ptr->node = create_node(ptr->type);
+    ptr->is_start = true;
+    ptr->node->text.add(lang, value, feminine);
+    return add_ptr(ptr);
+}
+
 DialogNode* Dialog::create_node(DialogNodeType type)
 {
     auto result = node_pool_.allocate();
@@ -95,6 +166,12 @@ size_t Dialog::node_index(DialogNode* node, DialogNodeType type) const
         auto it = std::find(replies.begin(), replies.end(), node);
         return it - replies.begin();
     }
+}
+
+void Dialog::remove_ptr(DialogPtr* ptr)
+{
+    auto it = std::remove(std::begin(starts), std::end(starts), ptr);
+    starts.erase(it, std::end(starts));
 }
 
 bool Dialog::read_nodes(const GffStruct gff, DialogNodeType node_type)

@@ -29,6 +29,19 @@ struct DialogPtr {
     bool is_start = false;
     bool is_link = false;
     std::string comment;
+
+    /// Adds Dialog Pointer, if `is_link` is false no new pointer or node is created.
+    /// if `is_link` is true a new pointer will created with the node copied from input pointer.
+    DialogPtr* add_ptr(DialogPtr* ptr, bool is_link = false);
+
+    /// Adds Dialog Pointer and Node with string value set
+    DialogPtr* add_string(std::string value, nw::LanguageID lang = nw::LanguageID::english, bool feminine = false);
+
+    /// Adds empty Dialog Pointer and Node
+    DialogPtr* add();
+
+    /// Removes Dialog Ptr from underlying node
+    void remove_ptr(DialogPtr* ptr);
 };
 
 void from_json(const nlohmann::json& archive, DialogPtr& ptr);
@@ -63,6 +76,16 @@ public:
     static constexpr int json_archive_version = 1;
     static constexpr ResourceType::type restype = ResourceType::dlg;
 
+    /// Adds Dialog Pointer, if `is_link` is false no new pointer or node is created.
+    /// if `is_link` is true a new pointer will created with the node copied from input pointer.
+    DialogPtr* add_ptr(DialogPtr* ptr, bool is_link = false);
+
+    /// Adds Dialog Pointer and Node with string value set
+    DialogPtr* add_string(std::string value, nw::LanguageID lang = nw::LanguageID::english, bool feminine = false);
+
+    /// Adds empty Dialog Pointer and Node
+    DialogPtr* add();
+
     /// Creates a new Dialog Node.
     DialogNode* create_node(DialogNodeType type);
 
@@ -71,6 +94,9 @@ public:
 
     /// Get Node index.
     size_t node_index(DialogNode* node, DialogNodeType type) const;
+
+    /// Removes Dialog Ptr from underlying node
+    void remove_ptr(DialogPtr* ptr);
 
     /// Checks id dialog was successfully parsed
     bool valid() const noexcept { return is_valid_; }
