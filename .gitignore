@@ -1,6 +1,7 @@
 # Build
 build/
 !external/**/build
+build-debug/
 build-doc/
 vcpkg/
 vcpkg_installed/
