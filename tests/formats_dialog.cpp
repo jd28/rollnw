@@ -73,10 +73,28 @@ TEST(Dialog, JsonSerialize)
 {
     nw::Gff g{"test_data/user/development/alue_ranger.dlg"};
     nw::Dialog dlg{g.toplevel()};
-    nlohmann::json j = dlg;
+    nlohmann::json j;
+    nw::serialize(j, dlg);
 
     std::ofstream f{"tmp/alue_ranger.dlg.json"};
     f << std::setw(4) << j;
+}
+
+TEST(Dialog, JsonRoundTrip)
+{
+    nw::Gff g{"test_data/user/development/alue_ranger.dlg"};
+    nw::Dialog dlg{g.toplevel()};
+    nlohmann::json j;
+    nw::serialize(j, dlg);
+
+    nw::Dialog dlg2(j);
+    EXPECT_TRUE(dlg2.valid());
+    EXPECT_EQ(dlg.entries.size(), dlg2.entries.size());
+
+    nlohmann::json j2;
+    nw::serialize(j2, dlg2);
+
+    EXPECT_EQ(j, j2);
 }
 
 TEST(Dialog, GffRoundTrip)

@@ -59,9 +59,6 @@ struct DialogPtr {
     void set_condition_param(const std::string& key, const std::string& value);
 };
 
-void from_json(const nlohmann::json& archive, DialogPtr& ptr);
-void to_json(nlohmann::json& archive, const DialogPtr& ptr);
-
 struct DialogNode {
 public:
     DialogNode() { }
@@ -95,9 +92,6 @@ public:
     /// Sets action parameter, if key does not exist key and value are appended
     void set_action_param(const std::string& key, const std::string& value);
 };
-
-void from_json(const nlohmann::json& archive, DialogNode& node);
-void to_json(nlohmann::json& archive, const DialogNode& node);
 
 struct Dialog {
 public:
@@ -156,7 +150,7 @@ private:
 
 GffBuilder serialize(const Dialog* obj);
 
-void from_json(const nlohmann::json& archive, Dialog& node);
-void to_json(nlohmann::json& archive, const Dialog& node);
+void serialize(nlohmann::json& archive, const Dialog& node);
+void deserialize(const nlohmann::json& archive, Dialog& node);
 
 } // namespace nw

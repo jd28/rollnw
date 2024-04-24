@@ -92,30 +92,6 @@ void DialogPtr::set_condition_param(const std::string& key, const std::string& v
     condition_params.emplace_back(key, value);
 }
 
-void from_json(const nlohmann::json& archive, DialogPtr& ptr)
-{
-    archive["type"].get_to(ptr.type);
-    archive["index"].get_to(ptr.index);
-    archive["script_appears"].get_to(ptr.script_appears);
-    archive["is_start"].get_to(ptr.is_start);
-    archive["is_link"].get_to(ptr.is_link);
-    archive["comment"].get_to(ptr.comment);
-    archive["condition_params"].get_to(ptr.condition_params);
-}
-
-void to_json(nlohmann::json& archive, const DialogPtr& ptr)
-{
-
-    uint32_t index = uint32_t(ptr.parent->node_index(ptr.node, ptr.type));
-    archive["type"] = ptr.type;
-    archive["index"] = ptr.index;
-    archive["script_appears"] = ptr.script_appears;
-    archive["is_start"] = ptr.is_start;
-    archive["is_link"] = ptr.is_link;
-    archive["comment"] = ptr.comment;
-    archive["condition_params"] = ptr.condition_params;
-}
-
 std::optional<std::string> DialogNode::get_action_param(const std::string& key)
 {
     for (auto& it : action_params) {
@@ -154,42 +130,6 @@ void DialogNode::set_action_param(const std::string& key, const std::string& val
     action_params.emplace_back(key, value);
 }
 
-void from_json(const nlohmann::json& archive, DialogNode& node)
-{
-    archive["type"].get_to(node.type);
-    archive["comment"].get_to(node.comment);
-    archive["quest"].get_to(node.quest);
-    archive["quest_entry"].get_to(node.quest_entry);
-    archive["script_action"].get_to(node.script_action);
-    archive["sound"].get_to(node.sound);
-    archive["text"].get_to(node.text);
-    if (node.type == DialogNodeType::entry) {
-        archive["speaker"].get_to(node.speaker);
-    }
-    archive["animation"].get_to(node.animation);
-    archive["animation_loop"].get_to(node.animation_loop);
-    archive["delay"].get_to(node.delay);
-    archive["action_params"].get_to(node.action_params);
-}
-
-void to_json(nlohmann::json& archive, const DialogNode& node)
-{
-    archive["type"] = node.type;
-    archive["comment"] = node.comment;
-    archive["quest"] = node.quest;
-    archive["quest_entry"] = node.quest_entry;
-    archive["script_action"] = node.script_action;
-    archive["sound"] = node.sound;
-    archive["text"] = node.text;
-    if (node.type == DialogNodeType::entry) {
-        archive["speaker"] = node.speaker;
-    }
-    archive["animation"] = node.animation;
-    archive["animation_loop"] = node.animation_loop;
-    archive["delay"] = node.delay;
-    archive["action_params"] = node.action_params;
-}
-
 Dialog::Dialog()
     : is_valid_{true}
 {
@@ -204,8 +144,10 @@ Dialog::Dialog(const GffStruct archive)
 Dialog::Dialog(const nlohmann::json& archive)
 {
     try {
-        from_json(archive, *this);
-    } catch (nlohmann::json::exception& e) {
+        deserialize(archive, *this);
+        is_valid_ = true;
+    } catch (nlohmann::json::parse_error& e) {
+        LOG_F(ERROR, "[formats] failed deserializing dialog from json: {}", e.what());
         is_valid_ = false;
     }
 }
@@ -571,7 +513,83 @@ GffBuilder serialize(const Dialog* obj)
     return gff;
 }
 
-void from_json(const nlohmann::json& archive, Dialog& node)
+// JSON De/Serialization
+
+void deserialize(const nlohmann::json& archive, DialogPtr& ptr)
+{
+    archive["type"].get_to(ptr.type);
+    archive["index"].get_to(ptr.index);
+    archive["script_appears"].get_to(ptr.script_appears);
+    archive["is_start"].get_to(ptr.is_start);
+    archive["is_link"].get_to(ptr.is_link);
+    archive["comment"].get_to(ptr.comment);
+    archive["condition_params"].get_to(ptr.condition_params);
+}
+
+void serialize(nlohmann::json& archive, const DialogPtr& ptr)
+{
+    uint32_t index = uint32_t(ptr.parent->node_index(ptr.node, ptr.type));
+    archive["type"] = ptr.type;
+    archive["index"] = index;
+    archive["script_appears"] = ptr.script_appears;
+    archive["is_start"] = ptr.is_start;
+    archive["is_link"] = ptr.is_link;
+    archive["comment"] = ptr.comment;
+    archive["condition_params"] = ptr.condition_params;
+}
+
+void deserialize(const nlohmann::json& archive, DialogNode& node)
+{
+    archive["type"].get_to(node.type);
+    archive["comment"].get_to(node.comment);
+    archive["quest"].get_to(node.quest);
+    archive["quest_entry"].get_to(node.quest_entry);
+    archive["script_action"].get_to(node.script_action);
+    archive["sound"].get_to(node.sound);
+    archive["text"].get_to(node.text);
+    if (node.type == DialogNodeType::entry) {
+        archive["speaker"].get_to(node.speaker);
+    }
+    archive["animation"].get_to(node.animation);
+    archive["animation_loop"].get_to(node.animation_loop);
+    archive["delay"].get_to(node.delay);
+    archive["action_params"].get_to(node.action_params);
+
+    auto& list = archive["pointers"];
+    for (size_t i = 0; i < list.size(); ++i) {
+        auto ptr = node.parent->create_ptr();
+        ptr->parent = node.parent;
+        deserialize(list[i], *ptr);
+        node.pointers.push_back(ptr);
+    }
+}
+
+void serialize(nlohmann::json& archive, const DialogNode& node)
+{
+    archive["type"] = node.type;
+    archive["comment"] = node.comment;
+    archive["quest"] = node.quest;
+    archive["quest_entry"] = node.quest_entry;
+    archive["script_action"] = node.script_action;
+    archive["sound"] = node.sound;
+    archive["text"] = node.text;
+    if (node.type == DialogNodeType::entry) {
+        archive["speaker"] = node.speaker;
+    }
+    archive["animation"] = node.animation;
+    archive["animation_loop"] = node.animation_loop;
+    archive["delay"] = node.delay;
+    archive["action_params"] = node.action_params;
+
+    auto& list = archive["pointers"] = nlohmann::json::array();
+    for (size_t i = 0; i < node.pointers.size(); ++i) {
+        nlohmann::json j;
+        serialize(j, *node.pointers[i]);
+        list.push_back(j);
+    }
+}
+
+void deserialize(const nlohmann::json& archive, Dialog& node)
 {
     if (archive["$type"].get<std::string>() != "DLG") {
         LOG_F(ERROR, "invalid dlg json");
@@ -582,21 +600,27 @@ void from_json(const nlohmann::json& archive, Dialog& node)
     node.entries.reserve(json_entries.size());
     for (auto& je : json_entries) {
         DialogNode* n = node.create_node(DialogNodeType::entry);
-        *n = je;
+        n->parent = &node;
+        deserialize(je, *n);
+        node.entries.push_back(n);
     }
 
     auto& json_replies = archive["replies"];
     node.replies.reserve(json_replies.size());
     for (auto& je : json_replies) {
         DialogNode* n = node.create_node(DialogNodeType::reply);
-        *n = je;
+        n->parent = &node;
+        deserialize(je, *n);
+        node.replies.push_back(n);
     }
 
     auto& json_starts = archive["starts"];
     node.starts.reserve(json_starts.size());
     for (auto& je : json_starts) {
-        DialogNode* n = node.create_node(DialogNodeType::entry);
-        *n = je;
+        auto ptr = node.create_ptr();
+        ptr->parent = &node;
+        deserialize(je, *ptr);
+        node.starts.push_back(ptr);
     }
 
     archive["script_abort"].get_to(node.script_abort);
@@ -607,40 +631,43 @@ void from_json(const nlohmann::json& archive, Dialog& node)
     archive["prevent_zoom"].get_to(node.prevent_zoom);
 
     for (auto entry : node.entries) {
-        entry->parent = &node;
         for (auto it : entry->pointers) {
             it->node = node.replies[it->index];
         }
     }
 
     for (auto reply : node.replies) {
-        reply->parent = &node;
         for (auto it : reply->pointers) {
             it->node = node.entries[it->index];
         }
     }
 
     for (auto start : node.starts) {
-        start->parent = &node;
         start->node = node.entries[start->index];
     }
 }
 
-void to_json(nlohmann::json& archive, const Dialog& node)
+void serialize(nlohmann::json& archive, const Dialog& node)
 {
     archive["$type"] = "DLG";
-    archive["$type"] = Dialog::json_archive_version;
+    archive["$version"] = Dialog::json_archive_version;
 
     for (auto it : node.entries) {
-        archive["entries"].push_back(*it);
+        nlohmann::json j;
+        serialize(j, *it);
+        archive["entries"].push_back(j);
     }
 
     for (auto it : node.replies) {
-        archive["replies"].push_back(*it);
+        nlohmann::json j;
+        serialize(j, *it);
+        archive["replies"].push_back(j);
     }
 
     for (auto it : node.starts) {
-        archive["starts"].push_back(*it);
+        nlohmann::json j;
+        serialize(j, *it);
+        archive["starts"].push_back(j);
     }
 
     archive["script_abort"] = node.script_abort;
