@@ -28,6 +28,11 @@ namespace nw::kernel {
 
 using ObjectPayload = std::variant<ObjectHandle, ObjectBase*>;
 
+struct ObjectSystemStats {
+    size_t total_objects = 0;
+    size_t free_list = 0;
+};
+
 /**
  * @brief The object system creates, serializes, and deserializes entities
  *

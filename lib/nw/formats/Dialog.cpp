@@ -29,6 +29,11 @@ DialogPtr* DialogPtr::add_ptr(DialogPtr* ptr, bool is_link)
         return new_ptr;
     } else {
         node->pointers.push_back(ptr);
+        if (type == DialogNodeType::entry) {
+            parent->replies.push_back(ptr->node);
+        } else {
+            parent->entries.push_back(ptr->node);
+        }
         return ptr;
     }
 }
@@ -46,6 +51,45 @@ void DialogPtr::remove_ptr(DialogPtr* ptr)
 {
     auto it = std::remove(std::begin(node->pointers), std::end(node->pointers), ptr);
     node->pointers.erase(it, std::end(node->pointers));
+}
+
+/// Gets a condition parameter if it exists
+std::optional<std::string> DialogPtr::get_condition_param(const std::string& key)
+{
+    for (auto& it : condition_params) {
+        if (it.first == key) {
+            return it.second;
+        }
+    }
+    return {};
+}
+
+/// Removes condition parameter by key
+void DialogPtr::remove_condition_param(const std::string& key)
+{
+    condition_params.erase(std::remove_if(std::begin(condition_params), std::end(condition_params),
+                               [&key](const std::pair<std::string, std::string>& p) {
+                                   return p.first == key;
+                               }),
+        std::end(condition_params));
+}
+
+/// Removes condition parameter by index
+void DialogPtr::remove_condition_param(size_t index)
+{
+    condition_params.erase(std::begin(condition_params) + index);
+}
+
+/// Sets condition parameter, if key does not exist key and value are appended
+void DialogPtr::set_condition_param(const std::string& key, const std::string& value)
+{
+    for (auto& it : condition_params) {
+        if (it.first == key) {
+            it.second = value;
+            return;
+        }
+    }
+    condition_params.emplace_back(key, value);
 }
 
 void from_json(const nlohmann::json& archive, DialogPtr& ptr)
@@ -70,6 +114,44 @@ void to_json(nlohmann::json& archive, const DialogPtr& ptr)
     archive["is_link"] = ptr.is_link;
     archive["comment"] = ptr.comment;
     archive["condition_params"] = ptr.condition_params;
+}
+
+std::optional<std::string> DialogNode::get_action_param(const std::string& key)
+{
+    for (auto& it : action_params) {
+        if (it.first == key) {
+            return it.second;
+        }
+    }
+    return {};
+}
+
+/// Removes action parameter by key
+void DialogNode::remove_action_param(const std::string& key)
+{
+    action_params.erase(std::remove_if(std::begin(action_params), std::end(action_params),
+                            [&key](const std::pair<std::string, std::string>& p) {
+                                return p.first == key;
+                            }),
+        std::end(action_params));
+}
+
+/// Removes action parameter by index
+void DialogNode::remove_action_param(size_t index)
+{
+    action_params.erase(std::begin(action_params) + index);
+}
+
+/// Sets action parameter, if key does not exist key and value are appended
+void DialogNode::set_action_param(const std::string& key, const std::string& value)
+{
+    for (auto& it : action_params) {
+        if (it.first == key) {
+            it.second = value;
+            return;
+        }
+    }
+    action_params.emplace_back(key, value);
 }
 
 void from_json(const nlohmann::json& archive, DialogNode& node)

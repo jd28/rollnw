@@ -43,8 +43,20 @@ struct DialogPtr {
     /// Adds empty Dialog Pointer and Node
     DialogPtr* add();
 
+    /// Gets a condition parameter if it exists
+    std::optional<std::string> get_condition_param(const std::string& key);
+
+    /// Removes condition parameter by key
+    void remove_condition_param(const std::string& key);
+
+    /// Removes condition parameter by index
+    void remove_condition_param(size_t index);
+
     /// Removes Dialog Ptr from underlying node
     void remove_ptr(DialogPtr* ptr);
+
+    /// Sets condition parameter, if key does not exist key and value are appended
+    void set_condition_param(const std::string& key, const std::string& value);
 };
 
 void from_json(const nlohmann::json& archive, DialogPtr& ptr);
@@ -70,6 +82,18 @@ public:
 
     std::vector<DialogPtr*> pointers;
     std::vector<std::pair<std::string, std::string>> action_params;
+
+    /// Gets action parameter if it exists
+    std::optional<std::string> get_action_param(const std::string& key);
+
+    /// Removes action parameter by key
+    void remove_action_param(const std::string& key);
+
+    /// Removes action parameter by index
+    void remove_action_param(size_t index);
+
+    /// Sets action parameter, if key does not exist key and value are appended
+    void set_action_param(const std::string& key, const std::string& value);
 };
 
 void from_json(const nlohmann::json& archive, DialogNode& node);

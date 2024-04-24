@@ -144,12 +144,54 @@ TEST(Dialog, NWNEEScriptParams)
         EXPECT_TRUE(g.valid());
         nw::Dialog dlg{g.toplevel()};
 
+        // Get exisits
         auto val = dlg.starts[0]->get_condition_param("name_appears");
         EXPECT_TRUE(val);
         EXPECT_EQ(*val, "value_appear");
+        EXPECT_EQ(dlg.starts[0]->condition_params.size(), 1);
 
+        // Set existing
+        dlg.starts[0]->set_condition_param("name_appears", "test");
+        EXPECT_EQ(dlg.starts[0]->condition_params.size(), 1);
+        auto val3 = dlg.starts[0]->get_condition_param("name_appears");
+        EXPECT_TRUE(val3);
+        EXPECT_EQ(*val3, "test");
+
+        // Add new
+        dlg.starts[0]->set_condition_param("a_new_param", "test_value");
+        EXPECT_EQ(dlg.starts[0]->condition_params.size(), 2);
+        auto val4 = dlg.starts[0]->get_condition_param("a_new_param");
+        EXPECT_TRUE(val4);
+        EXPECT_EQ(*val4, "test_value");
+
+        dlg.starts[0]->remove_condition_param("a_new_param");
+        EXPECT_EQ(dlg.starts[0]->condition_params.size(), 1);
+        dlg.starts[0]->remove_condition_param(0);
+        EXPECT_EQ(dlg.starts[0]->condition_params.size(), 0);
+
+        // Actions
         auto val2 = dlg.starts[0]->node->pointers[0]->node->get_action_param("name_action");
         EXPECT_TRUE(val2);
         EXPECT_EQ(*val2, "name_value");
+        EXPECT_EQ(dlg.starts[0]->node->pointers[0]->node->action_params.size(), 1);
+
+        // Set existing
+        dlg.starts[0]->node->pointers[0]->node->set_action_param("name_action", "test");
+        EXPECT_EQ(dlg.starts[0]->node->pointers[0]->node->action_params.size(), 1);
+        auto val5 = dlg.starts[0]->node->pointers[0]->node->get_action_param("name_action");
+        EXPECT_TRUE(val5);
+        EXPECT_EQ(*val5, "test");
+
+        // Add new
+        dlg.starts[0]->node->pointers[0]->node->set_action_param("a_new_param", "test_value");
+        EXPECT_EQ(dlg.starts[0]->node->pointers[0]->node->action_params.size(), 2);
+        auto val6 = dlg.starts[0]->node->pointers[0]->node->get_action_param("a_new_param");
+        EXPECT_TRUE(val6);
+        EXPECT_EQ(*val6, "test_value");
+
+        dlg.starts[0]->node->pointers[0]->node->remove_action_param("a_new_param");
+        EXPECT_EQ(dlg.starts[0]->node->pointers[0]->node->action_params.size(), 1);
+        dlg.starts[0]->node->pointers[0]->node->remove_action_param(0);
+        EXPECT_EQ(dlg.starts[0]->node->pointers[0]->node->action_params.size(), 0);
     }
 }
