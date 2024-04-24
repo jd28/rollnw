@@ -5,6 +5,7 @@
 
 #include <nlohmann/json_fwd.hpp>
 
+#include <limits>
 #include <string>
 #include <vector>
 
@@ -63,9 +64,9 @@ public:
     Resref script_action;
     Resref sound;
     LocString text;
-    uint32_t animation = -1;
+    uint32_t animation = std::numeric_limits<uint32_t>::max();
     bool animation_loop = false;
-    uint32_t delay = -1;
+    uint32_t delay = std::numeric_limits<uint32_t>::max();
 
     std::vector<DialogPtr*> pointers;
     std::vector<std::pair<std::string, std::string>> action_params;
