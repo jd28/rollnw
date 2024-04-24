@@ -99,12 +99,17 @@
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw9DialogPtr7add_ptrEP9DialogPtrb"><code class="docutils literal notranslate"><span class="pre">DialogPtr::add_ptr()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw9DialogPtr10add_stringENSt6stringEN2nw10LanguageIDEb"><code class="docutils literal notranslate"><span class="pre">DialogPtr::add_string()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw9DialogPtr3addEv"><code class="docutils literal notranslate"><span class="pre">DialogPtr::add()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw9DialogPtr19get_condition_paramERKNSt6stringE"><code class="docutils literal notranslate"><span class="pre">DialogPtr::get_condition_param()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw9DialogPtr22remove_condition_paramERKNSt6stringE"><code class="docutils literal notranslate"><span class="pre">DialogPtr::remove_condition_param()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw9DialogPtr22remove_condition_paramE6size_t"><code class="docutils literal notranslate"><span class="pre">DialogPtr::remove_condition_param()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw9DialogPtr10remove_ptrEP9DialogPtr"><code class="docutils literal notranslate"><span class="pre">DialogPtr::remove_ptr()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw9DialogPtr19set_condition_paramERKNSt6stringERKNSt6stringE"><code class="docutils literal notranslate"><span class="pre">DialogPtr::set_condition_param()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw9DialogPtr6parentE"><code class="docutils literal notranslate"><span class="pre">DialogPtr::parent</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw9DialogPtr4typeE"><code class="docutils literal notranslate"><span class="pre">DialogPtr::type</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw9DialogPtr5indexE"><code class="docutils literal notranslate"><span class="pre">DialogPtr::index</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw9DialogPtr4nodeE"><code class="docutils literal notranslate"><span class="pre">DialogPtr::node</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw9DialogPtr14script_appearsE"><code class="docutils literal notranslate"><span class="pre">DialogPtr::script_appears</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw9DialogPtr16condition_paramsE"><code class="docutils literal notranslate"><span class="pre">DialogPtr::condition_params</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw9DialogPtr8is_startE"><code class="docutils literal notranslate"><span class="pre">DialogPtr::is_start</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw9DialogPtr7is_linkE"><code class="docutils literal notranslate"><span class="pre">DialogPtr::is_link</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw9DialogPtr7commentE"><code class="docutils literal notranslate"><span class="pre">DialogPtr::comment</span></code></a></li>
@@ -405,9 +410,33 @@
 </dd></dl>
 
 <dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw9DialogPtr19get_condition_paramERKNSt6stringE">
+<span id="_CPPv3N2nw9DialogPtr19get_condition_paramERKNSt6stringE"></span><span id="_CPPv2N2nw9DialogPtr19get_condition_paramERKNSt6stringE"></span><span id="nw::DialogPtr::get_condition_param__ssCR"></span><span class="target" id="structnw_1_1_dialog_ptr_1a26ba63f689dc8fe50bac2c913c32b932"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">optional</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_condition_param</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">key</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw9DialogPtr19get_condition_paramERKNSt6stringE" title="Link to this definition"></a><br /></dt>
+<dd><p>Gets a condition parameter if it exists. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw9DialogPtr22remove_condition_paramERKNSt6stringE">
+<span id="_CPPv3N2nw9DialogPtr22remove_condition_paramERKNSt6stringE"></span><span id="_CPPv2N2nw9DialogPtr22remove_condition_paramERKNSt6stringE"></span><span id="nw::DialogPtr::remove_condition_param__ssCR"></span><span class="target" id="structnw_1_1_dialog_ptr_1a39029d6032b0ef170d2f5f9c826a19f1"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">remove_condition_param</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">key</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw9DialogPtr22remove_condition_paramERKNSt6stringE" title="Link to this definition"></a><br /></dt>
+<dd><p>Removes condition parameter by key. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw9DialogPtr22remove_condition_paramE6size_t">
+<span id="_CPPv3N2nw9DialogPtr22remove_condition_paramE6size_t"></span><span id="_CPPv2N2nw9DialogPtr22remove_condition_paramE6size_t"></span><span id="nw::DialogPtr::remove_condition_param__s"></span><span class="target" id="structnw_1_1_dialog_ptr_1af15a9038877e3d74c4a43ca7fa5f5d31"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">remove_condition_param</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">index</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw9DialogPtr22remove_condition_paramE6size_t" title="Link to this definition"></a><br /></dt>
+<dd><p>Removes condition parameter by index. </p>
+</dd></dl>
+
+<dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw9DialogPtr10remove_ptrEP9DialogPtr">
 <span id="_CPPv3N2nw9DialogPtr10remove_ptrEP9DialogPtr"></span><span id="_CPPv2N2nw9DialogPtr10remove_ptrEP9DialogPtr"></span><span id="nw::DialogPtr::remove_ptr__DialogPtrP"></span><span class="target" id="structnw_1_1_dialog_ptr_1a16fda68c53d7959a08fcd550ac2a9c1f"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">remove_ptr</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N2nw9DialogPtrE" title="nw::DialogPtr"><span class="n"><span class="pre">DialogPtr</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">ptr</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw9DialogPtr10remove_ptrEP9DialogPtr" title="Link to this definition"></a><br /></dt>
 <dd><p>Removes <a class="reference internal" href="nw__Dialog.html#structnw_1_1_dialog"><span class="std std-ref">Dialog</span></a> Ptr from underlying node. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw9DialogPtr19set_condition_paramERKNSt6stringERKNSt6stringE">
+<span id="_CPPv3N2nw9DialogPtr19set_condition_paramERKNSt6stringERKNSt6stringE"></span><span id="_CPPv2N2nw9DialogPtr19set_condition_paramERKNSt6stringERKNSt6stringE"></span><span id="nw::DialogPtr::set_condition_param__ssCR.ssCR"></span><span class="target" id="structnw_1_1_dialog_ptr_1a51e662a1d5aaa71eb5758e1fd657f58b"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_condition_param</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">key</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">value</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw9DialogPtr19set_condition_paramERKNSt6stringERKNSt6stringE" title="Link to this definition"></a><br /></dt>
+<dd><p>Sets condition parameter, if key does not exist key and value are appended. </p>
 </dd></dl>
 
 </div>
@@ -436,6 +465,11 @@
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw9DialogPtr14script_appearsE">
 <span id="_CPPv3N2nw9DialogPtr14script_appearsE"></span><span id="_CPPv2N2nw9DialogPtr14script_appearsE"></span><span id="nw::DialogPtr::script_appears__Resref"></span><span class="target" id="structnw_1_1_dialog_ptr_1a9ae5ad3ad10831401d2742b5c665afa4"></span><a class="reference internal" href="nw__Resref.html#_CPPv4N2nw6ResrefE" title="nw::Resref"><span class="n"><span class="pre">Resref</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">script_appears</span></span></span><a class="headerlink" href="#_CPPv4N2nw9DialogPtr14script_appearsE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw9DialogPtr16condition_paramsE">
+<span id="_CPPv3N2nw9DialogPtr16condition_paramsE"></span><span id="_CPPv2N2nw9DialogPtr16condition_paramsE"></span><span id="nw::DialogPtr::condition_params__std::vector:std::pair:ss.ss::"></span><span class="target" id="structnw_1_1_dialog_ptr_1abafdc9b559c92727741212b62ac241fb"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">pair</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">condition_params</span></span></span><a class="headerlink" href="#_CPPv4N2nw9DialogPtr16condition_paramsE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
