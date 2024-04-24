@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 
 #include <nw/formats/Dialog.hpp>
+#include <nw/kernel/Kernel.hpp>
 #include <nw/serialization/Archives.hpp>
 
 #include <nlohmann/json.hpp>
@@ -103,4 +104,52 @@ TEST(Dialog, GffRoundTrip)
     EXPECT_EQ(oa.header.field_idx_count, g.head_->field_idx_count);
     EXPECT_EQ(oa.header.list_idx_offset, g.head_->list_idx_offset);
     EXPECT_EQ(oa.header.list_idx_count, g.head_->list_idx_count);
+}
+
+TEST(Dialog, GffRoundTrip2)
+{
+    // [NOTE] Can't really test this because the toolset saves empty Condition/ActionParam lists
+    // will have to revist.
+
+    // nw::Gff g("test_data/user/development/dlg_with_params.dlg");
+    // EXPECT_TRUE(g.valid());
+    // nw::Dialog dlg{g.toplevel()};
+
+    // nw::GffBuilder oa = nw::serialize(&dlg);
+    // oa.write_to("tmp/dlg_with_params.dlg");
+
+    // nw::Gff g2("tmp/dlg_with_params.dlg");
+    // EXPECT_TRUE(g2.valid());
+    // EXPECT_EQ(nw::gff_to_gffjson(g), nw::gff_to_gffjson(g2));
+
+    // EXPECT_EQ(oa.header.struct_offset, g.head_->struct_offset);
+    // EXPECT_EQ(oa.header.struct_count, g.head_->struct_count);
+    // EXPECT_EQ(oa.header.field_offset, g.head_->field_offset);
+    // EXPECT_EQ(oa.header.field_count, g.head_->field_count);
+    // EXPECT_EQ(oa.header.label_offset, g.head_->label_offset);
+    // EXPECT_EQ(oa.header.label_count, g.head_->label_count);
+    // EXPECT_EQ(oa.header.field_data_offset, g.head_->field_data_offset);
+    // EXPECT_EQ(oa.header.field_data_count, g.head_->field_data_count);
+    // EXPECT_EQ(oa.header.field_idx_offset, g.head_->field_idx_offset);
+    // EXPECT_EQ(oa.header.field_idx_count, g.head_->field_idx_count);
+    // EXPECT_EQ(oa.header.list_idx_offset, g.head_->list_idx_offset);
+    // EXPECT_EQ(oa.header.list_idx_count, g.head_->list_idx_count);
+}
+
+TEST(Dialog, NWNEEScriptParams)
+{
+    if (nw::kernel::config().version() == nw::GameVersion::vEE) {
+
+        nw::Gff g("test_data/user/development/dlg_with_params.dlg");
+        EXPECT_TRUE(g.valid());
+        nw::Dialog dlg{g.toplevel()};
+
+        auto val = dlg.starts[0]->get_condition_param("name_appears");
+        EXPECT_TRUE(val);
+        EXPECT_EQ(*val, "value_appear");
+
+        auto val2 = dlg.starts[0]->node->pointers[0]->node->get_action_param("name_action");
+        EXPECT_TRUE(val2);
+        EXPECT_EQ(*val2, "name_value");
+    }
 }

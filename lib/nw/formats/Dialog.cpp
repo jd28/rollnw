@@ -1,5 +1,6 @@
 #include "Dialog.hpp"
 
+#include "../kernel/Kernel.hpp"
 #include "../util/templates.hpp"
 
 #include <nlohmann/json.hpp>
@@ -55,6 +56,7 @@ void from_json(const nlohmann::json& archive, DialogPtr& ptr)
     archive["is_start"].get_to(ptr.is_start);
     archive["is_link"].get_to(ptr.is_link);
     archive["comment"].get_to(ptr.comment);
+    archive["condition_params"].get_to(ptr.condition_params);
 }
 
 void to_json(nlohmann::json& archive, const DialogPtr& ptr)
@@ -67,6 +69,7 @@ void to_json(nlohmann::json& archive, const DialogPtr& ptr)
     archive["is_start"] = ptr.is_start;
     archive["is_link"] = ptr.is_link;
     archive["comment"] = ptr.comment;
+    archive["condition_params"] = ptr.condition_params;
 }
 
 void from_json(const nlohmann::json& archive, DialogNode& node)
@@ -84,6 +87,7 @@ void from_json(const nlohmann::json& archive, DialogNode& node)
     archive["animation"].get_to(node.animation);
     archive["animation_loop"].get_to(node.animation_loop);
     archive["delay"].get_to(node.delay);
+    archive["action_params"].get_to(node.action_params);
 }
 
 void to_json(nlohmann::json& archive, const DialogNode& node)
@@ -101,6 +105,7 @@ void to_json(nlohmann::json& archive, const DialogNode& node)
     archive["animation"] = node.animation;
     archive["animation_loop"] = node.animation_loop;
     archive["delay"] = node.delay;
+    archive["action_params"] = node.action_params;
 }
 
 Dialog::Dialog()
@@ -143,6 +148,7 @@ DialogPtr* Dialog::add_ptr(DialogPtr* ptr, bool is_link)
         return new_ptr;
     } else {
         starts.push_back(ptr);
+        entries.push_back(ptr->node);
         return ptr;
     }
 }
@@ -224,8 +230,18 @@ bool Dialog::read_nodes(const GffStruct gff, DialogNodeType node_type)
         s.get_to("Animation", node->animation);
         s.get_to("AnimLoop", node->animation_loop);
         s.get_to("Delay", node->delay);
-
         valid = valid && s.get_to("Text", node->text);
+
+        if (nw::kernel::config().version() == nw::GameVersion::vEE) {
+            size_t num_action_params = s["ActionParams"].size();
+            for (size_t j = 0; j < num_action_params; ++j) {
+                GffStruct p = s["ActionParams"][j];
+                std::string key, value;
+                p.get_to("Key", key);
+                p.get_to("Value", value);
+                node->action_params.emplace_back(key, value);
+            }
+        }
 
         size_t num_ptrs = s[ptr_list].size();
         node->pointers.reserve(num_ptrs);
@@ -247,6 +263,16 @@ bool Dialog::read_nodes(const GffStruct gff, DialogNodeType node_type)
             p.get_to("IsChild", ptr->is_link);
             p.get_to("LinkComment", ptr->comment, false);
 
+            if (nw::kernel::config().version() == nw::GameVersion::vEE) {
+                size_t num_params = p["ConditionParams"].size();
+                for (size_t h = 0; h < num_params; ++h) {
+                    GffStruct cp = p["ConditionParams"][h];
+                    std::string key, value;
+                    cp.get_to("Key", key);
+                    cp.get_to("Value", value);
+                    ptr->condition_params.emplace_back(key, value);
+                }
+            }
             node->pointers.push_back(ptr);
         }
 
@@ -288,6 +314,18 @@ bool Dialog::load(const GffStruct gff)
         GffStruct s = gff["StartingList"][i];
         valid = valid && s.get_to("Active", ptr->script_appears);
         valid = valid && s.get_to("Index", ptr->index);
+
+        if (nw::kernel::config().version() == nw::GameVersion::vEE) {
+            size_t num_params = s["ConditionParams"].size();
+            for (size_t h = 0; h < num_params; ++h) {
+                GffStruct cp = s["ConditionParams"][h];
+                std::string key, value;
+                cp.get_to("Key", key);
+                cp.get_to("Value", value);
+                ptr->condition_params.emplace_back(key, value);
+            }
+        }
+
         starts.push_back(ptr);
     }
 
@@ -310,6 +348,9 @@ bool Dialog::load(const GffStruct gff)
     return valid;
 }
 
+// NWN:EE Toolset will add empty action/condition parameter lists into the GFF, but
+// obv can read DLGs without the list present, so I'm declining to put it in there
+// so NWN 1.69 DLGs roundtrip as one would expect.
 GffBuilder serialize(const Dialog* obj)
 {
     GffBuilder gff{"DLG"};
@@ -342,6 +383,16 @@ GffBuilder serialize(const Dialog* obj)
         s.add_field("AnimLoop", (*holder)[i]->animation_loop);
         s.add_field("Delay", (*holder)[i]->delay);
 
+        if (nw::kernel::config().version() == nw::GameVersion::vEE
+            && (*holder)[i]->action_params.size()) {
+            auto& list = s.add_list("ActionParams");
+            for (size_t j = 0; j < (*holder)[j]->action_params.size(); ++j) {
+                list.push_back(uint32_t(j))
+                    .add_field("Key", (*holder)[i]->action_params[j].first)
+                    .add_field("Value", (*holder)[i]->action_params[j].second);
+            }
+        }
+
         auto& ptrs = s.add_list(ptr_list);
         for (size_t j = 0; j < (*holder)[i]->pointers.size(); ++j) {
             auto& ps = ptrs.push_back(uint32_t(j));
@@ -351,6 +402,16 @@ GffBuilder serialize(const Dialog* obj)
             ps.add_field("IsChild", (*holder)[i]->pointers[j]->is_link);
             if ((*holder)[i]->pointers[j]->is_link) {
                 ps.add_field("LinkComment", (*holder)[i]->pointers[j]->comment);
+            }
+
+            if (nw::kernel::config().version() == nw::GameVersion::vEE
+                && (*holder)[i]->pointers[j]->condition_params.size()) {
+                auto& list = ps.add_list("ConditionParams");
+                for (size_t h = 0; h < (*holder)[i]->pointers[j]->condition_params.size(); ++h) {
+                    list.push_back(uint32_t(h))
+                        .add_field("Key", (*holder)[i]->pointers[j]->condition_params[h].first)
+                        .add_field("Value", (*holder)[i]->pointers[j]->condition_params[h].second);
+                }
             }
         }
     }
@@ -375,6 +436,16 @@ GffBuilder serialize(const Dialog* obj)
         s.add_field("AnimLoop", (*holder)[i]->animation_loop);
         s.add_field("Delay", (*holder)[i]->delay);
 
+        if (nw::kernel::config().version() == nw::GameVersion::vEE
+            && (*holder)[i]->action_params.size()) {
+            auto& list = s.add_list("ActionParams");
+            for (size_t j = 0; j < (*holder)[i]->action_params.size(); ++j) {
+                list.push_back(uint32_t(j))
+                    .add_field("Key", (*holder)[i]->action_params[j].first)
+                    .add_field("Value", (*holder)[i]->action_params[j].second);
+            }
+        }
+
         auto& ptrs = s.add_list(ptr_list);
         for (size_t j = 0; j < (*holder)[i]->pointers.size(); ++j) {
             auto& ps = ptrs.push_back(uint32_t(j));
@@ -385,15 +456,33 @@ GffBuilder serialize(const Dialog* obj)
             if ((*holder)[i]->pointers[j]->is_link) {
                 ps.add_field("LinkComment", (*holder)[i]->pointers[j]->comment);
             }
+            if (nw::kernel::config().version() == nw::GameVersion::vEE
+                && (*holder)[i]->pointers[j]->condition_params.size()) {
+                auto& list = ps.add_list("ConditionParams");
+                for (size_t h = 0; h < (*holder)[i]->pointers[j]->condition_params.size(); ++h) {
+                    list.push_back(uint32_t(h))
+                        .add_field("Key", (*holder)[i]->pointers[j]->condition_params[h].first)
+                        .add_field("Value", (*holder)[i]->pointers[j]->condition_params[h].second);
+                }
+            }
         }
     }
 
     auto& starts = gff.top.add_list("StartingList");
     for (size_t i = 0; i < obj->starts.size(); ++i) {
         uint32_t index = uint32_t(obj->node_index(obj->starts[i]->node, DialogNodeType::entry));
-        starts.push_back(uint32_t(i))
-            .add_field("Active", obj->starts[i]->script_appears)
-            .add_field("Index", index);
+        auto& ps = starts.push_back(uint32_t(i))
+                       .add_field("Active", obj->starts[i]->script_appears)
+                       .add_field("Index", index);
+        if (nw::kernel::config().version() == nw::GameVersion::vEE
+            && obj->starts[i]->condition_params.size()) {
+            auto& list = ps.add_list("ConditionParams");
+            for (size_t h = 0; h < obj->starts[i]->condition_params.size(); ++h) {
+                list.push_back(uint32_t(h))
+                    .add_field("Key", obj->starts[i]->condition_params[h].first)
+                    .add_field("Value", obj->starts[i]->condition_params[h].second);
+            }
+        }
     }
 
     gff.build();

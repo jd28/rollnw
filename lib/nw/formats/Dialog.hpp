@@ -26,6 +26,8 @@ struct DialogPtr {
     DialogNode* node = nullptr;
 
     Resref script_appears;
+    std::vector<std::pair<std::string, std::string>> condition_params;
+
     bool is_start = false;
     bool is_link = false;
     std::string comment;
@@ -66,6 +68,7 @@ public:
     uint32_t delay = -1;
 
     std::vector<DialogPtr*> pointers;
+    std::vector<std::pair<std::string, std::string>> action_params;
 };
 
 void from_json(const nlohmann::json& archive, DialogNode& node);
