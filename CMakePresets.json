@@ -120,6 +120,27 @@
             "generator": "Visual Studio 16 2019"
         },
         {
+            "name": "windows-debug",
+            "inherits": "windows",
+            "binaryDir": "${sourceDir}/build-debug",
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Windows"
+            },
+            "architecture": {
+                "value": "x64",
+                "strategy": "external"
+            },
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug",
+                "ROLLNW_BUILD_TESTS": {
+                    "type": "BOOL",
+                    "value": "ON"
+                }
+            }
+        },
+        {
             "name": "windows-ninja",
             "inherits": "windows",
             "generator": "Ninja"
