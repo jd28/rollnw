@@ -191,12 +191,15 @@ DialogNode* Dialog::create_node(DialogNodeType type)
 {
     auto result = node_pool_.allocate();
     result->type = type;
+    result->parent = this;
     return result;
 }
 
 DialogPtr* Dialog::create_ptr()
 {
-    return ptr_pool_.allocate();
+    auto ptr = ptr_pool_.allocate();
+    ptr->parent = this;
+    return ptr;
 }
 
 size_t Dialog::node_index(DialogNode* node, DialogNodeType type) const
