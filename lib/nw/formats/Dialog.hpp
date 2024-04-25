@@ -16,8 +16,29 @@ enum struct DialogNodeType {
     reply
 };
 
-struct Dialog;
+enum struct DialogAnimation : uint32_t {
+    default_ = 0,
+    taunt = 28,
+    greeting = 29,
+    listen = 30,
+    worship = 33,
+    salute = 34,
+    bow = 35,
+    steal = 37,
+    talk_normal = 38,
+    talk_pleading = 39,
+    talk_forceful = 40,
+    talk_laugh = 41,
+    victory_1 = 44,
+    victory_2 = 45,
+    victory_3 = 46,
+    look_far = 48,
+    drink = 70,
+    read = 71,
+    none = 88,
+};
 
+struct Dialog;
 struct DialogNode;
 
 struct DialogPtr {
@@ -73,8 +94,8 @@ public:
     Resref script_action;
     Resref sound;
     LocString text;
-    uint32_t animation = std::numeric_limits<uint32_t>::max();
-    bool animation_loop = false;
+    DialogAnimation animation = DialogAnimation::default_;
+    bool animation_loop = false; // This is obsolete.. but still is added to every conversation by the toolset..
     uint32_t delay = std::numeric_limits<uint32_t>::max();
 
     std::vector<DialogPtr*> pointers;
