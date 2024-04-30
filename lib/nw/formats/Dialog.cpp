@@ -29,10 +29,10 @@ DialogPtr* DialogPtr::add_ptr(DialogPtr* ptr, bool is_link)
         return new_ptr;
     } else {
         node->pointers.push_back(ptr);
-        if (type == DialogNodeType::entry) {
-            parent->replies.push_back(ptr->node);
-        } else {
-            parent->entries.push_back(ptr->node);
+        std::vector<DialogNode*> subnodes;
+        ptr->get_all_subnodes(subnodes);
+        for (auto n : subnodes) {
+            parent->add_node_internal(n, n->type);
         }
         return ptr;
     }
@@ -51,6 +51,11 @@ void DialogPtr::remove_ptr(DialogPtr* ptr)
 {
     auto it = std::remove(std::begin(node->pointers), std::end(node->pointers), ptr);
     node->pointers.erase(it, std::end(node->pointers));
+    std::vector<DialogNode*> subnodes;
+    ptr->get_all_subnodes(subnodes);
+    for (auto n : subnodes) {
+        parent->remove_node_internal(n, n->type);
+    }
 }
 
 /// Gets a condition parameter if it exists
@@ -62,6 +67,16 @@ std::optional<std::string> DialogPtr::get_condition_param(const std::string& key
         }
     }
     return {};
+}
+
+void DialogPtr::get_all_subnodes(std::vector<DialogNode*>& subnodes)
+{
+    if (!is_link) {
+        subnodes.push_back(node);
+        for (auto p : node->pointers) {
+            p->get_all_subnodes(subnodes);
+        }
+    }
 }
 
 /// Removes condition parameter by key
@@ -172,7 +187,12 @@ DialogPtr* Dialog::add_ptr(DialogPtr* ptr, bool is_link)
         return new_ptr;
     } else {
         starts.push_back(ptr);
-        entries.push_back(ptr->node);
+        std::vector<DialogNode*> subnodes;
+        ptr->get_all_subnodes(subnodes);
+
+        for (auto node : subnodes) {
+            add_node_internal(node, node->type);
+        }
         return ptr;
     }
 }
@@ -205,11 +225,17 @@ DialogPtr* Dialog::create_ptr()
 size_t Dialog::node_index(DialogNode* node, DialogNodeType type) const
 {
     if (type == DialogNodeType::entry) {
-        auto it = std::find(entries.begin(), entries.end(), node);
-        return it - entries.begin();
+        auto it = entries_index_map_.find(node);
+        if (it == std::end(entries_index_map_)) {
+            throw std::runtime_error("[format] invalid dialog node");
+        }
+        return it->second;
     } else {
-        auto it = std::find(replies.begin(), replies.end(), node);
-        return it - replies.begin();
+        auto it = replies_index_map_.find(node);
+        if (it == std::end(replies_index_map_)) {
+            throw std::runtime_error("[format] invalid dialog node");
+        }
+        return it->second;
     }
 }
 
@@ -217,6 +243,47 @@ void Dialog::remove_ptr(DialogPtr* ptr)
 {
     auto it = std::remove(std::begin(starts), std::end(starts), ptr);
     starts.erase(it, std::end(starts));
+    if (ptr->is_link) { return; }
+
+    std::vector<DialogNode*> subnodes;
+    ptr->get_all_subnodes(subnodes);
+    for (auto node : subnodes) {
+        remove_node_internal(node, node->type);
+    }
+}
+
+void Dialog::add_node_internal(DialogNode* node, DialogNodeType type)
+{
+    if (type == DialogNodeType::entry) {
+        auto it = entries_index_map_.find(node);
+        if (it == std::end(entries_index_map_)) {
+            entries_index_map_.insert({node, entries.size()});
+            entries.push_back(node);
+        }
+    } else {
+        auto it = replies_index_map_.find(node);
+        if (it == std::end(replies_index_map_)) {
+            replies_index_map_.insert({node, replies.size()});
+            replies.push_back(node);
+        }
+    }
+}
+
+void Dialog::remove_node_internal(DialogNode* node, DialogNodeType type)
+{
+    if (type == DialogNodeType::entry) {
+        auto it = entries_index_map_.find(node);
+        if (it != std::end(entries_index_map_)) {
+            entries.erase(std::begin(entries) + it->second);
+            entries_index_map_.erase(it);
+        }
+    } else {
+        auto it = replies_index_map_.find(node);
+        if (it != std::end(replies_index_map_)) {
+            replies.erase(std::begin(replies) + it->second);
+            replies_index_map_.erase(it);
+        }
+    }
 }
 
 bool Dialog::read_nodes(const GffStruct gff, DialogNodeType node_type)

@@ -213,3 +213,42 @@ TEST(Dialog, NWNEEScriptParams)
         EXPECT_EQ(dlg.starts[0]->node->pointers[0]->node->action_params.size(), 0);
     }
 }
+
+TEST(Dialog, InternalNodeOps)
+{
+    nw::Gff g("test_data/user/development/alue_ranger.dlg");
+    EXPECT_TRUE(g.valid());
+    nw::Dialog dlg{g.toplevel()};
+
+    size_t entries = dlg.entries.size();
+    auto node1 = dlg.create_node(nw::DialogNodeType::entry);
+    dlg.add_node_internal(node1, nw::DialogNodeType::entry);
+    EXPECT_EQ(entries + 1, dlg.entries.size());
+    dlg.remove_node_internal(node1, nw::DialogNodeType::entry);
+    EXPECT_EQ(entries, dlg.entries.size());
+
+    size_t replies = dlg.replies.size();
+    auto node2 = dlg.create_node(nw::DialogNodeType::reply);
+    dlg.add_node_internal(node2, nw::DialogNodeType::reply);
+    EXPECT_EQ(replies + 1, dlg.replies.size());
+    dlg.remove_node_internal(node2, nw::DialogNodeType::reply);
+    EXPECT_EQ(replies, dlg.replies.size());
+
+    auto ptr1 = dlg.starts[0];
+    dlg.remove_ptr(ptr1);
+    EXPECT_EQ(replies - 2, dlg.replies.size());
+    EXPECT_EQ(entries - 1, dlg.entries.size());
+
+    dlg.add_ptr(ptr1);
+    EXPECT_EQ(replies, dlg.replies.size());
+    EXPECT_EQ(entries, dlg.entries.size());
+
+    auto ptr2 = dlg.starts[0]->node->pointers[0];
+    dlg.starts[0]->remove_ptr(ptr2);
+    EXPECT_EQ(replies - 2, dlg.replies.size());
+    EXPECT_EQ(entries - 1, dlg.entries.size());
+
+    dlg.starts[0]->add_ptr(ptr2);
+    EXPECT_EQ(replies, dlg.replies.size());
+    EXPECT_EQ(entries, dlg.entries.size());
+}

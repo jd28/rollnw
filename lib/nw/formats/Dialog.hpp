@@ -3,6 +3,7 @@
 #include "../serialization/Archives.hpp"
 #include "../util/memory.hpp"
 
+#include <absl/container/flat_hash_map.h>
 #include <nlohmann/json_fwd.hpp>
 
 #include <limits>
@@ -64,6 +65,11 @@ struct DialogPtr {
     /// Adds empty Dialog Pointer and Node
     DialogPtr* add();
 
+    /// Gets all sub-nodes that are not links
+    /// When a pointer is removed from the dialog tree all of its sub-nodes must be removed from
+    /// the main node list, unless they are links.
+    void get_all_subnodes(std::vector<DialogNode*>& subnodes);
+
     /// Gets a condition parameter if it exists
     std::optional<std::string> get_condition_param(const std::string& key);
 
@@ -123,15 +129,19 @@ public:
     static constexpr int json_archive_version = 1;
     static constexpr ResourceType::type restype = ResourceType::dlg;
 
+    /// Adds empty Dialog Pointer and Node
+    DialogPtr* add();
+
+    /// Adds a node to the iternal node lists
+    /// @note This should be considered for internal use and not client code
+    void add_node_internal(DialogNode* node, DialogNodeType type);
+
     /// Adds Dialog Pointer, if `is_link` is false no new pointer or node is created.
     /// if `is_link` is true a new pointer will created with the node copied from input pointer.
     DialogPtr* add_ptr(DialogPtr* ptr, bool is_link = false);
 
     /// Adds Dialog Pointer and Node with string value set
     DialogPtr* add_string(std::string value, nw::LanguageID lang = nw::LanguageID::english, bool feminine = false);
-
-    /// Adds empty Dialog Pointer and Node
-    DialogPtr* add();
 
     /// Creates a new Dialog Node.
     DialogNode* create_node(DialogNodeType type);
@@ -142,6 +152,10 @@ public:
     /// Get Node index.
     size_t node_index(DialogNode* node, DialogNodeType type) const;
 
+    /// Removes a node to the iternal node lists
+    /// @note This should be considered for internal use and not client code
+    void remove_node_internal(DialogNode* node, DialogNodeType type);
+
     /// Removes Dialog Ptr from underlying node
     void remove_ptr(DialogPtr* ptr);
 
@@ -149,7 +163,10 @@ public:
     bool valid() const noexcept { return is_valid_; }
 
     std::vector<DialogNode*> entries;
+    absl::flat_hash_map<DialogNode*, size_t> entries_index_map_;
     std::vector<DialogNode*> replies;
+    absl::flat_hash_map<DialogNode*, size_t> replies_index_map_;
+
     Resref script_abort;
     Resref script_end;
     std::vector<DialogPtr*> starts;
