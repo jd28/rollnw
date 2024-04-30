@@ -245,9 +245,6 @@ bool Dialog::read_nodes(const GffStruct gff, DialogNodeType node_type)
         GffStruct s = gff[node_list][i];
 
         DialogNode* node = create_node(node_type);
-        node->parent = this;
-        node->type = DialogNodeType::entry;
-
         s.get_to("QuestEntry", node->quest_entry, false);
         s.get_to("Comment", node->comment, false);
         s.get_to("Quest", node->quest);
@@ -303,7 +300,7 @@ bool Dialog::read_nodes(const GffStruct gff, DialogNodeType node_type)
             node->pointers.push_back(ptr);
         }
 
-        holder->push_back(node);
+        add_node_internal(node, node_type);
     }
 
     return valid;
@@ -520,7 +517,6 @@ GffBuilder serialize(const Dialog* obj)
 
 void deserialize(const nlohmann::json& archive, DialogPtr& ptr)
 {
-    archive["type"].get_to(ptr.type);
     archive["index"].get_to(ptr.index);
     archive["script_appears"].get_to(ptr.script_appears);
     archive["is_start"].get_to(ptr.is_start);
@@ -532,7 +528,6 @@ void deserialize(const nlohmann::json& archive, DialogPtr& ptr)
 void serialize(nlohmann::json& archive, const DialogPtr& ptr)
 {
     uint32_t index = uint32_t(ptr.parent->node_index(ptr.node, ptr.type));
-    archive["type"] = ptr.type;
     archive["index"] = index;
     archive["script_appears"] = ptr.script_appears;
     archive["is_start"] = ptr.is_start;
@@ -543,7 +538,6 @@ void serialize(nlohmann::json& archive, const DialogPtr& ptr)
 
 void deserialize(const nlohmann::json& archive, DialogNode& node)
 {
-    archive["type"].get_to(node.type);
     archive["comment"].get_to(node.comment);
     archive["quest"].get_to(node.quest);
     archive["quest_entry"].get_to(node.quest_entry);
@@ -561,6 +555,7 @@ void deserialize(const nlohmann::json& archive, DialogNode& node)
     auto& list = archive["pointers"];
     for (size_t i = 0; i < list.size(); ++i) {
         auto ptr = node.parent->create_ptr();
+        ptr->type = node.type == DialogNodeType::entry ? DialogNodeType::reply : DialogNodeType::entry;
         ptr->parent = node.parent;
         deserialize(list[i], *ptr);
         node.pointers.push_back(ptr);
@@ -569,7 +564,6 @@ void deserialize(const nlohmann::json& archive, DialogNode& node)
 
 void serialize(nlohmann::json& archive, const DialogNode& node)
 {
-    archive["type"] = node.type;
     archive["comment"] = node.comment;
     archive["quest"] = node.quest;
     archive["quest_entry"] = node.quest_entry;
@@ -603,24 +597,23 @@ void deserialize(const nlohmann::json& archive, Dialog& node)
     node.entries.reserve(json_entries.size());
     for (auto& je : json_entries) {
         DialogNode* n = node.create_node(DialogNodeType::entry);
-        n->parent = &node;
         deserialize(je, *n);
-        node.entries.push_back(n);
+        node.add_node_internal(n, DialogNodeType::entry);
     }
 
     auto& json_replies = archive["replies"];
     node.replies.reserve(json_replies.size());
     for (auto& je : json_replies) {
         DialogNode* n = node.create_node(DialogNodeType::reply);
-        n->parent = &node;
         deserialize(je, *n);
-        node.replies.push_back(n);
+        node.add_node_internal(n, DialogNodeType::reply);
     }
 
     auto& json_starts = archive["starts"];
     node.starts.reserve(json_starts.size());
     for (auto& je : json_starts) {
         auto ptr = node.create_ptr();
+        ptr->type = DialogNodeType::entry;
         ptr->parent = &node;
         deserialize(je, *ptr);
         node.starts.push_back(ptr);
