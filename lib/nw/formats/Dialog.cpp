@@ -47,6 +47,16 @@ DialogPtr* DialogPtr::add_string(std::string value, nw::LanguageID lang, bool fe
     return add_ptr(ptr);
 }
 
+DialogPtr* DialogPtr::copy() const
+{
+    auto result = parent->create_ptr();
+    *result = *this;
+    if (!is_link) {
+        result->node = node->copy();
+    }
+    return result;
+}
+
 void DialogPtr::remove_ptr(DialogPtr* ptr)
 {
     auto it = std::remove(std::begin(node->pointers), std::end(node->pointers), ptr);
@@ -56,6 +66,16 @@ void DialogPtr::remove_ptr(DialogPtr* ptr)
     for (auto n : subnodes) {
         parent->remove_node_internal(n, n->type);
     }
+}
+
+DialogNode* DialogNode::copy() const
+{
+    auto result = parent->create_node(type);
+    *result = *this;
+    for (auto p : pointers) {
+        result->pointers.push_back(p->copy());
+    }
+    return result;
 }
 
 /// Gets a condition parameter if it exists
@@ -186,6 +206,7 @@ DialogPtr* Dialog::add_ptr(DialogPtr* ptr, bool is_link)
         starts.push_back(new_ptr);
         return new_ptr;
     } else {
+        ptr->is_start = true;
         starts.push_back(ptr);
         std::vector<DialogNode*> subnodes;
         ptr->get_all_subnodes(subnodes);

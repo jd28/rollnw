@@ -252,3 +252,22 @@ TEST(Dialog, InternalNodeOps)
     EXPECT_EQ(replies, dlg.replies.size());
     EXPECT_EQ(entries, dlg.entries.size());
 }
+
+TEST(Dialog, Copy)
+{
+    nw::Gff g("test_data/user/development/alue_ranger.dlg");
+    EXPECT_TRUE(g.valid());
+    nw::Dialog dlg{g.toplevel()};
+
+    EXPECT_TRUE(dlg.valid());
+    EXPECT_GT(dlg.starts.size(), 0);
+    EXPECT_TRUE(dlg.starts[0]->is_start);
+    EXPECT_EQ(dlg.starts[0]->node->text.get(nw::LanguageID::english),
+        "Have you managed to get rid of the Bandit Leader?");
+
+    auto ptr1 = dlg.starts[0]->copy();
+    dlg.add_ptr(ptr1);
+    EXPECT_TRUE(dlg.starts.back()->is_start);
+    EXPECT_EQ(dlg.starts.back()->node->text.get(nw::LanguageID::english),
+        "Have you managed to get rid of the Bandit Leader?");
+}

@@ -65,6 +65,9 @@ struct DialogPtr {
     /// Adds empty Dialog Pointer and Node
     DialogPtr* add();
 
+    /// Copies dialog pointer and all sub-nodes
+    DialogPtr* copy() const;
+
     /// Gets all sub-nodes that are not links
     /// When a pointer is removed from the dialog tree all of its sub-nodes must be removed from
     /// the main node list, unless they are links.
@@ -106,6 +109,9 @@ public:
 
     std::vector<DialogPtr*> pointers;
     std::vector<std::pair<std::string, std::string>> action_params;
+
+    /// Copies a Node
+    DialogNode* copy() const;
 
     /// Gets action parameter if it exists
     std::optional<std::string> get_action_param(const std::string& key);
