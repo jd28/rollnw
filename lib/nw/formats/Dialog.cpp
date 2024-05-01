@@ -317,6 +317,28 @@ void Dialog::remove_node_internal(DialogNode* node, DialogNodeType type)
             replies.erase(it);
         }
     }
+
+    for (auto p : starts) {
+        if (p->is_link && p->node == node) {
+            remove_ptr(p);
+        }
+    }
+
+    for (auto e : entries) {
+        auto it = std::remove_if(std::begin(e->pointers), std::end(e->pointers),
+            [node](DialogPtr* ptr) {
+                return ptr->is_link && ptr->node == node;
+            });
+        e->pointers.erase(it, std::end(e->pointers));
+    }
+
+    for (auto e : replies) {
+        auto it = std::remove_if(std::begin(e->pointers), std::end(e->pointers),
+            [node](DialogPtr* ptr) {
+                return ptr->is_link && ptr->node == node;
+            });
+        e->pointers.erase(it, std::end(e->pointers));
+    }
 }
 
 bool Dialog::read_nodes(const GffStruct gff, DialogNodeType node_type)
