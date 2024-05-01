@@ -103,6 +103,8 @@
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6Dialog10add_stringENSt6stringEN2nw10LanguageIDEb"><code class="docutils literal notranslate"><span class="pre">Dialog::add_string()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6Dialog11create_nodeE14DialogNodeType"><code class="docutils literal notranslate"><span class="pre">Dialog::create_node()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6Dialog10create_ptrEv"><code class="docutils literal notranslate"><span class="pre">Dialog::create_ptr()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6Dialog11delete_nodeEP10DialogNode"><code class="docutils literal notranslate"><span class="pre">Dialog::delete_node()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6Dialog10delete_ptrEP9DialogPtr"><code class="docutils literal notranslate"><span class="pre">Dialog::delete_ptr()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw6Dialog10node_indexEP10DialogNode14DialogNodeType"><code class="docutils literal notranslate"><span class="pre">Dialog::node_index()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6Dialog20remove_node_internalEP10DialogNode14DialogNodeType"><code class="docutils literal notranslate"><span class="pre">Dialog::remove_node_internal()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6Dialog10remove_ptrEP9DialogPtr"><code class="docutils literal notranslate"><span class="pre">Dialog::remove_ptr()</span></code></a></li>
@@ -423,8 +425,8 @@
 <dt class="sig sig-object cpp" id="_CPPv4N2nw6Dialog17add_node_internalEP10DialogNode14DialogNodeType">
 <span id="_CPPv3N2nw6Dialog17add_node_internalEP10DialogNode14DialogNodeType"></span><span id="_CPPv2N2nw6Dialog17add_node_internalEP10DialogNode14DialogNodeType"></span><span id="nw::Dialog::add_node_internal__DialogNodeP.DialogNodeType"></span><span class="target" id="structnw_1_1_dialog_1afbe548aa85807cd38c7f0a56a05b9ddf"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">add_node_internal</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="nw__DialogNode.html#_CPPv4N2nw10DialogNodeE" title="nw::DialogNode"><span class="n"><span class="pre">DialogNode</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">node</span></span>, <a class="reference internal" href="../enum/nw__DialogNodeType.html#_CPPv4N2nw14DialogNodeTypeE" title="nw::DialogNodeType"><span class="n"><span class="pre">DialogNodeType</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">type</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6Dialog17add_node_internalEP10DialogNode14DialogNodeType" title="Link to this definition"></a><br /></dt>
 <dd><p>Adds a node to the iternal node lists </p>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
 <p>This should be considered for internal use and not client code </p>
 </div>
 </dd></dl>
@@ -454,6 +456,26 @@
 </dd></dl>
 
 <dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6Dialog11delete_nodeEP10DialogNode">
+<span id="_CPPv3N2nw6Dialog11delete_nodeEP10DialogNode"></span><span id="_CPPv2N2nw6Dialog11delete_nodeEP10DialogNode"></span><span id="nw::Dialog::delete_node__DialogNodeP"></span><span class="target" id="structnw_1_1_dialog_1ad1f31509c0d1cd7a59f99df43adb91f8"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">delete_node</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="nw__DialogNode.html#_CPPv4N2nw10DialogNodeE" title="nw::DialogNode"><span class="n"><span class="pre">DialogNode</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">node</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6Dialog11delete_nodeEP10DialogNode" title="Link to this definition"></a><br /></dt>
+<dd><p>Deletes a dialog node </p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>This should be considered for internal use and not client code </p>
+</div>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6Dialog10delete_ptrEP9DialogPtr">
+<span id="_CPPv3N2nw6Dialog10delete_ptrEP9DialogPtr"></span><span id="_CPPv2N2nw6Dialog10delete_ptrEP9DialogPtr"></span><span id="nw::Dialog::delete_ptr__DialogPtrP"></span><span class="target" id="structnw_1_1_dialog_1a5687a304a263d8c8db4f50d61f5865f7"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">delete_ptr</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="nw__DialogPtr.html#_CPPv4N2nw9DialogPtrE" title="nw::DialogPtr"><span class="n"><span class="pre">DialogPtr</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">ptr</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6Dialog10delete_ptrEP9DialogPtr" title="Link to this definition"></a><br /></dt>
+<dd><p>Deletes a dialog pointer </p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p><code class="docutils literal notranslate"><span class="pre">ptr</span></code> should be removed from / not added to a dialog prior to deletion </p>
+</div>
+</dd></dl>
+
+<dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4NK2nw6Dialog10node_indexEP10DialogNode14DialogNodeType">
 <span id="_CPPv3NK2nw6Dialog10node_indexEP10DialogNode14DialogNodeType"></span><span id="_CPPv2NK2nw6Dialog10node_indexEP10DialogNode14DialogNodeType"></span><span id="nw::Dialog::node_index__DialogNodeP.DialogNodeTypeC"></span><span class="target" id="structnw_1_1_dialog_1a03c55f7fb1dbb0dd1e739b0c3bf8d1ea"></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">node_index</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="nw__DialogNode.html#_CPPv4N2nw10DialogNodeE" title="nw::DialogNode"><span class="n"><span class="pre">DialogNode</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">node</span></span>, <a class="reference internal" href="../enum/nw__DialogNodeType.html#_CPPv4N2nw14DialogNodeTypeE" title="nw::DialogNodeType"><span class="n"><span class="pre">DialogNodeType</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">type</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK2nw6Dialog10node_indexEP10DialogNode14DialogNodeType" title="Link to this definition"></a><br /></dt>
 <dd><p>Get Node index. </p>
@@ -463,8 +485,8 @@
 <dt class="sig sig-object cpp" id="_CPPv4N2nw6Dialog20remove_node_internalEP10DialogNode14DialogNodeType">
 <span id="_CPPv3N2nw6Dialog20remove_node_internalEP10DialogNode14DialogNodeType"></span><span id="_CPPv2N2nw6Dialog20remove_node_internalEP10DialogNode14DialogNodeType"></span><span id="nw::Dialog::remove_node_internal__DialogNodeP.DialogNodeType"></span><span class="target" id="structnw_1_1_dialog_1a4d41806476730cf27f8e3e8b73aa1c0e"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">remove_node_internal</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="nw__DialogNode.html#_CPPv4N2nw10DialogNodeE" title="nw::DialogNode"><span class="n"><span class="pre">DialogNode</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">node</span></span>, <a class="reference internal" href="../enum/nw__DialogNodeType.html#_CPPv4N2nw14DialogNodeTypeE" title="nw::DialogNodeType"><span class="n"><span class="pre">DialogNodeType</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">type</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6Dialog20remove_node_internalEP10DialogNode14DialogNodeType" title="Link to this definition"></a><br /></dt>
 <dd><p>Removes a node to the iternal node lists </p>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
 <p>This should be considered for internal use and not client code </p>
 </div>
 </dd></dl>
