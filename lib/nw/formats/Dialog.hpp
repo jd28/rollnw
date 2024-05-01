@@ -3,7 +3,6 @@
 #include "../serialization/Archives.hpp"
 #include "../util/memory.hpp"
 
-#include <absl/container/flat_hash_map.h>
 #include <nlohmann/json_fwd.hpp>
 
 #include <limits>
@@ -169,9 +168,7 @@ public:
     bool valid() const noexcept { return is_valid_; }
 
     std::vector<DialogNode*> entries;
-    absl::flat_hash_map<DialogNode*, size_t> entries_index_map_;
     std::vector<DialogNode*> replies;
-    absl::flat_hash_map<DialogNode*, size_t> replies_index_map_;
 
     Resref script_abort;
     Resref script_end;
