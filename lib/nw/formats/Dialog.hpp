@@ -138,7 +138,7 @@ public:
     DialogPtr* add();
 
     /// Adds a node to the iternal node lists
-    /// @note This should be considered for internal use and not client code
+    /// @warning This should be considered for internal use and not client code
     void add_node_internal(DialogNode* node, DialogNodeType type);
 
     /// Adds Dialog Pointer, if `is_link` is false no new pointer or node is created.
@@ -154,11 +154,19 @@ public:
     /// Creates a new Dialog Pointer
     DialogPtr* create_ptr();
 
+    /// Deletes a dialog node
+    /// @warning This should be considered for internal use and not client code
+    void delete_node(DialogNode* node);
+
+    /// Deletes a dialog pointer
+    /// @warning ``ptr`` should be removed from / not added to a dialog prior to deletion
+    void delete_ptr(DialogPtr* ptr);
+
     /// Get Node index.
     size_t node_index(DialogNode* node, DialogNodeType type) const;
 
     /// Removes a node to the iternal node lists
-    /// @note This should be considered for internal use and not client code
+    /// @warning This should be considered for internal use and not client code
     void remove_node_internal(DialogNode* node, DialogNodeType type);
 
     /// Removes Dialog Ptr from underlying node

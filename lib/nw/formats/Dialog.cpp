@@ -245,6 +245,23 @@ DialogPtr* Dialog::create_ptr()
     return ptr;
 }
 
+void Dialog::delete_node(DialogNode* node)
+{
+    if (!node) { return; }
+    for (auto ptr : node->pointers) {
+        delete_ptr(ptr);
+    }
+    node->pointers.clear();
+    node_pool_.free(node);
+}
+
+void Dialog::delete_ptr(DialogPtr* ptr)
+{
+    if (!ptr || ptr->is_link) { return; }
+    delete_node(ptr->node);
+    ptr_pool_.free(ptr);
+}
+
 size_t Dialog::node_index(DialogNode* node, DialogNodeType type) const
 {
     if (type == DialogNodeType::entry) {

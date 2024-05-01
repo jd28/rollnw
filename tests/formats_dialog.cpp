@@ -284,3 +284,28 @@ TEST(Dialog, RemoveLinkedNode)
     dlg.starts[0]->remove_ptr(dlg.starts[0]->node->pointers[0]);
     EXPECT_EQ(dlg.starts[0]->node->pointers.size(), 0);
 }
+
+TEST(Dialog, DeleteNode)
+{
+    nw::Gff g("test_data/user/development/dlg_with_link.dlg");
+    EXPECT_TRUE(g.valid());
+    nw::Dialog dlg{g.toplevel()};
+
+    dlg.delete_node(nullptr);
+    dlg.delete_ptr(nullptr);
+
+    EXPECT_TRUE(dlg.valid());
+    EXPECT_GT(dlg.starts.size(), 0);
+    EXPECT_EQ(dlg.starts[0]->node->pointers.size(), 2);
+    auto ptr1 = dlg.starts[0]->node->pointers[0];
+    dlg.starts[0]->remove_ptr(ptr1);
+    dlg.delete_ptr(ptr1);
+
+    nw::GffBuilder oa = nw::serialize(&dlg);
+    oa.write_to("tmp/test_delete.dlg");
+
+    nlohmann::json j;
+    nw::serialize(j, dlg);
+    std::ofstream f{"tmp/test_delete.dlg.json"};
+    f << std::setw(4) << j;
+}
