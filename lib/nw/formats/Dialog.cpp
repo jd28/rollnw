@@ -72,6 +72,8 @@ DialogNode* DialogNode::copy() const
 {
     auto result = parent->create_node(type);
     *result = *this;
+    result->pointers.clear();
+
     for (auto p : pointers) {
         result->pointers.push_back(p->copy());
     }
