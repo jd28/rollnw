@@ -549,7 +549,7 @@ GffBuilder serialize(const Dialog* obj)
         if (nw::kernel::config().version() == nw::GameVersion::vEE
             && (*holder)[i]->action_params.size()) {
             auto& list = s.add_list("ActionParams");
-            for (size_t j = 0; j < (*holder)[j]->action_params.size(); ++j) {
+            for (size_t j = 0; j < (*holder)[i]->action_params.size(); ++j) {
                 list.push_back(uint32_t(j))
                     .add_field("Key", (*holder)[i]->action_params[j].first)
                     .add_field("Value", (*holder)[i]->action_params[j].second);
