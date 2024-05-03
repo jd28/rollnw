@@ -130,6 +130,8 @@ public:
     Dialog();
     explicit Dialog(const GffStruct archive);
     explicit Dialog(const nlohmann::json& archive);
+    Dialog(const Dialog&) = delete;
+    Dialog& operator=(const Dialog&) = delete;
 
     static constexpr int json_archive_version = 1;
     static constexpr ResourceType::type restype = ResourceType::dlg;

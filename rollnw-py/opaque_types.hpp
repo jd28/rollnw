@@ -1,5 +1,6 @@
 #pragma once
 
+#include <nw/formats/Dialog.hpp>
 #include <nw/model/Mdl.hpp>
 #include <nw/objects/Area.hpp>
 #include <nw/objects/Creature.hpp>
@@ -58,5 +59,6 @@ PYBIND11_MAKE_OPAQUE(std::vector<nw::Store*>)
 PYBIND11_MAKE_OPAQUE(std::vector<nw::Trigger*>)
 PYBIND11_MAKE_OPAQUE(std::vector<nw::Waypoint*>)
 PYBIND11_MAKE_OPAQUE(std::vector<nw::script::Symbol>)
+PYBIND11_MAKE_OPAQUE(std::vector<nw::DialogPtr*>)
 
 void bind_opaque_types(pybind11::module& m);

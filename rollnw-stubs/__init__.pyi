@@ -351,6 +351,103 @@ class CreatureStats:
     def save_bonus(self) -> Saves: ...
 
 
+class DialogNodeType:
+    entry: ClassVar[int]
+    reply: ClassVar[int]
+
+
+class DialogAnimation:
+    default: ClassVar[int]
+    taunt: ClassVar[int]
+    greeting: ClassVar[int]
+    listen: ClassVar[int]
+    worship: ClassVar[int]
+    salute: ClassVar[int]
+    bow: ClassVar[int]
+    steal: ClassVar[int]
+    talk_normal: ClassVar[int]
+    talk_pleading: ClassVar[int]
+    talk_forceful: ClassVar[int]
+    talk_laugh: ClassVar[int]
+    victory_1: ClassVar[int]
+    victory_2: ClassVar[int]
+    victory_3: ClassVar[int]
+    look_far: ClassVar[int]
+    drink: ClassVar[int]
+    read: ClassVar[int]
+    none: ClassVar[int]
+
+
+class DialogPtr:
+    parent: "Dialog"
+    type: DialogNodeType
+    node: "DialogNode"
+    script_appears: str
+
+    is_start: bool
+    is_link: bool
+    comment: str
+
+    def add_ptr(self, ptr: "DialogPtr",
+                is_link: bool = False) -> "DialogPtr": ...
+    def add_string(self, value: str, lang: "LanguageID" = LanguageID.english,
+                   feminine: bool = False) -> "DialogPtr": ...
+
+    def add(self) -> "DialogPtr": ...
+    def copy(self) -> "DialogPtr": ...
+    def get_condition_param(self, key: str) -> Optional[str]: ...
+    def remove_condition_param(self, key: str): ...
+    def remove_ptr(self, ptr: "DialogPtr"): ...
+    def set_condition_param(self, key: str, value: str): ...
+
+
+class DialogNode:
+    parent: "Dialog"
+    type: DialogNodeType
+    comment: str
+    quest: str
+    speaker: str
+    quest_entry: int = -1
+    script_action: str
+    sound: str
+    text: LocString
+    animation: DialogAnimation
+    delay: int = -1
+    pointers: List[DialogPtr]
+
+    def copy(self) -> "DialogNode": ...
+    def get_action_param(self, key: str) -> Optional[str]: ...
+    def remove_action_param(self, key: str): ...
+    def set_action_param(self, key: str, value: str): ...
+
+
+class Dialog:
+    json_archive_version: ClassVar[int] = ...  # read-only
+    restype: ClassVar[ObjectType] = ...  # read-only
+
+    script_abort: str
+    script_end: str
+    delay_entry: int
+    delay_reply: int
+    word_count: int
+    prevent_zoom: bool
+
+    def __init__(self): ...
+    def __len__(self) -> int: ...
+    def __getitem__(self, index: int) -> DialogPtr: ...
+    def add(self) -> DialogPtr: ...
+    def add_ptr(self, ptr: DialogPtr,  is_link: bool = False) -> DialogPtr: ...
+    def add_string(self, value: str, lang: LanguageID = LanguageID.english,
+                   feminine: bool = False) -> DialogPtr: ...
+
+    def delete_ptr(self, ptr: DialogPtr): ...
+    def remove_ptr(self, ptr:  DialogPtr): ...
+    def valid(self) -> bool: ...
+
+    @staticmethod
+    def from_file(path: str) -> "Dialog": ...
+
+
 class DiceRoll:
     bonus: int
     dice: int

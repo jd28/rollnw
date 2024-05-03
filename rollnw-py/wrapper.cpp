@@ -10,8 +10,8 @@
 
 namespace py = pybind11;
 
-void init_formats(py::module& nw);
 void init_i18n(py::module& nw);
+void init_formats(py::module& nw);
 void init_objects(py::module& nw);
 void init_resources(py::module& nw);
 void init_rules(py::module& nw);
@@ -30,8 +30,8 @@ PYBIND11_MODULE(rollnw, nw)
 
     bind_opaque_types(nw);
     // Initialize submodules
-    init_formats(nw);
     init_i18n(nw);
+    init_formats(nw);
     init_objects(nw);
     init_resources(nw);
     init_rules(nw);

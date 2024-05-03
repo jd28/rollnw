@@ -2,6 +2,7 @@ import enum
 from enum import auto
 from typing import NewType, Tuple, List, ClassVar, Optional, ByteString, DefaultDict
 
+
 # Math ########################################################################
 ###############################################################################
 
@@ -29,6 +30,164 @@ class Vector4:
     y: float
     z: float
     W: float
+
+# i18n ########################################################################
+###############################################################################
+
+
+class LanguageID(enum.IntEnum):
+    invalid = -1
+    english = 0
+    french = 1
+    german = 2
+    italian = 3
+    spanish = 4
+    polish = 5
+    korean = 128
+    chinese_traditional = 129
+    chinese_simplified = 130
+    japanese = 131
+
+
+class Language:
+    @staticmethod
+    def encoding(language: LanguageID) -> str:
+        """Gets the encoding for a particular language
+        """
+        pass
+
+    @staticmethod
+    def from_string(string: str) -> LanguageID:
+        """Converts string (short or long form) to ID
+        """
+        pass
+
+    @staticmethod
+    def has_feminine(language: LanguageID) -> bool:
+        """Determines if language has feminine translations
+        """
+        pass
+
+    @staticmethod
+    def to_base_id(id: int) -> Tuple[LanguageID, bool]:
+        """Convert runtime language identifier to base language and bool indicating masc/fem.
+        """
+        pass
+
+    @staticmethod
+    def to_runtime_id(language: LanguageID, feminine: bool = False) -> int:
+        """Convert language ID to runtime identifier.
+        """
+        pass
+
+    @staticmethod
+    def to_string(language: LanguageID, long_name: bool = False) -> str:
+        """Converts language to string form
+        """
+        pass
+
+
+class LocString:
+    """Implements a localized string
+
+    Args:
+        strref (int): String reference.  (default -1)
+    """
+
+    def __init__(self, strref: int = -1):
+        pass
+
+    def __getitem__(self, language: LanguageID) -> str:
+        """Gets an item.  Only useful for languages without gender, so English.
+        """
+
+    def add(self, language: LanguageID, string: str, feminine: bool = False):
+        """Adds a localized string"""
+        pass
+
+    def contains(self, language: LanguageID, feminine: bool = False):
+        """Checks if a localized string is contained"""
+        pass
+
+    def get(self, language: LanguageID, feminine: bool = False):
+        """Gets a localized string"""
+        pass
+
+    def remove(self, language: LanguageID, feminine: bool = False):
+        """Removes a localized string"""
+        pass
+
+    def size(self):
+        """Gets number of localized strings"""
+        pass
+
+    def strref(self):
+        """Gets string reference"""
+        pass
+
+    def to_dict(self) -> DefaultDict:
+        """Converts ``LocString`` to python ``dict``"""
+        pass
+
+    @staticmethod
+    def from_dict(data: dict):
+        """Converts python ``dict`` to ``LocString``"""
+
+
+class Tlk:
+    """Implementation of the TLK file format
+
+    Args:
+        init (str | LanguageID): if passed a string, ``init`` will be treated as a path to a TLK file,
+            if passed a LanguageID, default constructs with the TLKs language set to ``init``.
+    """
+
+    def __init__(self, init: str | LanguageID):
+        pass
+
+    def __getitem__(self, strref: int) -> str:
+        """Gets a tlk entry."""
+        pass
+
+    def __setitem__(self, strref: int, string: str):
+        """Sets a tlk entry."""
+        pass
+
+    def __len__(self):
+        """Gets the highest set TLK entry"""
+
+    def get(self, strref: int) -> str:
+        """Gets a tlk entry."""
+        pass
+
+    def language_id(self):
+        """Gets the language ID"""
+        pass
+
+    def modified(self):
+        """Is Tlk modfied"""
+        pass
+
+    def save(self):
+        """Writes TLK to file"""
+        pass
+
+    def save_as(self, path: str):
+        """Writes TLK to file"""
+        pass
+
+    def set(self, strref: int, string: str):
+        """Sets a localized string"""
+        pass
+
+    def size(self):
+        """Gets the highest set strref"""
+        pass
+
+    def valid(self):
+        """Gets if successfully parsed"""
+        pass
+
 
 # Platform ####################################################################
 ###############################################################################
@@ -141,7 +300,7 @@ class CreatureStats:
     def add_feat(self, feat) -> bool:
         """Attempts to add a feat to a creature, returning true if successful
         """
-        pass
+        return True
 
     def get_ability_score(self, id: int):
         """Gets an ability score"""
@@ -492,6 +651,160 @@ class Trap:
 # Formats #####################################################################
 ###############################################################################
 
+class DialogNodeType(enum.IntEnum):
+    entry = 0
+    reply = 1
+
+
+class DialogAnimation(enum.IntEnum):
+    default = 0
+    taunt = 28
+    greeting = 29
+    listen = 30
+    worship = 33
+    salute = 34
+    bow = 35
+    steal = 37
+    talk_normal = 38
+    talk_pleading = 39
+    talk_forceful = 40
+    talk_laugh = 41
+    victory_1 = 44
+    victory_2 = 45
+    victory_3 = 46
+    look_far = 48
+    drink = 70
+    read = 71
+    none = 88
+
+
+class DialogPtr:
+    parent: "Dialog"
+    type: DialogNodeType
+    node: "DialogNode"
+    script_appears: str
+
+    is_start: bool
+    is_link: bool
+    comment: str
+
+    def add_ptr(self, ptr: "DialogPtr",  is_link: bool = False) -> "DialogPtr":
+        """Adds Dialog Pointer, if `is_link` is false no new pointer or node is created.
+        if `is_link` is true a new pointer will created with the node copied from input pointer.
+        """
+        pass
+
+    def add_string(self, value: str, lang: "LanguageID" = LanguageID.english, feminine: bool = False) -> "DialogPtr":
+        """ Adds Dialog Pointer and Node with string value set
+        """
+        pass
+
+    def add(self) -> "DialogPtr":
+        """Adds empty Dialog Pointer and Node"""
+        pass
+
+    def copy(self) -> "DialogPtr":
+        """Copies dialog pointer and all sub-nodes"""
+        pass
+
+    def get_condition_param(self, key: str) -> Optional[str]:
+        """Gets condition parameter by key"""
+        pass
+
+    def remove_condition_param(self, key: str):
+        """Removes condition parameter by key"""
+
+    def remove_ptr(self, ptr: "DialogPtr"):
+        """Removes Dialog Ptr from underlying node"""
+        pass
+
+    def set_condition_param(self, key: str, value: str):
+        """Sets condition parameter, if key does not exist key and value are appended"""
+        pass
+
+
+class DialogNode:
+    parent: "Dialog"
+    type: DialogNodeType
+
+    comment: str
+    quest: str
+    speaker: str
+    quest_entry: int = -1
+    script_action: str
+    sound: str
+    text: LocString
+    animation: DialogAnimation = DialogAnimation.default
+    delay: int = -1
+    pointers: List[DialogPtr]
+
+    def copy(self) -> "DialogNode":
+        """Copies a Node"""
+        pass
+
+    def get_action_param(self, key: str) -> Optional[str]:
+        """Gets action parameter if it exists"""
+        pass
+
+    def remove_action_param(self, key: str):
+        """Removes action parameter by key"""
+
+    def set_action_param(self, key: str, value: str):
+        """Sets action parameter, if key does not exist key and value are appended"""
+
+
+class Dialog:
+    json_archive_version: ClassVar[int]
+    restype: ClassVar["ObjectType"]
+
+    script_abort: str
+    script_end: str
+    delay_entry: int = 0
+    delay_reply: int = 0
+    word_count: int = 0
+    prevent_zoom: bool = False
+
+    def __init__(self):
+        pass
+
+    def __len__(self) -> int:
+        pass
+
+    def __getitem__(self, index: int) -> DialogPtr:
+        pass
+
+    def add(self) -> DialogPtr:
+        """Adds empty Dialog Pointer and Node
+        """
+
+    def add_ptr(self, ptr: DialogPtr,  is_link: bool = False) -> DialogPtr:
+        """Adds Dialog Pointer, if `is_link` is false no new pointer or node is created.
+        if `is_link` is true a new pointer will created with the node copied from input pointer.
+        """
+
+    def add_string(self, value: str, lang: LanguageID = LanguageID.english, feminine: bool = False) -> DialogPtr:
+        """Adds Dialog Pointer and Node with string value set
+        """
+
+    def delete_ptr(self, ptr: DialogPtr):
+        """Deletes a dialog pointer
+        @warning ``ptr`` should be removed from / not added to a dialog prior to deletion
+        """
+
+    def remove_ptr(self, ptr:  DialogPtr):
+        """Removes Dialog Ptr from underlying node
+        """
+
+    def valid(self) -> bool:
+        """Checks id dialog was successfully parsed
+        """
+
+    @staticmethod
+    def from_file(path: str) -> "Dialog":
+        """Creates a dialog from a GFF or rollnw JSON file
+        """
+
+
 class Image:
     """Loads an image
 
@@ -646,163 +959,6 @@ class TwoDA:
             column (int | str): Column number or label
             value (int | float | str): New value
         """
-        pass
-
-
-# i18n ########################################################################
-###############################################################################
-
-class LanguageID(enum.IntEnum):
-    invalid = -1
-    english = 0
-    french = 1
-    german = 2
-    italian = 3
-    spanish = 4
-    polish = 5
-    korean = 128
-    chinese_traditional = 129
-    chinese_simplified = 130
-    japanese = 131
-
-
-class Language:
-    @staticmethod
-    def encoding(language: LanguageID) -> str:
-        """Gets the encoding for a particular language
-        """
-        pass
-
-    @staticmethod
-    def from_string(string: str) -> LanguageID:
-        """Converts string (short or long form) to ID
-        """
-        pass
-
-    @staticmethod
-    def has_feminine(language: LanguageID) -> bool:
-        """Determines if language has feminine translations
-        """
-        pass
-
-    @staticmethod
-    def to_base_id(id: int) -> Tuple[LanguageID, bool]:
-        """Convert runtime language identifier to base language and bool indicating masc/fem.
-        """
-        pass
-
-    @staticmethod
-    def to_runtime_id(language: LanguageID, feminine: bool = False) -> int:
-        """Convert language ID to runtime identifier.
-        """
-        pass
-
-    @staticmethod
-    def to_string(language: LanguageID, long_name: bool = False) -> str:
-        """Converts language to string form
-        """
-        pass
-
-
-class LocString:
-    """Implements a localized string
-
-    Args:
-        strref (int): String reference.  (default -1)
-    """
-
-    def __init__(self, strref: int = -1):
-        pass
-
-    def __getitem__(self, language: LanguageID) -> str:
-        """Gets an item.  Only useful for languages without gender, so English.
-        """
-
-    def add(self, language: LanguageID, string: str, feminine: bool = False):
-        """Adds a localized string"""
-        pass
-
-    def contains(self, language: LanguageID, feminine: bool = False):
-        """Checks if a localized string is contained"""
-        pass
-
-    def get(self, language: LanguageID, feminine: bool = False):
-        """Gets a localized string"""
-        pass
-
-    def remove(self, language: LanguageID, feminine: bool = False):
-        """Removes a localized string"""
-        pass
-
-    def size(self):
-        """Gets number of localized strings"""
-        pass
-
-    def strref(self):
-        """Gets string reference"""
-        pass
-
-    def to_dict(self) -> DefaultDict:
-        """Converts ``LocString`` to python ``dict``"""
-        pass
-
-    @staticmethod
-    def from_dict(data: dict):
-        """Converts python ``dict`` to ``LocString``"""
-
-
-class Tlk:
-    """Implementation of the TLK file format
-
-    Args:
-        init (str | LanguageID): if passed a string, ``init`` will be treated as a path to a TLK file,
-            if passed a LanguageID, default constructs with the TLKs language set to ``init``.
-    """
-
-    def __init__(self, init: str | LanguageID):
-        pass
-
-    def __getitem__(self, strref: int) -> str:
-        """Gets a tlk entry."""
-        pass
-
-    def __setitem__(self, strref: int, string: str):
-        """Sets a tlk entry."""
-        pass
-
-    def __len__(self):
-        """Gets the highest set TLK entry"""
-
-    def get(self, strref: int) -> str:
-        """Gets a tlk entry."""
-        pass
-
-    def language_id(self):
-        """Gets the language ID"""
-        pass
-
-    def modified(self):
-        """Is Tlk modfied"""
-        pass
-
-    def save(self):
-        """Writes TLK to file"""
-        pass
-
-    def save_as(self, path: str):
-        """Writes TLK to file"""
-        pass
-
-    def set(self, strref: int, string: str):
-        """Sets a localized string"""
-        pass
-
-    def size(self):
-        """Gets the highest set strref"""
-        pass
-
-    def valid(self):
-        """Gets if successfully parsed"""
         pass
 
 
