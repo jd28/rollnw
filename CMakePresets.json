@@ -24,6 +24,22 @@
                 "BUILD_TESTING": {
                     "type": "BOOL",
                     "value": "OFF"
+                },
+                "FMT_INSTALL": {
+                    "type": "BOOL",
+                    "value": "OFF"
+                },
+                "SKIP_INSTALL_ALL": {
+                    "type": "BOOL",
+                    "value": "ON"
+                },
+                "BENCHMARK_ENABLE_INSTALL": {
+                    "type": "BOOL",
+                    "value": "OFF"
+                },
+                "INSTALL_GTEST": {
+                    "type": "BOOL",
+                    "value": "OFF"
                 }
             }
         },

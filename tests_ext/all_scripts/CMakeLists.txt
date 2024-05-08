@@ -17,3 +17,5 @@ target_link_libraries(rollnw_test_all_scripts PRIVATE
 if(CMAKE_HOST_UNIX)
     target_link_libraries(rollnw_test_all_scripts PRIVATE dl)
 endif()
+
+install(TARGETS rollnw_test_all_scripts)

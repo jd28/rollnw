@@ -1,11 +1,5 @@
 find_package(Threads)
 
-add_custom_target(copy-files ALL
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-    ${CMAKE_CURRENT_SOURCE_DIR}/test_data
-    ${PROJECT_SOURCE_DIR}/bin/test_data
-)
-
 add_custom_target(copy-files2 ALL
     COMMAND ${CMAKE_COMMAND} -E copy_directory
     ${CMAKE_CURRENT_SOURCE_DIR}/test_data
@@ -90,3 +84,6 @@ endif()
 
 include(GoogleTest)
 gtest_discover_tests(rollnw_test)
+
+install(TARGETS rollnw_test)
+install(DIRECTORY test_data/ DESTINATION bin/test_data)

@@ -13,3 +13,5 @@ target_link_libraries(rollnw_benchmark PRIVATE
     benchmark::benchmark_main
     nw
 )
+
+install(TARGETS rollnw_benchmark)

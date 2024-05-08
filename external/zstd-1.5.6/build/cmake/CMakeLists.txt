@@ -191,26 +191,26 @@ write_basic_package_version_file(
     COMPATIBILITY SameMajorVersion
     )
 
-# A Package Config file that works from the build directory
-export(EXPORT zstdExports
-    FILE "${CMAKE_CURRENT_BINARY_DIR}/zstdTargets.cmake"
-    NAMESPACE zstd::
-    )
+# # A Package Config file that works from the build directory
+# export(EXPORT zstdExports
+#     FILE "${CMAKE_CURRENT_BINARY_DIR}/zstdTargets.cmake"
+#     NAMESPACE zstd::
+#     )
 
-# A Package Config file that works from the installation directory
-set(ConfigPackageLocation ${CMAKE_INSTALL_LIBDIR}/cmake/zstd)
-install(EXPORT zstdExports
-    FILE zstdTargets.cmake
-    NAMESPACE zstd::
-    DESTINATION ${ConfigPackageLocation}
-    )
-configure_package_config_file(
-    zstdConfig.cmake.in
-    "${CMAKE_CURRENT_BINARY_DIR}/zstdConfig.cmake"
-    INSTALL_DESTINATION ${ConfigPackageLocation}
-)
-install(FILES
-    "${CMAKE_CURRENT_BINARY_DIR}/zstdConfig.cmake"
-    "${CMAKE_CURRENT_BINARY_DIR}/zstdConfigVersion.cmake"
-    DESTINATION ${ConfigPackageLocation}
-    )
+# # A Package Config file that works from the installation directory
+# set(ConfigPackageLocation ${CMAKE_INSTALL_LIBDIR}/cmake/zstd)
+# install(EXPORT zstdExports
+#     FILE zstdTargets.cmake
+#     NAMESPACE zstd::
+#     DESTINATION ${ConfigPackageLocation}
+#     )
+# configure_package_config_file(
+#     zstdConfig.cmake.in
+#     "${CMAKE_CURRENT_BINARY_DIR}/zstdConfig.cmake"
+#     INSTALL_DESTINATION ${ConfigPackageLocation}
+# )
+# install(FILES
+#     "${CMAKE_CURRENT_BINARY_DIR}/zstdConfig.cmake"
+#     "${CMAKE_CURRENT_BINARY_DIR}/zstdConfigVersion.cmake"
+#     DESTINATION ${ConfigPackageLocation}
+#     )
