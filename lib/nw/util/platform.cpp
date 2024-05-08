@@ -21,6 +21,11 @@ namespace fs = std::filesystem;
 
 namespace nw {
 
+std::string complete_file_suffix(const std::string& filename)
+{
+    return std::string(std::find(filename.begin(), filename.end(), '.'), filename.end());
+}
+
 fs::path documents_path()
 {
 #if defined(ROLLNW_OS_MACOS) || defined(ROLLNW_OS_LINUX)

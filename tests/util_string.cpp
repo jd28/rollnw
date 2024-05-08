@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 
+#include <nw/util/platform.hpp>
 #include <nw/util/string.hpp>
 
 using namespace std::literals;
@@ -98,4 +99,11 @@ TEST(String, ColorConversion)
     EXPECT_EQ(s3, "<c616263>test</c>");
     auto ds2 = nw::string::desanitize_colors("<c616263>test</c>");
     EXPECT_EQ(ds2, test3);
+}
+
+TEST(String, CompleteFileSuffix)
+{
+    EXPECT_EQ(nw::complete_file_suffix("archive.tar.gz"), ".tar.gz");
+    EXPECT_EQ(nw::complete_file_suffix("archive.dlg.json"), ".dlg.json");
+    EXPECT_EQ(nw::complete_file_suffix("archive"), "");
 }

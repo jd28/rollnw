@@ -5,6 +5,9 @@
 
 namespace nw {
 
+/// Gets the complete suffix of a file name, i.e. "archive.tar.gz" -> "tar.gz"
+std::string complete_file_suffix(const std::string& filename);
+
 /// Gets user's documents path
 std::filesystem::path documents_path();
 
