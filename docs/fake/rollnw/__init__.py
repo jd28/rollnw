@@ -795,6 +795,10 @@ class Dialog:
         """Removes Dialog Ptr from underlying node
         """
 
+    def save(self, path: str):
+        """Saves a dialog to file, valid extentions are ".dlg" and ".dlg.json"
+        """
+
     def valid(self) -> bool:
         """Checks id dialog was successfully parsed
         """

@@ -109,6 +109,24 @@ void init_formats_dialog(py::module& nw)
             py::return_value_policy::reference_internal)
         .def("delete_ptr", &nw::Dialog::delete_ptr)
         .def("remove_ptr", &nw::Dialog::remove_ptr)
+        .def("save", [](const nw::Dialog& self, const std::string& path) {
+            auto ext = nw::complete_file_suffix(path);
+            std::filesystem::path out{path};
+            if (nw::string::icmp(ext, ".dlg")) {
+                nw::GffBuilder oa = nw::serialize(&self);
+                oa.write_to(out);
+            } else if (nw::string::icmp(ext, ".dlg.json")) {
+                nlohmann::json j;
+                nw::serialize(j, self);
+                std::filesystem::path temp_path = std::filesystem::temp_directory_path() / out.filename();
+                std::ofstream f{temp_path};
+                f << std::setw(4) << j;
+                f.close();
+                nw::move_file_safely(temp_path, out);
+            } else {
+                throw std::runtime_error(fmt::format("[dialog] unknown file extension: {}", ext));
+            }
+        })
         .def("valid", &nw::Dialog::valid)
         .def("__len__", [](const nw::Dialog* self) {
             return self ? self->starts.size() : 0;
