@@ -10,6 +10,7 @@
 #include "../../kernel/TwoDACache.hpp"
 #include "../../objects/Door.hpp"
 #include "../../objects/Placeable.hpp"
+#include "../../objects/Player.hpp"
 #include "../../util/templates.hpp"
 
 namespace nwn1 {
@@ -248,6 +249,15 @@ int get_max_hitpoints(const nw::ObjectBase* obj)
     switch (obj->handle().type) {
     default:
         break;
+    case nw::ObjectType::player: {
+        auto cre = obj->as_player();
+        for (const auto& lu : cre->history.entries) {
+            base += lu.hitpoints;
+        }
+        con = get_ability_modifier(cre, ability_constitution) * cre->levels.level();
+        modifiers = nw::kernel::sum_modifier<int>(obj, mod_type_hitpoints);
+        temp = cre->hp_temp;
+    } break;
     case nw::ObjectType::creature: {
         auto cre = obj->as_creature();
         base = cre->hp;
