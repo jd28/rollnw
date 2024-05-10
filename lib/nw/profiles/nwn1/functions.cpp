@@ -251,7 +251,7 @@ int get_max_hitpoints(const nw::ObjectBase* obj)
     case nw::ObjectType::creature: {
         auto cre = obj->as_creature();
         base = cre->hp;
-        con = get_ability_modifier(cre, ability_constitution);
+        con = get_ability_modifier(cre, ability_constitution) * cre->levels.level();
         modifiers = nw::kernel::sum_modifier<int>(obj, mod_type_hitpoints);
         temp = cre->hp_temp;
     } break;
