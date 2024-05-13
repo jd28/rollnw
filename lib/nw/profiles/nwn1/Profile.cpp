@@ -576,11 +576,6 @@ bool Profile::load_resources()
 
     if (include_install) {
         if (version == nw::GameVersion::vEE) {
-            nwk::resman().add_base_container(nwk::config().install_path() / "data" / "txpk", "xp2_tex_tpa");
-            nwk::resman().add_base_container(nwk::config().install_path() / "data" / "txpk", "xp1_tex_tpa");
-            nwk::resman().add_base_container(nwk::config().install_path() / "data" / "txpk", "textures_tpa");
-            nwk::resman().add_base_container(nwk::config().install_path() / "data" / "txpk", "tiles_tpa");
-
             auto lang = nwk::strings().global_language();
             if (lang != nw::LanguageID::english) {
                 auto shortcode = nw::Language::to_string(lang);
