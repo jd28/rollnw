@@ -52,7 +52,7 @@ const std::vector<Feat>& CreatureStats::feats() const noexcept
 
 int CreatureStats::get_ability_score(Ability id) const
 {
-    if (id.idx() > abilities_.size()) {
+    if (id.idx() >= abilities_.size()) {
         return 0;
     }
     return abilities_[id.idx()];
@@ -60,7 +60,7 @@ int CreatureStats::get_ability_score(Ability id) const
 
 int CreatureStats::get_skill_rank(Skill id) const
 {
-    if (id.idx() > skills_.size()) {
+    if (id.idx() >= skills_.size()) {
         return 0;
     }
     return skills_[id.idx()];
@@ -74,7 +74,7 @@ bool CreatureStats::has_feat(Feat feat) const noexcept
 
 bool CreatureStats::set_ability_score(Ability id, int value)
 {
-    if (id.idx() > abilities_.size()) {
+    if (id.idx() >= abilities_.size()) {
         return 0;
     }
     return (abilities_[id.idx()] = uint8_t(value));
@@ -82,7 +82,7 @@ bool CreatureStats::set_ability_score(Ability id, int value)
 
 bool CreatureStats::set_skill_rank(Skill id, int value)
 {
-    if (id.idx() > skills_.size()) {
+    if (id.idx() >= skills_.size()) {
         return 0;
     }
     return (skills_[id.idx()] = uint8_t(value));
