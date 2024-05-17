@@ -343,7 +343,7 @@ bool BinaryParser::parse_node(uint32_t offset, Geometry* geometry, Node* parent)
 
             if (!s_ctx.bones.empty()) {
                 const auto& bones = s_ctx.bones.at(i);
-                n->vertices[i].bones = glm::ivec4{0};
+                n->vertices[i].bones = glm::ivec4{-1};
                 for (size_t j = 0; j < 4; ++j) {
                     if (bones[j] == std::numeric_limits<uint16_t>::max()) { break; }
                     n->vertices[i].bones[j] = bones[j];

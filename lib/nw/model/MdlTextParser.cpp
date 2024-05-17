@@ -358,7 +358,7 @@ void cleanup_geometry(Model* model, T* n, const GeomCxt& geomctx)
                     n->vertices[ivert].weights = geomctx.weights.at(ivert);
 
                     const auto& bones = geomctx.bones.at(ivert);
-                    n->vertices[ivert].bones = glm::ivec4{0};
+                    n->vertices[ivert].bones = glm::ivec4{-1};
                     for (size_t i = 0; i < 4; ++i) {
                         if (bones[i].empty()) { break; }
                         for (size_t j = 0; j < model->nodes.size(); ++j) {
