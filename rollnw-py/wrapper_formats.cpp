@@ -94,6 +94,7 @@ void init_formats_dialog(py::module& nw)
         .def("set_action_param", &nw::DialogNode::set_action_param);
 
     py::class_<nw::Dialog>(nw, "Dialog")
+        .def(py::init<>())
         .def_readonly_static("json_archive_version", &nw::Dialog::json_archive_version)
         .def_readonly_static("restype", &nw::Dialog::restype)
         .def("add_ptr", &nw::Dialog::add_ptr,
