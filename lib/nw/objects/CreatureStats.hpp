@@ -31,6 +31,10 @@ struct CreatureStats {
     /// Determines if creature has a feat
     bool has_feat(Feat id) const noexcept;
 
+    /// Removes a feat
+    /// @todo This function removes the feat, as likely the game does. But should it remove feats that require this feat?
+    void remove_feat(Feat id);
+
     /// Sets an ability score, returning true if successful
     bool set_ability_score(Ability id, int value);
 

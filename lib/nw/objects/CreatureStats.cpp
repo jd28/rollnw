@@ -72,6 +72,11 @@ bool CreatureStats::has_feat(Feat feat) const noexcept
     return it != std::end(feats_) && *it == feat;
 }
 
+void CreatureStats::remove_feat(Feat id)
+{
+    feats_.erase(std::remove(std::begin(feats_), std::end(feats_), id));
+}
+
 bool CreatureStats::set_ability_score(Ability id, int value)
 {
     if (id.idx() >= abilities_.size()) {

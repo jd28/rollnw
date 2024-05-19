@@ -297,7 +297,7 @@ class CreatureScripts:
 class CreatureStats:
     """Implementation of a creature's general attributes and stats"""
 
-    def add_feat(self, feat) -> bool:
+    def add_feat(self, feat: int) -> bool:
         """Attempts to add a feat to a creature, returning true if successful
         """
         return True
@@ -310,10 +310,14 @@ class CreatureStats:
         """Gets a skill rank"""
         pass
 
-    def has_feat(self, feat) -> bool:
+    def has_feat(self, feat: int) -> bool:
         """Determines if creature has feat
         """
         pass
+
+    def remove_feat(self, feat: int):
+        """Removes a feat
+        """
 
     def set_ability_score(self, id: int,  value: int) -> bool:
         """Sets an ability score, returning true if successful"""

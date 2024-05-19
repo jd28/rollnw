@@ -89,6 +89,7 @@ void init_component_creature_stats(py::module& m)
         .def("get_ability_score", &nw::CreatureStats::get_ability_score)
         .def("get_skill_rank", &nw::CreatureStats::get_skill_rank)
         .def("has_feat", &nw::CreatureStats::has_feat)
+        .def("remove_feat", &nw::CreatureStats::remove_feat)
         .def("set_ability_score", &nw::CreatureStats::set_ability_score)
         .def("set_skill_rank", &nw::CreatureStats::set_skill_rank)
         .def_readonly("save_bonus", &nw::CreatureStats::save_bonus);

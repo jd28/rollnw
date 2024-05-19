@@ -65,8 +65,13 @@ TEST(Creature, FeatsAddRemove)
     EXPECT_TRUE(ent);
 
     EXPECT_EQ(ent->stats.feats().size(), 37);
-    EXPECT_TRUE(ent->stats.has_feat(ent->stats.feats()[20]));
-    EXPECT_FALSE(ent->stats.add_feat(ent->stats.feats()[20]));
+    auto rando_feat = ent->stats.feats()[20];
+    EXPECT_TRUE(ent->stats.has_feat(rando_feat));
+    EXPECT_FALSE(ent->stats.add_feat(rando_feat));
+    ent->stats.remove_feat(rando_feat);
+    EXPECT_FALSE(ent->stats.has_feat(rando_feat));
+    EXPECT_TRUE(ent->stats.add_feat(rando_feat));
+    EXPECT_TRUE(ent->stats.has_feat(rando_feat));
 
     nwk::unload_module();
 }
