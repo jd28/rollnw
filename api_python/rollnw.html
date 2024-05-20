@@ -308,6 +308,7 @@
 <li class="toctree-l3"><a class="reference internal" href="#rollnw.CreatureStats.get_ability_score"><code class="docutils literal notranslate"><span class="pre">CreatureStats.get_ability_score()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#rollnw.CreatureStats.get_skill_rank"><code class="docutils literal notranslate"><span class="pre">CreatureStats.get_skill_rank()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#rollnw.CreatureStats.has_feat"><code class="docutils literal notranslate"><span class="pre">CreatureStats.has_feat()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#rollnw.CreatureStats.remove_feat"><code class="docutils literal notranslate"><span class="pre">CreatureStats.remove_feat()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#rollnw.CreatureStats.set_ability_score"><code class="docutils literal notranslate"><span class="pre">CreatureStats.set_ability_score()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#rollnw.CreatureStats.set_skill_rank"><code class="docutils literal notranslate"><span class="pre">CreatureStats.set_skill_rank()</span></code></a></li>
 </ul>
@@ -2391,7 +2392,7 @@
 <dd><p>Implementation of a creature’s general attributes and stats</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="rollnw.CreatureStats.add_feat">
-<span class="sig-name descname"><span class="pre">add_feat</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">feat</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="headerlink" href="#rollnw.CreatureStats.add_feat" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">add_feat</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">feat</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="headerlink" href="#rollnw.CreatureStats.add_feat" title="Link to this definition"></a></dt>
 <dd><p>Attempts to add a feat to a creature, returning true if successful</p>
 </dd></dl>
 
@@ -2409,8 +2410,14 @@
 
 <dl class="py method">
 <dt class="sig sig-object py" id="rollnw.CreatureStats.has_feat">
-<span class="sig-name descname"><span class="pre">has_feat</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">feat</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="headerlink" href="#rollnw.CreatureStats.has_feat" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">has_feat</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">feat</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="headerlink" href="#rollnw.CreatureStats.has_feat" title="Link to this definition"></a></dt>
 <dd><p>Determines if creature has feat</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="rollnw.CreatureStats.remove_feat">
+<span class="sig-name descname"><span class="pre">remove_feat</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">feat</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#rollnw.CreatureStats.remove_feat" title="Link to this definition"></a></dt>
+<dd><p>Removes a feat</p>
 </dd></dl>
 
 <dl class="py method">
