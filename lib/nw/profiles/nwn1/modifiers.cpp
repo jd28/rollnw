@@ -333,7 +333,7 @@ nw::ModifierResult tumble_ac(const nw::ObjectBase* obj)
     if (!obj) { return 0; }
     auto cre = obj->as_creature();
     if (!cre) { return 0; }
-    return get_skill_rank(cre, skill_tumble) / 5;
+    return get_skill_rank(cre, skill_tumble, nullptr, true) / 5;
 }
 
 // Attack Bonus

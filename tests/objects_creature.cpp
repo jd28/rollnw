@@ -189,48 +189,55 @@ TEST(Creature, ArmorClass)
     auto obj = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/pl_agent_001.utc"));
     EXPECT_TRUE(obj);
     EXPECT_FALSE(obj->hasted);
-    EXPECT_EQ(nwn1::calculate_ac_versus(obj, nullptr, false), 14);
-    EXPECT_EQ(nwn1::calculate_ac_versus(obj, nullptr, true), 14);
+    EXPECT_EQ(nwn1::calculate_ac_versus(obj, nullptr, false), 13);
+    EXPECT_EQ(nwn1::calculate_ac_versus(obj, nullptr, true), 13);
 
     auto eff1 = nwn1::effect_haste();
     nw::apply_effect(obj, eff1);
-    EXPECT_EQ(nwn1::calculate_ac_versus(obj, nullptr, false), 18);
-    EXPECT_EQ(nwn1::calculate_ac_versus(obj, nullptr, true), 18);
+    EXPECT_EQ(nwn1::calculate_ac_versus(obj, nullptr, false), 17);
+    EXPECT_EQ(nwn1::calculate_ac_versus(obj, nullptr, true), 17);
 
     auto eff2 = nwn1::effect_armor_class_modifier(nwn1::ac_dodge, 4);
     nw::apply_effect(obj, eff2);
-    EXPECT_EQ(nwn1::calculate_ac_versus(obj, nullptr, false), 22);
-    EXPECT_EQ(nwn1::calculate_ac_versus(obj, nullptr, true), 22);
+    EXPECT_EQ(nwn1::calculate_ac_versus(obj, nullptr, false), 21);
+    EXPECT_EQ(nwn1::calculate_ac_versus(obj, nullptr, true), 21);
 
     auto eff3 = nwn1::effect_armor_class_modifier(nwn1::ac_shield, 2);
     nw::apply_effect(obj, eff3);
-    EXPECT_EQ(nwn1::calculate_ac_versus(obj, nullptr, false), 24);
-    EXPECT_EQ(nwn1::calculate_ac_versus(obj, nullptr, true), 22);
+    EXPECT_EQ(nwn1::calculate_ac_versus(obj, nullptr, false), 23);
+    EXPECT_EQ(nwn1::calculate_ac_versus(obj, nullptr, true), 21);
 
     auto eff4 = nwn1::effect_armor_class_modifier(nwn1::ac_natural, 2);
     nw::apply_effect(obj, eff4);
-    EXPECT_EQ(nwn1::calculate_ac_versus(obj, nullptr, false), 26);
-    EXPECT_EQ(nwn1::calculate_ac_versus(obj, nullptr, true), 22);
+    EXPECT_EQ(nwn1::calculate_ac_versus(obj, nullptr, false), 25);
+    EXPECT_EQ(nwn1::calculate_ac_versus(obj, nullptr, true), 21);
 
     auto eff5 = nwn1::effect_armor_class_modifier(nwn1::ac_deflection, 2);
     nw::apply_effect(obj, eff5);
-    EXPECT_EQ(nwn1::calculate_ac_versus(obj, nullptr, false), 28);
-    EXPECT_EQ(nwn1::calculate_ac_versus(obj, nullptr, true), 24);
+    EXPECT_EQ(nwn1::calculate_ac_versus(obj, nullptr, false), 27);
+    EXPECT_EQ(nwn1::calculate_ac_versus(obj, nullptr, true), 23);
 
     auto eff6 = nwn1::effect_armor_class_modifier(nwn1::ac_natural, 1);
     nw::apply_effect(obj, eff6);
-    EXPECT_EQ(nwn1::calculate_ac_versus(obj, nullptr, false), 28);
-    EXPECT_EQ(nwn1::calculate_ac_versus(obj, nullptr, true), 24);
+    EXPECT_EQ(nwn1::calculate_ac_versus(obj, nullptr, false), 27);
+    EXPECT_EQ(nwn1::calculate_ac_versus(obj, nullptr, true), 23);
 
     auto eff7 = nwn1::effect_armor_class_modifier(nwn1::ac_dodge, 1);
     nw::apply_effect(obj, eff7);
-    EXPECT_EQ(nwn1::calculate_ac_versus(obj, nullptr, false), 29);
-    EXPECT_EQ(nwn1::calculate_ac_versus(obj, nullptr, true), 25);
+    EXPECT_EQ(nwn1::calculate_ac_versus(obj, nullptr, false), 28);
+    EXPECT_EQ(nwn1::calculate_ac_versus(obj, nullptr, true), 24);
 
     auto eff8 = nwn1::effect_armor_class_modifier(nwn1::ac_dodge, -1);
     nw::apply_effect(obj, eff8);
-    EXPECT_EQ(nwn1::calculate_ac_versus(obj, nullptr, false), 28);
-    EXPECT_EQ(nwn1::calculate_ac_versus(obj, nullptr, true), 24);
+    EXPECT_EQ(nwn1::calculate_ac_versus(obj, nullptr, false), 27);
+    EXPECT_EQ(nwn1::calculate_ac_versus(obj, nullptr, true), 23);
+
+    auto obj2 = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/nw_chicken.utc"));
+    LOG_F(INFO, "size: {}", obj2->combat_info.size_ac_modifier);
+    EXPECT_TRUE(obj2);
+    EXPECT_EQ(nwn1::calculate_ac_versus(obj2, nullptr, false), 11);
+    obj2->stats.set_skill_rank(nwn1::skill_tumble, 10);
+    EXPECT_EQ(nwn1::calculate_ac_versus(obj2, nullptr, false), 13);
 
     nwk::unload_module();
 }
