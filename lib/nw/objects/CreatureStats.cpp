@@ -1,5 +1,7 @@
 #include "CreatureStats.hpp"
 
+#include "../kernel/Rules.hpp"
+
 #include <nlohmann/json.hpp>
 
 #include <algorithm>
@@ -12,6 +14,11 @@ bool CreatureStats::from_json(const nlohmann::json& archive)
         archive.at("abilities").get_to(abilities_);
         archive.at("feats").get_to(feats_);
         archive.at("skills").get_to(skills_);
+        auto num_skills = nw::kernel::rules().skills.entries.size();
+        if (num_skills > 0 && skills_.size() < num_skills) {
+            skills_.resize(num_skills, 0);
+        }
+
         archive.at("save_bonus").get_to(save_bonus);
     } catch (const nlohmann::json::exception& e) {
         LOG_F(ERROR, "from_json exception: {}", e.what());
@@ -103,7 +110,8 @@ bool deserialize(CreatureStats& self, const GffStruct& archive)
     archive.get_to("Cha", self.abilities_[5]);
 
     auto skill_list = archive["SkillList"];
-    self.skills_.resize(skill_list.size(), 0);
+    auto num_skils = nw::kernel::rules().skills.entries.size();
+    self.skills_.resize(num_skils > 0 ? num_skils : skill_list.size(), 0);
     for (size_t i = 0; i < skill_list.size(); ++i) {
         skill_list[i].get_to("Rank", self.skills_[i]);
     }
