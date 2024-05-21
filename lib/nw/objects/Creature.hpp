@@ -58,7 +58,7 @@ struct Creature : public ObjectBase {
     static bool serialize(const Creature* obj, nlohmann::json& archive, SerializationProfile profile);
 
     Common common;
-    Appearance appearance;
+    CreatureAppearance appearance;
     CombatInfo combat_info;
     Equips equipment;
     Inventory inventory;

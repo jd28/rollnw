@@ -204,7 +204,7 @@ class GameVersion(enum.Enum):
 ###############################################################################
 
 
-class Appearance:
+class CreatureAppearance:
     """Class containing creature's appearance
     """
     #: body_parts
@@ -1098,7 +1098,7 @@ class Creature(ObjectBase):
     json_archive_version: ClassVar[int]
     object_type: ClassVar[int]
 
-    appearance: Appearance
+    appearance: CreatureAppearance
     bodybag: int
     chunk_death: int
     # [TODO] combat_info: CombatInfo

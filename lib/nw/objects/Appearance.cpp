@@ -4,7 +4,7 @@
 
 namespace nw {
 
-bool Appearance::from_json(const nlohmann::json& archive)
+bool CreatureAppearance::from_json(const nlohmann::json& archive)
 {
     try {
         archive.at("phenotype").get_to(phenotype);
@@ -44,7 +44,7 @@ bool Appearance::from_json(const nlohmann::json& archive)
     return true;
 }
 
-nlohmann::json Appearance::to_json() const
+nlohmann::json CreatureAppearance::to_json() const
 {
     nlohmann::json j;
 
@@ -82,7 +82,7 @@ nlohmann::json Appearance::to_json() const
     return j;
 }
 
-bool deserialize(Appearance& self, const GffStruct& archive)
+bool deserialize(CreatureAppearance& self, const GffStruct& archive)
 {
     if (!archive.get_to("Tail_New", self.tail, false)) {
         uint8_t old = 0;
@@ -127,7 +127,7 @@ bool deserialize(Appearance& self, const GffStruct& archive)
     return true;
 }
 
-bool serialize(const Appearance& self, GffBuilderStruct& archive)
+bool serialize(const CreatureAppearance& self, GffBuilderStruct& archive)
 {
     archive.add_field("Tail_New", self.tail)
         .add_field("Wings_New", self.wings)

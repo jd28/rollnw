@@ -13,7 +13,7 @@ from . import (
 OBJECT_INVALID: ObjectID
 
 
-class Appearance:
+class CreatureAppearance:
     body_parts: BodyParts
     hair: int
     id: int
@@ -270,7 +270,7 @@ class Creature(ObjectBase):
     json_archive_version: ClassVar[int] = ...  # read-only
     object_type: ClassVar[ObjectType] = ...  # read-only
 
-    appearance: Appearance
+    appearance: CreatureAppearance
     bodybag: int
     chunk_death: int
     common: Common

@@ -26,7 +26,7 @@ struct BodyParts {
     uint8_t torso = 0;
 };
 
-struct Appearance {
+struct CreatureAppearance {
     bool from_json(const nlohmann::json& archive);
     nlohmann::json to_json() const;
 
@@ -44,7 +44,7 @@ struct Appearance {
     uint8_t tattoo2 = 0;
 };
 
-bool deserialize(Appearance& self, const GffStruct& archive);
-bool serialize(const Appearance& self, GffBuilderStruct& archive);
+bool deserialize(CreatureAppearance& self, const GffStruct& archive);
+bool serialize(const CreatureAppearance& self, GffBuilderStruct& archive);
 
 } // namespace nw

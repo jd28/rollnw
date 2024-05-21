@@ -44,18 +44,18 @@ void init_component_appearance(py::module& m)
         .def_readwrite("thigh_left", &nw::BodyParts::thigh_left)
         .def_readwrite("thigh_right", &nw::BodyParts::thigh_right);
 
-    py::class_<nw::Appearance>(m, "Appearance")
+    py::class_<nw::CreatureAppearance>(m, "Appearance")
         .def(py::init<>())
-        .def_readwrite("phenotype", &nw::Appearance::phenotype)
-        .def_readwrite("tail", &nw::Appearance::tail)
-        .def_readwrite("wings", &nw::Appearance::wings)
-        .def_readwrite("id", &nw::Appearance::id)
-        .def_readwrite("portrait_id", &nw::Appearance::portrait_id)
-        .def_readwrite("body_parts", &nw::Appearance::body_parts)
-        .def_readwrite("hair", &nw::Appearance::hair)
-        .def_readwrite("skin", &nw::Appearance::skin)
-        .def_readwrite("tattoo1", &nw::Appearance::tattoo1)
-        .def_readwrite("tattoo2", &nw::Appearance::tattoo2);
+        .def_readwrite("phenotype", &nw::CreatureAppearance::phenotype)
+        .def_readwrite("tail", &nw::CreatureAppearance::tail)
+        .def_readwrite("wings", &nw::CreatureAppearance::wings)
+        .def_readwrite("id", &nw::CreatureAppearance::id)
+        .def_readwrite("portrait_id", &nw::CreatureAppearance::portrait_id)
+        .def_readwrite("body_parts", &nw::CreatureAppearance::body_parts)
+        .def_readwrite("hair", &nw::CreatureAppearance::hair)
+        .def_readwrite("skin", &nw::CreatureAppearance::skin)
+        .def_readwrite("tattoo1", &nw::CreatureAppearance::tattoo1)
+        .def_readwrite("tattoo2", &nw::CreatureAppearance::tattoo2);
 }
 
 void init_component_combatinfo(py::module& m)
