@@ -61,10 +61,43 @@ AlignmentAxis alignment_axis_from_flags(AlignmentFlags flags);
 
 DEFINE_ENUM_FLAGS(AlignmentFlags)
 
+// -- Appearance --------------------------------------------------------------
+// ----------------------------------------------------------------------------
+
+DECLARE_RULE_TYPE(Appearance);
+
+struct AppearanceInfo {
+    AppearanceInfo(const TwoDARowView& tda);
+
+    uint32_t string_ref = std::numeric_limits<uint32_t>::max();
+    std::string model;
+
+    bool valid() const noexcept { return string_ref != 0xFFFFFFFF; }
+};
+
+using AppearanceArray = RuleTypeArray<Appearance, AppearanceInfo>;
+
 // -- Armor Class -------------------------------------------------------------
 // ----------------------------------------------------------------------------
 
 DECLARE_RULE_TYPE(ArmorClass);
+
+// -- Phenotype ---------------------------------------------------------------
+// ----------------------------------------------------------------------------
+
+DECLARE_RULE_TYPE(Phenotype);
+
+struct PhenotypeInfo {
+    PhenotypeInfo() = default;
+    PhenotypeInfo(const TwoDARowView& tda);
+
+    uint32_t name_ref = std::numeric_limits<uint32_t>::max();
+    int fallback = 0;
+
+    bool valid() const noexcept { return name_ref != 0xFFFFFFFF; }
+};
+
+using PhenotypeArray = RuleTypeArray<Phenotype, PhenotypeInfo>;
 
 // -- Race --------------------------------------------------------------------
 // ----------------------------------------------------------------------------

@@ -154,15 +154,27 @@ bool Profile::load_rules() const
 
     // == Load 2das ===========================================================
 
+    nw::TwoDA appearances{nw::kernel::resman().demand({"appearances"sv, nw::ResourceType::twoda})};
     nw::TwoDA baseitems{nw::kernel::resman().demand({"baseitems"sv, nw::ResourceType::twoda})};
     nw::TwoDA classes{nw::kernel::resman().demand({"classes"sv, nw::ResourceType::twoda})};
     nw::TwoDA feat{nw::kernel::resman().demand({"feat"sv, nw::ResourceType::twoda})};
+    nw::TwoDA phenotypes{nw::kernel::resman().demand({"phenotypes"sv, nw::ResourceType::twoda})};
     nw::TwoDA racialtypes{nw::kernel::resman().demand({"racialtypes"sv, nw::ResourceType::twoda})};
     nw::TwoDA skills{nw::kernel::resman().demand({"skills"sv, nw::ResourceType::twoda})};
     nw::TwoDA spells{nw::kernel::resman().demand({"spells"sv, nw::ResourceType::twoda})};
     nw::TwoDA spellschools{nw::kernel::resman().demand({"spellschools"sv, nw::ResourceType::twoda})};
     std::string temp_string;
     int temp_int = 0;
+
+    auto& appearance_array = nw::kernel::rules().appearances;
+    if (appearances.is_valid()) {
+        appearance_array.entries.reserve(appearances.rows());
+        for (size_t i = 0; i < appearances.rows(); ++i) {
+            appearance_array.entries.emplace_back(appearances.row(i));
+        }
+    } else {
+        throw std::runtime_error("rules: failed to load 'appearance.2da'");
+    }
 
     // BaseItems
     auto& baseitem_array = nw::kernel::rules().baseitems;
@@ -349,6 +361,16 @@ bool Profile::load_rules() const
         }
     } else {
         throw std::runtime_error("rules: failed to load 'feat.2da'");
+    }
+
+    auto& phenotype_array = nw::kernel::rules().phenotypes;
+    if (phenotypes.is_valid()) {
+        phenotype_array.entries.reserve(phenotypes.rows());
+        for (size_t i = 0; i < phenotypes.rows(); ++i) {
+            phenotype_array.entries.emplace_back(phenotypes.row(i));
+        }
+    } else {
+        throw std::runtime_error("rules: failed to load 'phenotype.2da'");
     }
 
     // Races

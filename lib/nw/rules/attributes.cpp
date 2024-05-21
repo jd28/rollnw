@@ -26,6 +26,26 @@ AlignmentAxis alignment_axis_from_flags(AlignmentFlags flags)
     return result;
 }
 
+// -- AppearanceInfo ----------------------------------------------------------
+// ----------------------------------------------------------------------------
+
+AppearanceInfo::AppearanceInfo(const TwoDARowView& tda)
+{
+    if (tda.get_to("STRING_REF", string_ref)) {
+        tda.get_to("RACE", model);
+    }
+}
+
+// -- PhenotypeInfo -----------------------------------------------------------
+// ----------------------------------------------------------------------------
+
+PhenotypeInfo::PhenotypeInfo(const TwoDARowView& tda)
+{
+    if (tda.get_to("Name", name_ref)) {
+        tda.get_to("DefaultPhenoType", fallback);
+    }
+}
+
 // -- Race --------------------------------------------------------------------
 // ----------------------------------------------------------------------------
 

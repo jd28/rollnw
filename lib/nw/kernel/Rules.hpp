@@ -55,6 +55,8 @@ struct Rules : public Service {
     SkillArray skills;
     MasterFeatRegistry master_feats;
     ModifierRegistry modifiers;
+    PhenotypeArray phenotypes;
+    AppearanceArray appearances;
 
 private:
     qualifier_type qualifier_;
