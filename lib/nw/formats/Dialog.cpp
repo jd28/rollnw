@@ -447,16 +447,15 @@ bool Dialog::read_nodes(const GffStruct gff, DialogNodeType node_type)
 
 bool Dialog::load(const GffStruct gff)
 {
-    bool valid = gff.get_to("PreventZoomIn", prevent_zoom)
-        && gff.get_to("DelayEntry", delay_entry)
+    bool valid = gff.get_to("DelayEntry", delay_entry)
         && gff.get_to("DelayReply", delay_reply)
         && gff.get_to("EndConverAbort", script_abort)
         && gff.get_to("EndConversation", script_end)
         && gff.get_to("NumWords", word_count);
 
-    if (!valid) {
-        return false;
-    }
+    gff.get_to("PreventZoomIn", prevent_zoom, false);
+
+    if (!valid) { return false; }
 
     if (!read_nodes(gff, DialogNodeType::entry)
         || !read_nodes(gff, DialogNodeType::reply)) {
