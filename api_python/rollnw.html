@@ -74,19 +74,6 @@
 <p class="caption" role="heading"><span class="caption-text">python api</span></p>
 <ul class="current">
 <li class="toctree-l1 current"><a class="current reference internal" href="#">rollnw</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#rollnw.Appearance"><code class="docutils literal notranslate"><span class="pre">Appearance</span></code></a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#rollnw.Appearance.body_parts"><code class="docutils literal notranslate"><span class="pre">Appearance.body_parts</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#rollnw.Appearance.hair"><code class="docutils literal notranslate"><span class="pre">Appearance.hair</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#rollnw.Appearance.id"><code class="docutils literal notranslate"><span class="pre">Appearance.id</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#rollnw.Appearance.phenotype"><code class="docutils literal notranslate"><span class="pre">Appearance.phenotype</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#rollnw.Appearance.portrait_id"><code class="docutils literal notranslate"><span class="pre">Appearance.portrait_id</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#rollnw.Appearance.skin"><code class="docutils literal notranslate"><span class="pre">Appearance.skin</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#rollnw.Appearance.tail"><code class="docutils literal notranslate"><span class="pre">Appearance.tail</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#rollnw.Appearance.tattoo1"><code class="docutils literal notranslate"><span class="pre">Appearance.tattoo1</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#rollnw.Appearance.tattoo2"><code class="docutils literal notranslate"><span class="pre">Appearance.tattoo2</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#rollnw.Appearance.wings"><code class="docutils literal notranslate"><span class="pre">Appearance.wings</span></code></a></li>
-</ul>
-</li>
 <li class="toctree-l2"><a class="reference internal" href="#rollnw.Area"><code class="docutils literal notranslate"><span class="pre">Area</span></code></a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#rollnw.Area.comments"><code class="docutils literal notranslate"><span class="pre">Area.comments</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#rollnw.Area.creator_id"><code class="docutils literal notranslate"><span class="pre">Area.creator_id</span></code></a></li>
@@ -285,6 +272,19 @@
 <li class="toctree-l3"><a class="reference internal" href="#rollnw.Creature.stats"><code class="docutils literal notranslate"><span class="pre">Creature.stats</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#rollnw.Creature.subrace"><code class="docutils literal notranslate"><span class="pre">Creature.subrace</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#rollnw.Creature.walkrate"><code class="docutils literal notranslate"><span class="pre">Creature.walkrate</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#rollnw.CreatureAppearance"><code class="docutils literal notranslate"><span class="pre">CreatureAppearance</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#rollnw.CreatureAppearance.body_parts"><code class="docutils literal notranslate"><span class="pre">CreatureAppearance.body_parts</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#rollnw.CreatureAppearance.hair"><code class="docutils literal notranslate"><span class="pre">CreatureAppearance.hair</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#rollnw.CreatureAppearance.id"><code class="docutils literal notranslate"><span class="pre">CreatureAppearance.id</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#rollnw.CreatureAppearance.phenotype"><code class="docutils literal notranslate"><span class="pre">CreatureAppearance.phenotype</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#rollnw.CreatureAppearance.portrait_id"><code class="docutils literal notranslate"><span class="pre">CreatureAppearance.portrait_id</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#rollnw.CreatureAppearance.skin"><code class="docutils literal notranslate"><span class="pre">CreatureAppearance.skin</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#rollnw.CreatureAppearance.tail"><code class="docutils literal notranslate"><span class="pre">CreatureAppearance.tail</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#rollnw.CreatureAppearance.tattoo1"><code class="docutils literal notranslate"><span class="pre">CreatureAppearance.tattoo1</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#rollnw.CreatureAppearance.tattoo2"><code class="docutils literal notranslate"><span class="pre">CreatureAppearance.tattoo2</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#rollnw.CreatureAppearance.wings"><code class="docutils literal notranslate"><span class="pre">CreatureAppearance.wings</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#rollnw.CreatureScripts"><code class="docutils literal notranslate"><span class="pre">CreatureScripts</span></code></a><ul>
@@ -1333,72 +1333,6 @@
   <section id="module-rollnw">
 <span id="rollnw"></span><h1>rollnw<a class="headerlink" href="#module-rollnw" title="Link to this heading"></a></h1>
 <dl class="py class">
-<dt class="sig sig-object py" id="rollnw.Appearance">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">rollnw.</span></span><span class="sig-name descname"><span class="pre">Appearance</span></span><a class="headerlink" href="#rollnw.Appearance" title="Link to this definition"></a></dt>
-<dd><p>Class containing creature’s appearance</p>
-<dl class="py attribute">
-<dt class="sig sig-object py" id="rollnw.Appearance.body_parts">
-<span class="sig-name descname"><span class="pre">body_parts</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#rollnw.BodyParts" title="rollnw.BodyParts"><span class="pre">BodyParts</span></a></em><a class="headerlink" href="#rollnw.Appearance.body_parts" title="Link to this definition"></a></dt>
-<dd><p>body_parts</p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="rollnw.Appearance.hair">
-<span class="sig-name descname"><span class="pre">hair</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><a class="headerlink" href="#rollnw.Appearance.hair" title="Link to this definition"></a></dt>
-<dd><p>hair</p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="rollnw.Appearance.id">
-<span class="sig-name descname"><span class="pre">id</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><a class="headerlink" href="#rollnw.Appearance.id" title="Link to this definition"></a></dt>
-<dd><p>Index into <code class="docutils literal notranslate"><span class="pre">appearance.2da</span></code></p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="rollnw.Appearance.phenotype">
-<span class="sig-name descname"><span class="pre">phenotype</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><a class="headerlink" href="#rollnw.Appearance.phenotype" title="Link to this definition"></a></dt>
-<dd><p>phenotype</p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="rollnw.Appearance.portrait_id">
-<span class="sig-name descname"><span class="pre">portrait_id</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><a class="headerlink" href="#rollnw.Appearance.portrait_id" title="Link to this definition"></a></dt>
-<dd><p>Index into <code class="docutils literal notranslate"><span class="pre">portraits.2da</span></code></p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="rollnw.Appearance.skin">
-<span class="sig-name descname"><span class="pre">skin</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><a class="headerlink" href="#rollnw.Appearance.skin" title="Link to this definition"></a></dt>
-<dd><p>skin</p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="rollnw.Appearance.tail">
-<span class="sig-name descname"><span class="pre">tail</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><a class="headerlink" href="#rollnw.Appearance.tail" title="Link to this definition"></a></dt>
-<dd><p>tail</p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="rollnw.Appearance.tattoo1">
-<span class="sig-name descname"><span class="pre">tattoo1</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><a class="headerlink" href="#rollnw.Appearance.tattoo1" title="Link to this definition"></a></dt>
-<dd><p>tattoo1</p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="rollnw.Appearance.tattoo2">
-<span class="sig-name descname"><span class="pre">tattoo2</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><a class="headerlink" href="#rollnw.Appearance.tattoo2" title="Link to this definition"></a></dt>
-<dd><p>tattoo2</p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="rollnw.Appearance.wings">
-<span class="sig-name descname"><span class="pre">wings</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><a class="headerlink" href="#rollnw.Appearance.wings" title="Link to this definition"></a></dt>
-<dd><p>wings</p>
-</dd></dl>
-
-</dd></dl>
-
-<dl class="py class">
 <dt class="sig sig-object py" id="rollnw.Area">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">rollnw.</span></span><span class="sig-name descname"><span class="pre">Area</span></span><a class="headerlink" href="#rollnw.Area" title="Link to this definition"></a></dt>
 <dd><p>Area object</p>
@@ -2103,7 +2037,7 @@
 <dd><p>Class that represents a Creature object</p>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="rollnw.Creature.appearance">
-<span class="sig-name descname"><span class="pre">appearance</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#rollnw.Appearance" title="rollnw.Appearance"><span class="pre">Appearance</span></a></em><a class="headerlink" href="#rollnw.Creature.appearance" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">appearance</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#rollnw.CreatureAppearance" title="rollnw.CreatureAppearance"><span class="pre">CreatureAppearance</span></a></em><a class="headerlink" href="#rollnw.Creature.appearance" title="Link to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
@@ -2312,6 +2246,72 @@
 <dt class="sig sig-object py" id="rollnw.Creature.walkrate">
 <span class="sig-name descname"><span class="pre">walkrate</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><a class="headerlink" href="#rollnw.Creature.walkrate" title="Link to this definition"></a></dt>
 <dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="rollnw.CreatureAppearance">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">rollnw.</span></span><span class="sig-name descname"><span class="pre">CreatureAppearance</span></span><a class="headerlink" href="#rollnw.CreatureAppearance" title="Link to this definition"></a></dt>
+<dd><p>Class containing creature’s appearance</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="rollnw.CreatureAppearance.body_parts">
+<span class="sig-name descname"><span class="pre">body_parts</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#rollnw.BodyParts" title="rollnw.BodyParts"><span class="pre">BodyParts</span></a></em><a class="headerlink" href="#rollnw.CreatureAppearance.body_parts" title="Link to this definition"></a></dt>
+<dd><p>body_parts</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="rollnw.CreatureAppearance.hair">
+<span class="sig-name descname"><span class="pre">hair</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><a class="headerlink" href="#rollnw.CreatureAppearance.hair" title="Link to this definition"></a></dt>
+<dd><p>hair</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="rollnw.CreatureAppearance.id">
+<span class="sig-name descname"><span class="pre">id</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><a class="headerlink" href="#rollnw.CreatureAppearance.id" title="Link to this definition"></a></dt>
+<dd><p>Index into <code class="docutils literal notranslate"><span class="pre">appearance.2da</span></code></p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="rollnw.CreatureAppearance.phenotype">
+<span class="sig-name descname"><span class="pre">phenotype</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><a class="headerlink" href="#rollnw.CreatureAppearance.phenotype" title="Link to this definition"></a></dt>
+<dd><p>phenotype</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="rollnw.CreatureAppearance.portrait_id">
+<span class="sig-name descname"><span class="pre">portrait_id</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><a class="headerlink" href="#rollnw.CreatureAppearance.portrait_id" title="Link to this definition"></a></dt>
+<dd><p>Index into <code class="docutils literal notranslate"><span class="pre">portraits.2da</span></code></p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="rollnw.CreatureAppearance.skin">
+<span class="sig-name descname"><span class="pre">skin</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><a class="headerlink" href="#rollnw.CreatureAppearance.skin" title="Link to this definition"></a></dt>
+<dd><p>skin</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="rollnw.CreatureAppearance.tail">
+<span class="sig-name descname"><span class="pre">tail</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><a class="headerlink" href="#rollnw.CreatureAppearance.tail" title="Link to this definition"></a></dt>
+<dd><p>tail</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="rollnw.CreatureAppearance.tattoo1">
+<span class="sig-name descname"><span class="pre">tattoo1</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><a class="headerlink" href="#rollnw.CreatureAppearance.tattoo1" title="Link to this definition"></a></dt>
+<dd><p>tattoo1</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="rollnw.CreatureAppearance.tattoo2">
+<span class="sig-name descname"><span class="pre">tattoo2</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><a class="headerlink" href="#rollnw.CreatureAppearance.tattoo2" title="Link to this definition"></a></dt>
+<dd><p>tattoo2</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="rollnw.CreatureAppearance.wings">
+<span class="sig-name descname"><span class="pre">wings</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><a class="headerlink" href="#rollnw.CreatureAppearance.wings" title="Link to this definition"></a></dt>
+<dd><p>wings</p>
+</dd></dl>
 
 </dd></dl>
 

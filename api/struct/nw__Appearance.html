@@ -70,18 +70,13 @@
 <li class="toctree-l2"><a class="reference internal" href="nw__AbilityInfo.html">nw::AbilityInfo</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">nw::Appearance</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#_CPPv4N2nw10AppearanceE"><code class="docutils literal notranslate"><span class="pre">Appearance</span></code></a><ul>
-<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw10Appearance9from_jsonERKN8nlohmann4jsonE"><code class="docutils literal notranslate"><span class="pre">Appearance::from_json()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw10Appearance7to_jsonEv"><code class="docutils literal notranslate"><span class="pre">Appearance::to_json()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw10Appearance9phenotypeE"><code class="docutils literal notranslate"><span class="pre">Appearance::phenotype</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw10Appearance4tailE"><code class="docutils literal notranslate"><span class="pre">Appearance::tail</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw10Appearance5wingsE"><code class="docutils literal notranslate"><span class="pre">Appearance::wings</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw10Appearance2idE"><code class="docutils literal notranslate"><span class="pre">Appearance::id</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw10Appearance11portrait_idE"><code class="docutils literal notranslate"><span class="pre">Appearance::portrait_id</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw10Appearance10body_partsE"><code class="docutils literal notranslate"><span class="pre">Appearance::body_parts</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw10Appearance4hairE"><code class="docutils literal notranslate"><span class="pre">Appearance::hair</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw10Appearance4skinE"><code class="docutils literal notranslate"><span class="pre">Appearance::skin</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw10Appearance7tattoo1E"><code class="docutils literal notranslate"><span class="pre">Appearance::tattoo1</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw10Appearance7tattoo2E"><code class="docutils literal notranslate"><span class="pre">Appearance::tattoo2</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw10AppearanceeqERK10Appearance"><code class="docutils literal notranslate"><span class="pre">Appearance::operator==()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw10AppearancessERK10Appearance"><code class="docutils literal notranslate"><span class="pre">Appearance::operator&lt;=&gt;()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw10AppearancemlEv"><code class="docutils literal notranslate"><span class="pre">Appearance::operator*()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw10Appearance3idxEv"><code class="docutils literal notranslate"><span class="pre">Appearance::idx()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw10Appearance3valE"><code class="docutils literal notranslate"><span class="pre">Appearance::val</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw10Appearance4makeE7int32_t"><code class="docutils literal notranslate"><span class="pre">Appearance::make()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw10Appearance7invalidEv"><code class="docutils literal notranslate"><span class="pre">Appearance::invalid()</span></code></a></li>
 </ul>
 </li>
 </ul>
@@ -387,67 +382,51 @@
 <dd><div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N2nw10Appearance9from_jsonERKN8nlohmann4jsonE">
-<span id="_CPPv3N2nw10Appearance9from_jsonERKN8nlohmann4jsonE"></span><span id="_CPPv2N2nw10Appearance9from_jsonERKN8nlohmann4jsonE"></span><span id="nw::Appearance::from_json__nlohmann::jsonCR"></span><span class="target" id="structnw_1_1_appearance_1aa2497125e7d15d8bd5473c3412918bb7"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">from_json</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">nlohmann</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">json</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">archive</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw10Appearance9from_jsonERKN8nlohmann4jsonE" title="Link to this definition"></a><br /></dt>
-<dd></dd></dl>
+<dt class="sig sig-object cpp" id="_CPPv4NK2nw10AppearanceeqERK10Appearance">
+<span id="_CPPv3NK2nw10AppearanceeqERK10Appearance"></span><span id="_CPPv2NK2nw10AppearanceeqERK10Appearance"></span><span id="nw::Appearance::eq-operator__AppearanceCRC"></span><span class="target" id="structnw_1_1_appearance_1adc09480426a11570a23b1314807d0fc5"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">==</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N2nw10AppearanceE" title="nw::Appearance"><span class="n"><span class="pre">Appearance</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">rhs</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">default</span></span><a class="headerlink" href="#_CPPv4NK2nw10AppearanceeqERK10Appearance" title="Link to this definition"></a><br /></dt>
+<dd><p>Defaulted equality operator </p>
+</dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4NK2nw10Appearance7to_jsonEv">
-<span id="_CPPv3NK2nw10Appearance7to_jsonEv"></span><span id="_CPPv2NK2nw10Appearance7to_jsonEv"></span><span id="nw::Appearance::to_jsonC"></span><span class="target" id="structnw_1_1_appearance_1ac98c53d124526cddf513c08694f5022a"></span><span class="n"><span class="pre">nlohmann</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">json</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">to_json</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK2nw10Appearance7to_jsonEv" title="Link to this definition"></a><br /></dt>
-<dd></dd></dl>
+<dt class="sig sig-object cpp" id="_CPPv4NK2nw10AppearancessERK10Appearance">
+<span id="_CPPv3NK2nw10AppearancessERK10Appearance"></span><span id="_CPPv2NK2nw10AppearancessERK10Appearance"></span><span class="target" id="structnw_1_1_appearance_1a13c9dd01e4df13c9dcbcf034bc8e75fa"></span><span class="kt"><span class="pre">auto</span></span><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">&lt;=&gt;</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N2nw10AppearanceE" title="nw::Appearance"><span class="n"><span class="pre">Appearance</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">rhs</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">default</span></span><a class="headerlink" href="#_CPPv4NK2nw10AppearancessERK10Appearance" title="Link to this definition"></a><br /></dt>
+<dd><p>Defaulted spaceship operator </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK2nw10AppearancemlEv">
+<span id="_CPPv3NK2nw10AppearancemlEv"></span><span id="_CPPv2NK2nw10AppearancemlEv"></span><span id="nw::Appearance::mul-operatorCCE"></span><span class="target" id="structnw_1_1_appearance_1a28c13aaf470eba92a56cbea8204299db"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">int32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">*</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="k"><span class="pre">noexcept</span></span><a class="headerlink" href="#_CPPv4NK2nw10AppearancemlEv" title="Link to this definition"></a><br /></dt>
+<dd><p>Returns rule type as value </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK2nw10Appearance3idxEv">
+<span id="_CPPv3NK2nw10Appearance3idxEv"></span><span id="_CPPv2NK2nw10Appearance3idxEv"></span><span id="nw::Appearance::idxCCE"></span><span class="target" id="structnw_1_1_appearance_1a11a181e6e4e1e62ee4a1c09b0e36e756"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">idx</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="k"><span class="pre">noexcept</span></span><a class="headerlink" href="#_CPPv4NK2nw10Appearance3idxEv" title="Link to this definition"></a><br /></dt>
+<dd><p>Returns rule type as index </p>
+</dd></dl>
 
 </div>
 <div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
 <dl class="cpp var">
-<dt class="sig sig-object cpp" id="_CPPv4N2nw10Appearance9phenotypeE">
-<span id="_CPPv3N2nw10Appearance9phenotypeE"></span><span id="_CPPv2N2nw10Appearance9phenotypeE"></span><span id="nw::Appearance::phenotype__int32_t"></span><span class="target" id="structnw_1_1_appearance_1a64c57164eec678482ba19500c743027b"></span><span class="n"><span class="pre">int32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">phenotype</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N2nw10Appearance9phenotypeE" title="Link to this definition"></a><br /></dt>
+<dt class="sig sig-object cpp" id="_CPPv4N2nw10Appearance3valE">
+<span id="_CPPv3N2nw10Appearance3valE"></span><span id="_CPPv2N2nw10Appearance3valE"></span><span id="nw::Appearance::val__int32_t"></span><span class="target" id="structnw_1_1_appearance_1a74cac758f1ce3075197b7d228b46908e"></span><span class="n"><span class="pre">int32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">val</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="o"><span class="pre">-</span></span><span class="m"><span class="pre">1</span></span><a class="headerlink" href="#_CPPv4N2nw10Appearance3valE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
-<dl class="cpp var">
-<dt class="sig sig-object cpp" id="_CPPv4N2nw10Appearance4tailE">
-<span id="_CPPv3N2nw10Appearance4tailE"></span><span id="_CPPv2N2nw10Appearance4tailE"></span><span id="nw::Appearance::tail__uint32_t"></span><span class="target" id="structnw_1_1_appearance_1ac2cb832ca96a6dac06812e90d0adde1b"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">tail</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N2nw10Appearance4tailE" title="Link to this definition"></a><br /></dt>
-<dd></dd></dl>
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-static-functions">Public Static Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw10Appearance4makeE7int32_t">
+<span id="_CPPv3N2nw10Appearance4makeE7int32_t"></span><span id="_CPPv2N2nw10Appearance4makeE7int32_t"></span><span id="nw::Appearance::make__int32_tCE"></span><span class="target" id="structnw_1_1_appearance_1a0b9c98f987251965acaf73ca0b890a15"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N2nw10AppearanceE" title="nw::Appearance"><span class="n"><span class="pre">Appearance</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">make</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">int32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">id</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw10Appearance4makeE7int32_t" title="Link to this definition"></a><br /></dt>
+<dd><p>Makes a rule type </p>
+</dd></dl>
 
-<dl class="cpp var">
-<dt class="sig sig-object cpp" id="_CPPv4N2nw10Appearance5wingsE">
-<span id="_CPPv3N2nw10Appearance5wingsE"></span><span id="_CPPv2N2nw10Appearance5wingsE"></span><span id="nw::Appearance::wings__uint32_t"></span><span class="target" id="structnw_1_1_appearance_1ae38eb18f654ff8316218d7d47ceb64f4"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">wings</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N2nw10Appearance5wingsE" title="Link to this definition"></a><br /></dt>
-<dd></dd></dl>
-
-<dl class="cpp var">
-<dt class="sig sig-object cpp" id="_CPPv4N2nw10Appearance2idE">
-<span id="_CPPv3N2nw10Appearance2idE"></span><span id="_CPPv2N2nw10Appearance2idE"></span><span id="nw::Appearance::id__uint16_t"></span><span class="target" id="structnw_1_1_appearance_1a722110711681d06569b0f1520beec3ee"></span><span class="n"><span class="pre">uint16_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">id</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N2nw10Appearance2idE" title="Link to this definition"></a><br /></dt>
-<dd></dd></dl>
-
-<dl class="cpp var">
-<dt class="sig sig-object cpp" id="_CPPv4N2nw10Appearance11portrait_idE">
-<span id="_CPPv3N2nw10Appearance11portrait_idE"></span><span id="_CPPv2N2nw10Appearance11portrait_idE"></span><span id="nw::Appearance::portrait_id__uint16_t"></span><span class="target" id="structnw_1_1_appearance_1abf6fb4b7dfd80d74ec25429fd611b693"></span><span class="n"><span class="pre">uint16_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">portrait_id</span></span></span><a class="headerlink" href="#_CPPv4N2nw10Appearance11portrait_idE" title="Link to this definition"></a><br /></dt>
-<dd></dd></dl>
-
-<dl class="cpp var">
-<dt class="sig sig-object cpp" id="_CPPv4N2nw10Appearance10body_partsE">
-<span id="_CPPv3N2nw10Appearance10body_partsE"></span><span id="_CPPv2N2nw10Appearance10body_partsE"></span><span id="nw::Appearance::body_parts__BodyParts"></span><span class="target" id="structnw_1_1_appearance_1aa0918d67c7feeb49c81ae21deb5971bf"></span><a class="reference internal" href="nw__BodyParts.html#_CPPv4N2nw9BodyPartsE" title="nw::BodyParts"><span class="n"><span class="pre">BodyParts</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">body_parts</span></span></span><a class="headerlink" href="#_CPPv4N2nw10Appearance10body_partsE" title="Link to this definition"></a><br /></dt>
-<dd></dd></dl>
-
-<dl class="cpp var">
-<dt class="sig sig-object cpp" id="_CPPv4N2nw10Appearance4hairE">
-<span id="_CPPv3N2nw10Appearance4hairE"></span><span id="_CPPv2N2nw10Appearance4hairE"></span><span id="nw::Appearance::hair__uint8_t"></span><span class="target" id="structnw_1_1_appearance_1aaaee050b78fd484cbc3a4364f7f805f6"></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">hair</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N2nw10Appearance4hairE" title="Link to this definition"></a><br /></dt>
-<dd></dd></dl>
-
-<dl class="cpp var">
-<dt class="sig sig-object cpp" id="_CPPv4N2nw10Appearance4skinE">
-<span id="_CPPv3N2nw10Appearance4skinE"></span><span id="_CPPv2N2nw10Appearance4skinE"></span><span id="nw::Appearance::skin__uint8_t"></span><span class="target" id="structnw_1_1_appearance_1a18e9407d6ad9294c2daacd4f48a6be13"></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">skin</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N2nw10Appearance4skinE" title="Link to this definition"></a><br /></dt>
-<dd></dd></dl>
-
-<dl class="cpp var">
-<dt class="sig sig-object cpp" id="_CPPv4N2nw10Appearance7tattoo1E">
-<span id="_CPPv3N2nw10Appearance7tattoo1E"></span><span id="_CPPv2N2nw10Appearance7tattoo1E"></span><span id="nw::Appearance::tattoo1__uint8_t"></span><span class="target" id="structnw_1_1_appearance_1a41956cc018b29cab1fb23e342abfa0ec"></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">tattoo1</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N2nw10Appearance7tattoo1E" title="Link to this definition"></a><br /></dt>
-<dd></dd></dl>
-
-<dl class="cpp var">
-<dt class="sig sig-object cpp" id="_CPPv4N2nw10Appearance7tattoo2E">
-<span id="_CPPv3N2nw10Appearance7tattoo2E"></span><span id="_CPPv2N2nw10Appearance7tattoo2E"></span><span id="nw::Appearance::tattoo2__uint8_t"></span><span class="target" id="structnw_1_1_appearance_1a25f1e3059ac315454bd2efbad0dd9c9e"></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">tattoo2</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N2nw10Appearance7tattoo2E" title="Link to this definition"></a><br /></dt>
-<dd></dd></dl>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw10Appearance7invalidEv">
+<span id="_CPPv3N2nw10Appearance7invalidEv"></span><span id="_CPPv2N2nw10Appearance7invalidEv"></span><span id="nw::Appearance::invalidCE"></span><span class="target" id="structnw_1_1_appearance_1a7f19ea8a2f0126eb0baa66573afbbc11"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N2nw10AppearanceE" title="nw::Appearance"><span class="n"><span class="pre">Appearance</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">invalid</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw10Appearance7invalidEv" title="Link to this definition"></a><br /></dt>
+<dd><p>Returns an invalid rule type </p>
+</dd></dl>
 
 </div>
 </dd></dl>

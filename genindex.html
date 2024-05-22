@@ -343,8 +343,6 @@
 </li>
       <li><a href="api_python/rollnw_model.html#rollnw.model.MdlAnimeshNode.animverts">animverts (rollnw.model.MdlAnimeshNode attribute)</a>
 </li>
-      <li><a href="api_python/rollnw.html#rollnw.Appearance">Appearance (class in rollnw)</a>
-</li>
       <li><a href="api_python/rollnw.html#rollnw.Creature.appearance">appearance (rollnw.Creature attribute)</a>
 
       <ul>
@@ -545,7 +543,7 @@
 </li>
       <li><a href="api_python/rollnw.html#rollnw.ResourceType.bmu">bmu (rollnw.ResourceType attribute)</a>
 </li>
-      <li><a href="api_python/rollnw.html#rollnw.Appearance.body_parts">body_parts (rollnw.Appearance attribute)</a>
+      <li><a href="api_python/rollnw.html#rollnw.CreatureAppearance.body_parts">body_parts (rollnw.CreatureAppearance attribute)</a>
 </li>
       <li><a href="api_python/rollnw.html#rollnw.Creature.bodybag">bodybag (rollnw.Creature attribute)</a>
 
@@ -873,6 +871,8 @@
         <li><a href="api_python/rollnw.html#rollnw.EquipSlot.creature_skin">(rollnw.EquipSlot attribute)</a>
 </li>
       </ul></li>
+      <li><a href="api_python/rollnw.html#rollnw.CreatureAppearance">CreatureAppearance (class in rollnw)</a>
+</li>
       <li><a href="api_python/rollnw.html#rollnw.Area.creatures">creatures (rollnw.Area attribute)</a>
 
       <ul>
@@ -1547,7 +1547,7 @@
 <h2 id="H">H</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api_python/rollnw.html#rollnw.Appearance.hair">hair (rollnw.Appearance attribute)</a>
+      <li><a href="api_python/rollnw.html#rollnw.CreatureAppearance.hair">hair (rollnw.CreatureAppearance attribute)</a>
 </li>
       <li><a href="api_python/rollnw.html#rollnw.ResourceType.hak">hak (rollnw.ResourceType attribute)</a>
 </li>
@@ -1641,12 +1641,12 @@
 <h2 id="I">I</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api_python/rollnw.html#rollnw.Appearance.id">id (rollnw.Appearance attribute)</a>
+      <li><a href="api_python/rollnw.html#rollnw.Area.id">id (rollnw.Area attribute)</a>
 
       <ul>
-        <li><a href="api_python/rollnw.html#rollnw.Area.id">(rollnw.Area attribute)</a>
-</li>
         <li><a href="api_python/rollnw.html#rollnw.ClassEntry.id">(rollnw.ClassEntry attribute)</a>
+</li>
+        <li><a href="api_python/rollnw.html#rollnw.CreatureAppearance.id">(rollnw.CreatureAppearance attribute)</a>
 </li>
         <li><a href="api_python/rollnw.html#rollnw.Module.id">(rollnw.Module attribute)</a>
 </li>
@@ -2466,29 +2466,19 @@
 </li>
       <li><a href="api/struct/nw__Appearance.html#_CPPv4N2nw10AppearanceE">nw::Appearance (C++ struct)</a>
 </li>
-      <li><a href="api/struct/nw__Appearance.html#_CPPv4N2nw10Appearance10body_partsE">nw::Appearance::body_parts (C++ member)</a>
+      <li><a href="api/struct/nw__Appearance.html#_CPPv4NK2nw10Appearance3idxEv">nw::Appearance::idx (C++ function)</a>
 </li>
-      <li><a href="api/struct/nw__Appearance.html#_CPPv4N2nw10Appearance9from_jsonERKN8nlohmann4jsonE">nw::Appearance::from_json (C++ function)</a>
+      <li><a href="api/struct/nw__Appearance.html#_CPPv4N2nw10Appearance7invalidEv">nw::Appearance::invalid (C++ function)</a>
 </li>
-      <li><a href="api/struct/nw__Appearance.html#_CPPv4N2nw10Appearance4hairE">nw::Appearance::hair (C++ member)</a>
+      <li><a href="api/struct/nw__Appearance.html#_CPPv4N2nw10Appearance4makeE7int32_t">nw::Appearance::make (C++ function)</a>
 </li>
-      <li><a href="api/struct/nw__Appearance.html#_CPPv4N2nw10Appearance2idE">nw::Appearance::id (C++ member)</a>
+      <li><a href="api/struct/nw__Appearance.html#_CPPv4NK2nw10AppearancemlEv">nw::Appearance::operator* (C++ function)</a>
 </li>
-      <li><a href="api/struct/nw__Appearance.html#_CPPv4N2nw10Appearance9phenotypeE">nw::Appearance::phenotype (C++ member)</a>
+      <li><a href="api/struct/nw__Appearance.html#_CPPv4NK2nw10AppearancessERK10Appearance">nw::Appearance::operator&lt;=&gt; (C++ function)</a>
 </li>
-      <li><a href="api/struct/nw__Appearance.html#_CPPv4N2nw10Appearance11portrait_idE">nw::Appearance::portrait_id (C++ member)</a>
+      <li><a href="api/struct/nw__Appearance.html#_CPPv4NK2nw10AppearanceeqERK10Appearance">nw::Appearance::operator== (C++ function)</a>
 </li>
-      <li><a href="api/struct/nw__Appearance.html#_CPPv4N2nw10Appearance4skinE">nw::Appearance::skin (C++ member)</a>
-</li>
-      <li><a href="api/struct/nw__Appearance.html#_CPPv4N2nw10Appearance4tailE">nw::Appearance::tail (C++ member)</a>
-</li>
-      <li><a href="api/struct/nw__Appearance.html#_CPPv4N2nw10Appearance7tattoo1E">nw::Appearance::tattoo1 (C++ member)</a>
-</li>
-      <li><a href="api/struct/nw__Appearance.html#_CPPv4N2nw10Appearance7tattoo2E">nw::Appearance::tattoo2 (C++ member)</a>
-</li>
-      <li><a href="api/struct/nw__Appearance.html#_CPPv4NK2nw10Appearance7to_jsonEv">nw::Appearance::to_json (C++ function)</a>
-</li>
-      <li><a href="api/struct/nw__Appearance.html#_CPPv4N2nw10Appearance5wingsE">nw::Appearance::wings (C++ member)</a>
+      <li><a href="api/struct/nw__Appearance.html#_CPPv4N2nw10Appearance3valE">nw::Appearance::val (C++ member)</a>
 </li>
       <li><a href="api/struct/nw__Area.html#_CPPv4N2nw4AreaE">nw::Area (C++ struct)</a>
 </li>
@@ -4798,6 +4788,8 @@
 </li>
       <li><a href="api/struct/nw__kernel__Rules.html#_CPPv4N2nw6kernel5RulesE">nw::kernel::Rules (C++ struct)</a>
 </li>
+      <li><a href="api/struct/nw__kernel__Rules.html#_CPPv4N2nw6kernel5Rules11appearancesE">nw::kernel::Rules::appearances (C++ member)</a>
+</li>
       <li><a href="api/struct/nw__kernel__Rules.html#_CPPv4N2nw6kernel5Rules9baseitemsE">nw::kernel::Rules::baseitems (C++ member)</a>
 </li>
       <li><a href="api/struct/nw__kernel__Rules.html#_CPPv4N2nw6kernel5Rules7classesE">nw::kernel::Rules::classes (C++ member)</a>
@@ -4815,6 +4807,8 @@
       <li><a href="api/struct/nw__kernel__Rules.html#_CPPv4NK2nw6kernel5Rules17meets_requirementERK11RequirementPK10ObjectBase">nw::kernel::Rules::meets_requirement (C++ function)</a>
 </li>
       <li><a href="api/struct/nw__kernel__Rules.html#_CPPv4N2nw6kernel5Rules9modifiersE">nw::kernel::Rules::modifiers (C++ member)</a>
+</li>
+      <li><a href="api/struct/nw__kernel__Rules.html#_CPPv4N2nw6kernel5Rules10phenotypesE">nw::kernel::Rules::phenotypes (C++ member)</a>
 </li>
       <li><a href="api/struct/nw__kernel__Rules.html#_CPPv4N2nw6kernel5Rules14qualifier_typeE">nw::kernel::Rules::qualifier_type (C++ type)</a>
 </li>
@@ -5958,10 +5952,10 @@
 </li>
       <li><a href="api/struct/nw__model__PatchNode.html#_CPPv4N2nw5model9PatchNode4typeE">nw::model::PatchNode::type (C++ member)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/struct/nw__model__ReferenceNode.html#_CPPv4N2nw5model13ReferenceNodeE">nw::model::ReferenceNode (C++ struct)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/struct/nw__model__ReferenceNode.html#_CPPv4N2nw5model13ReferenceNode19add_controller_dataENSt11string_viewE8uint32_tNSt6vectorIfEENSt6vectorIfEEii">nw::model::ReferenceNode::add_controller_data (C++ function)</a>
 </li>
       <li><a href="api/struct/nw__model__ReferenceNode.html#_CPPv4N2nw5model13ReferenceNode8childrenE">nw::model::ReferenceNode::children (C++ member)</a>
@@ -9920,7 +9914,7 @@
 </li>
       <li><a href="api_python/rollnw_model.html#rollnw.model.MdlDanglymeshNode.period">period (rollnw.model.MdlDanglymeshNode attribute)</a>
 </li>
-      <li><a href="api_python/rollnw.html#rollnw.Appearance.phenotype">phenotype (rollnw.Appearance attribute)</a>
+      <li><a href="api_python/rollnw.html#rollnw.CreatureAppearance.phenotype">phenotype (rollnw.CreatureAppearance attribute)</a>
 </li>
       <li><a href="api_python/rollnw.html#rollnw.Sound.pitch_variation">pitch_variation (rollnw.Sound attribute)</a>
 </li>
@@ -10004,7 +9998,7 @@
 </li>
       <li><a href="api_python/rollnw.html#rollnw.Trigger.portrait">portrait (rollnw.Trigger attribute)</a>
 </li>
-      <li><a href="api_python/rollnw.html#rollnw.Appearance.portrait_id">portrait_id (rollnw.Appearance attribute)</a>
+      <li><a href="api_python/rollnw.html#rollnw.CreatureAppearance.portrait_id">portrait_id (rollnw.CreatureAppearance attribute)</a>
 
       <ul>
         <li><a href="api_python/rollnw.html#rollnw.Door.portrait_id">(rollnw.Door attribute)</a>
@@ -10517,7 +10511,7 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api_python/rollnw.html#rollnw.LevelUp.skills">skills (rollnw.LevelUp attribute)</a>
 </li>
-      <li><a href="api_python/rollnw.html#rollnw.Appearance.skin">skin (rollnw.Appearance attribute)</a>
+      <li><a href="api_python/rollnw.html#rollnw.CreatureAppearance.skin">skin (rollnw.CreatureAppearance attribute)</a>
 
       <ul>
         <li><a href="api_python/rollnw_model.html#rollnw.model.MdlNodeFlags.skin">(rollnw.model.MdlNodeFlags attribute)</a>
@@ -10711,7 +10705,7 @@
         <li><a href="api_python/rollnw.html#rollnw.Module.tag">(rollnw.Module attribute)</a>
 </li>
       </ul></li>
-      <li><a href="api_python/rollnw.html#rollnw.Appearance.tail">tail (rollnw.Appearance attribute)</a>
+      <li><a href="api_python/rollnw.html#rollnw.CreatureAppearance.tail">tail (rollnw.CreatureAppearance attribute)</a>
 </li>
       <li><a href="api_python/rollnw_script.html#rollnw.script.NssTokenType.TALENT">TALENT (rollnw.script.NssTokenType attribute)</a>
 </li>
@@ -10743,9 +10737,9 @@
         <li><a href="api_python/rollnw.html#rollnw.CombatInfo.target_state">(rollnw.CombatInfo attribute)</a>
 </li>
       </ul></li>
-      <li><a href="api_python/rollnw.html#rollnw.Appearance.tattoo1">tattoo1 (rollnw.Appearance attribute)</a>
+      <li><a href="api_python/rollnw.html#rollnw.CreatureAppearance.tattoo1">tattoo1 (rollnw.CreatureAppearance attribute)</a>
 </li>
-      <li><a href="api_python/rollnw.html#rollnw.Appearance.tattoo2">tattoo2 (rollnw.Appearance attribute)</a>
+      <li><a href="api_python/rollnw.html#rollnw.CreatureAppearance.tattoo2">tattoo2 (rollnw.CreatureAppearance attribute)</a>
 </li>
       <li><a href="api_python/rollnw.html#rollnw.DialogAnimation.taunt">taunt (rollnw.DialogAnimation attribute)</a>
 </li>
@@ -11137,7 +11131,7 @@
 </li>
       <li><a href="api_python/rollnw.html#rollnw.AreaWeather.wind_power">wind_power (rollnw.AreaWeather attribute)</a>
 </li>
-      <li><a href="api_python/rollnw.html#rollnw.Appearance.wings">wings (rollnw.Appearance attribute)</a>
+      <li><a href="api_python/rollnw.html#rollnw.CreatureAppearance.wings">wings (rollnw.CreatureAppearance attribute)</a>
 </li>
       <li><a href="api_python/rollnw_model.html#rollnw.model.MdlControllerType.wirecolor">wirecolor (rollnw.model.MdlControllerType attribute)</a>
 </li>
