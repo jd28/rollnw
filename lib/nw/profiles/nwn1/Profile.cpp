@@ -154,11 +154,11 @@ bool Profile::load_rules() const
 
     // == Load 2das ===========================================================
 
-    nw::TwoDA appearances{nw::kernel::resman().demand({"appearances"sv, nw::ResourceType::twoda})};
+    nw::TwoDA appearances{nw::kernel::resman().demand({"appearance"sv, nw::ResourceType::twoda})};
     nw::TwoDA baseitems{nw::kernel::resman().demand({"baseitems"sv, nw::ResourceType::twoda})};
     nw::TwoDA classes{nw::kernel::resman().demand({"classes"sv, nw::ResourceType::twoda})};
     nw::TwoDA feat{nw::kernel::resman().demand({"feat"sv, nw::ResourceType::twoda})};
-    nw::TwoDA phenotypes{nw::kernel::resman().demand({"phenotypes"sv, nw::ResourceType::twoda})};
+    nw::TwoDA phenotypes{nw::kernel::resman().demand({"phenotype"sv, nw::ResourceType::twoda})};
     nw::TwoDA racialtypes{nw::kernel::resman().demand({"racialtypes"sv, nw::ResourceType::twoda})};
     nw::TwoDA skills{nw::kernel::resman().demand({"skills"sv, nw::ResourceType::twoda})};
     nw::TwoDA spells{nw::kernel::resman().demand({"spells"sv, nw::ResourceType::twoda})};
