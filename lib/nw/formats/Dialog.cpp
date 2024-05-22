@@ -389,7 +389,7 @@ bool Dialog::read_nodes(const GffStruct gff, DialogNodeType node_type)
         s.get_to("Quest", node->quest);
         s.get_to("Script", node->script_action);
         s.get_to("Sound", node->sound);
-        s.get_to("Speaker", node->speaker);
+        s.get_to("Speaker", node->speaker, false);
         s.get_to("Animation", node->animation);
         s.get_to("AnimLoop", node->animation_loop);
         s.get_to("Delay", node->delay);
