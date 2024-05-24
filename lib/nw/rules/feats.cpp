@@ -55,6 +55,7 @@ const ModifierVariant& MasterFeatRegistry::get_bonus(MasterFeat mfeat) const
 void MasterFeatRegistry::clear() noexcept
 {
     entries_.clear();
+    bonuses_.clear();
 }
 
 void MasterFeatRegistry::set_bonus(MasterFeat mfeat, ModifierVariant bonus)
