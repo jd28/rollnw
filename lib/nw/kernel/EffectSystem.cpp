@@ -102,13 +102,16 @@ Effect* EffectSystem::create(EffectType type)
 
 void EffectSystem::clear()
 {
-    registry_.clear();
     pool_.clear();
     std::stack<uint32_t> s{};
     free_list_.swap(s);
+
+    registry_.clear();
     itemprops_.clear();
+    ip_definitions_.clear();
     ip_cost_table_.clear();
     ip_param_table_.clear();
+    registry_.clear();
 }
 
 void EffectSystem::destroy(Effect* effect)
