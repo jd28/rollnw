@@ -234,6 +234,8 @@
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6kernel8Services7effectsE"><code class="docutils literal notranslate"><span class="pre">Services::effects</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6kernel8Services7objectsE"><code class="docutils literal notranslate"><span class="pre">Services::objects</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6kernel8Services6eventsE"><code class="docutils literal notranslate"><span class="pre">Services::events</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6kernel8Services11load_moduleERKNSt10filesystem4pathENSt11string_viewE"><code class="docutils literal notranslate"><span class="pre">Services::load_module()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6kernel8Services13unload_moduleEv"><code class="docutils literal notranslate"><span class="pre">Services::unload_module()</span></code></a></li>
 </ul>
 </li>
 </ul>
@@ -466,6 +468,21 @@
 <dt class="sig sig-object cpp" id="_CPPv4N2nw6kernel8Services6eventsE">
 <span id="_CPPv3N2nw6kernel8Services6eventsE"></span><span id="_CPPv2N2nw6kernel8Services6eventsE"></span><span id="nw::kernel::Services::events__std::unique_ptr:EventSystem:"></span><span class="target" id="structnw_1_1kernel_1_1_services_1a00018e811576d74b0cff080ce0903ed5"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">unique_ptr</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="nw__kernel__EventSystem.html#_CPPv4N2nw6kernel11EventSystemE" title="nw::kernel::EventSystem"><span class="n"><span class="pre">EventSystem</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">events</span></span></span><a class="headerlink" href="#_CPPv4N2nw6kernel8Services6eventsE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-friends">Friends</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6kernel8Services11load_moduleERKNSt10filesystem4pathENSt11string_viewE">
+<span id="_CPPv3N2nw6kernel8Services11load_moduleERKNSt10filesystem4pathENSt11string_viewE"></span><span id="_CPPv2N2nw6kernel8Services11load_moduleERKNSt10filesystem4pathENSt11string_viewE"></span><span id="nw::kernel::Services::load_module__std::filesystem::pathCR.std::string_view"></span><span class="target" id="structnw_1_1kernel_1_1_services_1ae3a9f26d26de9be6fa1b8856f1a0dfc9"></span><span class="k"><span class="pre">friend</span></span><span class="w"> </span><a class="reference internal" href="nw__Module.html#_CPPv4N2nw6ModuleE" title="nw::Module"><span class="n"><span class="pre">Module</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">load_module</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">filesystem</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">path</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">path</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">manifest</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6kernel8Services11load_moduleERKNSt10filesystem4pathENSt11string_viewE" title="Link to this definition"></a><br /></dt>
+<dd><p>Loads a module. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6kernel8Services13unload_moduleEv">
+<span id="_CPPv3N2nw6kernel8Services13unload_moduleEv"></span><span id="_CPPv2N2nw6kernel8Services13unload_moduleEv"></span><span id="nw::kernel::Services::unload_module"></span><span class="target" id="structnw_1_1kernel_1_1_services_1af638885571a679c8dc096029de6d0c20"></span><span class="k"><span class="pre">friend</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">unload_module</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6kernel8Services13unload_moduleEv" title="Link to this definition"></a><br /></dt>
+<dd><p>Unloads currently active module. </p>
+</dd></dl>
 
 </div>
 </dd></dl>
