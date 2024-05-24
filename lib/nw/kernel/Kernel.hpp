@@ -29,10 +29,10 @@ struct Service {
     virtual ~Service() { }
 
     /// Initializes a service
-    virtual void initialize(){};
+    virtual void initialize() {};
 
     /// Clears a service
-    virtual void clear(){};
+    virtual void clear() {};
 };
 
 struct ServiceEntry {
@@ -71,6 +71,9 @@ struct Services {
     std::unique_ptr<EffectSystem> effects;
     std::unique_ptr<ObjectSystem> objects;
     std::unique_ptr<EventSystem> events;
+
+    friend Module* load_module(const std::filesystem::path& path, std::string_view manifest);
+    friend void unload_module();
 
 private:
     std::vector<ServiceEntry> services_;

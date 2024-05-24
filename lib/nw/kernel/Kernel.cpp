@@ -33,8 +33,9 @@ void Services::start()
         std::runtime_error("currently selected game version is unsupported");
     }
 
-    strings->initialize();
     resources->initialize();
+
+    strings->initialize();
     twoda_cache->initialize();
     rules->initialize();
     effects->initialize();
@@ -80,9 +81,39 @@ Services& services()
 
 Module* load_module(const std::filesystem::path& path, std::string_view manifest)
 {
+    services().events->clear();
+    services().objects->clear();
+    services().effects->clear();
+    services().rules->clear();
+    services().twoda_cache->clear();
+
+    for (auto& s : reverse(services().services_)) {
+        s.service->clear();
+    }
+
+    services().strings->initialize();
+    services().twoda_cache->initialize();
+    services().objects->initialize();
+    services().events->initialize();
+    for (auto& s : services().services_) {
+        s.service->initialize();
+    }
+
     resman().load_module(path, manifest);
 
     Module* mod = objects().make_module();
+    if (mod->haks.size()) {
+        nw::kernel::resman().load_module_haks(mod->haks);
+    }
+
+    if (mod->tlk.size()) {
+        auto path = nw::kernel::config().user_path() / "tlk";
+        nw::kernel::strings().load_custom_tlk(path / (mod->tlk + ".tlk"));
+    }
+
+    services().rules->initialize();
+    services().effects->initialize();
+
     if (mod) {
         mod->instantiate();
     }
@@ -92,7 +123,16 @@ Module* load_module(const std::filesystem::path& path, std::string_view manifest
 
 void unload_module()
 {
-    objects().clear();
+    services().events->clear();
+    services().objects->clear();
+    services().effects->clear();
+    services().rules->clear();
+    services().twoda_cache->clear();
+
+    for (auto& s : reverse(services().services_)) {
+        s.service->clear();
+    }
+
     resman().unload_module();
     strings().unload_custom_tlk();
 }

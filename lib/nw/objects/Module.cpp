@@ -82,15 +82,6 @@ bool Module::instantiate()
     if (instantiated_) return true;
     LOG_F(INFO, "instantiating module");
 
-    if (haks.size()) {
-        nw::kernel::resman().load_module_haks(haks);
-    }
-
-    if (tlk.size()) {
-        auto path = nw::kernel::config().user_path() / "tlk";
-        nw::kernel::strings().load_custom_tlk(path / (tlk + ".tlk"));
-    }
-
     auto& area_list = std::get<std::vector<Resref>>(areas);
     std::vector<Area*> area_objects;
     area_objects.reserve(area_list.size());
