@@ -162,6 +162,12 @@ struct RuleTypeArray {
         }
     }
 
+    void clear()
+    {
+        entries.clear();
+        constant_to_index.clear();
+    }
+
     bool is_valid(RuleType type) const noexcept
     {
         return type.idx() < entries.size() && entries[type.idx()].valid();

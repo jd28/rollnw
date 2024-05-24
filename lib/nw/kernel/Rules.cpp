@@ -18,13 +18,15 @@ void Rules::clear()
     qualifier_ = qualifier_type{};
     selector_ = selector_type{};
     modifiers.clear();
-    baseitems.entries.clear();
-    classes.entries.clear();
-    feats.entries.clear();
-    races.entries.clear();
-    spells.entries.clear();
-    skills.entries.clear();
+    baseitems.clear();
+    classes.clear();
+    feats.clear();
+    races.clear();
+    spells.clear();
+    skills.clear();
     master_feats.clear();
+    appearances.clear();
+    phenotypes.clear();
 }
 
 void Rules::initialize()

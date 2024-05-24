@@ -116,6 +116,14 @@ ClassInfo::ClassInfo(const TwoDARowView& tda)
     }
 }
 
+void ClassArray::clear()
+{
+    attack_tables.clear();
+    stat_gain_tables.clear();
+    entries.clear();
+    constant_to_index.clear();
+}
+
 Class ClassArray::from_constant(std::string_view constant) const
 {
     absl::string_view v{constant.data(), constant.size()};

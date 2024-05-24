@@ -97,6 +97,7 @@ struct ClassArray {
     const ClassInfo* get(Class class_) const noexcept;
     bool is_valid(Class class_) const noexcept;
     Class from_constant(std::string_view constant) const;
+    void clear();
 
     /// Gets class base attack from attack tables
     int get_base_attack_bonus(Class class_, size_t level) const;
