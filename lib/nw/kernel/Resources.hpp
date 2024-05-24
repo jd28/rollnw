@@ -19,6 +19,11 @@ struct Module;
 
 namespace kernel {
 
+struct ResroucesStats {
+    /// Resman Initialization time in Milliseconds
+    int64_t initialization_time = 0;
+};
+
 using LocatorVariant = std::variant<Container*, unique_container>;
 
 struct LocatorPayload {
@@ -80,10 +85,13 @@ struct Resources : public Container, public Service {
     void load_palette_textures();
     Image* palette_texture(PltLayer layer);
 
+    const ResroucesStats& metrics() const;
+
     virtual std::vector<ResourceDescriptor> all() const override
     {
         return {};
     }
+
     virtual bool contains(Resource res) const override;
     virtual ResourceData demand(Resource res) const override;
     virtual int extract(const std::regex& pattern, const std::filesystem::path& output) const override;
@@ -99,6 +107,7 @@ private:
 
     const std::string name_{"resman"};
     const Resources* parent_ = nullptr;
+    ResroucesStats metrics_;
 
     NWSync nwsync_;
 

@@ -48,8 +48,8 @@ void Resources::initialize()
     load_palette_textures();
 
     auto elapsed = std::chrono::high_resolution_clock::now() - start;
-    long long ms = std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count();
-    LOG_F(INFO, "kernel: resource system initialized ({}ms)", ms);
+    metrics_.initialization_time = std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count();
+    LOG_F(INFO, "kernel: resource system initialized ({}ms)", metrics_.initialization_time);
 }
 
 bool Resources::load_module(std::filesystem::path path, std::string_view manifest)
