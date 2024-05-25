@@ -1,5 +1,6 @@
 #include "Resref.hpp"
 
+#include "../kernel/Kernel.hpp"
 #include "../log.hpp"
 
 #include <nlohmann/json.hpp>
@@ -19,13 +20,15 @@ Resref::Resref(const char* string) noexcept
 }
 
 Resref::Resref(std::string_view string) noexcept
-    : data_{}
 {
-    if (string.length() > max_size) {
-        LOG_F(ERROR, "invalid resref: '{}', resref must be less than {} characters", string, max_size);
+    data_.fill(0);
+
+    if (string.length() > nw::kernel::config().max_resref_length()) {
+        LOG_F(ERROR, "invalid resref: '{}', resref must be less than {} characters",
+            string, nw::kernel::config().max_resref_length());
         return;
     }
-    memcpy(data_.data(), string.data(), std::min(size_type(max_size), string.size()));
+    memcpy(data_.data(), string.data(), std::min(nw::kernel::config().max_resref_length(), string.size()));
     std::transform(data_.begin(), data_.end(), data_.begin(), ::tolower);
 }
 
@@ -36,7 +39,7 @@ bool Resref::empty() const noexcept { return !data_[0]; }
 Resref::size_type Resref::length() const noexcept
 {
     size_type i = 0;
-    for (; i < max_size; ++i) {
+    for (; i < nw::kernel::config().max_resref_length(); ++i) {
         if (!data_[i]) { break; }
     }
     return i;

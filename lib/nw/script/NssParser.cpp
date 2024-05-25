@@ -1,5 +1,6 @@
 #include "NssParser.hpp"
 
+#include "../kernel/Config.hpp"
 #include "../log.hpp"
 #include "Nss.hpp"
 #include "SourceLocation.hpp"
@@ -1006,7 +1007,7 @@ Ast NssParser::parse_program()
                 if (peek().loc.view() == "include") {
                     consume(NssTokenType::IDENTIFIER, "Expected 'IDENTIFIER'."); // include
                     if (match({NssTokenType::STRING_CONST})) {
-                        if (previous().loc.view().size() <= nw::Resref::max_size) {
+                        if (previous().loc.view().size() <= nw::kernel::config().max_resref_length()) {
                             ast_.includes.push_back({
                                 std::string(previous().loc.view()),
                                 previous().loc.range,

@@ -1,5 +1,8 @@
 #pragma once
 
+#include "../kernel/Kernel.hpp"
+#include "../log.hpp"
+
 #include <fmt/format.h>
 #include <nlohmann/json_fwd.hpp>
 
@@ -60,7 +63,14 @@ private:
 template <size_t N>
 Resref::Resref(std::array<char, N>& string) noexcept
 {
+    data_.fill(0);
     static_assert(N <= Resref::max_size);
+    if (N > nw::kernel::config().max_resref_length()) {
+        auto s = string[N - 1] ? std::string_view(string.data(), N) : std::string_view(string.data());
+        LOG_F(ERROR, "invalid resref: '{}', resref must be less than {} characters",
+            s, nw::kernel::config().max_resref_length());
+        return;
+    }
     memcpy(data_.data(), string.data(), N);
     std::transform(data_.begin(), data_.end(), data_.begin(), ::tolower);
 }

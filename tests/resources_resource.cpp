@@ -55,3 +55,26 @@ TEST(Resource, FromFilename)
     auto r6 = Resource::from_filename(p6);
     EXPECT_FALSE(r6.valid());
 }
+
+TEST(Resource, Resref)
+{
+    std::array<char, 16> test1{'t', 'e', 's', 't'};
+    nw::Resref resref1(test1);
+    EXPECT_EQ(resref1.view(), "test");
+
+    std::array<char, 16> test2{'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a'};
+    nw::Resref resref2(test2);
+    EXPECT_EQ(resref2.view(), "aaaaaaaaaaaaaaaa");
+
+    std::array<char, 17> test3{'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a'};
+    nw::Resref resref3(test3);
+    EXPECT_TRUE(resref3.empty());
+
+    std::string_view test4{"aaaaaaaaaaaaaaaa"};
+    nw::Resref resref4(test4);
+    EXPECT_EQ(resref4.view(), "aaaaaaaaaaaaaaaa");
+
+    std::string_view test5{"test"};
+    nw::Resref resref5(test5);
+    EXPECT_EQ(resref5.view(), "test");
+}

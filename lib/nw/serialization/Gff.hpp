@@ -3,6 +3,7 @@
 #include "../i18n/Language.hpp"
 #include "../i18n/LocString.hpp"
 #include "../i18n/conversion.hpp"
+#include "../kernel/Kernel.hpp"
 #include "../log.hpp"
 #include "../resources/ResourceData.hpp"
 #include "../serialization/Serialization.hpp"
@@ -262,7 +263,7 @@ bool GffField::get_to(T& value) const
                 uint8_t size = 0;
                 CHECK_OFF(parent_->data_.bytes.read_at(off, &size, 1));
                 off += 1;
-                if (size > Resref::max_size) {
+                if (size > nw::kernel::config().max_resref_length()) {
                     LOG_F(ERROR, "gff invalid resref size '{}'", int(size));
                     return false;
                 }

@@ -22,6 +22,9 @@ struct Config {
     /// Game installation path
     const std::filesystem::path& install_path() const noexcept;
 
+    /// Max resref length
+    size_t max_resref_length() const;
+
     /// Gets installation info
     const ConfigOptions& options() const noexcept;
 

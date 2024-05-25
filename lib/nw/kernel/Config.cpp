@@ -28,6 +28,17 @@ const std::filesystem::path& Config::install_path() const noexcept
     return install_;
 }
 
+size_t Config::max_resref_length() const
+{
+    switch (version()) {
+    default:
+        return 32;
+    case GameVersion::v1_69:
+    case GameVersion::vEE:
+        return 16;
+    }
+}
+
 const ConfigOptions& Config::options() const noexcept
 {
     return options_;
