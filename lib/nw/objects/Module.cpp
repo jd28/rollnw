@@ -213,7 +213,7 @@ bool deserialize(Module* obj, const GffStruct& archive)
     archive.get_to("Mod_CustomTlk", obj->tlk);
 
     std::string temp;
-    archive.get_to("Mod_UUID", temp);
+    archive.get_to("Mod_UUID", temp, false);
     if (!temp.empty()) {
         if (auto uuid = uuids::uuid::from_string(temp)) {
             obj->uuid = *uuid;
