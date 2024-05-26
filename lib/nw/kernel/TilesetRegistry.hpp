@@ -1,0 +1,49 @@
+#pragma once
+
+#include "../log.hpp"
+#include "Kernel.hpp"
+
+#include <absl/container/node_hash_map.h>
+
+#include <limits>
+#include <stdint.h>
+#include <string>
+#include <vector>
+
+namespace nw::kernel {
+
+struct TilesetRegistryMetrics {
+    size_t tilesets_loaded = 0;
+    int64_t initialization_time = 0;
+};
+
+struct Tile {
+    std::string model;
+};
+
+struct Tileset {
+    uint32_t strref = std::numeric_limits<uint32_t>::max();
+    std::string name;
+    std::vector<Tile> tiles;
+};
+
+struct TilesetRegistry : public Service {
+    void clear() override;
+    void initialize(ServiceInitTime time) override;
+    bool load(std::string_view resref);
+    Tileset* get(std::string_view resref);
+
+    absl::node_hash_map<std::string, Tileset> tileset_map_;
+    TilesetRegistryMetrics metrics_;
+};
+
+inline TilesetRegistry& tilesets()
+{
+    auto res = services().get_mut<TilesetRegistry>();
+    if (!res) {
+        LOG_F(FATAL, "kernel: unable to load twoda cache service");
+    }
+    return *res;
+}
+
+} // namespace nw

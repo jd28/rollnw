@@ -27,6 +27,7 @@ add_library(nw STATIC
     kernel/Resources.cpp
     kernel/Rules.cpp
     kernel/Strings.cpp
+    kernel/TilesetRegistry.cpp
     kernel/TwoDACache.cpp
 
     model/Mdl.cpp

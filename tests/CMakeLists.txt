@@ -23,6 +23,7 @@ add_executable(rollnw_test
     kernel_resources.cpp
     kernel_rules.cpp
     kernel_strings.cpp
+    kernel_tilesets.cpp
     kernel_twoda_cache.cpp
 
     legacy_image.cpp
