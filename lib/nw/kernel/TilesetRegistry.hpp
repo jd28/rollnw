@@ -21,7 +21,7 @@ struct TilesetRegistryMetrics {
 struct TilesetRegistry : public Service {
     void clear() override;
     void initialize(ServiceInitTime time) override;
-    bool load(std::string_view resref);
+    Tileset* load(std::string_view resref);
     Tileset* get(std::string_view resref);
 
     absl::node_hash_map<std::string, Tileset> tileset_map_;

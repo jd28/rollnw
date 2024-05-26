@@ -33,25 +33,25 @@ void TilesetRegistry::initialize(ServiceInitTime time)
     LOG_F(INFO, "kernel: tileset registry initialized ({}ms)", metrics_.initialization_time);
 }
 
-bool TilesetRegistry::load(std::string_view resref)
+Tileset* TilesetRegistry::load(std::string_view resref)
 {
     absl::string_view sv{resref.data(), resref.size()};
     auto it = tileset_map_.find(resref);
     if (it != std::end(tileset_map_)) {
         LOG_F(ERROR, "[tilsets] set has already been loaded: {}.set", resref);
-        return false;
+        return nullptr;
     }
 
     auto rd = resman().demand({Resref{resref}, ResourceType::set});
     if (rd.bytes.size() == 0) {
         LOG_F(ERROR, "[tilsets] unable to locate set file: {}.set", resref);
-        return false;
+        return nullptr;
     }
 
     nw::Ini set{std::move(rd)};
     if (!set.valid()) {
         LOG_F(ERROR, "[tilsets] failed to parse set file: {}.set", resref);
-        return false;
+        return nullptr;
     }
 
     int32_t temp = 0;
@@ -65,7 +65,7 @@ bool TilesetRegistry::load(std::string_view resref)
 
     if (!set.get_to("tiles/count", temp)) {
         LOG_F(ERROR, "[tilsets] unable to determine tile count: {}.set", resref);
-        return false;
+        return nullptr;
     }
     tileset.tiles.resize(size_t(temp));
 
@@ -73,12 +73,12 @@ bool TilesetRegistry::load(std::string_view resref)
         auto key = fmt::format("tile{}", i);
         if (!set.get_to(key + "/model", tileset.tiles[i].model)) {
             LOG_F(ERROR, "[tilsets] failed to load tile {} in {}.set", i, resref);
-            return false;
+            return nullptr;
         }
     }
 
     ++metrics_.tilesets_loaded;
-    return true;
+    return &tileset;
 }
 
 Tileset* TilesetRegistry::get(std::string_view resref)
