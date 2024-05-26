@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../util/ByteArray.hpp"
+#include "../resources/ResourceData.hpp"
 #include "../util/string.hpp"
 
 #include <absl/container/flat_hash_map.h>
@@ -23,7 +23,7 @@ namespace nw {
 struct Ini {
     Ini() = default;
     explicit Ini(const std::filesystem::path& filename);
-    explicit Ini(ByteArray bytes);
+    explicit Ini(ResourceData data);
 
     /**
      * @brief Gets a value
@@ -48,7 +48,7 @@ struct Ini {
     bool valid() const noexcept;
 
 private:
-    ByteArray bytes_;
+    ResourceData data_;
     absl::flat_hash_map<std::string, std::string> map_;
     bool loaded_ = false;
 

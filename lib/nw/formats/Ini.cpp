@@ -8,12 +8,12 @@ namespace fs = std::filesystem;
 namespace nw {
 
 Ini::Ini(const fs::path& filename)
-    : Ini{ByteArray::from_file(filename)}
+    : Ini{ResourceData::from_file(filename)}
 {
 }
 
-Ini::Ini(ByteArray bytes)
-    : bytes_{std::move(bytes)}
+Ini::Ini(ResourceData data)
+    : data_{std::move(data)}
 {
     loaded_ = parse();
 }
@@ -69,8 +69,8 @@ bool Ini::valid() const noexcept
 
 bool Ini::parse()
 {
-    if (bytes_.size() == 0) { return false; }
-    int result = ini_parse_string(reinterpret_cast<const char*>(bytes_.data()), bytes_.size(), parse_ini, this);
+    if (data_.bytes.size() == 0) { return false; }
+    int result = ini_parse_string(reinterpret_cast<const char*>(data_.bytes.data()), data_.bytes.size(), parse_ini, this);
     if (result) {
         LOG_F(ERROR, "Failed to parse, error on line: {}", result);
         return false;
