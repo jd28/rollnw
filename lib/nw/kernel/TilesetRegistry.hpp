@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../formats/Tileset.hpp"
 #include "../log.hpp"
 #include "Kernel.hpp"
 
@@ -15,17 +16,6 @@ namespace nw::kernel {
 struct TilesetRegistryMetrics {
     size_t tilesets_loaded = 0;
     int64_t initialization_time = 0;
-};
-
-struct Tile {
-    std::string model;
-};
-
-struct Tileset {
-    uint32_t strref = std::numeric_limits<uint32_t>::max();
-    std::string name;
-    std::vector<Tile> tiles;
-    float tile_height = 5.0;
 };
 
 struct TilesetRegistry : public Service {
