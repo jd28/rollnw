@@ -1,6 +1,7 @@
 #include "Area.hpp"
 
 #include "../kernel/Objects.hpp"
+#include "../kernel/TilesetRegistry.hpp"
 #include "Creature.hpp"
 #include "Door.hpp"
 #include "Encounter.hpp"
@@ -142,7 +143,11 @@ Area::Area()
     set_handle({object_invalid, ObjectType::area, 0});
 }
 
-bool Area::instantiate() { return true; }
+bool Area::instantiate()
+{
+    tileset = nw::kernel::tilesets().load(tileset_resref.view());
+    return true;
+}
 
 bool Area::deserialize(Area* obj, const nlohmann::json& caf)
 {
@@ -200,7 +205,7 @@ bool Area::deserialize(Area* obj, const nlohmann::json& are,
         for (size_t i = 0; i < ts.size(); ++i) {
             obj->tiles[i].from_json(ts[i]);
         }
-        are.at("tileset").get_to(obj->tileset);
+        are.at("tileset").get_to(obj->tileset_resref);
 
         are.at("creator_id").get_to(obj->creator_id);
         are.at("flags").get_to(obj->flags);
@@ -266,7 +271,7 @@ void Area::serialize(const Area* obj, nlohmann::json& archive)
         ts.push_back(tile.to_json());
     }
 
-    archive["tileset"] = obj->tileset;
+    archive["tileset"] = obj->tileset_resref;
 
     archive["creator_id"] = obj->creator_id;
     archive["flags"] = obj->flags;
@@ -384,7 +389,7 @@ bool deserialize(Area* obj, const GffStruct& are, const GffStruct& git, const Gf
     for (size_t i = 0; i < sz; ++i) {
         deserialize(obj->tiles[i], st[i]);
     }
-    are.get_to("Tileset", obj->tileset);
+    are.get_to("Tileset", obj->tileset_resref);
 
     are.get_to("Flags", obj->flags);
     are.get_to("Height", obj->height);

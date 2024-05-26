@@ -9,6 +9,8 @@
 
 namespace nw {
 
+struct Tileset;
+
 enum struct AreaFlags : uint32_t {
     none = 0,             ///< Unspecified
     interior = 0x0001,    ///< Exterior if unset
@@ -115,7 +117,8 @@ struct Area : public ObjectBase {
     std::vector<Waypoint*> waypoints;
     std::string comments;
     LocString name;
-    Resref tileset;
+    Tileset* tileset = nullptr;
+    Resref tileset_resref;
     std::vector<AreaTile> tiles;
 
     int32_t creator_id = 0;

@@ -22,7 +22,7 @@ TEST(Area, GffDeserialize)
 
     deserialize(ent, are.toplevel(), git.toplevel(), gic.toplevel());
 
-    EXPECT_EQ(ent->tileset, "ttf02");
+    EXPECT_EQ(ent->tileset_resref, "ttf02");
     EXPECT_TRUE(!(ent->flags & nw::AreaFlags::interior));
     EXPECT_TRUE(!(ent->flags & nw::AreaFlags::natural));
     EXPECT_GT(ent->tiles.size(), 0);

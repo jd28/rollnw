@@ -43,7 +43,7 @@ class Area(ObjectBase):
     shadow_opacity: int
     skybox: int
     spot_check_mod: int
-    tileset: str
+    tileset_resref: str
     version: int
     weather: AreaWeather
     width: int

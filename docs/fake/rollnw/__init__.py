@@ -1051,8 +1051,8 @@ class Area:
     sounds: "List[Sound]"
     spot_check_mod: int
     stores: "List[Store]"
-    tileset: str
     tiles: "List[AreaTile]"
+    tileset_resref: str
     triggers: "List[Trigger]"
     version: int
     waypoints: "List[Waypoint]"
