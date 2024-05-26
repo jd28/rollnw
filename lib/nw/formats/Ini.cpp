@@ -28,38 +28,6 @@ bool Ini::get_to(std::string key, std::string& out) const
     return true;
 }
 
-bool Ini::get_to(std::string key, int& out) const
-{
-    string::tolower(&key);
-    auto it = map_.find(key);
-    if (it == std::end(map_))
-        return false;
-
-    auto opt = string::from<int>(it->second);
-    if (!opt) {
-        return false;
-    }
-
-    out = *opt;
-    return true;
-}
-
-bool Ini::get_to(std::string key, float& out) const
-{
-    string::tolower(&key);
-    auto it = map_.find(key);
-    if (it == std::end(map_))
-        return false;
-
-    auto opt = string::from<float>(it->second);
-    if (!opt) {
-        return false;
-    }
-
-    out = *opt;
-    return true;
-}
-
 bool Ini::valid() const noexcept
 {
     return loaded_;

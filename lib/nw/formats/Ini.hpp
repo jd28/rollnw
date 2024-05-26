@@ -38,11 +38,9 @@ struct Ini {
     /// Gets string value
     bool get_to(std::string key, std::string& out) const;
 
-    /// Gets int value
-    bool get_to(std::string key, int& out) const;
-
-    /// Gets float value
-    bool get_to(std::string key, float& out) const;
+    /// Gets numeric value
+    template <typename T>
+    bool get_to(std::string key, T& out) const;
 
     /// Deterimes if Ini file was successfully parsed
     bool valid() const noexcept;
@@ -63,11 +61,29 @@ std::optional<T> Ini::get(std::string key) const
     if (!get_to(std::move(key), val))
         return {};
 
-    if constexpr (std::is_same_v<T, float> || std::is_convertible_v<T, int>) {
+    if constexpr (std::is_arithmetic_v<T>) {
         return string::from<T>(val);
     } else {
         return val;
     }
+}
+
+template <typename T>
+bool Ini::get_to(std::string key, T& out) const
+{
+    static_assert(std::is_arithmetic_v<T>, "[ini] only numeric types are allowed");
+    string::tolower(&key);
+    auto it = map_.find(key);
+    if (it == std::end(map_))
+        return false;
+
+    auto opt = string::from<T>(it->second);
+    if (!opt) {
+        return false;
+    }
+
+    out = *opt;
+    return true;
 }
 
 } // namespace nw
