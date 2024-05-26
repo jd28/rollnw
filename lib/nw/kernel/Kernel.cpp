@@ -49,11 +49,11 @@ GameProfile* Services::profile() const
 
 void Services::shutdown()
 {
-    profile_.reset();
-
     for (auto& s : reverse(services_)) {
         s.service->clear();
     }
+
+    profile_.reset();
 }
 
 Config& config()
