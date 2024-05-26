@@ -48,7 +48,7 @@ struct EventSystem : public Service {
 
 inline EventSystem& events()
 {
-    auto res = services().events.get();
+    auto res = services().get_mut<EventSystem>();
     if (!res) {
         LOG_F(FATAL, "kernel: unable to load events service");
     }

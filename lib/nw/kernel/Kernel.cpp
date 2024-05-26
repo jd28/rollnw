@@ -7,6 +7,7 @@
 #include "Resources.hpp"
 #include "Rules.hpp"
 #include "Strings.hpp"
+#include "TilesetRegistry.hpp"
 #include "TwoDACache.hpp"
 
 #include "../profiles/nwn1/Profile.hpp"
@@ -14,16 +15,17 @@
 namespace nw::kernel {
 
 Services::Services()
-    : strings{new Strings}
-    , resources{new Resources}
-    , twoda_cache{new TwoDACache}
-    , rules{new Rules}
-    , effects{new EffectSystem}
-    , objects{new ObjectSystem}
-    , events{new EventSystem}
-    , models{new ModelCache}
 {
-    // LOG_F(INFO, "kernel: initializing default services");
+    // The ordering here is important.  Pretty much everything depends on strings and resman
+    add<Strings>();
+    add<Resources>();
+    add<TwoDACache>();
+    add<Rules>();
+    add<EffectSystem>();
+    add<ObjectSystem>();
+    add<EventSystem>();
+    add<ModelCache>();
+    add<TilesetRegistry>();
 }
 
 void Services::start()
@@ -35,17 +37,8 @@ void Services::start()
         std::runtime_error("currently selected game version is unsupported");
     }
 
-    resources->initialize();
-
-    strings->initialize();
-    twoda_cache->initialize();
-    rules->initialize();
-    effects->initialize();
-    objects->initialize();
-    events->initialize();
-
     for (auto& s : services_) {
-        s.service->initialize();
+        s.service->initialize(ServiceInitTime::kernel_start);
     }
 }
 
@@ -57,12 +50,6 @@ GameProfile* Services::profile() const
 void Services::shutdown()
 {
     profile_.reset();
-
-    events->clear();
-    objects->clear();
-    effects->clear();
-    rules->clear();
-    twoda_cache->clear();
 
     for (auto& s : reverse(services_)) {
         s.service->clear();
@@ -83,23 +70,11 @@ Services& services()
 
 Module* load_module(const std::filesystem::path& path, std::string_view manifest)
 {
-    services().events->clear();
-    services().objects->clear();
-    services().effects->clear();
-    services().rules->clear();
-    services().twoda_cache->clear();
-    services().models->clear();
+    // Always unload, just in case.
+    unload_module();
 
-    for (auto& s : reverse(services().services_)) {
-        s.service->clear();
-    }
-
-    services().strings->initialize();
-    services().twoda_cache->initialize();
-    services().objects->initialize();
-    services().events->initialize();
     for (auto& s : services().services_) {
-        s.service->initialize();
+        s.service->initialize(ServiceInitTime::module_pre_load);
     }
 
     resman().load_module(path, manifest);
@@ -114,12 +89,16 @@ Module* load_module(const std::filesystem::path& path, std::string_view manifest
         nw::kernel::strings().load_custom_tlk(path / (mod->tlk + ".tlk"));
     }
 
-    services().models->initialize();
-    services().rules->initialize();
-    services().effects->initialize();
+    for (auto& s : services().services_) {
+        s.service->initialize(ServiceInitTime::module_post_load);
+    }
 
     if (mod) {
         mod->instantiate();
+    }
+
+    for (auto& s : services().services_) {
+        s.service->initialize(ServiceInitTime::module_post_instantiation);
     }
 
     return mod;
@@ -127,12 +106,6 @@ Module* load_module(const std::filesystem::path& path, std::string_view manifest
 
 void unload_module()
 {
-    services().events->clear();
-    services().objects->clear();
-    services().effects->clear();
-    services().rules->clear();
-    services().twoda_cache->clear();
-
     for (auto& s : reverse(services().services_)) {
         s.service->clear();
     }

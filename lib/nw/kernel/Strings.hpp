@@ -18,7 +18,7 @@ struct Strings : public Service {
     virtual ~Strings() = default;
 
     /// Initializes strings system
-    virtual void initialize() override;
+    virtual void initialize(ServiceInitTime time) override;
 
     /// Initializes strings system
     virtual void clear() override
@@ -81,7 +81,7 @@ private:
 
 inline Strings& strings()
 {
-    auto res = services().strings.get();
+    auto res = services().get_mut<Strings>();
     if (!res) {
         LOG_F(FATAL, "kernel: unable to load strings service");
     }

@@ -16,21 +16,35 @@ struct Module;
 
 namespace kernel {
 
-struct EffectSystem;
-struct EventSystem;
-struct ModelCache;
-struct ObjectSystem;
-struct Resources;
-struct Rules;
-struct ScriptSystem;
-struct Strings;
-struct TwoDACache;
+/// Guides services on load order.
+enum struct ServiceInitTime {
+    /// Immediately after the kernel is started with ``nw::kernel::start()``.
+    /// @note example: The resource manager loading base game resources.
+    kernel_start,
 
+    /// Before module is constructed and assets, i.e. haks/tlks, have been loaded.
+    /// @note example: Initializing the object system, since the module itself, must be
+    /// constructed via that system.
+    module_pre_load,
+
+    /// After module assets have been loaded, i.e. haks, tlk. but before any areas have been loaded
+    /// @note example: The rules system needs to be initialized here that will effect all other objects,
+    /// creatures, etc, when constructed during module instantiation
+    module_post_load,
+
+    /// After the module has been instantiated, i.e. all areas have been constructed.
+    /// @note example:
+    module_post_instantiation,
+};
+
+/// Abstract base class of all services
 struct Service {
-    virtual ~Service() { }
+    virtual ~Service() = default;
 
     /// Initializes a service
-    virtual void initialize() {};
+    /// @note Every service will be called with as many values as exist in ``ServiceInitTime``.
+    /// it's up to the service itself to filter/ignore what's not relevant to them.
+    virtual void initialize(ServiceInitTime time) {};
 
     /// Clears a service
     virtual void clear() {};
@@ -64,15 +78,6 @@ struct Services {
     /// Gets a service as non-const
     template <typename T>
     T* get_mut();
-
-    std::unique_ptr<Strings> strings;
-    std::unique_ptr<Resources> resources;
-    std::unique_ptr<TwoDACache> twoda_cache;
-    std::unique_ptr<Rules> rules;
-    std::unique_ptr<EffectSystem> effects;
-    std::unique_ptr<ObjectSystem> objects;
-    std::unique_ptr<EventSystem> events;
-    std::unique_ptr<ModelCache> models;
 
     friend Module* load_module(const std::filesystem::path& path, std::string_view manifest);
     friend void unload_module();

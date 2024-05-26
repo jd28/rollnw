@@ -122,8 +122,12 @@ void EffectSystem::destroy(Effect* effect)
     free_list_.push(id.index);
 }
 
-void EffectSystem::initialize()
+void EffectSystem::initialize(ServiceInitTime time)
 {
+    if (time != ServiceInitTime::kernel_start && time != ServiceInitTime::module_post_load) {
+        return;
+    }
+
     LOG_F(INFO, "  ... loading item property cost tables");
     auto costtable = twodas().get("iprp_costtable");
     if (costtable) {

@@ -29,8 +29,12 @@ void Rules::clear()
     phenotypes.clear();
 }
 
-void Rules::initialize()
+void Rules::initialize(ServiceInitTime time)
 {
+    if (time != ServiceInitTime::kernel_start && time != ServiceInitTime::module_post_load) {
+        return;
+    }
+
     LOG_F(INFO, "kernel: rules system initializing...");
     if (auto profile = services().profile()) {
         profile->load_rules();

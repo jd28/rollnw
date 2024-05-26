@@ -61,7 +61,7 @@ struct EffectSystem : public Service {
     Effect* generate(const ItemProperty& property, EquipIndex index, BaseItem baseitem) const;
 
     /// Initialize effect system
-    virtual void initialize() override;
+    virtual void initialize(ServiceInitTime time) override;
 
     /// Gets an item property cost table
     const TwoDA* ip_cost_table(size_t table) const;
@@ -107,7 +107,7 @@ private:
 
 inline EffectSystem& effects()
 {
-    auto res = services().effects.get();
+    auto res = services().get_mut<EffectSystem>();
     if (!res) {
         LOG_F(FATAL, "kernel: unable to load effects service");
     }

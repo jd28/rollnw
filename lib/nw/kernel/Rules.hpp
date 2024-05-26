@@ -26,7 +26,7 @@ struct Rules : public Service {
     virtual ~Rules();
 
     /// Initializes rules system
-    virtual void initialize() override;
+    virtual void initialize(ServiceInitTime time) override;
 
     /// Clears rules system of all rules and cached 2da files
     virtual void clear() override;
@@ -65,7 +65,7 @@ private:
 
 inline Rules& rules()
 {
-    auto res = services().rules.get();
+    auto res = services().get_mut<Rules>();
     if (!res) {
         LOG_F(FATAL, "kernel: unable to load rules service");
     }

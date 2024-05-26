@@ -39,8 +39,9 @@ InternedString Strings::get_interned(std::string_view str) const
     return {};
 }
 
-void Strings::initialize()
+void Strings::initialize(ServiceInitTime time)
 {
+    if (time != ServiceInitTime::kernel_start) { return; }
     auto lang = Language::to_string(global_language());
     if (config().version() == GameVersion::vEE) {
         auto path = config().install_path() / "lang" / lang / "data" / "dialog.tlk";

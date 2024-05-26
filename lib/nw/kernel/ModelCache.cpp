@@ -50,7 +50,7 @@ void ModelCache::release(std::string_view resref)
 
 ModelCache& models()
 {
-    auto res = services().models.get();
+    auto res = services().get_mut<ModelCache>();
     if (!res) {
         LOG_F(FATAL, "kernel: unable to load model service");
     }

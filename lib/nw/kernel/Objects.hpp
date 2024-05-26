@@ -47,7 +47,6 @@ struct ObjectSystem : public Service {
 
     /// Destroys all objects
     virtual void clear() override;
-    virtual void initialize() override { }
 
     /// Destroys a single object
     void destroy(ObjectHandle obj);
@@ -296,7 +295,7 @@ T* ObjectSystem::load(const nlohmann::json& archive)
 
 inline ObjectSystem& objects()
 {
-    auto res = services().objects.get();
+    auto res = services().get_mut<ObjectSystem>();
     if (!res) {
         LOG_F(FATAL, "kernel: unable to load objects service");
     }

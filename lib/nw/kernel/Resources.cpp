@@ -32,8 +32,9 @@ Resources::Resources(const Resources* parent)
 {
 }
 
-void Resources::initialize()
+void Resources::initialize(ServiceInitTime time)
 {
+    if (time != ServiceInitTime::kernel_start) { return; }
     LOG_F(INFO, "kernel: resource system initializing...");
     auto start = std::chrono::high_resolution_clock::now();
 
