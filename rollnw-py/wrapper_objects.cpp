@@ -179,18 +179,18 @@ void init_objects_area(py::module& nw)
         .def_readwrite("fog_sun_amount", &nw::AreaWeather::fog_sun_amount)
         .def_readwrite("sun_shadows", &nw::AreaWeather::sun_shadows);
 
-    py::class_<nw::Tile>(nw, "Tile")
+    py::class_<nw::AreaTile>(nw, "AreaTile")
         .def(py::init<>())
-        .def_readwrite("id", &nw::Tile::id)
-        .def_readwrite("height", &nw::Tile::height)
-        .def_readwrite("orientation", &nw::Tile::orientation)
-        .def_readwrite("animloop1", &nw::Tile::animloop1)
-        .def_readwrite("animloop2", &nw::Tile::animloop2)
-        .def_readwrite("animloop3", &nw::Tile::animloop3)
-        .def_readwrite("mainlight1", &nw::Tile::mainlight1)
-        .def_readwrite("mainlight2", &nw::Tile::mainlight2)
-        .def_readwrite("srclight1", &nw::Tile::srclight1)
-        .def_readwrite("srclight2", &nw::Tile::srclight2);
+        .def_readwrite("id", &nw::AreaTile::id)
+        .def_readwrite("height", &nw::AreaTile::height)
+        .def_readwrite("orientation", &nw::AreaTile::orientation)
+        .def_readwrite("animloop1", &nw::AreaTile::animloop1)
+        .def_readwrite("animloop2", &nw::AreaTile::animloop2)
+        .def_readwrite("animloop3", &nw::AreaTile::animloop3)
+        .def_readwrite("mainlight1", &nw::AreaTile::mainlight1)
+        .def_readwrite("mainlight2", &nw::AreaTile::mainlight2)
+        .def_readwrite("srclight1", &nw::AreaTile::srclight1)
+        .def_readwrite("srclight2", &nw::AreaTile::srclight2);
 
     py::class_<nw::Area, nw::ObjectBase>(nw, "Area")
         .def(py::init<>())
@@ -533,12 +533,9 @@ void init_objects_module(py::module& nw)
         .def("__len__", [](const nw::Module& self) {
             return self.area_count();
         })
-        .def(
-            "__iter__", [](nw::Module& self) {
+        .def("__iter__", [](nw::Module& self) {
                 auto& areas = std::get<std::vector<nw::Area*>>(self.areas);
-                return py::make_iterator(areas.begin(), areas.end());
-            },
-            py::keep_alive<0, 1>())
+                return py::make_iterator(areas.begin(), areas.end()); }, py::keep_alive<0, 1>())
 
         .def_readwrite("description", &nw::Module::description)
         .def_readwrite("entry_area", &nw::Module::entry_area)
@@ -553,9 +550,7 @@ void init_objects_module(py::module& nw)
         .def_readwrite("start_movie", &nw::Module::start_movie)
         .def_readwrite("tag", &nw::Module::tag)
         .def_readwrite("tlk", &nw::Module::tlk)
-        .def_property_readonly("uuid", [](const nw::Module& self) {
-            return uuids::to_string(self.uuid);
-        })
+        .def_property_readonly("uuid", [](const nw::Module& self) { return uuids::to_string(self.uuid); })
 
         .def_readwrite("creator", &nw::Module::creator)
         .def_readwrite("start_year", &nw::Module::start_year)

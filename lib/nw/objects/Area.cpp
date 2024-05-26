@@ -99,7 +99,7 @@ nlohmann::json AreaWeather::to_json() const
 
 // -- Tile --------------------------------------------------------------------
 
-bool Tile::from_json(const nlohmann::json& archive)
+bool AreaTile::from_json(const nlohmann::json& archive)
 {
     try {
         archive.at("id").get_to(id);
@@ -119,7 +119,7 @@ bool Tile::from_json(const nlohmann::json& archive)
     return true;
 }
 
-nlohmann::json Tile::to_json() const
+nlohmann::json AreaTile::to_json() const
 {
     nlohmann::json j;
     j["id"] = id;
@@ -323,7 +323,7 @@ bool deserialize(AreaWeather& self, const GffStruct& archive)
     return true;
 }
 
-bool deserialize(Tile& self, const GffStruct& archive)
+bool deserialize(AreaTile& self, const GffStruct& archive)
 {
     return archive.get_to("Tile_ID", self.id)
         && archive.get_to("Tile_Height", self.height)

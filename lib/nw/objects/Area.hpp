@@ -57,8 +57,8 @@ struct AreaWeather {
     uint8_t sun_shadows = 0;
 };
 
-struct Tile {
-    Tile() = default;
+struct AreaTile {
+    AreaTile() = default;
 
     bool from_json(const nlohmann::json& archive);
     nlohmann::json to_json() const;
@@ -116,7 +116,7 @@ struct Area : public ObjectBase {
     std::string comments;
     LocString name;
     Resref tileset;
-    std::vector<Tile> tiles;
+    std::vector<AreaTile> tiles;
 
     int32_t creator_id = 0;
     AreaFlags flags;
@@ -140,6 +140,6 @@ struct Area : public ObjectBase {
 
 bool deserialize(AreaScripts& self, const GffStruct& archive);
 bool deserialize(Area* obj, const GffStruct& are, const GffStruct& git, const GffStruct& gic);
-bool deserialize(Tile& self, const GffStruct& archive);
+bool deserialize(AreaTile& self, const GffStruct& archive);
 
 } // namespace nw

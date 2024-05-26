@@ -1051,8 +1051,8 @@ class Area:
     sounds: "List[Sound]"
     spot_check_mod: int
     stores: "List[Store]"
-    tiles: "List[Tile]"
     tileset: str
+    tiles: "List[AreaTile]"
     triggers: "List[Trigger]"
     version: int
     waypoints: "List[Waypoint]"
@@ -1600,7 +1600,7 @@ class Store(ObjectBase):
         pass
 
 
-class Tile:
+class AreaTile:
     """Area tile
     """
     id: int

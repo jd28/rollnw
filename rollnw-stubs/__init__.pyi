@@ -1775,7 +1775,7 @@ class StoreScripts:
     def __init__(self, *args, **kwargs) -> None: ...
 
 
-class Tile:
+class AreaTile:
     animloop1: int
     animloop2: int
     animloop3: int
