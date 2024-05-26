@@ -61,6 +61,7 @@ bool TilesetRegistry::load(std::string_view resref)
 
     set.get_to("general/name", tileset.strref);
     set.get_to("general/UnlocalizedName", tileset.name);
+    set.get_to("general/transition", tileset.tile_height);
 
     if (!set.get_to("tiles/count", temp)) {
         LOG_F(ERROR, "[tilsets] unable to determine tile count: {}.set", resref);
