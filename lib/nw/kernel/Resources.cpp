@@ -83,6 +83,7 @@ void Resources::load_module_haks(const std::vector<std::string>& haks)
             module_haks_.emplace_back(c);
         }
     }
+    update_container_search();
 }
 
 void Resources::unload_module()
