@@ -87,7 +87,9 @@ bool Module::instantiate()
     area_objects.reserve(area_list.size());
     for (auto& area : area_list) {
         LOG_F(INFO, "  loading area: {}", area);
-        area_objects.push_back(nw::kernel::objects().make_area(area));
+        auto a = nw::kernel::objects().make_area(area);
+        a->instantiate();
+        area_objects.push_back(a);
     }
     areas = std::move(area_objects);
 
