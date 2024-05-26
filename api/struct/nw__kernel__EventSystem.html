@@ -22,7 +22,7 @@
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
-    <link rel="next" title="nw::kernel::ObjectSystem" href="nw__kernel__ObjectSystem.html" />
+    <link rel="next" title="nw::kernel::ModelCache" href="nw__kernel__ModelCache.html" />
     <link rel="prev" title="nw::kernel::EffectSystem" href="nw__kernel__EffectSystem.html" /> 
 </head>
 
@@ -216,14 +216,15 @@
 <li class="toctree-l3"><a class="reference internal" href="#_CPPv4N2nw6kernel11EventSystemE"><code class="docutils literal notranslate"><span class="pre">EventSystem</span></code></a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4I0EN2nw6kernel11EventSystem7storageE"><code class="docutils literal notranslate"><span class="pre">EventSystem::storage</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6kernel11EventSystem3addE9EventTypeP10ObjectBasePv"><code class="docutils literal notranslate"><span class="pre">EventSystem::add()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6kernel11EventSystem7processEv"><code class="docutils literal notranslate"><span class="pre">EventSystem::process()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6kernel11EventSystem10initializeEv"><code class="docutils literal notranslate"><span class="pre">EventSystem::initialize()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6kernel11EventSystem5clearEv"><code class="docutils literal notranslate"><span class="pre">EventSystem::clear()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6kernel11EventSystem7processEv"><code class="docutils literal notranslate"><span class="pre">EventSystem::process()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6kernel11EventSystem10initializeE15ServiceInitTime"><code class="docutils literal notranslate"><span class="pre">EventSystem::initialize()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6kernel11EventSystem6queue_E"><code class="docutils literal notranslate"><span class="pre">EventSystem::queue_</span></code></a></li>
 </ul>
 </li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="nw__kernel__ModelCache.html">nw::kernel::ModelCache</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__kernel__ObjectSystem.html">nw::kernel::ObjectSystem</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__kernel__Resources.html">nw::kernel::Resources</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__kernel__Rules.html">nw::kernel::Rules</a></li>
@@ -394,20 +395,24 @@
 <dd></dd></dl>
 
 <dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6kernel11EventSystem5clearEv">
+<span id="_CPPv3N2nw6kernel11EventSystem5clearEv"></span><span id="_CPPv2N2nw6kernel11EventSystem5clearEv"></span><span id="nw::kernel::EventSystem::clear"></span><span class="target" id="structnw_1_1kernel_1_1_event_system_1a4c6f38c2473a56b1c7ba864c2d747838"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">clear</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">override</span></span><a class="headerlink" href="#_CPPv4N2nw6kernel11EventSystem5clearEv" title="Link to this definition"></a><br /></dt>
+<dd><p>Clears a service. </p>
+</dd></dl>
+
+<dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw6kernel11EventSystem7processEv">
 <span id="_CPPv3N2nw6kernel11EventSystem7processEv"></span><span id="_CPPv2N2nw6kernel11EventSystem7processEv"></span><span id="nw::kernel::EventSystem::process"></span><span class="target" id="structnw_1_1kernel_1_1_event_system_1a7b2cd71d966f48453a4b17a8e4ca5c7f"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">process</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6kernel11EventSystem7processEv" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N2nw6kernel11EventSystem10initializeEv">
-<span id="_CPPv3N2nw6kernel11EventSystem10initializeEv"></span><span id="_CPPv2N2nw6kernel11EventSystem10initializeEv"></span><span id="nw::kernel::EventSystem::initialize"></span><span class="target" id="structnw_1_1kernel_1_1_service_1a4f89111c1a6b8d0e2cd0ada248d887c2"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">initialize</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6kernel11EventSystem10initializeEv" title="Link to this definition"></a><br /></dt>
-<dd><p>Initializes a service. </p>
-</dd></dl>
-
-<dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N2nw6kernel11EventSystem5clearEv">
-<span id="_CPPv3N2nw6kernel11EventSystem5clearEv"></span><span id="_CPPv2N2nw6kernel11EventSystem5clearEv"></span><span id="nw::kernel::EventSystem::clear"></span><span class="target" id="structnw_1_1kernel_1_1_service_1ae73d8fd36b7313f837ae1f25bc95f67d"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">clear</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6kernel11EventSystem5clearEv" title="Link to this definition"></a><br /></dt>
-<dd><p>Clears a service. </p>
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6kernel11EventSystem10initializeE15ServiceInitTime">
+<span id="_CPPv3N2nw6kernel11EventSystem10initializeE15ServiceInitTime"></span><span id="_CPPv2N2nw6kernel11EventSystem10initializeE15ServiceInitTime"></span><span id="nw::kernel::EventSystem::initialize__ServiceInitTime"></span><span class="target" id="structnw_1_1kernel_1_1_service_1a0267651ba4854e27fc5d1bbb163c9cb8"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">initialize</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="../enum/nw__kernel__ServiceInitTime.html#_CPPv4N2nw6kernel15ServiceInitTimeE" title="nw::kernel::ServiceInitTime"><span class="n"><span class="pre">ServiceInitTime</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">time</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6kernel11EventSystem10initializeE15ServiceInitTime" title="Link to this definition"></a><br /></dt>
+<dd><p>Initializes a service </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Every service will be called with as many values as exist in <code class="docutils literal notranslate"><span class="pre">ServiceInitTime</span></code>. it’s up to the service itself to filter/ignore what’s not relevant to them. </p>
+</div>
 </dd></dl>
 
 </div>
@@ -428,7 +433,7 @@
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="nw__kernel__EffectSystem.html" class="btn btn-neutral float-left" title="nw::kernel::EffectSystem" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="nw__kernel__ObjectSystem.html" class="btn btn-neutral float-right" title="nw::kernel::ObjectSystem" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="nw__kernel__ModelCache.html" class="btn btn-neutral float-right" title="nw::kernel::ModelCache" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

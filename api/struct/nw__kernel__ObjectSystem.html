@@ -23,7 +23,7 @@
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
     <link rel="next" title="nw::kernel::Resources" href="nw__kernel__Resources.html" />
-    <link rel="prev" title="nw::kernel::EventSystem" href="nw__kernel__EventSystem.html" /> 
+    <link rel="prev" title="nw::kernel::ModelCache" href="nw__kernel__ModelCache.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -213,6 +213,7 @@
 <li class="toctree-l2"><a class="reference internal" href="nw__kernel__Config.html">nw::kernel::Config</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__kernel__EffectSystem.html">nw::kernel::EffectSystem</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__kernel__EventSystem.html">nw::kernel::EventSystem</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__kernel__ModelCache.html">nw::kernel::ModelCache</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">nw::kernel::ObjectSystem</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#_CPPv4N2nw6kernel12ObjectSystemE"><code class="docutils literal notranslate"><span class="pre">ObjectSystem</span></code></a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6kernel12ObjectSystem12ObjectSystemEv"><code class="docutils literal notranslate"><span class="pre">ObjectSystem::ObjectSystem()</span></code></a></li>
@@ -222,7 +223,6 @@
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6kernel12ObjectSystemaSERR12ObjectSystem"><code class="docutils literal notranslate"><span class="pre">ObjectSystem::operator=()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6kernel12ObjectSystemD0Ev"><code class="docutils literal notranslate"><span class="pre">ObjectSystem::~ObjectSystem()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6kernel12ObjectSystem5clearEv"><code class="docutils literal notranslate"><span class="pre">ObjectSystem::clear()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6kernel12ObjectSystem10initializeEv"><code class="docutils literal notranslate"><span class="pre">ObjectSystem::initialize()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6kernel12ObjectSystem7destroyE12ObjectHandle"><code class="docutils literal notranslate"><span class="pre">ObjectSystem::destroy()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4I0EN2nw6kernel12ObjectSystem3getEP1T12ObjectHandle"><code class="docutils literal notranslate"><span class="pre">ObjectSystem::get()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw6kernel12ObjectSystem15get_object_baseE12ObjectHandle"><code class="docutils literal notranslate"><span class="pre">ObjectSystem::get_object_base()</span></code></a></li>
@@ -237,6 +237,7 @@
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6kernel12ObjectSystem9make_areaE6Resref"><code class="docutils literal notranslate"><span class="pre">ObjectSystem::make_area()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6kernel12ObjectSystem11make_moduleEv"><code class="docutils literal notranslate"><span class="pre">ObjectSystem::make_module()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw6kernel12ObjectSystem5validE12ObjectHandle"><code class="docutils literal notranslate"><span class="pre">ObjectSystem::valid()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6kernel12ObjectSystem10initializeE15ServiceInitTime"><code class="docutils literal notranslate"><span class="pre">ObjectSystem::initialize()</span></code></a></li>
 </ul>
 </li>
 </ul>
@@ -434,12 +435,6 @@
 </dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N2nw6kernel12ObjectSystem10initializeEv">
-<span id="_CPPv3N2nw6kernel12ObjectSystem10initializeEv"></span><span id="_CPPv2N2nw6kernel12ObjectSystem10initializeEv"></span><span id="nw::kernel::ObjectSystem::initialize"></span><span class="target" id="structnw_1_1kernel_1_1_object_system_1adae006d06e50c555ebafcf56714f6491"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">initialize</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">override</span></span><a class="headerlink" href="#_CPPv4N2nw6kernel12ObjectSystem10initializeEv" title="Link to this definition"></a><br /></dt>
-<dd><p>Initializes a service. </p>
-</dd></dl>
-
-<dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw6kernel12ObjectSystem7destroyE12ObjectHandle">
 <span id="_CPPv3N2nw6kernel12ObjectSystem7destroyE12ObjectHandle"></span><span id="_CPPv2N2nw6kernel12ObjectSystem7destroyE12ObjectHandle"></span><span id="nw::kernel::ObjectSystem::destroy__ObjectHandle"></span><span class="target" id="structnw_1_1kernel_1_1_object_system_1add609578206094760ed183f8ba19a1cc"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">destroy</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">ObjectHandle</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">obj</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6kernel12ObjectSystem7destroyE12ObjectHandle" title="Link to this definition"></a><br /></dt>
 <dd><p>Destroys a single object. </p>
@@ -526,6 +521,16 @@
 <dd><p>Determines of object handle is valid. </p>
 </dd></dl>
 
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6kernel12ObjectSystem10initializeE15ServiceInitTime">
+<span id="_CPPv3N2nw6kernel12ObjectSystem10initializeE15ServiceInitTime"></span><span id="_CPPv2N2nw6kernel12ObjectSystem10initializeE15ServiceInitTime"></span><span id="nw::kernel::ObjectSystem::initialize__ServiceInitTime"></span><span class="target" id="structnw_1_1kernel_1_1_service_1a0267651ba4854e27fc5d1bbb163c9cb8"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">initialize</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="../enum/nw__kernel__ServiceInitTime.html#_CPPv4N2nw6kernel15ServiceInitTimeE" title="nw::kernel::ServiceInitTime"><span class="n"><span class="pre">ServiceInitTime</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">time</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6kernel12ObjectSystem10initializeE15ServiceInitTime" title="Link to this definition"></a><br /></dt>
+<dd><p>Initializes a service </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Every service will be called with as many values as exist in <code class="docutils literal notranslate"><span class="pre">ServiceInitTime</span></code>. it’s up to the service itself to filter/ignore what’s not relevant to them. </p>
+</div>
+</dd></dl>
+
 </div>
 </dd></dl>
 
@@ -535,7 +540,7 @@
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="nw__kernel__EventSystem.html" class="btn btn-neutral float-left" title="nw::kernel::EventSystem" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="nw__kernel__ModelCache.html" class="btn btn-neutral float-left" title="nw::kernel::ModelCache" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
         <a href="nw__kernel__Resources.html" class="btn btn-neutral float-right" title="nw::kernel::Resources" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
