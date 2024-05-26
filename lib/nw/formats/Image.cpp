@@ -199,7 +199,7 @@ bool Image::parse_bioware()
     if (channels_ != 3 && channels_ != 4)
         return false;
 
-    bytes_ = reinterpret_cast<uint8_t*>(malloc(4 * height_ * width_));
+    bytes_ = reinterpret_cast<uint8_t*>(malloc(4ull * height_ * width_));
 
     int block_pitch = (width_ + 3) >> 2;
     int num_blocks = block_pitch * ((height_ + 3) >> 2);
@@ -245,9 +245,9 @@ bool Image::parse_bioware()
     }
 
     if (channels_ == 3) { // Gotta switch format
-        auto good = reinterpret_cast<uint8_t*>(malloc(3 * height_ * width_));
+        auto good = reinterpret_cast<uint8_t*>(malloc(3ull * height_ * width_));
 
-        for (size_t j = 0; j < height_ * width_; ++j) {
+        for (size_t j = 0; j < static_cast<size_t>(height_) * width_; ++j) {
             unsigned char* src = bytes_ + j * 4;
             unsigned char* dest = good + j * 3;
             dest[0] = src[0];
