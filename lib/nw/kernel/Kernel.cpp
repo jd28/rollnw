@@ -2,6 +2,7 @@
 
 #include "EffectSystem.hpp"
 #include "EventSystem.hpp"
+#include "ModelCache.hpp"
 #include "Objects.hpp"
 #include "Resources.hpp"
 #include "Rules.hpp"
@@ -20,6 +21,7 @@ Services::Services()
     , effects{new EffectSystem}
     , objects{new ObjectSystem}
     , events{new EventSystem}
+    , models{new ModelCache}
 {
     // LOG_F(INFO, "kernel: initializing default services");
 }
@@ -86,6 +88,7 @@ Module* load_module(const std::filesystem::path& path, std::string_view manifest
     services().effects->clear();
     services().rules->clear();
     services().twoda_cache->clear();
+    services().models->clear();
 
     for (auto& s : reverse(services().services_)) {
         s.service->clear();
@@ -111,6 +114,7 @@ Module* load_module(const std::filesystem::path& path, std::string_view manifest
         nw::kernel::strings().load_custom_tlk(path / (mod->tlk + ".tlk"));
     }
 
+    services().models->initialize();
     services().rules->initialize();
     services().effects->initialize();
 

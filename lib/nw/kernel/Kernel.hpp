@@ -18,6 +18,7 @@ namespace kernel {
 
 struct EffectSystem;
 struct EventSystem;
+struct ModelCache;
 struct ObjectSystem;
 struct Resources;
 struct Rules;
@@ -71,6 +72,7 @@ struct Services {
     std::unique_ptr<EffectSystem> effects;
     std::unique_ptr<ObjectSystem> objects;
     std::unique_ptr<EventSystem> events;
+    std::unique_ptr<ModelCache> models;
 
     friend Module* load_module(const std::filesystem::path& path, std::string_view manifest);
     friend void unload_module();
