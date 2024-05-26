@@ -151,7 +151,8 @@ ResourceDescriptor Directory::stat(const Resource& res) const
     return result;
 }
 
-void Directory::visit(std::function<void(const Resource&)> callback) const noexcept
+void Directory::visit(std::function<void(const Resource&)> callback,
+    std::initializer_list<ResourceType::type> types) const noexcept
 {
     for (auto it : fs::directory_iterator{path_}) {
         if (!it.is_regular_file()) { continue; }
@@ -160,6 +161,9 @@ void Directory::visit(std::function<void(const Resource&)> callback) const noexc
 
         ResourceType::type t = ResourceType::from_extension(fn.extension().string());
         if (t == ResourceType::invalid) { continue; }
+        if (types.size() && std::end(types) == std::find(std::begin(types), std::end(types), t)) {
+            continue;
+        }
 
         auto s = fn.stem().string();
         if (s.length() > 16) { continue; }

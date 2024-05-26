@@ -307,12 +307,12 @@ ResourceDescriptor Resources::stat(const Resource& res) const
     return rd;
 }
 
-void Resources::visit(std::function<void(const Resource&)> callback) const noexcept
+void Resources::visit(std::function<void(const Resource&)> callback, std::initializer_list<ResourceType::type> types) const noexcept
 {
     for (auto& [cont, type] : search_) {
         auto c = get_container(cont);
         if (!c) { continue; }
-        c->visit(callback);
+        c->visit(callback, types);
     }
 }
 

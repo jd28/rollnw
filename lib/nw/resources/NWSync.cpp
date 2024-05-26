@@ -182,7 +182,7 @@ ResourceDescriptor NWSyncManifest::stat(const Resource& res) const
     return result;
 }
 
-void NWSyncManifest::visit(std::function<void(const Resource&)> callback) const noexcept
+void NWSyncManifest::visit(std::function<void(const Resource&)> callback, std::initializer_list<ResourceType::type> types) const noexcept
 {
     sqlite3_stmt* stmt = nullptr;
     const char* tail = nullptr;
@@ -200,8 +200,11 @@ void NWSyncManifest::visit(std::function<void(const Resource&)> callback) const 
     }
 
     while (sqlite3_step(stmt) == SQLITE_ROW) {
-        callback(Resource{std::string_view(reinterpret_cast<const char*>(sqlite3_column_text(stmt, 0))),
-            static_cast<ResourceType::type>(sqlite3_column_int(stmt, 1))});
+        auto restype = static_cast<ResourceType::type>(sqlite3_column_int(stmt, 1));
+        if (types.size() && std::end(types) == std::find(std::begin(types), std::end(types), restype)) {
+            continue;
+        }
+        callback(Resource{std::string_view(reinterpret_cast<const char*>(sqlite3_column_text(stmt, 0))), restype});
     }
 }
 

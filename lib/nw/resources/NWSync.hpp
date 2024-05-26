@@ -44,7 +44,7 @@ struct NWSyncManifest : public Container {
     virtual size_t size() const override { return 0; }
     virtual ResourceDescriptor stat(const Resource& res) const override;
     virtual bool valid() const noexcept override { return true; } // [TODO] Figure something better out.
-    virtual void visit(std::function<void(const Resource&)> callback) const noexcept override;
+    virtual void visit(std::function<void(const Resource&)> callback, std::initializer_list<ResourceType::type> types = {}) const noexcept override;
 
 private:
     std::string manifest_;

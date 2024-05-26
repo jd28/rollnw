@@ -336,9 +336,12 @@ ResourceDescriptor Erf::stat(const Resource& res) const
     return result;
 }
 
-void Erf::visit(std::function<void(const Resource&)> callback) const noexcept
+void Erf::visit(std::function<void(const Resource&)> callback, std::initializer_list<ResourceType::type> types) const noexcept
 {
     for (auto it : elements_) {
+        if (types.size() && std::end(types) == std::find(std::begin(types), std::end(types), it.first.type)) {
+            continue;
+        }
         callback(it.first);
     }
 }

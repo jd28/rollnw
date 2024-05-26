@@ -78,7 +78,7 @@ public:
     virtual size_t size() const override;
     virtual ResourceDescriptor stat(const Resource& res) const override;
     virtual bool valid() const noexcept override { return is_loaded_; }
-    virtual void visit(std::function<void(const Resource&)> callback) const noexcept override;
+    virtual void visit(std::function<void(const Resource&)> callback, std::initializer_list<ResourceType::type> types = {}) const noexcept override;
 
     /// Erf type.
     ErfType type = ErfType::erf;
