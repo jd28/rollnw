@@ -146,6 +146,9 @@ Area::Area()
 bool Area::instantiate()
 {
     tileset = nw::kernel::tilesets().get(tileset_resref.view());
+    if (!tileset) {
+        throw std::runtime_error(fmt::format("invalid tileset: {}", tileset_resref.view()));
+    }
     return true;
 }
 
