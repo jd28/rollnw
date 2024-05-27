@@ -145,7 +145,7 @@ Area::Area()
 
 bool Area::instantiate()
 {
-    tileset = nw::kernel::tilesets().load(tileset_resref.view());
+    tileset = nw::kernel::tilesets().get(tileset_resref.view());
     return true;
 }
 
