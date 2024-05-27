@@ -168,7 +168,7 @@ jobs:
           ctest --preset default
 
       - name: Build wheels
-        uses: pypa/cibuildwheel@v2.18.0
+        uses: pypa/cibuildwheel@v2.18.1
 
       - name: Download Cache from Docker (linux only)
         if: ${{ runner.os == 'Linux' }}
