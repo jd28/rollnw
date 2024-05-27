@@ -68,6 +68,15 @@ size_t Module::area_count() const noexcept
     return 0;
 }
 
+Area* Module::get_area(size_t index)
+{
+    if (std::holds_alternative<std::vector<Area*>>(areas) && index < area_count()) {
+        return std::get<std::vector<Area*>>(areas)[index];
+    }
+
+    return nullptr;
+}
+
 const Area* Module::get_area(size_t index) const
 {
     if (std::holds_alternative<std::vector<Area*>>(areas) && index < area_count()) {

@@ -51,6 +51,7 @@ struct Module : public ObjectBase {
     virtual bool instantiate() override;
 
     size_t area_count() const noexcept;
+    Area* get_area(size_t index);
     const Area* get_area(size_t index) const;
 
     // Serialization
