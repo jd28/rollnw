@@ -529,10 +529,8 @@ void init_objects_module(py::module& nw)
         .def_readonly_static("object_type", &nw::Module::object_type)
 
         .def("area_count", &nw::Module::area_count)
-        .def("get_area", &nw::Module::get_area, py::return_value_policy::reference_internal)
-        .def("__len__", [](const nw::Module& self) {
-            return self.area_count();
-        })
+        .def("get_area", [](nw::Module& self, size_t index) { return self.get_area(index); }, py::return_value_policy::reference_internal)
+        .def("__len__", [](const nw::Module& self) { return self.area_count(); })
         .def("__iter__", [](nw::Module& self) {
                 auto& areas = std::get<std::vector<nw::Area*>>(self.areas);
                 return py::make_iterator(areas.begin(), areas.end()); }, py::keep_alive<0, 1>())
