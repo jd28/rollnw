@@ -86,6 +86,11 @@ void Resources::load_module_haks(const std::vector<std::string>& haks)
     update_container_search();
 }
 
+Container* Resources::module_container() const
+{
+    return module_.get();
+}
+
 void Resources::unload_module()
 {
     LOG_F(INFO, "resman: unloading module container: {}", module_path_);

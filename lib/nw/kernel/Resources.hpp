@@ -70,6 +70,9 @@ struct Resources : public Container, public Service {
     /// Loads module haks
     void load_module_haks(const std::vector<std::string>& haks);
 
+    /// Gets module container
+    Container* module_container() const;
+
     /// Unloads module
     void unload_module();
 
