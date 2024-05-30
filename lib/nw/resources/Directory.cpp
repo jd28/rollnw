@@ -26,8 +26,8 @@ Directory::Directory(const fs::path& path)
     }
 
     path_ = fs::canonical(path);
-    path_string_ = path_to_string(fs::canonical(path));
-    name_ = path_to_string(path.parent_path().filename());
+    path_string_ = path_to_string(path_);
+    name_ = path_to_string(path_.stem());
 
     LOG_F(INFO, "[resources] dir: loading - {}", path_string_);
     is_valid_ = true;
