@@ -73,6 +73,9 @@ struct Resources : public Container, public Service {
     /// Gets module container
     Container* module_container() const;
 
+    /// Gets module haks
+    std::vector<Container*> module_haks() const;
+
     /// Unloads module
     void unload_module();
 

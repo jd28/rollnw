@@ -91,6 +91,15 @@ Container* Resources::module_container() const
     return module_.get();
 }
 
+std::vector<Container*> Resources::module_haks() const
+{
+    std::vector<Container*> result;
+    for (const auto& hak : module_haks_) {
+        result.push_back(hak.get());
+    }
+    return result;
+}
+
 void Resources::unload_module()
 {
     LOG_F(INFO, "resman: unloading module container: {}", module_path_);
