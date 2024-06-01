@@ -79,6 +79,7 @@ add_library(nw STATIC
     resources/Bif.cpp
     resources/Container.cpp
     resources/Directory.cpp
+    resources/StaticDirectory.cpp
     resources/Erf.cpp
     resources/Key.cpp
     resources/NWSync.cpp
