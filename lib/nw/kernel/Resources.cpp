@@ -2,6 +2,7 @@
 
 #include "../formats/Ini.hpp"
 #include "../formats/palette_textures.hpp"
+#include "../resources/StaticDirectory.hpp"
 #include "../util/game_install.hpp"
 #include "../util/platform.hpp"
 #include "../util/templates.hpp"
@@ -58,7 +59,7 @@ bool Resources::load_module(std::filesystem::path path, std::string_view manifes
     LOG_F(INFO, "resman: loading module container: {}", path);
 
     if (fs::is_directory(path) && fs::exists(path / "module.ifo")) {
-        module_ = std::make_unique<Directory>(path);
+        module_ = std::make_unique<StaticDirectory>(path);
     } else if (fs::exists(path) && string::icmp(path_to_string(path.extension()), ".mod")) {
         module_ = std::make_unique<Erf>(path);
     } else if (fs::exists(path) && string::icmp(path_to_string(path.extension()), ".zip")) {
