@@ -39,8 +39,6 @@ std::vector<ResourceDescriptor> StaticDirectory::all() const
 {
     std::vector<ResourceDescriptor> result;
     for (const auto& [res, path] : resource_to_path_) {
-        auto fn = path.filename();
-
         ResourceDescriptor rd{
             res,
             fs::file_size(path),
@@ -136,9 +134,10 @@ void StaticDirectory::walk_directory(const std::filesystem::path& path)
 
             auto it = resource_to_path_.find(res);
             if (it != std::end(resource_to_path_)) {
-                LOG_F(ERROR, "error");
+                LOG_F(WARNING, "[resources] duplicate resource: {} shadows {}", it->second,
+                    path_to_string(entry.path()));
             } else {
-                resource_to_path_.insert({res, path_to_string(entry.path())});
+                resource_to_path_.insert({res, path_to_string(fs::canonical(entry.path()))});
             }
         }
     }

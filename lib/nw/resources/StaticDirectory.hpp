@@ -29,7 +29,7 @@ struct StaticDirectory : public Container {
     void walk_directory(const std::filesystem::path& path);
 
 private:
-    absl::flat_hash_map<nw::Resource, std::filesystem::path> resource_to_path_;
+    absl::flat_hash_map<nw::Resource, std::string> resource_to_path_;
     std::filesystem::path path_;
     std::string path_string_;
     std::string name_;
