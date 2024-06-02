@@ -125,6 +125,16 @@ void StaticDirectory::visit(std::function<void(const Resource&)> callback,
     }
 }
 
+std::string StaticDirectory::get_canonical_path(nw::Resource res) const
+{
+    auto it = resource_to_path_.find(res);
+    if (it != std::end(resource_to_path_)) {
+        return it->second;
+    } else {
+        return {};
+    }
+}
+
 void StaticDirectory::walk_directory(const std::filesystem::path& path)
 {
     for (const auto& entry : fs::recursive_directory_iterator(path)) {

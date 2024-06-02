@@ -26,6 +26,7 @@ struct StaticDirectory : public Container {
     virtual bool valid() const noexcept override { return is_valid_; }
     virtual void visit(std::function<void(const Resource&)> callback, std::initializer_list<ResourceType::type> types = {}) const noexcept override;
 
+    std::string get_canonical_path(nw::Resource res) const;
     void walk_directory(const std::filesystem::path& path);
 
 private:
