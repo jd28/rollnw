@@ -33,6 +33,8 @@ std::string Tlk::get(uint32_t strref) const
         return result;
     }
 
+    if (strref == 0xFFFFFFFF) { return result; }
+
     auto it = modified_strings_.find(strref);
     if (it != std::end(modified_strings_)) {
         return it->second;
