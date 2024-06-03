@@ -991,7 +991,7 @@ bool TextParser::parse_anim()
                 && parse_tokens(tokens_, "name", ev.name)) {
                 anim->events.push_back(std::move(ev));
             } else {
-                LOG_F(INFO, "event parsing failed");
+                LOG_F(ERROR, "event parsing failed");
                 return false;
             }
         } else if (icmp(tk, "length")) {
@@ -999,7 +999,7 @@ bool TextParser::parse_anim()
                 return false;
         } else if (icmp(tk, "node")) {
             if (!parse_node(anim.get())) {
-                LOG_F(INFO, "node parsing failed");
+                LOG_F(ERROR, "node parsing failed");
                 return false;
             }
         } else if (icmp(tk, "transtime")) {
@@ -1016,7 +1016,6 @@ bool TextParser::parse_model()
 {
     std::string_view tk = tokens_.next();
     mdl_->model.name = std::string(tk);
-    LOG_F(INFO, "parsing: {}", mdl_->model.name);
 
     for (tk = tokens_.next(); !tk.empty(); tk = tokens_.next()) {
         if (is_newline(tk))

@@ -67,7 +67,6 @@ bool BinaryParser::parse()
 bool BinaryParser::parse_anim(const detail::MdlBinaryAnimationHeader& data)
 {
     auto an = std::make_unique<Animation>(detail::to_string(data.geometry_header.name));
-    LOG_F(INFO, "[model] parsing animation '{}'", an->name);
     if (!parse_geometry(an.get(), data.geometry_header)) { return false; }
     an->anim_root = detail::to_string(data.root);
     an->length = data.length;
@@ -103,7 +102,6 @@ bool BinaryParser::parse_model(uint32_t offset)
     memcpy(&model_header, bytes_.data() + offset, detail::MdlBinaryModelHeader::s_sizeof);
 
     mdl_->model.name = detail::to_string(model_header.geometry_header.name);
-    LOG_F(INFO, "[model] parsing {}", mdl_->model.name);
     mdl_->model.animationscale = model_header.animation_scale;
     mdl_->model.bmax = model_header.bbmax;
     mdl_->model.bmin = model_header.bbmin;
@@ -295,7 +293,7 @@ bool BinaryParser::parse_node(uint32_t offset, Geometry* geometry, Node* parent)
         auto n = static_cast<SkinNode*>(node.get());
 
         if (!load_mesh_data(n, data.header)) {
-            LOG_F(INFO, "[model] skin node: failed to parse mesh header");
+            LOG_F(ERROR, "[model] skin node: failed to parse mesh header");
             return false;
         }
 

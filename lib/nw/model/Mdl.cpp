@@ -400,7 +400,6 @@ Mdl::Mdl(ResourceData data)
     if (!model.supermodel_name.empty() && !string::icmp(model.supermodel_name, "null")) {
         auto b = nw::kernel::resman().demand({model.supermodel_name, ResourceType::mdl});
         if (b.bytes.size()) {
-            LOG_F(INFO, "[model] loading super model: {}", model.supermodel_name);
             model.supermodel = std::make_unique<Mdl>(std::move(b));
         }
     }
