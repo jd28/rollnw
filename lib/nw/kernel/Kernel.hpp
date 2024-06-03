@@ -44,7 +44,7 @@ struct Service {
     /// Initializes a service
     /// @note Every service will be called with as many values as exist in ``ServiceInitTime``.
     /// it's up to the service itself to filter/ignore what's not relevant to them.
-    virtual void initialize(ServiceInitTime time) {};
+    virtual void initialize(ServiceInitTime /*time*/){};
 
     /// Clears a service
     virtual void clear() {};

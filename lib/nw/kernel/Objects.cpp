@@ -88,6 +88,7 @@ void ObjectSystem::destroy(ObjectHandle obj)
                 } else if (it->first != tag) {
                     break;
                 }
+                ++it;
             }
         }
 
