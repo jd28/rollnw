@@ -31,9 +31,9 @@ AlignmentAxis alignment_axis_from_flags(AlignmentFlags flags)
 
 AppearanceInfo::AppearanceInfo(const TwoDARowView& tda)
 {
-    if (tda.get_to("STRING_REF", string_ref)) {
-        tda.get_to("RACE", model);
-    }
+    tda.get_to("LABEL", label);
+    tda.get_to("STRING_REF", string_ref);
+    tda.get_to("RACE", model);
 }
 
 // -- PhenotypeInfo -----------------------------------------------------------
