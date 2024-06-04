@@ -12,6 +12,7 @@ namespace nw::kernel {
 
 std::string Strings::get(uint32_t strref, bool feminine) const
 {
+    if (strref == 0xFFFFFFFF) { return {}; }
     if (Tlk::custom_flag & strref) {
         strref ^= Tlk::custom_flag;
         return feminine ? customf_.get(strref) : custom_.get(strref);
