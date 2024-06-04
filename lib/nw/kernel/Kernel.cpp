@@ -68,7 +68,7 @@ Services& services()
     return s_services;
 }
 
-Module* load_module(const std::filesystem::path& path, std::string_view manifest)
+Module* load_module(const std::filesystem::path& path, bool instantiate)
 {
     // Always unload, just in case.
     unload_module();
@@ -77,7 +77,7 @@ Module* load_module(const std::filesystem::path& path, std::string_view manifest
         s.service->initialize(ServiceInitTime::module_pre_load);
     }
 
-    resman().load_module(path, manifest);
+    resman().load_module(path, "");
 
     Module* mod = objects().make_module();
     if (mod->haks.size()) {
@@ -93,12 +93,14 @@ Module* load_module(const std::filesystem::path& path, std::string_view manifest
         s.service->initialize(ServiceInitTime::module_post_load);
     }
 
-    if (mod) {
-        mod->instantiate();
-    }
+    if (instantiate) {
+        if (mod) {
+            mod->instantiate();
+        }
 
-    for (auto& s : services().services_) {
-        s.service->initialize(ServiceInitTime::module_post_instantiation);
+        for (auto& s : services().services_) {
+            s.service->initialize(ServiceInitTime::module_post_instantiation);
+        }
     }
 
     return mod;

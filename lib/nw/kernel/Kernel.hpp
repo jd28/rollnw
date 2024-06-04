@@ -79,7 +79,7 @@ struct Services {
     template <typename T>
     T* get_mut();
 
-    friend Module* load_module(const std::filesystem::path& path, std::string_view manifest);
+    friend Module* load_module(const std::filesystem::path& path, bool instantiate);
     friend void unload_module();
 
 private:
@@ -129,7 +129,9 @@ Config& config();
 Services& services();
 
 /// Loads a module
-Module* load_module(const std::filesystem::path& path, std::string_view manifest = {});
+/// If instantiate is false, no areas are loaded and service init at `` module_post_instantiation``
+/// is not called.
+Module* load_module(const std::filesystem::path& path, bool instantiate = true);
 
 /// Unloads currently active module
 void unload_module();
