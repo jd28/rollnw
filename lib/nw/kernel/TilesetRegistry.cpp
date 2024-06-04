@@ -38,8 +38,7 @@ Tileset* TilesetRegistry::load(std::string_view resref)
     absl::string_view sv{resref.data(), resref.size()};
     auto it = tileset_map_.find(resref);
     if (it != std::end(tileset_map_)) {
-        LOG_F(ERROR, "[tilsets] set has already been loaded: {}.set", resref);
-        return nullptr;
+        return &it->second;
     }
 
     auto rd = resman().demand({Resref{resref}, ResourceType::set});
