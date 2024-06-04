@@ -81,14 +81,12 @@ std::string Door::get_name_from_file(const std::filesystem::path& path)
             LOG_F(INFO, "json");
             nlohmann::json j = nlohmann::json::parse(rdata.bytes.string_view());
             j["common"].at("name").get_to(l1);
-            LOG_F(INFO, "json strref: {}", l1.strref());
         } catch (nlohmann::json::parse_error& e) {
             LOG_F(ERROR, "[door] json error: {}", e.what());
             return result;
         }
     }
 
-    LOG_F(INFO, "strref: {}", l1.strref());
     result = nw::kernel::strings().get(l1);
     return result;
 }

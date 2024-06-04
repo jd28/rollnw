@@ -142,13 +142,11 @@ std::string Creature::get_name_from_file(const std::filesystem::path& path)
     std::string result;
     if (rdata.bytes.size() <= 8) { return result; }
     if (memcmp(rdata.bytes.data(), "UTC V3.2", 8) == 0) {
-        LOG_F(INFO, "gff");
         Gff gff(std::move(rdata));
         if (!gff.valid()) { return result; }
         gff.toplevel().get_to("FirstName", l1);
         gff.toplevel().get_to("LastName", l2);
     } else {
-        LOG_F(INFO, "json");
         try {
             std::ifstream f{path, std::ifstream::binary};
             nlohmann::json j = nlohmann::json::parse(rdata.bytes.string_view());
