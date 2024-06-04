@@ -36,13 +36,23 @@ static void BM_parse_feat_2da(benchmark::State& state)
     }
 }
 
-static void BM_creature_deserialize(benchmark::State& state)
+static void BM_load_creature_gff(benchmark::State& state)
+{
+    for (auto _ : state) {
+        nw::Gff gff{nw::ResourceData::from_file(fs::path("test_data/user/development/drorry.utc"))};
+        benchmark::DoNotOptimize(gff);
+    }
+}
+BENCHMARK(BM_load_creature_gff);
+
+static void BM_creature_from_gff(benchmark::State& state)
 {
     for (auto _ : state) {
         auto ent = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/drorry.utc"));
         benchmark::DoNotOptimize(ent);
     }
 }
+BENCHMARK(BM_creature_from_gff);
 
 static void BM_creature_from_json(benchmark::State& state)
 {
@@ -271,7 +281,6 @@ static void BM_rules_modifier(benchmark::State& state)
 }
 
 BENCHMARK(BM_parse_feat_2da);
-BENCHMARK(BM_creature_deserialize);
 BENCHMARK(BM_creature_from_json);
 BENCHMARK(BM_creature_serialize);
 BENCHMARK(BM_creature_to_json);
