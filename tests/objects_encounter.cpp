@@ -13,6 +13,9 @@ namespace fs = std::filesystem;
 
 TEST(Encounter, GffDeserialize)
 {
+    auto name = nw::Encounter::get_name_from_file(fs::path("test_data/user/development/boundelementallo.ute"));
+    EXPECT_EQ(name, "Bound Elemental Lord");
+
     auto enc = nw::kernel::objects().load<nw::Encounter>(fs::path("test_data/user/development/boundelementallo.ute"));
     EXPECT_TRUE(enc);
 
@@ -33,6 +36,10 @@ TEST(Encounter, JsonSerialize)
 
     std::ofstream f{"tmp/boundelementallo.ute.json"};
     f << std::setw(4) << j;
+    f.close();
+
+    auto name = nw::Encounter::get_name_from_file(fs::path("tmp/boundelementallo.ute.json"));
+    EXPECT_EQ(name, "Bound Elemental Lord");
 }
 
 TEST(Encounter, JsonRoundTrip)

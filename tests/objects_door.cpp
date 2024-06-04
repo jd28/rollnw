@@ -13,6 +13,8 @@ namespace fs = std::filesystem;
 TEST(Door, JsonSerialize)
 {
     auto door = nw::kernel::objects().load<nw::Door>(fs::path("test_data/user/development/door_ttr_002.utd"));
+    auto name = nw::Door::get_name_from_file(fs::path("test_data/user/development/door_ttr_002.utd"));
+    EXPECT_EQ(name, "Door");
 
     nlohmann::json j;
     EXPECT_TRUE(nw::Door::serialize(door, j, nw::SerializationProfile::blueprint));
@@ -26,6 +28,10 @@ TEST(Door, JsonSerialize)
 
     std::ofstream f{"tmp/door_ttr_002.utd.json"};
     f << std::setw(4) << j;
+    f.close();
+
+    name = nw::Door::get_name_from_file(fs::path("tmp/door_ttr_002.utd.json"));
+    EXPECT_EQ(name, "Door");
 }
 
 TEST(Door, GffDeserialize)

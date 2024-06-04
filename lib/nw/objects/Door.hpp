@@ -51,6 +51,7 @@ struct Door : public ObjectBase {
     // Serialization
     static bool deserialize(Door* obj, const nlohmann::json& archive, SerializationProfile profile);
     static bool serialize(const Door* obj, nlohmann::json& archive, SerializationProfile profile);
+    static std::string get_name_from_file(const std::filesystem::path& path);
 
     Common common;
     DoorScripts scripts;

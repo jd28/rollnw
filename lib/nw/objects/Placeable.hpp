@@ -56,6 +56,7 @@ struct Placeable : public ObjectBase {
     // Serialization
     static bool deserialize(Placeable* obj, const nlohmann::json& archive, SerializationProfile profile);
     static bool serialize(const Placeable* obj, nlohmann::json& archive, SerializationProfile profile);
+    static std::string get_name_from_file(const std::filesystem::path& path);
 
     Common common;
     PlaceableScripts scripts;

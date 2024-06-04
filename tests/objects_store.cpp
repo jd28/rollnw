@@ -13,6 +13,9 @@ namespace fs = std::filesystem;
 
 TEST(Store, JsonSerialize)
 {
+    auto name = nw::Store::get_name_from_file(fs::path("test_data/user/development/storethief002.utm"));
+    EXPECT_EQ(name, "Blackmarket Store");
+
     auto ent = nw::kernel::objects().load<nw::Store>(fs::path("test_data/user/development/storethief002.utm"));
     EXPECT_TRUE(ent);
 
@@ -21,6 +24,10 @@ TEST(Store, JsonSerialize)
 
     std::ofstream f{"tmp/storethief002.utm.json"};
     f << std::setw(4) << j;
+    f.close();
+
+    name = nw::Store::get_name_from_file(fs::path("tmp/storethief002.utm.json"));
+    EXPECT_EQ(name, "Blackmarket Store");
 }
 
 TEST(Store, JsonDeserialize)

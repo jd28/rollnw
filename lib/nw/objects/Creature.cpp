@@ -135,6 +135,41 @@ Versus Creature::versus_me() const
     return result;
 }
 
+std::string Creature::get_name_from_file(const std::filesystem::path& path)
+{
+    LocString l1, l2;
+    auto rdata = ResourceData::from_file(path);
+    std::string result;
+    if (rdata.bytes.size() <= 8) { return result; }
+    if (memcmp(rdata.bytes.data(), "UTC V3.2", 8) == 0) {
+        LOG_F(INFO, "gff");
+        Gff gff(std::move(rdata));
+        if (!gff.valid()) { return result; }
+        gff.toplevel().get_to("FirstName", l1);
+        gff.toplevel().get_to("LastName", l2);
+    } else {
+        LOG_F(INFO, "json");
+        try {
+            std::ifstream f{path, std::ifstream::binary};
+            nlohmann::json j = nlohmann::json::parse(rdata.bytes.string_view());
+            j.at("name_first").get_to(l1);
+            j.at("name_last").get_to(l2);
+        } catch (...) {
+            return result;
+        }
+    }
+
+    auto fn = nw::kernel::strings().get(l1);
+    if (!fn.empty()) {
+        result = fn;
+        auto ln = nw::kernel::strings().get(l2);
+        if (!ln.empty()) {
+            result += " " + ln;
+        }
+    }
+    return result;
+}
+
 bool Creature::deserialize(Creature* obj, const nlohmann::json& archive, SerializationProfile profile)
 {
     if (!obj) {

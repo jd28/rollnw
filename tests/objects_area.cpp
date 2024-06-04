@@ -8,10 +8,16 @@
 
 #include <nlohmann/json.hpp>
 
+#include <filesystem>
 #include <fstream>
+
+namespace fs = std::filesystem;
 
 TEST(Area, GffDeserialize)
 {
+    auto name = nw::Area::get_name_from_file(fs::path("test_data/user/development/test_area.are"));
+    EXPECT_EQ(name, "test_area");
+
     auto ent = nw::kernel::objects().make<nw::Area>();
     nw::Gff are{"test_data/user/development/test_area.are"};
     EXPECT_TRUE(are.valid());

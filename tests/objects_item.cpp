@@ -17,6 +17,9 @@ TEST(Item, GffDeserializeArmor)
     auto mod = nw::kernel::load_module("test_data/user/modules/DockerDemo.mod");
     EXPECT_TRUE(mod);
 
+    auto name = nw::Item::get_name_from_file(fs::path("test_data/user/development/cloth028.uti"));
+    EXPECT_EQ(name, "Adept's Tunic");
+
     auto ent = nw::kernel::objects().load<nw::Item>(fs::path("test_data/user/development/cloth028.uti"));
     EXPECT_TRUE(ent);
     auto light = nw::kernel::objects().load<nw::Item>("nw_maarcl004"sv);
@@ -93,6 +96,10 @@ TEST(Item, JsonSerialize)
 
     std::ofstream f{"tmp/cloth028.uti.json"};
     f << std::setw(4) << j;
+    f.close();
+
+    auto name = nw::Item::get_name_from_file(fs::path("tmp/cloth028.uti.json"));
+    EXPECT_EQ(name, "Adept's Tunic");
 }
 
 TEST(Item, JsonRoundTrip)

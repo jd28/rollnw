@@ -13,6 +13,9 @@ namespace fs = std::filesystem;
 
 TEST(Sound, JsonRoundTrip)
 {
+    auto name = nw::Sound::get_name_from_file(fs::path("test_data/user/development/blue_bell.uts"));
+    EXPECT_EQ(name, "Blue Bell Rings");
+
     auto ent = nw::kernel::objects().load<nw::Sound>(fs::path("test_data/user/development/blue_bell.uts"));
     EXPECT_TRUE(ent);
 
@@ -29,6 +32,10 @@ TEST(Sound, JsonRoundTrip)
 
     std::ofstream f{"tmp/blue_bell.uts.json"};
     f << std::setw(4) << j;
+    f.close();
+
+    name = nw::Sound::get_name_from_file(fs::path("tmp/blue_bell.uts.json"));
+    EXPECT_EQ(name, "Blue Bell Rings");
 }
 
 TEST(Sound, GffDeserialize)

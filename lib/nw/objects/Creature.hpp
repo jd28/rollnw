@@ -56,6 +56,7 @@ struct Creature : public ObjectBase {
 
     static bool deserialize(Creature* obj, const nlohmann::json& archive, SerializationProfile profile);
     static bool serialize(const Creature* obj, nlohmann::json& archive, SerializationProfile profile);
+    static std::string get_name_from_file(const std::filesystem::path& path);
 
     Common common;
     CreatureAppearance appearance;

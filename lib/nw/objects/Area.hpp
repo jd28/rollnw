@@ -100,6 +100,7 @@ struct Area : public ObjectBase {
 
     /// Serialize to JSON
     static void serialize(const Area* obj, nlohmann::json& archive);
+    static std::string get_name_from_file(const std::filesystem::path& path);
 
     Common common;
     AreaScripts scripts;

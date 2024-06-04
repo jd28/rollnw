@@ -16,6 +16,9 @@ TEST(Placeable, GffDeserialize)
     auto ent = nw::kernel::objects().load<nw::Placeable>(fs::path("test_data/user/development/arrowcorpse001.utp"));
     EXPECT_TRUE(ent);
 
+    auto name = nw::Placeable::get_name_from_file(fs::path("test_data/user/development/arrowcorpse001.utp"));
+    EXPECT_EQ(name, "Arrow-filled corpse");
+
     EXPECT_EQ(ent->common.resref, "arrowcorpse001");
     EXPECT_EQ(ent->appearance, 109u);
     EXPECT_TRUE(!ent->plot);
@@ -41,6 +44,10 @@ TEST(Placeable, JsonRoundTrip)
 
     std::ofstream f{"tmp/arrowcorpse001.utp.json"};
     f << std::setw(4) << j;
+    f.close();
+
+    auto name = nw::Placeable::get_name_from_file(fs::path("tmp/arrowcorpse001.utp.json"));
+    EXPECT_EQ(name, "Arrow-filled corpse");
 }
 
 TEST(Placeable, GffRoundTrip)

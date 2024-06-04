@@ -13,6 +13,9 @@ namespace fs = std::filesystem;
 
 TEST(Trigger, GffDeserialize)
 {
+    auto name = nw::Trigger::get_name_from_file(fs::path("test_data/user/development/pl_spray_sewage.utt"));
+    EXPECT_EQ(name, "pl_spray_sewage");
+
     auto ent = nw::kernel::objects().load<nw::Trigger>(fs::path("test_data/user/development/pl_spray_sewage.utt"));
     EXPECT_TRUE(ent);
 
@@ -41,6 +44,10 @@ TEST(Trigger, JsonRoundTrip)
 
     std::ofstream f{"tmp/pl_spray_sewage.utt.json"};
     f << std::setw(4) << j;
+    f.close();
+
+    auto name = nw::Trigger::get_name_from_file(fs::path("tmp/pl_spray_sewage.utt.json"));
+    EXPECT_EQ(name, "pl_spray_sewage");
 }
 
 TEST(Trigger, GffRoundTrip)

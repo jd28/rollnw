@@ -28,6 +28,7 @@ struct Item : public ObjectBase {
     // Serialization
     static bool deserialize(Item* obj, const nlohmann::json& archive, SerializationProfile profile);
     static bool serialize(const Item* obj, nlohmann::json& archive, SerializationProfile profile);
+    static std::string get_name_from_file(const std::filesystem::path& path);
 
     Common common;
     Inventory inventory;

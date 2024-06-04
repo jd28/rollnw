@@ -29,6 +29,8 @@ struct Waypoint : public ObjectBase {
     static void serialize(const Waypoint* obj, nlohmann::json& archive,
         SerializationProfile profile);
 
+    static std::string get_name_from_file(const std::filesystem::path& path);
+
     Common common;
 
     /// Description of waypoint

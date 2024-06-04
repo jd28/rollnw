@@ -1,5 +1,7 @@
 #include "Trigger.hpp"
 
+#include "../kernel/Strings.hpp"
+
 #include <nlohmann/json.hpp>
 
 namespace nw {
@@ -44,6 +46,32 @@ Versus Trigger::versus_me() const
 {
     Versus result;
     result.trap = trap.is_trapped;
+    return result;
+}
+
+std::string Trigger::get_name_from_file(const std::filesystem::path& path)
+{
+    std::string result;
+    LocString l1;
+
+    auto rdata = ResourceData::from_file(path);
+    if (rdata.bytes.size() <= 8) { return result; }
+    if (memcmp(rdata.bytes.data(), "UTT V3.2", 8) == 0) {
+        Gff gff(std::move(rdata));
+        if (!gff.valid()) { return result; }
+        gff.toplevel().get_to("LocalizedName", l1);
+    } else {
+        try {
+            std::ifstream f{path, std::ifstream::binary};
+            nlohmann::json j = nlohmann::json::parse(rdata.bytes.string_view());
+            j["common"].at("name").get_to(l1);
+        } catch (nlohmann::json::exception& e) {
+            LOG_F(ERROR, "[door] json error: {}", e.what());
+            return result;
+        }
+    }
+
+    result = nw::kernel::strings().get(l1);
     return result;
 }
 

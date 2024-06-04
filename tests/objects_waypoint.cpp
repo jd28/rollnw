@@ -12,6 +12,9 @@ namespace fs = std::filesystem;
 
 TEST(Waypoint, JsonRoundTrip)
 {
+    auto name = nw::Waypoint::get_name_from_file(fs::path("test_data/user/development/wp_behexit001.utw"));
+    EXPECT_EQ(name, "Beholder AI Exit");
+
     auto ent = nw::kernel::objects().load<nw::Waypoint>(fs::path("test_data/user/development/wp_behexit001.utw"));
     EXPECT_TRUE(ent);
 
@@ -29,6 +32,10 @@ TEST(Waypoint, JsonRoundTrip)
 
     std::ofstream f{"tmp/wp_behexit001.utw.json"};
     f << std::setw(4) << j;
+    f.close();
+
+    name = nw::Waypoint::get_name_from_file(fs::path("tmp/wp_behexit001.utw.json"));
+    EXPECT_EQ(name, "Beholder AI Exit");
 }
 
 TEST(Waypoint, GffDeserialize)

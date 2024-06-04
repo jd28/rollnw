@@ -34,6 +34,30 @@ bool Item::instantiate()
     return instantiated_;
 }
 
+std::string Item::get_name_from_file(const std::filesystem::path& path)
+{
+    std::string result;
+    LocString l1;
+
+    auto rdata = ResourceData::from_file(path);
+    if (rdata.bytes.size() <= 8) { return result; }
+    if (memcmp(rdata.bytes.data(), "UTI V3.2", 8) == 0) {
+        Gff gff(std::move(rdata));
+        if (!gff.valid()) { return result; }
+        gff.toplevel().get_to("LocalizedName", l1);
+    } else {
+        try {
+            nlohmann::json j = nlohmann::json::parse(rdata.bytes.string_view());
+            j["common"].at("name").get_to(l1);
+        } catch (...) {
+            return result;
+        }
+    }
+
+    result = nw::kernel::strings().get(l1);
+    return result;
+}
+
 bool Item::deserialize(Item* obj, const nlohmann::json& archive, SerializationProfile profile)
 {
     if (!obj) {

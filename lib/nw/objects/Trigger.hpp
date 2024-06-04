@@ -42,6 +42,7 @@ struct Trigger : public ObjectBase {
     // Serialization
     static bool deserialize(Trigger* obj, const nlohmann::json& archive, SerializationProfile profile);
     static bool serialize(const Trigger* obj, nlohmann::json& archive, SerializationProfile profile);
+    static std::string get_name_from_file(const std::filesystem::path& path);
 
     Common common;
     Trap trap;

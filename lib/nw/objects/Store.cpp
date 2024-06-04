@@ -37,6 +37,32 @@ Store::Store()
     inventory.set_owner(this);
 }
 
+std::string Store::get_name_from_file(const std::filesystem::path& path)
+{
+    std::string result;
+    LocString l1;
+
+    auto rdata = ResourceData::from_file(path);
+    if (rdata.bytes.size() <= 8) { return result; }
+    if (memcmp(rdata.bytes.data(), "UTM V3.2", 8) == 0) {
+        Gff gff(std::move(rdata));
+        if (!gff.valid()) { return result; }
+        gff.toplevel().get_to("LocName", l1);
+    } else {
+        try {
+            std::ifstream f{path, std::ifstream::binary};
+            nlohmann::json j = nlohmann::json::parse(rdata.bytes.string_view());
+            j["common"].at("name").get_to(l1);
+        } catch (nlohmann::json::exception& e) {
+            LOG_F(ERROR, "[door] json error: {}", e.what());
+            return result;
+        }
+    }
+
+    result = nw::kernel::strings().get(l1);
+    return result;
+}
+
 bool Store::deserialize(Store* obj, const nlohmann::json& archive, SerializationProfile profile)
 {
     if (!obj) {

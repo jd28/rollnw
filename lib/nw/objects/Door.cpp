@@ -1,5 +1,6 @@
 #include "Door.hpp"
 
+#include "../kernel/Strings.hpp"
 #include "../util/templates.hpp"
 
 #include <nlohmann/json.hpp>
@@ -62,6 +63,34 @@ nlohmann::json DoorScripts::to_json() const
 Door::Door()
 {
     set_handle({object_invalid, ObjectType::door, 0});
+}
+
+std::string Door::get_name_from_file(const std::filesystem::path& path)
+{
+    std::string result;
+    LocString l1;
+
+    auto rdata = ResourceData::from_file(path);
+    if (rdata.bytes.size() <= 8) { return result; }
+    if (memcmp(rdata.bytes.data(), "UTD V3.2", 8) == 0) {
+        Gff gff(std::move(rdata));
+        if (!gff.valid()) { return result; }
+        gff.toplevel().get_to("LocName", l1);
+    } else {
+        try {
+            LOG_F(INFO, "json");
+            nlohmann::json j = nlohmann::json::parse(rdata.bytes.string_view());
+            j["common"].at("name").get_to(l1);
+            LOG_F(INFO, "json strref: {}", l1.strref());
+        } catch (nlohmann::json::parse_error& e) {
+            LOG_F(ERROR, "[door] json error: {}", e.what());
+            return result;
+        }
+    }
+
+    LOG_F(INFO, "strref: {}", l1.strref());
+    result = nw::kernel::strings().get(l1);
+    return result;
 }
 
 bool Door::deserialize(Door* obj, const nlohmann::json& archive, SerializationProfile profile)

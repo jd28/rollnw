@@ -29,6 +29,9 @@ TEST(Creature, GffDeserialize)
     auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
     EXPECT_TRUE(mod);
 
+    auto name = nw::Creature::get_name_from_file(fs::path("test_data/user/development/nw_chicken.utc"));
+    EXPECT_EQ(name, "Chicken");
+
     auto obj1 = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/nw_chicken.utc"));
     EXPECT_TRUE(obj1);
     EXPECT_TRUE(nwk::objects().valid(obj1->handle()));
@@ -244,6 +247,9 @@ TEST(Creature, ArmorClass)
 
 TEST(Creature, Attack)
 {
+    auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
+    EXPECT_TRUE(mod);
+
     auto obj = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/pl_agent_001.utc"));
     EXPECT_TRUE(obj);
     EXPECT_TRUE(nw::has_effect_applied(obj, nwn1::effect_type_damage_increase));
@@ -855,6 +861,9 @@ TEST(Creature, JsonSerialization)
 {
     auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
     EXPECT_TRUE(mod);
+
+    auto name = nw::Creature::get_name_from_file(fs::path("test_data/user/development/pl_agent_001.utc.json"));
+    EXPECT_EQ(name, "Agent");
 
     auto ent = nw::kernel::objects().load<nw::Creature>(fs::path("test_data/user/development/pl_agent_001.utc"));
     EXPECT_TRUE(ent);

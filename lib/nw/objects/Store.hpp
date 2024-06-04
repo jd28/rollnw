@@ -46,6 +46,7 @@ struct Store : public ObjectBase {
 
     static bool deserialize(Store* obj, const nlohmann::json& archive, SerializationProfile profile);
     static bool serialize(const Store* obj, nlohmann::json& archive, SerializationProfile profile);
+    static std::string get_name_from_file(const std::filesystem::path& path);
 
     Common common;
     StoreScripts scripts;

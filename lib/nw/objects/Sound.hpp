@@ -22,6 +22,7 @@ struct Sound : public ObjectBase {
 
     static bool deserialize(Sound* obj, const nlohmann::json& archive, SerializationProfile profile);
     static void serialize(const Sound* obj, nlohmann::json& archive, SerializationProfile profile);
+    static std::string get_name_from_file(const std::filesystem::path& path);
 
     Common common;
     std::vector<Resref> sounds;
