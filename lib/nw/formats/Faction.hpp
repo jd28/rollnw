@@ -19,7 +19,7 @@ struct Reputation {
     uint32_t faction_2 = std::numeric_limits<uint32_t>::max();
     uint32_t reputation = std::numeric_limits<uint32_t>::max();
 
-    bool operator<(const Reputation& rhs)
+    bool operator<(const Reputation& rhs) const
     {
         return std::tie(faction_1, faction_2) < std::tie(rhs.faction_1, rhs.faction_2);
     }

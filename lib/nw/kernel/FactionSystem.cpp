@@ -59,14 +59,10 @@ Reputation FactionSystem::locate(uint32_t faction1, uint32_t faction2) const
     Reputation needle{faction1, faction2, 0};
     auto it = std::lower_bound(std::begin(factions_->reputations), std::end(factions_->reputations), needle);
     if (it == std::end(factions_->reputations)) {
-        LOG_F(INFO, "not found");
         return result;
     }
     if (it->faction_1 == faction1 && it->faction_2 == faction2) {
-        LOG_F(INFO, "found");
         return *it;
-    } else {
-        LOG_F(INFO, "not found: {} {}", it->faction_1, it->faction_2);
     }
     return result;
 }

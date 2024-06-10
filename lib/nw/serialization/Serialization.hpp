@@ -1,5 +1,9 @@
 #pragma once
 
+#include "../i18n/LocString.hpp"
+#include "../resources/Resref.hpp"
+#include "../util/ByteArray.hpp"
+
 #include <nlohmann/json_fwd.hpp>
 
 #include <cstdint>
@@ -9,13 +13,10 @@
 // Forward decls;
 
 namespace nw {
-struct ByteArray;
 struct Gff;
 struct GffBuilder;
 struct GffBuilderStruct;
 struct GffStruct;
-struct LocString;
-struct Resref;
 } // namespace nw
 
 namespace nw {
