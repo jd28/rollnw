@@ -109,7 +109,7 @@ inline EffectSystem& effects()
 {
     auto res = services().get_mut<EffectSystem>();
     if (!res) {
-        LOG_F(FATAL, "kernel: unable to load effects service");
+        throw std::runtime_error("kernel: unable to effects service");
     }
     return *res;
 }

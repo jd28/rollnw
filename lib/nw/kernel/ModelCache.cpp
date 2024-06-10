@@ -52,7 +52,7 @@ ModelCache& models()
 {
     auto res = services().get_mut<ModelCache>();
     if (!res) {
-        LOG_F(FATAL, "kernel: unable to load model service");
+        throw std::runtime_error("kernel: unable to load model cache service");
     }
     return *res;
 }

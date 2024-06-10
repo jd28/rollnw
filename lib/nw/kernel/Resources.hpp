@@ -140,7 +140,7 @@ inline Resources& resman()
 {
     auto res = services().get_mut<Resources>();
     if (!res) {
-        LOG_F(FATAL, "kernel: unable to load resources service");
+        throw std::runtime_error("kernel: unable to load resources service");
     }
     return *res;
 }

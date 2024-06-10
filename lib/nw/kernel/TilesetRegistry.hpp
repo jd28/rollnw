@@ -32,7 +32,7 @@ inline TilesetRegistry& tilesets()
 {
     auto res = services().get_mut<TilesetRegistry>();
     if (!res) {
-        LOG_F(FATAL, "kernel: unable to load twoda cache service");
+        throw std::runtime_error("kernel: unable to tileset service");
     }
     return *res;
 }

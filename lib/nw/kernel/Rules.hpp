@@ -67,7 +67,7 @@ inline Rules& rules()
 {
     auto res = services().get_mut<Rules>();
     if (!res) {
-        LOG_F(FATAL, "kernel: unable to load rules service");
+        throw std::runtime_error("kernel: unable to load rules service");
     }
     return *res;
 }

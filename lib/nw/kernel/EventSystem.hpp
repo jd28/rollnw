@@ -50,7 +50,7 @@ inline EventSystem& events()
 {
     auto res = services().get_mut<EventSystem>();
     if (!res) {
-        LOG_F(FATAL, "kernel: unable to load events service");
+        throw std::runtime_error("kernel: unable to event service");
     }
     return *res;
 }

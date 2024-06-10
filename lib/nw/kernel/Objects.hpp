@@ -298,7 +298,7 @@ inline ObjectSystem& objects()
 {
     auto res = services().get_mut<ObjectSystem>();
     if (!res) {
-        LOG_F(FATAL, "kernel: unable to load objects service");
+        throw std::runtime_error("kernel: unable to load object service");
     }
     return *res;
 }

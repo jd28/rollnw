@@ -40,7 +40,7 @@ inline FactionSystem& factions()
 {
     auto res = services().get_mut<FactionSystem>();
     if (!res) {
-        LOG_F(FATAL, "kernel: unable to load faction service");
+        throw std::runtime_error("kernel: unable to load faction service");
     }
     return *res;
 }

@@ -37,7 +37,7 @@ inline TwoDACache& twodas()
 {
     auto res = services().get_mut<TwoDACache>();
     if (!res) {
-        LOG_F(FATAL, "kernel: unable to load twoda cache service");
+        throw std::runtime_error("kernel: unable to twoda cache service");
     }
     return *res;
 }

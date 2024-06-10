@@ -83,7 +83,7 @@ inline Strings& strings()
 {
     auto res = services().get_mut<Strings>();
     if (!res) {
-        LOG_F(FATAL, "kernel: unable to load strings service");
+        throw std::runtime_error("kernel: unable to load strings service");
     }
     return *res;
 }
