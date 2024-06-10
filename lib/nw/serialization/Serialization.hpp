@@ -3,6 +3,7 @@
 #include <nlohmann/json_fwd.hpp>
 
 #include <cstdint>
+#include <limits>
 #include <string>
 
 // Forward decls;
