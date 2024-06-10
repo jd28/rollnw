@@ -15,9 +15,9 @@ struct FactionInfo {
 };
 
 struct Reputation {
-    uint32_t faction_1;
-    uint32_t faction_2;
-    uint32_t reputation;
+    uint32_t faction_1 = std::numeric_limits<uint32_t>::max();
+    uint32_t faction_2 = std::numeric_limits<uint32_t>::max();
+    uint32_t reputation = std::numeric_limits<uint32_t>::max();
 
     bool operator<(const Reputation& rhs)
     {
