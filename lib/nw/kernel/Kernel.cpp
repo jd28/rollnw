@@ -23,11 +23,11 @@ Services::Services()
     add<TwoDACache>();
     add<Rules>();
     add<EffectSystem>();
-    add<FactionSystem>();
     add<ObjectSystem>();
     add<EventSystem>();
     add<ModelCache>();
     add<TilesetRegistry>();
+    add<FactionSystem>();
 }
 
 void Services::start()
