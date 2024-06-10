@@ -1,6 +1,8 @@
 #include "Dialog.hpp"
 
 #include "../kernel/Kernel.hpp"
+#include "../serialization/Gff.hpp"
+#include "../serialization/GffBuilder.hpp"
 #include "../util/templates.hpp"
 
 #include <nlohmann/json.hpp>

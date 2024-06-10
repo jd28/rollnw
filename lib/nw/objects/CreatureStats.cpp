@@ -1,6 +1,8 @@
 #include "CreatureStats.hpp"
 
 #include "../kernel/Rules.hpp"
+#include "../serialization/Gff.hpp"
+#include "../serialization/GffBuilder.hpp"
 
 #include <nlohmann/json.hpp>
 

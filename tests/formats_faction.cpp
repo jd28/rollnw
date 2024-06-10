@@ -1,7 +1,9 @@
 #include <gtest/gtest.h>
 
-#include <nw/formats/Faction.hpp>
-#include <nw/serialization/Serialization.hpp>
+#include "nw/formats/Faction.hpp"
+#include "nw/serialization/Gff.hpp"
+#include "nw/serialization/GffBuilder.hpp"
+#include "nw/serialization/Serialization.hpp"
 
 #include <nlohmann/json.hpp>
 
@@ -23,7 +25,7 @@ TEST(Faction, GffRoundTrip)
     nw::Gff g{"test_data/user/scratch/Repute.fac"};
     EXPECT_TRUE(g.valid());
     nw::Faction f{g};
-    nw::GffBuilder out = f.serialize();
+    nw::GffBuilder out = nw::serialize(f);
 
     EXPECT_TRUE(out.header.struct_offset == g.head_->struct_offset);
     EXPECT_TRUE(out.header.struct_count == g.head_->struct_count);

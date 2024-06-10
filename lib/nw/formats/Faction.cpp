@@ -1,35 +1,15 @@
 #include "Faction.hpp"
 
+#include "../serialization/Gff.hpp"
+#include "../serialization/GffBuilder.hpp"
+
 #include <nlohmann/json.hpp>
 
 namespace nw {
 
 Faction::Faction(const Gff& archive)
 {
-    auto gff = archive.toplevel();
-    auto field = gff["FactionList"];
-    size_t sz = field.size();
-    factions.reserve(sz);
-
-    for (size_t i = 0; i < sz; ++i) {
-        FactionInfo fi;
-        field[i].get_to("FactionName", fi.name);
-        field[i].get_to("FactionParentID", fi.parent);
-        field[i].get_to("FactionGlobal", fi.global);
-        factions.push_back(fi);
-    }
-
-    field = gff["RepList"];
-    sz = field.size();
-    reputations.reserve(sz);
-
-    for (size_t i = 0; i < sz; ++i) {
-        Reputation r;
-        field[i].get_to("FactionID1", r.faction_1);
-        field[i].get_to("FactionID2", r.faction_2);
-        field[i].get_to("FactionRep", r.reputation);
-        reputations.push_back(r);
-    }
+    deserialize(*this, archive.toplevel());
 }
 
 Faction::Faction(const nlohmann::json& archive)
@@ -55,14 +35,46 @@ Faction::Faction(const nlohmann::json& archive)
     }
 }
 
-GffBuilder Faction::serialize() const
+// == Faction - Serialization - Gff ==========================================
+// ============================================================================
+
+bool deserialize(Faction& obj, const GffStruct& archive)
+{
+    auto field = archive["FactionList"];
+    size_t sz = field.size();
+    obj.factions.reserve(sz);
+
+    for (size_t i = 0; i < sz; ++i) {
+        FactionInfo fi;
+        field[i].get_to("FactionName", fi.name);
+        field[i].get_to("FactionParentID", fi.parent);
+        field[i].get_to("FactionGlobal", fi.global);
+        obj.factions.push_back(fi);
+    }
+
+    field = archive["RepList"];
+    sz = field.size();
+    obj.reputations.reserve(sz);
+
+    for (size_t i = 0; i < sz; ++i) {
+        Reputation r;
+        field[i].get_to("FactionID1", r.faction_1);
+        field[i].get_to("FactionID2", r.faction_2);
+        field[i].get_to("FactionRep", r.reputation);
+        obj.reputations.push_back(r);
+    }
+
+    return true;
+}
+
+GffBuilder serialize(const Faction& obj)
 {
     GffBuilder out{"FAC"};
     auto& top = out.top;
 
     uint32_t i = 0;
     auto& fl = top.add_list("FactionList");
-    for (const auto& f : factions) {
+    for (const auto& f : obj.factions) {
         auto& st = fl.push_back(i);
         st.add_field("FactionName", f.name);
         st.add_field("FactionParentID", f.parent);
@@ -72,7 +84,7 @@ GffBuilder Faction::serialize() const
 
     i = 0;
     auto& rl = top.add_list("RepList");
-    for (const auto& r : reputations) {
+    for (const auto& r : obj.reputations) {
         auto& st = rl.push_back(i);
         st.add_field("FactionID1", r.faction_1);
         st.add_field("FactionID2", r.faction_2);

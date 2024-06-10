@@ -1,5 +1,7 @@
 #include "Player.hpp"
 
+#include "../serialization/Gff.hpp"
+#include "../serialization/GffBuilder.hpp"
 #include "LevelHistory.hpp"
 
 namespace nw {

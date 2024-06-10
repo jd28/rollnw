@@ -2,6 +2,8 @@
 
 #include "../kernel/Objects.hpp"
 #include "../kernel/TilesetRegistry.hpp"
+#include "../serialization/Gff.hpp"
+#include "../serialization/GffBuilder.hpp"
 #include "Creature.hpp"
 #include "Door.hpp"
 #include "Encounter.hpp"

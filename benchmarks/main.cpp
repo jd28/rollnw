@@ -9,6 +9,7 @@
 #include <nw/objects/Creature.hpp>
 #include <nw/script/Nss.hpp>
 #include <nw/serialization/Gff.hpp>
+#include <nw/serialization/GffBuilder.hpp>
 #include <nwn1/Profile.hpp>
 #include <nwn1/combat.hpp>
 #include <nwn1/effects.hpp>
@@ -26,6 +27,8 @@
 
 namespace fs = std::filesystem;
 namespace nwk = nw::kernel;
+
+using namespace std::literals;
 
 static void BM_parse_feat_2da(benchmark::State& state)
 {

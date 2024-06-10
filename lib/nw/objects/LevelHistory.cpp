@@ -1,5 +1,8 @@
 #include "LevelHistory.hpp"
 
+#include "../serialization/Gff.hpp"
+#include "../serialization/GffBuilder.hpp"
+
 #include <fmt/format.h>
 #include <nlohmann/json.hpp>
 

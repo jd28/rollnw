@@ -1,5 +1,8 @@
 #include "Trap.hpp"
 
+#include "../serialization/Gff.hpp"
+#include "../serialization/GffBuilder.hpp"
+
 #include <nlohmann/json.hpp>
 
 namespace nw {

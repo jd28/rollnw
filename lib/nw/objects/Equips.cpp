@@ -2,6 +2,8 @@
 
 #include "../kernel/EffectSystem.hpp"
 #include "../kernel/Objects.hpp"
+#include "../serialization/Gff.hpp"
+#include "../serialization/GffBuilder.hpp"
 #include "Creature.hpp"
 #include "Item.hpp"
 

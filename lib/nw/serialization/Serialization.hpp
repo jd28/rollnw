@@ -1,19 +1,23 @@
 #pragma once
 
-#include "../i18n/LocString.hpp"
-#include "../resources/Resref.hpp"
-#include "../util/ByteArray.hpp"
-#include "../util/templates.hpp"
+#include <nlohmann/json_fwd.hpp>
 
 #include <cstdint>
 #include <string>
-#include <variant>
 
-using namespace std::literals;
+// Forward decls;
 
 namespace nw {
+struct ByteArray;
+struct Gff;
+struct GffBuilder;
+struct GffBuilderStruct;
+struct GffStruct;
+struct LocString;
+struct Resref;
+} // namespace nw
 
-struct GffStruct; // Have to get rid of this.
+namespace nw {
 
 // -- SerializationProfile ----------------------------------------------------
 
@@ -100,37 +104,37 @@ constexpr std::string_view SerializationType::to_string(SerializationType::type 
     default:
         return {};
     case SerializationType::uint8:
-        return "byte"sv;
+        return "byte";
     case SerializationType::int8:
-        return "char"sv;
+        return "char";
     case SerializationType::uint16:
-        return "word"sv;
+        return "word";
     case SerializationType::int16:
-        return "short"sv;
+        return "short";
     case SerializationType::uint32:
-        return "dword"sv;
+        return "dword";
     case SerializationType::int32:
-        return "int"sv;
+        return "int";
     case SerializationType::uint64:
-        return "dword64"sv;
+        return "dword64";
     case SerializationType::int64:
-        return "int64"sv;
+        return "int64";
     case SerializationType::float_:
-        return "float"sv;
+        return "float";
     case SerializationType::double_:
-        return "double"sv;
+        return "double";
     case SerializationType::string:
-        return "cexostring"sv;
+        return "cexostring";
     case SerializationType::resref:
-        return "resref"sv;
+        return "resref";
     case SerializationType::locstring:
-        return "cexolocstring"sv;
+        return "cexolocstring";
     case SerializationType::void_:
-        return "void"sv;
+        return "void";
     case SerializationType::struct_:
-        return "struct"sv;
+        return "struct";
     case SerializationType::list:
-        return "list"sv;
+        return "list";
     }
 }
 

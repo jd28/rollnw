@@ -1,11 +1,12 @@
 #pragma once
 
+#include "../serialization/Serialization.hpp"
 #include "Location.hpp"
-#include "ObjectBase.hpp"
 
 #include <absl/container/flat_hash_map.h>
 
 #include <bitset>
+#include <string>
 
 namespace nw {
 

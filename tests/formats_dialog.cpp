@@ -2,7 +2,9 @@
 
 #include <nw/formats/Dialog.hpp>
 #include <nw/kernel/Kernel.hpp>
-#include <nw/serialization/Archives.hpp>
+#include <nw/serialization/Gff.hpp>
+#include <nw/serialization/GffBuilder.hpp>
+#include <nw/serialization/gff_conversion.hpp>
 
 #include <nlohmann/json.hpp>
 

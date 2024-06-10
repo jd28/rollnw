@@ -8,7 +8,6 @@
 #include <nw/rules/Effect.hpp>
 #include <nw/rules/attributes.hpp>
 #include <nw/rules/feats.hpp>
-#include <nw/serialization/Archives.hpp>
 #include <nwn1/Profile.hpp>
 #include <nwn1/constants.hpp>
 #include <nwn1/effects.hpp>
@@ -24,7 +23,7 @@ namespace nwk = nw::kernel;
 
 TEST(Rules, Effects)
 {
-    auto mod = nw::kernel::load_module("test_data/user/modules/DockerDemo.mod");
+    auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
     EXPECT_TRUE(mod);
 
     nw::Effect eff;
@@ -32,12 +31,12 @@ TEST(Rules, Effects)
     EXPECT_EQ(eff.get_string(12), "my string");
     EXPECT_EQ(eff.get_int(3), 0);
 
-    nw::kernel::unload_module();
+    nwk::unload_module();
 }
 
 TEST(Rules, ItemProperties)
 {
-    auto mod = nw::kernel::load_module("test_data/user/modules/DockerDemo.mod");
+    auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
     EXPECT_TRUE(mod);
 
     auto ip = nwn1::itemprop_haste();
@@ -48,5 +47,5 @@ TEST(Rules, ItemProperties)
     auto str2 = nw::itemprop_to_string(ip2);
     EXPECT_EQ(str2, "Enhancement Bonus: Strength +6");
 
-    nw::kernel::unload_module();
+    nwk::unload_module();
 }

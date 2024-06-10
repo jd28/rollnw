@@ -3,7 +3,8 @@
 #include <nlohmann/json.hpp>
 #include <nw/kernel/Objects.hpp>
 #include <nw/objects/Door.hpp>
-#include <nw/serialization/Archives.hpp>
+#include <nw/serialization/GffBuilder.hpp>
+#include <nw/serialization/gff_conversion.hpp>
 
 #include <filesystem>
 #include <fstream>

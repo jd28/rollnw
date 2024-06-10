@@ -5,6 +5,8 @@
 #include <nw/formats/Ini.hpp>
 #include <nw/formats/Plt.hpp>
 #include <nw/formats/TwoDA.hpp>
+#include <nw/serialization/Gff.hpp>
+#include <nw/serialization/GffBuilder.hpp>
 #include <nw/util/platform.hpp>
 
 #include <pybind11/pybind11.h>

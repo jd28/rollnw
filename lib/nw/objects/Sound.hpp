@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../serialization/Archives.hpp"
+#include "../serialization/Serialization.hpp"
 #include "Common.hpp"
 #include "ObjectBase.hpp"
 

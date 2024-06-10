@@ -1,6 +1,8 @@
 #pragma once
 
+#include "../i18n/LocString.hpp"
 #include "../serialization/Serialization.hpp"
+#include "../util/ByteArray.hpp"
 #include "LocalData.hpp"
 #include "ObjectBase.hpp"
 

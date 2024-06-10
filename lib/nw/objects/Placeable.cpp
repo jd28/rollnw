@@ -1,5 +1,8 @@
 #include "Placeable.hpp"
 
+#include "../serialization/Gff.hpp"
+#include "../serialization/GffBuilder.hpp"
+
 #include <nlohmann/json.hpp>
 
 namespace nw {
@@ -228,7 +231,7 @@ bool serialize(const Placeable* obj, GffBuilderStruct& archive, SerializationPro
 
     archive.add_field("TemplateResRef", obj->common.resref)
         .add_field("LocName", obj->common.name)
-        .add_field("Tag", std::string(obj->common.tag ? obj->common.tag.view() : ""sv));
+        .add_field("Tag", std::string(obj->common.tag ? obj->common.tag.view() : std::string_view()));
 
     if (profile == SerializationProfile::blueprint) {
         archive.add_field("Comment", obj->common.comment);

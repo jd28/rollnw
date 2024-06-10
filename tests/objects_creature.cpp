@@ -8,7 +8,7 @@
 #include <nw/objects/Creature.hpp>
 #include <nw/rules/combat.hpp>
 #include <nw/rules/feats.hpp>
-#include <nw/serialization/Archives.hpp>
+#include <nw/serialization/GffBuilder.hpp>
 #include <nwn1/Profile.hpp>
 #include <nwn1/casting.hpp>
 #include <nwn1/combat.hpp>
@@ -23,6 +23,8 @@
 
 namespace fs = std::filesystem;
 namespace nwk = nw::kernel;
+
+using namespace std::literals;
 
 TEST(Creature, GffDeserialize)
 {

@@ -1,6 +1,8 @@
 #include "SpellBook.hpp"
 
 #include "../log.hpp"
+#include "../serialization/Gff.hpp"
+#include "../serialization/GffBuilder.hpp"
 #include "../util/templates.hpp"
 
 #include <nlohmann/json.hpp>

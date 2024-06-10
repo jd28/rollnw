@@ -17,6 +17,8 @@
 namespace py = pybind11;
 namespace nws = nw::script;
 
+using namespace std::literals;
+
 void init_script(py::module& nw)
 {
     py::class_<nws::SourcePosition>(nw, "SourcePosition")

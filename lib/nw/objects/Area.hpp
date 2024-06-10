@@ -2,10 +2,8 @@
 
 #include "../objects/Common.hpp"
 #include "../objects/ObjectBase.hpp"
-#include "../serialization/Archives.hpp"
+#include "../serialization/Serialization.hpp"
 #include "../util/enum_flags.hpp"
-
-#include <bitset>
 
 namespace nw {
 

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../rules/combat.hpp"
-#include "../serialization/Archives.hpp"
+#include "../serialization/Serialization.hpp"
 #include "SpellBook.hpp"
 
 namespace nw {

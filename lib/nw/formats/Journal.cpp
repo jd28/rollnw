@@ -1,5 +1,7 @@
 #include "Journal.hpp"
 
+#include "../serialization/Gff.hpp"
+
 namespace nw {
 
 Journal::Journal(const GffStruct gff)

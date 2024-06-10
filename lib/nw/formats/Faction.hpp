@@ -1,7 +1,9 @@
 #pragma once
 
-#include "../serialization/Archives.hpp"
+#include "../resources/ResourceType.hpp"
+#include "../serialization/Serialization.hpp"
 
+#include <string>
 #include <vector>
 
 namespace nw {
@@ -16,6 +18,11 @@ struct Reputation {
     uint32_t faction_1;
     uint32_t faction_2;
     uint32_t reputation;
+
+    bool operator<(const Reputation& rhs)
+    {
+        return std::tie(faction_1, faction_2) < std::tie(rhs.faction_1, rhs.faction_2);
+    }
 };
 
 struct Faction {
@@ -25,11 +32,16 @@ struct Faction {
     static constexpr int json_archive_version = 1;
     static constexpr ResourceType::type restype = ResourceType::fac;
 
-    GffBuilder serialize() const;
     nlohmann::json to_json() const;
 
     std::vector<FactionInfo> factions;
     std::vector<Reputation> reputations;
 };
+
+// == Faction - Serialization - Gff ==========================================
+// ============================================================================
+
+bool deserialize(Faction& obj, const GffStruct& archive);
+GffBuilder serialize(const Faction& obj);
 
 } // namespace nw

@@ -1,6 +1,8 @@
 #include "Item.hpp"
 
 #include "../kernel/TwoDACache.hpp"
+#include "../serialization/Gff.hpp"
+#include "../serialization/GffBuilder.hpp"
 
 #include <nlohmann/json.hpp>
 
@@ -262,7 +264,7 @@ bool serialize(const Item* obj, GffBuilderStruct& archive, SerializationProfile 
 
     archive.add_field("TemplateResRef", obj->common.resref)
         .add_field("LocalizedName", obj->common.name)
-        .add_field("Tag", std::string(obj->common.tag ? obj->common.tag.view() : ""sv));
+        .add_field("Tag", std::string(obj->common.tag ? obj->common.tag.view() : std::string_view()));
 
     if (profile == SerializationProfile::blueprint) {
         archive.add_field("Comment", obj->common.comment);

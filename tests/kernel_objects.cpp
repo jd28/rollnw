@@ -13,6 +13,8 @@
 namespace fs = std::filesystem;
 namespace nwk = nw::kernel;
 
+using namespace std::literals;
+
 TEST(ObjectSystem, LoadCreature)
 {
     auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");

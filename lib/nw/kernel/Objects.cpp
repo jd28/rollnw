@@ -4,6 +4,8 @@
 #include "Kernel.hpp"
 #include "Resources.hpp"
 
+using namespace std::literals;
+
 namespace nw::kernel {
 
 void ObjectSystem::clear()

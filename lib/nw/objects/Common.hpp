@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../i18n/LocString.hpp"
 #include "../resources/Resref.hpp"
 #include "LocalData.hpp"
 #include "Location.hpp"

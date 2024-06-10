@@ -1,6 +1,7 @@
 #pragma once
 
-#include "ObjectBase.hpp"
+#include "../objects/ObjectHandle.hpp"
+#include "../serialization/Serialization.hpp"
 
 #include <glm/glm.hpp>
 

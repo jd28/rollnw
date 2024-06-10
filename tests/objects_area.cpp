@@ -3,7 +3,8 @@
 #include <nw/kernel/Objects.hpp>
 #include <nw/objects/Area.hpp>
 #include <nw/objects/Creature.hpp>
-#include <nw/serialization/Archives.hpp>
+#include <nw/serialization/GffBuilder.hpp>
+#include <nw/serialization/gff_conversion.hpp>
 #include <nwn1/Profile.hpp>
 
 #include <nlohmann/json.hpp>

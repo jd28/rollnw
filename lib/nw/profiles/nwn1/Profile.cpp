@@ -18,6 +18,8 @@
 
 namespace nwk = nw::kernel;
 
+using namespace std::literals;
+
 namespace nwn1 {
 
 static inline bool load_master_feats()

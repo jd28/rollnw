@@ -10,7 +10,8 @@
 #include <nw/objects/Player.hpp>
 #include <nw/rules/combat.hpp>
 #include <nw/rules/feats.hpp>
-#include <nw/serialization/Archives.hpp>
+#include <nw/serialization/GffBuilder.hpp>
+#include <nw/serialization/gff_conversion.hpp>
 #include <nwn1/Profile.hpp>
 #include <nwn1/combat.hpp>
 #include <nwn1/constants.hpp>

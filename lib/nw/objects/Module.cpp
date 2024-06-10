@@ -2,6 +2,8 @@
 
 #include "../kernel/Objects.hpp"
 #include "../kernel/Strings.hpp"
+#include "../serialization/Gff.hpp"
+#include "../serialization/GffBuilder.hpp"
 #include "Area.hpp"
 
 #include <nlohmann/json.hpp>

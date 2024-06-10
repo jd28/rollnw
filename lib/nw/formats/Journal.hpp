@@ -1,6 +1,8 @@
 #pragma once
 
-#include "../serialization/Archives.hpp"
+#include "../i18n/LocString.hpp"
+#include "../resources/ResourceType.hpp"
+#include "../serialization/Serialization.hpp"
 
 #include <vector>
 

@@ -2,7 +2,8 @@
 
 #include <nw/kernel/Objects.hpp>
 #include <nw/objects/Item.hpp>
-#include <nw/serialization/Serialization.hpp>
+#include <nw/serialization/GffBuilder.hpp>
+#include <nw/serialization/gff_conversion.hpp>
 #include <nwn1/functions.hpp>
 
 #include <nlohmann/json.hpp>
@@ -11,6 +12,8 @@
 #include <fstream>
 
 namespace fs = std::filesystem;
+
+using namespace std::literals;
 
 TEST(Item, GffDeserializeArmor)
 {

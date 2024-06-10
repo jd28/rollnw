@@ -1,6 +1,8 @@
 #include "Inventory.hpp"
 
 #include "../kernel/Objects.hpp"
+#include "../serialization/Gff.hpp"
+#include "../serialization/GffBuilder.hpp"
 #include "Item.hpp"
 
 #include <nlohmann/json.hpp>

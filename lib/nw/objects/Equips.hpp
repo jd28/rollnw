@@ -1,8 +1,10 @@
 #pragma once
 
-#include "../serialization/Archives.hpp"
+#include "../resources/Resref.hpp"
+#include "../serialization/Serialization.hpp"
 
-#include <memory>
+
+#include <array>
 #include <variant>
 
 namespace nw {

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../serialization/Archives.hpp"
+#include "../serialization/Serialization.hpp"
 #include "ObjectBase.hpp"
 
 #include <cstdint>

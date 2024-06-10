@@ -2,7 +2,8 @@
 
 #include <nw/kernel/Objects.hpp>
 #include <nw/objects/Placeable.hpp>
-#include <nw/serialization/Archives.hpp>
+#include <nw/serialization/GffBuilder.hpp>
+#include <nw/serialization/gff_conversion.hpp>
 
 #include <nlohmann/json.hpp>
 

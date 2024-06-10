@@ -2,7 +2,7 @@
 
 #include "../rules/attributes.hpp"
 #include "../rules/feats.hpp"
-#include "../serialization/Archives.hpp"
+#include "../serialization/Serialization.hpp"
 #include "Saves.hpp"
 
 #include <array>
