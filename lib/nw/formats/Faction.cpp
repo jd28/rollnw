@@ -7,6 +7,22 @@
 
 namespace nw {
 
+Faction::Faction(ResourceData rdata)
+{
+    if (rdata.bytes.size() <= 8) { return; }
+    if (memcmp(rdata.bytes.data(), "FAC V3.2", 8) == 0) {
+        Gff gff(std::move(rdata));
+        if (!gff.valid()) { return; }
+        deserialize(*this, gff.toplevel());
+    } else {
+        try {
+            nlohmann::json j = nlohmann::json::parse(rdata.bytes.string_view());
+            deserialize(*this, j);
+        } catch (...) {
+        }
+    }
+}
+
 Faction::Faction(const Gff& archive)
 {
     deserialize(*this, archive.toplevel());

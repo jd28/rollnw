@@ -65,3 +65,22 @@ TEST(Faction, JsonDeserialize)
     EXPECT_EQ(faction.factions[2].name, "Commoner");
     EXPECT_EQ(faction.factions[3].name, "Merchant");
 }
+
+TEST(Faction, ResDataCtor)
+{
+    nw::Faction faction(nw::ResourceData::from_file("test_data/user/scratch/Repute.fac"));
+    EXPECT_TRUE(faction.factions.size() >= 4);
+    EXPECT_TRUE(faction.reputations.size() > 0);
+    EXPECT_EQ(faction.factions[0].name, "PC");
+    EXPECT_EQ(faction.factions[1].name, "Hostile");
+    EXPECT_EQ(faction.factions[2].name, "Commoner");
+    EXPECT_EQ(faction.factions[3].name, "Merchant");
+
+    nw::Faction faction2(nw::ResourceData::from_file("test_data/user/scratch/repute.fac.json"));
+    EXPECT_TRUE(faction2.factions.size() >= 4);
+    EXPECT_TRUE(faction2.reputations.size() > 0);
+    EXPECT_EQ(faction2.factions[0].name, "PC");
+    EXPECT_EQ(faction2.factions[1].name, "Hostile");
+    EXPECT_EQ(faction2.factions[2].name, "Commoner");
+    EXPECT_EQ(faction2.factions[3].name, "Merchant");
+}

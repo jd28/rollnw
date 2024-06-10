@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../resources/ResourceType.hpp"
+#include "../resources/ResourceData.hpp"
 #include "../serialization/Serialization.hpp"
 
 #include <string>
@@ -26,6 +26,7 @@ struct Reputation {
 };
 
 struct Faction {
+    explicit Faction(ResourceData data);
     explicit Faction(const Gff& archive);
     explicit Faction(const nlohmann::json& archive);
 
@@ -38,7 +39,7 @@ struct Faction {
     std::vector<Reputation> reputations;
 };
 
-// == Faction - Serialization - Gff ==========================================
+// == Faction - Serialization - Gff ===========================================
 // ============================================================================
 
 bool deserialize(Faction& obj, const GffStruct& archive);
