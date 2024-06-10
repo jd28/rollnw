@@ -213,6 +213,7 @@
 <li class="toctree-l2"><a class="reference internal" href="struct/nw__kernel__Config.html">nw::kernel::Config</a></li>
 <li class="toctree-l2"><a class="reference internal" href="struct/nw__kernel__EffectSystem.html">nw::kernel::EffectSystem</a></li>
 <li class="toctree-l2"><a class="reference internal" href="struct/nw__kernel__EventSystem.html">nw::kernel::EventSystem</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct/nw__kernel__FactionSystem.html">nw::kernel::FactionSystem</a></li>
 <li class="toctree-l2"><a class="reference internal" href="struct/nw__kernel__ModelCache.html">nw::kernel::ModelCache</a></li>
 <li class="toctree-l2"><a class="reference internal" href="struct/nw__kernel__ObjectSystem.html">nw::kernel::ObjectSystem</a></li>
 <li class="toctree-l2"><a class="reference internal" href="struct/nw__kernel__Resources.html">nw::kernel::Resources</a></li>
@@ -1398,9 +1399,9 @@
 </li>
 <li class="toctree-l1"><a class="reference internal" href="struct/nw__Faction.html">nw::Faction</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="struct/nw__Faction.html#_CPPv4N2nw7FactionE"><code class="docutils literal notranslate"><span class="pre">Faction</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="struct/nw__Faction.html#_CPPv4N2nw7Faction7FactionE12ResourceData"><code class="docutils literal notranslate"><span class="pre">Faction::Faction()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="struct/nw__Faction.html#_CPPv4N2nw7Faction7FactionERK3Gff"><code class="docutils literal notranslate"><span class="pre">Faction::Faction()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="struct/nw__Faction.html#_CPPv4N2nw7Faction7FactionERKN8nlohmann4jsonE"><code class="docutils literal notranslate"><span class="pre">Faction::Faction()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="struct/nw__Faction.html#_CPPv4NK2nw7Faction9serializeEv"><code class="docutils literal notranslate"><span class="pre">Faction::serialize()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="struct/nw__Faction.html#_CPPv4NK2nw7Faction7to_jsonEv"><code class="docutils literal notranslate"><span class="pre">Faction::to_json()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="struct/nw__Faction.html#_CPPv4N2nw7Faction8factionsE"><code class="docutils literal notranslate"><span class="pre">Faction::factions</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="struct/nw__Faction.html#_CPPv4N2nw7Faction11reputationsE"><code class="docutils literal notranslate"><span class="pre">Faction::reputations</span></code></a></li>
@@ -2514,6 +2515,7 @@
 </li>
 <li class="toctree-l1"><a class="reference internal" href="struct/nw__Reputation.html">nw::Reputation</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="struct/nw__Reputation.html#_CPPv4N2nw10ReputationE"><code class="docutils literal notranslate"><span class="pre">Reputation</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="struct/nw__Reputation.html#_CPPv4NK2nw10ReputationltERK10Reputation"><code class="docutils literal notranslate"><span class="pre">Reputation::operator&lt;()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="struct/nw__Reputation.html#_CPPv4N2nw10Reputation9faction_1E"><code class="docutils literal notranslate"><span class="pre">Reputation::faction_1</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="struct/nw__Reputation.html#_CPPv4N2nw10Reputation9faction_2E"><code class="docutils literal notranslate"><span class="pre">Reputation::faction_2</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="struct/nw__Reputation.html#_CPPv4N2nw10Reputation10reputationE"><code class="docutils literal notranslate"><span class="pre">Reputation::reputation</span></code></a></li>
@@ -3428,6 +3430,20 @@
 <li class="toctree-l3"><a class="reference internal" href="struct/nw__kernel__EventSystem.html#_CPPv4N2nw6kernel11EventSystem7processEv"><code class="docutils literal notranslate"><span class="pre">EventSystem::process()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="struct/nw__kernel__EventSystem.html#_CPPv4N2nw6kernel11EventSystem10initializeE15ServiceInitTime"><code class="docutils literal notranslate"><span class="pre">EventSystem::initialize()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="struct/nw__kernel__EventSystem.html#_CPPv4N2nw6kernel11EventSystem6queue_E"><code class="docutils literal notranslate"><span class="pre">EventSystem::queue_</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="struct/nw__kernel__FactionSystem.html">nw::kernel::FactionSystem</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="struct/nw__kernel__FactionSystem.html#_CPPv4N2nw6kernel13FactionSystemE"><code class="docutils literal notranslate"><span class="pre">FactionSystem</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="struct/nw__kernel__FactionSystem.html#_CPPv4N2nw6kernel13FactionSystem10initializeE15ServiceInitTime"><code class="docutils literal notranslate"><span class="pre">FactionSystem::initialize()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="struct/nw__kernel__FactionSystem.html#_CPPv4N2nw6kernel13FactionSystem5clearEv"><code class="docutils literal notranslate"><span class="pre">FactionSystem::clear()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="struct/nw__kernel__FactionSystem.html#_CPPv4NK2nw6kernel13FactionSystem3allEv"><code class="docutils literal notranslate"><span class="pre">FactionSystem::all()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="struct/nw__kernel__FactionSystem.html#_CPPv4NK2nw6kernel13FactionSystem5countEv"><code class="docutils literal notranslate"><span class="pre">FactionSystem::count()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="struct/nw__kernel__FactionSystem.html#_CPPv4NK2nw6kernel13FactionSystem10faction_idENSt11string_viewE"><code class="docutils literal notranslate"><span class="pre">FactionSystem::faction_id()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="struct/nw__kernel__FactionSystem.html#_CPPv4NK2nw6kernel13FactionSystem6locateE8uint32_t8uint32_t"><code class="docutils literal notranslate"><span class="pre">FactionSystem::locate()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="struct/nw__kernel__FactionSystem.html#_CPPv4NK2nw6kernel13FactionSystem4nameE8uint32_t"><code class="docutils literal notranslate"><span class="pre">FactionSystem::name()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="struct/nw__kernel__FactionSystem.html#_CPPv4NK2nw6kernel13FactionSystem10reputationE8uint32_t8uint32_t"><code class="docutils literal notranslate"><span class="pre">FactionSystem::reputation()</span></code></a></li>
 </ul>
 </li>
 </ul>

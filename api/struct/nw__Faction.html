@@ -110,9 +110,9 @@
 <li class="toctree-l2"><a class="reference internal" href="nw__Erf.html">nw::Erf</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">nw::Faction</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#_CPPv4N2nw7FactionE"><code class="docutils literal notranslate"><span class="pre">Faction</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw7Faction7FactionE12ResourceData"><code class="docutils literal notranslate"><span class="pre">Faction::Faction()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw7Faction7FactionERK3Gff"><code class="docutils literal notranslate"><span class="pre">Faction::Faction()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw7Faction7FactionERKN8nlohmann4jsonE"><code class="docutils literal notranslate"><span class="pre">Faction::Faction()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw7Faction9serializeEv"><code class="docutils literal notranslate"><span class="pre">Faction::serialize()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw7Faction7to_jsonEv"><code class="docutils literal notranslate"><span class="pre">Faction::to_json()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw7Faction8factionsE"><code class="docutils literal notranslate"><span class="pre">Faction::factions</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw7Faction11reputationsE"><code class="docutils literal notranslate"><span class="pre">Faction::reputations</span></code></a></li>
@@ -226,6 +226,7 @@
 <li class="toctree-l2"><a class="reference internal" href="nw__kernel__Config.html">nw::kernel::Config</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__kernel__EffectSystem.html">nw::kernel::EffectSystem</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__kernel__EventSystem.html">nw::kernel::EventSystem</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__kernel__FactionSystem.html">nw::kernel::FactionSystem</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__kernel__ModelCache.html">nw::kernel::ModelCache</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__kernel__ObjectSystem.html">nw::kernel::ObjectSystem</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__kernel__Resources.html">nw::kernel::Resources</a></li>
@@ -384,6 +385,11 @@
 <dd><div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
 <dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw7Faction7FactionE12ResourceData">
+<span id="_CPPv3N2nw7Faction7FactionE12ResourceData"></span><span id="_CPPv2N2nw7Faction7FactionE12ResourceData"></span><span id="nw::Faction::Faction__ResourceData"></span><span class="target" id="structnw_1_1_faction_1a763bf86bbc393fc81c468c36c90f3d39"></span><span class="k"><span class="pre">explicit</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Faction</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">ResourceData</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">data</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw7Faction7FactionE12ResourceData" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw7Faction7FactionERK3Gff">
 <span id="_CPPv3N2nw7Faction7FactionERK3Gff"></span><span id="_CPPv2N2nw7Faction7FactionERK3Gff"></span><span id="nw::Faction::Faction__GffCR"></span><span class="target" id="structnw_1_1_faction_1a5bc454b9ac895105511286f971a0ba20"></span><span class="k"><span class="pre">explicit</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Faction</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="nw__Gff.html#_CPPv4N2nw3GffE" title="nw::Gff"><span class="n"><span class="pre">Gff</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">archive</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw7Faction7FactionERK3Gff" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
@@ -391,11 +397,6 @@
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw7Faction7FactionERKN8nlohmann4jsonE">
 <span id="_CPPv3N2nw7Faction7FactionERKN8nlohmann4jsonE"></span><span id="_CPPv2N2nw7Faction7FactionERKN8nlohmann4jsonE"></span><span id="nw::Faction::Faction__nlohmann::jsonCR"></span><span class="target" id="structnw_1_1_faction_1a4413caa0454448dff8aae35c57e141bf"></span><span class="k"><span class="pre">explicit</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Faction</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">nlohmann</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">json</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">archive</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw7Faction7FactionERKN8nlohmann4jsonE" title="Link to this definition"></a><br /></dt>
-<dd></dd></dl>
-
-<dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4NK2nw7Faction9serializeEv">
-<span id="_CPPv3NK2nw7Faction9serializeEv"></span><span id="_CPPv2NK2nw7Faction9serializeEv"></span><span id="nw::Faction::serializeC"></span><span class="target" id="structnw_1_1_faction_1a8bb05af92c60c8ad96f90897507a7f06"></span><a class="reference internal" href="nw__GffBuilder.html#_CPPv4N2nw10GffBuilderE" title="nw::GffBuilder"><span class="n"><span class="pre">GffBuilder</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">serialize</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK2nw7Faction9serializeEv" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp function">

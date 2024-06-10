@@ -4064,7 +4064,7 @@
 </li>
       <li><a href="api/struct/nw__Faction.html#_CPPv4N2nw7FactionE">nw::Faction (C++ struct)</a>
 </li>
-      <li><a href="api/struct/nw__Faction.html#_CPPv4N2nw7Faction7FactionERK3Gff">nw::Faction::Faction (C++ function)</a>, <a href="api/struct/nw__Faction.html#_CPPv4N2nw7Faction7FactionERKN8nlohmann4jsonE">[1]</a>
+      <li><a href="api/struct/nw__Faction.html#_CPPv4N2nw7Faction7FactionE12ResourceData">nw::Faction::Faction (C++ function)</a>, <a href="api/struct/nw__Faction.html#_CPPv4N2nw7Faction7FactionERK3Gff">[1]</a>, <a href="api/struct/nw__Faction.html#_CPPv4N2nw7Faction7FactionERKN8nlohmann4jsonE">[2]</a>
 </li>
       <li><a href="api/struct/nw__Faction.html#_CPPv4N2nw7Faction8factionsE">nw::Faction::factions (C++ member)</a>
 </li>
@@ -4073,8 +4073,6 @@
       <li><a href="api/struct/nw__Faction.html#_CPPv4N2nw7Faction11reputationsE">nw::Faction::reputations (C++ member)</a>
 </li>
       <li><a href="api/struct/nw__Faction.html#_CPPv4N2nw7Faction7restypeE">nw::Faction::restype (C++ member)</a>
-</li>
-      <li><a href="api/struct/nw__Faction.html#_CPPv4NK2nw7Faction9serializeEv">nw::Faction::serialize (C++ function)</a>
 </li>
       <li><a href="api/struct/nw__Faction.html#_CPPv4NK2nw7Faction7to_jsonEv">nw::Faction::to_json (C++ function)</a>
 </li>
@@ -4721,6 +4719,24 @@
       <li><a href="api/struct/nw__kernel__EventSystem.html#_CPPv4N2nw6kernel11EventSystem6queue_E">nw::kernel::EventSystem::queue_ (C++ member)</a>
 </li>
       <li><a href="api/struct/nw__kernel__EventSystem.html#_CPPv4I0EN2nw6kernel11EventSystem7storageE">nw::kernel::EventSystem::storage (C++ type)</a>
+</li>
+      <li><a href="api/struct/nw__kernel__FactionSystem.html#_CPPv4N2nw6kernel13FactionSystemE">nw::kernel::FactionSystem (C++ struct)</a>
+</li>
+      <li><a href="api/struct/nw__kernel__FactionSystem.html#_CPPv4NK2nw6kernel13FactionSystem3allEv">nw::kernel::FactionSystem::all (C++ function)</a>
+</li>
+      <li><a href="api/struct/nw__kernel__FactionSystem.html#_CPPv4N2nw6kernel13FactionSystem5clearEv">nw::kernel::FactionSystem::clear (C++ function)</a>
+</li>
+      <li><a href="api/struct/nw__kernel__FactionSystem.html#_CPPv4NK2nw6kernel13FactionSystem5countEv">nw::kernel::FactionSystem::count (C++ function)</a>
+</li>
+      <li><a href="api/struct/nw__kernel__FactionSystem.html#_CPPv4NK2nw6kernel13FactionSystem10faction_idENSt11string_viewE">nw::kernel::FactionSystem::faction_id (C++ function)</a>
+</li>
+      <li><a href="api/struct/nw__kernel__FactionSystem.html#_CPPv4N2nw6kernel13FactionSystem10initializeE15ServiceInitTime">nw::kernel::FactionSystem::initialize (C++ function)</a>
+</li>
+      <li><a href="api/struct/nw__kernel__FactionSystem.html#_CPPv4NK2nw6kernel13FactionSystem6locateE8uint32_t8uint32_t">nw::kernel::FactionSystem::locate (C++ function)</a>
+</li>
+      <li><a href="api/struct/nw__kernel__FactionSystem.html#_CPPv4NK2nw6kernel13FactionSystem4nameE8uint32_t">nw::kernel::FactionSystem::name (C++ function)</a>
+</li>
+      <li><a href="api/struct/nw__kernel__FactionSystem.html#_CPPv4NK2nw6kernel13FactionSystem10reputationE8uint32_t8uint32_t">nw::kernel::FactionSystem::reputation (C++ function)</a>
 </li>
       <li><a href="api/function/nw__kernel__load_module.html#_CPPv4N2nw6kernel11load_moduleERKNSt10filesystem4pathEb">nw::kernel::load_module (C++ function)</a>
 </li>
@@ -5974,14 +5990,14 @@
 </li>
       <li><a href="api/struct/nw__model__NodeTypes.html#_CPPv4N2nw5model8NodeType6cameraE">nw::model::NodeType::camera (C++ member)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/struct/nw__model__NodeTypes.html#_CPPv4N2nw5model8NodeType10danglymeshE">nw::model::NodeType::danglymesh (C++ member)</a>
 </li>
       <li><a href="api/struct/nw__model__NodeTypes.html#_CPPv4N2nw5model8NodeType5dummyE">nw::model::NodeType::dummy (C++ member)</a>
 </li>
       <li><a href="api/struct/nw__model__NodeTypes.html#_CPPv4N2nw5model8NodeType7emitterE">nw::model::NodeType::emitter (C++ member)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/struct/nw__model__NodeTypes.html#_CPPv4N2nw5model8NodeType11from_stringENSt11string_viewE">nw::model::NodeType::from_string (C++ function)</a>
 </li>
       <li><a href="api/struct/nw__model__NodeTypes.html#_CPPv4N2nw5model8NodeType5lightE">nw::model::NodeType::light (C++ member)</a>
@@ -6981,6 +6997,8 @@
       <li><a href="api/struct/nw__Reputation.html#_CPPv4N2nw10Reputation9faction_1E">nw::Reputation::faction_1 (C++ member)</a>
 </li>
       <li><a href="api/struct/nw__Reputation.html#_CPPv4N2nw10Reputation9faction_2E">nw::Reputation::faction_2 (C++ member)</a>
+</li>
+      <li><a href="api/struct/nw__Reputation.html#_CPPv4NK2nw10ReputationltERK10Reputation">nw::Reputation::operator&lt; (C++ function)</a>
 </li>
       <li><a href="api/struct/nw__Reputation.html#_CPPv4N2nw10Reputation10reputationE">nw::Reputation::reputation (C++ member)</a>
 </li>
