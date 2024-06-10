@@ -14,25 +14,7 @@ Faction::Faction(const Gff& archive)
 
 Faction::Faction(const nlohmann::json& archive)
 {
-    auto& fac = archive.at("factions");
-    factions.reserve(fac.size());
-    for (const auto& f : fac) {
-        FactionInfo fi;
-        f.at("name").get_to(fi.name);
-        f.at("parent").get_to(fi.parent);
-        f.at("global").get_to(fi.global);
-        factions.push_back(fi);
-    }
-
-    auto& rep = archive.at("reputations");
-    reputations.reserve(rep.size());
-    for (const auto& r : rep) {
-        Reputation fr;
-        r.at("faction_1").get_to(fr.faction_1);
-        r.at("faction_2").get_to(fr.faction_2);
-        r.at("reputation").get_to(fr.reputation);
-        reputations.push_back(fr);
-    }
+    deserialize(*this, archive);
 }
 
 // == Faction - Serialization - Gff ==========================================
@@ -120,6 +102,34 @@ nlohmann::json Faction::to_json() const
     }
 
     return j;
+}
+
+// == Faction - Serialization - JSON ==========================================
+// ============================================================================
+
+bool deserialize(Faction& obj, const nlohmann::json& archive)
+{
+    auto& fac = archive.at("factions");
+    obj.factions.reserve(fac.size());
+    for (const auto& f : fac) {
+        FactionInfo fi;
+        f.at("name").get_to(fi.name);
+        f.at("parent").get_to(fi.parent);
+        f.at("global").get_to(fi.global);
+        obj.factions.push_back(fi);
+    }
+
+    auto& rep = archive.at("reputations");
+    obj.reputations.reserve(rep.size());
+    for (const auto& r : rep) {
+        Reputation fr;
+        r.at("faction_1").get_to(fr.faction_1);
+        r.at("faction_2").get_to(fr.faction_2);
+        r.at("reputation").get_to(fr.reputation);
+        obj.reputations.push_back(fr);
+    }
+
+    return true;
 }
 
 } // namespace nw

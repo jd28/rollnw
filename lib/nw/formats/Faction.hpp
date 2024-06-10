@@ -44,4 +44,9 @@ struct Faction {
 bool deserialize(Faction& obj, const GffStruct& archive);
 GffBuilder serialize(const Faction& obj);
 
+// == Faction - Serialization - JSON ==========================================
+// ============================================================================
+
+bool deserialize(Faction& obj, const nlohmann::json& archive);
+
 } // namespace nw
