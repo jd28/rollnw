@@ -29,7 +29,9 @@ Resref::Resref(std::string_view string) noexcept
         return;
     }
     memcpy(data_.data(), string.data(), std::min(nw::kernel::config().max_resref_length(), string.size()));
-    std::transform(data_.begin(), data_.end(), data_.begin(), ::tolower);
+    std::transform(data_.begin(), data_.end(), data_.begin(), [](char c) {
+        return static_cast<char>(::tolower(c));
+    });
 }
 
 const Resref::Storage& Resref::data() const noexcept { return data_; }

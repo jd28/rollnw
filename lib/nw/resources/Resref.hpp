@@ -72,7 +72,9 @@ Resref::Resref(std::array<char, N>& string) noexcept
         return;
     }
     memcpy(data_.data(), string.data(), N);
-    std::transform(data_.begin(), data_.end(), data_.begin(), ::tolower);
+    std::transform(data_.begin(), data_.end(), data_.begin(), [](char c) {
+        return static_cast<char>(::tolower(c));
+    });
 }
 
 inline bool operator==(const Resref& lhs, const Resref& rhs)
