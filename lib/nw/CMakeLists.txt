@@ -21,6 +21,7 @@ add_library(nw STATIC
     kernel/Kernel.cpp
     kernel/Config.cpp
     kernel/EffectSystem.cpp
+    kernel/FactionSystem.cpp
     kernel/ModelCache.cpp
     kernel/EventSystem.cpp
     kernel/Objects.cpp

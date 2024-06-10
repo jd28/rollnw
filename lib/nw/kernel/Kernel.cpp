@@ -2,6 +2,7 @@
 
 #include "EffectSystem.hpp"
 #include "EventSystem.hpp"
+#include "FactionSystem.hpp"
 #include "ModelCache.hpp"
 #include "Objects.hpp"
 #include "Resources.hpp"
@@ -22,6 +23,7 @@ Services::Services()
     add<TwoDACache>();
     add<Rules>();
     add<EffectSystem>();
+    add<FactionSystem>();
     add<ObjectSystem>();
     add<EventSystem>();
     add<ModelCache>();
