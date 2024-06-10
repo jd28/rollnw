@@ -25,6 +25,7 @@ void FactionSystem::initialize(ServiceInitTime time)
 
 void FactionSystem::clear()
 {
+    if (!factions_) { return; }
     factions_.reset();
     name_id_map_.clear();
 }
@@ -32,6 +33,8 @@ void FactionSystem::clear()
 std::vector<std::string> FactionSystem::all() const
 {
     std::vector<std::string> result;
+    if (!factions_) { return result; }
+
     for (auto& fac : factions_->factions) {
         result.push_back(fac.name);
     }
@@ -45,6 +48,8 @@ size_t FactionSystem::count() const
 
 uint32_t FactionSystem::faction_id(std::string_view name) const
 {
+    if (!factions_) { return std::numeric_limits<uint32_t>::max(); }
+
     absl::string_view sv{name.data(), name.size()};
     auto it = name_id_map_.find(sv);
     if (it == std::end(name_id_map_)) {
@@ -56,6 +61,8 @@ uint32_t FactionSystem::faction_id(std::string_view name) const
 Reputation FactionSystem::locate(uint32_t faction1, uint32_t faction2) const
 {
     Reputation result;
+    if (!factions_) { return result; }
+
     Reputation needle{faction1, faction2, 0};
     auto it = std::lower_bound(std::begin(factions_->reputations), std::end(factions_->reputations), needle);
     if (it == std::end(factions_->reputations)) {
@@ -69,12 +76,13 @@ Reputation FactionSystem::locate(uint32_t faction1, uint32_t faction2) const
 
 std::string_view FactionSystem::name(uint32_t id) const
 {
-    if (id >= factions_->factions.size()) { return {}; }
+    if (!factions_ || id >= factions_->factions.size()) { return {}; }
     return factions_->factions[id].name;
 }
 
 uint32_t FactionSystem::reputation(uint32_t faction1, uint32_t faction2) const
 {
+    if (!factions_) { return 0; }
     auto rep = locate(faction1, faction2);
     return rep.reputation;
 }
