@@ -53,6 +53,7 @@ void init_i18n_locstring(py::module& m)
         })
         .def("get", &nw::LocString::get, py::arg("language"), py::arg("feminine") = false)
         .def("remove", &nw::LocString::remove, py::arg("language"), py::arg("feminine") = false)
+        .def("set_strref", &nw::LocString::set_strref)
         .def("size", &nw::LocString::size)
         .def("strref", [](const nw::LocString& self) { return int(self.strref()); })
         .def("to_dict", [](const nw::LocString& self) -> nlohmann::json {

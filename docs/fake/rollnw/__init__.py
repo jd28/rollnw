@@ -117,11 +117,15 @@ class LocString:
         """Removes a localized string"""
         pass
 
-    def size(self):
+    def set_strref(self, strref: int):
+        """Sets string reference"""
+        pass
+
+    def size(self) -> int:
         """Gets number of localized strings"""
         pass
 
-    def strref(self):
+    def strref(self) -> int:
         """Gets string reference"""
         pass
 

@@ -34,6 +34,9 @@ struct LocString {
     /// Removes a localized string
     void remove(LanguageID language, bool feminine = false);
 
+    /// Sets string reference
+    void set_strref(uint32_t strref);
+
     /// Gets number of localized strings
     size_type size() const;
 

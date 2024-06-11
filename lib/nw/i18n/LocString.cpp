@@ -77,6 +77,11 @@ void LocString::remove(LanguageID language, bool feminine)
     strings_.erase(it, std::end(strings_));
 }
 
+void LocString::set_strref(uint32_t strref)
+{
+    strref_ = strref;
+}
+
 size_t LocString::size() const
 {
     return strings_.size();
