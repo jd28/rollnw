@@ -86,7 +86,7 @@ if(CMAKE_HOST_UNIX)
 endif()
 
 include(GoogleTest)
-gtest_discover_tests(rollnw_test)
+gtest_discover_tests(rollnw_test DISCOVERY_MODE PRE_TEST)
 
 install(TARGETS rollnw_test)
 install(DIRECTORY test_data/ DESTINATION bin/test_data)
