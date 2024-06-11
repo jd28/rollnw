@@ -169,6 +169,13 @@ jobs:
           cmake --build --preset default
           ctest --preset default
 
+      - name: upload tests
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: failed-build-${{matrix.os}}
+          path: "${{ github.workspace }}/build/tests"
+
       - name: Build wheels
         uses: pypa/cibuildwheel@v2.18.1
 
