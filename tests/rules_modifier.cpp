@@ -14,7 +14,7 @@ namespace nwk = nw::kernel;
 
 TEST(Rules, Modifiers)
 {
-    auto ent = nw::kernel::objects().load<nw::Creature>(fs::path("../tests/test_data/user/development/pl_agent_001.utc"));
+    auto ent = nw::kernel::objects().load<nw::Creature>(fs::path("test_data/user/development/pl_agent_001.utc"));
     EXPECT_TRUE(ent);
     ent->levels.entries[0].id = nwn1::class_type_pale_master;
 
