@@ -159,7 +159,10 @@
         {
             "name": "windows-ninja",
             "inherits": "windows",
-            "generator": "Ninja"
+            "generator": "Ninja",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release"
+            }
         },
         {
             "name": "ci-windows",
@@ -168,7 +171,7 @@
             "displayName": "windows ci build",
             "description": "windows ci build",
             "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "Release",
+                "CMAKE_BUILD_TYPE": "Debug",
                 "ROLLNW_BUILD_TESTS": {
                     "type": "BOOL",
                     "value": "ON"
