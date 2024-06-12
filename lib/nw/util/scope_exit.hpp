@@ -1,7 +1,5 @@
 #pragma once
 
-namespace nw {
-
 // Remove if ever added to standard.  This is basically from boost.
 
 template <typename T>
@@ -33,8 +31,6 @@ scope_exit<T> create_scope_exit(T&& exit)
 {
     return scope_exit<T>(std::forward<T>(exit));
 }
-
-} // namespace nw
 
 /// @private
 #define _EXIT_SCOPE_LINENAME_CAT(name, line) name##line
