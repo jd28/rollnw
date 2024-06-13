@@ -16,7 +16,7 @@ struct PlaceableInfo {
     PlaceableInfo(const TwoDARowView& tda);
 
     std::string label;
-    uint32_t name;
+    uint32_t name = 0xFFFFFFFF;
     nw::Resref model;
     //  LightColor
     //  LightOffsetX

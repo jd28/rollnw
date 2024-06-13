@@ -27,6 +27,8 @@ void Rules::clear()
     master_feats.clear();
     appearances.clear();
     phenotypes.clear();
+    traps.clear();
+    placeables.clear();
 }
 
 void Rules::initialize(ServiceInitTime time)
