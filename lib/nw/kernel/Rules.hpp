@@ -4,6 +4,8 @@
 #include "../log.hpp"
 #include "../objects/Creature.hpp"
 #include "../objects/ObjectBase.hpp"
+#include "../objects/Placeable.hpp"
+#include "../objects/Trap.hpp"
 #include "../rules/Class.hpp"
 #include "../rules/Spell.hpp"
 #include "../rules/attributes.hpp"
@@ -57,6 +59,8 @@ struct Rules : public Service {
     ModifierRegistry modifiers;
     PhenotypeArray phenotypes;
     AppearanceArray appearances;
+    PlaceableArray placeables;
+    TrapArray traps;
 
 private:
     qualifier_type qualifier_;

@@ -160,11 +160,13 @@ bool Profile::load_rules() const
     nw::TwoDA baseitems{nw::kernel::resman().demand({"baseitems"sv, nw::ResourceType::twoda})};
     nw::TwoDA classes{nw::kernel::resman().demand({"classes"sv, nw::ResourceType::twoda})};
     nw::TwoDA feat{nw::kernel::resman().demand({"feat"sv, nw::ResourceType::twoda})};
+    nw::TwoDA placeables{nw::kernel::resman().demand({"placeables"sv, nw::ResourceType::twoda})};
     nw::TwoDA phenotypes{nw::kernel::resman().demand({"phenotype"sv, nw::ResourceType::twoda})};
     nw::TwoDA racialtypes{nw::kernel::resman().demand({"racialtypes"sv, nw::ResourceType::twoda})};
     nw::TwoDA skills{nw::kernel::resman().demand({"skills"sv, nw::ResourceType::twoda})};
     nw::TwoDA spells{nw::kernel::resman().demand({"spells"sv, nw::ResourceType::twoda})};
     nw::TwoDA spellschools{nw::kernel::resman().demand({"spellschools"sv, nw::ResourceType::twoda})};
+    nw::TwoDA traps{nw::kernel::resman().demand({"traps"sv, nw::ResourceType::twoda})};
     std::string temp_string;
     int temp_int = 0;
 
@@ -365,6 +367,17 @@ bool Profile::load_rules() const
         throw std::runtime_error("rules: failed to load 'feat.2da'");
     }
 
+    // Placeables
+    auto& placeable_array = nw::kernel::rules().placeables;
+    if (placeables.is_valid()) {
+        placeable_array.entries.reserve(placeables.rows());
+        for (size_t i = 0; i < placeables.rows(); ++i) {
+            placeable_array.entries.emplace_back(placeables.row(i));
+        }
+    } else {
+        throw std::runtime_error("rules: failed to load 'placeables.2da'");
+    }
+
     auto& phenotype_array = nw::kernel::rules().phenotypes;
     if (phenotypes.is_valid()) {
         phenotype_array.entries.reserve(phenotypes.rows());
@@ -425,6 +438,17 @@ bool Profile::load_rules() const
         }
     } else {
         throw std::runtime_error("rules: failed to load 'spells.2da'");
+    }
+
+    // Traps
+    auto& trap_array = nw::kernel::rules().traps;
+    if (traps.is_valid()) {
+        trap_array.entries.reserve(traps.rows());
+        for (size_t i = 0; i < traps.rows(); ++i) {
+            trap_array.entries.emplace_back(traps.row(i));
+        }
+    } else {
+        throw std::runtime_error("rules: failed to load 'traps.2da'");
     }
 
     // == Postprocess 2das ====================================================

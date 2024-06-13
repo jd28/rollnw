@@ -87,3 +87,29 @@ TEST(KernelRules, SpellSchools)
 
     nw::kernel::unload_module();
 }
+
+TEST(KernelRules, Traps)
+{
+    auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
+    EXPECT_TRUE(mod);
+
+    auto& traps = nwk::rules().traps;
+    EXPECT_GT(traps.entries.size(), 1);
+    EXPECT_EQ(traps.entries[1].script, "nw_t1_spikeavgc");
+    EXPECT_EQ(traps.entries[2].name, 6848);
+
+    nw::kernel::unload_module();
+}
+
+TEST(KernelRules, Placealbes)
+{
+    auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
+    EXPECT_TRUE(mod);
+
+    auto& placeables = nwk::rules().placeables;
+    EXPECT_GT(placeables.entries.size(), 1);
+    EXPECT_EQ(placeables.entries[1].model, "plc_a02");
+    EXPECT_TRUE(placeables.entries[2].static_);
+
+    nw::kernel::unload_module();
+}

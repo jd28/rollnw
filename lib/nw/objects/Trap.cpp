@@ -1,11 +1,22 @@
 #include "Trap.hpp"
 
+#include "../formats/TwoDA.hpp"
 #include "../serialization/Gff.hpp"
 #include "../serialization/GffBuilder.hpp"
 
 #include <nlohmann/json.hpp>
 
 namespace nw {
+
+TrapInfo::TrapInfo(const TwoDARowView& tda)
+{
+    std::string temp;
+
+    if (tda.get_to("TrapScript", temp)) {
+        script = nw::Resref{temp};
+    }
+    tda.get_to("TrapName", name);
+}
 
 bool Trap::from_json(const nlohmann::json& archive)
 {
@@ -42,8 +53,11 @@ nlohmann::json Trap::to_json() const
 
 bool deserialize(Trap& self, const GffStruct& archive)
 {
+    uint8_t temp;
+    if (archive.get_to("TrapType", temp)) {
+        self.type = TrapType::make(temp);
+    }
     archive.get_to("TrapFlag", self.is_trapped);
-    archive.get_to("TrapType", self.type);
     archive.get_to("DisarmDC", self.disarm_dc);
     archive.get_to("TrapDetectable", self.detectable);
     archive.get_to("TrapDetectDC", self.detect_dc);
@@ -56,7 +70,7 @@ bool deserialize(Trap& self, const GffStruct& archive)
 bool serialize(const Trap& self, GffBuilderStruct& archive)
 {
     archive.add_field("TrapFlag", self.is_trapped)
-        .add_field("TrapType", self.type)
+        .add_field("TrapType", uint8_t(*self.type))
         .add_field("DisarmDC", self.disarm_dc)
         .add_field("TrapDetectable", self.detectable)
         .add_field("TrapDetectDC", self.detect_dc)

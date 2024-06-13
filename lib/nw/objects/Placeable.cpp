@@ -1,11 +1,23 @@
 #include "Placeable.hpp"
 
+#include "../formats/TwoDA.hpp"
 #include "../serialization/Gff.hpp"
 #include "../serialization/GffBuilder.hpp"
 
 #include <nlohmann/json.hpp>
 
 namespace nw {
+
+PlaceableInfo::PlaceableInfo(const TwoDARowView& tda)
+{
+    std::string temp;
+    tda.get_to("Label", label);
+    tda.get_to("StrRef", name);
+    if (tda.get_to("ModelName", temp)) {
+        model = nw::Resref{temp};
+    }
+    tda.get_to("Static", static_);
+}
 
 bool PlaceableScripts::from_json(const nlohmann::json& archive)
 {

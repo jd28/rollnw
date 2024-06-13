@@ -10,6 +10,30 @@
 
 namespace nw {
 
+DECLARE_RULE_TYPE(PlaceableType);
+
+struct PlaceableInfo {
+    PlaceableInfo(const TwoDARowView& tda);
+
+    std::string label;
+    uint32_t name;
+    nw::Resref model;
+    //  LightColor
+    //  LightOffsetX
+    //  LightOffsetY
+    //  LightOffsetZ
+    //  SoundAppType
+    //  ShadowSize
+    //  BodyBag
+    //  LowGore
+    //  Reflection
+    bool static_;
+
+    bool valid() const noexcept { return name != 0xFFFFFFFF || !label.empty(); }
+};
+
+using PlaceableArray = RuleTypeArray<PlaceableType, PlaceableInfo>;
+
 enum struct PlaceableAnimationState : uint8_t {
     none = 0, // Technically "default"
     open = 1,
