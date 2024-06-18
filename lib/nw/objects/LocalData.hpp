@@ -41,6 +41,9 @@ struct LocalData {
     LocalVarTable::iterator end() { return vars_.end(); }
     LocalVarTable::const_iterator end() const { return vars_.end(); }
 
+    /// Clears a variable by type
+    void clear(std::string_view var, uint32_t type);
+
     void delete_float(std::string_view var);
     void delete_int(std::string_view var);
     void delete_object(std::string_view var);

@@ -67,6 +67,8 @@ TEST(Item, LocalVariables)
     EXPECT_EQ(ent->common.locals.get_int("test"), 1);
     ent->common.locals.set_float("test", 1.0);
     EXPECT_EQ(ent->common.locals.get_float("test"), 1.0f);
+    ent->common.locals.clear("test", nw::LocalVarType::float_);
+    EXPECT_EQ(ent->common.locals.get_float("test"), 0.0f);
 }
 
 TEST(Item, GffDeserializeLayered)

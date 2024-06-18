@@ -7,6 +7,40 @@
 
 namespace nw {
 
+void LocalData::clear(std::string_view var, uint32_t type)
+{
+    absl::string_view v{var.data(), var.size()};
+    auto it = vars_.find(v);
+    if (it == std::end(vars_)) {
+        return;
+    }
+
+    switch (type) {
+    default:
+        LOG_F(ERROR, "local data invalid local var type: {}", type);
+    case 1: // int
+        it->second.integer = 0;
+        it->second.flags.reset(LocalVarType::integer);
+        break;
+    case 2: // float
+        it->second.float_ = 0.0;
+        it->second.flags.reset(LocalVarType::float_);
+        break;
+    case 3: // string
+        it->second.string = "";
+        it->second.flags.reset(LocalVarType::string);
+        break;
+    case 4: // object
+        it->second.object = object_invalid;
+        it->second.flags.reset(LocalVarType::object);
+        break;
+    case 5: // location
+        it->second.loc = Location{};
+        it->second.flags.reset(LocalVarType::location);
+        break;
+    }
+}
+
 void LocalData::delete_float(std::string_view var)
 {
     absl::string_view v{var.data(), var.size()};

@@ -490,6 +490,10 @@ class Location:
 
 
 class LocalData:
+    def clear(self, varname: str, type: int):
+        """Clears local variable by type"""
+        pass
+
     def delete_float(self, varname: str):
         """Deletes float variable"""
         pass
