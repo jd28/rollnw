@@ -36,6 +36,11 @@ struct LocalData {
     bool from_json(const nlohmann::json& archive);
     nlohmann::json to_json(SerializationProfile profile) const;
 
+    LocalVarTable::iterator begin() { return vars_.begin(); }
+    LocalVarTable::const_iterator begin() const { return vars_.begin(); }
+    LocalVarTable::iterator end() { return vars_.end(); }
+    LocalVarTable::const_iterator end() const { return vars_.end(); }
+
     void delete_float(std::string_view var);
     void delete_int(std::string_view var);
     void delete_object(std::string_view var);
