@@ -44,6 +44,9 @@ struct LocalData {
     /// Clears a variable by type
     void clear(std::string_view var, uint32_t type);
 
+    /// Clears all variables by type
+    void clear_all(uint32_t type);
+
     void delete_float(std::string_view var);
     void delete_int(std::string_view var);
     void delete_object(std::string_view var);

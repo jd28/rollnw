@@ -42,6 +42,44 @@ void LocalData::clear(std::string_view var, uint32_t type)
     if (it->second.flags.none()) { vars_.erase(it); }
 }
 
+void LocalData::clear_all(uint32_t type)
+{
+    static std::vector<absl::string_view> eraser;
+
+    for (auto& [k, v] : vars_) {
+        switch (type) {
+        default:
+            LOG_F(ERROR, "local data invalid local var type: {}", type);
+        case 1: // int
+            v.integer = 0;
+            v.flags.reset(LocalVarType::integer);
+            break;
+        case 2: // float
+            v.float_ = 0.0;
+            v.flags.reset(LocalVarType::float_);
+            break;
+        case 3: // string
+            v.string = "";
+            v.flags.reset(LocalVarType::string);
+            break;
+        case 4: // object
+            v.object = object_invalid;
+            v.flags.reset(LocalVarType::object);
+            break;
+        case 5: // location
+            v.loc = Location{};
+            v.flags.reset(LocalVarType::location);
+            break;
+        }
+        if (v.flags.none()) { eraser.push_back(k); }
+    }
+
+    for (const auto& e : eraser) {
+        vars_.erase(e);
+    }
+    eraser.clear();
+}
+
 void LocalData::delete_float(std::string_view var)
 {
     absl::string_view v{var.data(), var.size()};

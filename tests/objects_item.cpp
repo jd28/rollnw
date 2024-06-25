@@ -69,6 +69,17 @@ TEST(Item, LocalVariables)
     EXPECT_EQ(ent->common.locals.get_float("test"), 1.0f);
     ent->common.locals.clear("test", nw::LocalVarType::float_);
     EXPECT_EQ(ent->common.locals.get_float("test"), 0.0f);
+
+    ent->common.locals.set_string("test", "1");
+    for (auto type : {nw::LocalVarType::integer,
+             nw::LocalVarType::float_,
+             nw::LocalVarType::object,
+             nw::LocalVarType::location,
+             nw::LocalVarType::string}) {
+        ent->common.locals.clear_all(type);
+    }
+    EXPECT_EQ(ent->common.locals.get_string("test"), "");
+    EXPECT_EQ(ent->common.locals.size(), 0);
 }
 
 TEST(Item, GffDeserializeLayered)
