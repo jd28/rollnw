@@ -39,6 +39,7 @@ void LocalData::clear(std::string_view var, uint32_t type)
         it->second.flags.reset(LocalVarType::location);
         break;
     }
+    if (it->second.flags.none()) { vars_.erase(it); }
 }
 
 void LocalData::delete_float(std::string_view var)
@@ -50,6 +51,7 @@ void LocalData::delete_float(std::string_view var)
     }
     it->second.float_ = 0.0;
     it->second.flags.reset(LocalVarType::float_);
+    if (it->second.flags.none()) { vars_.erase(it); }
 }
 
 void LocalData::delete_int(std::string_view var)
@@ -61,6 +63,7 @@ void LocalData::delete_int(std::string_view var)
     }
     it->second.integer = 0;
     it->second.flags.reset(LocalVarType::integer);
+    if (it->second.flags.none()) { vars_.erase(it); }
 }
 
 void LocalData::delete_object(std::string_view var)
@@ -72,6 +75,7 @@ void LocalData::delete_object(std::string_view var)
     }
     it->second.object = object_invalid;
     it->second.flags.reset(LocalVarType::object);
+    if (it->second.flags.none()) { vars_.erase(it); }
 }
 
 void LocalData::delete_string(std::string_view var)
@@ -83,6 +87,7 @@ void LocalData::delete_string(std::string_view var)
     }
     it->second.string = {};
     it->second.flags.reset(LocalVarType::string);
+    if (it->second.flags.none()) { vars_.erase(it); }
 }
 
 void LocalData::delete_location(std::string_view var)
@@ -94,6 +99,7 @@ void LocalData::delete_location(std::string_view var)
     }
     it->second.loc = nw::Location();
     it->second.flags.reset(LocalVarType::location);
+    if (it->second.flags.none()) { vars_.erase(it); }
 }
 
 float LocalData::get_float(std::string_view var) const
