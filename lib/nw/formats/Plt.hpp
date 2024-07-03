@@ -63,6 +63,6 @@ private:
 };
 
 /// Decodes PLT and user selected colors to RBGA
-std::array<uint8_t, 4> decode_plt_color(const Plt& plt, const PltColors& colors, uint32_t x, uint32_t y);
+uint32_t decode_plt_color(const Plt& plt, const PltColors& colors, uint32_t x, uint32_t y);
 
 } // namespace nw

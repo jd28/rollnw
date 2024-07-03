@@ -32,12 +32,11 @@ const PltPixel* Plt::pixels() const
 bool Plt::valid() const { return valid_; }
 uint32_t Plt::width() const { return width_; }
 
-std::array<uint8_t, 4> decode_plt_color(const Plt& plt, const PltColors& colors, uint32_t x, uint32_t y)
+uint32_t decode_plt_color(const Plt& plt, const PltColors& colors, uint32_t x, uint32_t y)
 {
-    std::array<uint8_t, 4> result{};
     if (x >= plt.width() || y >= plt.height()) {
         LOG_F(ERROR, "[plt] invalid coordinates ({}, {})", x, y);
-        return result;
+        return 0;
     }
 
     auto pixel = plt.pixels()[y * plt.width() + x];
@@ -45,12 +44,11 @@ std::array<uint8_t, 4> decode_plt_color(const Plt& plt, const PltColors& colors,
     auto img = nw::kernel::resman().palette_texture(pixel.layer);
     if (!img->valid()) {
         LOG_F(ERROR, "[plt] invalid palette texture for layer {}", uint8_t(pixel.layer));
-        return result;
+        return 0;
     }
 
     auto pal_data = img->data() + (selected_color * img->width() + pixel.color) * img->channels();
-
-    return {pal_data[0], pal_data[1], pal_data[2], img->channels() == 4 ? pal_data[3] : uint8_t(0xff)};
+    return (pal_data[0] << 24) | (pal_data[1] << 16) | (pal_data[2] << 8) | (img->channels() == 4 ? pal_data[3] : uint8_t(0xff));
 }
 
 } // namespace nw

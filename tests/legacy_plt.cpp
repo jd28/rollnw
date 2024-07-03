@@ -16,8 +16,9 @@ TEST(Plt, Load)
     EXPECT_EQ(plt.width(), 256u);
 
     EXPECT_TRUE(nw::kernel::resman().palette_texture(nw::plt_layer_skin));
+    auto value = plt.pixels()[0];
+    EXPECT_EQ(value.layer, nw::PltLayer::plt_layer_skin);
+    EXPECT_EQ(value.color, 62);
     auto color = nw::decode_plt_color(plt, {0}, 0, 0);
-    EXPECT_EQ(size_t(color[0]), 139);
-    EXPECT_EQ(size_t(color[1]), 102);
-    EXPECT_EQ(size_t(color[2]), 81);
+    EXPECT_EQ(color, 0x8B6651FF);
 }

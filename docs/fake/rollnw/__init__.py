@@ -942,7 +942,7 @@ class Plt:
         pass
 
 
-def decode_plt_color(plt: Plt, colors: PltColors, x: int, y: int) -> List[int]:
+def decode_plt_color(plt: Plt, colors: PltColors, x: int, y: int) -> int:
     """Decodes PLT and user selected colors to RBGA
     """
     pass
