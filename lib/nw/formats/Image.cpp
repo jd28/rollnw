@@ -88,28 +88,24 @@ bool Image::write_to(const std::filesystem::path& filename) const
 
     fs::path temp = fs::temp_directory_path() / filename.filename();
     std::string ext = filename.extension().string();
-    const char* temp_path;
-#ifdef _MSC_VER
-    temp_path = temp.string().c_str();
-#else
-    temp_path = temp.c_str();
-#endif
+    std::string temp_path = path_to_string(temp);
+
     int width = static_cast<int>(width_);
     int height = static_cast<int>(height_);
     int channels = static_cast<int>(channels_);
 
     if (string::icmp(ext, ".dds")) {
-        if (!save_image_as_DDS(temp_path, width, height, channels, bytes_)) {
+        if (!save_image_as_DDS(temp_path.c_str(), width, height, channels, bytes_)) {
             LOG_F(INFO, "Failed to write DDS");
             return false;
         }
     } else if (string::icmp(ext, ".png")) {
-        if (!stbi_write_png(temp_path, width, height, channels, bytes_, 0)) {
+        if (!stbi_write_png(temp_path.c_str(), width, height, channels, bytes_, 0)) {
             LOG_F(INFO, "Failed to write PNG");
             return false;
         }
     } else if (string::icmp(ext, ".tga")) {
-        if (!stbi_write_tga(temp_path, width, height, channels, bytes_)) {
+        if (!stbi_write_tga(temp_path.c_str(), width, height, channels, bytes_)) {
             LOG_F(INFO, "Failed to write TGA");
             return false;
         }
