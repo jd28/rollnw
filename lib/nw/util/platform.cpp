@@ -4,9 +4,11 @@
 #include <nowide/convert.hpp>
 #include <nowide/cstdlib.hpp>
 
+#include <algorithm>
 #include <cstdlib>
 #include <random>
 #include <sstream>
+
 #if defined(ROLLNW_OS_LINUX) || defined(ROLLNW_OS_MACOS)
 #include <pwd.h>
 #include <unistd.h>
