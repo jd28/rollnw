@@ -6,6 +6,8 @@ set -xe
 
 # manylinux prep
 if [[ -f "/etc/centos-release" ]]; then
+    rpm --import https://repo.almalinux.org/almalinux/RPM-GPG-KEY-AlmaLinux
+
     # sometimes the epel server is down. retry 5 times
     for i in $(seq 1 5); do
         yum install -y zlib-devel curl-devel expat-devel libpng-devel curl zip unzip tar && s=0 && break || s=$? && sleep 15;
