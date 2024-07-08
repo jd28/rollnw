@@ -177,7 +177,7 @@ jobs:
           path: "${{ github.workspace }}/build/tests"
 
       - name: Build wheels
-        uses: pypa/cibuildwheel@v2.19.1
+        uses: pypa/cibuildwheel@v2.19.2
 
       - name: Download Cache from Docker (linux only)
         if: ${{ runner.os == 'Linux' }}
