@@ -2,10 +2,12 @@
 
 #include "../resources/ResourceData.hpp"
 
-#include <memory>
-#include <string>
+#include <filesystem>
 
 namespace nw {
+
+struct Plt;
+struct PltColors;
 
 /**
  * @brief Image Resource
@@ -16,9 +18,9 @@ namespace nw {
  *
  * @note Even though this supports writing images, this is **catagorically**
  *       not a tool for converting/compressing textures.
- * @todo plt
  */
 struct Image {
+    explicit Image(const Plt& plt, const PltColors& colors);
     explicit Image(const std::filesystem::path& filename);
     explicit Image(ResourceData data);
 

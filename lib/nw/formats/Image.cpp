@@ -3,13 +3,14 @@
 #include "../log.hpp"
 #include "../util/platform.hpp"
 #include "../util/string.hpp"
+#include "Plt.hpp"
 
 #include <nowide/convert.hpp>
 #include <stb/image_DXT.h>
 #include <stb/stb_image.h>
 #include <stb/stb_image_write.h>
 
-#include <filesystem>
+#include <memory>
 
 namespace fs = std::filesystem;
 
@@ -29,6 +30,29 @@ Image::Image(ResourceData data)
     , is_dds_(data_.name.type == ResourceType::dds)
 {
     is_loaded_ = parse();
+}
+
+Image::Image(const Plt& plt, const PltColors& colors)
+    : bytes_{nullptr}
+    , is_dds_(false)
+    , is_bio_dds_(false)
+    , width_(plt.width())
+    , height_(plt.height())
+    , channels_(4)
+{
+    if (!plt.valid()) {
+        is_loaded_ = false;
+        return;
+    }
+
+    bytes_ = reinterpret_cast<uint8_t*>(malloc(4ull * height_ * width_));
+    auto ptr = reinterpret_cast<uint32_t*>(bytes_);
+    for (uint32_t x = 0; x < width_; ++x) {
+        for (uint32_t y = 0; y < height_; ++y) {
+            ptr[y * width_ + x] = decode_plt_color(plt, colors, x, y);
+        }
+    }
+    is_loaded_ = true;
 }
 
 Image::Image(Image&& other)

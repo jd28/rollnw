@@ -22,3 +22,16 @@ TEST(Plt, Load)
     auto color = nw::decode_plt_color(plt, {0}, 0, 0);
     EXPECT_EQ(color, 0x8B6651FF);
 }
+
+TEST(Plt, ToImage)
+{
+    nw::Plt plt{"test_data/user/development/pmh0_head001.plt"};
+    EXPECT_TRUE(plt.valid());
+    nw::PltColors colors;
+    colors.data[uint8_t(nw::PltLayer::plt_layer_hair)] = 10;
+    colors.data[uint8_t(nw::PltLayer::plt_layer_skin)] = 56;
+
+    nw::Image img(plt, colors);
+    EXPECT_TRUE(img.valid());
+    EXPECT_TRUE(img.write_to("tmp/pmh0_head001.png"));
+}
