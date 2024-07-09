@@ -15,6 +15,20 @@ namespace fs = std::filesystem;
 
 using namespace std::literals;
 
+TEST(Item, Colors)
+{
+    auto mod = nw::kernel::load_module("test_data/user/modules/DockerDemo.mod");
+    EXPECT_TRUE(mod);
+
+    auto heavy1 = nw::kernel::objects().load<nw::Item>("x2_mdrowar030"sv);
+    EXPECT_TRUE(heavy1);
+    auto plt_colors = heavy1->model_to_plt_colors();
+    EXPECT_EQ(plt_colors.data[nw::plt_layer_metal1], 3);
+    EXPECT_EQ(plt_colors.data[nw::plt_layer_metal2], 25);
+
+    nw::kernel::unload_module();
+}
+
 TEST(Item, GffDeserializeArmor)
 {
     auto mod = nw::kernel::load_module("test_data/user/modules/DockerDemo.mod");

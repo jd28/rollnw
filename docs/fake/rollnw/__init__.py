@@ -1360,6 +1360,10 @@ class Item:
     stacksize: int
     stolen: bool
 
+    def model_to_plt_colors(self) -> PltColors:
+        """Converts model colors to PLT colors"""
+        pass
+
     @staticmethod
     def from_dict(value: dict):
         """Constructs object from python dict.

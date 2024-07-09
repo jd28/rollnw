@@ -1,5 +1,6 @@
 #include "Item.hpp"
 
+#include "../formats/Plt.hpp"
 #include "../kernel/TwoDACache.hpp"
 #include "../serialization/Gff.hpp"
 #include "../serialization/GffBuilder.hpp"
@@ -34,6 +35,18 @@ bool Item::instantiate()
     }
 
     return instantiated_;
+}
+
+PltColors Item::model_to_plt_colors() const noexcept
+{
+    PltColors result{0};
+    result.data[plt_layer_cloth1] = model_colors[ItemColors::cloth1];
+    result.data[plt_layer_cloth2] = model_colors[ItemColors::cloth2];
+    result.data[plt_layer_leather1] = model_colors[ItemColors::leather1];
+    result.data[plt_layer_leather2] = model_colors[ItemColors::leather2];
+    result.data[plt_layer_metal1] = model_colors[ItemColors::metal1];
+    result.data[plt_layer_metal2] = model_colors[ItemColors::metal2];
+    return result;
 }
 
 std::string Item::get_name_from_file(const std::filesystem::path& path)

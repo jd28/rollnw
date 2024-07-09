@@ -462,6 +462,7 @@ void init_objects_item(py::module& nw)
         .def(py::init<>())
         .def("to_dict", &to_json_helper<nw::Item>)
         .def("handle", &nw::Item::handle)
+        .def("model_to_plt_colors", &nw::Item::model_to_plt_colors)
 
         .def_readonly_static("json_archive_version", &nw::Item::json_archive_version)
         .def_readonly_static("object_type", &nw::Item::object_type)

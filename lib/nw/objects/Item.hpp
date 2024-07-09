@@ -12,6 +12,8 @@
 
 namespace nw {
 
+struct PltColors;
+
 struct Item : public ObjectBase {
     Item();
     static constexpr int json_archive_version = 1;
@@ -29,6 +31,9 @@ struct Item : public ObjectBase {
     static bool deserialize(Item* obj, const nlohmann::json& archive, SerializationProfile profile);
     static bool serialize(const Item* obj, nlohmann::json& archive, SerializationProfile profile);
     static std::string get_name_from_file(const std::filesystem::path& path);
+
+    /// Converts model colors to Plt colors
+    PltColors model_to_plt_colors() const noexcept;
 
     Common common;
     Inventory inventory;
