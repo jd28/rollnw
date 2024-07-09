@@ -372,15 +372,15 @@ Image* Resources::palette_texture(PltLayer layer)
         break;
     case plt_layer_cloth1:
     case plt_layer_cloth2:
-        data.bytes.append(pal_armor02_tga, pal_armor02_tga_len);
+        data.bytes.append(pal_cloth01_tga, pal_cloth01_tga_len);
         break;
     case plt_layer_leather1:
     case plt_layer_leather2:
-        data.bytes.append(pal_armor02_tga, pal_armor02_tga_len);
+        data.bytes.append(pal_leath01_tga, pal_leath01_tga_len);
         break;
     case plt_layer_tattoo1:
     case plt_layer_tattoo2:
-        data.bytes.append(pal_armor02_tga, pal_armor02_tga_len);
+        data.bytes.append(pal_tattoo01_tga, pal_tattoo01_tga_len);
         break;
     }
 
