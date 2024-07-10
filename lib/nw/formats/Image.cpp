@@ -124,7 +124,7 @@ bool Image::write_to(const std::filesystem::path& filename) const
             return false;
         }
     } else if (string::icmp(ext, ".png")) {
-        if (!stbi_write_png(temp_path.c_str(), width, height, channels, bytes_, 0)) {
+        if (!stbi_write_png(temp_path.c_str(), width, height, channels, bytes_, width * channels)) {
             LOG_F(INFO, "Failed to write PNG");
             return false;
         }
