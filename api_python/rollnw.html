@@ -638,10 +638,12 @@
 <li class="toctree-l3"><a class="reference internal" href="#rollnw.Item.description_id"><code class="docutils literal notranslate"><span class="pre">Item.description_id</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#rollnw.Item.from_dict"><code class="docutils literal notranslate"><span class="pre">Item.from_dict()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#rollnw.Item.from_file"><code class="docutils literal notranslate"><span class="pre">Item.from_file()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#rollnw.Item.get_icon_by_part"><code class="docutils literal notranslate"><span class="pre">Item.get_icon_by_part()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#rollnw.Item.identified"><code class="docutils literal notranslate"><span class="pre">Item.identified</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#rollnw.Item.inventory"><code class="docutils literal notranslate"><span class="pre">Item.inventory</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#rollnw.Item.model_colors"><code class="docutils literal notranslate"><span class="pre">Item.model_colors</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#rollnw.Item.model_parts"><code class="docutils literal notranslate"><span class="pre">Item.model_parts</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#rollnw.Item.model_to_plt_colors"><code class="docutils literal notranslate"><span class="pre">Item.model_to_plt_colors()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#rollnw.Item.model_type"><code class="docutils literal notranslate"><span class="pre">Item.model_type</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#rollnw.Item.plot"><code class="docutils literal notranslate"><span class="pre">Item.plot</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#rollnw.Item.properties"><code class="docutils literal notranslate"><span class="pre">Item.properties</span></code></a></li>
@@ -3942,6 +3944,13 @@ be constructed.</p>
 <dd><p>Constructs object from file.  The file can be JSON or Gff.</p>
 </dd></dl>
 
+<dl class="py method">
+<dt class="sig sig-object py" id="rollnw.Item.get_icon_by_part">
+<span class="sig-name descname"><span class="pre">get_icon_by_part</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">part</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#rollnw.ItemModelParts" title="rollnw.ItemModelParts"><span class="pre">ItemModelParts</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">ItemModelParts.model1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">female</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#rollnw.Image" title="rollnw.Image"><span class="pre">Image</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></span><a class="headerlink" href="#rollnw.Item.get_icon_by_part" title="Link to this definition"></a></dt>
+<dd><p>Generates image of icon by model part, constructing from PLT textures as necessary.</p>
+<p>Note: Python owns the lifetime of the resulting image. Merging icons is also the responsibility of the caller.</p>
+</dd></dl>
+
 <dl class="py attribute">
 <dt class="sig sig-object py" id="rollnw.Item.identified">
 <span class="sig-name descname"><span class="pre">identified</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></em><a class="headerlink" href="#rollnw.Item.identified" title="Link to this definition"></a></dt>
@@ -3961,6 +3970,12 @@ be constructed.</p>
 <dt class="sig sig-object py" id="rollnw.Item.model_parts">
 <span class="sig-name descname"><span class="pre">model_parts</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#rollnw.Item.model_parts" title="Link to this definition"></a></dt>
 <dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="rollnw.Item.model_to_plt_colors">
+<span class="sig-name descname"><span class="pre">model_to_plt_colors</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#rollnw.PltColors" title="rollnw.PltColors"><span class="pre">PltColors</span></a></span></span><a class="headerlink" href="#rollnw.Item.model_to_plt_colors" title="Link to this definition"></a></dt>
+<dd><p>Converts model colors to PLT colors</p>
+</dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="rollnw.Item.model_type">
