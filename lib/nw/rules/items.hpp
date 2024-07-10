@@ -113,11 +113,11 @@ struct BaseItemInfo {
     uint32_t equipable_slots = 0;
     bool can_rotate_icon = false;
     ItemModelType model_type;
-    // ItemClass
+    Resref item_class;
     bool gender_specific = false;
     std::tuple<bool, bool, bool> composite_env_map;
     Resource default_model;
-    std::string default_icon;
+    Resref default_icon;
     bool is_container = false;
     int weapon_wield = 0;
     int weapon_type = 0;

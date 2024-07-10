@@ -18,7 +18,9 @@ BaseItemInfo::BaseItemInfo(const TwoDARowView& tda)
     tda.get_to("EquipableSlots", equipable_slots);
     tda.get_to("CanRotateIcon", can_rotate_icon);
     // ModelType
-    // ItemClass
+    if (tda.get_to("ItemClass", temp_string)) {
+        item_class = Resref(temp_string);
+    }
     tda.get_to("GenderSpecific", gender_specific);
     tda.get_to("Part1EnvMap", std::get<0>(composite_env_map));
     tda.get_to("Part2EnvMap", std::get<1>(composite_env_map));
@@ -26,7 +28,9 @@ BaseItemInfo::BaseItemInfo(const TwoDARowView& tda)
     if (tda.get_to("DefaultModel", temp_string)) {
         default_model = {temp_string, nw::ResourceType::mdl};
     }
-    tda.get_to("DefaultIcon", default_icon);
+    if (tda.get_to("DefaultIcon", temp_string)) {
+        default_icon = Resref(temp_string);
+    }
     tda.get_to("Container", is_container);
     tda.get_to("WeaponWield", weapon_wield);
     tda.get_to("WeaponType", weapon_type);
