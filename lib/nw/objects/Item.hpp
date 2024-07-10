@@ -12,6 +12,7 @@
 
 namespace nw {
 
+struct Image;
 struct PltColors;
 
 struct Item : public ObjectBase {
@@ -31,6 +32,10 @@ struct Item : public ObjectBase {
     static bool deserialize(Item* obj, const nlohmann::json& archive, SerializationProfile profile);
     static bool serialize(const Item* obj, nlohmann::json& archive, SerializationProfile profile);
     static std::string get_name_from_file(const std::filesystem::path& path);
+
+    /// Gets image by item model part.
+    /// @note Caller takes ownership of the resulting image.  Merging icons is also the responsibility of the caller.
+    Image* get_icon_by_part(ItemModelParts::type part = ItemModelParts::model1, bool female = false) const;
 
     /// Converts model colors to Plt colors
     PltColors model_to_plt_colors() const noexcept;

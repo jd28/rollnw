@@ -1364,6 +1364,12 @@ class Item:
         """Converts model colors to PLT colors"""
         pass
 
+    def get_icon_by_part(self, part: ItemModelParts = ItemModelParts.model1,  female: bool = False) -> Optional[Image]:
+        """Generates image of icon by model part, constructing from PLT textures as necessary.
+
+        Note: Python owns the lifetime of the resulting image. Merging icons is also the responsibility of the caller.
+        """
+
     @staticmethod
     def from_dict(value: dict):
         """Constructs object from python dict.
