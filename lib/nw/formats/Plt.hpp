@@ -34,7 +34,7 @@ struct PltPixel {
 /// Plt Color Array
 /// @note This would be the colors that a player would select
 struct PltColors {
-    std::array<uint8_t, plt_layer_size> data{};
+    std::array<uint8_t, plt_layer_size> data{0};
 };
 
 /// Implementation of Bioware's PLT file format

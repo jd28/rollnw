@@ -46,9 +46,12 @@ uint32_t decode_plt_color(const Plt& plt, const PltColors& colors, uint32_t x, u
         LOG_F(ERROR, "[plt] invalid palette texture for layer {}", uint8_t(pixel.layer));
         return 0;
     }
+    if (pixel.color == 255) { return 0; }
 
     auto pal_data = img->data() + (selected_color * img->width() + pixel.color) * img->channels();
-    return (pal_data[0] << 24) | (pal_data[1] << 16) | (pal_data[2] << 8) | (img->channels() == 4 ? pal_data[3] : uint8_t(0xff));
+    uint32_t result = 0;
+    memcpy(&result, pal_data, 4);
+    return result;
 }
 
 } // namespace nw
