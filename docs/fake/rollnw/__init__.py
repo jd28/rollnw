@@ -840,7 +840,7 @@ class Image:
         """
         pass
 
-    def data(self):
+    def data(self) -> bytes:
         """Get raw data
         """
         pass

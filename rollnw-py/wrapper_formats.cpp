@@ -185,7 +185,10 @@ void init_formats_image(py::module& nw)
     py::class_<nw::Image>(nw, "Image")
         .def(py::init<const std::filesystem::path&>())
         .def("channels", &nw::Image::channels)
-        .def("data", &nw::Image::data, py::return_value_policy::reference_internal)
+        .def("data", [](const nw::Image& self) {
+            size_t size = self.width() * self.height() * self.channels();
+            return py::bytes(reinterpret_cast<char*>(self.data()), size);
+        })
         .def("height", &nw::Image::height)
         .def("valid", &nw::Image::valid)
         .def("width", &nw::Image::width)
