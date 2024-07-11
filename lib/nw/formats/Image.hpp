@@ -34,7 +34,7 @@ struct Image {
     uint32_t channels() const noexcept;
 
     /// Get raw data
-    uint8_t* data();
+    uint8_t* data() const noexcept;
 
     /// Get height
     uint32_t height() const noexcept;

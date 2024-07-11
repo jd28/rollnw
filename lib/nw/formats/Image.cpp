@@ -96,7 +96,7 @@ Image::~Image()
 
 uint32_t Image::channels() const noexcept { return channels_; }
 
-uint8_t* Image::data() { return bytes_; }
+uint8_t* Image::data() const noexcept { return bytes_; }
 
 uint32_t Image::height() const noexcept { return height_; }
 
