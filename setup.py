@@ -50,7 +50,7 @@ class CMakeBuild(build_ext):
 
 setup(
     name="rollnw",
-    version="0.31.dev0",
+    version="0.32.dev0",
     author="jmd",
     author_email="joshua.m.dean@gmail.com",
     packages=["rollnw-stubs"],
