@@ -161,6 +161,9 @@ class Objects:
         """Gets an object with specific tag
         """
 
+    def item(self, resref: str) -> Item:
+        pass
+
     def placeable(self, resref: str) -> Placeable:
         pass
 

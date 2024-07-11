@@ -117,6 +117,8 @@ void init_kernel_objects(py::module& kernel)
         .def("get_by_tag", &nw::kernel::ObjectSystem::get_by_tag,
             py::arg("tag"), py::arg("nth") = 0,
             py::return_value_policy::reference_internal)
+        .def("item", &load_object_helper<nw::Item>,
+            py::return_value_policy::reference_internal)
         .def("placeable", &load_object_helper<nw::Placeable>,
             py::return_value_policy::reference_internal)
         .def("store", &load_object_helper<nw::Store>,
