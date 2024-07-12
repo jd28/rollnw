@@ -7,6 +7,4 @@ def test_plt_construct():
     assert plt.valid()
 
     color = rollnw.decode_plt_color(plt, rollnw.PltColors(), 0, 0)
-    color[0] == 139
-    color[1] == 102
-    color[2] == 81
+    assert color == 0xFF51668B
