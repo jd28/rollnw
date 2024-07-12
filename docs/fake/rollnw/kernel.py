@@ -218,12 +218,13 @@ def config():
     pass
 
 
-def load_module(path: str, manifest: str) -> Module:
+def load_module(path: str, instantiate: bool = True) -> Module:
     """Loads a module
 
     Args:
         path (str): path to module, can be a directory (with module.ifo), a mod file, or a zip file
-        manifest (str): NWSynch manifest hash
+        instantiate (bool): If instantiate is ``False``, no areas are loaded and service init at
+            ``module_post_instantiation`` is not called.
     """
     pass
 

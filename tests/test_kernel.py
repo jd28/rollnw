@@ -1,6 +1,12 @@
 import rollnw
 
 
+def test_load_modulue():
+    mod = rollnw.kernel.load_module(
+        "tests/test_data/user/modules/DockerDemo.mod")
+    rollnw.kernel.unload_module()
+
+
 def test_twoda_cache():
     p1 = rollnw.kernel.twodas().get('placeables')
     assert p1
