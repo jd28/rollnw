@@ -25,11 +25,14 @@ Plt::Plt(ResourceData data)
 }
 
 uint32_t Plt::height() const { return height_; }
+
 const PltPixel* Plt::pixels() const
 {
     return reinterpret_cast<const PltPixel*>(data_.bytes.data() + 24);
 }
+
 bool Plt::valid() const { return valid_; }
+
 uint32_t Plt::width() const { return width_; }
 
 uint32_t decode_plt_color(const Plt& plt, const PltColors& colors, uint32_t x, uint32_t y)
@@ -48,9 +51,9 @@ uint32_t decode_plt_color(const Plt& plt, const PltColors& colors, uint32_t x, u
     }
     if (pixel.color == 255) { return 0; }
 
-    auto pal_data = img->data() + (selected_color * img->width() + pixel.color) * img->channels();
+    auto palette_pixel = img->data() + (selected_color * img->width() + pixel.color) * img->channels();
     uint32_t result = 0;
-    memcpy(&result, pal_data, 4);
+    memcpy(&result, palette_pixel, img->channels());
     return result;
 }
 
