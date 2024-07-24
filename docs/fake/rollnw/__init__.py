@@ -1849,6 +1849,15 @@ def resmatch(res: Resource, pattern: str) -> bool:
     pass
 
 
+class ResourceData:
+    """Resource data
+
+    Attributes:
+        name (str)
+        bytes (bytes)
+    """
+
+
 class ResourceDescriptor:
     """Resource descriptor
 
