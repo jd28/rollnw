@@ -185,6 +185,9 @@ class Resources(Container):
     """Resources service
     """
 
+    def __init__(self, parent: "Resources"):
+        """Constructs resoruce manager with a given parent."""
+
     def demand_any(self, resref: str,
                    restypes: List[ResourceType]) -> ResourceData:
         """Gets the first found resource in container priority order for an arbitrary list
