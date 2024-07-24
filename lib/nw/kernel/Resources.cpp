@@ -389,9 +389,9 @@ Image* Resources::palette_texture(PltLayer layer)
     return palette_textures_[layer]->valid() ? palette_textures_[layer].get() : nullptr;
 }
 
-Image* Resources::texture(Resref resref, std::initializer_list<ResourceType::type> types)
+Image* Resources::texture(Resref resref) const
 {
-    auto data = demand_in_order(resref, types);
+    auto data = demand_in_order(resref, {ResourceType::dds, ResourceType::tga});
     return data.bytes.size() > 0 ? new Image(std::move(data)) : nullptr;
 }
 

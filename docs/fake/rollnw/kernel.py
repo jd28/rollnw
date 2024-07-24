@@ -203,10 +203,10 @@ class Resources(Container):
         """Demands a player character file.
         """
 
-    def texture(self, resref: str, types: list[ResourceType] = [ResourceType.dds, ResourceType.tga]) -> Optional[Image]:
+    def texture(self, resref: str) -> Optional[Image]:
         """Loads a texture from the resource manager
 
-        This is a wrapper around ``demand_in_order``.
+        This is a wrapper around ``demand_in_order`` only dds and tga are considered.
         """
 
     pass

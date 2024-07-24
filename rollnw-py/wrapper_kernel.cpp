@@ -22,6 +22,7 @@
 #include <pybind11/stl_bind.h>
 
 #include <filesystem>
+#include <initializer_list>
 
 namespace py = pybind11;
 namespace fs = std::filesystem;
@@ -144,9 +145,7 @@ void init_kernel_resources(py::module& kernel)
         .def("demand_any", &nw::kernel::Resources::demand_any)
         .def("demand_in_order", &nw::kernel::Resources::demand_in_order)
         .def("demand_server_vault", &nw::kernel::Resources::demand_server_vault)
-        .def("texture", &nw::kernel::Resources::texture,
-            py::arg("resref"),
-            py::arg("types"));
+        .def("texture", &nw::kernel::Resources::texture);
 
     kernel.def(
         "resman", []() {

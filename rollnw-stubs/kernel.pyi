@@ -86,8 +86,7 @@ class Resources(rollnw.Container):
 
     def demand_server_vault(self, cdkey: str, resref: str) -> ResourceData: ...
 
-    def texture(self, resref: str,
-                types: List[ResourceType] = [ResourceType.dds, ResourceType.tga]) -> Optional[Image]: ...
+    def texture(self, resref: str): ...
 
 
 class Rules:
@@ -100,9 +99,9 @@ class Strings:
 
 class TwoDACache:
     def __init__(self, *args, **kwargs): ...
-    @overload
+    @ overload
     def get(self, arg0: str) -> rollnw.TwoDA: ...
-    @overload
+    @ overload
     def get(self, arg0: rollnw.Resource) -> rollnw.TwoDA: ...
 
 
