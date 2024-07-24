@@ -146,7 +146,7 @@ void init_kernel_resources(py::module& kernel)
         .def("demand_server_vault", &nw::kernel::Resources::demand_server_vault)
         .def("texture", &nw::kernel::Resources::texture,
             py::arg("resref"),
-            py::arg("types") = std::initializer_list<nw::ResourceType::type>{nw::ResourceType::dds, nw::ResourceType::tga});
+            py::arg("types"));
 
     kernel.def(
         "resman", []() {
