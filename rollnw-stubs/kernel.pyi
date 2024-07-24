@@ -1,4 +1,4 @@
-from typing import Any, Tuple, Optional, overload
+from typing import Any, Tuple, Optional, overload, List
 
 import rollnw
 from rollnw import (
@@ -6,6 +6,7 @@ from rollnw import (
     Effect,
     Module,
     ObjectBase,
+    ResourceData,
     ResourceType,
     Image,
 )
@@ -78,10 +79,13 @@ class Resources(rollnw.Container):
     def __init__(self, parent: Optional[rollnw.kernel.Resources]): ...
 
     def demand_any(self, resref: str,
-                   restypes) -> rollnw.ResourceData: ...
+                   restypes) -> ResourceData: ...
+
+    def demand_in_order(self, resref: str,
+                        restypes: List[ResourceType]) -> ResourceData: ...
 
     def texture(self, resref: str,
-                types: list[ResourceType] = [ResourceType.dds, ResourceType.tga]) -> Optional[Image]: ...
+                types: List[ResourceType] = [ResourceType.dds, ResourceType.tga]) -> Optional[Image]: ...
 
 
 class Rules:

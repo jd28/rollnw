@@ -191,6 +191,11 @@ class Resources(Container):
         of types.
         """
 
+    def demand_in_order(self, resref: str,
+                        restypes: List[ResourceType]) -> ResourceData:
+        """Attempts to locate first matching resource by resource type priority.
+        """
+
     def texture(self, resref: str, types: list[ResourceType] = [ResourceType.dds, ResourceType.tga]) -> Optional[Image]:
         """Loads a texture from the resource manager
 
