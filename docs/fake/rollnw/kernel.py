@@ -199,6 +199,10 @@ class Resources(Container):
         """Attempts to locate first matching resource by resource type priority.
         """
 
+    def demand_server_vault(self, cdkey: str, resref: str) -> ResourceData:
+        """Demands a player character file.
+        """
+
     def texture(self, resref: str, types: list[ResourceType] = [ResourceType.dds, ResourceType.tga]) -> Optional[Image]:
         """Loads a texture from the resource manager
 

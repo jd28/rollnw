@@ -143,6 +143,7 @@ void init_kernel_resources(py::module& kernel)
             py::keep_alive<1, 2>())
         .def("demand_any", &nw::kernel::Resources::demand_any)
         .def("demand_in_order", &nw::kernel::Resources::demand_in_order)
+        .def("demand_server_vault", &nw::kernel::Resources::demand_server_vault)
         .def("texture", &nw::kernel::Resources::texture,
             py::arg("resref"),
             py::arg("types") = std::initializer_list<nw::ResourceType::type>{nw::ResourceType::dds, nw::ResourceType::tga});
