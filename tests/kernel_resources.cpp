@@ -75,6 +75,21 @@ TEST(KernelResources, LoadPlayerCharacter)
     nwk::unload_module();
 }
 
+TEST(KernelResources, Teture)
+{
+    auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
+    EXPECT_TRUE(mod);
+
+    auto tex1 = nwk::resman().texture("doesn'texist"sv);
+    EXPECT_FALSE(tex1);
+
+    auto tex2 = nwk::resman().texture("tno01_wtcliff01"sv);
+    EXPECT_TRUE(tex2);
+    EXPECT_TRUE(tex2->valid());
+
+    nwk::unload_module();
+}
+
 TEST(KernelResources, visit)
 {
     auto rm = new nw::kernel::Resources;

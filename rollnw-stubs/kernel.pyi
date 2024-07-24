@@ -6,6 +6,8 @@ from rollnw import (
     Effect,
     Module,
     ObjectBase,
+    ResourceType,
+    Image,
 )
 
 
@@ -77,6 +79,9 @@ class Resources(rollnw.Container):
 
     def demand_any(self, resref: str,
                    restypes) -> rollnw.ResourceData: ...
+
+    def texture(self, resref: str,
+                types: list[ResourceType] = [ResourceType.dds, ResourceType.tga]) -> Optional[Image]: ...
 
 
 class Rules:

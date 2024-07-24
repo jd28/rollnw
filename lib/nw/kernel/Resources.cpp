@@ -389,6 +389,12 @@ Image* Resources::palette_texture(PltLayer layer)
     return palette_textures_[layer]->valid() ? palette_textures_[layer].get() : nullptr;
 }
 
+Image* Resources::texture(Resref resref, std::initializer_list<ResourceType::type> types)
+{
+    auto data = demand_in_order(resref, types);
+    return data.bytes.size() > 0 ? new Image(std::move(data)) : nullptr;
+}
+
 void Resources::update_container_search()
 {
     search_.clear();

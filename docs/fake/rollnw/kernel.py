@@ -191,6 +191,12 @@ class Resources(Container):
         of types.
         """
 
+    def texture(self, resref: str, types: list[ResourceType] = [ResourceType.dds, ResourceType.tga]) -> Optional[Image]:
+        """Loads a texture from the resource manager
+
+        This is a wrapper around ``demand_in_order``.
+        """
+
     pass
 
 

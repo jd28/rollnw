@@ -93,6 +93,10 @@ struct Resources : public Container, public Service {
 
     const ResroucesStats& metrics() const;
 
+    /// Loads a texture from the resource manager
+    /// @note This is a wrapper around ``demand_in_order``.
+    Image* texture(Resref resref, std::initializer_list<ResourceType::type> types = {ResourceType::dds, ResourceType::tga});
+
     virtual std::vector<ResourceDescriptor> all() const override
     {
         return {};

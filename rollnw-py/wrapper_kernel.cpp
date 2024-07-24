@@ -142,7 +142,10 @@ void init_kernel_resources(py::module& kernel)
         .def(py::init<>())
         .def(py::init<const nw::kernel::Resources*>(),
             py::keep_alive<1, 2>())
-        .def("demand_any", &nw::kernel::Resources::demand_any);
+        .def("demand_any", &nw::kernel::Resources::demand_any)
+        .def("texture", &nw::kernel::Resources::texture,
+            py::arg("resref"),
+            py::arg("types") = std::initializer_list<nw::ResourceType::type>{nw::ResourceType::dds, nw::ResourceType::tga});
 
     kernel.def(
         "resman", []() {
