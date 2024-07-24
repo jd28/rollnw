@@ -1,8 +1,8 @@
 from . import GameVersion, Module, Ini, Container, TwoDA, Resource
 from . import ObjectBase, ObjectHandle, Area, Creature, Door, Encounter, Placeable, Store, Trigger, Waypoint
-from . import Effect
+from . import Effect, ResourceType, Image, ResourceData
 
-from typing import Optional, Tuple
+from typing import Optional, Tuple, List
 
 # Classes #####################################################################
 ###############################################################################
@@ -185,8 +185,13 @@ class Resources(Container):
     """Resources service
     """
 
-    def __init__(self, parent: Optional["Resources"]):
-        pass
+    def demand_any(self, resref: str,
+                   restypes: List[ResourceType]) -> ResourceData:
+        """Gets the first found resource in container priority order for an arbitrary list
+        of types.
+        """
+
+    pass
 
 
 class Rules:

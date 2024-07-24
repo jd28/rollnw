@@ -74,6 +74,7 @@ class Objects:
 
 class Resources(rollnw.Container):
     def __init__(self, parent: Optional[rollnw.kernel.Resources]): ...
+
     def demand_any(self, resref: str,
                    restypes) -> rollnw.ResourceData: ...
 
