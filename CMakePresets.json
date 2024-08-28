@@ -44,6 +44,31 @@
             }
         },
         {
+            "name": "linux-dev",
+            "inherits": "linux",
+            "displayName": "Linux Dev",
+            "description": "Development build, including tests, benchmarks and python",
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Linux"
+            },
+            "cacheVariables": {
+                "ROLLNW_BUILD_TESTS": {
+                    "type": "BOOL",
+                    "value": "ON"
+                },
+                "ROLLNW_BUILD_BENCHMARKS": {
+                    "type": "BOOL",
+                    "value": "ON"
+                },
+                "ROLLNW_BUILD_PYTHON": {
+                    "type": "BOOL",
+                    "value": "ON"
+                }
+            }
+        },
+        {
             "name": "ci-codeql",
             "inherits": "linux",
             "displayName": "ci-codeql",
