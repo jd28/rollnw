@@ -117,31 +117,7 @@ bool calc_mod_input(T& out, const ObjectBase* obj, const ObjectBase* versus,
     if (in.is<T>()) {
         out = in.as<T>();
     } else if (in.is<ModifierFunction>()) {
-        auto res = in.as<ModifierFunction>()(obj);
-        if (res.is<T>()) {
-            out = res.as<T>();
-        } else {
-            LOG_F(ERROR, "invalid modifier or type mismatch");
-            return false;
-        }
-    } else if (in.is<ModifierSubFunction>()) {
-        auto res = in.as<ModifierSubFunction>()(obj, subtype);
-        if (res.is<T>()) {
-            out = res.as<T>();
-        } else {
-            LOG_F(ERROR, "invalid modifier or type mismatch");
-            return false;
-        }
-    } else if (in.is<ModifierVsFunction>()) {
-        auto res = in.as<ModifierVsFunction>()(obj, versus);
-        if (res.is<T>()) {
-            out = res.as<T>();
-        } else {
-            LOG_F(ERROR, "invalid modifier or type mismatch");
-            return false;
-        }
-    } else if (in.is<ModifierSubVsFunction>()) {
-        auto res = in.as<ModifierSubVsFunction>()(obj, versus, subtype);
+        auto res = in.as<ModifierFunction>()(obj, versus, subtype);
         if (res.is<T>()) {
             out = res.as<T>();
         } else {
@@ -183,6 +159,7 @@ bool resolve_modifier(const ObjectBase* obj, const Modifier& mod, Callback cb,
     static_assert(detail::function_traits<Callback>::validate_args(), "invalid argument types");
     static_assert(detail::function_traits<Callback>::arity == 1,
         "callbacks can only have one parameter of a modifier result type");
+
 
     if (!rules().meets_requirement(mod.requirement, obj)) {
         return false;
@@ -242,11 +219,7 @@ bool resolve_modifier(const ObjectBase* obj, const ModifierType type, SubType su
     if (subtype != SubType::invalid()) {
         it = detail::find_first_modifier_of(it, end, type);
         while (it != end && it->type == type && it->subtype == -1) {
-            // Modifier Variant can be applied to any invalid subtype iff it's a function that
-            // takes a subtype.
-            if (it->input.is<ModifierSubFunction>() || it->input.is<ModifierSubVsFunction>()) {
-                if (!resolve_modifier(obj, *it, cb, versus, *subtype)) { return false; }
-            }
+            if (!resolve_modifier(obj, *it, cb, versus, *subtype)) { return false; }
             ++it;
         }
     }
@@ -436,7 +409,7 @@ void resolve_master_feats(const Creature* obj, U type, Callback cb, Args... mfea
                 if (mf_bonus.template is<T>()) {
                     result[i] = mf_bonus.template as<T>();
                 } else if (mf_bonus.template is<ModifierFunction>()) {
-                    auto res = mf_bonus.template as<ModifierFunction>()(obj);
+                    auto res = mf_bonus.template as<ModifierFunction>()(obj, nullptr, -1);
                     if (res.template is<T>()) {
                         result[i] = res.template as<T>();
                     }

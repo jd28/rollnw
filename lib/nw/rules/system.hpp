@@ -88,19 +88,15 @@ enum struct ModifierSource {
 };
 
 using ModifierResult = Variant<int, float, DamageRoll>;
-using ModifierFunction = std::function<ModifierResult(const ObjectBase*)>;
-using ModifierSubFunction = std::function<ModifierResult(const ObjectBase*, int32_t)>;
-using ModifierVsFunction = std::function<ModifierResult(const ObjectBase*, const ObjectBase*)>;
-using ModifierSubVsFunction = std::function<ModifierResult(const ObjectBase*, const ObjectBase*, int32_t)>;
+using ModifierFunction = std::function<ModifierResult(const ObjectBase*, const ObjectBase*, int32_t)>;
 
 using ModifierVariant = Variant<
     int,
     float,
     DamageRoll,
-    ModifierFunction,
-    ModifierSubFunction,
-    ModifierVsFunction,
-    ModifierSubVsFunction>;
+    ModifierFunction
+    // Ultimately some script type or chunk here.
+    >;
 
 struct Modifier {
     ModifierType type = ModifierType::invalid();

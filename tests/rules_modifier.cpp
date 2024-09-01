@@ -20,7 +20,7 @@ TEST(Rules, Modifiers)
 
     auto is_pm = nw::Requirement{{nwn1::qual::class_level(nwn1::class_type_pale_master, 1)}};
 
-    auto pm_ac = [](const nw::ObjectBase* obj) -> nw::ModifierResult {
+    auto pm_ac = [](const nw::ObjectBase* obj, const nw::ObjectBase*, int32_t) -> nw::ModifierResult {
         auto cre = obj->as_creature();
         if (!cre) {
             return 0;
@@ -59,7 +59,7 @@ TEST(KernelRules, Modifier)
     int res = nwk::sum_modifier<int>(ent, nwn1::mod_type_armor_class, nwn1::ac_natural);
     EXPECT_EQ(res, 6);
 
-    auto pm_ac_nerf = [](const nw::ObjectBase* obj) -> nw::ModifierResult {
+    auto pm_ac_nerf = [](const nw::ObjectBase* obj, const nw::ObjectBase*, int32_t) -> nw::ModifierResult {
         auto cre = obj->as_creature();
         if (!cre) {
             return 0;
