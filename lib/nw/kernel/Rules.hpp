@@ -160,7 +160,7 @@ bool resolve_modifier(const ObjectBase* obj, const Modifier& mod, Callback cb,
     static_assert(detail::function_traits<Callback>::arity == 1,
         "callbacks can only have one parameter of a modifier result type");
 
-
+    if(!obj) { return false; }
     if (!rules().meets_requirement(mod.requirement, obj)) {
         return false;
     }

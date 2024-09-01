@@ -89,7 +89,6 @@ nw::ModifierResult epic_great_ability(const nw::ObjectBase* obj, const nw::Objec
 
 nw::ModifierResult dragon_disciple_ac(const nw::ObjectBase* obj, const nw::ObjectBase*, int32_t)
 {
-    if (!obj) { return 0; }
     auto cre = obj->as_creature();
     if (!cre) { return 0; }
 
@@ -109,7 +108,6 @@ nw::ModifierResult dragon_disciple_ac(const nw::ObjectBase* obj, const nw::Objec
 
 nw::ModifierResult pale_master_ac(const nw::ObjectBase* obj, const nw::ObjectBase*, int32_t)
 {
-    if (!obj) { return 0; }
     auto cre = obj->as_creature();
     if (!cre) { return 0; }
 
@@ -134,7 +132,6 @@ nw::ModifierResult training_versus_ac(const nw::ObjectBase* obj, const nw::Objec
 
 nw::ModifierResult tumble_ac(const nw::ObjectBase* obj, const nw::ObjectBase*, int32_t)
 {
-    if (!obj) { return 0; }
     auto cre = obj->as_creature();
     if (!cre) { return 0; }
     return get_skill_rank(cre, skill_tumble, nullptr, true) / 5;
@@ -143,7 +140,6 @@ nw::ModifierResult tumble_ac(const nw::ObjectBase* obj, const nw::ObjectBase*, i
 // Attack Bonus
 nw::ModifierResult ability_attack_bonus(const nw::ObjectBase* obj, const nw::ObjectBase*, int32_t subtype)
 {
-    if (!obj) { return 0; }
     auto cre = obj->as_creature();
     if (!cre) { return 0; }
 
@@ -170,7 +166,6 @@ nw::ModifierResult ability_attack_bonus(const nw::ObjectBase* obj, const nw::Obj
 
 nw::ModifierResult combat_mode_ab(const nw::ObjectBase* obj, const nw::ObjectBase*, int32_t)
 {
-    if (!obj) { return 0; }
     auto cre = obj->as_creature();
     if (!cre) { return 0; }
 
@@ -222,7 +217,6 @@ nw::ModifierResult enchant_arrow_ab(const nw::ObjectBase* obj, const nw::ObjectB
 
 nw::ModifierResult favored_enemy_ab(const nw::ObjectBase* obj, const nw::ObjectBase* vs, int32_t subtype)
 {
-    if (!obj) { return 0; }
     auto cre = obj->as_creature();
     if (!cre || !vs) { return 0; }
     auto vs_cre = vs->as_creature();
@@ -390,7 +384,6 @@ nw::ModifierResult ability_damage(const nw::ObjectBase* obj, const nw::ObjectBas
 {
     nw::DamageRoll roll;
     roll.type = damage_type_base_weapon;
-    if (!obj) { return roll; }
     auto cre = obj->as_creature();
     if (!cre) { return roll; }
 
@@ -442,7 +435,6 @@ nw::ModifierResult combat_mode_dmg(const nw::ObjectBase* obj, const nw::ObjectBa
 nw::ModifierResult favored_enemy_dmg(const nw::ObjectBase* obj, const nw::ObjectBase* vs, int32_t subtype)
 {
     nw::DamageRoll result;
-    if (!obj) { return result; }
     auto cre = obj->as_creature();
     if (!cre || !vs) { return result; }
     auto vs_cre = vs->as_creature();
