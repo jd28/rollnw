@@ -29,7 +29,9 @@ TEST(Rules, Modifiers)
         return pm_level > 0 ? ((pm_level / 4) + 1) * 2 : 0;
     };
 
-    auto mod2 = nwn1::mod::armor_class(pm_ac,
+    auto mod2 = nw::make_modifier(nwn1::mod_type_armor_class,
+        nwn1::ac_natural,
+        pm_ac,
         "dnd-3.0-palemaster-ac", nw::ModifierSource::class_);
 
     int res = 0;

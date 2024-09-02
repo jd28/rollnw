@@ -33,7 +33,7 @@ nw::ModifierFunction simple_feat_mod(nw::Feat feat, int value)
 nw::ModifierResult class_stat_gain(const nw::ObjectBase* obj, const nw::ObjectBase*, int32_t subtype)
 {
     nw::Ability abil = nw::Ability::make(subtype);
-    if(abil == nw::Ability::invalid()) { return 0; }
+    if (abil == nw::Ability::invalid()) { return 0; }
 
     auto cre = obj->as_creature();
     if (!cre) { return 0; }
@@ -618,39 +618,50 @@ void load_modifiers()
 
     // == Ability =============================================================
     // ========================================================================
-    rules.modifiers.add(mod::ability(
+    rules.modifiers.add(nw::make_modifier(
+        mod_type_ability,
         class_stat_gain,
         "nwn-ee-class-stat-gain",
         nw::ModifierSource::class_));
 
-    rules.modifiers.add(mod::ability(
+    rules.modifiers.add(nw::make_modifier(
+        mod_type_ability,
         epic_great_ability,
         "dnd-3.0-epic-great-ability",
         nw::ModifierSource::feat));
 
     // == Armor Class =========================================================
     // ========================================================================
-    rules.modifiers.add(mod::armor_class(
+    rules.modifiers.add(nw::make_modifier(
+        mod_type_armor_class,
+        ac_natural,
         dragon_disciple_ac,
         "dnd-3.0-dragon-disciple-ac",
         nw::ModifierSource::class_));
 
-    rules.modifiers.add(mod::armor_class(
+    rules.modifiers.add(nw::make_modifier(
+        mod_type_armor_class,
+        ac_natural,
         pale_master_ac,
         "dnd-3.0-palemaster-ac",
         nw::ModifierSource::class_));
 
-    rules.modifiers.add(mod::armor_class(
+    rules.modifiers.add(nw::make_modifier(
+        mod_type_armor_class,
+        ac_natural,
         simple_feat_mod(feat_epic_armor_skin, 2),
         "dnd-3.0-epic-armor-skin",
         nw::ModifierSource::feat));
 
-    rules.modifiers.add(mod::armor_class(
+    rules.modifiers.add(nw::make_modifier(
+        mod_type_armor_class,
+        ac_natural,
         training_versus_ac,
         "dnd-3.0-training-vs-ac",
         nw::ModifierSource::feat));
 
-    rules.modifiers.add(mod::armor_class(
+    rules.modifiers.add(nw::make_modifier(
+        mod_type_armor_class,
         ac_dodge,
         tumble_ac,
         "dnd-3.0-tumble-ac",
@@ -658,66 +669,77 @@ void load_modifiers()
 
     // == Attack Bonus ========================================================
     // ========================================================================
-    rules.modifiers.add(mod::attack_bonus(
+    rules.modifiers.add(nw::make_modifier(
+        mod_type_attack_bonus,
         ability_attack_bonus,
         "dnd-3.0-ability-attack-bonus",
         nw::ModifierSource::ability));
 
-    rules.modifiers.add(mod::attack_bonus(
+    rules.modifiers.add(nw::make_modifier(
+        mod_type_attack_bonus,
         weapon_feat_ab,
         "dnd-3.0-weapon-feats",
         nw::ModifierSource::feat));
 
-    rules.modifiers.add(mod::attack_bonus(
+    rules.modifiers.add(nw::make_modifier(
+        mod_type_attack_bonus,
         attack_type_onhand,
         enchant_arrow_ab,
         "dnd-3.0-enchant-arrow",
         nw::ModifierSource::class_));
 
-    rules.modifiers.add(mod::attack_bonus(
+    rules.modifiers.add(nw::make_modifier(
+        mod_type_attack_bonus,
         attack_type_any,
         simple_feat_mod(feat_epic_prowess, 1),
         "dnd-3.0-epic-prowess",
         nw::ModifierSource::feat));
 
-    rules.modifiers.add(mod::attack_bonus(
+    rules.modifiers.add(nw::make_modifier(
+        mod_type_attack_bonus,
         attack_type_any,
         favored_enemy_ab,
         "dnd-3.0-favored-enemy",
         nw::ModifierSource::class_));
 
-    rules.modifiers.add(mod::attack_bonus(
+    rules.modifiers.add(nw::make_modifier(
+        mod_type_attack_bonus,
         attack_type_any,
         combat_mode_ab,
         "dnd-3.0-combat-mode",
         nw::ModifierSource::combat_mode));
 
-    rules.modifiers.add(mod::attack_bonus(
+    rules.modifiers.add(nw::make_modifier(
+        mod_type_attack_bonus,
         attack_type_onhand,
         good_aim,
         "dnd-3.0-good-aim",
         nw::ModifierSource::feat));
 
-    rules.modifiers.add(mod::attack_bonus(
+    rules.modifiers.add(nw::make_modifier(
+        mod_type_attack_bonus,
         attack_type_any,
         target_state_ab,
         "dnd-3.0-target-state",
         nw::ModifierSource::unknown));
 
-    rules.modifiers.add(mod::attack_bonus(
+    rules.modifiers.add(nw::make_modifier(
+        mod_type_attack_bonus,
         attack_type_any,
         training_versus_ab,
         "dnd-3.0-training-vs-ab",
         nw::ModifierSource::feat));
 
-    rules.modifiers.add(mod::attack_bonus(
+    rules.modifiers.add(nw::make_modifier(
+        mod_type_attack_bonus,
         weapon_master_ab,
         "dnd-3.0-weaponmaster-ab",
         nw::ModifierSource::class_));
 
     // == Concealment =========================================================
     // ========================================================================
-    rules.modifiers.add(mod::concealment(
+    rules.modifiers.add(nw::make_modifier(
+        mod_type_concealment,
         epic_self_concealment,
         "dnd-3.0-self-concealment",
         nw::ModifierSource::feat));
@@ -726,79 +748,91 @@ void load_modifiers()
     // ========================================================================
 
     // Ability Damage
-    rules.modifiers.add(mod::damage_bonus(
+    rules.modifiers.add(nw::make_modifier(
+        mod_type_damage,
         ability_damage,
         "dnd-3.0-ability-dmg",
         nw::ModifierSource::ability));
 
     // Combat Mode
-    rules.modifiers.add(mod::damage_bonus(
+    rules.modifiers.add(nw::make_modifier(
+        mod_type_damage,
         attack_type_any,
         combat_mode_dmg,
         "dnd-3.0-combat-mode-dmg",
         nw::ModifierSource::combat_mode));
 
     // Favored Enemy
-    rules.modifiers.add(mod::damage_bonus(
+    rules.modifiers.add(nw::make_modifier(
+        mod_type_damage,
         attack_type_any,
         favored_enemy_dmg,
         "dnd-3.0-favored-enemy-dmg",
         nw::ModifierSource::feat));
 
     // Overwhelming Critical
-    rules.modifiers.add(mod::damage_bonus(
+    rules.modifiers.add(nw::make_modifier(
+        mod_type_damage,
         overwhelming_crit_dmg,
         "dnd-3.0-overwhelming-crit-dmg",
         nw::ModifierSource::feat));
 
     // == Damage Immunity =====================================================
     // ========================================================================
-    rules.modifiers.add(mod::damage_immunity(
+    rules.modifiers.add(nw::make_modifier(
+        mod_type_dmg_immunity,
         dragon_disciple_immunity,
         "dnd-3.0-self-concealment",
         nw::ModifierSource::class_));
 
     // == Damage Reduction ====================================================
     // ========================================================================
-    rules.modifiers.add(mod::damage_reduction(
+    rules.modifiers.add(nw::make_modifier(
+        mod_type_dmg_reduction,
         barbarian_dmg_reduction,
         "dnd-3.0-barbarian-reduction",
         nw::ModifierSource::feat));
 
-    rules.modifiers.add(mod::damage_reduction(
+    rules.modifiers.add(nw::make_modifier(
+        mod_type_dmg_reduction,
         dwarven_defender_dmg_reduction,
         "dnd-3.0-dwarven-defender-reduction",
         nw::ModifierSource::class_));
 
-    rules.modifiers.add(mod::damage_reduction(
+    rules.modifiers.add(nw::make_modifier(
+        mod_type_dmg_reduction,
         epic_dmg_reduction,
         "dnd-3.0-epic-damage-reduction",
         nw::ModifierSource::feat));
 
     // == Damage Resist =======================================================
     // ========================================================================
-    rules.modifiers.add(mod::damage_resist(
+    rules.modifiers.add(nw::make_modifier(
+        mod_type_dmg_resistance,
         energy_resistance,
         "dnd-3.0-energy-resist-acid",
         nw::ModifierSource::feat));
 
     // == Hitpoints ===========================================================
     // ========================================================================
-    rules.modifiers.add(mod::hitpoints(
+    rules.modifiers.add(nw::make_modifier(
+        mod_type_hitpoints,
         toughness,
         "dnd-3.0-toughness",
         nw::ModifierSource::feat));
 
-    rules.modifiers.add(mod::hitpoints(
+    rules.modifiers.add(nw::make_modifier(
+        mod_type_hitpoints,
         epic_toughness,
         "dnd-3.0-epic-toughness",
         nw::ModifierSource::feat));
 
     // == Skills =============================================================
     // ========================================================================
-    rules.modifiers.add(mod::skill(
+    rules.modifiers.add(nw::make_modifier(
+        mod_type_skill,
         skill_search,
-        simple_feat_mod(feat_stonecunning, 2),
+        simple_feat_mod(feat_stonecunning, 2), // This is way wrong, but ok for now.
         "dnd-3.0-stone-cunning",
         nw::ModifierSource::feat));
 

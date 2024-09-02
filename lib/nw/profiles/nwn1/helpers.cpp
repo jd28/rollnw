@@ -8,66 +8,6 @@
 
 namespace nwn1 {
 
-namespace mod {
-
-#define DEFINE_MOD(name, type)                                                     \
-    nw::Modifier name(nw::ModifierVariant value, std::string_view tag,             \
-        nw::ModifierSource source, nw::Requirement req)                            \
-    {                                                                              \
-        return nw::Modifier{                                                       \
-            type,                                                                  \
-            {value},                                                               \
-            tag.size() ? nw::kernel::strings().intern(tag) : nw::InternedString{}, \
-            source,                                                                \
-            std::move(req),                                                        \
-            -1,                                                                    \
-        };                                                                         \
-    }
-
-#define DEFINE_MOD_WITH_SUBTYPE(name, subtype_type, type)                                    \
-    nw::Modifier name(subtype_type subtype, nw::ModifierVariant value, std::string_view tag, \
-        nw::ModifierSource source, nw::Requirement req)                                      \
-    {                                                                                        \
-        return nw::Modifier{                                                                 \
-            type,                                                                            \
-            {value},                                                                         \
-            tag.size() ? nw::kernel::strings().intern(tag) : nw::InternedString{},           \
-            source,                                                                          \
-            std::move(req),                                                                  \
-            *subtype,                                                                        \
-        };                                                                                   \
-    }
-
-DEFINE_MOD(ability, mod_type_ability)
-DEFINE_MOD(attack_bonus, mod_type_attack_bonus)
-DEFINE_MOD(concealment, mod_type_concealment)
-DEFINE_MOD(damage_bonus, mod_type_damage)
-DEFINE_MOD(damage_immunity, mod_type_dmg_immunity)
-DEFINE_MOD(damage_reduction, mod_type_dmg_reduction)
-DEFINE_MOD(damage_resist, mod_type_dmg_resistance)
-DEFINE_MOD(hitpoints, mod_type_hitpoints)
-DEFINE_MOD_WITH_SUBTYPE(ability, nw::Ability, mod_type_ability)
-DEFINE_MOD_WITH_SUBTYPE(armor_class, nw::ArmorClass, mod_type_armor_class)
-DEFINE_MOD_WITH_SUBTYPE(attack_bonus, nw::AttackType, mod_type_attack_bonus)
-DEFINE_MOD_WITH_SUBTYPE(damage_bonus, nw::AttackType, mod_type_damage)
-DEFINE_MOD_WITH_SUBTYPE(damage_resist, nw::Damage, mod_type_dmg_resistance)
-DEFINE_MOD_WITH_SUBTYPE(skill, nw::Skill, mod_type_skill)
-
-nw::Modifier armor_class(nw::ModifierVariant value, std::string_view tag,
-    nw::ModifierSource source, nw::Requirement req)
-{
-    return nw::Modifier{
-        mod_type_armor_class,
-        value,
-        tag.size() ? nw::kernel::strings().intern(tag) : nw::InternedString{},
-        source,
-        std::move(req),
-        *ac_natural,
-    };
-}
-
-} // namespace mod
-
 namespace qual {
 
 nw::Qualifier ability(nw::Ability id, int min, int max)

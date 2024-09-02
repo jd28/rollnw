@@ -107,6 +107,19 @@ struct Modifier {
     int subtype = -1;
 };
 
+nw::Modifier make_modifier(nw::ModifierType type, nw::ModifierVariant value,
+    std::string_view tag, nw::ModifierSource source = nw::ModifierSource::unknown,
+    nw::Requirement req = nw::Requirement{}, int32_t subtype = -1);
+
+template <typename SubType>
+nw::Modifier make_modifier(nw::ModifierType type, SubType subtype, nw::ModifierVariant value,
+    std::string_view tag, nw::ModifierSource source = nw::ModifierSource::unknown,
+    nw::Requirement req = nw::Requirement{})
+{
+    static_assert(nw::is_rule_type<SubType>::value, "Subtype must be a rule type!");
+    return make_modifier(type, std::move(value), tag, source, std::move(req), *subtype);
+}
+
 inline bool operator<(const Modifier& lhs, const Modifier& rhs)
 {
     return std::tie(lhs.type, lhs.subtype, lhs.source) < std::tie(rhs.type, rhs.subtype, rhs.source);

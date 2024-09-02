@@ -10,39 +10,6 @@
 
 namespace nwn1 {
 
-namespace mod {
-
-#define DECLARE_MOD(name)                                              \
-    nw::Modifier name(nw::ModifierVariant value, std::string_view tag, \
-        nw::ModifierSource source = nw::ModifierSource::unknown,       \
-        nw::Requirement req = nw::Requirement{})
-
-#define DECLARE_MOD_WITH_SUBTYPE(name, type)                                         \
-    nw::Modifier name(type subtype, nw::ModifierVariant value, std::string_view tag, \
-        nw::ModifierSource source = nw::ModifierSource::unknown,                     \
-        nw::Requirement req = nw::Requirement{})
-
-DECLARE_MOD(ability);
-DECLARE_MOD(armor_class);
-DECLARE_MOD(attack_bonus);
-DECLARE_MOD(concealment);
-DECLARE_MOD(damage_bonus);
-DECLARE_MOD(damage_immunity);
-DECLARE_MOD(damage_reduction);
-DECLARE_MOD(damage_resist);
-DECLARE_MOD(hitpoints);
-DECLARE_MOD_WITH_SUBTYPE(ability, nw::Ability);
-DECLARE_MOD_WITH_SUBTYPE(armor_class, nw::ArmorClass);
-DECLARE_MOD_WITH_SUBTYPE(attack_bonus, nw::AttackType);
-DECLARE_MOD_WITH_SUBTYPE(damage_bonus, nw::AttackType);
-DECLARE_MOD_WITH_SUBTYPE(damage_resist, nw::Damage);
-DECLARE_MOD_WITH_SUBTYPE(skill, nw::Skill);
-
-#undef DECLARE_MOD
-#undef DECLARE_MOD_WITH_SUBTYPE
-
-} // namespace mod
-
 namespace qual {
 
 nw::Qualifier ability(nw::Ability id, int min, int max = 0);

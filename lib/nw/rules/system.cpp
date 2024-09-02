@@ -32,6 +32,19 @@ size_t Requirement::size() const noexcept
 // == Modifier ================================================================
 // ============================================================================
 
+nw::Modifier make_modifier(nw::ModifierType type, nw::ModifierVariant value,
+    std::string_view tag, nw::ModifierSource source, nw::Requirement req, int32_t subtype)
+{
+    return nw::Modifier{
+        type,
+        {value},
+        tag.size() ? nw::kernel::strings().intern(tag) : nw::InternedString{},
+        source,
+        std::move(req),
+        subtype,
+    };
+}
+
 void ModifierRegistry::add(Modifier mod)
 {
     auto it = std::lower_bound(std::begin(entries_), std::end(entries_), mod);
