@@ -104,7 +104,6 @@ struct Modifier {
     InternedString tagged;
     ModifierSource source = ModifierSource::unknown;
     Requirement requirement = Requirement{};
-    Versus versus = {};
     int subtype = -1;
 };
 

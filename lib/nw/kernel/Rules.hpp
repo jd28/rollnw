@@ -135,7 +135,7 @@ template <typename It>
 inline std::vector<Modifier>::const_iterator
 find_first_modifier_of(It begin, It end, const ModifierType type, int32_t subtype = -1)
 {
-    Modifier temp{type, {}, {}, ModifierSource::unknown, Requirement{}, {}, subtype};
+    Modifier temp{type, {}, {}, ModifierSource::unknown, Requirement{}, subtype};
     auto it = std::lower_bound(begin, end, temp);
     if (it == end) { return end; }
     if (it->type != type) { return end; }
@@ -160,7 +160,7 @@ bool resolve_modifier(const ObjectBase* obj, const Modifier& mod, Callback cb,
     static_assert(detail::function_traits<Callback>::arity == 1,
         "callbacks can only have one parameter of a modifier result type");
 
-    if(!obj) { return false; }
+    if (!obj) { return false; }
     if (!rules().meets_requirement(mod.requirement, obj)) {
         return false;
     }

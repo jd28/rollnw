@@ -15,12 +15,12 @@ namespace mod {
 #define DECLARE_MOD(name)                                              \
     nw::Modifier name(nw::ModifierVariant value, std::string_view tag, \
         nw::ModifierSource source = nw::ModifierSource::unknown,       \
-        nw::Requirement req = nw::Requirement{}, nw::Versus versus = {})
+        nw::Requirement req = nw::Requirement{})
 
 #define DECLARE_MOD_WITH_SUBTYPE(name, type)                                         \
     nw::Modifier name(type subtype, nw::ModifierVariant value, std::string_view tag, \
         nw::ModifierSource source = nw::ModifierSource::unknown,                     \
-        nw::Requirement req = nw::Requirement{}, nw::Versus versus = {})
+        nw::Requirement req = nw::Requirement{})
 
 DECLARE_MOD(ability);
 DECLARE_MOD(armor_class);

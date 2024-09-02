@@ -12,7 +12,7 @@ namespace mod {
 
 #define DEFINE_MOD(name, type)                                                     \
     nw::Modifier name(nw::ModifierVariant value, std::string_view tag,             \
-        nw::ModifierSource source, nw::Requirement req, nw::Versus versus)         \
+        nw::ModifierSource source, nw::Requirement req)                            \
     {                                                                              \
         return nw::Modifier{                                                       \
             type,                                                                  \
@@ -20,14 +20,13 @@ namespace mod {
             tag.size() ? nw::kernel::strings().intern(tag) : nw::InternedString{}, \
             source,                                                                \
             std::move(req),                                                        \
-            versus,                                                                \
             -1,                                                                    \
         };                                                                         \
     }
 
 #define DEFINE_MOD_WITH_SUBTYPE(name, subtype_type, type)                                    \
     nw::Modifier name(subtype_type subtype, nw::ModifierVariant value, std::string_view tag, \
-        nw::ModifierSource source, nw::Requirement req, nw::Versus versus)                   \
+        nw::ModifierSource source, nw::Requirement req)                                      \
     {                                                                                        \
         return nw::Modifier{                                                                 \
             type,                                                                            \
@@ -35,7 +34,6 @@ namespace mod {
             tag.size() ? nw::kernel::strings().intern(tag) : nw::InternedString{},           \
             source,                                                                          \
             std::move(req),                                                                  \
-            versus,                                                                          \
             *subtype,                                                                        \
         };                                                                                   \
     }
@@ -56,7 +54,7 @@ DEFINE_MOD_WITH_SUBTYPE(damage_resist, nw::Damage, mod_type_dmg_resistance)
 DEFINE_MOD_WITH_SUBTYPE(skill, nw::Skill, mod_type_skill)
 
 nw::Modifier armor_class(nw::ModifierVariant value, std::string_view tag,
-    nw::ModifierSource source, nw::Requirement req, nw::Versus versus)
+    nw::ModifierSource source, nw::Requirement req)
 {
     return nw::Modifier{
         mod_type_armor_class,
@@ -64,7 +62,6 @@ nw::Modifier armor_class(nw::ModifierVariant value, std::string_view tag,
         tag.size() ? nw::kernel::strings().intern(tag) : nw::InternedString{},
         source,
         std::move(req),
-        versus,
         *ac_natural,
     };
 }
