@@ -3,7 +3,18 @@
 #include "../formats/TwoDA.hpp"
 #include "../kernel/Strings.hpp"
 
+#include "nlohmann/json.hpp"
+
 namespace nw {
+
+DEFINE_RULE_TYPE(Ability);
+DEFINE_RULE_TYPE(Appearance);
+DEFINE_RULE_TYPE(ArmorClass);
+DEFINE_RULE_TYPE(Phenotype);
+DEFINE_RULE_TYPE(Race);
+DEFINE_RULE_TYPE(Save);
+DEFINE_RULE_TYPE(SaveVersus);
+DEFINE_RULE_TYPE(Skill);
 
 // -- Alignment ---------------------------------------------------------------
 // ----------------------------------------------------------------------------

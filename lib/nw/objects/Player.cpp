@@ -4,6 +4,8 @@
 #include "../serialization/GffBuilder.hpp"
 #include "LevelHistory.hpp"
 
+#include <nlohmann/json.hpp>
+
 namespace nw {
 
 bool Player::deserialize(Player* obj, const nlohmann::json& archive)

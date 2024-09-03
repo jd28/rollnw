@@ -1,6 +1,10 @@
 #include "Effect.hpp"
 
+#include "nlohmann/json.hpp"
+
 namespace nw {
+
+DEFINE_RULE_TYPE(EffectType);
 
 Effect::Effect()
 {

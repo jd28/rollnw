@@ -4,10 +4,15 @@
 #include "../kernel/Kernel.hpp"
 #include "../objects/CreatureStats.hpp"
 
+#include "nlohmann/json.hpp"
+
 namespace nw {
 
 // -- Feats -------------------------------------------------------------------
 // ----------------------------------------------------------------------------
+
+DEFINE_RULE_TYPE(Feat);
+DEFINE_RULE_TYPE(MasterFeat);
 
 FeatInfo::FeatInfo(const TwoDARowView& tda)
 {

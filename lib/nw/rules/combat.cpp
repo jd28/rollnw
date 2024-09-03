@@ -1,6 +1,18 @@
 #include "combat.hpp"
 
+#include "nlohmann/json.hpp"
+
 namespace nw {
+
+DEFINE_RULE_TYPE(AttackType);
+DEFINE_RULE_TYPE(Damage);
+DEFINE_RULE_TYPE(DamageModType);
+DEFINE_RULE_TYPE(Disease);
+DEFINE_RULE_TYPE(MissChanceType);
+DEFINE_RULE_TYPE(CombatMode);
+DEFINE_RULE_TYPE(Poison);
+DEFINE_RULE_TYPE(Situation);
+DEFINE_RULE_TYPE(SpecialAttack);
 
 void AttackData::add(nw::Damage type_, int amount, bool unblockable)
 {

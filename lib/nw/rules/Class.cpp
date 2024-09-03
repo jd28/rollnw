@@ -4,7 +4,11 @@
 #include "../kernel/Resources.hpp"
 #include "../kernel/Rules.hpp"
 
+#include "nlohmann/json.hpp"
+
 namespace nw {
+
+DEFINE_RULE_TYPE(Class)
 
 ClassInfo::ClassInfo(const TwoDARowView& tda)
 {

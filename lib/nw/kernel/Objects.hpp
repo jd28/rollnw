@@ -20,7 +20,7 @@
 #include "Resources.hpp"
 
 #include <absl/container/btree_map.h>
-#include <nlohmann/json_fwd.hpp>
+#include <nlohmann/json.hpp>
 
 #include <filesystem>
 #include <stack>

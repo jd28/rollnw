@@ -8,6 +8,8 @@
 
 namespace nw {
 
+DEFINE_RULE_TYPE(TrapType);
+
 TrapInfo::TrapInfo(const TwoDARowView& tda)
 {
     std::string temp;

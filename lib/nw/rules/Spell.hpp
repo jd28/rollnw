@@ -25,6 +25,7 @@ enum struct SpellMetaMagic : uint8_t {
 };
 
 DECLARE_RULE_TYPE(SpellSchool);
+
 struct SpellSchoolInfo {
     SpellSchoolInfo() = default;
     SpellSchoolInfo(const TwoDARowView& tda);
