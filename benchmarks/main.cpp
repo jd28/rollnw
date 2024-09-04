@@ -311,20 +311,7 @@ BENCHMARK(BM_rules_modifier);
 
 int main(int argc, char** argv)
 {
-    bool probe = false;
-    const char* var = nowide::getenv("ROLLNW_TEST_PROBE_INSTALL");
-    if (var) {
-        if (auto val = nw::string::from<bool>(var)) {
-            probe = *val;
-        }
-    }
-
     nw::init_logger(argc, argv);
-
-    if (!probe) {
-        nwk::config().set_paths("test_data/root/", "test_data/user/");
-    }
-
     nwk::config().initialize();
     nwk::services().start();
 
