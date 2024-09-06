@@ -1,8 +1,16 @@
 #pragma once
 
-#include "helpers.hpp"
-
 #include "../../objects/Equips.hpp"
+#include "../../rules/attributes.hpp"
+
+namespace nw {
+struct AttackType;
+struct BaseItem;
+struct DiceRoll;
+struct EffectType;
+struct ObjectBase;
+struct ObjectHandle;
+} // namespace nw
 
 namespace nwn1 {
 

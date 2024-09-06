@@ -7,9 +7,6 @@ arbitrary sets of rules and modifiers, it probably would not look much
 like NWN. Enhanced Edition's approach largely was to unhardcode
 *values*, but not systems [1]_.
 
-rollNW has the elements of NWN's rule system builtin, which is itself an approximation of the Dungeons
-and Dragons 3rd Edition ruleset.
-
 The Goals
 ---------
 
@@ -26,6 +23,9 @@ The Goals
 
 Definitions
 -----------
+
+**Attribute**
+   A feature inherint to some object. I,e. a creature has set of ability scores.
 
 **Profile**
    Profiles are a way of decoupling different rulesets from the rule system itself.
@@ -112,13 +112,13 @@ Definitions
 .. code:: cpp
 
    // This is just an example, see "profiles/nwn1/modifiers.[ch]pp for real implementations of rules.
-   auto mod2 = nwn1::mod::hitpoints(
-      20, // Modifier value, if the below requirement is met
-      "dnd-3.0-epic-toughness-01",
-      nw::ModifierSource::feat
-      { nwn1::qual::feat(nwn1::feat_epic_toughness_1) },
+   auto mod2 = nw::make_modifier(
+      mod_type_hitpoints,
+      20,
+      "dnd-3.0-epic-toughness",
+      nw::ModifierSource::feat,
+      { nw::qualifier_feat(nwn1::feat_epic_toughness_1) }
    );
-
    // Add it to the global modifier table
    nw::kernel::rules().modifier.add(mod2);
 
@@ -213,26 +213,14 @@ for all martial weapons.
 Requirements
 ------------
 
-**Selector**
-   A selector gets some piece of information from an entity.
-
-   **Example**:
-
-   .. code:: cpp
-
-      auto s = nwn1::sel::ability(ability_strength);
-      // ...
-      auto str = nw::kernel::rules().select<int>(s, entity);
-      // ...
-
 **Qualifier**
-   A qualifier is a selector with some constraints thereupon. In
+   A qualifier is a constraint on some attribute. In
    the example below any creature with an unmodified strength between [20,
    40] inclusive would match.
 
    .. code:: cpp
 
-      auto q = nwn1::qual::ability(ability_strength, 20, 40);
+      auto q = nw::qualifier_ability(ability_strength, 20, 40);
       // ...
       if(nw::kernel::rules().match(q, creature)) {
          // ...
@@ -249,9 +237,9 @@ Requirements
    .. code:: cpp
 
       auto req = nw::Requirement{{
-         nwn1::qual::level(4),
-         nwn1::qual::ability(ability_wisdom, 12, 20), // Min, Max
-         nwn1::qual::skill(skill_appraise, 6),
+         nw::qualifier_level(4),
+         nw::qualifier_ability(ability_wisdom, 12, 20), // Min, Max
+         nw::qualifier_skill(skill_appraise, 6),
       }};
       // ...
       if(nw::kernel::rules().meets_requirement(req, creature)) {

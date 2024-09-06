@@ -18,44 +18,47 @@
 
 namespace nw {
 
+struct Class;
+struct Feat;
 struct ObjectBase;
 
 using RuleValue = Variant<int32_t, float, std::string>;
 
-// == Selector ================================================================
-// ============================================================================
+DECLARE_RULE_TYPE(ReqType);
 
-/// Selector types
-enum struct SelectorType : uint32_t {
-    ability,       ///< Subtype: ability_* constant
-    ac,            ///< Subtype: ac_* constant
-    alignment,     ///< Subtype: AlignmentAxis
-    arcane_level,  ///< Subtype: none
-    bab,           ///< Subtype: none
-    caster_level,  ///< Subtype:
-    class_level,   ///< Subtype: class_* constant
-    feat,          ///< Subtype: feat_* constant
-    hitpoints_max, ///< Subtype: none
-    level,         ///< Subtype: none
-    local_var_int, ///< Subtype: local var name, eg. "X1_AllowArcher"
-    local_var_str, ///< Subtype: local var name, eg. "some_var"
-    race,          ///< Subtype: none
-    skill,         ///< Subtype: skill_* constant
-    spell_level,   ///< Subtype:
-};
-
-struct Selector {
-    SelectorType type;
-    RuleValue subtype{};
-};
+/// Requirement types
+constexpr ReqType req_type_ability = nw::ReqType::make(0);        ///< Subtype: `nw::Ability` constant
+constexpr ReqType req_type_ac = nw::ReqType::make(1);             ///< Subtype: ac_* constant
+constexpr ReqType req_type_alignment = nw::ReqType::make(2);      ///< Subtype: AlignmentAxis
+constexpr ReqType req_type_arcane_level = nw::ReqType::make(3);   ///< Subtype: none
+constexpr ReqType req_type_bab = nw::ReqType::make(4);            ///< Subtype: none
+constexpr ReqType req_type_caster_level = nw::ReqType::make(5);   ///< Subtype:
+constexpr ReqType req_type_class_level = nw::ReqType::make(6);    ///< Subtype: `nw::Class` constant
+constexpr ReqType req_type_feat = nw::ReqType::make(7);           ///< Subtype: `nw::Feat` constant
+constexpr ReqType req_type_level = nw::ReqType::make(8);          ///< Subtype: none
+constexpr ReqType req_type_local_var_int = nw::ReqType::make(9);  ///< Subtype: local var name, eg. "X1_AllowArcher"
+constexpr ReqType req_type_local_var_str = nw::ReqType::make(10); ///< Subtype: local var name, eg. "some_var"
+constexpr ReqType req_type_race = nw::ReqType::make(11);          ///< Subtype: none
+constexpr ReqType req_type_skill = nw::ReqType::make(12);         ///< Subtype: skill_* constant
+constexpr ReqType req_type_spell_level = nw::ReqType::make(13);   ///< Subtype:
 
 // == Qualifier ===============================================================
 // ============================================================================
 
 struct Qualifier {
-    Selector selector;
+    ReqType type;
+    RuleValue subtype;
     absl::InlinedVector<RuleValue, 4> params;
 };
+
+Qualifier qualifier_ability(Ability id, int min, int max = 0);
+Qualifier qualifier_alignment(AlignmentAxis axis, AlignmentFlags flags);
+Qualifier qualifier_base_attack_bonus(int min, int max = 0);
+Qualifier qualifier_class_level(Class id, int min, int max = 0);
+Qualifier qualifier_level(int min, int max = 0);
+Qualifier qualifier_feat(Feat id);
+Qualifier qualifier_race(Race id);
+Qualifier qualifier_skill(Skill id, int min, int max = 0);
 
 // == Requirement =============================================================
 // ============================================================================

@@ -1,10 +1,89 @@
 #include "system.hpp"
 
 #include "../kernel/Kernel.hpp"
+#include "Class.hpp"
+#include "feats.hpp"
 
 namespace nw {
 
+// == Qualifier ===============================================================
+// ============================================================================
+
+Qualifier qualifier_ability(nw::Ability id, int min, int max)
+{
+    Qualifier q;
+    q.type = nw::req_type_ability;
+    q.subtype = *id;
+    q.params.push_back(min);
+    q.params.push_back(max);
+    return q;
+}
+
+Qualifier qualifier_alignment(nw::AlignmentAxis axis, nw::AlignmentFlags flags)
+{
+    Qualifier q;
+    q.type = req_type_alignment;
+    q.subtype = static_cast<int>(axis);
+    q.params.push_back(static_cast<int32_t>(flags));
+    return q;
+}
+
+Qualifier qualifier_base_attack_bonus(int min, int max)
+{
+    Qualifier q;
+    q.type = req_type_bab;
+    q.params.push_back(min);
+    q.params.push_back(max);
+    return q;
+}
+
+Qualifier qualifier_class_level(nw::Class id, int min, int max)
+{
+    Qualifier q;
+    q.type = req_type_class_level;
+    q.subtype = *id;
+    q.params.push_back(min);
+    q.params.push_back(max);
+    return q;
+}
+
+Qualifier qualifier_feat(nw::Feat id)
+{
+    Qualifier q;
+    q.type = req_type_feat;
+    q.subtype = *id;
+    return q;
+}
+
+Qualifier qualifier_race(nw::Race id)
+{
+    Qualifier q;
+    q.type = req_type_race;
+    q.params.push_back(*id);
+    return q;
+}
+
+Qualifier qualifier_skill(nw::Skill id, int min, int max)
+{
+    Qualifier q;
+    q.type = req_type_skill;
+    q.subtype = *id;
+    q.params.push_back(min);
+    q.params.push_back(max);
+    return q;
+}
+
+Qualifier qualifier_level(int min, int max)
+{
+    Qualifier q;
+    q.type = req_type_level;
+    q.params.push_back(min);
+    q.params.push_back(max);
+    return q;
+}
+
 // == Requirement =============================================================
+// ============================================================================
 
 Requirement::Requirement(bool conjunction_)
     : conjunction{conjunction_}

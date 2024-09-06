@@ -7,7 +7,6 @@
 
 namespace nwn1 {
 
-bool match(const nw::Qualifier& qual, const nw::ObjectBase* obj);
-nw::RuleValue selector(const nw::Selector& selector, const nw::ObjectBase* obj);
+void load_qualifiers();
 
 } // namespace nwn1

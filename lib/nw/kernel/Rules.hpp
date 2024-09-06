@@ -22,9 +22,6 @@
 namespace nw::kernel {
 
 struct Rules : public Service {
-    using qualifier_type = std::function<bool(const Qualifier&, const ObjectBase*)>;
-    using selector_type = std::function<RuleValue(const Selector&, const ObjectBase*)>;
-
     virtual ~Rules();
 
     /// Initializes rules system
@@ -39,14 +36,8 @@ struct Rules : public Service {
     /// Meets requirements
     bool meets_requirement(const Requirement& req, const ObjectBase* obj) const;
 
-    /// Select
-    RuleValue select(const Selector&, const ObjectBase*) const;
-
-    /// Set rules qualifier
-    void set_qualifier(qualifier_type match);
-
-    /// Set rules selector
-    void set_selector(selector_type selector);
+    /// Sets a qualifier for a particular requirement type
+    void set_qualifier(ReqType type, bool (*qualifier)(const Qualifier&, const ObjectBase*));
 
     BaseItemArray baseitems;
     ClassArray classes;
@@ -63,8 +54,7 @@ struct Rules : public Service {
     TrapArray traps;
 
 private:
-    qualifier_type qualifier_;
-    selector_type selector_;
+    std::vector<bool (*)(const Qualifier&, const ObjectBase*)> qualifiers_;
 };
 
 inline Rules& rules()

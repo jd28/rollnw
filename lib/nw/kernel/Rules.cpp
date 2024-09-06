@@ -15,8 +15,6 @@ Rules::~Rules()
 
 void Rules::clear()
 {
-    qualifier_ = qualifier_type{};
-    selector_ = selector_type{};
     modifiers.clear();
     baseitems.clear();
     classes.clear();
@@ -45,10 +43,11 @@ void Rules::initialize(ServiceInitTime time)
 
 bool Rules::match(const Qualifier& qual, const ObjectBase* obj) const
 {
-    if (!qualifier_) {
+    if (qual.type.idx() >= qualifiers_.size()) {
         return true;
     }
-    return qualifier_(qual, obj);
+    auto fd = qualifiers_[qual.type.idx()];
+    return fd(qual, obj);
 }
 
 bool Rules::meets_requirement(const Requirement& req, const ObjectBase* obj) const
@@ -65,24 +64,12 @@ bool Rules::meets_requirement(const Requirement& req, const ObjectBase* obj) con
     return true;
 }
 
-RuleValue Rules::select(const Selector& selector, const ObjectBase* obj) const
+void Rules::set_qualifier(ReqType type, bool (*qualifier)(const Qualifier&, const ObjectBase*))
 {
-    if (!selector_) {
-        LOG_F(ERROR, "rules: no selector set");
-        return {};
+    if (type.idx() >= qualifiers_.size()) {
+        qualifiers_.resize(type.idx() + 1);
     }
-
-    return selector_(selector, obj);
-}
-
-void Rules::set_qualifier(qualifier_type match)
-{
-    qualifier_ = std::move(match);
-}
-
-void Rules::set_selector(selector_type selector)
-{
-    selector_ = std::move(selector);
+    if (qualifier) { qualifiers_[type.idx()] = qualifier; };
 }
 
 } // namespace nw::kernel

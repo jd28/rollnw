@@ -5,225 +5,158 @@
 #include "functions.hpp"
 
 #include "../../functions.hpp"
+#include "../../kernel/Rules.hpp"
 #include "../../objects/Creature.hpp"
 
 namespace nwn1 {
 
-// == Qualifiers ==============================================================
-// ============================================================================
-
-bool match(const nw::Qualifier& qual, const nw::ObjectBase* obj)
+bool qualify_ability(const nw::Qualifier& qual, const nw::ObjectBase* obj)
 {
-    auto value = selector(qual.selector, obj);
-    if (!value.empty()) {
-        switch (qual.selector.type) {
-        default:
-            return false;
-        case nw::SelectorType::alignment: {
-            auto target_axis = static_cast<nw::AlignmentAxis>(qual.selector.subtype.as<int32_t>());
-            auto flags = static_cast<nw::AlignmentFlags>(qual.params[0].as<int32_t>());
-            auto ge = 50;
-            auto lc = 50;
+    if (!qual.subtype.is<int32_t>()) {
+        LOG_F(ERROR, "qualifier - ability: invalid subtype");
+        return {};
+    }
+    auto val = get_ability_score(obj->as_creature(), nw::Ability::make(qual.subtype.as<int32_t>()));
+    auto min = qual.params[0].as<int32_t>();
+    auto max = qual.params[1].as<int32_t>();
 
-            auto ge_sel = selector(sel::alignment(nw::AlignmentAxis::good_evil), obj);
-            if (ge_sel.is<int32_t>()) {
-                ge = ge_sel.as<int32_t>();
-            }
+    if (val < min) { return false; }
+    if (max != 0 && val > max) { return false; }
+    return true;
+}
 
-            auto lc_sel = selector(sel::alignment(nw::AlignmentAxis::law_chaos), obj);
-            if (lc_sel.is<int32_t>()) {
-                lc = lc_sel.as<int32_t>();
-            }
+bool qualify_alignment(const nw::Qualifier& qual, const nw::ObjectBase* obj)
+{
+    if (!qual.subtype.is<int32_t>()) {
+        LOG_F(ERROR, "qualifier - alignment: invalid subtype");
+        return false;
+    }
 
-            if (!!(flags & nw::AlignmentFlags::good) && !!(target_axis | nw::AlignmentAxis::good_evil)) {
-                if (ge > 50) {
-                    return true;
-                }
-            }
+    auto cre = obj->as_creature();
+    if (!cre) { return false; }
 
-            if (!!(flags & nw::AlignmentFlags::evil) && !!(target_axis | nw::AlignmentAxis::good_evil)) {
-                if (ge < 50) {
-                    return true;
-                }
-            }
+    auto target_axis = static_cast<nw::AlignmentAxis>(qual.subtype.as<int32_t>());
+    auto flags = static_cast<nw::AlignmentFlags>(qual.params[0].as<int32_t>());
+    auto ge = cre->good_evil;
+    auto lc = cre->lawful_chaotic;
 
-            if (!!(flags & nw::AlignmentFlags::lawful) && !!(target_axis | nw::AlignmentAxis::law_chaos)) {
-                if (lc > 50) {
-                    return true;
-                }
-            }
-
-            if (!!(flags & nw::AlignmentFlags::chaotic) && !!(target_axis | nw::AlignmentAxis::law_chaos)) {
-                if (lc < 50) {
-                    return true;
-                }
-            }
-
-            if (!!(flags & nw::AlignmentFlags::neutral)) {
-                if (target_axis == nw::AlignmentAxis::both) {
-                    return ge == 50 && lc == 50;
-                }
-                if (target_axis == nw::AlignmentAxis::good_evil) {
-                    return ge == 50;
-                }
-                if (target_axis == nw::AlignmentAxis::law_chaos) {
-                    return lc == 50;
-                }
-            }
-        } break;
-        case nw::SelectorType::bab: {
-            auto val = value.as<int32_t>();
-            auto min = qual.params[0].as<int32_t>();
-            auto max = qual.params[1].as<int32_t>();
-            if (val < min || (max != 0 && val > max)) {
-                return false;
-            }
+    if (!!(flags & nw::AlignmentFlags::good) && !!(target_axis | nw::AlignmentAxis::good_evil)) {
+        if (ge > 50) {
             return true;
-        }
-        case nw::SelectorType::class_level:
-        case nw::SelectorType::level: {
-            auto val = value.as<int32_t>();
-            auto min = qual.params[0].as<int32_t>();
-            auto max = qual.params[1].as<int32_t>();
-            if (val < min || (max != 0 && val > max)) {
-                return false;
-            }
-            return true;
-        }
-        case nw::SelectorType::feat: {
-            return value.is<int32_t>() && value.as<int32_t>();
-        }
-        case nw::SelectorType::race: {
-            auto val = value.as<int32_t>();
-            return val == qual.params[0].as<int32_t>();
-        }
-        case nw::SelectorType::skill:
-        case nw::SelectorType::ability: {
-            auto val = value.as<int32_t>();
-            auto min = qual.params[0].as<int32_t>();
-            auto max = qual.params[1].as<int32_t>();
-            if (val < min) {
-                return false;
-            }
-            if (max != 0 && val > max) {
-                return false;
-            }
-            return true;
-        } break;
         }
     }
+
+    if (!!(flags & nw::AlignmentFlags::evil) && !!(target_axis | nw::AlignmentAxis::good_evil)) {
+        if (ge < 50) {
+            return true;
+        }
+    }
+
+    if (!!(flags & nw::AlignmentFlags::lawful) && !!(target_axis | nw::AlignmentAxis::law_chaos)) {
+        if (lc > 50) {
+            return true;
+        }
+    }
+
+    if (!!(flags & nw::AlignmentFlags::chaotic) && !!(target_axis | nw::AlignmentAxis::law_chaos)) {
+        if (lc < 50) {
+            return true;
+        }
+    }
+
+    if (!!(flags & nw::AlignmentFlags::neutral)) {
+        if (target_axis == nw::AlignmentAxis::both) {
+            return ge == 50 && lc == 50;
+        }
+        if (target_axis == nw::AlignmentAxis::good_evil) {
+            return ge == 50;
+        }
+        if (target_axis == nw::AlignmentAxis::law_chaos) {
+            return lc == 50;
+        }
+    }
+
     return false;
 }
 
-// == Selectors ===============================================================
-// ============================================================================
-
-nw::RuleValue selector(const nw::Selector& selector, const nw::ObjectBase* obj)
+bool qualify_bab(const nw::Qualifier& qual, const nw::ObjectBase* obj)
 {
-    switch (selector.type) {
-    default:
+    auto val = base_attack_bonus(obj->as_creature());
+    auto min = qual.params[0].as<int32_t>();
+    auto max = qual.params[1].as<int32_t>();
+
+    if (val < min) { return false; }
+    if (max != 0 && val > max) { return false; }
+    return true;
+}
+
+bool qualify_feat(const nw::Qualifier& qual, const nw::ObjectBase* obj)
+{
+    auto cre = obj->as_creature();
+    return cre && cre->stats.has_feat(nw::Feat::make(qual.subtype.as<int32_t>()));
+}
+
+bool qualify_class_level(const nw::Qualifier& qual, const nw::ObjectBase* obj)
+{
+    if (!qual.subtype.is<int32_t>()) {
+        LOG_F(ERROR, "qualifier - ability: invalid subtype");
+        return false;
+    }
+
+    auto cre = obj->as_creature();
+    if (!cre) { return false; }
+    auto val = cre->levels.level_by_class(nw::Class::make(qual.subtype.as<int32_t>()));
+    auto min = qual.params[0].as<int32_t>();
+    auto max = qual.params[1].as<int32_t>();
+
+    if (val < min) { return false; }
+    if (max != 0 && val > max) { return false; }
+    return true;
+}
+
+bool qualify_level(const nw::Qualifier& qual, const nw::ObjectBase* obj)
+{
+    auto cre = obj->as_creature();
+    if (!cre) { return false; }
+    auto val = cre->levels.level();
+    auto min = qual.params[0].as<int32_t>();
+    auto max = qual.params[1].as<int32_t>();
+
+    if (val < min) { return false; }
+    if (max != 0 && val > max) { return false; }
+    return true;
+}
+
+bool qualify_race(const nw::Qualifier& qual, const nw::ObjectBase* obj)
+{
+    auto cre = obj->as_creature();
+    return cre && *cre->race == qual.params[0].as<int32_t>();
+}
+
+bool qualify_skill(const nw::Qualifier& qual, const nw::ObjectBase* obj)
+{
+    if (!qual.subtype.is<int32_t>()) {
+        LOG_F(ERROR, "qualifier - skill: invalid subtype");
         return {};
-    case nw::SelectorType::ability: {
-        if (!selector.subtype.is<int32_t>()) {
-            LOG_F(ERROR, "selector - ability: invalid subtype");
-            return {};
-        }
-        return get_ability_score(obj->as_creature(), nw::Ability::make(selector.subtype.as<int32_t>()));
     }
-    case nw::SelectorType::alignment: {
-        if (!selector.subtype.is<int32_t>()) {
-            LOG_F(ERROR, "selector - alignment: invalid subtype");
-            return {};
-        }
-        auto cre = obj->as_creature();
-        if (!cre) { return {}; }
+    auto val = get_skill_rank(obj->as_creature(), nw::Skill::make(qual.subtype.as<int32_t>()));
+    auto min = qual.params[0].as<int32_t>();
+    auto max = qual.params[1].as<int32_t>();
+    if (val < min) { return false; }
+    if (max != 0 && val > max) { return false; }
+    return true;
+}
 
-        if (selector.subtype.as<int32_t>() == 0x1) {
-            return cre->lawful_chaotic;
-        } else if (selector.subtype.as<int32_t>() == 0x2) {
-            return cre->good_evil;
-        } else {
-            return -1;
-        }
-    }
-    case nw::SelectorType::bab: {
-        auto cre = obj->as_creature();
-        if (!cre) { return {}; }
-        return base_attack_bonus(cre);
-    }
-    case nw::SelectorType::class_level: {
-        if (!selector.subtype.is<int32_t>()) {
-            LOG_F(ERROR, "selector - class_level: invalid subtype");
-            return {};
-        }
-
-        auto cre = obj->as_creature();
-        if (!cre) { return {}; }
-
-        for (const auto& ce : cre->levels.entries) {
-            if (ce.id == nw::Class::make(selector.subtype.as<int32_t>())) {
-                return ce.level;
-            }
-        }
-        return 0;
-    }
-    case nw::SelectorType::feat: {
-        if (!selector.subtype.is<int32_t>()) {
-            LOG_F(ERROR, "selector - feat: invalid subtype");
-            return {};
-        }
-
-        auto cre = obj->as_creature();
-        if (!cre) { return {}; }
-
-        return cre->stats.has_feat(nw::Feat::make(selector.subtype.as<int32_t>()));
-    }
-    case nw::SelectorType::hitpoints_max:
-        return get_max_hitpoints(obj);
-    case nw::SelectorType::level: {
-        auto cre = obj->as_creature();
-        if (!cre) { return {}; }
-        return cre->levels.level();
-    }
-    case nw::SelectorType::local_var_int: {
-        auto common = obj->as_common();
-        if (!selector.subtype.is<std::string>()) {
-            LOG_F(ERROR, "selector - local_var_int: invalid subtype");
-            return {};
-        }
-        if (!common) {
-            return {};
-        }
-        return common->locals.get_int(selector.subtype.as<std::string>());
-    }
-    case nw::SelectorType::local_var_str: {
-        auto common = obj->as_common();
-        if (!selector.subtype.is<std::string>()) {
-            LOG_F(ERROR, "selector - local_var_str: invalid subtype");
-            return {};
-        }
-        if (!common) {
-            return {};
-        }
-        return common->locals.get_string(selector.subtype.as<std::string>());
-    }
-    case nw::SelectorType::race: {
-        auto c = obj->as_creature();
-        if (!c) {
-            return {};
-        }
-        return *c->race;
-    }
-    case nw::SelectorType::skill: {
-        if (!selector.subtype.is<int32_t>()) {
-            LOG_F(ERROR, "selector - skill: invalid subtype");
-            return {};
-        }
-        return get_skill_rank(obj->as_creature(), nw::Skill::make(selector.subtype.as<int32_t>()));
-    }
-    }
-
-    return {};
+void load_qualifiers()
+{
+    nw::kernel::rules().set_qualifier(nw::req_type_ability, qualify_ability);
+    nw::kernel::rules().set_qualifier(nw::req_type_alignment, qualify_alignment);
+    nw::kernel::rules().set_qualifier(nw::req_type_bab, qualify_bab);
+    nw::kernel::rules().set_qualifier(nw::req_type_class_level, qualify_class_level);
+    nw::kernel::rules().set_qualifier(nw::req_type_feat, qualify_feat);
+    nw::kernel::rules().set_qualifier(nw::req_type_level, qualify_level);
+    nw::kernel::rules().set_qualifier(nw::req_type_race, qualify_race);
+    nw::kernel::rules().set_qualifier(nw::req_type_skill, qualify_skill);
 }
 
 } // namespace nwn1

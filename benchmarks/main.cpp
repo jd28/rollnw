@@ -84,28 +84,6 @@ static void BM_creature_serialize(benchmark::State& state)
     }
 }
 
-static void BM_creature_select(benchmark::State& state)
-{
-    auto ent = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/drorry.utc"));
-    auto sel = nwn1::sel::ability(nwn1::ability_strength);
-
-    for (auto _ : state) {
-        auto out = nwk::rules().select(sel, ent);
-        benchmark::DoNotOptimize(out);
-    }
-}
-
-static void BM_creature_select2(benchmark::State& state)
-{
-    auto ent = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/drorry.utc"));
-    auto sel = nwn1::sel::ability(nwn1::ability_strength);
-
-    for (auto _ : state) {
-        auto out = nwn1::selector(sel, ent);
-        benchmark::DoNotOptimize(out);
-    }
-}
-
 static void BM_creature_modifier_simple(benchmark::State& state)
 {
     auto ent = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/drorry.utc"));
@@ -287,8 +265,6 @@ BENCHMARK(BM_parse_feat_2da);
 BENCHMARK(BM_creature_from_json);
 BENCHMARK(BM_creature_serialize);
 BENCHMARK(BM_creature_to_json);
-BENCHMARK(BM_creature_select);
-BENCHMARK(BM_creature_select2);
 BENCHMARK(BM_creature_modifier_simple);
 BENCHMARK(BM_creature_modifier_complex);
 BENCHMARK(BM_creature_get_skill_rank);

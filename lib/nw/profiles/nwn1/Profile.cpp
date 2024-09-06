@@ -2,7 +2,6 @@
 
 #include "constants.hpp"
 #include "effects.hpp"
-#include "helpers.hpp"
 #include "modifiers.hpp"
 #include "rules.hpp"
 
@@ -151,8 +150,7 @@ bool Profile::load_rules() const
     LOG_F(INFO, "[nwn1] loading rules...");
 
     // == Set global rule functions ===========================================
-    nw::kernel::rules().set_selector(selector);
-    nw::kernel::rules().set_qualifier(match);
+    load_qualifiers();
 
     // == Load 2das ===========================================================
 
@@ -301,32 +299,32 @@ bool Profile::load_rules() const
                         } else if (nw::string::icmp("BAB", temp)) {
                             if (tda.get_to(j, "ReqParam1", param1_int)) {
                                 info.requirements.main.add(
-                                    qual::base_attack_bonus(param1_int));
+                                    nw::qualifier_base_attack_bonus(param1_int));
                             }
                         } else if (nw::string::icmp("CLASSOR", temp)) {
                             if (tda.get_to(j, "ReqParam1", param1_int)) {
                                 info.requirements.class_or.add(
-                                    qual::class_level(nw::Class::make(param1_int), 1));
+                                    nw::qualifier_class_level(nw::Class::make(param1_int), 1));
                             }
                         } else if (nw::string::icmp("CLASSNOT", temp)) {
                             if (tda.get_to(j, "ReqParam1", param1_int)) {
                                 info.requirements.class_not.add(
-                                    qual::class_level(nw::Class::make(param1_int), 1));
+                                    nw::qualifier_class_level(nw::Class::make(param1_int), 1));
                             }
                         } else if (nw::string::icmp("FEAT", temp)) {
                             if (tda.get_to(j, "ReqParam1", param1_int)) {
                                 info.requirements.main.add(
-                                    qual::feat(nw::Feat::make(param1_int)));
+                                    nw::qualifier_feat(nw::Feat::make(param1_int)));
                             }
                         } else if (nw::string::icmp("FEATOR", temp)) {
                             if (tda.get_to(j, "ReqParam1", param1_int)) {
                                 info.requirements.feat_or.add(
-                                    qual::feat(nw::Feat::make(param1_int)));
+                                    nw::qualifier_feat(nw::Feat::make(param1_int)));
                             }
                         } else if (nw::string::icmp("RACE", temp)) {
                             if (tda.get_to(j, "ReqParam1", param1_int)) {
                                 info.requirements.main.add(
-                                    qual::race(nw::Race::make(param1_int)));
+                                    nw::qualifier_race(nw::Race::make(param1_int)));
                             }
                         } else if (nw::string::icmp("SAVE", temp)) {
                             // [TODO]
@@ -334,7 +332,7 @@ bool Profile::load_rules() const
                             if (tda.get_to(j, "ReqParam1", param1_int)
                                 && tda.get_to(j, "ReqParam2", param2_int)) {
                                 info.requirements.main.add(
-                                    qual::skill(nw::Skill::make(param1_int), param2_int));
+                                    nw::qualifier_skill(nw::Skill::make(param1_int), param2_int));
                             }
                         } else if (nw::string::icmp("SPELL", temp)) {
                             // [TODO]
@@ -457,23 +455,23 @@ bool Profile::load_rules() const
     for (size_t i = 0; i < baseitem_array.entries.size(); ++i) {
         nw::BaseItemInfo& info = baseitem_array.entries[i];
         if (baseitems.get_to(i, "ReqFeat0", temp_int)) {
-            info.feat_requirement.add(qual::feat(nw::Feat::make(temp_int)));
+            info.feat_requirement.add(nw::qualifier_feat(nw::Feat::make(temp_int)));
         }
 
         if (baseitems.get_to(i, "ReqFeat1", temp_int)) {
-            info.feat_requirement.add(qual::feat(nw::Feat::make(temp_int)));
+            info.feat_requirement.add(nw::qualifier_feat(nw::Feat::make(temp_int)));
         }
 
         if (baseitems.get_to(i, "ReqFeat2", temp_int)) {
-            info.feat_requirement.add(qual::feat(nw::Feat::make(temp_int)));
+            info.feat_requirement.add(nw::qualifier_feat(nw::Feat::make(temp_int)));
         }
 
         if (baseitems.get_to(i, "ReqFeat3", temp_int)) {
-            info.feat_requirement.add(qual::feat(nw::Feat::make(temp_int)));
+            info.feat_requirement.add(nw::qualifier_feat(nw::Feat::make(temp_int)));
         }
 
         if (baseitems.get_to(i, "ReqFeat4", temp_int)) {
-            info.feat_requirement.add(qual::feat(nw::Feat::make(temp_int)));
+            info.feat_requirement.add(nw::qualifier_feat(nw::Feat::make(temp_int)));
         }
     }
 
@@ -488,39 +486,39 @@ bool Profile::load_rules() const
         }
 
         if (feat.get_to(i, "MaxLevel", temp_int)) {
-            info.requirements.add(qual::level(0, temp_int));
+            info.requirements.add(nw::qualifier_level(0, temp_int));
         }
 
         if (feat.get_to(i, "MINSTR", temp_int)) {
-            info.requirements.add(qual::ability(ability_strength, temp_int));
+            info.requirements.add(nw::qualifier_ability(ability_strength, temp_int));
         }
 
         if (feat.get_to(i, "MINDEX", temp_int)) {
-            info.requirements.add(qual::ability(ability_dexterity, temp_int));
+            info.requirements.add(nw::qualifier_ability(ability_dexterity, temp_int));
         }
 
         if (feat.get_to(i, "MINCON", temp_int)) {
-            info.requirements.add(qual::ability(ability_constitution, temp_int));
+            info.requirements.add(nw::qualifier_ability(ability_constitution, temp_int));
         }
 
         if (feat.get_to(i, "MININT", temp_int)) {
-            info.requirements.add(qual::ability(ability_intelligence, temp_int));
+            info.requirements.add(nw::qualifier_ability(ability_intelligence, temp_int));
         }
 
         if (feat.get_to(i, "MINWIS", temp_int)) {
-            info.requirements.add(qual::ability(ability_wisdom, temp_int));
+            info.requirements.add(nw::qualifier_ability(ability_wisdom, temp_int));
         }
 
         if (feat.get_to(i, "MINCHA", temp_int)) {
-            info.requirements.add(qual::ability(ability_charisma, temp_int));
+            info.requirements.add(nw::qualifier_ability(ability_charisma, temp_int));
         }
 
         if (feat.get_to(i, "PREREQFEAT1", temp_int)) {
-            info.requirements.add(qual::feat(nw::Feat::make(temp_int)));
+            info.requirements.add(nw::qualifier_feat(nw::Feat::make(temp_int)));
         }
 
         if (feat.get_to(i, "PREREQFEAT2", temp_int)) {
-            info.requirements.add(qual::feat(nw::Feat::make(temp_int)));
+            info.requirements.add(nw::qualifier_feat(nw::Feat::make(temp_int)));
         }
     }
 

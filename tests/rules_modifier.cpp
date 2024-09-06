@@ -18,7 +18,7 @@ TEST(Rules, Modifiers)
     EXPECT_TRUE(ent);
     ent->levels.entries[0].id = nwn1::class_type_pale_master;
 
-    auto is_pm = nw::Requirement{{nwn1::qual::class_level(nwn1::class_type_pale_master, 1)}};
+    auto is_pm = nw::Requirement{{nw::qualifier_class_level(nwn1::class_type_pale_master, 1)}};
 
     auto pm_ac = [](const nw::ObjectBase* obj, const nw::ObjectBase*, int32_t) -> nw::ModifierResult {
         auto cre = obj->as_creature();

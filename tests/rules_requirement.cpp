@@ -20,23 +20,23 @@ TEST(Requirement, Basic)
     EXPECT_TRUE(ent);
 
     nw::Requirement req{{
-        nwn1::qual::ability(nwn1::ability_strength, 0, 20),
-        nwn1::qual::ability(nwn1::ability_constitution, 15, 20),
-        nwn1::qual::skill(nwn1::skill_discipline, 35),
+        nw::qualifier_ability(nwn1::ability_strength, 0, 20),
+        nw::qualifier_ability(nwn1::ability_constitution, 15, 20),
+        nw::qualifier_skill(nwn1::skill_discipline, 35),
     }};
 
     EXPECT_FALSE(nwk::rules().meets_requirement(req, ent));
 
     nw::Requirement req2{{
-        nwn1::qual::ability(nwn1::ability_constitution, 15, 20),
-        nwn1::qual::skill(nwn1::skill_discipline, 35),
+        nw::qualifier_ability(nwn1::ability_constitution, 15, 20),
+        nw::qualifier_skill(nwn1::skill_discipline, 35),
     }};
 
     EXPECT_TRUE(nwk::rules().meets_requirement(req2, ent));
 
-    nw::Requirement req3{{nwn1::qual::ability(nwn1::ability_constitution, 15, 20),
-                             nwn1::qual::ability(nwn1::ability_strength, 0, 20),
-                             nwn1::qual::skill(nwn1::skill_discipline, 35)},
+    nw::Requirement req3{{nw::qualifier_ability(nwn1::ability_constitution, 15, 20),
+                             nw::qualifier_ability(nwn1::ability_strength, 0, 20),
+                             nw::qualifier_skill(nwn1::skill_discipline, 35)},
         false};
 
     EXPECT_TRUE(nwk::rules().meets_requirement(req3, ent));

@@ -61,7 +61,6 @@ add_executable(rollnw_test
     rules_random.cpp
     rules_requirement.cpp
     rules_modifier.cpp
-    rules_selector.cpp
 
     script_nss.cpp
 

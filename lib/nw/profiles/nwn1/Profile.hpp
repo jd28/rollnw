@@ -14,7 +14,7 @@ struct Profile : nw::GameProfile {
     /**
      * @brief Loads rules
      *
-     * - Load Selector and Matcher
+     * - Load Qualifiers
      * - Load Components
      * - Load 2DAs
      * - Load Constants
