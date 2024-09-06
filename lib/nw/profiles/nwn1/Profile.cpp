@@ -8,6 +8,7 @@
 #include "../../formats/Ini.hpp"
 #include "../../formats/TwoDA.hpp"
 #include "../../kernel/EffectSystem.hpp"
+#include "../../kernel/Objects.hpp"
 #include "../../kernel/Resources.hpp"
 #include "../../kernel/Rules.hpp"
 #include "../../kernel/TwoDACache.hpp"
@@ -151,6 +152,17 @@ bool Profile::load_rules() const
 
     // == Set global rule functions ===========================================
     load_qualifiers();
+
+    nw::kernel::objects().set_instantiate_callback([](nw::ObjectBase* obj) {
+        switch (obj->handle().type) {
+        default:
+            return;
+        case nw::ObjectType::creature: {
+            auto cre = obj->as_creature();
+            cre->hp_max = cre->hp_current = get_max_hitpoints(cre);
+        }
+        }
+    });
 
     // == Load 2das ===========================================================
 

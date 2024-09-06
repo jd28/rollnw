@@ -1,6 +1,7 @@
 #include "Creature.hpp"
 
 #include "../functions.hpp"
+#include "../kernel/Objects.hpp"
 #include "../kernel/Rules.hpp"
 #include "../kernel/TwoDACache.hpp"
 #include "../serialization/Gff.hpp"
@@ -102,27 +103,23 @@ Creature::Creature()
 bool Creature::instantiate()
 {
     if (instantiated_) return true;
-    auto tda = nw::kernel::twodas().get("appearance");
+    auto tda = kernel::twodas().get("appearance");
     if (tda) {
         if (tda->get_to(appearance.id, "SIZECATEGORY", size)) {
-            auto cresize = nw::kernel::twodas().get("creaturesize");
+            auto cresize = kernel::twodas().get("creaturesize");
             if (cresize) {
                 cresize->get_to(size, "ACATTACKMOD", combat_info.size_ab_modifier);
                 cresize->get_to(size, "ACATTACKMOD", combat_info.size_ac_modifier);
             }
         }
     }
-    auto max = nw::kernel::rules().select({nw::SelectorType::hitpoints_max}, this);
-    if (max.is<int32_t>()) {
-        hp_max = int16_t(max.as<int32_t>());
-        hp_current = int16_t(max.as<int32_t>());
-    }
+    nw::kernel::objects().run_instantiate_callback(this);
     instantiated_ = (inventory.instantiate() && equipment.instantiate());
     size_t i = 0;
     for (auto& equip : equipment.equips) {
-        if (alt<nw::Item*>(equip)) {
-            process_item_properties(this, std::get<nw::Item*>(equip),
-                static_cast<nw::EquipIndex>(i), false);
+        if (alt<Item*>(equip)) {
+            process_item_properties(this, std::get<Item*>(equip),
+                static_cast<EquipIndex>(i), false);
         }
         ++i;
     }

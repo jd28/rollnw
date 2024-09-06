@@ -95,6 +95,12 @@ struct ObjectSystem : public Service {
     /// @warning: `nw::kernel::resman().load_module(...)` **must** be called before this.
     Module* make_module();
 
+    /// Run instantiate callback
+    void run_instantiate_callback(ObjectBase* obj);
+
+    /// Set instatiate callback
+    void set_instantiate_callback(void (*callback)(ObjectBase*));
+
     /// Determines of object handle is valid
     bool valid(ObjectHandle obj) const;
 
@@ -115,6 +121,8 @@ private:
     ObjectPool<Sound, 256> sounds_;
     ObjectPool<Trigger, 256> triggers_;
     ObjectPool<Waypoint, 256> waypoints_;
+
+    void (*instatiate_callback_)(ObjectBase*) = nullptr;
 };
 
 inline ObjectType serial_id_to_obj_type(std::string_view id)

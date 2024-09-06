@@ -219,6 +219,19 @@ Module* ObjectSystem::make_module()
     return obj;
 }
 
+void ObjectSystem::run_instantiate_callback(ObjectBase* obj)
+{
+    if (!obj) { return; }
+    if (instatiate_callback_) {
+        instatiate_callback_(obj);
+    }
+}
+
+void ObjectSystem::set_instantiate_callback(void (*callback)(ObjectBase*))
+{
+    instatiate_callback_ = callback;
+}
+
 bool ObjectSystem::valid(ObjectHandle handle) const
 {
     auto idx = static_cast<size_t>(handle.id);
