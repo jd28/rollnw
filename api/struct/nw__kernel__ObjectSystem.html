@@ -237,6 +237,8 @@
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4I0EN2nw6kernel12ObjectSystem4makeEP1Tv"><code class="docutils literal notranslate"><span class="pre">ObjectSystem::make()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6kernel12ObjectSystem9make_areaE6Resref"><code class="docutils literal notranslate"><span class="pre">ObjectSystem::make_area()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6kernel12ObjectSystem11make_moduleEv"><code class="docutils literal notranslate"><span class="pre">ObjectSystem::make_module()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6kernel12ObjectSystem24run_instantiate_callbackEP10ObjectBase"><code class="docutils literal notranslate"><span class="pre">ObjectSystem::run_instantiate_callback()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6kernel12ObjectSystem24set_instantiate_callbackEPFvP10ObjectBaseE"><code class="docutils literal notranslate"><span class="pre">ObjectSystem::set_instantiate_callback()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw6kernel12ObjectSystem5validE12ObjectHandle"><code class="docutils literal notranslate"><span class="pre">ObjectSystem::valid()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6kernel12ObjectSystem10initializeE15ServiceInitTime"><code class="docutils literal notranslate"><span class="pre">ObjectSystem::initialize()</span></code></a></li>
 </ul>
@@ -514,6 +516,18 @@
 <p class="admonition-title">Warning</p>
 <p>: <code class="docutils literal notranslate"><span class="pre">nw::kernel::resman().load_module(...)</span></code> <strong>must</strong> be called before this. </p>
 </div>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6kernel12ObjectSystem24run_instantiate_callbackEP10ObjectBase">
+<span id="_CPPv3N2nw6kernel12ObjectSystem24run_instantiate_callbackEP10ObjectBase"></span><span id="_CPPv2N2nw6kernel12ObjectSystem24run_instantiate_callbackEP10ObjectBase"></span><span id="nw::kernel::ObjectSystem::run_instantiate_callback__ObjectBaseP"></span><span class="target" id="structnw_1_1kernel_1_1_object_system_1a542989bcb037b09c0f8ba9f6c2d18f93"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">run_instantiate_callback</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">ObjectBase</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">obj</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6kernel12ObjectSystem24run_instantiate_callbackEP10ObjectBase" title="Link to this definition"></a><br /></dt>
+<dd><p>Run instantiate callback. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6kernel12ObjectSystem24set_instantiate_callbackEPFvP10ObjectBaseE">
+<span id="_CPPv3N2nw6kernel12ObjectSystem24set_instantiate_callbackEPFvP10ObjectBaseE"></span><span id="_CPPv2N2nw6kernel12ObjectSystem24set_instantiate_callbackEPFvP10ObjectBaseE"></span><span class="target" id="structnw_1_1kernel_1_1_object_system_1a300c0a3dfeb0b462a78075f55c6cfd60"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_instantiate_callback</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="p"><span class="pre">(</span></span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">callback</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">ObjectBase</span></span><span class="p"><span class="pre">*</span></span><span class="p"><span class="pre">)</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6kernel12ObjectSystem24set_instantiate_callbackEPFvP10ObjectBaseE" title="Link to this definition"></a><br /></dt>
+<dd><p>Set instatiate callback. </p>
 </dd></dl>
 
 <dl class="cpp function">

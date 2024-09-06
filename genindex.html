@@ -4734,6 +4734,10 @@
 </li>
       <li><a href="api/struct/nw__kernel__ObjectSystem.html#_CPPv4N2nw6kernel12ObjectSystemaSER12ObjectSystem">nw::kernel::ObjectSystem::operator= (C++ function)</a>, <a href="api/struct/nw__kernel__ObjectSystem.html#_CPPv4N2nw6kernel12ObjectSystemaSERR12ObjectSystem">[1]</a>
 </li>
+      <li><a href="api/struct/nw__kernel__ObjectSystem.html#_CPPv4N2nw6kernel12ObjectSystem24run_instantiate_callbackEP10ObjectBase">nw::kernel::ObjectSystem::run_instantiate_callback (C++ function)</a>
+</li>
+      <li><a href="api/struct/nw__kernel__ObjectSystem.html#_CPPv4N2nw6kernel12ObjectSystem24set_instantiate_callbackEPFvP10ObjectBaseE">nw::kernel::ObjectSystem::set_instantiate_callback (C++ function)</a>
+</li>
       <li><a href="api/struct/nw__kernel__ObjectSystem.html#_CPPv4NK2nw6kernel12ObjectSystem5validE12ObjectHandle">nw::kernel::ObjectSystem::valid (C++ function)</a>
 </li>
       <li><a href="api/struct/nw__kernel__ObjectSystem.html#_CPPv4N2nw6kernel12ObjectSystemD0Ev">nw::kernel::ObjectSystem::~ObjectSystem (C++ function)</a>
@@ -4842,17 +4846,9 @@
 </li>
       <li><a href="api/struct/nw__kernel__Rules.html#_CPPv4N2nw6kernel5Rules10placeablesE">nw::kernel::Rules::placeables (C++ member)</a>
 </li>
-      <li><a href="api/struct/nw__kernel__Rules.html#_CPPv4N2nw6kernel5Rules14qualifier_typeE">nw::kernel::Rules::qualifier_type (C++ type)</a>
-</li>
       <li><a href="api/struct/nw__kernel__Rules.html#_CPPv4N2nw6kernel5Rules5racesE">nw::kernel::Rules::races (C++ member)</a>
 </li>
-      <li><a href="api/struct/nw__kernel__Rules.html#_CPPv4NK2nw6kernel5Rules6selectERK8SelectorPK10ObjectBase">nw::kernel::Rules::select (C++ function)</a>
-</li>
-      <li><a href="api/struct/nw__kernel__Rules.html#_CPPv4N2nw6kernel5Rules13selector_typeE">nw::kernel::Rules::selector_type (C++ type)</a>
-</li>
-      <li><a href="api/struct/nw__kernel__Rules.html#_CPPv4N2nw6kernel5Rules13set_qualifierE14qualifier_type">nw::kernel::Rules::set_qualifier (C++ function)</a>
-</li>
-      <li><a href="api/struct/nw__kernel__Rules.html#_CPPv4N2nw6kernel5Rules12set_selectorE13selector_type">nw::kernel::Rules::set_selector (C++ function)</a>
+      <li><a href="api/struct/nw__kernel__Rules.html#_CPPv4N2nw6kernel5Rules13set_qualifierE7ReqTypePFbRK9QualifierPK10ObjectBaseE">nw::kernel::Rules::set_qualifier (C++ function)</a>
 </li>
       <li><a href="api/struct/nw__kernel__Rules.html#_CPPv4N2nw6kernel5Rules6skillsE">nw::kernel::Rules::skills (C++ member)</a>
 </li>
@@ -5910,6 +5906,8 @@
 </li>
       <li><a href="api/struct/nw__model__Node.html#_CPPv4NK2nw5model4Node14get_controllerE8uint32_tb">nw::model::Node::get_controller (C++ function)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/struct/nw__model__Node.html#_CPPv4N2nw5model4Node12inheritcolorE">nw::model::Node::inheritcolor (C++ member)</a>
 </li>
       <li><a href="api/struct/nw__model__Node.html#_CPPv4N2nw5model4Node4nameE">nw::model::Node::name (C++ member)</a>
@@ -5942,8 +5940,6 @@
 </li>
       <li><a href="api/struct/nw__model__NodeFlags.html#_CPPv4N2nw5model9NodeFlags5patchE">nw::model::NodeFlags::patch (C++ member)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/struct/nw__model__NodeFlags.html#_CPPv4N2nw5model9NodeFlags9referenceE">nw::model::NodeFlags::reference (C++ member)</a>
 </li>
       <li><a href="api/struct/nw__model__NodeFlags.html#_CPPv4N2nw5model9NodeFlags4skinE">nw::model::NodeFlags::skin (C++ member)</a>
@@ -6884,7 +6880,9 @@
 </li>
       <li><a href="api/struct/nw__Qualifier.html#_CPPv4N2nw9Qualifier6paramsE">nw::Qualifier::params (C++ member)</a>
 </li>
-      <li><a href="api/struct/nw__Qualifier.html#_CPPv4N2nw9Qualifier8selectorE">nw::Qualifier::selector (C++ member)</a>
+      <li><a href="api/struct/nw__Qualifier.html#_CPPv4N2nw9Qualifier7subtypeE">nw::Qualifier::subtype (C++ member)</a>
+</li>
+      <li><a href="api/struct/nw__Qualifier.html#_CPPv4N2nw9Qualifier4typeE">nw::Qualifier::type (C++ member)</a>
 </li>
       <li><a href="api/struct/nw__Race.html#_CPPv4N2nw4RaceE">nw::Race (C++ struct)</a>
 </li>
@@ -8558,44 +8556,6 @@
 </li>
       <li><a href="api/struct/nw__script__WhileStatement.html#_CPPv4N2nw6script14WhileStatement8type_id_E">nw::script::WhileStatement::type_id_ (C++ member)</a>
 </li>
-      <li><a href="api/struct/nw__Selector.html#_CPPv4N2nw8SelectorE">nw::Selector (C++ struct)</a>
-</li>
-      <li><a href="api/struct/nw__Selector.html#_CPPv4N2nw8Selector7subtypeE">nw::Selector::subtype (C++ member)</a>
-</li>
-      <li><a href="api/struct/nw__Selector.html#_CPPv4N2nw8Selector4typeE">nw::Selector::type (C++ member)</a>
-</li>
-      <li><a href="api/enum/nw__SelectorType.html#_CPPv4N2nw12SelectorTypeE">nw::SelectorType (C++ enum)</a>
-</li>
-      <li><a href="api/enum/nw__SelectorType.html#_CPPv4N2nw12SelectorType7abilityE">nw::SelectorType::ability (C++ enumerator)</a>
-</li>
-      <li><a href="api/enum/nw__SelectorType.html#_CPPv4N2nw12SelectorType2acE">nw::SelectorType::ac (C++ enumerator)</a>
-</li>
-      <li><a href="api/enum/nw__SelectorType.html#_CPPv4N2nw12SelectorType9alignmentE">nw::SelectorType::alignment (C++ enumerator)</a>
-</li>
-      <li><a href="api/enum/nw__SelectorType.html#_CPPv4N2nw12SelectorType12arcane_levelE">nw::SelectorType::arcane_level (C++ enumerator)</a>
-</li>
-      <li><a href="api/enum/nw__SelectorType.html#_CPPv4N2nw12SelectorType3babE">nw::SelectorType::bab (C++ enumerator)</a>
-</li>
-      <li><a href="api/enum/nw__SelectorType.html#_CPPv4N2nw12SelectorType12caster_levelE">nw::SelectorType::caster_level (C++ enumerator)</a>
-</li>
-      <li><a href="api/enum/nw__SelectorType.html#_CPPv4N2nw12SelectorType11class_levelE">nw::SelectorType::class_level (C++ enumerator)</a>
-</li>
-      <li><a href="api/enum/nw__SelectorType.html#_CPPv4N2nw12SelectorType4featE">nw::SelectorType::feat (C++ enumerator)</a>
-</li>
-      <li><a href="api/enum/nw__SelectorType.html#_CPPv4N2nw12SelectorType13hitpoints_maxE">nw::SelectorType::hitpoints_max (C++ enumerator)</a>
-</li>
-      <li><a href="api/enum/nw__SelectorType.html#_CPPv4N2nw12SelectorType5levelE">nw::SelectorType::level (C++ enumerator)</a>
-</li>
-      <li><a href="api/enum/nw__SelectorType.html#_CPPv4N2nw12SelectorType13local_var_intE">nw::SelectorType::local_var_int (C++ enumerator)</a>
-</li>
-      <li><a href="api/enum/nw__SelectorType.html#_CPPv4N2nw12SelectorType13local_var_strE">nw::SelectorType::local_var_str (C++ enumerator)</a>
-</li>
-      <li><a href="api/enum/nw__SelectorType.html#_CPPv4N2nw12SelectorType4raceE">nw::SelectorType::race (C++ enumerator)</a>
-</li>
-      <li><a href="api/enum/nw__SelectorType.html#_CPPv4N2nw12SelectorType5skillE">nw::SelectorType::skill (C++ enumerator)</a>
-</li>
-      <li><a href="api/enum/nw__SelectorType.html#_CPPv4N2nw12SelectorType11spell_levelE">nw::SelectorType::spell_level (C++ enumerator)</a>
-</li>
       <li><a href="api/enum/nw__SerializationProfile.html#_CPPv4N2nw20SerializationProfileE">nw::SerializationProfile (C++ enum)</a>
 </li>
       <li><a href="api/enum/nw__SerializationProfile.html#_CPPv4N2nw20SerializationProfile3anyE">nw::SerializationProfile::any (C++ enumerator)</a>
@@ -9536,20 +9496,6 @@
 </li>
       <li><a href="api/struct/nwn1__Profile.html#_CPPv4N4nwn17ProfileD0Ev">nwn1::Profile::~Profile (C++ function)</a>
 </li>
-      <li><a href="api/function/nwn1__qual__ability.html#_CPPv4N4nwn14qual7abilityEN2nw7AbilityEii">nwn1::qual::ability (C++ function)</a>
-</li>
-      <li><a href="api/function/nwn1__qual__alignment.html#_CPPv4N4nwn14qual9alignmentEN2nw13AlignmentAxisEN2nw14AlignmentFlagsE">nwn1::qual::alignment (C++ function)</a>
-</li>
-      <li><a href="api/function/nwn1__qual__class_level.html#_CPPv4N4nwn14qual11class_levelEN2nw5ClassEii">nwn1::qual::class_level (C++ function)</a>
-</li>
-      <li><a href="api/function/nwn1__qual__feat.html#_CPPv4N4nwn14qual4featEN2nw4FeatE">nwn1::qual::feat (C++ function)</a>
-</li>
-      <li><a href="api/function/nwn1__qual__level.html#_CPPv4N4nwn14qual5levelEii">nwn1::qual::level (C++ function)</a>
-</li>
-      <li><a href="api/function/nwn1__qual__race.html#_CPPv4N4nwn14qual4raceEN2nw4RaceE">nwn1::qual::race (C++ function)</a>
-</li>
-      <li><a href="api/function/nwn1__qual__skill.html#_CPPv4N4nwn14qual5skillEN2nw5SkillEii">nwn1::qual::skill (C++ function)</a>
-</li>
       <li><a href="api/function/nwn1__resolve_attack.html#_CPPv4N4nwn114resolve_attackEPN2nw8CreatureEPN2nw10ObjectBaseE">nwn1::resolve_attack (C++ function)</a>, <a href="api/function/nwn1__resolve_attack_damage.html#_CPPv4N4nwn114resolve_attackEPN2nw8CreatureEPN2nw10ObjectBaseE">[1]</a>
 </li>
       <li><a href="api/function/nwn1__resolve_attack_bonus.html#_CPPv4N4nwn120resolve_attack_bonusEPKN2nw8CreatureEN2nw10AttackTypeEPKN2nw10ObjectBaseE">nwn1::resolve_attack_bonus (C++ function)</a>
@@ -9585,22 +9531,6 @@
       <li><a href="api/function/nwn1__resolve_weapon_damage_flags.html#_CPPv4N4nwn127resolve_weapon_damage_flagsEPKN2nw4ItemE">nwn1::resolve_weapon_damage_flags (C++ function)</a>
 </li>
       <li><a href="api/function/nwn1__saving_throw.html#_CPPv4N4nwn112saving_throwEPKN2nw10ObjectBaseEN2nw4SaveEN2nw10SaveVersusEPKN2nw10ObjectBaseE">nwn1::saving_throw (C++ function)</a>
-</li>
-      <li><a href="api/function/nwn1__sel__ability.html#_CPPv4N4nwn13sel7abilityEN2nw7AbilityE">nwn1::sel::ability (C++ function)</a>
-</li>
-      <li><a href="api/function/nwn1__sel__alignment.html#_CPPv4N4nwn13sel9alignmentEN2nw13AlignmentAxisE">nwn1::sel::alignment (C++ function)</a>
-</li>
-      <li><a href="api/function/nwn1__sel__class_level.html#_CPPv4N4nwn13sel11class_levelEN2nw5ClassE">nwn1::sel::class_level (C++ function)</a>
-</li>
-      <li><a href="api/function/nwn1__sel__feat.html#_CPPv4N4nwn13sel4featEN2nw4FeatE">nwn1::sel::feat (C++ function)</a>
-</li>
-      <li><a href="api/function/nwn1__sel__level.html#_CPPv4N4nwn13sel5levelEv">nwn1::sel::level (C++ function)</a>
-</li>
-      <li><a href="api/function/nwn1__sel__race.html#_CPPv4N4nwn13sel4raceEv">nwn1::sel::race (C++ function)</a>
-</li>
-      <li><a href="api/function/nwn1__sel__skill.html#_CPPv4N4nwn13sel5skillEN2nw5SkillE">nwn1::sel::skill (C++ function)</a>
-</li>
-      <li><a href="api/function/nwn1__selector.html#_CPPv4N4nwn18selectorERKN2nw8SelectorEPKN2nw10ObjectBaseE">nwn1::selector (C++ function)</a>
 </li>
       <li><a href="api/function/nwn1__weapon_is_finessable.html#_CPPv4N4nwn120weapon_is_finessableEPKN2nw8CreatureEPN2nw4ItemE">nwn1::weapon_is_finessable (C++ function)</a>
 </li>

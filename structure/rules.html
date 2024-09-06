@@ -143,8 +143,6 @@ was to sit down and design a system capable of expressing relatively
 arbitrary sets of rules and modifiers, it probably would not look much
 like NWN. Enhanced Edition’s approach largely was to unhardcode
 <em>values</em>, but not systems <a class="footnote-reference brackets" href="#id4" id="id1" role="doc-noteref"><span class="fn-bracket">[</span>1<span class="fn-bracket">]</span></a>.</p>
-<p>rollNW has the elements of NWN’s rule system builtin, which is itself an approximation of the Dungeons
-and Dragons 3rd Edition ruleset.</p>
 <section id="the-goals">
 <h2>The Goals<a class="headerlink" href="#the-goals" title="Link to this heading"></a></h2>
 <ul class="simple">
@@ -162,6 +160,8 @@ both a configuration and serialization problem.</p></li>
 <section id="definitions">
 <h2>Definitions<a class="headerlink" href="#definitions" title="Link to this heading"></a></h2>
 <dl>
+<dt><strong>Attribute</strong></dt><dd><p>A feature inherint to some object. I,e. a creature has set of ability scores.</p>
+</dd>
 <dt><strong>Profile</strong></dt><dd><p>Profiles are a way of decoupling different rulesets from the rule system itself.</p>
 </dd>
 <dt><strong>Type</strong></dt><dd><p>A rule type is an attribute of the rule system, say a skill or an ability or a damage.  The rule system
@@ -231,13 +231,13 @@ with passing callbacks.</p>
 </dl>
 <p><strong>Example - Adding a Modifier</strong>:</p>
 <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="c1">// This is just an example, see &quot;profiles/nwn1/modifiers.[ch]pp for real implementations of rules.</span>
-<span class="k">auto</span><span class="w"> </span><span class="n">mod2</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">nwn1</span><span class="o">::</span><span class="n">mod</span><span class="o">::</span><span class="n">hitpoints</span><span class="p">(</span>
-<span class="w">   </span><span class="mi">20</span><span class="p">,</span><span class="w"> </span><span class="c1">// Modifier value, if the below requirement is met</span>
-<span class="w">   </span><span class="s">&quot;dnd-3.0-epic-toughness-01&quot;</span><span class="p">,</span>
-<span class="w">   </span><span class="n">nw</span><span class="o">::</span><span class="n">ModifierSource</span><span class="o">::</span><span class="n">feat</span>
-<span class="w">   </span><span class="p">{</span><span class="w"> </span><span class="n">nwn1</span><span class="o">::</span><span class="n">qual</span><span class="o">::</span><span class="n">feat</span><span class="p">(</span><span class="n">nwn1</span><span class="o">::</span><span class="n">feat_epic_toughness_1</span><span class="p">)</span><span class="w"> </span><span class="p">},</span>
+<span class="k">auto</span><span class="w"> </span><span class="n">mod2</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">nw</span><span class="o">::</span><span class="n">make_modifier</span><span class="p">(</span>
+<span class="w">   </span><span class="n">mod_type_hitpoints</span><span class="p">,</span>
+<span class="w">   </span><span class="mi">20</span><span class="p">,</span>
+<span class="w">   </span><span class="s">&quot;dnd-3.0-epic-toughness&quot;</span><span class="p">,</span>
+<span class="w">   </span><span class="n">nw</span><span class="o">::</span><span class="n">ModifierSource</span><span class="o">::</span><span class="n">feat</span><span class="p">,</span>
+<span class="w">   </span><span class="p">{</span><span class="w"> </span><span class="n">nw</span><span class="o">::</span><span class="n">qualifier_feat</span><span class="p">(</span><span class="n">nwn1</span><span class="o">::</span><span class="n">feat_epic_toughness_1</span><span class="p">)</span><span class="w"> </span><span class="p">}</span>
 <span class="p">);</span>
-
 <span class="c1">// Add it to the global modifier table</span>
 <span class="n">nw</span><span class="o">::</span><span class="n">kernel</span><span class="o">::</span><span class="n">rules</span><span class="p">().</span><span class="n">modifier</span><span class="p">.</span><span class="n">add</span><span class="p">(</span><span class="n">mod2</span><span class="p">);</span>
 </pre></div>
@@ -324,19 +324,10 @@ for all martial weapons.</p>
 <section id="requirements">
 <h2>Requirements<a class="headerlink" href="#requirements" title="Link to this heading"></a></h2>
 <dl>
-<dt><strong>Selector</strong></dt><dd><p>A selector gets some piece of information from an entity.</p>
-<p><strong>Example</strong>:</p>
-<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="k">auto</span><span class="w"> </span><span class="n">s</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">nwn1</span><span class="o">::</span><span class="n">sel</span><span class="o">::</span><span class="n">ability</span><span class="p">(</span><span class="n">ability_strength</span><span class="p">);</span>
-<span class="c1">// ...</span>
-<span class="k">auto</span><span class="w"> </span><span class="n">str</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">nw</span><span class="o">::</span><span class="n">kernel</span><span class="o">::</span><span class="n">rules</span><span class="p">().</span><span class="n">select</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="p">(</span><span class="n">s</span><span class="p">,</span><span class="w"> </span><span class="n">entity</span><span class="p">);</span>
-<span class="c1">// ...</span>
-</pre></div>
-</div>
-</dd>
-<dt><strong>Qualifier</strong></dt><dd><p>A qualifier is a selector with some constraints thereupon. In
+<dt><strong>Qualifier</strong></dt><dd><p>A qualifier is a constraint on some attribute. In
 the example below any creature with an unmodified strength between [20,
 40] inclusive would match.</p>
-<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="k">auto</span><span class="w"> </span><span class="n">q</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">nwn1</span><span class="o">::</span><span class="n">qual</span><span class="o">::</span><span class="n">ability</span><span class="p">(</span><span class="n">ability_strength</span><span class="p">,</span><span class="w"> </span><span class="mi">20</span><span class="p">,</span><span class="w"> </span><span class="mi">40</span><span class="p">);</span>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="k">auto</span><span class="w"> </span><span class="n">q</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">nw</span><span class="o">::</span><span class="n">qualifier_ability</span><span class="p">(</span><span class="n">ability_strength</span><span class="p">,</span><span class="w"> </span><span class="mi">20</span><span class="p">,</span><span class="w"> </span><span class="mi">40</span><span class="p">);</span>
 <span class="c1">// ...</span>
 <span class="k">if</span><span class="p">(</span><span class="n">nw</span><span class="o">::</span><span class="n">kernel</span><span class="o">::</span><span class="n">rules</span><span class="p">().</span><span class="n">match</span><span class="p">(</span><span class="n">q</span><span class="p">,</span><span class="w"> </span><span class="n">creature</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
 <span class="w">   </span><span class="c1">// ...</span>
@@ -349,9 +340,9 @@ the example below any creature with an unmodified strength between [20,
 <p>Some thing a has requirement of level 4, wisdom between [12, 20], and a
 minimum appraise skill of 6.</p>
 <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="k">auto</span><span class="w"> </span><span class="n">req</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">nw</span><span class="o">::</span><span class="n">Requirement</span><span class="p">{{</span>
-<span class="w">   </span><span class="n">nwn1</span><span class="o">::</span><span class="n">qual</span><span class="o">::</span><span class="n">level</span><span class="p">(</span><span class="mi">4</span><span class="p">),</span>
-<span class="w">   </span><span class="n">nwn1</span><span class="o">::</span><span class="n">qual</span><span class="o">::</span><span class="n">ability</span><span class="p">(</span><span class="n">ability_wisdom</span><span class="p">,</span><span class="w"> </span><span class="mi">12</span><span class="p">,</span><span class="w"> </span><span class="mi">20</span><span class="p">),</span><span class="w"> </span><span class="c1">// Min, Max</span>
-<span class="w">   </span><span class="n">nwn1</span><span class="o">::</span><span class="n">qual</span><span class="o">::</span><span class="n">skill</span><span class="p">(</span><span class="n">skill_appraise</span><span class="p">,</span><span class="w"> </span><span class="mi">6</span><span class="p">),</span>
+<span class="w">   </span><span class="n">nw</span><span class="o">::</span><span class="n">qualifier_level</span><span class="p">(</span><span class="mi">4</span><span class="p">),</span>
+<span class="w">   </span><span class="n">nw</span><span class="o">::</span><span class="n">qualifier_ability</span><span class="p">(</span><span class="n">ability_wisdom</span><span class="p">,</span><span class="w"> </span><span class="mi">12</span><span class="p">,</span><span class="w"> </span><span class="mi">20</span><span class="p">),</span><span class="w"> </span><span class="c1">// Min, Max</span>
+<span class="w">   </span><span class="n">nw</span><span class="o">::</span><span class="n">qualifier_skill</span><span class="p">(</span><span class="n">skill_appraise</span><span class="p">,</span><span class="w"> </span><span class="mi">6</span><span class="p">),</span>
 <span class="p">}};</span>
 <span class="c1">// ...</span>
 <span class="k">if</span><span class="p">(</span><span class="n">nw</span><span class="o">::</span><span class="n">kernel</span><span class="o">::</span><span class="n">rules</span><span class="p">().</span><span class="n">meets_requirement</span><span class="p">(</span><span class="n">req</span><span class="p">,</span><span class="w"> </span><span class="n">creature</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
