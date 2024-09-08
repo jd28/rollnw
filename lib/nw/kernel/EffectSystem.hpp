@@ -9,15 +9,14 @@
 #include <absl/container/flat_hash_map.h>
 
 #include <deque>
-#include <functional>
 #include <stack>
 #include <utility>
 
 namespace nw::kernel {
 
-using EffectFunc = std::function<bool(ObjectBase*, const Effect*)>;
+using EffectFunc = bool (*)(ObjectBase*, const Effect*);
 using EffectPair = std::pair<EffectFunc, EffectFunc>;
-using ItemPropFunc = std::function<Effect*(const ItemProperty&, EquipIndex, BaseItem)>;
+using ItemPropFunc = Effect* (*)(const ItemProperty&, EquipIndex, BaseItem);
 
 struct EffectSystemStats {
     size_t free_list_size = 0;
