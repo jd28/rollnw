@@ -15,6 +15,8 @@ namespace nw {
 struct Creature;
 struct Item;
 struct ObjectBase;
+struct ModifierResult;
+struct ModifierType;
 
 // -- Attack ------------------------------------------------------------------
 // ----------------------------------------------------------------------------

@@ -111,6 +111,24 @@ size_t Requirement::size() const noexcept
 // == Modifier ================================================================
 // ============================================================================
 
+ModifierResult::ModifierResult(int value)
+    : integer{value}
+    , type_(type::int_)
+{
+}
+
+ModifierResult::ModifierResult(float value)
+    : number{value}
+    , type_(type::float_)
+{
+}
+
+ModifierResult::ModifierResult(DamageRoll value)
+    : dmg_roll{value}
+    , type_(type::dmg_roll)
+{
+}
+
 nw::Modifier make_modifier(nw::ModifierType type, nw::ModifierVariant value,
     std::string_view tag, nw::ModifierSource source, nw::Requirement req, int32_t subtype)
 {

@@ -5,7 +5,7 @@
 #include "../util/Variant.hpp"
 #include "Versus.hpp"
 #include "attributes.hpp"
-#include "combat.hpp"
+#include "damage.hpp"
 #include "rule_type.hpp"
 #include "system.hpp"
 
@@ -90,7 +90,61 @@ enum struct ModifierSource {
     skill,
 };
 
-using ModifierResult = Variant<int, float, DamageRoll>;
+struct ModifierResult {
+    ModifierResult() {};
+    ModifierResult(int value);
+    ModifierResult(float value);
+    ModifierResult(DamageRoll value);
+
+    template <typename T>
+    bool is() const noexcept;
+
+    template <typename T>
+    T as() const noexcept;
+
+private:
+    enum struct type {
+        none,
+        int_,
+        float_,
+        dmg_roll,
+    };
+
+    union {
+        int integer;
+        float number;
+        DamageRoll dmg_roll;
+    };
+    type type_ = type::none;
+};
+
+template <>
+inline bool ModifierResult::is<int>() const noexcept { return type_ == type::int_; }
+
+template <>
+inline bool ModifierResult::is<float>() const noexcept { return type_ == type::float_; }
+
+template <>
+inline bool ModifierResult::is<DamageRoll>() const noexcept { return type_ == type::dmg_roll; }
+
+template <>
+inline int ModifierResult::as<int>() const noexcept
+{
+    return type_ == type::int_ ? integer : 0;
+}
+
+template <>
+inline float ModifierResult::as<float>() const noexcept
+{
+    return type_ == type::float_ ? number : 0.0f;
+}
+
+template <>
+inline DamageRoll ModifierResult::as<DamageRoll>() const noexcept
+{
+    return type_ == type::dmg_roll ? dmg_roll : DamageRoll{};
+}
+
 using ModifierFunction = std::function<ModifierResult(const ObjectBase*, const ObjectBase*, int32_t)>;
 
 using ModifierVariant = Variant<
