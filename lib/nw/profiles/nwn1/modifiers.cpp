@@ -19,6 +19,66 @@
 
 namespace nwn1 {
 
+bool combat_mode_can_always_use(nw::CombatMode, const nw::Creature*)
+{
+    return true;
+}
+
+nw::ModifierResult combat_mode_expertise_mod(nw::CombatMode mode, nw::ModifierType type, const nw::Creature* obj)
+{
+    if (!obj) { return 0; }
+    int value = 5;
+    if (mode == combat_mode_improved_expertise) {
+        value *= 2;
+    }
+
+    if (type == mod_type_attack_bonus) {
+        return -value;
+    } else if (type == mod_type_armor_class) {
+        return value;
+    }
+    return {};
+}
+
+nw::ModifierResult combat_mode_power_attach_mod(nw::CombatMode mode, nw::ModifierType type, const nw::Creature* obj)
+{
+    if (!obj) { return 0; }
+    int value = 5;
+    if (mode == combat_mode_improved_power_attack) {
+        value *= 2;
+    }
+
+    if (type == mod_type_attack_bonus) {
+        return -value;
+    } else if (type == mod_type_damage) {
+        nw::DamageRoll dr;
+        dr.type = damage_type_base_weapon;
+        dr.roll.bonus = value;
+        return dr;
+    }
+    return {};
+}
+
+nw::ModifierResult combat_mode_flurry_mod(nw::CombatMode mode, nw::ModifierType type, const nw::Creature* obj)
+{
+    if (!obj) { return 0; }
+
+    if (type == mod_type_attack_bonus) {
+        return -2;
+    }
+    return {};
+}
+
+nw::ModifierResult combat_mode_rapid_shot_mod(nw::CombatMode mode, nw::ModifierType type, const nw::Creature* obj)
+{
+    if (!obj) { return 0; }
+
+    if (type == mod_type_attack_bonus) {
+        return -2;
+    }
+    return {};
+}
+
 nw::ModifierFunction simple_feat_mod(nw::Feat feat, int value)
 {
     return [feat, value](const nw::ObjectBase* obj, const nw::ObjectBase*, int32_t) {
@@ -167,24 +227,10 @@ nw::ModifierResult ability_attack_bonus(const nw::ObjectBase* obj, const nw::Obj
 nw::ModifierResult combat_mode_ab(const nw::ObjectBase* obj, const nw::ObjectBase*, int32_t)
 {
     auto cre = obj->as_creature();
-    if (!cre) { return 0; }
+    if (!cre || cre->combat_info.combat_mode == nw::CombatMode::invalid()) { return 0; }
 
-    switch (*cre->combat_info.combat_mode) {
-    default:
-        return 0;
-    case *combat_mode_expertise:
-        return -5;
-    case *combat_mode_improved_expertise:
-        return -10;
-    case *combat_mode_flurry_of_blows:
-        return -2;
-    case *combat_mode_power_attack:
-        return -5;
-    case *combat_mode_improved_power_attack:
-        return -10;
-    case *combat_mode_rapid_shot:
-        return -2;
-    }
+    auto cbs = nw::kernel::rules().get_combat_mode(cre->combat_info.combat_mode);
+    return cbs->modifier(cre->combat_info.combat_mode, mod_type_attack_bonus, cre);
 }
 
 nw::ModifierResult enchant_arrow_ab(const nw::ObjectBase* obj, const nw::ObjectBase*, int32_t subtype)
@@ -412,24 +458,11 @@ nw::ModifierResult ability_damage(const nw::ObjectBase* obj, const nw::ObjectBas
 
 nw::ModifierResult combat_mode_dmg(const nw::ObjectBase* obj, const nw::ObjectBase*, int32_t)
 {
-    if (!obj || !obj->as_creature()) { return 0; }
     auto cre = obj->as_creature();
+    if (!cre || cre->combat_info.combat_mode == nw::CombatMode::invalid()) { return 0; }
 
-    nw::DamageRoll result;
-    result.type = damage_type_base_weapon;
-
-    switch (*cre->combat_info.combat_mode) {
-    default:
-        return result;
-    case *combat_mode_power_attack:
-        result.roll.bonus = 5;
-        break;
-    case *combat_mode_improved_power_attack:
-        result.roll.bonus = 10;
-        break;
-    }
-
-    return result;
+    auto cbs = nw::kernel::rules().get_combat_mode(cre->combat_info.combat_mode);
+    return cbs->modifier(cre->combat_info.combat_mode, mod_type_damage, cre);
 }
 
 nw::ModifierResult favored_enemy_dmg(const nw::ObjectBase* obj, const nw::ObjectBase* vs, int32_t subtype)

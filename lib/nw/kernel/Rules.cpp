@@ -41,6 +41,13 @@ void Rules::initialize(ServiceInitTime time)
     }
 }
 
+CombatModeCallbacks* Rules::get_combat_mode(CombatMode mode)
+{
+    auto it = combat_modes_.find(*mode);
+    if (it == std::end(combat_modes_)) { return nullptr; }
+    return &it->second;
+}
+
 bool Rules::match(const Qualifier& qual, const ObjectBase* obj) const
 {
     if (qual.type.idx() >= qualifiers_.size()) {
@@ -62,6 +69,13 @@ bool Rules::meets_requirement(const Requirement& req, const ObjectBase* obj) con
         }
     }
     return true;
+}
+
+void Rules::register_combat_mode(CombatModeCallbacks callbacks, std::initializer_list<CombatMode> modes)
+{
+    for (auto mode : modes) {
+        combat_modes_[*mode] = callbacks;
+    }
 }
 
 void Rules::set_qualifier(ReqType type, bool (*qualifier)(const Qualifier&, const ObjectBase*))

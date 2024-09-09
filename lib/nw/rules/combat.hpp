@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../objects/ObjectHandle.hpp"
+#include "../util/Callback.hpp"
 #include "../util/enum_flags.hpp"
 #include "Effect.hpp"
 #include "damage.hpp"
@@ -91,6 +91,13 @@ DECLARE_RULE_TYPE(MissChanceType);
 // ----------------------------------------------------------------------------
 
 DECLARE_RULE_TYPE(CombatMode);
+
+struct CombatModeCallbacks {
+    Callback<ModifierResult(CombatMode, ModifierType, const Creature*)> modifier;
+    Callback<bool(CombatMode, const Creature*)> can_use;
+    Callback<void(CombatMode, Creature*)> apply;
+    Callback<void(CombatMode, Creature*)> remove;
+};
 
 // -- Poison ------------------------------------------------------------------
 // ----------------------------------------------------------------------------

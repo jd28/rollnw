@@ -556,6 +556,20 @@ bool Profile::load_rules() const
         }
     }
 
+    // == Load Combat Mode Callbacks ==========================================
+    nwk::rules().register_combat_mode({combat_mode_expertise_mod},
+        {combat_mode_expertise, combat_mode_improved_expertise});
+
+    nwk::rules().register_combat_mode({combat_mode_power_attach_mod},
+        {combat_mode_power_attack, combat_mode_improved_power_attack});
+
+    // `Use` here is obviously wrong..
+    nwk::rules().register_combat_mode({combat_mode_flurry_mod, combat_mode_can_always_use},
+        {combat_mode_flurry_of_blows});
+
+    nwk::rules().register_combat_mode({combat_mode_rapid_shot_mod, combat_mode_can_always_use},
+        {combat_mode_flurry_of_blows});
+
     // == Load Modifiers ======================================================
     load_modifiers();
 
