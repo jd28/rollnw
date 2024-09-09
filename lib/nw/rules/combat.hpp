@@ -192,4 +192,25 @@ private:
     DamageArray damage_;
 };
 
+struct AttackCallbacks {
+    Callback<std::unique_ptr<nw::AttackData>(nw::Creature* attacker, nw::ObjectBase* target)> resolve_attack;
+    Callback<int(const nw::Creature* obj, nw::AttackType type, const nw::ObjectBase* versus)> resolve_attack_bonus;
+    Callback<int(const nw::Creature* obj, const nw::ObjectBase* versus, nw::AttackData* data)> resolve_attack_damage;
+    Callback<nw::AttackResult(const nw::Creature* obj, nw::AttackType type, const nw::ObjectBase* vs, nw::AttackData* data)> resolve_attack_roll;
+    Callback<nw::AttackType(const nw::Creature* obj)> resolve_attack_type;
+    Callback<std::pair<int, bool>(const nw::ObjectBase* obj, const nw::ObjectBase* target, bool vs_ranged)> resolve_concealment;
+    Callback<int(const nw::Creature* obj, nw::AttackType type, const nw::ObjectBase* vs)> resolve_critical_multiplier;
+    Callback<int(const nw::Creature* obj, nw::AttackType type)> resolve_critical_threat;
+    Callback<void(const nw::Creature* obj, const nw::ObjectBase* versus, nw::AttackData* data)> resolve_damage_modifiers;
+    Callback<int(const nw::ObjectBase* obj, nw::Damage type, const nw::ObjectBase* versus)> resolve_damage_immunity;
+    Callback<std::pair<int, nw::Effect*>(const nw::ObjectBase* obj, int power, const nw::ObjectBase* versus)> resolve_damage_reduction;
+    Callback<std::pair<int, nw::Effect*>(const nw::ObjectBase* obj, nw::Damage type, const nw::ObjectBase* versus)> resolve_damage_resistance;
+    Callback<std::pair<int, int>(const nw::Creature* obj)> resolve_dual_wield_penalty;
+    Callback<int(const nw::Creature* attacker, nw::AttackType type)> resolve_iteration_penalty;
+    Callback<std::pair<int, int>(const nw::Creature* obj)> resolve_number_of_attacks;
+    Callback<nw::TargetState(const nw::Creature* attacker, const nw::ObjectBase* target)> resolve_target_state;
+    Callback<nw::DamageFlag(const nw::Item* weapon)> resolve_weapon_damage_flags;
+    Callback<int(const nw::Creature* obj, const nw::Item* weapon)> resolve_weapon_power;
+};
+
 } // namespace nw

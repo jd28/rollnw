@@ -42,6 +42,10 @@ void Rules::initialize(ServiceInitTime time)
 }
 
 const AttackCallbacks& Rules::attack_callbacks() const noexcept
+{
+    return attack_callbacks_;
+}
+
 CombatModeCallbacks* Rules::combat_mode_callbacks(CombatMode mode)
 {
     auto it = combat_modes_.find(*mode);
@@ -77,6 +81,11 @@ void Rules::register_combat_mode(CombatModeCallbacks callbacks, std::initializer
     for (auto mode : modes) {
         combat_modes_[*mode] = callbacks;
     }
+}
+
+void Rules::set_attack_callbacks(AttackCallbacks cbs)
+{
+    attack_callbacks_ = cbs;
 }
 
 void Rules::set_qualifier(ReqType type, bool (*qualifier)(const Qualifier&, const ObjectBase*))

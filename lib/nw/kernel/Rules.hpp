@@ -30,6 +30,9 @@ struct Rules : public Service {
     /// Clears rules system of all rules and cached 2da files
     virtual void clear() override;
 
+    /// Gets attack callbacks
+    [[nodiscard]] const AttackCallbacks& attack_callbacks() const noexcept;
+
     /// Gets combat mode callbacks
     /// @warning Do not retain the result of this function.
     [[nodiscard]] CombatModeCallbacks* combat_mode_callbacks(CombatMode mode);
@@ -42,6 +45,9 @@ struct Rules : public Service {
 
     /// Registers a combat mode callbacks
     void register_combat_mode(CombatModeCallbacks callbacks, std::initializer_list<CombatMode> modes);
+
+    /// Sets attack callbacks
+    void set_attack_callbacks(AttackCallbacks cbs);
 
     /// Sets a qualifier for a particular requirement type
     void set_qualifier(ReqType type, bool (*qualifier)(const Qualifier&, const ObjectBase*));
@@ -63,6 +69,7 @@ struct Rules : public Service {
 private:
     std::vector<bool (*)(const Qualifier&, const ObjectBase*)> qualifiers_;
     absl::flat_hash_map<int32_t, CombatModeCallbacks> combat_modes_;
+    AttackCallbacks attack_callbacks_;
 };
 
 inline Rules& rules()
