@@ -32,7 +32,7 @@ struct Rules : public Service {
 
     /// Gets combat mode callbacks
     /// @warning Do not retain the result of this function.
-    [[nodiscard]] CombatModeCallbacks* get_combat_mode(CombatMode mode);
+    [[nodiscard]] CombatModeCallbacks* combat_mode_callbacks(CombatMode mode);
 
     /// Match
     bool match(const Qualifier& qual, const ObjectBase* obj) const;

@@ -41,7 +41,8 @@ void Rules::initialize(ServiceInitTime time)
     }
 }
 
-CombatModeCallbacks* Rules::get_combat_mode(CombatMode mode)
+const AttackCallbacks& Rules::attack_callbacks() const noexcept
+CombatModeCallbacks* Rules::combat_mode_callbacks(CombatMode mode)
 {
     auto it = combat_modes_.find(*mode);
     if (it == std::end(combat_modes_)) { return nullptr; }

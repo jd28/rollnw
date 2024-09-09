@@ -229,7 +229,7 @@ nw::ModifierResult combat_mode_ab(const nw::ObjectBase* obj, const nw::ObjectBas
     auto cre = obj->as_creature();
     if (!cre || cre->combat_info.combat_mode == nw::CombatMode::invalid()) { return 0; }
 
-    auto cbs = nw::kernel::rules().get_combat_mode(cre->combat_info.combat_mode);
+    auto cbs = nw::kernel::rules().combat_mode_callbacks(cre->combat_info.combat_mode);
     return cbs->modifier(cre->combat_info.combat_mode, mod_type_attack_bonus, cre);
 }
 
@@ -461,7 +461,7 @@ nw::ModifierResult combat_mode_dmg(const nw::ObjectBase* obj, const nw::ObjectBa
     auto cre = obj->as_creature();
     if (!cre || cre->combat_info.combat_mode == nw::CombatMode::invalid()) { return 0; }
 
-    auto cbs = nw::kernel::rules().get_combat_mode(cre->combat_info.combat_mode);
+    auto cbs = nw::kernel::rules().combat_mode_callbacks(cre->combat_info.combat_mode);
     return cbs->modifier(cre->combat_info.combat_mode, mod_type_damage, cre);
 }
 
