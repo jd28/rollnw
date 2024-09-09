@@ -26,6 +26,16 @@ struct FunctionPtr<Ret(Args...)> {
         return func_ptr(std::forward<Args>(args)...);
     }
 
+    auto operator()(Args... args) const -> Ret
+    {
+        return func_ptr(std::forward<Args>(args)...);
+    }
+
+    operator bool() const noexcept
+    {
+        return func_ptr != nullptr;
+    }
+
 private:
     Ret (*func_ptr)(Args...) = nullptr;
 };
