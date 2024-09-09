@@ -79,6 +79,7 @@
 <li class="toctree-l2"><a class="reference internal" href="nw__Bif.html">nw::Bif</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__BodyParts.html">nw::BodyParts</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__ByteArray.html">nw::ByteArray</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Callback.html">nw::Callback</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Class.html">nw::Class</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__ClassArray.html">nw::ClassArray</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__ClassEntry.html">nw::ClassEntry</a></li>
@@ -150,6 +151,7 @@
 <li class="toctree-l2"><a class="reference internal" href="nw__MasterFeatRegistry.html">nw::MasterFeatRegistry</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Modifier.html">nw::Modifier</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__ModifierRegistry.html">nw::ModifierRegistry</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ModifierResult.html">nw::ModifierResult</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__ModifierType.html">nw::ModifierType</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Module.html">nw::Module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__ModuleScripts.html">nw::ModuleScripts</a></li>
@@ -222,8 +224,10 @@
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6kernel5RulesD0Ev"><code class="docutils literal notranslate"><span class="pre">Rules::~Rules()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6kernel5Rules10initializeE15ServiceInitTime"><code class="docutils literal notranslate"><span class="pre">Rules::initialize()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6kernel5Rules5clearEv"><code class="docutils literal notranslate"><span class="pre">Rules::clear()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6kernel5Rules15get_combat_modeE10CombatMode"><code class="docutils literal notranslate"><span class="pre">Rules::get_combat_mode()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw6kernel5Rules5matchERK9QualifierPK10ObjectBase"><code class="docutils literal notranslate"><span class="pre">Rules::match()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw6kernel5Rules17meets_requirementERK11RequirementPK10ObjectBase"><code class="docutils literal notranslate"><span class="pre">Rules::meets_requirement()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6kernel5Rules20register_combat_modeE19CombatModeCallbacksNSt16initializer_listI10CombatModeEE"><code class="docutils literal notranslate"><span class="pre">Rules::register_combat_mode()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6kernel5Rules13set_qualifierE7ReqTypePFbRK9QualifierPK10ObjectBaseE"><code class="docutils literal notranslate"><span class="pre">Rules::set_qualifier()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6kernel5Rules9baseitemsE"><code class="docutils literal notranslate"><span class="pre">Rules::baseitems</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6kernel5Rules7classesE"><code class="docutils literal notranslate"><span class="pre">Rules::classes</span></code></a></li>
@@ -413,6 +417,16 @@
 </dd></dl>
 
 <dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6kernel5Rules15get_combat_modeE10CombatMode">
+<span id="_CPPv3N2nw6kernel5Rules15get_combat_modeE10CombatMode"></span><span id="_CPPv2N2nw6kernel5Rules15get_combat_modeE10CombatMode"></span><span id="nw::kernel::Rules::get_combat_mode__CombatMode"></span><span class="target" id="structnw_1_1kernel_1_1_rules_1a02e8d3fdd3fb94e9013f2456f9a1f751"></span><span class="n"><span class="pre">CombatModeCallbacks</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">get_combat_mode</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">CombatMode</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">mode</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6kernel5Rules15get_combat_modeE10CombatMode" title="Link to this definition"></a><br /></dt>
+<dd><p>Gets combat mode callbacks </p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Do not retain the result of this function. </p>
+</div>
+</dd></dl>
+
+<dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4NK2nw6kernel5Rules5matchERK9QualifierPK10ObjectBase">
 <span id="_CPPv3NK2nw6kernel5Rules5matchERK9QualifierPK10ObjectBase"></span><span id="_CPPv2NK2nw6kernel5Rules5matchERK9QualifierPK10ObjectBase"></span><span id="nw::kernel::Rules::match__QualifierCR.ObjectBaseCPC"></span><span class="target" id="structnw_1_1kernel_1_1_rules_1aed51505c43cd7e9dd1afd586b8743be5"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">match</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="nw__Qualifier.html#_CPPv4N2nw9QualifierE" title="nw::Qualifier"><span class="n"><span class="pre">Qualifier</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">qual</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">ObjectBase</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">obj</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK2nw6kernel5Rules5matchERK9QualifierPK10ObjectBase" title="Link to this definition"></a><br /></dt>
 <dd><p>Match. </p>
@@ -422,6 +436,12 @@
 <dt class="sig sig-object cpp" id="_CPPv4NK2nw6kernel5Rules17meets_requirementERK11RequirementPK10ObjectBase">
 <span id="_CPPv3NK2nw6kernel5Rules17meets_requirementERK11RequirementPK10ObjectBase"></span><span id="_CPPv2NK2nw6kernel5Rules17meets_requirementERK11RequirementPK10ObjectBase"></span><span id="nw::kernel::Rules::meets_requirement__RequirementCR.ObjectBaseCPC"></span><span class="target" id="structnw_1_1kernel_1_1_rules_1a9b87ab10972b7f4774a2bbdf8cfc8c9e"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">meets_requirement</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="nw__Requirement.html#_CPPv4N2nw11RequirementE" title="nw::Requirement"><span class="n"><span class="pre">Requirement</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">req</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">ObjectBase</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">obj</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK2nw6kernel5Rules17meets_requirementERK11RequirementPK10ObjectBase" title="Link to this definition"></a><br /></dt>
 <dd><p>Meets requirements. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6kernel5Rules20register_combat_modeE19CombatModeCallbacksNSt16initializer_listI10CombatModeEE">
+<span id="_CPPv3N2nw6kernel5Rules20register_combat_modeE19CombatModeCallbacksNSt16initializer_listI10CombatModeEE"></span><span id="_CPPv2N2nw6kernel5Rules20register_combat_modeE19CombatModeCallbacksNSt16initializer_listI10CombatModeEE"></span><span id="nw::kernel::Rules::register_combat_mode__CombatModeCallbacks.std::initializer_list:CombatMode:"></span><span class="target" id="structnw_1_1kernel_1_1_rules_1a90fdb921fa2a47a0b762e5b64366215e"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">register_combat_mode</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">CombatModeCallbacks</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">callbacks</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">initializer_list</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">CombatMode</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">modes</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6kernel5Rules20register_combat_modeE19CombatModeCallbacksNSt16initializer_listI10CombatModeEE" title="Link to this definition"></a><br /></dt>
+<dd><p>Registers a combat mode callbacks. </p>
 </dd></dl>
 
 <dl class="cpp function">
