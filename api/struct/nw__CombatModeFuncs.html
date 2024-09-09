@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>nw::Callback &mdash; rollNW  documentation</title>
+  <title>nw::CombatModeFuncs &mdash; rollNW  documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=19f00094" />
       <link rel="stylesheet" type="text/css" href="../../_static/tabs.css?v=a5c4661c" />
@@ -22,8 +22,8 @@
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
-    <link rel="next" title="nw::Class" href="nw__Class.html" />
-    <link rel="prev" title="nw::ByteArray" href="nw__ByteArray.html" /> 
+    <link rel="next" title="nw::Common" href="nw__Common.html" />
+    <link rel="prev" title="nw::CombatInfo" href="nw__CombatInfo.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -79,15 +79,21 @@
 <li class="toctree-l2"><a class="reference internal" href="nw__Bif.html">nw::Bif</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__BodyParts.html">nw::BodyParts</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__ByteArray.html">nw::ByteArray</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">nw::Callback</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#_CPPv4I0EN2nw8CallbackE"><code class="docutils literal notranslate"><span class="pre">Callback</span></code></a></li>
-</ul>
-</li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Class.html">nw::Class</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__ClassArray.html">nw::ClassArray</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__ClassEntry.html">nw::ClassEntry</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__ClassInfo.html">nw::ClassInfo</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__CombatInfo.html">nw::CombatInfo</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">nw::CombatModeFuncs</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#_CPPv4N2nw15CombatModeFuncsE"><code class="docutils literal notranslate"><span class="pre">CombatModeFuncs</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw15CombatModeFuncs8modifierE"><code class="docutils literal notranslate"><span class="pre">CombatModeFuncs::modifier</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw15CombatModeFuncs7can_useE"><code class="docutils literal notranslate"><span class="pre">CombatModeFuncs::can_use</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw15CombatModeFuncs5applyE"><code class="docutils literal notranslate"><span class="pre">CombatModeFuncs::apply</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw15CombatModeFuncs6removeE"><code class="docutils literal notranslate"><span class="pre">CombatModeFuncs::remove</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Common.html">nw::Common</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__CompressionHeader.html">nw::CompressionHeader</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__ConfigOptions.html">nw::ConfigOptions</a></li>
@@ -116,6 +122,7 @@
 <li class="toctree-l2"><a class="reference internal" href="nw__FactionInfo.html">nw::FactionInfo</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Feat.html">nw::Feat</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__FeatInfo.html">nw::FeatInfo</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__FunctionPtr.html">nw::FunctionPtr</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__GameProfile.html">nw::GameProfile</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Gff.html">nw::Gff</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__GffBuilder.html">nw::GffBuilder</a></li>
@@ -359,9 +366,9 @@
   <ul class="wy-breadcrumbs">
       <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
           <li class="breadcrumb-item"><a href="../classlist.html">classes</a></li>
-      <li class="breadcrumb-item active">nw::Callback</li>
+      <li class="breadcrumb-item active">nw::CombatModeFuncs</li>
       <li class="wy-breadcrumbs-aside">
-            <a href="../../_sources/api/struct/nw__Callback.rst.txt" rel="nofollow"> View page source</a>
+            <a href="../../_sources/api/struct/nw__CombatModeFuncs.rst.txt" rel="nofollow"> View page source</a>
       </li>
   </ul>
   <hr/>
@@ -369,12 +376,35 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="nw-callback">
-<h1>nw::Callback<a class="headerlink" href="#nw-callback" title="Link to this heading"></a></h1>
+  <section id="nw-combatmodefuncs">
+<h1>nw::CombatModeFuncs<a class="headerlink" href="#nw-combatmodefuncs" title="Link to this heading"></a></h1>
 <dl class="cpp struct">
-<dt class="sig sig-object cpp" id="_CPPv4I0EN2nw8CallbackE">
-<span id="_CPPv3I0EN2nw8CallbackE"></span><span id="_CPPv2I0EN2nw8CallbackE"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">T</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="structnw_1_1_callback"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Callback</span></span></span><a class="headerlink" href="#_CPPv4I0EN2nw8CallbackE" title="Link to this definition"></a><br /></dt>
+<dt class="sig sig-object cpp" id="_CPPv4N2nw15CombatModeFuncsE">
+<span id="_CPPv3N2nw15CombatModeFuncsE"></span><span id="_CPPv2N2nw15CombatModeFuncsE"></span><span id="nw::CombatModeFuncs"></span><span class="target" id="structnw_1_1_combat_mode_funcs"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">CombatModeFuncs</span></span></span><a class="headerlink" href="#_CPPv4N2nw15CombatModeFuncsE" title="Link to this definition"></a><br /></dt>
+<dd><div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw15CombatModeFuncs8modifierE">
+<span id="_CPPv3N2nw15CombatModeFuncs8modifierE"></span><span id="_CPPv2N2nw15CombatModeFuncs8modifierE"></span><span class="target" id="structnw_1_1_combat_mode_funcs_1a3f49637257d38e7629a42da626a904c6"></span><a class="reference internal" href="nw__FunctionPtr.html#_CPPv4I0EN2nw11FunctionPtrE" title="nw::FunctionPtr"><span class="n"><span class="pre">FunctionPtr</span></span></a><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="nw__ModifierResult.html#_CPPv4N2nw14ModifierResultE" title="nw::ModifierResult"><span class="n"><span class="pre">ModifierResult</span></span></a><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">CombatMode</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="nw__ModifierType.html#_CPPv4N2nw12ModifierTypeE" title="nw::ModifierType"><span class="n"><span class="pre">ModifierType</span></span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="nw__Creature.html#_CPPv4N2nw8CreatureE" title="nw::Creature"><span class="n"><span class="pre">Creature</span></span></a><span class="p"><span class="pre">*</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">modifier</span></span></span><a class="headerlink" href="#_CPPv4N2nw15CombatModeFuncs8modifierE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw15CombatModeFuncs7can_useE">
+<span id="_CPPv3N2nw15CombatModeFuncs7can_useE"></span><span id="_CPPv2N2nw15CombatModeFuncs7can_useE"></span><span class="target" id="structnw_1_1_combat_mode_funcs_1adbae4ae03a5db8f25d9ea23a80a9ec1a"></span><a class="reference internal" href="nw__FunctionPtr.html#_CPPv4I0EN2nw11FunctionPtrE" title="nw::FunctionPtr"><span class="n"><span class="pre">FunctionPtr</span></span></a><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">bool</span></span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">CombatMode</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="nw__Creature.html#_CPPv4N2nw8CreatureE" title="nw::Creature"><span class="n"><span class="pre">Creature</span></span></a><span class="p"><span class="pre">*</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">can_use</span></span></span><a class="headerlink" href="#_CPPv4N2nw15CombatModeFuncs7can_useE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw15CombatModeFuncs5applyE">
+<span id="_CPPv3N2nw15CombatModeFuncs5applyE"></span><span id="_CPPv2N2nw15CombatModeFuncs5applyE"></span><span class="target" id="structnw_1_1_combat_mode_funcs_1afc3c3ed77d5a475a68c8d1b73081189f"></span><a class="reference internal" href="nw__FunctionPtr.html#_CPPv4I0EN2nw11FunctionPtrE" title="nw::FunctionPtr"><span class="n"><span class="pre">FunctionPtr</span></span></a><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">void</span></span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">CombatMode</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="nw__Creature.html#_CPPv4N2nw8CreatureE" title="nw::Creature"><span class="n"><span class="pre">Creature</span></span></a><span class="p"><span class="pre">*</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">apply</span></span></span><a class="headerlink" href="#_CPPv4N2nw15CombatModeFuncs5applyE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw15CombatModeFuncs6removeE">
+<span id="_CPPv3N2nw15CombatModeFuncs6removeE"></span><span id="_CPPv2N2nw15CombatModeFuncs6removeE"></span><span class="target" id="structnw_1_1_combat_mode_funcs_1af52d41214e68590ce3c9d3b42b6c5fa6"></span><a class="reference internal" href="nw__FunctionPtr.html#_CPPv4I0EN2nw11FunctionPtrE" title="nw::FunctionPtr"><span class="n"><span class="pre">FunctionPtr</span></span></a><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">void</span></span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">CombatMode</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="nw__Creature.html#_CPPv4N2nw8CreatureE" title="nw::Creature"><span class="n"><span class="pre">Creature</span></span></a><span class="p"><span class="pre">*</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">remove</span></span></span><a class="headerlink" href="#_CPPv4N2nw15CombatModeFuncs6removeE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+</div>
+</dd></dl>
 
 </section>
 
@@ -382,8 +412,8 @@
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="nw__ByteArray.html" class="btn btn-neutral float-left" title="nw::ByteArray" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="nw__Class.html" class="btn btn-neutral float-right" title="nw::Class" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="nw__CombatInfo.html" class="btn btn-neutral float-left" title="nw::CombatInfo" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="nw__Common.html" class="btn btn-neutral float-right" title="nw::Common" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

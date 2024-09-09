@@ -79,12 +79,12 @@
 <li class="toctree-l2"><a class="reference internal" href="nw__Bif.html">nw::Bif</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__BodyParts.html">nw::BodyParts</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__ByteArray.html">nw::ByteArray</a></li>
-<li class="toctree-l2"><a class="reference internal" href="nw__Callback.html">nw::Callback</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Class.html">nw::Class</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__ClassArray.html">nw::ClassArray</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__ClassEntry.html">nw::ClassEntry</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__ClassInfo.html">nw::ClassInfo</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__CombatInfo.html">nw::CombatInfo</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__CombatModeFuncs.html">nw::CombatModeFuncs</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Common.html">nw::Common</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__CompressionHeader.html">nw::CompressionHeader</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__ConfigOptions.html">nw::ConfigOptions</a></li>
@@ -113,6 +113,7 @@
 <li class="toctree-l2"><a class="reference internal" href="nw__FactionInfo.html">nw::FactionInfo</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Feat.html">nw::Feat</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__FeatInfo.html">nw::FeatInfo</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__FunctionPtr.html">nw::FunctionPtr</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__GameProfile.html">nw::GameProfile</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__Gff.html">nw::Gff</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nw__GffBuilder.html">nw::GffBuilder</a></li>
@@ -224,12 +225,12 @@
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6kernel5RulesD0Ev"><code class="docutils literal notranslate"><span class="pre">Rules::~Rules()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6kernel5Rules10initializeE15ServiceInitTime"><code class="docutils literal notranslate"><span class="pre">Rules::initialize()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6kernel5Rules5clearEv"><code class="docutils literal notranslate"><span class="pre">Rules::clear()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw6kernel5Rules16attack_callbacksEv"><code class="docutils literal notranslate"><span class="pre">Rules::attack_callbacks()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6kernel5Rules21combat_mode_callbacksE10CombatMode"><code class="docutils literal notranslate"><span class="pre">Rules::combat_mode_callbacks()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw6kernel5Rules16attack_functionsEv"><code class="docutils literal notranslate"><span class="pre">Rules::attack_functions()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6kernel5Rules21combat_mode_functionsE10CombatMode"><code class="docutils literal notranslate"><span class="pre">Rules::combat_mode_functions()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw6kernel5Rules5matchERK9QualifierPK10ObjectBase"><code class="docutils literal notranslate"><span class="pre">Rules::match()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw6kernel5Rules17meets_requirementERK11RequirementPK10ObjectBase"><code class="docutils literal notranslate"><span class="pre">Rules::meets_requirement()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6kernel5Rules20register_combat_modeE19CombatModeCallbacksNSt16initializer_listI10CombatModeEE"><code class="docutils literal notranslate"><span class="pre">Rules::register_combat_mode()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6kernel5Rules20set_attack_callbacksE15AttackCallbacks"><code class="docutils literal notranslate"><span class="pre">Rules::set_attack_callbacks()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6kernel5Rules20register_combat_modeE15CombatModeFuncsNSt16initializer_listI10CombatModeEE"><code class="docutils literal notranslate"><span class="pre">Rules::register_combat_mode()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6kernel5Rules20set_attack_functionsE11AttackFuncs"><code class="docutils literal notranslate"><span class="pre">Rules::set_attack_functions()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6kernel5Rules13set_qualifierE7ReqTypePFbRK9QualifierPK10ObjectBaseE"><code class="docutils literal notranslate"><span class="pre">Rules::set_qualifier()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6kernel5Rules9baseitemsE"><code class="docutils literal notranslate"><span class="pre">Rules::baseitems</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6kernel5Rules7classesE"><code class="docutils literal notranslate"><span class="pre">Rules::classes</span></code></a></li>
@@ -419,15 +420,15 @@
 </dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4NK2nw6kernel5Rules16attack_callbacksEv">
-<span id="_CPPv3NK2nw6kernel5Rules16attack_callbacksEv"></span><span id="_CPPv2NK2nw6kernel5Rules16attack_callbacksEv"></span><span id="nw::kernel::Rules::attack_callbacksC"></span><span class="target" id="structnw_1_1kernel_1_1_rules_1a10860886bf9973992f03ab50fde35ccb"></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">AttackCallbacks</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">attack_callbacks</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="k"><span class="pre">noexcept</span></span><a class="headerlink" href="#_CPPv4NK2nw6kernel5Rules16attack_callbacksEv" title="Link to this definition"></a><br /></dt>
-<dd><p>Gets attack callbacks. </p>
+<dt class="sig sig-object cpp" id="_CPPv4NK2nw6kernel5Rules16attack_functionsEv">
+<span id="_CPPv3NK2nw6kernel5Rules16attack_functionsEv"></span><span id="_CPPv2NK2nw6kernel5Rules16attack_functionsEv"></span><span id="nw::kernel::Rules::attack_functionsC"></span><span class="target" id="structnw_1_1kernel_1_1_rules_1a347de978115e6e7e3f715b25b3d5e0d7"></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">AttackFuncs</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">attack_functions</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="k"><span class="pre">noexcept</span></span><a class="headerlink" href="#_CPPv4NK2nw6kernel5Rules16attack_functionsEv" title="Link to this definition"></a><br /></dt>
+<dd><p>Gets attack functions. </p>
 </dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N2nw6kernel5Rules21combat_mode_callbacksE10CombatMode">
-<span id="_CPPv3N2nw6kernel5Rules21combat_mode_callbacksE10CombatMode"></span><span id="_CPPv2N2nw6kernel5Rules21combat_mode_callbacksE10CombatMode"></span><span id="nw::kernel::Rules::combat_mode_callbacks__CombatMode"></span><span class="target" id="structnw_1_1kernel_1_1_rules_1a6c2d77e579a7ca871fdd84cf0c772a90"></span><span class="n"><span class="pre">CombatModeCallbacks</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">combat_mode_callbacks</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">CombatMode</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">mode</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6kernel5Rules21combat_mode_callbacksE10CombatMode" title="Link to this definition"></a><br /></dt>
-<dd><p>Gets combat mode callbacks </p>
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6kernel5Rules21combat_mode_functionsE10CombatMode">
+<span id="_CPPv3N2nw6kernel5Rules21combat_mode_functionsE10CombatMode"></span><span id="_CPPv2N2nw6kernel5Rules21combat_mode_functionsE10CombatMode"></span><span id="nw::kernel::Rules::combat_mode_functions__CombatMode"></span><span class="target" id="structnw_1_1kernel_1_1_rules_1aab597a32e161d60d7d2563d11af6085c"></span><a class="reference internal" href="nw__CombatModeFuncs.html#_CPPv4N2nw15CombatModeFuncsE" title="nw::CombatModeFuncs"><span class="n"><span class="pre">CombatModeFuncs</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">combat_mode_functions</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">CombatMode</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">mode</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6kernel5Rules21combat_mode_functionsE10CombatMode" title="Link to this definition"></a><br /></dt>
+<dd><p>Gets combat mode functions </p>
 <div class="admonition warning">
 <p class="admonition-title">Warning</p>
 <p>Do not retain the result of this function. </p>
@@ -447,14 +448,14 @@
 </dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N2nw6kernel5Rules20register_combat_modeE19CombatModeCallbacksNSt16initializer_listI10CombatModeEE">
-<span id="_CPPv3N2nw6kernel5Rules20register_combat_modeE19CombatModeCallbacksNSt16initializer_listI10CombatModeEE"></span><span id="_CPPv2N2nw6kernel5Rules20register_combat_modeE19CombatModeCallbacksNSt16initializer_listI10CombatModeEE"></span><span id="nw::kernel::Rules::register_combat_mode__CombatModeCallbacks.std::initializer_list:CombatMode:"></span><span class="target" id="structnw_1_1kernel_1_1_rules_1a90fdb921fa2a47a0b762e5b64366215e"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">register_combat_mode</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">CombatModeCallbacks</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">callbacks</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">initializer_list</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">CombatMode</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">modes</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6kernel5Rules20register_combat_modeE19CombatModeCallbacksNSt16initializer_listI10CombatModeEE" title="Link to this definition"></a><br /></dt>
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6kernel5Rules20register_combat_modeE15CombatModeFuncsNSt16initializer_listI10CombatModeEE">
+<span id="_CPPv3N2nw6kernel5Rules20register_combat_modeE15CombatModeFuncsNSt16initializer_listI10CombatModeEE"></span><span id="_CPPv2N2nw6kernel5Rules20register_combat_modeE15CombatModeFuncsNSt16initializer_listI10CombatModeEE"></span><span id="nw::kernel::Rules::register_combat_mode__CombatModeFuncs.std::initializer_list:CombatMode:"></span><span class="target" id="structnw_1_1kernel_1_1_rules_1a764f1398baa174d5d9ddc71b684a7547"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">register_combat_mode</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="nw__CombatModeFuncs.html#_CPPv4N2nw15CombatModeFuncsE" title="nw::CombatModeFuncs"><span class="n"><span class="pre">CombatModeFuncs</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">callbacks</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">initializer_list</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">CombatMode</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">modes</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6kernel5Rules20register_combat_modeE15CombatModeFuncsNSt16initializer_listI10CombatModeEE" title="Link to this definition"></a><br /></dt>
 <dd><p>Registers a combat mode callbacks. </p>
 </dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N2nw6kernel5Rules20set_attack_callbacksE15AttackCallbacks">
-<span id="_CPPv3N2nw6kernel5Rules20set_attack_callbacksE15AttackCallbacks"></span><span id="_CPPv2N2nw6kernel5Rules20set_attack_callbacksE15AttackCallbacks"></span><span id="nw::kernel::Rules::set_attack_callbacks__AttackCallbacks"></span><span class="target" id="structnw_1_1kernel_1_1_rules_1af66ec8b7f31fccaa42aa963ffadda176"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_attack_callbacks</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">AttackCallbacks</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">cbs</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6kernel5Rules20set_attack_callbacksE15AttackCallbacks" title="Link to this definition"></a><br /></dt>
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6kernel5Rules20set_attack_functionsE11AttackFuncs">
+<span id="_CPPv3N2nw6kernel5Rules20set_attack_functionsE11AttackFuncs"></span><span id="_CPPv2N2nw6kernel5Rules20set_attack_functionsE11AttackFuncs"></span><span id="nw::kernel::Rules::set_attack_functions__AttackFuncs"></span><span class="target" id="structnw_1_1kernel_1_1_rules_1a9f8cf84c6391591b00ace62c78dac875"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_attack_functions</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">AttackFuncs</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">cbs</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6kernel5Rules20set_attack_functionsE11AttackFuncs" title="Link to this definition"></a><br /></dt>
 <dd><p>Sets attack callbacks. </p>
 </dd></dl>
 
