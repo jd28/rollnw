@@ -11,8 +11,17 @@ struct Callback;
 /// script reference.
 template <typename Ret, typename... Args>
 struct Callback<Ret(Args...)> {
-    Ret (*func_ptr)(Args...) = nullptr;
+    Callback()
+        : func_ptr{nullptr}
+    {
+    }
 
+    Callback(Ret (*ptr)(Args...))
+        : func_ptr{ptr}
+    {
+    }
+
+    Ret (*func_ptr)(Args...) = nullptr;
     auto operator()(Args... args) -> Ret
     {
         return func_ptr(std::forward<Args>(args)...);
