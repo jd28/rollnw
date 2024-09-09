@@ -72,7 +72,7 @@ std::unique_ptr<nw::AttackData> resolve_attack(nw::Creature* attacker, nw::Objec
 {
     if (!attacker || !target) { return {}; }
 
-    auto acb = nwk::rules().attack_callbacks();
+    auto acb = nwk::rules().attack_functions();
     auto target_cre = target->as_creature();
 
     // Every attack reset/update how many onhand and offhand attacks
@@ -152,7 +152,7 @@ std::unique_ptr<nw::AttackData> resolve_attack(nw::Creature* attacker, nw::Objec
 
 int resolve_attack_bonus(const nw::Creature* obj, nw::AttackType type, const nw::ObjectBase* versus)
 {
-    auto acb = nwk::rules().attack_callbacks();
+    auto acb = nwk::rules().attack_functions();
 
     int result = 0;
     if (!obj) { return result; }
@@ -339,7 +339,7 @@ nw::AttackResult resolve_attack_roll(const nw::Creature* obj, nw::AttackType typ
 {
     static constexpr nw::DiceRoll d20{1, 20, 0};
     const auto roll = nw::roll_dice(d20);
-    auto acb = nwk::rules().attack_callbacks();
+    auto acb = nwk::rules().attack_functions();
 
     if (roll == 1) { return nw::AttackResult::miss_by_auto_fail; }
 
@@ -583,7 +583,7 @@ int resolve_damage_immunity(const nw::ObjectBase* obj, nw::Damage type, const nw
 void resolve_damage_modifiers(const nw::Creature* obj, const nw::ObjectBase* versus, nw::AttackData* data)
 {
     if (!obj || !versus || !data) { return; }
-    auto acb = nwk::rules().attack_callbacks();
+    auto acb = nwk::rules().attack_functions();
 
     auto do_damage_resistance = [=](nw::DamageResult& dmg, int resist, nw::Effect* resist_eff) {
         int resist_remaining = 0;

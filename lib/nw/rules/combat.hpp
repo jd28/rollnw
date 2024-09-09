@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../util/Callback.hpp"
+#include "../util/FunctionPtr.hpp"
 #include "../util/enum_flags.hpp"
 #include "Effect.hpp"
 #include "damage.hpp"
@@ -92,11 +92,11 @@ DECLARE_RULE_TYPE(MissChanceType);
 
 DECLARE_RULE_TYPE(CombatMode);
 
-struct CombatModeCallbacks {
-    Callback<ModifierResult(CombatMode, ModifierType, const Creature*)> modifier;
-    Callback<bool(CombatMode, const Creature*)> can_use;
-    Callback<void(CombatMode, Creature*)> apply;
-    Callback<void(CombatMode, Creature*)> remove;
+struct CombatModeFuncs {
+    FunctionPtr<ModifierResult(CombatMode, ModifierType, const Creature*)> modifier;
+    FunctionPtr<bool(CombatMode, const Creature*)> can_use;
+    FunctionPtr<void(CombatMode, Creature*)> apply;
+    FunctionPtr<void(CombatMode, Creature*)> remove;
 };
 
 // -- Poison ------------------------------------------------------------------
@@ -192,25 +192,25 @@ private:
     DamageArray damage_;
 };
 
-struct AttackCallbacks {
-    Callback<std::unique_ptr<nw::AttackData>(nw::Creature* attacker, nw::ObjectBase* target)> resolve_attack;
-    Callback<int(const nw::Creature* obj, nw::AttackType type, const nw::ObjectBase* versus)> resolve_attack_bonus;
-    Callback<int(const nw::Creature* obj, const nw::ObjectBase* versus, nw::AttackData* data)> resolve_attack_damage;
-    Callback<nw::AttackResult(const nw::Creature* obj, nw::AttackType type, const nw::ObjectBase* vs, nw::AttackData* data)> resolve_attack_roll;
-    Callback<nw::AttackType(const nw::Creature* obj)> resolve_attack_type;
-    Callback<std::pair<int, bool>(const nw::ObjectBase* obj, const nw::ObjectBase* target, bool vs_ranged)> resolve_concealment;
-    Callback<int(const nw::Creature* obj, nw::AttackType type, const nw::ObjectBase* vs)> resolve_critical_multiplier;
-    Callback<int(const nw::Creature* obj, nw::AttackType type)> resolve_critical_threat;
-    Callback<void(const nw::Creature* obj, const nw::ObjectBase* versus, nw::AttackData* data)> resolve_damage_modifiers;
-    Callback<int(const nw::ObjectBase* obj, nw::Damage type, const nw::ObjectBase* versus)> resolve_damage_immunity;
-    Callback<std::pair<int, nw::Effect*>(const nw::ObjectBase* obj, int power, const nw::ObjectBase* versus)> resolve_damage_reduction;
-    Callback<std::pair<int, nw::Effect*>(const nw::ObjectBase* obj, nw::Damage type, const nw::ObjectBase* versus)> resolve_damage_resistance;
-    Callback<std::pair<int, int>(const nw::Creature* obj)> resolve_dual_wield_penalty;
-    Callback<int(const nw::Creature* attacker, nw::AttackType type)> resolve_iteration_penalty;
-    Callback<std::pair<int, int>(const nw::Creature* obj)> resolve_number_of_attacks;
-    Callback<nw::TargetState(const nw::Creature* attacker, const nw::ObjectBase* target)> resolve_target_state;
-    Callback<nw::DamageFlag(const nw::Item* weapon)> resolve_weapon_damage_flags;
-    Callback<int(const nw::Creature* obj, const nw::Item* weapon)> resolve_weapon_power;
+struct AttackFuncs {
+    FunctionPtr<std::unique_ptr<nw::AttackData>(nw::Creature* attacker, nw::ObjectBase* target)> resolve_attack;
+    FunctionPtr<int(const nw::Creature* obj, nw::AttackType type, const nw::ObjectBase* versus)> resolve_attack_bonus;
+    FunctionPtr<int(const nw::Creature* obj, const nw::ObjectBase* versus, nw::AttackData* data)> resolve_attack_damage;
+    FunctionPtr<nw::AttackResult(const nw::Creature* obj, nw::AttackType type, const nw::ObjectBase* vs, nw::AttackData* data)> resolve_attack_roll;
+    FunctionPtr<nw::AttackType(const nw::Creature* obj)> resolve_attack_type;
+    FunctionPtr<std::pair<int, bool>(const nw::ObjectBase* obj, const nw::ObjectBase* target, bool vs_ranged)> resolve_concealment;
+    FunctionPtr<int(const nw::Creature* obj, nw::AttackType type, const nw::ObjectBase* vs)> resolve_critical_multiplier;
+    FunctionPtr<int(const nw::Creature* obj, nw::AttackType type)> resolve_critical_threat;
+    FunctionPtr<void(const nw::Creature* obj, const nw::ObjectBase* versus, nw::AttackData* data)> resolve_damage_modifiers;
+    FunctionPtr<int(const nw::ObjectBase* obj, nw::Damage type, const nw::ObjectBase* versus)> resolve_damage_immunity;
+    FunctionPtr<std::pair<int, nw::Effect*>(const nw::ObjectBase* obj, int power, const nw::ObjectBase* versus)> resolve_damage_reduction;
+    FunctionPtr<std::pair<int, nw::Effect*>(const nw::ObjectBase* obj, nw::Damage type, const nw::ObjectBase* versus)> resolve_damage_resistance;
+    FunctionPtr<std::pair<int, int>(const nw::Creature* obj)> resolve_dual_wield_penalty;
+    FunctionPtr<int(const nw::Creature* attacker, nw::AttackType type)> resolve_iteration_penalty;
+    FunctionPtr<std::pair<int, int>(const nw::Creature* obj)> resolve_number_of_attacks;
+    FunctionPtr<nw::TargetState(const nw::Creature* attacker, const nw::ObjectBase* target)> resolve_target_state;
+    FunctionPtr<nw::DamageFlag(const nw::Item* weapon)> resolve_weapon_damage_flags;
+    FunctionPtr<int(const nw::Creature* obj, const nw::Item* weapon)> resolve_weapon_power;
 };
 
 } // namespace nw

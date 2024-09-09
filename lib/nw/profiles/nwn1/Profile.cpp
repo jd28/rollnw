@@ -558,7 +558,7 @@ bool Profile::load_rules() const
     }
 
     // == Attack Callbacks ====================================================
-    nw::AttackCallbacks acb;
+    nw::AttackFuncs acb;
     acb.resolve_attack = resolve_attack;
     acb.resolve_attack_bonus = resolve_attack_bonus;
     acb.resolve_attack_damage = resolve_attack_damage;
@@ -577,7 +577,7 @@ bool Profile::load_rules() const
     acb.resolve_target_state = resolve_target_state;
     acb.resolve_weapon_damage_flags = resolve_weapon_damage_flags;
     acb.resolve_weapon_power = resolve_weapon_power;
-    nwk::rules().set_attack_callbacks(acb);
+    nwk::rules().set_attack_functions(acb);
 
     // == Load Combat Mode Callbacks ==========================================
     nwk::rules().register_combat_mode({combat_mode_expertise_mod},

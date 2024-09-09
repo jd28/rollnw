@@ -41,12 +41,12 @@ void Rules::initialize(ServiceInitTime time)
     }
 }
 
-const AttackCallbacks& Rules::attack_callbacks() const noexcept
+const AttackFuncs& Rules::attack_functions() const noexcept
 {
-    return attack_callbacks_;
+    return attack_functions_;
 }
 
-CombatModeCallbacks* Rules::combat_mode_callbacks(CombatMode mode)
+CombatModeFuncs* Rules::combat_mode_functions(CombatMode mode)
 {
     auto it = combat_modes_.find(*mode);
     if (it == std::end(combat_modes_)) { return nullptr; }
@@ -76,16 +76,16 @@ bool Rules::meets_requirement(const Requirement& req, const ObjectBase* obj) con
     return true;
 }
 
-void Rules::register_combat_mode(CombatModeCallbacks callbacks, std::initializer_list<CombatMode> modes)
+void Rules::register_combat_mode(CombatModeFuncs callbacks, std::initializer_list<CombatMode> modes)
 {
     for (auto mode : modes) {
         combat_modes_[*mode] = callbacks;
     }
 }
 
-void Rules::set_attack_callbacks(AttackCallbacks cbs)
+void Rules::set_attack_functions(AttackFuncs cbs)
 {
-    attack_callbacks_ = cbs;
+    attack_functions_ = cbs;
 }
 
 void Rules::set_qualifier(ReqType type, bool (*qualifier)(const Qualifier&, const ObjectBase*))

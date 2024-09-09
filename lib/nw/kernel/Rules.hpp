@@ -30,12 +30,12 @@ struct Rules : public Service {
     /// Clears rules system of all rules and cached 2da files
     virtual void clear() override;
 
-    /// Gets attack callbacks
-    [[nodiscard]] const AttackCallbacks& attack_callbacks() const noexcept;
+    /// Gets attack functions
+    [[nodiscard]] const AttackFuncs& attack_functions() const noexcept;
 
-    /// Gets combat mode callbacks
+    /// Gets combat mode functions
     /// @warning Do not retain the result of this function.
-    [[nodiscard]] CombatModeCallbacks* combat_mode_callbacks(CombatMode mode);
+    [[nodiscard]] CombatModeFuncs* combat_mode_functions(CombatMode mode);
 
     /// Match
     bool match(const Qualifier& qual, const ObjectBase* obj) const;
@@ -44,10 +44,10 @@ struct Rules : public Service {
     bool meets_requirement(const Requirement& req, const ObjectBase* obj) const;
 
     /// Registers a combat mode callbacks
-    void register_combat_mode(CombatModeCallbacks callbacks, std::initializer_list<CombatMode> modes);
+    void register_combat_mode(CombatModeFuncs callbacks, std::initializer_list<CombatMode> modes);
 
     /// Sets attack callbacks
-    void set_attack_callbacks(AttackCallbacks cbs);
+    void set_attack_functions(AttackFuncs cbs);
 
     /// Sets a qualifier for a particular requirement type
     void set_qualifier(ReqType type, bool (*qualifier)(const Qualifier&, const ObjectBase*));
@@ -68,8 +68,8 @@ struct Rules : public Service {
 
 private:
     std::vector<bool (*)(const Qualifier&, const ObjectBase*)> qualifiers_;
-    absl::flat_hash_map<int32_t, CombatModeCallbacks> combat_modes_;
-    AttackCallbacks attack_callbacks_;
+    absl::flat_hash_map<int32_t, CombatModeFuncs> combat_modes_;
+    AttackFuncs attack_functions_;
 };
 
 inline Rules& rules()
