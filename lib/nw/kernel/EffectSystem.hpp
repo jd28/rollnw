@@ -4,6 +4,7 @@
 #include "../objects/ObjectBase.hpp"
 #include "../rules/Effect.hpp"
 #include "../rules/items.hpp"
+#include "../util/FunctionPtr.hpp"
 #include "Kernel.hpp"
 
 #include <absl/container/flat_hash_map.h>
@@ -14,9 +15,9 @@
 
 namespace nw::kernel {
 
-using EffectFunc = bool (*)(ObjectBase*, const Effect*);
+using EffectFunc = FunctionPtr<bool(ObjectBase*, const Effect*)>;
 using EffectPair = std::pair<EffectFunc, EffectFunc>;
-using ItemPropFunc = Effect* (*)(const ItemProperty&, EquipIndex, BaseItem);
+using ItemPropFunc = FunctionPtr<Effect*(const ItemProperty&, EquipIndex, BaseItem)>;
 
 struct EffectSystemStats {
     size_t free_list_size = 0;
