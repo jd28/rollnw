@@ -2,6 +2,8 @@
 
 #include "../serialization/Serialization.hpp"
 
+#include <compare>
+
 namespace nw {
 
 // -- ObjectID ----------------------------------------------------------------
@@ -54,11 +56,24 @@ void to_json(nlohmann::json& j, ObjectType type);
 //-----------------------------------------------------------------------------
 
 struct ObjectHandle {
-    ObjectID id = object_invalid;
-    ObjectType type = ObjectType::invalid;
-    uint16_t version = 0;
+    static constexpr uint32_t version_max = 0xFFFFFF;
 
-    friend auto operator<=>(const ObjectHandle&, const ObjectHandle&) = default;
+    ObjectID id : 32 = object_invalid;
+    ObjectType type : 8 = ObjectType::invalid;
+    uint32_t version : 24 = 0;
+
+    bool operator==(const ObjectHandle&) const = default;
+    std::strong_ordering operator<=>(const ObjectHandle& other) const
+    {
+        // Have to implement manually due to bitfields
+        if (auto cmp = id <=> other.id; cmp != 0) {
+            return cmp;
+        }
+        if (auto cmp = type <=> other.type; cmp != 0) {
+            return cmp;
+        }
+        return uint32_t(version) <=> other.version;
+    }
 };
 
 } // namespace nw

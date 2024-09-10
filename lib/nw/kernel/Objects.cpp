@@ -95,7 +95,7 @@ void ObjectSystem::destroy(ObjectHandle obj)
         }
 
         // If version is at max don't add to free list.  Still clobber object.
-        if (new_handle.version < std::numeric_limits<uint16_t>::max()) {
+        if (new_handle.version < ObjectHandle::version_max) {
             ++new_handle.version;
             free_list_.push(new_handle.id);
         }

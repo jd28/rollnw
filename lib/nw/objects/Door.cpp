@@ -64,7 +64,7 @@ nlohmann::json DoorScripts::to_json() const
 
 Door::Door()
 {
-    set_handle({object_invalid, ObjectType::door, 0});
+    set_handle(ObjectHandle{object_invalid, ObjectType::door, 0});
 }
 
 std::string Door::get_name_from_file(const std::filesystem::path& path)

@@ -10,7 +10,7 @@ namespace nw {
 
 Sound::Sound()
 {
-    set_handle({object_invalid, ObjectType::sound, 0});
+    set_handle(ObjectHandle{object_invalid, ObjectType::sound, 0});
 }
 
 std::string Sound::get_name_from_file(const std::filesystem::path& path)

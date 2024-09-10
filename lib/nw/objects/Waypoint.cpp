@@ -10,7 +10,7 @@ namespace nw {
 
 Waypoint::Waypoint()
 {
-    set_handle({object_invalid, ObjectType::waypoint, 0});
+    set_handle(ObjectHandle{object_invalid, ObjectType::waypoint, 0});
 }
 
 std::string Waypoint::get_name_from_file(const std::filesystem::path& path)

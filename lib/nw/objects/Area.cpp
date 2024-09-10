@@ -142,7 +142,7 @@ nlohmann::json AreaTile::to_json() const
 
 Area::Area()
 {
-    set_handle({object_invalid, ObjectType::area, 0});
+    set_handle(ObjectHandle{object_invalid, ObjectType::area, 0});
 }
 
 bool Area::instantiate()

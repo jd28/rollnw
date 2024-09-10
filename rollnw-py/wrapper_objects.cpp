@@ -108,13 +108,13 @@ void init_objects_base(py::module& nw)
 
     py::class_<nw::ObjectHandle>(nw, "ObjectHandle")
         .def(py::init<>())
-        .def("__repr__", [](nw::ObjectHandle self) {
+        .def("__repr__", [](const nw::ObjectHandle& self) {
             return fmt::format("<ObjectHandle id: {}, version: {}, type: {}",
                 nw::to_underlying(self.id), self.version, nw::to_underlying(self.type));
         })
-        .def_readonly("id", &nw::ObjectHandle::id)
-        .def_readonly("version", &nw::ObjectHandle::version)
-        .def_readonly("type", &nw::ObjectHandle::type)
+        .def_property_readonly("id", [](const nw::ObjectHandle& self) { return self.id; })
+        .def_property_readonly("version", [](const nw::ObjectHandle& self) { return self.version; })
+        .def_property_readonly("type", [](const nw::ObjectHandle& self) { return self.type; })
         .def("valid", [](const nw::ObjectHandle& self) { return self.id != nw::object_invalid; });
 
     py::class_<nw::ObjectBase>(nw, "ObjectBase")

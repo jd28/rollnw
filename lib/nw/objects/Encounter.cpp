@@ -84,7 +84,7 @@ nlohmann::json SpawnPoint::to_json() const
 
 Encounter::Encounter()
 {
-    set_handle({object_invalid, ObjectType::encounter, 0});
+    set_handle(ObjectHandle{object_invalid, ObjectType::encounter, 0});
 }
 
 std::string Encounter::get_name_from_file(const std::filesystem::path& path)

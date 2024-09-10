@@ -41,7 +41,7 @@ bool TriggerScripts::from_json(const nlohmann::json& archive)
 
 Trigger::Trigger()
 {
-    set_handle({object_invalid, ObjectType::trigger, 0});
+    set_handle(ObjectHandle{object_invalid, ObjectType::trigger, 0});
 }
 
 Versus Trigger::versus_me() const

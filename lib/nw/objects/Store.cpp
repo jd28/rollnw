@@ -36,7 +36,7 @@ bool Store::instantiate()
 
 Store::Store()
 {
-    set_handle({object_invalid, ObjectType::store, 0});
+    set_handle(ObjectHandle{object_invalid, ObjectType::store, 0});
     inventory.set_owner(this);
 }
 

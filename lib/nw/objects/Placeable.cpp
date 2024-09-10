@@ -65,7 +65,7 @@ nlohmann::json PlaceableScripts::to_json() const
 
 Placeable::Placeable()
 {
-    set_handle({object_invalid, ObjectType::placeable, 0});
+    set_handle(ObjectHandle{object_invalid, ObjectType::placeable, 0});
     inventory.owner = this;
 }
 

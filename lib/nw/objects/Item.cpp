@@ -13,7 +13,7 @@ namespace nw {
 
 Item::Item()
 {
-    set_handle({object_invalid, ObjectType::item, 0});
+    set_handle(ObjectHandle{object_invalid, ObjectType::item, 0});
     inventory.owner = this;
 }
 
