@@ -459,7 +459,7 @@ nw::ModifierResult ability_damage(const nw::ObjectBase* obj, const nw::ObjectBas
 nw::ModifierResult combat_mode_dmg(const nw::ObjectBase* obj, const nw::ObjectBase*, int32_t)
 {
     auto cre = obj->as_creature();
-    if (!cre || cre->combat_info.combat_mode == nw::CombatMode::invalid()) { return 0; }
+    if (!cre || cre->combat_info.combat_mode == nw::CombatMode::invalid()) { return nw::DamageRoll{}; }
 
     auto cbs = nw::kernel::rules().combat_mode_functions(cre->combat_info.combat_mode);
     return cbs->modifier(cre->combat_info.combat_mode, mod_type_damage, cre);
