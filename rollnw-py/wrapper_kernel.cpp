@@ -72,10 +72,6 @@ void init_kernel_effects(py::module& kernel)
         .def("ip_definition", &nw::kernel::EffectSystem::ip_definition)
         .def("ip_param_table", &nw::kernel::EffectSystem::ip_param_table)
         .def("remove", &nw::kernel::EffectSystem::remove)
-        .def("set_effect_limits_ability", &nw::kernel::EffectSystem::set_effect_limits_ability)
-        .def("set_effect_limits_armor_class", &nw::kernel::EffectSystem::set_effect_limits_armor_class)
-        .def("set_effect_limits_attack", &nw::kernel::EffectSystem::set_effect_limits_attack)
-        .def("set_effect_limits_skill", &nw::kernel::EffectSystem::set_effect_limits_skill)
         .def("stats", &nw::kernel::EffectSystem::stats);
 
     kernel.def(

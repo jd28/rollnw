@@ -76,18 +76,6 @@ struct EffectSystem : public Service {
     /// Removes an effect to an object
     bool remove(ObjectBase* obj, Effect* effect);
 
-    /// Sets ability effect minimum and maximum
-    void set_effect_limits_ability(int min, int max) noexcept;
-
-    /// Sets armor class effect minimum and maximum
-    void set_effect_limits_armor_class(int min, int max) noexcept;
-
-    /// Sets attack effect minimum and maximum
-    void set_effect_limits_attack(int min, int max) noexcept;
-
-    /// Sets skill effect minimum and maximum
-    void set_effect_limits_skill(int min, int max) noexcept;
-
     /// Gets stats regarding the effect system
     EffectSystemStats stats() const noexcept;
 

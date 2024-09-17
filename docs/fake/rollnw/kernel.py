@@ -112,22 +112,6 @@ class EffectSystem:
         """Removes an effect to an object"""
         pass
 
-    def set_effect_limits_ability(self, min: int,  max: int) -> None:
-        """Sets ability effect minimum and maximum"""
-        pass
-
-    def set_effect_limits_armor_class(self, min: int,  max: int) -> None:
-        """Sets armor class effect minimum and maximum"""
-        pass
-
-    def set_effect_limits_attack(self, min: int,  max: int) -> None:
-        """Sets attack effect minimum and maximum"""
-        pass
-
-    def set_effect_limits_skill(self, min: int,  max: int) -> None:
-        """Sets skill effect minimum and maximum"""
-        pass
-
     def stats(self) -> EffectSystemStats:
         """Gets stats regarding the effect system"""
         pass
