@@ -19,6 +19,13 @@ using EffectFunc = FunctionPtr<bool(ObjectBase*, const Effect*)>;
 using EffectPair = std::pair<EffectFunc, EffectFunc>;
 using ItemPropFunc = FunctionPtr<Effect*(const ItemProperty&, EquipIndex, BaseItem)>;
 
+struct EffectLimits {
+    std::pair<int, int> ability{-12, 12};
+    std::pair<int, int> armor_class{-20, 20};
+    std::pair<int, int> attack{-20, 20};
+    std::pair<int, int> skill{-50, 50};
+};
+
 struct EffectSystemStats {
     size_t free_list_size = 0;
     size_t pool_size = 0;
@@ -45,17 +52,11 @@ struct EffectSystem : public Service {
     /// Destroys an effect
     void destroy(Effect* effect);
 
-    /// Gets ability effect minimum and maximum
-    std::pair<int, int> effect_limits_ability() const noexcept;
+    /// Effect limits
+    EffectLimits& limits() noexcept;
 
-    /// Gets armor class effect minimum and maximum
-    std::pair<int, int> effect_limits_armor_class() const noexcept;
-
-    /// Gets attack effect minimum and maximum
-    std::pair<int, int> effect_limits_attack() const noexcept;
-
-    /// Gets skill effect minimum and maximum
-    std::pair<int, int> effect_limits_skill() const noexcept;
+    /// Effect limits
+    const EffectLimits& limits() const noexcept;
 
     /// Generates an effect from an item property
     Effect* generate(const ItemProperty& property, EquipIndex index, BaseItem baseitem) const;
@@ -96,11 +97,7 @@ private:
     std::vector<ItemPropertyDefinition> ip_definitions_;
     std::vector<const TwoDA*> ip_cost_table_;
     std::vector<const TwoDA*> ip_param_table_;
-    std::pair<int, int> ability_effect_limits_{-12, 12};
-    std::pair<int, int> ac_effect_limits_{-20, 20};
-    std::pair<int, int> attack_effect_limits_{-20, 20};
-    std::pair<int, int> effect_limits_skill_{-50, 50};
-
+    EffectLimits limits_;
     std::deque<Effect> pool_;
     std::stack<uint32_t> free_list_;
 };

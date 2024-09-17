@@ -222,7 +222,7 @@ int resolve_attack_bonus(const nw::Creature* obj, nw::AttackType type, const nw:
             decrease_adder, &nw::effect_extract_int0);
     }
 
-    auto [min, max] = nw::kernel::effects().effect_limits_attack();
+    auto [min, max] = nw::kernel::effects().limits().attack;
     return result + modifier + std::clamp(bonus - decrease, min, max);
 }
 

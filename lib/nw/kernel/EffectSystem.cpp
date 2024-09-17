@@ -9,45 +9,8 @@ namespace nw::kernel {
 // == Effect Limits ===========================================================
 // ============================================================================
 
-std::pair<int, int> EffectSystem::effect_limits_ability() const noexcept
-{
-    return ability_effect_limits_;
-}
-
-std::pair<int, int> EffectSystem::effect_limits_armor_class() const noexcept
-{
-    return ac_effect_limits_;
-}
-
-std::pair<int, int> EffectSystem::effect_limits_attack() const noexcept
-{
-    return attack_effect_limits_;
-}
-
-std::pair<int, int> EffectSystem::effect_limits_skill() const noexcept
-{
-    return effect_limits_skill_;
-}
-
-void EffectSystem::set_effect_limits_ability(int min, int max) noexcept
-{
-    ability_effect_limits_ = std::make_pair(min, max);
-}
-
-void EffectSystem::set_effect_limits_armor_class(int min, int max) noexcept
-{
-    ac_effect_limits_ = std::make_pair(min, max);
-}
-
-void EffectSystem::set_effect_limits_attack(int min, int max) noexcept
-{
-    attack_effect_limits_ = std::make_pair(min, max);
-}
-
-void EffectSystem::set_effect_limits_skill(int min, int max) noexcept
-{
-    effect_limits_skill_ = std::make_pair(min, max);
-}
+EffectLimits& EffectSystem::limits() noexcept { return limits_; }
+const EffectLimits& EffectSystem::limits() const noexcept { return limits_; }
 
 bool EffectSystem::add(EffectType type, EffectFunc apply, EffectFunc remove)
 {
