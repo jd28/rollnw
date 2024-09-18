@@ -7,6 +7,7 @@ struct AttackData;
 enum struct AttackResult;
 struct AttackType;
 struct BaseItem;
+struct Class;
 struct Creature;
 struct Damage;
 using DamageFlag = RuleFlag<Damage, 32>;
@@ -17,6 +18,7 @@ enum struct EquipIndex : uint32_t;
 struct Item;
 struct ObjectBase;
 struct ObjectHandle;
+struct Spell;
 enum struct TargetState;
 } // namespace nw
 
@@ -42,6 +44,15 @@ int calculate_ac_versus(const nw::ObjectBase* obj, const nw::ObjectBase* versus,
 
 /// Calculates the armor class of a piece of armor
 int calculate_item_ac(const nw::Item* obj);
+
+// == Casting =================================================================
+// ============================================================================
+
+/// Gets creature's caster level for specified class
+int get_caster_level(nw::Creature* obj, nw::Class class_);
+
+/// Gets spell DC
+int get_spell_dc(nw::Creature* obj, nw::Class class_, nw::Spell spell);
 
 // == Classes =================================================================
 // ============================================================================

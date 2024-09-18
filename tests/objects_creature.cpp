@@ -10,7 +10,6 @@
 #include <nw/rules/feats.hpp>
 #include <nw/serialization/GffBuilder.hpp>
 #include <nwn1/Profile.hpp>
-#include <nwn1/casting.hpp>
 
 #include <nwn1/constants.hpp>
 #include <nwn1/effects.hpp>
