@@ -83,6 +83,11 @@ void Rules::register_combat_mode(CombatModeFuncs callbacks, std::initializer_lis
     }
 }
 
+void Rules::register_special_attack(SpecialAttack type, SpecialAttackFuncs funcs)
+{
+    special_attacks_[*type] = funcs;
+}
+
 void Rules::set_attack_functions(AttackFuncs cbs)
 {
     attack_functions_ = cbs;
@@ -94,6 +99,13 @@ void Rules::set_qualifier(ReqType type, bool (*qualifier)(const Qualifier&, cons
         qualifiers_.resize(type.idx() + 1);
     }
     if (qualifier) { qualifiers_[type.idx()] = qualifier; };
+}
+
+SpecialAttackFuncs Rules::special_attack(SpecialAttack type)
+{
+    auto it = special_attacks_.find(*type);
+    if (it == std::end(special_attacks_)) { return {}; }
+    return it->second;
 }
 
 } // namespace nw::kernel

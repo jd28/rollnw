@@ -45,11 +45,17 @@ struct Rules : public Service {
     /// Registers a combat mode callbacks
     void register_combat_mode(CombatModeFuncs callbacks, std::initializer_list<CombatMode> modes);
 
+    /// Registers a special attack callbacks
+    void register_special_attack(SpecialAttack type, SpecialAttackFuncs funcs);
+
     /// Sets attack callbacks
     void set_attack_functions(AttackFuncs cbs);
 
     /// Sets a qualifier for a particular requirement type
     void set_qualifier(ReqType type, bool (*qualifier)(const Qualifier&, const ObjectBase*));
+
+    /// Gets special attack functions
+    [[nodiscard]] SpecialAttackFuncs special_attack(SpecialAttack type);
 
     BaseItemArray baseitems;
     ClassArray classes;
@@ -68,6 +74,7 @@ struct Rules : public Service {
 private:
     std::vector<bool (*)(const Qualifier&, const ObjectBase*)> qualifiers_;
     absl::flat_hash_map<int32_t, CombatModeFuncs> combat_modes_;
+    absl::flat_hash_map<int32_t, SpecialAttackFuncs> special_attacks_;
     AttackFuncs attack_functions_;
 };
 

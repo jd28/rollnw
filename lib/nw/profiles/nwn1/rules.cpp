@@ -1039,4 +1039,81 @@ void load_qualifiers()
     nw::kernel::rules().set_qualifier(nw::req_type_skill, qualify_skill);
 }
 
+// == Special Attacks =========================================================
+// ============================================================================
+
+nw::SpecialAttackImpact smite_impact(nw::SpecialAttack type, nw::Creature* attacker, const nw::ObjectBase* target)
+{
+    int level = 0;
+    nw::SpecialAttackImpact impact;
+
+    if (type == special_attack_smite_good) {
+        level = attacker->levels.level_by_class(class_type_blackguard);
+        if (level > 0) {
+            impact.success = true;
+            impact.effect = effect_damage_immunity(damage_type_positive, -10);
+        }
+    } else {
+        level = attacker->levels.level_by_class(class_type_blackguard);
+        if (level > 0) {
+            impact.success = true;
+            impact.effect = effect_damage_immunity(damage_type_divine, -10);
+        }
+    }
+    return impact;
+}
+
+nw::ModifierResult smite_modifier(nw::SpecialAttack type, nw::ModifierType modtype, nw::Creature* attacker, const nw::ObjectBase* target)
+{
+    int level = 0;
+
+    if (modtype == mod_type_damage) {
+        nw::DamageRoll result;
+        auto feat = nw::highest_feat_in_range(attacker, feat_epic_great_smiting_1, feat_epic_great_smiting_10);
+        int bonus = 1;
+
+        if (feat != nw::Feat::invalid()) {
+            bonus = 1 + *feat - *feat_epic_great_smiting_1 + 1;
+        }
+
+        if (type == special_attack_smite_good) {
+            result.type = damage_type_positive;
+            level = attacker->levels.level_by_class(class_type_blackguard);
+        } else {
+            result.type = damage_type_divine;
+            level = attacker->levels.level_by_class(class_type_paladin)
+                + attacker->levels.level_by_class(class_type_divinechampion);
+        }
+
+        result.roll.bonus = level * bonus;
+        return result;
+    } else if (modtype == mod_type_attack_bonus) {
+        if (type == special_attack_smite_good) {
+            level = attacker->levels.level_by_class(class_type_blackguard);
+        } else {
+            level = attacker->levels.level_by_class(class_type_paladin)
+                + attacker->levels.level_by_class(class_type_divinechampion);
+        }
+        return level > 0 ? get_ability_score(attacker, ability_charisma) : 0;
+    }
+
+    return {};
+}
+
+bool smite_use(nw::SpecialAttack type, nw::Creature* attacker, const nw::ObjectBase* target)
+{
+    nw::Versus vs = target->versus_me();
+    if (type == special_attack_smite_good) {
+        return to_bool(vs.align_flags & nw::AlignmentFlags::good);
+    } else {
+        return to_bool(vs.align_flags & nw::AlignmentFlags::evil);
+    }
+}
+
+void load_special_attacks()
+{
+    nwk::rules().register_special_attack(special_attack_smite_evil, {smite_modifier, smite_use, smite_impact});
+    nwk::rules().register_special_attack(special_attack_smite_good, {smite_modifier, smite_use, smite_impact});
+}
+
 } // namespace nwn1
