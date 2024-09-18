@@ -52,12 +52,6 @@ struct EffectSystem : public Service {
     /// Destroys an effect
     void destroy(Effect* effect);
 
-    /// Effect limits
-    EffectLimits& limits() noexcept;
-
-    /// Effect limits
-    const EffectLimits& limits() const noexcept;
-
     /// Generates an effect from an item property
     Effect* generate(const ItemProperty& property, EquipIndex index, BaseItem baseitem) const;
 
@@ -79,13 +73,15 @@ struct EffectSystem : public Service {
     /// Gets stats regarding the effect system
     EffectSystemStats stats() const noexcept;
 
+    /// Effect related limits
+    EffectLimits limits;
+
 private:
     absl::flat_hash_map<int32_t, EffectPair> registry_;
     absl::flat_hash_map<int32_t, ItemPropFunc> itemprops_;
     std::vector<ItemPropertyDefinition> ip_definitions_;
     std::vector<const TwoDA*> ip_cost_table_;
     std::vector<const TwoDA*> ip_param_table_;
-    EffectLimits limits_;
     std::deque<Effect> pool_;
     std::stack<uint32_t> free_list_;
 };

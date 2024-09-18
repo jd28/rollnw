@@ -45,7 +45,7 @@ int get_ability_score(const nw::Creature* obj, nw::Ability ability, bool base)
     auto [decrease, _] = nw::sum_effects_of<int>(it, end,
         effect_type_ability_decrease, *ability);
 
-    auto [min, max] = nw::kernel::effects().limits().ability;
+    auto [min, max] = nw::kernel::effects().limits.ability;
     return result + std::clamp(bonus - decrease, min, max);
 }
 
@@ -133,7 +133,7 @@ int calculate_ac_versus(const nw::ObjectBase* obj, const nw::ObjectBase* versus,
             it_pen = itp;
         }
     }
-    auto [min, max] = nw::kernel::effects().limits().armor_class;
+    auto [min, max] = nw::kernel::effects().limits.armor_class;
 
     natural += std::clamp(results[ac_natural.idx()], min, max);
     int armor = std::clamp(results[ac_armor.idx()], min, max);
@@ -528,7 +528,7 @@ int get_skill_rank(const nw::Creature* obj, nw::Skill skill, nw::ObjectBase* ver
     auto [decrease, _] = nw::sum_effects_of<int>(it, end,
         effect_type_skill_decrease, *skill);
 
-    auto [min, max] = nw::kernel::effects().limits().skill;
+    auto [min, max] = nw::kernel::effects().limits.skill;
     return result + std::clamp(bonus - decrease, min, max);
 }
 

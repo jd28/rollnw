@@ -6,12 +6,6 @@
 
 namespace nw::kernel {
 
-// == Effect Limits ===========================================================
-// ============================================================================
-
-EffectLimits& EffectSystem::limits() noexcept { return limits_; }
-const EffectLimits& EffectSystem::limits() const noexcept { return limits_; }
-
 bool EffectSystem::add(EffectType type, EffectFunc apply, EffectFunc remove)
 {
     auto [it, added] = registry_.emplace(*type, std::make_pair(std::move(apply), std::move(remove)));
