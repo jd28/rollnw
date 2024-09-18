@@ -1,8 +1,8 @@
 #include "Profile.hpp"
 
-#include "combat.hpp"
 #include "constants.hpp"
 #include "effects.hpp"
+#include "functions.hpp"
 #include "rules.hpp"
 
 #include "../../formats/Ini.hpp"
@@ -592,6 +592,9 @@ bool Profile::load_rules() const
 
     // == Load Item Property Generators =======================================
     load_itemprop_generators();
+
+    // == Load Special Attacks ================================================
+    load_special_attacks();
 
     return true;
 }

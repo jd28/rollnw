@@ -68,7 +68,6 @@ add_library(nw STATIC
     objects/Trap.cpp
 
     profiles/nwn1/casting.cpp
-    profiles/nwn1/combat.cpp
     profiles/nwn1/constants.cpp
     profiles/nwn1/effects.cpp
     profiles/nwn1/functions.cpp

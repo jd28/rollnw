@@ -11,7 +11,7 @@
 #include <nw/serialization/GffBuilder.hpp>
 #include <nwn1/Profile.hpp>
 #include <nwn1/casting.hpp>
-#include <nwn1/combat.hpp>
+
 #include <nwn1/constants.hpp>
 #include <nwn1/effects.hpp>
 #include <nwn1/functions.hpp>

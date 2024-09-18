@@ -1,11 +1,10 @@
 #pragma once
 
-#include "../../objects/Equips.hpp"
-#include "../../rules/combat.hpp"
 #include "constants.hpp"
 
 namespace nw {
 struct Effect;
+enum struct EquipIndex : uint32_t;
 struct ItemProperty;
 struct ObjectBase;
 } // namespace nw

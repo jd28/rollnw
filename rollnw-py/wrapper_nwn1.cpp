@@ -6,7 +6,7 @@
 #include <nw/objects/Item.hpp>
 
 #include <nwn1/casting.hpp>
-#include <nwn1/combat.hpp>
+
 #include <nwn1/effects.hpp>
 #include <nwn1/functions.hpp>
 
