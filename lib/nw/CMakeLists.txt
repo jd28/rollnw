@@ -73,7 +73,6 @@ add_library(nw STATIC
     profiles/nwn1/effects.cpp
     profiles/nwn1/functions.cpp
     profiles/nwn1/Profile.cpp
-    profiles/nwn1/modifiers.cpp
     profiles/nwn1/rules.cpp
 
     resources/Bif.cpp
