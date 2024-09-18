@@ -34,8 +34,7 @@ struct Rules : public Service {
     [[nodiscard]] const AttackFuncs& attack_functions() const noexcept;
 
     /// Gets combat mode functions
-    /// @warning Do not retain the result of this function.
-    [[nodiscard]] CombatModeFuncs* combat_mode_functions(CombatMode mode);
+    [[nodiscard]] CombatModeFuncs combat_mode(CombatMode mode);
 
     /// Match
     bool match(const Qualifier& qual, const ObjectBase* obj) const;

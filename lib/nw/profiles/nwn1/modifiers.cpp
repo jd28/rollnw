@@ -229,8 +229,8 @@ nw::ModifierResult combat_mode_ab(const nw::ObjectBase* obj, const nw::ObjectBas
     auto cre = obj->as_creature();
     if (!cre || cre->combat_info.combat_mode == nw::CombatMode::invalid()) { return 0; }
 
-    auto cbs = nw::kernel::rules().combat_mode_functions(cre->combat_info.combat_mode);
-    return cbs->modifier(cre->combat_info.combat_mode, mod_type_attack_bonus, cre);
+    auto cbs = nw::kernel::rules().combat_mode(cre->combat_info.combat_mode);
+    return cbs.modifier(cre->combat_info.combat_mode, mod_type_attack_bonus, cre);
 }
 
 nw::ModifierResult enchant_arrow_ab(const nw::ObjectBase* obj, const nw::ObjectBase*, int32_t subtype)
@@ -461,8 +461,8 @@ nw::ModifierResult combat_mode_dmg(const nw::ObjectBase* obj, const nw::ObjectBa
     auto cre = obj->as_creature();
     if (!cre || cre->combat_info.combat_mode == nw::CombatMode::invalid()) { return nw::DamageRoll{}; }
 
-    auto cbs = nw::kernel::rules().combat_mode_functions(cre->combat_info.combat_mode);
-    return cbs->modifier(cre->combat_info.combat_mode, mod_type_damage, cre);
+    auto cbs = nw::kernel::rules().combat_mode(cre->combat_info.combat_mode);
+    return cbs.modifier(cre->combat_info.combat_mode, mod_type_damage, cre);
 }
 
 nw::ModifierResult favored_enemy_dmg(const nw::ObjectBase* obj, const nw::ObjectBase* vs, int32_t subtype)

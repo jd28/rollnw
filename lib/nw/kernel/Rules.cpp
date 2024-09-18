@@ -46,11 +46,11 @@ const AttackFuncs& Rules::attack_functions() const noexcept
     return attack_functions_;
 }
 
-CombatModeFuncs* Rules::combat_mode_functions(CombatMode mode)
+CombatModeFuncs Rules::combat_mode(CombatMode mode)
 {
     auto it = combat_modes_.find(*mode);
-    if (it == std::end(combat_modes_)) { return nullptr; }
-    return &it->second;
+    if (it == std::end(combat_modes_)) { return {}; }
+    return it->second;
 }
 
 bool Rules::match(const Qualifier& qual, const ObjectBase* obj) const
