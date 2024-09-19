@@ -1042,27 +1042,6 @@ void load_qualifiers()
 // == Special Attacks =========================================================
 // ============================================================================
 
-nw::SpecialAttackImpact smite_impact(nw::SpecialAttack type, nw::Creature* attacker, const nw::ObjectBase* target)
-{
-    int level = 0;
-    nw::SpecialAttackImpact impact;
-
-    if (type == special_attack_smite_good) {
-        level = attacker->levels.level_by_class(class_type_blackguard);
-        if (level > 0) {
-            impact.success = true;
-            impact.effect = effect_damage_immunity(damage_type_positive, -10);
-        }
-    } else {
-        level = attacker->levels.level_by_class(class_type_blackguard);
-        if (level > 0) {
-            impact.success = true;
-            impact.effect = effect_damage_immunity(damage_type_divine, -10);
-        }
-    }
-    return impact;
-}
-
 nw::ModifierResult smite_modifier(nw::SpecialAttack type, nw::ModifierType modtype, nw::Creature* attacker, const nw::ObjectBase* target)
 {
     int level = 0;
@@ -1112,8 +1091,8 @@ bool smite_use(nw::SpecialAttack type, nw::Creature* attacker, const nw::ObjectB
 
 void load_special_attacks()
 {
-    nwk::rules().register_special_attack(special_attack_smite_evil, {smite_modifier, smite_use, smite_impact});
-    nwk::rules().register_special_attack(special_attack_smite_good, {smite_modifier, smite_use, smite_impact});
+    nwk::rules().register_special_attack(special_attack_smite_evil, {smite_modifier, smite_use, {}});
+    nwk::rules().register_special_attack(special_attack_smite_good, {smite_modifier, smite_use, {}});
 }
 
 } // namespace nwn1

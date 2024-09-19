@@ -116,15 +116,10 @@ using SituationFlag = RuleFlag<Situation, 64>;
 
 DECLARE_RULE_TYPE(SpecialAttack);
 
-struct SpecialAttackImpact {
-    bool success = false;
-    Effect* effect;
-};
-
 struct SpecialAttackFuncs {
     FunctionPtr<ModifierResult(SpecialAttack, ModifierType, Creature*, const ObjectBase*)> modifier;
     FunctionPtr<bool(SpecialAttack, Creature*, const ObjectBase*)> usable;
-    FunctionPtr<SpecialAttackImpact(SpecialAttack, Creature*, const ObjectBase*)> imapct;
+    FunctionPtr<Effect*(SpecialAttack, Creature*, const ObjectBase*)> imapct;
 };
 
 // -- Target State ------------------------------------------------------------
