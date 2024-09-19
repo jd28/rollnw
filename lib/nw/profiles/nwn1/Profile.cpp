@@ -22,135 +22,41 @@ using namespace std::literals;
 
 namespace nwn1 {
 
-static inline bool load_master_feats()
-{
-    LOG_F(INFO, "[nwn1] Loading master feats");
-
-    auto& mfr = nw::kernel::rules().master_feats;
-    mfr.set_bonus(mfeat_skill_focus, 3);
-    mfr.set_bonus(mfeat_skill_focus_epic, 10);
-
-#define ADD_SKILL(name)                                                \
-    mfr.add(skill_##name, mfeat_skill_focus, feat_skill_focus_##name); \
-    mfr.add(skill_##name, mfeat_skill_focus_epic, feat_epic_skill_focus_##name)
-
-    ADD_SKILL(animal_empathy);
-    ADD_SKILL(concentration);
-    ADD_SKILL(disable_trap);
-    ADD_SKILL(discipline);
-    ADD_SKILL(heal);
-    ADD_SKILL(hide);
-    ADD_SKILL(listen);
-    ADD_SKILL(lore);
-    ADD_SKILL(move_silently);
-    ADD_SKILL(open_lock);
-    ADD_SKILL(parry);
-    ADD_SKILL(perform);
-    ADD_SKILL(persuade);
-    ADD_SKILL(pick_pocket);
-    ADD_SKILL(search);
-    ADD_SKILL(set_trap);
-    ADD_SKILL(spellcraft);
-    ADD_SKILL(spot);
-    ADD_SKILL(taunt);
-    ADD_SKILL(use_magic_device);
-    ADD_SKILL(appraise);
-    ADD_SKILL(tumble);
-    ADD_SKILL(craft_trap);
-    ADD_SKILL(bluff);
-    ADD_SKILL(intimidate);
-    ADD_SKILL(craft_armor);
-    ADD_SKILL(craft_weapon);
-    // ADD_SKILL(ride); -- No feats
-
-#undef ADD_SKILL
-
-    // Weapons
-    mfr.set_bonus(mfeat_weapon_focus, 1);
-    mfr.set_bonus(mfeat_weapon_focus_epic, 2);
-    mfr.set_bonus(mfeat_weapon_spec, 2);
-    mfr.set_bonus(mfeat_weapon_spec_epic, 4);
-    // [TODO] One here is just an indicator that char has feat.. for now.  Ultimately, dice rolls
-    // and damage rolls will need to be included in ModifierResult
-    mfr.set_bonus(mfeat_devastating_crit, 1);
-    mfr.set_bonus(mfeat_improved_crit, 1);
-    mfr.set_bonus(mfeat_overwhelming_crit, 1);
-    mfr.set_bonus(mfeat_weapon_of_choice, 1);
-
-    mfr.set_bonus(mfeat_spell_focus, 2);
-    mfr.set_bonus(mfeat_spell_focus_greater, 2);
-    mfr.set_bonus(mfeat_spell_focus_epic, 2);
-
-    // Special case baseitem invalid - the rest will be loaded during the baseitem loading below
-    mfr.add(nw::BaseItem::invalid(), mfeat_weapon_focus, feat_weapon_focus_unarmed);
-    mfr.add(nw::BaseItem::invalid(), mfeat_weapon_focus_epic, feat_epic_weapon_focus_unarmed);
-    mfr.add(nw::BaseItem::invalid(), mfeat_weapon_spec, feat_weapon_specialization_unarmed);
-    mfr.add(nw::BaseItem::invalid(), mfeat_weapon_spec_epic, feat_epic_devastating_critical_unarmed);
-    mfr.add(nw::BaseItem::invalid(), mfeat_devastating_crit, feat_epic_devastating_critical_unarmed);
-    mfr.add(nw::BaseItem::invalid(), mfeat_improved_crit, feat_improved_critical_unarmed);
-    mfr.add(nw::BaseItem::invalid(), mfeat_overwhelming_crit, feat_epic_overwhelming_critical_unarmed);
-
-    // Favored Enemy - Bonus is just a check for having the feat.
-    mfr.set_bonus(mfeat_favored_enemy, 1);
-    mfr.add(racial_type_dwarf, mfeat_favored_enemy, feat_favored_enemy_dwarf);
-    mfr.add(racial_type_elf, mfeat_favored_enemy, feat_favored_enemy_elf);
-    mfr.add(racial_type_gnome, mfeat_favored_enemy, feat_favored_enemy_gnome);
-    mfr.add(racial_type_halfling, mfeat_favored_enemy, feat_favored_enemy_halfling);
-    mfr.add(racial_type_halfelf, mfeat_favored_enemy, feat_favored_enemy_halfelf);
-    mfr.add(racial_type_halforc, mfeat_favored_enemy, feat_favored_enemy_halforc);
-    mfr.add(racial_type_human, mfeat_favored_enemy, feat_favored_enemy_human);
-    mfr.add(racial_type_aberration, mfeat_favored_enemy, feat_favored_enemy_aberration);
-    mfr.add(racial_type_animal, mfeat_favored_enemy, feat_favored_enemy_animal);
-    mfr.add(racial_type_beast, mfeat_favored_enemy, feat_favored_enemy_beast);
-    mfr.add(racial_type_construct, mfeat_favored_enemy, feat_favored_enemy_construct);
-    mfr.add(racial_type_dragon, mfeat_favored_enemy, feat_favored_enemy_dragon);
-    mfr.add(racial_type_humanoid_goblinoid, mfeat_favored_enemy, feat_favored_enemy_goblinoid);
-    mfr.add(racial_type_humanoid_monstrous, mfeat_favored_enemy, feat_favored_enemy_monstrous);
-    mfr.add(racial_type_humanoid_orc, mfeat_favored_enemy, feat_favored_enemy_orc);
-    mfr.add(racial_type_humanoid_reptilian, mfeat_favored_enemy, feat_favored_enemy_reptilian);
-    mfr.add(racial_type_elemental, mfeat_favored_enemy, feat_favored_enemy_elemental);
-    mfr.add(racial_type_fey, mfeat_favored_enemy, feat_favored_enemy_fey);
-    mfr.add(racial_type_giant, mfeat_favored_enemy, feat_favored_enemy_giant);
-    mfr.add(racial_type_magical_beast, mfeat_favored_enemy, feat_favored_enemy_magical_beast);
-    mfr.add(racial_type_outsider, mfeat_favored_enemy, feat_favored_enemy_outsider);
-    mfr.add(racial_type_shapechanger, mfeat_favored_enemy, feat_favored_enemy_shapechanger);
-    mfr.add(racial_type_undead, mfeat_favored_enemy, feat_favored_enemy_undead);
-    mfr.add(racial_type_vermin, mfeat_favored_enemy, feat_favored_enemy_vermin);
-
-    mfr.add(spell_school_abjuration, mfeat_spell_focus, feat_spell_focus_abjuration);
-    mfr.add(spell_school_abjuration, mfeat_spell_focus_greater, feat_greater_spell_focus_abjuration);
-    mfr.add(spell_school_abjuration, mfeat_spell_focus_epic, feat_epic_spell_focus_abjuration);
-    mfr.add(spell_school_conjuration, mfeat_spell_focus, feat_spell_focus_conjuration);
-    mfr.add(spell_school_conjuration, mfeat_spell_focus_greater, feat_greater_spell_focus_conjuration);
-    mfr.add(spell_school_conjuration, mfeat_spell_focus_epic, feat_epic_spell_focus_conjuration);
-    mfr.add(spell_school_divination, mfeat_spell_focus, feat_spell_focus_divination);
-    mfr.add(spell_school_divination, mfeat_spell_focus_greater, feat_greater_spell_focus_divination);
-    mfr.add(spell_school_divination, mfeat_spell_focus_epic, feat_epic_spell_focus_divination);
-    mfr.add(spell_school_enchantment, mfeat_spell_focus, feat_spell_focus_enchantment);
-    mfr.add(spell_school_enchantment, mfeat_spell_focus_greater, feat_greater_spell_focus_enchantment);
-    mfr.add(spell_school_enchantment, mfeat_spell_focus_epic, feat_epic_spell_focus_enchantment);
-    mfr.add(spell_school_evocation, mfeat_spell_focus, feat_spell_focus_evocation);
-    mfr.add(spell_school_evocation, mfeat_spell_focus_greater, feat_greater_spell_focus_evocation);
-    mfr.add(spell_school_evocation, mfeat_spell_focus_epic, feat_epic_spell_focus_evocation);
-    mfr.add(spell_school_illusion, mfeat_spell_focus, feat_spell_focus_illusion);
-    mfr.add(spell_school_illusion, mfeat_spell_focus_greater, feat_greater_spell_focus_illusion);
-    mfr.add(spell_school_illusion, mfeat_spell_focus_epic, feat_epic_spell_focus_illusion);
-    mfr.add(spell_school_necromancy, mfeat_spell_focus, feat_spell_focus_necromancy);
-    mfr.add(spell_school_necromancy, mfeat_spell_focus_greater, feat_greater_spell_focus_necromancy);
-    mfr.add(spell_school_necromancy, mfeat_spell_focus_epic, feat_epic_spell_focus_necromancy);
-    mfr.add(spell_school_transmutation, mfeat_spell_focus, feat_spell_focus_transmutation);
-    mfr.add(spell_school_transmutation, mfeat_spell_focus_greater, feat_greater_spell_focus_transmutation);
-    mfr.add(spell_school_transmutation, mfeat_spell_focus_epic, feat_epic_spell_focus_transmutation);
-
-    LOG_F(INFO, "  ... {} master feat specializations loaded", mfr.entries().size());
-    return true;
-}
-
 bool Profile::load_rules() const
 {
     LOG_F(INFO, "[nwn1] loading rules...");
 
-    // == Set global rule functions ===========================================
+    // == Load Effects ========================================================
+    load_effects();
+    load_itemprop_generators();
+
+    // == Load Rules ==========================================================
+
+    nw::AttackFuncs acb;
+    acb.resolve_attack = resolve_attack;
+    acb.resolve_attack_bonus = resolve_attack_bonus;
+    acb.resolve_attack_damage = resolve_attack_damage;
+    acb.resolve_attack_roll = resolve_attack_roll;
+    acb.resolve_attack_type = resolve_attack_type;
+    acb.resolve_concealment = resolve_concealment;
+    acb.resolve_critical_multiplier = resolve_critical_multiplier;
+    acb.resolve_critical_threat = resolve_critical_threat;
+    acb.resolve_damage_modifiers = resolve_damage_modifiers;
+    acb.resolve_damage_immunity = resolve_damage_immunity;
+    acb.resolve_damage_reduction = resolve_damage_reduction;
+    acb.resolve_damage_resistance = resolve_damage_resistance;
+    acb.resolve_dual_wield_penalty = resolve_dual_wield_penalty;
+    acb.resolve_iteration_penalty = resolve_iteration_penalty;
+    acb.resolve_number_of_attacks = resolve_number_of_attacks;
+    acb.resolve_target_state = resolve_target_state;
+    acb.resolve_weapon_damage_flags = resolve_weapon_damage_flags;
+    acb.resolve_weapon_power = resolve_weapon_power;
+    nwk::rules().set_attack_functions(acb);
+
+    load_combat_modes();
+    load_modifiers();
+    load_master_feats();
+    load_special_attacks();
     load_qualifiers();
 
     nw::kernel::objects().set_instantiate_callback([](nw::ObjectBase* obj) {
@@ -555,46 +461,6 @@ bool Profile::load_rules() const
             }
         }
     }
-
-    // == Attack Callbacks ====================================================
-    nw::AttackFuncs acb;
-    acb.resolve_attack = resolve_attack;
-    acb.resolve_attack_bonus = resolve_attack_bonus;
-    acb.resolve_attack_damage = resolve_attack_damage;
-    acb.resolve_attack_roll = resolve_attack_roll;
-    acb.resolve_attack_type = resolve_attack_type;
-    acb.resolve_concealment = resolve_concealment;
-    acb.resolve_critical_multiplier = resolve_critical_multiplier;
-    acb.resolve_critical_threat = resolve_critical_threat;
-    acb.resolve_damage_modifiers = resolve_damage_modifiers;
-    acb.resolve_damage_immunity = resolve_damage_immunity;
-    acb.resolve_damage_reduction = resolve_damage_reduction;
-    acb.resolve_damage_resistance = resolve_damage_resistance;
-    acb.resolve_dual_wield_penalty = resolve_dual_wield_penalty;
-    acb.resolve_iteration_penalty = resolve_iteration_penalty;
-    acb.resolve_number_of_attacks = resolve_number_of_attacks;
-    acb.resolve_target_state = resolve_target_state;
-    acb.resolve_weapon_damage_flags = resolve_weapon_damage_flags;
-    acb.resolve_weapon_power = resolve_weapon_power;
-    nwk::rules().set_attack_functions(acb);
-
-    // == Load Combat Mode Callbacks ==========================================
-    load_combat_modes();
-
-    // == Load Modifiers ======================================================
-    load_modifiers();
-
-    // == Load Master Feats ===================================================
-    load_master_feats();
-
-    // == Load Effects ========================================================
-    load_effects();
-
-    // == Load Item Property Generators =======================================
-    load_itemprop_generators();
-
-    // == Load Special Attacks ================================================
-    load_special_attacks();
 
     return true;
 }

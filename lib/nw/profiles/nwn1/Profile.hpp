@@ -11,19 +11,10 @@ namespace nwn1 {
 struct Profile : nw::GameProfile {
     virtual ~Profile() = default;
 
-    /**
-     * @brief Loads rules
-     *
-     * - Load Qualifiers
-     * - Load Components
-     * - Load 2DAs
-     * - Load Constants
-     * - Post Process 2DAs
-     *
-     */
+    /// Load rules
     bool load_rules() const override;
 
-    /// Loads containers into resman
+    /// Load containers into resman
     bool load_resources() override;
 };
 
