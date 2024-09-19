@@ -63,21 +63,6 @@ nw::Effect* effect_save_modifier(nw::Save save, int modifier, nw::SaveVersus vs 
 /// Creates an skill modifier effect
 nw::Effect* effect_skill_modifier(nw::Skill skill, int modifier);
 
-// == Effect Apply/Remove =====================================================
-// ============================================================================
-
-bool effect_apply_is_creature(nw::ObjectBase* obj, const nw::Effect*);
-bool effect_remove_is_creature(nw::ObjectBase* obj, const nw::Effect*);
-
-bool effect_apply_is_valid(nw::ObjectBase* obj, const nw::Effect*);
-bool effect_remove_is_valid(nw::ObjectBase* obj, const nw::Effect*);
-
-bool effect_haste_apply(nw::ObjectBase* obj, const nw::Effect*);
-bool effect_haste_remove(nw::ObjectBase* obj, const nw::Effect*);
-
-bool effect_hitpoints_temp_apply(nw::ObjectBase* obj, const nw::Effect* effect);
-bool effect_hitpoints_temp_remove(nw::ObjectBase* obj, const nw::Effect* effect);
-
 // == Item Property Creation ==================================================
 // ============================================================================
 
@@ -110,18 +95,5 @@ nw::ItemProperty itemprop_save_vs_modifier(nw::SaveVersus type, int modifier);
 
 /// Creates skill modifier item property
 nw::ItemProperty itemprop_skill_modifier(nw::Skill skill, int modifier);
-
-// == Item Property Generators ================================================
-// ============================================================================
-
-nw::Effect* ip_gen_ability_modifier(const nw::ItemProperty& ip, nw::EquipIndex, nw::BaseItem);
-nw::Effect* ip_gen_ac_modifier(const nw::ItemProperty& ip, nw::EquipIndex, nw::BaseItem baseitem);
-nw::Effect* ip_gen_attack_modifier(const nw::ItemProperty& ip, nw::EquipIndex, nw::BaseItem);
-nw::Effect* ip_gen_damage_bonus(const nw::ItemProperty& ip, nw::EquipIndex, nw::BaseItem);
-nw::Effect* ip_gen_enhancement_modifier(const nw::ItemProperty& ip, nw::EquipIndex, nw::BaseItem);
-nw::Effect* ip_gen_haste(const nw::ItemProperty&, nw::EquipIndex, nw::BaseItem);
-nw::Effect* ip_gen_save_modifier(const nw::ItemProperty& ip, nw::EquipIndex, nw::BaseItem);
-nw::Effect* ip_gen_save_vs_modifier(const nw::ItemProperty& ip, nw::EquipIndex, nw::BaseItem);
-nw::Effect* ip_gen_skill_modifier(const nw::ItemProperty& ip, nw::EquipIndex, nw::BaseItem);
 
 } // namespace nwn1
