@@ -65,6 +65,15 @@ nw::ModifierResult combat_mode_flurry_mod(nw::CombatMode mode, nw::ModifierType 
     return {};
 }
 
+bool combat_mode_flurry_use(nw::CombatMode, const nw::Creature* obj)
+{
+    auto rh = get_equipped_item(obj, nw::EquipIndex::righthand);
+    auto lh = get_equipped_item(obj, nw::EquipIndex::lefthand);
+    auto result = is_monk_weapon(rh) && is_monk_weapon(lh);
+    // [TODO] - Some message to player.
+    return result;
+}
+
 nw::ModifierResult combat_mode_rapid_shot_mod(nw::CombatMode mode, nw::ModifierType type, const nw::Creature* obj)
 {
     if (!obj) { return 0; }
@@ -75,6 +84,14 @@ nw::ModifierResult combat_mode_rapid_shot_mod(nw::CombatMode mode, nw::ModifierT
     return {};
 }
 
+bool combat_mode_rapid_shot_use(nw::CombatMode, const nw::Creature* obj)
+{
+    if (!is_ranged_weapon(get_equipped_item(obj, nw::EquipIndex::righthand))) {
+        // [TODO] - Some message to player
+    }
+    return true;
+}
+
 void load_combat_modes()
 {
     nwk::rules().register_combat_mode({combat_mode_expertise_mod},
@@ -83,13 +100,15 @@ void load_combat_modes()
     nwk::rules().register_combat_mode({combat_mode_power_attach_mod},
         {combat_mode_power_attack, combat_mode_improved_power_attack});
 
-    // `Use` here is obviously wrong..
-    nwk::rules().register_combat_mode({combat_mode_flurry_mod, combat_mode_can_always_use},
+    nwk::rules().register_combat_mode({combat_mode_flurry_mod, combat_mode_flurry_use},
         {combat_mode_flurry_of_blows});
 
-    nwk::rules().register_combat_mode({combat_mode_rapid_shot_mod, combat_mode_can_always_use},
-        {combat_mode_flurry_of_blows});
+    nwk::rules().register_combat_mode({combat_mode_rapid_shot_mod, combat_mode_rapid_shot_use},
+        {combat_mode_rapid_shot});
 }
+
+// == Master Feats ============================================================
+// ============================================================================
 
 bool load_master_feats()
 {
@@ -145,10 +164,6 @@ bool load_master_feats()
     mfr.set_bonus(mfeat_overwhelming_crit, 1);
     mfr.set_bonus(mfeat_weapon_of_choice, 1);
 
-    mfr.set_bonus(mfeat_spell_focus, 2);
-    mfr.set_bonus(mfeat_spell_focus_greater, 2);
-    mfr.set_bonus(mfeat_spell_focus_epic, 2);
-
     // Special case baseitem invalid - the rest will be loaded during the baseitem loading below
     mfr.add(nw::BaseItem::invalid(), mfeat_weapon_focus, feat_weapon_focus_unarmed);
     mfr.add(nw::BaseItem::invalid(), mfeat_weapon_focus_epic, feat_epic_weapon_focus_unarmed);
@@ -184,6 +199,10 @@ bool load_master_feats()
     mfr.add(racial_type_shapechanger, mfeat_favored_enemy, feat_favored_enemy_shapechanger);
     mfr.add(racial_type_undead, mfeat_favored_enemy, feat_favored_enemy_undead);
     mfr.add(racial_type_vermin, mfeat_favored_enemy, feat_favored_enemy_vermin);
+
+    mfr.set_bonus(mfeat_spell_focus, 2);
+    mfr.set_bonus(mfeat_spell_focus_greater, 2);
+    mfr.set_bonus(mfeat_spell_focus_epic, 2);
 
     mfr.add(spell_school_abjuration, mfeat_spell_focus, feat_spell_focus_abjuration);
     mfr.add(spell_school_abjuration, mfeat_spell_focus_greater, feat_greater_spell_focus_abjuration);
