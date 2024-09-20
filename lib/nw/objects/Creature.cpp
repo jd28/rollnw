@@ -117,8 +117,8 @@ bool Creature::instantiate()
     instantiated_ = (inventory.instantiate() && equipment.instantiate());
     size_t i = 0;
     for (auto& equip : equipment.equips) {
-        if (alt<Item*>(equip)) {
-            process_item_properties(this, std::get<Item*>(equip),
+        if (equip.is<Item*>()) {
+            process_item_properties(this, equip.as<Item*>(),
                 static_cast<EquipIndex>(i), false);
         }
         ++i;

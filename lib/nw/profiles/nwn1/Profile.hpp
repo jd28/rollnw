@@ -12,6 +12,7 @@ struct Profile : nw::GameProfile {
     virtual ~Profile() = default;
 
     /// Load rules
+    /// @see ``rules.hpp`` and ``rules.cpp``
     bool load_rules() const override;
 
     /// Load containers into resman

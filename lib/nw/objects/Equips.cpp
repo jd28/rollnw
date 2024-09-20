@@ -20,8 +20,8 @@ bool Equips::instantiate()
 {
     int i = 0;
     for (auto& e : equips) {
-        if (std::holds_alternative<Resref>(e) && std::get<Resref>(e).length()) {
-            auto temp = nw::kernel::objects().load<Item>(std::get<Resref>(e).view());
+        if (e.is<Resref>() && e.as<Resref>().length()) {
+            auto temp = nw::kernel::objects().load<Item>(e.as<Resref>().view());
             if (temp) {
                 e = temp;
                 for (const auto& ip : temp->properties) {
@@ -40,7 +40,7 @@ bool Equips::instantiate()
             } else {
                 e = static_cast<nw::Item*>(nullptr);
                 LOG_F(WARNING, "failed to instantiate item, perhaps you're missing '{}.uti'?",
-                    std::get<Resref>(e));
+                    e.as<Resref>());
             }
         }
         ++i;
@@ -76,17 +76,17 @@ nlohmann::json Equips::to_json(SerializationProfile profile) const
     for (size_t i = 0; i < 18; ++i) {
         std::string lookup{equip_index_to_string(static_cast<EquipIndex>(i))};
         if (profile == SerializationProfile::blueprint) {
-            if (std::holds_alternative<Resref>(equips[i])) {
-                const auto& r = std::get<Resref>(equips[i]);
+            if (equips[i].is<Resref>()) {
+                const auto& r = equips[i].as<Resref>();
                 if (r.length()) {
                     j[lookup] = r;
                 }
-            } else if (std::get<Item*>(equips[i])) {
-                j[lookup] = std::get<Item*>(equips[i])->common.resref;
+            } else if (equips[i].as<Item*>()) {
+                j[lookup] = equips[i].as<Item*>()->common.resref;
             }
         } else {
-            if (std::holds_alternative<Item*>(equips[i]) && std::get<Item*>(equips[i])) {
-                Item::serialize(std::get<Item*>(equips[i]), j[lookup], profile);
+            if (equips[i].is<Item*>() && equips[i].as<Item*>()) {
+                Item::serialize(equips[i].as<Item*>(), j[lookup], profile);
             }
         }
     }
@@ -125,17 +125,17 @@ bool serialize(const Equips& self, GffBuilderStruct& archive, SerializationProfi
     for (const auto& equip : self.equips) {
         uint32_t struct_id = 1 << i;
         if (profile == SerializationProfile::blueprint) {
-            if (std::holds_alternative<Resref>(equip)) {
-                const auto& r = std::get<Resref>(equip);
+            if (equip.is<Resref>()) {
+                const auto& r = equip.as<Resref>();
                 if (r.length()) {
                     list.push_back(struct_id).add_field("EquippedRes", r);
                 }
-            } else if (std::get<Item*>(equip)) {
+            } else if (equip.as<Item*>()) {
                 list.push_back(struct_id).add_field("EquippedRes",
-                    std::get<Item*>(equip)->common.resref);
+                    equip.as<Item*>()->common.resref);
             }
-        } else if (std::holds_alternative<Item*>(equip) && std::get<Item*>(equip)) {
-            serialize(std::get<Item*>(equip), list.push_back(struct_id), profile);
+        } else if (equip.is<Item*>() && equip.as<Item*>()) {
+            serialize(equip.as<Item*>(), list.push_back(struct_id), profile);
         }
         ++i;
     }

@@ -52,7 +52,7 @@ TEST(Creature, GffDeserialize)
     EXPECT_EQ(obj2->appearance.id, 6);
     EXPECT_EQ(obj2->appearance.body_parts.shin_left, 1);
     EXPECT_EQ(obj2->soundset, 171);
-    EXPECT_TRUE(std::get<nw::Item*>(obj2->equipment.equips[1]));
+    EXPECT_TRUE(nwn1::get_equipped_item(obj2, nw::EquipIndex::chest));
     EXPECT_EQ(obj2->combat_info.ac_natural_bonus, 0);
     EXPECT_EQ(obj2->combat_info.special_abilities.size(), 1);
     EXPECT_EQ(obj2->combat_info.special_abilities[0].spell, 120);

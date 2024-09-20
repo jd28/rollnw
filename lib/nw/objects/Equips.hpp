@@ -2,10 +2,9 @@
 
 #include "../resources/Resref.hpp"
 #include "../serialization/Serialization.hpp"
-
+#include "../util/Variant.hpp"
 
 #include <array>
-#include <variant>
 
 namespace nw {
 
@@ -144,7 +143,7 @@ constexpr EquipIndex equip_slot_to_index(EquipSlot slot)
     }
 }
 
-using EquipItem = std::variant<Resref, Item*>;
+using EquipItem = Variant<Resref, Item*>;
 
 struct Equips {
     Equips(Creature* owner);

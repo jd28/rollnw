@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 
+#include <nw/functions.hpp>
 #include <nw/kernel/Objects.hpp>
 #include <nw/log.hpp>
 #include <nw/objects/Creature.hpp>
@@ -7,6 +8,7 @@
 
 #include <nwn1/Profile.hpp>
 #include <nwn1/constants.hpp>
+#include <nwn1/functions.hpp>
 
 #include <filesystem>
 
@@ -45,7 +47,7 @@ TEST(ObjectSystem, LoadCreature)
     EXPECT_EQ(ent3->appearance.id, 6);
     EXPECT_EQ(ent3->appearance.body_parts.shin_left, 1);
     EXPECT_EQ(ent3->soundset, 171);
-    EXPECT_TRUE(std::get<nw::Item*>(ent3->equipment.equips[1]));
+    EXPECT_TRUE(nwn1::get_equipped_item(ent3, nw::EquipIndex::chest));
     EXPECT_EQ(ent3->combat_info.ac_natural_bonus, 0);
     EXPECT_EQ(ent3->combat_info.special_abilities.size(), 1);
     EXPECT_EQ(ent3->combat_info.special_abilities[0].spell, 120);

@@ -1312,8 +1312,8 @@ nw::Item* get_equipped_item(const nw::Creature* obj, nw::EquipIndex slot)
     if (!obj) { return result; }
 
     auto& it = obj->equipment.equips[size_t(slot)];
-    if (alt<nw::Item*>(it)) {
-        result = std::get<nw::Item*>(it);
+    if (it.is<nw::Item*>()) {
+        result = it.as<nw::Item*>();
     }
     return result;
 }
@@ -1324,8 +1324,8 @@ nw::Item* unequip_item(nw::Creature* obj, nw::EquipIndex slot)
     if (!obj) { return result; }
 
     auto& it = obj->equipment.equips[size_t(slot)];
-    if (alt<nw::Item*>(it)) {
-        result = std::get<nw::Item*>(it);
+    if (it.is<nw::Item*>()) {
+        result = it.as<nw::Item*>();
         if (!result) { return result; }
         it = nullptr;
         nw::process_item_properties(obj, result, slot, true);
