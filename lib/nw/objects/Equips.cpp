@@ -81,7 +81,7 @@ nlohmann::json Equips::to_json(SerializationProfile profile) const
                 if (r.length()) {
                     j[lookup] = r;
                 }
-            } else if (equips[i].as<Item*>()) {
+            } else if (equips[i].is<Item*>()) {
                 j[lookup] = equips[i].as<Item*>()->common.resref;
             }
         } else {
@@ -130,7 +130,7 @@ bool serialize(const Equips& self, GffBuilderStruct& archive, SerializationProfi
                 if (r.length()) {
                     list.push_back(struct_id).add_field("EquippedRes", r);
                 }
-            } else if (equip.as<Item*>()) {
+            } else if (equip.is<Item*>()) {
                 list.push_back(struct_id).add_field("EquippedRes",
                     equip.as<Item*>()->common.resref);
             }
