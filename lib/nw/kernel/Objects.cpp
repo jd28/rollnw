@@ -25,6 +25,7 @@ void ObjectSystem::clear()
     sounds_.clear();
     triggers_.clear();
     waypoints_.clear();
+    obj_arena_.reset();
 }
 
 ObjectBase* ObjectSystem::alloc(ObjectType type)

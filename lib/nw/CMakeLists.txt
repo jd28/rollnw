@@ -112,6 +112,7 @@ add_library(nw STATIC
     util/ByteArray.cpp
     util/compression.cpp
     util/game_install.cpp
+    util/memory.cpp
     util/platform.cpp
     util/string.cpp
     util/Tokenizer.cpp
