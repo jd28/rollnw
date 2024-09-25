@@ -280,7 +280,7 @@ BENCHMARK(BM_script_lex);
 BENCHMARK(BM_script_parse);
 BENCHMARK(BM_script_resolve);
 
-BENCHMARK(BM_model_parse);
+// BENCHMARK(BM_model_parse);
 
 BENCHMARK(BM_rules_master_feat);
 BENCHMARK(BM_rules_modifier);
