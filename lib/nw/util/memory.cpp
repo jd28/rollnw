@@ -1,5 +1,7 @@
 #include "memory.hpp"
 
+#include "../log.hpp"
+
 namespace nw {
 
 // == MemoryArena ==============================================================

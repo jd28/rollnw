@@ -108,7 +108,7 @@ private:
     std::stack<ObjectID, std::vector<ObjectID>> free_list_;
     std::vector<ObjectPayload> objects_;
     absl::btree_multimap<InternedString, ObjectHandle> object_tag_map_;
-    MemoryArena obj_arena_;
+    MemoryArena obj_arena_{MB(1)};
 
     std::unique_ptr<Module> module_;
     ObjectPool<Area, 256> areas_{&obj_arena_};

@@ -138,6 +138,7 @@ struct ObjectPool {
         if (arena_ == nullptr) { return; }
 
         T* chunk = static_cast<T*>(arena_->allocate(sizeof(T) * chunk_size, alignof(T)));
+        CHECK_F(!!chunk, "Unable to allocate chunk of size {}", sizeof(T) * chunk_size);
         for (size_t i = 0; i < chunk_size; ++i) {
             free_list_.push(&chunk[i]);
         }
