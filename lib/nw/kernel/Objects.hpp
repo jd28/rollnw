@@ -27,7 +27,7 @@
 
 namespace nw::kernel {
 
-using ObjectPayload = std::variant<ObjectHandle, ObjectBase*>;
+using ObjectPayload = Variant<ObjectHandle, ObjectBase*>;
 
 struct ObjectSystemStats {
     size_t total_objects = 0;
@@ -156,7 +156,7 @@ T* ObjectSystem::get(ObjectHandle obj)
 {
     if (!valid(obj) || T::object_type != obj.type) return nullptr;
     auto idx = static_cast<size_t>(obj.id);
-    return static_cast<T*>(std::get<ObjectBase*>(objects_[idx]));
+    return static_cast<T*>(objects_[idx].as<ObjectBase*>());
 }
 
 template <typename T>
@@ -169,7 +169,7 @@ T* ObjectSystem::make()
         auto oid = free_list_.top();
         auto idx = static_cast<size_t>(oid);
         free_list_.pop();
-        ObjectHandle oh = std::get<ObjectHandle>(objects_[idx]);
+        ObjectHandle oh = objects_[idx].as<ObjectHandle>();
         oh.type = T::object_type;
         obj->set_handle(oh);
         objects_[idx] = obj;

@@ -10,9 +10,20 @@ namespace nw::kernel {
 
 void ObjectSystem::clear()
 {
+    // Clear tag map first
+    object_tag_map_.clear();
+
+    // Make sure all objects are correctly destroyed. Have to do this now that
+    // the underlying storage is a memory pool that will not itself run destructor.
+    for (auto& obj : objects_) {
+        if (obj.is<ObjectBase*>()) {
+            destroy(obj.as<ObjectBase*>()->handle());
+        }
+    }
+
+    // Clear the free list
     free_list_ = std::stack<ObjectID, std::vector<ObjectID>>();
     objects_.clear();
-    object_tag_map_.clear();
     module_.reset();
     areas_.clear();
     creatures_.clear();
@@ -78,7 +89,7 @@ void ObjectSystem::destroy(ObjectHandle obj)
 {
     if (valid(obj)) {
         size_t idx = static_cast<size_t>(obj.id);
-        auto o = std::get<ObjectBase*>(objects_[idx]);
+        auto o = objects_[idx].as<ObjectBase*>();
         auto new_handle = o->handle();
 
         // Delete from tag map
@@ -146,7 +157,7 @@ ObjectBase* ObjectSystem::get_object_base(ObjectHandle obj) const
 {
     if (!valid(obj)) { return nullptr; }
     auto idx = static_cast<size_t>(obj.id);
-    return std::get<ObjectBase*>(objects_[idx]);
+    return objects_[idx].as<ObjectBase*>();
 }
 
 ObjectBase* ObjectSystem::get_by_tag(std::string_view tag, int nth) const
@@ -236,11 +247,11 @@ void ObjectSystem::set_instantiate_callback(void (*callback)(ObjectBase*))
 bool ObjectSystem::valid(ObjectHandle handle) const
 {
     auto idx = static_cast<size_t>(handle.id);
-    if (idx >= objects_.size() || std::holds_alternative<ObjectHandle>(objects_[idx])) {
+    if (idx >= objects_.size() || objects_[idx].is<ObjectHandle>()) {
         return false;
     }
 
-    if (auto& obj = std::get<ObjectBase*>(objects_[idx])) {
+    if (auto obj = objects_[idx].as<ObjectBase*>()) {
         return obj->handle() == handle;
     }
 
