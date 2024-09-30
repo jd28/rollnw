@@ -71,12 +71,6 @@ jobs:
           rm /usr/local/bin/python3.11
           rm /usr/local/bin/python3.11-config
           brew install --force --overwrite pkg-config automake ninja libtool zlib ccache
-          echo "CC=$(brew --prefix llvm@15)/bin/clang" >> $GITHUB_ENV
-          echo "CXX=$(brew --prefix llvm@15)/bin/clang++" >> $GITHUB_ENV
-
-      - name: macOS - check clang version
-        if: matrix.os == 'macos-13' || matrix.os == 'macos-14'
-        run: $CC --version
 
       # Linux dependencies
       - name: linux - install gcc
