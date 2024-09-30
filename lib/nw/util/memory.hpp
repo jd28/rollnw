@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../log.hpp"
 #include "templates.hpp"
 
 #include <algorithm>
