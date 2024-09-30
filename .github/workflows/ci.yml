@@ -23,14 +23,14 @@ env:
   buildDir: "${{ github.workspace }}/build/"
   NWN_ROOT: "${{ github.workspace }}/nwn/"
   CI_GITHUB_ACTIONS: "1"
-  MACOSX_DEPLOYMENT_TARGET: "12"
+  MACOSX_DEPLOYMENT_TARGET: "13"
 
 jobs:
   build:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-12, ubuntu-20.04, windows-2019]
+        os: [macos-13, ubuntu-20.04, windows-2019]
     runs-on: ${{ matrix.os }}
     name: Build ${{ matrix.os }}
 
@@ -53,7 +53,7 @@ jobs:
 
       # macOS Dependencies
       - name: macOS - install dependencies
-        if: matrix.os == 'macos-12'
+        if: matrix.os == 'macos-13'
         env:
           HOMEBREW_NO_ANALYTICS: "ON"
           HOMEBREW_NO_AUTO_UPDATE: "ON"
@@ -70,12 +70,12 @@ jobs:
           rm /usr/local/bin/python3-config
           rm /usr/local/bin/python3.11
           rm /usr/local/bin/python3.11-config
-          brew install --force --overwrite pkg-config automake ninja libtool zlib llvm ccache
-          echo "CC=$(brew --prefix llvm)/bin/clang" >> $GITHUB_ENV
-          echo "CXX=$(brew --prefix llvm)/bin/clang++" >> $GITHUB_ENV
+          brew install --force --overwrite pkg-config automake ninja libtool zlib ccache
+          echo "CC=$(brew --prefix llvm@15)/bin/clang" >> $GITHUB_ENV
+          echo "CXX=$(brew --prefix llvm@15)/bin/clang++" >> $GITHUB_ENV
 
       - name: macOS - check clang version
-        if: matrix.os == 'macos-12'
+        if: matrix.os == 'macos-13'
         run: $CC --version
 
       # Linux dependencies
@@ -155,7 +155,7 @@ jobs:
           cmake --preset ci-windows
 
       - name: macOS - configure
-        if: matrix.os == 'macos-12'
+        if: matrix.os == 'macos-13'
         run: |
           cmake --preset ci-macos
 
