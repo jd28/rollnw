@@ -30,13 +30,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-13, ubuntu-20.04, windows-2019]
+        os: [macos-14, macos-13, ubuntu-20.04, windows-2019]
     runs-on: ${{ matrix.os }}
     name: Build ${{ matrix.os }}
 
     steps:
       - name: Get current date
-        if: ${{ runner.os != 'Windows' }}
+        if: matrix.os != 'windows-2019'
         run: |
           echo "DATE=$(date +'%Y-%m-%d')" >> $GITHUB_ENV
 
@@ -53,7 +53,7 @@ jobs:
 
       # macOS Dependencies
       - name: macOS - install dependencies
-        if: matrix.os == 'macos-13'
+        if: matrix.os == 'macos-13' || matrix.os == 'macos-14'
         env:
           HOMEBREW_NO_ANALYTICS: "ON"
           HOMEBREW_NO_AUTO_UPDATE: "ON"
@@ -75,7 +75,7 @@ jobs:
           echo "CXX=$(brew --prefix llvm@15)/bin/clang++" >> $GITHUB_ENV
 
       - name: macOS - check clang version
-        if: matrix.os == 'macos-13'
+        if: matrix.os == 'macos-13' || matrix.os == 'macos-14'
         run: $CC --version
 
       # Linux dependencies
@@ -155,7 +155,7 @@ jobs:
           cmake --preset ci-windows
 
       - name: macOS - configure
-        if: matrix.os == 'macos-13'
+        if: matrix.os == 'macos-13' || matrix.os == 'macos-14'
         run: |
           cmake --preset ci-macos
 
