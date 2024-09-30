@@ -101,9 +101,9 @@ jobs:
         with:
           path: |
             ${{ github.workspace }}/.ccache/
-          key: ${{ runner.os }}-ccache-${{ env.DATE }}
+          key: ${{ matrix.os }}-ccache-${{ env.DATE }}
           restore-keys: |
-            ${{ runner.os }}-ccache-
+            ${{ matrix.os }}-ccache-
 
       # nwn
       - name: all - cache nwn
