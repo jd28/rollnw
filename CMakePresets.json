@@ -234,7 +234,7 @@
         },
         {
             "name": "ci-macos",
-            "inherits": "linux",
+            "inherits": "macos",
             "displayName": "macOS CI configuration",
             "condition": {
                 "type": "equals",
