@@ -13,8 +13,7 @@ void ModelCache::clear()
 
 model::Mdl* ModelCache::load(std::string_view resref)
 {
-    absl::string_view sv{resref.data(), resref.size()};
-    auto it = map_.find(sv);
+    auto it = map_.find(resref);
     if (it != std::end(map_)) {
         ++it->second.refcount_;
         return it->second.original_.get();
@@ -38,8 +37,7 @@ model::Mdl* ModelCache::load(std::string_view resref)
 
 void ModelCache::release(std::string_view resref)
 {
-    absl::string_view sv{resref.data(), resref.size()};
-    auto it = map_.find(sv);
+    auto it = map_.find(resref);
     if (it != std::end(map_)) {
         --it->second.refcount_;
         if (it->second.refcount_ <= 0) {

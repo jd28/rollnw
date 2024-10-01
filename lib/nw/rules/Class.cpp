@@ -130,8 +130,7 @@ void ClassArray::clear()
 
 Class ClassArray::from_constant(std::string_view constant) const
 {
-    absl::string_view v{constant.data(), constant.size()};
-    auto it = constant_to_index.find(v);
+    auto it = constant_to_index.find(constant);
     if (it == constant_to_index.end()) {
         return Class::invalid();
     } else {

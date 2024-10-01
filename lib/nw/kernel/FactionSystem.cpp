@@ -50,8 +50,7 @@ uint32_t FactionSystem::faction_id(std::string_view name) const
 {
     if (!factions_) { return std::numeric_limits<uint32_t>::max(); }
 
-    absl::string_view sv{name.data(), name.size()};
-    auto it = name_id_map_.find(sv);
+    auto it = name_id_map_.find(name);
     if (it == std::end(name_id_map_)) {
         return std::numeric_limits<uint32_t>::max();
     }

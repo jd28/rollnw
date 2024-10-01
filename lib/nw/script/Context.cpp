@@ -87,8 +87,7 @@ void Context::register_engine_types()
 
 size_t Context::type_id(std::string_view type_name, bool define)
 {
-    absl::string_view tn{type_name.data(), type_name.size()};
-    auto it = type_map_.find(tn);
+    auto it = type_map_.find(type_name);
     if (it == std::end(type_map_)) {
         if (!define) { return invalid_type_id; }
         size_t new_id = type_array_.size();

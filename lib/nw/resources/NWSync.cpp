@@ -232,8 +232,7 @@ bool NWSync::is_loaded() const noexcept
 
 NWSyncManifest* NWSync::get(std::string_view manifest)
 {
-    absl::string_view v{manifest.data(), manifest.length()};
-    auto it = map_.find(v);
+    auto it = map_.find(manifest);
     return it != std::end(map_) ? &it->second : nullptr;
 }
 

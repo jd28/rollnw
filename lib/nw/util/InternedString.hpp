@@ -40,36 +40,35 @@ H AbslHashValue(H h, const InternedString& str)
 struct InternedStringHash {
     using is_transparent = void;
 
-    size_t operator()(absl::string_view v) const
+    size_t operator()(std::string_view v) const
     {
-        return absl::Hash<absl::string_view>{}(v);
+        return absl::Hash<std::string_view>{}(v);
     }
 
     size_t operator()(const InternedString& v) const
     {
-        absl::string_view v2{v.view().data(), v.view().size()};
-        return absl::Hash<absl::string_view>{}(v2);
+        return absl::Hash<std::string_view>{}(v.view());
     }
 };
 
 struct InternedStringEq {
     using is_transparent = void;
 
-    bool operator()(const InternedString& a, absl::string_view b) const
+    bool operator()(const InternedString& a, std::string_view b) const
     {
-        return std::equal(a.view().begin(), a.view().end(), b.begin(), b.end());
+        return a.view() == b;
     }
-    bool operator()(absl::string_view b, const InternedString& a) const
+    bool operator()(std::string_view b, const InternedString& a) const
     {
-        return std::equal(a.view().begin(), a.view().end(), b.begin(), b.end());
+        return a.view() == b;
     }
     bool operator()(const InternedString& a, const InternedString& b) const
     {
         return a == b;
     }
-    bool operator()(absl::string_view b, absl::string_view a) const
+    bool operator()(std::string_view b, std::string_view a) const
     {
-        return std::equal(a.begin(), a.end(), b.begin(), b.end());
+        return a == b;
     }
 };
 

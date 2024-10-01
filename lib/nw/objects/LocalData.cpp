@@ -9,8 +9,7 @@ namespace nw {
 
 void LocalData::clear(std::string_view var, uint32_t type)
 {
-    absl::string_view v{var.data(), var.size()};
-    auto it = vars_.find(v);
+    auto it = vars_.find(var);
     if (it == std::end(vars_)) {
         return;
     }
@@ -44,7 +43,7 @@ void LocalData::clear(std::string_view var, uint32_t type)
 
 void LocalData::clear_all(uint32_t type)
 {
-    static std::vector<absl::string_view> eraser;
+    static std::vector<std::string_view> eraser;
 
     for (auto& [k, v] : vars_) {
         switch (type) {
@@ -82,8 +81,7 @@ void LocalData::clear_all(uint32_t type)
 
 void LocalData::delete_float(std::string_view var)
 {
-    absl::string_view v{var.data(), var.size()};
-    auto it = vars_.find(v);
+    auto it = vars_.find(var);
     if (it == std::end(vars_)) {
         return;
     }
@@ -94,8 +92,7 @@ void LocalData::delete_float(std::string_view var)
 
 void LocalData::delete_int(std::string_view var)
 {
-    absl::string_view v{var.data(), var.size()};
-    auto it = vars_.find(v);
+    auto it = vars_.find(var);
     if (it == std::end(vars_)) {
         return;
     }
@@ -106,8 +103,7 @@ void LocalData::delete_int(std::string_view var)
 
 void LocalData::delete_object(std::string_view var)
 {
-    absl::string_view v{var.data(), var.size()};
-    auto it = vars_.find(v);
+    auto it = vars_.find(var);
     if (it == std::end(vars_)) {
         return;
     }
@@ -118,8 +114,7 @@ void LocalData::delete_object(std::string_view var)
 
 void LocalData::delete_string(std::string_view var)
 {
-    absl::string_view v{var.data(), var.size()};
-    auto it = vars_.find(v);
+    auto it = vars_.find(var);
     if (it == std::end(vars_)) {
         return;
     }
@@ -130,8 +125,7 @@ void LocalData::delete_string(std::string_view var)
 
 void LocalData::delete_location(std::string_view var)
 {
-    absl::string_view v{var.data(), var.size()};
-    auto it = vars_.find(v);
+    auto it = vars_.find(var);
     if (it == std::end(vars_)) {
         return;
     }
@@ -142,75 +136,65 @@ void LocalData::delete_location(std::string_view var)
 
 float LocalData::get_float(std::string_view var) const
 {
-    absl::string_view v(var.data(), var.size());
-    auto it = vars_.find(v);
+    auto it = vars_.find(var);
     return it != vars_.end() ? it->second.float_ : 0.0f;
 }
 
 int32_t LocalData::get_int(std::string_view var) const
 {
-    absl::string_view v(var.data(), var.size());
-    auto it = vars_.find(v);
+    auto it = vars_.find(var);
     return it != vars_.end() ? it->second.integer : 0;
 }
 
 ObjectID LocalData::get_object(std::string_view var) const
 {
-    absl::string_view v(var.data(), var.size());
-    auto it = vars_.find(v);
+    auto it = vars_.find(var);
     return it != vars_.end() ? it->second.object : object_invalid;
 }
 
 std::string LocalData::get_string(std::string_view var) const
 {
-    absl::string_view v(var.data(), var.size());
-    auto it = vars_.find(v);
+    auto it = vars_.find(var);
     return it != vars_.end() ? it->second.string : std::string{};
 }
 
 Location LocalData::get_location(std::string_view var) const
 {
-    absl::string_view v(var.data(), var.size());
-    auto it = vars_.find(v);
+    auto it = vars_.find(var);
     return it != vars_.end() ? it->second.loc : Location{};
 }
 
 void LocalData::set_float(std::string_view var, float value)
 {
-    absl::string_view v(var.data(), var.size());
-    auto& payload = vars_[v];
+    auto& payload = vars_[var];
     payload.float_ = value;
     payload.flags.set(LocalVarType::float_);
 }
 
 void LocalData::set_int(std::string_view var, int32_t value)
 {
-    absl::string_view v(var.data(), var.size());
-    auto& payload = vars_[v];
+    auto& payload = vars_[var];
     payload.integer = value;
     payload.flags.set(LocalVarType::integer);
 }
 
 void LocalData::set_object(std::string_view var, ObjectID value)
 {
-    absl::string_view v(var.data(), var.size());
-    auto& payload = vars_[v];
+    auto& payload = vars_[var];
     payload.object = value;
     payload.flags.set(LocalVarType::object);
 }
 
 void LocalData::set_string(std::string_view var, std::string_view value)
 {
-    absl::string_view v(var.data(), var.size());
-    auto& payload = vars_[v];
+    auto& payload = vars_[var];
     payload.string = std::string(value);
     payload.flags.set(LocalVarType::string);
 }
 
 void LocalData::set_location(std::string_view var, Location value)
 {
-    absl::string_view v(var.data(), var.size());
-    auto& payload = vars_[v];
+    auto& payload = vars_[var];
     payload.loc = value;
     payload.flags.set(LocalVarType::location);
 }

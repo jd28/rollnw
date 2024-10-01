@@ -35,7 +35,6 @@ void TilesetRegistry::initialize(ServiceInitTime time)
 
 Tileset* TilesetRegistry::load(std::string_view resref)
 {
-    absl::string_view sv{resref.data(), resref.size()};
     auto it = tileset_map_.find(resref);
     if (it != std::end(tileset_map_)) {
         return &it->second;
@@ -82,7 +81,6 @@ Tileset* TilesetRegistry::load(std::string_view resref)
 
 Tileset* TilesetRegistry::get(std::string_view resref)
 {
-    absl::string_view sv{resref.data(), resref.size()};
     auto it = tileset_map_.find(resref);
     if (it == std::end(tileset_map_)) {
         return nullptr;

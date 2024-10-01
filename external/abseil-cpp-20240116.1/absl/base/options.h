@@ -96,7 +96,6 @@
 
 #define ABSL_OPTION_USE_STD_ANY 2
 
-
 // ABSL_OPTION_USE_STD_OPTIONAL
 //
 // This option controls whether absl::optional is implemented as an alias to
@@ -123,7 +122,6 @@
 
 #define ABSL_OPTION_USE_STD_OPTIONAL 2
 
-
 // ABSL_OPTION_USE_STD_STRING_VIEW
 //
 // This option controls whether absl::string_view is implemented as an alias to
@@ -148,7 +146,7 @@
 // absl::string_view is a typedef of std::string_view, use the feature macro
 // ABSL_USES_STD_STRING_VIEW.
 
-#define ABSL_OPTION_USE_STD_STRING_VIEW 2
+#define ABSL_OPTION_USE_STD_STRING_VIEW 1
 
 // ABSL_OPTION_USE_STD_VARIANT
 //
