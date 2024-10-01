@@ -38,7 +38,7 @@ bool ByteArray::read_at(size_t offset, void* buffer, size_t sz) const
     return true;
 }
 
-std::string_view ByteArray::string_view() const
+StringView ByteArray::string_view() const
 {
     return {reinterpret_cast<const char*>(data()), size()};
 }
@@ -76,7 +76,7 @@ ByteArray ByteArray::from_file(const std::filesystem::path& path)
 void from_json(const nlohmann::json& json, ByteArray& ba)
 {
     if (json.is_string()) {
-        ba = from_base64(json.get<std::string>());
+        ba = from_base64(json.get<String>());
     }
 }
 

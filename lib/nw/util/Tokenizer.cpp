@@ -1,7 +1,6 @@
 #include "Tokenizer.hpp"
 
-#include "../log.hpp"
-#include "../util/string.hpp"
+#include <stdexcept>
 
 namespace nw {
 
@@ -10,19 +9,19 @@ Tokenizer::Tokenizer()
 {
 }
 
-Tokenizer::Tokenizer(std::string_view buffer, std::string_view comment, bool skip_newline)
+Tokenizer::Tokenizer(StringView buffer, StringView comment, bool skip_newline)
     : buffer_{buffer}
     , comment_{comment}
     , skip_newline_{skip_newline}
 {
 }
 
-std::string_view Tokenizer::current() const
+StringView Tokenizer::current() const
 {
     return current_;
 }
 
-bool Tokenizer::is_newline(std::string_view tk) const
+bool Tokenizer::is_newline(StringView tk) const
 {
     return tk.size() > 0 && (tk[0] == '\r' || tk[0] == '\n');
 }
@@ -32,7 +31,7 @@ size_t Tokenizer::line() const
     return line_count_;
 }
 
-std::string_view Tokenizer::next()
+StringView Tokenizer::next()
 {
     if (stack_.size()) {
         auto temp = current_ = stack_.top();
@@ -40,12 +39,12 @@ std::string_view Tokenizer::next()
         return temp;
     }
 
-    std::string_view result;
+    StringView result;
     while (pos_ < buffer_.size()) {
         switch (buffer_[pos_]) {
         default:
             if (!comment_.empty() && pos_ + comment_.size() < buffer_.size()) {
-                auto comment = std::string_view(&buffer_[pos_], comment_.size());
+                auto comment = StringView(&buffer_[pos_], comment_.size());
                 if (comment_ == comment) {
                     pos_ += comment_.size();
                     while (pos_ < buffer_.size()) {
@@ -68,7 +67,7 @@ std::string_view Tokenizer::next()
                 ++pos_;
             }
             if (pos_ == buffer_.size()) end_ = buffer_.size();
-            result = std::string_view(&buffer_[start_], end_ - start_);
+            result = StringView(&buffer_[start_], end_ - start_);
 
             break;
         case '"':
@@ -84,7 +83,7 @@ std::string_view Tokenizer::next()
                 throw std::runtime_error("Unterminated quote.");
             ++pos_;
 
-            result = std::string_view(&buffer_[start_], end_ - start_);
+            result = StringView(&buffer_[start_], end_ - start_);
             break;
         case '\r':
         case '\n':
@@ -92,7 +91,7 @@ std::string_view Tokenizer::next()
             if (buffer_[pos_] == '\r') ++pos_;
             if (pos_ < buffer_.size() && buffer_[pos_] == '\n') ++pos_;
             if (!skip_newline_) {
-                result = std::string_view(&buffer_[start_], pos_ - start_);
+                result = StringView(&buffer_[start_], pos_ - start_);
             }
             ++line_count_;
             break;
@@ -107,18 +106,18 @@ std::string_view Tokenizer::next()
     return current_ = result;
 }
 
-void Tokenizer::put_back(std::string_view token)
+void Tokenizer::put_back(StringView token)
 {
     current_ = token;
     stack_.push(token);
 }
 
-void Tokenizer::set_buffer(std::string_view buffer)
+void Tokenizer::set_buffer(StringView buffer)
 {
     buffer_ = buffer;
 }
 
-inline bool is_newline(std::string_view tk)
+inline bool is_newline(StringView tk)
 {
     if (tk.empty()) return false;
     return tk[0] == '\r' || tk[0] == '\n';

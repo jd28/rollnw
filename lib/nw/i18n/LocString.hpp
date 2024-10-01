@@ -6,13 +6,12 @@
 
 #include <cstdint>
 #include <limits>
-#include <string>
 #include <vector>
 
 namespace nw {
 
 struct LocString {
-    using LocStringPair = std::pair<uint32_t, std::string>;
+    using LocStringPair = std::pair<uint32_t, String>;
     using Storage = std::vector<LocStringPair>;
     using size_type = Storage::size_type;
     using iterator = Storage::iterator;
@@ -23,10 +22,10 @@ struct LocString {
     LocString(LocString&&) = default;
 
     /// Add a localized string.
-    bool add(LanguageID language, std::string_view str, bool feminine = false);
+    bool add(LanguageID language, StringView str, bool feminine = false);
 
     /// Gets a localized string.
-    std::string get(LanguageID language, bool feminine = false) const;
+    String get(LanguageID language, bool feminine = false) const;
 
     /// Determines if a localized string is set
     bool contains(LanguageID language, bool feminine = false) const;

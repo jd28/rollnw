@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../log.hpp"
 #include "../util/Tokenizer.hpp"
 
 #include <cstddef>
@@ -19,13 +20,13 @@ class TextParser {
     Mdl* mdl_;
 
     bool parse_anim();
-    bool parse_controller(Node* node, std::string_view name, uint32_t type);
+    bool parse_controller(Node* node, StringView name, uint32_t type);
     bool parse_geometry();
     bool parse_model();
     bool parse_node(Geometry* geometry);
 
 public:
-    TextParser(std::string_view buffer, Mdl* mdl);
+    TextParser(StringView buffer, Mdl* mdl);
     bool parse();
 };
 

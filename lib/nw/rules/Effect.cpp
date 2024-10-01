@@ -40,9 +40,9 @@ int Effect::get_int(size_t index) const noexcept
     return index < integers_.size() ? integers_[index] : 0;
 }
 
-std::string_view Effect::get_string(size_t index) const noexcept
+StringView Effect::get_string(size_t index) const noexcept
 {
-    return index < strings_.size() ? strings_[index] : std::string_view{};
+    return index < strings_.size() ? strings_[index] : StringView{};
 }
 
 EffectHandle Effect::handle() noexcept
@@ -76,7 +76,7 @@ void Effect::set_int(size_t index, int value)
     integers_[index] = value;
 }
 
-void Effect::set_string(size_t index, std::string value)
+void Effect::set_string(size_t index, String value)
 {
     if (index >= strings_.size()) {
         strings_.resize(index + 1);

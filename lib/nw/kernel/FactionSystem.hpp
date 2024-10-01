@@ -14,26 +14,26 @@ struct FactionSystem : public Service {
     virtual void clear() override;
 
     /// Gets all factions by name
-    std::vector<std::string> all() const;
+    std::vector<String> all() const;
 
     /// Gets number of factions
     size_t count() const;
 
     /// Gets faction ID by name
-    uint32_t faction_id(std::string_view name) const;
+    uint32_t faction_id(StringView name) const;
 
     /// Gets the reputation between 2 factions
     Reputation locate(uint32_t faction1, uint32_t faction2) const;
 
     /// Gets faction name by ID
-    std::string_view name(uint32_t) const;
+    StringView name(uint32_t) const;
 
     /// Gets the reputation value between 2 factions
     uint32_t reputation(uint32_t faction1, uint32_t faction2) const;
 
 private:
     std::unique_ptr<Faction> factions_;
-    absl::flat_hash_map<std::string, uint32_t> name_id_map_;
+    absl::flat_hash_map<String, uint32_t> name_id_map_;
 };
 
 inline FactionSystem& factions()

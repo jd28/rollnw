@@ -33,9 +33,9 @@ struct AstResolver : BaseVisitor {
 
     virtual ~AstResolver() = default;
 
-    using ScopeMap = std::unordered_map<std::string, ScopeDecl>;
+    using ScopeMap = std::unordered_map<String, ScopeDecl>;
     using ScopeStack = std::vector<ScopeMap>;
-    using EnvStack = std::vector<immer::map<std::string, Export>>;
+    using EnvStack = std::vector<immer::map<String, Export>>;
 
     Nss* parent_ = nullptr;
     Context* ctx_ = nullptr;
@@ -59,11 +59,11 @@ struct AstResolver : BaseVisitor {
 
     void declare(NssToken token, Declaration* decl, bool is_type = false)
     {
-        auto s = std::string(token.loc.view());
+        auto s = String(token.loc.view());
 
         if (scope_stack_.size() == 1) { // global scope
             bool redecl = false;
-            std::string msg;
+            String msg;
 
             for (auto& it : reverse(parent_->ctx()->preprocessed_)) {
                 if (it.resref == parent_->name()) { break; }
@@ -124,7 +124,7 @@ struct AstResolver : BaseVisitor {
 
     void define(NssToken token, bool is_type = false)
     {
-        auto s = std::string(token.loc.view());
+        auto s = String(token.loc.view());
         auto it = scope_stack_.back().find(s);
         if (it == std::end(scope_stack_.back())) {
             ctx_->semantic_diagnostic(parent_,
@@ -157,15 +157,15 @@ struct AstResolver : BaseVisitor {
         if (!global) { env_stack_.pop_back(); }
     }
 
-    immer::map<std::string, Export> symbol_table() const
+    immer::map<String, Export> symbol_table() const
     {
         return env_stack_[0];
     }
 
     // Resolve symbol to original decl
-    const Declaration* resolve(std::string_view token, SourceRange range, bool is_type)
+    const Declaration* resolve(StringView token, SourceRange range, bool is_type)
     {
-        auto s = std::string(token);
+        auto s = String(token);
 
         // Look first through the scope stack in the current script
         for (const auto& map : reverse(scope_stack_)) {
@@ -245,7 +245,7 @@ struct AstResolver : BaseVisitor {
                 false,
                 def->identifier_.loc.range); // [TODO] expand this
         } else {
-            std::string reason;
+            String reason;
 
             for (size_t i = 0; i < decl->params.size(); ++i) {
                 SourceLocation loc;
@@ -646,7 +646,7 @@ struct AstResolver : BaseVisitor {
         }
 
         const StructDecl* struct_decl = nullptr;
-        std::string_view struct_type;
+        StringView struct_type;
         if (auto de = dynamic_cast<DotExpression*>(expr->lhs)) {
             expr->lhs->accept(this);
             struct_type = ctx_->type_name(expr->lhs->type_id_);
@@ -978,7 +978,7 @@ struct AstResolver : BaseVisitor {
             size_t switch_type = invalid_type_id;
             size_t label_count = 0;
             absl::flat_hash_set<int32_t> integers;
-            absl::flat_hash_set<std::string> strings;
+            absl::flat_hash_set<String> strings;
 
             for (auto s : bs->nodes) {
                 if (auto lbl = dynamic_cast<LabelStatement*>(s)) {
@@ -1015,9 +1015,9 @@ struct AstResolver : BaseVisitor {
                         } else if (lbl->expr->type_id_ == ctx_->type_id("string")
                             && !eval.failed_
                             && eval.result_.size() > 0
-                            && eval.result_.top().is<std::string>()) {
+                            && eval.result_.top().is<String>()) {
 
-                            std::string value = eval.result_.top().as<std::string>();
+                            String value = eval.result_.top().as<String>();
                             if (!strings.insert(value).second) {
                                 ctx_->semantic_diagnostic(parent_,
                                     fmt::format("duplicate case statement value: '{}'",

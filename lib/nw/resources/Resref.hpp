@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../config.hpp"
 #include "../kernel/Kernel.hpp"
 #include "../log.hpp"
 
@@ -37,7 +38,7 @@ struct Resref {
     Resref(std::array<char, N>& string) noexcept;
 
     Resref(const char* string) noexcept;
-    Resref(std::string_view string) noexcept;
+    Resref(StringView string) noexcept;
 
     Resref& operator=(const Resref&) = default;
 
@@ -50,11 +51,11 @@ struct Resref {
     /// Returns the number of char elements in the array, excluding nulls.
     size_type length() const noexcept;
 
-    /// Creates ``std::string`` of underlying array
-    std::string string() const;
+    /// Creates ``String`` of underlying array
+    String string() const;
 
-    /// Creates ``std::string_view`` of underlying array without null padding
-    std::string_view view() const noexcept;
+    /// Creates ``StringView`` of underlying array without null padding
+    StringView view() const noexcept;
 
 private:
     Storage data_;
@@ -66,7 +67,7 @@ Resref::Resref(std::array<char, N>& string) noexcept
     data_.fill(0);
     static_assert(N <= Resref::max_size);
     if (N > nw::kernel::config().max_resref_length()) {
-        auto s = string[N - 1] ? std::string_view(string.data(), N) : std::string_view(string.data());
+        auto s = string[N - 1] ? StringView(string.data(), N) : StringView(string.data());
         LOG_F(ERROR, "invalid resref: '{}', resref must be less than {} characters",
             s, nw::kernel::config().max_resref_length());
         return;
@@ -98,7 +99,7 @@ void to_json(nlohmann::json& j, const Resref& r);
 } // namespace nw
 
 template <>
-struct fmt::formatter<nw::Resref> : fmt::formatter<std::string_view> {
+struct fmt::formatter<nw::Resref> : fmt::formatter<nw::StringView> {
     // parse is inherited from formatter<string_view>.
     template <typename FormatContext>
     auto format(const nw::Resref& r, FormatContext& ctx) const

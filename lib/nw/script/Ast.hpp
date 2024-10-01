@@ -104,11 +104,11 @@ struct AstNode {
 
     /// Find completions for this Ast Node
     /// @note This function does not traverse dependencies
-    virtual void complete(const std::string& needle, std::vector<const Declaration*>& out, bool no_filter = false) const;
+    virtual void complete(const String& needle, std::vector<const Declaration*>& out, bool no_filter = false) const;
 
     size_t type_id_ = invalid_type_id;
     bool is_const_ = false;
-    immer::map<std::string, Export> env_;
+    immer::map<String, Export> env_;
     SourceRange range_;
 };
 
@@ -229,7 +229,7 @@ struct LiteralExpression : Expression {
     }
 
     NssToken literal;
-    Variant<int32_t, float, std::string, Location, ObjectID> data;
+    Variant<int32_t, float, String, Location, ObjectID> data;
 
     DEFINE_ACCEPT_VISITOR
 };
@@ -418,9 +418,9 @@ struct Type {
 struct Declaration : public Statement {
     Type type;
     SourceRange range_selection_;
-    std::string_view view;
+    StringView view;
 
-    virtual std::string identifier() const = 0;
+    virtual String identifier() const = 0;
     virtual SourceRange range() const noexcept;
     virtual SourceRange selection_range() const noexcept;
 };
@@ -433,7 +433,7 @@ struct FunctionDecl : public Declaration {
     NssToken identifier_;
     std::vector<VarDecl*> params;
 
-    virtual std::string identifier() const override { return std::string(identifier_.loc.view()); };
+    virtual String identifier() const override { return String(identifier_.loc.view()); };
 
     DEFINE_ACCEPT_VISITOR
 };
@@ -443,7 +443,7 @@ struct FunctionDefinition : public Declaration {
     BlockStatement* block = nullptr;
     const FunctionDecl* decl_external = nullptr;
 
-    virtual std::string identifier() const override { return std::string(decl_inline->identifier_.loc.view()); };
+    virtual String identifier() const override { return String(decl_inline->identifier_.loc.view()); };
 
     DEFINE_ACCEPT_VISITOR
 };
@@ -451,8 +451,8 @@ struct FunctionDefinition : public Declaration {
 struct StructDecl : public Declaration {
     std::vector<Declaration*> decls;
 
-    virtual std::string identifier() const override { return std::string(type.struct_id.loc.view()); };
-    const VarDecl* locate_member_decl(std::string_view name) const;
+    virtual String identifier() const override { return String(type.struct_id.loc.view()); };
+    const VarDecl* locate_member_decl(StringView name) const;
 
     DEFINE_ACCEPT_VISITOR
 };
@@ -461,7 +461,7 @@ struct VarDecl : public Declaration {
     NssToken identifier_;
     Expression* init = nullptr;
 
-    virtual std::string identifier() const override { return std::string(identifier_.loc.view()); };
+    virtual String identifier() const override { return String(identifier_.loc.view()); };
 
     DEFINE_ACCEPT_VISITOR
 };
@@ -470,23 +470,23 @@ struct VarDecl : public Declaration {
 struct DeclList : public Declaration {
     std::vector<VarDecl*> decls;
 
-    virtual std::string identifier() const override
+    virtual String identifier() const override
     {
-        std::vector<std::string> identifiers;
+        std::vector<String> identifiers;
         for (const auto decl : decls) {
             identifiers.push_back(decl->identifier());
         }
         return string::join(identifiers);
     };
 
-    const VarDecl* locate_decl(std::string_view name) const;
+    const VarDecl* locate_decl(StringView name) const;
 
     DEFINE_ACCEPT_VISITOR
 };
 
 /// Abstracts an script include
 struct Include {
-    std::string resref;    ///< Resref of included script
+    String resref;         ///< Resref of included script
     SourceRange location;  ///< Source location in script
     Nss* script = nullptr; ///< Loaded script
     int used = 0;          ///< Number of times include is used in script file
@@ -495,10 +495,10 @@ struct Include {
 /// Abstracts a comment
 struct Comment {
 
-    void append(std::string_view comment, SourceLocation range)
+    void append(StringView comment, SourceLocation range)
     {
         if (comment_.empty()) {
-            comment_ = std::string(comment);
+            comment_ = String(comment);
             range_ = merge_source_location(range_, range);
         } else {
             comment_ = fmt::format("{}\n{}", comment_, comment);
@@ -507,7 +507,7 @@ struct Comment {
     }
 
     SourceLocation range_;
-    std::string comment_;
+    String comment_;
 };
 
 struct Ast {
@@ -519,7 +519,7 @@ struct Ast {
 
     std::vector<Statement*> decls;
     std::vector<Include> includes;
-    std::unordered_map<std::string, std::string> defines;
+    std::unordered_map<String, String> defines;
     std::vector<Comment> comments;
     std::vector<size_t> line_map;
 
@@ -541,7 +541,7 @@ struct Ast {
     }
 
     /// Finds first comment that the source range of which ends on ``line`` or ``line`` - 1
-    std::string_view find_comment(size_t line) const noexcept;
+    StringView find_comment(size_t line) const noexcept;
 };
 
 } // namespace nw::script

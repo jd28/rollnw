@@ -134,11 +134,11 @@ Versus Creature::versus_me() const
     return result;
 }
 
-std::string Creature::get_name_from_file(const std::filesystem::path& path)
+String Creature::get_name_from_file(const std::filesystem::path& path)
 {
     LocString l1, l2;
     auto rdata = ResourceData::from_file(path);
-    std::string result;
+    String result;
     if (rdata.bytes.size() <= 8) { return result; }
     if (memcmp(rdata.bytes.data(), "UTC V3.2", 8) == 0) {
         Gff gff(std::move(rdata));
@@ -348,7 +348,7 @@ bool serialize(const Creature* obj, GffBuilderStruct& archive, SerializationProf
     }
 
     archive.add_field("TemplateResRef", obj->common.resref)
-        .add_field("Tag", std::string(obj->common.tag ? obj->common.tag.view() : std::string_view()));
+        .add_field("Tag", String(obj->common.tag ? obj->common.tag.view() : StringView()));
 
     if (profile == SerializationProfile::blueprint) {
         archive.add_field("Comment", obj->common.comment);

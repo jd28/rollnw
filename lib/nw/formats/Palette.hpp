@@ -29,7 +29,7 @@ struct PaletteTreeNode {
 
     // Every node has a name or a strref present, if both are, strref wins,
     // but both are retained.
-    std::string name;
+    String name;
     uint32_t strref = std::numeric_limits<uint32_t>::max();
 
     // Extra data dependent on palette resource type,
@@ -42,7 +42,7 @@ struct PaletteTreeNode {
 
     // Only if restype == ResourceType::utc
     float cr = 0.0;
-    std::string faction;
+    String faction;
 
     std::vector<PaletteTreeNode> children;
 };

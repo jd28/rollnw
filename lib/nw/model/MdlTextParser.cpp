@@ -37,23 +37,23 @@ struct GeomCxt {
     std::array<std::vector<glm::vec3>, 4> tverts;
     std::vector<glm::vec3> normals;
     std::vector<glm::vec4> tangents;
-    std::vector<std::array<std::string, 4>> bones;
+    std::vector<std::array<String, 4>> bones;
     std::vector<glm::vec4> weights;
 };
 
-inline bool is_newline(std::string_view tk)
+inline bool is_newline(StringView tk)
 {
     if (tk.empty()) return false;
     return tk[0] == '\r' || tk[0] == '\n';
 }
 
-TextParser::TextParser(std::string_view buffer, Mdl* mdl)
+TextParser::TextParser(StringView buffer, Mdl* mdl)
     : tokens_(buffer, "#", false)
     , mdl_{mdl}
 {
 }
 
-constexpr bool validate_tokens(std::initializer_list<std::string_view> tokens)
+constexpr bool validate_tokens(std::initializer_list<StringView> tokens)
 {
     for (auto tk : tokens) {
         if (tk.empty() || is_newline(tk)) {
@@ -63,7 +63,7 @@ constexpr bool validate_tokens(std::initializer_list<std::string_view> tokens)
     return true;
 }
 
-bool parse_tokens(Tokenizer& tokens, std::string_view name, bool& out)
+bool parse_tokens(Tokenizer& tokens, StringView name, bool& out)
 {
     auto tk = tokens.next();
     if (auto res = string::from<bool>(tk)) {
@@ -74,7 +74,7 @@ bool parse_tokens(Tokenizer& tokens, std::string_view name, bool& out)
     return false;
 }
 
-bool parse_tokens(Tokenizer& tokens, std::string_view name, std::string& out)
+bool parse_tokens(Tokenizer& tokens, StringView name, String& out)
 {
     auto tk = tokens.next();
     if (is_newline(tk)) { // Some things are there but don't have value
@@ -82,7 +82,7 @@ bool parse_tokens(Tokenizer& tokens, std::string_view name, std::string& out)
         tokens.put_back(tk);
         return true;
     } else if (!tk.empty()) {
-        out = std::string(tk);
+        out = String(tk);
         string::tolower(&out);
         return true;
     }
@@ -90,7 +90,7 @@ bool parse_tokens(Tokenizer& tokens, std::string_view name, std::string& out)
     return false;
 }
 
-bool parse_tokens(Tokenizer& tokens, std::string_view name, int32_t& out)
+bool parse_tokens(Tokenizer& tokens, StringView name, int32_t& out)
 {
     auto tk = tokens.next();
     if (auto res = string::from<int32_t>(tk)) {
@@ -101,7 +101,7 @@ bool parse_tokens(Tokenizer& tokens, std::string_view name, int32_t& out)
     return false;
 }
 
-bool parse_tokens(Tokenizer& tokens, std::string_view name, uint32_t& out)
+bool parse_tokens(Tokenizer& tokens, StringView name, uint32_t& out)
 {
     auto tk = tokens.next();
     if (auto res = string::from<uint32_t>(tk)) {
@@ -112,7 +112,7 @@ bool parse_tokens(Tokenizer& tokens, std::string_view name, uint32_t& out)
     return false;
 }
 
-bool parse_tokens(Tokenizer& tokens, std::string_view name, float& out)
+bool parse_tokens(Tokenizer& tokens, StringView name, float& out)
 {
     auto tk = tokens.next();
     if (auto res = string::from<float>(tk)) {
@@ -124,7 +124,7 @@ bool parse_tokens(Tokenizer& tokens, std::string_view name, float& out)
     return false;
 }
 
-bool parse_tokens(Tokenizer& tokens, std::string_view name, glm::vec2& out)
+bool parse_tokens(Tokenizer& tokens, StringView name, glm::vec2& out)
 {
     if (!parse_tokens(tokens, name, out.x) || !parse_tokens(tokens, name, out.y)) {
         LOG_F(ERROR, "{}: Failed to parse Vector2, line: {}", name, tokens.line());
@@ -134,7 +134,7 @@ bool parse_tokens(Tokenizer& tokens, std::string_view name, glm::vec2& out)
     return true;
 }
 
-bool parse_tokens(Tokenizer& tokens, std::string_view name, glm::vec3& out)
+bool parse_tokens(Tokenizer& tokens, StringView name, glm::vec3& out)
 {
     auto x = string::from<float>(tokens.next());
     auto y = string::from<float>(tokens.next());
@@ -150,7 +150,7 @@ bool parse_tokens(Tokenizer& tokens, std::string_view name, glm::vec3& out)
     return false;
 }
 
-bool parse_tokens(Tokenizer& tokens, std::string_view name, glm::vec4& out)
+bool parse_tokens(Tokenizer& tokens, StringView name, glm::vec4& out)
 {
     if (!parse_tokens(tokens, name, out.x)
         || !parse_tokens(tokens, name, out.y)
@@ -163,7 +163,7 @@ bool parse_tokens(Tokenizer& tokens, std::string_view name, glm::vec4& out)
     return true;
 }
 
-bool parse_tokens(Tokenizer& tokens, std::string_view name, glm::quat& out)
+bool parse_tokens(Tokenizer& tokens, StringView name, glm::quat& out)
 {
     if (!parse_tokens(tokens, name, out.x)
         || !parse_tokens(tokens, name, out.y)
@@ -175,7 +175,7 @@ bool parse_tokens(Tokenizer& tokens, std::string_view name, glm::quat& out)
     return true;
 }
 
-bool parse_tokens(Tokenizer& tokens, std::string_view name, Face& out)
+bool parse_tokens(Tokenizer& tokens, StringView name, Face& out)
 {
     if (!parse_tokens(tokens, name, out.vert_idx[0])
         || !parse_tokens(tokens, name, out.vert_idx[1])
@@ -191,7 +191,7 @@ bool parse_tokens(Tokenizer& tokens, std::string_view name, Face& out)
     return true;
 }
 
-bool parse_tokens(Tokenizer& tokens, std::string_view name, AABBNode* node)
+bool parse_tokens(Tokenizer& tokens, StringView name, AABBNode* node)
 {
     // Will have to create the tree structure later.
     while (true) {
@@ -217,7 +217,7 @@ bool parse_tokens(Tokenizer& tokens, std::string_view name, AABBNode* node)
 }
 
 template <typename T>
-bool parse_tokens(Tokenizer& tokens, std::string_view name, std::vector<T>& out)
+bool parse_tokens(Tokenizer& tokens, StringView name, std::vector<T>& out)
 {
     uint32_t size;
     if (!parse_tokens(tokens, name, size)) return false;
@@ -405,10 +405,10 @@ void cleanup_geometry(Model* model, T* n, const GeomCxt& geomctx)
     }
 }
 
-bool TextParser::parse_controller(Node* node, std::string_view name, uint32_t type)
+bool TextParser::parse_controller(Node* node, StringView name, uint32_t type)
 {
     size_t start_line = tokens_.line();
-    std::string_view tk = tokens_.next();
+    StringView tk = tokens_.next();
     while (is_newline(tk))
         tk = tokens_.next();
 
@@ -536,13 +536,13 @@ bool TextParser::parse_node(Geometry* geometry)
     geomctx.clear();
 
     bool result = true;
-    std::string_view tktype = tokens_.next();
+    StringView tktype = tokens_.next();
     if (tktype.empty()) {
         LOG_F(ERROR, "Missing node type, line: {}", tokens_.line());
         return false;
     }
 
-    std::string_view tkname = tokens_.next();
+    StringView tkname = tokens_.next();
     if (tkname.empty()) {
         LOG_F(ERROR, "Missing node name, line: {}", tokens_.line());
         return false;
@@ -553,7 +553,7 @@ bool TextParser::parse_node(Geometry* geometry)
     auto node = mdl_->make_node(type, tkname);
     if (!node) return false;
 
-    std::string_view tk;
+    StringView tk;
     for (tk = tokens_.next(); !tk.empty() && result; tk = tokens_.next()) {
         if (is_newline(tk)) {
             continue;
@@ -561,9 +561,9 @@ bool TextParser::parse_node(Geometry* geometry)
             break;
         }
 
-        std::string_view controller_tk = tk;
+        StringView controller_tk = tk;
         if (string::endswith(tk, "bezierkey")) { // No models seem to use this?
-            controller_tk = std::string_view(tk.data(), tk.size() - 9);
+            controller_tk = StringView(tk.data(), tk.size() - 9);
         } else if (string::endswith(tk, "key")) {
             // Guess all this is obsolete?
             if (tk == "centerkey" || tk == "gizmokey") {
@@ -580,7 +580,7 @@ bool TextParser::parse_node(Geometry* geometry)
             } else if (tk == "birthratekeykey") { // yes..
                 tk = "birthratekey";
             }
-            controller_tk = std::string_view(tk.data(), tk.size() - 3);
+            controller_tk = StringView(tk.data(), tk.size() - 3);
         } else if (icmp(tk, "setfillumcolor")) {
             controller_tk = "selfillumcolor";
         }
@@ -750,10 +750,10 @@ bool TextParser::parse_node(Geometry* geometry)
                     while (is_newline(tk))
                         tk = tokens_.next();
 
-                    std::string current{tk};
+                    String current{tk};
                     for (tk = tokens_.next(); !tk.empty(); tk = tokens_.next()) {
                         if (is_newline(tk)) { break; }
-                        current += " " + std::string(tk);
+                        current += " " + String(tk);
                     }
                     n->multimaterial.push_back(current);
                 }
@@ -896,7 +896,7 @@ bool TextParser::parse_node(Geometry* geometry)
                 if (!parse_tokens(tokens_, "weights: size", size)) { return false; }
                 tokens_.next(); // drop new line.
                 for (uint32_t i = 0; i < size; ++i) {
-                    std::array<std::string, 4> bones;
+                    std::array<String, 4> bones;
                     glm::vec4 weights{};
                     for (uint32_t j = 0; j < 4; ++j) {
                         if (!parse_tokens(tokens_, "weight: bone", bones[j])
@@ -955,7 +955,7 @@ bool TextParser::parse_node(Geometry* geometry)
 
 bool TextParser::parse_geometry()
 {
-    std::string_view tk;
+    StringView tk;
     for (tk = tokens_.next(); !tk.empty(); tk = tokens_.next()) {
         if (is_newline(tk))
             continue;
@@ -971,8 +971,8 @@ bool TextParser::parse_geometry()
 
 bool TextParser::parse_anim()
 {
-    std::string_view tk = tokens_.next();
-    auto anim = std::make_unique<Animation>(std::string(tk));
+    StringView tk = tokens_.next();
+    auto anim = std::make_unique<Animation>(String(tk));
     tokens_.next(); // drop model name
 
     for (tk = tokens_.next(); !tk.empty(); tk = tokens_.next()) {
@@ -1014,8 +1014,8 @@ bool TextParser::parse_anim()
 
 bool TextParser::parse_model()
 {
-    std::string_view tk = tokens_.next();
-    mdl_->model.name = std::string(tk);
+    StringView tk = tokens_.next();
+    mdl_->model.name = String(tk);
 
     for (tk = tokens_.next(); !tk.empty(); tk = tokens_.next()) {
         if (is_newline(tk))
@@ -1030,7 +1030,7 @@ bool TextParser::parse_model()
             }
             if (!parse_tokens(tokens_, tk, mdl_->model.supermodel_name)) return false;
         } else if (tk == "classification") {
-            std::string name;
+            String name;
             if (!parse_tokens(tokens_, tk, name)) return false;
             if (icmp(name, "character"))
                 mdl_->model.classification = ModelClass::character;
@@ -1073,17 +1073,17 @@ bool TextParser::parse_model()
 bool TextParser::parse()
 {
     bool result = true;
-    for (std::string_view tk = tokens_.next(); !tk.empty() && result; tk = tokens_.next()) {
+    for (StringView tk = tokens_.next(); !tk.empty() && result; tk = tokens_.next()) {
         if (is_newline(tk)) continue;
         // both spellings of this appear to be present in vanilla models and community tools
         // consume whatever is there till end of line.
         if (tk == "filedependancy" || tk == "filedependency") {
             auto t = tokens_.next();
             if (is_newline(t)) { continue; } // one model it's empty..
-            mdl_->model.file_dependency = std::string(t);
+            mdl_->model.file_dependency = String(t);
             for (tk = tokens_.next(); !tk.empty(); tk = tokens_.next()) {
                 if (is_newline(tk)) { break; }
-                mdl_->model.file_dependency += " " + std::string(tk);
+                mdl_->model.file_dependency += " " + String(tk);
             }
         } else if (tk == "newmodel") {
             if (!parse_model()) return false;

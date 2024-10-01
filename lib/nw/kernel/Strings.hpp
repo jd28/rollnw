@@ -28,20 +28,20 @@ struct Strings : public Service {
 
     /// Gets string by LocString
     /// @note if Tlk strref, use that; if not look in localized strings
-    std::string get(const LocString& locstring, bool feminine = false) const;
+    String get(const LocString& locstring, bool feminine = false) const;
 
     /// Gets string by Tlk strref
-    std::string get(uint32_t strref, bool feminine = false) const;
+    String get(uint32_t strref, bool feminine = false) const;
 
     /// Gets interned string
     /// @note Return will not be valid if there is no interned string
-    InternedString get_interned(std::string_view str) const;
+    InternedString get_interned(StringView str) const;
 
     /// Interns a string
     /// @note Multiple calls to `intern` with the same string will and must return
     /// the same exact underlying string, such that equality can be determined
     /// by a comparison of pointers.
-    InternedString intern(std::string_view str);
+    InternedString intern(StringView str);
 
     /// Interns a string by strref
     /// @note Multiple calls to `intern` with the same string will and must return
@@ -74,7 +74,7 @@ private:
     Tlk customf_;
 
     // Node hash set for pointer stability
-    absl::node_hash_set<std::string> interned_;
+    absl::node_hash_set<String> interned_;
 
     LanguageID global_lang_ = LanguageID::english;
 };

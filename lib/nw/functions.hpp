@@ -214,7 +214,7 @@ bool knows_feat(const nw::Creature* obj, nw::Feat feat);
 bool item_has_property(const Item* item, ItemPropertyType type, int32_t subtype = -1);
 
 /// Converts item property to in-game style string
-std::string itemprop_to_string(const nw::ItemProperty& ip);
+String itemprop_to_string(const nw::ItemProperty& ip);
 
 /// Processes item properties and applies resulting effects to creature
 int process_item_properties(nw::Creature* obj, const nw::Item* item, nw::EquipIndex index, bool remove);

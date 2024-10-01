@@ -34,10 +34,10 @@ struct SourceLocation {
     }
 
     /// Gets a view of the source code covered
-    std::string_view view() const noexcept
+    StringView view() const noexcept
     {
         if (!start || !end) { return {}; }
-        return std::string_view{start, length()};
+        return StringView{start, length()};
     }
 };
 

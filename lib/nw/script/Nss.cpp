@@ -21,7 +21,7 @@ Nss::Nss(const std::filesystem::path& filename, Context* ctx, bool command_scrip
     CHECK_F(!!ctx_, "[script] invalid script context");
 }
 
-Nss::Nss(std::string_view script, Context* ctx, bool command_script)
+Nss::Nss(StringView script, Context* ctx, bool command_script)
     : ctx_{ctx}
     , text_{script}
     , is_command_script_{command_script}
@@ -43,7 +43,7 @@ void Nss::add_diagnostic(Diagnostic diagnostic)
     diagnostics_.push_back(std::move(diagnostic));
 }
 
-void Nss::complete(const std::string& needle, CompletionContext& out, bool no_filter) const
+void Nss::complete(const String& needle, CompletionContext& out, bool no_filter) const
 {
     for (const auto& [name, exp] : symbol_table_) {
         if (no_filter || has_match(needle.c_str(), name.c_str())) {
@@ -53,14 +53,14 @@ void Nss::complete(const std::string& needle, CompletionContext& out, bool no_fi
     }
 }
 
-void Nss::complete_at(const std::string& needle, size_t line, size_t character, CompletionContext& out, bool no_filter)
+void Nss::complete_at(const String& needle, size_t line, size_t character, CompletionContext& out, bool no_filter)
 {
     AstLocator locator{this, needle, line, character};
     locator.visit(&ast_);
     auto node = locator.last_seen_decl;
 
     if (locator.dot) {
-        std::string struct_name(ctx_->type_name(locator.dot->lhs->type_id_));
+        String struct_name(ctx_->type_name(locator.dot->lhs->type_id_));
         const StructDecl* struct_decl = nullptr;
         const Nss* provider = this;
         auto exp = locator.dot->env_.find(struct_name);
@@ -127,7 +127,7 @@ void Nss::complete_at(const std::string& needle, size_t line, size_t character, 
     }
 }
 
-void Nss::complete_dot(const std::string& needle, size_t line, size_t character, std::vector<Symbol>& out,
+void Nss::complete_dot(const String& needle, size_t line, size_t character, std::vector<Symbol>& out,
     bool)
 {
     AstLocator locator{this, needle, line, character};
@@ -156,7 +156,7 @@ void Nss::complete_dot(const std::string& needle, size_t line, size_t character,
         return;
     }
 
-    std::string struct_id(decl->type.struct_id.loc.view());
+    String struct_id(decl->type.struct_id.loc.view());
     const StructDecl* struct_decl = nullptr;
     const Nss* provider = this;
 
@@ -221,9 +221,9 @@ Symbol Nss::declaration_to_symbol(const Declaration* decl) const
     return result;
 }
 
-std::vector<std::string> Nss::dependencies() const
+std::vector<String> Nss::dependencies() const
 {
-    std::vector<std::string> result;
+    std::vector<String> result;
     for (const auto& [key, _] : ctx_->preprocessed_) {
         if (key == data_.name.resref.view()) { continue; }
         result.push_back(key);
@@ -243,7 +243,7 @@ std::vector<InlayHint> Nss::inlay_hints(SourceRange range)
     return hinter.result_;
 }
 
-Symbol Nss::locate_export(const std::string& symbol, bool is_type, bool search_dependencies) const
+Symbol Nss::locate_export(const String& symbol, bool is_type, bool search_dependencies) const
 {
     auto sym = symbol_table_.find(symbol);
 
@@ -274,14 +274,14 @@ Symbol Nss::locate_export(const std::string& symbol, bool is_type, bool search_d
     return result;
 }
 
-Symbol Nss::locate_symbol(const std::string& symbol, size_t line, size_t character)
+Symbol Nss::locate_symbol(const String& symbol, size_t line, size_t character)
 {
     AstLocator locator{this, symbol, line, character};
     locator.visit(&ast_);
     return locator.result_;
 }
 
-std::string_view Nss::name() const noexcept
+StringView Nss::name() const noexcept
 {
     if (data_.name.resref.empty()) {
         return "<source>";
@@ -303,7 +303,7 @@ void Nss::process_includes(Nss* parent)
     bool has_parent = !!parent;
     if (!has_parent && (includes_processed_ || is_command_script_)) { return; }
     if (!parent) { parent = this; }
-    auto resref = std::string(name());
+    auto resref = String(name());
 
     // Need two lists here, one to prevent recursive includes, one to track
     // all includes.  Conceptually, at the end is 'preprocessed_' is like a
@@ -338,7 +338,7 @@ void Nss::process_includes(Nss* parent)
 
     if (!has_parent) {
         // We're removing all but the last occurance of an include, imagine as a flat file
-        absl::flat_hash_set<std::string> set;
+        absl::flat_hash_set<String> set;
         int count = 0;
         auto test = [&set, &count](const IncludeStackEntry& entry) {
             if (set.contains(entry.resref)) {
@@ -383,7 +383,7 @@ void Nss::resolve()
 Ast& Nss::ast() { return ast_; }
 const Ast& Nss::ast() const { return ast_; }
 
-void Nss::set_name(const std::string& new_name)
+void Nss::set_name(const String& new_name)
 {
     data_.name = Resource(new_name, ResourceType::nss);
 }
@@ -396,7 +396,7 @@ SignatureHelp Nss::signature_help(size_t line, size_t character)
     if (!locator.call) { return result; }
 
     if (auto ve = dynamic_cast<VariableExpression*>(locator.call->expr)) {
-        std::string name(ve->var.loc.view());
+        String name(ve->var.loc.view());
         result.expr = locator.call;
         result.active_param = locator.active_param;
         auto exp = result.expr->env_.find(name);
@@ -419,14 +419,14 @@ SignatureHelp Nss::signature_help(size_t line, size_t character)
     return result;
 }
 
-std::string_view Nss::text() const noexcept { return text_; }
+StringView Nss::text() const noexcept { return text_; }
 
-std::string_view Nss::view_from_range(SourceRange range) const noexcept
+StringView Nss::view_from_range(SourceRange range) const noexcept
 {
     size_t start = ast().line_map[range.start.line - 1] + range.start.column;
     size_t end = ast().line_map[range.end.line - 1] + range.end.column;
     if (start >= text_.length() || end >= text_.length()) { return ""; }
-    return std::string_view(text_.data() + start, end - start);
+    return StringView(text_.data() + start, end - start);
 }
 
 } // namespace nw::script

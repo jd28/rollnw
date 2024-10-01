@@ -54,7 +54,7 @@ struct NodeType {
     static constexpr uint32_t animmesh = trimesh | NodeFlags::anim;
     static constexpr uint32_t aabb = trimesh | NodeFlags::aabb;
 
-    static uint32_t from_string(std::string_view str)
+    static uint32_t from_string(StringView str)
     {
         if (string::icmp(str, "dummy")) return dummy;
         if (string::icmp(str, "reference")) return reference;
@@ -71,7 +71,7 @@ struct NodeType {
         return 0;
     }
 
-    static constexpr std::string_view to_string(uint32_t value)
+    static constexpr StringView to_string(uint32_t value)
     {
         switch (value) {
         default:
@@ -144,7 +144,7 @@ enum struct ModelClass : uint32_t {
     gui = 32,
 };
 
-inline std::string_view model_class_to_string(ModelClass cls)
+inline StringView model_class_to_string(ModelClass cls)
 {
     switch (cls) {
     default:
@@ -236,8 +236,8 @@ struct ControllerType {
     static constexpr uint32_t SelfIllumColor = 100;
     static constexpr uint32_t Alpha = 128;
 
-    static const std::unordered_map<std::string_view, std::pair<uint32_t, uint32_t>> map;
-    static std::pair<uint32_t, uint32_t> lookup(std::string_view cont);
+    static const std::unordered_map<StringView, std::pair<uint32_t, uint32_t>> map;
+    static std::pair<uint32_t, uint32_t> lookup(StringView cont);
 };
 
 // -- Controller --------------------------------------------------------------
@@ -290,10 +290,10 @@ struct Face {
 };
 
 struct Node {
-    Node(std::string name_, uint32_t type_);
+    Node(String name_, uint32_t type_);
     virtual ~Node() = default;
 
-    std::string name;
+    String name;
     const uint32_t type;
     bool inheritcolor = false;
     Node* parent = nullptr;
@@ -302,7 +302,7 @@ struct Node {
     std::vector<float> controller_data;
 
     /// Adds a controller to a model node
-    void add_controller_data(std::string_view name_, uint32_t type_, std::vector<float> times_,
+    void add_controller_data(StringView name_, uint32_t type_, std::vector<float> times_,
         std::vector<float> data_, int rows_, int columns_ = 1);
 
     /// Gets a controller to a model node
@@ -310,28 +310,28 @@ struct Node {
 };
 
 struct DummyNode : public Node {
-    DummyNode(std::string name_);
+    DummyNode(String name_);
 };
 
 struct CameraNode : public Node {
-    CameraNode(std::string name_);
+    CameraNode(String name_);
 };
 
 struct EmitterNode : public Node {
-    EmitterNode(std::string name_);
+    EmitterNode(String name_);
 
     float blastlength{0.0f};
     float blastradius{0.0f};
-    std::string blend;
-    std::string chunkname;
+    String blend;
+    String chunkname;
     float deadspace{0.0f};
     uint32_t loop{0};
-    std::string render;
+    String render;
     uint32_t renderorder{0};
     int32_t spawntype{0};
-    std::string texture;
+    String texture;
     uint32_t twosidedtex{0};
-    std::string update;
+    String update;
     uint32_t xgrid{0};
     uint32_t ygrid{0};
     uint32_t flags{0};
@@ -341,12 +341,12 @@ struct EmitterNode : public Node {
     uint32_t update_sel{0};
     uint32_t spawntype_sel{0};
     float opacity{0.0f};
-    std::string p2p_type;
+    String p2p_type;
     uint32_t tilefade{0}; // This may be an accident on one model..
 };
 
 struct LightNode : public Node {
-    LightNode(std::string name_);
+    LightNode(String name_);
     virtual ~LightNode() = default;
 
     int32_t lensflares{0}; // dunno, maybe obsolete?
@@ -356,7 +356,7 @@ struct LightNode : public Node {
     std::vector<float> flaresizes;
     std::vector<float> flarepositions;
     std::vector<glm::vec3> flarecolorshifts;
-    std::vector<std::string> textures;
+    std::vector<String> textures;
     uint32_t lightpriority{5};
     int32_t ambientonly{0};
     bool dynamic{true};
@@ -367,13 +367,13 @@ struct LightNode : public Node {
 };
 
 struct PatchNode : public Node {
-    PatchNode(std::string name_);
+    PatchNode(String name_);
 };
 
 struct ReferenceNode : public Node {
-    ReferenceNode(std::string name_);
+    ReferenceNode(String name_);
 
-    std::string refmodel;
+    String refmodel;
     bool reattachable;
 };
 
@@ -385,30 +385,30 @@ struct Vertex {
 };
 
 struct TrimeshNode : public Node {
-    TrimeshNode(std::string name_, uint32_t type_ = NodeType::trimesh);
+    TrimeshNode(String name_, uint32_t type_ = NodeType::trimesh);
     virtual ~TrimeshNode() = default;
 
     glm::vec3 ambient;
     bool beaming;
     glm::vec3 bmin;
     glm::vec3 bmax;
-    std::string bitmap;
+    String bitmap;
     glm::vec3 center;
     glm::vec3 diffuse;
-    std::string materialname;
+    String materialname;
     bool render{true};
-    std::string renderhint;
+    String renderhint;
     bool rotatetexture{false};
     bool shadow{false};
     float shininess;
     glm::vec3 specular;
-    std::array<std::string, 3> textures;
+    std::array<String, 3> textures;
     uint32_t tilefade{0};
     int transparencyhint{0};
     bool showdispl{false}; // dunno
     uint32_t displtype{1}; // dunno
     uint32_t lightmapped{0};
-    std::vector<std::string> multimaterial;
+    std::vector<String> multimaterial;
     std::vector<glm::vec3> colors;
 
     std::vector<Vertex> vertices;
@@ -425,14 +425,14 @@ struct SkinVertex {
 };
 
 struct SkinNode : public TrimeshNode {
-    SkinNode(std::string name_);
+    SkinNode(String name_);
 
     std::vector<SkinVertex> vertices;
     std::array<int16_t, 64> bone_nodes;
 };
 
 struct AnimeshNode : public TrimeshNode {
-    AnimeshNode(std::string name_);
+    AnimeshNode(String name_);
 
     std::vector<glm::vec3> animtverts;
     std::vector<glm::vec3> animverts;
@@ -444,7 +444,7 @@ struct AnimeshNode : public TrimeshNode {
 };
 
 struct DanglymeshNode : public TrimeshNode {
-    DanglymeshNode(std::string name_);
+    DanglymeshNode(String name_);
 
     std::vector<float> constraints;
     float displacement;
@@ -468,7 +468,7 @@ struct AABBEntry {
 };
 
 struct AABBNode : public TrimeshNode {
-    AABBNode(std::string name_);
+    AABBNode(String name_);
 
     std::vector<AABBEntry> entries;
 };
@@ -484,23 +484,23 @@ struct Geometry {
     Node* find(const std::regex& re);
     const Node* find(const std::regex& re) const;
 
-    std::string name;
+    String name;
     GeometryType type;
     std::vector<std::unique_ptr<Node>> nodes;
 };
 
 struct AnimationEvent {
     float time{0.0f};
-    std::string name;
+    String name;
 };
 
 struct Animation : public Geometry {
-    Animation(std::string name_);
+    Animation(String name_);
     virtual ~Animation() = default;
 
     float length{1.0f};
     float transition_time{0.25f};
-    std::string anim_root;
+    String anim_root;
     std::vector<AnimationEvent> events;
 };
 
@@ -511,8 +511,8 @@ struct Model : public Geometry {
 
     Model& operator=(Model&) = delete;
 
-    Animation* find_animation(std::string_view name);
-    const Animation* find_animation(std::string_view name) const;
+    Animation* find_animation(StringView name);
+    const Animation* find_animation(StringView name) const;
 
     ModelClass classification;
     bool ignorefog;
@@ -523,8 +523,8 @@ struct Model : public Geometry {
     glm::vec3 bmax;
     float radius;
     float animationscale;
-    std::string supermodel_name;
-    std::string file_dependency;
+    String supermodel_name;
+    String file_dependency;
 };
 
 /// Implements  Bioware MDL file format
@@ -539,7 +539,7 @@ public:
     Mdl(const std::filesystem::path& filename);
     Mdl(ResourceData data);
 
-    std::unique_ptr<Node> make_node(uint32_t type, std::string_view name);
+    std::unique_ptr<Node> make_node(uint32_t type, StringView name);
     bool valid() const;
 };
 

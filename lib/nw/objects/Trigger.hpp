@@ -42,13 +42,13 @@ struct Trigger : public ObjectBase {
     // Serialization
     static bool deserialize(Trigger* obj, const nlohmann::json& archive, SerializationProfile profile);
     static bool serialize(const Trigger* obj, nlohmann::json& archive, SerializationProfile profile);
-    static std::string get_name_from_file(const std::filesystem::path& path);
+    static String get_name_from_file(const std::filesystem::path& path);
 
     Common common;
     Trap trap;
     TriggerScripts scripts;
     std::vector<glm::vec3> geometry;
-    std::string linked_to;
+    String linked_to;
 
     uint32_t faction = 0;
     float highlight_height = 0.0f;

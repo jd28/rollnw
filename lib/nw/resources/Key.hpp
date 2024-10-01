@@ -33,8 +33,8 @@ struct Key : public Container {
     virtual bool contains(Resource res) const override;
     virtual ResourceData demand(Resource res) const override;
     virtual int extract(const std::regex& pattern, const std::filesystem::path& output) const override;
-    virtual const std::string& name() const override { return name_; };
-    virtual const std::string& path() const override { return path_; };
+    virtual const String& name() const override { return name_; };
+    virtual const String& path() const override { return path_; };
     virtual size_t size() const override;
     virtual ResourceDescriptor stat(const Resource& res) const override;
     virtual bool valid() const noexcept override { return is_loaded_; }
@@ -44,8 +44,8 @@ struct Key : public Container {
     Key& operator=(Key&&) = default;
 
 private:
-    std::string path_;
-    std::string name_;
+    String path_;
+    String name_;
     std::streamsize fsize_;
     std::vector<Bif> bifs_;
     absl::flat_hash_map<Resource, KeyTableElement> elements_;

@@ -130,7 +130,7 @@ ModifierResult::ModifierResult(DamageRoll value)
 }
 
 nw::Modifier make_modifier(nw::ModifierType type, nw::ModifierVariant value,
-    std::string_view tag, nw::ModifierSource source, nw::Requirement req, int32_t subtype)
+    StringView tag, nw::ModifierSource source, nw::Requirement req, int32_t subtype)
 {
     return nw::Modifier{
         type,
@@ -165,9 +165,9 @@ void ModifierRegistry::clear()
 ModifierRegistry::iterator ModifierRegistry::end() { return entries_.end(); }
 ModifierRegistry::const_iterator ModifierRegistry::end() const { return entries_.end(); }
 
-int ModifierRegistry::remove(std::string_view tag)
+int ModifierRegistry::remove(StringView tag)
 {
-    std::string_view prefix = tag;
+    StringView prefix = tag;
     bool starts = false;
     int result = 0;
 
@@ -175,7 +175,7 @@ int ModifierRegistry::remove(std::string_view tag)
         return result;
     }
     if (prefix.back() == '*') {
-        prefix = std::string_view{prefix.data(), prefix.size() - 1};
+        prefix = StringView{prefix.data(), prefix.size() - 1};
         if (prefix.empty()) {
             return result;
         }
@@ -201,9 +201,9 @@ int ModifierRegistry::remove(std::string_view tag)
     return result;
 }
 
-int ModifierRegistry::replace(std::string_view tag, ModifierVariant value)
+int ModifierRegistry::replace(StringView tag, ModifierVariant value)
 {
-    std::string_view prefix = tag;
+    StringView prefix = tag;
     bool starts = false;
     int result = 0;
 
@@ -212,7 +212,7 @@ int ModifierRegistry::replace(std::string_view tag, ModifierVariant value)
     }
 
     if (prefix.back() == '*') {
-        prefix = std::string_view{prefix.data(), prefix.size() - 1};
+        prefix = StringView{prefix.data(), prefix.size() - 1};
         if (prefix.empty()) {
             return result;
         }
@@ -233,9 +233,9 @@ int ModifierRegistry::replace(std::string_view tag, ModifierVariant value)
     return result;
 }
 
-int ModifierRegistry::replace(std::string_view tag, const Requirement& req)
+int ModifierRegistry::replace(StringView tag, const Requirement& req)
 {
-    std::string_view prefix = tag;
+    StringView prefix = tag;
     bool starts = false;
     int result = 0;
 
@@ -244,7 +244,7 @@ int ModifierRegistry::replace(std::string_view tag, const Requirement& req)
     }
 
     if (prefix.back() == '*') {
-        prefix = std::string_view{prefix.data(), prefix.size() - 1};
+        prefix = StringView{prefix.data(), prefix.size() - 1};
         if (prefix.empty()) {
             return result;
         }

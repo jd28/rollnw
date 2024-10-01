@@ -89,10 +89,10 @@ void EffectSystem::initialize(ServiceInitTime time)
     auto costtable = twodas().get("iprp_costtable");
     if (costtable) {
         ip_cost_table_.resize(costtable->rows());
-        std::optional<std::string_view> resref;
+        std::optional<StringView> resref;
         int count = 0;
         for (size_t i = 0; i < costtable->rows(); ++i) {
-            if ((resref = costtable->get<std::string_view>(i, "Name"))) {
+            if ((resref = costtable->get<StringView>(i, "Name"))) {
                 auto tda = twodas().get(*resref);
                 if (!tda) {
                     LOG_F(WARNING, "  ... failed to load cost table {}", *resref);
@@ -112,10 +112,10 @@ void EffectSystem::initialize(ServiceInitTime time)
     auto paramtable = twodas().get("iprp_paramtable");
     if (paramtable) {
         ip_param_table_.resize(paramtable->rows());
-        std::optional<std::string_view> resref;
+        std::optional<StringView> resref;
         int count = 0;
         for (size_t i = 0; i < paramtable->rows(); ++i) {
-            if ((resref = paramtable->get<std::string_view>(i, "TableResRef"))) {
+            if ((resref = paramtable->get<StringView>(i, "TableResRef"))) {
                 auto tda = twodas().get(*resref);
                 if (!tda) {
                     LOG_F(WARNING, "  ... failed to load param table {}", *resref);
@@ -135,11 +135,11 @@ void EffectSystem::initialize(ServiceInitTime time)
     auto ipdef = twodas().get("itempropdef");
     if (ipdef) {
         int count = 0;
-        std::optional<std::string_view> temp;
+        std::optional<StringView> temp;
         for (size_t i = 0; i < ipdef->rows(); ++i) {
             ItemPropertyDefinition def;
             if (ipdef->get_to(i, "Name", def.name)) {
-                if ((temp = ipdef->get<std::string_view>(i, "SubTypeResRef"))) {
+                if ((temp = ipdef->get<StringView>(i, "SubTypeResRef"))) {
                     def.subtype = twodas().get(*temp);
                 }
                 if (auto cost = ipdef->get<int>(i, "CostTableResRef")) {

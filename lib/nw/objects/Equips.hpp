@@ -55,7 +55,7 @@ enum struct EquipIndex : uint32_t {
     invalid = 0xffffffff
 };
 
-constexpr std::string_view equip_index_to_string(EquipIndex idx)
+constexpr StringView equip_index_to_string(EquipIndex idx)
 {
     switch (idx) {
     default:

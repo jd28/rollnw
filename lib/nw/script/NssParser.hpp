@@ -12,8 +12,8 @@
 namespace nw::script {
 
 struct parser_error : public std::runtime_error {
-    parser_error(std::string_view msg)
-        : std::runtime_error(std::string(msg))
+    parser_error(StringView msg)
+        : std::runtime_error(String(msg))
     {
     }
 };
@@ -21,11 +21,11 @@ struct parser_error : public std::runtime_error {
 struct Nss;
 
 struct NssParser {
-    explicit NssParser(std::string_view view, Context* ctx, Nss* parent = nullptr);
+    explicit NssParser(StringView view, Context* ctx, Nss* parent = nullptr);
 
     Context* ctx_ = nullptr;
     Nss* parent_ = nullptr;
-    std::string_view view_;
+    StringView view_;
     Ast ast_;
 
     std::vector<NssToken> tokens;
@@ -49,11 +49,11 @@ struct NssParser {
     /// @param type Type of token to consume
     /// @param error Error message if token type is not matched
     /// @return Matched token
-    NssToken consume(NssTokenType type, std::string_view error);
+    NssToken consume(NssTokenType type, StringView error);
 
     /// Report diagnostic
     /// @param msg Message to report
-    void diagnostic(std::string_view msg, NssToken token, bool is_warning = false);
+    void diagnostic(StringView msg, NssToken token, bool is_warning = false);
 
     /// Checks if at end of token stream
     bool is_end() const;

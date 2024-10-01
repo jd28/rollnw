@@ -12,7 +12,7 @@ DEFINE_RULE_TYPE(ItemPropertyType);
 
 BaseItemInfo::BaseItemInfo(const TwoDARowView& tda)
 {
-    std::string temp_string;
+    String temp_string;
     int temp_int;
 
     if (!tda.get_to("label", temp_string)) { return; }

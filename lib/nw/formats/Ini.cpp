@@ -18,7 +18,7 @@ Ini::Ini(ResourceData data)
     loaded_ = parse();
 }
 
-bool Ini::get_to(std::string key, std::string& out) const
+bool Ini::get_to(String key, String& out) const
 {
     string::tolower(&key);
     auto it = map_.find(key);
@@ -51,7 +51,7 @@ int Ini::parse_ini(void* user, const char* section, const char* name, const char
     if (!name) // Happens when INI_CALL_HANDLER_ON_NEW_SECTION enabled
         return 1;
     Ini* reader = static_cast<Ini*>(user);
-    std::string key = std::string(section) + "/" + name;
+    String key = String(section) + "/" + name;
     string::tolower(&key);
 
     reader->map_[key] = value ? value : "";

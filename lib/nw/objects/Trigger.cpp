@@ -51,9 +51,9 @@ Versus Trigger::versus_me() const
     return result;
 }
 
-std::string Trigger::get_name_from_file(const std::filesystem::path& path)
+String Trigger::get_name_from_file(const std::filesystem::path& path)
 {
-    std::string result;
+    String result;
     LocString l1;
 
     auto rdata = ResourceData::from_file(path);
@@ -210,7 +210,7 @@ bool serialize(const Trigger* obj, GffBuilderStruct& archive, SerializationProfi
 
     archive.add_field("TemplateResRef", obj->common.resref); // Store does it's own thing, not typo.
     archive.add_field("LocalizedName", obj->common.name);
-    archive.add_field("Tag", std::string(obj->common.tag ? obj->common.tag.view() : ""));
+    archive.add_field("Tag", String(obj->common.tag ? obj->common.tag.view() : ""));
 
     if (profile == SerializationProfile::blueprint) {
         archive.add_field("Comment", obj->common.comment);
@@ -243,7 +243,7 @@ bool serialize(const Trigger* obj, GffBuilderStruct& archive, SerializationProfi
     serialize(obj->trap, archive);
 
     uint8_t zero = 0;
-    std::string empty;
+    String empty;
 
     archive.add_field("Faction", obj->faction)
         .add_field("HighlightHeight", obj->highlight_height)

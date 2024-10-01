@@ -20,7 +20,7 @@ struct AstHinter : public BaseVisitor {
     SourceRange range_;
     std::vector<InlayHint> result_;
 
-    const Declaration* locate_in_dependencies(const std::string& needle)
+    const Declaration* locate_in_dependencies(const String& needle)
     {
         if (!parent_->is_command_script() && parent_->ctx()->command_script_) {
             auto sym = parent_->ctx()->command_script_->locate_export(needle, false);
@@ -86,7 +86,7 @@ struct AstHinter : public BaseVisitor {
         if (!ve) { return; }
 
         if (contains_range(range_, expr->range_)) {
-            std::string needle{ve->var.loc.view()};
+            String needle{ve->var.loc.view()};
             auto exp = ve->env_.find(needle);
             const Declaration* decl = nullptr;
             if (exp && exp->decl) {

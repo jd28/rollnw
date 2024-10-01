@@ -8,7 +8,6 @@
 
 #include <cstddef>
 #include <filesystem>
-#include <string>
 #include <tuple>
 
 namespace nw {
@@ -21,18 +20,18 @@ namespace nw {
 struct Resource {
     Resource() noexcept;
     Resource(const Resref& resref_, ResourceType::type type_) noexcept;
-    Resource(std::string_view resref_, ResourceType::type type_) noexcept;
+    Resource(StringView resref_, ResourceType::type type_) noexcept;
     Resource(const Resource&) = default;
     Resource(Resource&&) = default;
 
-    static Resource from_filename(std::string_view);
+    static Resource from_filename(StringView);
     static Resource from_path(const std::filesystem::path& path);
 
     Resref resref;
     ResourceType::type type;
 
     /// Gets a Resrefs file name with extension.
-    std::string filename() const;
+    String filename() const;
 
     /// A resource is valid if resref is not empty and resref type is not invalid
     bool valid() const noexcept;

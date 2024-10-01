@@ -1,5 +1,7 @@
 #pragma once
 
+#include "../config.hpp"
+
 #include <nlohmann/json_fwd.hpp>
 
 #include <cstdint>
@@ -62,7 +64,7 @@ struct ByteArray {
     std::span<const uint8_t> span() const { return {data(), size()}; }
 
     /// Constructs string view of the array
-    std::string_view string_view() const;
+    StringView string_view() const;
 
     /// Write contents to file
     bool write_to(const std::filesystem::path& path) const;

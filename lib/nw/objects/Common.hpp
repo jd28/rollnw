@@ -27,7 +27,7 @@ struct Common {
     Location location;
 
     // Blueprint only
-    std::string comment;
+    String comment;
     uint8_t palette_id = std::numeric_limits<uint8_t>::max();
 
 protected:

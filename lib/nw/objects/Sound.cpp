@@ -13,9 +13,9 @@ Sound::Sound()
     set_handle(ObjectHandle{object_invalid, ObjectType::sound, 0});
 }
 
-std::string Sound::get_name_from_file(const std::filesystem::path& path)
+String Sound::get_name_from_file(const std::filesystem::path& path)
 {
-    std::string result;
+    String result;
     LocString l1;
 
     auto rdata = ResourceData::from_file(path);
@@ -181,7 +181,7 @@ bool serialize(const Sound* obj, GffBuilderStruct& archive, SerializationProfile
 
     archive.add_field("TemplateResRef", obj->common.resref)
         .add_field("LocName", obj->common.name)
-        .add_field("Tag", std::string(obj->common.tag ? obj->common.tag.view() : std::string_view()));
+        .add_field("Tag", String(obj->common.tag ? obj->common.tag.view() : StringView{}));
 
     if (profile == SerializationProfile::blueprint) {
         archive.add_field("Comment", obj->common.comment);

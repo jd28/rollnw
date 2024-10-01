@@ -11,7 +11,7 @@ void ModelCache::clear()
     map_.clear();
 }
 
-model::Mdl* ModelCache::load(std::string_view resref)
+model::Mdl* ModelCache::load(StringView resref)
 {
     auto it = map_.find(resref);
     if (it != std::end(map_)) {
@@ -31,11 +31,11 @@ model::Mdl* ModelCache::load(std::string_view resref)
         return nullptr;
     }
 
-    auto insert = map_.emplace(std::string(resref), ModelPayload{std::move(model), 1});
+    auto insert = map_.emplace(String(resref), ModelPayload{std::move(model), 1});
     return insert.first->second.original_.get();
 }
 
-void ModelCache::release(std::string_view resref)
+void ModelCache::release(StringView resref)
 {
     auto it = map_.find(resref);
     if (it != std::end(map_)) {

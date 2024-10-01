@@ -25,9 +25,9 @@ Tlk::Tlk(std::filesystem::path filename)
     load();
 }
 
-std::string Tlk::get(uint32_t strref) const
+String Tlk::get(uint32_t strref) const
 {
-    std::string result;
+    String result;
     if (!loaded_) {
         LOG_F(ERROR, "attempting to get string from invalid tlk");
         return result;
@@ -48,7 +48,7 @@ std::string Tlk::get(uint32_t strref) const
     const auto& ele = elements_[strref];
     if (header_.str_offset + ele.offset + ele.size <= bytes_.size()) {
         const char* temp = reinterpret_cast<const char*>(bytes_.data() + header_.str_offset + ele.offset);
-        std::string s = string::sanitize_colors({temp, ele.size});
+        String s = string::sanitize_colors({temp, ele.size});
         result = to_utf8_by_langid(s, language_id());
     } else {
         LOG_F(ERROR, "failed to read strref: {}", strref);
@@ -67,9 +67,9 @@ bool Tlk::modified() const noexcept
     return modified_strings_.size() > 0;
 }
 
-void Tlk::set(uint32_t strref, std::string_view string)
+void Tlk::set(uint32_t strref, StringView string)
 {
-    modified_strings_[strref] = std::string(string);
+    modified_strings_[strref] = String(string);
 }
 
 size_t Tlk::size() const noexcept
@@ -100,7 +100,7 @@ void Tlk::save_as(const std::filesystem::path& path)
     uint32_t orig_str_offset = header_.str_offset;
     header_.str_offset = static_cast<uint32_t>(sizeof(TlkHeader) + (ele.size() * sizeof(TlkElement)));
     uint32_t offset = 0;
-    std::string tmp;
+    String tmp;
     ByteArray strings;
 
     for (uint32_t i = 0; i < max_strref; ++i) {

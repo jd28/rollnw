@@ -22,16 +22,16 @@ struct Zip : public Container {
     virtual bool contains(Resource res) const override;
     virtual ResourceData demand(Resource res) const override;
     virtual int extract(const std::regex& pattern, const std::filesystem::path& output) const override;
-    virtual const std::string& name() const override { return name_; };
-    virtual const std::string& path() const override { return path_; };
+    virtual const String& name() const override { return name_; };
+    virtual const String& path() const override { return path_; };
     virtual size_t size() const override;
     virtual ResourceDescriptor stat(const Resource& res) const override;
     virtual bool valid() const noexcept override { return is_loaded_; }
     virtual void visit(std::function<void(const Resource&)> callback, std::initializer_list<ResourceType::type> types = {}) const noexcept override;
 
 private:
-    std::string path_;
-    std::string name_;
+    String path_;
+    String name_;
     unzFile file_ = nullptr;
     bool is_loaded_ = false;
     std::vector<ZipElement> elements_;

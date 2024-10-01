@@ -10,7 +10,7 @@ namespace nw {
 
 bool Common::from_json(const nlohmann::json& archive, SerializationProfile profile, ObjectType object_type)
 {
-    std::string temp;
+    String temp;
     archive.at("object_type").get_to(object_type);
     archive.at("resref").get_to(resref);
     archive.at("tag").get_to(temp);
@@ -78,7 +78,7 @@ bool deserialize(Common& self, const GffStruct& archive, SerializationProfile pr
         LOG_F(WARNING, "object no localized name");
     }
 
-    std::string temp;
+    String temp;
     archive.get_to("Tag", temp);
     if (!temp.empty()) { self.tag = nw::kernel::strings().intern(temp); }
 

@@ -17,10 +17,10 @@ struct ModelPayload {
 
 struct ModelCache : public Service {
     void clear() override;
-    model::Mdl* load(std::string_view resref);
-    void release(std::string_view resref);
+    model::Mdl* load(StringView resref);
+    void release(StringView resref);
 
-    absl::flat_hash_map<std::string, ModelPayload> map_;
+    absl::flat_hash_map<String, ModelPayload> map_;
 };
 
 ModelCache& models();

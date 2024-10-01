@@ -37,7 +37,7 @@ struct GffField {
     bool get_to(T& value) const;
 
     /// Get label
-    std::string_view name() const;
+    StringView name() const;
 
     /// If field is a list, returns size of list, else 0.
     size_t size() const;
@@ -66,18 +66,18 @@ private:
 
 struct GffStruct {
     /// Check if a struct has a field.
-    bool has_field(std::string_view label) const;
+    bool has_field(StringView label) const;
 
     /// Get struct id.
     uint32_t id() const { return valid() ? entry_->type : 0; }
 
     /// Gets a value from a field in the struct
     template <typename T>
-    std::optional<T> get(std::string_view label, bool warn_missing = true) const;
+    std::optional<T> get(StringView label, bool warn_missing = true) const;
 
     /// Gets a value from a field in the struct
     template <typename T>
-    bool get_to(std::string_view label, T& out, bool warn_missing = true) const;
+    bool get_to(StringView label, T& out, bool warn_missing = true) const;
 
     /// Number of fields in the struct.
     size_t size() const { return entry_->field_count; }
@@ -86,7 +86,7 @@ struct GffStruct {
     bool valid() const { return parent_ != nullptr; }
 
     /// Get field by label
-    GffField operator[](std::string_view label) const;
+    GffField operator[](StringView label) const;
 
     /// Get field by index
     GffField operator[](size_t index) const;
@@ -111,13 +111,13 @@ struct Gff {
     GffStruct toplevel() const;
 
     /// Get Gff type
-    std::string_view type() const { return {head_->type, 3}; }
+    StringView type() const { return {head_->type, 3}; }
 
     /// Get if Gff file successfully parsed
     bool valid() const;
 
     /// Get the Gff Version
-    std::string_view version() const { return {head_->version, 4}; }
+    StringView version() const { return {head_->version, 4}; }
 
     GffHeader* head_ = nullptr;
     GffLabel* labels_ = nullptr;
@@ -138,7 +138,7 @@ private:
 };
 
 template <typename T>
-std::optional<T> GffStruct::get(std::string_view label, bool warn_missing) const
+std::optional<T> GffStruct::get(StringView label, bool warn_missing) const
 {
     T temp;
     return get_to<T>(label, temp, warn_missing)
@@ -147,7 +147,7 @@ std::optional<T> GffStruct::get(std::string_view label, bool warn_missing) const
 }
 
 template <typename T>
-bool GffStruct::get_to(std::string_view label, T& out, bool warn_missing) const
+bool GffStruct::get_to(StringView label, T& out, bool warn_missing) const
 {
     if (!valid()) {
         return false;
@@ -270,12 +270,12 @@ bool GffField::get_to(T& value) const
                 CHECK_OFF(parent_->data_.bytes.read_at(off, buffer, size));
                 value = Resref(buffer);
                 return true;
-            } else if constexpr (std::is_same_v<T, std::string>) {
+            } else if constexpr (std::is_same_v<T, String>) {
                 uint32_t size;
                 CHECK_OFF(parent_->data_.bytes.read_at(off, &size, 4));
                 off += 4;
                 CHECK_OFF(off + size < parent_->data_.bytes.size());
-                std::string s{};
+                String s{};
                 s.reserve(size + 12); // Reserve a little bit extra, in case of colors.
                 s.append(reinterpret_cast<const char*>(parent_->data_.bytes.data() + off), size);
                 value = string::sanitize_colors(std::move(s));
@@ -298,7 +298,7 @@ bool GffField::get_to(T& value) const
                     CHECK_OFF(parent_->data_.bytes.read_at(off, &size, 4));
                     off += 4;
                     CHECK_OFF(off + size < parent_->data_.bytes.size());
-                    std::string s{reinterpret_cast<const char*>(parent_->data_.bytes.data() + off), size};
+                    String s{reinterpret_cast<const char*>(parent_->data_.bytes.data() + off), size};
                     s = string::sanitize_colors(std::move(s));
                     auto base_lang = Language::to_base_id(lang);
                     s = to_utf8_by_langid(s, base_lang.first);

@@ -30,7 +30,7 @@ struct SpellSchoolInfo {
     SpellSchoolInfo() = default;
     SpellSchoolInfo(const TwoDARowView& tda);
 
-    std::string letter;
+    String letter;
     uint32_t name = 0xFFFFFFFF;
     nw::SpellSchool opposition = nw::SpellSchool::invalid();
     uint32_t description = 0xFFFFFFFF;

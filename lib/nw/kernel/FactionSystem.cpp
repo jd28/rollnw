@@ -30,9 +30,9 @@ void FactionSystem::clear()
     name_id_map_.clear();
 }
 
-std::vector<std::string> FactionSystem::all() const
+std::vector<String> FactionSystem::all() const
 {
-    std::vector<std::string> result;
+    std::vector<String> result;
     if (!factions_) { return result; }
 
     for (auto& fac : factions_->factions) {
@@ -46,7 +46,7 @@ size_t FactionSystem::count() const
     return factions_ ? factions_->factions.size() : 0;
 }
 
-uint32_t FactionSystem::faction_id(std::string_view name) const
+uint32_t FactionSystem::faction_id(StringView name) const
 {
     if (!factions_) { return std::numeric_limits<uint32_t>::max(); }
 
@@ -73,7 +73,7 @@ Reputation FactionSystem::locate(uint32_t faction1, uint32_t faction2) const
     return result;
 }
 
-std::string_view FactionSystem::name(uint32_t id) const
+StringView FactionSystem::name(uint32_t id) const
 {
     if (!factions_ || id >= factions_->factions.size()) { return {}; }
     return factions_->factions[id].name;

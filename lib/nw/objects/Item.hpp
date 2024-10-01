@@ -31,7 +31,7 @@ struct Item : public ObjectBase {
     // Serialization
     static bool deserialize(Item* obj, const nlohmann::json& archive, SerializationProfile profile);
     static bool serialize(const Item* obj, nlohmann::json& archive, SerializationProfile profile);
-    static std::string get_name_from_file(const std::filesystem::path& path);
+    static String get_name_from_file(const std::filesystem::path& path);
 
     /// Gets image by item model part.
     /// @note Caller takes ownership of the resulting image.  Merging icons is also the responsibility of the caller.

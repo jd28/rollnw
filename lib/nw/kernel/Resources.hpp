@@ -48,7 +48,7 @@ struct Resources : public Container, public Service {
 
     /// Add a base container
     /// @note This anything that is BELOW the module in priority
-    bool add_base_container(const std::filesystem::path& path, const std::string& name,
+    bool add_base_container(const std::filesystem::path& path, const String& name,
         ResourceType::type restype = ResourceType::invalid);
 
     /// Add already created container
@@ -58,17 +58,17 @@ struct Resources : public Container, public Service {
 
     /// Add override container
     /// @note This anything that is ABOVE the module in priority
-    bool add_override_container(const std::filesystem::path& path, const std::string& name,
+    bool add_override_container(const std::filesystem::path& path, const String& name,
         ResourceType::type restype = ResourceType::invalid);
 
     /// Clears any custom loaded containers
     void clear_containers();
 
     /// Loads container resources for a module
-    bool load_module(std::filesystem::path path, std::string_view manifest = {});
+    bool load_module(std::filesystem::path path, StringView manifest = {});
 
     /// Loads module haks
-    void load_module_haks(const std::vector<std::string>& haks);
+    void load_module_haks(const std::vector<String>& haks);
 
     /// Gets module container
     Container* module_container() const;
@@ -80,7 +80,7 @@ struct Resources : public Container, public Service {
     void unload_module();
 
     /// Demands a player character file
-    ResourceData demand_server_vault(std::string_view cdkey, std::string_view resref);
+    ResourceData demand_server_vault(StringView cdkey, StringView resref);
 
     /// Attempts to locate first matching resource type by container priority
     ResourceData demand_any(Resref resref, std::initializer_list<ResourceType::type> restypes) const;
@@ -106,8 +106,8 @@ struct Resources : public Container, public Service {
     virtual bool contains(Resource res) const override;
     virtual ResourceData demand(Resource res) const override;
     virtual int extract(const std::regex& pattern, const std::filesystem::path& output) const override;
-    virtual const std::string& name() const override { return name_; }
-    virtual const std::string& path() const override { return name_; }
+    virtual const String& name() const override { return name_; }
+    virtual const String& path() const override { return name_; }
     virtual size_t size() const override;
     virtual ResourceDescriptor stat(const Resource& res) const override;
     virtual bool valid() const noexcept override { return true; }
@@ -116,7 +116,7 @@ struct Resources : public Container, public Service {
 private:
     void update_container_search();
 
-    const std::string name_{"resman"};
+    const String name_{"resman"};
     const Resources* parent_ = nullptr;
     ResroucesStats metrics_;
 
@@ -150,7 +150,7 @@ inline Resources& resman()
     return *res;
 }
 
-inline Container* resolve_container(const std::filesystem::path& p, const std::string& name)
+inline Container* resolve_container(const std::filesystem::path& p, const String& name)
 {
     if (std::filesystem::is_directory(p / name)) {
         return new Directory{p / name};

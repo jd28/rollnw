@@ -18,13 +18,13 @@ struct TwoDACache : public Service {
     TwoDACache& operator=(TwoDACache&&) = default;
 
     /// Caches a 2da
-    bool cache(std::string_view tda);
+    bool cache(StringView tda);
 
     /// Clears the cache
     virtual void clear() override;
 
     /// Gets a cached TwoDA
-    const TwoDA* get(std::string_view tda);
+    const TwoDA* get(StringView tda);
 
     /// Gets a cached TwoDA
     const TwoDA* get(const nw::Resource& tda);

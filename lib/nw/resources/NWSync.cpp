@@ -20,7 +20,7 @@ namespace detail {
 void sqlite3_deleter(sqlite3* db) { sqlite3_close(db); }
 } // namespace detail
 
-NWSyncManifest::NWSyncManifest(std::string manifest, NWSync* parent)
+NWSyncManifest::NWSyncManifest(String manifest, NWSync* parent)
     : manifest_{std::move(manifest)}
     , parent_{parent}
 {
@@ -47,7 +47,7 @@ std::vector<ResourceDescriptor> NWSyncManifest::all() const
 
     while (sqlite3_step(stmt) == SQLITE_ROW) {
         ResourceDescriptor rd = {
-            Resource{std::string_view(reinterpret_cast<const char*>(sqlite3_column_text(stmt, 0))),
+            Resource{StringView(reinterpret_cast<const char*>(sqlite3_column_text(stmt, 0))),
                 static_cast<ResourceType::type>(sqlite3_column_int(stmt, 1))},
             0, // No good way..
             0,
@@ -138,7 +138,7 @@ int NWSyncManifest::extract(const std::regex& pattern, const std::filesystem::pa
     }
 
     while (sqlite3_step(stmt) == SQLITE_ROW) {
-        Resource r(std::string_view(reinterpret_cast<const char*>(sqlite3_column_text(stmt, 0))),
+        Resource r(StringView(reinterpret_cast<const char*>(sqlite3_column_text(stmt, 0))),
             static_cast<ResourceType::type>(sqlite3_column_int(stmt, 1)));
         auto fname = r.filename();
         if (std::regex_match(fname, pattern)) {
@@ -204,7 +204,7 @@ void NWSyncManifest::visit(std::function<void(const Resource&)> callback, std::i
         if (types.size() && std::end(types) == std::find(std::begin(types), std::end(types), restype)) {
             continue;
         }
-        callback(Resource{std::string_view(reinterpret_cast<const char*>(sqlite3_column_text(stmt, 0))), restype});
+        callback(Resource{StringView(reinterpret_cast<const char*>(sqlite3_column_text(stmt, 0))), restype});
     }
 }
 
@@ -230,15 +230,15 @@ bool NWSync::is_loaded() const noexcept
     return is_loaded_;
 }
 
-NWSyncManifest* NWSync::get(std::string_view manifest)
+NWSyncManifest* NWSync::get(StringView manifest)
 {
     auto it = map_.find(manifest);
     return it != std::end(map_) ? &it->second : nullptr;
 }
 
-std::vector<std::string> NWSync::manifests()
+std::vector<String> NWSync::manifests()
 {
-    std::vector<std::string> result;
+    std::vector<String> result;
 
     sqlite3_stmt* stmt = nullptr;
     const char* tail = nullptr;

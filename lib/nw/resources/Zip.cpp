@@ -59,7 +59,7 @@ ResourceData Zip::demand(Resource resref) const
 
     char fname[64] = {0};
 
-    std::string fn = resref.filename();
+    String fn = resref.filename();
     // The 2 below forces case insensitve comparison
     if (unzLocateFile(file_, fn.c_str(), 2) == UNZ_OK) {
         unzOpenCurrentFile(file_);
@@ -92,7 +92,7 @@ int Zip::extract(const std::regex& pattern, const std::filesystem::path& output)
         unzGetCurrentFileInfo(file_, &info, fname, 64, nullptr, 0, nullptr, 0);
         char* dot = strchr(fname, '.');
         if (dot && static_cast<size_t>(dot - fname) <= 16) {
-            Resource r(std::string_view(fname, static_cast<size_t>(dot - fname)), ResourceType::from_extension(dot + 1));
+            Resource r(StringView(fname, static_cast<size_t>(dot - fname)), ResourceType::from_extension(dot + 1));
             if (r.valid() && std::regex_match(fname, pattern)) {
                 auto data = demand(r);
                 if (data.bytes.size() > 0) {
@@ -116,7 +116,7 @@ size_t Zip::size() const
 ResourceDescriptor Zip::stat(const Resource& res) const
 {
     ResourceDescriptor rd;
-    std::string fn = res.filename();
+    String fn = res.filename();
     char fname[64] = {0};
     if (unzLocateFile(file_, fn.c_str(), 0) == UNZ_OK) {
         unz_file_info info;
@@ -124,7 +124,7 @@ ResourceDescriptor Zip::stat(const Resource& res) const
         char* dot = strchr(fname, '.');
         if (dot && static_cast<size_t>(dot - fname) <= 16) {
             rd.size = info.uncompressed_size;
-            rd.name = Resource(std::string_view(fname, static_cast<size_t>(dot - fname)), ResourceType::from_extension(dot + 1));
+            rd.name = Resource(StringView(fname, static_cast<size_t>(dot - fname)), ResourceType::from_extension(dot + 1));
             rd.parent = this;
         }
     }
@@ -162,7 +162,7 @@ bool Zip::load()
         char* dot = strchr(fname, '.');
         if (dot && static_cast<size_t>(dot - fname) <= 16) {
             e.size = info.uncompressed_size;
-            e.resref = Resource(std::string_view(fname, static_cast<size_t>(dot - fname)), ResourceType::from_extension(dot + 1));
+            e.resref = Resource(StringView(fname, static_cast<size_t>(dot - fname)), ResourceType::from_extension(dot + 1));
             if (e.resref.valid())
                 elements_.push_back(e);
         } else {

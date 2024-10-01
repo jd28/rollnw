@@ -18,7 +18,7 @@ const std::array<Language::Properties, 10> Language::language_table{
     Language::Properties{LanguageID::japanese, "ja", "Japanese", "CP932", true},
 };
 
-std::string_view Language::encoding(LanguageID lang)
+StringView Language::encoding(LanguageID lang)
 {
     for (const auto& info : language_table) {
         if (info.id == lang) { return info.encoding; }
@@ -26,7 +26,7 @@ std::string_view Language::encoding(LanguageID lang)
     return {};
 }
 
-LanguageID Language::from_string(std::string_view lang)
+LanguageID Language::from_string(StringView lang)
 {
     for (const auto& info : language_table) {
         if (string::icmp(info.lang_long, lang) || string::icmp(info.lang_short, lang)) {
@@ -65,7 +65,7 @@ uint32_t Language::to_runtime_id(LanguageID lang, bool feminine)
     return l;
 }
 
-std::string_view Language::to_string(LanguageID lang, bool long_name)
+StringView Language::to_string(LanguageID lang, bool long_name)
 {
     for (const auto& info : language_table) {
         if (info.id == lang) {

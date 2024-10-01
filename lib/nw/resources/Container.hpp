@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../config.hpp"
 #include "../util/ByteArray.hpp"
 #include "Resource.hpp"
 #include "ResourceData.hpp"
@@ -26,16 +27,16 @@ struct Container {
     virtual ResourceData demand(Resource res) const = 0;
 
     /// Extract elements from a container by glob pattern
-    virtual int extract_by_glob(std::string_view glob, const std::filesystem::path& output) const;
+    virtual int extract_by_glob(StringView glob, const std::filesystem::path& output) const;
 
     /// Extract elements from a container by regex
     virtual int extract(const std::regex& pattern, const std::filesystem::path& output) const = 0;
 
     /// Equivalent to `basename path()`
-    virtual const std::string& name() const = 0;
+    virtual const String& name() const = 0;
 
     /// Path to container, for basic containers, should be canonical
-    virtual const std::string& path() const = 0;
+    virtual const String& path() const = 0;
 
     /// Determines the size, if applicable, of the container
     virtual size_t size() const = 0;

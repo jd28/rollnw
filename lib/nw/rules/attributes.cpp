@@ -62,7 +62,7 @@ PhenotypeInfo::PhenotypeInfo(const TwoDARowView& tda)
 
 RaceInfo::RaceInfo(const TwoDARowView& tda)
 {
-    std::string temp_string;
+    String temp_string;
     if (tda.get_to("label", temp_string)) {
         tda.get_to("Name", name);
         tda.get_to("ConverName", name_conversation);
@@ -105,7 +105,7 @@ RaceInfo::RaceInfo(const TwoDARowView& tda)
 
 SkillInfo::SkillInfo(const TwoDARowView& tda)
 {
-    std::string temp_string;
+    String temp_string;
     if (tda.get_to("label", temp_string)) {
         tda.get_to("Name", name);
         tda.get_to("Description", description);

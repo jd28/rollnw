@@ -56,7 +56,7 @@ struct Creature : public ObjectBase {
 
     static bool deserialize(Creature* obj, const nlohmann::json& archive, SerializationProfile profile);
     static bool serialize(const Creature* obj, nlohmann::json& archive, SerializationProfile profile);
-    static std::string get_name_from_file(const std::filesystem::path& path);
+    static String get_name_from_file(const std::filesystem::path& path);
 
     Common common;
     CreatureAppearance appearance;
@@ -69,11 +69,11 @@ struct Creature : public ObjectBase {
     CreatureStats stats;
 
     Resref conversation;
-    std::string deity;
+    String deity;
     LocString description;
     LocString name_first;
     LocString name_last;
-    std::string subrace;
+    String subrace;
 
     float cr = 0.0;
     int32_t cr_adjust = 0;

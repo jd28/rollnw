@@ -59,7 +59,7 @@ struct SerializationType {
     template <typename T>
     static constexpr SerializationType::type id();
 
-    static constexpr std::string_view to_string(SerializationType::type type);
+    static constexpr StringView to_string(SerializationType::type type);
 };
 
 template <typename T>
@@ -85,7 +85,7 @@ constexpr SerializationType::type SerializationType::id()
         return SerializationType::float_;
     } else if constexpr (std::is_same_v<T, double>) {
         return SerializationType::double_;
-    } else if constexpr (std::is_same_v<T, std::string>) {
+    } else if constexpr (std::is_same_v<T, String>) {
         return SerializationType::string;
     } else if constexpr (std::is_same_v<T, Resref>) {
         return SerializationType::resref;
@@ -100,7 +100,7 @@ constexpr SerializationType::type SerializationType::id()
     }
 }
 
-constexpr std::string_view SerializationType::to_string(SerializationType::type type)
+constexpr StringView SerializationType::to_string(SerializationType::type type)
 {
     switch (type) {
     default:

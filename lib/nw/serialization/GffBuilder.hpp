@@ -22,9 +22,9 @@ struct GffBuilderStruct {
     explicit GffBuilderStruct(GffBuilder* parent_);
 
     template <typename T>
-    GffBuilderStruct& add_field(std::string_view name, const T& value);
-    GffBuilderList& add_list(std::string_view name);
-    GffBuilderStruct& add_struct(std::string_view name, uint32_t id_);
+    GffBuilderStruct& add_field(StringView name, const T& value);
+    GffBuilderList& add_list(StringView name);
+    GffBuilderStruct& add_struct(StringView name, uint32_t id_);
 
     GffBuilder* parent = nullptr;
     uint32_t index = 0;
@@ -55,9 +55,9 @@ struct GffBuilderField {
 };
 
 struct GffBuilder {
-    explicit GffBuilder(std::string_view type, std::string_view version = "V3.2");
+    explicit GffBuilder(StringView type, StringView version = "V3.2");
 
-    size_t add_label(std::string_view name);
+    size_t add_label(StringView name);
     // Note, this must be called before `write_to` or `to_byte_array`
     void build();
     ByteArray to_byte_array() const;
@@ -75,7 +75,7 @@ struct GffBuilder {
 };
 
 template <typename T>
-GffBuilderStruct& GffBuilderStruct::add_field(std::string_view name, const T& value)
+GffBuilderStruct& GffBuilderStruct::add_field(StringView name, const T& value)
 {
     GffBuilderField f{parent};
     f.label_index = static_cast<uint32_t>(parent->add_label(name));
@@ -129,11 +129,11 @@ GffBuilderStruct& GffBuilderStruct::add_field(std::string_view name, const T& va
         f.type = SerializationType::id<double>();
         double temp = value;
         parent->data.append(&temp, 8);
-    } else if constexpr (std::is_same_v<T, std::string>) {
-        const std::string& temp = value;
-        f.type = SerializationType::id<std::string>();
+    } else if constexpr (std::is_same_v<T, String>) {
+        const String& temp = value;
+        f.type = SerializationType::id<String>();
         f.data_or_offset = static_cast<uint32_t>(parent->data.size());
-        std::string s = string::desanitize_colors(temp);
+        String s = string::desanitize_colors(temp);
         s = from_utf8_by_global_lang(s);
         uint32_t size = static_cast<uint32_t>(s.size());
         parent->data.append(&size, 4);
@@ -156,7 +156,7 @@ GffBuilderStruct& GffBuilderStruct::add_field(std::string_view name, const T& va
         parent->data.append(&strref, 4);
         parent->data.append(&num_strings, 4);
         for (const auto& [lang, str] : temp) {
-            std::string s = string::desanitize_colors(str);
+            String s = string::desanitize_colors(str);
             auto base_lang = Language::to_base_id(lang);
             s = from_utf8_by_langid(s, base_lang.first);
             uint32_t size = static_cast<uint32_t>(s.size());

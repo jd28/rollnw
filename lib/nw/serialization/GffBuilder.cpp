@@ -15,7 +15,7 @@ GffBuilderStruct::GffBuilderStruct(GffBuilder* parent_)
 {
 }
 
-GffBuilderList& GffBuilderStruct::add_list(std::string_view name)
+GffBuilderList& GffBuilderStruct::add_list(StringView name)
 {
     GffBuilderField f{parent};
     f.label_index = static_cast<uint32_t>(parent->add_label(name));
@@ -25,7 +25,7 @@ GffBuilderList& GffBuilderStruct::add_list(std::string_view name)
     return std::get<GffBuilderList>(field_entries.back().structures);
 }
 
-GffBuilderStruct& GffBuilderStruct::add_struct(std::string_view name, uint32_t id_)
+GffBuilderStruct& GffBuilderStruct::add_struct(StringView name, uint32_t id_)
 {
 
     field_entries.emplace_back(parent);
@@ -62,7 +62,7 @@ GffBuilderField::GffBuilderField(GffBuilder* parent_)
 
 // -- GffBuilder --------------------------------------------------------
 
-GffBuilder::GffBuilder(std::string_view type, std::string_view version)
+GffBuilder::GffBuilder(StringView type, StringView version)
     : top{this}
 {
     std::memcpy(header.type, type.data(), 3);
@@ -72,7 +72,7 @@ GffBuilder::GffBuilder(std::string_view type, std::string_view version)
     top.id = 0xffffffff;
 }
 
-size_t GffBuilder::add_label(std::string_view name)
+size_t GffBuilder::add_label(StringView name)
 {
     auto it = std::find_if(std::begin(labels), std::end(labels),
         [&name](const GffLabel& label) -> bool {

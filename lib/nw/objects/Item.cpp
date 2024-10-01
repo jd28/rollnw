@@ -41,7 +41,7 @@ bool Item::instantiate()
 
 Image* Item::get_icon_by_part(ItemModelParts::type part, bool female) const
 {
-    std::string resref;
+    String resref;
     bool is_plt = false;
     ResourceData rdata;
 
@@ -148,9 +148,9 @@ PltColors Item::model_to_plt_colors() const noexcept
     return result;
 }
 
-std::string Item::get_name_from_file(const std::filesystem::path& path)
+String Item::get_name_from_file(const std::filesystem::path& path)
 {
-    std::string result;
+    String result;
     LocString l1;
 
     auto rdata = ResourceData::from_file(path);
@@ -376,7 +376,7 @@ bool serialize(const Item* obj, GffBuilderStruct& archive, SerializationProfile 
 
     archive.add_field("TemplateResRef", obj->common.resref)
         .add_field("LocalizedName", obj->common.name)
-        .add_field("Tag", std::string(obj->common.tag ? obj->common.tag.view() : std::string_view()));
+        .add_field("Tag", String(obj->common.tag ? obj->common.tag.view() : StringView()));
 
     if (profile == SerializationProfile::blueprint) {
         archive.add_field("Comment", obj->common.comment);

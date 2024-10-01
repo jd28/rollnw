@@ -10,7 +10,7 @@ namespace nw {
 
 PlaceableInfo::PlaceableInfo(const TwoDARowView& tda)
 {
-    std::string temp;
+    String temp;
     tda.get_to("Label", label);
     tda.get_to("StrRef", name);
     if (tda.get_to("ModelName", temp)) {
@@ -75,9 +75,9 @@ bool Placeable::instantiate()
     return instantiated_ = inventory.instantiate();
 }
 
-std::string Placeable::get_name_from_file(const std::filesystem::path& path)
+String Placeable::get_name_from_file(const std::filesystem::path& path)
 {
-    std::string result;
+    String result;
     LocString l1;
 
     auto rdata = ResourceData::from_file(path);
@@ -243,7 +243,7 @@ bool serialize(const Placeable* obj, GffBuilderStruct& archive, SerializationPro
 
     archive.add_field("TemplateResRef", obj->common.resref)
         .add_field("LocName", obj->common.name)
-        .add_field("Tag", std::string(obj->common.tag ? obj->common.tag.view() : std::string_view()));
+        .add_field("Tag", String(obj->common.tag ? obj->common.tag.view() : StringView()));
 
     if (profile == SerializationProfile::blueprint) {
         archive.add_field("Comment", obj->common.comment);

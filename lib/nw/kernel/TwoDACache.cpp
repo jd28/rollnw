@@ -4,7 +4,7 @@
 
 namespace nw::kernel {
 
-bool TwoDACache::cache(std::string_view tda)
+bool TwoDACache::cache(StringView tda)
 {
     Resource res{tda, ResourceType::twoda};
     auto it = cached_2das_.find(res);
@@ -26,7 +26,7 @@ void TwoDACache::clear()
     cached_2das_.clear();
 }
 
-const TwoDA* TwoDACache::get(std::string_view tda)
+const TwoDA* TwoDACache::get(StringView tda)
 {
     Resource res{tda, ResourceType::twoda};
     return get(res);

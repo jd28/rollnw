@@ -22,13 +22,13 @@ struct LocalVar {
     float float_;
     int32_t integer;
     ObjectID object;
-    std::string string;
+    String string;
     Location loc;
 
     std::bitset<8> flags;
 };
 
-using LocalVarTable = absl::flat_hash_map<std::string, LocalVar>;
+using LocalVarTable = absl::flat_hash_map<String, LocalVar>;
 
 struct LocalData {
     LocalData() = default;
@@ -42,28 +42,28 @@ struct LocalData {
     LocalVarTable::const_iterator end() const { return vars_.end(); }
 
     /// Clears a variable by type
-    void clear(std::string_view var, uint32_t type);
+    void clear(StringView var, uint32_t type);
 
     /// Clears all variables by type
     void clear_all(uint32_t type);
 
-    void delete_float(std::string_view var);
-    void delete_int(std::string_view var);
-    void delete_object(std::string_view var);
-    void delete_string(std::string_view var);
-    void delete_location(std::string_view var);
+    void delete_float(StringView var);
+    void delete_int(StringView var);
+    void delete_object(StringView var);
+    void delete_string(StringView var);
+    void delete_location(StringView var);
 
-    float get_float(std::string_view var) const;
-    int32_t get_int(std::string_view var) const;
-    ObjectID get_object(std::string_view var) const;
-    std::string get_string(std::string_view var) const;
-    Location get_location(std::string_view var) const;
+    float get_float(StringView var) const;
+    int32_t get_int(StringView var) const;
+    ObjectID get_object(StringView var) const;
+    String get_string(StringView var) const;
+    Location get_location(StringView var) const;
 
-    void set_float(std::string_view var, float value);
-    void set_int(std::string_view var, int32_t value);
-    void set_object(std::string_view var, ObjectID value);
-    void set_string(std::string_view var, std::string_view value);
-    void set_location(std::string_view var, Location value);
+    void set_float(StringView var, float value);
+    void set_int(StringView var, int32_t value);
+    void set_object(StringView var, ObjectID value);
+    void set_string(StringView var, StringView value);
+    void set_location(StringView var, Location value);
 
     size_t size() const noexcept { return vars_.size(); }
 

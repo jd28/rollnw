@@ -54,7 +54,7 @@ void Resources::initialize(ServiceInitTime time)
     LOG_F(INFO, "kernel: resource system initialized ({}ms)", metrics_.initialization_time);
 }
 
-bool Resources::load_module(std::filesystem::path path, std::string_view manifest)
+bool Resources::load_module(std::filesystem::path path, StringView manifest)
 {
     LOG_F(INFO, "resman: loading module container: {}", path);
 
@@ -77,7 +77,7 @@ bool Resources::load_module(std::filesystem::path path, std::string_view manifes
     return true;
 }
 
-void Resources::load_module_haks(const std::vector<std::string>& haks)
+void Resources::load_module_haks(const std::vector<String>& haks)
 {
     for (const auto& h : haks) {
         if (auto c = resolve_container(config().user_path() / "hak", h)) {
@@ -111,7 +111,7 @@ void Resources::unload_module()
     update_container_search();
 }
 
-bool Resources::add_base_container(const std::filesystem::path& path, const std::string& name,
+bool Resources::add_base_container(const std::filesystem::path& path, const String& name,
     ResourceType::type restype)
 {
     auto container = resolve_container(path, name);
@@ -156,7 +156,7 @@ bool Resources::add_custom_container(Container* container, bool take_ownership, 
 }
 
 /// Add already created container
-bool Resources::add_override_container(const std::filesystem::path& path, const std::string& name,
+bool Resources::add_override_container(const std::filesystem::path& path, const String& name,
     ResourceType::type restype)
 {
     auto container = resolve_container(path, name);
@@ -268,7 +268,7 @@ ResourceData Resources::demand_in_order(Resref resref, std::initializer_list<Res
     return parent_ ? parent_->demand_in_order(resref, restypes) : ResourceData{};
 }
 
-ResourceData Resources::demand_server_vault(std::string_view cdkey, std::string_view resref)
+ResourceData Resources::demand_server_vault(StringView cdkey, StringView resref)
 {
     ResourceData result;
     auto vault_path = config().user_path() / "servervault";

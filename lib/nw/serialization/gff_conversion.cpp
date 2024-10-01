@@ -13,7 +13,7 @@ using json = nlohmann::json;
 namespace nw {
 
 template <typename T>
-inline void add_field_kv(json& j, const std::string& name, const T& value)
+inline void add_field_kv(json& j, const String& name, const T& value)
 {
     auto& o = j[name] = json::object();
     o["value"] = value;
@@ -31,7 +31,7 @@ inline bool gff_to_gffjson(const GffField field, nlohmann::json& cursor)
     }
 
     // nholmann_json doesn't seem to support hetero lookup, bummer.
-    std::string field_name = std::string(field.name());
+    String field_name = String(field.name());
 
     switch (field.type()) {
     default:
@@ -68,7 +68,7 @@ inline bool gff_to_gffjson(const GffField field, nlohmann::json& cursor)
         add_field_kv(cursor, field_name, *field.get<double>());
     } break;
     case SerializationType::string: {
-        add_field_kv(cursor, field_name, *field.get<std::string>());
+        add_field_kv(cursor, field_name, *field.get<String>());
     } break;
     case SerializationType::resref: {
         auto& o = cursor[field_name] = json::object();

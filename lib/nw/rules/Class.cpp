@@ -13,7 +13,7 @@ DEFINE_RULE_TYPE(Class)
 ClassInfo::ClassInfo(const TwoDARowView& tda)
 {
     auto class_array = &nw::kernel::rules().classes;
-    std::string temp_string;
+    String temp_string;
     int temp_int;
 
     if (tda.get_to("label", temp_string)) {
@@ -128,7 +128,7 @@ void ClassArray::clear()
     constant_to_index.clear();
 }
 
-Class ClassArray::from_constant(std::string_view constant) const
+Class ClassArray::from_constant(StringView constant) const
 {
     auto it = constant_to_index.find(constant);
     if (it == constant_to_index.end()) {

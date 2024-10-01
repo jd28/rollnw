@@ -29,7 +29,7 @@ struct Waypoint : public ObjectBase {
     static void serialize(const Waypoint* obj, nlohmann::json& archive,
         SerializationProfile profile);
 
-    static std::string get_name_from_file(const std::filesystem::path& path);
+    static String get_name_from_file(const std::filesystem::path& path);
 
     Common common;
 
@@ -37,7 +37,7 @@ struct Waypoint : public ObjectBase {
     LocString description;
 
     /// Tag of entity waypoint is linked to
-    std::string linked_to;
+    String linked_to;
 
     /// Map not for player minimap
     LocString map_note;

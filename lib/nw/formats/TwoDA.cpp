@@ -15,14 +15,14 @@ namespace nw {
 namespace detail {
 
 struct TwoDATokenizer {
-    explicit TwoDATokenizer(std::string_view tda)
+    explicit TwoDATokenizer(StringView tda)
         : buffer{tda}
     {
     }
 
-    std::string_view next()
+    StringView next()
     {
-        std::string_view result;
+        StringView result;
         while (pos < buffer.size()) {
             switch (buffer[pos]) {
             default:
@@ -38,7 +38,7 @@ struct TwoDATokenizer {
                     ++pos;
                 }
                 if (pos == buffer.size()) end = buffer.size();
-                result = std::string_view(&buffer[start], end - start);
+                result = StringView(&buffer[start], end - start);
 
                 break;
             case '"':
@@ -54,14 +54,14 @@ struct TwoDATokenizer {
                     throw std::runtime_error("Unterminated quote.");
                 ++pos;
 
-                result = std::string_view(&buffer[start], end - start);
+                result = StringView(&buffer[start], end - start);
                 break;
             case '\r':
             case '\n':
                 start = pos;
                 if (buffer[pos] == '\r') ++pos;
                 if (pos < buffer.size() && buffer[pos] == '\n') ++pos;
-                result = std::string_view(&buffer[start], pos - start);
+                result = StringView(&buffer[start], pos - start);
                 ++line;
                 break;
             case ' ':
@@ -77,7 +77,7 @@ struct TwoDATokenizer {
     }
 
     size_t pos = 0, start = 0, end = 0, line = 0;
-    std::string_view buffer;
+    StringView buffer;
 };
 
 } // namespace detail
@@ -93,7 +93,7 @@ TwoDA::TwoDA(ResourceData data)
     is_loaded_ = parse();
 }
 
-size_t TwoDA::column_index(const std::string_view column) const
+size_t TwoDA::column_index(const StringView column) const
 {
     for (size_t i = 0; i < columns_.size(); ++i) {
         if (string::icmp(columns_[i], column))
@@ -111,18 +111,18 @@ void TwoDA::pad(size_t count)
 {
     size_t pad = count * columns_.size();
     for (size_t i = 0; i < pad; ++i) {
-        rows_.emplace_back(std::string_view("****"));
+        rows_.emplace_back(StringView("****"));
     }
 }
 
-inline bool is_newline(std::string_view token)
+inline bool is_newline(StringView token)
 {
     return !token.empty() && (token[0] == '\r' || token[0] == '\n');
 }
 
-inline bool needs_quote(std::string_view str)
+inline bool needs_quote(StringView str)
 {
-    return str.find(' ') != std::string_view::npos;
+    return str.find(' ') != StringView::npos;
 }
 
 bool TwoDA::parse()
@@ -131,7 +131,7 @@ bool TwoDA::parse()
         return false;
     }
     detail::TwoDATokenizer tknz{data_.bytes.string_view()};
-    std::string_view tk;
+    StringView tk;
 
     if (tknz.next() != "2DA" || tknz.next() != "V2.0") {
         LOG_F(ERROR, "Invalid 2DA Header");
@@ -146,7 +146,7 @@ bool TwoDA::parse()
         return false;
     } else if (tk == "DEFAULT:") {
         tk = tknz.next();
-        default_ = std::string(tk);
+        default_ = String(tk);
         while (is_newline(tk = tknz.next())) // Drop new lines
             ;
     } // If we make it here first column is in tk.
@@ -175,7 +175,7 @@ bool TwoDA::parse()
 
             int pad = 0, drop = 0;
             while (rows_.size() < row * columns_.size()) {
-                rows_.emplace_back(std::string_view("****"));
+                rows_.emplace_back(StringView("****"));
                 ++pad;
             }
 
@@ -226,7 +226,7 @@ std::ostream& operator<<(std::ostream& out, const nw::TwoDA& tda)
     }
 
     const int pad = 4;
-    std::string sep{32, ' '};
+    String sep{32, ' '};
 
     out << "2DA V1.0" << std::endl;
     if (tda.default_.size()) {
@@ -238,7 +238,7 @@ std::ostream& operator<<(std::ostream& out, const nw::TwoDA& tda)
     }
     out << std::endl;
 
-    std::string temp = std::to_string(tda.rows() - 1);
+    String temp = std::to_string(tda.rows() - 1);
     size_t num_size = temp.size();
     sep.resize(pad + num_size, ' ');
     out << sep;

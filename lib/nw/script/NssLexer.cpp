@@ -10,7 +10,7 @@
 
 namespace nw::script {
 
-NssLexer::NssLexer(std::string_view buffer, Context* ctx, Nss* parent)
+NssLexer::NssLexer(StringView buffer, Context* ctx, Nss* parent)
     : ctx_{ctx}
     , parent_{parent}
     , buffer_{buffer}

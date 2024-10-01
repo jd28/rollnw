@@ -40,7 +40,7 @@ DialogPtr* DialogPtr::add_ptr(DialogPtr* ptr, bool is_link)
     }
 }
 
-DialogPtr* DialogPtr::add_string(std::string value, nw::LanguageID lang, bool feminine)
+DialogPtr* DialogPtr::add_string(String value, nw::LanguageID lang, bool feminine)
 {
     auto ptr = parent->create_ptr();
     ptr->type = (type == DialogNodeType::entry) ? DialogNodeType::reply : DialogNodeType::entry;
@@ -83,7 +83,7 @@ DialogNode* DialogNode::copy() const
 }
 
 /// Gets a condition parameter if it exists
-std::optional<std::string> DialogPtr::get_condition_param(const std::string& key)
+std::optional<String> DialogPtr::get_condition_param(const String& key)
 {
     for (auto& it : condition_params) {
         if (it.first == key) {
@@ -104,10 +104,10 @@ void DialogPtr::get_all_subnodes(std::vector<DialogNode*>& subnodes)
 }
 
 /// Removes condition parameter by key
-void DialogPtr::remove_condition_param(const std::string& key)
+void DialogPtr::remove_condition_param(const String& key)
 {
     condition_params.erase(std::remove_if(std::begin(condition_params), std::end(condition_params),
-                               [&key](const std::pair<std::string, std::string>& p) {
+                               [&key](const std::pair<String, String>& p) {
                                    return p.first == key;
                                }),
         std::end(condition_params));
@@ -120,7 +120,7 @@ void DialogPtr::remove_condition_param(size_t index)
 }
 
 /// Sets condition parameter, if key does not exist key and value are appended
-void DialogPtr::set_condition_param(const std::string& key, const std::string& value)
+void DialogPtr::set_condition_param(const String& key, const String& value)
 {
     for (auto& it : condition_params) {
         if (it.first == key) {
@@ -131,7 +131,7 @@ void DialogPtr::set_condition_param(const std::string& key, const std::string& v
     condition_params.emplace_back(key, value);
 }
 
-std::optional<std::string> DialogNode::get_action_param(const std::string& key)
+std::optional<String> DialogNode::get_action_param(const String& key)
 {
     for (auto& it : action_params) {
         if (it.first == key) {
@@ -142,10 +142,10 @@ std::optional<std::string> DialogNode::get_action_param(const std::string& key)
 }
 
 /// Removes action parameter by key
-void DialogNode::remove_action_param(const std::string& key)
+void DialogNode::remove_action_param(const String& key)
 {
     action_params.erase(std::remove_if(std::begin(action_params), std::end(action_params),
-                            [&key](const std::pair<std::string, std::string>& p) {
+                            [&key](const std::pair<String, String>& p) {
                                 return p.first == key;
                             }),
         std::end(action_params));
@@ -158,7 +158,7 @@ void DialogNode::remove_action_param(size_t index)
 }
 
 /// Sets action parameter, if key does not exist key and value are appended
-void DialogNode::set_action_param(const std::string& key, const std::string& value)
+void DialogNode::set_action_param(const String& key, const String& value)
 {
     for (auto& it : action_params) {
         if (it.first == key) {
@@ -222,7 +222,7 @@ DialogPtr* Dialog::add_ptr(DialogPtr* ptr, bool is_link)
     }
 }
 
-DialogPtr* Dialog::add_string(std::string value, nw::LanguageID lang, bool feminine)
+DialogPtr* Dialog::add_string(String value, nw::LanguageID lang, bool feminine)
 {
     auto ptr = create_ptr();
     ptr->type = DialogNodeType::entry;
@@ -362,8 +362,8 @@ void Dialog::remove_node_internal(DialogNode* node, DialogNodeType type)
 
 bool Dialog::read_nodes(const GffStruct gff, DialogNodeType node_type)
 {
-    std::string_view node_list;
-    std::string_view ptr_list;
+    StringView node_list;
+    StringView ptr_list;
     std::vector<DialogNode*>* holder;
 
     if (node_type == DialogNodeType::entry) {
@@ -401,7 +401,7 @@ bool Dialog::read_nodes(const GffStruct gff, DialogNodeType node_type)
             size_t num_action_params = s["ActionParams"].size();
             for (size_t j = 0; j < num_action_params; ++j) {
                 GffStruct p = s["ActionParams"][j];
-                std::string key, value;
+                String key, value;
                 p.get_to("Key", key);
                 p.get_to("Value", value);
                 node->action_params.emplace_back(key, value);
@@ -432,7 +432,7 @@ bool Dialog::read_nodes(const GffStruct gff, DialogNodeType node_type)
                 size_t num_params = p["ConditionParams"].size();
                 for (size_t h = 0; h < num_params; ++h) {
                     GffStruct cp = p["ConditionParams"][h];
-                    std::string key, value;
+                    String key, value;
                     cp.get_to("Key", key);
                     cp.get_to("Value", value);
                     ptr->condition_params.emplace_back(key, value);
@@ -483,7 +483,7 @@ bool Dialog::load(const GffStruct gff)
             size_t num_params = s["ConditionParams"].size();
             for (size_t h = 0; h < num_params; ++h) {
                 GffStruct cp = s["ConditionParams"][h];
-                std::string key, value;
+                String key, value;
                 cp.get_to("Key", key);
                 cp.get_to("Value", value);
                 ptr->condition_params.emplace_back(key, value);
@@ -528,8 +528,8 @@ GffBuilder serialize(const Dialog* obj)
 
     DialogNodeType node_type = DialogNodeType::reply;
     const std::vector<DialogNode*>* holder = &obj->entries;
-    std::string_view node_list = "EntryList";
-    std::string_view ptr_list = "RepliesList";
+    StringView node_list = "EntryList";
+    StringView ptr_list = "RepliesList";
 
     auto& entry_list = gff.top.add_list(node_list);
     for (size_t i = 0; i < holder->size(); ++i) {
@@ -728,7 +728,7 @@ void serialize(nlohmann::json& archive, const DialogNode& node)
 
 void deserialize(const nlohmann::json& archive, Dialog& node)
 {
-    if (archive["$type"].get<std::string>() != "DLG") {
+    if (archive["$type"].get<String>() != "DLG") {
         LOG_F(ERROR, "invalid dlg json");
         return;
     }

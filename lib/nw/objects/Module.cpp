@@ -138,7 +138,7 @@ bool Module::deserialize(Module* obj, const nlohmann::json& archive)
         archive.at("tag").get_to(obj->tag);
         archive.at("tlk").get_to(obj->tlk);
 
-        std::string temp;
+        String temp;
         auto it = archive.find("uuid");
         if (it != std::end(archive)) {
             it.value().get_to(temp);
@@ -210,7 +210,7 @@ bool deserialize(Module* obj, const GffStruct& archive)
     st = archive["Mod_HakList"];
     obj->haks.reserve(sz);
     for (size_t i = 0; i < sz; ++i) {
-        std::string r;
+        String r;
         if (st[i].get_to("Mod_Hak", r)) {
             obj->haks.push_back(r);
         } else {
@@ -225,7 +225,7 @@ bool deserialize(Module* obj, const GffStruct& archive)
     archive.get_to("Mod_Tag", obj->tag);
     archive.get_to("Mod_CustomTlk", obj->tlk);
 
-    std::string temp;
+    String temp;
     archive.get_to("Mod_UUID", temp, false);
     if (!temp.empty()) {
         if (auto uuid = uuids::uuid::from_string(temp)) {

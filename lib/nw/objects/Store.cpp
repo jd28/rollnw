@@ -40,9 +40,9 @@ Store::Store()
     inventory.set_owner(this);
 }
 
-std::string Store::get_name_from_file(const std::filesystem::path& path)
+String Store::get_name_from_file(const std::filesystem::path& path)
 {
-    std::string result;
+    String result;
     LocString l1;
 
     auto rdata = ResourceData::from_file(path);
@@ -225,7 +225,7 @@ bool serialize(const Store* obj, GffBuilderStruct& archive, SerializationProfile
 
     archive.add_field("ResRef", obj->common.resref) // Store does it's own thing, not typo.
         .add_field("LocName", obj->common.name)
-        .add_field("Tag", std::string(obj->common.tag ? obj->common.tag.view() : ""));
+        .add_field("Tag", String(obj->common.tag ? obj->common.tag.view() : ""));
 
     if (profile == SerializationProfile::blueprint) {
         archive.add_field("Comment", obj->common.comment);

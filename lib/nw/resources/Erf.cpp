@@ -60,8 +60,8 @@ Erf::Erf(const std::filesystem::path& path)
     path_ = nowide::narrow(std::filesystem::canonical(path).c_str());
     name_ = nowide::narrow(path.filename().c_str());
 #else
-    path_ = std::filesystem::canonical(path);
-    name_ = path.filename();
+    path_ = std::filesystem::canonical(path).string();
+    name_ = path.filename().string();
 #endif
 
     is_loaded_ = load(path);
@@ -178,7 +178,7 @@ bool Erf::save_as(const std::filesystem::path& path) const
     for (const auto& [lang, str] : description) {
         locstrings.append(&lang, 4);
         auto base_lang = Language::to_base_id(lang);
-        std::string tmp = from_utf8_by_langid(str, base_lang.first);
+        String tmp = from_utf8_by_langid(str, base_lang.first);
         uint32_t tmp_sz = static_cast<uint32_t>(tmp.size());
         locstrings.append(&tmp_sz, 4);
         locstrings.append(tmp.c_str(), tmp.size());
@@ -297,7 +297,7 @@ int Erf::extract(const std::regex& re, const std::filesystem::path& output) cons
     }
 
     int count = 0;
-    std::string fname;
+    String fname;
     ResourceData data;
     for (const auto& [k, v] : elements_) {
         fname = k.filename();
@@ -390,7 +390,7 @@ bool Erf::load(const fs::path& path)
     } else if (strncmp(header.version, "V1.1", 4) == 0) {
         version = ErfVersion::v1_1;
     } else {
-        LOG_F(ERROR, "{}: Invalid version type '{}'.", path, std::string_view{header.version, 4});
+        LOG_F(ERROR, "{}: Invalid version type '{}'.", path, StringView{header.version, 4});
         return false;
     }
 
@@ -413,7 +413,7 @@ bool Erf::load(const fs::path& path)
     CHECK_OFFSET(header.offset_locstring);
     file_.seekg(header.offset_locstring, std::ios::beg);
     for (uint32_t i = 0; i < header.locstring_count; ++i) {
-        std::string tmp;
+        String tmp;
         uint32_t lang, sz;
         CHECK_OFFSET(int(file_.tellg()) + 8);
         istream_read(file_, &lang, 4);

@@ -98,7 +98,7 @@ struct RuleFlag : private std::bitset<N> {
         set(val);
     }
 
-    explicit RuleFlag(std::string_view str)
+    explicit RuleFlag(StringView str)
         : Base(str.data())
     {
     }
@@ -177,7 +177,7 @@ struct RuleTypeArray {
         return type.idx() < entries.size() && entries[type.idx()].valid();
     }
 
-    RuleType from_constant(std::string_view constant) const
+    RuleType from_constant(StringView constant) const
     {
         auto it = constant_to_index.find(constant);
         if (it == constant_to_index.end()) {

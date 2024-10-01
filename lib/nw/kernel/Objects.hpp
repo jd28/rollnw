@@ -60,7 +60,7 @@ struct ObjectSystem : public Service {
     ObjectBase* get_object_base(ObjectHandle obj) const;
 
     /// Gets object by tag
-    ObjectBase* get_by_tag(std::string_view tag, int nth = 0) const;
+    ObjectBase* get_by_tag(StringView tag, int nth = 0) const;
 
     ObjectBase* alloc(ObjectType object_type);
 
@@ -71,7 +71,7 @@ struct ObjectSystem : public Service {
 
     /// Loads an object from resource system
     template <typename T>
-    T* load(std::string_view resref);
+    T* load(StringView resref);
 
     /// Loads an object from gff isntance
     template <typename T>
@@ -82,7 +82,7 @@ struct ObjectSystem : public Service {
     T* load(const nlohmann::json& archive);
 
     /// Loads an object from resource system
-    Player* load_player(std::string_view cdkey, std::string_view resref);
+    Player* load_player(StringView cdkey, StringView resref);
 
     /// Creates a new object
     template <typename T>
@@ -126,7 +126,7 @@ private:
     void (*instatiate_callback_)(ObjectBase*) = nullptr;
 };
 
-inline ObjectType serial_id_to_obj_type(std::string_view id)
+inline ObjectType serial_id_to_obj_type(StringView id)
 {
     if (string::icmp("UTC", id)) {
         return ObjectType::creature;
@@ -199,7 +199,7 @@ T* ObjectSystem::load(const std::filesystem::path& archive, SerializationProfile
         try {
             std::ifstream f{archive, std::ifstream::binary};
             nlohmann::json j = nlohmann::json::parse(f);
-            std::string serial_id = j.at("$type").get<std::string>();
+            String serial_id = j.at("$type").get<String>();
             type = serial_id_to_obj_type(serial_id);
             if (type == T::object_type) {
                 if constexpr (std::is_same_v<T, nw::Player>) {
@@ -249,7 +249,7 @@ T* ObjectSystem::load(const std::filesystem::path& archive, SerializationProfile
 }
 
 template <typename T>
-T* ObjectSystem::load(std::string_view resref)
+T* ObjectSystem::load(StringView resref)
 {
     T* obj = make<T>();
     ResourceData data = resman().demand({resref, T::restype});

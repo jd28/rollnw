@@ -112,14 +112,14 @@ inline SourceLocation merge_source_location(SourceLocation lhs, SourceLocation r
 
 struct NssToken {
     NssToken() = default;
-    NssToken(NssTokenType type_, std::string_view id_)
+    NssToken(NssTokenType type_, StringView id_)
         : type{type_}
     {
         loc.start = id_.data();
         loc.end = id_.data() + id_.size();
     }
 
-    NssToken(NssTokenType type_, std::string_view id_, SourcePosition start, SourcePosition end)
+    NssToken(NssTokenType type_, StringView id_, SourcePosition start, SourcePosition end)
         : type{type_}
         , loc{id_.data(), id_.data() + id_.size(), {start, end}}
     {

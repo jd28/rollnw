@@ -69,9 +69,9 @@ DECLARE_RULE_TYPE(Appearance);
 struct AppearanceInfo {
     AppearanceInfo(const TwoDARowView& tda);
 
-    std::string label;
+    String label;
     uint32_t string_ref = std::numeric_limits<uint32_t>::max();
-    std::string model;
+    String model;
 
     bool valid() const noexcept { return string_ref != 0xFFFFFFFF || !label.empty(); }
 };

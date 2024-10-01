@@ -20,7 +20,7 @@ GffField::GffField(const Gff* parent, const GffFieldEntry* entry)
 {
 }
 
-std::string_view GffField::name() const
+StringView GffField::name() const
 {
     if (!valid()) {
         LOG_F(ERROR, "invalid gff field");
@@ -84,12 +84,12 @@ GffStruct::GffStruct(const Gff* parent, const GffStructEntry* entry)
 {
 }
 
-bool GffStruct::has_field(std::string_view label) const
+bool GffStruct::has_field(StringView label) const
 {
     return operator[](label).valid();
 }
 
-GffField GffStruct::operator[](std::string_view label) const
+GffField GffStruct::operator[](StringView label) const
 {
     if (!valid()) {
         LOG_F(ERROR, "invalid gff struct");

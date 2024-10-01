@@ -9,7 +9,7 @@ namespace fs = std::filesystem;
 
 namespace nw::script {
 
-Context::Context(std::vector<std::string> include_paths, std::string command_script)
+Context::Context(std::vector<String> include_paths, String command_script)
     : include_paths_{std::move(include_paths)}
     , dependencies_{}
     , command_script_name_{std::move(command_script)}
@@ -85,7 +85,7 @@ void Context::register_engine_types()
     }
 }
 
-size_t Context::type_id(std::string_view type_name, bool define)
+size_t Context::type_id(StringView type_name, bool define)
 {
     auto it = type_map_.find(type_name);
     if (it == std::end(type_map_)) {
@@ -108,7 +108,7 @@ size_t Context::type_id(Type type_name, bool define)
     }
 }
 
-std::string_view Context::type_name(size_t type_id)
+StringView Context::type_name(size_t type_id)
 {
     if (type_id >= type_array_.size()) { return "<unknown>"; }
     return type_array_[type_id];
@@ -231,14 +231,14 @@ bool Context::is_type_convertible(size_t lhs, size_t rhs)
     return lhs == rhs || (lhs == float_ && rhs == int_);
 }
 
-void Context::lexical_diagnostic(Nss* script, std::string_view msg, bool is_warning, SourceRange range)
+void Context::lexical_diagnostic(Nss* script, StringView msg, bool is_warning, SourceRange range)
 {
     if (script) {
         Diagnostic result;
         result.type = DiagnosticType::lexical;
         result.severity = is_warning ? DiagnosticSeverity::warning : DiagnosticSeverity::error;
         result.script = script ? script->name() : "<source>";
-        result.message = std::string(msg);
+        result.message = String(msg);
         result.location = range;
         script->add_diagnostic(std::move(result));
 
@@ -258,14 +258,14 @@ void Context::lexical_diagnostic(Nss* script, std::string_view msg, bool is_warn
     }
 }
 
-void Context::parse_diagnostic(Nss* script, std::string_view msg, bool is_warning, SourceRange range)
+void Context::parse_diagnostic(Nss* script, StringView msg, bool is_warning, SourceRange range)
 {
     if (script) {
         Diagnostic result;
         result.type = DiagnosticType::parse;
         result.severity = is_warning ? DiagnosticSeverity::warning : DiagnosticSeverity::error;
         result.script = script ? script->name() : "<source>";
-        result.message = std::string(msg);
+        result.message = String(msg);
         result.location = range;
         script->add_diagnostic(std::move(result));
 
@@ -285,14 +285,14 @@ void Context::parse_diagnostic(Nss* script, std::string_view msg, bool is_warnin
     }
 }
 
-void Context::semantic_diagnostic(Nss* script, std::string_view msg, bool is_warning, SourceRange range)
+void Context::semantic_diagnostic(Nss* script, StringView msg, bool is_warning, SourceRange range)
 {
     if (script) {
         Diagnostic result;
         result.type = DiagnosticType::semantic;
         result.severity = is_warning ? DiagnosticSeverity::warning : DiagnosticSeverity::error;
         result.script = script ? script->name() : "<source>";
-        result.message = std::string(msg);
+        result.message = String(msg);
         result.location = range;
         script->add_diagnostic(std::move(result));
 

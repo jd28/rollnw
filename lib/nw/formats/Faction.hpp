@@ -9,7 +9,7 @@
 namespace nw {
 
 struct FactionInfo {
-    std::string name;
+    String name;
     uint32_t parent = std::numeric_limits<uint32_t>::max();
     uint16_t global = 0;
 };

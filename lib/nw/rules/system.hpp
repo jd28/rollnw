@@ -22,7 +22,7 @@ struct Class;
 struct Feat;
 struct ObjectBase;
 
-using RuleValue = Variant<int32_t, float, std::string>;
+using RuleValue = Variant<int32_t, float, String>;
 
 DECLARE_RULE_TYPE(ReqType);
 
@@ -165,12 +165,12 @@ struct Modifier {
 };
 
 nw::Modifier make_modifier(nw::ModifierType type, nw::ModifierVariant value,
-    std::string_view tag, nw::ModifierSource source = nw::ModifierSource::unknown,
+    StringView tag, nw::ModifierSource source = nw::ModifierSource::unknown,
     nw::Requirement req = nw::Requirement{}, int32_t subtype = -1);
 
 template <typename SubType>
 nw::Modifier make_modifier(nw::ModifierType type, SubType subtype, nw::ModifierVariant value,
-    std::string_view tag, nw::ModifierSource source = nw::ModifierSource::unknown,
+    StringView tag, nw::ModifierSource source = nw::ModifierSource::unknown,
     nw::Requirement req = nw::Requirement{})
 {
     static_assert(nw::is_rule_type<SubType>::value, "Subtype must be a rule type!");
@@ -207,7 +207,7 @@ struct ModifierRegistry {
      * @param tag if ``string_view`` ends with '*' then matches any tag that starts with ``tag``
      * @return int number of modifiers affected
      */
-    int remove(std::string_view tag);
+    int remove(StringView tag);
 
     /**
      * @brief Replace modifier value
@@ -216,7 +216,7 @@ struct ModifierRegistry {
      * @param value new value
      * @return int number of modifiers affected
      */
-    int replace(std::string_view tag, ModifierVariant value);
+    int replace(StringView tag, ModifierVariant value);
 
     /**
      * @brief Replace modifier requirement
@@ -225,7 +225,7 @@ struct ModifierRegistry {
      * @param req new requirement
      * @return int number of modifiers affected
      */
-    int replace(std::string_view tag, const Requirement& req);
+    int replace(StringView tag, const Requirement& req);
 
     /// Gets the number of modifiers
     size_t size() const;

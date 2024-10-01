@@ -7,7 +7,7 @@
 
 namespace nw::script {
 
-NssParser::NssParser(std::string_view view, Context* ctx, Nss* parent)
+NssParser::NssParser(StringView view, Context* ctx, Nss* parent)
     : ctx_{ctx}
     , parent_{parent}
     , view_{view}
@@ -63,7 +63,7 @@ bool NssParser::check_is_type() const
     return false;
 }
 
-void NssParser::diagnostic(std::string_view msg, NssToken token, bool is_warning)
+void NssParser::diagnostic(StringView msg, NssToken token, bool is_warning)
 {
     ctx_->parse_diagnostic(parent_, msg, is_warning, token.loc.range);
 }
@@ -73,7 +73,7 @@ bool NssParser::is_end() const
     return current_ >= tokens.size() || tokens[current_].type == NssTokenType::END;
 }
 
-NssToken NssParser::consume(NssTokenType type, std::string_view message)
+NssToken NssParser::consume(NssTokenType type, StringView message)
 {
     if (check({type})) return advance();
 
@@ -83,7 +83,7 @@ NssToken NssParser::consume(NssTokenType type, std::string_view message)
 
 void NssParser::lex()
 {
-    size_t last_comment_line = std::string::npos;
+    size_t last_comment_line = String::npos;
     Comment current_comment;
     try {
         NssLexer lexer{view_, ctx_, parent_};
@@ -91,7 +91,7 @@ void NssParser::lex()
         while (tok.type != NssTokenType::END) {
             if (tok.type == NssTokenType::COMMENT) {
                 // Append all comments that on adjacent rows
-                if (last_comment_line == std::string::npos
+                if (last_comment_line == String::npos
                     || last_comment_line + 1 == tok.loc.range.end.line) {
                     current_comment.append(tok.loc.view(), tok.loc);
                     last_comment_line = tok.loc.range.end.line;
@@ -481,9 +481,9 @@ Expression* NssParser::parse_expr_primary()
         expr->range_ = previous().loc.range;
         if (expr->literal.type == NssTokenType::STRING_CONST) {
             // Probably need to process the string..
-            expr->data = std::string(expr->literal.loc.view());
+            expr->data = String(expr->literal.loc.view());
         } else if (expr->literal.type == NssTokenType::STRING_RAW_CONST) {
-            expr->data = std::string(expr->literal.loc.view());
+            expr->data = String(expr->literal.loc.view());
         } else if (expr->literal.type == NssTokenType::INTEGER_CONST) {
             if (auto val = string::from<int32_t>(expr->literal.loc.view())) {
                 expr->data = *val;
@@ -1009,7 +1009,7 @@ Ast NssParser::parse_program()
                     if (match({NssTokenType::STRING_CONST})) {
                         if (previous().loc.view().size() <= nw::kernel::config().max_resref_length()) {
                             ast_.includes.push_back({
-                                std::string(previous().loc.view()),
+                                String(previous().loc.view()),
                                 previous().loc.range,
                             });
                         } else {
@@ -1021,14 +1021,14 @@ Ast NssParser::parse_program()
                     }
                 } else if (peek().loc.view() == "define") {
                     consume(NssTokenType::IDENTIFIER, "Expected 'IDENTIFIER'."); // define
-                    std::string name, value;
+                    String name, value;
                     if (match({NssTokenType::IDENTIFIER})) {
-                        name = std::string(previous().loc.view());
+                        name = String(previous().loc.view());
                     } else {
                         diagnostic("Expected identifier", peek());
                         throw parser_error("Expected identifier");
                     }
-                    value = std::string(advance().loc.view());
+                    value = String(advance().loc.view());
                     ast_.defines.insert({name, value});
                 }
             } else {

@@ -1,12 +1,14 @@
 #pragma once
 
+#include "../config.hpp"
+
 #include <filesystem>
 #include <string>
 
 namespace nw {
 
 /// Gets the complete suffix of a file name, i.e. "archive.tar.gz" -> "tar.gz"
-std::string complete_file_suffix(const std::string& filename);
+String complete_file_suffix(const String& filename);
 
 /// Gets user's documents path
 std::filesystem::path documents_path();
@@ -24,6 +26,6 @@ std::filesystem::path expand_path(const std::filesystem::path& path);
 bool move_file_safely(const std::filesystem::path& from, const std::filesystem::path& to);
 
 /// Converts path to utf8 string
-std::string path_to_string(const std::filesystem::path& path);
+String path_to_string(const std::filesystem::path& path);
 
 } // namespace nw

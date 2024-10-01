@@ -10,7 +10,7 @@
 
 namespace nw::model {
 
-const std::unordered_map<std::string_view, std::pair<uint32_t, uint32_t>> ControllerType::map = {
+const std::unordered_map<StringView, std::pair<uint32_t, uint32_t>> ControllerType::map = {
     // Common
     {"position", {ControllerType::Position, NodeFlags::header}},
     {"orientation", {ControllerType::Orientation, NodeFlags::header}},
@@ -72,7 +72,7 @@ const std::unordered_map<std::string_view, std::pair<uint32_t, uint32_t>> Contro
     {"alpha", {ControllerType::Alpha, NodeFlags::mesh | NodeFlags::emitter}},
 };
 
-std::pair<uint32_t, uint32_t> ControllerType::lookup(std::string_view cont)
+std::pair<uint32_t, uint32_t> ControllerType::lookup(StringView cont)
 {
     // Common
     if (string::icmp(cont, "position")) {
@@ -199,13 +199,13 @@ std::pair<uint32_t, uint32_t> ControllerType::lookup(std::string_view cont)
 
 // -- Nodes -------------------------------------------------------------------
 
-Node::Node(std::string name_, uint32_t type_)
+Node::Node(String name_, uint32_t type_)
     : name{name_}
     , type{type_}
 {
 }
 
-void Node::add_controller_data(std::string_view name_, uint32_t type_, std::vector<float> times_,
+void Node::add_controller_data(StringView name_, uint32_t type_, std::vector<float> times_,
     std::vector<float> data_, int rows_, int columns_)
 {
     ControllerKey k{
@@ -256,53 +256,53 @@ ControllerValue Node::get_controller(uint32_t type_, bool key) const
     return {nullptr, time, data};
 }
 
-AABBNode::AABBNode(std::string name_)
+AABBNode::AABBNode(String name_)
     : TrimeshNode(std::move(name_), NodeType::aabb)
 {
 }
 
-AnimeshNode::AnimeshNode(std::string name_)
+AnimeshNode::AnimeshNode(String name_)
     : TrimeshNode(std::move(name_), NodeType::animmesh)
 {
 }
 
-CameraNode::CameraNode(std::string name_)
+CameraNode::CameraNode(String name_)
     : Node(std::move(name_), NodeType::camera)
 {
 }
 
-DanglymeshNode::DanglymeshNode(std::string name_)
+DanglymeshNode::DanglymeshNode(String name_)
     : TrimeshNode(std::move(name_), NodeType::danglymesh)
 {
 }
 
-DummyNode::DummyNode(std::string name_)
+DummyNode::DummyNode(String name_)
     : Node(std::move(name_), NodeType::dummy)
 {
 }
 
-EmitterNode::EmitterNode(std::string name_)
+EmitterNode::EmitterNode(String name_)
     : Node(std::move(name_), NodeType::emitter)
 {
 }
 
-LightNode::LightNode(std::string name_)
+LightNode::LightNode(String name_)
     : Node(std::move(name_), NodeType::light)
 {
 }
 
-PatchNode::PatchNode(std::string name_)
+PatchNode::PatchNode(String name_)
     : Node(std::move(name_), NodeType::patch)
 {
 }
 
-ReferenceNode::ReferenceNode(std::string name_)
+ReferenceNode::ReferenceNode(String name_)
     : Node(std::move(name_), NodeType::reference)
     , reattachable{false}
 {
 }
 
-SkinNode::SkinNode(std::string name_)
+SkinNode::SkinNode(String name_)
     : TrimeshNode(std::move(name_), NodeType::skin)
 {
     for (size_t i = 0; i < 64; ++i) {
@@ -310,7 +310,7 @@ SkinNode::SkinNode(std::string name_)
     }
 }
 
-TrimeshNode::TrimeshNode(std::string name_, uint32_t type_)
+TrimeshNode::TrimeshNode(String name_, uint32_t type_)
     : Node(std::move(name_), type_)
     , diffuse{0.8, 0.8, 0.8}
 {
@@ -349,7 +349,7 @@ Model::Model()
 {
 }
 
-Animation* Model::find_animation(std::string_view name)
+Animation* Model::find_animation(StringView name)
 {
     for (auto& node : animations) {
         if (string::icmp(node->name, name)) {
@@ -359,12 +359,12 @@ Animation* Model::find_animation(std::string_view name)
     return nullptr;
 }
 
-const Animation* Model::find_animation(std::string_view name) const
+const Animation* Model::find_animation(StringView name) const
 {
     return const_cast<Model*>(this)->find_animation(name);
 }
 
-Animation::Animation(std::string name_)
+Animation::Animation(String name_)
     : Geometry(GeometryType::animation)
 {
     name = name_;
@@ -405,34 +405,34 @@ Mdl::Mdl(ResourceData data)
     }
 }
 
-std::unique_ptr<Node> Mdl::make_node(uint32_t type, std::string_view name)
+std::unique_ptr<Node> Mdl::make_node(uint32_t type, StringView name)
 {
     switch (type) {
     default:
         LOG_F(ERROR, "Invalid node type: {}, name: {}", type, name);
         return {};
     case NodeType::dummy:
-        return std::make_unique<DummyNode>(std::string(name));
+        return std::make_unique<DummyNode>(String(name));
     case NodeType::patch:
-        return std::make_unique<PatchNode>(std::string(name));
+        return std::make_unique<PatchNode>(String(name));
     case NodeType::reference:
-        return std::make_unique<ReferenceNode>(std::string(name));
+        return std::make_unique<ReferenceNode>(String(name));
     case NodeType::trimesh:
-        return std::make_unique<TrimeshNode>(std::string(name));
+        return std::make_unique<TrimeshNode>(String(name));
     case NodeType::danglymesh:
-        return std::make_unique<DanglymeshNode>(std::string(name));
+        return std::make_unique<DanglymeshNode>(String(name));
     case NodeType::skin:
-        return std::make_unique<SkinNode>(std::string(name));
+        return std::make_unique<SkinNode>(String(name));
     case NodeType::animmesh:
-        return std::make_unique<AnimeshNode>(std::string(name));
+        return std::make_unique<AnimeshNode>(String(name));
     case NodeType::emitter:
-        return std::make_unique<EmitterNode>(std::string(name));
+        return std::make_unique<EmitterNode>(String(name));
     case NodeType::light:
-        return std::make_unique<LightNode>(std::string(name));
+        return std::make_unique<LightNode>(String(name));
     case NodeType::aabb:
-        return std::make_unique<AABBNode>(std::string(name));
+        return std::make_unique<AABBNode>(String(name));
     case NodeType::camera:
-        return std::make_unique<CameraNode>(std::string(name));
+        return std::make_unique<CameraNode>(String(name));
     }
 }
 

@@ -117,11 +117,11 @@ struct ResourceType {
     };
 
     /// Converts extension to ResourceType::type
-    static type from_extension(std::string_view ext)
+    static type from_extension(StringView ext)
     {
         if (ext.size() < 3) return invalid;
         if (ext[0] == '.') {
-            ext = std::string_view(ext.data() + 1, ext.size() - 1);
+            ext = StringView(ext.data() + 1, ext.size() - 1);
         }
 
         if (string::icmp(ext, "bmp")) return bmp;
@@ -226,10 +226,10 @@ struct ResourceType {
     /**
      * @brief Convert ResourceType::type to extension
      * @note The only compilers and standard libraries that are targeted have small string optimization,
-     *       so there is no great overhead to just returning a ``std::string``
+     *       so there is no great overhead to just returning a ``String``
      * @return extension or empty string on failure
      */
-    static std::string to_string(ResourceType::type value)
+    static String to_string(ResourceType::type value)
     {
         switch (value) {
         default:

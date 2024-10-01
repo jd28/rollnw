@@ -13,9 +13,9 @@ Waypoint::Waypoint()
     set_handle(ObjectHandle{object_invalid, ObjectType::waypoint, 0});
 }
 
-std::string Waypoint::get_name_from_file(const std::filesystem::path& path)
+String Waypoint::get_name_from_file(const std::filesystem::path& path)
 {
-    std::string result;
+    String result;
     LocString l1;
 
     auto rdata = ResourceData::from_file(path);
@@ -45,7 +45,7 @@ bool Waypoint::deserialize(Waypoint* obj, const nlohmann::json& archive, Seriali
         throw std::runtime_error("unable to serialize null object");
     }
 
-    if (archive.at("$type").get<std::string>() != "UTW") {
+    if (archive.at("$type").get<String>() != "UTW") {
         LOG_F(ERROR, "waypoint: invalid json type");
         return false;
     }
@@ -113,7 +113,7 @@ bool serialize(const Waypoint* obj, GffBuilderStruct& archive,
 
     archive.add_field("TemplateResRef", obj->common.resref)
         .add_field("LocalizedName", obj->common.name)
-        .add_field("Tag", std::string(obj->common.tag ? obj->common.tag.view() : ""));
+        .add_field("Tag", String(obj->common.tag ? obj->common.tag.view() : ""));
     if (profile == SerializationProfile::blueprint) {
         archive.add_field("Comment", obj->common.comment);
         archive.add_field("PaletteID", obj->common.palette_id);

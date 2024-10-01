@@ -28,7 +28,7 @@ struct AstPrinter : BaseVisitor {
     virtual void visit(FunctionDecl* decl) override
     {
         ss << '\n'
-           << std::string(size_t(depth * 2), ' ') << "(decl " << decl->identifier_.loc.view() << " : ";
+           << String(size_t(depth * 2), ' ') << "(decl " << decl->identifier_.loc.view() << " : ";
 
         if (decl->type.type_qualifier.loc.view().size()) {
             ss << decl->type.type_qualifier.loc.view() << " ";
@@ -49,7 +49,7 @@ struct AstPrinter : BaseVisitor {
     virtual void visit(FunctionDefinition* decl) override
     {
         ss << '\n'
-           << std::string(size_t(depth * 2), ' ') << "(fun ";
+           << String(size_t(depth * 2), ' ') << "(fun ";
 
         ++depth;
         decl->decl_inline->accept(this);
@@ -63,7 +63,7 @@ struct AstPrinter : BaseVisitor {
     virtual void visit(StructDecl* decl) override
     {
         ss << '\n'
-           << std::string(size_t(depth * 2), ' ') << "(struct " << decl->type.struct_id.loc.view();
+           << String(size_t(depth * 2), ' ') << "(struct " << decl->type.struct_id.loc.view();
         ++depth;
         for (const auto& d : decl->decls) {
             d->accept(this);
@@ -75,7 +75,7 @@ struct AstPrinter : BaseVisitor {
     virtual void visit(VarDecl* decl) override
     {
         ss << '\n'
-           << std::string(size_t(depth * 2), ' ') << "(decl " << decl->identifier_.loc.view() << " : ";
+           << String(size_t(depth * 2), ' ') << "(decl " << decl->identifier_.loc.view() << " : ";
         if (decl->type.type_qualifier.loc.view().size()) {
             ss << decl->type.type_qualifier.loc.view() << " ";
         }
@@ -98,7 +98,7 @@ struct AstPrinter : BaseVisitor {
     virtual void visit(AssignExpression* expr) override
     {
         ss << '\n'
-           << std::string(size_t(depth * 2), ' ') << "(assign " << expr->op.loc.view();
+           << String(size_t(depth * 2), ' ') << "(assign " << expr->op.loc.view();
         ++depth;
         expr->lhs->accept(this);
         expr->rhs->accept(this);
@@ -109,7 +109,7 @@ struct AstPrinter : BaseVisitor {
     virtual void visit(BinaryExpression* expr) override
     {
         ss << '\n'
-           << std::string(size_t(depth * 2), ' ') << "(binary " << expr->op.loc.view();
+           << String(size_t(depth * 2), ' ') << "(binary " << expr->op.loc.view();
         ++depth;
         expr->lhs->accept(this);
         expr->rhs->accept(this);
@@ -120,13 +120,13 @@ struct AstPrinter : BaseVisitor {
     virtual void visit(CallExpression* expr) override
     {
         ss << '\n'
-           << std::string(size_t(depth * 2), ' ') << "(call ";
+           << String(size_t(depth * 2), ' ') << "(call ";
         ++depth;
         expr->expr->accept(this);
 
         if (expr->args.size()) {
             ss << '\n'
-               << std::string(size_t(depth * 2), ' ')
+               << String(size_t(depth * 2), ' ')
                << "(params";
             ++depth;
             for (const auto& arg : expr->args) {
@@ -141,7 +141,7 @@ struct AstPrinter : BaseVisitor {
     virtual void visit(ComparisonExpression* expr) override
     {
         ss << '\n'
-           << std::string(size_t(depth * 2), ' ') << "(binary " << expr->op.loc.view();
+           << String(size_t(depth * 2), ' ') << "(binary " << expr->op.loc.view();
         ++depth;
         expr->lhs->accept(this);
         expr->rhs->accept(this);
@@ -152,19 +152,19 @@ struct AstPrinter : BaseVisitor {
     virtual void visit(ConditionalExpression* expr) override
     {
         ss << '\n'
-           << std::string(size_t(depth * 2), ' ') << "(cond";
+           << String(size_t(depth * 2), ' ') << "(cond";
         ++depth;
         expr->test->accept(this);
 
         ss << '\n'
-           << std::string(size_t(depth * 2), ' ') << "(then";
+           << String(size_t(depth * 2), ' ') << "(then";
         ++depth;
         expr->true_branch->accept(this);
         --depth;
         ss << ")";
 
         ss << '\n'
-           << std::string(size_t(depth * 2), ' ') << "(else";
+           << String(size_t(depth * 2), ' ') << "(else";
         ++depth;
         expr->false_branch->accept(this);
         --depth;
@@ -176,7 +176,7 @@ struct AstPrinter : BaseVisitor {
     virtual void visit(DotExpression* expr) override
     {
         ss << '\n'
-           << std::string(size_t(depth * 2), ' ') << "(.";
+           << String(size_t(depth * 2), ' ') << "(.";
 
         ++depth;
         expr->lhs->accept(this);
@@ -188,7 +188,7 @@ struct AstPrinter : BaseVisitor {
     virtual void visit(EmptyExpression* expr) override
     {
         ss << '\n'
-           << std::string(size_t(depth * 2), ' ') << "<empty expr>";
+           << String(size_t(depth * 2), ' ') << "<empty expr>";
     }
 
     virtual void visit(GroupingExpression* expr) override
@@ -199,20 +199,20 @@ struct AstPrinter : BaseVisitor {
     virtual void visit(LiteralExpression* expr) override
     {
         ss << '\n'
-           << std::string(size_t(depth * 2), ' ') << "(literal " << expr->literal.loc.view() << ")";
+           << String(size_t(depth * 2), ' ') << "(literal " << expr->literal.loc.view() << ")";
     }
 
     virtual void visit(LiteralVectorExpression* expr) override
     {
         ss << '\n'
-           << std::string(size_t(depth * 2), ' ')
+           << String(size_t(depth * 2), ' ')
            << "(vector " << expr->x.loc.view() << ", " << expr->y.loc.view() << ", " << expr->z.loc.view() << ")";
     }
 
     virtual void visit(LogicalExpression* expr) override
     {
         ss << '\n'
-           << std::string(size_t(depth * 2), ' ') << "(logical " << expr->op.loc.view() << " ";
+           << String(size_t(depth * 2), ' ') << "(logical " << expr->op.loc.view() << " ";
         ++depth;
         expr->lhs->accept(this);
         ss << " ";
@@ -224,7 +224,7 @@ struct AstPrinter : BaseVisitor {
     virtual void visit(PostfixExpression* expr) override
     {
         ss << '\n'
-           << std::string(size_t(depth * 2), ' ') << "(postfix " << expr->op.loc.view();
+           << String(size_t(depth * 2), ' ') << "(postfix " << expr->op.loc.view();
         ++depth;
         if (expr->lhs) expr->lhs->accept(this);
         --depth;
@@ -234,7 +234,7 @@ struct AstPrinter : BaseVisitor {
     virtual void visit(UnaryExpression* expr) override
     {
         ss << '\n'
-           << std::string(size_t(depth * 2), ' ') << "(unary " << expr->op.loc.view();
+           << String(size_t(depth * 2), ' ') << "(unary " << expr->op.loc.view();
         ++depth;
         expr->rhs->accept(this);
         --depth;
@@ -244,7 +244,7 @@ struct AstPrinter : BaseVisitor {
     virtual void visit(VariableExpression* expr) override
     {
         ss << '\n'
-           << std::string(size_t(depth * 2), ' ')
+           << String(size_t(depth * 2), ' ')
            << "(var "
            << expr->var.loc.view()
            << ")";
@@ -254,7 +254,7 @@ struct AstPrinter : BaseVisitor {
     virtual void visit(BlockStatement* stmt) override
     {
         ss << '\n'
-           << std::string(size_t(depth * 2), ' ')
+           << String(size_t(depth * 2), ' ')
            << "(block";
 
         ++depth;
@@ -268,7 +268,7 @@ struct AstPrinter : BaseVisitor {
     virtual void visit(DeclList* stmt) override
     {
         ss << '\n'
-           << std::string(size_t(depth * 2), ' ')
+           << String(size_t(depth * 2), ' ')
            << "(decls";
         ++depth;
         for (const auto& decl : stmt->decls) {
@@ -281,7 +281,7 @@ struct AstPrinter : BaseVisitor {
     virtual void visit(DoStatement* stmt) override
     {
         ss << '\n'
-           << std::string(size_t(depth * 2), ' ')
+           << String(size_t(depth * 2), ' ')
            << "(do";
         ++depth;
         stmt->block->accept(this);
@@ -289,7 +289,7 @@ struct AstPrinter : BaseVisitor {
         ++depth;
         if (stmt->expr) {
             ss << '\n'
-               << std::string(size_t(depth * 2), ' ')
+               << String(size_t(depth * 2), ' ')
                << "(check";
             ++depth;
             stmt->expr->accept(this);
@@ -303,7 +303,7 @@ struct AstPrinter : BaseVisitor {
     virtual void visit(EmptyStatement*) override
     {
         ss << '\n'
-           << std::string(size_t(depth * 2), ' ') << "(EmptySatement)";
+           << String(size_t(depth * 2), ' ') << "(EmptySatement)";
     }
 
     virtual void visit(ExprStatement* stmt) override
@@ -314,12 +314,12 @@ struct AstPrinter : BaseVisitor {
     virtual void visit(IfStatement* stmt) override
     {
         ss << '\n'
-           << std::string(size_t(depth * 2), ' ') << "(if";
+           << String(size_t(depth * 2), ' ') << "(if";
         ++depth;
         stmt->expr->accept(this);
 
         ss << '\n'
-           << std::string(size_t(depth * 2), ' ') << "(then";
+           << String(size_t(depth * 2), ' ') << "(then";
         ++depth;
         stmt->if_branch->accept(this);
         --depth;
@@ -327,7 +327,7 @@ struct AstPrinter : BaseVisitor {
 
         if (stmt->else_branch) {
             ss << '\n'
-               << std::string(size_t(depth * 2), ' ')
+               << String(size_t(depth * 2), ' ')
                << "(else";
             ++depth;
             stmt->else_branch->accept(this);
@@ -341,12 +341,12 @@ struct AstPrinter : BaseVisitor {
     virtual void visit(ForStatement* stmt) override
     {
         ss << '\n'
-           << std::string(size_t(depth * 2), ' ')
+           << String(size_t(depth * 2), ' ')
            << "(for";
         ++depth;
         if (stmt->init) {
             ss << '\n'
-               << std::string(size_t(depth * 2), ' ') << "(init";
+               << String(size_t(depth * 2), ' ') << "(init";
             ++depth;
             stmt->init->accept(this);
             --depth;
@@ -354,7 +354,7 @@ struct AstPrinter : BaseVisitor {
         }
         if (stmt->check) {
             ss << '\n'
-               << std::string(size_t(depth * 2), ' ') << "(check";
+               << String(size_t(depth * 2), ' ') << "(check";
             ++depth;
             stmt->check->accept(this);
             --depth;
@@ -362,7 +362,7 @@ struct AstPrinter : BaseVisitor {
         }
         if (stmt->inc) {
             ss << '\n'
-               << std::string(size_t(depth * 2), ' ')
+               << String(size_t(depth * 2), ' ')
                << "(increment";
             ++depth;
             stmt->inc->accept(this);
@@ -377,7 +377,7 @@ struct AstPrinter : BaseVisitor {
     virtual void visit(JumpStatement* stmt) override
     {
         ss << '\n'
-           << std::string(size_t(depth * 2), ' ') << "(" << stmt->op.loc.view();
+           << String(size_t(depth * 2), ' ') << "(" << stmt->op.loc.view();
         ++depth;
         if (stmt->expr) {
             stmt->expr->accept(this);
@@ -389,7 +389,7 @@ struct AstPrinter : BaseVisitor {
     virtual void visit(LabelStatement* stmt) override
     {
         ss << '\n'
-           << std::string(size_t(depth * 2), ' ') << "(" << stmt->type.loc.view();
+           << String(size_t(depth * 2), ' ') << "(" << stmt->type.loc.view();
         ++depth;
         if (stmt->expr) {
             stmt->expr->accept(this);
@@ -401,10 +401,10 @@ struct AstPrinter : BaseVisitor {
     virtual void visit(SwitchStatement* stmt) override
     {
         ss << '\n'
-           << std::string(size_t(depth * 2), ' ') << "(switch";
+           << String(size_t(depth * 2), ' ') << "(switch";
         ++depth;
         ss << '\n'
-           << std::string(size_t(depth * 2), ' ') << "(target";
+           << String(size_t(depth * 2), ' ') << "(target";
         ++depth;
         stmt->target->accept(this);
         --depth;
@@ -418,11 +418,11 @@ struct AstPrinter : BaseVisitor {
     virtual void visit(WhileStatement* stmt) override
     {
         ss << '\n'
-           << std::string(size_t(depth * 2), ' ') << "(while";
+           << String(size_t(depth * 2), ' ') << "(while";
         ++depth;
         if (stmt->check) {
             ss << '\n'
-               << std::string(size_t(depth * 2), ' ') << "(check";
+               << String(size_t(depth * 2), ' ') << "(check";
             ++depth;
             stmt->check->accept(this);
             --depth;

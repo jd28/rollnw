@@ -67,13 +67,13 @@ struct Module : public ObjectBase {
     Resref entry_area;
     glm::vec3 entry_orientation;
     glm::vec3 entry_position;
-    std::vector<std::string> haks;
+    std::vector<String> haks;
     ByteArray id;
-    std::string min_game_version;
+    String min_game_version;
     LocString name;
     Resref start_movie;
-    std::string tag;
-    std::string tlk;
+    String tag;
+    String tlk;
     uuids::uuid uuid;
 
     int32_t creator = 0;

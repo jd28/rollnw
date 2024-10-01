@@ -84,7 +84,7 @@ int StaticDirectory::extract(const std::regex& pattern, const fs::path& output) 
 
     int count = 0;
 
-    std::string fname;
+    String fname;
     for (const auto& [res, path] : resource_to_path_) {
         fname = res.filename();
         if (std::regex_match(fname, pattern)) {
@@ -125,7 +125,7 @@ void StaticDirectory::visit(std::function<void(const Resource&)> callback,
     }
 }
 
-std::string StaticDirectory::get_canonical_path(nw::Resource res) const
+String StaticDirectory::get_canonical_path(nw::Resource res) const
 {
     auto it = resource_to_path_.find(res);
     if (it != std::end(resource_to_path_)) {

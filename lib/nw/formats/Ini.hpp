@@ -28,26 +28,26 @@ struct Ini {
     /**
      * @brief Gets a value
      *
-     * @tparam T `int32_t`, `float`, or `std::string`
+     * @tparam T `int32_t`, `float`, or `String`
      * @param key
      * @return std::optional<T>
      */
     template <typename T>
-    std::optional<T> get(std::string key) const;
+    std::optional<T> get(String key) const;
 
     /// Gets string value
-    bool get_to(std::string key, std::string& out) const;
+    bool get_to(String key, String& out) const;
 
     /// Gets numeric value
     template <typename T>
-    bool get_to(std::string key, T& out) const;
+    bool get_to(String key, T& out) const;
 
     /// Deterimes if Ini file was successfully parsed
     bool valid() const noexcept;
 
 private:
     ResourceData data_;
-    absl::flat_hash_map<std::string, std::string> map_;
+    absl::flat_hash_map<String, String> map_;
     bool loaded_ = false;
 
     static int parse_ini(void* user, const char* section, const char* name, const char* value);
@@ -55,9 +55,9 @@ private:
 };
 
 template <typename T>
-std::optional<T> Ini::get(std::string key) const
+std::optional<T> Ini::get(String key) const
 {
-    std::string val;
+    String val;
     if (!get_to(std::move(key), val))
         return {};
 
@@ -69,7 +69,7 @@ std::optional<T> Ini::get(std::string key) const
 }
 
 template <typename T>
-bool Ini::get_to(std::string key, T& out) const
+bool Ini::get_to(String key, T& out) const
 {
     static_assert(std::is_arithmetic_v<T>, "[ini] only numeric types are allowed");
     string::tolower(&key);

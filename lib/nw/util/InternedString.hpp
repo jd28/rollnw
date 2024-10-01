@@ -1,5 +1,7 @@
 #pragma once
 
+#include "../config.hpp"
+
 #include <absl/hash/hash.h>
 #include <absl/strings/string_view.h>
 
@@ -9,7 +11,7 @@ namespace nw {
 
 struct InternedString {
     InternedString() = default;
-    explicit InternedString(const std::string* str)
+    explicit InternedString(const String* str)
         : string_{str}
     {
     }
@@ -17,14 +19,14 @@ struct InternedString {
     bool operator==(const InternedString& rhs) const noexcept = default;
     auto operator<=>(const InternedString& rhs) const noexcept = default;
 
-    std::string_view view() const noexcept { return string_ ? *string_ : std::string_view{}; }
+    StringView view() const noexcept { return string_ ? *string_ : StringView{}; }
     operator bool() const noexcept { return !!string_; }
 
 private:
     template <typename H>
     friend H AbslHashValue(H h, const InternedString& res);
 
-    const std::string* string_ = nullptr;
+    const String* string_ = nullptr;
 };
 
 // Note: The below is only to support heterogenous lookup.  In an ideal case,
@@ -40,25 +42,25 @@ H AbslHashValue(H h, const InternedString& str)
 struct InternedStringHash {
     using is_transparent = void;
 
-    size_t operator()(std::string_view v) const
+    size_t operator()(StringView v) const
     {
-        return absl::Hash<std::string_view>{}(v);
+        return absl::Hash<StringView>{}(v);
     }
 
     size_t operator()(const InternedString& v) const
     {
-        return absl::Hash<std::string_view>{}(v.view());
+        return absl::Hash<StringView>{}(v.view());
     }
 };
 
 struct InternedStringEq {
     using is_transparent = void;
 
-    bool operator()(const InternedString& a, std::string_view b) const
+    bool operator()(const InternedString& a, StringView b) const
     {
         return a.view() == b;
     }
-    bool operator()(std::string_view b, const InternedString& a) const
+    bool operator()(StringView b, InternedString& a) const
     {
         return a.view() == b;
     }
@@ -66,7 +68,7 @@ struct InternedStringEq {
     {
         return a == b;
     }
-    bool operator()(std::string_view b, std::string_view a) const
+    bool operator()(StringView b, StringView a)
     {
         return a == b;
     }

@@ -12,7 +12,7 @@ DEFINE_RULE_TYPE(TrapType);
 
 TrapInfo::TrapInfo(const TwoDARowView& tda)
 {
-    std::string temp;
+    String temp;
 
     if (tda.get_to("TrapScript", temp)) {
         script = nw::Resref{temp};

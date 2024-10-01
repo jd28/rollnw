@@ -33,7 +33,7 @@ void TilesetRegistry::initialize(ServiceInitTime time)
     LOG_F(INFO, "kernel: tileset registry initialized ({}ms)", metrics_.initialization_time);
 }
 
-Tileset* TilesetRegistry::load(std::string_view resref)
+Tileset* TilesetRegistry::load(StringView resref)
 {
     auto it = tileset_map_.find(resref);
     if (it != std::end(tileset_map_)) {
@@ -79,7 +79,7 @@ Tileset* TilesetRegistry::load(std::string_view resref)
     return &tileset;
 }
 
-Tileset* TilesetRegistry::get(std::string_view resref)
+Tileset* TilesetRegistry::get(StringView resref)
 {
     auto it = tileset_map_.find(resref);
     if (it == std::end(tileset_map_)) {

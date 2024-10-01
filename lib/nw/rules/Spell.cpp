@@ -12,7 +12,7 @@ DEFINE_RULE_TYPE(Spell);
 
 SpellSchoolInfo::SpellSchoolInfo(const TwoDARowView& tda)
 {
-    std::string temp_string;
+    String temp_string;
     int temp_int;
     if (tda.get_to("Label", temp_string)) {
         tda.get_to("Letter", letter);
@@ -26,7 +26,7 @@ SpellSchoolInfo::SpellSchoolInfo(const TwoDARowView& tda)
 
 SpellInfo::SpellInfo(const TwoDARowView& tda)
 {
-    std::string temp_string;
+    String temp_string;
     int temp_int;
     const auto& spellschools = nw::kernel::rules().spellschools;
 

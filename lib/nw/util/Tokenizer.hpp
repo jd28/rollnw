@@ -1,5 +1,7 @@
 #pragma once
 
+#include "../config.hpp"
+
 #include <cstddef>
 #include <stack>
 #include <string>
@@ -10,21 +12,21 @@ namespace nw {
 
 struct Tokenizer {
     Tokenizer();
-    Tokenizer(std::string_view buffer, std::string_view comment, bool skip_newline = true);
+    Tokenizer(StringView buffer, StringView comment, bool skip_newline = true);
 
-    std::string_view current() const;
-    bool is_newline(std::string_view tk) const;
+    StringView current() const;
+    bool is_newline(StringView tk) const;
     size_t line() const;
-    std::string_view next();
-    void put_back(std::string_view token);
-    void set_buffer(std::string_view buffer);
+    StringView next();
+    void put_back(StringView token);
+    void set_buffer(StringView buffer);
 
 private:
-    std::string_view current_;
-    std::stack<std::string_view> stack_;
+    StringView current_;
+    std::stack<StringView> stack_;
     size_t pos_ = 0, start_ = 0, end_ = 0, line_count_ = 1;
-    std::string_view buffer_;
-    std::string_view comment_;
+    StringView buffer_;
+    StringView comment_;
     bool skip_newline_ = true;
 };
 

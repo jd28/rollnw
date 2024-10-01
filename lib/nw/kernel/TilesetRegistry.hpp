@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../config.hpp"
 #include "../formats/Tileset.hpp"
 #include "../log.hpp"
 #include "Kernel.hpp"
@@ -21,10 +22,10 @@ struct TilesetRegistryMetrics {
 struct TilesetRegistry : public Service {
     void clear() override;
     void initialize(ServiceInitTime time) override;
-    Tileset* load(std::string_view resref);
-    Tileset* get(std::string_view resref);
+    Tileset* load(StringView resref);
+    Tileset* get(StringView resref);
 
-    absl::node_hash_map<std::string, Tileset> tileset_map_;
+    absl::node_hash_map<String, Tileset> tileset_map_;
     TilesetRegistryMetrics metrics_;
 };
 

@@ -51,18 +51,18 @@ struct DialogPtr {
     DialogNode* node = nullptr;
 
     Resref script_appears;
-    std::vector<std::pair<std::string, std::string>> condition_params;
+    std::vector<std::pair<String, String>> condition_params;
 
     bool is_start = false;
     bool is_link = false;
-    std::string comment;
+    String comment;
 
     /// Adds Dialog Pointer, if `is_link` is false no new pointer or node is created.
     /// if `is_link` is true a new pointer will created with the node copied from input pointer.
     DialogPtr* add_ptr(DialogPtr* ptr, bool is_link = false);
 
     /// Adds Dialog Pointer and Node with string value set
-    DialogPtr* add_string(std::string value, nw::LanguageID lang = nw::LanguageID::english, bool feminine = false);
+    DialogPtr* add_string(String value, nw::LanguageID lang = nw::LanguageID::english, bool feminine = false);
 
     /// Adds empty Dialog Pointer and Node
     DialogPtr* add();
@@ -76,10 +76,10 @@ struct DialogPtr {
     void get_all_subnodes(std::vector<DialogNode*>& subnodes);
 
     /// Gets a condition parameter if it exists
-    std::optional<std::string> get_condition_param(const std::string& key);
+    std::optional<String> get_condition_param(const String& key);
 
     /// Removes condition parameter by key
-    void remove_condition_param(const std::string& key);
+    void remove_condition_param(const String& key);
 
     /// Removes condition parameter by index
     void remove_condition_param(size_t index);
@@ -88,7 +88,7 @@ struct DialogPtr {
     void remove_ptr(DialogPtr* ptr);
 
     /// Sets condition parameter, if key does not exist key and value are appended
-    void set_condition_param(const std::string& key, const std::string& value);
+    void set_condition_param(const String& key, const String& value);
 };
 
 struct DialogNode {
@@ -98,9 +98,9 @@ public:
     Dialog* parent = nullptr;
     DialogNodeType type;
 
-    std::string comment;
-    std::string quest;
-    std::string speaker;
+    String comment;
+    String quest;
+    String speaker;
     uint32_t quest_entry = std::numeric_limits<uint32_t>::max();
     Resref script_action;
     Resref sound;
@@ -110,22 +110,22 @@ public:
     uint32_t delay = std::numeric_limits<uint32_t>::max();
 
     std::vector<DialogPtr*> pointers;
-    std::vector<std::pair<std::string, std::string>> action_params;
+    std::vector<std::pair<String, String>> action_params;
 
     /// Copies a Node
     DialogNode* copy() const;
 
     /// Gets action parameter if it exists
-    std::optional<std::string> get_action_param(const std::string& key);
+    std::optional<String> get_action_param(const String& key);
 
     /// Removes action parameter by key
-    void remove_action_param(const std::string& key);
+    void remove_action_param(const String& key);
 
     /// Removes action parameter by index
     void remove_action_param(size_t index);
 
     /// Sets action parameter, if key does not exist key and value are appended
-    void set_action_param(const std::string& key, const std::string& value);
+    void set_action_param(const String& key, const String& value);
 };
 
 struct Dialog {
@@ -151,7 +151,7 @@ public:
     DialogPtr* add_ptr(DialogPtr* ptr, bool is_link = false);
 
     /// Adds Dialog Pointer and Node with string value set
-    DialogPtr* add_string(std::string value, nw::LanguageID lang = nw::LanguageID::english, bool feminine = false);
+    DialogPtr* add_string(String value, nw::LanguageID lang = nw::LanguageID::english, bool feminine = false);
 
     /// Creates a new Dialog Node.
     DialogNode* create_node(DialogNodeType type);

@@ -15,10 +15,10 @@ struct JournalEntry {
 };
 
 struct JournalCategory {
-    std::string comment;
+    String comment;
     std::vector<JournalEntry> entries;
     LocString name;
-    std::string tag;
+    String tag;
     uint32_t priority;
     uint32_t xp;
     uint16_t picture;

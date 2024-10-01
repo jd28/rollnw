@@ -7,7 +7,7 @@
 namespace nw::script {
 
 struct AstLocator : public BaseVisitor {
-    AstLocator(Nss* parent, std::string symbol, size_t line, size_t character)
+    AstLocator(Nss* parent, String symbol, size_t line, size_t character)
         : parent_{parent}
         , symbol_{std::move(symbol)}
         , pos_{line, character}
@@ -16,7 +16,7 @@ struct AstLocator : public BaseVisitor {
 
     // Search data
     const Nss* parent_ = nullptr;
-    std::string symbol_;
+    String symbol_;
     SourcePosition pos_;
     bool in_func_decl_ = false;
     bool in_struct_decl_ = false;
@@ -29,7 +29,7 @@ struct AstLocator : public BaseVisitor {
     const CallExpression* call = nullptr; // Keep track if our symbol is in a call expr
     size_t active_param = 0;
 
-    Symbol locate_in_dependencies(const std::string& needle, bool is_type = false)
+    Symbol locate_in_dependencies(const String& needle, bool is_type = false)
     {
         if (!parent_->is_command_script() && parent_->ctx()->command_script_) {
             auto sym = parent_->ctx()->command_script_->locate_export(needle, is_type);
@@ -63,7 +63,7 @@ struct AstLocator : public BaseVisitor {
         if (contains_position(decl->range_, pos_)) {
             if (decl->type.struct_id.type != NssTokenType::INVALID
                 && contains_position(decl->type.struct_id.loc.range, pos_)) {
-                std::string struct_name{decl->type.struct_id.loc.view()};
+                String struct_name{decl->type.struct_id.loc.view()};
                 auto exp = decl->env_.find(struct_name);
                 if (exp && exp->type) {
                     result_ = parent_->declaration_to_symbol(exp->type);
@@ -132,7 +132,7 @@ struct AstLocator : public BaseVisitor {
             found_ = true;
         } else if (decl->type.struct_id.type != NssTokenType::INVALID
             && contains_position(decl->type.struct_id.loc.range, pos_)) {
-            std::string struct_name{decl->type.struct_id.loc.view()};
+            String struct_name{decl->type.struct_id.loc.view()};
             auto exp = decl->env_.find(struct_name);
             if (exp && exp->type) {
                 result_ = parent_->declaration_to_symbol(exp->type);
@@ -212,7 +212,7 @@ struct AstLocator : public BaseVisitor {
         if (ve
             && ve->var.loc.view() == symbol_
             && contains_position(ve->var.loc.range, pos_)) {
-            auto struct_name = std::string(parent_->ctx()->type_name(expr->lhs->type_id_));
+            auto struct_name = String(parent_->ctx()->type_name(expr->lhs->type_id_));
             const StructDecl* sd = nullptr;
             const Nss* provider = nullptr;
 
@@ -241,7 +241,7 @@ struct AstLocator : public BaseVisitor {
         }
     }
 
-    virtual void visit(EmptyExpression* expr)
+    virtual void visit(EmptyExpression*)
     {
         // No Op
     }
@@ -251,12 +251,12 @@ struct AstLocator : public BaseVisitor {
         if (expr->expr) { expr->expr->accept(this); }
     }
 
-    virtual void visit(LiteralExpression* expr)
+    virtual void visit(LiteralExpression*)
     {
         // No Op
     }
 
-    virtual void visit(LiteralVectorExpression* expr)
+    virtual void visit(LiteralVectorExpression*)
     {
         // No Op
     }
@@ -320,7 +320,7 @@ struct AstLocator : public BaseVisitor {
         if (stmt->block) { stmt->block->accept(this); }
     }
 
-    virtual void visit(EmptyStatement* stmt)
+    virtual void visit(EmptyStatement*)
     {
         // No Op
     }

@@ -51,7 +51,7 @@ struct Tlk {
     Tlk(Tlk&&) = default;
 
     /// Get a localized string
-    std::string get(uint32_t strref) const;
+    String get(uint32_t strref) const;
 
     /// Get language ID
     LanguageID language_id() const noexcept;
@@ -66,7 +66,7 @@ struct Tlk {
     void save_as(const std::filesystem::path& path);
 
     /// Set a localized string
-    void set(uint32_t strref, std::string_view string);
+    void set(uint32_t strref, StringView string);
 
     /**
      * @brief Get the number of tlk entries
@@ -78,7 +78,7 @@ struct Tlk {
     bool valid() const noexcept;
 
     /// Get a localized string
-    std::string operator[](uint32_t strref) const { return get(strref); };
+    String operator[](uint32_t strref) const { return get(strref); };
 
     Tlk& operator=(const Tlk&) = delete;
     Tlk& operator=(Tlk&&) = default;
@@ -88,7 +88,7 @@ private:
     ByteArray bytes_;
     TlkHeader header_;
     TlkElement* elements_ = nullptr;
-    absl::flat_hash_map<uint32_t, std::string> modified_strings_;
+    absl::flat_hash_map<uint32_t, String> modified_strings_;
 
     void load();
     bool loaded_ = false;

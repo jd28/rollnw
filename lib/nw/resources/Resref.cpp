@@ -15,11 +15,11 @@ Resref::Resref()
 }
 
 Resref::Resref(const char* string) noexcept
-    : Resref(std::string_view(string))
+    : Resref(StringView(string))
 {
 }
 
-Resref::Resref(std::string_view string) noexcept
+Resref::Resref(StringView string) noexcept
 {
     data_.fill(0);
 
@@ -47,12 +47,12 @@ Resref::size_type Resref::length() const noexcept
     return i;
 }
 
-std::string Resref::string() const
+String Resref::string() const
 {
-    return std::string(view());
+    return String(view());
 }
 
-std::string_view Resref::view() const noexcept { return std::string_view(data_.data(), length()); }
+StringView Resref::view() const noexcept { return StringView(data_.data(), length()); }
 
 std::ostream& operator<<(std::ostream& out, const Resref& resref)
 {
@@ -63,7 +63,7 @@ std::ostream& operator<<(std::ostream& out, const Resref& resref)
 void from_json(const nlohmann::json& j, Resref& r)
 {
     if (j.is_string()) {
-        r = Resref{j.get<std::string>()};
+        r = Resref{j.get<String>()};
     }
 }
 

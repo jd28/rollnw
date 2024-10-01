@@ -22,8 +22,8 @@ enum struct DiagnosticSeverity {
 struct Diagnostic {
     DiagnosticType type;
     DiagnosticSeverity severity;
-    std::string script;
-    std::string message;
+    String script;
+    String message;
     SourceRange location;
 };
 

@@ -8,7 +8,7 @@ namespace nw::script {
 struct Nss;
 
 struct lexical_error : public std::runtime_error {
-    lexical_error(std::string what_, SourceLocation location_)
+    lexical_error(String what_, SourceLocation location_)
         : std::runtime_error{std::move(what_)}
         , location{location_}
     {
@@ -18,7 +18,7 @@ struct lexical_error : public std::runtime_error {
 };
 
 struct NssLexer {
-    explicit NssLexer(std::string_view buffer, Context* ctx, Nss* parent = nullptr);
+    explicit NssLexer(StringView buffer, Context* ctx, Nss* parent = nullptr);
 
     NssToken next();
     const NssToken& current() const;
@@ -33,7 +33,7 @@ private:
 
     Context* ctx_ = nullptr;
     Nss* parent_ = nullptr;
-    std::string_view buffer_;
+    StringView buffer_;
     size_t pos_ = 0, line_ = 1, last_line_pos_ = 0;
     NssToken current_;
 };

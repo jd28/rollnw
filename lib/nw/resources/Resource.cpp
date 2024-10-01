@@ -23,15 +23,15 @@ Resource::Resource(const Resref& resref_, ResourceType::type type_) noexcept
 {
 }
 
-Resource::Resource(std::string_view resref_, ResourceType::type type_) noexcept
+Resource::Resource(StringView resref_, ResourceType::type type_) noexcept
     : Resource(Resref(resref_), type_)
 {
 }
 
-Resource Resource::from_filename(std::string_view filename)
+Resource Resource::from_filename(StringView filename)
 {
     auto it = filename.find('.');
-    if (it != std::string::npos) {
+    if (it != String::npos) {
         return Resource{filename.substr(0, it), ResourceType::from_extension(filename.substr(it))};
     }
     return {};
@@ -39,8 +39,8 @@ Resource Resource::from_filename(std::string_view filename)
 
 Resource Resource::from_path(const std::filesystem::path& path)
 {
-    std::string ext = path_to_string(path.extension());
-    std::string stem = path_to_string(path.stem());
+    String ext = path_to_string(path.extension());
+    String stem = path_to_string(path.stem());
     return {stem, ResourceType::from_extension(ext)};
 }
 
@@ -49,7 +49,7 @@ bool Resource::valid() const noexcept
     return type != ResourceType::invalid && !resref.empty();
 }
 
-std::string Resource::filename() const
+String Resource::filename() const
 {
     return resref.string() + "." + ResourceType::to_string(type);
 }
@@ -62,7 +62,7 @@ std::ostream& operator<<(std::ostream& out, const Resource& res)
 
 void from_json(const nlohmann::json& j, Resource& r)
 {
-    const auto& str = j.get<std::string>();
+    const auto& str = j.get<String>();
     r = Resource::from_filename(str);
 }
 

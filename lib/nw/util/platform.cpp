@@ -23,9 +23,9 @@ namespace fs = std::filesystem;
 
 namespace nw {
 
-std::string complete_file_suffix(const std::string& filename)
+String complete_file_suffix(const String& filename)
 {
-    return std::string(std::find(filename.begin(), filename.end(), '.'), filename.end());
+    return String(std::find(filename.begin(), filename.end(), '.'), filename.end());
 }
 
 fs::path documents_path()
@@ -117,12 +117,12 @@ bool move_file_safely(const fs::path& from, const fs::path& to)
     return true;
 }
 
-std::string path_to_string(const std::filesystem::path& path)
+String path_to_string(const std::filesystem::path& path)
 {
 #ifdef _MSC_VER
     return nowide::narrow(path.c_str());
 #else
-    return path.string();
+    return String(path.string());
 #endif
 }
 

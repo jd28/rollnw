@@ -160,7 +160,7 @@ ObjectBase* ObjectSystem::get_object_base(ObjectHandle obj) const
     return objects_[idx].as<ObjectBase*>();
 }
 
-ObjectBase* ObjectSystem::get_by_tag(std::string_view tag, int nth) const
+ObjectBase* ObjectSystem::get_by_tag(StringView tag, int nth) const
 {
     auto str = strings().get_interned(tag);
     if (!str) { return nullptr; }
@@ -175,7 +175,7 @@ ObjectBase* ObjectSystem::get_by_tag(std::string_view tag, int nth) const
     return get_object_base(it->second);
 }
 
-nw::Player* ObjectSystem::load_player(std::string_view cdkey, std::string_view resref)
+nw::Player* ObjectSystem::load_player(StringView cdkey, StringView resref)
 {
     auto data = resman().demand_server_vault(cdkey, resref);
     if (data.bytes.size() == 0) { return nullptr; }

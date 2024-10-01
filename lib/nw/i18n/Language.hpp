@@ -34,9 +34,9 @@ struct Language {
 private:
     struct Properties {
         LanguageID id;
-        std::string_view lang_short;
-        std::string_view lang_long;
-        std::string_view encoding;
+        StringView lang_short;
+        StringView lang_long;
+        StringView encoding;
         bool has_feminine;
     };
 
@@ -44,10 +44,10 @@ private:
 
 public:
     /// Gets the encoding for a particular language
-    static std::string_view encoding(LanguageID lang);
+    static StringView encoding(LanguageID lang);
 
     /// Converts string (short or long form) to ID
-    static LanguageID from_string(std::string_view lang);
+    static LanguageID from_string(StringView lang);
 
     /// Determines if language has feminine translations
     static bool has_feminine(LanguageID lang);
@@ -60,7 +60,7 @@ public:
     static uint32_t to_runtime_id(LanguageID lang, bool feminine = false);
 
     /// Converts language to string form
-    static std::string_view to_string(LanguageID lang, bool long_name = false);
+    static StringView to_string(LanguageID lang, bool long_name = false);
 };
 
 } // namespace nw

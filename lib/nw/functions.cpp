@@ -167,9 +167,9 @@ bool item_has_property(const Item* item, ItemPropertyType type, int32_t subtype)
     return false;
 }
 
-std::string itemprop_to_string(const nw::ItemProperty& ip)
+String itemprop_to_string(const nw::ItemProperty& ip)
 {
-    std::string result;
+    String result;
     if (ip.type == std::numeric_limits<uint16_t>::max()) { return result; }
     auto type = nw::ItemPropertyType::make(ip.type);
     auto def = nw::kernel::effects().ip_definition(type);

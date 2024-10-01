@@ -1,5 +1,7 @@
 #pragma once
 
+#include "../config.hpp"
+
 #include <optional>
 #include <regex>
 #include <string>
@@ -17,39 +19,39 @@ namespace nw::string {
  * @return std::optional<T>
  */
 template <typename T>
-std::optional<T> from(std::string_view str) = delete;
+std::optional<T> from(StringView str) = delete;
 
 /// @cond NEVER
 template <>
-std::optional<bool> from(std::string_view str);
+std::optional<bool> from(StringView str);
 template <>
-std::optional<int16_t> from(std::string_view str);
+std::optional<int16_t> from(StringView str);
 template <>
-std::optional<int32_t> from(std::string_view str);
+std::optional<int32_t> from(StringView str);
 template <>
-std::optional<uint32_t> from(std::string_view str);
+std::optional<uint32_t> from(StringView str);
 template <>
-std::optional<int64_t> from(std::string_view str);
+std::optional<int64_t> from(StringView str);
 #ifdef ROLLNW_OS_MACOS
 template <>
-std::optional<uint64_t> from(std::string_view str);
+std::optional<uint64_t> from(StringView str);
 #endif
 template <>
-std::optional<size_t> from(std::string_view str);
+std::optional<size_t> from(StringView str);
 template <>
-std::optional<float> from(std::string_view str);
+std::optional<float> from(StringView str);
 template <>
-std::optional<double> from(std::string_view str);
+std::optional<double> from(StringView str);
 /// @endcond
 
 /// Trims left in place
-std::string* ltrim_in_place(std::string* str);
+String* ltrim_in_place(String* str);
 
 /// Trims right in place
-std::string* rtrim_in_place(std::string* str);
+String* rtrim_in_place(String* str);
 
 /// Trims string in place
-std::string* trim_in_place(std::string* str);
+String* trim_in_place(String* str);
 
 // Join & Split...
 
@@ -58,9 +60,9 @@ std::string* trim_in_place(std::string* str);
  *
  * @param strings Vector of strings.
  * @param delim Separator.  Default " "
- * @return std::string
+ * @return String
  */
-std::string join(const std::vector<std::string>& strings, const char* delim = " ");
+String join(const std::vector<String>& strings, const char* delim = " ");
 
 /**
  * @brief Splits a string into an vector of strings
@@ -69,21 +71,21 @@ std::string join(const std::vector<std::string>& strings, const char* delim = " 
  * @param delim Delimiter
  * @param skipEmpty Ignore empty strings
  * @param trimmed Trim strings after split
- * @return std::vector<std::string>
+ * @return std::vector<String>
  */
-std::vector<std::string> split(const std::string& str, char delim, bool skipEmpty = true, bool trimmed = true);
+std::vector<String> split(const String& str, char delim, bool skipEmpty = true, bool trimmed = true);
 
 /// Case insenstive comparison
-bool icmp(std::string_view first, std::string_view second);
+bool icmp(StringView first, StringView second);
 
 /// Converts string to lowercase, in place
-void tolower(std::string* str);
+void tolower(String* str);
 
 /// Determines if a string starts with a given prefix
-bool startswith(std::string_view str, std::string_view prefix);
+bool startswith(StringView str, StringView prefix);
 
 /// Determines if a string ends with a given suffix
-bool endswith(std::string_view str, std::string_view suffix);
+bool endswith(StringView str, StringView suffix);
 
 /**
  * @brief Converts a glob pattern to a regex
@@ -92,12 +94,12 @@ bool endswith(std::string_view str, std::string_view suffix);
  * @param icase If true returns a case insentive regex
  * @return std::regex
  */
-std::regex glob_to_regex(std::string_view pattern, bool icase = false);
+std::regex glob_to_regex(StringView pattern, bool icase = false);
 
 /// Converts color bytes to hex \<c\\x\\x\\x\> -> \<cXXXXXX\>.  Note: MOVE in the string.
-std::string sanitize_colors(std::string str);
+String sanitize_colors(String str);
 
 /// Converts color hex to bytes \<cXXXXXX\> -> \<c\\x\\x\\x\>.  Note: MOVE in the string.
-std::string desanitize_colors(std::string str);
+String desanitize_colors(String str);
 
 } // namespace nw::string

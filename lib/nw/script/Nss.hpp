@@ -36,15 +36,15 @@ enum struct SymbolKind {
 struct Symbol {
     AstNode* node = nullptr;           ///< AstNode if symbol is used in a variable expression
     const Declaration* decl = nullptr; ///< Original declaration
-    std::string comment;               ///< Comment on original declaration, in case of functions decl is preferred over definition
-    std::string type;                  ///< Type of the symbol
+    String comment;                    ///< Comment on original declaration, in case of functions decl is preferred over definition
+    String type;                       ///< Type of the symbol
     SymbolKind kind;                   ///< The kind of symbol
     const Nss* provider = nullptr;     ///< What script this symbol is from, i.e. "nwscript"
-    std::string_view view;             ///< View of declaration
+    StringView view;                   ///< View of declaration
 };
 
 struct InlayHint {
-    std::string message;
+    String message;
     SourcePosition position;
 };
 
@@ -57,7 +57,7 @@ struct SignatureHelp {
 struct CompletionContext {
     void add(Symbol symbol)
     {
-        std::string id = symbol.decl->identifier();
+        String id = symbol.decl->identifier();
         auto it = completion_map.find(id);
         // This isn't super ideal, but there are only collisions between structs
         // and everything else.
@@ -68,13 +68,13 @@ struct CompletionContext {
         }
     }
 
-    std::unordered_map<std::string, size_t> completion_map;
+    std::unordered_map<String, size_t> completion_map;
     std::vector<Symbol> completions;
 };
 
 struct Nss {
     explicit Nss(const std::filesystem::path& filename, Context* ctx, bool command_script = false);
-    explicit Nss(std::string_view script, Context* ctx, bool command_script = false);
+    explicit Nss(StringView script, Context* ctx, bool command_script = false);
     explicit Nss(ResourceData data, Context* ctx, bool command_script = false);
 
     /// Add diagnostic to script
@@ -87,14 +87,14 @@ struct Nss {
     const Ast& ast() const;
 
     /// Generates a list of potential completions (excluding dependencies)
-    void complete(const std::string& needle, CompletionContext& out, bool no_filter = false) const;
+    void complete(const String& needle, CompletionContext& out, bool no_filter = false) const;
 
     /// Get all completions (including dependencies)
-    void complete_at(const std::string& needle, size_t line, size_t character, CompletionContext& out,
+    void complete_at(const String& needle, size_t line, size_t character, CompletionContext& out,
         bool no_filter = false);
 
     /// Get all completions (including dependencies)
-    void complete_dot(const std::string& needle, size_t line, size_t character, std::vector<Symbol>& out,
+    void complete_dot(const String& needle, size_t line, size_t character, std::vector<Symbol>& out,
         bool no_filter = false);
 
     /// Script context
@@ -106,7 +106,7 @@ struct Nss {
 
     /// Returns all transitive dependencies in 'preprocessed' order,
     /// i.e. dependencies()[n] was include before dependencies()[n+1]
-    std::vector<std::string> dependencies() const;
+    std::vector<String> dependencies() const;
 
     /// Gets script diagnostics
     const std::vector<Diagnostic>& diagnostics() const noexcept;
@@ -115,7 +115,7 @@ struct Nss {
     size_t errors() const noexcept { return errors_; }
 
     /// Table of symbols exported from script
-    immer::map<std::string, Export> exports() const noexcept { return symbol_table_; }
+    immer::map<String, Export> exports() const noexcept { return symbol_table_; }
 
     /// Count of symbols exported from script
     size_t export_count() const noexcept { return symbol_table_.size(); }
@@ -132,13 +132,13 @@ struct Nss {
     bool is_command_script() const noexcept { return is_command_script_; }
 
     /// Locate export, i.e. a top level symbols
-    Symbol locate_export(const std::string& symbol, bool is_type, bool search_dependencies = false) const;
+    Symbol locate_export(const String& symbol, bool is_type, bool search_dependencies = false) const;
 
     /// Locate symbol in source file
-    Symbol locate_symbol(const std::string& symbol, size_t line, size_t character);
+    Symbol locate_symbol(const String& symbol, size_t line, size_t character);
 
     /// Script name
-    std::string_view name() const noexcept;
+    StringView name() const noexcept;
 
     /// Parses script file
     void parse();
@@ -150,15 +150,15 @@ struct Nss {
     void resolve();
 
     /// Sets a scripts name
-    void set_name(const std::string& new_name);
+    void set_name(const String& new_name);
 
     SignatureHelp signature_help(size_t line, size_t character);
 
     /// Gets text of script
-    std::string_view text() const noexcept;
+    StringView text() const noexcept;
 
     /// Gets a view of source file in specified range
-    std::string_view view_from_range(SourceRange range) const noexcept;
+    StringView view_from_range(SourceRange range) const noexcept;
 
     /// Returns how many warnings were found during parsing
     size_t warnings() const noexcept { return warnings_; }
@@ -166,9 +166,9 @@ struct Nss {
 private:
     Context* ctx_ = nullptr;
     ResourceData data_;
-    std::string_view text_;
+    StringView text_;
     Ast ast_;
-    immer::map<std::string, Export> symbol_table_;
+    immer::map<String, Export> symbol_table_;
     std::vector<Diagnostic> diagnostics_;
     size_t errors_ = 0;
     size_t warnings_ = 0;

@@ -15,11 +15,11 @@ GffLabel::GffLabel(Storage data) noexcept
 }
 
 GffLabel::GffLabel(const char* string) noexcept
-    : GffLabel(std::string_view(string))
+    : GffLabel(StringView(string))
 {
 }
 
-GffLabel::GffLabel(std::string_view string) noexcept
+GffLabel::GffLabel(StringView string) noexcept
     : data_{}
 {
     DCHECK_F(string.size() <= 16, "GffLabels are limited to 16 characters.");
@@ -37,11 +37,11 @@ GffLabel::size_type GffLabel::length() const noexcept
     return i;
 }
 
-std::string GffLabel::string() const
+String GffLabel::string() const
 {
-    return std::string(view());
+    return String(view());
 }
 
-std::string_view GffLabel::view() const noexcept { return std::string_view(data_.data(), length()); }
+StringView GffLabel::view() const noexcept { return StringView(data_.data(), length()); }
 
 } // namespace nw

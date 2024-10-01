@@ -98,7 +98,7 @@ struct Area : public ObjectBase {
 
     /// Serialize to JSON
     static void serialize(const Area* obj, nlohmann::json& archive);
-    static std::string get_name_from_file(const std::filesystem::path& path);
+    static String get_name_from_file(const std::filesystem::path& path);
 
     Common common;
     AreaScripts scripts;
@@ -114,7 +114,7 @@ struct Area : public ObjectBase {
     std::vector<Store*> stores;
     std::vector<Trigger*> triggers;
     std::vector<Waypoint*> waypoints;
-    std::string comments;
+    String comments;
     LocString name;
     Tileset* tileset = nullptr;
     Resref tileset_resref;

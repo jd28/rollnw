@@ -50,7 +50,7 @@ struct GffLabel {
     GffLabel(const GffLabel&) = default;
     GffLabel(Storage data) noexcept;
     GffLabel(const char* string) noexcept;
-    GffLabel(std::string_view string) noexcept;
+    GffLabel(StringView string) noexcept;
 
     GffLabel& operator=(const GffLabel&) = default;
 
@@ -60,11 +60,11 @@ struct GffLabel {
     /// Returns the number of char elements in the array, excluding nulls.
     size_type length() const noexcept;
 
-    /// Creates ``std::string`` of underlying array
-    std::string string() const;
+    /// Creates ``String`` of underlying array
+    String string() const;
 
-    /// Creates ``std::string_view`` of underlying array without null padding
-    std::string_view view() const noexcept;
+    /// Creates ``StringView`` of underlying array without null padding
+    StringView view() const noexcept;
 
 private:
     Storage data_;

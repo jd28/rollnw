@@ -83,7 +83,7 @@ bool Profile::load_rules() const
     nw::TwoDA spells{nw::kernel::resman().demand({"spells"sv, nw::ResourceType::twoda})};
     nw::TwoDA spellschools{nw::kernel::resman().demand({"spellschools"sv, nw::ResourceType::twoda})};
     nw::TwoDA traps{nw::kernel::resman().demand({"traps"sv, nw::ResourceType::twoda})};
-    std::string temp_string;
+    nw::String temp_string;
     int temp_int = 0;
 
     auto& appearance_array = nw::kernel::rules().appearances;
@@ -207,7 +207,7 @@ bool Profile::load_rules() const
                 nw::TwoDA tda{nw::kernel::resman().demand(info.prereq_table)};
                 if (tda.is_valid()) {
                     for (size_t j = 0; j < tda.rows(); ++j) {
-                        std::string_view temp;
+                        nw::StringView temp;
                         if (!tda.get_to(j, "ReqType", temp)) { continue; }
                         int param1_int = 0;
                         int param2_int = 0;
@@ -516,7 +516,7 @@ bool Profile::load_resources()
             nw::Ini user_patch{nwk::config().user_path() / "userpatch.ini"};
             if (user_patch.valid()) {
                 int i = 0;
-                std::string file;
+                nw::String file;
                 while (user_patch.get_to(fmt::format("Patch/PatchFile{:03d}", i++), file)) {
                     if (!nwk::resman().add_base_container(nwk::config().user_path() / "patch", file)) {
                         break;

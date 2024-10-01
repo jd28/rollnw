@@ -16,16 +16,16 @@ struct StructDecl;
 struct Type;
 
 struct IncludeStackEntry {
-    std::string resref;
+    String resref;
     Nss* script = nullptr;
 };
 
 struct Context {
-    Context(std::vector<std::string> include_paths = {}, std::string command_script = "nwscript");
+    Context(std::vector<String> include_paths = {}, String command_script = "nwscript");
     virtual ~Context() = default;
 
     // Resource Loading / Dependency Tracking
-    std::vector<std::string> include_paths_;
+    std::vector<String> include_paths_;
     absl::flat_hash_map<Resource, std::unique_ptr<Nss>> dependencies_;
     std::vector<IncludeStackEntry> include_stack_;
     std::vector<IncludeStackEntry> preprocessed_;
@@ -41,26 +41,26 @@ struct Context {
     const Nss* command_script() const noexcept { return command_script_; }
 
     // Spec ..
-    std::string command_script_name_;
+    String command_script_name_;
     Nss* command_script_ = nullptr;
 
     // Type Tracking
-    absl::flat_hash_map<std::string, size_t> type_map_;
-    std::vector<std::string> type_array_;
+    absl::flat_hash_map<String, size_t> type_map_;
+    std::vector<String> type_array_;
     std::vector<StructDecl*> struct_stack_;
 
     virtual void register_default_types();
     virtual void register_engine_types();
-    size_t type_id(std::string_view type_name, bool define = false);
+    size_t type_id(StringView type_name, bool define = false);
     size_t type_id(Type type_name, bool define = false);
-    std::string_view type_name(size_t type_id);
+    StringView type_name(size_t type_id);
     virtual size_t type_check_binary_op(NssToken op, size_t lhs, size_t rhs);
     virtual bool is_type_convertible(size_t lhs, size_t rhs);
 
     // Error/Warning Tracking
-    virtual void lexical_diagnostic(Nss* script, std::string_view msg, bool is_warning, SourceRange range);
-    virtual void parse_diagnostic(Nss* script, std::string_view msg, bool is_warning, SourceRange range);
-    virtual void semantic_diagnostic(Nss* script, std::string_view msg, bool is_warning, SourceRange range);
+    virtual void lexical_diagnostic(Nss* script, StringView msg, bool is_warning, SourceRange range);
+    virtual void parse_diagnostic(Nss* script, StringView msg, bool is_warning, SourceRange range);
+    virtual void semantic_diagnostic(Nss* script, StringView msg, bool is_warning, SourceRange range);
 };
 
 } // nw::script

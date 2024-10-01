@@ -24,7 +24,7 @@ namespace nw::string {
 /// @cond NEVER
 namespace detail {
 
-constexpr int base(std::string_view str)
+constexpr int base(StringView str)
 {
     return str.length() > 2 && str[0] == '0' && (str[1] == 'x' || str[1] == 'X') ? 16 : 10;
 }
@@ -32,7 +32,7 @@ constexpr int base(std::string_view str)
 } // namespace detail
 
 template <>
-std::optional<bool> from(std::string_view str) ///< @private
+std::optional<bool> from(StringView str)
 {
     for (const auto& t : {"t", "true", "y", "yes", "1"}) {
         if (icmp(t, str)) {
@@ -51,7 +51,7 @@ std::optional<bool> from(std::string_view str) ///< @private
 
 #define DEFINE_FROM_INT(type)                                                          \
     template <>                                                                        \
-    std::optional<type> from(std::string_view str)                                     \
+    std::optional<type> from(StringView str)                                           \
     {                                                                                  \
         int b = detail::base(str);                                                     \
         type v = 0;                                                                    \
@@ -62,7 +62,7 @@ std::optional<bool> from(std::string_view str) ///< @private
 
 #define DEFINE_FROM_FLOAT(type)                                                        \
     template <>                                                                        \
-    std::optional<type> from(std::string_view str)                                     \
+    std::optional<type> from(StringView str)                                           \
     {                                                                                  \
         type v = 0.0;                                                                  \
         auto res = absl::from_chars(str.data(), str.data() + str.size(), v);           \
@@ -85,32 +85,32 @@ DEFINE_FROM_FLOAT(double)
 
 /// @endcond
 
-std::string* ltrim_in_place(std::string* str)
+String* ltrim_in_place(String* str)
 {
     str->erase(0, str->find_first_not_of(" \n\r\t"));
     return str;
 }
 
-std::string* rtrim_in_place(std::string* str)
+String* rtrim_in_place(String* str)
 {
     str->erase(str->find_last_not_of(" \n\r\t") + 1);
     return str;
 }
 
-std::string* trim_in_place(std::string* str)
+String* trim_in_place(String* str)
 {
     return ltrim_in_place(rtrim_in_place(str));
 }
 
-std::string join(const std::vector<std::string>& strings, const char* delim)
+String join(const std::vector<String>& strings, const char* delim)
 {
     if (strings.empty()) return {};
     return absl::StrJoin(strings, delim);
 }
 
-std::vector<std::string> split(const std::string& sp, char delim, bool skipEmpty, bool trimmed)
+std::vector<String> split(const String& sp, char delim, bool skipEmpty, bool trimmed)
 {
-    std::vector<std::string> v;
+    std::vector<String> v;
 
     if (skipEmpty)
         v = absl::StrSplit(sp, delim, absl::SkipWhitespace());
@@ -126,7 +126,7 @@ std::vector<std::string> split(const std::string& sp, char delim, bool skipEmpty
     return v;
 }
 
-bool icmp(std::string_view first, std::string_view second)
+bool icmp(StringView first, StringView second)
 {
     if (first.size() != second.size())
         return false;
@@ -134,22 +134,22 @@ bool icmp(std::string_view first, std::string_view second)
     return strncasecmp(first.data(), second.data(), first.size()) == 0;
 }
 
-void tolower(std::string* str)
+void tolower(String* str)
 {
     std::transform(str->begin(), str->end(), str->begin(), ::tolower);
 }
 
-bool startswith(std::string_view str, std::string_view prefix)
+bool startswith(StringView str, StringView prefix)
 {
     return absl::StartsWith({str.data(), str.size()}, {prefix.data(), prefix.size()});
 }
 
-bool endswith(std::string_view str, std::string_view suffix)
+bool endswith(StringView str, StringView suffix)
 {
     return absl::EndsWith({str.data(), str.size()}, {suffix.data(), suffix.size()});
 }
 
-std::regex glob_to_regex(std::string_view pattern, bool icase)
+std::regex glob_to_regex(StringView pattern, bool icase)
 {
     // Replace all regex special characters
     auto s = absl::StrReplaceAll({pattern.data(), pattern.size()},
@@ -166,7 +166,7 @@ std::regex glob_to_regex(std::string_view pattern, bool icase)
     }
 }
 
-std::string sanitize_colors(std::string str)
+String sanitize_colors(String str)
 {
     for (size_t i = 1; i < str.length(); ++i) {
         if (str[i - 1] == '<' && str[i] == 'c') {
@@ -189,7 +189,7 @@ std::string sanitize_colors(std::string str)
     return str;
 }
 
-std::string desanitize_colors(std::string str)
+String desanitize_colors(String str)
 {
     size_t len = str.length();
     for (size_t i = 1; i < len; ++i) {

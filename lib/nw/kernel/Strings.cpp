@@ -10,7 +10,7 @@ namespace fs = std::filesystem;
 
 namespace nw::kernel {
 
-std::string Strings::get(uint32_t strref, bool feminine) const
+String Strings::get(uint32_t strref, bool feminine) const
 {
     if (strref == 0xFFFFFFFF) { return {}; }
     if (Tlk::custom_flag & strref) {
@@ -21,7 +21,7 @@ std::string Strings::get(uint32_t strref, bool feminine) const
     }
 }
 
-std::string Strings::get(const LocString& locstring, bool feminine) const
+String Strings::get(const LocString& locstring, bool feminine) const
 {
     if (locstring.contains(global_lang_, feminine)) {
         return locstring.get(global_lang_, feminine);
@@ -30,7 +30,7 @@ std::string Strings::get(const LocString& locstring, bool feminine) const
     }
 }
 
-InternedString Strings::get_interned(std::string_view str) const
+InternedString Strings::get_interned(StringView str) const
 {
     auto it = interned_.find(str);
     if (it != std::end(interned_)) {
@@ -49,13 +49,13 @@ void Strings::initialize(ServiceInitTime time)
     }
 }
 
-InternedString Strings::intern(std::string_view str)
+InternedString Strings::intern(StringView str)
 {
     if (str.empty()) {
         LOG_F(ERROR, "strings: attempting to intern empty string");
         return {};
     }
-    return InternedString(&*interned_.insert(std::string(str)).first);
+    return InternedString(&*interned_.insert(String(str)).first);
 }
 
 InternedString Strings::intern(uint32_t strref)

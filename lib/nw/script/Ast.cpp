@@ -8,7 +8,7 @@ extern "C" {
 
 namespace nw::script {
 
-void AstNode::complete(const std::string& needle, std::vector<const Declaration*>& out, bool no_filter) const
+void AstNode::complete(const String& needle, std::vector<const Declaration*>& out, bool no_filter) const
 {
     for (const auto& [name, exp] : env_) {
         if (no_filter || has_match(needle.c_str(), name.c_str())) {
@@ -28,7 +28,7 @@ SourceRange Declaration::selection_range() const noexcept
     return range_selection_;
 }
 
-const VarDecl* DeclList::locate_decl(std::string_view name) const
+const VarDecl* DeclList::locate_decl(StringView name) const
 {
     for (auto d : decls) {
         if (d->identifier_.loc.view() == name) {
@@ -38,7 +38,7 @@ const VarDecl* DeclList::locate_decl(std::string_view name) const
     return nullptr;
 }
 
-const VarDecl* StructDecl::locate_member_decl(std::string_view name) const
+const VarDecl* StructDecl::locate_member_decl(StringView name) const
 {
     const VarDecl* result = nullptr;
     for (auto d : decls) {
@@ -54,7 +54,7 @@ const VarDecl* StructDecl::locate_member_decl(std::string_view name) const
     return result;
 }
 
-std::string_view Ast::find_comment(size_t line) const noexcept
+StringView Ast::find_comment(size_t line) const noexcept
 {
     for (const auto& comment : comments) {
         if (line == comment.range_.range.end.line

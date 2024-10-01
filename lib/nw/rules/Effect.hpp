@@ -46,7 +46,7 @@ struct Effect {
     int get_int(size_t index) const noexcept;
 
     /// Gets a string value
-    std::string_view get_string(size_t index) const noexcept;
+    StringView get_string(size_t index) const noexcept;
 
     /// Gets the effect's handle
     EffectHandle handle() noexcept;
@@ -64,7 +64,7 @@ struct Effect {
     void set_int(size_t index, int value);
 
     /// Sets a string value
-    void set_string(size_t index, std::string value);
+    void set_string(size_t index, String value);
 
     /// Sets the versus value
     void set_versus(Versus vs);
@@ -86,7 +86,7 @@ private:
 
     absl::InlinedVector<int, 4> integers_;
     absl::InlinedVector<float, 4> floats_;
-    absl::InlinedVector<std::string, 4> strings_;
+    absl::InlinedVector<String, 4> strings_;
     Versus versus_;
 };
 

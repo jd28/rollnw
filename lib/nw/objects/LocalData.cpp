@@ -7,7 +7,7 @@
 
 namespace nw {
 
-void LocalData::clear(std::string_view var, uint32_t type)
+void LocalData::clear(StringView var, uint32_t type)
 {
     auto it = vars_.find(var);
     if (it == std::end(vars_)) {
@@ -43,7 +43,7 @@ void LocalData::clear(std::string_view var, uint32_t type)
 
 void LocalData::clear_all(uint32_t type)
 {
-    static std::vector<std::string_view> eraser;
+    static std::vector<StringView> eraser;
 
     for (auto& [k, v] : vars_) {
         switch (type) {
@@ -79,7 +79,7 @@ void LocalData::clear_all(uint32_t type)
     eraser.clear();
 }
 
-void LocalData::delete_float(std::string_view var)
+void LocalData::delete_float(StringView var)
 {
     auto it = vars_.find(var);
     if (it == std::end(vars_)) {
@@ -90,7 +90,7 @@ void LocalData::delete_float(std::string_view var)
     if (it->second.flags.none()) { vars_.erase(it); }
 }
 
-void LocalData::delete_int(std::string_view var)
+void LocalData::delete_int(StringView var)
 {
     auto it = vars_.find(var);
     if (it == std::end(vars_)) {
@@ -101,7 +101,7 @@ void LocalData::delete_int(std::string_view var)
     if (it->second.flags.none()) { vars_.erase(it); }
 }
 
-void LocalData::delete_object(std::string_view var)
+void LocalData::delete_object(StringView var)
 {
     auto it = vars_.find(var);
     if (it == std::end(vars_)) {
@@ -112,7 +112,7 @@ void LocalData::delete_object(std::string_view var)
     if (it->second.flags.none()) { vars_.erase(it); }
 }
 
-void LocalData::delete_string(std::string_view var)
+void LocalData::delete_string(StringView var)
 {
     auto it = vars_.find(var);
     if (it == std::end(vars_)) {
@@ -123,7 +123,7 @@ void LocalData::delete_string(std::string_view var)
     if (it->second.flags.none()) { vars_.erase(it); }
 }
 
-void LocalData::delete_location(std::string_view var)
+void LocalData::delete_location(StringView var)
 {
     auto it = vars_.find(var);
     if (it == std::end(vars_)) {
@@ -134,65 +134,65 @@ void LocalData::delete_location(std::string_view var)
     if (it->second.flags.none()) { vars_.erase(it); }
 }
 
-float LocalData::get_float(std::string_view var) const
+float LocalData::get_float(StringView var) const
 {
     auto it = vars_.find(var);
     return it != vars_.end() ? it->second.float_ : 0.0f;
 }
 
-int32_t LocalData::get_int(std::string_view var) const
+int32_t LocalData::get_int(StringView var) const
 {
     auto it = vars_.find(var);
     return it != vars_.end() ? it->second.integer : 0;
 }
 
-ObjectID LocalData::get_object(std::string_view var) const
+ObjectID LocalData::get_object(StringView var) const
 {
     auto it = vars_.find(var);
     return it != vars_.end() ? it->second.object : object_invalid;
 }
 
-std::string LocalData::get_string(std::string_view var) const
+String LocalData::get_string(StringView var) const
 {
     auto it = vars_.find(var);
-    return it != vars_.end() ? it->second.string : std::string{};
+    return it != vars_.end() ? it->second.string : String{};
 }
 
-Location LocalData::get_location(std::string_view var) const
+Location LocalData::get_location(StringView var) const
 {
     auto it = vars_.find(var);
     return it != vars_.end() ? it->second.loc : Location{};
 }
 
-void LocalData::set_float(std::string_view var, float value)
+void LocalData::set_float(StringView var, float value)
 {
     auto& payload = vars_[var];
     payload.float_ = value;
     payload.flags.set(LocalVarType::float_);
 }
 
-void LocalData::set_int(std::string_view var, int32_t value)
+void LocalData::set_int(StringView var, int32_t value)
 {
     auto& payload = vars_[var];
     payload.integer = value;
     payload.flags.set(LocalVarType::integer);
 }
 
-void LocalData::set_object(std::string_view var, ObjectID value)
+void LocalData::set_object(StringView var, ObjectID value)
 {
     auto& payload = vars_[var];
     payload.object = value;
     payload.flags.set(LocalVarType::object);
 }
 
-void LocalData::set_string(std::string_view var, std::string_view value)
+void LocalData::set_string(StringView var, StringView value)
 {
     auto& payload = vars_[var];
-    payload.string = std::string(value);
+    payload.string = String(value);
     payload.flags.set(LocalVarType::string);
 }
 
-void LocalData::set_location(std::string_view var, Location value)
+void LocalData::set_location(StringView var, Location value)
 {
     auto& payload = vars_[var];
     payload.loc = value;
@@ -222,7 +222,7 @@ bool LocalData::from_json(const nlohmann::json& archive)
             }
             it = value.find("string");
             if (it != std::end(value)) {
-                payload.string = it->get<std::string>();
+                payload.string = it->get<String>();
                 payload.flags.set(LocalVarType::string);
             }
             it = value.find("location");
@@ -274,7 +274,7 @@ bool deserialize(LocalData& self, const GffStruct& archive)
         return false;
     }
     size_t sz = st.size();
-    std::string name;
+    String name;
     uint32_t type, obj;
 
     for (size_t i = 0; i < sz; ++i) {

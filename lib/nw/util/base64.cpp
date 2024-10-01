@@ -7,7 +7,7 @@ namespace nw {
 // From NWNX:EE, original author probably Sherincall or someone on stack overflow.
 static const char base64_key[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
-ByteArray from_base64(const std::string& in)
+ByteArray from_base64(const String& in)
 {
     ByteArray out;
     out.reserve(3 * in.length() / 4 + 4);
@@ -33,9 +33,9 @@ ByteArray from_base64(const std::string& in)
     return out;
 }
 
-std::string to_base64(std::span<const uint8_t> bytes)
+String to_base64(std::span<const uint8_t> bytes)
 {
-    std::string out;
+    String out;
     out.reserve(4 * bytes.size() / 3 + 4);
 
     int val = 0, valb = -6;

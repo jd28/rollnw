@@ -79,7 +79,7 @@ struct ClassInfo {
     bool arcane = false;
     bool arcane_spell_failure = false;
     nw::Ability caster_ability = nw::Ability::invalid();
-    std::string spell_table_column;
+    String spell_table_column;
     float caster_level_multiplier = 1.0f;
     int level_min_caster = 0;
     int level_min_associate = 0;
@@ -96,7 +96,7 @@ struct ClassArray {
 
     const ClassInfo* get(Class class_) const noexcept;
     bool is_valid(Class class_) const noexcept;
-    Class from_constant(std::string_view constant) const;
+    Class from_constant(StringView constant) const;
     void clear();
 
     /// Gets class base attack from attack tables

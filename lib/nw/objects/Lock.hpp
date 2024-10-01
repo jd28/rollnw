@@ -11,7 +11,7 @@ struct Lock {
     bool from_json(const nlohmann::json& archive);
     nlohmann::json to_json() const;
 
-    std::string key_name;
+    String key_name;
     bool key_required = false;
     bool lockable = false;
     bool locked = false;

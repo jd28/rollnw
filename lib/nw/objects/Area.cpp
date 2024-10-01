@@ -154,9 +154,9 @@ bool Area::instantiate()
     return true;
 }
 
-std::string Area::get_name_from_file(const std::filesystem::path& path)
+String Area::get_name_from_file(const std::filesystem::path& path)
 {
-    std::string result;
+    String result;
     LocString l1;
 
     auto rdata = ResourceData::from_file(path);

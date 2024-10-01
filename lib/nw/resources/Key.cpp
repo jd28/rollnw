@@ -100,7 +100,7 @@ int Key::extract(const std::regex& pattern, const std::filesystem::path& output)
     }
 
     int count = 0;
-    std::string fname;
+    String fname;
     ByteArray ba;
     for (const auto& [k, v] : elements_) {
         fname = k.filename();
@@ -176,7 +176,7 @@ bool Key::load()
     istream_read(file, &fts[0], sizeof(FileTable) * header.bif_count);
 
     bifs_.reserve(header.bif_count);
-    std::vector<std::string> bif_names;
+    std::vector<String> bif_names;
     bif_names.reserve(header.bif_count);
 
     auto bif_path = fs::path(path_).parent_path().parent_path();
@@ -187,7 +187,7 @@ bool Key::load()
         file.seekg(it.name_offset);
         file.read(buffer, it.name_size);
 
-        std::string s(buffer);
+        String s(buffer);
         std::replace(s.begin(), s.end(), '\\', '/');
 
         LOG_F(INFO, "[resources] key: added bif - {}", s);
@@ -206,7 +206,7 @@ bool Key::load()
         ResourceType::type type;
         istream_read(file, &type, 2);
         istream_read(file, &id, 4);
-        elements_.emplace(Resource{std::string(buffer), type},
+        elements_.emplace(Resource{String(buffer), type},
             KeyTableElement{id >> 20, id & 0xFFFFF});
     }
 

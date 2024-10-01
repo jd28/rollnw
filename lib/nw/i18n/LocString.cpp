@@ -21,14 +21,14 @@ LocString::iterator LocString::end() { return strings_.end(); }
 LocString::const_iterator LocString::begin() const { return strings_.begin(); }
 LocString::const_iterator LocString::end() const { return strings_.end(); }
 
-bool LocString::add(LanguageID language, std::string_view string, bool feminine)
+bool LocString::add(LanguageID language, StringView string, bool feminine)
 {
     if (language == LanguageID::invalid) { return false; }
     uint32_t l = Language::to_runtime_id(language, feminine);
 
     for (auto& [lang, str] : strings_) {
         if (lang == l) {
-            str = std::string(string);
+            str = String(string);
             return true;
         }
     }
@@ -55,7 +55,7 @@ bool LocString::contains(LanguageID language, bool feminine) const
     return false;
 }
 
-std::string LocString::get(LanguageID language, bool feminine) const
+String LocString::get(LanguageID language, bool feminine) const
 {
     if (language == LanguageID::invalid) { return {}; }
     uint32_t l = Language::to_runtime_id(language, feminine);
@@ -98,7 +98,7 @@ void from_json(const nlohmann::json& j, LocString& loc)
     auto strings = j.at("strings");
 
     uint32_t lang = std::numeric_limits<uint32_t>::max();
-    std::string s;
+    String s;
     for (const auto& str : strings) {
         str.at("lang").get_to(lang);
         str.at("string").get_to(s);

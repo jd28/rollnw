@@ -52,7 +52,7 @@ bool Equips::from_json(const nlohmann::json& archive, SerializationProfile profi
 {
     try {
         for (size_t i = 0; i < 18; ++i) {
-            std::string lookup{equip_index_to_string(static_cast<EquipIndex>(i))};
+            String lookup{equip_index_to_string(static_cast<EquipIndex>(i))};
             if (archive.find(lookup) != std::end(archive)) {
                 if (profile == SerializationProfile::blueprint) {
                     equips[i] = archive.at(lookup).get<Resref>();
@@ -74,7 +74,7 @@ nlohmann::json Equips::to_json(SerializationProfile profile) const
     nlohmann::json j;
 
     for (size_t i = 0; i < 18; ++i) {
-        std::string lookup{equip_index_to_string(static_cast<EquipIndex>(i))};
+        String lookup{equip_index_to_string(static_cast<EquipIndex>(i))};
         if (profile == SerializationProfile::blueprint) {
             if (equips[i].is<Resref>()) {
                 const auto& r = equips[i].as<Resref>();
