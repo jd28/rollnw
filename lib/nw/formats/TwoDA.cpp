@@ -4,6 +4,7 @@
 #include "../util/string.hpp"
 
 #include <algorithm>
+#include <charconv>
 #include <exception>
 #include <fstream>
 #include <iostream>
@@ -238,9 +239,10 @@ std::ostream& operator<<(std::ostream& out, const nw::TwoDA& tda)
     }
     out << std::endl;
 
-    String temp = std::to_string(tda.rows() - 1);
-    size_t num_size = temp.size();
-    sep.resize(pad + num_size, ' ');
+    char buffer[24] = {0};
+    auto res = std::to_chars(buffer, buffer + 24, tda.rows() - 1);
+    size_t max_size = res.ptr - buffer;
+    sep.resize(pad + max_size, ' ');
     out << sep;
 
     for (size_t i = 0; i < tda.columns_.size(); ++i) {
@@ -257,9 +259,11 @@ std::ostream& operator<<(std::ostream& out, const nw::TwoDA& tda)
     size_t rows = tda.rows();
     // Gonna do nested for loops for clarity.
     for (size_t i = 0; i < rows; ++i) {
-        temp = std::to_string(cur);
-        sep.resize(pad + num_size - temp.size(), ' ');
-        out << temp << sep;
+        char buffer[24] = {0};
+        auto res = std::to_chars(buffer, buffer + 24, i);
+        size_t cur_size = res.ptr - buffer;
+        sep.resize(pad + max_size - cur_size, ' ');
+        out << buffer << sep;
 
         size_t start = i * tda.columns(), stop = (i + 1) * tda.columns();
         for (size_t j = start; j < stop; ++j) {

@@ -111,7 +111,7 @@ bool Image::write_to(const std::filesystem::path& filename) const
     if (!bytes_) return false;
 
     fs::path temp = fs::temp_directory_path() / filename.filename();
-    String ext = filename.extension().string();
+    String ext = path_to_string(filename.extension());
     String temp_path = path_to_string(temp);
 
     int width = static_cast<int>(width_);
