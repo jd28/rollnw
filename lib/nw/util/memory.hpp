@@ -78,7 +78,7 @@ public:
     {
         if (!arena_) { return nullptr; }
         size_t size = n * sizeof(T);
-        void* ptr = arena_->allocate(size, alignof(T));
+        void* ptr = arena_->allocate(size * sizeof(T), alignof(T));
         return static_cast<T*>(ptr);
     }
 
