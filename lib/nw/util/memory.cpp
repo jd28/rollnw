@@ -29,6 +29,8 @@ MemoryArena::~MemoryArena()
 
 void* MemoryArena::allocate(std::size_t size, std::size_t alignment)
 {
+    if (blocks_.size() == 0) { alloc_block_(std::max(size + alignment, size_)); }
+
     size_t aligned_pos = reinterpret_cast<size_t>(align_ptr(blocks_[current_block_].block + blocks_[current_block_].position, alignment));
     size_t padding = aligned_pos - (reinterpret_cast<size_t>(blocks_[current_block_].block + blocks_[current_block_].position));
 
@@ -45,6 +47,8 @@ void* MemoryArena::allocate(std::size_t size, std::size_t alignment)
 
 MemoryMarker MemoryArena::current()
 {
+    if (blocks_.size() == 0) { alloc_block_(size_); }
+
     MemoryMarker result;
     result.chunk_index = current_block_;
     result.position = blocks_[current_block_].position;
@@ -53,12 +57,14 @@ MemoryMarker MemoryArena::current()
 
 void MemoryArena::reset()
 {
+    if (blocks_.size() == 0) { return; }
     current_block_ = 0;
     blocks_[current_block_].position = 0;
 }
 
 void MemoryArena::rewind(MemoryMarker marker)
 {
+    CHECK_F(marker.chunk_index < blocks_.size(), "Memory marker mismatched");
     current_block_ = marker.chunk_index;
     blocks_[current_block_].position = marker.position;
 }
@@ -67,6 +73,7 @@ void MemoryArena::alloc_block_(size_t size)
 {
     if (current_block_ + 1 < blocks_.size()) {
         ++current_block_;
+        blocks_[current_block_].position = 0;
         if (blocks_[current_block_].size < size) {
             blocks_[current_block_].block = static_cast<uint8_t*>(realloc(blocks_[current_block_].block, size));
             blocks_[current_block_].size = size;
