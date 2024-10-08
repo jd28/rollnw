@@ -57,50 +57,6 @@ private:
     void alloc_block_(size_t size);
 };
 
-/// C++ Allocator interface for Memory arena
-template <typename T>
-class ArenaAllocator {
-public:
-    using value_type = T;
-    ArenaAllocator(MemoryArena* arena)
-        : arena_(arena)
-    {
-    }
-
-    template <typename U>
-    ArenaAllocator(const ArenaAllocator<U>& other)
-        : arena_(other.arena_)
-    {
-    }
-
-    /// Allocate memory for n objects of type T.
-    T* allocate(size_t n)
-    {
-        if (!arena_) { return nullptr; }
-        size_t size = n * sizeof(T);
-        void* ptr = arena_->allocate(size * sizeof(T), alignof(T));
-        return static_cast<T*>(ptr);
-    }
-
-    /// Deallocate memory. a no-op.
-    void deallocate(T*, size_t) { }
-
-    template <typename U>
-    bool operator==(const ArenaAllocator<U>& other) const
-    {
-        return arena_ == other.arena_;
-    }
-
-    template <typename U>
-    bool operator!=(const ArenaAllocator<U>& other) const
-    {
-        return !(*this == other);
-    }
-
-private:
-    MemoryArena* arena_ = nullptr;
-};
-
 // This is very simple and naive.
 template <typename T, size_t chunk_size>
 struct ObjectPool {
