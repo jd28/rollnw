@@ -97,4 +97,54 @@ bool MemoryArena::do_is_equal(const std::pmr::memory_resource& other) const noex
     return this == &other;
 }
 
+// == MemoryScope ==============================================================
+// =============================================================================
+
+MemoryScope::MemoryScope(MemoryArena* arena)
+    : arena_{arena}
+    , marker_{arena->current()}
+{
+}
+
+MemoryScope::MemoryScope(MemoryScope&& other)
+{
+    this->arena_ = other.arena_;
+    this->finalizers_ = other.finalizers_;
+    this->marker_ = other.marker_;
+
+    other.arena_ = nullptr;
+    other.finalizers_ = nullptr;
+    other.marker_ = MemoryMarker{};
+}
+
+MemoryScope& MemoryScope::operator=(MemoryScope&& other)
+{
+    if (this != &other) {
+        this->arena_ = other.arena_;
+        this->finalizers_ = other.finalizers_;
+        this->marker_ = other.marker_;
+
+        other.arena_ = nullptr;
+        other.finalizers_ = nullptr;
+        other.marker_ = MemoryMarker{};
+    }
+    return *this;
+}
+
+MemoryScope::~MemoryScope()
+{
+    auto f = finalizers_;
+    while (f) {
+        auto obj = reinterpret_cast<uint8_t*>(f) + sizeof(detail::Finalizer);
+        f->fn(obj);
+        f = f->next;
+    }
+    arena_->rewind(marker_);
+}
+
+void* MemoryScope::alloc(size_t size, size_t alignment)
+{
+    return arena_->allocate(size, alignment);
+}
+
 } // namespace nw

@@ -132,4 +132,64 @@ struct ObjectPool {
     std::vector<T*> chunks_;
 };
 
+namespace detail {
+
+template <typename T>
+void destructor(void* ptr)
+{
+    static_cast<T*>(ptr)->~T();
+}
+
+struct Finalizer {
+    void (*fn)(void*) = nullptr;
+    Finalizer* next = nullptr;
+};
+
+template <typename T>
+struct FinalizedObject {
+    Finalizer f;
+    T obj;
+};
+
+}
+
+struct MemoryScope {
+    MemoryScope(MemoryArena* arena);
+    MemoryScope(const MemoryScope&) = delete;
+    MemoryScope(MemoryScope&& other);
+    ~MemoryScope();
+
+    MemoryScope& operator=(const MemoryScope&) = delete;
+    MemoryScope& operator=(MemoryScope&& other);
+
+    /// Allocates ``size`` bytes with ``alignment``
+    void* alloc(size_t size, size_t alignment = alignof(max_align_t));
+
+    /// Allocates a non-trivial object and stores pointer to destructor that is run when scope exits.
+    template <typename T, typename... Args>
+    T* alloc_obj(Args&&... args)
+    {
+        static_assert(!(std::is_standard_layout_v<T> && std::is_trivial_v<T>), "Use alloc_pod for POD types");
+        void* mem = alloc(sizeof(detail::FinalizedObject<T>), alignof(detail::FinalizedObject<T>));
+        auto fo = static_cast<detail::FinalizedObject<T>*>(mem);
+        fo->f.fn = &detail::destructor<T>;
+        fo->f.next = finalizers_; // last in, first destructed.
+        finalizers_ = &fo->f;
+        return new (&fo->obj) T(std::forward<Args>(args)...);
+    }
+
+    /// Allocates a trivial object no destructor is run on scope exit.
+    template <typename T>
+    T* alloc_pod()
+    {
+        static_assert(std::is_standard_layout_v<T> && std::is_trivial_v<T>, "Use alloc_obj for non-trivial types");
+        void* mem = alloc(sizeof(T), alignof(T));
+        return new (mem) T();
+    }
+
+    MemoryArena* arena_ = nullptr;
+    MemoryMarker marker_;
+    detail::Finalizer* finalizers_ = nullptr;
+};
+
 } // namespace nw
