@@ -36,11 +36,15 @@ struct MemoryBlock {
     uint8_t* block = nullptr;
     size_t position = 0;
     size_t size = 0;
+
+    auto operator<=>(const MemoryBlock&) const = default;
 };
 
 struct MemoryMarker {
     size_t chunk_index = 0;
     size_t position = 0;
+
+    auto operator<=>(const MemoryMarker&) const = default;
 };
 
 /// A growable Memory Arena
