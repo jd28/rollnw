@@ -23,7 +23,6 @@ env:
   buildDir: "${{ github.workspace }}/build/"
   NWN_ROOT: "${{ github.workspace }}/nwn/"
   CI_GITHUB_ACTIONS: "1"
-  MACOSX_DEPLOYMENT_TARGET: "14"
 
 jobs:
   build:
