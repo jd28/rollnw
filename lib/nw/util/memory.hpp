@@ -6,7 +6,6 @@
 #include <algorithm>
 #include <assert.h>
 #include <memory>
-#include <memory_resource>
 #include <stack>
 #include <stdint.h>
 #include <stdlib.h>
@@ -48,7 +47,7 @@ struct MemoryMarker {
 };
 
 /// A growable Memory Arena
-struct MemoryArena : public std::pmr::memory_resource {
+struct MemoryArena {
     MemoryArena(size_t blockSize = 1024);
     MemoryArena(const MemoryArena&) = delete;
     MemoryArena(MemoryArena&&) = default;
@@ -68,12 +67,6 @@ struct MemoryArena : public std::pmr::memory_resource {
 
     /// Rewinds the allocator to a specific point in the allocator
     void rewind(MemoryMarker marker);
-
-protected:
-    // std::pmr::memory_resource interface
-    void* do_allocate(size_t size, size_t alignment) override;
-    void do_deallocate(void*, size_t, size_t) override;
-    bool do_is_equal(const std::pmr::memory_resource& other) const noexcept override;
 
 private:
     std::vector<MemoryBlock> blocks_;

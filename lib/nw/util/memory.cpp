@@ -90,20 +90,6 @@ void MemoryArena::alloc_block_(size_t size)
         blocks_[current_block_].size >= size);
 }
 
-void* MemoryArena::do_allocate(size_t size, size_t alignment)
-{
-    return allocate(size, alignment);
-}
-
-void MemoryArena::do_deallocate(void*, size_t, size_t)
-{
-}
-
-bool MemoryArena::do_is_equal(const std::pmr::memory_resource& other) const noexcept
-{
-    return this == &other;
-}
-
 // == MemoryScope ==============================================================
 // =============================================================================
 
