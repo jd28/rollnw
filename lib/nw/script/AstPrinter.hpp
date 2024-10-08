@@ -185,7 +185,7 @@ struct AstPrinter : BaseVisitor {
         ss << ")";
     }
 
-    virtual void visit(EmptyExpression* expr) override
+    virtual void visit(EmptyExpression*) override
     {
         ss << '\n'
            << String(size_t(depth * 2), ' ') << "<empty expr>";
