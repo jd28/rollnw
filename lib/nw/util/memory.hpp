@@ -31,6 +31,17 @@ constexpr std::uint64_t GB(std::uint64_t gb)
     return gb * 1024ULL * 1024ULL * 1024ULL;
 }
 
+struct MemoryBlock {
+    uint8_t* block = nullptr;
+    size_t position = 0;
+    size_t size = 0;
+};
+
+struct MemoryMarker {
+    size_t chunk_index = 0;
+    size_t position = 0;
+};
+
 /// A growable Memory Arena
 struct MemoryArena {
     MemoryArena(size_t blockSize = 1024);
@@ -44,15 +55,19 @@ struct MemoryArena {
     /// Allocate memory memory on the arena.
     void* allocate(size_t size, size_t alignment = alignof(max_align_t));
 
+    /// Gets the current point in the allocator
+    MemoryMarker current();
+
     /// Reset the arena, freeing all blocks except the first.
     void reset();
 
+    /// Rewinds the allocator to a specific point in the allocator
+    void rewind(MemoryMarker marker);
+
 private:
-    size_t size_;
-    std::vector<void*> blocks_;
-    uint8_t* block_;
-    size_t pos_;
-    size_t end_;
+    std::vector<MemoryBlock> blocks_;
+    size_t current_block_ = 0;
+    size_t size_ = 0;
 
     void alloc_block_(size_t size);
 };
