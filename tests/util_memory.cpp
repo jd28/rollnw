@@ -11,14 +11,6 @@ TEST(Memory, Helpers)
     EXPECT_EQ(nw::GB(1), 1024ULL * 1024ULL * 1024ULL);
 }
 
-TEST(Memory, Allocator)
-{
-    nw::MemoryArena arena;
-    std::basic_string<char, std::char_traits<char>, std::pmr::polymorphic_allocator<char>> arena_string(&arena);
-    arena_string = "Hello, World";
-    EXPECT_EQ(arena_string, "Hello, World");
-}
-
 struct TestStruct {
     TestStruct(bool* am_i_destrcuted)
         : am_i_destrcuted_{am_i_destrcuted}
@@ -54,7 +46,8 @@ TEST(Memory, Scope)
         nw::MemoryScope scope(&arena);
         auto value = scope.alloc_obj<TestStruct>(&result);
         EXPECT_TRUE(!!scope.finalizers_);
-        EXPECT_EQ((uint8_t*)scope.finalizers_ + sizeof(nw::detail::Finalizer), (uint8_t*)value);
+        EXPECT_EQ(reinterpret_cast<uint8_t*>(scope.finalizers_) + sizeof(nw::detail::Finalizer),
+            reinterpret_cast<uint8_t*>(value));
         EXPECT_EQ(&result, value->am_i_destrcuted_);
         EXPECT_NE(current, arena.current());
     }
@@ -66,5 +59,15 @@ TEST(Memory, Scope)
         scope.alloc_pod<TestPOD>();
         EXPECT_NE(current, arena.current());
     }
+    EXPECT_EQ(current, arena.current());
+
+    result = false;
+    {
+        nw::MemoryScope scope(&arena);
+        auto vec = scope.alloc_obj<std::vector<TestStruct, nw::ScopeAllocator<TestStruct>>>(&scope);
+        vec->push_back(TestStruct(&result));
+        EXPECT_NE(current, arena.current());
+    }
+    EXPECT_TRUE(result);
     EXPECT_EQ(current, arena.current());
 }

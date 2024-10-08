@@ -180,9 +180,72 @@ struct MemoryScope {
         return new (mem) T();
     }
 
+    // private:
     MemoryArena* arena_ = nullptr;
     MemoryMarker marker_;
     detail::Finalizer* finalizers_ = nullptr;
 };
 
+template <typename T>
+class ScopeAllocator {
+public:
+    using value_type = T;
+
+    // Constructor accepting MemoryScope reference
+    ScopeAllocator(MemoryScope* scope)
+        : scope_(scope)
+    {
+    }
+
+    // Copy constructor (needed by allocator interface)
+    template <typename U>
+    ScopeAllocator(const ScopeAllocator<U>& other) noexcept
+        : scope_(other.scope_)
+    {
+    }
+
+    T* allocate(std::size_t n)
+    {
+        if (n == 0)
+            return nullptr;
+        return static_cast<T*>(scope_->alloc(n * sizeof(T), alignof(T)));
+    }
+
+    void deallocate(T*, std::size_t) noexcept
+    {
+    }
+
+    template <typename U, typename... Args>
+    void construct(U* p, Args&&... args)
+    {
+        ::new (static_cast<void*>(p)) U(std::forward<Args>(args)...);
+    }
+
+    template <typename U>
+    void destroy(U* p) noexcept
+    {
+        p->~U();
+    }
+
+    template <typename U>
+    struct rebind {
+        using other = ScopeAllocator<U>;
+    };
+
+    // private:
+    MemoryScope* scope_;
+};
+
+// Comparison operators required for allocator interface compatibility
+template <typename T, typename U>
+bool operator==(const ScopeAllocator<T>& a, const ScopeAllocator<U>& b) noexcept
+{
+    return &a.scope_ == &b.scope_;
+}
+
+template <typename T, typename U>
+bool operator!=(const ScopeAllocator<T>& a, const ScopeAllocator<U>& b) noexcept
+{
+    return !(a == b);
+}
 } // namespace nw
