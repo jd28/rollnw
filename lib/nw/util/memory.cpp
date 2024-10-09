@@ -2,6 +2,8 @@
 
 #include "../log.hpp"
 
+#include <algorithm>
+
 namespace nw {
 
 // == MemoryArena ==============================================================
@@ -197,45 +199,39 @@ inline size_t next_power_of_2(size_t size)
     return std::pow(2, std::ceil(std::log2(size)));
 }
 
-MemoryPool::MemoryPool(size_t min_size, size_t max_size, size_t count)
-    : min_size_(min_size)
-    , max_size_(max_size)
+MemoryPool::MemoryPool(size_t max_size, size_t count)
+    : max_size_(std::max(max_size, size_t(128)))
     , count_(count)
 {
-    for (size_t size = min_size; size <= max_size_; size *= 2) {
+    // Make the smaller buckets more granular to avoid wasting too much memory
+    for (size_t size = 8; size <= 128; size += 8) {
+        pools_.emplace_back(size, count);
+    }
+
+    for (size_t size = 256; size <= max_size_; size *= 2) {
         pools_.emplace_back(size, count);
     }
 }
 
 void* MemoryPool::allocate(size_t size)
 {
-    size_t pow2 = next_power_of_2(size);
-
-    if (pow2 > max_size_) {
-        return malloc(size);
-    }
-
     for (auto& pool : pools_) {
-        if (pool.block_size() == pow2) {
+        if (size <= pool.block_size()) {
             return pool.allocate();
         }
     }
-    return nullptr;
+    return malloc(size);
 }
 
 void MemoryPool::deallocate(void* ptr, size_t size)
 {
-    size_t pow2 = next_power_of_2(size);
-
-    if (pow2 > max_size_) {
-        free(ptr);
-    }
-
     for (auto& pool : pools_) {
-        if (pool.block_size() == pow2) {
+        if (size <= pool.block_size()) {
             pool.deallocate(ptr);
+            return;
         }
     }
+    free(ptr);
 }
 
 } // namespace nw

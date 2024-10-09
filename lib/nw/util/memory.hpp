@@ -3,7 +3,6 @@
 #include "../log.hpp"
 #include "templates.hpp"
 
-#include <algorithm>
 #include <assert.h>
 #include <memory>
 #include <stack>
@@ -282,13 +281,12 @@ public:
 } // namespace detail
 
 struct MemoryPool {
-    MemoryPool(size_t min_size, size_t max_size, size_t count);
+    MemoryPool(size_t max_size, size_t count);
     void* allocate(size_t size);
     void deallocate(void* ptr, size_t size);
 
     // private:
     std::vector<detail::PoolBlock> pools_;
-    size_t min_size_;
     size_t max_size_;
     size_t count_;
 };

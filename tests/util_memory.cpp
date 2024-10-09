@@ -75,11 +75,12 @@ TEST(Memory, Scope)
 
 TEST(Memory, Pool)
 {
-    nw::MemoryPool mp(32, 1024, 8);
-    size_t free = mp.pools_[0].free_list_.size();
+    nw::MemoryPool mp(1024, 8);
+    size_t free = mp.pools_[3].free_list_.size();
     {
+        EXPECT_EQ(32, mp.pools_[3].block_size());
         nw::PoolString s("Hello World, this is a test.", &mp);
-        EXPECT_EQ(free - 1, mp.pools_[0].free_list_.size());
+        EXPECT_EQ(free - 1, mp.pools_[3].free_list_.size());
     }
-    EXPECT_EQ(free, mp.pools_[0].free_list_.size());
+    EXPECT_EQ(free, mp.pools_[3].free_list_.size());
 }
