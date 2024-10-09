@@ -1,6 +1,6 @@
 #pragma once
 
-#include <stddef.h>
+#include <cstddef>
 
 namespace nw {
 
@@ -10,8 +10,8 @@ namespace detail {
 // Hide MemoryResource impl details
 struct MemoryResourceInternal {
     MemoryResourceInternal(MemoryResource* resoure);
-    void* allocate(size_t nbytes, size_t alignment = alignof(max_align_t));
-    void deallocate(void* p, size_t bytes, size_t alignment = alignof(max_align_t));
+    void* allocate(size_t nbytes, size_t alignment = alignof(std::max_align_t));
+    void deallocate(void* p, size_t bytes, size_t alignment = alignof(std::max_align_t));
     MemoryResource* resource_;
 };
 
