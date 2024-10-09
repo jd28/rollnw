@@ -1,3 +1,4 @@
+#include "nw/config.hpp"
 #include <gtest/gtest.h>
 
 #include <nw/util/memory.hpp>
@@ -70,4 +71,15 @@ TEST(Memory, Scope)
     }
     EXPECT_TRUE(result);
     EXPECT_EQ(current, arena.current());
+}
+
+TEST(Memory, Pool)
+{
+    nw::MemoryPool mp(32, 1024, 8);
+    size_t free = mp.pools_[0].free_list_.size();
+    {
+        nw::PoolString s("Hello World, this is a test.", &mp);
+        EXPECT_EQ(free - 1, mp.pools_[0].free_list_.size());
+    }
+    EXPECT_EQ(free, mp.pools_[0].free_list_.size());
 }

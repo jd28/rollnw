@@ -140,4 +140,102 @@ void* MemoryScope::alloc(size_t size, size_t alignment)
     return arena_->allocate(size, alignment);
 }
 
+// == MemoryPool ========================================================================
+// ======================================================================================
+
+namespace detail {
+
+PoolBlock::PoolBlock(std::size_t block_size, std::size_t block_count)
+    : block_size_(block_size)
+    , block_count_(block_count)
+{
+    expand(block_count_);
+}
+
+PoolBlock::~PoolBlock()
+{
+    for (auto block : blocks_) {
+        free(block);
+    }
+}
+
+std::size_t PoolBlock::block_size() const noexcept
+{
+    return block_size_;
+}
+
+void* PoolBlock::allocate()
+{
+    if (free_list_.empty()) {
+        expand(1);
+    }
+    void* ptr = free_list_.back();
+    free_list_.pop_back();
+    return ptr;
+}
+
+void PoolBlock::deallocate(void* ptr)
+{
+    free_list_.push_back(ptr);
+}
+
+void PoolBlock::expand(std::size_t count)
+{
+    std::size_t total = block_size_ * count;
+    void* block = malloc(total);
+    blocks_.push_back(block);
+    for (std::size_t i = 0; i < count; ++i) {
+        free_list_.push_back(static_cast<char*>(block) + i * block_size_);
+    }
+}
+
+} // namespace detail
+
+inline size_t next_power_of_2(size_t size)
+{
+    if (size == 0) return 1;
+    return std::pow(2, std::ceil(std::log2(size)));
+}
+
+MemoryPool::MemoryPool(size_t min_size, size_t max_size, size_t count)
+    : min_size_(min_size)
+    , max_size_(max_size)
+    , count_(count)
+{
+    for (size_t size = min_size; size <= max_size_; size *= 2) {
+        pools_.emplace_back(size, count);
+    }
+}
+
+void* MemoryPool::allocate(size_t size)
+{
+    size_t pow2 = next_power_of_2(size);
+
+    if (pow2 > max_size_) {
+        return malloc(size);
+    }
+
+    for (auto& pool : pools_) {
+        if (pool.block_size() == pow2) {
+            return pool.allocate();
+        }
+    }
+    return nullptr;
+}
+
+void MemoryPool::deallocate(void* ptr, size_t size)
+{
+    size_t pow2 = next_power_of_2(size);
+
+    if (pow2 > max_size_) {
+        free(ptr);
+    }
+
+    for (auto& pool : pools_) {
+        if (pool.block_size() == pow2) {
+            pool.deallocate(ptr);
+        }
+    }
+}
+
 } // namespace nw

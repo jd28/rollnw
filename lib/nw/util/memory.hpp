@@ -146,6 +146,9 @@ struct FinalizedObject {
 
 }
 
+// == MemoryScope =======================================================================
+// ======================================================================================
+
 struct MemoryScope {
     MemoryScope(MemoryArena* arena);
     MemoryScope(const MemoryScope&) = delete;
@@ -236,7 +239,6 @@ public:
     MemoryScope* scope_;
 };
 
-// Comparison operators required for allocator interface compatibility
 template <typename T, typename U>
 bool operator==(const ScopeAllocator<T>& a, const ScopeAllocator<U>& b) noexcept
 {
@@ -248,4 +250,92 @@ bool operator!=(const ScopeAllocator<T>& a, const ScopeAllocator<U>& b) noexcept
 {
     return !(a == b);
 }
+
+// == MemoryPool ========================================================================
+// ======================================================================================
+
+namespace detail {
+
+struct PoolBlock {
+public:
+    PoolBlock(size_t block_size, size_t block_count);
+    PoolBlock(const PoolBlock&) = delete;
+    PoolBlock(PoolBlock&&) = default;
+    ~PoolBlock();
+
+    PoolBlock& operator=(const PoolBlock&) = delete;
+    PoolBlock& operator=(PoolBlock&&) = default;
+
+    void* allocate();
+    size_t block_size() const noexcept;
+    void deallocate(void* ptr);
+
+    // private:
+    size_t block_size_;
+    size_t block_count_;
+    std::vector<void*> blocks_;
+    std::vector<void*> free_list_;
+
+    void expand(size_t count);
+};
+
+} // namespace detail
+
+struct MemoryPool {
+    MemoryPool(size_t min_size, size_t max_size, size_t count);
+    void* allocate(size_t size);
+    void deallocate(void* ptr, size_t size);
+
+    // private:
+    std::vector<detail::PoolBlock> pools_;
+    size_t min_size_;
+    size_t max_size_;
+    size_t count_;
+};
+
+// Standard allocator wrapper for MemoryPool
+template <typename T>
+class PoolAllocator {
+public:
+    using value_type = T;
+
+    PoolAllocator(MemoryPool* pool)
+        : pool_(pool)
+    {
+    }
+
+    /// Allocates memory for n objects of type T
+    T* allocate(size_t n)
+    {
+        size_t bytes = n * sizeof(T);
+        return static_cast<T*>(pool_->allocate(bytes));
+    }
+
+    /// Deallocate memory for n objects of type T
+    void deallocate(T* p, size_t n)
+    {
+        size_t bytes = n * sizeof(T);
+        pool_->deallocate(static_cast<void*>(p), bytes);
+    }
+
+    template <typename U>
+    struct rebind {
+        using other = PoolAllocator<U>;
+    };
+
+    // Comparison operators for allocators
+    bool operator==(const PoolAllocator& other) const noexcept
+    {
+        return &pool_ == &other.pool_;
+    }
+
+    bool operator!=(const PoolAllocator& other) const noexcept
+    {
+        return !(*this == other);
+    }
+
+private:
+    MemoryPool* pool_;
+};
+
 } // namespace nw
