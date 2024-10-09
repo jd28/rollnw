@@ -103,9 +103,9 @@ MemoryScope::MemoryScope(MemoryArena* arena)
 
 MemoryScope::MemoryScope(MemoryScope&& other)
 {
-    this->arena_ = other.arena_;
-    this->finalizers_ = other.finalizers_;
-    this->marker_ = other.marker_;
+    arena_ = other.arena_;
+    finalizers_ = other.finalizers_;
+    marker_ = other.marker_;
 
     other.arena_ = nullptr;
     other.finalizers_ = nullptr;
@@ -115,9 +115,10 @@ MemoryScope::MemoryScope(MemoryScope&& other)
 MemoryScope& MemoryScope::operator=(MemoryScope&& other)
 {
     if (this != &other) {
-        this->arena_ = other.arena_;
-        this->finalizers_ = other.finalizers_;
-        this->marker_ = other.marker_;
+        reset();
+        arena_ = other.arena_;
+        finalizers_ = other.finalizers_;
+        marker_ = other.marker_;
 
         other.arena_ = nullptr;
         other.finalizers_ = nullptr;
@@ -128,18 +129,25 @@ MemoryScope& MemoryScope::operator=(MemoryScope&& other)
 
 MemoryScope::~MemoryScope()
 {
-    auto f = finalizers_;
-    while (f) {
-        auto obj = reinterpret_cast<uint8_t*>(f) + sizeof(detail::Finalizer);
-        f->fn(obj);
-        f = f->next;
-    }
-    arena_->rewind(marker_);
+    reset();
 }
 
 void* MemoryScope::allocate(size_t size, size_t alignment)
 {
     return arena_->allocate(size, alignment);
+}
+
+void MemoryScope::reset()
+{
+    if (arena_) {
+        auto f = finalizers_;
+        while (f) {
+            auto obj = reinterpret_cast<uint8_t*>(f) + sizeof(detail::Finalizer);
+            f->fn(obj);
+            f = f->next;
+        }
+        arena_->rewind(marker_);
+    }
 }
 
 // == MemoryPool ========================================================================

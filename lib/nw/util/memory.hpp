@@ -68,7 +68,7 @@ struct MemoryArena : MemoryResource {
     void* allocate(size_t size, size_t alignment = alignof(max_align_t));
 
     /// No-op
-    virtual void deallocate(void*, size_t, size_t) { };
+    virtual void deallocate(void*, size_t, size_t) {};
 
     /// Gets the current point in the allocator
     MemoryMarker current();
@@ -173,7 +173,7 @@ struct MemoryScope : public MemoryResource {
     virtual void* allocate(size_t bytes, size_t alignment = alignof(max_align_t)) override;
 
     /// No-op
-    virtual void deallocate(void*, size_t, size_t) override { };
+    virtual void deallocate(void*, size_t, size_t) override {};
 
     /// Allocates a non-trivial object and stores pointer to destructor that is run when scope exits.
     template <typename T, typename... Args>
@@ -196,6 +196,9 @@ struct MemoryScope : public MemoryResource {
         void* mem = allocate(sizeof(T), alignof(T));
         return new (mem) T();
     }
+
+    /// Resets a memory scope to its original state.
+    void reset();
 
     // private:
     MemoryArena* arena_ = nullptr;
