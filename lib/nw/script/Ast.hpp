@@ -14,7 +14,6 @@
 #include <memory>
 #include <string>
 #include <unordered_map>
-#include <vector>
 
 namespace nw::script {
 
@@ -104,7 +103,7 @@ struct AstNode {
 
     /// Find completions for this Ast Node
     /// @note This function does not traverse dependencies
-    virtual void complete(const String& needle, std::vector<const Declaration*>& out, bool no_filter = false) const;
+    virtual void complete(const String& needle, Vector<const Declaration*>& out, bool no_filter = false) const;
 
     size_t type_id_ = invalid_type_id;
     bool is_const_ = false;
@@ -310,9 +309,9 @@ struct CallExpression : Expression {
     }
 
     Expression* expr = nullptr;
-    std::vector<Expression*> args;
+    Vector<Expression*> args;
     SourceRange arg_range;
-    std::vector<SourceRange> comma_ranges; // This is probably stupid
+    Vector<SourceRange> comma_ranges; // This is probably stupid
 
     DEFINE_ACCEPT_VISITOR
 };
@@ -332,7 +331,7 @@ struct BlockStatement : public Statement {
     BlockStatement(BlockStatement&) = delete;
     BlockStatement& operator=(const BlockStatement&) = delete;
 
-    std::vector<Statement*> nodes;
+    Vector<Statement*> nodes;
 
     DEFINE_ACCEPT_VISITOR
 };
@@ -431,7 +430,7 @@ struct FunctionDecl : public Declaration {
     FunctionDecl& operator=(const FunctionDecl&) = delete;
 
     NssToken identifier_;
-    std::vector<VarDecl*> params;
+    Vector<VarDecl*> params;
 
     virtual String identifier() const override { return String(identifier_.loc.view()); };
 
@@ -449,7 +448,7 @@ struct FunctionDefinition : public Declaration {
 };
 
 struct StructDecl : public Declaration {
-    std::vector<Declaration*> decls;
+    Vector<Declaration*> decls;
 
     virtual String identifier() const override { return String(type.struct_id.loc.view()); };
     const VarDecl* locate_member_decl(StringView name) const;
@@ -468,11 +467,11 @@ struct VarDecl : public Declaration {
 
 /// List of comma separated declarations
 struct DeclList : public Declaration {
-    std::vector<VarDecl*> decls;
+    Vector<VarDecl*> decls;
 
     virtual String identifier() const override
     {
-        std::vector<String> identifiers;
+        Vector<String> identifiers;
         for (const auto decl : decls) {
             identifiers.push_back(decl->identifier());
         }
@@ -517,13 +516,13 @@ struct Ast {
     Ast& operator=(const Ast&) = delete;
     Ast& operator=(Ast&&) = default;
 
-    std::vector<Statement*> decls;
-    std::vector<Include> includes;
+    Vector<Statement*> decls;
+    Vector<Include> includes;
     std::unordered_map<String, String> defines;
-    std::vector<Comment> comments;
-    std::vector<size_t> line_map;
+    Vector<Comment> comments;
+    Vector<size_t> line_map;
 
-    std::vector<std::unique_ptr<AstNode>> nodes_;
+    Vector<std::unique_ptr<AstNode>> nodes_;
 
     template <typename T, typename... Args>
     T* create_node(Args&&... args)

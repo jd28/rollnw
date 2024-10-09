@@ -35,9 +35,9 @@ StaticDirectory::StaticDirectory(const fs::path& path)
     is_valid_ = true;
 }
 
-std::vector<ResourceDescriptor> StaticDirectory::all() const
+Vector<ResourceDescriptor> StaticDirectory::all() const
 {
-    std::vector<ResourceDescriptor> result;
+    Vector<ResourceDescriptor> result;
     for (const auto& [res, path] : resource_to_path_) {
         ResourceDescriptor rd{
             res,

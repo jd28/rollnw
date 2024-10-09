@@ -4,7 +4,6 @@
 #include "../serialization/Serialization.hpp"
 
 #include <string>
-#include <vector>
 
 namespace nw {
 
@@ -35,8 +34,8 @@ struct Faction {
 
     nlohmann::json to_json() const;
 
-    std::vector<FactionInfo> factions;
-    std::vector<Reputation> reputations;
+    Vector<FactionInfo> factions;
+    Vector<Reputation> reputations;
 };
 
 // == Faction - Serialization - Gff ===========================================

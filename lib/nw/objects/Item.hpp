@@ -8,7 +8,6 @@
 #include "ObjectBase.hpp"
 
 #include <array>
-#include <vector>
 
 namespace nw {
 
@@ -45,7 +44,7 @@ struct Item : public ObjectBase {
 
     LocString description;
     LocString description_id;
-    std::vector<ItemProperty> properties;
+    Vector<ItemProperty> properties;
 
     // Transient
     int armor_id = -1;

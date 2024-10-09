@@ -5,7 +5,6 @@
 
 #include <array>
 #include <cstdint>
-#include <vector>
 
 namespace nw {
 
@@ -48,8 +47,8 @@ struct SpellBook {
     /// Removes a memorized spell entry
     void remove_memorized_spell(size_t level, SpellEntry entry);
 
-    std::vector<std::vector<SpellEntry>> known_;
-    std::vector<std::vector<SpellEntry>> memorized_;
+    Vector<Vector<SpellEntry>> known_;
+    Vector<Vector<SpellEntry>> memorized_;
 };
 
 bool deserialize(SpellBook& self, const GffStruct& archive);

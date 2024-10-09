@@ -1,12 +1,12 @@
 #pragma once
 
+#include "../config.hpp"
 #include "../util/templates.hpp"
 #include "Config.hpp"
 
 #include <functional>
 #include <memory>
 #include <typeindex>
-#include <vector>
 
 namespace nw {
 
@@ -47,7 +47,7 @@ struct Service {
     virtual void initialize(ServiceInitTime /*time*/){};
 
     /// Clears a service
-    virtual void clear() {};
+    virtual void clear() { };
 };
 
 struct ServiceEntry {
@@ -83,7 +83,7 @@ struct Services {
     friend void unload_module();
 
 private:
-    std::vector<ServiceEntry> services_;
+    Vector<ServiceEntry> services_;
     std::unique_ptr<GameProfile> profile_;
 };
 

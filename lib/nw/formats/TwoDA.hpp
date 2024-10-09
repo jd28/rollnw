@@ -12,7 +12,6 @@
 #include <optional>
 #include <string>
 #include <string_view>
-#include <vector>
 
 namespace nw {
 
@@ -136,9 +135,9 @@ private:
     bool is_loaded_ = false;
 
     String default_;
-    std::vector<size_t> widths_;
-    std::vector<String> columns_;
-    std::vector<detail::StringVariant> rows_;
+    Vector<size_t> widths_;
+    Vector<String> columns_;
+    Vector<detail::StringVariant> rows_;
 
     bool parse();
 };

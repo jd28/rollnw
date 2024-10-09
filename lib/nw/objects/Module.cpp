@@ -64,16 +64,16 @@ nlohmann::json ModuleScripts::to_json() const
 
 size_t Module::area_count() const noexcept
 {
-    if (std::holds_alternative<std::vector<Area*>>(areas)) {
-        return std::get<std::vector<Area*>>(areas).size();
+    if (std::holds_alternative<Vector<Area*>>(areas)) {
+        return std::get<Vector<Area*>>(areas).size();
     }
     return 0;
 }
 
 Area* Module::get_area(size_t index)
 {
-    if (std::holds_alternative<std::vector<Area*>>(areas) && index < area_count()) {
-        return std::get<std::vector<Area*>>(areas)[index];
+    if (std::holds_alternative<Vector<Area*>>(areas) && index < area_count()) {
+        return std::get<Vector<Area*>>(areas)[index];
     }
 
     return nullptr;
@@ -81,8 +81,8 @@ Area* Module::get_area(size_t index)
 
 const Area* Module::get_area(size_t index) const
 {
-    if (std::holds_alternative<std::vector<Area*>>(areas) && index < area_count()) {
-        return std::get<std::vector<Area*>>(areas)[index];
+    if (std::holds_alternative<Vector<Area*>>(areas) && index < area_count()) {
+        return std::get<Vector<Area*>>(areas)[index];
     }
 
     return nullptr;
@@ -93,8 +93,8 @@ bool Module::instantiate()
     if (instantiated_) return true;
     LOG_F(INFO, "instantiating module");
 
-    auto& area_list = std::get<std::vector<Resref>>(areas);
-    std::vector<Area*> area_objects;
+    auto& area_list = std::get<Vector<Resref>>(areas);
+    Vector<Area*> area_objects;
     area_objects.reserve(area_list.size());
     for (auto& area : area_list) {
         LOG_F(INFO, "  loading area: {}", area);
@@ -118,7 +118,7 @@ bool Module::deserialize(Module* obj, const nlohmann::json& archive)
         obj->locals.from_json(archive.at("locals"));
         obj->scripts.from_json(archive.at("scripts"));
 
-        std::vector<Resref> area_list;
+        Vector<Resref> area_list;
         archive.at("areas").get_to(area_list);
         obj->areas = std::move(area_list);
 
@@ -185,7 +185,7 @@ bool deserialize(Module* obj, const GffStruct& archive)
 
     size_t sz = archive["Mod_Area_list"].size();
     auto st = archive["Mod_Area_list"];
-    std::vector<Resref> area_list;
+    Vector<Resref> area_list;
     area_list.reserve(sz);
 
     for (size_t i = 0; i < sz; ++i) {
@@ -263,11 +263,11 @@ bool Module::serialize(const Module* obj, nlohmann::json& archive)
     archive["locals"] = obj->locals.to_json(SerializationProfile::any);
     archive["scripts"] = obj->scripts.to_json();
 
-    if (std::holds_alternative<std::vector<Resref>>(obj->areas)) {
-        archive["areas"] = std::get<std::vector<Resref>>(obj->areas);
+    if (std::holds_alternative<Vector<Resref>>(obj->areas)) {
+        archive["areas"] = std::get<Vector<Resref>>(obj->areas);
     } else {
         auto& area_list = archive["areas"] = nlohmann::json::array();
-        for (const auto area : std::get<std::vector<Area*>>(obj->areas)) {
+        for (const auto area : std::get<Vector<Area*>>(obj->areas)) {
             area_list.push_back(area->common.resref);
         }
     }
@@ -324,12 +324,12 @@ bool serialize(const Module* obj, GffBuilderStruct& archive)
     serialize(obj->scripts, archive);
 
     auto& area_list = archive.add_list("Mod_Area_list");
-    if (std::holds_alternative<std::vector<Resref>>(obj->areas)) {
-        for (const auto& area : std::get<std::vector<Resref>>(obj->areas)) {
+    if (std::holds_alternative<Vector<Resref>>(obj->areas)) {
+        for (const auto& area : std::get<Vector<Resref>>(obj->areas)) {
             area_list.push_back(6).add_field("Area_Name", area);
         }
     } else {
-        for (const auto& area : std::get<std::vector<Area*>>(obj->areas)) {
+        for (const auto& area : std::get<Vector<Area*>>(obj->areas)) {
             area_list.push_back(6).add_field("Area_Name", area->common.resref);
         }
     }

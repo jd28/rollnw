@@ -187,7 +187,7 @@ struct RuleTypeArray {
         }
     }
 
-    std::vector<RuleTypeInfo> entries;
+    Vector<RuleTypeInfo> entries;
     map_type constant_to_index;
 };
 

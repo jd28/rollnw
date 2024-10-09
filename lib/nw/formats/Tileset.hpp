@@ -5,7 +5,6 @@
 #include <limits>
 #include <stdint.h>
 #include <string>
-#include <vector>
 
 namespace nw {
 
@@ -17,7 +16,7 @@ struct Tile {
 struct Tileset {
     uint32_t strref = std::numeric_limits<uint32_t>::max();
     String name;
-    std::vector<Tile> tiles;
+    Vector<Tile> tiles;
     float tile_height = 5.0;
 };
 

@@ -21,14 +21,14 @@ struct IncludeStackEntry {
 };
 
 struct Context {
-    Context(std::vector<String> include_paths = {}, String command_script = "nwscript");
+    Context(Vector<String> include_paths = {}, String command_script = "nwscript");
     virtual ~Context() = default;
 
     // Resource Loading / Dependency Tracking
-    std::vector<String> include_paths_;
+    Vector<String> include_paths_;
     absl::flat_hash_map<Resource, std::unique_ptr<Nss>> dependencies_;
-    std::vector<IncludeStackEntry> include_stack_;
-    std::vector<IncludeStackEntry> preprocessed_;
+    Vector<IncludeStackEntry> include_stack_;
+    Vector<IncludeStackEntry> preprocessed_;
     kernel::Resources resman_;
 
     /// Adds include path to internal resman
@@ -46,8 +46,8 @@ struct Context {
 
     // Type Tracking
     absl::flat_hash_map<String, size_t> type_map_;
-    std::vector<String> type_array_;
-    std::vector<StructDecl*> struct_stack_;
+    Vector<String> type_array_;
+    Vector<StructDecl*> struct_stack_;
 
     virtual void register_default_types();
     virtual void register_engine_types();

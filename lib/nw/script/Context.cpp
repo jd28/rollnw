@@ -9,7 +9,7 @@ namespace fs = std::filesystem;
 
 namespace nw::script {
 
-Context::Context(std::vector<String> include_paths, String command_script)
+Context::Context(Vector<String> include_paths, String command_script)
     : include_paths_{std::move(include_paths)}
     , dependencies_{}
     , command_script_name_{std::move(command_script)}

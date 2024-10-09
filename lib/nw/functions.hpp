@@ -196,7 +196,7 @@ int count_feats_in_range(const nw::Creature* obj, nw::Feat start, nw::Feat end);
 
 /// Gets all feats for which requirements are met
 /// @note This is not yet very useful until a level up parameter is added.
-std::vector<nw::Feat> get_all_available_feats(const nw::Creature* obj);
+Vector<nw::Feat> get_all_available_feats(const nw::Creature* obj);
 
 /// Gets the highest known successor feat
 std::pair<nw::Feat, int> has_feat_successor(const nw::Creature* obj, nw::Feat feat);

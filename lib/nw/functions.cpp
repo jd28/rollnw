@@ -81,11 +81,11 @@ int count_feats_in_range(const nw::Creature* obj, nw::Feat start, nw::Feat end)
     return result;
 }
 
-std::vector<nw::Feat> get_all_available_feats(const nw::Creature* obj)
+Vector<nw::Feat> get_all_available_feats(const nw::Creature* obj)
 {
     if (!obj) return {};
 
-    std::vector<nw::Feat> result;
+    Vector<nw::Feat> result;
 
     auto& feats = nw::kernel::rules().feats;
     if (!obj) {

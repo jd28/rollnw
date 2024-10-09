@@ -6,7 +6,6 @@
 #include "Saves.hpp"
 
 #include <array>
-#include <vector>
 
 namespace nw {
 
@@ -20,7 +19,7 @@ struct CreatureStats {
     bool add_feat(Feat id);
 
     /// Gets the feat array
-    const std::vector<Feat>& feats() const noexcept;
+    const Vector<Feat>& feats() const noexcept;
 
     /// Gets an ability score
     int get_ability_score(Ability id) const;
@@ -48,8 +47,8 @@ struct CreatureStats {
 
 private:
     std::array<uint8_t, 6> abilities_;
-    std::vector<Feat> feats_;
-    std::vector<uint8_t> skills_;
+    Vector<Feat> feats_;
+    Vector<uint8_t> skills_;
 };
 
 bool deserialize(CreatureStats& self, const GffStruct& archive);

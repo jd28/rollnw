@@ -38,7 +38,7 @@ struct EventHandle {
 
 struct EventSystem : public Service {
     template <typename T>
-    using storage = std::priority_queue<T, std::vector<T>, std::greater<T>>;
+    using storage = std::priority_queue<T, Vector<T>, std::greater<T>>;
 
     void add(EventType type, ObjectBase* object, void* data = nullptr);
     void clear() override;

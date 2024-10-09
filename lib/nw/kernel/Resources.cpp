@@ -77,7 +77,7 @@ bool Resources::load_module(std::filesystem::path path, StringView manifest)
     return true;
 }
 
-void Resources::load_module_haks(const std::vector<String>& haks)
+void Resources::load_module_haks(const Vector<String>& haks)
 {
     for (const auto& h : haks) {
         if (auto c = resolve_container(config().user_path() / "hak", h)) {
@@ -92,9 +92,9 @@ Container* Resources::module_container() const
     return module_.get();
 }
 
-std::vector<Container*> Resources::module_haks() const
+Vector<Container*> Resources::module_haks() const
 {
-    std::vector<Container*> result;
+    Vector<Container*> result;
     for (const auto& hak : module_haks_) {
         result.push_back(hak.get());
     }

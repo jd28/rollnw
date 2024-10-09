@@ -5,7 +5,6 @@
 #include <unzip.h>
 
 #include <filesystem>
-#include <vector>
 
 namespace nw {
 
@@ -18,7 +17,7 @@ struct Zip : public Container {
     Zip(const std::filesystem::path& path);
     ~Zip();
 
-    virtual std::vector<ResourceDescriptor> all() const override;
+    virtual Vector<ResourceDescriptor> all() const override;
     virtual bool contains(Resource res) const override;
     virtual ResourceData demand(Resource res) const override;
     virtual int extract(const std::regex& pattern, const std::filesystem::path& output) const override;
@@ -34,7 +33,7 @@ private:
     String name_;
     unzFile file_ = nullptr;
     bool is_loaded_ = false;
-    std::vector<ZipElement> elements_;
+    Vector<ZipElement> elements_;
 
     bool load();
 };

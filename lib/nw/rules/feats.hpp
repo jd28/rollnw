@@ -8,7 +8,6 @@
 
 #include <cstdint>
 #include <limits>
-#include <vector>
 
 namespace nw {
 
@@ -90,7 +89,7 @@ struct MasterFeatRegistry {
     template <typename T>
     void add(T type, MasterFeat mfeat, Feat feat);
     void clear() noexcept;
-    const std::vector<MasterFeatEntry>& entries() const noexcept { return entries_; }
+    const Vector<MasterFeatEntry>& entries() const noexcept { return entries_; }
     const ModifierVariant& get_bonus(MasterFeat mfeat) const;
 
     template <typename T>
@@ -99,8 +98,8 @@ struct MasterFeatRegistry {
     void set_bonus(MasterFeat mfeat, ModifierVariant bonus);
 
 private:
-    std::vector<MasterFeatEntry> entries_;
-    std::vector<ModifierVariant> bonuses_;
+    Vector<MasterFeatEntry> entries_;
+    Vector<ModifierVariant> bonuses_;
 };
 
 template <typename T>

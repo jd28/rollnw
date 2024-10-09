@@ -17,7 +17,6 @@
 #include <limits>
 #include <memory>
 #include <utility>
-#include <vector>
 
 namespace nw::kernel {
 
@@ -72,7 +71,7 @@ struct Rules : public Service {
     TrapArray traps;
 
 private:
-    std::vector<bool (*)(const Qualifier&, const ObjectBase*)> qualifiers_;
+    Vector<bool (*)(const Qualifier&, const ObjectBase*)> qualifiers_;
     absl::flat_hash_map<int32_t, CombatModeFuncs> combat_modes_;
     absl::flat_hash_map<int32_t, SpecialAttackFuncs> special_attacks_;
     AttackFuncs attack_functions_;
@@ -143,7 +142,7 @@ bool calc_mod_input(T& out, const ObjectBase* obj, const ObjectBase* versus,
 }
 
 template <typename It>
-inline std::vector<Modifier>::const_iterator
+inline Vector<Modifier>::const_iterator
 find_first_modifier_of(It begin, It end, const ModifierType type, int32_t subtype = -1)
 {
     Modifier temp{type, {}, {}, ModifierSource::unknown, Requirement{}, subtype};
@@ -228,7 +227,7 @@ bool resolve_modifier(const ObjectBase* obj, const ModifierType type, SubType su
     const ObjectBase* versus, Callback cb)
 {
     static_assert(is_rule_type<SubType>(), "Subtypes must be rule types");
-    std::vector<Modifier>::const_iterator it = std::cbegin(rules().modifiers);
+    Vector<Modifier>::const_iterator it = std::cbegin(rules().modifiers);
     auto end = std::cend(rules().modifiers);
     if (subtype != SubType::invalid()) {
         it = detail::find_first_modifier_of(it, end, type);

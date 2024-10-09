@@ -4,8 +4,6 @@
 #include "../resources/ResourceType.hpp"
 #include "../serialization/Serialization.hpp"
 
-#include <vector>
-
 namespace nw {
 
 struct JournalEntry {
@@ -16,7 +14,7 @@ struct JournalEntry {
 
 struct JournalCategory {
     String comment;
-    std::vector<JournalEntry> entries;
+    Vector<JournalEntry> entries;
     LocString name;
     String tag;
     uint32_t priority;
@@ -30,7 +28,7 @@ struct Journal {
     static constexpr int json_archive_version = 1;
     static constexpr ResourceType::type restype = ResourceType::jrl;
 
-    std::vector<JournalCategory> categories;
+    Vector<JournalCategory> categories;
 };
 
 } // namespace nw

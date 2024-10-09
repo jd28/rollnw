@@ -105,8 +105,8 @@ struct ObjectSystem : public Service {
     bool valid(ObjectHandle obj) const;
 
 private:
-    std::stack<ObjectID, std::vector<ObjectID>> free_list_;
-    std::vector<ObjectPayload> objects_;
+    std::stack<ObjectID, Vector<ObjectID>> free_list_;
+    Vector<ObjectPayload> objects_;
     absl::btree_multimap<InternedString, ObjectHandle> object_tag_map_;
     MemoryArena obj_arena_{MB(1)};
 

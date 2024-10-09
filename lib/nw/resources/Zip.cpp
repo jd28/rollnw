@@ -37,9 +37,9 @@ Zip::~Zip()
     unzClose(file_);
 }
 
-std::vector<ResourceDescriptor> Zip::all() const
+Vector<ResourceDescriptor> Zip::all() const
 {
-    std::vector<ResourceDescriptor> res;
+    Vector<ResourceDescriptor> res;
     res.reserve(elements_.size());
     for (const auto& it : elements_) {
         res.push_back({it.resref, it.size, 0, this});

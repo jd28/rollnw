@@ -10,6 +10,7 @@
 #include "util/memory.hpp"
 
 #include <string>
+#include <vector>
 
 namespace nw {
 

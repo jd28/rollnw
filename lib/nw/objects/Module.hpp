@@ -42,7 +42,7 @@ struct ModuleScripts {
 };
 
 struct Module : public ObjectBase {
-    using AreaVariant = std::variant<std::vector<Resref>, std::vector<Area*>>;
+    using AreaVariant = std::variant<Vector<Resref>, Vector<Area*>>;
 
     static constexpr int json_archive_version = 1;
     static constexpr ObjectType object_type = ObjectType::module;
@@ -67,7 +67,7 @@ struct Module : public ObjectBase {
     Resref entry_area;
     glm::vec3 entry_orientation;
     glm::vec3 entry_position;
-    std::vector<String> haks;
+    Vector<String> haks;
     ByteArray id;
     String min_game_version;
     LocString name;

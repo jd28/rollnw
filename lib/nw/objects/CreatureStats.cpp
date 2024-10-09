@@ -54,7 +54,7 @@ bool CreatureStats::add_feat(Feat feat)
     return false;
 }
 
-const std::vector<Feat>& CreatureStats::feats() const noexcept
+const Vector<Feat>& CreatureStats::feats() const noexcept
 {
     return feats_;
 }

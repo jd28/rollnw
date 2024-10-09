@@ -5,7 +5,6 @@
 #include <absl/container/flat_hash_map.h>
 
 #include <string>
-#include <vector>
 
 namespace nw::kernel {
 
@@ -14,7 +13,7 @@ struct FactionSystem : public Service {
     virtual void clear() override;
 
     /// Gets all factions by name
-    std::vector<String> all() const;
+    Vector<String> all() const;
 
     /// Gets number of factions
     size_t count() const;

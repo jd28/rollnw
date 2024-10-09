@@ -13,7 +13,6 @@
 #include <filesystem>
 #include <set>
 #include <string>
-#include <vector>
 
 namespace nw::script {
 
@@ -69,7 +68,7 @@ struct CompletionContext {
     }
 
     std::unordered_map<String, size_t> completion_map;
-    std::vector<Symbol> completions;
+    Vector<Symbol> completions;
 };
 
 struct Nss {
@@ -94,7 +93,7 @@ struct Nss {
         bool no_filter = false);
 
     /// Get all completions (including dependencies)
-    void complete_dot(const String& needle, size_t line, size_t character, std::vector<Symbol>& out,
+    void complete_dot(const String& needle, size_t line, size_t character, Vector<Symbol>& out,
         bool no_filter = false);
 
     /// Script context
@@ -106,10 +105,10 @@ struct Nss {
 
     /// Returns all transitive dependencies in 'preprocessed' order,
     /// i.e. dependencies()[n] was include before dependencies()[n+1]
-    std::vector<String> dependencies() const;
+    Vector<String> dependencies() const;
 
     /// Gets script diagnostics
-    const std::vector<Diagnostic>& diagnostics() const noexcept;
+    const Vector<Diagnostic>& diagnostics() const noexcept;
 
     /// Returns how many errors were found during parsing
     size_t errors() const noexcept { return errors_; }
@@ -126,7 +125,7 @@ struct Nss {
     /// Increments warning count
     void increment_warnings() noexcept { ++warnings_; }
 
-    std::vector<InlayHint> inlay_hints(SourceRange range);
+    Vector<InlayHint> inlay_hints(SourceRange range);
 
     /// Is script a command script
     bool is_command_script() const noexcept { return is_command_script_; }
@@ -169,7 +168,7 @@ private:
     StringView text_;
     Ast ast_;
     immer::map<String, Export> symbol_table_;
-    std::vector<Diagnostic> diagnostics_;
+    Vector<Diagnostic> diagnostics_;
     size_t errors_ = 0;
     size_t warnings_ = 0;
     bool resolved_ = false;

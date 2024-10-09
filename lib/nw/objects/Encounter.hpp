@@ -6,8 +6,6 @@
 
 #include <glm/glm.hpp>
 
-#include <vector>
-
 namespace nw {
 
 struct EncounterScripts {
@@ -59,9 +57,9 @@ struct Encounter : public ObjectBase {
 
     Common common;
     EncounterScripts scripts;
-    std::vector<SpawnCreature> creatures;
-    std::vector<glm::vec3> geometry;
-    std::vector<SpawnPoint> spawn_points;
+    Vector<SpawnCreature> creatures;
+    Vector<glm::vec3> geometry;
+    Vector<SpawnPoint> spawn_points;
 
     int32_t creatures_max = -1;
     int32_t creatures_recommended = 0;

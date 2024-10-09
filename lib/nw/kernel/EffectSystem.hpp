@@ -79,9 +79,9 @@ struct EffectSystem : public Service {
 private:
     absl::flat_hash_map<int32_t, EffectPair> registry_;
     absl::flat_hash_map<int32_t, ItemPropFunc> itemprops_;
-    std::vector<ItemPropertyDefinition> ip_definitions_;
-    std::vector<const TwoDA*> ip_cost_table_;
-    std::vector<const TwoDA*> ip_param_table_;
+    Vector<ItemPropertyDefinition> ip_definitions_;
+    Vector<const TwoDA*> ip_cost_table_;
+    Vector<const TwoDA*> ip_param_table_;
     std::deque<Effect> pool_;
     std::stack<uint32_t> free_list_;
 };

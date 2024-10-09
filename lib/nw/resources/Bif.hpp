@@ -1,9 +1,10 @@
 #pragma once
 
+#include "../config.hpp"
+
 #include <filesystem>
 #include <fstream>
 #include <string>
-#include <vector>
 
 namespace nw {
 
@@ -38,7 +39,7 @@ private:
     std::filesystem::path path_;
     mutable std::ifstream file_;
     std::streamsize fsize_;
-    std::vector<BifElement> elements;
+    Vector<BifElement> elements;
     bool is_loaded_;
 
     bool load();

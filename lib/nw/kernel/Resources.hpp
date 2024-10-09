@@ -40,7 +40,7 @@ struct Resources : public Container, public Service {
     Resources(const Resources* parent = nullptr);
     virtual ~Resources() = default;
 
-    using SearchVector = std::vector<LocatorPayload>;
+    using SearchVector = Vector<LocatorPayload>;
 
     /// Initializes resources management system
     virtual void initialize(ServiceInitTime time) override;
@@ -68,13 +68,13 @@ struct Resources : public Container, public Service {
     bool load_module(std::filesystem::path path, StringView manifest = {});
 
     /// Loads module haks
-    void load_module_haks(const std::vector<String>& haks);
+    void load_module_haks(const Vector<String>& haks);
 
     /// Gets module container
     Container* module_container() const;
 
     /// Gets module haks
-    std::vector<Container*> module_haks() const;
+    Vector<Container*> module_haks() const;
 
     /// Unloads module
     void unload_module();
@@ -98,7 +98,7 @@ struct Resources : public Container, public Service {
     /// plt is not included here or are other image types, png, etc.
     Image* texture(Resref resref) const;
 
-    virtual std::vector<ResourceDescriptor> all() const override
+    virtual Vector<ResourceDescriptor> all() const override
     {
         return {};
     }
@@ -124,13 +124,13 @@ private:
 
     SearchVector search_;
 
-    std::vector<LocatorPayload> custom_;
-    std::vector<LocatorPayload> override_;
+    Vector<LocatorPayload> custom_;
+    Vector<LocatorPayload> override_;
 
     unique_container module_;
-    std::vector<unique_container> module_haks_;
+    Vector<unique_container> module_haks_;
 
-    std::vector<LocatorPayload> game_;
+    Vector<LocatorPayload> game_;
 
     NWSyncManifest* nwsync_manifest_ = nullptr;
 

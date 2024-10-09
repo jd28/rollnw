@@ -49,7 +49,7 @@ struct CombatInfo {
     int32_t size_ab_modifier = 0;
     int32_t size_ac_modifier = 0;
 
-    std::vector<SpecialAbility> special_abilities;
+    Vector<SpecialAbility> special_abilities;
 };
 
 bool deserialize(CombatInfo& self, const GffStruct& archive);

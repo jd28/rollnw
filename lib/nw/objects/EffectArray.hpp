@@ -6,7 +6,7 @@
 namespace nw {
 
 struct EffectArray {
-    using storage = std::vector<EffectHandle>;
+    using storage = Vector<EffectHandle>;
 
     using iterator = storage::iterator;
     using const_iterator = storage::const_iterator;

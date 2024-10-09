@@ -26,9 +26,9 @@ NWSyncManifest::NWSyncManifest(String manifest, NWSync* parent)
 {
 }
 
-std::vector<ResourceDescriptor> NWSyncManifest::all() const
+Vector<ResourceDescriptor> NWSyncManifest::all() const
 {
-    std::vector<ResourceDescriptor> result;
+    Vector<ResourceDescriptor> result;
 
     sqlite3_stmt* stmt = nullptr;
     const char* tail = nullptr;
@@ -236,9 +236,9 @@ NWSyncManifest* NWSync::get(StringView manifest)
     return it != std::end(map_) ? &it->second : nullptr;
 }
 
-std::vector<String> NWSync::manifests()
+Vector<String> NWSync::manifests()
 {
-    std::vector<String> result;
+    Vector<String> result;
 
     sqlite3_stmt* stmt = nullptr;
     const char* tail = nullptr;

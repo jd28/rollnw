@@ -5,8 +5,6 @@
 #include "Item.hpp"
 #include "ObjectBase.hpp"
 
-#include <vector>
-
 namespace nw {
 
 struct StoreScripts {
@@ -27,8 +25,8 @@ struct StoreInventory {
     Inventory potions;
     Inventory rings;
     Inventory weapons;
-    std::vector<int32_t> will_not_buy;
-    std::vector<int32_t> will_only_buy;
+    Vector<int32_t> will_not_buy;
+    Vector<int32_t> will_only_buy;
 };
 
 struct Store : public ObjectBase {

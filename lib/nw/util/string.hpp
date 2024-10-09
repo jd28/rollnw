@@ -5,7 +5,6 @@
 #include <optional>
 #include <regex>
 #include <string>
-#include <vector>
 
 /// namespace for string related functions
 namespace nw::string {
@@ -62,7 +61,7 @@ String* trim_in_place(String* str);
  * @param delim Separator.  Default " "
  * @return String
  */
-String join(const std::vector<String>& strings, const char* delim = " ");
+String join(const Vector<String>& strings, const char* delim = " ");
 
 /**
  * @brief Splits a string into an vector of strings
@@ -71,9 +70,9 @@ String join(const std::vector<String>& strings, const char* delim = " ");
  * @param delim Delimiter
  * @param skipEmpty Ignore empty strings
  * @param trimmed Trim strings after split
- * @return std::vector<String>
+ * @return Vector<String>
  */
-std::vector<String> split(const String& str, char delim, bool skipEmpty = true, bool trimmed = true);
+Vector<String> split(const String& str, char delim, bool skipEmpty = true, bool trimmed = true);
 
 /// Case insenstive comparison
 bool icmp(StringView first, StringView second);

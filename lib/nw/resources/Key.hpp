@@ -10,7 +10,6 @@
 #include <memory>
 #include <regex>
 #include <string>
-#include <vector>
 
 namespace nw {
 
@@ -29,7 +28,7 @@ struct Key : public Container {
     /// Returns if Key file was successfully loaded
     bool is_loaded() const noexcept { return is_loaded_; }
 
-    virtual std::vector<ResourceDescriptor> all() const override;
+    virtual Vector<ResourceDescriptor> all() const override;
     virtual bool contains(Resource res) const override;
     virtual ResourceData demand(Resource res) const override;
     virtual int extract(const std::regex& pattern, const std::filesystem::path& output) const override;
@@ -47,7 +46,7 @@ private:
     String path_;
     String name_;
     std::streamsize fsize_;
-    std::vector<Bif> bifs_;
+    Vector<Bif> bifs_;
     absl::flat_hash_map<Resource, KeyTableElement> elements_;
     bool is_loaded_ = false;
     bool load();

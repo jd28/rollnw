@@ -6,13 +6,12 @@
 
 #include <cstdint>
 #include <limits>
-#include <vector>
 
 namespace nw {
 
 struct LocString {
     using LocStringPair = std::pair<uint32_t, String>;
-    using Storage = std::vector<LocStringPair>;
+    using Storage = Vector<LocStringPair>;
     using size_type = Storage::size_type;
     using iterator = Storage::iterator;
     using const_iterator = Storage::const_iterator;

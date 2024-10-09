@@ -7,7 +7,6 @@
 #include <stdexcept>
 #include <string>
 #include <string_view>
-#include <vector>
 
 namespace nw::script {
 
@@ -28,7 +27,7 @@ struct NssParser {
     StringView view_;
     Ast ast_;
 
-    std::vector<NssToken> tokens;
+    Vector<NssToken> tokens;
     size_t current_ = 0;
 
     /// Advances the token stream

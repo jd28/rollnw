@@ -105,20 +105,20 @@ struct Area : public ObjectBase {
     AreaWeather weather;
 
     // [TODO] will maybe need to merge later on.
-    std::vector<Creature*> creatures;
-    std::vector<Door*> doors;
-    std::vector<Encounter*> encounters;
-    std::vector<Item*> items;
-    std::vector<Placeable*> placeables;
-    std::vector<Sound*> sounds;
-    std::vector<Store*> stores;
-    std::vector<Trigger*> triggers;
-    std::vector<Waypoint*> waypoints;
+    Vector<Creature*> creatures;
+    Vector<Door*> doors;
+    Vector<Encounter*> encounters;
+    Vector<Item*> items;
+    Vector<Placeable*> placeables;
+    Vector<Sound*> sounds;
+    Vector<Store*> stores;
+    Vector<Trigger*> triggers;
+    Vector<Waypoint*> waypoints;
     String comments;
     LocString name;
     Tileset* tileset = nullptr;
     Resref tileset_resref;
-    std::vector<AreaTile> tiles;
+    Vector<AreaTile> tiles;
 
     int32_t creator_id = 0;
     AreaFlags flags;

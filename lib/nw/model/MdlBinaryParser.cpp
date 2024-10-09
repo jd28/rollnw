@@ -23,13 +23,13 @@ struct GeomCxt {
         weights.clear();
     }
 
-    std::vector<detail::MdlBinaryFace> faces;
-    std::vector<glm::vec3> verts;
-    std::array<std::vector<glm::vec2>, 4> tverts;
-    std::vector<glm::vec3> normals;
-    std::vector<glm::vec4> tangents;
-    std::vector<std::array<uint16_t, 4>> bones;
-    std::vector<glm::vec4> weights;
+    Vector<detail::MdlBinaryFace> faces;
+    Vector<glm::vec3> verts;
+    std::array<Vector<glm::vec2>, 4> tverts;
+    Vector<glm::vec3> normals;
+    Vector<glm::vec4> tangents;
+    Vector<std::array<uint16_t, 4>> bones;
+    Vector<glm::vec4> weights;
 };
 
 template <size_t N>

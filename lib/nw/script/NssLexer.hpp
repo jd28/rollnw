@@ -24,7 +24,7 @@ struct NssLexer {
     const NssToken& current() const;
     const char* data() const;
 
-    std::vector<size_t> line_map;
+    Vector<size_t> line_map;
 
 private:
     char get(size_t pos) const;

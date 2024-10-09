@@ -31,7 +31,7 @@ DialogPtr* DialogPtr::add_ptr(DialogPtr* ptr, bool is_link)
         return new_ptr;
     } else {
         node->pointers.push_back(ptr);
-        std::vector<DialogNode*> subnodes;
+        Vector<DialogNode*> subnodes;
         ptr->get_all_subnodes(subnodes);
         for (auto n : subnodes) {
             parent->add_node_internal(n, n->type);
@@ -63,7 +63,7 @@ void DialogPtr::remove_ptr(DialogPtr* ptr)
 {
     auto it = std::remove(std::begin(node->pointers), std::end(node->pointers), ptr);
     node->pointers.erase(it, std::end(node->pointers));
-    std::vector<DialogNode*> subnodes;
+    Vector<DialogNode*> subnodes;
     ptr->get_all_subnodes(subnodes);
     for (auto n : subnodes) {
         parent->remove_node_internal(n, n->type);
@@ -93,7 +93,7 @@ std::optional<String> DialogPtr::get_condition_param(const String& key)
     return {};
 }
 
-void DialogPtr::get_all_subnodes(std::vector<DialogNode*>& subnodes)
+void DialogPtr::get_all_subnodes(Vector<DialogNode*>& subnodes)
 {
     if (!is_link) {
         subnodes.push_back(node);
@@ -212,7 +212,7 @@ DialogPtr* Dialog::add_ptr(DialogPtr* ptr, bool is_link)
     } else {
         ptr->is_start = true;
         starts.push_back(ptr);
-        std::vector<DialogNode*> subnodes;
+        Vector<DialogNode*> subnodes;
         ptr->get_all_subnodes(subnodes);
 
         for (auto node : subnodes) {
@@ -287,7 +287,7 @@ void Dialog::remove_ptr(DialogPtr* ptr)
     starts.erase(it, std::end(starts));
     if (ptr->is_link) { return; }
 
-    std::vector<DialogNode*> subnodes;
+    Vector<DialogNode*> subnodes;
     ptr->get_all_subnodes(subnodes);
     for (auto node : subnodes) {
         remove_node_internal(node, node->type);
@@ -364,7 +364,7 @@ bool Dialog::read_nodes(const GffStruct gff, DialogNodeType node_type)
 {
     StringView node_list;
     StringView ptr_list;
-    std::vector<DialogNode*>* holder;
+    Vector<DialogNode*>* holder;
 
     if (node_type == DialogNodeType::entry) {
         holder = &entries;
@@ -527,7 +527,7 @@ GffBuilder serialize(const Dialog* obj)
     gff.top.add_field("NumWords", obj->word_count);
 
     DialogNodeType node_type = DialogNodeType::reply;
-    const std::vector<DialogNode*>* holder = &obj->entries;
+    const Vector<DialogNode*>* holder = &obj->entries;
     StringView node_list = "EntryList";
     StringView ptr_list = "RepliesList";
 

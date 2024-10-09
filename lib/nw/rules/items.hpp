@@ -10,7 +10,6 @@
 
 #include <cstdint>
 #include <utility>
-#include <vector>
 
 namespace nw {
 

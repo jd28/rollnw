@@ -91,7 +91,7 @@ enum struct ModifierSource {
 };
 
 struct ModifierResult {
-    ModifierResult() {};
+    ModifierResult() { };
     ModifierResult(int value);
     ModifierResult(float value);
     ModifierResult(DamageRoll value);
@@ -183,7 +183,7 @@ inline bool operator<(const Modifier& lhs, const Modifier& rhs)
 }
 
 struct ModifierRegistry {
-    using Storage = std::vector<Modifier>;
+    using Storage = Vector<Modifier>;
     using iterator = Storage::iterator;
     using const_iterator = Storage::const_iterator;
 

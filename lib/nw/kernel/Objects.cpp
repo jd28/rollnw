@@ -22,7 +22,7 @@ void ObjectSystem::clear()
     }
 
     // Clear the free list
-    free_list_ = std::stack<ObjectID, std::vector<ObjectID>>();
+    free_list_ = std::stack<ObjectID, Vector<ObjectID>>();
     objects_.clear();
     module_.reset();
     areas_.clear();

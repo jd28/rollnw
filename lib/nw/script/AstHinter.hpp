@@ -3,8 +3,6 @@
 #include "../log.hpp"
 #include "Nss.hpp"
 
-#include <vector>
-
 namespace nw::script {
 
 struct AstHinter : public BaseVisitor {
@@ -18,7 +16,7 @@ struct AstHinter : public BaseVisitor {
 
     Nss* parent_ = nullptr;
     SourceRange range_;
-    std::vector<InlayHint> result_;
+    Vector<InlayHint> result_;
 
     const Declaration* locate_in_dependencies(const String& needle)
     {

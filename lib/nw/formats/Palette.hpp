@@ -44,7 +44,7 @@ struct PaletteTreeNode {
     float cr = 0.0;
     String faction;
 
-    std::vector<PaletteTreeNode> children;
+    Vector<PaletteTreeNode> children;
 };
 
 struct Palette {

@@ -5,7 +5,6 @@
 
 #include <cstdint>
 #include <variant>
-#include <vector>
 
 namespace nw {
 
@@ -36,7 +35,7 @@ struct Inventory {
     nlohmann::json to_json(SerializationProfile profile) const;
 
     ObjectBase* owner;
-    std::vector<InventoryItem> items;
+    Vector<InventoryItem> items;
 };
 
 bool deserialize(Inventory& self, const GffStruct& archive, SerializationProfile profile);

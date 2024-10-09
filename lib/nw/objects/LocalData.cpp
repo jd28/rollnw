@@ -43,7 +43,7 @@ void LocalData::clear(StringView var, uint32_t type)
 
 void LocalData::clear_all(uint32_t type)
 {
-    static std::vector<StringView> eraser;
+    static Vector<StringView> eraser;
 
     for (auto& [k, v] : vars_) {
         switch (type) {

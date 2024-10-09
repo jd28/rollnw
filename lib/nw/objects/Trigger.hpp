@@ -7,8 +7,6 @@
 
 #include <glm/glm.hpp>
 
-#include <vector>
-
 namespace nw {
 
 struct TriggerScripts {
@@ -47,7 +45,7 @@ struct Trigger : public ObjectBase {
     Common common;
     Trap trap;
     TriggerScripts scripts;
-    std::vector<glm::vec3> geometry;
+    Vector<glm::vec3> geometry;
     String linked_to;
 
     uint32_t faction = 0;

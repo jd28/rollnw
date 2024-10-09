@@ -29,7 +29,7 @@ struct GffBuilderStruct {
     GffBuilder* parent = nullptr;
     uint32_t index = 0;
     uint32_t id = 0;
-    std::vector<GffBuilderField> field_entries;
+    Vector<GffBuilderField> field_entries;
 };
 
 struct GffBuilderList {
@@ -40,7 +40,7 @@ struct GffBuilderList {
     size_t size() const noexcept { return structs.size(); }
 
     GffBuilder* parent = nullptr;
-    std::vector<GffBuilderStruct> structs;
+    Vector<GffBuilderStruct> structs;
 };
 
 struct GffBuilderField {
@@ -67,11 +67,11 @@ struct GffBuilder {
 
     GffHeader header;
     ByteArray data;
-    std::vector<GffLabel> labels;
-    std::vector<uint32_t> field_indices;
-    std::vector<uint32_t> list_indices;
-    std::vector<GffFieldEntry> field_entries;
-    std::vector<GffStructEntry> struct_entries;
+    Vector<GffLabel> labels;
+    Vector<uint32_t> field_indices;
+    Vector<uint32_t> list_indices;
+    Vector<GffFieldEntry> field_entries;
+    Vector<GffStructEntry> struct_entries;
 };
 
 template <typename T>

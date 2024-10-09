@@ -25,7 +25,7 @@ struct Sound : public ObjectBase {
     static String get_name_from_file(const std::filesystem::path& path);
 
     Common common;
-    std::vector<Resref> sounds;
+    Vector<Resref> sounds;
 
     float distance_min = 0.0f;
     float distance_max = 0.0f;

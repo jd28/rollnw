@@ -205,8 +205,8 @@ Node::Node(String name_, uint32_t type_)
 {
 }
 
-void Node::add_controller_data(StringView name_, uint32_t type_, std::vector<float> times_,
-    std::vector<float> data_, int rows_, int columns_)
+void Node::add_controller_data(StringView name_, uint32_t type_, Vector<float> times_,
+    Vector<float> data_, int rows_, int columns_)
 {
     ControllerKey k{
         nw::kernel::strings().intern(name_),

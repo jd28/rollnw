@@ -56,9 +56,9 @@ Key::Key(fs::path path)
     is_loaded_ = load();
 }
 
-std::vector<ResourceDescriptor> Key::all() const
+Vector<ResourceDescriptor> Key::all() const
 {
-    std::vector<ResourceDescriptor> result;
+    Vector<ResourceDescriptor> result;
     result.reserve(elements_.size());
     for (const auto& [k, v] : elements_) {
         result.push_back({k, bifs_[v.bif].elements[v.index].size, 0, this});
@@ -168,7 +168,7 @@ bool Key::load()
     CHECK_OFFSET(sizeof(KeyHeader));
     istream_read(file, &header, sizeof(KeyHeader));
 
-    std::vector<FileTable> fts;
+    Vector<FileTable> fts;
     fts.resize(header.bif_count);
     CHECK_OFFSET(header.offset_file_table);
     file.seekg(header.offset_file_table);
@@ -176,7 +176,7 @@ bool Key::load()
     istream_read(file, &fts[0], sizeof(FileTable) * header.bif_count);
 
     bifs_.reserve(header.bif_count);
-    std::vector<String> bif_names;
+    Vector<String> bif_names;
     bif_names.reserve(header.bif_count);
 
     auto bif_path = fs::path(path_).parent_path().parent_path();

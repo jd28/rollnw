@@ -9,7 +9,6 @@
 #include <sqlite3.h>
 
 #include <filesystem>
-#include <vector>
 
 namespace nw {
 
@@ -36,7 +35,7 @@ struct NWSyncManifest : public Container {
     NWSyncManifest() = default;
     NWSyncManifest(String manifest, NWSync* parent);
 
-    virtual std::vector<ResourceDescriptor> all() const override;
+    virtual Vector<ResourceDescriptor> all() const override;
     virtual bool contains(Resource res) const override;
     virtual ResourceData demand(Resource res) const override;
     virtual int extract(const std::regex& pattern, const std::filesystem::path& output) const override;
@@ -66,7 +65,7 @@ struct NWSync {
     bool is_loaded() const noexcept;
 
     /// Get list of all manifests
-    std::vector<String> manifests();
+    Vector<String> manifests();
 
     /// Get the number of shards
     size_t shard_count() const noexcept;
@@ -75,7 +74,7 @@ struct NWSync {
     sqlite3* meta() { return meta_.get(); }
 
     /// List of all shards as active Sqlite3 connections
-    std::vector<sqlite3_ptr>& shards() { return shards_; }
+    Vector<sqlite3_ptr>& shards() { return shards_; }
 
     NWSync& operator=(const NWSync&) = delete;
     NWSync& operator=(NWSync&&) = default;
@@ -85,7 +84,7 @@ private:
 
     std::filesystem::path path_;
     sqlite3_ptr meta_;
-    std::vector<sqlite3_ptr> shards_;
+    Vector<sqlite3_ptr> shards_;
     absl::flat_hash_map<String, NWSyncManifest> map_;
 
     bool is_loaded_ = false;

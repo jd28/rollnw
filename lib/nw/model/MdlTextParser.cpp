@@ -32,13 +32,13 @@ struct GeomCxt {
         weights.clear();
     }
 
-    std::vector<Face> faces;
-    std::vector<glm::vec3> verts;
-    std::array<std::vector<glm::vec3>, 4> tverts;
-    std::vector<glm::vec3> normals;
-    std::vector<glm::vec4> tangents;
-    std::vector<std::array<String, 4>> bones;
-    std::vector<glm::vec4> weights;
+    Vector<Face> faces;
+    Vector<glm::vec3> verts;
+    std::array<Vector<glm::vec3>, 4> tverts;
+    Vector<glm::vec3> normals;
+    Vector<glm::vec4> tangents;
+    Vector<std::array<String, 4>> bones;
+    Vector<glm::vec4> weights;
 };
 
 inline bool is_newline(StringView tk)
@@ -217,7 +217,7 @@ bool parse_tokens(Tokenizer& tokens, StringView name, AABBNode* node)
 }
 
 template <typename T>
-bool parse_tokens(Tokenizer& tokens, StringView name, std::vector<T>& out)
+bool parse_tokens(Tokenizer& tokens, StringView name, Vector<T>& out)
 {
     uint32_t size;
     if (!parse_tokens(tokens, name, size)) return false;
@@ -412,8 +412,8 @@ bool TextParser::parse_controller(Node* node, StringView name, uint32_t type)
     while (is_newline(tk))
         tk = tokens_.next();
 
-    std::vector<float> time;
-    std::vector<float> data;
+    Vector<float> time;
+    Vector<float> data;
     data.reserve(128);
 
     // Special case detonate

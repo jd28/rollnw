@@ -9,12 +9,11 @@
 #include <ios>
 #include <span>
 #include <string>
-#include <vector>
 
 namespace nw {
 
 struct ByteArray {
-    using Base = std::vector<uint8_t>;
+    using Base = Vector<uint8_t>;
     using iterator = Base::iterator;
     using const_iterator = Base::const_iterator;
     using size_type = Base::size_type;
@@ -73,7 +72,7 @@ struct ByteArray {
     static ByteArray from_file(const std::filesystem::path& path);
 
 private:
-    std::vector<uint8_t> array_;
+    Vector<uint8_t> array_;
 };
 
 void from_json(const nlohmann::json& json, ByteArray& ba);

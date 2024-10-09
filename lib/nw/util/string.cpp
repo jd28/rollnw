@@ -102,15 +102,15 @@ String* trim_in_place(String* str)
     return ltrim_in_place(rtrim_in_place(str));
 }
 
-String join(const std::vector<String>& strings, const char* delim)
+String join(const Vector<String>& strings, const char* delim)
 {
     if (strings.empty()) return {};
     return absl::StrJoin(strings, delim);
 }
 
-std::vector<String> split(const String& sp, char delim, bool skipEmpty, bool trimmed)
+Vector<String> split(const String& sp, char delim, bool skipEmpty, bool trimmed)
 {
-    std::vector<String> v;
+    Vector<String> v;
 
     if (skipEmpty)
         v = absl::StrSplit(sp, delim, absl::SkipWhitespace());

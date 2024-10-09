@@ -10,7 +10,6 @@
 #include <immer/map.hpp>
 
 #include <unordered_map>
-#include <vector>
 
 namespace nw::script {
 
@@ -34,8 +33,8 @@ struct AstResolver : BaseVisitor {
     virtual ~AstResolver() = default;
 
     using ScopeMap = std::unordered_map<String, ScopeDecl>;
-    using ScopeStack = std::vector<ScopeMap>;
-    using EnvStack = std::vector<immer::map<String, Export>>;
+    using ScopeStack = Vector<ScopeMap>;
+    using EnvStack = Vector<immer::map<String, Export>>;
 
     Nss* parent_ = nullptr;
     Context* ctx_ = nullptr;

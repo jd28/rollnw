@@ -200,10 +200,10 @@ bool Erf::save_as(const std::filesystem::path& path) const
 
     uint32_t data_offset = header.offset_res + static_cast<uint32_t>(header.entry_count * sizeof(ErfElementInfo));
 
-    std::vector<Resource> entries;
-    std::vector<ErfKey<16>> entry_keys16;
-    std::vector<ErfKey<32>> entry_keys32;
-    std::vector<ErfElementInfo> entry_info;
+    Vector<Resource> entries;
+    Vector<ErfKey<16>> entry_keys16;
+    Vector<ErfKey<32>> entry_keys32;
+    Vector<ErfElementInfo> entry_info;
     entries.reserve(elements_.size());
     if (version == ErfVersion::v1_0) {
         entry_keys16.reserve(elements_.size());
@@ -258,9 +258,9 @@ bool Erf::save_as(const std::filesystem::path& path) const
     return move_file_safely(temp_path, path);
 }
 
-std::vector<ResourceDescriptor> Erf::all() const
+Vector<ResourceDescriptor> Erf::all() const
 {
-    std::vector<ResourceDescriptor> result;
+    Vector<ResourceDescriptor> result;
     result.reserve(elements_.size());
     for (const auto& [k, v] : elements_) {
         result.push_back(stat(k));
@@ -429,12 +429,12 @@ bool Erf::load(const fs::path& path)
     elements_.reserve(header.entry_count);
 
     if (version == ErfVersion::v1_0) {
-        std::vector<ErfKey<16>> keys;
+        Vector<ErfKey<16>> keys;
         keys.resize(header.entry_count);
         file_.seekg(header.offset_keys, std::ios_base::beg);
         istream_read(file_, keys.data(), sizeof(ErfKey<16>) * header.entry_count);
 
-        std::vector<ErfElementInfo> info;
+        Vector<ErfElementInfo> info;
         info.resize(header.entry_count);
         file_.seekg(header.offset_res, std::ios_base::beg);
         istream_read(file_, info.data(), sizeof(ErfElementInfo) * header.entry_count);
@@ -443,12 +443,12 @@ bool Erf::load(const fs::path& path)
             elements_.emplace(Resource{Resref{keys[i].resref}, keys[i].type}, info[i]);
         }
     } else if (version == ErfVersion::v1_1) {
-        std::vector<ErfKey<32>> keys;
+        Vector<ErfKey<32>> keys;
         keys.resize(header.entry_count);
         file_.seekg(header.offset_keys, std::ios_base::beg);
         istream_read(file_, keys.data(), sizeof(ErfKey<32>) * header.entry_count);
 
-        std::vector<ErfElementInfo> info;
+        Vector<ErfElementInfo> info;
         info.resize(header.entry_count);
         file_.seekg(header.offset_res, std::ios_base::beg);
         istream_read(file_, info.data(), sizeof(ErfElementInfo) * header.entry_count);

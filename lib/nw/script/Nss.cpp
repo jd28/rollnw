@@ -87,7 +87,7 @@ void Nss::complete_at(const String& needle, size_t line, size_t character, Compl
     }
 
     if (node) {
-        std::vector<const Declaration*> decls;
+        Vector<const Declaration*> decls;
         node->complete(needle, decls);
         for (auto decl : decls) {
             out.add(declaration_to_symbol(decl));
@@ -127,7 +127,7 @@ void Nss::complete_at(const String& needle, size_t line, size_t character, Compl
     }
 }
 
-void Nss::complete_dot(const String& needle, size_t line, size_t character, std::vector<Symbol>& out,
+void Nss::complete_dot(const String& needle, size_t line, size_t character, Vector<Symbol>& out,
     bool)
 {
     AstLocator locator{this, needle, line, character};
@@ -221,9 +221,9 @@ Symbol Nss::declaration_to_symbol(const Declaration* decl) const
     return result;
 }
 
-std::vector<String> Nss::dependencies() const
+Vector<String> Nss::dependencies() const
 {
-    std::vector<String> result;
+    Vector<String> result;
     for (const auto& [key, _] : ctx_->preprocessed_) {
         if (key == data_.name.resref.view()) { continue; }
         result.push_back(key);
@@ -231,12 +231,12 @@ std::vector<String> Nss::dependencies() const
     return result;
 }
 
-const std::vector<Diagnostic>& Nss::diagnostics() const noexcept
+const Vector<Diagnostic>& Nss::diagnostics() const noexcept
 {
     return diagnostics_;
 }
 
-std::vector<InlayHint> Nss::inlay_hints(SourceRange range)
+Vector<InlayHint> Nss::inlay_hints(SourceRange range)
 {
     AstHinter hinter{this, range};
     hinter.visit(&ast_);

@@ -30,9 +30,9 @@ void FactionSystem::clear()
     name_id_map_.clear();
 }
 
-std::vector<String> FactionSystem::all() const
+Vector<String> FactionSystem::all() const
 {
-    std::vector<String> result;
+    Vector<String> result;
     if (!factions_) { return result; }
 
     for (auto& fac : factions_->factions) {

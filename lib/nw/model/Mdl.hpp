@@ -18,7 +18,6 @@
 #include <string>
 #include <tuple>
 #include <unordered_map>
-#include <vector>
 
 namespace nw::model {
 
@@ -297,13 +296,13 @@ struct Node {
     const uint32_t type;
     bool inheritcolor = false;
     Node* parent = nullptr;
-    std::vector<Node*> children;
-    std::vector<ControllerKey> controller_keys;
-    std::vector<float> controller_data;
+    Vector<Node*> children;
+    Vector<ControllerKey> controller_keys;
+    Vector<float> controller_data;
 
     /// Adds a controller to a model node
-    void add_controller_data(StringView name_, uint32_t type_, std::vector<float> times_,
-        std::vector<float> data_, int rows_, int columns_ = 1);
+    void add_controller_data(StringView name_, uint32_t type_, Vector<float> times_,
+        Vector<float> data_, int rows_, int columns_ = 1);
 
     /// Gets a controller to a model node
     ControllerValue get_controller(uint32_t type_, bool key = false) const;
@@ -353,10 +352,10 @@ struct LightNode : public Node {
     float flareradius{0.0f};
     float multiplier{0.0f};
     glm::vec3 color;
-    std::vector<float> flaresizes;
-    std::vector<float> flarepositions;
-    std::vector<glm::vec3> flarecolorshifts;
-    std::vector<String> textures;
+    Vector<float> flaresizes;
+    Vector<float> flarepositions;
+    Vector<glm::vec3> flarecolorshifts;
+    Vector<String> textures;
     uint32_t lightpriority{5};
     int32_t ambientonly{0};
     bool dynamic{true};
@@ -408,11 +407,11 @@ struct TrimeshNode : public Node {
     bool showdispl{false}; // dunno
     uint32_t displtype{1}; // dunno
     uint32_t lightmapped{0};
-    std::vector<String> multimaterial;
-    std::vector<glm::vec3> colors;
+    Vector<String> multimaterial;
+    Vector<glm::vec3> colors;
 
-    std::vector<Vertex> vertices;
-    std::vector<uint16_t> indices;
+    Vector<Vertex> vertices;
+    Vector<uint16_t> indices;
 };
 
 struct SkinVertex {
@@ -427,15 +426,15 @@ struct SkinVertex {
 struct SkinNode : public TrimeshNode {
     SkinNode(String name_);
 
-    std::vector<SkinVertex> vertices;
+    Vector<SkinVertex> vertices;
     std::array<int16_t, 64> bone_nodes;
 };
 
 struct AnimeshNode : public TrimeshNode {
     AnimeshNode(String name_);
 
-    std::vector<glm::vec3> animtverts;
-    std::vector<glm::vec3> animverts;
+    Vector<glm::vec3> animtverts;
+    Vector<glm::vec3> animverts;
     float sampleperiod;
     float cliph{0.0f}; // Dunno
     float clipw{0.0f}; // Dunno
@@ -446,7 +445,7 @@ struct AnimeshNode : public TrimeshNode {
 struct DanglymeshNode : public TrimeshNode {
     DanglymeshNode(String name_);
 
-    std::vector<float> constraints;
+    Vector<float> constraints;
     float displacement;
     float period;
     float tightness;
@@ -470,7 +469,7 @@ struct AABBEntry {
 struct AABBNode : public TrimeshNode {
     AABBNode(String name_);
 
-    std::vector<AABBEntry> entries;
+    Vector<AABBEntry> entries;
 };
 
 // -- Geometry ----------------------------------------------------------------
@@ -486,7 +485,7 @@ struct Geometry {
 
     String name;
     GeometryType type;
-    std::vector<std::unique_ptr<Node>> nodes;
+    Vector<std::unique_ptr<Node>> nodes;
 };
 
 struct AnimationEvent {
@@ -501,7 +500,7 @@ struct Animation : public Geometry {
     float length{1.0f};
     float transition_time{0.25f};
     String anim_root;
-    std::vector<AnimationEvent> events;
+    Vector<AnimationEvent> events;
 };
 
 struct Model : public Geometry {
@@ -516,7 +515,7 @@ struct Model : public Geometry {
 
     ModelClass classification;
     bool ignorefog;
-    std::vector<std::unique_ptr<Animation>> animations;
+    Vector<std::unique_ptr<Animation>> animations;
     // [TODO] Need to replace this with a mdl cache
     std::unique_ptr<Mdl> supermodel;
     glm::vec3 bmin;

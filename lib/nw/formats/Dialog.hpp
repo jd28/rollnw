@@ -10,7 +10,6 @@
 
 #include <limits>
 #include <string>
-#include <vector>
 
 namespace nw {
 
@@ -51,7 +50,7 @@ struct DialogPtr {
     DialogNode* node = nullptr;
 
     Resref script_appears;
-    std::vector<std::pair<String, String>> condition_params;
+    Vector<std::pair<String, String>> condition_params;
 
     bool is_start = false;
     bool is_link = false;
@@ -73,7 +72,7 @@ struct DialogPtr {
     /// Gets all sub-nodes that are not links
     /// When a pointer is removed from the dialog tree all of its sub-nodes must be removed from
     /// the main node list, unless they are links.
-    void get_all_subnodes(std::vector<DialogNode*>& subnodes);
+    void get_all_subnodes(Vector<DialogNode*>& subnodes);
 
     /// Gets a condition parameter if it exists
     std::optional<String> get_condition_param(const String& key);
@@ -109,8 +108,8 @@ public:
     bool animation_loop = false; // This is obsolete.. but still is added to every conversation by the toolset..
     uint32_t delay = std::numeric_limits<uint32_t>::max();
 
-    std::vector<DialogPtr*> pointers;
-    std::vector<std::pair<String, String>> action_params;
+    Vector<DialogPtr*> pointers;
+    Vector<std::pair<String, String>> action_params;
 
     /// Copies a Node
     DialogNode* copy() const;
@@ -180,12 +179,12 @@ public:
     /// Checks id dialog was successfully parsed
     bool valid() const noexcept { return is_valid_; }
 
-    std::vector<DialogNode*> entries;
-    std::vector<DialogNode*> replies;
+    Vector<DialogNode*> entries;
+    Vector<DialogNode*> replies;
 
     Resref script_abort;
     Resref script_end;
-    std::vector<DialogPtr*> starts;
+    Vector<DialogPtr*> starts;
 
     uint32_t delay_entry = 0;
     uint32_t delay_reply = 0;

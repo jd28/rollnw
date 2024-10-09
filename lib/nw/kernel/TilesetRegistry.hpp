@@ -10,7 +10,6 @@
 #include <limits>
 #include <stdint.h>
 #include <string>
-#include <vector>
 
 namespace nw::kernel {
 

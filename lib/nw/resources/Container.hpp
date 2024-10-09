@@ -8,7 +8,6 @@
 
 #include <filesystem>
 #include <memory>
-#include <vector>
 
 namespace nw {
 
@@ -18,7 +17,7 @@ struct Container {
     virtual ~Container();
 
     /// Get all resources
-    virtual std::vector<ResourceDescriptor> all() const = 0;
+    virtual Vector<ResourceDescriptor> all() const = 0;
 
     /// Get if container contains resource
     virtual bool contains(Resource res) const = 0;

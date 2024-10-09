@@ -27,7 +27,7 @@ ClassInfo::ClassInfo(const TwoDARowView& tda)
         tda.get_to("HitDie", hitdie);
         if (tda.get_to("AttackBonusTable", temp_string)) {
             TwoDA ab_2da(nw::kernel::resman().demand({temp_string, nw::ResourceType::twoda}));
-            std::vector<int> ab;
+            Vector<int> ab;
             if (ab_2da.is_valid()) {
                 for (size_t i = 0; i < ab_2da.rows(); ++i) {
                     int temp;

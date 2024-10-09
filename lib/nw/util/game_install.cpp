@@ -8,25 +8,23 @@
 
 #include <fstream>
 #include <string>
-#include <vector>
 
 namespace fs = std::filesystem;
 
 namespace nw {
 
-static std::vector<std::filesystem::path> install_paths
-{
+static Vector<std::filesystem::path> install_paths{
 #if defined(ROLLNW_OS_LINUX)
     home_path() / ".local/share/Steam/steamapps/common/Neverwinter Nights/",
 #elif defined(ROLLNW_OS_MACOS)
     home_path() / "Library/Application Support/Steam/steamapps/common/Neverwinter Nights/",
 #elif defined(ROLLNW_OS_WINDOWS)
     "C:/Program Files (x86)/Steam/steamapps/common/Neverwinter Nights/",
-        "D:/Program Files (x86)/Steam/steamapps/common/Neverwinter Nights/",
-        "C:/Program Files (x86)/Neverwinter Nights/",
-        "D:/Program Files (x86)/Neverwinter Nights/",
-        "C:/Program Files (x86)/GOG Galaxy/Games/NWN Diamond/",
-        "D:/Program Files (x86)/GOG Galaxy/Games/NWN Diamond/",
+    "D:/Program Files (x86)/Steam/steamapps/common/Neverwinter Nights/",
+    "C:/Program Files (x86)/Neverwinter Nights/",
+    "D:/Program Files (x86)/Neverwinter Nights/",
+    "C:/Program Files (x86)/GOG Galaxy/Games/NWN Diamond/",
+    "D:/Program Files (x86)/GOG Galaxy/Games/NWN Diamond/",
 #endif
 };
 
@@ -38,8 +36,7 @@ static std::filesystem::path beamdog_settings = home_path() / "Library/Applicati
 static std::filesystem::path beamdog_settings = home_path() / "Beamdog Client/settings.json";
 #endif
 
-static std::vector<std::filesystem::path> user_paths
-{
+static Vector<std::filesystem::path> user_paths{
 #if defined(ROLLNW_OS_MACOS) || defined(ROLLNW_OS_WINDOWS)
     documents_path() / "Neverwinter Nights"
 #elif defined(ROLLNW_OS_LINUX)

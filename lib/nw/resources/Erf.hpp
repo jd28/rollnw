@@ -11,7 +11,6 @@
 #include <memory>
 #include <string>
 #include <variant>
-#include <vector>
 
 namespace nw {
 
@@ -69,7 +68,7 @@ public:
     /// be constructed.
     bool save_as(const std::filesystem::path& path) const;
 
-    virtual std::vector<ResourceDescriptor> all() const override;
+    virtual Vector<ResourceDescriptor> all() const override;
     virtual bool contains(Resource res) const override;
     virtual ResourceData demand(Resource res) const override;
     virtual int extract(const std::regex& pattern, const std::filesystem::path& output) const override;

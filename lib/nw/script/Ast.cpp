@@ -8,7 +8,7 @@ extern "C" {
 
 namespace nw::script {
 
-void AstNode::complete(const String& needle, std::vector<const Declaration*>& out, bool no_filter) const
+void AstNode::complete(const String& needle, Vector<const Declaration*>& out, bool no_filter) const
 {
     for (const auto& [name, exp] : env_) {
         if (no_filter || has_match(needle.c_str(), name.c_str())) {

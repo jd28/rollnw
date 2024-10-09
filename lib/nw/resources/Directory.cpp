@@ -33,9 +33,9 @@ Directory::Directory(const fs::path& path)
     is_valid_ = true;
 }
 
-std::vector<ResourceDescriptor> Directory::all() const
+Vector<ResourceDescriptor> Directory::all() const
 {
-    std::vector<ResourceDescriptor> res;
+    Vector<ResourceDescriptor> res;
     for (auto it : fs::directory_iterator{path_}) {
         if (!it.is_regular_file()) { continue; }
 

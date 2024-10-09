@@ -45,12 +45,12 @@ struct ClassInfo {
     uint32_t description = 0xFFFFFFFF;
     Resource icon;
     int hitdie = 0;
-    const std::vector<int>* attack_bonus_table = nullptr;
+    const Vector<int>* attack_bonus_table = nullptr;
     Resource feats_table;
     Resource saving_throw_table;
-    std::vector<Saves> class_saves;
+    Vector<Saves> class_saves;
     Resource skill_table;
-    std::vector<int> class_skills;
+    Vector<int> class_skills;
     Resource bonus_feats_table;
     int skill_point_base = 0;
     Resource spell_gain_table;
@@ -70,7 +70,7 @@ struct ClassInfo {
     int epic_level_limit = -1;
     int package = 0;
     Resource stat_gain_table;
-    std::vector<ClassStatGain> class_stat_gain;
+    Vector<ClassStatGain> class_stat_gain;
     bool memorizes_spells = false;
     bool spellbook_restricted = false;
     bool pick_domains = false;
@@ -117,10 +117,10 @@ struct ClassArray {
     /// Gets class ability gain
     int get_stat_gain(Class class_, Ability ability, size_t level) const;
 
-    std::set<std::vector<int>> attack_tables;
-    std::vector<int> stat_gain_tables;
+    std::set<Vector<int>> attack_tables;
+    Vector<int> stat_gain_tables;
 
-    std::vector<ClassInfo> entries;
+    Vector<ClassInfo> entries;
     map_type constant_to_index;
 };
 

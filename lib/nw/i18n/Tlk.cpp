@@ -94,7 +94,7 @@ void Tlk::save_as(const std::filesystem::path& path)
         max_strref = std::max(max_strref, k);
     }
 
-    std::vector<TlkElement> ele;
+    Vector<TlkElement> ele;
     ele.resize(max_strref);
 
     uint32_t orig_str_offset = header_.str_offset;
