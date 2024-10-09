@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../config.hpp"
 #include "../log.hpp"
 #include "templates.hpp"
 
@@ -30,6 +31,14 @@ constexpr std::uint64_t GB(std::uint64_t gb)
     return gb * 1024ULL * 1024ULL * 1024ULL;
 }
 
+/// Abstracts some memory resource, i.e. global malloc/free
+struct MemoryResource {
+    virtual ~MemoryResource() = default;
+
+    virtual void* allocate(size_t bytes, size_t alignment = alignof(std::max_align_t)) = 0;
+    virtual void deallocate(void* p, size_t bytes, size_t alignment = alignof(std::max_align_t)) = 0;
+};
+
 struct MemoryBlock {
     uint8_t* block = nullptr;
     size_t position = 0;
@@ -46,7 +55,7 @@ struct MemoryMarker {
 };
 
 /// A growable Memory Arena
-struct MemoryArena {
+struct MemoryArena : MemoryResource {
     MemoryArena(size_t blockSize = 1024);
     MemoryArena(const MemoryArena&) = delete;
     MemoryArena(MemoryArena&&) = default;
@@ -58,6 +67,9 @@ struct MemoryArena {
     /// Allocate memory memory on the arena.
     void* allocate(size_t size, size_t alignment = alignof(max_align_t));
 
+    /// No-op
+    virtual void deallocate(void*, size_t, size_t) { };
+
     /// Gets the current point in the allocator
     MemoryMarker current();
 
@@ -68,7 +80,7 @@ struct MemoryArena {
     void rewind(MemoryMarker marker);
 
 private:
-    std::vector<MemoryBlock> blocks_;
+    Vector<MemoryBlock> blocks_;
     size_t current_block_ = 0;
     size_t size_ = 0;
 
@@ -78,14 +90,14 @@ private:
 // This is very simple and naive.
 template <typename T, size_t chunk_size>
 struct ObjectPool {
-    ObjectPool(MemoryArena* arena)
-        : arena_{arena}
+    ObjectPool(MemoryResource* resource)
+        : resource_{resource}
     {
     }
 
     T* allocate()
     {
-        if (!arena_) { return nullptr; }
+        if (!resource_) { return nullptr; }
         if (free_list_.empty()) { allocate_chunk(); }
 
         auto result = free_list_.top();
@@ -96,13 +108,13 @@ struct ObjectPool {
 
     void clear()
     {
-        free_list_ = std::stack<T*, std::vector<T*>>{};
+        free_list_ = std::stack<T*, Vector<T*>>{};
         chunks_.clear();
     }
 
     void free(T* object)
     {
-        if (!arena_) { return; }
+        if (!resource_) { return; }
 
         object->~T();
         free_list_.push(object);
@@ -110,18 +122,18 @@ struct ObjectPool {
 
     void allocate_chunk()
     {
-        if (arena_ == nullptr) { return; }
+        if (resource_ == nullptr) { return; }
 
-        T* chunk = static_cast<T*>(arena_->allocate(sizeof(T) * chunk_size, alignof(T)));
+        T* chunk = static_cast<T*>(resource_->allocate(sizeof(T) * chunk_size, alignof(T)));
         CHECK_F(!!chunk, "Unable to allocate chunk of size {}", sizeof(T) * chunk_size);
         for (size_t i = 0; i < chunk_size; ++i) {
             free_list_.push(&chunk[i]);
         }
     }
 
-    MemoryArena* arena_{chunk_size * sizeof(T)};
-    std::stack<T*, std::vector<T*>> free_list_;
-    std::vector<T*> chunks_;
+    MemoryResource* resource_;
+    std::stack<T*, Vector<T*>> free_list_;
+    Vector<T*> chunks_;
 };
 
 namespace detail {
@@ -148,7 +160,7 @@ struct FinalizedObject {
 // == MemoryScope =======================================================================
 // ======================================================================================
 
-struct MemoryScope {
+struct MemoryScope : public MemoryResource {
     MemoryScope(MemoryArena* arena);
     MemoryScope(const MemoryScope&) = delete;
     MemoryScope(MemoryScope&& other);
@@ -158,14 +170,17 @@ struct MemoryScope {
     MemoryScope& operator=(MemoryScope&& other);
 
     /// Allocates ``size`` bytes with ``alignment``
-    void* alloc(size_t size, size_t alignment = alignof(max_align_t));
+    virtual void* allocate(size_t bytes, size_t alignment = alignof(max_align_t)) override;
+
+    /// No-op
+    virtual void deallocate(void*, size_t, size_t) override { };
 
     /// Allocates a non-trivial object and stores pointer to destructor that is run when scope exits.
     template <typename T, typename... Args>
     T* alloc_obj(Args&&... args)
     {
         static_assert(!(std::is_standard_layout_v<T> && std::is_trivial_v<T>), "Use alloc_pod for POD types");
-        void* mem = alloc(sizeof(detail::FinalizedObject<T>), alignof(detail::FinalizedObject<T>));
+        void* mem = allocate(sizeof(detail::FinalizedObject<T>), alignof(detail::FinalizedObject<T>));
         auto fo = static_cast<detail::FinalizedObject<T>*>(mem);
         fo->f.fn = &detail::destructor<T>;
         fo->f.next = finalizers_; // last in, first destructed.
@@ -178,7 +193,7 @@ struct MemoryScope {
     T* alloc_pod()
     {
         static_assert(std::is_standard_layout_v<T> && std::is_trivial_v<T>, "Use alloc_obj for non-trivial types");
-        void* mem = alloc(sizeof(T), alignof(T));
+        void* mem = allocate(sizeof(T), alignof(T));
         return new (mem) T();
     }
 
@@ -187,68 +202,6 @@ struct MemoryScope {
     MemoryMarker marker_;
     detail::Finalizer* finalizers_ = nullptr;
 };
-
-template <typename T>
-class ScopeAllocator {
-public:
-    using value_type = T;
-
-    // Constructor accepting MemoryScope reference
-    ScopeAllocator(MemoryScope* scope)
-        : scope_(scope)
-    {
-    }
-
-    // Copy constructor (needed by allocator interface)
-    template <typename U>
-    ScopeAllocator(const ScopeAllocator<U>& other) noexcept
-        : scope_(other.scope_)
-    {
-    }
-
-    T* allocate(std::size_t n)
-    {
-        if (n == 0)
-            return nullptr;
-        return static_cast<T*>(scope_->alloc(n * sizeof(T), alignof(T)));
-    }
-
-    void deallocate(T*, std::size_t) noexcept
-    {
-    }
-
-    template <typename U, typename... Args>
-    void construct(U* p, Args&&... args)
-    {
-        ::new (static_cast<void*>(p)) U(std::forward<Args>(args)...);
-    }
-
-    template <typename U>
-    void destroy(U* p) noexcept
-    {
-        p->~U();
-    }
-
-    template <typename U>
-    struct rebind {
-        using other = ScopeAllocator<U>;
-    };
-
-    // private:
-    MemoryScope* scope_;
-};
-
-template <typename T, typename U>
-bool operator==(const ScopeAllocator<T>& a, const ScopeAllocator<U>& b) noexcept
-{
-    return &a.scope_ == &b.scope_;
-}
-
-template <typename T, typename U>
-bool operator!=(const ScopeAllocator<T>& a, const ScopeAllocator<U>& b) noexcept
-{
-    return !(a == b);
-}
 
 // == MemoryPool ========================================================================
 // ======================================================================================
@@ -272,67 +225,24 @@ public:
     // private:
     size_t block_size_;
     size_t block_count_;
-    std::vector<void*> blocks_;
-    std::vector<void*> free_list_;
+    Vector<void*> blocks_;
+    Vector<void*> free_list_;
 
     void expand(size_t count);
 };
 
 } // namespace detail
 
-struct MemoryPool {
+struct MemoryPool : public MemoryResource {
     MemoryPool(size_t max_size, size_t count);
-    void* allocate(size_t size, size_t alignment = alignof(max_align_t));
-    void deallocate(void* ptr);
+
+    virtual void* allocate(size_t bytes, size_t alignment = alignof(max_align_t)) override;
+    virtual void deallocate(void* ptr, size_t bytes = 0, size_t alignment = alignof(std::max_align_t)) override;
 
     // private:
-    std::vector<detail::PoolBlock> pools_;
+    Vector<detail::PoolBlock> pools_;
     size_t max_size_;
     size_t count_;
-};
-
-// Standard allocator wrapper for MemoryPool
-template <typename T>
-class PoolAllocator {
-public:
-    using value_type = T;
-
-    PoolAllocator(MemoryPool* pool)
-        : pool_(pool)
-    {
-    }
-
-    /// Allocates memory for n objects of type T
-    T* allocate(size_t n)
-    {
-        size_t bytes = n * sizeof(T);
-        return static_cast<T*>(pool_->allocate(bytes, alignof(T)));
-    }
-
-    /// Deallocate memory for n objects of type T
-    void deallocate(T* p, size_t)
-    {
-        pool_->deallocate(static_cast<void*>(p));
-    }
-
-    template <typename U>
-    struct rebind {
-        using other = PoolAllocator<U>;
-    };
-
-    // Comparison operators for allocators
-    bool operator==(const PoolAllocator& other) const noexcept
-    {
-        return &pool_ == &other.pool_;
-    }
-
-    bool operator!=(const PoolAllocator& other) const noexcept
-    {
-        return !(*this == other);
-    }
-
-private:
-    MemoryPool* pool_;
 };
 
 } // namespace nw

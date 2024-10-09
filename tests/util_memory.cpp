@@ -37,7 +37,7 @@ TEST(Memory, Scope)
 
     {
         nw::MemoryScope scope(&arena);
-        scope.alloc(60);
+        scope.allocate(60);
         EXPECT_NE(current, arena.current());
     }
     EXPECT_EQ(current, arena.current());
@@ -65,7 +65,7 @@ TEST(Memory, Scope)
     result = false;
     {
         nw::MemoryScope scope(&arena);
-        auto vec = scope.alloc_obj<std::vector<TestStruct, nw::ScopeAllocator<TestStruct>>>(&scope);
+        auto vec = scope.alloc_obj<std::vector<TestStruct, nw::Allocator<TestStruct>>>(&scope);
         vec->push_back(TestStruct(&result));
         EXPECT_NE(current, arena.current());
     }
@@ -79,7 +79,7 @@ TEST(Memory, Pool)
     size_t free = mp.pools_[3].free_list_.size();
     {
         EXPECT_EQ(32 + 16, mp.pools_[3].block_size());
-        nw::PoolString s("Hello World, this is a test.", &mp);
+        nw::PString s("Hello World, this is a test.", &mp);
         EXPECT_EQ(free - 1, mp.pools_[3].free_list_.size());
     }
     EXPECT_EQ(free, mp.pools_[3].free_list_.size());

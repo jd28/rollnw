@@ -108,6 +108,7 @@ add_library(nw STATIC
     serialization/GffBuilder.cpp
     serialization/Serialization.cpp
 
+    util/Allocator.cpp
     util/base64.cpp
     util/ByteArray.cpp
     util/compression.cpp

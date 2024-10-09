@@ -137,7 +137,7 @@ MemoryScope::~MemoryScope()
     arena_->rewind(marker_);
 }
 
-void* MemoryScope::alloc(size_t size, size_t alignment)
+void* MemoryScope::allocate(size_t size, size_t alignment)
 {
     return arena_->allocate(size, alignment);
 }
@@ -240,7 +240,7 @@ void* MemoryPool::allocate(size_t size, size_t alignment)
     return aligned;
 }
 
-void MemoryPool::deallocate(void* ptr)
+void MemoryPool::deallocate(void* ptr, size_t, size_t)
 {
     if (!ptr) return;
     detail::PoolHeader* header = reinterpret_cast<detail::PoolHeader*>(static_cast<char*>(ptr) - sizeof(detail::PoolHeader));
