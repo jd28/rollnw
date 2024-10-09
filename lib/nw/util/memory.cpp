@@ -191,20 +191,20 @@ void PoolBlock::expand(std::size_t count)
     }
 }
 
-} // namespace detail
+struct PoolHeader {
+    void* original_ptr;
+    std::size_t size;
+};
 
-inline size_t next_power_of_2(size_t size)
-{
-    if (size == 0) return 1;
-    return std::pow(2, std::ceil(std::log2(size)));
-}
+} // namespace detail
 
 MemoryPool::MemoryPool(size_t max_size, size_t count)
     : max_size_(std::max(max_size, size_t(128)))
     , count_(count)
 {
     // Make the smaller buckets more granular to avoid wasting too much memory
-    for (size_t size = 8; size <= 128; size += 8) {
+    // There is a 16 byte header containing original ptr and size.
+    for (size_t size = sizeof(detail::PoolHeader) + 8; size <= 128; size += 8) {
         pools_.emplace_back(size, count);
     }
 
@@ -213,25 +213,47 @@ MemoryPool::MemoryPool(size_t max_size, size_t count)
     }
 }
 
-void* MemoryPool::allocate(size_t size)
+void* MemoryPool::allocate(size_t size, size_t alignment)
 {
-    for (auto& pool : pools_) {
-        if (size <= pool.block_size()) {
-            return pool.allocate();
+    size_t total_size = size + alignment - 1 + sizeof(detail::PoolHeader);
+    void* original = nullptr;
+    if (total_size <= max_size_) {
+        for (auto& pool : pools_) {
+            if (total_size <= pool.block_size()) {
+                original = pool.allocate();
+                break;
+            }
         }
     }
-    return malloc(size);
+
+    // Fallback to malloc
+    if (!original) {
+        original = malloc(size);
+    }
+
+    void* aligned = static_cast<char*>(original) + sizeof(detail::PoolHeader);
+    size_t space = total_size - sizeof(detail::PoolHeader);
+    aligned = std::align(alignment, size, aligned, space);
+    detail::PoolHeader* header = reinterpret_cast<detail::PoolHeader*>(static_cast<char*>(aligned) - sizeof(detail::PoolHeader));
+    header->original_ptr = original;
+    header->size = total_size;
+    return aligned;
 }
 
-void MemoryPool::deallocate(void* ptr, size_t size)
+void MemoryPool::deallocate(void* ptr)
 {
-    for (auto& pool : pools_) {
-        if (size <= pool.block_size()) {
-            pool.deallocate(ptr);
-            return;
+    if (!ptr) return;
+    detail::PoolHeader* header = reinterpret_cast<detail::PoolHeader*>(static_cast<char*>(ptr) - sizeof(detail::PoolHeader));
+
+    if (header->size <= max_size_) {
+        for (auto& pool : pools_) {
+            if (header->size <= pool.block_size()) {
+                pool.deallocate(header->original_ptr);
+                return;
+            }
         }
     }
-    free(ptr);
+    free(header->original_ptr);
 }
 
 } // namespace nw

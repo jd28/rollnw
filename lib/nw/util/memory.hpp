@@ -282,8 +282,8 @@ public:
 
 struct MemoryPool {
     MemoryPool(size_t max_size, size_t count);
-    void* allocate(size_t size);
-    void deallocate(void* ptr, size_t size);
+    void* allocate(size_t size, size_t alignment = alignof(max_align_t));
+    void deallocate(void* ptr);
 
     // private:
     std::vector<detail::PoolBlock> pools_;
@@ -306,14 +306,13 @@ public:
     T* allocate(size_t n)
     {
         size_t bytes = n * sizeof(T);
-        return static_cast<T*>(pool_->allocate(bytes));
+        return static_cast<T*>(pool_->allocate(bytes, alignof(T)));
     }
 
     /// Deallocate memory for n objects of type T
-    void deallocate(T* p, size_t n)
+    void deallocate(T* p, size_t)
     {
-        size_t bytes = n * sizeof(T);
-        pool_->deallocate(static_cast<void*>(p), bytes);
+        pool_->deallocate(static_cast<void*>(p));
     }
 
     template <typename U>
