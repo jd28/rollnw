@@ -6,6 +6,33 @@
 
 namespace nw {
 
+namespace detail {
+struct MemoryHeader {
+    void* original_ptr;
+    std::size_t size;
+};
+} // namespace detail
+
+void* GlobalMemory::allocate(size_t size, size_t alignment)
+{
+    size_t total_size = size + alignment - 1 + sizeof(detail::MemoryHeader);
+    void* original = malloc(total_size);
+    void* aligned = static_cast<char*>(original) + sizeof(detail::MemoryHeader);
+    size_t space = total_size - sizeof(detail::MemoryHeader);
+    aligned = std::align(alignment, size, aligned, space);
+    detail::MemoryHeader* header = reinterpret_cast<detail::MemoryHeader*>(static_cast<char*>(aligned) - sizeof(detail::MemoryHeader));
+    header->original_ptr = original;
+    header->size = total_size;
+    return aligned;
+}
+
+void GlobalMemory::deallocate(void* ptr, size_t, size_t)
+{
+    if (!ptr) return;
+    detail::MemoryHeader* header = reinterpret_cast<detail::MemoryHeader*>(static_cast<char*>(ptr) - sizeof(detail::MemoryHeader));
+    free(header->original_ptr);
+}
+
 // == MemoryArena ==============================================================
 // =============================================================================
 
@@ -199,11 +226,6 @@ void PoolBlock::expand(std::size_t count)
     }
 }
 
-struct PoolHeader {
-    void* original_ptr;
-    std::size_t size;
-};
-
 } // namespace detail
 
 MemoryPool::MemoryPool(size_t max_size, size_t count)
@@ -212,7 +234,7 @@ MemoryPool::MemoryPool(size_t max_size, size_t count)
 {
     // Make the smaller buckets more granular to avoid wasting too much memory
     // There is a 16 byte header containing original ptr and size.
-    for (size_t size = sizeof(detail::PoolHeader) + 8; size <= 128; size += 8) {
+    for (size_t size = sizeof(detail::MemoryHeader) + 8; size <= 128; size += 8) {
         pools_.emplace_back(size, count);
     }
 
@@ -223,7 +245,7 @@ MemoryPool::MemoryPool(size_t max_size, size_t count)
 
 void* MemoryPool::allocate(size_t size, size_t alignment)
 {
-    size_t total_size = size + alignment - 1 + sizeof(detail::PoolHeader);
+    size_t total_size = size + alignment - 1 + sizeof(detail::MemoryHeader);
     void* original = nullptr;
     if (total_size <= max_size_) {
         for (auto& pool : pools_) {
@@ -239,10 +261,10 @@ void* MemoryPool::allocate(size_t size, size_t alignment)
         original = malloc(size);
     }
 
-    void* aligned = static_cast<char*>(original) + sizeof(detail::PoolHeader);
-    size_t space = total_size - sizeof(detail::PoolHeader);
+    void* aligned = static_cast<char*>(original) + sizeof(detail::MemoryHeader);
+    size_t space = total_size - sizeof(detail::MemoryHeader);
     aligned = std::align(alignment, size, aligned, space);
-    detail::PoolHeader* header = reinterpret_cast<detail::PoolHeader*>(static_cast<char*>(aligned) - sizeof(detail::PoolHeader));
+    detail::MemoryHeader* header = reinterpret_cast<detail::MemoryHeader*>(static_cast<char*>(aligned) - sizeof(detail::MemoryHeader));
     header->original_ptr = original;
     header->size = total_size;
     return aligned;
@@ -251,7 +273,7 @@ void* MemoryPool::allocate(size_t size, size_t alignment)
 void MemoryPool::deallocate(void* ptr, size_t, size_t)
 {
     if (!ptr) return;
-    detail::PoolHeader* header = reinterpret_cast<detail::PoolHeader*>(static_cast<char*>(ptr) - sizeof(detail::PoolHeader));
+    detail::MemoryHeader* header = reinterpret_cast<detail::MemoryHeader*>(static_cast<char*>(ptr) - sizeof(detail::MemoryHeader));
 
     if (header->size <= max_size_) {
         for (auto& pool : pools_) {

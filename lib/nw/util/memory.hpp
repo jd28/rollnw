@@ -39,6 +39,11 @@ struct MemoryResource {
     virtual void deallocate(void* p, size_t bytes, size_t alignment = alignof(std::max_align_t)) = 0;
 };
 
+struct GlobalMemory : MemoryResource {
+    virtual void* allocate(size_t bytes, size_t alignment = alignof(std::max_align_t)) override;
+    virtual void deallocate(void* p, size_t bytes, size_t alignment = alignof(std::max_align_t)) override;
+};
+
 struct MemoryBlock {
     uint8_t* block = nullptr;
     size_t position = 0;
@@ -85,55 +90,6 @@ private:
     size_t size_ = 0;
 
     void alloc_block_(size_t size);
-};
-
-// This is very simple and naive.
-template <typename T, size_t chunk_size>
-struct ObjectPool {
-    ObjectPool(MemoryResource* resource)
-        : resource_{resource}
-    {
-    }
-
-    T* allocate()
-    {
-        if (!resource_) { return nullptr; }
-        if (free_list_.empty()) { allocate_chunk(); }
-
-        auto result = free_list_.top();
-        free_list_.pop();
-        result = new (result) T;
-        return result;
-    }
-
-    void clear()
-    {
-        free_list_ = std::stack<T*, Vector<T*>>{};
-        chunks_.clear();
-    }
-
-    void free(T* object)
-    {
-        if (!resource_) { return; }
-
-        object->~T();
-        free_list_.push(object);
-    }
-
-    void allocate_chunk()
-    {
-        if (resource_ == nullptr) { return; }
-
-        T* chunk = static_cast<T*>(resource_->allocate(sizeof(T) * chunk_size, alignof(T)));
-        CHECK_F(!!chunk, "Unable to allocate chunk of size {}", sizeof(T) * chunk_size);
-        for (size_t i = 0; i < chunk_size; ++i) {
-            free_list_.push(&chunk[i]);
-        }
-    }
-
-    MemoryResource* resource_;
-    std::stack<T*, Vector<T*>> free_list_;
-    Vector<T*> chunks_;
 };
 
 namespace detail {
@@ -246,6 +202,52 @@ struct MemoryPool : public MemoryResource {
     Vector<detail::PoolBlock> pools_;
     size_t max_size_;
     size_t count_;
+};
+
+// == ObjectPool ========================================================================
+// ======================================================================================
+
+template <typename T, size_t N, class Alloc = Allocator<T>>
+struct ObjectPool {
+    ObjectPool(Alloc allocator)
+        : allocator_{allocator}
+    {
+    }
+
+    T* allocate()
+    {
+        if (free_list_.empty()) { allocate_chunk(); }
+
+        auto result = free_list_.top();
+        free_list_.pop();
+        result = new (result) T;
+        return result;
+    }
+
+    void clear()
+    {
+        free_list_ = std::stack<T*, Vector<T*>>{};
+        chunks_.clear();
+    }
+
+    void free(T* object)
+    {
+        object->~T();
+        free_list_.push(object);
+    }
+
+    void allocate_chunk()
+    {
+        T* chunk = static_cast<T*>(allocator_.allocate(N));
+        CHECK_F(!!chunk, "Unable to allocate chunk of size {}", sizeof(T) * N);
+        for (size_t i = 0; i < N; ++i) {
+            free_list_.push(&chunk[i]);
+        }
+    }
+
+    Alloc allocator_;
+    std::stack<T*, Vector<T*>> free_list_;
+    Vector<T*> chunks_;
 };
 
 } // namespace nw
