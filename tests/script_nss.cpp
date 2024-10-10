@@ -1511,7 +1511,9 @@ TEST(Nss, Location)
     EXPECT_TRUE(decl1);
     auto vd1 = dynamic_cast<const nw::script::VarDecl*>(decl1);
     EXPECT_TRUE(vd1);
-    EXPECT_EQ(vd1->identifier_.loc.view(), "f");
+    if (vd1) {
+        EXPECT_EQ(vd1->identifier_.loc.view(), "f");
+    }
 
     script::AstLocator locator2{&nss1, "abc", 0, 0};
     locator2.visit(&nss1.ast());
@@ -1537,11 +1539,13 @@ TEST(Nss, Location)
     auto decl3 = locator3.last_seen_decl;
     EXPECT_TRUE(decl3);
     auto vd3 = dynamic_cast<const nw::script::VarDecl*>(decl3);
-    EXPECT_TRUE(vd3);
-    EXPECT_EQ(vd3->identifier_.loc.view(), "s");
-    std::vector<const script::Declaration*> out3;
-    vd3->complete("te", out3);
-    EXPECT_EQ(out3.size(), 1);
+    EXPECT_TRUE(!!vd3);
+    if (vd3) {
+        EXPECT_EQ(vd3->identifier_.loc.view(), "s");
+        std::vector<const script::Declaration*> out3;
+        vd3->complete("te", out3);
+        EXPECT_EQ(out3.size(), 1);
+    }
 
     script::Nss nss4(R"(
         int test = 1;
@@ -1568,10 +1572,12 @@ TEST(Nss, Location)
     EXPECT_TRUE(decl4);
     auto vd4 = dynamic_cast<const nw::script::VarDecl*>(decl4);
     EXPECT_TRUE(vd4);
-    EXPECT_EQ(vd4->identifier_.loc.view(), "count");
-    std::vector<const script::Declaration*> out4;
-    vd4->complete("ind", out4);
-    EXPECT_EQ(out4.size(), 1);
+    if (vd4) {
+        EXPECT_EQ(vd4->identifier_.loc.view(), "count");
+        std::vector<const script::Declaration*> out4;
+        vd4->complete("ind", out4);
+        EXPECT_EQ(out4.size(), 1);
+    }
 
     auto sym_info1 = nss4.locate_symbol("index", 7, 36);
     EXPECT_TRUE(sym_info1.decl);
@@ -1751,10 +1757,13 @@ TEST(Nss, Precedence)
     EXPECT_NO_THROW(nss1.resolve());
     auto vd1 = dynamic_cast<nw::script::VarDecl*>(nss1.ast().decls[0]);
     EXPECT_TRUE(vd1);
-    auto expr1 = dynamic_cast<nw::script::BinaryExpression*>(vd1->init);
-    EXPECT_TRUE(expr1);
-    EXPECT_EQ(expr1->op.loc.view(), "+");
-
+    if (vd1) {
+        auto expr1 = dynamic_cast<nw::script::BinaryExpression*>(vd1->init);
+        EXPECT_TRUE(expr1);
+        if (expr1) {
+            EXPECT_EQ(expr1->op.loc.view(), "+");
+        }
+    }
     script::Nss nss2(R"(
         int TEST = 6 * 3 + 2;
     )"sv,
@@ -1763,9 +1772,13 @@ TEST(Nss, Precedence)
     EXPECT_NO_THROW(nss2.resolve());
     auto vd2 = dynamic_cast<nw::script::VarDecl*>(nss2.ast().decls[0]);
     EXPECT_TRUE(vd2);
-    auto expr2 = dynamic_cast<nw::script::BinaryExpression*>(vd2->init);
-    EXPECT_TRUE(expr2);
-    EXPECT_EQ(expr2->op.loc.view(), "+");
+    if (vd2) {
+        auto expr2 = dynamic_cast<nw::script::BinaryExpression*>(vd2->init);
+        EXPECT_TRUE(expr2);
+        if (expr2) {
+            EXPECT_EQ(expr2->op.loc.view(), "+");
+        }
+    }
 }
 
 TEST(Nss, RawString)
@@ -1801,41 +1814,49 @@ TEST(Nss, ConstEval)
     EXPECT_GT(nss1.ast().decls.size(), 3);
 
     auto vd1_1 = dynamic_cast<script::VarDecl*>(nss1.ast().decls[0]);
-    EXPECT_TRUE(vd1_1->is_const_);
-    script::AstConstEvaluator eval1_1{&nss1, vd1_1->init};
-    EXPECT_FALSE(eval1_1.failed_);
-    EXPECT_GT(eval1_1.result_.size(), 0);
-    EXPECT_TRUE(eval1_1.result_.top().is<int32_t>());
-    EXPECT_EQ(eval1_1.result_.top().as<int32_t>(), 4);
+    if (vd1_1) {
+        EXPECT_TRUE(vd1_1->is_const_);
+        script::AstConstEvaluator eval1_1{&nss1, vd1_1->init};
+        EXPECT_FALSE(eval1_1.failed_);
+        EXPECT_GT(eval1_1.result_.size(), 0);
+        EXPECT_TRUE(eval1_1.result_.top().is<int32_t>());
+        EXPECT_EQ(eval1_1.result_.top().as<int32_t>(), 4);
+    }
 
     auto vd1_2 = dynamic_cast<script::VarDecl*>(nss1.ast().decls[1]);
-    EXPECT_TRUE(vd1_2->is_const_);
-    script::AstConstEvaluator eval1_2{&nss1, vd1_2->init};
-    EXPECT_FALSE(eval1_2.failed_);
-    EXPECT_GT(eval1_2.result_.size(), 0);
-    if (eval1_2.result_.size()) {
-        EXPECT_TRUE(eval1_2.result_.top().is<int32_t>());
-        EXPECT_EQ(eval1_2.result_.top().as<int32_t>(), 6);
+    if (vd1_2) {
+        EXPECT_TRUE(vd1_2->is_const_);
+        script::AstConstEvaluator eval1_2{&nss1, vd1_2->init};
+        EXPECT_FALSE(eval1_2.failed_);
+        EXPECT_GT(eval1_2.result_.size(), 0);
+        if (eval1_2.result_.size()) {
+            EXPECT_TRUE(eval1_2.result_.top().is<int32_t>());
+            EXPECT_EQ(eval1_2.result_.top().as<int32_t>(), 6);
+        }
     }
 
     auto vd1_3 = dynamic_cast<script::VarDecl*>(nss1.ast().decls[2]);
-    EXPECT_TRUE(vd1_3->is_const_);
-    script::AstConstEvaluator eval1_3{&nss1, vd1_3->init};
-    EXPECT_FALSE(eval1_3.failed_);
-    EXPECT_GT(eval1_3.result_.size(), 0);
-    if (eval1_3.result_.size()) {
-        EXPECT_TRUE(eval1_3.result_.top().is<float>());
-        EXPECT_FLOAT_EQ(eval1_3.result_.top().as<float>(), 3.141592f * 3.0f);
+    if (vd1_3) {
+        EXPECT_TRUE(vd1_3->is_const_);
+        script::AstConstEvaluator eval1_3{&nss1, vd1_3->init};
+        EXPECT_FALSE(eval1_3.failed_);
+        EXPECT_GT(eval1_3.result_.size(), 0);
+        if (eval1_3.result_.size()) {
+            EXPECT_TRUE(eval1_3.result_.top().is<float>());
+            EXPECT_FLOAT_EQ(eval1_3.result_.top().as<float>(), 3.141592f * 3.0f);
+        }
     }
 
     auto vd1_4 = dynamic_cast<script::VarDecl*>(nss1.ast().decls[3]);
-    EXPECT_TRUE(vd1_4->is_const_);
-    script::AstConstEvaluator eval1_4{&nss1, vd1_4->init};
-    EXPECT_FALSE(eval1_4.failed_);
-    EXPECT_GT(eval1_4.result_.size(), 0);
-    if (eval1_4.result_.size()) {
-        EXPECT_TRUE(eval1_4.result_.top().is<std::string>());
-        EXPECT_EQ(eval1_4.result_.top().as<std::string>(), "Hello, NWN:EE");
+    if (vd1_4) {
+        EXPECT_TRUE(vd1_4->is_const_);
+        script::AstConstEvaluator eval1_4{&nss1, vd1_4->init};
+        EXPECT_FALSE(eval1_4.failed_);
+        EXPECT_GT(eval1_4.result_.size(), 0);
+        if (eval1_4.result_.size()) {
+            EXPECT_TRUE(eval1_4.result_.top().is<std::string>());
+            EXPECT_EQ(eval1_4.result_.top().as<std::string>(), "Hello, NWN:EE");
+        }
     }
 }
 
