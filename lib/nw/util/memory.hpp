@@ -135,7 +135,7 @@ struct MemoryScope : public MemoryResource {
     template <typename T, typename... Args>
     T* alloc_obj(Args&&... args)
     {
-        static_assert(!(std::is_standard_layout_v<T> && std::is_trivial_v<T>), "Use alloc_pod for POD types");
+        static_assert(!std::is_trivially_destructible_v<T>, "Use alloc_pod for POD types");
         void* mem = allocate(sizeof(detail::FinalizedObject<T>), alignof(detail::FinalizedObject<T>));
         auto fo = static_cast<detail::FinalizedObject<T>*>(mem);
         fo->f.fn = &detail::destructor<T>;
@@ -148,7 +148,7 @@ struct MemoryScope : public MemoryResource {
     template <typename T>
     T* alloc_pod()
     {
-        static_assert(std::is_standard_layout_v<T> && std::is_trivial_v<T>, "Use alloc_obj for non-trivial types");
+        static_assert(std::is_trivially_destructible_v<T>, "Use alloc_obj for non-trivial types");
         void* mem = allocate(sizeof(T), alignof(T));
         return new (mem) T();
     }
