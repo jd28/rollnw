@@ -15,6 +15,17 @@
 
 namespace nw::kernel {
 
+// == Service =================================================================
+MemoryScope* Service::scope() const noexcept
+{
+    return scope_;
+}
+
+void Service::set_scope(MemoryScope* scope) noexcept
+{
+    scope_ = scope;
+}
+
 Services::Services()
 {
     // The ordering here is important.  Pretty much everything depends on strings and resman

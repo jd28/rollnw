@@ -47,7 +47,16 @@ struct Service {
     virtual void initialize(ServiceInitTime /*time*/){};
 
     /// Clears a service
-    virtual void clear() { };
+    virtual void clear() {};
+
+    /// Gets the memory scope for the servce
+    MemoryScope* scope() const noexcept;
+
+    /// Gets the memory scope for the servce
+    void set_scope(MemoryScope* scope) noexcept;
+
+private:
+    MemoryScope* scope_ = nullptr;
 };
 
 struct ServiceEntry {
