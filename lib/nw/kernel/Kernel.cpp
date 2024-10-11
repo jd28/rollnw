@@ -27,6 +27,9 @@ void Service::set_scope(MemoryScope* scope) noexcept
 }
 
 Services::Services()
+    : kernel_arena_(MB(16))
+    , kernel_scope_(&kernel_arena_)
+    , service_scope_(nullptr)
 {
     // The ordering here is important.  Pretty much everything depends on strings and resman
     add<Strings>();
@@ -40,6 +43,8 @@ Services::Services()
     add<TilesetRegistry>();
     add<FactionSystem>();
 
+    service_scope_ = kernel_scope_.alloc_obj<MemoryScope>(&kernel_arena_);
+
     for (auto& entry : services_) {
         if (!entry.service) { break; }
         entry.service->set_scope(service_scope_);
@@ -50,7 +55,7 @@ void Services::start()
 {
     if (config().version() == GameVersion::vEE
         || config().version() == GameVersion::v1_69) {
-        profile_ = std::make_unique<nwn1::Profile>();
+        profile_ = kernel_scope_.alloc_obj<nwn1::Profile>();
     } else {
         std::runtime_error("currently selected game version is unsupported");
     }
@@ -63,7 +68,7 @@ void Services::start()
 
 GameProfile* Services::profile() const
 {
-    return profile_.get();
+    return profile_;
 }
 
 void Services::shutdown()
@@ -71,8 +76,7 @@ void Services::shutdown()
     for (size_t i = services().services_count_; i > 0; --i) {
         services().services_[i - 1].service->clear();
     }
-
-    profile_.reset();
+    if (service_scope_) { service_scope_->reset(); }
 }
 
 Config& config()

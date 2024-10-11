@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../config.hpp"
+#include "../util/memory.hpp"
 #include "../util/templates.hpp"
 #include "Config.hpp"
 
@@ -92,10 +93,12 @@ struct Services {
     friend void unload_module();
 
 private:
-    GameProfile* profile_ = nullptr;
-    std::unique_ptr<GameProfile> profile_;
     std::array<ServiceEntry, 32> services_;
     size_t services_count_ = 0;
+    GameProfile* profile_ = nullptr;
+    MemoryArena kernel_arena_;
+    MemoryScope kernel_scope_;
+    MemoryScope* service_scope_ = nullptr;
 };
 
 template <typename T>
@@ -103,7 +106,7 @@ T* Services::add()
 {
     T* service = get_mut<T>();
     if (!service) {
-        service = new T;
+        service = kernel_scope_.alloc_obj<T>();
         CHECK_F(services_count_ < 32, "Only 32 total services are allowed");
         services_[services_count_] = ServiceEntry{T::type_index, service};
         ++services_count_;
@@ -142,12 +145,15 @@ Config& config();
 Services& services();
 
 /// Loads a module
-/// If instantiate is false, no areas are loaded and service init at `` module_post_instantiation``
+/// If instantiate is false, no areas are loaded and Service::initialize at ``module_post_instantiation``
 /// is not called.
 Module* load_module(const std::filesystem::path& path, bool instantiate = true);
 
 /// Unloads currently active module
 void unload_module();
+
+static thread_local MemoryArena tsl_arena_(MB(1));
+static thread_local MemoryScope tsl_scope(&tsl_arena_);
 
 } // namespace kernel
 } // namespace nw
