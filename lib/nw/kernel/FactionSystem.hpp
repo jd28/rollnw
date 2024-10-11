@@ -9,6 +9,8 @@
 namespace nw::kernel {
 
 struct FactionSystem : public Service {
+    const static std::type_index type_index;
+
     virtual void initialize(ServiceInitTime time) override;
     virtual void clear() override;
 

@@ -32,6 +32,8 @@ struct EffectSystemStats {
 };
 
 struct EffectSystem : public Service {
+    const static std::type_index type_index;
+
     virtual ~EffectSystem() = default;
 
     /// Adds an effect type to the registry

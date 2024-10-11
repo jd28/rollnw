@@ -8,6 +8,8 @@
 
 namespace nw::kernel {
 
+const std::type_index Rules::type_index{typeid(Rules)};
+
 Rules::~Rules()
 {
     clear();

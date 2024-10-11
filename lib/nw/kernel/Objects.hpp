@@ -39,6 +39,8 @@ struct ObjectSystemStats {
  *
  */
 struct ObjectSystem : public Service {
+    const static std::type_index type_index;
+
     ObjectSystem() = default;
     ObjectSystem(const ObjectSystem&) = delete;
     ObjectSystem(ObjectSystem&&) = default;

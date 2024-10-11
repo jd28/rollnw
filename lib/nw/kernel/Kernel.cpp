@@ -39,6 +39,11 @@ Services::Services()
     add<ModelCache>();
     add<TilesetRegistry>();
     add<FactionSystem>();
+
+    for (auto& entry : services_) {
+        if (!entry.service) { break; }
+        entry.service->set_scope(service_scope_);
+    }
 }
 
 void Services::start()
@@ -50,8 +55,9 @@ void Services::start()
         std::runtime_error("currently selected game version is unsupported");
     }
 
-    for (auto& s : services_) {
-        s.service->initialize(ServiceInitTime::kernel_start);
+    for (auto& entry : services_) {
+        if (!entry.service) { break; }
+        entry.service->initialize(ServiceInitTime::kernel_start);
     }
 }
 
@@ -62,8 +68,8 @@ GameProfile* Services::profile() const
 
 void Services::shutdown()
 {
-    for (auto& s : reverse(services_)) {
-        s.service->clear();
+    for (size_t i = services().services_count_; i > 0; --i) {
+        services().services_[i - 1].service->clear();
     }
 
     profile_.reset();
@@ -87,6 +93,7 @@ Module* load_module(const std::filesystem::path& path, bool instantiate)
     unload_module();
 
     for (auto& s : services().services_) {
+        if (!s.service) { break; }
         s.service->initialize(ServiceInitTime::module_pre_load);
     }
 
@@ -103,6 +110,7 @@ Module* load_module(const std::filesystem::path& path, bool instantiate)
     }
 
     for (auto& s : services().services_) {
+        if (!s.service) { break; }
         s.service->initialize(ServiceInitTime::module_post_load);
     }
 
@@ -112,6 +120,7 @@ Module* load_module(const std::filesystem::path& path, bool instantiate)
         }
 
         for (auto& s : services().services_) {
+            if (!s.service) { break; }
             s.service->initialize(ServiceInitTime::module_post_instantiation);
         }
     }
@@ -121,8 +130,8 @@ Module* load_module(const std::filesystem::path& path, bool instantiate)
 
 void unload_module()
 {
-    for (auto& s : reverse(services().services_)) {
-        s.service->clear();
+    for (size_t i = services().services_count_; i > 0; --i) {
+        services().services_[i - 1].service->clear();
     }
 
     resman().unload_module();

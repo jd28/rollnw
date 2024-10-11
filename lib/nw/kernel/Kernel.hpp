@@ -60,8 +60,8 @@ private:
 };
 
 struct ServiceEntry {
-    std::type_index index;
-    std::unique_ptr<Service> service;
+    std::type_index index = typeid(int);
+    Service* service = nullptr;
 };
 
 struct Services {
@@ -92,8 +92,10 @@ struct Services {
     friend void unload_module();
 
 private:
-    Vector<ServiceEntry> services_;
+    GameProfile* profile_ = nullptr;
     std::unique_ptr<GameProfile> profile_;
+    std::array<ServiceEntry, 32> services_;
+    size_t services_count_ = 0;
 };
 
 template <typename T>
@@ -102,7 +104,9 @@ T* Services::add()
     T* service = get_mut<T>();
     if (!service) {
         service = new T;
-        services_.push_back({std::type_index(typeid(T)), std::unique_ptr<Service>(service)});
+        CHECK_F(services_count_ < 32, "Only 32 total services are allowed");
+        services_[services_count_] = ServiceEntry{T::type_index, service};
+        ++services_count_;
     }
     return service;
 }
@@ -110,10 +114,10 @@ T* Services::add()
 template <typename T>
 const T* Services::get() const
 {
-    auto ti = std::type_index(typeid(T));
     for (auto& s : services_) {
-        if (s.index == ti) {
-            return static_cast<const T*>(s.service.get());
+        if (!s.service) { break; }
+        if (s.index == T::type_index) {
+            return static_cast<const T*>(s.service);
         }
     }
     return nullptr;
@@ -122,10 +126,10 @@ const T* Services::get() const
 template <typename T>
 T* Services::get_mut()
 {
-    auto ti = std::type_index(typeid(T));
     for (auto& s : services_) {
-        if (s.index == ti) {
-            return static_cast<T*>(s.service.get());
+        if (!s.service) { break; }
+        if (s.index == T::type_index) {
+            return static_cast<T*>(s.service);
         }
     }
     return nullptr;

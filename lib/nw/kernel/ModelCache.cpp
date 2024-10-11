@@ -6,6 +6,8 @@
 
 namespace nw::kernel {
 
+const std::type_index ModelCache::type_index{typeid(ModelCache)};
+
 void ModelCache::clear()
 {
     map_.clear();

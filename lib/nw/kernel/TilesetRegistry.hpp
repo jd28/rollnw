@@ -19,6 +19,8 @@ struct TilesetRegistryMetrics {
 };
 
 struct TilesetRegistry : public Service {
+    const static std::type_index type_index;
+
     void clear() override;
     void initialize(ServiceInitTime time) override;
     Tileset* load(StringView resref);

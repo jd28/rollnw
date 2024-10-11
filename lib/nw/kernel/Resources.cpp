@@ -19,6 +19,8 @@ using namespace std::literals;
 
 namespace nw::kernel {
 
+const std::type_index Resources::type_index{typeid(Resources)};
+
 inline Container* get_container(const LocatorVariant& var)
 {
     if (std::holds_alternative<Container*>(var)) {

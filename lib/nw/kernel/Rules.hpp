@@ -21,6 +21,8 @@
 namespace nw::kernel {
 
 struct Rules : public Service {
+    const static std::type_index type_index;
+
     virtual ~Rules();
 
     /// Initializes rules system

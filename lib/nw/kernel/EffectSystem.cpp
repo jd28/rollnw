@@ -6,6 +6,8 @@
 
 namespace nw::kernel {
 
+const std::type_index EffectSystem::type_index{typeid(EffectSystem)};
+
 bool EffectSystem::add(EffectType type, EffectFunc apply, EffectFunc remove)
 {
     auto [it, added] = registry_.emplace(*type, std::make_pair(std::move(apply), std::move(remove)));

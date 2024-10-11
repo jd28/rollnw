@@ -10,6 +10,8 @@ namespace fs = std::filesystem;
 
 namespace nw::kernel {
 
+const std::type_index Strings::type_index{typeid(Strings)};
+
 String Strings::get(uint32_t strref, bool feminine) const
 {
     if (strref == 0xFFFFFFFF) { return {}; }

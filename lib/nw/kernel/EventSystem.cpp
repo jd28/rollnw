@@ -5,6 +5,8 @@
 
 namespace nw::kernel {
 
+const std::type_index EventSystem::type_index{typeid(EventSystem)};
+
 void EventSystem::add(EventType type, ObjectBase* object, void* data)
 {
     EventHandle h;

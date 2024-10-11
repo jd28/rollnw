@@ -5,6 +5,8 @@
 
 namespace nw::kernel {
 
+const std::type_index TilesetRegistry::type_index{typeid(TilesetRegistry)};
+
 void TilesetRegistry::clear()
 {
     metrics_ = TilesetRegistryMetrics{};

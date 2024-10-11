@@ -8,6 +8,8 @@ using namespace std::literals;
 
 namespace nw::kernel {
 
+const std::type_index ObjectSystem::type_index{typeid(ObjectSystem)};
+
 void ObjectSystem::clear()
 {
     // Clear tag map first

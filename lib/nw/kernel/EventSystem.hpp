@@ -37,6 +37,8 @@ struct EventHandle {
 };
 
 struct EventSystem : public Service {
+    const static std::type_index type_index;
+
     template <typename T>
     using storage = std::priority_queue<T, Vector<T>, std::greater<T>>;
 

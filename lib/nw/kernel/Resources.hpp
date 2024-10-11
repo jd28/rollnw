@@ -37,6 +37,8 @@ struct LocatorPayload {
 };
 
 struct Resources : public Container, public Service {
+    const static std::type_index type_index;
+
     Resources(const Resources* parent = nullptr);
     virtual ~Resources() = default;
 
