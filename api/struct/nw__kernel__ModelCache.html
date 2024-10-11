@@ -9,12 +9,13 @@
   <title>nw::kernel::ModelCache &mdash; rollNW  documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../_static/tabs.css?v=a5c4661c" />
 
   
       <script src="../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
       <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
-      <script src="../../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
       <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
@@ -220,7 +221,10 @@
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6kernel10ModelCache4loadE10StringView"><code class="docutils literal notranslate"><span class="pre">ModelCache::load()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6kernel10ModelCache7releaseE10StringView"><code class="docutils literal notranslate"><span class="pre">ModelCache::release()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6kernel10ModelCache10initializeE15ServiceInitTime"><code class="docutils literal notranslate"><span class="pre">ModelCache::initialize()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw6kernel10ModelCache5scopeEv"><code class="docutils literal notranslate"><span class="pre">ModelCache::scope()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6kernel10ModelCache9set_scopeEP11MemoryScope"><code class="docutils literal notranslate"><span class="pre">ModelCache::set_scope()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6kernel10ModelCache4map_E"><code class="docutils literal notranslate"><span class="pre">ModelCache::map_</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6kernel10ModelCache10type_indexE"><code class="docutils literal notranslate"><span class="pre">ModelCache::type_index</span></code></a></li>
 </ul>
 </li>
 </ul>
@@ -407,12 +411,32 @@
 </div>
 </dd></dl>
 
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK2nw6kernel10ModelCache5scopeEv">
+<span id="_CPPv3NK2nw6kernel10ModelCache5scopeEv"></span><span id="_CPPv2NK2nw6kernel10ModelCache5scopeEv"></span><span id="nw::kernel::ModelCache::scopeC"></span><span class="target" id="structnw_1_1kernel_1_1_service_1a3cf299cd73f0545bdf0912368739242b"></span><span class="n"><span class="pre">MemoryScope</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">scope</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="k"><span class="pre">noexcept</span></span><a class="headerlink" href="#_CPPv4NK2nw6kernel10ModelCache5scopeEv" title="Link to this definition"></a><br /></dt>
+<dd><p>Gets the memory scope for the servce. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6kernel10ModelCache9set_scopeEP11MemoryScope">
+<span id="_CPPv3N2nw6kernel10ModelCache9set_scopeEP11MemoryScope"></span><span id="_CPPv2N2nw6kernel10ModelCache9set_scopeEP11MemoryScope"></span><span id="nw::kernel::ModelCache::set_scope__MemoryScopeP"></span><span class="target" id="structnw_1_1kernel_1_1_service_1a6f0b41a4008d62957628ab40a3f716a7"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_scope</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">MemoryScope</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">scope</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">noexcept</span></span><a class="headerlink" href="#_CPPv4N2nw6kernel10ModelCache9set_scopeEP11MemoryScope" title="Link to this definition"></a><br /></dt>
+<dd><p>Gets the memory scope for the servce. </p>
+</dd></dl>
+
 </div>
 <div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw6kernel10ModelCache4map_E">
 <span id="_CPPv3N2nw6kernel10ModelCache4map_E"></span><span id="_CPPv2N2nw6kernel10ModelCache4map_E"></span><span id="nw::kernel::ModelCache::map___absl::flat_hash_map:String.ModelPayload:"></span><span class="target" id="structnw_1_1kernel_1_1_model_cache_1a48fe5936735de15ad5316ddd3de6e098"></span><span class="n"><span class="pre">absl</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">flat_hash_map</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">String</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">ModelPayload</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">map_</span></span></span><a class="headerlink" href="#_CPPv4N2nw6kernel10ModelCache4map_E" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-static-attributes">Public Static Attributes</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6kernel10ModelCache10type_indexE">
+<span id="_CPPv3N2nw6kernel10ModelCache10type_indexE"></span><span id="_CPPv2N2nw6kernel10ModelCache10type_indexE"></span><span id="nw::kernel::ModelCache::type_index__std::type_indexC"></span><span class="target" id="structnw_1_1kernel_1_1_model_cache_1a97f0213aa5238557ce90fd77c4428275"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">type_index</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">type_index</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="k"><span class="pre">typeid</span></span><span class="p"><span class="pre">(</span></span><a class="reference internal" href="#_CPPv4N2nw6kernel10ModelCacheE" title="nw::kernel::ModelCache"><span class="n"><span class="pre">ModelCache</span></span></a><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N2nw6kernel10ModelCache10type_indexE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 </div>

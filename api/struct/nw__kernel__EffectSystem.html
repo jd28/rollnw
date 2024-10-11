@@ -9,12 +9,13 @@
   <title>nw::kernel::EffectSystem &mdash; rollNW  documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../_static/tabs.css?v=a5c4661c" />
 
   
       <script src="../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
       <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
-      <script src="../../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
       <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
@@ -227,7 +228,10 @@
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw6kernel12EffectSystem14ip_param_tableE6size_t"><code class="docutils literal notranslate"><span class="pre">EffectSystem::ip_param_table()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6kernel12EffectSystem6removeEP10ObjectBaseP6Effect"><code class="docutils literal notranslate"><span class="pre">EffectSystem::remove()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw6kernel12EffectSystem5statsEv"><code class="docutils literal notranslate"><span class="pre">EffectSystem::stats()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw6kernel12EffectSystem5scopeEv"><code class="docutils literal notranslate"><span class="pre">EffectSystem::scope()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6kernel12EffectSystem9set_scopeEP11MemoryScope"><code class="docutils literal notranslate"><span class="pre">EffectSystem::set_scope()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6kernel12EffectSystem6limitsE"><code class="docutils literal notranslate"><span class="pre">EffectSystem::limits</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6kernel12EffectSystem10type_indexE"><code class="docutils literal notranslate"><span class="pre">EffectSystem::type_index</span></code></a></li>
 </ul>
 </li>
 </ul>
@@ -474,6 +478,18 @@
 <dd><p>Gets stats regarding the effect system. </p>
 </dd></dl>
 
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK2nw6kernel12EffectSystem5scopeEv">
+<span id="_CPPv3NK2nw6kernel12EffectSystem5scopeEv"></span><span id="_CPPv2NK2nw6kernel12EffectSystem5scopeEv"></span><span id="nw::kernel::EffectSystem::scopeC"></span><span class="target" id="structnw_1_1kernel_1_1_service_1a3cf299cd73f0545bdf0912368739242b"></span><span class="n"><span class="pre">MemoryScope</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">scope</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="k"><span class="pre">noexcept</span></span><a class="headerlink" href="#_CPPv4NK2nw6kernel12EffectSystem5scopeEv" title="Link to this definition"></a><br /></dt>
+<dd><p>Gets the memory scope for the servce. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6kernel12EffectSystem9set_scopeEP11MemoryScope">
+<span id="_CPPv3N2nw6kernel12EffectSystem9set_scopeEP11MemoryScope"></span><span id="_CPPv2N2nw6kernel12EffectSystem9set_scopeEP11MemoryScope"></span><span id="nw::kernel::EffectSystem::set_scope__MemoryScopeP"></span><span class="target" id="structnw_1_1kernel_1_1_service_1a6f0b41a4008d62957628ab40a3f716a7"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_scope</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">MemoryScope</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">scope</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">noexcept</span></span><a class="headerlink" href="#_CPPv4N2nw6kernel12EffectSystem9set_scopeEP11MemoryScope" title="Link to this definition"></a><br /></dt>
+<dd><p>Gets the memory scope for the servce. </p>
+</dd></dl>
+
 </div>
 <div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
@@ -482,6 +498,14 @@
 <span id="_CPPv3N2nw6kernel12EffectSystem6limitsE"></span><span id="_CPPv2N2nw6kernel12EffectSystem6limitsE"></span><span id="nw::kernel::EffectSystem::limits__EffectLimits"></span><span class="target" id="structnw_1_1kernel_1_1_effect_system_1aa05186a2a1aae86b797c1a09a4930be1"></span><span class="n"><span class="pre">EffectLimits</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">limits</span></span></span><a class="headerlink" href="#_CPPv4N2nw6kernel12EffectSystem6limitsE" title="Link to this definition"></a><br /></dt>
 <dd><p><a class="reference internal" href="nw__Effect.html#structnw_1_1_effect"><span class="std std-ref">Effect</span></a> related limits. </p>
 </dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-static-attributes">Public Static Attributes</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6kernel12EffectSystem10type_indexE">
+<span id="_CPPv3N2nw6kernel12EffectSystem10type_indexE"></span><span id="_CPPv2N2nw6kernel12EffectSystem10type_indexE"></span><span id="nw::kernel::EffectSystem::type_index__std::type_indexC"></span><span class="target" id="structnw_1_1kernel_1_1_effect_system_1ae5291ea759cb30d1ac68f64945361d5e"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">type_index</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">type_index</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="k"><span class="pre">typeid</span></span><span class="p"><span class="pre">(</span></span><a class="reference internal" href="#_CPPv4N2nw6kernel12EffectSystemE" title="nw::kernel::EffectSystem"><span class="n"><span class="pre">EffectSystem</span></span></a><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N2nw6kernel12EffectSystem10type_indexE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
 
 </div>
 </dd></dl>

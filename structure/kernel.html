@@ -9,12 +9,13 @@
   <title>kernel &mdash; rollNW  documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=80d5e7a1" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../_static/tabs.css?v=a5c4661c" />
 
   
       <script src="../_static/jquery.js?v=5d32c60e"></script>
       <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
       <script src="../_static/documentation_options.js?v=5929fcd5"></script>
-      <script src="../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
       <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
@@ -53,8 +54,17 @@
 <li class="toctree-l1"><a class="reference internal" href="formats.html">formats</a></li>
 <li class="toctree-l1"><a class="reference internal" href="i18n.html">i18n</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">kernel</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#services">Services</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#config">Config</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#config">Config</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#services">Services</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#effectsystem">EffectSystem</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#eventsystem">EventSystem</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#factionsystem">FactionSystem</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#modelcache">ModelCache</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#objectsystem">ObjectSystem</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#rules">Rules</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#strings">Strings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#tilesetregistry">TilesetRegistry</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#twodacache">TwoDACache</a></li>
 </ul>
 </li>
 </ul>
@@ -134,17 +144,44 @@
 <p>The <code class="docutils literal notranslate"><span class="pre">kernel</span></code> module provides submodules for handling global resources
 and services. It’s designed around some explicit goals:</p>
 <ul class="simple">
+<li><p>Any function or object that can modify global state must be contained
+in this module for easy search/grepability. <code class="docutils literal notranslate"><span class="pre">using</span> <span class="pre">nwk</span> <span class="pre">=</span> <span class="pre">nw::kernel</span></code> is an acceptable abreviation.</p></li>
 <li><p>Every service should be easily overrideable to allow for <a class="reference external" href="http://sevangelatos.com/john-carmack-on-parallel-implementations/">parallel
 implementation</a>.</p></li>
 <li><p>Every service should be decoupled from the kernel itself.</p></li>
-<li><p>Any function or object that can modify global state must be contained
-in this module for easy search/grepability.</p></li>
 </ul>
-<section id="services">
-<h2>Services<a class="headerlink" href="#services" title="Link to this heading"></a></h2>
 <section id="config">
-<h3>Config<a class="headerlink" href="#config" title="Link to this heading"></a></h3>
-<p>The <code class="docutils literal notranslate"><span class="pre">Config</span></code> service provides access to installation info.</p>
+<h2>Config<a class="headerlink" href="#config" title="Link to this heading"></a></h2>
+<p><a class="reference internal" href="../api/struct/nw__kernel__Config.html#_CPPv4N2nw6kernel6ConfigE" title="nw::kernel::Config"><code class="xref cpp cpp-struct docutils literal notranslate"><span class="pre">nw::kernel::Config</span></code></a></p>
+<section id="services">
+<h3>Services<a class="headerlink" href="#services" title="Link to this heading"></a></h3>
+</section>
+<section id="effectsystem">
+<h3>EffectSystem<a class="headerlink" href="#effectsystem" title="Link to this heading"></a></h3>
+</section>
+<section id="eventsystem">
+<h3>EventSystem<a class="headerlink" href="#eventsystem" title="Link to this heading"></a></h3>
+</section>
+<section id="factionsystem">
+<h3>FactionSystem<a class="headerlink" href="#factionsystem" title="Link to this heading"></a></h3>
+</section>
+<section id="modelcache">
+<h3>ModelCache<a class="headerlink" href="#modelcache" title="Link to this heading"></a></h3>
+</section>
+<section id="objectsystem">
+<h3>ObjectSystem<a class="headerlink" href="#objectsystem" title="Link to this heading"></a></h3>
+</section>
+<section id="rules">
+<h3>Rules<a class="headerlink" href="#rules" title="Link to this heading"></a></h3>
+</section>
+<section id="strings">
+<h3>Strings<a class="headerlink" href="#strings" title="Link to this heading"></a></h3>
+</section>
+<section id="tilesetregistry">
+<h3>TilesetRegistry<a class="headerlink" href="#tilesetregistry" title="Link to this heading"></a></h3>
+</section>
+<section id="twodacache">
+<h3>TwoDACache<a class="headerlink" href="#twodacache" title="Link to this heading"></a></h3>
 </section>
 </section>
 </section>
