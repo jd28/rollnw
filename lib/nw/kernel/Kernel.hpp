@@ -5,8 +5,8 @@
 #include "../util/templates.hpp"
 #include "Config.hpp"
 
+#include <array>
 #include <functional>
-#include <memory>
 #include <typeindex>
 
 namespace nw {
