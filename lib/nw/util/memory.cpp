@@ -175,6 +175,7 @@ void MemoryScope::reset()
         }
         arena_->rewind(marker_);
     }
+    finalizers_ = nullptr;
 }
 
 // == MemoryPool ========================================================================
