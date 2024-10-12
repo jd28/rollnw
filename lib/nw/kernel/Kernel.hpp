@@ -160,8 +160,8 @@ void unload_module();
 /// @note Caller retains ownerserhip of ``profile``.
 void set_game_profile(GameProfile* profile);
 
-static thread_local MemoryArena tsl_arena_(MB(1));
-static thread_local MemoryScope tsl_scope(&tsl_arena_);
+/// Thread local scratch buffer.. reset every X ticks? Or never for short running scripts?
+MemoryScope* tls_scratch();
 
 } // namespace kernel
 } // namespace nw
