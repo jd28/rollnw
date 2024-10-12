@@ -89,6 +89,7 @@ struct Services {
     template <typename T>
     T* get_mut();
 
+    friend void set_game_profile(GameProfile*);
     friend Module* load_module(const std::filesystem::path& path, bool instantiate);
     friend void unload_module();
 
@@ -99,6 +100,9 @@ private:
     MemoryArena kernel_arena_;
     MemoryScope kernel_scope_;
     MemoryScope* service_scope_ = nullptr;
+    bool serices_started_ = false;
+
+    void load_services();
 };
 
 template <typename T>
@@ -151,6 +155,10 @@ Module* load_module(const std::filesystem::path& path, bool instantiate = true);
 
 /// Unloads currently active module
 void unload_module();
+
+/// Sets game profile. **Must** be called before nw::kernel::services().start();
+/// @note Caller retains ownerserhip of ``profile``.
+void set_game_profile(GameProfile* profile);
 
 static thread_local MemoryArena tsl_arena_(MB(1));
 static thread_local MemoryScope tsl_scope(&tsl_arena_);

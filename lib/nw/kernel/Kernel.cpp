@@ -31,34 +31,23 @@ Services::Services()
     , kernel_scope_(&kernel_arena_)
     , service_scope_(nullptr)
 {
-    // The ordering here is important.  Pretty much everything depends on strings and resman
-    add<Strings>();
-    add<Resources>();
-    add<TwoDACache>();
-    add<Rules>();
-    add<EffectSystem>();
-    add<ObjectSystem>();
-    add<EventSystem>();
-    add<ModelCache>();
-    add<TilesetRegistry>();
-    add<FactionSystem>();
-
-    service_scope_ = kernel_scope_.alloc_obj<MemoryScope>(&kernel_arena_);
-
-    for (auto& entry : services_) {
-        if (!entry.service) { break; }
-        entry.service->set_scope(service_scope_);
-    }
 }
 
 void Services::start()
 {
-    if (config().version() == GameVersion::vEE
-        || config().version() == GameVersion::v1_69) {
-        profile_ = kernel_scope_.alloc_obj<nwn1::Profile>();
-    } else {
-        std::runtime_error("currently selected game version is unsupported");
+    if (serices_started_) { return; }
+
+    if (!profile_) {
+        if (config().version() == GameVersion::vEE
+            || config().version() == GameVersion::v1_69) {
+            profile_ = kernel_scope_.alloc_obj<nwn1::Profile>();
+        } else {
+            std::runtime_error("currently selected game version is unsupported");
+        }
     }
+
+    // Load all the default services.
+    load_services();
 
     for (auto& entry : services_) {
         if (!entry.service) { break; }
@@ -76,7 +65,34 @@ void Services::shutdown()
     for (size_t i = services().services_count_; i > 0; --i) {
         services().services_[i - 1].service->clear();
     }
-    if (service_scope_) { service_scope_->reset(); }
+    // Wipe everything.
+    kernel_scope_.reset();
+    serices_started_ = false;
+}
+
+void Services::load_services()
+{
+    // The ordering here is important.  Pretty much everything depends on strings and resman
+    add<Strings>();
+    add<Resources>();
+    add<TwoDACache>();
+    add<Rules>();
+    add<EffectSystem>();
+    add<ObjectSystem>();
+    add<EventSystem>();
+    add<ModelCache>();
+    add<TilesetRegistry>();
+    add<FactionSystem>();
+
+    profile_->load_custom_services();
+
+    // After this point all
+    service_scope_ = kernel_scope_.alloc_obj<MemoryScope>(&kernel_arena_);
+
+    for (auto& entry : services_) {
+        if (!entry.service) { break; }
+        entry.service->set_scope(service_scope_);
+    }
 }
 
 Config& config()
@@ -130,6 +146,12 @@ Module* load_module(const std::filesystem::path& path, bool instantiate)
     }
 
     return mod;
+}
+
+void set_game_profile(GameProfile* profile)
+{
+    CHECK_F(!services().serices_started_, "[kernel] attempting set game profile after services have been started.");
+    services().profile_ = profile;
 }
 
 void unload_module()
