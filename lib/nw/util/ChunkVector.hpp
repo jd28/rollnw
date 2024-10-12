@@ -32,7 +32,6 @@ struct ChunkVector {
     {
         auto chunk = find_chunk(index);
         size_t ele = index % chunk_size_;
-        LOG_F(INFO, "index: {}, blocks: {}", ele, allocated_);
         CHECK_F(!!chunk && !!chunk->data, "attempting to address invalid chunk");
         return chunk->data[ele];
     }
@@ -59,7 +58,6 @@ struct ChunkVector {
         while (c) {
             if constexpr (!std::is_trivially_destructible_v<T>) {
                 for (size_t i = 0; i < chunk_size_; ++i) {
-                    LOG_F(INFO, "i {} chunk_size_ {} total_size {} size_ {}", i, chunk_size_, total_size, size_);
                     if (total_size == size_) { break; }
                     c->data[i].~T();
                     ++total_size;
@@ -128,7 +126,6 @@ private:
     Chunk* find_chunk(size_t index) const noexcept
     {
         size_t chunk = index / chunk_size_;
-        LOG_F(INFO, "chunk: {}", chunk);
         size_t i = 0;
 
         auto c = blocks_;
@@ -137,7 +134,6 @@ private:
             ++i;
             c = c->next;
         }
-        LOG_F(INFO, "valid chunk: {}", !!c && !!c->data);
 
         return c;
     }
