@@ -28,22 +28,14 @@ Rules::Rules(MemoryResource* scope)
 {
 }
 
-Rules::~Rules()
-{
-    clear();
-}
-
 void Rules::initialize(ServiceInitTime time)
 {
     if (time != ServiceInitTime::kernel_start && time != ServiceInitTime::module_post_load) {
         return;
     }
-    clear();
 
     LOG_F(INFO, "kernel: rules system initializing...");
-    if (auto profile = services().profile()) {
-        profile->load_rules();
-    }
+    services().profile()->load_rules();
 }
 
 const AttackFuncs& Rules::attack_functions() const noexcept

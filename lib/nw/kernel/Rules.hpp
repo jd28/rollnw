@@ -24,7 +24,7 @@ struct Rules : public Service {
     const static std::type_index type_index;
 
     Rules(MemoryResource* memory);
-    virtual ~Rules();
+    virtual ~Rules() = default;
 
     /// Initializes rules system
     virtual void initialize(ServiceInitTime time) override;
