@@ -8,7 +8,8 @@ namespace nwk = nw::kernel;
 
 TEST(Kernel, FactionSystem)
 {
-    nwk::load_module("test_data/user/modules/DockerDemo.mod");
+    auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
+    EXPECT_TRUE(mod);
 
     auto num = nwk::factions().count();
     EXPECT_EQ(num, 5);

@@ -2,11 +2,9 @@
 
 #include "../config.hpp"
 #include "../util/memory.hpp"
-#include "../util/templates.hpp"
 #include "Config.hpp"
 
 #include <array>
-#include <functional>
 #include <typeindex>
 
 namespace nw {
@@ -89,6 +87,7 @@ struct Services {
     template <typename T>
     T* get_mut();
 
+    friend GlobalMemory* global_allocator();
     friend void set_game_profile(GameProfile*);
     friend Module* load_module(const std::filesystem::path& path, bool instantiate);
     friend void unload_module();
@@ -97,6 +96,7 @@ private:
     std::array<ServiceEntry, 32> services_;
     size_t services_count_ = 0;
     GameProfile* profile_ = nullptr;
+    GlobalMemory global_alloc_;
     MemoryArena kernel_arena_;
     MemoryScope kernel_scope_;
     MemoryScope* service_scope_ = nullptr;
@@ -143,15 +143,18 @@ T* Services::get_mut()
 }
 
 /// Gets configuration options
-Config& config();
+[[nodiscard]] Config& config();
+
+/// Gets global allocator
+[[nodiscard]] GlobalMemory* global_allocator();
 
 /// Gets services
-Services& services();
+[[nodiscard]] Services& services();
 
 /// Loads a module
 /// If instantiate is false, no areas are loaded and Service::initialize at ``module_post_instantiation``
 /// is not called.
-Module* load_module(const std::filesystem::path& path, bool instantiate = true);
+[[nodiscard]] Module* load_module(const std::filesystem::path& path, bool instantiate = true);
 
 /// Unloads currently active module
 void unload_module();
@@ -161,7 +164,7 @@ void unload_module();
 void set_game_profile(GameProfile* profile);
 
 /// Thread local scratch buffer.. reset every X ticks? Or never for short running scripts?
-MemoryScope* tls_scratch();
+[[nodiscard]] MemoryScope* tls_scratch();
 
 } // namespace kernel
 } // namespace nw
