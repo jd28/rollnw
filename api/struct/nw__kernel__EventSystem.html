@@ -216,12 +216,11 @@
 <li class="toctree-l2 current"><a class="current reference internal" href="#">nw::kernel::EventSystem</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#_CPPv4N2nw6kernel11EventSystemE"><code class="docutils literal notranslate"><span class="pre">EventSystem</span></code></a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4I0EN2nw6kernel11EventSystem7storageE"><code class="docutils literal notranslate"><span class="pre">EventSystem::storage</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6kernel11EventSystem11EventSystemEP14MemoryResource"><code class="docutils literal notranslate"><span class="pre">EventSystem::EventSystem()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6kernel11EventSystem3addE9EventTypeP10ObjectBasePv"><code class="docutils literal notranslate"><span class="pre">EventSystem::add()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6kernel11EventSystem5clearEv"><code class="docutils literal notranslate"><span class="pre">EventSystem::clear()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6kernel11EventSystem7processEv"><code class="docutils literal notranslate"><span class="pre">EventSystem::process()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw6kernel11EventSystem9allocatorEv"><code class="docutils literal notranslate"><span class="pre">EventSystem::allocator()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6kernel11EventSystem10initializeE15ServiceInitTime"><code class="docutils literal notranslate"><span class="pre">EventSystem::initialize()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw6kernel11EventSystem5scopeEv"><code class="docutils literal notranslate"><span class="pre">EventSystem::scope()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6kernel11EventSystem9set_scopeEP11MemoryScope"><code class="docutils literal notranslate"><span class="pre">EventSystem::set_scope()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6kernel11EventSystem6queue_E"><code class="docutils literal notranslate"><span class="pre">EventSystem::queue_</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6kernel11EventSystem10type_indexE"><code class="docutils literal notranslate"><span class="pre">EventSystem::type_index</span></code></a></li>
 </ul>
@@ -395,20 +394,25 @@
 <div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
 <dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6kernel11EventSystem11EventSystemEP14MemoryResource">
+<span id="_CPPv3N2nw6kernel11EventSystem11EventSystemEP14MemoryResource"></span><span id="_CPPv2N2nw6kernel11EventSystem11EventSystemEP14MemoryResource"></span><span id="nw::kernel::EventSystem::EventSystem__MemoryResourceP"></span><span class="target" id="structnw_1_1kernel_1_1_event_system_1ad1e76a4dde7e4247e813071e8736a057"></span><span class="sig-name descname"><span class="n"><span class="pre">EventSystem</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">MemoryResource</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">scope</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6kernel11EventSystem11EventSystemEP14MemoryResource" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw6kernel11EventSystem3addE9EventTypeP10ObjectBasePv">
 <span id="_CPPv3N2nw6kernel11EventSystem3addE9EventTypeP10ObjectBasePv"></span><span id="_CPPv2N2nw6kernel11EventSystem3addE9EventTypeP10ObjectBasePv"></span><span id="nw::kernel::EventSystem::add__EventType.ObjectBaseP.voidP"></span><span class="target" id="structnw_1_1kernel_1_1_event_system_1a25b7a01871484bd62dcf01a5f8c91146"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">add</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">EventType</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">type</span></span>, <span class="n"><span class="pre">ObjectBase</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">object</span></span>, <span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">data</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">nullptr</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6kernel11EventSystem3addE9EventTypeP10ObjectBasePv" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N2nw6kernel11EventSystem5clearEv">
-<span id="_CPPv3N2nw6kernel11EventSystem5clearEv"></span><span id="_CPPv2N2nw6kernel11EventSystem5clearEv"></span><span id="nw::kernel::EventSystem::clear"></span><span class="target" id="structnw_1_1kernel_1_1_event_system_1a4c6f38c2473a56b1c7ba864c2d747838"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">clear</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">override</span></span><a class="headerlink" href="#_CPPv4N2nw6kernel11EventSystem5clearEv" title="Link to this definition"></a><br /></dt>
-<dd><p>Clears a service. </p>
-</dd></dl>
-
-<dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw6kernel11EventSystem7processEv">
 <span id="_CPPv3N2nw6kernel11EventSystem7processEv"></span><span id="_CPPv2N2nw6kernel11EventSystem7processEv"></span><span id="nw::kernel::EventSystem::process"></span><span class="target" id="structnw_1_1kernel_1_1_event_system_1a7b2cd71d966f48453a4b17a8e4ca5c7f"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">process</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6kernel11EventSystem7processEv" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK2nw6kernel11EventSystem9allocatorEv">
+<span id="_CPPv3NK2nw6kernel11EventSystem9allocatorEv"></span><span id="_CPPv2NK2nw6kernel11EventSystem9allocatorEv"></span><span id="nw::kernel::EventSystem::allocatorC"></span><span class="target" id="structnw_1_1kernel_1_1_service_1afd0d86aebaf897ca40f331398b605ce0"></span><span class="n"><span class="pre">MemoryResource</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">allocator</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="k"><span class="pre">noexcept</span></span><a class="headerlink" href="#_CPPv4NK2nw6kernel11EventSystem9allocatorEv" title="Link to this definition"></a><br /></dt>
+<dd><p>Gets the memory allocator for the servce. </p>
+</dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw6kernel11EventSystem10initializeE15ServiceInitTime">
@@ -418,18 +422,6 @@
 <p class="admonition-title">Note</p>
 <p>Every service will be called with as many values as exist in <code class="docutils literal notranslate"><span class="pre">ServiceInitTime</span></code>. it’s up to the service itself to filter/ignore what’s not relevant to them. </p>
 </div>
-</dd></dl>
-
-<dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4NK2nw6kernel11EventSystem5scopeEv">
-<span id="_CPPv3NK2nw6kernel11EventSystem5scopeEv"></span><span id="_CPPv2NK2nw6kernel11EventSystem5scopeEv"></span><span id="nw::kernel::EventSystem::scopeC"></span><span class="target" id="structnw_1_1kernel_1_1_service_1a3cf299cd73f0545bdf0912368739242b"></span><span class="n"><span class="pre">MemoryScope</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">scope</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="k"><span class="pre">noexcept</span></span><a class="headerlink" href="#_CPPv4NK2nw6kernel11EventSystem5scopeEv" title="Link to this definition"></a><br /></dt>
-<dd><p>Gets the memory scope for the servce. </p>
-</dd></dl>
-
-<dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N2nw6kernel11EventSystem9set_scopeEP11MemoryScope">
-<span id="_CPPv3N2nw6kernel11EventSystem9set_scopeEP11MemoryScope"></span><span id="_CPPv2N2nw6kernel11EventSystem9set_scopeEP11MemoryScope"></span><span id="nw::kernel::EventSystem::set_scope__MemoryScopeP"></span><span class="target" id="structnw_1_1kernel_1_1_service_1a6f0b41a4008d62957628ab40a3f716a7"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_scope</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">MemoryScope</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">scope</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">noexcept</span></span><a class="headerlink" href="#_CPPv4N2nw6kernel11EventSystem9set_scopeEP11MemoryScope" title="Link to this definition"></a><br /></dt>
-<dd><p>Gets the memory scope for the servce. </p>
 </dd></dl>
 
 </div>

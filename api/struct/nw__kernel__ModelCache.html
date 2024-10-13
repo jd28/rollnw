@@ -217,12 +217,12 @@
 <li class="toctree-l2"><a class="reference internal" href="nw__kernel__FactionSystem.html">nw::kernel::FactionSystem</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">nw::kernel::ModelCache</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#_CPPv4N2nw6kernel10ModelCacheE"><code class="docutils literal notranslate"><span class="pre">ModelCache</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6kernel10ModelCache10ModelCacheEP14MemoryResource"><code class="docutils literal notranslate"><span class="pre">ModelCache::ModelCache()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6kernel10ModelCache5clearEv"><code class="docutils literal notranslate"><span class="pre">ModelCache::clear()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6kernel10ModelCache4loadE10StringView"><code class="docutils literal notranslate"><span class="pre">ModelCache::load()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6kernel10ModelCache7releaseE10StringView"><code class="docutils literal notranslate"><span class="pre">ModelCache::release()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw6kernel10ModelCache9allocatorEv"><code class="docutils literal notranslate"><span class="pre">ModelCache::allocator()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6kernel10ModelCache10initializeE15ServiceInitTime"><code class="docutils literal notranslate"><span class="pre">ModelCache::initialize()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw6kernel10ModelCache5scopeEv"><code class="docutils literal notranslate"><span class="pre">ModelCache::scope()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6kernel10ModelCache9set_scopeEP11MemoryScope"><code class="docutils literal notranslate"><span class="pre">ModelCache::set_scope()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6kernel10ModelCache4map_E"><code class="docutils literal notranslate"><span class="pre">ModelCache::map_</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6kernel10ModelCache10type_indexE"><code class="docutils literal notranslate"><span class="pre">ModelCache::type_index</span></code></a></li>
 </ul>
@@ -386,10 +386,14 @@
 <dd><div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
 <dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6kernel10ModelCache10ModelCacheEP14MemoryResource">
+<span id="_CPPv3N2nw6kernel10ModelCache10ModelCacheEP14MemoryResource"></span><span id="_CPPv2N2nw6kernel10ModelCache10ModelCacheEP14MemoryResource"></span><span id="nw::kernel::ModelCache::ModelCache__MemoryResourceP"></span><span class="target" id="structnw_1_1kernel_1_1_model_cache_1a327a9015d80686888ee46c052ec0e251"></span><span class="sig-name descname"><span class="n"><span class="pre">ModelCache</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">MemoryResource</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">scope</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6kernel10ModelCache10ModelCacheEP14MemoryResource" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw6kernel10ModelCache5clearEv">
-<span id="_CPPv3N2nw6kernel10ModelCache5clearEv"></span><span id="_CPPv2N2nw6kernel10ModelCache5clearEv"></span><span id="nw::kernel::ModelCache::clear"></span><span class="target" id="structnw_1_1kernel_1_1_model_cache_1a7ac7338588a3985c585d6b7b75f518f1"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">clear</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">override</span></span><a class="headerlink" href="#_CPPv4N2nw6kernel10ModelCache5clearEv" title="Link to this definition"></a><br /></dt>
-<dd><p>Clears a service. </p>
-</dd></dl>
+<span id="_CPPv3N2nw6kernel10ModelCache5clearEv"></span><span id="_CPPv2N2nw6kernel10ModelCache5clearEv"></span><span id="nw::kernel::ModelCache::clear"></span><span class="target" id="structnw_1_1kernel_1_1_model_cache_1ac608b627c95654ce74007b7ff7a8a3df"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">clear</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6kernel10ModelCache5clearEv" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw6kernel10ModelCache4loadE10StringView">
@@ -402,6 +406,12 @@
 <dd></dd></dl>
 
 <dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK2nw6kernel10ModelCache9allocatorEv">
+<span id="_CPPv3NK2nw6kernel10ModelCache9allocatorEv"></span><span id="_CPPv2NK2nw6kernel10ModelCache9allocatorEv"></span><span id="nw::kernel::ModelCache::allocatorC"></span><span class="target" id="structnw_1_1kernel_1_1_service_1afd0d86aebaf897ca40f331398b605ce0"></span><span class="n"><span class="pre">MemoryResource</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">allocator</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="k"><span class="pre">noexcept</span></span><a class="headerlink" href="#_CPPv4NK2nw6kernel10ModelCache9allocatorEv" title="Link to this definition"></a><br /></dt>
+<dd><p>Gets the memory allocator for the servce. </p>
+</dd></dl>
+
+<dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw6kernel10ModelCache10initializeE15ServiceInitTime">
 <span id="_CPPv3N2nw6kernel10ModelCache10initializeE15ServiceInitTime"></span><span id="_CPPv2N2nw6kernel10ModelCache10initializeE15ServiceInitTime"></span><span id="nw::kernel::ModelCache::initialize__ServiceInitTime"></span><span class="target" id="structnw_1_1kernel_1_1_service_1af63dca0ca99424145c1b503438db7e5e"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">initialize</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="../enum/nw__kernel__ServiceInitTime.html#_CPPv4N2nw6kernel15ServiceInitTimeE" title="nw::kernel::ServiceInitTime"><span class="n"><span class="pre">ServiceInitTime</span></span></a><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6kernel10ModelCache10initializeE15ServiceInitTime" title="Link to this definition"></a><br /></dt>
 <dd><p>Initializes a service </p>
@@ -409,18 +419,6 @@
 <p class="admonition-title">Note</p>
 <p>Every service will be called with as many values as exist in <code class="docutils literal notranslate"><span class="pre">ServiceInitTime</span></code>. it’s up to the service itself to filter/ignore what’s not relevant to them. </p>
 </div>
-</dd></dl>
-
-<dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4NK2nw6kernel10ModelCache5scopeEv">
-<span id="_CPPv3NK2nw6kernel10ModelCache5scopeEv"></span><span id="_CPPv2NK2nw6kernel10ModelCache5scopeEv"></span><span id="nw::kernel::ModelCache::scopeC"></span><span class="target" id="structnw_1_1kernel_1_1_service_1a3cf299cd73f0545bdf0912368739242b"></span><span class="n"><span class="pre">MemoryScope</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">scope</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="k"><span class="pre">noexcept</span></span><a class="headerlink" href="#_CPPv4NK2nw6kernel10ModelCache5scopeEv" title="Link to this definition"></a><br /></dt>
-<dd><p>Gets the memory scope for the servce. </p>
-</dd></dl>
-
-<dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N2nw6kernel10ModelCache9set_scopeEP11MemoryScope">
-<span id="_CPPv3N2nw6kernel10ModelCache9set_scopeEP11MemoryScope"></span><span id="_CPPv2N2nw6kernel10ModelCache9set_scopeEP11MemoryScope"></span><span id="nw::kernel::ModelCache::set_scope__MemoryScopeP"></span><span class="target" id="structnw_1_1kernel_1_1_service_1a6f0b41a4008d62957628ab40a3f716a7"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_scope</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">MemoryScope</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">scope</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">noexcept</span></span><a class="headerlink" href="#_CPPv4N2nw6kernel10ModelCache9set_scopeEP11MemoryScope" title="Link to this definition"></a><br /></dt>
-<dd><p>Gets the memory scope for the servce. </p>
 </dd></dl>
 
 </div>

@@ -220,10 +220,9 @@
 <li class="toctree-l2 current"><a class="current reference internal" href="#">nw::kernel::Resources</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#_CPPv4N2nw6kernel9ResourcesE"><code class="docutils literal notranslate"><span class="pre">Resources</span></code></a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6kernel9Resources12SearchVectorE"><code class="docutils literal notranslate"><span class="pre">Resources::SearchVector</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6kernel9Resources9ResourcesEPK9Resources"><code class="docutils literal notranslate"><span class="pre">Resources::Resources()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6kernel9Resources9ResourcesEP14MemoryResourcePK9Resources"><code class="docutils literal notranslate"><span class="pre">Resources::Resources()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6kernel9ResourcesD0Ev"><code class="docutils literal notranslate"><span class="pre">Resources::~Resources()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6kernel9Resources10initializeE15ServiceInitTime"><code class="docutils literal notranslate"><span class="pre">Resources::initialize()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6kernel9Resources5clearEv"><code class="docutils literal notranslate"><span class="pre">Resources::clear()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6kernel9Resources18add_base_containerERKNSt10filesystem4pathERK6StringN12ResourceType4typeE"><code class="docutils literal notranslate"><span class="pre">Resources::add_base_container()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6kernel9Resources20add_custom_containerEP9ContainerbN12ResourceType4typeE"><code class="docutils literal notranslate"><span class="pre">Resources::add_custom_container()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6kernel9Resources22add_override_containerERKNSt10filesystem4pathERK6StringN12ResourceType4typeE"><code class="docutils literal notranslate"><span class="pre">Resources::add_override_container()</span></code></a></li>
@@ -252,8 +251,7 @@
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw6kernel9Resources5visitENSt8functionIFvRK8ResourceEEENSt16initializer_listIN12ResourceType4typeEEE"><code class="docutils literal notranslate"><span class="pre">Resources::visit()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw6kernel9Resources15extract_by_globE10StringViewRKNSt10filesystem4pathE"><code class="docutils literal notranslate"><span class="pre">Resources::extract_by_glob()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw6kernel9Resources17working_directoryEv"><code class="docutils literal notranslate"><span class="pre">Resources::working_directory()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw6kernel9Resources5scopeEv"><code class="docutils literal notranslate"><span class="pre">Resources::scope()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6kernel9Resources9set_scopeEP11MemoryScope"><code class="docutils literal notranslate"><span class="pre">Resources::set_scope()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw6kernel9Resources9allocatorEv"><code class="docutils literal notranslate"><span class="pre">Resources::allocator()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6kernel9Resources10type_indexE"><code class="docutils literal notranslate"><span class="pre">Resources::type_index</span></code></a></li>
 </ul>
 </li>
@@ -422,8 +420,8 @@
 <div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N2nw6kernel9Resources9ResourcesEPK9Resources">
-<span id="_CPPv3N2nw6kernel9Resources9ResourcesEPK9Resources"></span><span id="_CPPv2N2nw6kernel9Resources9ResourcesEPK9Resources"></span><span id="nw::kernel::Resources::Resources__ResourcesCP"></span><span class="target" id="structnw_1_1kernel_1_1_resources_1aff0006c89814c1e609469af5908fa105"></span><span class="sig-name descname"><span class="n"><span class="pre">Resources</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N2nw6kernel9Resources9ResourcesEPK9Resources" title="nw::kernel::Resources::Resources"><span class="n"><span class="pre">Resources</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">parent</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">nullptr</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6kernel9Resources9ResourcesEPK9Resources" title="Link to this definition"></a><br /></dt>
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6kernel9Resources9ResourcesEP14MemoryResourcePK9Resources">
+<span id="_CPPv3N2nw6kernel9Resources9ResourcesEP14MemoryResourcePK9Resources"></span><span id="_CPPv2N2nw6kernel9Resources9ResourcesEP14MemoryResourcePK9Resources"></span><span id="nw::kernel::Resources::Resources__MemoryResourceP.ResourcesCP"></span><span class="target" id="structnw_1_1kernel_1_1_resources_1ad232105fcfbfb45b0e6ac413a85c5c10"></span><span class="sig-name descname"><span class="n"><span class="pre">Resources</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">MemoryResource</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">memory</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N2nw6kernel9Resources9ResourcesEP14MemoryResourcePK9Resources" title="nw::kernel::Resources::Resources"><span class="n"><span class="pre">Resources</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">parent</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">nullptr</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6kernel9Resources9ResourcesEP14MemoryResourcePK9Resources" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp function">
@@ -435,12 +433,6 @@
 <dt class="sig sig-object cpp" id="_CPPv4N2nw6kernel9Resources10initializeE15ServiceInitTime">
 <span id="_CPPv3N2nw6kernel9Resources10initializeE15ServiceInitTime"></span><span id="_CPPv2N2nw6kernel9Resources10initializeE15ServiceInitTime"></span><span id="nw::kernel::Resources::initialize__ServiceInitTime"></span><span class="target" id="structnw_1_1kernel_1_1_resources_1ad6aac1d67b8a626cae949c47e278e5ba"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">initialize</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="../enum/nw__kernel__ServiceInitTime.html#_CPPv4N2nw6kernel15ServiceInitTimeE" title="nw::kernel::ServiceInitTime"><span class="n"><span class="pre">ServiceInitTime</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">time</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">override</span></span><a class="headerlink" href="#_CPPv4N2nw6kernel9Resources10initializeE15ServiceInitTime" title="Link to this definition"></a><br /></dt>
 <dd><p>Initializes resources management system. </p>
-</dd></dl>
-
-<dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N2nw6kernel9Resources5clearEv">
-<span id="_CPPv3N2nw6kernel9Resources5clearEv"></span><span id="_CPPv2N2nw6kernel9Resources5clearEv"></span><span id="nw::kernel::Resources::clear"></span><span class="target" id="structnw_1_1kernel_1_1_resources_1a555aa6529081bcae7450e0caa65b1a88"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">clear</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">override</span></span><a class="headerlink" href="#_CPPv4N2nw6kernel9Resources5clearEv" title="Link to this definition"></a><br /></dt>
-<dd><p>Clears a service. </p>
 </dd></dl>
 
 <dl class="cpp function">
@@ -626,15 +618,9 @@
 </dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4NK2nw6kernel9Resources5scopeEv">
-<span id="_CPPv3NK2nw6kernel9Resources5scopeEv"></span><span id="_CPPv2NK2nw6kernel9Resources5scopeEv"></span><span id="nw::kernel::Resources::scopeC"></span><span class="target" id="structnw_1_1kernel_1_1_service_1a3cf299cd73f0545bdf0912368739242b"></span><span class="n"><span class="pre">MemoryScope</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">scope</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="k"><span class="pre">noexcept</span></span><a class="headerlink" href="#_CPPv4NK2nw6kernel9Resources5scopeEv" title="Link to this definition"></a><br /></dt>
-<dd><p>Gets the memory scope for the servce. </p>
-</dd></dl>
-
-<dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N2nw6kernel9Resources9set_scopeEP11MemoryScope">
-<span id="_CPPv3N2nw6kernel9Resources9set_scopeEP11MemoryScope"></span><span id="_CPPv2N2nw6kernel9Resources9set_scopeEP11MemoryScope"></span><span id="nw::kernel::Resources::set_scope__MemoryScopeP"></span><span class="target" id="structnw_1_1kernel_1_1_service_1a6f0b41a4008d62957628ab40a3f716a7"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_scope</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">MemoryScope</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">scope</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">noexcept</span></span><a class="headerlink" href="#_CPPv4N2nw6kernel9Resources9set_scopeEP11MemoryScope" title="Link to this definition"></a><br /></dt>
-<dd><p>Gets the memory scope for the servce. </p>
+<dt class="sig sig-object cpp" id="_CPPv4NK2nw6kernel9Resources9allocatorEv">
+<span id="_CPPv3NK2nw6kernel9Resources9allocatorEv"></span><span id="_CPPv2NK2nw6kernel9Resources9allocatorEv"></span><span id="nw::kernel::Resources::allocatorC"></span><span class="target" id="structnw_1_1kernel_1_1_service_1afd0d86aebaf897ca40f331398b605ce0"></span><span class="n"><span class="pre">MemoryResource</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">allocator</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="k"><span class="pre">noexcept</span></span><a class="headerlink" href="#_CPPv4NK2nw6kernel9Resources9allocatorEv" title="Link to this definition"></a><br /></dt>
+<dd><p>Gets the memory allocator for the servce. </p>
 </dd></dl>
 
 </div>

@@ -216,16 +216,15 @@
 <li class="toctree-l2"><a class="reference internal" href="nw__kernel__EventSystem.html">nw::kernel::EventSystem</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">nw::kernel::FactionSystem</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#_CPPv4N2nw6kernel13FactionSystemE"><code class="docutils literal notranslate"><span class="pre">FactionSystem</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6kernel13FactionSystem13FactionSystemEP14MemoryResource"><code class="docutils literal notranslate"><span class="pre">FactionSystem::FactionSystem()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6kernel13FactionSystem10initializeE15ServiceInitTime"><code class="docutils literal notranslate"><span class="pre">FactionSystem::initialize()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6kernel13FactionSystem5clearEv"><code class="docutils literal notranslate"><span class="pre">FactionSystem::clear()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw6kernel13FactionSystem3allEv"><code class="docutils literal notranslate"><span class="pre">FactionSystem::all()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw6kernel13FactionSystem5countEv"><code class="docutils literal notranslate"><span class="pre">FactionSystem::count()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw6kernel13FactionSystem10faction_idE10StringView"><code class="docutils literal notranslate"><span class="pre">FactionSystem::faction_id()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw6kernel13FactionSystem6locateE8uint32_t8uint32_t"><code class="docutils literal notranslate"><span class="pre">FactionSystem::locate()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw6kernel13FactionSystem4nameE8uint32_t"><code class="docutils literal notranslate"><span class="pre">FactionSystem::name()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw6kernel13FactionSystem10reputationE8uint32_t8uint32_t"><code class="docutils literal notranslate"><span class="pre">FactionSystem::reputation()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw6kernel13FactionSystem5scopeEv"><code class="docutils literal notranslate"><span class="pre">FactionSystem::scope()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6kernel13FactionSystem9set_scopeEP11MemoryScope"><code class="docutils literal notranslate"><span class="pre">FactionSystem::set_scope()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw6kernel13FactionSystem9allocatorEv"><code class="docutils literal notranslate"><span class="pre">FactionSystem::allocator()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6kernel13FactionSystem10type_indexE"><code class="docutils literal notranslate"><span class="pre">FactionSystem::type_index</span></code></a></li>
 </ul>
 </li>
@@ -389,6 +388,11 @@
 <dd><div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
 <dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6kernel13FactionSystem13FactionSystemEP14MemoryResource">
+<span id="_CPPv3N2nw6kernel13FactionSystem13FactionSystemEP14MemoryResource"></span><span id="_CPPv2N2nw6kernel13FactionSystem13FactionSystemEP14MemoryResource"></span><span id="nw::kernel::FactionSystem::FactionSystem__MemoryResourceP"></span><span class="target" id="structnw_1_1kernel_1_1_faction_system_1ac3a26ab2ea22179b083866a5dfef51bd"></span><span class="sig-name descname"><span class="n"><span class="pre">FactionSystem</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">MemoryResource</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">scope</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6kernel13FactionSystem13FactionSystemEP14MemoryResource" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw6kernel13FactionSystem10initializeE15ServiceInitTime">
 <span id="_CPPv3N2nw6kernel13FactionSystem10initializeE15ServiceInitTime"></span><span id="_CPPv2N2nw6kernel13FactionSystem10initializeE15ServiceInitTime"></span><span id="nw::kernel::FactionSystem::initialize__ServiceInitTime"></span><span class="target" id="structnw_1_1kernel_1_1_faction_system_1a81d26ca062efce539de6aa2119bf2764"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">initialize</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="../enum/nw__kernel__ServiceInitTime.html#_CPPv4N2nw6kernel15ServiceInitTimeE" title="nw::kernel::ServiceInitTime"><span class="n"><span class="pre">ServiceInitTime</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">time</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">override</span></span><a class="headerlink" href="#_CPPv4N2nw6kernel13FactionSystem10initializeE15ServiceInitTime" title="Link to this definition"></a><br /></dt>
 <dd><p>Initializes a service </p>
@@ -396,12 +400,6 @@
 <p class="admonition-title">Note</p>
 <p>Every service will be called with as many values as exist in <code class="docutils literal notranslate"><span class="pre">ServiceInitTime</span></code>. it’s up to the service itself to filter/ignore what’s not relevant to them. </p>
 </div>
-</dd></dl>
-
-<dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N2nw6kernel13FactionSystem5clearEv">
-<span id="_CPPv3N2nw6kernel13FactionSystem5clearEv"></span><span id="_CPPv2N2nw6kernel13FactionSystem5clearEv"></span><span id="nw::kernel::FactionSystem::clear"></span><span class="target" id="structnw_1_1kernel_1_1_faction_system_1af7dd25706bb04ed02a93c5d423a89944"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">clear</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">override</span></span><a class="headerlink" href="#_CPPv4N2nw6kernel13FactionSystem5clearEv" title="Link to this definition"></a><br /></dt>
-<dd><p>Clears a service. </p>
 </dd></dl>
 
 <dl class="cpp function">
@@ -441,15 +439,9 @@
 </dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4NK2nw6kernel13FactionSystem5scopeEv">
-<span id="_CPPv3NK2nw6kernel13FactionSystem5scopeEv"></span><span id="_CPPv2NK2nw6kernel13FactionSystem5scopeEv"></span><span id="nw::kernel::FactionSystem::scopeC"></span><span class="target" id="structnw_1_1kernel_1_1_service_1a3cf299cd73f0545bdf0912368739242b"></span><span class="n"><span class="pre">MemoryScope</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">scope</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="k"><span class="pre">noexcept</span></span><a class="headerlink" href="#_CPPv4NK2nw6kernel13FactionSystem5scopeEv" title="Link to this definition"></a><br /></dt>
-<dd><p>Gets the memory scope for the servce. </p>
-</dd></dl>
-
-<dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N2nw6kernel13FactionSystem9set_scopeEP11MemoryScope">
-<span id="_CPPv3N2nw6kernel13FactionSystem9set_scopeEP11MemoryScope"></span><span id="_CPPv2N2nw6kernel13FactionSystem9set_scopeEP11MemoryScope"></span><span id="nw::kernel::FactionSystem::set_scope__MemoryScopeP"></span><span class="target" id="structnw_1_1kernel_1_1_service_1a6f0b41a4008d62957628ab40a3f716a7"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_scope</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">MemoryScope</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">scope</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">noexcept</span></span><a class="headerlink" href="#_CPPv4N2nw6kernel13FactionSystem9set_scopeEP11MemoryScope" title="Link to this definition"></a><br /></dt>
-<dd><p>Gets the memory scope for the servce. </p>
+<dt class="sig sig-object cpp" id="_CPPv4NK2nw6kernel13FactionSystem9allocatorEv">
+<span id="_CPPv3NK2nw6kernel13FactionSystem9allocatorEv"></span><span id="_CPPv2NK2nw6kernel13FactionSystem9allocatorEv"></span><span id="nw::kernel::FactionSystem::allocatorC"></span><span class="target" id="structnw_1_1kernel_1_1_service_1afd0d86aebaf897ca40f331398b605ce0"></span><span class="n"><span class="pre">MemoryResource</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">allocator</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="k"><span class="pre">noexcept</span></span><a class="headerlink" href="#_CPPv4NK2nw6kernel13FactionSystem9allocatorEv" title="Link to this definition"></a><br /></dt>
+<dd><p>Gets the memory allocator for the servce. </p>
 </dd></dl>
 
 </div>
