@@ -166,6 +166,7 @@ void set_game_profile(GameProfile* profile)
 
 void unload_module()
 {
+    // Since everything is getting nuked, it's not necessary to call Module::destroy
     services().shutdown();
     services().module_loaded_ = false;
     services().start();

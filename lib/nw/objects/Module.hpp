@@ -3,6 +3,7 @@
 #include "../i18n/LocString.hpp"
 #include "../serialization/Serialization.hpp"
 #include "../util/ByteArray.hpp"
+#include "../util/Variant.hpp"
 #include "LocalData.hpp"
 #include "ObjectBase.hpp"
 
@@ -42,7 +43,7 @@ struct ModuleScripts {
 };
 
 struct Module : public ObjectBase {
-    using AreaVariant = std::variant<Vector<Resref>, Vector<Area*>>;
+    using AreaVariant = Variant<Vector<Resref>, Vector<Area*>>;
 
     static constexpr int json_archive_version = 1;
     static constexpr ObjectType object_type = ObjectType::module;
@@ -50,6 +51,7 @@ struct Module : public ObjectBase {
 
     virtual Module* as_module() override { return this; }
     virtual const Module* as_module() const override { return this; }
+    virtual void destroy() override;
     virtual bool instantiate() override;
 
     size_t area_count() const noexcept;

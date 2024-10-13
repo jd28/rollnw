@@ -535,7 +535,7 @@ void init_objects_module(py::module& nw)
         .def("get_area", [](nw::Module& self, size_t index) { return self.get_area(index); }, py::return_value_policy::reference_internal)
         .def("__len__", [](const nw::Module& self) { return self.area_count(); })
         .def("__iter__", [](nw::Module& self) {
-                auto& areas = std::get<std::vector<nw::Area*>>(self.areas);
+                auto& areas = self.areas.as<std::vector<nw::Area*>>();
                 return py::make_iterator(areas.begin(), areas.end()); }, py::keep_alive<0, 1>())
 
         .def_readwrite("description", &nw::Module::description)

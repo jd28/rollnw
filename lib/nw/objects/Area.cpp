@@ -145,6 +145,24 @@ Area::Area()
     set_handle(ObjectHandle{object_invalid, ObjectType::area, 0});
 }
 
+void Area::destroy()
+{
+#define DESTROY_OBJECTS(thing)                       \
+    for (auto it : thing) {                          \
+        nw::kernel::objects().destroy(it->handle()); \
+    }
+    DESTROY_OBJECTS(creatures);
+    DESTROY_OBJECTS(doors);
+    DESTROY_OBJECTS(encounters);
+    DESTROY_OBJECTS(items);
+    DESTROY_OBJECTS(placeables);
+    DESTROY_OBJECTS(sounds);
+    DESTROY_OBJECTS(stores);
+    DESTROY_OBJECTS(triggers);
+    DESTROY_OBJECTS(waypoints);
+#undef DESTROY_OBJECTS
+}
+
 bool Area::instantiate()
 {
     tileset = nw::kernel::tilesets().get(tileset_resref.view());

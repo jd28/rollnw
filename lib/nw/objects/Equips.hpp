@@ -153,6 +153,7 @@ struct Equips {
     Equips& operator=(Equips&&) = default;
     ~Equips() = default;
 
+    void destroy();
     bool instantiate();
     bool from_json(const nlohmann::json& archive, SerializationProfile profile);
     nlohmann::json to_json(SerializationProfile profile) const;

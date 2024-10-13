@@ -16,6 +16,15 @@ Equips::Equips(Creature* owner)
 {
 }
 
+void Equips::destroy()
+{
+    for (auto& e : equips) {
+        if (e.is<nw::Item*>()) {
+            nw::kernel::objects().destroy(e.as<nw::Item*>()->handle());
+        }
+    }
+}
+
 bool Equips::instantiate()
 {
     int i = 0;

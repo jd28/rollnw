@@ -100,6 +100,12 @@ Creature::Creature()
     inventory.owner = this;
 }
 
+void Creature::destroy()
+{
+    equipment.destroy();
+    inventory.destroy();
+}
+
 bool Creature::instantiate()
 {
     if (instantiated_) return true;

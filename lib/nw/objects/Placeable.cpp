@@ -69,6 +69,11 @@ Placeable::Placeable()
     inventory.owner = this;
 }
 
+void Placeable::destroy()
+{
+    inventory.destroy();
+}
+
 bool Placeable::instantiate()
 {
     if (instantiated_) return true;

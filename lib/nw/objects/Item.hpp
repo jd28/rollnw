@@ -24,6 +24,7 @@ struct Item : public ObjectBase {
     virtual const Common* as_common() const override { return &common; }
     virtual Item* as_item() override { return this; }
     virtual const Item* as_item() const override { return this; }
+    virtual void destroy() override;
     virtual bool instantiate() override;
     virtual InternedString tag() const override { return common.tag; }
 

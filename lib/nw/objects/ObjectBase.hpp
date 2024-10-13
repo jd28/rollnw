@@ -29,9 +29,11 @@ struct ObjectBase {
     ObjectHandle handle() const noexcept { return handle_; }
     void set_handle(ObjectHandle handle) { handle_ = handle; }
     const EffectArray& effects() const;
-    virtual Versus versus_me() const { return Versus{}; }
     EffectArray& effects();
+    virtual void destroy();
+    virtual bool instantiate() = 0;
     virtual InternedString tag() const;
+    virtual Versus versus_me() const { return Versus{}; }
 
     virtual Area* as_area() { return nullptr; }
     virtual const Area* as_area() const { return nullptr; }
@@ -59,7 +61,6 @@ struct ObjectBase {
     virtual const Trigger* as_trigger() const { return nullptr; }
     virtual Waypoint* as_waypoint() { return nullptr; }
     virtual const Waypoint* as_waypoint() const { return nullptr; }
-    virtual bool instantiate() = 0;
 
 private:
     ObjectHandle handle_;

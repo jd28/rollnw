@@ -50,6 +50,7 @@ struct Creature : public ObjectBase {
     virtual const Common* as_common() const override { return &common; }
     virtual Creature* as_creature() override { return this; }
     virtual const Creature* as_creature() const override { return this; }
+    virtual void destroy() override;
     virtual bool instantiate() override;
     virtual InternedString tag() const override { return common.tag; }
     virtual Versus versus_me() const override;

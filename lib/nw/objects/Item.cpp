@@ -17,6 +17,11 @@ Item::Item()
     inventory.owner = this;
 }
 
+void Item::destroy()
+{
+    inventory.destroy();
+}
+
 bool Item::instantiate()
 {
     if (instantiated_) { return true; }

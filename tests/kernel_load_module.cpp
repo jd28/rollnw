@@ -18,6 +18,7 @@ TEST(Kernel, LoadModuleErf)
     auto area = mod->get_area(0);
     EXPECT_TRUE(area);
     EXPECT_TRUE(area->common.resref == "start");
+    mod->destroy(); // Make sure nothing crashes, not called on unload..
     nw::kernel::unload_module();
 }
 

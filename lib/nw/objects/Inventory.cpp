@@ -9,16 +9,26 @@
 
 namespace nw {
 
+void Inventory::destroy()
+{
+    for (auto& it : items) {
+        if (!it.item.is<Item*>()) { continue; }
+        auto item = it.item.as<Item*>();
+        item->inventory.destroy();
+        nw::kernel::objects().destroy(item->handle());
+    }
+}
+
 bool Inventory::instantiate()
 {
-    for (auto& ii : items) {
-        if (std::holds_alternative<Resref>(ii.item)) {
-            auto temp = kernel::objects().load<Item>(std::get<Resref>(ii.item).view());
+    for (auto& it : items) {
+        if (it.item.is<Resref>()) {
+            auto temp = kernel::objects().load<Item>(it.item.as<Resref>().view());
             if (temp) {
-                ii.item = temp;
+                it.item = temp;
             } else {
                 LOG_F(WARNING, "failed to instantiate item, perhaps you're missing '{}.uti'?",
-                    std::get<Resref>(ii.item));
+                    it.item.as<Resref>());
             }
         }
     }
@@ -77,15 +87,15 @@ nlohmann::json Inventory::to_json(SerializationProfile profile) const
             }
 
             payload["position"] = {it.pos_x, it.pos_y};
-            if (std::holds_alternative<Item*>(it.item)) {
+            if (it.item.is<Item*>()) {
                 if (SerializationProfile::blueprint == profile) {
-                    payload["item"] = std::get<Item*>(it.item)->common.resref;
+                    payload["item"] = it.item.as<Item*>()->common.resref;
                 } else {
-                    Item::serialize(std::get<Item*>(it.item), payload["item"], profile);
+                    Item::serialize(it.item.as<Item*>(), payload["item"], profile);
                 }
             } else {
                 if (SerializationProfile::blueprint == profile) {
-                    payload["item"] = std::get<Resref>(it.item);
+                    payload["item"] = it.item.as<Resref>();
                 }
             }
         }
@@ -148,13 +158,13 @@ bool serialize(const Inventory& self, GffBuilderStruct& archive, SerializationPr
         }
 
         if (SerializationProfile::blueprint == profile) {
-            if (std::holds_alternative<Resref>(it.item)) {
-                str.add_field("InventoryRes", std::get<Resref>(it.item));
+            if (it.item.is<Resref>()) {
+                str.add_field("InventoryRes", it.item.as<Resref>());
             } else {
-                str.add_field("InventoryRes", std::get<Item*>(it.item)->common.resref);
+                str.add_field("InventoryRes", it.item.as<Item*>()->common.resref);
             }
         } else {
-            serialize(std::get<Item*>(it.item), str, profile);
+            serialize(it.item.as<Item*>(), str, profile);
         }
     }
     return true;

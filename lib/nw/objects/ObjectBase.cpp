@@ -7,6 +7,10 @@ namespace nw {
 // == ObjectBase ==============================================================
 // ============================================================================
 
+void ObjectBase::destroy()
+{
+}
+
 EffectArray& ObjectBase::effects() { return effects_; }
 const EffectArray& ObjectBase::effects() const { return effects_; }
 

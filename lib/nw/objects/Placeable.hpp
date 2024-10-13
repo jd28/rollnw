@@ -74,6 +74,7 @@ struct Placeable : public ObjectBase {
     virtual const Common* as_common() const override { return &common; }
     virtual Placeable* as_placeable() override { return this; }
     virtual const Placeable* as_placeable() const override { return this; }
+    virtual void destroy() override;
     virtual bool instantiate() override;
     virtual InternedString tag() const override { return common.tag; }
 
