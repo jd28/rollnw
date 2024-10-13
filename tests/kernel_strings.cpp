@@ -29,4 +29,12 @@ TEST(KernelStrings, Intern)
 
     auto str3 = nw::kernel::strings().get_interned("This is a Test");
     EXPECT_TRUE(str3);
+    EXPECT_EQ(str3, str);
+
+    auto str4 = nw::kernel::strings().intern("");
+    EXPECT_FALSE(str4);
+
+    auto str5 = nw::kernel::strings().intern(0);
+    EXPECT_TRUE(str5);
+    EXPECT_EQ(str5.view(), "Bad Strref");
 }

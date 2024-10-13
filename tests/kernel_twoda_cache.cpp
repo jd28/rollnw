@@ -3,6 +3,7 @@
 #include <nw/kernel/Kernel.hpp>
 #include <nw/kernel/TwoDACache.hpp>
 
+using namespace std::literals;
 namespace nwk = nw::kernel;
 
 TEST(Kernel2daCache, Get)
@@ -15,7 +16,9 @@ TEST(Kernel2daCache, Get)
     auto s2 = nwk::twodas().get("placeables");
     EXPECT_EQ(s1, s2);
     auto s3 = nwk::twodas().get("dontexist");
-    EXPECT_TRUE(!s3);
+    EXPECT_FALSE(s3);
+    auto s4 = nwk::twodas().get(nw::Resource{"test"sv, nw::ResourceType::png});
+    EXPECT_FALSE(s4);
 
     nwk::unload_module();
 }
