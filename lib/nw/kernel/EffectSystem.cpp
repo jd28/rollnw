@@ -91,7 +91,6 @@ void EffectSystem::initialize(ServiceInitTime time)
     if (time != ServiceInitTime::kernel_start && time != ServiceInitTime::module_post_load) {
         return;
     }
-    clear();
 
     LOG_F(INFO, "  ... loading item property cost tables");
     auto costtable = twodas().get("iprp_costtable");

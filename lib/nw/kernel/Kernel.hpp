@@ -99,6 +99,7 @@ private:
     MemoryScope kernel_scope_;
     bool serices_started_ = false;
     bool module_loaded_ = false;
+    bool module_loading_ = false;
 
     void load_services();
 };

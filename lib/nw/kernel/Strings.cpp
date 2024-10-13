@@ -48,7 +48,7 @@ InternedString Strings::get_interned(StringView str) const
 
 void Strings::initialize(ServiceInitTime time)
 {
-    if (time != ServiceInitTime::kernel_start) { return; }
+    if (time != ServiceInitTime::kernel_start && time != ServiceInitTime::module_pre_load) { return; }
     auto lang = Language::to_string(global_language());
     if (config().version() == GameVersion::vEE) {
         auto path = config().install_path() / "lang" / lang / "data" / "dialog.tlk";

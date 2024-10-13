@@ -23,7 +23,6 @@ void TilesetRegistry::initialize(ServiceInitTime time)
     if (time != ServiceInitTime::kernel_start && time != ServiceInitTime::module_post_load) {
         return;
     }
-    clear();
 
     LOG_F(INFO, "kernel: tileset registry initializing...");
     auto start = std::chrono::high_resolution_clock::now();

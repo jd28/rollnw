@@ -38,7 +38,7 @@ Resources::Resources(MemoryResource* scope, const Resources* parent)
 
 void Resources::initialize(ServiceInitTime time)
 {
-    if (time != ServiceInitTime::kernel_start) { return; }
+    if (time != ServiceInitTime::kernel_start && time != ServiceInitTime::module_pre_load) { return; }
     LOG_F(INFO, "kernel: resource system initializing...");
     auto start = std::chrono::high_resolution_clock::now();
 

@@ -49,9 +49,11 @@ void Services::start()
     // Load all the default services.
     load_services();
 
-    for (auto& entry : services_) {
-        if (!entry.service) { break; }
-        entry.service->initialize(ServiceInitTime::kernel_start);
+    if (!module_loading_) {
+        for (auto& entry : services_) {
+            if (!entry.service) { break; }
+            entry.service->initialize(ServiceInitTime::kernel_start);
+        }
     }
 
     serices_started_ = true;
@@ -78,8 +80,8 @@ void Services::load_services()
     add<Strings>();
     add<Resources>();
     add<TwoDACache>();
-    add<Rules>();
     add<EffectSystem>();
+    add<Rules>();
     add<ObjectSystem>();
     add<EventSystem>();
     add<ModelCache>();
@@ -104,9 +106,15 @@ Services& services()
 Module* load_module(const std::filesystem::path& path, bool instantiate)
 {
     auto start = std::chrono::high_resolution_clock::now();
+    services().module_loading_ = true;
 
     // Always unload, just in case.
     unload_module();
+
+    for (auto& s : services().services_) {
+        if (!s.service) { break; }
+        s.service->initialize(ServiceInitTime::module_pre_load);
+    }
 
     resman().load_module(path, "");
 
@@ -137,6 +145,7 @@ Module* load_module(const std::filesystem::path& path, bool instantiate)
     }
 
     services().module_loaded_ = true;
+    services().module_loading_ = false;
 
     auto elapsed = std::chrono::high_resolution_clock::now() - start;
     auto count = std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count();
@@ -157,8 +166,8 @@ void set_game_profile(GameProfile* profile)
 
 void unload_module()
 {
-
     services().shutdown();
+    services().module_loaded_ = false;
     services().start();
 }
 
