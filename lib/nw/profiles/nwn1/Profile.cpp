@@ -7,11 +7,9 @@
 
 #include "../../formats/Ini.hpp"
 #include "../../formats/TwoDA.hpp"
-#include "../../kernel/EffectSystem.hpp"
 #include "../../kernel/Objects.hpp"
 #include "../../kernel/Resources.hpp"
 #include "../../kernel/Rules.hpp"
-#include "../../kernel/TwoDACache.hpp"
 #include "../../objects/Creature.hpp"
 #include "../../rules/feats.hpp"
 #include "../../rules/system.hpp"
