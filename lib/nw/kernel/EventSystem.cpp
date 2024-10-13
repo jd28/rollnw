@@ -7,6 +7,11 @@ namespace nw::kernel {
 
 const std::type_index EventSystem::type_index{typeid(EventSystem)};
 
+EventSystem::EventSystem(MemoryResource* scope)
+    : Service(scope)
+{
+}
+
 void EventSystem::add(EventType type, ObjectBase* object, void* data)
 {
     EventHandle h;

@@ -16,7 +16,7 @@ namespace nw::kernel {
 struct Strings : public Service {
     const static std::type_index type_index;
 
-    Strings() = default;
+    Strings(MemoryResource* memory);
     virtual ~Strings() = default;
 
     /// Initializes strings system

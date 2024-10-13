@@ -30,8 +30,9 @@ inline Container* get_container(const LocatorVariant& var)
     }
 }
 
-Resources::Resources(const Resources* parent)
-    : parent_(parent)
+Resources::Resources(MemoryResource* scope, const Resources* parent)
+    : Service(scope)
+    , parent_(parent)
 {
 }
 

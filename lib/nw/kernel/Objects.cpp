@@ -10,6 +10,11 @@ namespace nw::kernel {
 
 const std::type_index ObjectSystem::type_index{typeid(ObjectSystem)};
 
+ObjectSystem::ObjectSystem(MemoryResource* scope)
+    : Service(scope)
+{
+}
+
 void ObjectSystem::clear()
 {
     // Clear tag map first

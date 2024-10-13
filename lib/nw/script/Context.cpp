@@ -13,7 +13,7 @@ Context::Context(Vector<String> include_paths, String command_script)
     : include_paths_{std::move(include_paths)}
     , dependencies_{}
     , command_script_name_{std::move(command_script)}
-    , resman_{&kernel::resman()}
+    , resman_{nw::kernel::global_allocator(), &kernel::resman()}
     , type_map_{}
 {
     register_default_types();

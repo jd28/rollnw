@@ -13,7 +13,7 @@ namespace nw::kernel {
 struct TwoDACache : public Service {
     const static std::type_index type_index;
 
-    TwoDACache() = default;
+    TwoDACache(MemoryResource* memory);
     TwoDACache(const TwoDACache&) = delete;
     TwoDACache(TwoDACache&&) = default;
     TwoDACache& operator=(const TwoDACache&) = delete;

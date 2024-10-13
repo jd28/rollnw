@@ -10,6 +10,11 @@ namespace nw::kernel {
 
 const std::type_index Rules::type_index{typeid(Rules)};
 
+Rules::Rules(MemoryResource* scope)
+    : Service(scope)
+{
+}
+
 Rules::~Rules()
 {
     clear();
@@ -36,6 +41,7 @@ void Rules::initialize(ServiceInitTime time)
     if (time != ServiceInitTime::kernel_start && time != ServiceInitTime::module_post_load) {
         return;
     }
+    clear();
 
     LOG_F(INFO, "kernel: rules system initializing...");
     if (auto profile = services().profile()) {

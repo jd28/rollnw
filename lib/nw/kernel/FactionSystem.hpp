@@ -11,6 +11,7 @@ namespace nw::kernel {
 struct FactionSystem : public Service {
     const static std::type_index type_index;
 
+    FactionSystem(MemoryResource* scope);
     virtual void initialize(ServiceInitTime time) override;
     virtual void clear() override;
 

@@ -7,6 +7,11 @@ namespace nw::kernel {
 
 const std::type_index TilesetRegistry::type_index{typeid(TilesetRegistry)};
 
+TilesetRegistry::TilesetRegistry(MemoryResource* memory)
+    : Service(memory)
+{
+}
+
 void TilesetRegistry::clear()
 {
     metrics_ = TilesetRegistryMetrics{};
@@ -18,6 +23,7 @@ void TilesetRegistry::initialize(ServiceInitTime time)
     if (time != ServiceInitTime::kernel_start && time != ServiceInitTime::module_post_load) {
         return;
     }
+    clear();
 
     LOG_F(INFO, "kernel: tileset registry initializing...");
     auto start = std::chrono::high_resolution_clock::now();

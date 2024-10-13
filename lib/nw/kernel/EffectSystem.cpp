@@ -8,6 +8,11 @@ namespace nw::kernel {
 
 const std::type_index EffectSystem::type_index{typeid(EffectSystem)};
 
+EffectSystem::EffectSystem(MemoryResource* scope)
+    : Service(scope)
+{
+}
+
 bool EffectSystem::add(EffectType type, EffectFunc apply, EffectFunc remove)
 {
     auto [it, added] = registry_.emplace(*type, std::make_pair(std::move(apply), std::move(remove)));
@@ -86,6 +91,7 @@ void EffectSystem::initialize(ServiceInitTime time)
     if (time != ServiceInitTime::kernel_start && time != ServiceInitTime::module_post_load) {
         return;
     }
+    clear();
 
     LOG_F(INFO, "  ... loading item property cost tables");
     auto costtable = twodas().get("iprp_costtable");

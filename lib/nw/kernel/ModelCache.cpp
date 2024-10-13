@@ -8,6 +8,11 @@ namespace nw::kernel {
 
 const std::type_index ModelCache::type_index{typeid(ModelCache)};
 
+ModelCache::ModelCache(MemoryResource* scope)
+    : Service(scope)
+{
+}
+
 void ModelCache::clear()
 {
     map_.clear();

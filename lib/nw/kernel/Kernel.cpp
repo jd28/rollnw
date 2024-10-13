@@ -16,20 +16,20 @@
 namespace nw::kernel {
 
 // == Service =================================================================
-MemoryScope* Service::scope() const noexcept
+
+Service::Service(MemoryResource* memory)
+    : memory_{memory}
 {
-    return scope_;
 }
 
-void Service::set_scope(MemoryScope* scope) noexcept
+MemoryResource* Service::allocator() const noexcept
 {
-    scope_ = scope;
+    return memory_;
 }
 
 Services::Services()
     : kernel_arena_(MB(16))
     , kernel_scope_(&kernel_arena_)
-    , service_scope_(nullptr)
 {
 }
 
@@ -53,6 +53,8 @@ void Services::start()
         if (!entry.service) { break; }
         entry.service->initialize(ServiceInitTime::kernel_start);
     }
+
+    serices_started_ = true;
 }
 
 GameProfile* Services::profile() const
@@ -62,11 +64,11 @@ GameProfile* Services::profile() const
 
 void Services::shutdown()
 {
-    for (size_t i = services().services_count_; i > 0; --i) {
-        services().services_[i - 1].service->clear();
-    }
-    // Wipe everything.
+    if (!serices_started_) { return; }
+    services_ = std::array<ServiceEntry, 32>{};
     kernel_scope_.reset();
+    profile_ = nullptr;
+    services_count_ = 0;
     serices_started_ = false;
 }
 
@@ -85,14 +87,6 @@ void Services::load_services()
     add<FactionSystem>();
 
     profile_->load_custom_services();
-
-    // After this point all
-    service_scope_ = kernel_scope_.alloc_obj<MemoryScope>(&kernel_arena_);
-
-    for (auto& entry : services_) {
-        if (!entry.service) { break; }
-        entry.service->set_scope(service_scope_);
-    }
 }
 
 Config& config()
@@ -109,13 +103,10 @@ Services& services()
 
 Module* load_module(const std::filesystem::path& path, bool instantiate)
 {
+    auto start = std::chrono::high_resolution_clock::now();
+
     // Always unload, just in case.
     unload_module();
-
-    for (auto& s : services().services_) {
-        if (!s.service) { break; }
-        s.service->initialize(ServiceInitTime::module_pre_load);
-    }
 
     resman().load_module(path, "");
 
@@ -145,6 +136,11 @@ Module* load_module(const std::filesystem::path& path, bool instantiate)
         }
     }
 
+    services().module_loaded_ = true;
+
+    auto elapsed = std::chrono::high_resolution_clock::now() - start;
+    auto count = std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count();
+    LOG_F(INFO, "kernel: loaded module '{}' in {}ms", mod ? strings().get(mod->name) : "???", count);
     return mod;
 }
 
@@ -161,12 +157,9 @@ void set_game_profile(GameProfile* profile)
 
 void unload_module()
 {
-    for (size_t i = services().services_count_; i > 0; --i) {
-        services().services_[i - 1].service->clear();
-    }
 
-    resman().unload_module();
-    strings().unload_custom_tlk();
+    services().shutdown();
+    services().start();
 }
 
 MemoryScope* tls_scratch()

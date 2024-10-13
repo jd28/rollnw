@@ -38,7 +38,11 @@ enum struct ServiceInitTime {
 
 /// Abstract base class of all services
 struct Service {
-    virtual ~Service() = default;
+    Service(MemoryResource* memory_);
+    virtual ~Service() {};
+
+    /// Gets the memory allocator for the servce
+    MemoryResource* allocator() const noexcept;
 
     /// Initializes a service
     /// @note Every service will be called with as many values as exist in ``ServiceInitTime``.
@@ -48,14 +52,8 @@ struct Service {
     /// Clears a service
     virtual void clear() {};
 
-    /// Gets the memory scope for the servce
-    MemoryScope* scope() const noexcept;
-
-    /// Gets the memory scope for the servce
-    void set_scope(MemoryScope* scope) noexcept;
-
 private:
-    MemoryScope* scope_ = nullptr;
+    MemoryResource* memory_ = nullptr;
 };
 
 struct ServiceEntry {
@@ -99,8 +97,8 @@ private:
     GlobalMemory global_alloc_;
     MemoryArena kernel_arena_;
     MemoryScope kernel_scope_;
-    MemoryScope* service_scope_ = nullptr;
     bool serices_started_ = false;
+    bool module_loaded_ = false;
 
     void load_services();
 };
@@ -110,7 +108,7 @@ T* Services::add()
 {
     T* service = get_mut<T>();
     if (!service) {
-        service = kernel_scope_.alloc_obj<T>();
+        service = kernel_scope_.alloc_obj<T>(&kernel_scope_);
         CHECK_F(services_count_ < 32, "Only 32 total services are allowed");
         services_[services_count_] = ServiceEntry{T::type_index, service};
         ++services_count_;

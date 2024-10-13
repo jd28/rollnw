@@ -6,6 +6,11 @@ namespace nw::kernel {
 
 const std::type_index TwoDACache::type_index{typeid(TwoDACache)};
 
+TwoDACache::TwoDACache(MemoryResource* memory)
+    : Service(memory)
+{
+}
+
 bool TwoDACache::cache(StringView tda)
 {
     Resource res{tda, ResourceType::twoda};

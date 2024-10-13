@@ -10,6 +10,11 @@ namespace nw::kernel {
 
 const std::type_index FactionSystem::type_index{typeid(FactionSystem)};
 
+FactionSystem::FactionSystem(MemoryResource* scope)
+    : Service(scope)
+{
+}
+
 void FactionSystem::initialize(ServiceInitTime time)
 {
     if (time != ServiceInitTime::module_post_load) { return; }

@@ -14,6 +14,9 @@ namespace nwk = nw::kernel;
 
 TEST(EffectSystem, Pool)
 {
+    auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
+    EXPECT_TRUE(mod);
+
     for (size_t i = 0; i < 100; ++i) {
         auto eff = nwk::effects().create(nwn1::effect_type_haste);
         nwk::effects().destroy(eff);
@@ -21,6 +24,8 @@ TEST(EffectSystem, Pool)
     auto stats = nwk::effects().stats();
     EXPECT_EQ(stats.free_list_size, 1);
     EXPECT_EQ(stats.pool_size, 1);
+
+    nw::kernel::unload_module();
 }
 
 TEST(EffectSystem, ApplyRemoveEffect)
