@@ -12,12 +12,6 @@ TilesetRegistry::TilesetRegistry(MemoryResource* memory)
 {
 }
 
-void TilesetRegistry::clear()
-{
-    metrics_ = TilesetRegistryMetrics{};
-    tileset_map_.clear();
-}
-
 void TilesetRegistry::initialize(ServiceInitTime time)
 {
     if (time != ServiceInitTime::kernel_start && time != ServiceInitTime::module_post_load) {

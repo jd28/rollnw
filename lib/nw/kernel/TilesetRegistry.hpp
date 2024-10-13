@@ -22,7 +22,6 @@ struct TilesetRegistry : public Service {
     const static std::type_index type_index;
 
     TilesetRegistry(MemoryResource* memory);
-    void clear() override;
     void initialize(ServiceInitTime time) override;
     Tileset* load(StringView resref);
     Tileset* get(StringView resref);

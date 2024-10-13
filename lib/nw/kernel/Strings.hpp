@@ -22,12 +22,6 @@ struct Strings : public Service {
     /// Initializes strings system
     virtual void initialize(ServiceInitTime time) override;
 
-    /// Initializes strings system
-    virtual void clear() override
-    {
-        unload_custom_tlk();
-    }
-
     /// Gets string by LocString
     /// @note if Tlk strref, use that; if not look in localized strings
     String get(const LocString& locstring, bool feminine = false) const;

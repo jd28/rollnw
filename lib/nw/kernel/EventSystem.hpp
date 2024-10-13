@@ -44,7 +44,6 @@ struct EventSystem : public Service {
     using storage = std::priority_queue<T, Vector<T>, std::greater<T>>;
 
     void add(EventType type, ObjectBase* object, void* data = nullptr);
-    void clear() override;
     int process();
     storage<EventHandle> queue_;
 };

@@ -23,7 +23,7 @@ struct TwoDACache : public Service {
     bool cache(StringView tda);
 
     /// Clears the cache
-    virtual void clear() override;
+    void clear();
 
     /// Gets a cached TwoDA
     const TwoDA* get(StringView tda);

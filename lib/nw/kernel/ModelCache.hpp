@@ -19,7 +19,7 @@ struct ModelCache : public Service {
     const static std::type_index type_index;
 
     ModelCache(MemoryResource* scope);
-    void clear() override;
+    void clear();
     model::Mdl* load(StringView resref);
     void release(StringView resref);
 

@@ -15,37 +15,6 @@ ObjectSystem::ObjectSystem(MemoryResource* scope)
 {
 }
 
-void ObjectSystem::clear()
-{
-    // Clear tag map first
-    object_tag_map_.clear();
-
-    // Make sure all objects are correctly destroyed. Have to do this now that
-    // the underlying storage is a memory pool that will not itself run destructor.
-    for (auto& obj : objects_) {
-        if (obj.is<ObjectBase*>()) {
-            destroy(obj.as<ObjectBase*>()->handle());
-        }
-    }
-
-    // Clear the free list
-    free_list_ = std::stack<ObjectID, Vector<ObjectID>>();
-    objects_.clear();
-    module_.reset();
-    areas_.clear();
-    creatures_.clear();
-    doors_.clear();
-    encounters_.clear();
-    items_.clear();
-    stores_.clear();
-    placeables_.clear();
-    players_.clear();
-    sounds_.clear();
-    triggers_.clear();
-    waypoints_.clear();
-    obj_arena_.reset();
-}
-
 ObjectBase* ObjectSystem::alloc(ObjectType type)
 {
     switch (type) {

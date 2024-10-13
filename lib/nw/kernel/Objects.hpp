@@ -46,10 +46,7 @@ struct ObjectSystem : public Service {
     ObjectSystem(ObjectSystem&&) = default;
     ObjectSystem& operator=(ObjectSystem&) = delete;
     ObjectSystem& operator=(ObjectSystem&&) = default;
-    virtual ~ObjectSystem() { }
-
-    /// Destroys all objects
-    virtual void clear() override;
+    virtual ~ObjectSystem() = default;
 
     /// Destroys a single object
     void destroy(ObjectHandle obj);

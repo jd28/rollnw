@@ -49,9 +49,6 @@ struct Service {
     /// it's up to the service itself to filter/ignore what's not relevant to them.
     virtual void initialize(ServiceInitTime /*time*/){};
 
-    /// Clears a service
-    virtual void clear() {};
-
 private:
     MemoryResource* memory_ = nullptr;
 };

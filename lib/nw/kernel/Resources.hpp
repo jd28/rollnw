@@ -46,7 +46,6 @@ struct Resources : public Container, public Service {
 
     /// Initializes resources management system
     virtual void initialize(ServiceInitTime time) override;
-    virtual void clear() override { }
 
     /// Add a base container
     /// @note This anything that is BELOW the module in priority

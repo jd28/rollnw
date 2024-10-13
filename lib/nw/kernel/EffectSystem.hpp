@@ -46,9 +46,6 @@ struct EffectSystem : public Service {
     /// Applies an effect to an object
     bool apply(ObjectBase* obj, Effect* effect);
 
-    /// Clears effect registry and all effects
-    virtual void clear() override;
-
     /// Creates an effect
     Effect* create(EffectType type);
 

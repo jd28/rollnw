@@ -30,13 +30,6 @@ void FactionSystem::initialize(ServiceInitTime time)
     }
 }
 
-void FactionSystem::clear()
-{
-    if (!factions_) { return; }
-    factions_.reset();
-    name_id_map_.clear();
-}
-
 Vector<String> FactionSystem::all() const
 {
     Vector<String> result;

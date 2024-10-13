@@ -63,8 +63,6 @@ TEST(ObjectSystem, ObjectByTag)
     auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
     EXPECT_TRUE(mod);
 
-    nwk::objects().clear();
-
     std::vector<nw::Creature*> chickens;
     for (size_t i = 0; i < 10; ++i) {
         chickens.push_back(nwk::objects().load<nw::Creature>("nw_chicken"sv));

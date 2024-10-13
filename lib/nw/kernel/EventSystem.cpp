@@ -20,12 +20,6 @@ void EventSystem::add(EventType type, ObjectBase* object, void* data)
     h.data = data;
     queue_.push(h);
 }
-void EventSystem::clear()
-{
-    while (!queue_.empty()) {
-        queue_.pop();
-    }
-}
 
 int EventSystem::process()
 {

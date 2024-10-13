@@ -13,7 +13,6 @@ struct FactionSystem : public Service {
 
     FactionSystem(MemoryResource* scope);
     virtual void initialize(ServiceInitTime time) override;
-    virtual void clear() override;
 
     /// Gets all factions by name
     Vector<String> all() const;
