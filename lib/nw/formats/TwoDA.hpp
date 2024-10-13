@@ -171,10 +171,7 @@ bool TwoDA::get_to(size_t row, size_t col, T& out) const
         "TwoDA only supports float, String, StringView, or anything convertible to int32_t");
 
     size_t idx = row * columns_.size() + col;
-    if (idx >= rows_.size()) {
-        LOG_F(ERROR, "Out of Bounds row {}, col {}", row, col);
-        return false;
-    }
+    CHECK_F(idx < rows_.size(), "Out of Bounds row {}, col {}", row, col);
 
     StringView res = rows_[idx].view;
 
