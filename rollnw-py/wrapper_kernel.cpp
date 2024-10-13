@@ -132,8 +132,6 @@ void init_kernel_objects(py::module& kernel)
 void init_kernel_resources(py::module& kernel)
 {
     py::class_<nw::kernel::Resources, nw::Container>(kernel, "Resources")
-        .def(py::init<const nw::kernel::Resources*>(),
-            py::keep_alive<1, 2>())
         .def("demand_any", &nw::kernel::Resources::demand_any)
         .def("demand_in_order", &nw::kernel::Resources::demand_in_order)
         .def("demand_server_vault", &nw::kernel::Resources::demand_server_vault)
