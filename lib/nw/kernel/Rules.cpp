@@ -12,28 +12,25 @@ const std::type_index Rules::type_index{typeid(Rules)};
 
 Rules::Rules(MemoryResource* scope)
     : Service(scope)
+    , baseitems{allocator()}
+    , classes{allocator()}
+    , feats{allocator()}
+    , races{allocator()}
+    , spells{allocator()}
+    , spellschools{allocator()}
+    , skills{allocator()}
+    , master_feats{allocator()}
+    , modifiers{allocator()}
+    , phenotypes{allocator()}
+    , appearances{allocator()}
+    , placeables{allocator()}
+    , traps{allocator()}
 {
 }
 
 Rules::~Rules()
 {
     clear();
-}
-
-void Rules::clear()
-{
-    modifiers.clear();
-    baseitems.clear();
-    classes.clear();
-    feats.clear();
-    races.clear();
-    spells.clear();
-    skills.clear();
-    master_feats.clear();
-    appearances.clear();
-    phenotypes.clear();
-    traps.clear();
-    placeables.clear();
 }
 
 void Rules::initialize(ServiceInitTime time)

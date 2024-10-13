@@ -2,6 +2,7 @@
 
 #include "../util/InternedString.hpp"
 
+#include "../kernel/Kernel.hpp"
 #include <absl/container/flat_hash_map.h>
 #include <nlohmann/json_fwd.hpp>
 
@@ -155,7 +156,14 @@ struct RuleTypeArray {
         InternedString,
         RuleType,
         InternedStringHash,
-        InternedStringEq>;
+        InternedStringEq,
+        Allocator<std::pair<const InternedString, const RuleType>>>;
+
+    RuleTypeArray(MemoryResource* allocator = kernel::global_allocator())
+        : entries(allocator)
+        , constant_to_index(allocator)
+    {
+    }
 
     const RuleTypeInfo* get(RuleType type) const noexcept
     {
@@ -187,7 +195,7 @@ struct RuleTypeArray {
         }
     }
 
-    Vector<RuleTypeInfo> entries;
+    PVector<RuleTypeInfo> entries;
     map_type constant_to_index;
 };
 

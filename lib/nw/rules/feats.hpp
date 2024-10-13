@@ -86,6 +86,8 @@ inline bool operator==(const MasterFeatEntry& lhs, const MasterFeatEntry& rhs)
 }
 
 struct MasterFeatRegistry {
+    MasterFeatRegistry(MemoryResource* allocator = nw::kernel::global_allocator());
+
     template <typename T>
     void add(T type, MasterFeat mfeat, Feat feat);
     void clear() noexcept;
@@ -100,6 +102,7 @@ struct MasterFeatRegistry {
 private:
     Vector<MasterFeatEntry> entries_;
     Vector<ModifierVariant> bonuses_;
+    MemoryResource* allocator_ = nullptr;
 };
 
 template <typename T>

@@ -142,6 +142,11 @@ nw::Modifier make_modifier(nw::ModifierType type, nw::ModifierVariant value,
     };
 }
 
+ModifierRegistry::ModifierRegistry(MemoryResource* allocator)
+    : allocator_(allocator)
+{
+}
+
 void ModifierRegistry::add(Modifier mod)
 {
     auto it = std::lower_bound(std::begin(entries_), std::end(entries_), mod);

@@ -92,7 +92,14 @@ struct ClassArray {
         InternedString,
         Class,
         InternedStringHash,
-        InternedStringEq>;
+        InternedStringEq,
+        Allocator<std::pair<const InternedString, const ClassInfo>>>;
+
+    ClassArray(MemoryResource* allocator = kernel::global_allocator())
+        : entries(allocator)
+        , constant_to_index(allocator)
+    {
+    }
 
     const ClassInfo* get(Class class_) const noexcept;
     bool is_valid(Class class_) const noexcept;
@@ -120,7 +127,7 @@ struct ClassArray {
     std::set<Vector<int>> attack_tables;
     Vector<int> stat_gain_tables;
 
-    Vector<ClassInfo> entries;
+    PVector<ClassInfo> entries;
     map_type constant_to_index;
 };
 

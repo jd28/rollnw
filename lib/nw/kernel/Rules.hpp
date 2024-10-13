@@ -29,9 +29,6 @@ struct Rules : public Service {
     /// Initializes rules system
     virtual void initialize(ServiceInitTime time) override;
 
-    /// Clears rules system of all rules and cached 2da files
-    virtual void clear() override;
-
     /// Gets attack functions
     [[nodiscard]] const AttackFuncs& attack_functions() const noexcept;
 

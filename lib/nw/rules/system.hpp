@@ -9,12 +9,8 @@
 #include "rule_type.hpp"
 #include "system.hpp"
 
+#include <absl/container/fixed_array.h>
 #include <absl/container/inlined_vector.h>
-
-#include <limits>
-#include <optional>
-#include <string>
-#include <variant>
 
 namespace nw {
 
@@ -91,7 +87,7 @@ enum struct ModifierSource {
 };
 
 struct ModifierResult {
-    ModifierResult() { };
+    ModifierResult() {};
     ModifierResult(int value);
     ModifierResult(float value);
     ModifierResult(DamageRoll value);
@@ -187,6 +183,8 @@ struct ModifierRegistry {
     using iterator = Storage::iterator;
     using const_iterator = Storage::const_iterator;
 
+    ModifierRegistry(MemoryResource* allocator = nw::kernel::global_allocator());
+
     /// Adds a modifier to the system
     void add(Modifier mod);
 
@@ -232,6 +230,7 @@ struct ModifierRegistry {
 
 private:
     Storage entries_;
+    MemoryResource* allocator_ = nullptr;
 };
 
 } // namespace nw

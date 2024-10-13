@@ -52,6 +52,11 @@ FeatInfo::FeatInfo(const TwoDARowView& tda)
 // -- Master Feats ------------------------------------------------------------
 // ----------------------------------------------------------------------------
 
+MasterFeatRegistry::MasterFeatRegistry(MemoryResource* allocator)
+    : allocator_(allocator)
+{
+}
+
 const ModifierVariant& MasterFeatRegistry::get_bonus(MasterFeat mfeat) const
 {
     return bonuses_[*mfeat];
