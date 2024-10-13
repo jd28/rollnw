@@ -11,23 +11,6 @@ TwoDACache::TwoDACache(MemoryResource* memory)
 {
 }
 
-bool TwoDACache::cache(StringView tda)
-{
-    Resource res{tda, ResourceType::twoda};
-    auto it = cached_2das_.find(res);
-    if (it != std::end(cached_2das_) && it->second->is_valid() && it->second->rows() != 0) {
-        return true;
-    }
-
-    auto t = std::make_unique<TwoDA>(kernel::resman().demand(res));
-    if (t->is_valid()) {
-        cached_2das_[res] = std::move(t);
-        return true;
-    }
-
-    return false;
-}
-
 void TwoDACache::clear()
 {
     cached_2das_.clear();

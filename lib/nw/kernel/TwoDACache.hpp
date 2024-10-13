@@ -19,9 +19,6 @@ struct TwoDACache : public Service {
     TwoDACache& operator=(const TwoDACache&) = delete;
     TwoDACache& operator=(TwoDACache&&) = default;
 
-    /// Caches a 2da
-    bool cache(StringView tda);
-
     /// Clears the cache
     void clear();
 
