@@ -16,14 +16,18 @@ struct MemoryHeader {
 void* GlobalMemory::allocate(size_t size, size_t alignment)
 {
     size_t total_size = size + alignment - 1 + sizeof(detail::MemoryHeader);
+
     void* original = malloc(total_size);
-    void* aligned = static_cast<char*>(original) + sizeof(detail::MemoryHeader);
-    size_t space = total_size - sizeof(detail::MemoryHeader);
-    aligned = std::align(alignment, size, aligned, space);
-    detail::MemoryHeader* header = reinterpret_cast<detail::MemoryHeader*>(static_cast<char*>(aligned) - sizeof(detail::MemoryHeader));
+    if (!original) { return nullptr; }
+
+    uintptr_t raw_address = reinterpret_cast<uintptr_t>(original) + sizeof(detail::MemoryHeader);
+    uintptr_t aligned_address = (raw_address + alignment - 1) & ~(alignment - 1);
+
+    detail::MemoryHeader* header = reinterpret_cast<detail::MemoryHeader*>(aligned_address - sizeof(detail::MemoryHeader));
     header->original_ptr = original;
     header->size = total_size;
-    return aligned;
+
+    return reinterpret_cast<void*>(aligned_address);
 }
 
 void GlobalMemory::deallocate(void* ptr, size_t, size_t)
@@ -258,17 +262,16 @@ void* MemoryPool::allocate(size_t size, size_t alignment)
     }
 
     // Fallback to malloc
-    if (!original) {
-        original = malloc(size);
-    }
+    if (!original) { original = malloc(size); }
 
-    void* aligned = static_cast<char*>(original) + sizeof(detail::MemoryHeader);
-    size_t space = total_size - sizeof(detail::MemoryHeader);
-    aligned = std::align(alignment, size, aligned, space);
-    detail::MemoryHeader* header = reinterpret_cast<detail::MemoryHeader*>(static_cast<char*>(aligned) - sizeof(detail::MemoryHeader));
+    uintptr_t raw_address = reinterpret_cast<uintptr_t>(original) + sizeof(detail::MemoryHeader);
+    uintptr_t aligned_address = (raw_address + alignment - 1) & ~(alignment - 1);
+
+    detail::MemoryHeader* header = reinterpret_cast<detail::MemoryHeader*>(aligned_address - sizeof(detail::MemoryHeader));
     header->original_ptr = original;
     header->size = total_size;
-    return aligned;
+
+    return reinterpret_cast<void*>(aligned_address);
 }
 
 void MemoryPool::deallocate(void* ptr, size_t, size_t)
