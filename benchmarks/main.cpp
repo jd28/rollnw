@@ -261,6 +261,25 @@ static void BM_rules_modifier(benchmark::State& state)
     }
 }
 
+static void BM_load_module(benchmark::State& state)
+{
+    for (auto _ : state) {
+        auto m = nwk::load_module(fs::path("test_data/user/modules/DockerDemo.mod"));
+        nwk::unload_module();
+        benchmark::DoNotOptimize(m);
+    }
+}
+BENCHMARK(BM_load_module);
+
+static void BM_start_service(benchmark::State& state)
+{
+    for (auto _ : state) {
+        nwk::services().shutdown();
+        nwk::services().start();
+    }
+}
+BENCHMARK(BM_start_service);
+
 BENCHMARK(BM_parse_feat_2da);
 BENCHMARK(BM_creature_from_json);
 BENCHMARK(BM_creature_serialize);
