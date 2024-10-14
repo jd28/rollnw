@@ -2,6 +2,7 @@
 
 #include "../config.hpp"
 #include "../log.hpp"
+#include "ChunkVector.hpp"
 #include "templates.hpp"
 
 #include <assert.h>
@@ -211,29 +212,38 @@ template <typename T, size_t N, class Alloc = Allocator<T>>
 struct ObjectPool {
     ObjectPool(Alloc allocator)
         : allocator_{allocator}
+        , free_list_(N, allocator_)
+        , chunks_{32, allocator_}
     {
+    }
+
+    ~ObjectPool()
+    {
+        for (size_t i = 0; i < chunks_.size(); ++i) {
+            allocator_.deallocate(chunks_[i], N);
+        }
     }
 
     T* allocate()
     {
         if (free_list_.empty()) { allocate_chunk(); }
 
-        auto result = free_list_.top();
-        free_list_.pop();
+        auto result = free_list_.back();
+        free_list_.pop_back();
         result = new (result) T;
         return result;
     }
 
     void clear()
     {
-        free_list_ = std::stack<T*, Vector<T*>>{};
+        free_list_.clear();
         chunks_.clear();
     }
 
     void free(T* object)
     {
         object->~T();
-        free_list_.push(object);
+        free_list_.push_back(object);
     }
 
     void allocate_chunk()
@@ -241,13 +251,13 @@ struct ObjectPool {
         T* chunk = static_cast<T*>(allocator_.allocate(N));
         CHECK_F(!!chunk, "Unable to allocate chunk of size {}", sizeof(T) * N);
         for (size_t i = 0; i < N; ++i) {
-            free_list_.push(&chunk[i]);
+            free_list_.push_back(&chunk[i]);
         }
     }
 
     Alloc allocator_;
-    std::stack<T*, Vector<T*>> free_list_;
-    Vector<T*> chunks_;
+    ChunkVector<T*> free_list_;
+    ChunkVector<T*> chunks_;
 };
 
 } // namespace nw
