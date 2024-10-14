@@ -14,6 +14,7 @@
 #include "../objects/Waypoint.hpp"
 #include "../serialization/Gff.hpp"
 #include "../serialization/Serialization.hpp"
+#include "../util/ChunkVector.hpp"
 #include "../util/memory.hpp"
 #include "../util/platform.hpp"
 #include "Kernel.hpp"
@@ -40,13 +41,12 @@ struct ObjectSystemStats {
  */
 struct ObjectSystem : public Service {
     const static std::type_index type_index;
-
     ObjectSystem(MemoryResource* scope);
     ObjectSystem(const ObjectSystem&) = delete;
     ObjectSystem(ObjectSystem&&) = default;
     ObjectSystem& operator=(ObjectSystem&) = delete;
     ObjectSystem& operator=(ObjectSystem&&) = default;
-    virtual ~ObjectSystem() = default;
+    ~ObjectSystem();
 
     /// Destroys a single object
     void destroy(ObjectHandle obj);
@@ -104,23 +104,22 @@ struct ObjectSystem : public Service {
     bool valid(ObjectHandle obj) const;
 
 private:
-    std::stack<ObjectID, Vector<ObjectID>> free_list_;
-    Vector<ObjectPayload> objects_;
+    ChunkVector<ObjectID> free_list_;
+    ChunkVector<ObjectPayload> objects_;
     absl::btree_multimap<InternedString, ObjectHandle> object_tag_map_;
-    MemoryArena obj_arena_{MB(1)};
 
-    std::unique_ptr<Module> module_;
-    ObjectPool<Area, 256> areas_{&obj_arena_};
-    ObjectPool<Creature, 256> creatures_{&obj_arena_};
-    ObjectPool<Door, 512> doors_{&obj_arena_};
-    ObjectPool<Encounter, 256> encounters_{&obj_arena_};
-    ObjectPool<Item, 256> items_{&obj_arena_};
-    ObjectPool<Store, 256> stores_{&obj_arena_};
-    ObjectPool<Placeable, 256> placeables_{&obj_arena_};
-    ObjectPool<Player, 128> players_{&obj_arena_};
-    ObjectPool<Sound, 256> sounds_{&obj_arena_};
-    ObjectPool<Trigger, 256> triggers_{&obj_arena_};
-    ObjectPool<Waypoint, 256> waypoints_{&obj_arena_};
+    Module* module_;
+    ObjectPool<Area, 256> areas_;
+    ObjectPool<Creature, 256> creatures_;
+    ObjectPool<Door, 512> doors_;
+    ObjectPool<Encounter, 256> encounters_;
+    ObjectPool<Item, 256> items_;
+    ObjectPool<Store, 256> stores_;
+    ObjectPool<Placeable, 256> placeables_;
+    ObjectPool<Player, 128> players_;
+    ObjectPool<Sound, 256> sounds_;
+    ObjectPool<Trigger, 256> triggers_;
+    ObjectPool<Waypoint, 256> waypoints_;
 
     void (*instatiate_callback_)(ObjectBase*) = nullptr;
 };
@@ -165,9 +164,9 @@ T* ObjectSystem::make()
     if (!obj) { return nullptr; }
 
     if (free_list_.size()) {
-        auto oid = free_list_.top();
+        auto oid = free_list_.back();
         auto idx = static_cast<size_t>(oid);
-        free_list_.pop();
+        free_list_.pop_back();
         ObjectHandle oh = objects_[idx].as<ObjectHandle>();
         oh.type = T::object_type;
         obj->set_handle(oh);

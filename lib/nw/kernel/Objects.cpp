@@ -12,7 +12,25 @@ const std::type_index ObjectSystem::type_index{typeid(ObjectSystem)};
 
 ObjectSystem::ObjectSystem(MemoryResource* scope)
     : Service(scope)
+    , objects_{2048, allocator()}
+    , free_list_{512, allocator()}
+    , areas_{allocator()}
+    , creatures_{allocator()}
+    , doors_{allocator()}
+    , encounters_{allocator()}
+    , items_{allocator()}
+    , stores_{allocator()}
+    , placeables_{allocator()}
+    , players_{allocator()}
+    , sounds_{allocator()}
+    , triggers_{allocator()}
+    , waypoints_{allocator()}
 {
+}
+
+ObjectSystem::~ObjectSystem()
+{
+    allocator()->deallocate(module_, sizeof(Module), alignof(Module));
 }
 
 ObjectBase* ObjectSystem::alloc(ObjectType type)
@@ -36,8 +54,8 @@ ObjectBase* ObjectSystem::alloc(ObjectType type)
         return items_.allocate();
     } break;
     case ObjectType::module: {
-        module_ = std::make_unique<Module>();
-        return module_.get();
+        module_ = new (allocator()->allocate(sizeof(Module), alignof(Module))) Module();
+        return module_;
     } break;
     case ObjectType::store: {
         return stores_.allocate();
@@ -85,7 +103,7 @@ void ObjectSystem::destroy(ObjectHandle obj)
         // If version is at max don't add to free list.  Still clobber object.
         if (new_handle.version < ObjectHandle::version_max) {
             ++new_handle.version;
-            free_list_.push(new_handle.id);
+            free_list_.push_back(new_handle.id);
         }
         objects_[idx] = new_handle;
 
