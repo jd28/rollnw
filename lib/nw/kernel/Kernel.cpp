@@ -105,11 +105,11 @@ Services& services()
 
 Module* load_module(const std::filesystem::path& path, bool instantiate)
 {
-    auto start = std::chrono::high_resolution_clock::now();
     services().module_loading_ = true;
+    unload_module(); // Always unload, just in case.
 
-    // Always unload, just in case.
-    unload_module();
+    auto start = std::chrono::high_resolution_clock::now();
+    services().start();
 
     for (auto& s : services().services_) {
         if (!s.service) { break; }
@@ -169,7 +169,6 @@ void unload_module()
     // Since everything is getting nuked, it's not necessary to call Module::destroy
     services().shutdown();
     services().module_loaded_ = false;
-    services().start();
 }
 
 MemoryScope* tls_scratch()
