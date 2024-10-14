@@ -77,7 +77,16 @@ struct ChunkVector {
     /// Determines if container is empty
     bool empty() const noexcept { return size_ == 0; }
 
-    void push_back(T&& ele)
+    void pop_back()
+    {
+        if (!blocks_) { return; }
+        auto chunk = find_chunk(size_ - 1);
+        CHECK_F(!!chunk && !!chunk->data, "attempting to address invalid chunk");
+        chunk->data[(size_ - 1) % chunk_size_].~T();
+        --size_;
+    }
+
+    void push_back(T ele)
     {
         if (!blocks_ || size_ == allocated_) { alloc_block(); }
 
