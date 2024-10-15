@@ -769,6 +769,15 @@ TEST(Nss, Lexer)
     EXPECT_NO_THROW(nss1.parse());
     EXPECT_NO_THROW(nss1.resolve());
     EXPECT_EQ(nss1.errors(), 1);
+
+    script::NssLexer lexer21{"0b1111", ctx.get()};
+    EXPECT_EQ(int(lexer21.next().type), int(script::NssTokenType::INTEGER_CONST));
+
+    script::NssLexer lexer22{"0xDEADBEEF", ctx.get()};
+    EXPECT_EQ(int(lexer22.next().type), int(script::NssTokenType::INTEGER_CONST));
+
+    script::NssLexer lexer23{"0O747", ctx.get()};
+    EXPECT_EQ(int(lexer23.next().type), int(script::NssTokenType::INTEGER_CONST));
 }
 
 TEST(Nss, Includes)

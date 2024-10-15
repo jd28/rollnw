@@ -35,6 +35,18 @@ TEST(String, NumericConversion)
     auto o3 = nw::string::from<bool>("1");
     EXPECT_TRUE(o3);
     EXPECT_EQ(*o3, true);
+
+    auto o4 = nw::string::from<int32_t>("0x10");
+    EXPECT_TRUE(o4);
+    EXPECT_EQ(*o4, 16);
+
+    auto o5 = nw::string::from<int32_t>("0b11");
+    EXPECT_TRUE(o5);
+    EXPECT_EQ(*o5, 3);
+
+    auto o6 = nw::string::from<int32_t>("0O777");
+    EXPECT_TRUE(o6);
+    EXPECT_EQ(*o6, 511);
 }
 
 TEST(String, trim)

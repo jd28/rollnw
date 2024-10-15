@@ -198,14 +198,43 @@ NssToken NssLexer::handle_number()
     SourcePosition start_pos{line_, start - last_line_pos_};
 
     bool is_float = false;
-    bool is_hex = get(pos_) == '0' && (get(pos_ + 1) == 'x' || get(pos_ + 1) == 'X');
-    if (is_hex) { pos_ += 2; }
+    int base = 10;
+    if (get(pos_) == '0') {
+        switch (get(pos_ + 1)) {
+        case 'x':
+        case 'X':
+            base = 16;
+            break;
+        case 'b':
+        case 'B':
+            base = 2;
+            break;
+        case 'o':
+        case 'O':
+            base = 8;
+            break;
+        }
+    }
+
+    if (base != 10) { pos_ += 2; }
 
     while (pos_ < buffer_.size()) {
-        if (is_hex) {
+        if (base == 16) {
             if (std::isdigit(get(pos_))
                 || (get(pos_) >= 'a' && get(pos_) <= 'f')
                 || (get(pos_) >= 'A' && get(pos_) <= 'F')) {
+                pos_++;
+            } else {
+                break;
+            }
+        } else if (base == 2) {
+            if (get(pos_) == '0' || get(pos_) == '1') {
+                pos_++;
+            } else {
+                break;
+            }
+        } else if (base == 8) {
+            if (get(pos_) >= '0' || get(pos_) <= '7') {
                 pos_++;
             } else {
                 break;

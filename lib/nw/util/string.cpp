@@ -26,7 +26,20 @@ namespace detail {
 
 constexpr int base(StringView str)
 {
-    return str.length() > 2 && str[0] == '0' && (str[1] == 'x' || str[1] == 'X') ? 16 : 10;
+    if (str.length() > 2 && str[0] == '0') {
+        switch (str[1]) {
+        case 'x':
+        case 'X':
+            return 16;
+        case 'b':
+        case 'B':
+            return 2;
+        case 'o':
+        case 'O':
+            return 8;
+        }
+    }
+    return 10;
 }
 
 } // namespace detail
@@ -55,7 +68,7 @@ std::optional<bool> from(StringView str)
     {                                                                                  \
         int b = detail::base(str);                                                     \
         type v = 0;                                                                    \
-        const char* start = str.data() + (b == 16 ? 2 : 0);                            \
+        const char* start = str.data() + (b != 10 ? 2 : 0);                            \
         auto res = std::from_chars(start, str.data() + str.size(), v, b);              \
         return res.ptr != str.data() ? std::optional<type>(v) : std::optional<type>(); \
     }
