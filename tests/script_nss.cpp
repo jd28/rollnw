@@ -778,6 +778,21 @@ TEST(Nss, Lexer)
 
     script::NssLexer lexer23{"0O747", ctx.get()};
     EXPECT_EQ(int(lexer23.next().type), int(script::NssTokenType::INTEGER_CONST));
+
+    script::NssLexer lexer24{"__FUNCTION__", ctx.get()};
+    EXPECT_EQ(int(lexer24.next().type), int(script::NssTokenType::_FUNCTION_));
+
+    script::NssLexer lexer25{"__FILE__", ctx.get()};
+    EXPECT_EQ(int(lexer25.next().type), int(script::NssTokenType::_FILE_));
+
+    script::NssLexer lexer26{"__TIME__", ctx.get()};
+    EXPECT_EQ(int(lexer26.next().type), int(script::NssTokenType::_TIME_));
+
+    script::NssLexer lexer27{"__DATE__", ctx.get()};
+    EXPECT_EQ(int(lexer27.next().type), int(script::NssTokenType::_DATE_));
+
+    script::NssLexer lexer28{"__LINE__", ctx.get()};
+    EXPECT_EQ(int(lexer28.next().type), int(script::NssTokenType::_LINE_));
 }
 
 TEST(Nss, Includes)

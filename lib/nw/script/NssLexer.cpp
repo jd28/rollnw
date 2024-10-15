@@ -39,6 +39,21 @@ inline NssTokenType check_keyword(const NssToken& tk)
     switch (tk.loc.view()[0]) {
     default:
         return NssTokenType::IDENTIFIER;
+    // Macros
+    case '_':
+        if (tk.loc.view() == "__FUNCTION__") {
+            return NssTokenType::_FUNCTION_;
+        } else if (tk.loc.view() == "__FILE__") {
+            return NssTokenType::_FILE_;
+        } else if (tk.loc.view() == "__DATE__") {
+            return NssTokenType::_DATE_;
+        } else if (tk.loc.view() == "__TIME__") {
+            return NssTokenType::_TIME_;
+        } else if (tk.loc.view() == "__LINE__") {
+            return NssTokenType::_LINE_;
+        }
+        break;
+
         // Keywords
     case 'a':
         if (tk.loc.view() == "action") {

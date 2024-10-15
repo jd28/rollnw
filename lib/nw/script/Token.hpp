@@ -103,6 +103,13 @@ enum class NssTokenType {
     VECTOR,       // vector
     VOID_,        // void
     WHILE,        // while
+
+    // Macros
+    _FUNCTION_,
+    _FILE_,
+    _DATE_,
+    _TIME_,
+    _LINE_,
 };
 
 inline SourceLocation merge_source_location(SourceLocation lhs, SourceLocation rhs)

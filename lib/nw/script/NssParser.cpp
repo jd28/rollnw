@@ -471,12 +471,14 @@ Expression* NssParser::parse_expr_postfix()
     return expr;
 }
 
-// INT | FLOAT | STRING | "(" expression ")" | IDENTIFIER
+// INT | FLOAT | STRING | "(" expression ")" | IDENTIFIER | MACRO
 Expression* NssParser::parse_expr_primary()
 {
     if (match({NssTokenType::STRING_CONST, NssTokenType::STRING_RAW_CONST, NssTokenType::INTEGER_CONST,
             NssTokenType::FLOAT_CONST, NssTokenType::OBJECT_INVALID_CONST, NssTokenType::OBJECT_SELF_CONST,
-            NssTokenType::LOCATION_INVALID, NssTokenType::JSON_CONST})) {
+            NssTokenType::LOCATION_INVALID, NssTokenType::JSON_CONST,
+            NssTokenType::_FUNCTION_, NssTokenType::_FILE_, NssTokenType::_DATE_, NssTokenType::_TIME_,
+            NssTokenType::_LINE_})) {
         auto expr = ast_.create_node<LiteralExpression>(previous());
         expr->range_ = previous().loc.range;
         if (expr->literal.type == NssTokenType::STRING_CONST) {
