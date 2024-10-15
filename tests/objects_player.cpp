@@ -34,8 +34,6 @@ TEST(Player, LevelHistory)
     EXPECT_TRUE(pl);
     EXPECT_EQ(pl->history.entries.size(), 15);
     EXPECT_EQ(pl->history.entries[0].known_spells.size(), 6);
-
-    nwk::unload_module();
 }
 
 TEST(Player, AttackBonus)
@@ -46,8 +44,6 @@ TEST(Player, AttackBonus)
     auto pl = nwk::objects().load_player("CDKEY", "testbardrddpc1");
     EXPECT_TRUE(pl);
     EXPECT_EQ(nwn1::base_attack_bonus(pl), 10);
-
-    nwk::unload_module();
 }
 
 TEST(Player, GffJsonSerialize)
@@ -62,6 +58,4 @@ TEST(Player, GffJsonSerialize)
     auto j = nw::gff_to_gffjson(g);
     std::ofstream out{"tmp/testwizardpc1.bic.gffjson"};
     out << std::setw(4) << j;
-
-    nwk::unload_module();
 }

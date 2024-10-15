@@ -48,6 +48,4 @@ TEST(Kernel, FactionSystem)
     auto all = nwk::factions().all();
     EXPECT_EQ(all.size(), 5);
     EXPECT_EQ(all[id4], "Defender");
-
-    nwk::unload_module();
 }

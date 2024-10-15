@@ -49,10 +49,9 @@ TEST(KernelResources, LoadModule)
 
     if (manifests.size() > 0) {
         EXPECT_TRUE(rm->load_module("test_data/user/modules/DockerDemo.mod", manifests[0]));
-        rm->unload_module();
+
     } else {
         EXPECT_TRUE(rm->load_module("test_data/user/modules/DockerDemo.mod"));
-        rm->unload_module();
     }
     delete rm;
 }
@@ -70,8 +69,6 @@ TEST(KernelResources, LoadPlayerCharacter)
 
     data = nwk::resman().demand_server_vault("CDKEY", "WRONGNAME");
     EXPECT_FALSE(data.bytes.size());
-
-    nwk::unload_module();
 }
 
 TEST(KernelResources, Teture)
@@ -85,8 +82,6 @@ TEST(KernelResources, Teture)
     auto tex2 = nwk::resman().texture("tno01_wtcliff01"sv);
     EXPECT_TRUE(tex2);
     EXPECT_TRUE(tex2->valid());
-
-    nwk::unload_module();
 }
 
 TEST(KernelResources, visit)

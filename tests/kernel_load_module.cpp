@@ -19,7 +19,6 @@ TEST(Kernel, LoadModuleErf)
     EXPECT_TRUE(area);
     EXPECT_TRUE(area->common.resref == "start");
     mod->destroy(); // Make sure nothing crashes, not called on unload..
-    nw::kernel::unload_module();
 }
 
 TEST(Kernel, LoadModuleDirectory)
@@ -33,8 +32,6 @@ TEST(Kernel, LoadModuleDirectory)
     EXPECT_EQ(area->creatures[0]->hp_max, 110);
     auto cre = nw::kernel::objects().load<nw::Creature>("test_creature"sv);
     EXPECT_TRUE(cre);
-
-    nw::kernel::unload_module();
 }
 
 TEST(Kernel, LoadModuleZip)
@@ -48,6 +45,4 @@ TEST(Kernel, LoadModuleZip)
     EXPECT_EQ(area->creatures[0]->hp_max, 110);
     auto cre = nw::kernel::objects().load<nw::Creature>("test_creature"sv);
     EXPECT_TRUE(cre);
-
-    nw::kernel::unload_module();
 }

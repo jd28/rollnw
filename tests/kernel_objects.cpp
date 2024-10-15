@@ -55,7 +55,6 @@ TEST(ObjectSystem, LoadCreature)
     auto handle2 = ent3->handle();
 
     EXPECT_EQ(handle.id, handle2.id);
-    nwk::unload_module();
 }
 
 TEST(ObjectSystem, ObjectByTag)
@@ -78,8 +77,6 @@ TEST(ObjectSystem, ObjectByTag)
     }
 
     EXPECT_FALSE(nwk::objects().get_by_tag("NW_CHICKEN"));
-
-    nwk::unload_module();
 }
 
 TEST(ObjectSystem, LoadPlayer)
@@ -95,6 +92,4 @@ TEST(ObjectSystem, LoadPlayer)
 
     auto pl3 = nwk::objects().load<nw::Player>(fs::path("test_data/user/servervault/CDKEY/testmonkpc.bic"));
     EXPECT_TRUE(pl3);
-
-    nwk::unload_module();
 }

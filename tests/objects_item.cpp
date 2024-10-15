@@ -25,8 +25,6 @@ TEST(Item, Colors)
     auto plt_colors = heavy1->model_to_plt_colors();
     EXPECT_EQ(plt_colors.data[nw::plt_layer_metal1], 3);
     EXPECT_EQ(plt_colors.data[nw::plt_layer_metal2], 25);
-
-    nw::kernel::unload_module();
 }
 
 TEST(Item, GffDeserializeArmor)
@@ -57,8 +55,6 @@ TEST(Item, GffDeserializeArmor)
     EXPECT_EQ(nwn1::calculate_item_ac(medium), 5);
     EXPECT_EQ(nwn1::calculate_item_ac(heavy1), 7);
     EXPECT_EQ(nwn1::calculate_item_ac(heavy2), 8);
-
-    nw::kernel::unload_module();
 }
 
 TEST(Item, LocalVariables)
@@ -250,6 +246,5 @@ TEST(Item, Icon)
     EXPECT_TRUE(icon5_2->write_to("tmp/x2_it_adaplatef.png"));
     delete icon5_2;
 
-    nw::kernel::unload_module();
 #endif
 }

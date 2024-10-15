@@ -30,8 +30,6 @@ TEST(Rules, Effects)
     eff.set_string(12, "my string");
     EXPECT_EQ(eff.get_string(12), "my string");
     EXPECT_EQ(eff.get_int(3), 0);
-
-    nwk::unload_module();
 }
 
 TEST(Rules, ItemProperties)
@@ -46,6 +44,4 @@ TEST(Rules, ItemProperties)
     auto ip2 = nwn1::itemprop_ability_modifier(nwn1::ability_strength, 6);
     auto str2 = nw::itemprop_to_string(ip2);
     EXPECT_EQ(str2, "Enhancement Bonus: Strength +6");
-
-    nwk::unload_module();
 }

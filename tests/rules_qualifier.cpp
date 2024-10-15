@@ -25,8 +25,6 @@ TEST(Qualifier, Basic)
 
     auto qual3 = nw::qualifier_skill(nwn1::skill_discipline, 35); // at least 35
     EXPECT_TRUE(nw::kernel::rules().match(qual3, ent));
-
-    nwk::unload_module();
 }
 
 TEST(Qualifier, Race)
@@ -42,8 +40,6 @@ TEST(Qualifier, Race)
 
     auto qual2 = nw::qualifier_race(nwn1::racial_type_ooze);
     EXPECT_FALSE(nw::kernel::rules().match(qual2, ent));
-
-    nwk::unload_module();
 }
 
 TEST(Qualifier, Level)
@@ -59,8 +55,6 @@ TEST(Qualifier, Level)
 
     auto qual2 = nw::qualifier_level(1);
     EXPECT_TRUE(nw::kernel::rules().match(qual2, ent));
-
-    nwk::unload_module();
 }
 
 TEST(Qualifier, Alignment)
@@ -121,8 +115,6 @@ TEST(Qualifier, Alignment)
 
     EXPECT_TRUE(nw::kernel::rules().match(qual8, ent));
     EXPECT_TRUE(nw::kernel::rules().match(qual8, ent2));
-
-    nwk::unload_module();
 }
 
 TEST(Qualifier, ClassLevel)
@@ -144,6 +136,4 @@ TEST(Qualifier, ClassLevel)
 
     auto qual4 = nw::qualifier_class_level(nwn1::class_type_fighter, 4, 5);
     EXPECT_FALSE(nw::kernel::rules().match(qual4, ent));
-
-    nwk::unload_module();
 }

@@ -50,7 +50,6 @@ TEST(KernelRules, Classes)
     auto req = nwk::rules().classes.get_requirement(nwn1::class_type_dwarven_defender);
     EXPECT_TRUE(req);
     EXPECT_EQ(req->main.size(), 4);
-    nw::kernel::unload_module();
 }
 
 TEST(KernelRules, MasterFeats)
@@ -72,8 +71,6 @@ TEST(KernelRules, MasterFeats)
         nwn1::mfeat_weapon_focus, nwn1::mfeat_weapon_focus_epic);
 
     EXPECT_EQ(result2, 0);
-
-    nw::kernel::unload_module();
 }
 
 TEST(KernelRules, SpellSchools)
@@ -84,8 +81,6 @@ TEST(KernelRules, SpellSchools)
     auto& spellschools = nwk::rules().spellschools;
     EXPECT_GT(spellschools.entries.size(), 1);
     EXPECT_EQ(spellschools.entries[1].letter, "A");
-
-    nw::kernel::unload_module();
 }
 
 TEST(KernelRules, Traps)
@@ -97,8 +92,6 @@ TEST(KernelRules, Traps)
     EXPECT_GT(traps.entries.size(), 1);
     EXPECT_EQ(traps.entries[1].script, "nw_t1_spikeavgc");
     EXPECT_EQ(traps.entries[2].name, 6848);
-
-    nw::kernel::unload_module();
 }
 
 TEST(KernelRules, Placealbes)
@@ -110,6 +103,4 @@ TEST(KernelRules, Placealbes)
     EXPECT_GT(placeables.entries.size(), 1);
     EXPECT_EQ(placeables.entries[1].model, "plc_a02");
     EXPECT_TRUE(placeables.entries[2].static_);
-
-    nw::kernel::unload_module();
 }

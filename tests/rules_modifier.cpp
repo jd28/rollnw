@@ -84,8 +84,6 @@ TEST(KernelRules, Modifier)
             res += value;
         }));
     EXPECT_EQ(res, 0);
-
-    nwk::unload_module();
 }
 
 TEST(KernelRules, Modifier2)
@@ -109,8 +107,6 @@ TEST(KernelRules, Modifier2)
             res += value;
         }));
     EXPECT_EQ(res, 80);
-
-    nwk::unload_module();
 }
 
 TEST(KernelRules, Modifier3)
@@ -138,6 +134,4 @@ TEST(KernelRules, Modifier3)
         [&res](int value) { res += value; }));
 
     EXPECT_EQ(res, 20);
-
-    nwk::unload_module();
 }

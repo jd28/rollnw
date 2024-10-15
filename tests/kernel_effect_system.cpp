@@ -24,8 +24,6 @@ TEST(EffectSystem, Pool)
     auto stats = nwk::effects().stats();
     EXPECT_EQ(stats.free_list_size, 1);
     EXPECT_EQ(stats.pool_size, 1);
-
-    nw::kernel::unload_module();
 }
 
 TEST(EffectSystem, ApplyRemoveEffect)
@@ -43,8 +41,6 @@ TEST(EffectSystem, ApplyRemoveEffect)
     EXPECT_TRUE(nw::remove_effect(obj, eff));
     EXPECT_FALSE(obj->hasted);
     EXPECT_EQ(obj->effects().size(), 0);
-
-    nw::kernel::unload_module();
 }
 
 TEST(EffectSystem, IPCostParamTables)
@@ -55,6 +51,4 @@ TEST(EffectSystem, IPCostParamTables)
     EXPECT_TRUE(nwk::effects().ip_cost_table(4));
     EXPECT_TRUE(nwk::effects().ip_param_table(3));
     EXPECT_EQ(nwk::effects().ip_definition(nwn1::ip_ability_bonus)->name, 649u);
-
-    nw::kernel::unload_module();
 }

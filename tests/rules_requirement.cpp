@@ -40,7 +40,6 @@ TEST(Requirement, Basic)
         false};
 
     EXPECT_TRUE(nwk::rules().meets_requirement(req3, ent));
-    nw::kernel::unload_module();
 }
 
 TEST(Requirement, Feat)
@@ -53,5 +52,4 @@ TEST(Requirement, Feat)
 
     auto feats = nw::get_all_available_feats(ent);
     EXPECT_TRUE(feats.size() > 0);
-    nw::kernel::unload_module();
 }

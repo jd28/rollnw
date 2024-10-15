@@ -56,8 +56,6 @@ TEST(Creature, GffDeserialize)
     EXPECT_EQ(obj2->combat_info.ac_natural_bonus, 0);
     EXPECT_EQ(obj2->combat_info.special_abilities.size(), 1);
     EXPECT_EQ(obj2->combat_info.special_abilities[0].spell, 120);
-
-    nwk::unload_module();
 }
 
 TEST(Creature, FeatsAddRemove)
@@ -76,8 +74,6 @@ TEST(Creature, FeatsAddRemove)
     EXPECT_FALSE(ent->stats.has_feat(rando_feat));
     EXPECT_TRUE(ent->stats.add_feat(rando_feat));
     EXPECT_TRUE(ent->stats.has_feat(rando_feat));
-
-    nwk::unload_module();
 }
 
 TEST(Creature, FeatSearch)
@@ -103,8 +99,6 @@ TEST(Creature, FeatSearch)
 
     auto n = nw::count_feats_in_range(ent, nwn1::feat_epic_toughness_1, nwn1::feat_epic_toughness_10);
     EXPECT_EQ(n, 3); // char doesn't have et1.
-
-    nwk::unload_module();
 }
 
 TEST(Creature, Ability)
@@ -156,8 +150,6 @@ TEST(Creature, Ability)
 
     EXPECT_EQ(obj2->stats.get_ability_score(nwn1::ability_constitution), 14);
     EXPECT_EQ(nwn1::get_ability_score(obj2, nwn1::ability_constitution), 14); // This is an elf!
-
-    nwk::unload_module();
 }
 
 TEST(Creature, Skills)
@@ -181,8 +173,6 @@ TEST(Creature, Skills)
     auto eff2 = nwn1::effect_ability_modifier(nwn1::ability_strength, 5);
     EXPECT_TRUE(nw::apply_effect(obj, eff2));
     EXPECT_EQ(nwn1::get_skill_rank(obj, nwn1::skill_discipline), 78);
-
-    nwk::unload_module();
 }
 
 TEST(Creature, ArmorClass)
@@ -242,8 +232,6 @@ TEST(Creature, ArmorClass)
     EXPECT_EQ(nwn1::calculate_ac_versus(obj2, nullptr, false), 11);
     obj2->stats.set_skill_rank(nwn1::skill_tumble, 10);
     EXPECT_EQ(nwn1::calculate_ac_versus(obj2, nullptr, false), 13);
-
-    nwk::unload_module();
 }
 
 TEST(Creature, Attack)
@@ -298,7 +286,6 @@ TEST(Creature, Attack)
             EXPECT_EQ(data1->damage_total, 0);
         }
     }
-    nwk::unload_module();
 }
 
 TEST(Creature, BaseAttackBonus)
@@ -324,8 +311,6 @@ TEST(Creature, BaseAttackBonus)
     auto eff2 = nwn1::effect_attack_modifier(nwn1::attack_type_unarmed, 3);
     EXPECT_TRUE(nw::apply_effect(obj, eff2));
     EXPECT_EQ(55, nwn1::resolve_attack_bonus(obj, nwn1::attack_type_unarmed));
-
-    nwk::unload_module();
 }
 
 TEST(Creature, AttackBonus)
@@ -459,8 +444,6 @@ TEST(Creature, AttackBonus)
 
     EXPECT_EQ(38, nwn1::resolve_attack_bonus(obj4, nwn1::attack_type_onhand));
     EXPECT_EQ(38, nwn1::resolve_attack_bonus(obj4, nwn1::attack_type_offhand));
-
-    nwk::unload_module();
 }
 
 TEST(Creature, AttackRoll)
@@ -498,8 +481,6 @@ TEST(Creature, AttackRoll)
         auto result = nwn1::resolve_attack_roll(obj, nwn1::attack_type_onhand, target);
         EXPECT_TRUE((result == nw::AttackResult::miss_by_auto_fail || result == nw::AttackResult::miss_by_miss_chance));
     }
-
-    nwk::unload_module();
 }
 
 TEST(Creature, AttackType)
@@ -516,8 +497,6 @@ TEST(Creature, AttackType)
     EXPECT_TRUE(obj2);
     obj2->combat_info.attacks_onhand = 1;
     EXPECT_EQ(nwn1::resolve_attack_type(obj2), nwn1::attack_type_unarmed);
-
-    nwk::unload_module();
 }
 
 TEST(Creature, Concealment)
@@ -550,8 +529,6 @@ TEST(Creature, Concealment)
     auto [c3, o3] = nwn1::resolve_concealment(obj, obj);
     EXPECT_EQ(c3, 35);
     EXPECT_TRUE(o3);
-
-    nwk::unload_module();
 }
 
 TEST(Creature, CriticalHitMultiplier)
@@ -569,8 +546,6 @@ TEST(Creature, CriticalHitMultiplier)
     EXPECT_TRUE(obj2);
     int multiplier2 = nwn1::resolve_critical_multiplier(obj2, nwn1::attack_type_onhand);
     EXPECT_EQ(multiplier2, 2);
-
-    nwk::unload_module();
 }
 
 TEST(Creature, CriticalHitThreat)
@@ -591,8 +566,6 @@ TEST(Creature, CriticalHitThreat)
     obj2->stats.add_feat(nwn1::feat_improved_critical_unarmed);
     threat2 = nwn1::resolve_critical_threat(obj2, nwn1::attack_type_onhand);
     EXPECT_EQ(threat2, 2);
-
-    nwk::unload_module();
 }
 
 TEST(Creature, DamageBase)
@@ -623,8 +596,6 @@ TEST(Creature, DamageBase)
     auto dice3 = nwn1::resolve_unarmed_damage(obj3);
     EXPECT_EQ(dice3.dice, 1);
     EXPECT_EQ(dice3.sides, 2);
-
-    nwk::unload_module();
 }
 
 TEST(Creature, DamageWeaponFlags)
@@ -643,8 +614,6 @@ TEST(Creature, DamageWeaponFlags)
     auto weapon2 = nwn1::get_equipped_item(obj2, nw::EquipIndex::arms);
     EXPECT_TRUE(weapon2);
     EXPECT_TRUE(nwn1::resolve_weapon_damage_flags(weapon2).test(nwn1::damage_type_bludgeoning));
-
-    nwk::unload_module();
 }
 
 TEST(Creature, DamageImmunity)
@@ -669,8 +638,6 @@ TEST(Creature, DamageImmunity)
     obj2->levels.entries[0].id = nwn1::class_type_dragon_disciple;
     obj2->levels.entries[0].level = 20;
     EXPECT_EQ(nwn1::resolve_damage_immunity(obj2, nwn1::damage_type_fire), 100);
-
-    nwk::unload_module();
 }
 
 TEST(Creature, DamageReduction)
@@ -710,8 +677,6 @@ TEST(Creature, DamageReduction)
 
     obj3->stats.add_feat(nwn1::feat_epic_damage_reduction_6);
     EXPECT_EQ(nwn1::resolve_damage_reduction(obj3, 1).first, 10);
-
-    nwk::unload_module();
 }
 
 TEST(Creature, DamageResistance)
@@ -731,8 +696,6 @@ TEST(Creature, DamageResistance)
     EXPECT_TRUE(obj3);
     obj3->stats.add_feat(nwn1::feat_epic_energy_resistance_sonic_3);
     EXPECT_EQ(nwn1::resolve_damage_resistance(obj3, nwn1::damage_type_sonic).first, 30);
-
-    nwk::unload_module();
 }
 
 TEST(Creature, Hitpoints)
@@ -755,8 +718,6 @@ TEST(Creature, Hitpoints)
     EXPECT_EQ(nwn1::get_max_hitpoints(obj), 115);
     EXPECT_TRUE(nw::remove_effect(obj, eff));
     EXPECT_EQ(nwn1::get_max_hitpoints(obj), 105);
-
-    nwk::unload_module();
 }
 
 TEST(Creature, IterationPenalty)
@@ -775,8 +736,6 @@ TEST(Creature, IterationPenalty)
     // Note the guy is hasted
     obj->combat_info.attacks_onhand = 1;
     EXPECT_EQ(nwn1::resolve_iteration_penalty(obj, nwn1::attack_type_offhand), 5);
-
-    nwk::unload_module();
 }
 
 TEST(Creature, SavingThrows)
@@ -799,8 +758,6 @@ TEST(Creature, SavingThrows)
     EXPECT_TRUE(eff2);
     EXPECT_TRUE(nw::apply_effect(obj, eff2));
     EXPECT_EQ(nwn1::saving_throw(obj, nwn1::saving_throw_fort), 23);
-
-    nwk::unload_module();
 }
 
 TEST(Creature, TargetState)
@@ -831,8 +788,6 @@ TEST(Creature, TargetState)
     obj->combat_info.target_distance_sq = 200.0f;
     state = nwn1::resolve_target_state(obj, target);
     EXPECT_FALSE(to_bool(state & nw::TargetState::flanked));
-
-    nwk::unload_module();
 }
 
 TEST(Creature, WeaponPower)
@@ -854,8 +809,6 @@ TEST(Creature, WeaponPower)
 
     obj3->stats.add_feat(nwn1::feat_ki_strike);
     EXPECT_EQ(nwn1::resolve_weapon_power(obj3, nullptr), 1);
-
-    nwk::unload_module();
 }
 
 TEST(Creature, JsonSerialization)
@@ -874,8 +827,6 @@ TEST(Creature, JsonSerialization)
 
     std::ofstream f{"tmp/pl_agent_001.utc.json"};
     f << std::setw(4) << j;
-
-    nwk::unload_module();
 }
 
 TEST(Creature, JsonRoundTrip)
@@ -897,8 +848,6 @@ TEST(Creature, JsonRoundTrip)
     nw::Creature::serialize(ent2, j2, nw::SerializationProfile::blueprint);
 
     EXPECT_EQ(j, j2);
-
-    nwk::unload_module();
 }
 
 TEST(Creature, GffRoundTrip)
@@ -931,8 +880,6 @@ TEST(Creature, GffRoundTrip)
     EXPECT_EQ(oa.header.field_idx_count, g.head_->field_idx_count);
     EXPECT_EQ(oa.header.list_idx_offset, g.head_->list_idx_offset);
     EXPECT_EQ(oa.header.list_idx_count, g.head_->list_idx_count);
-
-    nwk::unload_module();
 }
 
 TEST(Creature, Equips)
@@ -966,8 +913,6 @@ TEST(Creature, Equips)
     auto boots_of_speed2 = nwn1::unequip_item(obj, nw::EquipIndex::boots);
     EXPECT_TRUE(boots_of_speed2);
     EXPECT_FALSE(obj->hasted);
-
-    nwk::unload_module();
 }
 
 TEST(Creature, EffectsApplyRemove)
@@ -986,8 +931,6 @@ TEST(Creature, EffectsApplyRemove)
     EXPECT_FALSE(nw::has_effect_applied(obj, nwn1::effect_type_haste));
     EXPECT_EQ(obj->effects().size(), 0);
     EXPECT_FALSE(obj->effects().remove(nullptr));
-
-    nwk::unload_module();
 }
 
 TEST(Creature, Casting)
@@ -1014,6 +957,4 @@ TEST(Creature, Casting)
     EXPECT_EQ(nwn1::get_spell_dc(obj2, nwn1::class_type_wizard, nwn1::spell_fireball), 22);
     EXPECT_TRUE(obj2->stats.add_feat(nwn1::feat_epic_spell_focus_evocation));
     EXPECT_EQ(nwn1::get_spell_dc(obj2, nwn1::class_type_wizard, nwn1::spell_fireball), 24);
-
-    nwk::unload_module();
 }

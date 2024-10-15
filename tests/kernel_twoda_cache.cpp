@@ -19,6 +19,4 @@ TEST(Kernel2daCache, Get)
     EXPECT_FALSE(s3);
     auto s4 = nwk::twodas().get(nw::Resource{"test"sv, nw::ResourceType::png});
     EXPECT_FALSE(s4);
-
-    nwk::unload_module();
 }
