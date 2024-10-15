@@ -25,6 +25,7 @@ add_library(nw STATIC
     kernel/ModelCache.cpp
     kernel/EventSystem.cpp
     kernel/Objects.cpp
+    kernel/Memory.cpp
     kernel/Resources.cpp
     kernel/Rules.cpp
     kernel/Strings.cpp

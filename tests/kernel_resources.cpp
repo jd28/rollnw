@@ -1,11 +1,10 @@
-#include "nw/kernel/Kernel.hpp"
 #include <gtest/gtest.h>
 
-#include <nw/kernel/Resources.hpp>
-#include <nw/log.hpp>
-#include <nw/resources/Erf.hpp>
-#include <nw/resources/NWSync.hpp>
-#include <nw/resources/Zip.hpp>
+#include "nw/kernel/Memory.hpp"
+#include "nw/kernel/Resources.hpp"
+#include "nw/resources/Erf.hpp"
+#include "nw/resources/NWSync.hpp"
+#include "nw/resources/Zip.hpp"
 
 using namespace std::literals;
 namespace nwk = nw::kernel;

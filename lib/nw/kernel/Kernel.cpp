@@ -153,11 +153,6 @@ Module* load_module(const std::filesystem::path& path, bool instantiate)
     return mod;
 }
 
-GlobalMemory* global_allocator()
-{
-    return &services().global_alloc_;
-}
-
 void set_game_profile(GameProfile* profile)
 {
     CHECK_F(!services().serices_started_, "[kernel] attempting set game profile after services have been started.");
@@ -171,10 +166,4 @@ void unload_module()
     services().module_loaded_ = false;
 }
 
-MemoryScope* tls_scratch()
-{
-    static thread_local MemoryArena tls_arena_(MB(1));
-    static thread_local MemoryScope tls_scope_(&tls_arena_);
-    return &tls_scope_;
-}
 } // namespace nw::kernel

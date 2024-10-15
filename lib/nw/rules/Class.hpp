@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../kernel/Memory.hpp"
 #include "../objects/Saves.hpp"
 #include "../resources/Resource.hpp"
 #include "../util/InternedString.hpp"

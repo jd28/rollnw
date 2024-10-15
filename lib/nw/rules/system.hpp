@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../kernel/Memory.hpp"
 #include "../kernel/Strings.hpp"
 #include "../objects/ObjectBase.hpp"
 #include "../util/Variant.hpp"
@@ -7,7 +8,6 @@
 #include "attributes.hpp"
 #include "damage.hpp"
 #include "rule_type.hpp"
-#include "system.hpp"
 
 #include <absl/container/fixed_array.h>
 #include <absl/container/inlined_vector.h>
@@ -183,7 +183,7 @@ struct ModifierRegistry {
     using iterator = Storage::iterator;
     using const_iterator = Storage::const_iterator;
 
-    ModifierRegistry(MemoryResource* allocator = nw::kernel::global_allocator());
+    ModifierRegistry(MemoryResource* allocator = kernel::global_allocator());
 
     /// Adds a modifier to the system
     void add(Modifier mod);

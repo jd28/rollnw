@@ -2,7 +2,7 @@
 
 #include "../util/InternedString.hpp"
 
-#include "../kernel/Kernel.hpp"
+#include "../kernel/Memory.hpp"
 #include <absl/container/flat_hash_map.h>
 #include <nlohmann/json_fwd.hpp>
 

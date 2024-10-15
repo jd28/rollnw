@@ -141,9 +141,6 @@ T* Services::get_mut()
 /// Gets configuration options
 [[nodiscard]] Config& config();
 
-/// Gets global allocator
-[[nodiscard]] GlobalMemory* global_allocator();
-
 /// Gets services
 [[nodiscard]] Services& services();
 
@@ -158,9 +155,6 @@ void unload_module();
 /// Sets game profile. **Must** be called before nw::kernel::services().start();
 /// @note Caller retains ownerserhip of ``profile``.
 void set_game_profile(GameProfile* profile);
-
-/// Thread local scratch buffer.. reset every X ticks? Or never for short running scripts?
-[[nodiscard]] MemoryScope* tls_scratch();
 
 } // namespace kernel
 } // namespace nw
