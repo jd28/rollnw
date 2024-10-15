@@ -95,6 +95,9 @@ def test_creature_casting():
 
 
 def test_objects_kernel_service():
+    mod = rollnw.kernel.load_module(
+        "tests/test_data/user/modules/DockerDemo.mod")
+
     cre = rollnw.kernel.objects().creature('nw_chicken.utc')
     assert cre
     cre2 = rollnw.kernel.objects().get(cre.handle())

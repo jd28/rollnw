@@ -14,6 +14,9 @@ def test_erf_construction():
 
 
 def test_kernel_service():
+    mod = rollnw.kernel.load_module(
+        "tests/test_data/user/modules/DockerDemo.mod")
+
     data = rollnw.kernel.resman().demand('nw_chicken.utc')
     data2 = rollnw.kernel.resman().demand(
         rollnw.Resource('nw_chicken', rollnw.ResourceType.utc))
