@@ -22,8 +22,8 @@ using namespace std::literals;
 void init_script(py::module& nw)
 {
     py::class_<nws::SourcePosition>(nw, "SourcePosition")
-        .def_readonly("line", &nws::SourcePosition::line)
-        .def_readonly("column", &nws::SourcePosition::column);
+        .def_readwrite("line", &nws::SourcePosition::line)
+        .def_readwrite("column", &nws::SourcePosition::column);
 
     py::class_<nws::SourceRange>(nw, "SourceRange")
         .def(py::init<>())
