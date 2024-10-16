@@ -4,6 +4,7 @@
 #include "../log.hpp"
 #include "Nss.hpp"
 #include "SourceLocation.hpp"
+#include "xxhash.h"
 
 namespace nw::script {
 
@@ -474,8 +475,9 @@ Expression* NssParser::parse_expr_postfix()
 // INT | FLOAT | STRING | "(" expression ")" | IDENTIFIER | MACRO
 Expression* NssParser::parse_expr_primary()
 {
-    if (match({NssTokenType::STRING_CONST, NssTokenType::STRING_RAW_CONST, NssTokenType::INTEGER_CONST,
-            NssTokenType::FLOAT_CONST, NssTokenType::OBJECT_INVALID_CONST, NssTokenType::OBJECT_SELF_CONST,
+    if (match({NssTokenType::STRING_CONST, NssTokenType::STRING_RAW_CONST, NssTokenType::STRING_HASH_LITERAL,
+            NssTokenType::INTEGER_CONST, NssTokenType::FLOAT_CONST,
+            NssTokenType::OBJECT_INVALID_CONST, NssTokenType::OBJECT_SELF_CONST,
             NssTokenType::LOCATION_INVALID, NssTokenType::JSON_CONST,
             NssTokenType::_FUNCTION_, NssTokenType::_FILE_, NssTokenType::_DATE_, NssTokenType::_TIME_,
             NssTokenType::_LINE_})) {
@@ -486,6 +488,10 @@ Expression* NssParser::parse_expr_primary()
             expr->data = String(expr->literal.loc.view());
         } else if (expr->literal.type == NssTokenType::STRING_RAW_CONST) {
             expr->data = String(expr->literal.loc.view());
+        } else if (expr->literal.type == NssTokenType::STRING_HASH_LITERAL) {
+            const static int32_t nullhash = (int32_t)XXH32("", 0, 0);
+            expr->data = static_cast<int32_t>(XXH32(expr->literal.loc.view().data(), expr->literal.loc.view().size(), 0)) ^ nullhash;
+
         } else if (expr->literal.type == NssTokenType::INTEGER_CONST) {
             if (auto val = string::from<int32_t>(expr->literal.loc.view())) {
                 expr->data = *val;

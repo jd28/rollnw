@@ -710,7 +710,8 @@ struct AstResolver : BaseVisitor {
         expr->is_const_ = true;
         if (expr->literal.type == NssTokenType::FLOAT_CONST) {
             expr->type_id_ = ctx_->type_id("float");
-        } else if (expr->literal.type == NssTokenType::INTEGER_CONST) {
+        } else if (expr->literal.type == NssTokenType::INTEGER_CONST
+            || expr->literal.type == NssTokenType::STRING_HASH_LITERAL) {
             expr->type_id_ = ctx_->type_id("int");
         } else if (expr->literal.type == NssTokenType::STRING_CONST
             || expr->literal.type == NssTokenType::STRING_RAW_CONST) {

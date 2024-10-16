@@ -366,7 +366,47 @@ NssToken NssLexer::next()
             NSS_TOKEN(DOT, 1);
             break;
 
-        // String constants
+            // String constants
+        case 'h':
+        case 'H':
+            if (kernel::config().version() == GameVersion::vEE
+                && get(pos_ + 1) == '"') {
+
+                bool matched = false;
+                size_t original_last_line = last_line_pos_;
+                size_t start_line = line_;
+                start = pos_ + 2;
+                pos_ += 2;
+                while (pos_ < buffer_.size()) {
+                    if (get(pos_) == '\n') {
+                        break;
+                    } else if (get(pos_) == '\\' && get(pos_ + 1) == '"') {
+                        ++pos_; // Skip escape, then skip " below.
+                    } else if (pos_ != start && get(pos_) == '"') {
+                        t = NssToken{
+                            NssTokenType::STRING_HASH_LITERAL,
+                            {buffer_.data() + start, pos_ - 1 - start},
+                            start_pos,
+                            SourcePosition{line_, pos_ - last_line_pos_},
+                        };
+                        ++pos_;
+                        matched = true;
+                        break;
+                    }
+                    ++pos_;
+                }
+                if (!matched) {
+                    SourceLocation loc;
+                    loc.start = &buffer_[start - 2];
+                    loc.end = buffer_.data() + start;
+                    loc.range.start = start_pos;
+                    loc.range.end = SourcePosition{start_pos.line, start_pos.column + 2};
+                    throw lexical_error("Unterminated raw string", loc);
+                }
+            } else {
+                t = handle_identifier();
+            }
+            break;
         case 'r':
         case 'R':
             if (kernel::config().version() == GameVersion::vEE

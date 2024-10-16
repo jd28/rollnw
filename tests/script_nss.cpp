@@ -793,6 +793,12 @@ TEST(Nss, Lexer)
 
     script::NssLexer lexer28{"__LINE__", ctx.get()};
     EXPECT_EQ(int(lexer28.next().type), int(script::NssTokenType::_LINE_));
+
+    script::NssLexer lexer29{R"(h"this is a test")", ctx.get()};
+    EXPECT_EQ(int(lexer29.next().type), int(script::NssTokenType::STRING_HASH_LITERAL));
+
+    script::NssLexer lexer30{R"(H"this is a test")", ctx.get()};
+    EXPECT_EQ(int(lexer30.next().type), int(script::NssTokenType::STRING_HASH_LITERAL));
 }
 
 TEST(Nss, Includes)
@@ -1803,6 +1809,18 @@ TEST(Nss, Precedence)
             EXPECT_EQ(expr2->op.loc.view(), "+");
         }
     }
+}
+
+TEST(Nss, HashString)
+{
+    auto ctx = std::make_unique<nw::script::Context>();
+
+    script::Nss nss1(R"(
+        int TEST = H"This is a test of hash string lexer";
+    )"sv,
+        ctx.get());
+    EXPECT_NO_THROW(nss1.parse());
+    EXPECT_NO_THROW(nss1.resolve());
 }
 
 TEST(Nss, RawString)
