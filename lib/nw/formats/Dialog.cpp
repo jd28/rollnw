@@ -170,17 +170,19 @@ void DialogNode::set_action_param(const String& key, const String& value)
 }
 
 Dialog::Dialog()
-    : is_valid_{true}
+    : arena_(MB(1))
+    , is_valid_{true}
 {
 }
 
 Dialog::Dialog(const GffStruct archive)
-    : prevent_zoom(0)
+    : Dialog()
 {
     is_valid_ = load(archive);
 }
 
 Dialog::Dialog(const nlohmann::json& archive)
+    : Dialog()
 {
     try {
         deserialize(archive, *this);
@@ -234,7 +236,7 @@ DialogPtr* Dialog::add_string(String value, nw::LanguageID lang, bool feminine)
 
 DialogNode* Dialog::create_node(DialogNodeType type)
 {
-    auto result = node_pool_.allocate();
+    auto result = new (arena_.allocate(sizeof(DialogNode), alignof(DialogNode))) DialogNode;
     result->type = type;
     result->parent = this;
     return result;
@@ -242,7 +244,8 @@ DialogNode* Dialog::create_node(DialogNodeType type)
 
 DialogPtr* Dialog::create_ptr()
 {
-    auto ptr = ptr_pool_.allocate();
+
+    auto ptr = new (arena_.allocate(sizeof(DialogPtr), alignof(DialogPtr))) DialogPtr;
     ptr->parent = this;
     return ptr;
 }
@@ -253,15 +256,14 @@ void Dialog::delete_node(DialogNode* node)
     for (auto ptr : node->pointers) {
         delete_ptr(ptr);
     }
-    node->pointers.clear();
-    node_pool_.free(node);
+    node->~DialogNode();
 }
 
 void Dialog::delete_ptr(DialogPtr* ptr)
 {
     if (!ptr || ptr->is_link) { return; }
     delete_node(ptr->node);
-    ptr_pool_.free(ptr);
+    ptr->~DialogPtr();
 }
 
 size_t Dialog::node_index(DialogNode* node, DialogNodeType type) const

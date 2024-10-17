@@ -194,9 +194,7 @@ public:
 
 private:
     bool is_valid_ = false;
-    MemoryArena arena_{sizeof(DialogNode) * 64 + sizeof(DialogPtr) * 64};
-    ObjectPool<DialogNode, 64> node_pool_{&arena_};
-    ObjectPool<DialogPtr, 64> ptr_pool_{&arena_};
+    MemoryArena arena_;
 
     bool load(const GffStruct gff);
     bool read_nodes(const GffStruct gff, DialogNodeType node_type);
