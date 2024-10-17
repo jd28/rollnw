@@ -42,7 +42,7 @@ public:
 
     void deallocate(T* ptr, size_t size) noexcept
     {
-        resource_.deallocate(ptr, size);
+        resource_.deallocate(ptr, size * sizeof(T));
     }
 
     template <typename U>
