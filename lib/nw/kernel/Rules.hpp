@@ -12,6 +12,7 @@
 #include "../rules/feats.hpp"
 #include "../rules/items.hpp"
 #include "../rules/system.hpp"
+#include "../util/FixedVector.hpp"
 
 #include <cstdint>
 #include <limits>
@@ -71,9 +72,9 @@ struct Rules : public Service {
     TrapArray traps;
 
 private:
-    Vector<bool (*)(const Qualifier&, const ObjectBase*)> qualifiers_;
-    absl::flat_hash_map<int32_t, CombatModeFuncs> combat_modes_;
-    absl::flat_hash_map<int32_t, SpecialAttackFuncs> special_attacks_;
+    std::array<bool (*)(const Qualifier&, const ObjectBase*), 256> qualifiers_;
+    std::array<CombatModeFuncs, 32> combat_modes_;
+    std::array<SpecialAttackFuncs, 32> special_attacks_;
     AttackFuncs attack_functions_;
 };
 
@@ -142,7 +143,7 @@ bool calc_mod_input(T& out, const ObjectBase* obj, const ObjectBase* versus,
 }
 
 template <typename It>
-inline Vector<Modifier>::const_iterator
+inline FixedVector<Modifier>::const_iterator
 find_first_modifier_of(It begin, It end, const ModifierType type, int32_t subtype = -1)
 {
     Modifier temp{type, {}, {}, ModifierSource::unknown, Requirement{}, subtype};
@@ -227,7 +228,7 @@ bool resolve_modifier(const ObjectBase* obj, const ModifierType type, SubType su
     const ObjectBase* versus, Callback cb)
 {
     static_assert(is_rule_type<SubType>(), "Subtypes must be rule types");
-    Vector<Modifier>::const_iterator it = std::cbegin(rules().modifiers);
+    ModifierRegistry::const_iterator it = std::cbegin(rules().modifiers);
     auto end = std::cend(rules().modifiers);
     if (subtype != SubType::invalid()) {
         it = detail::find_first_modifier_of(it, end, type);

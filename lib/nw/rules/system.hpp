@@ -3,6 +3,7 @@
 #include "../kernel/Memory.hpp"
 #include "../kernel/Strings.hpp"
 #include "../objects/ObjectBase.hpp"
+#include "../util/FixedVector.hpp"
 #include "../util/Variant.hpp"
 #include "Versus.hpp"
 #include "attributes.hpp"
@@ -179,7 +180,7 @@ inline bool operator<(const Modifier& lhs, const Modifier& rhs)
 }
 
 struct ModifierRegistry {
-    using Storage = Vector<Modifier>;
+    using Storage = FixedVector<Modifier>;
     using iterator = Storage::iterator;
     using const_iterator = Storage::const_iterator;
 

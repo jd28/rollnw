@@ -94,7 +94,7 @@ TEST(KernelRules, Traps)
     EXPECT_EQ(traps.entries[2].name, 6848);
 }
 
-TEST(KernelRules, Placealbes)
+TEST(KernelRules, Placeables)
 {
     auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
     EXPECT_TRUE(mod);

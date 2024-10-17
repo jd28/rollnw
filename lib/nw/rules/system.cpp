@@ -143,7 +143,8 @@ nw::Modifier make_modifier(nw::ModifierType type, nw::ModifierVariant value,
 }
 
 ModifierRegistry::ModifierRegistry(MemoryResource* allocator)
-    : allocator_(allocator)
+    : entries_(2048, allocator)
+    , allocator_(allocator)
 {
 }
 

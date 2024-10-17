@@ -45,9 +45,7 @@ const AttackFuncs& Rules::attack_functions() const noexcept
 
 CombatModeFuncs Rules::combat_mode(CombatMode mode)
 {
-    auto it = combat_modes_.find(*mode);
-    if (it == std::end(combat_modes_)) { return {}; }
-    return it->second;
+    return combat_modes_[mode.idx()];
 }
 
 bool Rules::match(const Qualifier& qual, const ObjectBase* obj) const
@@ -76,13 +74,13 @@ bool Rules::meets_requirement(const Requirement& req, const ObjectBase* obj) con
 void Rules::register_combat_mode(CombatModeFuncs callbacks, std::initializer_list<CombatMode> modes)
 {
     for (auto mode : modes) {
-        combat_modes_[*mode] = callbacks;
+        combat_modes_[mode.idx()] = callbacks;
     }
 }
 
 void Rules::register_special_attack(SpecialAttack type, SpecialAttackFuncs funcs)
 {
-    special_attacks_[*type] = funcs;
+    special_attacks_[type.idx()] = funcs;
 }
 
 void Rules::set_attack_functions(AttackFuncs cbs)
@@ -92,17 +90,12 @@ void Rules::set_attack_functions(AttackFuncs cbs)
 
 void Rules::set_qualifier(ReqType type, bool (*qualifier)(const Qualifier&, const ObjectBase*))
 {
-    if (type.idx() >= qualifiers_.size()) {
-        qualifiers_.resize(type.idx() + 1);
-    }
     if (qualifier) { qualifiers_[type.idx()] = qualifier; };
 }
 
 SpecialAttackFuncs Rules::special_attack(SpecialAttack type)
 {
-    auto it = special_attacks_.find(*type);
-    if (it == std::end(special_attacks_)) { return {}; }
-    return it->second;
+    return special_attacks_[type.idx()];
 }
 
 } // namespace nw::kernel
