@@ -54,7 +54,6 @@ struct MemoryBlock {
 };
 
 struct MemoryMarker {
-    size_t chunk_index = 0;
     size_t position = 0;
 
     auto operator<=>(const MemoryMarker&) const = default;
@@ -62,7 +61,7 @@ struct MemoryMarker {
 
 /// A growable Memory Arena
 struct MemoryArena : MemoryResource {
-    MemoryArena(size_t blockSize = 1024);
+    MemoryArena(size_t capacity);
     MemoryArena(const MemoryArena&) = delete;
     MemoryArena(MemoryArena&&) = default;
     virtual ~MemoryArena();
@@ -86,11 +85,13 @@ struct MemoryArena : MemoryResource {
     void rewind(MemoryMarker marker);
 
 private:
-    Vector<MemoryBlock> blocks_;
-    size_t current_block_ = 0;
-    size_t size_ = 0;
+    void* base_ = nullptr;
+    size_t used_ = 0;
+    size_t capacity_ = 0;
 
-    void alloc_block_(size_t size);
+    void allocate_memory();
+    void deallocate_memory();
+    void reserve_memory();
 };
 
 namespace detail {

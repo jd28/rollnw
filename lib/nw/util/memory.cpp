@@ -2,6 +2,13 @@
 
 #include "../log.hpp"
 
+#ifdef ROLLNW_OS_WINDOWS
+#include <windows.h>
+#else
+#include <sys/mman.h>
+#include <unistd.h>
+#endif
+
 #include <algorithm>
 
 namespace nw {
@@ -40,87 +47,85 @@ void GlobalMemory::deallocate(void* ptr, size_t, size_t)
 // == MemoryArena ==============================================================
 // =============================================================================
 
-inline void* align_ptr(void* ptr, size_t alignment)
+MemoryArena::MemoryArena(size_t capacity)
+    : capacity_(capacity)
 {
-    uintptr_t p = reinterpret_cast<uintptr_t>(ptr);
-    size_t offset = (alignment - (p % alignment)) % alignment;
-    return reinterpret_cast<void*>(p + offset);
-}
-
-MemoryArena::MemoryArena(size_t size)
-    : size_(size)
-{
-    blocks_.reserve(8);
+    allocate_memory();
 }
 
 MemoryArena::~MemoryArena()
 {
-    for (auto& block : blocks_) {
-        free(block.block);
-    }
+    deallocate_memory();
+    base_ = nullptr;
 }
 
 void* MemoryArena::allocate(std::size_t size, std::size_t alignment)
 {
-    if (blocks_.size() == 0) { alloc_block_(std::max(size + alignment, size_)); }
+    CHECK_F((alignment & (alignment - 1)) == 0, "Alignment must be a power of two");
 
-    size_t aligned_pos = reinterpret_cast<size_t>(align_ptr(blocks_[current_block_].block + blocks_[current_block_].position, alignment));
-    size_t padding = aligned_pos - (reinterpret_cast<size_t>(blocks_[current_block_].block + blocks_[current_block_].position));
+    uintptr_t current = reinterpret_cast<uintptr_t>(base_) + used_;
+    uintptr_t aligned = (current + (alignment - 1)) & ~(alignment - 1);
+    size_t padding = aligned - current;
+    int needed = padding + size;
 
-    if (blocks_[current_block_].position + padding + size > blocks_[current_block_].size) {
-        alloc_block_(std::max(size + alignment, size_));
-        aligned_pos = reinterpret_cast<size_t>(align_ptr(blocks_[current_block_].block + blocks_[current_block_].position, alignment));
-        padding = aligned_pos - reinterpret_cast<size_t>(blocks_[current_block_].block + blocks_[current_block_].position);
+    if (needed + used_ > capacity_) {
+        return nullptr;
     }
+    used_ += padding + size;
 
-    void* aligned_mem = blocks_[current_block_].block + blocks_[current_block_].position + padding;
-    blocks_[current_block_].position += padding + size;
-    return aligned_mem;
+    return reinterpret_cast<void*>(aligned);
 }
 
 MemoryMarker MemoryArena::current()
 {
-    if (blocks_.size() == 0) { alloc_block_(size_); }
-
-    MemoryMarker result;
-    result.chunk_index = current_block_;
-    result.position = blocks_[current_block_].position;
-    return result;
+    return {used_};
 }
 
 void MemoryArena::reset()
 {
-    if (blocks_.size() == 0) { return; }
-    current_block_ = 0;
-    blocks_[current_block_].position = 0;
+    used_ = 0;
 }
 
 void MemoryArena::rewind(MemoryMarker marker)
 {
-    CHECK_F(marker.chunk_index < blocks_.size(), "Memory marker mismatched");
-    current_block_ = marker.chunk_index;
-    blocks_[current_block_].position = marker.position;
+    CHECK_F(marker.position <= used_, "Memory marker mismatched");
+    used_ = marker.position;
 }
 
-void MemoryArena::alloc_block_(size_t size)
+void MemoryArena::allocate_memory()
 {
-    if (current_block_ + 1 < blocks_.size()) {
-        ++current_block_;
-        blocks_[current_block_].position = 0;
-        if (blocks_[current_block_].size < size) {
-            blocks_[current_block_].block = static_cast<uint8_t*>(realloc(blocks_[current_block_].block, size));
-            blocks_[current_block_].size = size;
-        }
-    } else {
-        MemoryBlock mb;
-        mb.block = static_cast<uint8_t*>(malloc(size));
-        mb.size = size;
-        blocks_.push_back(mb);
-        current_block_ = blocks_.size() - 1;
-    }
+    bool check = false;
+#ifdef _WIN32
+    base_ = VirtualAlloc(nullptr, capacity_, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
+    check = base_ != nullptr;
+#else
+    base_ = mmap(nullptr, capacity_, PROT_READ | PROT_WRITE, MAP_ANON | MAP_SHARED, -1, 0);
+    check = base_ != MAP_FAILED;
+#endif
+    CHECK_F(!!check, "Unable to allocate block of size: {}", capacity_);
+}
 
-    CHECK_F(blocks_[current_block_].size >= size, "Failed to allocate a block of size '{}', only got '{}'", size,
-        blocks_[current_block_].size >= size);
+void MemoryArena::deallocate_memory()
+{
+#ifdef ROLLNW_OS_WINDOWS
+    if (base_) { VirtualFree(base_, 0, MEM_RELEASE); }
+#else
+    if (base_) { munmap(base_, capacity_); }
+#endif
+    base_ = nullptr;
+}
+
+void MemoryArena::reserve_memory()
+{
+    bool check = false;
+#ifdef _WIN32
+    base_ = VirtualAlloc(nullptr, capacity_, MEM_RESERVE, PAGE_NOACCESS);
+    check = !!base_;
+#else
+    base_ = mmap(nullptr, capacity_, PROT_NONE, MAP_PRIVATE | MAP_ANONYMOUS | MAP_NORESERVE, -1, 0);
+    check = base_ != MAP_FAILED;
+#endif
+    CHECK_F(!!check, "Unable to allocate block of size: {}", capacity_);
 }
 
 // == MemoryScope ==============================================================

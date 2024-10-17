@@ -28,7 +28,7 @@ MemoryResource* Service::allocator() const noexcept
 }
 
 Services::Services()
-    : kernel_arena_(MB(16))
+    : kernel_arena_(GB(16))
     , kernel_scope_(&kernel_arena_)
 {
 }

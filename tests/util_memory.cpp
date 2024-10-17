@@ -32,7 +32,7 @@ struct TestPOD {
 
 TEST(Memory, Scope)
 {
-    nw::MemoryArena arena;
+    nw::MemoryArena arena{4096};
     auto current = arena.current();
 
     {

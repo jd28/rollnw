@@ -7,7 +7,7 @@ using namespace std::literals;
 
 TEST(ChunkVector, Basics)
 {
-    nw::MemoryArena ma;
+    nw::MemoryArena ma{4096};
     nw::ChunkVector<std::string> cv(3, &ma);
 
     cv.push_back("1");
