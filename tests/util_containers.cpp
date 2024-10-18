@@ -23,4 +23,10 @@ TEST(ChunkVector, Basics)
 
     cv.clear();
     EXPECT_TRUE(cv.empty());
+    EXPECT_EQ(cv.capacity(), 6);
+
+    cv.resize(10);
+    EXPECT_EQ(cv[9], "");
+    cv.resize(0);
+    EXPECT_EQ(cv.size(), 0);
 }

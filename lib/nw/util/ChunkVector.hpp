@@ -21,6 +21,14 @@ struct ChunkVector {
     ~ChunkVector()
     {
         clear();
+        auto c = blocks_;
+        while (c) {
+            std::allocator_traits<Allocator<T>>::deallocate(allocator_, c->data, chunk_size_);
+            auto temp = c;
+            c = c->next;
+            auto ta = Allocator<Chunk>(allocator_);
+            std::allocator_traits<Allocator<Chunk>>::deallocate(ta, temp, 1);
+        }
     }
 
     T& operator[](size_t index)
@@ -63,19 +71,10 @@ struct ChunkVector {
                     ++total_size;
                 }
             }
-            std::allocator_traits<Allocator<T>>::deallocate(allocator_, c->data, chunk_size_);
-
-            auto temp = c;
             c = c->next;
-            auto ta = Allocator<Chunk>(allocator_);
-            std::allocator_traits<Allocator<Chunk>>::deallocate(ta, temp, 1);
         }
-        blocks_ = nullptr;
-        size_ = allocated_ = 0;
+        size_ = 0;
     }
-
-    /// Determines if container is empty
-    bool empty() const noexcept { return size_ == 0; }
 
     void pop_back()
     {
@@ -92,15 +91,39 @@ struct ChunkVector {
 
         auto chunk = find_chunk(size_);
         CHECK_F(!!chunk && !!chunk->data, "attempting to address invalid chunk");
-        new (&chunk->data[size_ % chunk_size_]) T(std::forward<T>(ele));
+        new (&chunk->data[size_ % chunk_size_]) T(std::move(ele));
         ++size_;
     }
 
     void reserve(size_t n)
     {
-        if (n < allocated_) { return; }
+        if (n <= allocated_) { return; }
+        while (n < allocated_) {
+            alloc_block();
+        }
     }
 
+    void resize(size_t n, const T& value = T())
+    {
+        if (n == size_) { return; }
+        if (n > size_) {
+            while (size_ < n) {
+                push_back(value);
+            }
+        } else if (n < size_) {
+            while (size_ > n) {
+                pop_back();
+            }
+        }
+    }
+
+    /// Gets container capacity
+    size_t capacity() const noexcept { return allocated_; }
+
+    /// Determines if container is empty
+    bool empty() const noexcept { return size_ == 0; }
+
+    /// Gets container size
     size_t size() const noexcept { return size_; }
 
 private:
