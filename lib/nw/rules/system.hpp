@@ -186,6 +186,9 @@ struct ModifierRegistry {
 
     ModifierRegistry(MemoryResource* allocator = kernel::global_allocator());
 
+    ModifierRegistry(const ModifierRegistry&) = delete;
+    ModifierRegistry& operator=(const ModifierRegistry&) = delete;
+
     /// Adds a modifier to the system
     void add(Modifier mod);
 
