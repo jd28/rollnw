@@ -24,8 +24,10 @@ struct Trigger;
 struct Waypoint;
 
 struct ObjectBase {
+    ObjectBase(nw::MemoryResource* allocator = nw::kernel::global_allocator());
     virtual ~ObjectBase() { }
 
+    nw::MemoryResource* allocator() const noexcept { return allocator_; };
     ObjectHandle handle() const noexcept { return handle_; }
     void set_handle(ObjectHandle handle) { handle_ = handle; }
     const EffectArray& effects() const;
@@ -63,6 +65,7 @@ struct ObjectBase {
     virtual const Waypoint* as_waypoint() const { return nullptr; }
 
 private:
+    nw::MemoryResource* allocator_;
     ObjectHandle handle_;
     EffectArray effects_;
 };

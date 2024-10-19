@@ -7,6 +7,11 @@ namespace nw {
 // == ObjectBase ==============================================================
 // ============================================================================
 
+ObjectBase::ObjectBase(nw::MemoryResource* allocator)
+    : allocator_(allocator)
+{
+}
+
 void ObjectBase::destroy()
 {
 }
