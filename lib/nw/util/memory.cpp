@@ -3,6 +3,8 @@
 #include "../log.hpp"
 
 #ifdef ROLLNW_OS_WINDOWS
+#define WIN32_LEAN_AND_MEAN
+#define NOMINMAX
 #include <windows.h>
 #else
 #include <sys/mman.h>
