@@ -195,13 +195,14 @@ public:
 } // namespace detail
 
 struct MemoryPool : public MemoryResource {
-    MemoryPool(size_t max_size, size_t count);
+    MemoryPool(size_t max_size, size_t count, MemoryResource* allocator = nullptr);
 
     virtual void* allocate(size_t bytes, size_t alignment = alignof(max_align_t)) override;
     virtual void deallocate(void* ptr, size_t bytes = 0, size_t alignment = alignof(std::max_align_t)) override;
 
     // private:
-    Vector<detail::PoolBlock> pools_;
+    nw::MemoryResource* allocator_ = nullptr;
+    ChunkVector<detail::PoolBlock> pools_;
     size_t max_size_;
     size_t count_;
 };

@@ -1,5 +1,6 @@
 #include "memory.hpp"
 
+#include "../kernel/Memory.hpp"
 #include "../log.hpp"
 
 #ifdef ROLLNW_OS_WINDOWS
@@ -240,8 +241,10 @@ void PoolBlock::expand(std::size_t count)
 
 } // namespace detail
 
-MemoryPool::MemoryPool(size_t max_size, size_t count)
-    : max_size_(std::max(max_size, size_t(128)))
+MemoryPool::MemoryPool(size_t max_size, size_t count, MemoryResource* allocator)
+    : allocator_{allocator ? allocator : nw::kernel::global_allocator()}
+    , pools_{64, allocator_}
+    , max_size_(std::max(max_size, size_t(128)))
     , count_(count)
 {
     // Make the smaller buckets more granular to avoid wasting too much memory
@@ -260,9 +263,9 @@ void* MemoryPool::allocate(size_t size, size_t alignment)
     size_t total_size = size + alignment - 1 + sizeof(detail::MemoryHeader);
     void* original = nullptr;
     if (total_size <= max_size_) {
-        for (auto& pool : pools_) {
-            if (total_size <= pool.block_size()) {
-                original = pool.allocate();
+        for (size_t i = 0; i < pools_.size(); ++i) {
+            if (total_size <= pools_[i].block_size()) {
+                original = pools_[i].allocate();
                 break;
             }
         }
@@ -287,9 +290,9 @@ void MemoryPool::deallocate(void* ptr, size_t, size_t)
     detail::MemoryHeader* header = reinterpret_cast<detail::MemoryHeader*>(static_cast<char*>(ptr) - sizeof(detail::MemoryHeader));
 
     if (header->size <= max_size_) {
-        for (auto& pool : pools_) {
-            if (header->size <= pool.block_size()) {
-                pool.deallocate(header->original_ptr);
+        for (size_t i = 0; i < pools_.size(); ++i) {
+            if (header->size <= pools_[i].block_size()) {
+                pools_[i].deallocate(header->original_ptr);
                 return;
             }
         }
