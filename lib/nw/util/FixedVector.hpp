@@ -31,8 +31,8 @@ struct FixedVector {
     }
 
     FixedVector(const FixedVector& other)
-        : capacity_(other.capacity_)
-        , size_(other.size_)
+        : size_(other.size_)
+        , capacity_(other.capacity_)
         , allocator_(other.allocator_)
     {
         buffer_ = allocator_.allocate(capacity_);
@@ -236,7 +236,7 @@ struct FixedVector {
 
     void resize(size_type new_size, const T& value = T())
     {
-        CHECK_F(size_ < capacity_, "FixedVector capacity exceeded");
+        CHECK_F(size_ <= capacity_, "FixedVector capacity exceeded");
 
         while (size_ < new_size)
             push_back(value);
