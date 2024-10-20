@@ -210,11 +210,12 @@ struct MemoryPool : public MemoryResource {
 // == ObjectPool ========================================================================
 // ======================================================================================
 
-template <typename T, size_t N, class Alloc = Allocator<T>>
+template <typename T>
 struct ObjectPool {
-    ObjectPool(Alloc allocator)
-        : allocator_{allocator}
-        , free_list_(N, allocator_)
+    ObjectPool(size_t n, nw::MemoryResource* allocator)
+        : chunk_size_{n}
+        , allocator_{allocator}
+        , free_list_(chunk_size_, allocator_)
         , chunks_{32, allocator_}
     {
     }
@@ -222,7 +223,7 @@ struct ObjectPool {
     ~ObjectPool()
     {
         for (size_t i = 0; i < chunks_.size(); ++i) {
-            allocator_.deallocate(chunks_[i], N);
+            allocator_->deallocate(chunks_[i], sizeof(T) * chunk_size_, alignof(T));
         }
     }
 
@@ -250,14 +251,15 @@ struct ObjectPool {
 
     void allocate_chunk()
     {
-        T* chunk = static_cast<T*>(allocator_.allocate(N));
-        CHECK_F(!!chunk, "Unable to allocate chunk of size {}", sizeof(T) * N);
-        for (size_t i = 0; i < N; ++i) {
+        T* chunk = static_cast<T*>(allocator_->allocate(sizeof(T) * chunk_size_, alignof(T)));
+        CHECK_F(!!chunk, "Unable to allocate chunk of size {}", sizeof(T) * chunk_size_);
+        for (size_t i = 0; i < chunk_size_; ++i) {
             free_list_.push_back(&chunk[i]);
         }
     }
 
-    Alloc allocator_;
+    size_t chunk_size_;
+    nw::MemoryResource* allocator_;
     ChunkVector<T*> free_list_;
     ChunkVector<T*> chunks_;
 };

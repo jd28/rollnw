@@ -14,17 +14,17 @@ ObjectSystem::ObjectSystem(MemoryResource* scope)
     : Service(scope)
     , objects_{2048, allocator()}
     , free_list_{512, allocator()}
-    , areas_{allocator()}
-    , creatures_{allocator()}
-    , doors_{allocator()}
-    , encounters_{allocator()}
-    , items_{allocator()}
-    , stores_{allocator()}
-    , placeables_{allocator()}
-    , players_{allocator()}
-    , sounds_{allocator()}
-    , triggers_{allocator()}
-    , waypoints_{allocator()}
+    , areas_{128, allocator()}
+    , creatures_{128, allocator()}
+    , doors_{128, allocator()}
+    , encounters_{128, allocator()}
+    , items_{128, allocator()}
+    , stores_{128, allocator()}
+    , placeables_{128, allocator()}
+    , players_{128, allocator()}
+    , sounds_{128, allocator()}
+    , triggers_{128, allocator()}
+    , waypoints_{128, allocator()}
 {
 }
 

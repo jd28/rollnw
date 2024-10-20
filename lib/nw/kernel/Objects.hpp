@@ -109,17 +109,17 @@ private:
     absl::btree_multimap<InternedString, ObjectHandle> object_tag_map_;
 
     Module* module_;
-    ObjectPool<Area, 1024> areas_;
-    ObjectPool<Creature, 1024> creatures_;
-    ObjectPool<Door, 1024 * 1024> doors_;
-    ObjectPool<Encounter, 1024> encounters_;
-    ObjectPool<Item, 1024> items_;
-    ObjectPool<Store, 1024> stores_;
-    ObjectPool<Placeable, 1024 * 1024> placeables_;
-    ObjectPool<Player, 128> players_;
-    ObjectPool<Sound, 1024> sounds_;
-    ObjectPool<Trigger, 1024> triggers_;
-    ObjectPool<Waypoint, 1024> waypoints_;
+    ObjectPool<Area> areas_;
+    ObjectPool<Creature> creatures_;
+    ObjectPool<Door> doors_;
+    ObjectPool<Encounter> encounters_;
+    ObjectPool<Item> items_;
+    ObjectPool<Store> stores_;
+    ObjectPool<Placeable> placeables_;
+    ObjectPool<Player> players_;
+    ObjectPool<Sound> sounds_;
+    ObjectPool<Trigger> triggers_;
+    ObjectPool<Waypoint> waypoints_;
 
     void (*instatiate_callback_)(ObjectBase*) = nullptr;
 };
