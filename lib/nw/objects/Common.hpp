@@ -16,6 +16,13 @@ struct Common {
     bool from_json(const nlohmann::json& archive, SerializationProfile profile, ObjectType object_type);
     nlohmann::json to_json(SerializationProfile profile, ObjectType object_type) const;
 
+    Common();
+    explicit Common(nw::MemoryResource* allocator);
+
+    /// Clears all data members and resets to default constructed.
+    void clear();
+
+    /// Determines if common component was successfully parsed
     bool valid() { return valid_; }
 
     uuids::uuid uuid;

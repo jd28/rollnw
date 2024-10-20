@@ -8,6 +8,28 @@
 
 namespace nw {
 
+Common::Common()
+    : Common(nw::kernel::global_allocator())
+{
+}
+
+Common::Common(nw::MemoryResource*)
+{
+}
+
+void Common::clear()
+{
+    uuid = uuids::uuid{};
+    resref = Resref{};
+    tag = InternedString{};
+    name = LocString{};
+    locals = LocalData{};
+    location = Location{};
+
+    comment.clear();
+    palette_id = std::numeric_limits<uint8_t>::max();
+}
+
 bool Common::from_json(const nlohmann::json& archive, SerializationProfile profile, ObjectType object_type)
 {
     String temp;
