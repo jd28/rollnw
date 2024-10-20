@@ -44,7 +44,13 @@ void LocalData::clear(StringView var, uint32_t type)
 
 void LocalData::clear_all(uint32_t type)
 {
-    static PVector<StringView> eraser{nw::kernel::tls_scratch()};
+
+    if (type == LocalVarType::invalid) {
+        vars_.clear();
+        return;
+    }
+
+    static Vector<StringView> eraser{};
 
     for (auto& [k, v] : vars_) {
         switch (type) {

@@ -11,6 +11,7 @@
 namespace nw {
 
 struct LocalVarType {
+    static constexpr uint32_t invalid = 0;
     static constexpr uint32_t integer = 1;
     static constexpr uint32_t float_ = 2;
     static constexpr uint32_t string = 3;
@@ -45,7 +46,7 @@ struct LocalData {
     void clear(StringView var, uint32_t type);
 
     /// Clears all variables by type
-    void clear_all(uint32_t type);
+    void clear_all(uint32_t type = LocalVarType::invalid);
 
     void delete_float(StringView var);
     void delete_int(StringView var);

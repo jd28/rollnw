@@ -23,7 +23,7 @@ void Common::clear()
     resref = Resref{};
     tag = InternedString{};
     name = LocString{};
-    locals = LocalData{};
+    locals.clear_all();
     location = Location{};
 
     comment.clear();
