@@ -36,11 +36,13 @@ struct DoorScripts {
 
 struct Door : public ObjectBase {
     Door();
+    Door(nw::MemoryResource* allocator);
 
     static constexpr int json_archive_version = 1;
     static constexpr ObjectType object_type = ObjectType::door;
     static constexpr ResourceType::type restype = ResourceType::utd;
 
+    // ObjectBase overrides
     virtual Common* as_common() override { return &common; }
     virtual const Common* as_common() const override { return &common; }
     virtual Door* as_door() override { return this; }

@@ -62,6 +62,16 @@ nlohmann::json ModuleScripts::to_json() const
     return j;
 }
 
+Module::Module()
+    : Module{nw::kernel::global_allocator()}
+{
+}
+
+Module::Module(nw::MemoryResource* allocator)
+    : ObjectBase(allocator)
+{
+}
+
 size_t Module::area_count() const noexcept
 {
     if (areas.is<Vector<Area*>>()) {
@@ -88,13 +98,14 @@ const Area* Module::get_area(size_t index) const
     return nullptr;
 }
 
-void Module::destroy()
+void Module::clear()
 {
     if (areas.is<Vector<Area*>>()) {
         for (auto it : areas.as<Vector<Area*>>()) {
             nw::kernel::objects().destroy(it->handle());
         }
     }
+    instantiated_ = false;
 }
 
 bool Module::instantiate()

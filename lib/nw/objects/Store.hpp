@@ -14,8 +14,8 @@ struct StoreScripts {
 
 /// Store Inventory component
 struct StoreInventory {
-    StoreInventory() = default;
-    StoreInventory(ObjectBase* owner);
+    StoreInventory(nw::MemoryResource* allocator);
+    StoreInventory(ObjectBase* owner, nw::MemoryResource* allocator);
 
     /// Sets inventory owner
     void set_owner(ObjectBase* owner);
@@ -35,11 +35,13 @@ struct Store : public ObjectBase {
     static constexpr ResourceType::type restype = ResourceType::utm;
 
     Store();
+    Store(nw::MemoryResource* allocator);
 
     virtual Common* as_common() override { return &common; }
     virtual const Common* as_common() const override { return &common; }
     Store* as_store() override { return this; }
     const Store* as_store() const override { return this; }
+    virtual void clear() override;
     virtual bool instantiate() override;
 
     static bool deserialize(Store* obj, const nlohmann::json& archive, SerializationProfile profile);

@@ -7,7 +7,12 @@
 
 namespace nw {
 
-StoreInventory::StoreInventory(ObjectBase* owner)
+StoreInventory::StoreInventory(nw::MemoryResource* allocator)
+    : StoreInventory{nullptr, allocator}
+{
+}
+
+StoreInventory::StoreInventory(ObjectBase* owner, nw::MemoryResource* allocator)
     : armor{owner}
     , miscellaneous{owner}
     , potions{owner}
@@ -25,6 +30,16 @@ void StoreInventory::set_owner(ObjectBase* owner)
     weapons.owner = owner;
 }
 
+void Store::clear()
+{
+    inventory.armor.destroy();
+    inventory.miscellaneous.destroy();
+    inventory.potions.destroy();
+    inventory.rings.destroy();
+    inventory.weapons.destroy();
+    instantiated_ = false;
+}
+
 bool Store::instantiate()
 {
     return instantiated_ = (inventory.armor.instantiate()
@@ -35,6 +50,14 @@ bool Store::instantiate()
 }
 
 Store::Store()
+    : Store(nw::kernel::global_allocator())
+{
+}
+
+Store::Store(nw::MemoryResource* allocator)
+    : ObjectBase(allocator)
+    , common(allocator)
+    , inventory(allocator)
 {
     set_handle(ObjectHandle{object_invalid, ObjectType::store, 0});
     inventory.set_owner(this);

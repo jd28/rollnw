@@ -23,6 +23,9 @@ void to_json(nlohmann::json& json, const LevelUp& entry);
 
 /// Encapsulates a players level up history
 struct LevelHistory {
+    LevelHistory();
+    LevelHistory(nw::MemoryResource* allocator);
+
     Vector<LevelUp> entries;
 };
 

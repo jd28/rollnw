@@ -66,6 +66,7 @@ struct PlaceableScripts {
 
 struct Placeable : public ObjectBase {
     Placeable();
+    Placeable(MemoryResource* allocator);
     static constexpr int json_archive_version = 1;
     static constexpr ObjectType object_type = ObjectType::placeable;
     static constexpr ResourceType::type restype = ResourceType::utp;
@@ -74,7 +75,7 @@ struct Placeable : public ObjectBase {
     virtual const Common* as_common() const override { return &common; }
     virtual Placeable* as_placeable() override { return this; }
     virtual const Placeable* as_placeable() const override { return this; }
-    virtual void destroy() override;
+    virtual void clear() override;
     virtual bool instantiate() override;
     virtual InternedString tag() const override { return common.tag; }
 
@@ -93,16 +94,16 @@ struct Placeable : public ObjectBase {
     LocString description;
     Saves saves;
 
-    uint32_t appearance;
+    uint32_t appearance = 0;
     uint32_t faction = 0;
 
     int16_t hp = 0;
     int16_t hp_current = 0;
-    uint16_t portrait_id;
+    uint16_t portrait_id = 0;
 
-    PlaceableAnimationState animation_state;
+    PlaceableAnimationState animation_state = PlaceableAnimationState::none;
     uint8_t bodybag = 0;
-    uint8_t hardness;
+    uint8_t hardness = 0;
     bool has_inventory = false;
     bool interruptable = 0;
     bool plot = 0;

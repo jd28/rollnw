@@ -9,10 +9,11 @@ namespace nw {
 
 ObjectBase::ObjectBase(nw::MemoryResource* allocator)
     : allocator_(allocator)
+    , effects_(allocator)
 {
 }
 
-void ObjectBase::destroy()
+void ObjectBase::clear()
 {
 }
 

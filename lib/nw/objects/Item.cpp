@@ -12,14 +12,22 @@
 namespace nw {
 
 Item::Item()
+    : Item(nw::kernel::global_allocator())
+{
+}
+
+Item::Item(nw::MemoryResource* allocator)
+    : ObjectBase(allocator)
+    , common(allocator)
 {
     set_handle(ObjectHandle{object_invalid, ObjectType::item, 0});
     inventory.owner = this;
 }
 
-void Item::destroy()
+void Item::clear()
 {
     inventory.destroy();
+    instantiated_ = false;
 }
 
 bool Item::instantiate()

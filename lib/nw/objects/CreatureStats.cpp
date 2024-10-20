@@ -10,6 +10,15 @@
 
 namespace nw {
 
+CreatureStats::CreatureStats()
+    : CreatureStats(nw::kernel::global_allocator())
+{
+}
+
+CreatureStats::CreatureStats(nw::MemoryResource* allocator)
+{
+}
+
 bool CreatureStats::from_json(const nlohmann::json& archive)
 {
     try {

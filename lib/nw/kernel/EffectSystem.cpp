@@ -8,8 +8,9 @@ namespace nw::kernel {
 
 const std::type_index EffectSystem::type_index{typeid(EffectSystem)};
 
-EffectSystem::EffectSystem(MemoryResource* scope)
-    : Service(scope)
+EffectSystem::EffectSystem(MemoryResource* allocator)
+    : Service(allocator)
+    , pool_(1024, allocator)
 {
 }
 
@@ -39,37 +40,15 @@ bool EffectSystem::apply(ObjectBase* obj, Effect* effect)
 Effect* EffectSystem::create(EffectType type)
 {
     EffectID id;
-    Effect* effect = nullptr;
-
-    if (free_list_.size()) {
-        auto index = free_list_.top();
-        free_list_.pop();
-        id = pool_[index].id();
-        if (id.version != std::numeric_limits<uint32_t>::max()) {
-            effect = &pool_[index];
-            id.version++;
-            effect->type = type;
-            effect->set_id(id);
-        }
-    }
-
-    if (!effect) {
-        id.index = uint32_t(pool_.size());
-        id.version = 0;
-        pool_.emplace_back(type);
-        effect = &pool_.back();
-        effect->set_id(id);
-    }
-
+    Effect* effect = pool_.allocate();
+    effect->type = type;
     return effect;
 }
 
 void EffectSystem::destroy(Effect* effect)
 {
     if (!effect) { return; }
-    auto id = effect->id();
-    effect->clear();
-    free_list_.push(id.index);
+    pool_.free(effect);
 }
 
 void EffectSystem::initialize(ServiceInitTime time)
@@ -195,8 +174,8 @@ bool EffectSystem::remove(ObjectBase* obj, Effect* effect)
 EffectSystemStats EffectSystem::stats() const noexcept
 {
     EffectSystemStats result;
-    result.free_list_size = free_list_.size();
-    result.pool_size = pool_.size();
+    result.free_list_size = pool_.free_list_.size();
+    // [TODO] fix: result.pool_size =
     return result;
 }
 

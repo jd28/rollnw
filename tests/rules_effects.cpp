@@ -27,8 +27,8 @@ TEST(Rules, Effects)
     EXPECT_TRUE(mod);
 
     nw::Effect eff;
-    eff.set_string(12, "my string");
-    EXPECT_EQ(eff.get_string(12), "my string");
+    eff.set_string(2, "my string");
+    EXPECT_EQ(eff.get_string(2), "my string");
     EXPECT_EQ(eff.get_int(3), 0);
 }
 

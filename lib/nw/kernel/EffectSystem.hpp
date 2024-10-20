@@ -82,8 +82,8 @@ private:
     Vector<ItemPropertyDefinition> ip_definitions_;
     Vector<const TwoDA*> ip_cost_table_;
     Vector<const TwoDA*> ip_param_table_;
-    std::deque<Effect> pool_;
-    std::stack<uint32_t> free_list_;
+
+    ObjectPool<Effect> pool_;
 };
 
 inline EffectSystem& effects()

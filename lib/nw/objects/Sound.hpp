@@ -12,6 +12,7 @@ struct Sound : public ObjectBase {
     static constexpr ResourceType::type restype = ResourceType::uts;
 
     Sound();
+    Sound(nw::MemoryResource* allocator);
 
     virtual Common* as_common() override { return &common; }
     virtual const Common* as_common() const override { return &common; }

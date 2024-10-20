@@ -8,6 +8,16 @@
 
 namespace nw {
 
+Player::Player()
+    : Player{nw::kernel::global_allocator()}
+{
+}
+
+Player::Player(nw::MemoryResource* allocator)
+    : Creature(allocator)
+{
+}
+
 bool Player::deserialize(Player* obj, const nlohmann::json& archive)
 {
     obj->pc = true;

@@ -6,12 +6,16 @@ namespace nw {
 
 DEFINE_RULE_TYPE(EffectType);
 
-Effect::Effect()
+Effect::Effect(nw::MemoryResource* allocator)
+    : Effect(EffectType::invalid(), allocator)
 {
 }
 
-Effect::Effect(EffectType type_)
+Effect::Effect(EffectType type_, nw::MemoryResource* allocator)
     : type{type_}
+    , integers_(20, allocator)
+    , floats_(4, allocator)
+    , strings_(4, allocator)
 {
 }
 

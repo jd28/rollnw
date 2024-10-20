@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../kernel/Memory.hpp"
 #include "../objects/Common.hpp"
 #include "../objects/ObjectBase.hpp"
 #include "../serialization/Serialization.hpp"
@@ -78,6 +79,7 @@ struct AreaTile {
 
 struct Area : public ObjectBase {
     Area();
+    Area(MemoryResource* allocator);
 
     static constexpr int json_archive_version = 1;
     static constexpr ObjectType object_type = ObjectType::area;
@@ -87,7 +89,7 @@ struct Area : public ObjectBase {
     virtual const Common* as_common() const override { return &common; }
     virtual Area* as_area() override { return this; }
     virtual const Area* as_area() const override { return this; }
-    virtual void destroy() override;
+    virtual void clear() override;
     virtual bool instantiate() override;
 
     /// Deserialize from JSON

@@ -9,6 +9,13 @@
 namespace nw {
 
 Sound::Sound()
+    : Sound(nw::kernel::global_allocator())
+{
+}
+
+Sound::Sound(nw::MemoryResource* allocator)
+    : ObjectBase(allocator)
+    , common(allocator)
 {
     set_handle(ObjectHandle{object_invalid, ObjectType::sound, 0});
 }

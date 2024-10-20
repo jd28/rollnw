@@ -26,6 +26,11 @@ void to_json(nlohmann::json& j, const SpellEntry& spell)
 }
 
 SpellBook::SpellBook()
+    : SpellBook{nw::kernel::global_allocator()}
+{
+}
+
+SpellBook::SpellBook(nw::MemoryResource* allocator)
 {
     known_.resize(10);
     memorized_.resize(10);

@@ -10,6 +10,15 @@
 
 namespace nw {
 
+LevelHistory::LevelHistory()
+    : LevelHistory{nw::kernel::global_allocator()}
+{
+}
+
+LevelHistory::LevelHistory(nw::MemoryResource* allocator)
+{
+}
+
 void from_json(const nlohmann::json& json, LevelUp& entry)
 {
     json.at("ability").get_to(entry.ability);

@@ -6,6 +6,8 @@
 namespace nw {
 
 struct EffectArray {
+    EffectArray(nw::MemoryResource* allocator = nw::kernel::global_allocator());
+
     using storage = Vector<EffectHandle>;
 
     using iterator = storage::iterator;
@@ -30,6 +32,7 @@ struct EffectArray {
     size_t size() const noexcept;
 
 private:
+    nw::MemoryResource* allocator_ = nullptr;
     storage effects_;
 };
 

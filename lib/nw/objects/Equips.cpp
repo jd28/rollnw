@@ -11,7 +11,7 @@
 
 namespace nw {
 
-Equips::Equips(Creature* owner)
+Equips::Equips(Creature* owner, nw::MemoryResource* allocator)
     : owner_{owner}
 {
 }
@@ -23,6 +23,7 @@ void Equips::destroy()
             nw::kernel::objects().destroy(e.as<nw::Item*>()->handle());
         }
     }
+    equips = std::array<EquipItem, 18>{};
 }
 
 bool Equips::instantiate()

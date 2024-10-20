@@ -10,7 +10,8 @@
 namespace nw {
 
 struct CreatureStats {
-    CreatureStats() = default;
+    CreatureStats();
+    CreatureStats(nw::MemoryResource* allocator);
 
     bool from_json(const nlohmann::json& archive);
     nlohmann::json to_json() const;

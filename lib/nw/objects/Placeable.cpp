@@ -64,14 +64,44 @@ nlohmann::json PlaceableScripts::to_json() const
 }
 
 Placeable::Placeable()
+    : Placeable(nw::kernel::global_allocator())
+{
+}
+
+Placeable::Placeable(MemoryResource* allocator)
+    : ObjectBase(allocator)
+    , common(allocator)
+    , inventory(allocator)
 {
     set_handle(ObjectHandle{object_invalid, ObjectType::placeable, 0});
     inventory.owner = this;
 }
 
-void Placeable::destroy()
+void Placeable::clear()
 {
+    common.clear();
+    scripts = PlaceableScripts{};
     inventory.destroy();
+    lock = Lock{};
+    trap = Trap{};
+
+    appearance = 0;
+    faction = 0;
+
+    hp = 0;
+    hp_current = 0;
+    portrait_id = 0;
+
+    animation_state = PlaceableAnimationState::none;
+    bodybag = 0;
+    hardness = 0;
+    has_inventory = false;
+    interruptable = 0;
+    plot = 0;
+    static_ = false;
+    useable = false;
+
+    instantiated_ = false;
 }
 
 bool Placeable::instantiate()

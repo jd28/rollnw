@@ -9,6 +9,17 @@
 
 namespace nw {
 
+Inventory::Inventory(nw::MemoryResource* allocator)
+    : Inventory(nullptr, allocator)
+{
+}
+
+Inventory::Inventory(ObjectBase* owner_, nw::MemoryResource* allocator)
+    : owner{owner_}
+    , items(128, allocator) // There is some maximum number of items..
+{
+}
+
 void Inventory::destroy()
 {
     for (auto& it : items) {
@@ -17,6 +28,7 @@ void Inventory::destroy()
         item->inventory.destroy();
         nw::kernel::objects().destroy(item->handle());
     }
+    items.clear();
 }
 
 bool Inventory::instantiate()
@@ -42,7 +54,6 @@ bool Inventory::from_json(const nlohmann::json& archive, SerializationProfile pr
     }
 
     try {
-        items.reserve(archive.size());
         for (size_t i = 0; i < archive.size(); ++i) {
             bool valid_entry = true;
             InventoryItem ii;
@@ -110,7 +121,6 @@ nlohmann::json Inventory::to_json(SerializationProfile profile) const
 bool deserialize(Inventory& self, const GffStruct& archive, SerializationProfile profile)
 {
     size_t sz = archive["ItemList"].size();
-    self.items.reserve(sz);
     for (size_t i = 0; i < sz; ++i) {
         bool valid_entry = true;
         auto st = archive["ItemList"][i];

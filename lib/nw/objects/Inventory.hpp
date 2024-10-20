@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../serialization/Serialization.hpp"
+#include "../util/FixedVector.hpp"
 #include "../util/Variant.hpp"
 #include "ObjectBase.hpp"
 
@@ -18,11 +19,9 @@ struct InventoryItem {
 };
 
 struct Inventory {
-    Inventory() = default;
-    explicit Inventory(ObjectBase* owner_)
-        : owner{owner_}
-    {
-    }
+    explicit Inventory(nw::MemoryResource* allocator = nw::kernel::global_allocator());
+    explicit Inventory(ObjectBase* owner_, nw::MemoryResource* allocator = nw::kernel::global_allocator());
+
     Inventory(const Inventory&) = delete;
     Inventory(Inventory&&) = default;
     Inventory& operator=(const Inventory&) = delete;
@@ -36,7 +35,7 @@ struct Inventory {
     nlohmann::json to_json(SerializationProfile profile) const;
 
     ObjectBase* owner;
-    Vector<InventoryItem> items;
+    FixedVector<InventoryItem> items;
 };
 
 bool deserialize(Inventory& self, const GffStruct& archive, SerializationProfile profile);

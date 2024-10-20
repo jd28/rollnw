@@ -1,5 +1,6 @@
 #include "LocalData.hpp"
 
+#include "../kernel/Memory.hpp"
 #include "../serialization/Gff.hpp"
 #include "../serialization/GffBuilder.hpp"
 
@@ -43,7 +44,7 @@ void LocalData::clear(StringView var, uint32_t type)
 
 void LocalData::clear_all(uint32_t type)
 {
-    static Vector<StringView> eraser;
+    static PVector<StringView> eraser{nw::kernel::tls_scratch()};
 
     for (auto& [k, v] : vars_) {
         switch (type) {

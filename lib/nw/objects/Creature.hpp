@@ -42,6 +42,8 @@ struct CreatureScripts {
 
 struct Creature : public ObjectBase {
     Creature();
+    Creature(nw::MemoryResource* allocator);
+
     static constexpr int json_archive_version = 1;
     static constexpr ObjectType object_type = ObjectType::creature;
     static constexpr ResourceType::type restype = ResourceType::utc;
@@ -50,7 +52,7 @@ struct Creature : public ObjectBase {
     virtual const Common* as_common() const override { return &common; }
     virtual Creature* as_creature() override { return this; }
     virtual const Creature* as_creature() const override { return this; }
-    virtual void destroy() override;
+    virtual void clear() override;
     virtual bool instantiate() override;
     virtual InternedString tag() const override { return common.tag; }
     virtual Versus versus_me() const override;

@@ -28,6 +28,7 @@ struct Trigger : public ObjectBase {
     static constexpr ResourceType::type restype = ResourceType::utt;
 
     Trigger();
+    Trigger(nw::MemoryResource* allocator);
 
     virtual Common* as_common() override { return &common; }
     virtual const Common* as_common() const override { return &common; }

@@ -9,6 +9,12 @@
 namespace nw {
 
 Waypoint::Waypoint()
+    : Waypoint{nw::kernel::global_allocator()}
+{
+}
+
+Waypoint::Waypoint(nw::MemoryResource* allocator)
+    : ObjectBase(allocator)
 {
     set_handle(ObjectHandle{object_invalid, ObjectType::waypoint, 0});
 }

@@ -16,6 +16,8 @@ struct PltColors;
 
 struct Item : public ObjectBase {
     Item();
+    Item(nw::MemoryResource* allocator);
+
     static constexpr int json_archive_version = 1;
     static constexpr ObjectType object_type = ObjectType::item;
     static constexpr ResourceType::type restype = ResourceType::uti;
@@ -24,7 +26,7 @@ struct Item : public ObjectBase {
     virtual const Common* as_common() const override { return &common; }
     virtual Item* as_item() override { return this; }
     virtual const Item* as_item() const override { return this; }
-    virtual void destroy() override;
+    virtual void clear() override;
     virtual bool instantiate() override;
     virtual InternedString tag() const override { return common.tag; }
 

@@ -83,6 +83,13 @@ nlohmann::json SpawnPoint::to_json() const
 // -- Encounter ---------------------------------------------------------------
 
 Encounter::Encounter()
+    : Encounter(nw::kernel::global_allocator())
+{
+}
+
+Encounter::Encounter(nw::MemoryResource* allocator)
+    : ObjectBase(allocator)
+    , common(allocator)
 {
     set_handle(ObjectHandle{object_invalid, ObjectType::encounter, 0});
 }

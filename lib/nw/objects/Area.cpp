@@ -141,11 +141,18 @@ nlohmann::json AreaTile::to_json() const
 // -- Area --------------------------------------------------------------------
 
 Area::Area()
+    : Area(nw::kernel::global_allocator())
+{
+}
+
+Area::Area(MemoryResource* allocator)
+    : ObjectBase(allocator)
+    , common(allocator)
 {
     set_handle(ObjectHandle{object_invalid, ObjectType::area, 0});
 }
 
-void Area::destroy()
+void Area::clear()
 {
 #define DESTROY_OBJECTS(thing)                       \
     for (auto it : thing) {                          \

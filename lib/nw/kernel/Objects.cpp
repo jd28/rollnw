@@ -107,7 +107,6 @@ void ObjectSystem::destroy(ObjectHandle obj)
         }
         objects_[idx] = new_handle;
 
-        o->destroy();
         switch (new_handle.type) {
         default:
             break;

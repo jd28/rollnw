@@ -32,7 +32,7 @@ struct ObjectBase {
     void set_handle(ObjectHandle handle) { handle_ = handle; }
     const EffectArray& effects() const;
     EffectArray& effects();
-    virtual void destroy();
+    virtual void clear();
     virtual bool instantiate() = 0;
     virtual InternedString tag() const;
     virtual Versus versus_me() const { return Versus{}; }

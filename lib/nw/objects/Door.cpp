@@ -63,6 +63,13 @@ nlohmann::json DoorScripts::to_json() const
 // ============================================================================
 
 Door::Door()
+    : Door{nw::kernel::global_allocator()}
+{
+}
+
+Door::Door(nw::MemoryResource* allocator)
+    : ObjectBase(allocator)
+    , common(allocator)
 {
     set_handle(ObjectHandle{object_invalid, ObjectType::door, 0});
 }

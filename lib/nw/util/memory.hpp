@@ -233,7 +233,7 @@ struct ObjectPool {
 
         auto result = free_list_.back();
         free_list_.pop_back();
-        result = new (result) T;
+
         return result;
     }
 
@@ -245,7 +245,7 @@ struct ObjectPool {
 
     void free(T* object)
     {
-        object->~T();
+        object->clear();
         free_list_.push_back(object);
     }
 
@@ -254,7 +254,8 @@ struct ObjectPool {
         T* chunk = static_cast<T*>(allocator_->allocate(sizeof(T) * chunk_size_, alignof(T)));
         CHECK_F(!!chunk, "Unable to allocate chunk of size {}", sizeof(T) * chunk_size_);
         for (size_t i = 0; i < chunk_size_; ++i) {
-            free_list_.push_back(&chunk[i]);
+            auto obj = new (&chunk[i]) T(allocator_);
+            free_list_.push_back(obj);
         }
     }
 

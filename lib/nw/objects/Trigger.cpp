@@ -40,6 +40,12 @@ bool TriggerScripts::from_json(const nlohmann::json& archive)
 }
 
 Trigger::Trigger()
+    : Trigger{nw::kernel::global_allocator()}
+{
+}
+
+Trigger::Trigger(nw::MemoryResource* allocator)
+    : ObjectBase(allocator)
 {
     set_handle(ObjectHandle{object_invalid, ObjectType::trigger, 0});
 }

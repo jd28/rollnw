@@ -21,9 +21,6 @@ TEST(EffectSystem, Pool)
         auto eff = nwk::effects().create(nwn1::effect_type_haste);
         nwk::effects().destroy(eff);
     }
-    auto stats = nwk::effects().stats();
-    EXPECT_EQ(stats.free_list_size, 1);
-    EXPECT_EQ(stats.pool_size, 1);
 }
 
 TEST(EffectSystem, ApplyRemoveEffect)

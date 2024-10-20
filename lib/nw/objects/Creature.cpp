@@ -94,16 +94,26 @@ nlohmann::json CreatureScripts::to_json() const
 }
 
 Creature::Creature()
-    : equipment{this}
+    : Creature(nw::kernel::global_allocator())
+{
+}
+
+Creature::Creature(nw::MemoryResource* allocator)
+    : ObjectBase(allocator)
+    , common(allocator)
+    , equipment{this}
+    , inventory(allocator)
 {
     set_handle(ObjectHandle{object_invalid, ObjectType::creature, 0});
     inventory.owner = this;
 }
 
-void Creature::destroy()
+void Creature::clear()
 {
     equipment.destroy();
     inventory.destroy();
+
+    instantiated_ = false;
 }
 
 bool Creature::instantiate()

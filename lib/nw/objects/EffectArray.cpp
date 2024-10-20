@@ -4,6 +4,11 @@
 
 namespace nw {
 
+EffectArray::EffectArray(nw::MemoryResource* allocator)
+    : allocator_(allocator)
+{
+}
+
 EffectArray::iterator EffectArray::begin() { return effects_.begin(); }
 EffectArray::const_iterator EffectArray::begin() const { return effects_.begin(); }
 

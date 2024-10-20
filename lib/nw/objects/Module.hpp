@@ -43,6 +43,9 @@ struct ModuleScripts {
 };
 
 struct Module : public ObjectBase {
+    Module();
+    Module(nw::MemoryResource* allocator);
+
     using AreaVariant = Variant<Vector<Resref>, Vector<Area*>>;
 
     static constexpr int json_archive_version = 1;
@@ -51,7 +54,7 @@ struct Module : public ObjectBase {
 
     virtual Module* as_module() override { return this; }
     virtual const Module* as_module() const override { return this; }
-    virtual void destroy() override;
+    virtual void clear() override;
     virtual bool instantiate() override;
 
     size_t area_count() const noexcept;

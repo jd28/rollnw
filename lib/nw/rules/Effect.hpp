@@ -1,14 +1,10 @@
 #pragma once
 
 #include "../objects/ObjectHandle.hpp"
+#include "../util/FixedVector.hpp"
 #include "Spell.hpp"
 #include "Versus.hpp"
 #include "rule_type.hpp"
-
-#include <absl/container/inlined_vector.h>
-
-#include <compare>
-#include <string>
 
 namespace nw {
 
@@ -33,8 +29,8 @@ struct EffectID {
 };
 
 struct Effect {
-    Effect();
-    Effect(EffectType type_);
+    Effect(nw::MemoryResource* allocator = nw::kernel::global_allocator());
+    Effect(EffectType type_, nw::MemoryResource* allocator = nw::kernel::global_allocator());
 
     /// Clears the effect such that it's as if default constructed
     void clear();
@@ -84,9 +80,9 @@ struct Effect {
 private:
     EffectID id_;
 
-    absl::InlinedVector<int, 4> integers_;
-    absl::InlinedVector<float, 4> floats_;
-    absl::InlinedVector<String, 4> strings_;
+    FixedVector<int> integers_;
+    FixedVector<float> floats_;
+    FixedVector<String> strings_;
     Versus versus_;
 };
 

@@ -9,6 +9,9 @@ struct Player : public Creature {
     static constexpr ObjectType object_type = ObjectType::player;
     static constexpr ResourceType::type restype = ResourceType::bic;
 
+    Player();
+    Player(nw::MemoryResource* allocator);
+
     // ObjectBase Overrides
     virtual Player* as_player() override { return this; }
     virtual const Player* as_player() const override { return this; }

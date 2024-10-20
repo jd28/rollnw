@@ -13,6 +13,7 @@ struct Waypoint : public ObjectBase {
     static constexpr ResourceType::type restype = ResourceType::utw;
 
     Waypoint();
+    Waypoint(nw::MemoryResource* allocator);
 
     virtual Common* as_common() override { return &common; }
     virtual const Common* as_common() const override { return &common; }

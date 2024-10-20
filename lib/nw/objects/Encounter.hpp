@@ -39,6 +39,7 @@ struct SpawnPoint {
 
 struct Encounter : public ObjectBase {
     Encounter();
+    Encounter(nw::MemoryResource* allocator);
 
     static constexpr int json_archive_version = 1;
     static constexpr ObjectType object_type = ObjectType::encounter;
@@ -55,6 +56,7 @@ struct Encounter : public ObjectBase {
     static bool serialize(const Encounter* obj, nlohmann::json& archive, SerializationProfile profile);
     static String get_name_from_file(const std::filesystem::path& path);
 
+    nw::MemoryResource* allocator_ = nullptr;
     Common common;
     EncounterScripts scripts;
     Vector<SpawnCreature> creatures;
