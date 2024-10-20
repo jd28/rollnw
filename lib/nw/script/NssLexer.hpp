@@ -36,6 +36,9 @@ private:
     StringView buffer_;
     size_t pos_ = 0, line_ = 1, last_line_pos_ = 0;
     NssToken current_;
+
+    const char* scan_to_endl(const char* data, size_t size);
+    const char* scan_to_target(const char* data, char target, size_t size, bool no_eol);
 };
 
 } // namespace nw::script

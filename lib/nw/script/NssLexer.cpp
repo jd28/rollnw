@@ -4,6 +4,8 @@
 #include "../log.hpp"
 #include "Nss.hpp"
 
+#include <xsimd/xsimd.hpp>
+
 #include <array>
 #include <cctype>
 #include <cstring>
@@ -405,9 +407,10 @@ NssToken NssLexer::next()
                 start = pos_ + 2;
                 pos_ += 2;
                 while (pos_ < buffer_.size()) {
-                    if (get(pos_) == '\n') {
-                        break;
-                    } else if (get(pos_) == '\\' && get(pos_ + 1) == '"') {
+                    auto scan = scan_to_target(buffer_.data() + pos_, '"', buffer_.size() - pos_, true);
+                    if (!scan) { break; }
+                    pos_ = scan - buffer_.data();
+                    if (get(pos_ - 1) == '\\' && get(pos_) == '"') {
                         ++pos_; // Skip escape, then skip " below.
                     } else if (pos_ != start && get(pos_) == '"') {
                         t = NssToken{
@@ -435,24 +438,28 @@ NssToken NssLexer::next()
             }
             break;
         case 'r':
-        case 'R':
+        case 'R': {
             if (kernel::config().version() == GameVersion::vEE
                 && get(pos_ + 1) == '"') {
 
                 bool matched = false;
-                size_t original_last_line = last_line_pos_;
                 size_t start_line = line_;
                 start = pos_ + 2;
                 pos_ += 2;
                 while (pos_ < buffer_.size()) {
-                    if (get(pos_) == '\n') {
-                        ++line_;
-                        last_line_pos_ = pos_;
-                        line_map.push_back(last_line_pos_);
-                    } else if ((get(pos_) == '"' && get(pos_ + 1) == '"')
-                        || (get(pos_) == '\\' && get(pos_ + 1) == '"')) {
-                        ++pos_; // Skip escape, then skip " below.
-                    } else if (pos_ != start && get(pos_) == '"') {
+                    auto scan = scan_to_target(buffer_.data() + pos_, '"', buffer_.size() - pos_, false);
+                    if (!scan) { break; }
+                    pos_ = scan - buffer_.data();
+                    if (get(pos_) == '"') {
+                        if (get(pos_ - 1) == '\\') {
+                            ++pos_;
+                            continue;
+                        } else if (get(pos_ + 1) == '"') {
+                            pos_ += 2;
+                            continue;
+                        }
+                    }
+                    if (pos_ != start && get(pos_) == '"') {
                         t = NssToken{
                             NssTokenType::STRING_RAW_CONST,
                             {buffer_.data() + start, pos_ - 1 - start},
@@ -476,17 +483,11 @@ NssToken NssLexer::next()
             } else {
                 t = handle_identifier();
             }
-            break;
-        case '"':
+        } break;
+        case '"': {
             start = ++pos_;
-            while (pos_ < buffer_.size()) {
-                if (get(pos_) == '"' && buffer_[pos_ - 1] != '\\') {
-                    break;
-                } else if (get(pos_) == '\r' || get(pos_) == '\n') {
-                    break;
-                }
-                ++pos_;
-            }
+            auto scan = scan_to_target(buffer_.data() + pos_, '"', buffer_.size() - pos_, true);
+            pos_ = scan ? scan - buffer_.data() : buffer_.size();
 
             if (pos_ == buffer_.size() || get(pos_) != '"') {
                 SourceLocation loc;
@@ -501,8 +502,9 @@ NssToken NssLexer::next()
                 {&buffer_[start], pos_ - start},
                 start_pos,
                 SourcePosition{line_, pos_ + 1 - last_line_pos_}};
+
             ++pos_;
-            break;
+        } break;
 
         // Operators
         case '=': // PLUS
@@ -680,23 +682,22 @@ NssToken NssLexer::next()
             continue;
         case '/': // DIV
             switch (get(pos_ + 1)) {
-            case '/': // Comment
+            case '/': { // Comment
                 pos_ += 2;
                 start = pos_;
-                while (pos_ < buffer_.size()) {
-                    if (get(pos_) == '\r' || get(pos_) == '\n') {
-                        t = NssToken{
-                            NssTokenType::COMMENT,
-                            {buffer_.data() + start, pos_ - start},
-                            start_pos,
-                            SourcePosition{line_, pos_ - last_line_pos_},
-                        };
-                        break;
-                    } else {
-                        ++pos_;
-                    }
+                auto test = scan_to_endl(buffer_.data() + pos_, buffer_.size() - pos_);
+                if (!test) {
+                    pos_ = buffer_.size();
+                } else {
+                    pos_ = test - buffer_.data();
                 }
-                break;
+                t = NssToken{
+                    NssTokenType::COMMENT,
+                    {buffer_.data() + start, pos_ - start},
+                    start_pos,
+                    SourcePosition{line_, pos_ - last_line_pos_},
+                };
+            } break;
             case '*': { // Block Comment
                 bool matched = false;
                 size_t original_last_line = last_line_pos_;
@@ -752,6 +753,80 @@ NssToken NssLexer::next()
                SourcePosition{line_, pos_ - last_line_pos_},
                SourcePosition{line_, pos_ - last_line_pos_},
            };
+}
+
+const char* NssLexer::scan_to_target(const char* data, char target, size_t size, bool no_eol)
+{
+    using batch_type = xsimd::batch<int8_t>;
+    const size_t batch_size = batch_type::size;
+
+    batch_type target_batch = batch_type::broadcast(static_cast<int8_t>(target));
+    batch_type eol_batch = batch_type::broadcast(static_cast<int8_t>(target));
+
+    size_t i = 0;
+    for (; i + batch_size <= size; i += batch_size) {
+        batch_type chunk = xsimd::load_unaligned(reinterpret_cast<const int8_t*>(data + i));
+        auto matches = (chunk == target_batch);
+        auto newlines = (chunk == eol_batch);
+
+        if (xsimd::any(matches)) {
+            for (size_t j = 0; j < batch_size; ++j) {
+                if (newlines.get(j)) {
+                    if (no_eol) {
+                        return data + i + j;
+                    } else {
+                        ++line_;
+                        last_line_pos_ = pos_;
+                        line_map.push_back(last_line_pos_);
+                    }
+                } else if (matches.get(j)) {
+                    return data + i + j;
+                }
+            }
+        }
+    }
+
+    for (; i < size; ++i) {
+        if (data[i] == '\n') {
+            if (no_eol) {
+                return data + i;
+            } else {
+                ++line_;
+                last_line_pos_ = pos_;
+                line_map.push_back(last_line_pos_);
+            }
+        } else if (data[i] == target) {
+            return data + i;
+        }
+    }
+
+    return nullptr;
+}
+
+const char* NssLexer::scan_to_endl(const char* data, size_t size)
+{
+    using batch_type = xsimd::batch<int8_t>;
+    const size_t batch_size = batch_type::size;
+
+    batch_type target_batch = batch_type::broadcast(static_cast<int8_t>('\n'));
+
+    size_t i = 0;
+    for (; i + batch_size <= size; i += batch_size) {
+        batch_type chunk = xsimd::load_unaligned(reinterpret_cast<const int8_t*>(data + i));
+        auto matches = (chunk == target_batch);
+
+        if (xsimd::any(matches)) {
+            for (size_t j = 0; j < batch_size; ++j) {
+                if (matches.get(j)) { return data + i + j; }
+            }
+        }
+    }
+
+    for (; i < size; ++i) {
+        if (data[i] == '\n') { return data + i; }
+    }
+
+    return nullptr;
 }
 
 } // namespace nw::script
