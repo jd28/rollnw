@@ -4,11 +4,34 @@
 #include "../log.hpp"
 #include "Nss.hpp"
 
+#include <array>
 #include <cctype>
 #include <cstring>
 #include <string_view>
 
 namespace nw::script {
+
+enum struct CharType {
+    none,
+    alpha,
+    digit,
+};
+
+constexpr std::array<CharType, 256> create_character_map()
+{
+    std::array<CharType, 256> result = {};
+    for (size_t i = 0; i < 256; ++i) {
+        if (i >= '0' && i <= '9') {
+            result[i] = CharType::digit;
+        } else if ((i >= 'a' && i <= 'z') || (i >= 'A' && i <= 'Z')) {
+            result[i] = CharType::alpha;
+        } else {
+            result[i] = CharType::none;
+        }
+    }
+    return result;
+}
+constexpr auto char_map = create_character_map();
 
 NssLexer::NssLexer(StringView buffer, Context* ctx, Nss* parent)
     : ctx_{ctx}
@@ -192,7 +215,10 @@ NssToken NssLexer::handle_identifier()
     SourcePosition start_pos{line_, start - last_line_pos_};
 
     while (pos_ < buffer_.size()) {
-        if (!std::isalnum(get(pos_)) && get(pos_) != '_') {
+        auto cur = get(pos_);
+        if (char_map[cur] != CharType::alpha
+            && char_map[cur] != CharType::digit
+            && cur != '_') {
             break;
         }
         ++pos_;
@@ -234,31 +260,32 @@ NssToken NssLexer::handle_number()
     if (base != 10) { pos_ += 2; }
 
     while (pos_ < buffer_.size()) {
+        auto cur = get(pos_);
         if (base == 16) {
-            if (std::isdigit(get(pos_))
-                || (get(pos_) >= 'a' && get(pos_) <= 'f')
-                || (get(pos_) >= 'A' && get(pos_) <= 'F')) {
+            if (char_map[cur] == CharType::digit
+                || (cur >= 'a' && cur <= 'f')
+                || (cur >= 'A' && cur <= 'F')) {
                 pos_++;
             } else {
                 break;
             }
         } else if (base == 2) {
-            if (get(pos_) == '0' || get(pos_) == '1') {
+            if (cur == '0' || cur == '1') {
                 pos_++;
             } else {
                 break;
             }
         } else if (base == 8) {
-            if (get(pos_) >= '0' || get(pos_) <= '7') {
+            if (cur >= '0' || cur <= '7') {
                 pos_++;
             } else {
                 break;
             }
         } else {
-            if (get(pos_) == '.') {
+            if (cur == '.') {
                 ++pos_;
                 is_float = true;
-            } else if (!std::isdigit(get(pos_))) {
+            } else if (char_map[cur] != CharType::digit) {
                 break;
             } else {
                 ++pos_;
@@ -295,9 +322,9 @@ NssToken NssLexer::next()
 
         switch (get(pos_)) {
         default:
-            if (std::isalpha(get(pos_)) || get(pos_) == '_') {
+            if (char_map[get(pos_)] == CharType::alpha || get(pos_) == '_') {
                 t = handle_identifier();
-            } else if (std::isdigit(get(pos_))) {
+            } else if (char_map[get(pos_)] == CharType::digit) {
                 t = handle_number();
             } else {
                 SourceLocation loc;
