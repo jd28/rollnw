@@ -16,6 +16,7 @@ Nss::Nss(const std::filesystem::path& filename, Context* ctx, bool command_scrip
     : ctx_{ctx}
     , data_{ResourceData::from_file(filename)}
     , text_{data_.bytes.string_view()}
+    , ast_(ctx_)
     , is_command_script_{command_script}
 {
     CHECK_F(!!ctx_, "[script] invalid script context");
@@ -24,6 +25,7 @@ Nss::Nss(const std::filesystem::path& filename, Context* ctx, bool command_scrip
 Nss::Nss(StringView script, Context* ctx, bool command_script)
     : ctx_{ctx}
     , text_{script}
+    , ast_(ctx_)
     , is_command_script_{command_script}
 {
     CHECK_F(!!ctx_, "[script] invalid script context");
@@ -33,6 +35,7 @@ Nss::Nss(ResourceData data, Context* ctx, bool command_script)
     : ctx_{ctx}
     , data_{std::move(data)}
     , text_{data_.bytes.string_view()}
+    , ast_(ctx_)
     , is_command_script_{command_script}
 {
     CHECK_F(!!ctx_, "[script] invalid script context");

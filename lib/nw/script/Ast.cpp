@@ -54,6 +54,11 @@ const VarDecl* StructDecl::locate_member_decl(StringView name) const
     return result;
 }
 
+Ast::Ast(Context* ctx)
+    : ctx_(ctx)
+{
+}
+
 StringView Ast::find_comment(size_t line) const noexcept
 {
     for (const auto& comment : comments) {

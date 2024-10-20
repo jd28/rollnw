@@ -992,7 +992,7 @@ struct AstResolver : BaseVisitor {
             size_t switch_type = invalid_type_id;
             size_t label_count = 0;
             absl::flat_hash_set<int32_t> integers;
-            absl::flat_hash_set<String> strings;
+            absl::flat_hash_set<PString> strings;
 
             for (auto s : bs->nodes) {
                 if (auto lbl = dynamic_cast<LabelStatement*>(s)) {
@@ -1029,9 +1029,9 @@ struct AstResolver : BaseVisitor {
                         } else if (lbl->expr->type_id_ == ctx_->type_id("string")
                             && !eval.failed_
                             && eval.result_.size() > 0
-                            && eval.result_.top().is<String>()) {
+                            && eval.result_.top().is<PString>()) {
 
-                            String value = eval.result_.top().as<String>();
+                            PString value = eval.result_.top().as<PString>();
                             if (!strings.insert(value).second) {
                                 ctx_->semantic_diagnostic(parent_,
                                     fmt::format("duplicate case statement value: '{}'",

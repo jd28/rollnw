@@ -11,7 +11,7 @@ namespace nw::script {
 // There is still a long way to go here, but it's a start.
 
 struct AstConstEvaluator : public BaseVisitor {
-    using variant = Variant<int32_t, float, String, ObjectID, glm::vec3>;
+    using variant = Variant<int32_t, float, PString, ObjectID, glm::vec3>;
 
     Nss* parent_ = nullptr;
     Expression* node_ = nullptr;
@@ -140,8 +140,8 @@ struct AstConstEvaluator : public BaseVisitor {
                 failed_ = true;
             }
         } else if (expr->op.type == NssTokenType::PLUS) {
-            if (lhs_var.is<String>() && rhs_var.is<String>()) {
-                result_.push(lhs_var.as<String>() + rhs_var.as<String>());
+            if (lhs_var.is<PString>() && rhs_var.is<PString>()) {
+                result_.push(lhs_var.as<PString>() + rhs_var.as<PString>());
             } else if (lhs_var.is<int32_t>() && rhs_var.is<int32_t>()) {
                 result_.push(lhs_var.as<int32_t>() + rhs_var.as<int32_t>());
             } else if (lhs_var.is<float>() && rhs_var.is<float>()) {
@@ -271,8 +271,8 @@ struct AstConstEvaluator : public BaseVisitor {
             result_.push(expr->data.as<int32_t>());
         } else if (expr->data.is<float>()) {
             result_.push(expr->data.as<float>());
-        } else if (expr->data.is<String>()) {
-            result_.push(expr->data.as<String>());
+        } else if (expr->data.is<PString>()) {
+            result_.push(expr->data.as<PString>());
         } else {
             failed_ = true;
         }

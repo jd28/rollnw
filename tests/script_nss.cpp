@@ -1896,8 +1896,8 @@ TEST(Nss, ConstEval)
         EXPECT_FALSE(eval1_4.failed_);
         EXPECT_GT(eval1_4.result_.size(), 0);
         if (eval1_4.result_.size()) {
-            EXPECT_TRUE(eval1_4.result_.top().is<std::string>());
-            EXPECT_EQ(eval1_4.result_.top().as<std::string>(), "Hello, NWN:EE");
+            EXPECT_TRUE(eval1_4.result_.top().is<PString>());
+            EXPECT_EQ(eval1_4.result_.top().as<PString>(), "Hello, NWN:EE");
         }
     }
 }

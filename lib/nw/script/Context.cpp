@@ -10,7 +10,9 @@ namespace fs = std::filesystem;
 namespace nw::script {
 
 Context::Context(Vector<String> include_paths, String command_script)
-    : include_paths_{std::move(include_paths)}
+    : arena(GB(1))
+    , scope(&arena)
+    , include_paths_{std::move(include_paths)}
     , dependencies_{}
     , command_script_name_{std::move(command_script)}
     , resman_{nw::kernel::global_allocator(), &kernel::resman()}

@@ -12,6 +12,7 @@ NssParser::NssParser(StringView view, Context* ctx, Nss* parent)
     : ctx_{ctx}
     , parent_{parent}
     , view_{view}
+    , ast_(ctx_)
 {
     CHECK_F(!!ctx_, "[script] invalid script context");
 }
@@ -421,7 +422,7 @@ Expression* NssParser::parse_expr_postfix()
         }
 
         if (previous().type == NssTokenType::LPAREN) {
-            auto e = ast_.create_node<CallExpression>(expr);
+            auto e = ast_.create_node<CallExpression>(expr, &ctx_->arena);
             e->range_.start = expr->range_.start;
             e->arg_range.start = previous().loc.range.end;
             while (!is_end() && !check({NssTokenType::RPAREN})) {
@@ -485,9 +486,9 @@ Expression* NssParser::parse_expr_primary()
         expr->range_ = previous().loc.range;
         if (expr->literal.type == NssTokenType::STRING_CONST) {
             // Probably need to process the string..
-            expr->data = String(expr->literal.loc.view());
+            expr->data = PString(expr->literal.loc.view(), &ctx_->arena);
         } else if (expr->literal.type == NssTokenType::STRING_RAW_CONST) {
-            expr->data = String(expr->literal.loc.view());
+            expr->data = PString(expr->literal.loc.view(), &ctx_->arena);
         } else if (expr->literal.type == NssTokenType::STRING_HASH_LITERAL) {
             const static int32_t nullhash = (int32_t)XXH32("", 0, 0);
             expr->data = static_cast<int32_t>(XXH32(expr->literal.loc.view().data(), expr->literal.loc.view().size(), 0)) ^ nullhash;
@@ -689,7 +690,7 @@ Statement* NssParser::parse_stmt()
 // block -> "{" declaration* "}"
 BlockStatement* NssParser::parse_stmt_block()
 {
-    auto s = ast_.create_node<BlockStatement>();
+    auto s = ast_.create_node<BlockStatement>(&ctx_->arena);
     s->range_.start = previous().loc.range.end; // Don't include the braces in the range.. for now.
     while (!is_end() && !check({NssTokenType::RBRACE})) {
         try {
@@ -876,7 +877,7 @@ Statement* NssParser::parse_decl()
             || lookahead(0).type == NssTokenType::COMMA) {
             // Variable Decls
 
-            auto decls = ast_.create_node<DeclList>();
+            auto decls = ast_.create_node<DeclList>(&ctx_->arena);
 
             while (true) {
                 auto vd = ast_.create_node<VarDecl>();
@@ -936,7 +937,7 @@ Statement* NssParser::parse_decl()
 
 StructDecl* NssParser::parse_decl_struct()
 {
-    auto decl = ast_.create_node<StructDecl>();
+    auto decl = ast_.create_node<StructDecl>(&ctx_->arena);
 
     while (!is_end() && !check({NssTokenType::RBRACE})) {
         auto var_decl = parse_decl();
@@ -977,7 +978,7 @@ Declaration* NssParser::parse_decl_function_def()
 
 FunctionDecl* NssParser::parse_decl_function()
 {
-    auto fd = ast_.create_node<FunctionDecl>();
+    auto fd = ast_.create_node<FunctionDecl>(&ctx_->arena);
     consume(NssTokenType::IDENTIFIER, "Expected 'IDENTIFIER'.");
     fd->identifier_ = previous();
     consume(NssTokenType::LPAREN, "Expected '('.");

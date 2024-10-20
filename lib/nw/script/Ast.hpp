@@ -1,9 +1,11 @@
 #pragma once
 
+#include "../kernel/Memory.hpp"
 #include "../objects//ObjectBase.hpp"
 #include "../objects/Location.hpp"
 #include "../util/Variant.hpp"
 #include "../util/string.hpp"
+#include "Context.hpp"
 #include "Token.hpp"
 
 #include <fmt/format.h>
@@ -12,13 +14,13 @@
 
 #include <limits>
 #include <memory>
-#include <string>
 #include <unordered_map>
 
 namespace nw::script {
 
 struct Nss;
 struct Ast;
+struct Context;
 struct Export;
 
 struct Declaration;
@@ -228,7 +230,7 @@ struct LiteralExpression : Expression {
     }
 
     NssToken literal;
-    Variant<int32_t, float, String, Location, ObjectID> data;
+    Variant<int32_t, float, PString, Location, ObjectID> data;
 
     DEFINE_ACCEPT_VISITOR
 };
@@ -303,15 +305,17 @@ struct VariableExpression : Expression {
 };
 
 struct CallExpression : Expression {
-    explicit CallExpression(Expression* expr_)
+    explicit CallExpression(Expression* expr_, MemoryResource* allocator)
         : expr{expr_}
+        , args{allocator}
+        , comma_ranges{allocator}
     {
     }
 
     Expression* expr = nullptr;
-    Vector<Expression*> args;
+    PVector<Expression*> args;
     SourceRange arg_range;
-    Vector<SourceRange> comma_ranges; // This is probably stupid
+    PVector<SourceRange> comma_ranges; // This is probably stupid
 
     DEFINE_ACCEPT_VISITOR
 };
@@ -327,11 +331,15 @@ struct Statement : public AstNode {
 };
 
 struct BlockStatement : public Statement {
-    BlockStatement() = default;
+    BlockStatement(MemoryResource* allocator)
+        : nodes{allocator}
+    {
+    }
+
     BlockStatement(BlockStatement&) = delete;
     BlockStatement& operator=(const BlockStatement&) = delete;
 
-    Vector<Statement*> nodes;
+    PVector<Statement*> nodes;
 
     DEFINE_ACCEPT_VISITOR
 };
@@ -425,12 +433,15 @@ struct Declaration : public Statement {
 };
 
 struct FunctionDecl : public Declaration {
-    FunctionDecl() = default;
+    FunctionDecl(MemoryResource* allocator)
+        : params{allocator}
+    {
+    }
     FunctionDecl(FunctionDecl&) = delete;
     FunctionDecl& operator=(const FunctionDecl&) = delete;
 
     NssToken identifier_;
-    Vector<VarDecl*> params;
+    PVector<VarDecl*> params;
 
     virtual String identifier() const override { return String(identifier_.loc.view()); };
 
@@ -448,7 +459,12 @@ struct FunctionDefinition : public Declaration {
 };
 
 struct StructDecl : public Declaration {
-    Vector<Declaration*> decls;
+    StructDecl(MemoryResource* allocator)
+        : decls{allocator}
+    {
+    }
+
+    PVector<Declaration*> decls;
 
     virtual String identifier() const override { return String(type.struct_id.loc.view()); };
     const VarDecl* locate_member_decl(StringView name) const;
@@ -467,7 +483,12 @@ struct VarDecl : public Declaration {
 
 /// List of comma separated declarations
 struct DeclList : public Declaration {
-    Vector<VarDecl*> decls;
+    DeclList(MemoryResource* allocator)
+        : decls{allocator}
+    {
+    }
+
+    PVector<VarDecl*> decls;
 
     virtual String identifier() const override
     {
@@ -510,28 +531,24 @@ struct Comment {
 };
 
 struct Ast {
-    Ast() = default;
+    Ast(Context* ctx);
     Ast(const Ast&) = delete;
     Ast(Ast&&) = default;
     Ast& operator=(const Ast&) = delete;
     Ast& operator=(Ast&&) = default;
 
+    Context* ctx_;
     Vector<Statement*> decls;
     Vector<Include> includes;
     std::unordered_map<String, String> defines;
     Vector<Comment> comments;
     Vector<size_t> line_map;
 
-    Vector<std::unique_ptr<AstNode>> nodes_;
-
     template <typename T, typename... Args>
     T* create_node(Args&&... args)
     {
-        // [NOTE] This is to abstract the ownership and allocation of AST nodes,
-        // such that it could be replaced by say a slab allocator or something else
-        // later.  This is just the most basic way of doing this.
-        nodes_.push_back(std::make_unique<T>(std::forward<Args>(args)...));
-        return static_cast<T*>(nodes_.back().get());
+        T* node = static_cast<T*>(ctx_->scope.alloc_obj<T>(std::forward<Args>(args)...));
+        return node;
     }
 
     void accept(BaseVisitor* visitor)

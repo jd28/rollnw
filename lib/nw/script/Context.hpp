@@ -24,6 +24,9 @@ struct Context {
     Context(Vector<String> include_paths = {}, String command_script = "nwscript");
     virtual ~Context() = default;
 
+    MemoryArena arena;
+    MemoryScope scope;
+
     // Resource Loading / Dependency Tracking
     Vector<String> include_paths_;
     absl::flat_hash_map<Resource, std::unique_ptr<Nss>> dependencies_;

@@ -29,8 +29,8 @@ int main(int argc, char* argv[])
 
         try {
             auto start = std::chrono::high_resolution_clock::now();
-            auto ctx = std::make_unique<nw::script::Context>();
-            nw::script::Nss nss{nw::kernel::resman().demand(res), ctx.get()};
+            auto ctx = nw::script::Context();
+            nw::script::Nss nss{nw::kernel::resman().demand(res), &ctx};
             nss.parse();
             nss.process_includes();
             nss.resolve();
