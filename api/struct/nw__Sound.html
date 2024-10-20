@@ -186,6 +186,7 @@
 <li class="toctree-l2 current"><a class="current reference internal" href="#">nw::Sound</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#_CPPv4N2nw5SoundE"><code class="docutils literal notranslate"><span class="pre">Sound</span></code></a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw5Sound5SoundEv"><code class="docutils literal notranslate"><span class="pre">Sound::Sound()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw5Sound5SoundEPN2nw14MemoryResourceE"><code class="docutils literal notranslate"><span class="pre">Sound::Sound()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw5Sound9as_commonEv"><code class="docutils literal notranslate"><span class="pre">Sound::as_common()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw5Sound9as_commonEv"><code class="docutils literal notranslate"><span class="pre">Sound::as_common()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw5Sound8as_soundEv"><code class="docutils literal notranslate"><span class="pre">Sound::as_sound()</span></code></a></li>
@@ -197,7 +198,7 @@
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw5Sound10set_handleE12ObjectHandle"><code class="docutils literal notranslate"><span class="pre">Sound::set_handle()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw5Sound7effectsEv"><code class="docutils literal notranslate"><span class="pre">Sound::effects()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw5Sound7effectsEv"><code class="docutils literal notranslate"><span class="pre">Sound::effects()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw5Sound7destroyEv"><code class="docutils literal notranslate"><span class="pre">Sound::destroy()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw5Sound5clearEv"><code class="docutils literal notranslate"><span class="pre">Sound::clear()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw5Sound9versus_meEv"><code class="docutils literal notranslate"><span class="pre">Sound::versus_me()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw5Sound7as_areaEv"><code class="docutils literal notranslate"><span class="pre">Sound::as_area()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw5Sound7as_areaEv"><code class="docutils literal notranslate"><span class="pre">Sound::as_area()</span></code></a></li>
@@ -448,6 +449,11 @@
 <dd></dd></dl>
 
 <dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw5Sound5SoundEPN2nw14MemoryResourceE">
+<span id="_CPPv3N2nw5Sound5SoundEPN2nw14MemoryResourceE"></span><span id="_CPPv2N2nw5Sound5SoundEPN2nw14MemoryResourceE"></span><span id="nw::Sound::Sound__nw::MemoryResourceP"></span><span class="target" id="structnw_1_1_sound_1aff3816f4ca14fd913acfeec56289db98"></span><span class="sig-name descname"><span class="n"><span class="pre">Sound</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">nw</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">MemoryResource</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">allocator</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw5Sound5SoundEPN2nw14MemoryResourceE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw5Sound9as_commonEv">
 <span id="_CPPv3N2nw5Sound9as_commonEv"></span><span id="_CPPv2N2nw5Sound9as_commonEv"></span><span id="nw::Sound::as_common"></span><span class="target" id="structnw_1_1_sound_1a74fb7ac805aed6aaf8337dd7c43d982c"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><a class="reference internal" href="nw__Common.html#_CPPv4N2nw6CommonE" title="nw::Common"><span class="n"><span class="pre">Common</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">as_common</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">override</span></span><a class="headerlink" href="#_CPPv4N2nw5Sound9as_commonEv" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
@@ -503,8 +509,8 @@
 <dd></dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N2nw5Sound7destroyEv">
-<span id="_CPPv3N2nw5Sound7destroyEv"></span><span id="_CPPv2N2nw5Sound7destroyEv"></span><span id="nw::Sound::destroy"></span><span class="target" id="structnw_1_1_object_base_1a775d8c65461d749cf3a2582e636763f0"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">destroy</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw5Sound7destroyEv" title="Link to this definition"></a><br /></dt>
+<dt class="sig sig-object cpp" id="_CPPv4N2nw5Sound5clearEv">
+<span id="_CPPv3N2nw5Sound5clearEv"></span><span id="_CPPv2N2nw5Sound5clearEv"></span><span id="nw::Sound::clear"></span><span class="target" id="structnw_1_1_object_base_1a3b512a54dc3e00a0fc518a8d45e701e4"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">clear</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw5Sound5clearEv" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp function">

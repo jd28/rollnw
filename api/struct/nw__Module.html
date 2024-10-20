@@ -155,9 +155,11 @@
 <li class="toctree-l2 current"><a class="current reference internal" href="#">nw::Module</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#_CPPv4N2nw6ModuleE"><code class="docutils literal notranslate"><span class="pre">Module</span></code></a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6Module11AreaVariantE"><code class="docutils literal notranslate"><span class="pre">Module::AreaVariant</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6Module6ModuleEv"><code class="docutils literal notranslate"><span class="pre">Module::Module()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6Module6ModuleEPN2nw14MemoryResourceE"><code class="docutils literal notranslate"><span class="pre">Module::Module()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6Module9as_moduleEv"><code class="docutils literal notranslate"><span class="pre">Module::as_module()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw6Module9as_moduleEv"><code class="docutils literal notranslate"><span class="pre">Module::as_module()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6Module7destroyEv"><code class="docutils literal notranslate"><span class="pre">Module::destroy()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6Module5clearEv"><code class="docutils literal notranslate"><span class="pre">Module::clear()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6Module11instantiateEv"><code class="docutils literal notranslate"><span class="pre">Module::instantiate()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw6Module10area_countEv"><code class="docutils literal notranslate"><span class="pre">Module::area_count()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw6Module8get_areaE6size_t"><code class="docutils literal notranslate"><span class="pre">Module::get_area()</span></code></a></li>
@@ -458,6 +460,16 @@
 <div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
 <dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6Module6ModuleEv">
+<span id="_CPPv3N2nw6Module6ModuleEv"></span><span id="_CPPv2N2nw6Module6ModuleEv"></span><span id="nw::Module::Module"></span><span class="target" id="structnw_1_1_module_1a2a0f0b9ab66e3d7e28e8d8f6f89a5c80"></span><span class="sig-name descname"><span class="n"><span class="pre">Module</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6Module6ModuleEv" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6Module6ModuleEPN2nw14MemoryResourceE">
+<span id="_CPPv3N2nw6Module6ModuleEPN2nw14MemoryResourceE"></span><span id="_CPPv2N2nw6Module6ModuleEPN2nw14MemoryResourceE"></span><span id="nw::Module::Module__nw::MemoryResourceP"></span><span class="target" id="structnw_1_1_module_1adab12ee9c32cec7a7451c744ac84fa5f"></span><span class="sig-name descname"><span class="n"><span class="pre">Module</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">nw</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">MemoryResource</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">allocator</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw6Module6ModuleEPN2nw14MemoryResourceE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw6Module9as_moduleEv">
 <span id="_CPPv3N2nw6Module9as_moduleEv"></span><span id="_CPPv2N2nw6Module9as_moduleEv"></span><span id="nw::Module::as_module"></span><span class="target" id="structnw_1_1_module_1a1e68e83e713de87b44c6629aae505efc"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N2nw6ModuleE" title="nw::Module"><span class="n"><span class="pre">Module</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">as_module</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">override</span></span><a class="headerlink" href="#_CPPv4N2nw6Module9as_moduleEv" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
@@ -468,8 +480,8 @@
 <dd></dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N2nw6Module7destroyEv">
-<span id="_CPPv3N2nw6Module7destroyEv"></span><span id="_CPPv2N2nw6Module7destroyEv"></span><span id="nw::Module::destroy"></span><span class="target" id="structnw_1_1_module_1a5ac647bbdd8f2905277a60921adc6942"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">destroy</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">override</span></span><a class="headerlink" href="#_CPPv4N2nw6Module7destroyEv" title="Link to this definition"></a><br /></dt>
+<dt class="sig sig-object cpp" id="_CPPv4N2nw6Module5clearEv">
+<span id="_CPPv3N2nw6Module5clearEv"></span><span id="_CPPv2N2nw6Module5clearEv"></span><span id="nw::Module::clear"></span><span class="target" id="structnw_1_1_module_1a9fb1a5d0fb47bc847e7f17c531cfbbf4"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">clear</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">override</span></span><a class="headerlink" href="#_CPPv4N2nw6Module5clearEv" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp function">

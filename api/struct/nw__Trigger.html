@@ -203,6 +203,7 @@
 <li class="toctree-l2 current"><a class="current reference internal" href="#">nw::Trigger</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#_CPPv4N2nw7TriggerE"><code class="docutils literal notranslate"><span class="pre">Trigger</span></code></a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw7Trigger7TriggerEv"><code class="docutils literal notranslate"><span class="pre">Trigger::Trigger()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw7Trigger7TriggerEPN2nw14MemoryResourceE"><code class="docutils literal notranslate"><span class="pre">Trigger::Trigger()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw7Trigger9as_commonEv"><code class="docutils literal notranslate"><span class="pre">Trigger::as_common()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw7Trigger9as_commonEv"><code class="docutils literal notranslate"><span class="pre">Trigger::as_common()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw7Trigger10as_triggerEv"><code class="docutils literal notranslate"><span class="pre">Trigger::as_trigger()</span></code></a></li>
@@ -215,7 +216,7 @@
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw7Trigger10set_handleE12ObjectHandle"><code class="docutils literal notranslate"><span class="pre">Trigger::set_handle()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw7Trigger7effectsEv"><code class="docutils literal notranslate"><span class="pre">Trigger::effects()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw7Trigger7effectsEv"><code class="docutils literal notranslate"><span class="pre">Trigger::effects()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw7Trigger7destroyEv"><code class="docutils literal notranslate"><span class="pre">Trigger::destroy()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw7Trigger5clearEv"><code class="docutils literal notranslate"><span class="pre">Trigger::clear()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw7Trigger7as_areaEv"><code class="docutils literal notranslate"><span class="pre">Trigger::as_area()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw7Trigger7as_areaEv"><code class="docutils literal notranslate"><span class="pre">Trigger::as_area()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw7Trigger11as_creatureEv"><code class="docutils literal notranslate"><span class="pre">Trigger::as_creature()</span></code></a></li>
@@ -438,6 +439,11 @@
 <dd></dd></dl>
 
 <dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw7Trigger7TriggerEPN2nw14MemoryResourceE">
+<span id="_CPPv3N2nw7Trigger7TriggerEPN2nw14MemoryResourceE"></span><span id="_CPPv2N2nw7Trigger7TriggerEPN2nw14MemoryResourceE"></span><span id="nw::Trigger::Trigger__nw::MemoryResourceP"></span><span class="target" id="structnw_1_1_trigger_1a3509e1100e47f5d9ad692e651b2dc5fd"></span><span class="sig-name descname"><span class="n"><span class="pre">Trigger</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">nw</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">MemoryResource</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">allocator</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw7Trigger7TriggerEPN2nw14MemoryResourceE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw7Trigger9as_commonEv">
 <span id="_CPPv3N2nw7Trigger9as_commonEv"></span><span id="_CPPv2N2nw7Trigger9as_commonEv"></span><span id="nw::Trigger::as_common"></span><span class="target" id="structnw_1_1_trigger_1a24ccc8af7fc8e9e7ed3d6268d4275d87"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><a class="reference internal" href="nw__Common.html#_CPPv4N2nw6CommonE" title="nw::Common"><span class="n"><span class="pre">Common</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">as_common</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">override</span></span><a class="headerlink" href="#_CPPv4N2nw7Trigger9as_commonEv" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
@@ -498,8 +504,8 @@
 <dd></dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N2nw7Trigger7destroyEv">
-<span id="_CPPv3N2nw7Trigger7destroyEv"></span><span id="_CPPv2N2nw7Trigger7destroyEv"></span><span id="nw::Trigger::destroy"></span><span class="target" id="structnw_1_1_object_base_1a775d8c65461d749cf3a2582e636763f0"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">destroy</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw7Trigger7destroyEv" title="Link to this definition"></a><br /></dt>
+<dt class="sig sig-object cpp" id="_CPPv4N2nw7Trigger5clearEv">
+<span id="_CPPv3N2nw7Trigger5clearEv"></span><span id="_CPPv2N2nw7Trigger5clearEv"></span><span id="nw::Trigger::clear"></span><span class="target" id="structnw_1_1_object_base_1a3b512a54dc3e00a0fc518a8d45e701e4"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">clear</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw7Trigger5clearEv" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp function">

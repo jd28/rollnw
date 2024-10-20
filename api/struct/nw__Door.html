@@ -101,6 +101,7 @@
 <li class="toctree-l2 current"><a class="current reference internal" href="#">nw::Door</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#_CPPv4N2nw4DoorE"><code class="docutils literal notranslate"><span class="pre">Door</span></code></a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw4Door4DoorEv"><code class="docutils literal notranslate"><span class="pre">Door::Door()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw4Door4DoorEPN2nw14MemoryResourceE"><code class="docutils literal notranslate"><span class="pre">Door::Door()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw4Door9as_commonEv"><code class="docutils literal notranslate"><span class="pre">Door::as_common()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw4Door9as_commonEv"><code class="docutils literal notranslate"><span class="pre">Door::as_common()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw4Door7as_doorEv"><code class="docutils literal notranslate"><span class="pre">Door::as_door()</span></code></a></li>
@@ -112,7 +113,7 @@
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw4Door10set_handleE12ObjectHandle"><code class="docutils literal notranslate"><span class="pre">Door::set_handle()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw4Door7effectsEv"><code class="docutils literal notranslate"><span class="pre">Door::effects()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw4Door7effectsEv"><code class="docutils literal notranslate"><span class="pre">Door::effects()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw4Door7destroyEv"><code class="docutils literal notranslate"><span class="pre">Door::destroy()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw4Door5clearEv"><code class="docutils literal notranslate"><span class="pre">Door::clear()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw4Door9versus_meEv"><code class="docutils literal notranslate"><span class="pre">Door::versus_me()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw4Door7as_areaEv"><code class="docutils literal notranslate"><span class="pre">Door::as_area()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw4Door7as_areaEv"><code class="docutils literal notranslate"><span class="pre">Door::as_area()</span></code></a></li>
@@ -446,6 +447,11 @@
 <dd></dd></dl>
 
 <dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw4Door4DoorEPN2nw14MemoryResourceE">
+<span id="_CPPv3N2nw4Door4DoorEPN2nw14MemoryResourceE"></span><span id="_CPPv2N2nw4Door4DoorEPN2nw14MemoryResourceE"></span><span id="nw::Door::Door__nw::MemoryResourceP"></span><span class="target" id="structnw_1_1_door_1a4d90e6893910699e7c3e23fe21a686f8"></span><span class="sig-name descname"><span class="n"><span class="pre">Door</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">nw</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">MemoryResource</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">allocator</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw4Door4DoorEPN2nw14MemoryResourceE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw4Door9as_commonEv">
 <span id="_CPPv3N2nw4Door9as_commonEv"></span><span id="_CPPv2N2nw4Door9as_commonEv"></span><span id="nw::Door::as_common"></span><span class="target" id="structnw_1_1_door_1a399b8e7a7c945708ff056f2db6135b6f"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><a class="reference internal" href="nw__Common.html#_CPPv4N2nw6CommonE" title="nw::Common"><span class="n"><span class="pre">Common</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">as_common</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">override</span></span><a class="headerlink" href="#_CPPv4N2nw4Door9as_commonEv" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
@@ -501,8 +507,8 @@
 <dd></dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N2nw4Door7destroyEv">
-<span id="_CPPv3N2nw4Door7destroyEv"></span><span id="_CPPv2N2nw4Door7destroyEv"></span><span id="nw::Door::destroy"></span><span class="target" id="structnw_1_1_object_base_1a775d8c65461d749cf3a2582e636763f0"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">destroy</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw4Door7destroyEv" title="Link to this definition"></a><br /></dt>
+<dt class="sig sig-object cpp" id="_CPPv4N2nw4Door5clearEv">
+<span id="_CPPv3N2nw4Door5clearEv"></span><span id="_CPPv2N2nw4Door5clearEv"></span><span id="nw::Door::clear"></span><span class="target" id="structnw_1_1_object_base_1a3b512a54dc3e00a0fc518a8d45e701e4"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">clear</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw4Door5clearEv" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp function">

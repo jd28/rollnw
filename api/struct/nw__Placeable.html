@@ -162,11 +162,12 @@
 <li class="toctree-l2 current"><a class="current reference internal" href="#">nw::Placeable</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#_CPPv4N2nw9PlaceableE"><code class="docutils literal notranslate"><span class="pre">Placeable</span></code></a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw9Placeable9PlaceableEv"><code class="docutils literal notranslate"><span class="pre">Placeable::Placeable()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw9Placeable9PlaceableEP14MemoryResource"><code class="docutils literal notranslate"><span class="pre">Placeable::Placeable()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw9Placeable9as_commonEv"><code class="docutils literal notranslate"><span class="pre">Placeable::as_common()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw9Placeable9as_commonEv"><code class="docutils literal notranslate"><span class="pre">Placeable::as_common()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw9Placeable12as_placeableEv"><code class="docutils literal notranslate"><span class="pre">Placeable::as_placeable()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw9Placeable12as_placeableEv"><code class="docutils literal notranslate"><span class="pre">Placeable::as_placeable()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw9Placeable7destroyEv"><code class="docutils literal notranslate"><span class="pre">Placeable::destroy()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw9Placeable5clearEv"><code class="docutils literal notranslate"><span class="pre">Placeable::clear()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw9Placeable11instantiateEv"><code class="docutils literal notranslate"><span class="pre">Placeable::instantiate()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw9Placeable3tagEv"><code class="docutils literal notranslate"><span class="pre">Placeable::tag()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw9Placeable9allocatorEv"><code class="docutils literal notranslate"><span class="pre">Placeable::allocator()</span></code></a></li>
@@ -447,6 +448,11 @@
 <dd></dd></dl>
 
 <dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw9Placeable9PlaceableEP14MemoryResource">
+<span id="_CPPv3N2nw9Placeable9PlaceableEP14MemoryResource"></span><span id="_CPPv2N2nw9Placeable9PlaceableEP14MemoryResource"></span><span id="nw::Placeable::Placeable__MemoryResourceP"></span><span class="target" id="structnw_1_1_placeable_1a760e58578613b9aaf8d819d0c347ebfa"></span><span class="sig-name descname"><span class="n"><span class="pre">Placeable</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">MemoryResource</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">allocator</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw9Placeable9PlaceableEP14MemoryResource" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw9Placeable9as_commonEv">
 <span id="_CPPv3N2nw9Placeable9as_commonEv"></span><span id="_CPPv2N2nw9Placeable9as_commonEv"></span><span id="nw::Placeable::as_common"></span><span class="target" id="structnw_1_1_placeable_1aa24c2fcb3f832f07fba21ef3da7c4268"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><a class="reference internal" href="nw__Common.html#_CPPv4N2nw6CommonE" title="nw::Common"><span class="n"><span class="pre">Common</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">as_common</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">override</span></span><a class="headerlink" href="#_CPPv4N2nw9Placeable9as_commonEv" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
@@ -467,8 +473,8 @@
 <dd></dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N2nw9Placeable7destroyEv">
-<span id="_CPPv3N2nw9Placeable7destroyEv"></span><span id="_CPPv2N2nw9Placeable7destroyEv"></span><span id="nw::Placeable::destroy"></span><span class="target" id="structnw_1_1_placeable_1a6724a44963bf95ea522d24b47cbb56d0"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">destroy</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">override</span></span><a class="headerlink" href="#_CPPv4N2nw9Placeable7destroyEv" title="Link to this definition"></a><br /></dt>
+<dt class="sig sig-object cpp" id="_CPPv4N2nw9Placeable5clearEv">
+<span id="_CPPv3N2nw9Placeable5clearEv"></span><span id="_CPPv2N2nw9Placeable5clearEv"></span><span id="nw::Placeable::clear"></span><span class="target" id="structnw_1_1_placeable_1af559e2c86beb87bf3b77f3169eaf17b7"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">clear</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">override</span></span><a class="headerlink" href="#_CPPv4N2nw9Placeable5clearEv" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp function">
@@ -666,7 +672,7 @@
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw9Placeable10appearanceE">
-<span id="_CPPv3N2nw9Placeable10appearanceE"></span><span id="_CPPv2N2nw9Placeable10appearanceE"></span><span id="nw::Placeable::appearance__uint32_t"></span><span class="target" id="structnw_1_1_placeable_1a82d77b9fbf12051986072779fdfbff49"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">appearance</span></span></span><a class="headerlink" href="#_CPPv4N2nw9Placeable10appearanceE" title="Link to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw9Placeable10appearanceE"></span><span id="_CPPv2N2nw9Placeable10appearanceE"></span><span id="nw::Placeable::appearance__uint32_t"></span><span class="target" id="structnw_1_1_placeable_1a82d77b9fbf12051986072779fdfbff49"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">appearance</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N2nw9Placeable10appearanceE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
@@ -686,12 +692,12 @@
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw9Placeable11portrait_idE">
-<span id="_CPPv3N2nw9Placeable11portrait_idE"></span><span id="_CPPv2N2nw9Placeable11portrait_idE"></span><span id="nw::Placeable::portrait_id__uint16_t"></span><span class="target" id="structnw_1_1_placeable_1af79a96fb89f8de030234fbded7c87aeb"></span><span class="n"><span class="pre">uint16_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">portrait_id</span></span></span><a class="headerlink" href="#_CPPv4N2nw9Placeable11portrait_idE" title="Link to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw9Placeable11portrait_idE"></span><span id="_CPPv2N2nw9Placeable11portrait_idE"></span><span id="nw::Placeable::portrait_id__uint16_t"></span><span class="target" id="structnw_1_1_placeable_1af79a96fb89f8de030234fbded7c87aeb"></span><span class="n"><span class="pre">uint16_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">portrait_id</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N2nw9Placeable11portrait_idE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw9Placeable15animation_stateE">
-<span id="_CPPv3N2nw9Placeable15animation_stateE"></span><span id="_CPPv2N2nw9Placeable15animation_stateE"></span><span id="nw::Placeable::animation_state__PlaceableAnimationState"></span><span class="target" id="structnw_1_1_placeable_1ad14e498bfb405047b16d14ffa1cc8c59"></span><a class="reference internal" href="../enum/nw__PlaceableAnimationState.html#_CPPv4N2nw23PlaceableAnimationStateE" title="nw::PlaceableAnimationState"><span class="n"><span class="pre">PlaceableAnimationState</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">animation_state</span></span></span><a class="headerlink" href="#_CPPv4N2nw9Placeable15animation_stateE" title="Link to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw9Placeable15animation_stateE"></span><span id="_CPPv2N2nw9Placeable15animation_stateE"></span><span id="nw::Placeable::animation_state__PlaceableAnimationState"></span><span class="target" id="structnw_1_1_placeable_1ad14e498bfb405047b16d14ffa1cc8c59"></span><a class="reference internal" href="../enum/nw__PlaceableAnimationState.html#_CPPv4N2nw23PlaceableAnimationStateE" title="nw::PlaceableAnimationState"><span class="n"><span class="pre">PlaceableAnimationState</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">animation_state</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="../enum/nw__PlaceableAnimationState.html#_CPPv4N2nw23PlaceableAnimationStateE" title="nw::PlaceableAnimationState"><span class="n"><span class="pre">PlaceableAnimationState</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../enum/nw__PlaceableAnimationState.html#_CPPv4N2nw23PlaceableAnimationState4noneE" title="nw::PlaceableAnimationState::none"><span class="n"><span class="pre">none</span></span></a><a class="headerlink" href="#_CPPv4N2nw9Placeable15animation_stateE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
@@ -701,7 +707,7 @@
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N2nw9Placeable8hardnessE">
-<span id="_CPPv3N2nw9Placeable8hardnessE"></span><span id="_CPPv2N2nw9Placeable8hardnessE"></span><span id="nw::Placeable::hardness__uint8_t"></span><span class="target" id="structnw_1_1_placeable_1a37d1023ef85be877f020641ecf37f56a"></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">hardness</span></span></span><a class="headerlink" href="#_CPPv4N2nw9Placeable8hardnessE" title="Link to this definition"></a><br /></dt>
+<span id="_CPPv3N2nw9Placeable8hardnessE"></span><span id="_CPPv2N2nw9Placeable8hardnessE"></span><span id="nw::Placeable::hardness__uint8_t"></span><span class="target" id="structnw_1_1_placeable_1a37d1023ef85be877f020641ecf37f56a"></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">hardness</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N2nw9Placeable8hardnessE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp var">
