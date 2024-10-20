@@ -14,6 +14,7 @@ const std::type_index Strings::type_index{typeid(Strings)};
 
 Strings::Strings(MemoryResource* memory)
     : Service(memory)
+    , string_pool_{8192, 128, allocator()}
 {
 }
 
@@ -102,6 +103,11 @@ void Strings::load_dialog_tlk(const std::filesystem::path& path)
             dialogf_ = Tlk{fem};
         }
     }
+}
+
+nw::MemoryPool* Strings::pool() noexcept
+{
+    return &string_pool_;
 }
 
 LanguageID Strings::global_language() const noexcept

@@ -51,6 +51,9 @@ struct Strings : public Service {
     /// Loads a dialog Tlk and feminine version if available
     void load_dialog_tlk(const std::filesystem::path& path);
 
+    /// Gets the global string memory pool
+    nw::MemoryPool* pool() noexcept;
+
     /// Gets the language ID that is considered 'default'
     /// @note This determines the character encoding of strings as they are stored
     /// in game resources, TLK, GFF, etc.  In EE the only encoding that isn't CP1252
@@ -71,6 +74,7 @@ private:
 
     // Node hash set for pointer stability
     absl::node_hash_set<String> interned_;
+    nw::MemoryPool string_pool_;
 
     LanguageID global_lang_ = LanguageID::english;
 };
