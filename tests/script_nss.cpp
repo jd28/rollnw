@@ -113,7 +113,9 @@ TEST(Nss, Variables)
     const script::Ast& s1 = nss1.ast();
     auto decl1 = dynamic_cast<script::DeclList*>(s1.decls[0]);
     EXPECT_TRUE(decl1);
-    EXPECT_EQ(decl1->decls.size(), 3);
+    if (decl1) {
+        EXPECT_EQ(decl1->decls.size(), 3);
+    }
 
     // Empty statement..
     script::Nss nss2("void test_function(string s, int b) { int a;; }"sv, ctx.get());

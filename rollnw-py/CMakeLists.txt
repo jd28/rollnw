@@ -30,7 +30,7 @@ target_link_libraries(rollnw PRIVATE
     pybind11::module
 )
 
-target_include_directories(rollnw PRIVATE
+target_include_directories(rollnw SYSTEM PRIVATE
     ../lib
     ../lib/nw/profiles
     ../external/pybind11_json/include
