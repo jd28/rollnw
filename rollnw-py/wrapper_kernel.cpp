@@ -22,7 +22,6 @@
 #include <pybind11/stl_bind.h>
 
 #include <filesystem>
-#include <initializer_list>
 
 namespace py = pybind11;
 namespace fs = std::filesystem;
@@ -30,6 +29,7 @@ namespace fs = std::filesystem;
 void init_kernel_config(py::module& kernel)
 {
     py::class_<nw::ConfigOptions>(kernel, "ConfigOptions")
+        .def(py::init<>())
         .def_readwrite("include_install", &nw::ConfigOptions::include_install)
         .def_readwrite("include_nwsync", &nw::ConfigOptions::include_nwsync)
         .def_readwrite("include_user", &nw::ConfigOptions::include_user);
