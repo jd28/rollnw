@@ -5974,10 +5974,10 @@
 </li>
       <li><a href="api/struct/nw__model__Model.html#_CPPv4N2nw5model5Model15supermodel_nameE">nw::model::Model::supermodel_name (C++ member)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/struct/nw__model__Model.html#_CPPv4N2nw5model5Model4typeE">nw::model::Model::type (C++ member)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/struct/nw__model__Model.html#_CPPv4N2nw5model5ModelD0Ev">nw::model::Model::~Model (C++ function)</a>
 </li>
       <li><a href="api/struct/nw__model__Node.html#_CPPv4N2nw5model4NodeE">nw::model::Node (C++ struct)</a>
@@ -7432,11 +7432,13 @@
 </li>
       <li><a href="api/struct/nw__script__Ast.html#_CPPv4N2nw6script3Ast6acceptEP11BaseVisitor">nw::script::Ast::accept (C++ function)</a>
 </li>
-      <li><a href="api/struct/nw__script__Ast.html#_CPPv4N2nw6script3Ast3AstERK3Ast">nw::script::Ast::Ast (C++ function)</a>, <a href="api/struct/nw__script__Ast.html#_CPPv4N2nw6script3Ast3AstERR3Ast">[1]</a>, <a href="api/struct/nw__script__Ast.html#_CPPv4N2nw6script3Ast3AstEv">[2]</a>
+      <li><a href="api/struct/nw__script__Ast.html#_CPPv4N2nw6script3Ast3AstEP7Context">nw::script::Ast::Ast (C++ function)</a>, <a href="api/struct/nw__script__Ast.html#_CPPv4N2nw6script3Ast3AstERK3Ast">[1]</a>, <a href="api/struct/nw__script__Ast.html#_CPPv4N2nw6script3Ast3AstERR3Ast">[2]</a>
 </li>
       <li><a href="api/struct/nw__script__Ast.html#_CPPv4N2nw6script3Ast8commentsE">nw::script::Ast::comments (C++ member)</a>
 </li>
       <li><a href="api/struct/nw__script__Ast.html#_CPPv4I0DpEN2nw6script3Ast11create_nodeEP1TDpRR4Args">nw::script::Ast::create_node (C++ function)</a>
+</li>
+      <li><a href="api/struct/nw__script__Ast.html#_CPPv4N2nw6script3Ast4ctx_E">nw::script::Ast::ctx_ (C++ member)</a>
 </li>
       <li><a href="api/struct/nw__script__Ast.html#_CPPv4N2nw6script3Ast5declsE">nw::script::Ast::decls (C++ member)</a>
 </li>
@@ -7447,8 +7449,6 @@
       <li><a href="api/struct/nw__script__Ast.html#_CPPv4N2nw6script3Ast8includesE">nw::script::Ast::includes (C++ member)</a>
 </li>
       <li><a href="api/struct/nw__script__Ast.html#_CPPv4N2nw6script3Ast8line_mapE">nw::script::Ast::line_map (C++ member)</a>
-</li>
-      <li><a href="api/struct/nw__script__Ast.html#_CPPv4N2nw6script3Ast6nodes_E">nw::script::Ast::nodes_ (C++ member)</a>
 </li>
       <li><a href="api/struct/nw__script__Ast.html#_CPPv4N2nw6script3AstaSERK3Ast">nw::script::Ast::operator= (C++ function)</a>, <a href="api/struct/nw__script__Ast.html#_CPPv4N2nw6script3AstaSERR3Ast">[1]</a>
 </li>
@@ -7586,7 +7586,7 @@
 </li>
       <li><a href="api/struct/nw__script__BlockStatement.html#_CPPv4N2nw6script14BlockStatement6acceptEP11BaseVisitor">nw::script::BlockStatement::accept (C++ function)</a>
 </li>
-      <li><a href="api/struct/nw__script__BlockStatement.html#_CPPv4N2nw6script14BlockStatement14BlockStatementER14BlockStatement">nw::script::BlockStatement::BlockStatement (C++ function)</a>, <a href="api/struct/nw__script__BlockStatement.html#_CPPv4N2nw6script14BlockStatement14BlockStatementEv">[1]</a>
+      <li><a href="api/struct/nw__script__BlockStatement.html#_CPPv4N2nw6script14BlockStatement14BlockStatementEP14MemoryResource">nw::script::BlockStatement::BlockStatement (C++ function)</a>, <a href="api/struct/nw__script__BlockStatement.html#_CPPv4N2nw6script14BlockStatement14BlockStatementER14BlockStatement">[1]</a>
 </li>
       <li><a href="api/struct/nw__script__BlockStatement.html#_CPPv4NK2nw6script14BlockStatement8completeERK6StringR6VectorIPK11DeclarationEb">nw::script::BlockStatement::complete (C++ function)</a>
 </li>
@@ -7610,7 +7610,7 @@
 </li>
       <li><a href="api/struct/nw__script__CallExpression.html#_CPPv4N2nw6script14CallExpression4argsE">nw::script::CallExpression::args (C++ member)</a>
 </li>
-      <li><a href="api/struct/nw__script__CallExpression.html#_CPPv4N2nw6script14CallExpression14CallExpressionEP10Expression">nw::script::CallExpression::CallExpression (C++ function)</a>
+      <li><a href="api/struct/nw__script__CallExpression.html#_CPPv4N2nw6script14CallExpression14CallExpressionEP10ExpressionP14MemoryResource">nw::script::CallExpression::CallExpression (C++ function)</a>
 </li>
       <li><a href="api/struct/nw__script__CallExpression.html#_CPPv4N2nw6script14CallExpression12comma_rangesE">nw::script::CallExpression::comma_ranges (C++ member)</a>
 </li>
@@ -7660,6 +7660,8 @@
 </li>
       <li><a href="api/struct/nw__script__Context.html#_CPPv4N2nw6script7Context16add_include_pathERKNSt10filesystem4pathE">nw::script::Context::add_include_path (C++ function)</a>
 </li>
+      <li><a href="api/struct/nw__script__Context.html#_CPPv4N2nw6script7Context5arenaE">nw::script::Context::arena (C++ member)</a>
+</li>
       <li><a href="api/struct/nw__script__Context.html#_CPPv4NK2nw6script7Context14command_scriptEv">nw::script::Context::command_script (C++ function)</a>
 </li>
       <li><a href="api/struct/nw__script__Context.html#_CPPv4N2nw6script7Context15command_script_E">nw::script::Context::command_script_ (C++ member)</a>
@@ -7689,6 +7691,8 @@
       <li><a href="api/struct/nw__script__Context.html#_CPPv4N2nw6script7Context21register_engine_typesEv">nw::script::Context::register_engine_types (C++ function)</a>
 </li>
       <li><a href="api/struct/nw__script__Context.html#_CPPv4N2nw6script7Context7resman_E">nw::script::Context::resman_ (C++ member)</a>
+</li>
+      <li><a href="api/struct/nw__script__Context.html#_CPPv4N2nw6script7Context5scopeE">nw::script::Context::scope (C++ member)</a>
 </li>
       <li><a href="api/struct/nw__script__Context.html#_CPPv4N2nw6script7Context19semantic_diagnosticEP3Nss10StringViewb11SourceRange">nw::script::Context::semantic_diagnostic (C++ function)</a>
 </li>
@@ -7854,7 +7858,7 @@
 </li>
       <li><a href="api/struct/nw__script__FunctionDecl.html#_CPPv4N2nw6script12FunctionDecl4env_E">nw::script::FunctionDecl::env_ (C++ member)</a>
 </li>
-      <li><a href="api/struct/nw__script__FunctionDecl.html#_CPPv4N2nw6script12FunctionDecl12FunctionDeclER12FunctionDecl">nw::script::FunctionDecl::FunctionDecl (C++ function)</a>, <a href="api/struct/nw__script__FunctionDecl.html#_CPPv4N2nw6script12FunctionDecl12FunctionDeclEv">[1]</a>
+      <li><a href="api/struct/nw__script__FunctionDecl.html#_CPPv4N2nw6script12FunctionDecl12FunctionDeclEP14MemoryResource">nw::script::FunctionDecl::FunctionDecl (C++ function)</a>, <a href="api/struct/nw__script__FunctionDecl.html#_CPPv4N2nw6script12FunctionDecl12FunctionDeclER12FunctionDecl">[1]</a>
 </li>
       <li><a href="api/struct/nw__script__FunctionDecl.html#_CPPv4NK2nw6script12FunctionDecl10identifierEv">nw::script::FunctionDecl::identifier (C++ function)</a>
 </li>
@@ -8525,6 +8529,8 @@
       <li><a href="api/struct/nw__script__StructDecl.html#_CPPv4N2nw6script10StructDecl16range_selection_E">nw::script::StructDecl::range_selection_ (C++ member)</a>
 </li>
       <li><a href="api/struct/nw__script__StructDecl.html#_CPPv4NK2nw6script10StructDecl15selection_rangeEv">nw::script::StructDecl::selection_range (C++ function)</a>
+</li>
+      <li><a href="api/struct/nw__script__StructDecl.html#_CPPv4N2nw6script10StructDecl10StructDeclEP14MemoryResource">nw::script::StructDecl::StructDecl (C++ function)</a>
 </li>
       <li><a href="api/struct/nw__script__StructDecl.html#_CPPv4N2nw6script10StructDecl4typeE">nw::script::StructDecl::type (C++ member)</a>
 </li>
