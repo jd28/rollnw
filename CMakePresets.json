@@ -61,12 +61,32 @@
                 "ROLLNW_BUILD_BENCHMARKS": {
                     "type": "BOOL",
                     "value": "ON"
-                },
+                }
+            }
+        },
+        {
+            "name": "linux-dev-debug",
+            "inherits": "linux-dev",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug"
+            }
+        },
+        {
+            "name": "linux-dev-python",
+            "inherits": "linux-dev",
+            "cacheVariables": {
                 "ROLLNW_BUILD_PYTHON": {
                     "type": "BOOL",
                     "value": "ON"
                 }
             }
+        },
+        {
+            "name": "linux-dev-python-debug",
+            "inherits": [
+                "linux-dev-debug",
+                "linux-dev-python"
+            ]
         },
         {
             "name": "ci-codeql",
