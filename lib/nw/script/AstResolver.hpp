@@ -789,10 +789,6 @@ struct AstResolver : BaseVisitor {
                 fmt::format("unable to resolve identifier '{}'", expr->var.loc.view()),
                 false,
                 expr->range_);
-
-            for (const auto& it : ctx_->preprocessed_) {
-                LOG_F(INFO, "preprocessed stack: {}", it.resref);
-            }
         }
     }
 

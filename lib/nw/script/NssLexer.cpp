@@ -339,9 +339,23 @@ NssToken NssLexer::next()
             break;
 
         // Whitespace
-        case ' ':
+        case ' ': {
+            // Most? Use 4 spaces while coding nwscript?
+            while (pos_ + 4 < buffer_.size()) {
+                uint32_t temp;
+                memcpy(&temp, buffer_.data() + pos_, 4);
+                if (temp != 0x20202020) { break; }
+                pos_ += 4;
+            }
+            while (get(pos_) == ' ') {
+                ++pos_;
+            }
+            continue;
+        }
         case '\t':
-            ++pos_;
+            while (get(pos_) == '\t') {
+                ++pos_;
+            }
             continue;
         case '\r':
             ++line_;
