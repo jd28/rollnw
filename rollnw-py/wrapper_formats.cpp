@@ -306,7 +306,10 @@ void init_formats_twoda(py::module& nw)
         .def("pad", &nw::TwoDA::pad)
         .def("row", &nw::TwoDA::row)
         .def("rows", &nw::TwoDA::rows)
-        .def("valid", &nw::TwoDA::is_valid);
+        .def("valid", &nw::TwoDA::is_valid)
+        .def_static("from_string", [](std::string_view file) {
+            return new nw::TwoDA(file);
+        });
 }
 
 void init_formats(py::module& nw)

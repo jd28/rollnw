@@ -86,6 +86,9 @@ struct TwoDA {
     /// Constructs TwoDA object from an array of bytes
     explicit TwoDA(ResourceData data);
 
+    /// Constructs TwoDA object from a string
+    explicit TwoDA(std::string_view data);
+
     /// Finds the index of a column, or -1
     size_t column_index(StringView column) const;
 

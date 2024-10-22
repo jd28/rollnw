@@ -94,6 +94,13 @@ TwoDA::TwoDA(ResourceData data)
     is_loaded_ = parse();
 }
 
+TwoDA::TwoDA(std::string_view str)
+{
+    data_.name = Resource("<source>"sv, ResourceType::twoda);
+    data_.bytes.append(str.data(), str.size());
+    is_loaded_ = parse();
+}
+
 size_t TwoDA::column_index(const StringView column) const
 {
     for (size_t i = 0; i < columns_.size(); ++i) {
@@ -186,9 +193,9 @@ bool TwoDA::parse()
             }
 
             if (drop) {
-                LOG_F(WARNING, "Row: {} - Incorrect column count dropped {} columns, line {}", row, drop, tknz.line - 1);
+                LOG_F(WARNING, "[2da] {} - Row: {} - Incorrect column count dropped {} columns", data_.name.resref.view(), row, drop);
             } else if (pad) {
-                LOG_F(WARNING, "Row: {} - Incorrect column count padded {} columns, line {}", row, pad, tknz.line - 1);
+                LOG_F(WARNING, "[2da] {} - Row: {} - Incorrect column count padded {} columns", data_.name.resref.view(), row, pad);
             }
 
             while (is_newline(tk))

@@ -4,11 +4,14 @@
 #include <nw/log.hpp>
 
 #include <cstring>
+#include <filesystem>
 #include <fstream>
+
+namespace fs = std::filesystem;
 
 TEST(TwoDA, Parse)
 {
-    nw::TwoDA feat("test_data/user/development/feat.2da");
+    nw::TwoDA feat(fs::path("test_data/user/development/feat.2da"));
     EXPECT_TRUE(feat.is_valid());
     EXPECT_TRUE(feat.rows() == 1116);
     EXPECT_EQ(*feat.get<std::string_view>(4, 0), "ArmProfMed");
@@ -26,7 +29,7 @@ TEST(TwoDA, Parse)
     feat.set(0, 1, "test");
     EXPECT_EQ(*feat.get<std::string>(0, 1), "test");
 
-    nw::TwoDA empty("test_data/user/development/empty.2da");
+    nw::TwoDA empty(fs::path("test_data/user/development/empty.2da"));
     EXPECT_FALSE(empty.is_valid());
 
     std::ofstream out{"tmp/feat_reform.2da", std::ios_base::binary};
