@@ -1,6 +1,6 @@
 #include "items.hpp"
 
-#include "../formats/TwoDA.hpp"
+#include "../formats/StaticTwoDA.hpp"
 #include "../kernel/Kernel.hpp"
 
 #include "nlohmann/json.hpp"

@@ -16,13 +16,13 @@ void TwoDACache::clear()
     cached_2das_.clear();
 }
 
-const TwoDA* TwoDACache::get(StringView tda)
+const StaticTwoDA* TwoDACache::get(StringView tda)
 {
     Resource res{tda, ResourceType::twoda};
     return get(res);
 }
 
-const TwoDA* TwoDACache::get(const Resource& tda)
+const StaticTwoDA* TwoDACache::get(const Resource& tda)
 {
     if (tda.type != ResourceType::twoda) {
         return nullptr;
@@ -31,7 +31,7 @@ const TwoDA* TwoDACache::get(const Resource& tda)
     if (it != std::end(cached_2das_)) {
         return it->second.get();
     } else {
-        auto t = std::make_unique<TwoDA>(kernel::resman().demand(tda));
+        auto t = std::make_unique<StaticTwoDA>(kernel::resman().demand(tda));
         if (t->is_valid()) {
             cached_2das_[tda] = std::move(t);
             return cached_2das_[tda].get();

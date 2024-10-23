@@ -6,7 +6,7 @@
 #include "rules.hpp"
 
 #include "../../formats/Ini.hpp"
-#include "../../formats/TwoDA.hpp"
+#include "../../formats/StaticTwoDA.hpp"
 #include "../../kernel/Objects.hpp"
 #include "../../kernel/Resources.hpp"
 #include "../../kernel/Rules.hpp"
@@ -70,17 +70,17 @@ bool Profile::load_rules() const
 
     // == Load 2das ===========================================================
 
-    nw::TwoDA appearances{nw::kernel::resman().demand({"appearance"sv, nw::ResourceType::twoda})};
-    nw::TwoDA baseitems{nw::kernel::resman().demand({"baseitems"sv, nw::ResourceType::twoda})};
-    nw::TwoDA classes{nw::kernel::resman().demand({"classes"sv, nw::ResourceType::twoda})};
-    nw::TwoDA feat{nw::kernel::resman().demand({"feat"sv, nw::ResourceType::twoda})};
-    nw::TwoDA placeables{nw::kernel::resman().demand({"placeables"sv, nw::ResourceType::twoda})};
-    nw::TwoDA phenotypes{nw::kernel::resman().demand({"phenotype"sv, nw::ResourceType::twoda})};
-    nw::TwoDA racialtypes{nw::kernel::resman().demand({"racialtypes"sv, nw::ResourceType::twoda})};
-    nw::TwoDA skills{nw::kernel::resman().demand({"skills"sv, nw::ResourceType::twoda})};
-    nw::TwoDA spells{nw::kernel::resman().demand({"spells"sv, nw::ResourceType::twoda})};
-    nw::TwoDA spellschools{nw::kernel::resman().demand({"spellschools"sv, nw::ResourceType::twoda})};
-    nw::TwoDA traps{nw::kernel::resman().demand({"traps"sv, nw::ResourceType::twoda})};
+    nw::StaticTwoDA appearances{nw::kernel::resman().demand({"appearance"sv, nw::ResourceType::twoda})};
+    nw::StaticTwoDA baseitems{nw::kernel::resman().demand({"baseitems"sv, nw::ResourceType::twoda})};
+    nw::StaticTwoDA classes{nw::kernel::resman().demand({"classes"sv, nw::ResourceType::twoda})};
+    nw::StaticTwoDA feat{nw::kernel::resman().demand({"feat"sv, nw::ResourceType::twoda})};
+    nw::StaticTwoDA placeables{nw::kernel::resman().demand({"placeables"sv, nw::ResourceType::twoda})};
+    nw::StaticTwoDA phenotypes{nw::kernel::resman().demand({"phenotype"sv, nw::ResourceType::twoda})};
+    nw::StaticTwoDA racialtypes{nw::kernel::resman().demand({"racialtypes"sv, nw::ResourceType::twoda})};
+    nw::StaticTwoDA skills{nw::kernel::resman().demand({"skills"sv, nw::ResourceType::twoda})};
+    nw::StaticTwoDA spells{nw::kernel::resman().demand({"spells"sv, nw::ResourceType::twoda})};
+    nw::StaticTwoDA spellschools{nw::kernel::resman().demand({"spellschools"sv, nw::ResourceType::twoda})};
+    nw::StaticTwoDA traps{nw::kernel::resman().demand({"traps"sv, nw::ResourceType::twoda})};
     nw::String temp_string;
     int temp_int = 0;
 
@@ -151,7 +151,7 @@ bool Profile::load_rules() const
                 LOG_F(WARNING, "[nwn1] valid class ({}) with invalid constant", i);
             }
             if (info.skill_table.valid()) {
-                nw::TwoDA tda{nw::kernel::resman().demand(info.skill_table)};
+                nw::StaticTwoDA tda{nw::kernel::resman().demand(info.skill_table)};
                 if (tda.is_valid()) {
                     info.class_skills.resize(skills.rows());
                     for (size_t j = 0; j < tda.rows(); ++j) {
@@ -169,7 +169,7 @@ bool Profile::load_rules() const
                 }
             }
             if (info.saving_throw_table.valid()) {
-                nw::TwoDA tda{nw::kernel::resman().demand(info.saving_throw_table)};
+                nw::StaticTwoDA tda{nw::kernel::resman().demand(info.saving_throw_table)};
                 if (tda.is_valid()) {
                     info.class_saves.reserve(tda.rows());
                     for (size_t j = 0; j < tda.rows(); ++j) {
@@ -185,7 +185,7 @@ bool Profile::load_rules() const
                 }
             }
             if (info.stat_gain_table.valid()) {
-                nw::TwoDA tda{nw::kernel::resman().demand(info.stat_gain_table)};
+                nw::StaticTwoDA tda{nw::kernel::resman().demand(info.stat_gain_table)};
                 if (tda.is_valid()) {
                     info.class_stat_gain.reserve(tda.rows());
                     for (size_t j = 0; j < tda.rows(); ++j) {
@@ -202,7 +202,7 @@ bool Profile::load_rules() const
                 }
             }
             if (info.prereq_table.valid()) {
-                nw::TwoDA tda{nw::kernel::resman().demand(info.prereq_table)};
+                nw::StaticTwoDA tda{nw::kernel::resman().demand(info.prereq_table)};
                 if (tda.is_valid()) {
                     for (size_t j = 0; j < tda.rows(); ++j) {
                         nw::StringView temp;

@@ -1,6 +1,6 @@
 #include "attributes.hpp"
 
-#include "../formats/TwoDA.hpp"
+#include "../formats/StaticTwoDA.hpp"
 #include "../kernel/Strings.hpp"
 
 #include "nlohmann/json.hpp"

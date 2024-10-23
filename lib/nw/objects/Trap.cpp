@@ -1,6 +1,6 @@
 #include "Trap.hpp"
 
-#include "../formats/TwoDA.hpp"
+#include "../formats/StaticTwoDA.hpp"
 #include "../serialization/Gff.hpp"
 #include "../serialization/GffBuilder.hpp"
 

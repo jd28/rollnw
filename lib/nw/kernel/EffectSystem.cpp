@@ -142,7 +142,7 @@ Effect* EffectSystem::generate(const ItemProperty& property, EquipIndex index, B
     return nullptr;
 }
 
-const TwoDA* EffectSystem::ip_cost_table(size_t table) const
+const StaticTwoDA* EffectSystem::ip_cost_table(size_t table) const
 {
     if (table >= ip_cost_table_.size()) { return nullptr; }
     return ip_cost_table_[table];
@@ -154,7 +154,7 @@ const ItemPropertyDefinition* EffectSystem::ip_definition(ItemPropertyType type)
     return &ip_definitions_[type.idx()];
 }
 
-const TwoDA* EffectSystem::ip_param_table(size_t table) const
+const StaticTwoDA* EffectSystem::ip_param_table(size_t table) const
 {
     if (table >= ip_param_table_.size()) { return nullptr; }
     return ip_param_table_[table];

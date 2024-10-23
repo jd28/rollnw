@@ -4,8 +4,6 @@
 #include "../resources/ResourceData.hpp"
 #include "../util/string.hpp"
 
-#include <span>
-
 #include <filesystem>
 #include <iostream>
 #include <limits>
@@ -36,7 +34,7 @@ struct StringVariant {
     {
     }
 
-    StringVariant(const StringVariant&) = delete;
+    StringVariant(const StringVariant&) = default;
     StringVariant(StringVariant&& other)
     {
         if (other.str.size()) {
@@ -46,7 +44,7 @@ struct StringVariant {
             view = other.view;
         }
     }
-    StringVariant& operator=(const StringVariant&) = delete;
+    StringVariant& operator=(const StringVariant&) = default;
     StringVariant& operator=(StringVariant&& other)
     {
         if (this != &other) {
@@ -66,16 +64,14 @@ struct StringVariant {
 
 } // namespace detail
 
-struct TwoDARowView;
-
-// == TwoDA ===================================================================
-
-struct TwoDA {
+struct TwoDA final {
+    using RowType = std::vector<detail::StringVariant>;
     static constexpr size_t npos = std::numeric_limits<size_t>::max();
 
     TwoDA() = default;
     TwoDA(const TwoDA&) = delete;
     TwoDA(TwoDA&&) = default;
+    virtual ~TwoDA() = default;
 
     TwoDA& operator=(const TwoDA&) = delete;
     TwoDA& operator=(TwoDA&&) = default;
@@ -88,6 +84,9 @@ struct TwoDA {
 
     /// Constructs TwoDA object from a string
     explicit TwoDA(std::string_view data);
+
+    /// Appends new column with default `****` values
+    bool add_column(StringView name);
 
     /// Finds the index of a column, or -1
     size_t column_index(StringView column) const;
@@ -111,11 +110,11 @@ struct TwoDA {
     template <typename T>
     bool get_to(size_t row, StringView col, T& out) const;
 
+    /// Is the 2da parsed without error
+    bool is_valid() const noexcept;
+
     /// Pads the 2da with ``count`` rows.
     void pad(size_t count);
-
-    /// Gets entire row as
-    TwoDARowView row(size_t row) const noexcept;
 
     /// Number of rows
     size_t rows() const noexcept;
@@ -128,20 +127,17 @@ struct TwoDA {
     template <typename T>
     void set(size_t row, StringView col, const T& value);
 
-    /// Is the 2da parsed without error
-    bool is_valid() const noexcept;
-
-private:
     friend std::ostream& operator<<(std::ostream& out, const TwoDA& tda);
 
+private:
     ResourceData data_;
-    bool is_loaded_ = false;
-
-    String default_;
     Vector<size_t> widths_;
+    bool is_loaded_ = false;
+    std::vector<RowType> rows_;
+    String default_;
     Vector<String> columns_;
-    Vector<detail::StringVariant> rows_;
 
+    StringView get_internal(size_t row, size_t col) const;
     bool parse();
 };
 
@@ -173,11 +169,7 @@ bool TwoDA::get_to(size_t row, size_t col, T& out) const
         std::is_same_v<T, String> || std::is_same_v<T, float> || std::is_convertible_v<T, int32_t> || std::is_same_v<T, StringView>,
         "TwoDA only supports float, String, StringView, or anything convertible to int32_t");
 
-    size_t idx = row * columns_.size() + col;
-    CHECK_F(idx < rows_.size(), "Out of Bounds row {}, col {}", row, col);
-
-    StringView res = rows_[idx].view;
-
+    StringView res = get_internal(row, col);
     if (res == "****") return false;
 
     if constexpr (std::is_same_v<T, float> || std::is_convertible_v<T, int>) {
@@ -207,19 +199,16 @@ bool TwoDA::get_to(size_t row, StringView col, T& out) const
 template <typename T>
 void TwoDA::set(size_t row, size_t col, const T& value)
 {
-    size_t idx = row * columns_.size() + col;
-    if (idx >= rows_.size()) return;
-
     int quote = 0;
     if constexpr (std::is_floating_point_v<T> || std::is_integral_v<T>) {
-        rows_[idx] = std::to_string(value);
+        rows_[row][col] = std::to_string(value);
     } else {
-        rows_[idx] = value;
-        if (rows_[idx].view.find(' ') != StringView::npos) {
+        rows_[row][col] = value;
+        if (rows_[row][col].view.find(' ') != StringView::npos) {
             quote = 2;
         }
     }
-    widths_[col] = std::max(widths_[col], rows_[idx].view.size() + quote);
+    widths_[col] = std::max(widths_[col], rows_[row][col].view.size() + quote);
 }
 
 template <typename T>
@@ -230,72 +219,5 @@ void TwoDA::set(size_t row, StringView col, const T& value)
 
 /// Overload for ``operator<<``
 std::ostream& operator<<(std::ostream& out, const TwoDA& tda);
-
-// == TwoDARowView ============================================================
-
-/**
- * @brief A view of a row in a TwoDA file
- * @note This behaves as ``StringView``, i.e. constant view only
- */
-struct TwoDARowView {
-    std::span<const detail::StringVariant> data;
-    const TwoDA* parent = nullptr;
-    size_t row_number = TwoDA::npos;
-
-    /// Gets an element
-    template <typename T>
-    std::optional<T> get(size_t col) const;
-
-    /// Gets an element
-    template <typename T>
-    std::optional<T> get(StringView col) const;
-
-    /// Gets an element
-    template <typename T>
-    bool get_to(size_t col, T& out) const;
-
-    /// Gets an element
-    template <typename T>
-    bool get_to(StringView col, T& out) const;
-
-    /// Gets the number of columns
-    size_t size() const noexcept { return data.size(); }
-};
-
-template <typename T>
-std::optional<T> TwoDARowView::get(size_t col) const
-{
-    if (!parent || col >= data.size()) {
-        return {};
-    }
-    return parent->get<T>(row_number, col);
-}
-
-template <typename T>
-std::optional<T> TwoDARowView::get(StringView col) const
-{
-    if (!parent) {
-        return {};
-    }
-    return parent->get<T>(row_number, col);
-}
-
-template <typename T>
-bool TwoDARowView::get_to(size_t col, T& out) const
-{
-    if (!parent || col >= data.size()) {
-        return false;
-    }
-    return parent->get_to(row_number, col, out);
-}
-
-template <typename T>
-bool TwoDARowView::get_to(StringView col, T& out) const
-{
-    if (!parent) {
-        return false;
-    }
-    return parent->get_to(row_number, col, out);
-}
 
 } // namespace nw

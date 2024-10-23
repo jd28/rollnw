@@ -1,6 +1,6 @@
 #include "feats.hpp"
 
-#include "../formats/TwoDA.hpp"
+#include "../formats/StaticTwoDA.hpp"
 #include "../kernel/Kernel.hpp"
 #include "../objects/CreatureStats.hpp"
 

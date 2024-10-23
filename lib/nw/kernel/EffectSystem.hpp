@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../formats/StaticTwoDA.hpp"
 #include "../objects/Equips.hpp"
 #include "../objects/ObjectBase.hpp"
 #include "../rules/Effect.hpp"
@@ -9,8 +10,6 @@
 
 #include <absl/container/flat_hash_map.h>
 
-#include <deque>
-#include <stack>
 #include <utility>
 
 namespace nw::kernel {
@@ -59,13 +58,13 @@ struct EffectSystem : public Service {
     virtual void initialize(ServiceInitTime time) override;
 
     /// Gets an item property cost table
-    const TwoDA* ip_cost_table(size_t table) const;
+    const StaticTwoDA* ip_cost_table(size_t table) const;
 
     /// Gets an item property definition
     const ItemPropertyDefinition* ip_definition(ItemPropertyType type) const;
 
     /// Gets an item property param table
-    const TwoDA* ip_param_table(size_t table) const;
+    const StaticTwoDA* ip_param_table(size_t table) const;
 
     /// Removes an effect to an object
     bool remove(ObjectBase* obj, Effect* effect);
@@ -80,8 +79,8 @@ private:
     absl::flat_hash_map<int32_t, EffectPair> registry_;
     absl::flat_hash_map<int32_t, ItemPropFunc> itemprops_;
     Vector<ItemPropertyDefinition> ip_definitions_;
-    Vector<const TwoDA*> ip_cost_table_;
-    Vector<const TwoDA*> ip_param_table_;
+    Vector<const StaticTwoDA*> ip_cost_table_;
+    Vector<const StaticTwoDA*> ip_param_table_;
 
     ObjectPool<Effect> pool_;
 };

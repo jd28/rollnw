@@ -1,6 +1,6 @@
 #include "Spell.hpp"
 
-#include "../formats/TwoDA.hpp"
+#include "../formats/StaticTwoDA.hpp"
 #include "../kernel/Rules.hpp"
 
 #include "nlohmann/json.hpp"
