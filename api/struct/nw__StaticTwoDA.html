@@ -1,0 +1,579 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>nw::TwoDA &mdash; rollNW  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../_static/tabs.css?v=a5c4661c" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="nw::Store" href="nw__Store.html" />
+    <link rel="prev" title="nw::SpellInfo" href="nw__SpellInfo.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            rollNW
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">getting started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../gs/building.html">building</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gs/using.html">using</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gs/differences.html">differences</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">structure</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../structure/formats.html">formats</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../structure/i18n.html">i18n</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../structure/kernel.html">kernel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../structure/model.html">model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../structure/objects.html">objects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../structure/resources.html">resources</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../structure/rules.html">rules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../structure/script.html">script</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../structure/serialization.html">serialization</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">c++ api</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="../classlist.html">classes</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="nw__Ability.html">nw::Ability</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__AbilityInfo.html">nw::AbilityInfo</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Appearance.html">nw::Appearance</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Area.html">nw::Area</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__AreaScripts.html">nw::AreaScripts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__AreaTile.html">nw::AreaTile</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__AreaWeather.html">nw::AreaWeather</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__AttackData.html">nw::AttackData</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__BaseItem.html">nw::BaseItem</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__BeamdogInstall.html">nw::BeamdogInstall</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Bif.html">nw::Bif</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__BodyParts.html">nw::BodyParts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ByteArray.html">nw::ByteArray</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Class.html">nw::Class</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ClassArray.html">nw::ClassArray</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ClassEntry.html">nw::ClassEntry</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ClassInfo.html">nw::ClassInfo</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__CombatInfo.html">nw::CombatInfo</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__CombatModeFuncs.html">nw::CombatModeFuncs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Common.html">nw::Common</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__CompressionHeader.html">nw::CompressionHeader</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ConfigOptions.html">nw::ConfigOptions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Container.html">nw::Container</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Creature.html">nw::Creature</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__CreatureScripts.html">nw::CreatureScripts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__CreatureStats.html">nw::CreatureStats</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__DamageResult.html">nw::DamageResult</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__DamageRoll.html">nw::DamageRoll</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Dialog.html">nw::Dialog</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__DialogNode.html">nw::DialogNode</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__DialogPtr.html">nw::DialogPtr</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__DiceRoll.html">nw::DiceRoll</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Directory.html">nw::Directory</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Disease.html">nw::Disease</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Door.html">nw::Door</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__DoorScripts.html">nw::DoorScripts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Effect.html">nw::Effect</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__EffectArray.html">nw::EffectArray</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__EffectHandle.html">nw::EffectHandle</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Encounter.html">nw::Encounter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__EncounterScripts.html">nw::EncounterScripts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Equips.html">nw::Equips</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Erf.html">nw::Erf</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Faction.html">nw::Faction</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__FactionInfo.html">nw::FactionInfo</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Feat.html">nw::Feat</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__FeatInfo.html">nw::FeatInfo</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__FunctionPtr.html">nw::FunctionPtr</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__GameProfile.html">nw::GameProfile</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Gff.html">nw::Gff</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__GffBuilder.html">nw::GffBuilder</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__GffBuilderField.html">nw::GffBuilderField</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__GffBuilderList.html">nw::GffBuilderList</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__GffBuilderStruct.html">nw::GffBuilderStruct</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__GffField.html">nw::GffField</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__GffLabel.html">nw::GffLabel</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__GffStruct.html">nw::GffStruct</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Image.html">nw::Image</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Ini.html">nw::Ini</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__InstallInfo.html">nw::InstallInfo</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__InternedString.html">nw::InternedString</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Inventory.html">nw::Inventory</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__InventoryItem.html">nw::InventoryItem</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Item.html">nw::Item</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ItemColors.html">nw::ItemColors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ItemModelParts.html">nw::ItemModelParts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ItemProperty.html">nw::ItemProperty</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Journal.html">nw::Journal</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__JournalCategory.html">nw::JournalCategory</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__JournalEntry.html">nw::JournalEntry</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Key.html">nw::Key</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Language.html">nw::Language</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Language__Properties.html">nw::Language::Properties</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__LevelHistory.html">nw::LevelHistory</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__LevelHistoryEntry.html">nw::LevelHistoryEntry</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__LevelStats.html">nw::LevelStats</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__LocString.html">nw::LocString</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__LocalData.html">nw::LocalData</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__LocalVar.html">nw::LocalVar</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__LocalVarType.html">nw::LocalVarType</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Location.html">nw::Location</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Lock.html">nw::Lock</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__MasterFeat.html">nw::MasterFeat</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__MasterFeatRegistry.html">nw::MasterFeatRegistry</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Modifier.html">nw::Modifier</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ModifierRegistry.html">nw::ModifierRegistry</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ModifierResult.html">nw::ModifierResult</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ModifierType.html">nw::ModifierType</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Module.html">nw::Module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ModuleScripts.html">nw::ModuleScripts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__NWSync.html">nw::NWSync</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__NWSyncManifest.html">nw::NWSyncManifest</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Null.html">nw::Null</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Palette.html">nw::Palette</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__PaletteTreeNode.html">nw::PaletteTreeNode</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Placeable.html">nw::Placeable</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__PlaceableScripts.html">nw::PlaceableScripts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Player.html">nw::Player</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Plt.html">nw::Plt</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__PltColors.html">nw::PltColors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__PltPixel.html">nw::PltPixel</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Qualifier.html">nw::Qualifier</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Race.html">nw::Race</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__RaceInfo.html">nw::RaceInfo</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Reputation.html">nw::Reputation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Requirement.html">nw::Requirement</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Resource.html">nw::Resource</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ResourceDescriptor.html">nw::ResourceDescriptor</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ResourceType.html">nw::ResourceType</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Resref.html">nw::Resref</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__RuleFlag.html">nw::RuleFlag</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__RuleTypeArray.html">nw::RuleTypeArray</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Save.html">nw::Save</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Saves.html">nw::Saves</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Selector.html">nw::Selector</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__SerializationType.html">nw::SerializationType</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Situation.html">nw::Situation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Skill.html">nw::Skill</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__SkillInfo.html">nw::SkillInfo</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Sound.html">nw::Sound</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__SpawnCreature.html">nw::SpawnCreature</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__SpawnPoint.html">nw::SpawnPoint</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__SpecialAbility.html">nw::SpecialAbility</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Spell.html">nw::Spell</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__SpellBook.html">nw::SpellBook</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__SpellEntry.html">nw::SpellEntry</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__SpellInfo.html">nw::SpellInfo</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">nw::TwoDA</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#_CPPv4N2nw5TwoDAE"><code class="docutils literal notranslate"><span class="pre">TwoDA</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw5TwoDA7RowTypeE"><code class="docutils literal notranslate"><span class="pre">TwoDA::RowType</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw5TwoDA5TwoDAEv"><code class="docutils literal notranslate"><span class="pre">TwoDA::TwoDA()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw5TwoDA5TwoDAERK5TwoDA"><code class="docutils literal notranslate"><span class="pre">TwoDA::TwoDA()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw5TwoDA5TwoDAERR5TwoDA"><code class="docutils literal notranslate"><span class="pre">TwoDA::TwoDA()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw5TwoDAD0Ev"><code class="docutils literal notranslate"><span class="pre">TwoDA::~TwoDA()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw5TwoDAaSERK5TwoDA"><code class="docutils literal notranslate"><span class="pre">TwoDA::operator=()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw5TwoDAaSERR5TwoDA"><code class="docutils literal notranslate"><span class="pre">TwoDA::operator=()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw5TwoDA5TwoDAERKNSt10filesystem4pathE"><code class="docutils literal notranslate"><span class="pre">TwoDA::TwoDA()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw5TwoDA5TwoDAE12ResourceData"><code class="docutils literal notranslate"><span class="pre">TwoDA::TwoDA()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw5TwoDA10add_columnE10StringView"><code class="docutils literal notranslate"><span class="pre">TwoDA::add_column()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw5TwoDA12column_indexE10StringView"><code class="docutils literal notranslate"><span class="pre">TwoDA::column_index()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw5TwoDA7columnsEv"><code class="docutils literal notranslate"><span class="pre">TwoDA::columns()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4I0ENK2nw5TwoDA3getENSt8optionalI1TEE6size_t6size_t"><code class="docutils literal notranslate"><span class="pre">TwoDA::get()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4I0ENK2nw5TwoDA3getENSt8optionalI1TEE6size_t10StringView"><code class="docutils literal notranslate"><span class="pre">TwoDA::get()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4I0ENK2nw5TwoDA6get_toEb6size_t6size_tR1T"><code class="docutils literal notranslate"><span class="pre">TwoDA::get_to()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4I0ENK2nw5TwoDA6get_toEb6size_t10StringViewR1T"><code class="docutils literal notranslate"><span class="pre">TwoDA::get_to()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw5TwoDA8is_validEv"><code class="docutils literal notranslate"><span class="pre">TwoDA::is_valid()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw5TwoDA3padE6size_t"><code class="docutils literal notranslate"><span class="pre">TwoDA::pad()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4NK2nw5TwoDA4rowsEv"><code class="docutils literal notranslate"><span class="pre">TwoDA::rows()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4I0EN2nw5TwoDA3setEv6size_t6size_tRK1T"><code class="docutils literal notranslate"><span class="pre">TwoDA::set()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4I0EN2nw5TwoDA3setEv6size_t10StringViewRK1T"><code class="docutils literal notranslate"><span class="pre">TwoDA::set()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw5TwoDA4nposE"><code class="docutils literal notranslate"><span class="pre">TwoDA::npos</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv4N2nw5TwoDAlsERNSt7ostreamERK5TwoDA"><code class="docutils literal notranslate"><span class="pre">TwoDA::operator&lt;&lt;()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Store.html">nw::Store</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__StoreInventory.html">nw::StoreInventory</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__StoreScripts.html">nw::StoreScripts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Tlk.html">nw::Tlk</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__TlkElement.html">nw::TlkElement</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__TlkFlags.html">nw::TlkFlags</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__TlkHeader.html">nw::TlkHeader</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Tokenizer.html">nw::Tokenizer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Trap.html">nw::Trap</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Trigger.html">nw::Trigger</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__TriggerScripts.html">nw::TriggerScripts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__TwoDA.html">nw::TwoDA</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__TwoDACache.html">nw::TwoDACache</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Variant.html">nw::Variant</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Versus.html">nw::Versus</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Waypoint.html">nw::Waypoint</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__Zip.html">nw::Zip</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ZipElement.html">nw::ZipElement</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ZlibHeader.html">nw::ZlibHeader</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__ZstdHeader.html">nw::ZstdHeader</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__kernel__Config.html">nw::kernel::Config</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__kernel__EffectSystem.html">nw::kernel::EffectSystem</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__kernel__EventSystem.html">nw::kernel::EventSystem</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__kernel__FactionSystem.html">nw::kernel::FactionSystem</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__kernel__ModelCache.html">nw::kernel::ModelCache</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__kernel__ObjectSystem.html">nw::kernel::ObjectSystem</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__kernel__Resources.html">nw::kernel::Resources</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__kernel__Rules.html">nw::kernel::Rules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__kernel__ScriptSystem.html">nw::kernel::ScriptSystem</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__kernel__Service.html">nw::kernel::Service</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__kernel__Services.html">nw::kernel::Services</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__kernel__Strings.html">nw::kernel::Strings</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__model__AABBEntry.html">nw::model::AABBEntry</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__model__AABBNode.html">nw::model::AABBNode</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__model__Animation.html">nw::model::Animation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__model__AnimationEvent.html">nw::model::AnimationEvent</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__model__AnimeshNode.html">nw::model::AnimeshNode</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__model__CameraNode.html">nw::model::CameraNode</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__model__ControllerKey.html">nw::model::ControllerKey</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__model__ControllerType.html">nw::model::ControllerType</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__model__DanglymeshNode.html">nw::model::DanglymeshNode</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__model__DummyNode.html">nw::model::DummyNode</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__model__EmitterFlag.html">nw::model::EmitterFlag</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__model__EmitterNode.html">nw::model::EmitterNode</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__model__Face.html">nw::model::Face</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__model__Geometry.html">nw::model::Geometry</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__model__GeometryFlag.html">nw::model::GeometryFlag</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__model__GeometryType.html">nw::model::GeometryType</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__model__LightNode.html">nw::model::LightNode</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__model__Mdl.html">nw::model::Mdl</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__model__MdlTextParser.html">nw::model::TextParser</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__model__Model.html">nw::model::Model</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__model__ModelClass.html">nw::model::ModelClass</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__model__Node.html">nw::model::Node</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__model__NodeFlags.html">nw::model::NodeFlags</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__model__NodeTypes.html">nw::model::NodeType</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__model__PatchNode.html">nw::model::PatchNode</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__model__ReferenceNode.html">nw::model::ReferenceNode</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__model__SkinNode.html">nw::model::SkinNode</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__model__SkinWeight.html">nw::model::SkinWeight</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__model__TriangleMode.html">nw::model::TriangleMode</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__model__TrimeshNode.html">nw::model::TrimeshNode</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__AssignExpression.html">nw::script::AssignExpression</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__Ast.html">nw::script::Ast</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__AstLocator.html">nw::script::AstLocator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__AstNode.html">nw::script::AstNode</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__AstPrinter.html">nw::script::AstPrinter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__AstResolver.html">nw::script::AstResolver</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__BaseVisitor.html">nw::script::BaseVisitor</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__BinaryExpression.html">nw::script::BinaryExpression</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__BlockStatement.html">nw::script::BlockStatement</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__CallExpression.html">nw::script::CallExpression</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__Comment.html">nw::script::Comment</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__ConditionalExpression.html">nw::script::ConditionalExpression</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__Context.html">nw::script::Context</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__Declaration.html">nw::script::Declaration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__Diagnostic.html">nw::script::Diagnostic</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__DoStatement.html">nw::script::DoStatement</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__DotExpression.html">nw::script::DotExpression</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__ExprStatement.html">nw::script::ExprStatement</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__Expression.html">nw::script::Expression</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__ForStatement.html">nw::script::ForStatement</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__FunctionDecl.html">nw::script::FunctionDecl</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__FunctionDefinition.html">nw::script::FunctionDefinition</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__GroupingExpression.html">nw::script::GroupingExpression</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__IfStatement.html">nw::script::IfStatement</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__Include.html">nw::script::Include</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__InlayHint.html">nw::script::InlayHint</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__JumpStatement.html">nw::script::JumpStatement</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__LabelStatement.html">nw::script::LabelStatement</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__LiteralExpression.html">nw::script::LiteralExpression</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__LiteralVectorExpression.html">nw::script::LiteralVectorExpression</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__LogicalExpression.html">nw::script::LogicalExpression</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__Nss.html">nw::script::Nss</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__NssLexer.html">nw::script::NssLexer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__NssParser.html">nw::script::NssParser</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__NssToken.html">nw::script::NssToken</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__PostfixExpression.html">nw::script::PostfixExpression</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__SourceLocation.html">nw::script::SourceLocation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__SourcePosition.html">nw::script::SourcePosition</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__SourceRange.html">nw::script::SourceRange</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__Statement.html">nw::script::Statement</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__StructDecl.html">nw::script::StructDecl</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__SwitchStatement.html">nw::script::SwitchStatement</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__Symbol.html">nw::script::Symbol</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__Type.html">nw::script::Type</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__UnaryExpression.html">nw::script::UnaryExpression</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__VarDecl.html">nw::script::VarDecl</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__VariableExpression.html">nw::script::VariableExpression</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nw__script__WhileStatement.html">nw::script::WhileStatement</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nwn1__Profile.html">nwn1::Profile</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../definelist.html">defines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../enumlist.html">enums</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../functionlist.html">functions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../typedeflist.html">typedefs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">python api</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../api_python/rollnw.html">rollnw</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api_python/rollnw_kernel.html">rollnw.kernel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api_python/rollnw_model.html">rollnw.model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api_python/rollnw_nwn1.html">rollnw.nwn1</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api_python/rollnw_script.html">rollnw.script</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">gff schemas</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/are.html">are</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/bic.html">bic</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/dlg.html">dlg</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/fac.html">fac</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/gic.html">gic</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/git.html">git</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/ifo.html">ifo</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/itp.html">itp</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/jrl.html">jrl</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/utc.html">utc</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/utd.html">utd</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/ute.html">ute</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/uti.html">uti</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/utm.html">utm</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/utp.html">utp</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/uts.html">uts</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/utt.html">utt</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/utw.html">utw</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gff_schema/vartable.html">vartable</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">rollNW</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../classlist.html">classes</a></li>
+      <li class="breadcrumb-item active">nw::TwoDA</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/api/struct/nw__StaticTwoDA.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="nw-twoda">
+<h1>nw::TwoDA<a class="headerlink" href="#nw-twoda" title="Link to this heading"></a></h1>
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw5TwoDAE">
+<span id="_CPPv3N2nw5TwoDAE"></span><span id="_CPPv2N2nw5TwoDAE"></span><span id="nw::TwoDA"></span><span class="target" id="structnw_1_1_two_d_a"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">TwoDA</span></span></span><a class="headerlink" href="#_CPPv4N2nw5TwoDAE" title="Link to this definition"></a><br /></dt>
+<dd><div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-types">Public Types</p>
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw5TwoDA7RowTypeE">
+<span id="_CPPv3N2nw5TwoDA7RowTypeE"></span><span id="_CPPv2N2nw5TwoDA7RowTypeE"></span><span class="target" id="structnw_1_1_two_d_a_1a0a88ff8545da01500a033f7fae34facb"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">RowType</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">detail</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">StringVariant</span></span><span class="p"><span class="pre">&gt;</span></span><a class="headerlink" href="#_CPPv4N2nw5TwoDA7RowTypeE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw5TwoDA5TwoDAEv">
+<span id="_CPPv3N2nw5TwoDA5TwoDAEv"></span><span id="_CPPv2N2nw5TwoDA5TwoDAEv"></span><span id="nw::TwoDA::TwoDA"></span><span class="target" id="structnw_1_1_two_d_a_1af3b663a38ac53818ac486cdc495124b8"></span><span class="sig-name descname"><span class="n"><span class="pre">TwoDA</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">default</span></span><a class="headerlink" href="#_CPPv4N2nw5TwoDA5TwoDAEv" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw5TwoDA5TwoDAERK5TwoDA">
+<span id="_CPPv3N2nw5TwoDA5TwoDAERK5TwoDA"></span><span id="_CPPv2N2nw5TwoDA5TwoDAERK5TwoDA"></span><span id="nw::TwoDA::TwoDA__TwoDACR"></span><span class="target" id="structnw_1_1_two_d_a_1abc20544cfb6f501dad21c91546262640"></span><span class="sig-name descname"><span class="n"><span class="pre">TwoDA</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N2nw5TwoDA5TwoDAERK5TwoDA" title="nw::TwoDA::TwoDA"><span class="n"><span class="pre">TwoDA</span></span></a><span class="p"><span class="pre">&amp;</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">delete</span></span><a class="headerlink" href="#_CPPv4N2nw5TwoDA5TwoDAERK5TwoDA" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw5TwoDA5TwoDAERR5TwoDA">
+<span id="_CPPv3N2nw5TwoDA5TwoDAERR5TwoDA"></span><span id="_CPPv2N2nw5TwoDA5TwoDAERR5TwoDA"></span><span id="nw::TwoDA::TwoDA__TwoDARR"></span><span class="target" id="structnw_1_1_two_d_a_1a29dbc8052d9f403d81117f3d86c4f006"></span><span class="sig-name descname"><span class="n"><span class="pre">TwoDA</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N2nw5TwoDA5TwoDAERR5TwoDA" title="nw::TwoDA::TwoDA"><span class="n"><span class="pre">TwoDA</span></span></a><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">default</span></span><a class="headerlink" href="#_CPPv4N2nw5TwoDA5TwoDAERR5TwoDA" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw5TwoDAD0Ev">
+<span id="_CPPv3N2nw5TwoDAD0Ev"></span><span id="_CPPv2N2nw5TwoDAD0Ev"></span><span id="nw::TwoDA::~TwoDA"></span><span class="target" id="structnw_1_1_two_d_a_1a275233a437f57e5c1f7fc2d0c9e65fb5"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">~TwoDA</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">default</span></span><a class="headerlink" href="#_CPPv4N2nw5TwoDAD0Ev" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw5TwoDAaSERK5TwoDA">
+<span id="_CPPv3N2nw5TwoDAaSERK5TwoDA"></span><span id="_CPPv2N2nw5TwoDAaSERK5TwoDA"></span><span id="nw::TwoDA::assign-operator__TwoDACR"></span><span class="target" id="structnw_1_1_two_d_a_1a0f579f729ab22a3a56c848184ceb245d"></span><a class="reference internal" href="#_CPPv4N2nw5TwoDAE" title="nw::TwoDA"><span class="n"><span class="pre">TwoDA</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">=</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N2nw5TwoDAE" title="nw::TwoDA"><span class="n"><span class="pre">TwoDA</span></span></a><span class="p"><span class="pre">&amp;</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">delete</span></span><a class="headerlink" href="#_CPPv4N2nw5TwoDAaSERK5TwoDA" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw5TwoDAaSERR5TwoDA">
+<span id="_CPPv3N2nw5TwoDAaSERR5TwoDA"></span><span id="_CPPv2N2nw5TwoDAaSERR5TwoDA"></span><span id="nw::TwoDA::assign-operator__TwoDARR"></span><span class="target" id="structnw_1_1_two_d_a_1af2c7f3b40103059578aa7289aac6e9a0"></span><a class="reference internal" href="#_CPPv4N2nw5TwoDAE" title="nw::TwoDA"><span class="n"><span class="pre">TwoDA</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">=</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N2nw5TwoDAE" title="nw::TwoDA"><span class="n"><span class="pre">TwoDA</span></span></a><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">default</span></span><a class="headerlink" href="#_CPPv4N2nw5TwoDAaSERR5TwoDA" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw5TwoDA5TwoDAERKNSt10filesystem4pathE">
+<span id="_CPPv3N2nw5TwoDA5TwoDAERKNSt10filesystem4pathE"></span><span id="_CPPv2N2nw5TwoDA5TwoDAERKNSt10filesystem4pathE"></span><span id="nw::TwoDA::TwoDA__std::filesystem::pathCR"></span><span class="target" id="structnw_1_1_two_d_a_1ac550a3e51fb3b9dbcea5dc90b9c8b13c"></span><span class="k"><span class="pre">explicit</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">TwoDA</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">filesystem</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">path</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">filename</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw5TwoDA5TwoDAERKNSt10filesystem4pathE" title="Link to this definition"></a><br /></dt>
+<dd><p>Constructs <a class="reference internal" href="nw__TwoDA.html#structnw_1_1_two_d_a"><span class="std std-ref">TwoDA</span></a> object from a file. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw5TwoDA5TwoDAE12ResourceData">
+<span id="_CPPv3N2nw5TwoDA5TwoDAE12ResourceData"></span><span id="_CPPv2N2nw5TwoDA5TwoDAE12ResourceData"></span><span id="nw::TwoDA::TwoDA__ResourceData"></span><span class="target" id="structnw_1_1_two_d_a_1a1a3802805bb21d54524f57d84a344be1"></span><span class="k"><span class="pre">explicit</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">TwoDA</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">ResourceData</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">data</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw5TwoDA5TwoDAE12ResourceData" title="Link to this definition"></a><br /></dt>
+<dd><p>Constructs <a class="reference internal" href="nw__TwoDA.html#structnw_1_1_two_d_a"><span class="std std-ref">TwoDA</span></a> object from an array of bytes. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw5TwoDA10add_columnE10StringView">
+<span id="_CPPv3N2nw5TwoDA10add_columnE10StringView"></span><span id="_CPPv2N2nw5TwoDA10add_columnE10StringView"></span><span id="nw::TwoDA::add_column__StringView"></span><span class="target" id="structnw_1_1_two_d_a_1a38037c21f9f70634f0b08f1468039a38"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">add_column</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">StringView</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">name</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw5TwoDA10add_columnE10StringView" title="Link to this definition"></a><br /></dt>
+<dd><p>Appends new column with default <code class="docutils literal notranslate"><span class="pre">****</span></code> values. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK2nw5TwoDA12column_indexE10StringView">
+<span id="_CPPv3NK2nw5TwoDA12column_indexE10StringView"></span><span id="_CPPv2NK2nw5TwoDA12column_indexE10StringView"></span><span id="nw::TwoDA::column_index__StringViewC"></span><span class="target" id="structnw_1_1_two_d_a_1a21ffe8289597eacf090e7ee3d5b50b96"></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">column_index</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">StringView</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">column</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK2nw5TwoDA12column_indexE10StringView" title="Link to this definition"></a><br /></dt>
+<dd><p>Finds the index of a column, or -1. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK2nw5TwoDA7columnsEv">
+<span id="_CPPv3NK2nw5TwoDA7columnsEv"></span><span id="_CPPv2NK2nw5TwoDA7columnsEv"></span><span id="nw::TwoDA::columnsC"></span><span class="target" id="structnw_1_1_two_d_a_1a937fc54d2cd98d41baf52012ddbaf2ad"></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">columns</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="k"><span class="pre">noexcept</span></span><a class="headerlink" href="#_CPPv4NK2nw5TwoDA7columnsEv" title="Link to this definition"></a><br /></dt>
+<dd><p>Get the number of columns. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4I0ENK2nw5TwoDA3getENSt8optionalI1TEE6size_t6size_t">
+<span id="_CPPv3I0ENK2nw5TwoDA3getE6size_t6size_t"></span><span id="_CPPv2I0ENK2nw5TwoDA3getE6size_t6size_t"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">T</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="structnw_1_1_two_d_a_1ac5014a1cc0d2975eef50f860b292a519"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">optional</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4I0ENK2nw5TwoDA3getENSt8optionalI1TEE6size_t6size_t" title="nw::TwoDA::get::T"><span class="n"><span class="pre">T</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">row</span></span>, <span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">col</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4I0ENK2nw5TwoDA3getENSt8optionalI1TEE6size_t6size_t" title="Link to this definition"></a><br /></dt>
+<dd><p>Gets an element. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4I0ENK2nw5TwoDA3getENSt8optionalI1TEE6size_t10StringView">
+<span id="_CPPv3I0ENK2nw5TwoDA3getE6size_t10StringView"></span><span id="_CPPv2I0ENK2nw5TwoDA3getE6size_t10StringView"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">T</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="structnw_1_1_two_d_a_1a2fbe80a4d518d7b06bee2deed9a1ffef"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">optional</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4I0ENK2nw5TwoDA3getENSt8optionalI1TEE6size_t10StringView" title="nw::TwoDA::get::T"><span class="n"><span class="pre">T</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">row</span></span>, <span class="n"><span class="pre">StringView</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">col</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4I0ENK2nw5TwoDA3getENSt8optionalI1TEE6size_t10StringView" title="Link to this definition"></a><br /></dt>
+<dd><p>Gets an element. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4I0ENK2nw5TwoDA6get_toEb6size_t6size_tR1T">
+<span id="_CPPv3I0ENK2nw5TwoDA6get_toE6size_t6size_tR1T"></span><span id="_CPPv2I0ENK2nw5TwoDA6get_toE6size_t6size_tR1T"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">T</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="structnw_1_1_two_d_a_1a278d854882ad26619c7cbff8c8adc5c9"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_to</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">row</span></span>, <span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">col</span></span>, <a class="reference internal" href="#_CPPv4I0ENK2nw5TwoDA6get_toEb6size_t6size_tR1T" title="nw::TwoDA::get_to::T"><span class="n"><span class="pre">T</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">out</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4I0ENK2nw5TwoDA6get_toEb6size_t6size_tR1T" title="Link to this definition"></a><br /></dt>
+<dd><p>Gets an element. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4I0ENK2nw5TwoDA6get_toEb6size_t10StringViewR1T">
+<span id="_CPPv3I0ENK2nw5TwoDA6get_toE6size_t10StringViewR1T"></span><span id="_CPPv2I0ENK2nw5TwoDA6get_toE6size_t10StringViewR1T"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">T</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="structnw_1_1_two_d_a_1a897bab25e093440cdd528f2a00c4b4c3"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_to</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">row</span></span>, <span class="n"><span class="pre">StringView</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">col</span></span>, <a class="reference internal" href="#_CPPv4I0ENK2nw5TwoDA6get_toEb6size_t10StringViewR1T" title="nw::TwoDA::get_to::T"><span class="n"><span class="pre">T</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">out</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4I0ENK2nw5TwoDA6get_toEb6size_t10StringViewR1T" title="Link to this definition"></a><br /></dt>
+<dd><p>Gets an element. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK2nw5TwoDA8is_validEv">
+<span id="_CPPv3NK2nw5TwoDA8is_validEv"></span><span id="_CPPv2NK2nw5TwoDA8is_validEv"></span><span id="nw::TwoDA::is_validC"></span><span class="target" id="structnw_1_1_two_d_a_1ac4f7c6f438c95417717c7867156992e0"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">is_valid</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="k"><span class="pre">noexcept</span></span><a class="headerlink" href="#_CPPv4NK2nw5TwoDA8is_validEv" title="Link to this definition"></a><br /></dt>
+<dd><p>Is the 2da parsed without error. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw5TwoDA3padE6size_t">
+<span id="_CPPv3N2nw5TwoDA3padE6size_t"></span><span id="_CPPv2N2nw5TwoDA3padE6size_t"></span><span id="nw::TwoDA::pad__s"></span><span class="target" id="structnw_1_1_two_d_a_1a00d3ad4f68f51108b25c0da15473721a"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">pad</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">count</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw5TwoDA3padE6size_t" title="Link to this definition"></a><br /></dt>
+<dd><p>Pads the 2da with <code class="docutils literal notranslate"><span class="pre">count</span></code> rows. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK2nw5TwoDA4rowsEv">
+<span id="_CPPv3NK2nw5TwoDA4rowsEv"></span><span id="_CPPv2NK2nw5TwoDA4rowsEv"></span><span id="nw::TwoDA::rowsC"></span><span class="target" id="structnw_1_1_two_d_a_1aeba60e239bf826c717add58130464a6e"></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">rows</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="k"><span class="pre">noexcept</span></span><a class="headerlink" href="#_CPPv4NK2nw5TwoDA4rowsEv" title="Link to this definition"></a><br /></dt>
+<dd><p>Number of rows. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4I0EN2nw5TwoDA3setEv6size_t6size_tRK1T">
+<span id="_CPPv3I0EN2nw5TwoDA3setE6size_t6size_tRK1T"></span><span id="_CPPv2I0EN2nw5TwoDA3setE6size_t6size_tRK1T"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">T</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="structnw_1_1_two_d_a_1ac380b26c3622b7df9524798089fe31e8"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">row</span></span>, <span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">col</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I0EN2nw5TwoDA3setEv6size_t6size_tRK1T" title="nw::TwoDA::set::T"><span class="n"><span class="pre">T</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">value</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4I0EN2nw5TwoDA3setEv6size_t6size_tRK1T" title="Link to this definition"></a><br /></dt>
+<dd><p>Sets an element. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4I0EN2nw5TwoDA3setEv6size_t10StringViewRK1T">
+<span id="_CPPv3I0EN2nw5TwoDA3setE6size_t10StringViewRK1T"></span><span id="_CPPv2I0EN2nw5TwoDA3setE6size_t10StringViewRK1T"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">T</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="structnw_1_1_two_d_a_1ad4a9b74b862717d9159420dad4c46832"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">row</span></span>, <span class="n"><span class="pre">StringView</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">col</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I0EN2nw5TwoDA3setEv6size_t10StringViewRK1T" title="nw::TwoDA::set::T"><span class="n"><span class="pre">T</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">value</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4I0EN2nw5TwoDA3setEv6size_t10StringViewRK1T" title="Link to this definition"></a><br /></dt>
+<dd><p>Sets an element. </p>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-static-attributes">Public Static Attributes</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw5TwoDA4nposE">
+<span id="_CPPv3N2nw5TwoDA4nposE"></span><span id="_CPPv2N2nw5TwoDA4nposE"></span><span id="nw::TwoDA::npos__s"></span><span class="target" id="structnw_1_1_two_d_a_1aa0684f051e84b6c0f9f45055ea538b81"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">npos</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">numeric_limits</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">size_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">max</span></span><span class="p"><span class="pre">(</span></span><span class="p"><span class="pre">)</span></span><a class="headerlink" href="#_CPPv4N2nw5TwoDA4nposE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-friends">Friends</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N2nw5TwoDAlsERNSt7ostreamERK5TwoDA">
+<span id="_CPPv3N2nw5TwoDAlsERNSt7ostreamERK5TwoDA"></span><span id="_CPPv2N2nw5TwoDAlsERNSt7ostreamERK5TwoDA"></span><span id="nw::TwoDA::lshift-operator__osR.TwoDACR"></span><span class="target" id="structnw_1_1_two_d_a_1a185a8dba857a59c3334fe2bfb2b03e24"></span><span class="k"><span class="pre">friend</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">ostream</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">&lt;&lt;</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">ostream</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">out</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N2nw5TwoDAE" title="nw::TwoDA"><span class="n"><span class="pre">TwoDA</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">tda</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N2nw5TwoDAlsERNSt7ostreamERK5TwoDA" title="Link to this definition"></a><br /></dt>
+<dd><p>Overload for <code class="docutils literal notranslate"><span class="pre">operator&lt;&lt;</span></code></p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="nw__SpellInfo.html" class="btn btn-neutral float-left" title="nw::SpellInfo" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="nw__Store.html" class="btn btn-neutral float-right" title="nw::Store" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright .</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
