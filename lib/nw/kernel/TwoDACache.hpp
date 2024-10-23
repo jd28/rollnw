@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../formats/TwoDA.hpp"
+#include "../formats/StaticTwoDA.hpp"
 #include "../resources/Resource.hpp"
 #include "Kernel.hpp"
 
@@ -23,13 +23,13 @@ struct TwoDACache : public Service {
     void clear();
 
     /// Gets a cached TwoDA
-    const TwoDA* get(StringView tda);
+    const StaticTwoDA* get(StringView tda);
 
     /// Gets a cached TwoDA
-    const TwoDA* get(const nw::Resource& tda);
+    const StaticTwoDA* get(const nw::Resource& tda);
 
 private:
-    absl::flat_hash_map<Resource, std::unique_ptr<TwoDA>> cached_2das_;
+    absl::flat_hash_map<Resource, std::unique_ptr<StaticTwoDA>> cached_2das_;
 };
 
 inline TwoDACache& twodas()

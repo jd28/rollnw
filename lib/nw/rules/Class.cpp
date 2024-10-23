@@ -1,6 +1,6 @@
 #include "Class.hpp"
 
-#include "../formats/TwoDA.hpp"
+#include "../formats/StaticTwoDA.hpp"
 #include "../kernel/Resources.hpp"
 #include "../kernel/Rules.hpp"
 
@@ -26,7 +26,7 @@ ClassInfo::ClassInfo(const TwoDARowView& tda)
         }
         tda.get_to("HitDie", hitdie);
         if (tda.get_to("AttackBonusTable", temp_string)) {
-            TwoDA ab_2da(nw::kernel::resman().demand({temp_string, nw::ResourceType::twoda}));
+            StaticTwoDA ab_2da(nw::kernel::resman().demand({temp_string, nw::ResourceType::twoda}));
             Vector<int> ab;
             if (ab_2da.is_valid()) {
                 for (size_t i = 0; i < ab_2da.rows(); ++i) {

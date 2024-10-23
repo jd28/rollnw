@@ -13,7 +13,7 @@
 
 namespace nw {
 
-struct TwoDA;
+struct StaticTwoDA;
 struct TwoDARowView;
 
 DECLARE_RULE_TYPE(BaseItem);
@@ -77,10 +77,10 @@ struct ItemProperty {
 
 struct ItemPropertyDefinition {
     uint32_t name = std::numeric_limits<uint32_t>::max();
-    const TwoDA* subtype = nullptr;
+    const StaticTwoDA* subtype = nullptr;
     float cost = 0.0f;
-    const TwoDA* cost_table = nullptr;
-    const TwoDA* param_table = nullptr;
+    const StaticTwoDA* cost_table = nullptr;
+    const StaticTwoDA* param_table = nullptr;
     uint32_t game_string = std::numeric_limits<uint32_t>::max();
     uint32_t description = std::numeric_limits<uint32_t>::max();
     // Constants

@@ -1,3 +1,4 @@
+#include <nw/formats/StaticTwoDA.hpp>
 #include <nw/formats/TwoDA.hpp>
 #include <nw/functions.hpp>
 #include <nw/i18n/Tlk.hpp>
@@ -20,8 +21,6 @@
 #include <nlohmann/json.hpp>
 #include <nowide/cstdlib.hpp>
 
-#include <fstream>
-
 // Note the resources loaded here should be default NWN resources distributed in the game install
 // files.. for now.
 
@@ -29,6 +28,16 @@ namespace fs = std::filesystem;
 namespace nwk = nw::kernel;
 
 using namespace std::literals;
+
+static void BM_parse_feat_2da_static(benchmark::State& state)
+{
+    nw::ResourceData data = nw::ResourceData::from_file("test_data/user/development/feat.2da");
+    for (auto _ : state) {
+        nw::StaticTwoDA tda{data.copy()};
+        benchmark::DoNotOptimize(tda);
+    }
+}
+BENCHMARK(BM_parse_feat_2da_static);
 
 static void BM_parse_feat_2da(benchmark::State& state)
 {
@@ -38,6 +47,7 @@ static void BM_parse_feat_2da(benchmark::State& state)
         benchmark::DoNotOptimize(tda);
     }
 }
+BENCHMARK(BM_parse_feat_2da);
 
 static void BM_load_creature_gff(benchmark::State& state)
 {
@@ -279,8 +289,6 @@ static void BM_start_service(benchmark::State& state)
     }
 }
 BENCHMARK(BM_start_service);
-
-BENCHMARK(BM_parse_feat_2da);
 BENCHMARK(BM_creature_from_json);
 BENCHMARK(BM_creature_serialize);
 BENCHMARK(BM_creature_to_json);

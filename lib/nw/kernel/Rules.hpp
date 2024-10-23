@@ -1,6 +1,5 @@
 #pragma once
 
-#include "../formats/TwoDA.hpp"
 #include "../log.hpp"
 #include "../objects/Creature.hpp"
 #include "../objects/ObjectBase.hpp"

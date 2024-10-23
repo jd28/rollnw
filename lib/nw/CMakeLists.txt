@@ -11,6 +11,7 @@ add_library(nw STATIC
     formats/Journal.cpp
     formats/Palette.cpp
     formats/Plt.cpp
+    formats/StaticTwoDA.cpp
     formats/TwoDA.cpp
 
     i18n/conversion.cpp

@@ -2,86 +2,18 @@
 
 #include "../log.hpp"
 #include "../util/string.hpp"
+#include "TwoDATokenizer.hpp"
 
 #include <algorithm>
 #include <charconv>
-#include <exception>
-#include <fstream>
 #include <iostream>
 
 using namespace std::literals;
 
 namespace nw {
 
-namespace detail {
-
-struct TwoDATokenizer {
-    explicit TwoDATokenizer(StringView tda)
-        : buffer{tda}
-    {
-    }
-
-    StringView next()
-    {
-        StringView result;
-        while (pos < buffer.size()) {
-            switch (buffer[pos]) {
-            default:
-                start = pos++;
-                while (pos < buffer.size()) {
-                    if (buffer[pos] == ' '
-                        || buffer[pos] == '\t'
-                        || buffer[pos] == '\r'
-                        || buffer[pos] == '\n') {
-                        end = pos;
-                        break;
-                    }
-                    ++pos;
-                }
-                if (pos == buffer.size()) end = buffer.size();
-                result = StringView(&buffer[start], end - start);
-
-                break;
-            case '"':
-                start = ++pos;
-                while (pos < buffer.size()) {
-                    if (buffer[pos] == '"' && buffer[pos - 1] != '\\') {
-                        end = pos;
-                        break;
-                    }
-                    ++pos;
-                }
-                if (pos == buffer.size() || buffer[pos] != '"')
-                    throw std::runtime_error("Unterminated quote.");
-                ++pos;
-
-                result = StringView(&buffer[start], end - start);
-                break;
-            case '\r':
-            case '\n':
-                start = pos;
-                if (buffer[pos] == '\r') ++pos;
-                if (pos < buffer.size() && buffer[pos] == '\n') ++pos;
-                result = StringView(&buffer[start], pos - start);
-                ++line;
-                break;
-            case ' ':
-            case '\t':
-                ++pos;
-                break;
-            }
-            if (result.size()) {
-                break;
-            }
-        }
-        return result;
-    }
-
-    size_t pos = 0, start = 0, end = 0, line = 0;
-    StringView buffer;
-};
-
-} // namespace detail
+// == TwoDA ===================================================================
+// ============================================================================
 
 TwoDA::TwoDA(const std::filesystem::path& filename)
     : TwoDA(ResourceData::from_file(filename))
@@ -92,6 +24,18 @@ TwoDA::TwoDA(ResourceData data)
     : data_{std::move(data)}
 {
     is_loaded_ = parse();
+}
+
+bool TwoDA::add_column(StringView name)
+{
+    if (column_index(name) != npos) {
+        return false;
+    }
+    columns_.push_back(String{name});
+    for (auto& row : rows_) {
+        row.push_back(StringView("****"));
+    }
+    return true;
 }
 
 size_t TwoDA::column_index(const StringView column) const
@@ -108,17 +52,33 @@ size_t TwoDA::columns() const noexcept
     return columns_.size();
 }
 
+StringView TwoDA::get_internal(size_t row, size_t col) const
+{
+    CHECK_F(row < rows_.size(), "Out of Bounds row {}, col {}", row, col);
+    CHECK_F(col < columns_.size(), "Out of Bounds row {}, col {}", row, col);
+    return rows_[row][col].view;
+}
+
 void TwoDA::pad(size_t count)
 {
-    size_t pad = count * columns_.size();
-    for (size_t i = 0; i < pad; ++i) {
-        rows_.emplace_back(StringView("****"));
+    RowType p;
+    for (size_t i = 0; i < columns(); ++i) {
+        p.push_back(StringView("****"));
+    }
+
+    for (size_t i = 0; i < count; ++i) {
+        rows_.push_back(p);
     }
 }
 
-inline bool is_newline(StringView token)
+size_t TwoDA::rows() const noexcept
 {
-    return !token.empty() && (token[0] == '\r' || token[0] == '\n');
+    return rows_.size();
+}
+
+bool TwoDA::is_valid() const noexcept
+{
+    return is_loaded_;
 }
 
 inline bool needs_quote(StringView str)
@@ -129,9 +89,11 @@ inline bool needs_quote(StringView str)
 bool TwoDA::parse()
 {
     if (data_.bytes.size() == 0) {
+        LOG_F(INFO, "No data");
         return false;
     }
-    detail::TwoDATokenizer tknz{data_.bytes.string_view()};
+
+    TwoDATokenizer tknz{data_.bytes.string_view()};
     StringView tk;
 
     if (tknz.next() != "2DA" || tknz.next() != "V2.0") {
@@ -163,10 +125,12 @@ bool TwoDA::parse()
 
     tk = tknz.next(); // Drop row number
 
+    RowType next;
+    next.reserve(columns());
     size_t cur = 0, row = 0;
     for (; !tk.empty(); tk = tknz.next()) {
         if (!is_newline(tk)) {
-            rows_.push_back(tk);
+            next.push_back(tk);
             bool quote = needs_quote(tk);
             size_t& width = widths_[cur % columns_.size()];
             width = std::max(width, tk.size() + (quote ? 2 : 0));
@@ -175,13 +139,13 @@ bool TwoDA::parse()
             ++row;
 
             int pad = 0, drop = 0;
-            while (rows_.size() < row * columns_.size()) {
-                rows_.emplace_back(StringView("****"));
+            while (next.size() < columns_.size()) {
+                next.emplace_back(StringView("****"));
                 ++pad;
             }
 
-            while (rows_.size() > row * columns_.size()) {
-                rows_.pop_back();
+            while (next.size() > columns_.size()) {
+                next.pop_back();
                 ++drop;
             }
 
@@ -191,6 +155,8 @@ bool TwoDA::parse()
                 LOG_F(WARNING, "Row: {} - Incorrect column count padded {} columns, line {}", row, pad, tknz.line - 1);
             }
 
+            rows_.push_back(next);
+            next.clear();
             while (is_newline(tk))
                 tk = tknz.next();
             // Row number will get dropped at start of next iteration
@@ -198,25 +164,6 @@ bool TwoDA::parse()
     }
 
     return true;
-}
-
-TwoDARowView TwoDA::row(size_t row) const noexcept
-{
-    if (row >= rows()) {
-        return {};
-    }
-    auto start = row * columns_.size();
-    return {{&rows_[start], columns_.size()}, this, row};
-}
-
-size_t TwoDA::rows() const noexcept
-{
-    return columns_.empty() ? 0 : rows_.size() / columns_.size();
-}
-
-bool TwoDA::is_valid() const noexcept
-{
-    return is_loaded_;
 }
 
 std::ostream& operator<<(std::ostream& out, const nw::TwoDA& tda)
@@ -265,14 +212,13 @@ std::ostream& operator<<(std::ostream& out, const nw::TwoDA& tda)
         sep.resize(pad + max_size - cur_size, ' ');
         out << buffer << sep;
 
-        size_t start = i * tda.columns(), stop = (i + 1) * tda.columns();
-        for (size_t j = start; j < stop; ++j) {
-            bool quote = needs_quote(tda.rows_[j].view);
+        for (size_t j = 0; j < tda.columns(); ++j) {
+            bool quote = needs_quote(tda.rows_[i][j].view);
             if (quote) out << '"';
-            out << tda.rows_[j].view;
+            out << tda.rows_[i][j].view;
             if (quote) out << '"';
-            if (j + 1 < stop) {
-                size_t p = size_t(tda.widths_[j % tda.columns()] - int(tda.rows_[j].view.size()) + pad + (quote ? -2 : 0));
+            if (j + 1 < tda.columns()) {
+                size_t p = size_t(tda.widths_[j % tda.columns()] - int(tda.rows_[i][j].view.size()) + pad + (quote ? -2 : 0));
                 sep.resize(p, ' ');
                 out << sep;
             }
