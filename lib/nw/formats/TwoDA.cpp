@@ -26,6 +26,13 @@ TwoDA::TwoDA(ResourceData data)
     is_loaded_ = parse();
 }
 
+TwoDA::TwoDA(std::string_view str)
+{
+    data_.name = Resource("<source>"sv, ResourceType::twoda);
+    data_.bytes.append(str.data(), str.size());
+    is_loaded_ = parse();
+}
+
 bool TwoDA::add_column(StringView name)
 {
     if (column_index(name) != npos) {
@@ -36,13 +43,6 @@ bool TwoDA::add_column(StringView name)
         row.push_back(StringView("****"));
     }
     return true;
-}
-
-TwoDA::TwoDA(std::string_view str)
-{
-    data_.name = Resource("<source>"sv, ResourceType::twoda);
-    data_.bytes.append(str.data(), str.size());
-    is_loaded_ = parse();
 }
 
 size_t TwoDA::column_index(const StringView column) const

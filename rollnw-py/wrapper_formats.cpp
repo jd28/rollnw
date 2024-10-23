@@ -4,6 +4,7 @@
 #include <nw/formats/Image.hpp>
 #include <nw/formats/Ini.hpp>
 #include <nw/formats/Plt.hpp>
+#include <nw/formats/StaticTwoDA.hpp>
 #include <nw/formats/TwoDA.hpp>
 #include <nw/serialization/Gff.hpp>
 #include <nw/serialization/GffBuilder.hpp>
@@ -255,9 +256,45 @@ void init_formats_twoda(py::module& nw)
         })
         .def("size", &nw::TwoDARowView::size);
 
+    py::class_<nw::StaticTwoDA>(nw, "StaticTwoDA")
+        .def(py::init<std::filesystem::path>())
+        .def("__getitem__", &nw::StaticTwoDA::row)
+        .def("column_index", &nw::StaticTwoDA::column_index)
+        .def("columns", &nw::StaticTwoDA::columns)
+
+        .def("get", [](const nw::StaticTwoDA& self, size_t row, size_t col) {
+            std::variant<int, float, std::string> result = "";
+            if (auto i = self.get<int>(row, col)) {
+                result = *i;
+            } else if (auto f = self.get<float>(row, col)) {
+                result = *f;
+            } else if (auto s = self.get<std::string>(row, col)) {
+                result = std::move(*s);
+            }
+            return result;
+        })
+
+        .def("get", [](const nw::StaticTwoDA& self, size_t row, std::string_view col) {
+            std::variant<int, float, std::string> result = "";
+            if (auto i = self.get<int>(row, col)) {
+                result = *i;
+            } else if (auto f = self.get<float>(row, col)) {
+                result = *f;
+            } else if (auto s = self.get<std::string>(row, col)) {
+                result = std::move(*s);
+            }
+            return result;
+        })
+        .def("row", &nw::StaticTwoDA::row)
+        .def("rows", &nw::StaticTwoDA::rows)
+        .def("valid", &nw::StaticTwoDA::is_valid)
+        .def_static("from_string", [](std::string_view file) {
+            return new nw::StaticTwoDA(file);
+        });
+
     py::class_<nw::TwoDA>(nw, "TwoDA")
         .def(py::init<std::filesystem::path>())
-        .def("__getitem__", &nw::TwoDA::row)
+        .def("add_column", &nw::TwoDA::add_column)
         .def("column_index", &nw::TwoDA::column_index)
         .def("columns", &nw::TwoDA::columns)
 
@@ -304,7 +341,6 @@ void init_formats_twoda(py::module& nw)
             }
         })
         .def("pad", &nw::TwoDA::pad)
-        .def("row", &nw::TwoDA::row)
         .def("rows", &nw::TwoDA::rows)
         .def("valid", &nw::TwoDA::is_valid)
         .def_static("from_string", [](std::string_view file) {

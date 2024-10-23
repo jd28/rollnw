@@ -959,6 +959,10 @@ class TwoDA:
         """Loads 2da from `filename`"""
         pass
 
+    def add_column(name: str) -> bool:
+        """Adds a new column to the 2da, if not already extent, and initializes with ``****``"""
+        pass
+
     def get(self, row: int, column: int | str):
         """Gets a TwoDA value
 
@@ -981,6 +985,37 @@ class TwoDA:
         """
         pass
 
+    @staticmethod
+    def from_string(string: str) -> TwoDA:
+        pass
+
+
+class StaticTwoDA:
+    """Implementation of 2da file format, but faster
+
+    Args:
+        filename (str): 2da file to load
+    """
+
+    def __init__(self, filename: str):
+        """Loads 2da from `filename`"""
+        pass
+
+    def get(self, row: int, column: int | str):
+        """Gets a TwoDA value
+
+        Args:
+            row (int): Row number
+            column (int | str): Column number or label
+
+        Returns:
+            An int | float | string depending on the underlying value
+        """
+        pass
+
+    @staticmethod
+    def from_string(string: str) -> "StaticTwoDA":
+        pass
 
 # Objects #####################################################################
 ###############################################################################

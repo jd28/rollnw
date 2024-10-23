@@ -2,6 +2,8 @@
 
 #include "TwoDATokenizer.hpp"
 
+using namespace std::literals;
+
 namespace nw {
 
 StaticTwoDA::StaticTwoDA(const std::filesystem::path& filename)
@@ -12,6 +14,13 @@ StaticTwoDA::StaticTwoDA(const std::filesystem::path& filename)
 StaticTwoDA::StaticTwoDA(ResourceData data)
     : data_{std::move(data)}
 {
+    is_loaded_ = parse();
+}
+
+StaticTwoDA::StaticTwoDA(std::string_view str)
+{
+    data_.name = Resource("<source>"sv, ResourceType::twoda);
+    data_.bytes.append(str.data(), str.size());
     is_loaded_ = parse();
 }
 

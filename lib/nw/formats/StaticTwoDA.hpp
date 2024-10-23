@@ -32,6 +32,9 @@ struct StaticTwoDA final {
     /// Constructs TwoDA object from an array of bytes
     explicit StaticTwoDA(ResourceData data);
 
+    /// Constructs TwoDA object from string
+    explicit StaticTwoDA(std::string_view str);
+
     /// Finds the index of a column, or -1
     size_t column_index(StringView column) const;
 
