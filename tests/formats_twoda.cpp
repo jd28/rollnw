@@ -48,3 +48,14 @@ TEST(TwoDA, Parse)
     std::ofstream out{"tmp/feat_reform.2da", std::ios_base::binary};
     out << feat;
 }
+
+TEST(TwoDA, AddColumn)
+{
+    nw::TwoDA polymorph(fs::path("test_data/user/development/polymorph.2da"));
+    EXPECT_TRUE(polymorph.is_valid());
+    EXPECT_TRUE(polymorph.add_column("FakeItemBitMask"));
+    EXPECT_TRUE(polymorph.add_column("AnotherColumn"));
+
+    std::ofstream out{"tmp/polymorph.2da", std::ios_base::binary};
+    out << polymorph;
+}

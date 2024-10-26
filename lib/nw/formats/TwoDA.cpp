@@ -39,6 +39,7 @@ bool TwoDA::add_column(StringView name)
         return false;
     }
     columns_.push_back(String{name});
+    widths_.push_back(std::max(size_t(4), name.size()));
     for (auto& row : rows_) {
         row.push_back(StringView("****"));
     }
