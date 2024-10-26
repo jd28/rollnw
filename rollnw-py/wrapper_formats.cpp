@@ -294,6 +294,12 @@ void init_formats_twoda(py::module& nw)
 
     py::class_<nw::TwoDA>(nw, "TwoDA")
         .def(py::init<std::filesystem::path>())
+        .def("__str__", [](const nw::TwoDA& self) {
+            std::stringstream ss;
+            ss << self;
+            return ss.str();
+        })
+
         .def("add_column", &nw::TwoDA::add_column)
         .def("column_index", &nw::TwoDA::column_index)
         .def("columns", &nw::TwoDA::columns)
