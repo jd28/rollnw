@@ -41,7 +41,7 @@ size_t StaticTwoDA::columns() const noexcept
 StringView StaticTwoDA::get_internal(size_t row, size_t col) const
 {
     size_t idx = row * columns_.size() + col;
-    CHECK_F(idx < rows_.size(), "Out of Bounds row {}, col {}", row, col);
+    CHECK_F(idx < rows_.size(), "[2da] {}: out of bounds row {}, col {}", data_.name.resref.view(), row, col);
     return rows_[idx];
 }
 
@@ -54,7 +54,7 @@ bool StaticTwoDA::parse()
     StringView tk;
 
     if (tknz.next() != "2DA" || tknz.next() != "V2.0") {
-        LOG_F(ERROR, "Invalid 2DA Header");
+        LOG_F(ERROR, "[2da] {}: invalid header", data_.name.resref.view());
         return false;
     }
 
@@ -62,7 +62,7 @@ bool StaticTwoDA::parse()
         ; // Drop new lines
 
     if (tk.empty()) {
-        LOG_F(ERROR, "Invalid 2DA: No columns specified");
+        LOG_F(ERROR, "[2da] {}: No columns specified", data_.name.resref.view());
         return false;
     } else if (tk == "DEFAULT:") {
         tk = tknz.next();
@@ -101,9 +101,11 @@ bool StaticTwoDA::parse()
             }
 
             if (drop) {
-                LOG_F(WARNING, "Row: {} - Incorrect column count dropped {} columns, line {}", row, drop, tknz.line - 1);
+                LOG_F(WARNING, "[2da] {}:{} - Incorrect column count dropped {} columns, line {}",
+                    data_.name.resref.view(), row, drop, tknz.line - 1);
             } else if (pad) {
-                LOG_F(WARNING, "Row: {} - Incorrect column count padded {} columns, line {}", row, pad, tknz.line - 1);
+                LOG_F(WARNING, "[2da] {}:{} - Incorrect column count padded {} columns, line {}",
+                    data_.name.resref.view(), row, pad, tknz.line - 1);
             }
 
             while (is_newline(tk))
