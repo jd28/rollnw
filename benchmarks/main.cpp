@@ -75,8 +75,9 @@ static void BM_creature_from_json(benchmark::State& state)
         benchmark::DoNotOptimize(ent);
     }
 }
+BENCHMARK(BM_creature_from_json);
 
-static void BM_creature_to_json(benchmark::State& state)
+static void BM_creature_to_json_instance(benchmark::State& state)
 {
     auto ent = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/drorry.utc"));
     for (auto _ : state) {
@@ -84,8 +85,29 @@ static void BM_creature_to_json(benchmark::State& state)
         benchmark::DoNotOptimize(nw::Creature::serialize(ent, j, nw::SerializationProfile::instance));
     }
 }
+BENCHMARK(BM_creature_to_json_instance);
 
-static void BM_creature_serialize(benchmark::State& state)
+static void BM_creature_to_json_blueprint(benchmark::State& state)
+{
+    auto ent = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/drorry.utc"));
+    for (auto _ : state) {
+        nlohmann::json j;
+        benchmark::DoNotOptimize(nw::Creature::serialize(ent, j, nw::SerializationProfile::blueprint));
+    }
+}
+BENCHMARK(BM_creature_to_json_blueprint);
+
+static void BM_creature_to_gff_blueprint(benchmark::State& state)
+{
+    auto ent = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/drorry.utc"));
+    for (auto _ : state) {
+        auto out = serialize(ent, nw::SerializationProfile::blueprint);
+        benchmark::DoNotOptimize(out);
+    }
+}
+BENCHMARK(BM_creature_to_gff_blueprint);
+
+static void BM_creature_to_gff_instance(benchmark::State& state)
 {
     auto ent = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/drorry.utc"));
     for (auto _ : state) {
@@ -93,6 +115,7 @@ static void BM_creature_serialize(benchmark::State& state)
         benchmark::DoNotOptimize(out);
     }
 }
+BENCHMARK(BM_creature_to_gff_instance);
 
 static void BM_creature_modifier_simple(benchmark::State& state)
 {
@@ -289,9 +312,6 @@ static void BM_start_service(benchmark::State& state)
     }
 }
 BENCHMARK(BM_start_service);
-BENCHMARK(BM_creature_from_json);
-BENCHMARK(BM_creature_serialize);
-BENCHMARK(BM_creature_to_json);
 BENCHMARK(BM_creature_modifier_simple);
 BENCHMARK(BM_creature_modifier_complex);
 BENCHMARK(BM_creature_get_skill_rank);
