@@ -955,12 +955,20 @@ class TwoDA:
         filename (str): 2da file to load
     """
 
+    def __init__(self):
+        """Loads default constructed 2da"""
+        pass
+
     def __init__(self, filename: str):
         """Loads 2da from `filename`"""
         pass
 
-    def add_column(name: str) -> bool:
+    def add_column(self, name: str) -> bool:
         """Adds a new column to the 2da, if not already extent, and initializes with ``****``"""
+        pass
+
+    def column_names(self) -> List[str]:
+        """Gets column names"""
         pass
 
     def get(self, row: int, column: int | str):
@@ -973,6 +981,10 @@ class TwoDA:
         Returns:
             An int | float | string depending on the underlying value
         """
+        pass
+
+    def get_raw(self, row: int, column: int) -> str:
+        """Gets raw 2da entry included unspecified ('****') values"""
         pass
 
     def set(self, row: int, column: int | str, value: int | float | str):

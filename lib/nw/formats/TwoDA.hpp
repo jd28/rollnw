@@ -91,6 +91,9 @@ struct TwoDA final {
     /// Finds the index of a column, or -1
     size_t column_index(StringView column) const;
 
+    /// Gets list of column names
+    const Vector<String>& column_names() const noexcept { return columns_; };
+
     /// Get the number of columns
     size_t columns() const noexcept;
 
@@ -109,6 +112,9 @@ struct TwoDA final {
     /// Gets an element
     template <typename T>
     bool get_to(size_t row, StringView col, T& out) const;
+
+    /// Gets raw twoda value
+    StringView get_raw(size_t row, size_t col) const;
 
     /// Is the 2da parsed without error
     bool is_valid() const noexcept;
@@ -132,12 +138,11 @@ struct TwoDA final {
 private:
     ResourceData data_;
     Vector<size_t> widths_;
-    bool is_loaded_ = false;
+    bool is_loaded_ = true;
     std::vector<RowType> rows_;
     String default_;
     Vector<String> columns_;
 
-    StringView get_internal(size_t row, size_t col) const;
     bool parse();
 };
 
@@ -169,7 +174,7 @@ bool TwoDA::get_to(size_t row, size_t col, T& out) const
         std::is_same_v<T, String> || std::is_same_v<T, float> || std::is_convertible_v<T, int32_t> || std::is_same_v<T, StringView>,
         "TwoDA only supports float, String, StringView, or anything convertible to int32_t");
 
-    StringView res = get_internal(row, col);
+    StringView res = get_raw(row, col);
     if (res == "****") return false;
 
     if constexpr (std::is_same_v<T, float> || std::is_convertible_v<T, int>) {

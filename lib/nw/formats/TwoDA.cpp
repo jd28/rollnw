@@ -60,7 +60,7 @@ size_t TwoDA::columns() const noexcept
     return columns_.size();
 }
 
-StringView TwoDA::get_internal(size_t row, size_t col) const
+StringView TwoDA::get_raw(size_t row, size_t col) const
 {
     CHECK_F(row < rows_.size(), "[2da] {}: out of bounds row {}, col {}", data_.name.resref.view(), row, col);
     CHECK_F(col < columns_.size(), "[2da] {}: out of bounds row {}, col {}", data_.name.resref.view(), row, col);
