@@ -32,7 +32,7 @@ rollNW is an homage to Neverwinter Nights in C++ and Python.  See the [docs](htt
 
 ## Building / Installing
 
-The library uses [CMakePresets.json](https://cmake.org/cmake/help/latest/manual/cmake-presets.7.html) as its build system. The naming convention for non-ci presets is `{platform}-dev[-{build tool}[-python[-debug]]]`. In debug presets, build files are written to `build-debug`, otherwise `build`. In the python presets, python bindings will be built, otherwise only tests and benchmarks are built. On macOS and Linux, ninja is always to the build tool of choice so it is omitted. On windows the default build tool is Visual Studio 2022.
+The library uses [CMakePresets.json](https://cmake.org/cmake/help/latest/manual/cmake-presets.7.html) as its build system. The naming convention for non-ci presets is `{platform}-dev[-{build tool}][-python][-debug]`. In debug presets, build files are written to `build-debug`, otherwise `build`. In the python presets, python bindings will be built, otherwise only tests and benchmarks are built. On macOS and Linux, ninja is always to the build tool of choice so it is omitted. On windows the default build tool is Visual Studio 2022.
 
 Examples:
 ```
@@ -46,6 +46,7 @@ $ cmake --preset=windows-dev
 Once your configuration is done, everything is the same between platforms. To build:
 ```
 $ cmake --build --preset=default
+$ cmake --build --preset=debug
 ```
 
 To install all binaries and test data to local `bin` dir (build or build-debug):

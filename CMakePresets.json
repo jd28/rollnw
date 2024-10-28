@@ -8,6 +8,7 @@
     "configurePresets": [
         {
             "name": "dev-basic",
+            "binaryDir": "${sourceDir}/build",
             "cacheVariables": {
                 "ROLLNW_BUILD_TESTS": {
                     "type": "BOOL",
@@ -373,7 +374,11 @@
     "buildPresets": [
         {
             "name": "default",
-            "configurePreset": "linux"
+            "configurePreset": "dev-basic"
+        },
+        {
+            "name": "debug",
+            "configurePreset": "dev-debug"
         }
     ],
     "testPresets": [
