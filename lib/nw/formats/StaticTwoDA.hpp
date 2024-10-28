@@ -21,7 +21,6 @@ struct StaticTwoDA final {
     StaticTwoDA() = default;
     StaticTwoDA(const StaticTwoDA&) = delete;
     StaticTwoDA(StaticTwoDA&&) = default;
-    virtual ~StaticTwoDA() = default;
 
     StaticTwoDA& operator=(const StaticTwoDA&) = delete;
     StaticTwoDA& operator=(StaticTwoDA&&) = default;
