@@ -186,7 +186,7 @@ std::ostream& operator<<(std::ostream& out, const nw::TwoDA& tda)
     const int pad = 4;
     String sep{32, ' '};
 
-    out << "2DA V1.0" << std::endl;
+    out << "2DA V2.0" << std::endl;
     if (tda.default_.size()) {
         out << "DEFAULT: ";
         bool quote = needs_quote(tda.default_);
