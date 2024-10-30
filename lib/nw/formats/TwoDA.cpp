@@ -214,7 +214,6 @@ std::ostream& operator<<(std::ostream& out, const nw::TwoDA& tda)
     size_t cur = 0;
 
     size_t rows = tda.rows();
-    // Gonna do nested for loops for clarity.
     for (size_t i = 0; i < rows; ++i) {
         char buffer[24] = {0};
         auto res = std::to_chars(buffer, buffer + 24, i);
@@ -228,7 +227,7 @@ std::ostream& operator<<(std::ostream& out, const nw::TwoDA& tda)
             out << tda.rows_[i][j].view;
             if (quote) out << '"';
             if (j + 1 < tda.columns()) {
-                size_t p = size_t(tda.widths_[j % tda.columns()] - int(tda.rows_[i][j].view.size()) + pad + (quote ? -2 : 0));
+                size_t p = size_t(tda.widths_[j] - int(tda.rows_[i][j].view.size()) + pad + (quote ? -2 : 0));
                 sep.resize(p, ' ');
                 out << sep;
             }
