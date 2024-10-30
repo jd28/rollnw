@@ -1,12 +1,14 @@
 #pragma once
 
 #include <nw/kernel/Strings.hpp>
+#include <nw/objects/Placeable.hpp>
 #include <nw/resources/Resref.hpp>
 #include <nw/rules/Class.hpp>
 #include <nw/rules/Spell.hpp>
 #include <nw/rules/attributes.hpp>
 #include <nw/rules/combat.hpp>
 #include <nw/rules/feats.hpp>
+#include <nw/rules/items.hpp>
 #include <nw/util/ByteArray.hpp>
 #include <nw/util/InternedString.hpp>
 #include <nw/util/macros.hpp>
@@ -98,12 +100,33 @@ public:
     };
 
 DEFINE_RULE_TYPE_CASTER(Ability)
+DEFINE_RULE_TYPE_CASTER(Appearance)
+DEFINE_RULE_TYPE_CASTER(ArmorClass)
 DEFINE_RULE_TYPE_CASTER(AttackType)
-DEFINE_RULE_TYPE_CASTER(EffectType)
+DEFINE_RULE_TYPE_CASTER(BaseItem)
 DEFINE_RULE_TYPE_CASTER(Class)
+DEFINE_RULE_TYPE_CASTER(CombatMode)
+DEFINE_RULE_TYPE_CASTER(Damage)
+DEFINE_RULE_TYPE_CASTER(DamageModType)
+DEFINE_RULE_TYPE_CASTER(Disease)
+DEFINE_RULE_TYPE_CASTER(EffectType)
 DEFINE_RULE_TYPE_CASTER(Feat)
-DEFINE_RULE_TYPE_CASTER(Skill)
-DEFINE_RULE_TYPE_CASTER(Spell)
+DEFINE_RULE_TYPE_CASTER(ItemPropertyType)
+DEFINE_RULE_TYPE_CASTER(MasterFeat)
+DEFINE_RULE_TYPE_CASTER(MissChanceType)
+DEFINE_RULE_TYPE_CASTER(ModifierType)
+DEFINE_RULE_TYPE_CASTER(Phenotype)
+DEFINE_RULE_TYPE_CASTER(PlaceableType)
+DEFINE_RULE_TYPE_CASTER(Poison)
 DEFINE_RULE_TYPE_CASTER(Race)
+DEFINE_RULE_TYPE_CASTER(ReqType)
+DEFINE_RULE_TYPE_CASTER(Save)
+DEFINE_RULE_TYPE_CASTER(SaveVersus)
+DEFINE_RULE_TYPE_CASTER(Situation)
+DEFINE_RULE_TYPE_CASTER(Skill)
+DEFINE_RULE_TYPE_CASTER(SpecialAttack)
+DEFINE_RULE_TYPE_CASTER(Spell)
+DEFINE_RULE_TYPE_CASTER(SpellSchool)
+DEFINE_RULE_TYPE_CASTER(TrapType)
 
 }
