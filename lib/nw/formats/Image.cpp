@@ -64,6 +64,7 @@ Image::Image(Image&& other)
     , height_{other.height_}
     , width_{other.width_}
     , is_dds_{other.is_dds_}
+    , is_bio_dds_{other.is_bio_dds_}
 {
     other.is_loaded_ = false;
     other.bytes_ = nullptr;
@@ -81,6 +82,7 @@ Image& Image::operator=(Image&& other)
         height_ = other.height_;
         width_ = other.width_;
         is_dds_ = other.is_dds_;
+        is_bio_dds_ = other.is_bio_dds_;
 
         other.is_loaded_ = false;
         other.bytes_ = nullptr;
