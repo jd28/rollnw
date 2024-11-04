@@ -23,6 +23,9 @@ TEST(Image, BiowareDDS)
     EXPECT_TRUE(dds2.write_to("tmp/tno01_wtcliff01.dds"));
     EXPECT_TRUE(dds2.write_to("tmp/tno01_wtcliff01.png"));
     EXPECT_TRUE(dds2.write_to("tmp/tno01_wtcliff01.tga"));
+    auto bytes = dds2.release();
+    EXPECT_FALSE(dds2.valid());
+    if (bytes) { free(bytes); }
 }
 
 TEST(Image, StandardDDS)

@@ -20,6 +20,7 @@ struct PltColors;
  *       not a tool for converting/compressing textures.
  */
 struct Image {
+    Image() = default;
     explicit Image(const Plt& plt, const PltColors& colors);
     explicit Image(const std::filesystem::path& filename);
     explicit Image(ResourceData data);
@@ -41,6 +42,9 @@ struct Image {
 
     /// Returns true if image was loaded from a bioware dds file
     bool is_bio_dds() const noexcept;
+
+    /// Releases the underlying array of bytes
+    uint8_t* release();
 
     /// Determine if successfully loaded.
     bool valid() const;

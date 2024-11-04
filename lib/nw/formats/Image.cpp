@@ -102,6 +102,14 @@ uint32_t Image::height() const noexcept { return height_; }
 
 bool Image::is_bio_dds() const noexcept { return is_bio_dds_; }
 
+uint8_t* Image::release()
+{
+    auto temp = bytes_;
+    bytes_ = nullptr;
+    is_loaded_ = false;
+    return temp;
+}
+
 uint32_t Image::width() const noexcept { return width_; }
 
 bool Image::valid() const { return is_loaded_; }
@@ -152,6 +160,7 @@ bool Image::parse()
     } else { // Defer to stb_image
         int width, height, channels;
 
+        stbi_set_flip_vertically_on_load(false);
         bytes_ = stbi_load_from_memory(data_.bytes.data(), static_cast<int>(data_.bytes.size()),
             &width, &height, &channels, 0);
 
@@ -285,6 +294,7 @@ bool Image::parse_dxt()
 {
     int width, height, channels;
 
+    stbi_set_flip_vertically_on_load(false);
     bytes_ = stbi_load_from_memory(data_.bytes.data(), static_cast<int>(data_.bytes.size()),
         &height, &width, &channels, 0);
 
