@@ -52,16 +52,17 @@ bool Item::instantiate()
     return instantiated_;
 }
 
-Image* Item::get_icon_by_part(ItemModelParts::type part, bool female) const
+Image Item::get_icon_by_part(ItemModelParts::type part, bool female) const
 {
     String resref;
     bool is_plt = false;
     ResourceData rdata;
+    Image result;
 
     auto bi = nw::kernel::rules().baseitems.get(baseitem);
     if (!bi) {
         LOG_F(ERROR, "[item] attempting to use invalid base item: {}", *baseitem);
-        return nullptr;
+        return result;
     }
 
     if (model_type == ItemModelType::simple && part == ItemModelParts::model1) {
@@ -84,9 +85,10 @@ Image* Item::get_icon_by_part(ItemModelParts::type part, bool female) const
             resref = fmt::format("i{}_t_{:03d}", bi->item_class.view(), model_parts[ItemModelParts::model3]);
         } else {
             LOG_F(ERROR, "[item] attempting to use invalid model part: {}", int(part));
-            return nullptr;
+            return result;
         }
     } else if (model_type == ItemModelType::armor) {
+        if (model_parts[part] == 0) { return result; }
         // Only certain parts of the armor affect the icon.
         is_plt = true;
         if (part == ItemModelParts::armor_torso) {
@@ -103,7 +105,7 @@ Image* Item::get_icon_by_part(ItemModelParts::type part, bool female) const
             resref = fmt::format("ip{}_shor{:03d}", female ? 'f' : 'm', model_parts[part]);
         } else {
             LOG_F(ERROR, "[item] attempting to use unnecessary model part: {}", int(part));
-            return nullptr;
+            return result;
         }
     }
 
@@ -114,14 +116,9 @@ Image* Item::get_icon_by_part(ItemModelParts::type part, bool female) const
         }
         if (rdata.bytes.size() == 0) {
             LOG_F(ERROR, "[item] failed to load icon or default icon for base type", *baseitem);
-            return nullptr;
+            return result;
         }
-        auto img = new Image(std::move(rdata));
-        if (!img->valid()) {
-            delete img;
-            return nullptr;
-        }
-        return img;
+        result = Image(std::move(rdata));
     } else {
         rdata = nw::kernel::resman().demand({Resref(resref), ResourceType::plt});
         Plt plt(std::move(rdata));
@@ -129,24 +126,15 @@ Image* Item::get_icon_by_part(ItemModelParts::type part, bool female) const
             rdata = nw::kernel::resman().demand_in_order(bi->default_icon, {ResourceType::dds, ResourceType::tga});
             if (rdata.bytes.size() == 0) {
                 LOG_F(ERROR, "[item] failed to load icon or default icon for base type", *baseitem);
-                return nullptr;
+                return result;
             }
-            auto img = new Image(std::move(rdata));
-            if (!img->valid()) {
-                delete img;
-                return nullptr;
-            }
+            result = Image(std::move(rdata));
         } else {
-            auto img = new Image(plt, model_to_plt_colors());
-            if (!img->valid()) {
-                delete img;
-                return nullptr;
-            }
-            return img;
+            result = Image(plt, model_to_plt_colors());
         }
     }
 
-    return nullptr;
+    return result;
 }
 
 PltColors Item::model_to_plt_colors() const noexcept

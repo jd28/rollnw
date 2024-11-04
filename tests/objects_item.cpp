@@ -188,63 +188,47 @@ TEST(Item, Icon)
     auto item1 = nw::kernel::objects().load<nw::Item>("nw_wswbs001"sv);
     EXPECT_TRUE(item1);
     auto icon1_1 = item1->get_icon_by_part(nw::ItemModelParts::model1);
-    EXPECT_TRUE(icon1_1);
-    EXPECT_TRUE(icon1_1->valid());
-    EXPECT_TRUE(icon1_1->write_to("tmp/wswbs001_b.png"));
-    delete icon1_1;
+    EXPECT_TRUE(icon1_1.valid());
+    EXPECT_TRUE(icon1_1.write_to("tmp/wswbs001_b.png"));
 
     auto icon1_2 = item1->get_icon_by_part(nw::ItemModelParts::model2);
-    EXPECT_TRUE(icon1_2);
-    EXPECT_TRUE(icon1_2->valid());
-    EXPECT_TRUE(icon1_2->write_to("tmp/wswbs001_m.png"));
-    delete icon1_2;
+    EXPECT_TRUE(icon1_2.valid());
+    EXPECT_TRUE(icon1_2.write_to("tmp/wswbs001_m.png"));
 
     auto icon1_3 = item1->get_icon_by_part(nw::ItemModelParts::model3);
-    EXPECT_TRUE(icon1_3);
-    EXPECT_TRUE(icon1_3->valid());
-    EXPECT_TRUE(icon1_3->write_to("tmp/wswbs001_t.png"));
-    delete icon1_3;
+    EXPECT_TRUE(icon1_3.valid());
+    EXPECT_TRUE(icon1_3.write_to("tmp/wswbs001_t.png"));
 
     // Simple
     auto item2 = nw::kernel::objects().load<nw::Item>("x2_smchaosshield"sv);
     EXPECT_TRUE(item2);
     auto icon2_1 = item2->get_icon_by_part();
-    EXPECT_TRUE(icon2_1);
-    EXPECT_TRUE(icon2_1->valid());
-    EXPECT_TRUE(icon2_1->write_to("tmp/x2_smchaosshield.png"));
-    delete icon2_1;
+    EXPECT_TRUE(icon2_1.valid());
+    EXPECT_TRUE(icon2_1.write_to("tmp/x2_smchaosshield.png"));
 
     // Layered
     auto item3 = nw::kernel::objects().load<nw::Item>("x2_helm_002"sv);
     EXPECT_TRUE(item3);
     auto icon3_1 = item3->get_icon_by_part();
-    EXPECT_TRUE(icon3_1);
-    EXPECT_TRUE(icon3_1->valid());
-    EXPECT_TRUE(icon3_1->write_to("tmp/x2_helm_002.png"));
-    delete icon3_1;
+    EXPECT_TRUE(icon3_1.valid());
+    EXPECT_TRUE(icon3_1.write_to("tmp/x2_helm_002.png"));
 
     auto item4 = nw::kernel::objects().load<nw::Item>("x2_it_drowcl001"sv);
     EXPECT_TRUE(item4);
     auto icon4_1 = item4->get_icon_by_part();
-    EXPECT_TRUE(icon4_1);
-    EXPECT_TRUE(icon4_1->valid());
-    EXPECT_TRUE(icon4_1->write_to("tmp/x2_it_drowcl001.png"));
-    delete icon4_1;
+    EXPECT_TRUE(icon4_1.valid());
+    EXPECT_TRUE(icon4_1.write_to("tmp/x2_it_drowcl001.png"));
 
     // Armor
     auto item5 = nw::kernel::objects().load<nw::Item>("x2_it_adaplate"sv);
     EXPECT_TRUE(item5);
     auto icon5_1 = item5->get_icon_by_part(nw::ItemModelParts::armor_torso);
-    EXPECT_TRUE(icon5_1);
-    EXPECT_TRUE(icon5_1->valid());
-    EXPECT_TRUE(icon5_1->write_to("tmp/x2_it_adaplate.png"));
-    delete icon5_1;
+    EXPECT_TRUE(icon5_1.valid());
+    EXPECT_TRUE(icon5_1.write_to("tmp/x2_it_adaplate.png"));
 
     auto icon5_2 = item5->get_icon_by_part(nw::ItemModelParts::armor_torso, true);
-    EXPECT_TRUE(icon5_2);
-    EXPECT_TRUE(icon5_2->valid());
-    EXPECT_TRUE(icon5_2->write_to("tmp/x2_it_adaplatef.png"));
-    delete icon5_2;
+    EXPECT_TRUE(icon5_2.valid());
+    EXPECT_TRUE(icon5_2.write_to("tmp/x2_it_adaplatef.png"));
 
 #endif
 }

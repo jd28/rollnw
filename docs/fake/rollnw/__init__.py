@@ -835,7 +835,7 @@ class Image:
     def __init__(self, filename: str):
         pass
 
-    def channels(self):
+    def channels(self) -> int:
         """Gets BPP
         """
         pass
@@ -845,22 +845,22 @@ class Image:
         """
         pass
 
-    def height(self):
+    def height(self) -> int:
         """Get height
         """
         pass
 
-    def valid(self):
+    def valid(self) -> bool:
         """Determine if successfully loaded.
         """
         pass
 
-    def width(self):
+    def width(self) -> int:
         """Get width
         """
         pass
 
-    def write_to(self):
+    def write_to(self) -> None:
         """Write Image to file
         """
         pass
@@ -1411,7 +1411,7 @@ class Item:
         """Converts model colors to PLT colors"""
         pass
 
-    def get_icon_by_part(self, part: ItemModelParts = ItemModelParts.model1,  female: bool = False) -> Optional[Image]:
+    def get_icon_by_part(self, part: ItemModelParts = ItemModelParts.model1, female: bool = False) -> Image:
         """Generates image of icon by model part, constructing from PLT textures as necessary.
 
         Note: Python owns the lifetime of the resulting image. Merging icons is also the responsibility of the caller.
