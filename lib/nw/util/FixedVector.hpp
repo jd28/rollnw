@@ -146,7 +146,7 @@ struct FixedVector {
 
     iterator erase(iterator pos)
     {
-        CHECK_F(pos > begin() && pos <= end(), "Erase position out of range");
+        CHECK_F(pos >= begin() && pos < end(), "Erase position out of range");
 
         size_type index = pos - begin();
         buffer_[index].~T();
@@ -179,6 +179,7 @@ struct FixedVector {
         size_ -= erase_count;
         return buffer_ + index;
     }
+
     iterator insert(iterator pos, const T& value)
     {
         CHECK_F(size_ < capacity_, "FixedVector capacity exceeded");
