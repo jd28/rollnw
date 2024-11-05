@@ -22,7 +22,9 @@ BaseItemInfo::BaseItemInfo(const TwoDARowView& tda)
     tda.get_to("InvSlotHeight", inventory_slot_size.second);
     tda.get_to("EquipableSlots", equipable_slots);
     tda.get_to("CanRotateIcon", can_rotate_icon);
-    // ModelType
+    if (tda.get_to("ModelType", temp_int)) {
+        model_type = static_cast<nw::ItemModelType>(temp_int);
+    }
     if (tda.get_to("ItemClass", temp_string)) {
         item_class = Resref(temp_string);
     }
