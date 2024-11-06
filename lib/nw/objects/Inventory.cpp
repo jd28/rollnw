@@ -24,7 +24,7 @@ Inventory::Inventory(int pages, int rows, int columns, nw::MemoryResource* alloc
 Inventory::Inventory(int pages, int rows, int columns, ObjectBase* owner_, nw::MemoryResource* allocator)
     : owner{owner_}
     , items(128, allocator) // There is some maximum number of items..
-    , pages_{std::min(pages, default_pages)}
+    , pages_{pages}
     , rows_{std::min(rows, max_rows)}
     , columns_{std::min(columns, max_columns)}
 {
