@@ -429,6 +429,25 @@ class Inventory:
         """Instantiates inventory by loading contained items from the resource manager"""
         pass
 
+    def add_item(self, item: "Item") -> bool:
+        """Adds an item to an inventory."""
+        pass
+
+    def add_page(self) -> bool:
+        """Adds a page to the inventory if it is growable (i.e. Stores)"""
+
+    def can_add_item(self, item: "Item") -> bool:
+        """Determines if an item can be added to an inventory."""
+        pass
+
+    def debug(self) -> str:
+        """Creates a string debug grid of the inventory"""
+        pass
+
+    def remove_item(self, item: "Item") -> bool:
+        """Removes an item from an inventory."""
+        pass
+
 
 class ClassEntry:
     """Class level data

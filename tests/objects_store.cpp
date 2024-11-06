@@ -108,3 +108,12 @@ TEST(Store, GffRoundTrip)
     EXPECT_EQ(oa.header.list_idx_offset, g.head_->list_idx_offset);
     EXPECT_EQ(oa.header.list_idx_count, g.head_->list_idx_count);
 }
+
+TEST(Store, Inventory)
+{
+    auto ent = nw::kernel::objects().load<nw::Store>(fs::path("test_data/user/development/storethief002.utm"));
+    EXPECT_TRUE(ent);
+    EXPECT_EQ(ent->inventory.weapons.pages(), 1);
+    EXPECT_TRUE(ent->inventory.weapons.add_page());
+    EXPECT_EQ(ent->inventory.weapons.pages(), 2);
+}

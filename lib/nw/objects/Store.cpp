@@ -13,12 +13,17 @@ StoreInventory::StoreInventory(nw::MemoryResource* allocator)
 }
 
 StoreInventory::StoreInventory(ObjectBase* owner, nw::MemoryResource* allocator)
-    : armor{owner}
-    , miscellaneous{owner}
-    , potions{owner}
-    , rings{owner}
-    , weapons{owner}
+    : armor{1, 10, 10, owner, allocator}
+    , miscellaneous{1, 10, 10, owner, allocator}
+    , potions{1, 10, 10, owner, allocator}
+    , rings{1, 10, 10, owner, allocator}
+    , weapons{1, 10, 10, owner, allocator}
 {
+    armor.set_growable(true);
+    miscellaneous.set_growable(true);
+    potions.set_growable(true);
+    rings.set_growable(true);
+    weapons.set_growable(true);
 }
 
 void StoreInventory::set_owner(ObjectBase* owner)

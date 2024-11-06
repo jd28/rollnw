@@ -19,6 +19,7 @@ Item::Item()
 Item::Item(nw::MemoryResource* allocator)
     : ObjectBase(allocator)
     , common(allocator)
+    , inventory(1, 6, 10, this, allocator) // [TODO] This needs to be dynamic based on container size??
 {
     set_handle(ObjectHandle{object_invalid, ObjectType::item, 0});
     inventory.owner = this;

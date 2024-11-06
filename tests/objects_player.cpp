@@ -59,3 +59,32 @@ TEST(Player, GffJsonSerialize)
     std::ofstream out{"tmp/testwizardpc1.bic.gffjson"};
     out << std::setw(4) << j;
 }
+
+TEST(Player, Inventory)
+{
+    auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
+    EXPECT_TRUE(mod);
+
+    auto pl = nwk::objects().load_player("CDKEY", "daeris1");
+    EXPECT_TRUE(pl);
+
+    EXPECT_EQ(pl->inventory.items.size(), 4);
+    auto slot1 = pl->inventory.find_slot(1, 1);
+    auto [x1, y1] = pl->inventory.slot_to_xy(slot1);
+    EXPECT_EQ(x1, 1);
+    EXPECT_EQ(y1, 0);
+
+    auto slot2 = pl->inventory.find_slot(3, 4);
+    auto [x2, y2] = pl->inventory.slot_to_xy(slot2);
+    EXPECT_EQ(x2, 5);
+    EXPECT_EQ(y2, 0);
+
+    auto it = pl->inventory.items[0].item.as<nw::Item*>();
+    EXPECT_TRUE(pl->inventory.remove_item(it));
+    EXPECT_FALSE(pl->inventory.has_item(it));
+    EXPECT_EQ(pl->inventory.items.size(), 3);
+    EXPECT_TRUE(pl->inventory.can_add_item(it));
+    EXPECT_TRUE(pl->inventory.add_item(it));
+    EXPECT_TRUE(pl->inventory.has_item(it));
+    EXPECT_EQ(pl->inventory.items.size(), 4);
+}

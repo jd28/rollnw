@@ -102,7 +102,7 @@ Creature::Creature(nw::MemoryResource* allocator)
     : ObjectBase(allocator)
     , common(allocator)
     , equipment{this}
-    , inventory(allocator)
+    , inventory(6, 6, 10, allocator)
 {
     set_handle(ObjectHandle{object_invalid, ObjectType::creature, 0});
     inventory.owner = this;

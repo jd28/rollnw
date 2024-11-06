@@ -153,8 +153,18 @@ void init_component_inventory(py::module& m)
 
     py::class_<nw::Inventory>(m, "Inventory")
         .def("instantiate", &nw::Inventory::instantiate)
+
+        .def("add_item", &nw::Inventory::add_item, py::keep_alive<1, 2>())
+        .def("can_add_item", &nw::Inventory::can_add_item)
+        .def("debug", &nw::Inventory::debug)
+        .def("has_item", &nw::Inventory::has_item)
+        .def("remove_item", &nw::Inventory::remove_item)
+
         .def_readwrite("owner", &nw::Inventory::owner)
-        .def_readonly("items", &nw::Inventory::items);
+        .def_readonly("items", &nw::Inventory::items)
+        .def("remove_item", &nw::Inventory::remove_item)
+
+        ;
 }
 
 void init_component_levelhistory(py::module& m)

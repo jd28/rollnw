@@ -71,7 +71,7 @@ Placeable::Placeable()
 Placeable::Placeable(MemoryResource* allocator)
     : ObjectBase(allocator)
     , common(allocator)
-    , inventory(allocator)
+    , inventory(6, 6, 10, this, allocator)
 {
     set_handle(ObjectHandle{object_invalid, ObjectType::placeable, 0});
     inventory.owner = this;
