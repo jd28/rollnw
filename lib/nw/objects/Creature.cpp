@@ -236,10 +236,6 @@ bool Creature::deserialize(Creature* obj, const nlohmann::json& archive, Seriali
         return false;
     }
 
-    if (profile == nw::SerializationProfile::instance) {
-        obj->instantiated_ = true;
-    }
-
     return true;
 }
 
@@ -351,9 +347,6 @@ bool deserialize(Creature* obj, const GffStruct& archive, SerializationProfile p
 
     archive.get_to("StartingPackage", obj->starting_package, false);
 
-    if (profile == nw::SerializationProfile::instance) {
-        obj->instantiated_ = true;
-    }
     return true;
 }
 

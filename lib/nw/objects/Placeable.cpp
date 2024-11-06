@@ -172,10 +172,6 @@ bool Placeable::deserialize(Placeable* obj, const nlohmann::json& archive, Seria
         return false;
     }
 
-    if (profile == nw::SerializationProfile::instance) {
-        obj->instantiated_ = true;
-    }
-
     return true;
 }
 
@@ -262,10 +258,6 @@ bool deserialize(Placeable* obj, const GffStruct& archive, SerializationProfile 
     archive.get_to("Plot", obj->plot);
     archive.get_to("Static", obj->static_);
     archive.get_to("Useable", obj->useable);
-
-    if (profile == nw::SerializationProfile::instance) {
-        obj->instantiated_ = true;
-    }
 
     return true;
 }

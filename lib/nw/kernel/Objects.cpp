@@ -177,7 +177,7 @@ nw::Player* ObjectSystem::load_player(StringView cdkey, StringView resref)
     auto obj = make<nw::Player>();
     Gff in{std::move(data)};
     deserialize(obj, in.toplevel());
-
+    obj->instantiate();
     return obj;
 }
 

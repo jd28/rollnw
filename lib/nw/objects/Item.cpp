@@ -218,10 +218,6 @@ bool Item::deserialize(Item* obj, const nlohmann::json& archive, SerializationPr
         return false;
     }
 
-    if (profile == nw::SerializationProfile::instance) {
-        obj->instantiated_ = true;
-    }
-
     return true;
 }
 
@@ -360,10 +356,6 @@ bool deserialize(Item* obj, const GffStruct& archive, SerializationProfile profi
         archive.get_to("Leather2Color", obj->model_colors[ItemColors::leather2]);
         archive.get_to("Metal1Color", obj->model_colors[ItemColors::metal1]);
         archive.get_to("Metal2Color", obj->model_colors[ItemColors::metal2]);
-    }
-
-    if (profile == nw::SerializationProfile::instance) {
-        obj->instantiated_ = true;
     }
 
     return true;
