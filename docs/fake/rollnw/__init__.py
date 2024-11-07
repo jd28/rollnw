@@ -444,6 +444,10 @@ class Inventory:
         """Creates a string debug grid of the inventory"""
         pass
 
+    def items(self) -> List["Item"]:
+        """Gets all instantiated items"""
+        pass
+
     def remove_item(self, item: "Item") -> bool:
         """Removes an item from an inventory."""
         pass

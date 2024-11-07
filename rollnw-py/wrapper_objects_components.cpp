@@ -161,10 +161,17 @@ void init_component_inventory(py::module& m)
         .def("remove_item", &nw::Inventory::remove_item)
 
         .def_readwrite("owner", &nw::Inventory::owner)
-        .def_readonly("items", &nw::Inventory::items)
-        .def("remove_item", &nw::Inventory::remove_item)
-
-        ;
+        .def("items", [](const nw::Inventory& self) {
+            auto pylist = py::list();
+            for (auto& item : self.items) {
+                if (item.item.is<nw::Item*>()) {
+                    auto pyobj = py::cast(item.item.as<nw::Item*>(), py::return_value_policy::reference);
+                    pylist.append(pyobj);
+                }
+            }
+            return pylist;
+        })
+        .def("remove_item", &nw::Inventory::remove_item);
 }
 
 void init_component_levelhistory(py::module& m)
