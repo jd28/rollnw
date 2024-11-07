@@ -78,6 +78,7 @@ bool Inventory::add_item(nw::Item* item)
     if (!item) { return false; }
     auto bi = nw::kernel::rules().baseitems.get(item->baseitem);
     if (!bi) { return false; }
+    if (has_item(item)) { return false; }
 
     auto [width, height] = bi->inventory_slot_size;
     auto slot = find_slot(width, height);
