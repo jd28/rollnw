@@ -61,6 +61,9 @@ struct Creature : public ObjectBase {
     static bool serialize(const Creature* obj, nlohmann::json& archive, SerializationProfile profile);
     static String get_name_from_file(const std::filesystem::path& path);
 
+    /// Gets alignment flags
+    AlignmentFlags alignment_flags() const noexcept;
+
     Common common;
     CreatureAppearance appearance;
     CombatInfo combat_info;

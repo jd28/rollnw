@@ -145,7 +145,7 @@ bool Creature::instantiate()
 Versus Creature::versus_me() const
 {
     Versus result;
-    // [TODO] - Alignment
+    result.align_flags = alignment_flags();
     result.race = race;
     return result;
 }
@@ -180,6 +180,29 @@ String Creature::get_name_from_file(const std::filesystem::path& path)
             result += " " + ln;
         }
     }
+    return result;
+}
+
+AlignmentFlags Creature::alignment_flags() const noexcept
+{
+    AlignmentFlags result = AlignmentFlags::none;
+
+    if (good_evil >= 70) {
+        result |= AlignmentFlags::good;
+    } else if (good_evil <= 30) {
+        result |= AlignmentFlags::evil;
+    } else {
+        result |= AlignmentFlags::neutral;
+    }
+
+    if (lawful_chaotic >= 70) {
+        result |= AlignmentFlags::lawful;
+    } else if (lawful_chaotic <= 30) {
+        result |= AlignmentFlags::chaotic;
+    } else {
+        result |= AlignmentFlags::neutral;
+    }
+
     return result;
 }
 

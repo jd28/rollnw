@@ -42,6 +42,7 @@ TEST(Creature, GffDeserialize)
     EXPECT_EQ(obj1->scripts.on_attacked, "nw_c2_default5");
     EXPECT_EQ(obj1->appearance.id, 31);
     EXPECT_EQ(obj1->gender, 1);
+    EXPECT_EQ(obj1->alignment_flags(), nw::align_true_neutral);
 
     auto obj2 = nwk::objects().load<nw::Creature>(fs::path("test_data/user/development/pl_agent_001.utc"));
     EXPECT_TRUE(obj2);
@@ -56,6 +57,7 @@ TEST(Creature, GffDeserialize)
     EXPECT_EQ(obj2->combat_info.ac_natural_bonus, 0);
     EXPECT_EQ(obj2->combat_info.special_abilities.size(), 1);
     EXPECT_EQ(obj2->combat_info.special_abilities[0].spell, 120);
+    EXPECT_EQ(obj2->alignment_flags(), nw::align_neutral_good);
 }
 
 TEST(Creature, FeatsAddRemove)

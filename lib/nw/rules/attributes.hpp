@@ -61,6 +61,16 @@ AlignmentAxis alignment_axis_from_flags(AlignmentFlags flags);
 
 DEFINE_ENUM_FLAGS(AlignmentFlags)
 
+constexpr AlignmentFlags align_lawful_good = AlignmentFlags::lawful | AlignmentFlags::good;
+constexpr AlignmentFlags align_neutral_good = AlignmentFlags::neutral | AlignmentFlags::good;
+constexpr AlignmentFlags align_chaotic_good = AlignmentFlags::chaotic | AlignmentFlags::good;
+constexpr AlignmentFlags align_lawful_neutral = AlignmentFlags::neutral | AlignmentFlags::lawful;
+constexpr AlignmentFlags align_true_neutral = AlignmentFlags::neutral;
+constexpr AlignmentFlags align_chaotic_neutral = AlignmentFlags::neutral | AlignmentFlags::chaotic;
+constexpr AlignmentFlags align_lawful_evil = AlignmentFlags::lawful | AlignmentFlags::evil;
+constexpr AlignmentFlags align_neutral_evil = AlignmentFlags::neutral | AlignmentFlags::evil;
+constexpr AlignmentFlags align_chaotic_evil = AlignmentFlags::chaotic | AlignmentFlags::good;
+
 // -- Appearance --------------------------------------------------------------
 // ----------------------------------------------------------------------------
 
