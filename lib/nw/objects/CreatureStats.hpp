@@ -46,7 +46,7 @@ struct CreatureStats {
     friend bool deserialize(CreatureStats& self, const GffStruct& archive);
     friend bool serialize(const CreatureStats& self, GffBuilderStruct& archive);
 
-private:
+    // private:
     std::array<uint8_t, 6> abilities_;
     Vector<Feat> feats_;
     Vector<uint8_t> skills_;
