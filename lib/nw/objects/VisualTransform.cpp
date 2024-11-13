@@ -24,8 +24,8 @@ void to_json(nlohmann::json& archive, const VisualTransformValue& value)
 bool deserialize(const GffStruct gff, VisualTransformValue& self)
 {
     return gff["LerpType"].get_to(self.lerp_type)
-        && gff["TimerType"].get_to(self.lerp_type)
-        && gff["ValueTo"].get_to(self.lerp_type);
+        && gff["TimerType"].get_to(self.timer_type)
+        && gff["ValueTo"].get_to(self.value_to);
 }
 
 bool serialize(GffBuilderStruct& archive, const VisualTransformValue& self)
