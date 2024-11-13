@@ -254,6 +254,15 @@ bool Creature::deserialize(Creature* obj, const nlohmann::json& archive, Seriali
         archive.at("race").get_to(obj->race);
         archive.at("soundset").get_to(obj->soundset);
         archive.at("starting_package").get_to(obj->starting_package);
+
+        if (profile == SerializationProfile::instance) {
+            auto it = archive.find("visual_transform");
+            if (it != std::end(archive)) {
+                VisualTransform vt;
+                archive.at("visual_transform").get_to(vt);
+                obj->set_visual_transform(vt);
+            }
+        }
     } catch (const nlohmann::json::exception& e) {
         LOG_F(ERROR, "from_json exception: {}", e.what());
         return false;
@@ -310,6 +319,13 @@ bool Creature::serialize(const Creature* obj, nlohmann::json& archive,
     archive["starting_package"] = obj->starting_package;
     archive["subrace"] = obj->subrace;
     archive["walkrate"] = obj->walkrate;
+
+    if (profile == SerializationProfile::instance) {
+        // Don't add default constructed visual transforms
+        if (obj->visual_transform() != VisualTransform{}) {
+            archive["visual_transform"] = obj->visual_transform();
+        }
+    }
 
     return true;
 }
@@ -369,6 +385,15 @@ bool deserialize(Creature* obj, const GffStruct& archive, SerializationProfile p
     }
 
     archive.get_to("StartingPackage", obj->starting_package, false);
+
+    if (profile == SerializationProfile::instance) {
+        VisualTransform vt;
+        auto st = archive.get<GffStruct>("VisualTransform", false);
+        if (st) {
+            deserialize(*st, vt);
+            obj->set_visual_transform(vt);
+        }
+    }
 
     return true;
 }
@@ -436,6 +461,14 @@ bool serialize(const Creature* obj, GffBuilderStruct& archive, SerializationProf
         .add_field("Plot", obj->plot)
         .add_field("Race", uint8_t(*obj->race))
         .add_field("StartingPackage", obj->starting_package);
+
+    if (profile == SerializationProfile::instance) {
+        // Don't add default constructed visual transforms (unlike the game).
+        if (obj->visual_transform() != VisualTransform{}) {
+            auto& st = archive.add_struct("VisualTransform", 6);
+            serialize(st, obj->visual_transform());
+        }
+    }
 
     return true;
 }

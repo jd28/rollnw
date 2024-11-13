@@ -68,6 +68,7 @@ add_library(nw STATIC
     objects/Saves.cpp
     objects/SpellBook.cpp
     objects/Trap.cpp
+    objects/VisualTransform.cpp
 
     profiles/nwn1/constants.cpp
     profiles/nwn1/effects.cpp

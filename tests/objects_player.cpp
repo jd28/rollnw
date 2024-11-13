@@ -88,3 +88,15 @@ TEST(Player, Inventory)
     EXPECT_TRUE(pl->inventory.has_item(it));
     EXPECT_EQ(pl->inventory.items.size(), 4);
 }
+
+TEST(Player, VisualTransform)
+{
+    auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
+    EXPECT_TRUE(mod);
+
+    auto pl = nwk::objects().load_player("CDKEY", "daeris1");
+    EXPECT_TRUE(pl);
+    EXPECT_EQ(pl->visual_transform().transform_x.lerp_type, 0);
+    EXPECT_EQ(pl->visual_transform().transform_x.timer_type, 0);
+    EXPECT_EQ(pl->visual_transform().transform_x.value_to, 1.0);
+}

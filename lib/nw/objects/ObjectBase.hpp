@@ -3,6 +3,7 @@
 #include "../rules/Versus.hpp"
 #include "EffectArray.hpp"
 #include "ObjectHandle.hpp"
+#include "VisualTransform.hpp"
 
 namespace nw {
 
@@ -32,6 +33,9 @@ struct ObjectBase {
     void set_handle(ObjectHandle handle) { handle_ = handle; }
     const EffectArray& effects() const;
     EffectArray& effects();
+    VisualTransform visual_transform() const noexcept { return visual_transform_; }
+    void set_visual_transform(VisualTransform value) { visual_transform_ = value; }
+
     virtual void clear();
     virtual bool instantiate() = 0;
     virtual InternedString tag() const;
@@ -68,6 +72,7 @@ private:
     nw::MemoryResource* allocator_;
     ObjectHandle handle_;
     EffectArray effects_;
+    VisualTransform visual_transform_;
 };
 
 } // namespace nw

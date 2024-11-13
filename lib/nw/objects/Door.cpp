@@ -131,6 +131,15 @@ bool Door::deserialize(Door* obj, const nlohmann::json& archive, SerializationPr
         archive.at("linked_to_flags").get_to(obj->linked_to_flags);
         archive.at("linked_to").get_to(obj->linked_to);
         archive.at("plot").get_to(obj->plot);
+
+        if (profile == SerializationProfile::instance) {
+            auto it = archive.find("visual_transform");
+            if (it != std::end(archive)) {
+                VisualTransform vt;
+                archive.at("visual_transform").get_to(vt);
+                obj->set_visual_transform(vt);
+            }
+        }
     } catch (const nlohmann::json::exception& e) {
         LOG_F(ERROR, "Door::to_json exception: {}", e.what());
         return false;
@@ -175,6 +184,13 @@ bool Door::serialize(const Door* obj, nlohmann::json& archive, SerializationProf
     archive["interruptable"] = obj->interruptable;
     archive["linked_to_flags"] = obj->linked_to_flags;
     archive["plot"] = obj->plot;
+
+    if (profile == SerializationProfile::instance) {
+        // Don't add default constructed visual transforms
+        if (obj->visual_transform() != VisualTransform{}) {
+            archive["visual_transform"] = obj->visual_transform();
+        }
+    }
 
     return true;
 }
@@ -266,9 +282,15 @@ bool deserialize(Door* obj, const GffStruct& archive, SerializationProfile profi
     archive.get_to("LinkedToFlags", obj->linked_to_flags);
     archive.get_to("Plot", obj->plot);
 
-    if (profile == nw::SerializationProfile::instance) {
-        obj->instantiated_ = true;
+    if (profile == SerializationProfile::instance) {
+        VisualTransform vt;
+        auto st = archive.get<GffStruct>("VisualTransform", false);
+        if (st) {
+            deserialize(*st, vt);
+            obj->set_visual_transform(vt);
+        }
     }
+
     return result;
 }
 
@@ -323,6 +345,14 @@ bool serialize(const Door* obj, GffBuilderStruct& archive, SerializationProfile 
         .add_field("Interruptable", obj->interruptable)
         .add_field("LinkedToFlags", obj->linked_to_flags)
         .add_field("Plot", obj->plot);
+
+    if (profile == SerializationProfile::instance) {
+        // Don't add default constructed visual transforms (unlike the game).
+        if (obj->visual_transform() != VisualTransform{}) {
+            auto& st = archive.add_struct("VisualTransform", 6);
+            serialize(st, obj->visual_transform());
+        }
+    }
 
     return true;
 }
