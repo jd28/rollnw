@@ -316,11 +316,12 @@ bool GffField::get_to(T& value) const
             } else if constexpr (std::is_same_v<T, GffStruct>) {
                 if (entry_->data_or_offset < parent_->head_->struct_count) {
                     value = GffStruct(parent_, &parent_->structs_[entry_->data_or_offset]);
+                    return true;
                 } else {
                     LOG_F(ERROR, "GffField: Invalid index ({}) into struct array", entry_->data_or_offset);
                     value = GffStruct();
+                    return false;
                 }
-                return true;
             } else {
                 T temp;
                 CHECK_OFF(parent_->data_.bytes.read_at(off, &temp, sizeof(T)));
